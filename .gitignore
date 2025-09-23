@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+package-lock.json
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+dist-cjs/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Temporary folders
+tmp/
+temp/
