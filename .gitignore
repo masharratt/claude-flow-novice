@@ -1,41 +1,136 @@
 # Dependencies
 node_modules/
+.deno/
 npm-debug.log*
-package-lock.json
-pnpm-lock.yaml
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Build outputs
 dist/
-dist-cjs/
 build/
+out/
+*.exe
+*.tsbuildinfo
+.turbo/
 
-# Environment files
-.env
-.env.local
-.env.production
+# Binaries
+bin/claude-flow-*
+!bin/claude-flow
 
-# IDE files
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS files
+*~
 .DS_Store
-Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
 
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# Runtime data
-pids/
+# Testing
+coverage/
+.nyc_output/
+tests/results/
+tests/logs/
+*.lcov
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# Test outputs
+output/
+api-project/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.temp
+.cache/
+tmp/
+
+# Claude-Flow specific
+claude-flow.db
+claude-flow.config.json
+# memory/
+# sessions/
+
+# MCP/Swarm
+.ruv-swarm/
+mcp-server.log
+swarm-debug.log
+memory/backups/
+ui_*.log
+init-output.log
+
+# Development
 *.pid
 *.seed
+*.pid.lock
+package
+test-init
+test-full-init
+swarm-runs
 
-# Coverage directory used by tools like istanbul
-coverage/
+# Temporary files
+analyzing
+the
+claude-flow-mcp-wrapper
 
-# Temporary folders
-tmp/
-temp/
+# Test artifacts
+test-output/
+test-reports/
+# SQLite Database Files
+.swarm/memory.db*
+.hive-mind/hive.db*
+
+
+
+# Claude Flow generated files
+.claude/settings.local.json
+.mcp.json
+claude-flow.config.json
+.swarm/
+.hive-mind/
+memory/claude-flow-data.json
+memory/sessions/*
+!memory/sessions/README.md
+memory/agents/*
+!memory/agents/README.md
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+claude-flow
+claude-flow.bat
+claude-flow.ps1
+hive-mind-prompt-*.txt
+.claude-flow/.claude-flow/metrics/*.json
