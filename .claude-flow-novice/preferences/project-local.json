@@ -1,0 +1,39 @@
+{
+  "project": {
+    "name": "claude-flow-novice",
+    "type": "javascript",
+    "framework": "node",
+    "initialized": "2025-09-24T14:52:00.000Z",
+    "language_detected": "javascript",
+    "primary_language": "javascript",
+    "secondary_languages": ["typescript", "python"]
+  },
+  "overrides": {
+    "documentation": {
+      "claude_md_generated": true,
+      "custom_best_practices": true,
+      "project_specific_rules": [
+        "Focus on concurrent execution patterns",
+        "Emphasize SPARC methodology",
+        "Highlight swarm coordination"
+      ]
+    },
+    "tone": {
+      "technical_focus": true,
+      "minimize_fluff": true
+    },
+    "agents": {
+      "preferred_agent_types": ["coder", "reviewer", "tester", "researcher"],
+      "auto_spawn_patterns": {
+        "development": ["coder", "tester"],
+        "analysis": ["researcher", "reviewer"],
+        "architecture": ["system-architect", "planner"]
+      }
+    }
+  },
+  "analytics": {
+    "track_performance": true,
+    "optimize_workflows": true,
+    "learn_patterns": true
+  }
+}

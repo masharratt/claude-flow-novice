@@ -1,0 +1,37 @@
+{
+  "language": "python",
+  "frameworks": ["django", "flask", "fastapi", "pytest", "pandas", "numpy"],
+  "best_practices": {
+    "file_structure": {
+      "src": "Source modules",
+      "tests": "Test files (pytest)",
+      "docs": "Documentation and examples",
+      "config": "Configuration files",
+      "scripts": "Utility scripts"
+    },
+    "linting": {
+      "black": true,
+      "flake8": true,
+      "mypy": true,
+      "config_files": ["pyproject.toml", ".flake8", "mypy.ini"]
+    },
+    "testing": {
+      "framework": "pytest",
+      "patterns": ["test_*.py", "*_test.py"],
+      "coverage": true
+    },
+    "dependencies": {
+      "package_manager": "pip",
+      "requirements": "requirements.txt",
+      "dev_dependencies": ["black", "flake8", "pytest", "mypy"],
+      "virtual_env": true
+    }
+  },
+  "claude_md_template": {
+    "concurrent_patterns": "Use asyncio for async operations, threading for I/O",
+    "error_handling": "Use try-except blocks, create custom exceptions",
+    "code_style": "Follow PEP 8, use type hints, docstrings",
+    "testing": "Write pytest tests, use fixtures, parametrize tests",
+    "performance": "Use list comprehensions, avoid premature optimization"
+  }
+}

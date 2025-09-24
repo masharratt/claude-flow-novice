@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "timestamp": "2025-09-24T21:06:55.673Z",
+    "duration": 13195,
+    "system": {
+      "platform": "linux",
+      "arch": "x64",
+      "cpus": 8,
+      "totalMemory": 20977840128,
+      "nodeVersion": "v22.19.0"
+    }
+  },
+  "summary": {
+    "testsRun": 3,
+    "testsPassed": 3,
+    "testsFailed": 0,
+    "overallScore": 100,
+    "duration": 13195,
+    "systemHealthy": true
+  },
+  "verification": {
+    "claims": {
+      "Agent scalability (20+ concurrent)": true,
+      "Memory leak prevention": true,
+      "CPU efficiency under load": true
+    },
+    "metrics": {
+      "agentThroughput": 2.4447486798357128,
+      "memoryGrowth": 1.234375,
+      "cpuUtilization": 91.86922390722569,
+      "successRate": 100
+    }
+  },
+  "detailedResults": {
+    "realAgentOperations": {
+      "agentCount": 25,
+      "successful": 25,
+      "failed": 0,
+      "successRate": 100,
+      "duration": 10226,
+      "throughput": 2.4447486798357128,
+      "memory": {
+        "start": 47099904,
+        "peak": 49631232,
+        "end": 48394240,
+        "growth": 1294336,
+        "peakGrowth": 2531328
+      },
+      "loadAverage": {
+        "start": [
+          2.27,
+          6.14,
+          6.5
+        ],
+        "end": [
+          38.08,
+          13.85,
+          9.02
+        ]
+      },
+      "errors": [],
+      "passed": true
+    },
+    "memoryLeakDetection": {
+      "iterations": 50,
+      "snapshots": 6,
+      "leakDetected": false,
+      "memoryGrowth": -760696,
+      "growthRate": -126782.66666666667,
+      "passed": true
+    },
+    "cpuPerformance": {
+      "duration": 1121,
+      "concurrentWork": 15,
+      "cpuUsage": {
+        "user": 91.86922390722569,
+        "system": 0
+      },
+      "totalCPU": 91.86922390722569,
+      "loadAverage": [
+        35.35,
+        13.68,
+        8.99
+      ],
+      "passed": true
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "INFO",
+      "category": "Performance",
+      "issue": "All performance tests passed",
+      "action": "Continue monitoring for sustained performance"
+    }
+  ]
+}

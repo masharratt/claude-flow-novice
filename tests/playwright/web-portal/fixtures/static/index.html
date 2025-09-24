@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Flow Web Portal - Test Environment</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 10% auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input {
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .swarm-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .swarm-item {
+            padding: 15px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .swarm-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .swarm-status {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(118, 75, 162, 0.05);
+            border-radius: 6px;
+        }
+
+        .agent-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active { background: #d4edda; color: #155724; }
+        .status-idle { background: #fff3cd; color: #856404; }
+        .status-busy { background: #f8d7da; color: #721c24; }
+
+        .messages-panel {
+            grid-column: 1 / -1;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .message-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .message-agent {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 80px;
+        }
+
+        .message-text {
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .intervention-panel {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .intervention-title {
+            color: #856404;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .intervention-question {
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .intervention-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .intervention-option {
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .intervention-option:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .intervention-option.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .option-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .option-pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .pros, .cons {
+            font-size: 14px;
+        }
+
+        .pros ul { color: #28a745; }
+        .cons ul { color: #dc3545; }
+
+        .intervention-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .mcp-tools-panel {
+            grid-column: 1 / -1;
+        }
+
+        .tool-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 6px;
+        }
+
+        .tool-execute {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .transparency-log {
+            grid-column: 1 / -1;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 6px;
+            border-left: 3px solid #17a2b8;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .log-action {
+            font-weight: 600;
+            color: #17a2b8;
+        }
+
+        .log-timestamp {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .log-details {
+            font-size: 14px;
+            color: #555;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <h2 style="text-align: center; margin-bottom: 30px; color: #333;">Claude Flow Portal</h2>
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" data-testid="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" data-testid="password" required>
+            </div>
+            <button type="submit" class="login-button" data-testid="login-button">Sign In</button>
+        </form>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="mainApp" class="hidden">
+        <div class="container">
+            <div class="header">
+                <div class="logo">Claude Flow Portal</div>
+                <div class="user-menu" data-testid="user-menu">
+                    <span>Welcome, <span id="currentUser">Admin</span></span>
+                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <!-- System Stats -->
+                <div class="card" data-testid="system-stats">
+                    <h3>System Overview</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="activeSwarms">2</div>
+                            <div class="stat-label">Active Swarms</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="activeAgents">5</div>
+                            <div class="stat-label">Active Agents</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="runningTasks">4</div>
+                            <div class="stat-label">Running Tasks</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="completedTasks">25</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Swarms List -->
+                <div class="card" data-testid="swarms-panel">
+                    <h3>Active Swarms</h3>
+                    <div class="swarm-list" id="swarmsList">
+                        <div class="swarm-item" data-testid="swarm-test-swarm-1">
+                            <div class="swarm-name">Development Swarm</div>
+                            <div class="swarm-status">Hierarchical • 3 agents active</div>
+                        </div>
+                        <div class="swarm-item" data-testid="swarm-test-swarm-2">
+                            <div class="swarm-name">Analysis Swarm</div>
+                            <div class="swarm-status">Mesh • 2 agents idle</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agents List -->
+                <div class="card" data-testid="agents-panel">
+                    <h3>Agents Status</h3>
+                    <div class="agent-list" id="agentsList">
+                        <div class="agent-item" data-testid="agent-agent-1">
+                            <span>Researcher</span>
+                            <span class="agent-status status-active">Active</span>
+                        </div>
+                        <div class="agent-item" data-testid="agent-agent-2">
+                            <span>Coder</span>
+                            <span class="agent-status status-idle">Idle</span>
+                        </div>
+                        <div class="agent-item" data-testid="agent-agent-3">
+                            <span>Tester</span>
+                            <span class="agent-status status-busy">Busy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Messages -->
+                <div class="card messages-panel" data-testid="messages-panel">
+                    <h3>Agent Messages</h3>
+                    <div id="messagesList">
+                        <!-- Messages will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- MCP Tools Panel -->
+                <div class="card mcp-tools-panel" data-testid="mcp-tools-panel">
+                    <h3>MCP Integration Tools</h3>
+                    <div id="mcpToolsList">
+                        <div class="tool-item" data-testid="mcp-tool-swarm_init">
+                            <div>
+                                <strong>swarm_init</strong>
+                                <div style="font-size: 12px; color: #666;">Initialize a new swarm with specified topology</div>
+                            </div>
+                            <button class="tool-execute" data-tool="swarm_init">Execute</button>
+                        </div>
+                        <div class="tool-item" data-testid="mcp-tool-agent_spawn">
+                            <div>
+                                <strong>agent_spawn</strong>
+                                <div style="font-size: 12px; color: #666;">Spawn a new agent in the swarm</div>
+                            </div>
+                            <button class="tool-execute" data-tool="agent_spawn">Execute</button>
+                        </div>
+                        <div class="tool-item" data-testid="mcp-tool-task_orchestrate">
+                            <div>
+                                <strong>task_orchestrate</strong>
+                                <div style="font-size: 12px; color: #666;">Orchestrate a task across the swarm</div>
+                            </div>
+                            <button class="tool-execute" data-tool="task_orchestrate">Execute</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transparency Logging -->
+                <div class="card transparency-log" data-testid="transparency-log">
+                    <h3>Transparency Audit Log</h3>
+                    <div id="auditLogList">
+                        <!-- Audit logs will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Human Intervention Panel -->
+            <div id="interventionPanel" class="intervention-panel hidden" data-testid="intervention-panel">
+                <div class="intervention-title">🤔 Human Input Required</div>
+                <div class="intervention-question" id="interventionQuestion">
+                    Should we use OAuth 2.0 or custom JWT implementation?
+                </div>
+                <div class="intervention-options" id="interventionOptions">
+                    <div class="intervention-option" data-option="oauth2">
+                        <div class="option-label">OAuth 2.0</div>
+                        <div class="option-pros-cons">
+                            <div class="pros">
+                                <strong>Pros:</strong>
+                                <ul>
+                                    <li>Industry standard</li>
+                                    <li>Highly secure</li>
+                                    <li>Third-party integration</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <strong>Cons:</strong>
+                                <ul>
+                                    <li>Complex setup</li>
+                                    <li>Learning curve</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="intervention-option" data-option="jwt">
+                        <div class="option-label">Custom JWT</div>
+                        <div class="option-pros-cons">
+                            <div class="pros">
+                                <strong>Pros:</strong>
+                                <ul>
+                                    <li>Simple implementation</li>
+                                    <li>Lightweight</li>
+                                    <li>Full control</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <strong>Cons:</strong>
+                                <ul>
+                                    <li>Custom security implementation</li>
+                                    <li>Maintenance overhead</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="intervention-actions">
+                    <button class="btn btn-primary" id="submitDecision">Submit Decision</button>
+                    <button class="btn btn-secondary" id="needMoreInfo">Need More Info</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let socket;
+        let currentUser = null;
+        let selectedOption = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if already logged in (for testing)
+            const authToken = localStorage.getItem('authToken');
+            if (authToken) {
+                showDashboard();
+            } else {
+                showLogin();
+            }
+
+            setupEventListeners();
+        });
+
+        // Event listeners setup
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+            // Intervention option selection
+            document.querySelectorAll('.intervention-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    selectInterventionOption(this.dataset.option);
+                });
+            });
+
+            // Intervention actions
+            document.getElementById('submitDecision').addEventListener('click', submitInterventionDecision);
+            document.getElementById('needMoreInfo').addEventListener('click', requestMoreInfo);
+
+            // MCP tool execution
+            document.querySelectorAll('.tool-execute').forEach(button => {
+                button.addEventListener('click', function() {
+                    executeMcpTool(this.dataset.tool);
+                });
+            });
+        }
+
+        // Authentication
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    localStorage.setItem('authToken', result.token);
+                    currentUser = result.user;
+                    showDashboard();
+                } else {
+                    alert('Login failed: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Login failed. Please try again.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            if (socket) {
+                socket.disconnect();
+            }
+            showLogin();
+        }
+
+        // UI State Management
+        function showLogin() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+
+            if (currentUser) {
+                document.getElementById('currentUser').textContent = currentUser.username || 'Admin';
+            }
+
+            // Initialize WebSocket connection
+            initializeWebSocket();
+
+            // Load initial data
+            loadDashboardData();
+
+            // Show intervention panel after a delay (for testing)
+            setTimeout(showInterventionPanel, 5000);
+        }
+
+        // WebSocket Connection
+        function initializeWebSocket() {
+            socket = io();
+
+            socket.on('connect', function() {
+                console.log('Connected to WebSocket server');
+                socket.emit('subscribe-to-swarm', 'test-swarm-1');
+                socket.emit('subscribe-to-agent', 'agent-1');
+            });
+
+            socket.on('dashboard-stats', function(data) {
+                updateDashboardStats(data);
+            });
+
+            socket.on('agent-status-update', function(data) {
+                updateAgentStatus(data);
+            });
+
+            socket.on('agent-message', function(data) {
+                addAgentMessage(data);
+            });
+
+            socket.on('task-progress-update', function(data) {
+                updateTaskProgress(data);
+            });
+
+            socket.on('intervention-resolved', function(data) {
+                hideInterventionPanel();
+                addAuditLogEntry({
+                    action: 'intervention-resolved',
+                    details: `Decision: ${data.decision}`,
+                    timestamp: data.resolvedAt
+                });
+            });
+
+            socket.on('disconnect', function() {
+                console.log('Disconnected from WebSocket server');
+            });
+
+            socket.on('error', function(error) {
+                console.error('WebSocket error:', error);
+            });
+        }
+
+        // Data Loading
+        async function loadDashboardData() {
+            try {
+                // Load dashboard stats
+                const statsResponse = await fetch('/api/dashboard/stats');
+                const stats = await statsResponse.json();
+                updateDashboardStats(stats);
+
+                // Load audit logs
+                const auditResponse = await fetch('/api/transparency/audit-log');
+                const auditLogs = await auditResponse.json();
+                populateAuditLog(auditLogs);
+
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Dashboard Updates
+        function updateDashboardStats(stats) {
+            if (stats.swarms) {
+                document.getElementById('activeSwarms').textContent = stats.swarms.active || stats.swarms;
+            }
+            if (stats.agents) {
+                document.getElementById('activeAgents').textContent = stats.agents.active || stats.agents;
+            }
+            if (stats.tasks) {
+                document.getElementById('runningTasks').textContent = stats.tasks.running || stats.tasks;
+                document.getElementById('completedTasks').textContent = stats.tasks.completed || 25;
+            }
+        }
+
+        function updateAgentStatus(data) {
+            const agentElement = document.querySelector(`[data-testid="agent-${data.agentId}"]`);
+            if (agentElement) {
+                const statusElement = agentElement.querySelector('.agent-status');
+                statusElement.className = `agent-status status-${data.status}`;
+                statusElement.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+            }
+        }
+
+        function addAgentMessage(data) {
+            const messagesList = document.getElementById('messagesList');
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message-item';
+            messageElement.setAttribute('data-testid', `message-${Date.now()}`);
+
+            const time = new Date(data.timestamp).toLocaleTimeString();
+            messageElement.innerHTML = `
+                <div class="message-agent">${data.agentId}</div>
+                <div class="message-text">${data.message}</div>
+                <div class="message-time">${time}</div>
+            `;
+
+            messagesList.insertBefore(messageElement, messagesList.firstChild);
+
+            // Limit messages to 50
+            const messages = messagesList.querySelectorAll('.message-item');
+            if (messages.length > 50) {
+                messages[messages.length - 1].remove();
+            }
+        }
+
+        // Human Intervention
+        function showInterventionPanel() {
+            document.getElementById('interventionPanel').classList.remove('hidden');
+        }
+
+        function hideInterventionPanel() {
+            document.getElementById('interventionPanel').classList.add('hidden');
+            selectedOption = null;
+            document.querySelectorAll('.intervention-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+        }
+
+        function selectInterventionOption(optionId) {
+            selectedOption = optionId;
+            document.querySelectorAll('.intervention-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[data-option="${optionId}"]`).classList.add('selected');
+        }
+
+        async function submitInterventionDecision() {
+            if (!selectedOption) {
+                alert('Please select an option first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/interventions/intervention-1/respond', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        decision: selectedOption,
+                        reason: 'Selected based on project requirements'
+                    })
+                });
+
+                if (response.ok) {
+                    hideInterventionPanel();
+                    addAgentMessage({
+                        agentId: 'system',
+                        message: `Human decision submitted: ${selectedOption}`,
+                        type: 'success',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } catch (error) {
+                console.error('Error submitting decision:', error);
+                alert('Failed to submit decision. Please try again.');
+            }
+        }
+
+        function requestMoreInfo() {
+            addAgentMessage({
+                agentId: 'system',
+                message: 'Human requested more information for decision',
+                type: 'info',
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // MCP Tool Execution
+        async function executeMcpTool(toolName) {
+            const button = document.querySelector(`[data-tool="${toolName}"]`);
+            const originalText = button.textContent;
+            button.textContent = 'Executing...';
+            button.disabled = true;
+
+            try {
+                const response = await fetch(`/api/mcp/tools/${toolName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        parameters: getToolParameters(toolName)
+                    })
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    addAgentMessage({
+                        agentId: 'mcp-system',
+                        message: `Tool ${toolName} executed: ${result.result}`,
+                        type: 'success',
+                        timestamp: result.timestamp
+                    });
+                }
+            } catch (error) {
+                console.error('Error executing MCP tool:', error);
+                addAgentMessage({
+                    agentId: 'mcp-system',
+                    message: `Tool ${toolName} failed: ${error.message}`,
+                    type: 'error',
+                    timestamp: new Date().toISOString()
+                });
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function getToolParameters(toolName) {
+            const defaultParams = {
+                'swarm_init': { topology: 'mesh', maxAgents: 3 },
+                'agent_spawn': { type: 'researcher', capabilities: ['research'] },
+                'task_orchestrate': { task: 'Test task', priority: 'medium' }
+            };
+            return defaultParams[toolName] || {};
+        }
+
+        // Transparency Logging
+        function populateAuditLog(logs) {
+            const auditLogList = document.getElementById('auditLogList');
+            auditLogList.innerHTML = '';
+
+            logs.forEach((log, index) => {
+                addAuditLogEntry(log, index);
+            });
+        }
+
+        function addAuditLogEntry(log, index = null) {
+            const auditLogList = document.getElementById('auditLogList');
+            const logElement = document.createElement('div');
+            logElement.className = 'log-entry';
+            logElement.setAttribute('data-testid', `audit-log-${index !== null ? index : Date.now()}`);
+
+            const time = new Date(log.timestamp).toLocaleString();
+            logElement.innerHTML = `
+                <div class="log-header">
+                    <div class="log-action">${log.action}</div>
+                    <div class="log-timestamp">${time}</div>
+                </div>
+                <div class="log-details">${typeof log.details === 'object' ? JSON.stringify(log.details, null, 2) : log.details}</div>
+            `;
+
+            if (index === null) {
+                auditLogList.insertBefore(logElement, auditLogList.firstChild);
+            } else {
+                auditLogList.appendChild(logElement);
+            }
+        }
+
+        // Utility Functions
+        function updateTaskProgress(data) {
+            console.log('Task progress update:', data);
+            // This would update task progress indicators in a real application
+        }
+
+        // Expose functions for testing
+        window.testHelpers = {
+            showInterventionPanel,
+            hideInterventionPanel,
+            selectInterventionOption,
+            updateAgentStatus,
+            addAgentMessage,
+            executeMcpTool
+        };
+    </script>
+</body>
+</html>

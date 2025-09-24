@@ -1,0 +1,39 @@
+{
+  "language": "javascript",
+  "frameworks": ["node", "express", "react", "vue", "angular", "next"],
+  "best_practices": {
+    "file_structure": {
+      "src": "Source code",
+      "tests": "Test files (Jest, Mocha, etc.)",
+      "docs": "Documentation",
+      "config": "Configuration files",
+      "scripts": "Build and utility scripts"
+    },
+    "linting": {
+      "eslint": true,
+      "prettier": true,
+      "config_files": [".eslintrc.json", ".prettierrc.json"]
+    },
+    "testing": {
+      "framework": "jest",
+      "patterns": ["*.test.js", "*.spec.js"],
+      "coverage": true
+    },
+    "dependencies": {
+      "package_manager": "npm",
+      "dev_dependencies": ["eslint", "prettier", "jest"],
+      "scripts": {
+        "test": "jest",
+        "lint": "eslint src/",
+        "format": "prettier --write src/"
+      }
+    }
+  },
+  "claude_md_template": {
+    "concurrent_patterns": "Use Promise.all() for parallel operations",
+    "error_handling": "Implement proper try-catch and async error handling",
+    "code_style": "Follow ESLint rules, use const/let appropriately",
+    "testing": "Write tests first (TDD), aim for >80% coverage",
+    "performance": "Use async/await, avoid blocking operations"
+  }
+}

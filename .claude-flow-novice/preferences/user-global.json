@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "created": "2025-09-24",
+  "preferences": {
+    "documentation": {
+      "verbosity": "moderate",
+      "auto_generate_md": false,
+      "allowed_md_types": ["README", "API_DOCS", "CHANGELOG"],
+      "max_md_files_per_session": 3
+    },
+    "tone": {
+      "style": "professional",
+      "celebration_level": "minimal",
+      "feedback_verbosity": "concise",
+      "technical_depth": "balanced"
+    },
+    "guidance": {
+      "experience_level": "adaptive",
+      "show_advanced_options": false,
+      "progressive_disclosure": true,
+      "context_aware_help": true
+    },
+    "workflow": {
+      "auto_optimize": true,
+      "suggestion_frequency": "after_major_tasks",
+      "analytics_driven": true,
+      "pattern_learning": true
+    },
+    "languages": {
+      "auto_detect": true,
+      "preferred_languages": ["javascript", "typescript", "python"],
+      "auto_setup_linting": true,
+      "framework_detection": true
+    },
+    "team": {
+      "share_preferences": false,
+      "sync_claude_md": true,
+      "collaborative_mode": false
+    }
+  },
+  "customizations": {
+    "message_filters": {
+      "remove_congratulatory": true,
+      "simplify_technical_jargon": false,
+      "focus_on_actionable": true
+    },
+    "file_organization": {
+      "strict_directory_rules": true,
+      "auto_categorize": true,
+      "prevent_root_clutter": true
+    },
+    "agent_behavior": {
+      "concise_reporting": true,
+      "focus_on_results": true,
+      "minimize_process_descriptions": false
+    }
+  }
+}

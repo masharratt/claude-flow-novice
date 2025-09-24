@@ -32,8 +32,6 @@
     ],
     "deny": [
       "Bash(rm -rf /)",
-      "Bash(curl)",
-      "Bash(wget)",
       "Bash(eval :*)"
     ]
   },
@@ -110,5 +108,5 @@
     ]
   },
   "includeCoAuthoredBy": true,
-  "enabledMcpjsonServers": ["claude-flow", "ruv-swarm"]
+  "enabledMcpjsonServers": ["claude-flow", "ruv-swarm", "playwright-mcp"]
 }

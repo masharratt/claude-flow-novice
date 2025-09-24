@@ -34,10 +34,11 @@ import {
   fixHookVariablesCommand,
   fixHookVariablesCommandConfig,
 } from './simple-commands/fix-hook-variables.js';
-import { 
+import {
   initializePerformanceTracking,
-  trackCommandExecution 
+  trackCommandExecution
 } from './simple-commands/performance-hooks.js';
+import { preferencesCommand } from './preferences.js';
 // Maestro commands integrated with clean implementation
 // Note: Maestro TypeScript commands now integrated directly in ./commands/maestro.ts
 // Note: TypeScript imports commented out for Node.js compatibility
@@ -765,7 +766,7 @@ Options:
     usage: 'stream-chain <subcommand> [options]',
     examples: [
       'stream-chain run "analyze" "design" "implement"  # Custom chain',
-      'stream-chain demo                                 # Run demo chain', 
+      'stream-chain demo                                 # Run demo chain',
       'stream-chain pipeline analysis                    # Run analysis pipeline',
       'stream-chain test                                 # Test stream connection',
       'stream-chain help                                 # Show detailed help',
@@ -801,6 +802,64 @@ Options:
     • Streaming: No intermediate files
 
 📖 For full documentation: stream-chain help`,
+  });
+
+  commandRegistry.set('preferences', {
+    handler: preferencesCommand,
+    description: '⚙️ User preference management and configuration wizard',
+    usage: 'preferences <subcommand> [options]',
+    examples: [
+      'preferences setup                              # Run interactive preference wizard',
+      'preferences show                               # Display current preferences',
+      'preferences set documentation.verbosity detailed',
+      'preferences set workflow.concurrency 4',
+      'preferences get feedback.tone',
+      'preferences suggest                            # Get improvement suggestions',
+      'preferences export my-settings.json           # Export preferences',
+      'preferences reset --force                      # Reset to defaults',
+    ],
+    details: `
+Preference Management Features:
+  • Interactive setup wizard for new users
+  • Project-specific and global preference scopes
+  • Smart defaults based on experience level and project type
+  • Preference validation and suggestions
+  • Import/export capabilities
+  • Context-aware preference adaptation
+
+🧙‍♂️ SETUP WIZARD
+  Collects user preferences through interactive prompts:
+  • Experience level and development background
+  • Documentation verbosity and explanation preferences
+  • Communication tone and error handling style
+  • Workflow preferences and agent coordination
+  • Advanced features and integrations
+
+⚙️ PREFERENCE CATEGORIES
+  experience.*     User experience level and background
+  documentation.*  Documentation verbosity and style preferences
+  feedback.*       Communication tone and error handling
+  workflow.*       Agent coordination and automation settings
+  advanced.*       Advanced features and neural learning
+  project.*        Auto-detected project-specific settings
+
+🔧 COMMANDS
+  setup           Run interactive preference wizard
+  show [scope]    Display current preferences (all/global/project)
+  set <key> <val> Set preference value with dot notation
+  get <key>       Get specific preference value
+  reset [scope]   Reset preferences to defaults
+  validate        Validate current preference values
+  export [file]   Export preferences to JSON file
+  import <file>   Import preferences from file
+  suggest         Get optimization suggestions
+  list            Show all available preference keys
+
+🎯 CONTEXTUAL ADAPTATION
+  Preferences adapt based on:
+  • Task complexity (simple tasks use minimal verbosity)
+  • System resources (limits agent concurrency)
+  • User experience level (adjusts guidance and explanations)`,
   });
 
   commandRegistry.set('hive', {

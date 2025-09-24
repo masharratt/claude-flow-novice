@@ -1,0 +1,113 @@
+{
+  "cluster": {
+    "name": "raft-consensus-cluster",
+    "nodes": [
+      {
+        "id": "node-1",
+        "role": "leader-candidate",
+        "electionTimeout": 300,
+        "heartbeatInterval": 50,
+        "capabilities": ["consensus", "validation", "replication"]
+      },
+      {
+        "id": "node-2",
+        "role": "follower",
+        "electionTimeout": 350,
+        "heartbeatInterval": 50,
+        "capabilities": ["consensus", "validation", "replication"]
+      },
+      {
+        "id": "node-3",
+        "role": "follower",
+        "electionTimeout": 320,
+        "heartbeatInterval": 50,
+        "capabilities": ["consensus", "validation", "replication"]
+      },
+      {
+        "id": "node-4",
+        "role": "follower",
+        "electionTimeout": 380,
+        "heartbeatInterval": 50,
+        "capabilities": ["consensus", "validation", "replication"]
+      },
+      {
+        "id": "node-5",
+        "role": "follower",
+        "electionTimeout": 290,
+        "heartbeatInterval": 50,
+        "capabilities": ["consensus", "validation", "replication"]
+      }
+    ]
+  },
+  "verification": {
+    "testSuites": [
+      {
+        "name": "swarm_functionality",
+        "tests": [
+          "graceful_shutdown",
+          "leader_recovery",
+          "cluster_resilience",
+          "state_consistency"
+        ],
+        "timeout": 10000,
+        "required": true
+      },
+      {
+        "name": "mcp_integration",
+        "tests": [
+          "swarm_operations",
+          "agent_operations",
+          "memory_operations",
+          "neural_operations",
+          "github_integration"
+        ],
+        "timeout": 15000,
+        "required": true
+      },
+      {
+        "name": "performance_metrics",
+        "tests": [
+          "solve_bench_rate",
+          "token_reduction",
+          "speed_improvement",
+          "neural_models"
+        ],
+        "timeout": 20000,
+        "required": true
+      },
+      {
+        "name": "consensus_protocol",
+        "tests": [
+          "leader_election",
+          "log_replication",
+          "consistency_guarantees",
+          "fault_tolerance"
+        ],
+        "timeout": 25000,
+        "required": true
+      }
+    ],
+    "thresholds": {
+      "minimumSuccessRate": 0.75,
+      "excellentSuccessRate": 0.9,
+      "maxElectionTime": 3000,
+      "maxRecoveryTime": 5000,
+      "performanceVarianceTolerance": 0.15
+    },
+    "claims": {
+      "solveBenchRate": 84.8,
+      "tokenReduction": 32.3,
+      "speedImprovement": 3.6,
+      "neuralModels": 27,
+      "swarmRecoveryTime": 2000,
+      "consensusElectionTime": 1000
+    }
+  },
+  "reporting": {
+    "outputFormats": ["json", "markdown", "html"],
+    "includeMetrics": true,
+    "includeRecommendations": true,
+    "saveLogs": true,
+    "exportResults": true
+  }
+}

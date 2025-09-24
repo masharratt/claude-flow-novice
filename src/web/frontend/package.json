@@ -1,0 +1,170 @@
+{
+  "name": "claude-flow-personal-web-portal",
+  "version": "1.0.0",
+  "description": "React frontend for Claude Flow Personal Web Portal with real-time MCP integration",
+  "private": true,
+  "homepage": ".",
+  "dependencies": {
+    "@types/node": "^18.19.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "socket.io-client": "^4.7.4",
+    "axios": "^1.6.2",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/material": "^5.15.0",
+    "@mui/icons-material": "^5.15.0",
+    "@mui/x-charts": "^6.18.1",
+    "@mui/x-data-grid": "^6.18.1",
+    "recharts": "^2.8.0",
+    "react-router-dom": "^6.20.1",
+    "react-hook-form": "^7.48.2",
+    "@hookform/resolvers": "^3.3.2",
+    "yup": "^1.4.0",
+    "date-fns": "^2.30.0",
+    "lodash": "^4.17.21",
+    "@types/lodash": "^4.14.202",
+    "react-hot-toast": "^2.4.1",
+    "react-query": "^3.39.3",
+    "zustand": "^4.4.7",
+    "monaco-editor": "^0.45.0",
+    "@monaco-editor/react": "^4.6.0",
+    "react-split-pane": "^0.1.92",
+    "react-json-view": "^1.21.3",
+    "prismjs": "^1.29.0",
+    "react-syntax-highlighter": "^15.5.0",
+    "@types/react-syntax-highlighter": "^15.5.11",
+    "react-terminal-ui": "^1.0.4",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0",
+    "xterm-addon-web-links": "^0.9.0",
+    "react-dropzone": "^14.2.3",
+    "file-saver": "^2.0.5",
+    "@types/file-saver": "^2.0.7"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.5.1",
+    "@types/jest": "^29.5.8",
+    "typescript": "^4.9.5",
+    "web-vitals": "^3.5.0",
+    "eslint": "^8.55.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.1.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "cross-env": "^7.0.3",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  },
+  "scripts": {
+    "start": "cross-env REACT_APP_API_URL=http://localhost:3000 react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write src/**/*.{js,jsx,ts,tsx,json,css,md}",
+    "format:check": "prettier --check src/**/*.{js,jsx,ts,tsx,json,css,md}",
+    "type-check": "tsc --noEmit",
+    "dev": "concurrently \"npm run start\" \"npm run type-check -- --watch\"",
+    "build:prod": "cross-env NODE_ENV=production npm run build",
+    "serve": "npx serve -s build -l 3001",
+    "analyze": "npm run build && npx bundle-analyzer build/static/js/*.js",
+    "test:coverage": "npm test -- --coverage --watchAll=false",
+    "test:ci": "cross-env CI=true npm test -- --coverage --watchAll=false --testResultsProcessor=jest-sonar-reporter",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          "argsIgnorePattern": "^_",
+          "varsIgnorePattern": "^_"
+        }
+      ],
+      "react-hooks/exhaustive-deps": "warn",
+      "no-console": [
+        "warn",
+        {
+          "allow": [
+            "warn",
+            "error"
+          ]
+        }
+      ]
+    }
+  },
+  "prettier": {
+    "semi": true,
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "printWidth": 80,
+    "tabWidth": 2,
+    "useTabs": false
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:3000",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "claude-flow",
+    "mcp",
+    "react",
+    "typescript",
+    "websocket",
+    "real-time",
+    "web-portal",
+    "ai-agents",
+    "swarm-coordination"
+  ],
+  "author": "Claude Flow Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ruvnet/claude-flow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ruvnet/claude-flow/issues"
+  }
+}

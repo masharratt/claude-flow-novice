@@ -1,0 +1,41 @@
+{
+  "language": "typescript",
+  "frameworks": ["node", "express", "react", "angular", "next", "nest"],
+  "best_practices": {
+    "file_structure": {
+      "src": "Source code with types",
+      "tests": "Test files (Jest, Vitest)",
+      "docs": "Documentation",
+      "config": "Configuration files",
+      "types": "Type definitions"
+    },
+    "linting": {
+      "eslint": true,
+      "prettier": true,
+      "typescript_eslint": true,
+      "config_files": [".eslintrc.json", ".prettierrc.json", "tsconfig.json"]
+    },
+    "testing": {
+      "framework": "jest",
+      "patterns": ["*.test.ts", "*.spec.ts"],
+      "coverage": true
+    },
+    "dependencies": {
+      "package_manager": "npm",
+      "dev_dependencies": ["typescript", "@types/node", "eslint", "prettier", "jest"],
+      "scripts": {
+        "build": "tsc",
+        "test": "jest",
+        "lint": "eslint src/",
+        "typecheck": "tsc --noEmit"
+      }
+    }
+  },
+  "claude_md_template": {
+    "concurrent_patterns": "Use Promise.all(), proper async/await with types",
+    "error_handling": "Define error types, use Result<T, E> patterns",
+    "code_style": "Strict TypeScript config, interface over type when possible",
+    "testing": "Type-safe tests, mock with proper typing",
+    "performance": "Leverage tree shaking, use strict compiler options"
+  }
+}
