@@ -1,187 +1,230 @@
-# Claude Flow Novice 🚀
+# Claude Flow Personal 🚀
 
-**AI Agent Orchestration Made Simple for Beginners**
+**Transparent AI Agent Orchestration with Full Visibility**
 
-A beginner-friendly version of Claude Flow that makes AI agent coordination easy to learn and use.
+A personalized version of Claude Flow that puts you in control of AI agent coordination with complete transparency into every decision and process.
 
 <div align="center">
 
 [![GitHub stars](https://img.shields.io/github/stars/masharratt/claude-flow-novice?style=for-the-badge&logo=github&color=gold)](https://github.com/masharratt/claude-flow-novice)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge&logo=opensourceinitiative)](https://opensource.org/licenses/MIT)
-[![Beginner Friendly](https://img.shields.io/badge/Beginner-Friendly-green?style=for-the-badge&logo=education)](https://github.com/masharratt/claude-flow-novice)
+[![Transparent AI](https://img.shields.io/badge/Transparent-AI-blue?style=for-the-badge&logo=transparency)](https://github.com/masharratt/claude-flow-novice)
 
 </div>
 
 ---
 
-## 🎯 What is Claude Flow Novice?
+## 🎯 What is Claude Flow Personal?
 
-Claude Flow Novice is a simplified version of the powerful Claude Flow framework, designed specifically for developers who are new to AI agent orchestration.
+Claude Flow Personal is a transparency-focused version of the Claude Flow framework, designed for developers who want complete visibility and control over their AI agent coordination processes.
 
-### Why Choose Novice?
-- ✅ **Simple Setup** - Get started in minutes, not hours
-- ✅ **4 Essential Agents** - Just what you need to learn: researcher, coder, reviewer, planner
-- ✅ **Easy Commands** - Intuitive CLI that makes sense
-- ✅ **Clear Examples** - Learn by doing with real examples
-- ✅ **Great Documentation** - Step-by-step guides written for beginners
-- ✅ **No Overwhelm** - Focus on learning without 50+ agent types
+### Why Choose Personal?
+- ✅ **Full Transparency** - See exactly what each agent is thinking and doing
+- ✅ **Personalized Workflows** - Customize coordination patterns to match your work style
+- ✅ **Decision Visibility** - Understand why agents make specific choices
+- ✅ **Process Control** - Fine-tune every aspect of agent behavior
+- ✅ **Explainable AI** - Get detailed explanations for all agent actions
+- ✅ **Your Style** - Adapt agents to work exactly how you prefer
 
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-npm install -g claude-flow-novice
+npm install -g claude-flow-personal
 ```
 
-### Your First AI Agent in 3 Steps
+### Your First Transparent AI Workflow in 3 Steps
 
 ```bash
-# 1. Create a new project
-claude-flow-novice init my-first-project
-cd my-first-project
+# 1. Initialize with transparency enabled
+claude-flow-personal init my-project --transparency=full
+cd my-project
 
-# 2. Create your first agent
-claude-flow-novice agent create researcher "Research the latest trends in renewable energy"
+# 2. Create an agent with detailed reasoning
+claude-flow-personal agent create researcher "Research the latest trends in renewable energy" --explain-decisions --show-reasoning
 
-# 3. Run it and see the magic!
-claude-flow-novice run
+# 3. Run with full visibility
+claude-flow-personal run --verbose --show-thought-process
 ```
 
-That's it! Your AI agent will research renewable energy trends and provide you with a detailed report.
+You'll see every decision, reasoning step, and coordination choice your agents make in real-time.
 
 ## 📚 Core Concepts
 
-### 🤖 The 4 Essential Agents
+### 🔍 Transparency-First Agent Design
 
-Think of agents as specialized AI workers, each with their own expertise:
+Every agent in Claude Flow Personal provides complete visibility into their decision-making process:
 
-| Agent | What It Does | Example Use |
-|-------|--------------|-------------|
-| **🔍 Researcher** | Gathers information and analyzes data | "Research mobile app trends for 2024" |
-| **💻 Coder** | Writes and implements code | "Create a simple to-do app in JavaScript" |
-| **👀 Reviewer** | Checks quality and provides feedback | "Review my React code for best practices" |
-| **📋 Planner** | Organizes tasks and creates strategies | "Plan the architecture for an e-commerce site" |
+| Agent | Core Function | Transparency Features |
+|-------|---------------|----------------------|
+| **🔍 Researcher** | Information gathering & analysis | Shows search strategies, source evaluation, and reasoning chains |
+| **💻 Coder** | Implementation & development | Explains design choices, shows alternatives considered, reveals optimization decisions |
+| **👀 Reviewer** | Quality assurance & feedback | Details evaluation criteria, shows thought process, explains recommendations |
+| **📋 Planner** | Strategy & coordination | Reveals prioritization logic, shows trade-off analysis, explains timeline decisions |
 
-### 🎯 Simple Workflow
+### 🎯 Personalized Coordination Workflow
 
-1. **Initialize** a project (once per project)
-2. **Create** agents for your specific tasks
-3. **Run** them and get results
-4. **Build** on the results with more agents
+1. **Configure** your personal preferences and work style
+2. **Customize** agent behavior to match your decision-making patterns
+3. **Monitor** real-time agent coordination and reasoning
+4. **Adjust** processes based on transparency insights
+5. **Learn** from agent decisions to improve your own workflows
 
-## 🛠️ All Commands
+## 🛠️ Transparency & Personalization Commands
 
 ```bash
-# Project Management
-claude-flow-novice init <project-name>    # Create new project
-claude-flow-novice status                 # Check project status
+# Project & Profile Management
+claude-flow-personal init <project> --profile=<your-style>     # Create personalized project
+claude-flow-personal profile setup                             # Configure your work preferences
+claude-flow-personal status --detailed                         # Get comprehensive status
 
-# Agent Management
-claude-flow-novice agent create <type> "<task>"    # Create agent
-claude-flow-novice agent list                      # List all agents
-claude-flow-novice agent remove <id>               # Remove agent
+# Transparent Agent Management
+claude-flow-personal agent create <type> "<task>" --explain-all    # Create fully transparent agent
+claude-flow-personal agent inspect <id>                           # Deep dive into agent reasoning
+claude-flow-personal agent customize <id> --style=<your-way>      # Personalize agent behavior
 
-# Running Agents
-claude-flow-novice run                    # Run all pending agents
-claude-flow-novice run <agent-id>         # Run specific agent
+# Coordinated Execution with Full Visibility
+claude-flow-personal run --transparency=full                   # Run with complete visibility
+claude-flow-personal monitor --real-time                       # Watch coordination in real-time
+claude-flow-personal explain <execution-id>                    # Get detailed execution explanation
 
-# Help & Learning
-claude-flow-novice help-guide            # Show beginner guide
-claude-flow-novice --help               # Show all commands
+# Personalization & Learning
+claude-flow-personal learn-preferences                         # Analyze your coordination patterns
+claude-flow-personal customize-workflow <workflow-id>          # Adapt workflows to your style
+claude-flow-personal transparency-report                       # Generate decision transparency report
 ```
 
-## 📖 Learning Examples
+## 📖 Transparency & Personalization Examples
 
-### Example 1: Research Project
+### Example 1: Transparent Research with Your Style
 ```bash
-claude-flow-novice init research-project
+claude-flow-personal init research-project --profile=analytical-deep-dive
 cd research-project
-claude-flow-novice agent create researcher "Research the benefits of TypeScript over JavaScript"
-claude-flow-novice run
+claude-flow-personal agent create researcher "Research TypeScript vs JavaScript" \
+  --explain-search-strategy \
+  --show-source-evaluation \
+  --reveal-bias-checking
+claude-flow-personal run --transparency=full
 ```
 
-### Example 2: Code Development Workflow
+### Example 2: Personalized Development Workflow
 ```bash
-claude-flow-novice init todo-app
+claude-flow-personal init todo-app --coordination-style=iterative
 cd todo-app
 
-# Plan the project
-claude-flow-novice agent create planner "Plan a simple to-do app with React"
-claude-flow-novice run
+# Configure agents to match your decision-making style
+claude-flow-personal agent create planner "Plan React to-do app" \
+  --decision-style=thorough \
+  --explain-trade-offs \
+  --show-alternatives
 
-# Implement the code
-claude-flow-novice agent create coder "Build the to-do app based on the plan"
-claude-flow-novice run
+claude-flow-personal agent create coder "Implement based on plan" \
+  --coding-style=defensive \
+  --explain-design-choices \
+  --show-refactoring-opportunities
 
-# Review the implementation
-claude-flow-novice agent create reviewer "Review the to-do app code for improvements"
-claude-flow-novice run
+# Watch the coordination happen
+claude-flow-personal run --monitor-coordination --explain-handoffs
 ```
 
-### Example 3: Learning New Technology
+### Example 3: Learning with Full Visibility
 ```bash
-claude-flow-novice init learning-docker
+claude-flow-personal init learning-docker --learning-mode=transparent
 cd learning-docker
 
-claude-flow-novice agent create researcher "Research Docker basics and use cases"
-claude-flow-novice agent create planner "Create a learning path for Docker"
-claude-flow-novice run
+claude-flow-personal agent create researcher "Docker fundamentals" \
+  --show-learning-path \
+  --explain-complexity-assessment \
+  --reveal-knowledge-gaps
+
+claude-flow-personal monitor --real-time --explain-decisions
 ```
 
-## 🎓 Learning Path
+## 🎓 Personalization Journey
 
-### Level 1: Beginner (Start Here!)
-1. **Complete the Quick Start** above
-2. **Try each agent type** with simple tasks
-3. **Read agent results** and understand what they do
+### Level 1: Understanding Your AI (Start Here!)
+1. **Complete the transparency setup** and explore decision visibility
+2. **Configure your profile** to match your work style and preferences
+3. **Observe agent reasoning** and identify patterns that align with your thinking
 
-### Level 2: Getting Comfortable
-1. **Combine agents** in workflows (plan → code → review)
-2. **Experiment** with different task descriptions
-3. **Build small projects** using multiple agents
+### Level 2: Customizing Coordination
+1. **Personalize agent behavior** to complement your decision-making style
+2. **Experiment with different transparency levels** to find your comfort zone
+3. **Build workflows** that reflect your personal approach to problem-solving
 
-### Level 3: Building Confidence
-1. **Create complex workflows** with multiple steps
-2. **Use agents iteratively** to refine results
-3. **Start real projects** with agent assistance
+### Level 3: Mastering Transparent AI
+1. **Create sophisticated coordination patterns** with full visibility
+2. **Use transparency insights** to improve both AI and human decision-making
+3. **Develop personal AI workflows** that enhance your unique strengths
 
-### Level 4: Ready for More
-1. **Graduate to full Claude Flow** for advanced features
-2. **Explore enterprise features** like swarms and neural networks
-3. **Contribute** to the novice version to help other learners
+### Level 4: AI Partnership Mastery
+1. **Design custom coordination patterns** that perfectly match your work style
+2. **Share your personalization insights** to help others build better AI partnerships
+3. **Contribute** to the transparent AI movement and help define the future of human-AI collaboration
 
-## 🆚 Novice vs Full Claude Flow
+## 🆚 Personal vs Full Claude Flow
 
-| Feature | Claude Flow Novice | Full Claude Flow |
-|---------|-------------------|------------------|
-| **Agent Types** | 4 essential agents | 54+ specialized agents |
-| **Complexity** | Simple, linear workflows | Complex swarm coordination |
-| **Learning Curve** | Gentle, beginner-friendly | Steep, enterprise-focused |
-| **Use Cases** | Learning, small projects | Enterprise, complex systems |
-| **Documentation** | Tutorial-focused | Technical reference |
-| **Setup Time** | 2 minutes | 10-30 minutes |
+| Feature | Claude Flow Personal | Full Claude Flow |
+|---------|---------------------|------------------|
+| **Transparency** | Complete decision visibility | Limited introspection |
+| **Personalization** | Fully customizable to your style | One-size-fits-all approach |
+| **Coordination Control** | Fine-grained process control | Automated swarm management |
+| **Learning Approach** | Transparent AI partnership | Black-box automation |
+| **Decision Insight** | Full reasoning explanations | Result-focused output |
+| **Customization** | Personal workflow adaptation | Enterprise configuration |
 
 ## 🎯 Perfect For
 
-- **New developers** learning AI automation
-- **Students** working on projects
-- **Hobbyists** exploring AI capabilities
-- **Small teams** needing simple automation
-- **Anyone** who finds full Claude Flow overwhelming
+- **Developers** who want to understand AI decision-making
+- **Teams** seeking transparent collaboration with AI
+- **Researchers** studying human-AI interaction patterns
+- **Professionals** who prefer explainable AI processes
+- **Anyone** who values transparency and control in AI systems
 
-## 🤝 Getting Help
+## 🤝 Community & Support
 
-- **Questions?** [Open an issue](https://github.com/masharratt/claude-flow-novice/issues) with the "question" label
-- **Bug reports?** [Report them here](https://github.com/masharratt/claude-flow-novice/issues)
-- **Want to contribute?** Check out [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **Transparency Questions?** [Open an issue](https://github.com/masharratt/claude-flow-novice/issues) with the "transparency" label
+- **Personalization Ideas?** [Share your insights](https://github.com/masharratt/claude-flow-novice/discussions)
+- **Want to contribute?** Check out [CONTRIBUTING.md](./CONTRIBUTING.md) - we especially value transparency improvements
 
-## 🔗 Next Steps
+## 🧪 Test Reports
 
-Ready for more advanced features?
-- [Full Claude Flow](https://github.com/ruvnet/claude-flow) - Enterprise-grade features
-- [Examples Repository](./examples) - More complex usage patterns
-- [API Documentation](./docs/api) - Detailed technical reference
+Automated validation of agent-human communication portal available at [`playwright-report/`](./playwright-report/README.md).
+
+## 🗺️ Roadmap
+
+### v2.0 - Enterprise Security & Isolation
+- **Container Isolation**: Docker/Podman containerization for agent sandboxing
+  - Resource limits (memory, CPU, I/O) per agent type
+  - Process isolation preventing cross-agent interference
+  - Automated cleanup and resource management
+- **Enterprise Credential Management**: Secure credential vault integration
+  - Encrypted credential storage with key rotation
+  - Scoped permissions per agent type
+  - Audit logging and compliance tracking
+- **Production Security Hardening**: Address identified security vulnerabilities
+  - Input validation and sanitization
+  - Command injection prevention
+  - Resource exhaustion protection
+
+### v2.1 - Advanced Orchestration
+- **Multi-node Swarm Scaling**: Distributed agent execution across multiple machines
+- **Advanced Consensus Protocols**: Enhanced Byzantine fault tolerance
+- **Real-time Resource Monitoring**: Live dashboards and alerting
+
+### v3.0 - AI-Native Platform
+- **Autonomous Agent Learning**: Self-improving agent capabilities
+- **Natural Language Orchestration**: Plain English swarm coordination
+- **Hybrid Cloud Deployment**: On-premises and cloud-native execution
+
+## 🔗 Explore Further
+
+Ready to dive deeper into transparent AI coordination?
+- [Full Claude Flow](https://github.com/ruvnet/claude-flow) - Enterprise-grade coordination features
+- [Transparency Examples](./examples) - Real-world personalization patterns
+- [Decision Analysis Guide](./docs/transparency) - Understanding AI reasoning
+- [Personalization API](./docs/api) - Technical customization reference
 
 ## 📄 License
 
@@ -191,8 +234,8 @@ MIT License - see [LICENSE](./LICENSE) for details.
 
 <div align="center">
 
-**Made with ❤️ for AI beginners**
+**Built for transparent human-AI collaboration**
 
-*Start simple. Dream big. Build with AI.*
+*See everything. Control everything. Personalize everything.*
 
 </div>
