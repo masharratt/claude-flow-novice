@@ -40,6 +40,7 @@ import {
 } from './simple-commands/performance-hooks.js';
 import { preferencesCommand } from './preferences.js';
 import { personalizationCommand } from './personalization-cli.js';
+import { handleFrameworkValidationCommand } from './commands/validate-framework.js';
 // Maestro commands integrated with clean implementation
 // Note: Maestro TypeScript commands now integrated directly in ./commands/maestro.ts
 // Note: TypeScript imports commented out for Node.js compatibility
@@ -1092,6 +1093,84 @@ Commands:
   import       - Import and apply configuration`
   });
   */
+
+  // Custom Framework Validation System
+  commandRegistry.set('validate', {
+    handler: async (args, flags) => {
+      const [subcommand, ...subArgs] = args;
+
+      if (subcommand === 'framework') {
+        return handleFrameworkValidationCommand(subArgs, flags);
+      } else {
+        // Handle other validation commands or show help
+        console.log(`
+🔍 Validation Commands
+
+USAGE:
+  claude-flow-novice validate <type> [options]
+
+TYPES:
+  framework <command>    Custom framework validation and management
+
+FRAMEWORK COMMANDS:
+  add <file>            Add and validate a custom framework
+  test <id>             Test a framework with mock completion
+  list                  List all custom frameworks
+  remove <id>           Remove a custom framework
+  export <id> [file]    Export framework to file
+  wizard                Interactive framework creation wizard
+  validate <completion> <id>  Validate completion with framework
+
+EXAMPLES:
+  claude-flow-novice validate framework add my-framework.json
+  claude-flow-novice validate framework wizard
+  claude-flow-novice validate framework test my-custom-framework
+  claude-flow-novice validate framework validate completion.json my-framework
+`);
+        return { success: true, help: true };
+      }
+    },
+    description: '🔍 Validation system for custom frameworks and completions',
+    usage: 'validate framework <command> [options]',
+    examples: [
+      'validate framework add my-framework.json       # Add custom framework',
+      'validate framework wizard                       # Interactive framework creation',
+      'validate framework test my-custom-framework     # Test framework',
+      'validate framework list                         # List all frameworks',
+      'validate framework validate completion.json my-framework # Validate completion'
+    ],
+    details: `
+Custom Framework Validation System:
+
+🚀 CORE FEATURES:
+  • Custom truth component weights and thresholds
+  • Framework-specific validation rules with safe execution
+  • Quality gates for completion metrics
+  • Security enforcement with malicious code detection
+  • Byzantine consensus for framework approval
+  • Framework inheritance and composition support
+
+🔒 SECURITY FEATURES:
+  • Sandboxed execution of validation rules
+  • Code injection detection and prevention
+  • Byzantine consensus validation for malicious behavior
+  • Cryptographic signing of approved frameworks
+  • Security pattern validation and enforcement
+
+📊 TRUTH SCORING INTEGRATION:
+  • Integrates with existing TruthScorer (745 lines)
+  • Custom component weights for domain-specific validation
+  • Framework-specific truth thresholds
+  • Real-time validation with performance monitoring
+
+🧙 INTERACTIVE WIZARD:
+  • Step-by-step framework creation process
+  • Built-in validation and security checks
+  • Auto-generation of common validation patterns
+  • Export and import framework definitions
+
+Use 'claude-flow-novice validate framework --help' for detailed command information.`
+  });
 }
 
 // Register a new command

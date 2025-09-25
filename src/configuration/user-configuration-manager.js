@@ -1294,5 +1294,4 @@ export class UserConfigurationManager extends EventEmitter {
   }
 }
 
-// Export for testing and external use
-export { UserConfigurationManager };
+// Export already declared above
