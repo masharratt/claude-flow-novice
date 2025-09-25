@@ -73,6 +73,12 @@
     "test:phase1-neural": "node scripts/test-phase1-neural.js",
     "test:phase1-all": "npm run test:phase1-basic && npm run test:phase1-persistence && npm run test:phase1-neural",
     "clean:test": "find . -name '*.test-output' -delete && find . -name 'test-db.sqlite' -delete",
+    "test:completion-truth-validator": "NODE_OPTIONS='--experimental-vm-modules' jest tests/completion-validation/truth-validator.test.js --bail --maxWorkers=1",
+    "test:completion-interceptor": "NODE_OPTIONS='--experimental-vm-modules' jest tests/completion-validation/interceptor-integration.test.js --bail --maxWorkers=1",
+    "test:framework-thresholds": "NODE_OPTIONS='--experimental-vm-modules' jest tests/completion-validation/framework-protocols.test.js --bail --maxWorkers=1",
+    "test:phase1-completion-validation": "NODE_OPTIONS='--experimental-vm-modules' jest tests/integration/phase1-completion-validation.test.js --bail --maxWorkers=1",
+    "test:completion-validation-all": "npm run test:completion-truth-validator && npm run test:completion-interceptor && npm run test:framework-thresholds && npm run test:phase1-completion-validation",
+    "validate:phase1-completion": "npm run test:completion-validation-all",
     "debug:hooks": "DEBUG=hooks* npm run dev",
     "debug:sparc": "DEBUG=sparc* npm run dev",
     "debug:swarm": "DEBUG=swarm* npm run dev"

@@ -13,12 +13,10 @@
  */
 
 import { jest } from '@jest/globals';
-import { ByzantineConsensus } from '../../src/core/byzantine-consensus.js';
-import TruthMonitoringServer from '../../src/verification/api/websocket/truth-monitor.js';
 
 // Mock existing infrastructure to test integration
 jest.mock('../../src/core/byzantine-consensus.js');
-jest.mock('../../src/verification/api/websocket/truth-monitor.js');
+jest.mock('../../src/memory/sqlite-store.js');
 jest.mock('../../src/cli/simple-commands/hooks.js');
 
 describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => {
@@ -28,7 +26,7 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
   let mockEnhancedHookManager;
   let completionTruthValidator;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Mock existing TruthScorer system (745 lines)
     mockTruthScorer = {
       evaluateCompletion: jest.fn(),
@@ -46,7 +44,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       getByzantineValidation: jest.fn()
     };
 
-    // Mock existing ByzantineConsensus (565+ lines)
+    // Import and mock ByzantineConsensus after mocking
+    const { ByzantineConsensus } = await import('../../src/core/byzantine-consensus.js');
     mockByzantineConsensus = new ByzantineConsensus();
     mockByzantineConsensus.achieveConsensus = jest.fn();
     mockByzantineConsensus.collectVotes = jest.fn();
