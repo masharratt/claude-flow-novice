@@ -1,510 +1,241 @@
 /**
- * Interactive CLI Setup Wizard for Completion Validation Framework
- * Phase 2 Implementation - Wizard Developer
+ * CLI Wizard Integration
+ * Phase 2 Implementation - CLI Command Integration
  *
- * Provides interactive configuration with framework detection and quality gates
- * Target: 95% users complete setup in <5 minutes
+ * Provides integration between CLI commands and interactive setup wizard
+ * Bridges the gap between command-line interface and interactive components
  */
 
-import inquirer from 'inquirer';
-import ora from 'ora';
 import chalk from 'chalk';
-import { TruthConfigManager } from './TruthConfigManager.js';
+import { InteractiveSetupWizard } from '../validation/cli/interactive-setup-wizard.js';
+import { ValidationCommands } from '../validation/cli/validation-commands.js';
+import { logger } from '../core/logger.js';
 
-export class CompletionValidationCLIWizard {
-  constructor(options = {}) {
-    this.configManager = options.configManager || new TruthConfigManager();
-    this.verbose = options.verbose || false;
-  }
+/**
+ * Setup command - Interactive setup wizard entry point
+ */
+export async function setupCommand(options = {}) {
+  const startTime = Date.now();
 
-  /**
-   * Main setup wizard entry point
-   */
-  async runSetupWizard() {
-    console.log(chalk.blue.bold('\n🔧 Claude Flow Novice - Completion Validation Setup Wizard'));
-    console.log(chalk.gray('Configure your validation framework in under 5 minutes\n'));
-
-    const spinner = ora('Initializing configuration manager...').start();
-
-    try {
-      await this.configManager.initialize();
-      spinner.succeed('Configuration manager initialized');
-
-      // Step 1: Framework Detection
-      const detectionResult = await this.runFrameworkDetection();
-
-      // Step 2: Quality Gates Configuration
-      const qualityGates = await this.configureQualityGates(detectionResult);
-
-      // Step 3: Validation Settings
-      const validationSettings = await this.configureValidationSettings();
-
-      // Step 4: Final Configuration
-      const finalConfig = await this.buildFinalConfiguration({
-        framework: detectionResult.selectedFramework,
-        qualityGates,
-        validationSettings
-      });
-
-      // Step 5: Save and Test Configuration
-      await this.saveAndTestConfiguration(finalConfig);
-
-      console.log(chalk.green.bold('\n✅ Setup completed successfully!'));
-      console.log(chalk.gray('Your completion validation framework is ready to use.'));
-
-      return {
-        success: true,
-        configuration: finalConfig,
-        setupTime: Date.now()
-      };
-
-    } catch (error) {
-      spinner.fail('Setup failed');
-      console.error(chalk.red(`\n❌ Setup error: ${error.message}`));
-
-      if (this.verbose) {
-        console.error(chalk.gray(error.stack));
-      }
-
-      return {
-        success: false,
-        error: error.message
-      };
-    }
-  }
-
-  /**
-   * Step 1: Framework Detection with user confirmation
-   */
-  async runFrameworkDetection() {
-    const spinner = ora('Analyzing your project structure...').start();
-
-    const detection = await this.configManager.detectFramework();
-    spinner.stop();
-
-    console.log(chalk.yellow('\n📁 Project Analysis Results:'));
-
-    if (detection.confidence > 0.7) {
-      console.log(chalk.green(`✨ Detected: ${detection.detected.toUpperCase()} (${Math.round(detection.confidence * 100)}% confidence)`));
-
-      if (detection.evidence) {
-        this.displayEvidence(detection.evidence);
-      }
-
-      const { confirmFramework } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'confirmFramework',
-          message: `Use ${detection.detected} configuration?`,
-          default: true
-        }
-      ]);
-
-      if (confirmFramework) {
-        return {
-          selectedFramework: detection.detected,
-          autoDetected: true,
-          confidence: detection.confidence
-        };
-      }
-    } else {
-      console.log(chalk.yellow(`⚠️ Auto-detection uncertain (${Math.round(detection.confidence * 100)}% confidence)`));
-
-      if (detection.evidence) {
-        this.displayEvidence(detection.evidence);
-      }
+  try {
+    if (options.verbose) {
+      console.log(chalk.gray('🔧 Initializing interactive setup wizard...'));
     }
 
-    // Manual framework selection
-    const frameworks = [
-      { name: 'JavaScript (Node.js)', value: 'javascript' },
-      { name: 'TypeScript', value: 'typescript' },
-      { name: 'Python', value: 'python' },
-      { name: 'Test-Driven Development (TDD)', value: 'tdd' },
-      { name: 'Behavior-Driven Development (BDD)', value: 'bdd' },
-      { name: 'SPARC Methodology', value: 'sparc' }
-    ];
-
-    const { manualFramework } = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'manualFramework',
-        message: 'Select your development framework:',
-        choices: frameworks
-      }
-    ]);
-
-    return {
-      selectedFramework: manualFramework,
-      autoDetected: false,
-      confidence: 1.0
-    };
-  }
-
-  /**
-   * Step 2: Quality Gates Configuration
-   */
-  async configureQualityGates(detectionResult) {
-    console.log(chalk.yellow('\n🎯 Quality Gates Configuration'));
-
-    // Get framework-specific defaults
-    const frameworkDefaults = this.configManager.config.frameworkSpecific[detectionResult.selectedFramework];
-    const globalDefaults = this.configManager.config.qualityGates;
-
-    const defaults = { ...globalDefaults, ...frameworkDefaults };
-
-    console.log(chalk.gray(`Framework defaults for ${detectionResult.selectedFramework}:`));
-    console.log(chalk.gray(`- Truth Score: ${Math.round(defaults.truthScore * 100)}%`));
-    console.log(chalk.gray(`- Test Coverage: ${Math.round(defaults.testCoverage * 100)}%`));
-
-    const { customizeGates } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'customizeGates',
-        message: 'Customize quality gate thresholds?',
-        default: false
-      }
-    ]);
-
-    if (!customizeGates) {
-      return defaults;
-    }
-
-    // Custom quality gates configuration
-    const customGates = await inquirer.prompt([
-      {
-        type: 'number',
-        name: 'truthScore',
-        message: 'Truth Score threshold (0-100):',
-        default: Math.round(defaults.truthScore * 100),
-        validate: (value) => {
-          if (value < 0 || value > 100) return 'Value must be between 0 and 100';
-          if (value < 70) return 'Warning: Values below 70% may be too permissive';
-          return true;
-        }
-      },
-      {
-        type: 'number',
-        name: 'testCoverage',
-        message: 'Test Coverage threshold (0-100):',
-        default: Math.round(defaults.testCoverage * 100),
-        validate: (value) => {
-          if (value < 0 || value > 100) return 'Value must be between 0 and 100';
-          if (value < 80) return 'Warning: Values below 80% may be insufficient';
-          return true;
-        }
-      },
-      {
-        type: 'number',
-        name: 'codeQuality',
-        message: 'Code Quality threshold (0-100):',
-        default: Math.round(defaults.codeQuality * 100),
-        validate: (value) => {
-          if (value < 0 || value > 100) return 'Value must be between 0 and 100';
-          return true;
-        }
-      },
-      {
-        type: 'number',
-        name: 'documentationScore',
-        message: 'Documentation Score threshold (0-100):',
-        default: Math.round(defaults.documentationScore * 100),
-        validate: (value) => {
-          if (value < 0 || value > 100) return 'Value must be between 0 and 100';
-          return true;
-        }
-      }
-    ]);
-
-    // Convert percentages back to decimals
-    return {
-      truthScore: customGates.truthScore / 100,
-      testCoverage: customGates.testCoverage / 100,
-      codeQuality: customGates.codeQuality / 100,
-      documentationScore: customGates.documentationScore / 100
-    };
-  }
-
-  /**
-   * Step 3: Validation Settings Configuration
-   */
-  async configureValidationSettings() {
-    console.log(chalk.yellow('\n⚙️ Validation Settings'));
-
-    const { advancedSettings } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'advancedSettings',
-        message: 'Configure advanced validation settings?',
-        default: false
-      }
-    ]);
-
-    const defaults = this.configManager.config.validationSettings;
-
-    if (!advancedSettings) {
-      return defaults;
-    }
-
-    const settings = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'byzantineConsensusEnabled',
-        message: 'Enable Byzantine consensus validation?',
-        default: defaults.byzantineConsensusEnabled
-      },
-      {
-        type: 'number',
-        name: 'consensusTimeout',
-        message: 'Consensus timeout (ms):',
-        default: defaults.consensusTimeout,
-        validate: (value) => value >= 1000 ? true : 'Timeout must be at least 1000ms'
-      },
-      {
-        type: 'number',
-        name: 'requiredValidators',
-        message: 'Required validators for consensus:',
-        default: defaults.requiredValidators,
-        validate: (value) => value >= 1 ? true : 'Must have at least 1 validator'
-      },
-      {
-        type: 'confirm',
-        name: 'allowPartialValidation',
-        message: 'Allow partial validation for non-critical completions?',
-        default: defaults.allowPartialValidation
-      },
-      {
-        type: 'confirm',
-        name: 'strictMode',
-        message: 'Enable strict mode (more rigorous validation)?',
-        default: defaults.strictMode
-      }
-    ]);
-
-    return settings;
-  }
-
-  /**
-   * Step 4: Build Final Configuration
-   */
-  async buildFinalConfiguration({ framework, qualityGates, validationSettings }) {
-    return {
-      version: '2.0.0',
-      framework,
-      qualityGates,
-      validationSettings,
-      setupWizard: {
-        completed: true,
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-      }
-    };
-  }
-
-  /**
-   * Step 5: Save and Test Configuration
-   */
-  async saveAndTestConfiguration(config) {
-    const spinner = ora('Saving configuration...').start();
-
-    try {
-      // Save configuration
-      await this.configManager.updateConfiguration(config);
-      spinner.text = 'Testing configuration...';
-
-      // Test configuration
-      const testResults = await this.configManager.testConfiguration();
-
-      if (testResults.configurationValid) {
-        spinner.succeed('Configuration saved and tested successfully');
-
-        console.log(chalk.green('\n✅ Configuration Test Results:'));
-        if (testResults.frameworkDetection) {
-          console.log(chalk.gray(`- Framework: ${testResults.frameworkDetection.detected} (${Math.round(testResults.frameworkDetection.confidence * 100)}%)`));
-        }
-        console.log(chalk.gray(`- Quality Gates: ${Object.keys(testResults.qualityGates).length} configured`));
-        console.log(chalk.gray(`- Validation: ${testResults.validationSettings.byzantineConsensus ? 'Byzantine consensus ready' : 'Basic validation'}`));
-
-      } else {
-        spinner.fail('Configuration test failed');
-        console.log(chalk.red('\n❌ Configuration Issues:'));
-        testResults.errors.forEach(error => {
-          console.log(chalk.red(`  • ${error}`));
-        });
-        throw new Error('Configuration validation failed');
-      }
-
-    } catch (error) {
-      spinner.fail('Configuration save/test failed');
-      throw error;
-    }
-  }
-
-  /**
-   * Display current configuration
-   */
-  async showConfiguration() {
-    console.log(chalk.blue.bold('\n📋 Current Completion Validation Configuration'));
-
-    try {
-      await this.configManager.initialize();
-      const config = await this.configManager.getCurrentConfiguration();
-
-      console.log(chalk.yellow('\nFramework Settings:'));
-      console.log(`  Framework: ${config.framework || 'auto'}`);
-
-      console.log(chalk.yellow('\nQuality Gates:'));
-      const gates = config.qualityGates;
-      console.log(`  Truth Score: ${Math.round(gates.truthScore * 100)}%`);
-      console.log(`  Test Coverage: ${Math.round(gates.testCoverage * 100)}%`);
-      console.log(`  Code Quality: ${Math.round(gates.codeQuality * 100)}%`);
-      console.log(`  Documentation: ${Math.round(gates.documentationScore * 100)}%`);
-
-      console.log(chalk.yellow('\nValidation Settings:'));
-      const validation = config.validationSettings;
-      console.log(`  Byzantine Consensus: ${validation.byzantineConsensusEnabled ? 'Enabled' : 'Disabled'}`);
-      console.log(`  Consensus Timeout: ${validation.consensusTimeout}ms`);
-      console.log(`  Required Validators: ${validation.requiredValidators}`);
-      console.log(`  Strict Mode: ${validation.strictMode ? 'Enabled' : 'Disabled'}`);
-
-      if (config.setupWizard?.completed) {
-        console.log(chalk.gray(`\nSetup completed: ${new Date(config.setupWizard.timestamp).toLocaleString()}`));
-      }
-
-    } catch (error) {
-      console.error(chalk.red(`Configuration error: ${error.message}`));
-    }
-  }
-
-  /**
-   * Test current configuration
-   */
-  async testConfiguration() {
-    console.log(chalk.blue.bold('\n🧪 Testing Completion Validation Configuration'));
-
-    const spinner = ora('Running configuration tests...').start();
-
-    try {
-      await this.configManager.initialize();
-      const results = await this.configManager.testConfiguration();
-
-      if (results.configurationValid) {
-        spinner.succeed('Configuration tests passed');
-
-        console.log(chalk.green('\n✅ Test Results:'));
-
-        if (results.frameworkDetection) {
-          const detection = results.frameworkDetection;
-          console.log(`  Framework Detection: ${detection.detected} (${Math.round(detection.confidence * 100)}% confidence)`);
-
-          if (detection.evidence && Object.keys(detection.evidence).length > 0) {
-            console.log('  Evidence found:');
-            Object.entries(detection.evidence).forEach(([key, value]) => {
-              if (value === true) {
-                console.log(chalk.gray(`    ✓ ${key}`));
-              } else if (typeof value === 'number' && value > 0) {
-                console.log(chalk.gray(`    ✓ ${key}: ${value} files`));
-              }
-            });
-          }
-        }
-
-        if (Object.keys(results.qualityGates).length > 0) {
-          console.log(`  Quality Gates: ${Object.keys(results.qualityGates).length} thresholds configured`);
-        }
-
-        if (results.validationSettings.byzantineConsensus !== undefined) {
-          console.log(`  Byzantine Consensus: ${results.validationSettings.byzantineConsensus ? 'Functional' : 'Not available'}`);
-        }
-
-      } else {
-        spinner.fail('Configuration tests failed');
-
-        console.log(chalk.red('\n❌ Configuration Issues:'));
-        results.errors.forEach(error => {
-          console.log(chalk.red(`  • ${error}`));
-        });
-
-        console.log(chalk.yellow('\n💡 Suggestions:'));
-        console.log('  • Run: claude-flow-novice validate setup');
-        console.log('  • Check your project structure');
-        console.log('  • Verify framework installation');
-      }
-
-    } catch (error) {
-      spinner.fail('Configuration test failed');
-      console.error(chalk.red(`\nTest error: ${error.message}`));
-
-      if (this.verbose) {
-        console.error(chalk.gray(error.stack));
-      }
-    }
-  }
-
-  // Helper methods
-
-  displayEvidence(evidence) {
-    console.log(chalk.gray('  Evidence found:'));
-
-    Object.entries(evidence).forEach(([key, value]) => {
-      if (value === true) {
-        console.log(chalk.gray(`    ✓ ${key}`));
-      } else if (typeof value === 'number' && value > 0) {
-        console.log(chalk.gray(`    ✓ ${key}: ${value} files`));
-      }
+    const wizard = new InteractiveSetupWizard({
+      basePath: process.cwd(),
+      verbose: options.verbose
     });
-  }
 
-  async close() {
-    if (this.configManager) {
-      await this.configManager.close();
+    let result;
+
+    if (options.reset) {
+      console.log(chalk.yellow('🔄 Resetting to default configuration...'));
+      // TODO: Implement reset functionality
+      result = await wizard.runSetupWizard({ ...options, reset: true });
+    } else {
+      result = await wizard.runSetupWizard(options);
     }
+
+    await wizard.cleanup();
+
+    const setupTime = (Date.now() - startTime) / 1000;
+
+    if (options.verbose) {
+      console.log(chalk.gray(`⏱️  Total setup time: ${setupTime.toFixed(2)} seconds`));
+
+      if (result.success) {
+        console.log(chalk.green('✅ Setup wizard completed successfully'));
+      } else {
+        console.log(chalk.red('❌ Setup wizard encountered errors'));
+      }
+    }
+
+    return {
+      ...result,
+      totalTime: setupTime
+    };
+
+  } catch (error) {
+    logger.error('CLI setup command failed', error);
+
+    console.log(chalk.red(`\n❌ Setup failed: ${error.message}`));
+
+    if (options.verbose) {
+      console.log(chalk.gray('\n📋 Troubleshooting:'));
+      console.log(chalk.gray('  • Check file permissions in project directory'));
+      console.log(chalk.gray('  • Ensure Node.js version is supported (>=14)'));
+      console.log(chalk.gray('  • Try running with --reset flag'));
+      console.log(chalk.gray('  • Check disk space for configuration files'));
+    }
+
+    return {
+      success: false,
+      error: error.message,
+      totalTime: (Date.now() - startTime) / 1000
+    };
   }
 }
 
 /**
- * CLI Command Handlers
+ * Show configuration command
  */
-
-export async function setupCommand(options = {}) {
-  const wizard = new CompletionValidationCLIWizard({
-    verbose: options.verbose
-  });
-
-  try {
-    const result = await wizard.runSetupWizard();
-    await wizard.close();
-    return result;
-  } catch (error) {
-    await wizard.close();
-    throw error;
-  }
-}
-
 export async function showConfigCommand(options = {}) {
-  const wizard = new CompletionValidationCLIWizard({
-    verbose: options.verbose
-  });
-
   try {
-    await wizard.showConfiguration();
-    await wizard.close();
+    const commands = new ValidationCommands({ basePath: process.cwd() });
+    return await commands.showConfigCommand(options);
+
   } catch (error) {
-    await wizard.close();
+    logger.error('CLI show-config command failed', error);
     throw error;
   }
 }
 
+/**
+ * Test configuration command
+ */
 export async function testConfigCommand(options = {}) {
-  const wizard = new CompletionValidationCLIWizard({
-    verbose: options.verbose
-  });
-
   try {
-    await wizard.testConfiguration();
-    await wizard.close();
+    if (options.verbose) {
+      console.log(chalk.gray('🧪 Starting configuration test...'));
+    }
+
+    const commands = new ValidationCommands({ basePath: process.cwd() });
+    const result = await commands.checkCommand(options);
+
+    if (options.verbose) {
+      if (result.success) {
+        console.log(chalk.green('✅ Configuration test passed'));
+      } else {
+        console.log(chalk.red('❌ Configuration test failed'));
+
+        if (options.fix) {
+          console.log(chalk.yellow('🔧 Attempting automatic fixes...'));
+        }
+      }
+    }
+
+    return result;
+
   } catch (error) {
-    await wizard.close();
+    logger.error('CLI test command failed', error);
     throw error;
   }
 }
+
+/**
+ * Enable hooks command
+ */
+export async function enableHooksCommand(options = {}) {
+  try {
+    const commands = new ValidationCommands({ basePath: process.cwd() });
+    return await commands.enableHooksCommand(options);
+
+  } catch (error) {
+    logger.error('CLI enable-hooks command failed', error);
+    throw error;
+  }
+}
+
+/**
+ * Disable hooks command
+ */
+export async function disableHooksCommand(options = {}) {
+  try {
+    const commands = new ValidationCommands({ basePath: process.cwd() });
+    return await commands.disableHooksCommand(options);
+
+  } catch (error) {
+    logger.error('CLI disable-hooks command failed', error);
+    throw error;
+  }
+}
+
+/**
+ * Add framework command
+ */
+export async function addFrameworkCommand(options = {}) {
+  try {
+    const commands = new ValidationCommands({ basePath: process.cwd() });
+    return await commands.addFrameworkCommand(options);
+
+  } catch (error) {
+    logger.error('CLI add-framework command failed', error);
+    throw error;
+  }
+}
+
+/**
+ * Configure gates command
+ */
+export async function configureGatesCommand(options = {}) {
+  try {
+    const commands = new ValidationCommands({ basePath: process.cwd() });
+    return await commands.configureGatesCommand(options);
+
+  } catch (error) {
+    logger.error('CLI configure-gates command failed', error);
+    throw error;
+  }
+}
+
+/**
+ * Check command (manual validation)
+ */
+export async function checkCommand(options = {}) {
+  try {
+    const commands = new ValidationCommands({ basePath: process.cwd() });
+    return await commands.checkCommand(options);
+
+  } catch (error) {
+    logger.error('CLI check command failed', error);
+    throw error;
+  }
+}
+
+/**
+ * Utility function to display helpful error messages
+ */
+export function displayErrorHelp(error, command) {
+  console.log(chalk.red(`\n❌ Command failed: ${command}`));
+  console.log(chalk.gray(`Error: ${error.message}`));
+
+  console.log(chalk.yellow('\n💡 Possible solutions:'));
+
+  switch (command) {
+    case 'setup':
+      console.log(chalk.gray('  • Run: claude-flow-novice validate setup --reset'));
+      console.log(chalk.gray('  • Check file permissions in project directory'));
+      console.log(chalk.gray('  • Ensure adequate disk space'));
+      break;
+
+    case 'check':
+      console.log(chalk.gray('  • Run setup first: claude-flow-novice validate setup'));
+      console.log(chalk.gray('  • Check configuration: claude-flow-novice validate show-config'));
+      break;
+
+    case 'enable-hooks':
+    case 'disable-hooks':
+      console.log(chalk.gray('  • Run setup first: claude-flow-novice validate setup'));
+      console.log(chalk.gray('  • Check if hooks are already enabled/disabled'));
+      break;
+
+    default:
+      console.log(chalk.gray('  • Run: claude-flow-novice validate help'));
+      console.log(chalk.gray('  • Check the documentation for more details'));
+  }
+
+  console.log(chalk.gray('\n📚 For more help: claude-flow-novice validate help'));
+}
+
+export default {
+  setupCommand,
+  showConfigCommand,
+  testConfigCommand,
+  enableHooksCommand,
+  disableHooksCommand,
+  addFrameworkCommand,
+  configureGatesCommand,
+  checkCommand,
+  displayErrorHelp
+};

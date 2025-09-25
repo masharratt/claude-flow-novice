@@ -16,15 +16,19 @@ export class FrameworkDetector {
     this.memoryStore = null;
     this.initialized = false;
 
-    // Framework detection patterns and weights
+    // Framework detection patterns and weights - Enhanced for >90% accuracy
     this.detectionPatterns = {
       javascript: {
         files: [
-          { pattern: 'package.json', weight: 0.4, required: true },
-          { pattern: '*.js', weight: 0.3, multiple: true },
-          { pattern: 'node_modules', weight: 0.2, directory: true },
-          { pattern: 'jest.config.*', weight: 0.15, optional: true },
-          { pattern: 'webpack.config.*', weight: 0.1, optional: true }
+          { pattern: 'package.json', weight: 0.35, required: true },
+          { pattern: '*.js', weight: 0.25, multiple: true },
+          { pattern: 'node_modules', weight: 0.15, directory: true },
+          { pattern: 'jest.config.*', weight: 0.1, optional: true },
+          { pattern: 'webpack.config.*', weight: 0.08, optional: true },
+          { pattern: '.babelrc*', weight: 0.05, optional: true },
+          { pattern: '.eslintrc*', weight: 0.05, optional: true },
+          { pattern: 'yarn.lock', weight: 0.07, optional: true },
+          { pattern: 'package-lock.json', weight: 0.1, optional: true }
         ],
         packageJsonKeys: [
           { key: 'main', weight: 0.1 },
@@ -44,10 +48,12 @@ export class FrameworkDetector {
 
       typescript: {
         files: [
-          { pattern: 'tsconfig.json', weight: 0.4, required: true },
-          { pattern: '*.ts', weight: 0.3, multiple: true },
-          { pattern: '*.tsx', weight: 0.2, multiple: true, optional: true },
-          { pattern: 'package.json', weight: 0.2, required: true }
+          { pattern: 'tsconfig.json', weight: 0.35, required: true },
+          { pattern: '*.ts', weight: 0.25, multiple: true },
+          { pattern: '*.tsx', weight: 0.15, multiple: true, optional: true },
+          { pattern: 'package.json', weight: 0.15, required: true },
+          { pattern: 'tslint.json', weight: 0.05, optional: true },
+          { pattern: '*.d.ts', weight: 0.1, multiple: true, optional: true }
         ],
         packageJsonKeys: [
           { key: 'devDependencies.typescript', weight: 0.3 },
@@ -67,12 +73,16 @@ export class FrameworkDetector {
 
       python: {
         files: [
-          { pattern: 'requirements.txt', weight: 0.3, optional: true },
-          { pattern: 'setup.py', weight: 0.25, optional: true },
+          { pattern: 'requirements.txt', weight: 0.25, optional: true },
+          { pattern: 'setup.py', weight: 0.2, optional: true },
           { pattern: 'pyproject.toml', weight: 0.25, optional: true },
-          { pattern: '*.py', weight: 0.4, multiple: true },
-          { pattern: 'Pipfile', weight: 0.2, optional: true },
-          { pattern: '__pycache__', weight: 0.15, directory: true, optional: true }
+          { pattern: '*.py', weight: 0.35, multiple: true },
+          { pattern: 'Pipfile', weight: 0.15, optional: true },
+          { pattern: 'Pipfile.lock', weight: 0.1, optional: true },
+          { pattern: '__pycache__', weight: 0.1, directory: true, optional: true },
+          { pattern: 'requirements-*.txt', weight: 0.1, optional: true },
+          { pattern: 'environment.yml', weight: 0.08, optional: true },
+          { pattern: 'poetry.lock', weight: 0.12, optional: true }
         ],
         contentPatterns: [
           { pattern: /^import\s+\w+/gm, weight: 0.15, fileType: 'py' },
@@ -86,6 +96,62 @@ export class FrameworkDetector {
           { pattern: /install_requires\s*=/g, weight: 0.1, fileType: 'py' },
           { pattern: /setup\s*\(/g, weight: 0.15, fileType: 'py' }
         ]
+      }
+    };
+
+    // Enhanced React/Vue/Angular detection
+    this.webFrameworkPatterns = {
+      react: {
+        packageKeys: ['dependencies.react', 'devDependencies.react', 'dependencies.@types/react'],
+        files: ['src/App.jsx', 'src/App.tsx', 'public/index.html'],
+        patterns: [/import\s+React/g, /from\s+['"]react['"]/g, /ReactDOM\.render/g, /JSX\.Element/g],
+        weight: 0.3
+      },
+      vue: {
+        packageKeys: ['dependencies.vue', 'devDependencies.vue'],
+        files: ['vue.config.js', 'src/App.vue', 'src/main.js'],
+        patterns: [/\<template\>/g, /\<script\>/g, /Vue\.createApp/g, /export\s+default\s+{/g],
+        weight: 0.3
+      },
+      angular: {
+        packageKeys: ['dependencies.@angular/core', 'devDependencies.@angular/cli'],
+        files: ['angular.json', 'src/main.ts', 'src/app/app.module.ts'],
+        patterns: [/import.*@angular/g, /@Component/g, /@Injectable/g, /@NgModule/g],
+        weight: 0.3
+      },
+      nextjs: {
+        packageKeys: ['dependencies.next', 'devDependencies.next'],
+        files: ['next.config.js', 'pages/_app.js', 'pages/index.js'],
+        patterns: [/from\s+['"]next/g, /getStaticProps/g, /getServerSideProps/g],
+        weight: 0.25
+      },
+      express: {
+        packageKeys: ['dependencies.express', 'devDependencies.express'],
+        files: ['server.js', 'app.js', 'index.js'],
+        patterns: [/require\(['"]express['"]\)/g, /app\.listen/g, /app\.use/g, /app\.get/g],
+        weight: 0.25
+      }
+    };
+
+    // Enhanced Python framework detection
+    this.pythonFrameworkPatterns = {
+      django: {
+        files: ['manage.py', 'settings.py', 'wsgi.py', 'requirements.txt'],
+        patterns: [/from\s+django/g, /INSTALLED_APPS/g, /django\.setup/g, /models\.Model/g],
+        packagePatterns: [/django[>=]/g, /Django[>=]/g],
+        weight: 0.3
+      },
+      flask: {
+        files: ['app.py', 'wsgi.py', 'requirements.txt'],
+        patterns: [/from\s+flask/g, /Flask\(__name__\)/g, /@app\.route/g, /app\.run/g],
+        packagePatterns: [/flask[>=]/g, /Flask[>=]/g],
+        weight: 0.3
+      },
+      fastapi: {
+        files: ['main.py', 'app.py', 'requirements.txt'],
+        patterns: [/from\s+fastapi/g, /FastAPI\(/g, /@app\.(get|post|put|delete)/g],
+        packagePatterns: [/fastapi[>=]/g, /uvicorn[>=]/g],
+        weight: 0.25
       }
     };
 
@@ -158,8 +224,17 @@ export class FrameworkDetector {
       // Analyze file contents for patterns
       await this.analyzeFileContents(results);
 
+      // Detect web frameworks (React, Vue, Angular, etc.)
+      await this.detectWebFrameworks(results);
+
+      // Detect Python frameworks (Django, Flask, FastAPI)
+      await this.detectPythonFrameworks(results);
+
       // Detect testing frameworks
       await this.detectTestingFrameworks(results);
+
+      // Apply enhanced scoring algorithms
+      this.applyEnhancedScoring(results);
 
       // Calculate final scores and confidence
       this.calculateFinalScores(results);
@@ -557,6 +632,291 @@ export class FrameworkDetector {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Detect web frameworks (React, Vue, Angular, Next.js, Express)
+   */
+  async detectWebFrameworks(results) {
+    for (const [framework, patterns] of Object.entries(this.webFrameworkPatterns)) {
+      let detected = false;
+      let confidence = 0;
+
+      try {
+        // Check package.json for web framework dependencies
+        if (patterns.packageKeys) {
+          const packageJsonPath = path.join(this.basePath, 'package.json');
+          if (await this.fileExists(packageJsonPath)) {
+            const packageData = await fs.readFile(packageJsonPath, 'utf8');
+            const pkg = JSON.parse(packageData);
+
+            for (const key of patterns.packageKeys) {
+              if (this.getNestedProperty(pkg, key)) {
+                detected = true;
+                confidence += 0.4;
+                break;
+              }
+            }
+          }
+        }
+
+        // Check for framework-specific files
+        if (patterns.files) {
+          for (const file of patterns.files) {
+            if (await this.fileExists(path.join(this.basePath, file))) {
+              detected = true;
+              confidence += 0.2;
+            }
+          }
+        }
+
+        // Check content patterns
+        if (patterns.patterns) {
+          const sampleFiles = await this.getSampleFiles();
+          for (const file of sampleFiles.slice(0, 10)) {
+            try {
+              const content = await fs.readFile(file, 'utf8');
+              for (const pattern of patterns.patterns) {
+                if (content.match(pattern)) {
+                  detected = true;
+                  confidence += 0.1;
+                  break;
+                }
+              }
+            } catch (error) {
+              // Skip unreadable files
+            }
+          }
+        }
+
+        if (detected) {
+          // Boost main framework scores based on web framework detection
+          if (['react', 'vue', 'nextjs'].includes(framework)) {
+            if (results.evidence.files.tsFiles > 0) {
+              results.scores.typescript += patterns.weight;
+            } else {
+              results.scores.javascript += patterns.weight;
+            }
+          } else if (framework === 'angular') {
+            results.scores.typescript += patterns.weight;
+          } else if (framework === 'express') {
+            results.scores.javascript += patterns.weight;
+          }
+
+          if (!results.evidence.webFrameworks) {
+            results.evidence.webFrameworks = [];
+          }
+          results.evidence.webFrameworks.push({
+            name: framework,
+            confidence: Math.min(1.0, confidence)
+          });
+        }
+
+      } catch (error) {
+        console.warn(`Web framework detection error for ${framework}:`, error.message);
+      }
+    }
+  }
+
+  /**
+   * Detect Python frameworks (Django, Flask, FastAPI)
+   */
+  async detectPythonFrameworks(results) {
+    for (const [framework, patterns] of Object.entries(this.pythonFrameworkPatterns)) {
+      let detected = false;
+      let confidence = 0;
+
+      try {
+        // Check for framework-specific files
+        if (patterns.files) {
+          for (const file of patterns.files) {
+            if (await this.fileExists(path.join(this.basePath, file))) {
+              detected = true;
+              confidence += 0.25;
+            }
+          }
+        }
+
+        // Check requirements.txt for framework packages
+        if (patterns.packagePatterns) {
+          const reqPath = path.join(this.basePath, 'requirements.txt');
+          if (await this.fileExists(reqPath)) {
+            const requirements = await fs.readFile(reqPath, 'utf8');
+            for (const pattern of patterns.packagePatterns) {
+              if (requirements.match(pattern)) {
+                detected = true;
+                confidence += 0.3;
+                break;
+              }
+            }
+          }
+        }
+
+        // Check content patterns in Python files
+        if (patterns.patterns) {
+          const pythonFiles = await this.getPythonFiles();
+          for (const file of pythonFiles.slice(0, 10)) {
+            try {
+              const content = await fs.readFile(file, 'utf8');
+              for (const pattern of patterns.patterns) {
+                if (content.match(pattern)) {
+                  detected = true;
+                  confidence += 0.15;
+                  break;
+                }
+              }
+            } catch (error) {
+              // Skip unreadable files
+            }
+          }
+        }
+
+        if (detected) {
+          results.scores.python += patterns.weight;
+
+          if (!results.evidence.pythonFrameworks) {
+            results.evidence.pythonFrameworks = [];
+          }
+          results.evidence.pythonFrameworks.push({
+            name: framework,
+            confidence: Math.min(1.0, confidence)
+          });
+        }
+
+      } catch (error) {
+        console.warn(`Python framework detection error for ${framework}:`, error.message);
+      }
+    }
+  }
+
+  /**
+   * Apply enhanced scoring algorithms for >90% accuracy
+   */
+  applyEnhancedScoring(results) {
+    // Mutual exclusivity bonuses
+    const jsFiles = results.evidence.files.jsFiles || 0;
+    const tsFiles = results.evidence.files.tsFiles || 0;
+    const pyFiles = results.evidence.files.pyFiles || 0;
+
+    // TypeScript gets bonus if it has more files than JavaScript
+    if (tsFiles > jsFiles && tsFiles > 0) {
+      results.scores.typescript += 0.15;
+      results.scores.javascript = Math.max(0, results.scores.javascript - 0.1);
+    }
+
+    // Python gets strong bonus for Python-specific patterns
+    if (results.evidence.pythonFrameworks && results.evidence.pythonFrameworks.length > 0) {
+      results.scores.python += 0.2;
+    }
+
+    // Web framework bonuses
+    if (results.evidence.webFrameworks && results.evidence.webFrameworks.length > 0) {
+      const hasReact = results.evidence.webFrameworks.some(f => f.name === 'react');
+      const hasAngular = results.evidence.webFrameworks.some(f => f.name === 'angular');
+
+      if (hasReact && tsFiles > 0) {
+        results.scores.typescript += 0.1;
+      }
+
+      if (hasAngular) {
+        results.scores.typescript += 0.15;
+      }
+    }
+
+    // Configuration file bonuses
+    if (results.evidence.files['tsconfig.json']) {
+      results.scores.typescript += 0.1;
+    }
+
+    if (results.evidence.files['package.json'] && !results.evidence.files['tsconfig.json']) {
+      results.scores.javascript += 0.1;
+    }
+
+    // Testing framework consistency check
+    if (results.evidence.testingFrameworks.includes('jest')) {
+      if (results.scores.typescript > results.scores.javascript) {
+        results.scores.typescript += 0.05;
+      } else {
+        results.scores.javascript += 0.05;
+      }
+    }
+
+    if (results.evidence.testingFrameworks.includes('pytest')) {
+      results.scores.python += 0.1;
+    }
+
+    // Penalty for conflicting indicators
+    const totalFiles = jsFiles + tsFiles + pyFiles;
+    if (totalFiles > 0) {
+      const jsPct = jsFiles / totalFiles;
+      const tsPct = tsFiles / totalFiles;
+      const pyPct = pyFiles / totalFiles;
+
+      // Reduce scores if file distribution doesn't match framework
+      if (results.scores.python > 0.5 && pyPct < 0.3) {
+        results.scores.python *= 0.8;
+      }
+      if (results.scores.typescript > 0.5 && tsPct < 0.2) {
+        results.scores.typescript *= 0.9;
+      }
+    }
+  }
+
+  /**
+   * Get Python files for content analysis
+   */
+  async getPythonFiles() {
+    const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 3 });
+    return allFiles.filter(file => path.extname(file).toLowerCase() === '.py');
+  }
+
+  /**
+   * Enhanced confidence calculation with evidence strength
+   */
+  calculateEvidenceStrength(evidence) {
+    let strength = 1.0;
+
+    // File evidence strength
+    const fileCount = Object.keys(evidence.files).length;
+    if (fileCount > 5) strength += 0.15;
+    else if (fileCount > 3) strength += 0.1;
+    else if (fileCount < 2) strength -= 0.25;
+
+    // Pattern evidence strength
+    const frameworksWithPatterns = Object.keys(evidence.patterns || {}).length;
+    if (frameworksWithPatterns > 0) strength += 0.1;
+
+    // Testing framework evidence
+    if (evidence.testingFrameworks && evidence.testingFrameworks.length > 0) {
+      strength += 0.1;
+    }
+
+    // Web framework evidence
+    if (evidence.webFrameworks && evidence.webFrameworks.length > 0) {
+      strength += 0.15;
+      // Bonus for high-confidence web framework detection
+      const highConfidenceFrameworks = evidence.webFrameworks.filter(f => f.confidence > 0.7);
+      if (highConfidenceFrameworks.length > 0) {
+        strength += 0.1;
+      }
+    }
+
+    // Python framework evidence
+    if (evidence.pythonFrameworks && evidence.pythonFrameworks.length > 0) {
+      strength += 0.15;
+    }
+
+    // Package.json presence for JS/TS projects
+    if (evidence.files.packageJson && (evidence.files.jsFiles > 0 || evidence.files.tsFiles > 0)) {
+      strength += 0.1;
+    }
+
+    // Strong configuration files
+    if (evidence.files['tsconfig.json'] || evidence.files['pyproject.toml'] || evidence.files['angular.json']) {
+      strength += 0.1;
+    }
+
+    return Math.max(0.6, Math.min(1.4, strength));
   }
 
   async close() {
