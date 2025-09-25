@@ -1,0 +1,195 @@
+{
+  "teamCollaboration": {
+    "description": "Team collaboration and preference sharing settings",
+    "enabled": false,
+    "currentTeam": null,
+    "memberInfo": {
+      "id": null,
+      "name": null,
+      "role": "member",
+      "joinedAt": null
+    },
+    "syncSettings": {
+      "autoSync": true,
+      "syncFrequency": "on-change",
+      "conflictResolution": "prompt",
+      "backupBeforeSync": true
+    },
+    "collaborationModes": {
+      "developer": {
+        "name": "Developer Team",
+        "description": "Optimized for development teams with focus on code quality",
+        "sharedPreferences": [
+          "tone.style",
+          "documentation.verbosity",
+          "languages.auto_setup_linting",
+          "resourceDelegation.mode",
+          "customizations.message_filters"
+        ],
+        "benefits": [
+          "Consistent code quality standards",
+          "Shared linting and formatting rules",
+          "Unified build and test processes",
+          "Standardized agent behavior"
+        ]
+      },
+      "research": {
+        "name": "Research Team",
+        "description": "Optimized for research teams with comprehensive documentation",
+        "sharedPreferences": [
+          "documentation.verbosity",
+          "tone.technical_depth",
+          "guidance.experience_level",
+          "workflow.analytics_driven"
+        ],
+        "benefits": [
+          "Consistent documentation standards",
+          "Shared research methodologies",
+          "Unified analysis approaches",
+          "Collaborative knowledge building"
+        ]
+      },
+      "enterprise": {
+        "name": "Enterprise Team",
+        "description": "Standardized settings for enterprise environments",
+        "sharedPreferences": [
+          "tone.style",
+          "documentation.verbosity",
+          "resourceDelegation",
+          "customizations",
+          "languages.auto_setup_linting"
+        ],
+        "benefits": [
+          "Enterprise compliance",
+          "Standardized workflows",
+          "Centralized policy management",
+          "Consistent user experience"
+        ]
+      },
+      "flexible": {
+        "name": "Flexible Team",
+        "description": "Minimal shared preferences, maximum individual flexibility",
+        "sharedPreferences": [
+          "tone.style",
+          "resourceDelegation.mode"
+        ],
+        "benefits": [
+          "Individual customization freedom",
+          "Minimal sync conflicts",
+          "Personal workflow optimization",
+          "Loose team coordination"
+        ]
+      }
+    },
+    "conflictResolutionStrategies": {
+      "vote": {
+        "name": "Team Voting",
+        "description": "Team members vote to resolve conflicts",
+        "bestFor": ["Democratic teams", "Equally experienced members"]
+      },
+      "merge": {
+        "name": "Smart Merging",
+        "description": "Automatically merge compatible preferences",
+        "bestFor": ["Compatible preferences", "Array/object values"]
+      },
+      "admin-override": {
+        "name": "Admin Override",
+        "description": "Team admin's preferences take precedence",
+        "bestFor": ["Hierarchical teams", "Enterprise environments"]
+      },
+      "individual-choice": {
+        "name": "Individual Choice",
+        "description": "Preserve individual preferences",
+        "bestFor": ["Flexible teams", "Personal customization priority"]
+      },
+      "prompt": {
+        "name": "Interactive Resolution",
+        "description": "Prompt user to choose resolution method",
+        "bestFor": ["Ad-hoc collaboration", "Context-dependent decisions"]
+      }
+    }
+  },
+  "examples": {
+    "workflows": [
+      {
+        "name": "New Team Setup",
+        "steps": [
+          "Team lead creates team with claude-flow-novice team create 'Dev Team'",
+          "Team lead configures collaboration mode and shared preferences",
+          "Members join using team ID",
+          "Initial preference sync occurs automatically",
+          "Team begins collaborative development with synchronized settings"
+        ]
+      },
+      {
+        "name": "Adding New Shared Preference",
+        "steps": [
+          "Team member proposes new shared preference",
+          "Admin adds preference to shared list",
+          "Next sync propagates new preference to all members",
+          "Conflicts resolved using team's resolution strategy"
+        ]
+      },
+      {
+        "name": "Resolving Conflicts",
+        "steps": [
+          "Member's local changes conflict with team preferences",
+          "Sync process detects conflicts",
+          "Resolution strategy applied (vote/merge/admin/individual)",
+          "Resolved preferences saved and propagated",
+          "Team continues with synchronized settings"
+        ]
+      }
+    ],
+    "useCases": [
+      {
+        "scenario": "Development Team with 5 Members",
+        "recommendation": "developer mode",
+        "sharedPreferences": [
+          "code formatting rules",
+          "linting standards",
+          "build processes",
+          "testing approaches"
+        ],
+        "benefits": "Consistent code quality and development practices"
+      },
+      {
+        "scenario": "Research Group with Documentation Focus",
+        "recommendation": "research mode",
+        "sharedPreferences": [
+          "documentation verbosity",
+          "technical depth",
+          "analysis standards"
+        ],
+        "benefits": "Unified research methodology and documentation standards"
+      },
+      {
+        "scenario": "Enterprise Team with Compliance Requirements",
+        "recommendation": "enterprise mode",
+        "sharedPreferences": [
+          "all major settings",
+          "security policies",
+          "compliance standards"
+        ],
+        "benefits": "Centralized control and regulatory compliance"
+      }
+    ]
+  },
+  "tips": {
+    "bestPractices": [
+      "Start with minimal shared preferences and add gradually",
+      "Choose collaboration mode based on team structure and needs",
+      "Regular sync prevents large conflict accumulation",
+      "Use descriptive team names and member names for clarity",
+      "Backup individual preferences before major sync operations",
+      "Review conflict resolutions periodically to ensure effectiveness"
+    ],
+    "troubleshooting": [
+      "Sync lock timeout: Wait 30 seconds and retry",
+      "Conflict resolution deadlock: Use admin override temporarily",
+      "Missing team configuration: Check team ID accuracy",
+      "Permission errors: Verify team membership and role",
+      "Preference corruption: Restore from backup"
+    ]
+  }
+}

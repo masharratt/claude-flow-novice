@@ -39,6 +39,7 @@ import {
   trackCommandExecution
 } from './simple-commands/performance-hooks.js';
 import { preferencesCommand } from './preferences.js';
+import { personalizationCommand } from './personalization-cli.js';
 // Maestro commands integrated with clean implementation
 // Note: Maestro TypeScript commands now integrated directly in ./commands/maestro.ts
 // Note: TypeScript imports commented out for Node.js compatibility
@@ -802,6 +803,64 @@ Options:
     • Streaming: No intermediate files
 
 📖 For full documentation: stream-chain help`,
+  });
+
+  commandRegistry.set('personalize', {
+    handler: personalizationCommand,
+    description: '🎯 Unified personalization system with AI-powered workflow optimization',
+    usage: 'personalize <subcommand> [options]',
+    examples: [
+      'personalize setup                             # Run comprehensive setup wizard',
+      'personalize status                            # Show personalization status',
+      'personalize optimize                          # Get optimization suggestions',
+      'personalize analytics                         # Show usage analytics and insights',
+      'personalize resource assign coder             # Resource delegation commands',
+      'personalize dashboard                         # Open interactive dashboard',
+      'personalize export settings.json              # Export personalization data',
+    ],
+    details: `
+🎯 UNIFIED PERSONALIZATION SYSTEM
+  Comprehensive personalization platform that adapts Claude Flow Novice to your
+  specific workflow patterns, experience level, and project requirements.
+
+🧙‍♂️ SETUP WIZARD
+  Interactive configuration wizard that:
+  • Assesses your experience level and project focus
+  • Configures communication style and verbosity preferences
+  • Sets up workflow automation and agent coordination
+  • Enables analytics and performance tracking
+  • Customizes resource allocation patterns
+
+📊 ANALYTICS & INSIGHTS
+  • Real-time usage analytics and performance metrics
+  • Personalized workflow optimization suggestions
+  • Agent performance tracking and recommendations
+  • Pattern recognition for improved efficiency
+  • Interactive dashboard with live monitoring
+
+⚡ RESOURCE DELEGATION
+  • Dynamic agent assignment based on task complexity
+  • Intelligent resource allocation optimization
+  • Custom delegation rules and priority management
+  • Performance-based agent selection
+
+🔧 WORKFLOW OPTIMIZATION
+  • AI-powered suggestion engine for workflow improvements
+  • Automated optimization application with approval
+  • Performance impact analysis and tracking
+  • Cross-session learning and adaptation
+
+🎛️ CONTENT FILTERING
+  • Personalized content prioritization and filtering
+  • Context-aware information presentation
+  • Adaptive verbosity based on user expertise
+  • Smart noise reduction for focused workflows
+
+💾 DATA MANAGEMENT
+  • Export/import personalization settings
+  • Cross-session persistence and learning
+  • Privacy-first analytics with user control
+  • Backup and restore capabilities`,
   });
 
   commandRegistry.set('preferences', {

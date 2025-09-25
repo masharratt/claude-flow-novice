@@ -36,6 +36,43 @@
       "share_preferences": false,
       "sync_claude_md": true,
       "collaborative_mode": false
+    },
+    "resourceDelegation": {
+      "mode": "adaptive",
+      "heavyCommandThreshold": 5000,
+      "maxConcurrentHeavyCommands": 2,
+      "preferredDelegate": "auto",
+      "resourceLimits": {
+        "cpu": 80,
+        "memory": 75,
+        "network": 90
+      },
+      "commands": {
+        "heavyCommands": [
+          "npm test",
+          "npm run test",
+          "jest",
+          "vitest",
+          "npm run build",
+          "tsc",
+          "webpack",
+          "vite build",
+          "cargo build",
+          "cargo test",
+          "go build",
+          "go test",
+          "python -m pytest",
+          "mvn test",
+          "gradle build",
+          "docker build"
+        ],
+        "delegationRules": {
+          "test": "single-delegate",
+          "build": "adaptive",
+          "compile": "single-delegate",
+          "lint": "distributed"
+        }
+      }
     }
   },
   "customizations": {

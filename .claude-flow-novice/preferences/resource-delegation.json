@@ -1,0 +1,120 @@
+{
+  "resourceDelegation": {
+    "mode": "adaptive",
+    "description": "Controls how resource-heavy commands are executed across swarm agents",
+    "options": {
+      "distributed": {
+        "name": "Distributed Execution",
+        "description": "All agents execute heavy commands simultaneously",
+        "pros": ["Faster parallel execution", "Better resource utilization"],
+        "cons": ["Higher system load", "Potential resource conflicts"],
+        "bestFor": ["Light workloads", "High-performance systems", "Independent tasks"]
+      },
+      "single-delegate": {
+        "name": "Single Agent Delegation",
+        "description": "One agent executes heavy commands, shares results with others",
+        "pros": ["Lower system load", "Prevents resource conflicts", "Better reliability"],
+        "cons": ["Sequential execution", "Single point of failure"],
+        "bestFor": ["Resource-constrained systems", "Complex builds", "Heavy test suites"]
+      },
+      "adaptive": {
+        "name": "Adaptive Resource Management",
+        "description": "Automatically chooses the best strategy based on current conditions",
+        "pros": ["Optimal performance", "Dynamic adaptation", "Balanced resource usage"],
+        "cons": ["Slight overhead for decision-making"],
+        "bestFor": ["Most use cases", "Variable workloads", "Production environments"]
+      }
+    },
+    "heavyCommandThreshold": 5000,
+    "maxConcurrentHeavyCommands": 2,
+    "preferredDelegate": "auto",
+    "resourceLimits": {
+      "cpu": 80,
+      "memory": 75,
+      "network": 90,
+      "description": "System resource thresholds that trigger single-delegate mode"
+    }
+  },
+  "commandCategories": {
+    "test": {
+      "commands": ["npm test", "npm run test", "jest", "vitest", "pytest", "cargo test", "go test", "mvn test"],
+      "defaultStrategy": "single-delegate",
+      "reasoning": "Test suites often require substantial resources and can conflict when run in parallel"
+    },
+    "build": {
+      "commands": ["npm run build", "webpack", "vite build", "tsc", "cargo build", "go build", "gradle build"],
+      "defaultStrategy": "adaptive",
+      "reasoning": "Build processes vary in resource requirements; adaptive mode optimizes based on conditions"
+    },
+    "compile": {
+      "commands": ["tsc", "javac", "gcc", "clang", "rustc"],
+      "defaultStrategy": "single-delegate",
+      "reasoning": "Compilation can be memory-intensive and benefit from dedicated resources"
+    },
+    "lint": {
+      "commands": ["eslint", "prettier", "flake8", "black", "clippy"],
+      "defaultStrategy": "distributed",
+      "reasoning": "Linting is typically lightweight and can be safely distributed"
+    },
+    "package": {
+      "commands": ["npm pack", "docker build", "zip", "tar"],
+      "defaultStrategy": "single-delegate",
+      "reasoning": "Package creation often involves file system operations that can conflict"
+    }
+  },
+  "delegateSelection": {
+    "strategies": {
+      "auto": "Automatically select best agent based on performance metrics and current load",
+      "performance-optimized": "Always select the highest-performing agent",
+      "round-robin": "Rotate delegate selection among available agents",
+      "load-balanced": "Select agent with lowest current resource utilization",
+      "capability-based": "Select agent with most relevant capabilities for the task"
+    },
+    "selectionCriteria": {
+      "performanceWeight": 0.4,
+      "loadWeight": 0.3,
+      "capabilityWeight": 0.2,
+      "availabilityWeight": 0.1
+    }
+  },
+  "monitoring": {
+    "trackPerformance": true,
+    "collectMetrics": true,
+    "alertThresholds": {
+      "highCpuUsage": 85,
+      "highMemoryUsage": 90,
+      "executionTimeout": 300000,
+      "consecutiveFailures": 3
+    },
+    "optimizationHints": {
+      "enableAutoTuning": true,
+      "suggestConfigChanges": true,
+      "trackSuccessPatterns": true
+    }
+  },
+  "examples": {
+    "scenarios": [
+      {
+        "name": "Large Test Suite",
+        "description": "Running comprehensive test suites with high memory requirements",
+        "recommendedMode": "single-delegate",
+        "commands": ["npm run test:all", "pytest tests/", "cargo test --release"],
+        "reasoning": "Prevents memory conflicts and ensures consistent test environment"
+      },
+      {
+        "name": "Multi-Package Build",
+        "description": "Building multiple packages or modules simultaneously",
+        "recommendedMode": "adaptive",
+        "commands": ["lerna run build", "nx run-many --target=build"],
+        "reasoning": "Adapts to system load and optimizes parallel vs sequential execution"
+      },
+      {
+        "name": "Development Workflow",
+        "description": "Standard development tasks like linting and type checking",
+        "recommendedMode": "distributed",
+        "commands": ["eslint src/", "prettier --check", "tsc --noEmit"],
+        "reasoning": "These lightweight tasks benefit from parallel execution"
+      }
+    ]
+  }
+}

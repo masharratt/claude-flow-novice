@@ -1,39 +1,32 @@
 {
-  "language": "javascript",
-  "frameworks": ["node", "express", "react", "vue", "angular", "next"],
-  "best_practices": {
-    "file_structure": {
-      "src": "Source code",
-      "tests": "Test files (Jest, Mocha, etc.)",
-      "docs": "Documentation",
-      "config": "Configuration files",
-      "scripts": "Build and utility scripts"
+  "name": "JavaScript",
+  "extensions": [".js", ".mjs", ".cjs"],
+  "packageFiles": ["package.json", ".eslintrc*", "babel.config.*"],
+  "testFrameworks": {
+    "jest": {
+      "patterns": ["jest.config.js", "__tests__", ".test.js", ".spec.js"],
+      "priority": 1
     },
-    "linting": {
-      "eslint": true,
-      "prettier": true,
-      "config_files": [".eslintrc.json", ".prettierrc.json"]
+    "vitest": {
+      "patterns": ["vitest.config.js", "vite.config.js"],
+      "priority": 2
     },
-    "testing": {
-      "framework": "jest",
-      "patterns": ["*.test.js", "*.spec.js"],
-      "coverage": true
-    },
-    "dependencies": {
-      "package_manager": "npm",
-      "dev_dependencies": ["eslint", "prettier", "jest"],
-      "scripts": {
-        "test": "jest",
-        "lint": "eslint src/",
-        "format": "prettier --write src/"
-      }
+    "mocha": {
+      "patterns": ["mocha.opts", ".mocharc*"],
+      "priority": 3
     }
   },
-  "claude_md_template": {
-    "concurrent_patterns": "Use Promise.all() for parallel operations",
-    "error_handling": "Implement proper try-catch and async error handling",
-    "code_style": "Follow ESLint rules, use const/let appropriately",
-    "testing": "Write tests first (TDD), aim for >80% coverage",
-    "performance": "Use async/await, avoid blocking operations"
+  "bestPractices": [
+    "Use ES6+ features (arrow functions, destructuring, modules)",
+    "Prefer const/let over var",
+    "Use async/await over Promise chains",
+    "Implement proper error boundaries",
+    "Follow ESLint/Prettier configurations"
+  ],
+  "concurrentPatterns": {
+    "agentCoordination": "Use Claude Code's Task tool for parallel agent execution",
+    "fileOperations": "Batch all Read/Write/Edit operations in single message",
+    "bashCommands": "Execute multiple bash commands with && or ; separators",
+    "todoManagement": "Batch ALL todos in ONE TodoWrite call (5-10+ minimum)"
   }
 }

@@ -67,6 +67,7 @@ USAGE:
   sparc <mode>             SPARC development modes (17 available)
   memory <action>          Persistent memory operations
   github <mode>            GitHub workflow automation (6 modes)
+  personalize <action>     🎯 AI-powered workflow personalization and optimization
   status                   System status and health
   
 🔍 VERIFICATION COMMANDS (NEW!):

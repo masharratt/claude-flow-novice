@@ -1,0 +1,121 @@
+{
+  "autoGenerate": true,
+  "includeFrameworkSpecific": true,
+  "includeBestPractices": true,
+  "includeTestingPatterns": true,
+  "includeDeploymentGuidelines": false,
+  "backupExisting": true,
+  "preserveCustomSections": true,
+  "confidenceThreshold": 0.3,
+  "languages": {
+    "javascript": {
+      "enabled": true,
+      "includeConcurrentPatterns": true,
+      "includeErrorHandling": true,
+      "includePerformanceTips": true
+    },
+    "typescript": {
+      "enabled": true,
+      "includeStrictConfig": true,
+      "includeUtilityTypes": true,
+      "includeTestingPatterns": true
+    },
+    "python": {
+      "enabled": true,
+      "includePEP8": true,
+      "includeAsyncPatterns": true,
+      "includeTypeHints": true
+    },
+    "java": {
+      "enabled": true,
+      "includeSpringPatterns": false,
+      "includeMavenConfig": false
+    },
+    "go": {
+      "enabled": true,
+      "includeGoRoutines": true,
+      "includeModules": true
+    },
+    "rust": {
+      "enabled": true,
+      "includeCargoConfig": true,
+      "includeOwnershipPatterns": true
+    }
+  },
+  "frameworks": {
+    "react": {
+      "enabled": true,
+      "includeHooks": true,
+      "includeTestingLibrary": true,
+      "includePerformanceOptimization": true
+    },
+    "nextjs": {
+      "enabled": true,
+      "includeAppRouter": true,
+      "includeServerComponents": true,
+      "includeISR": true
+    },
+    "vue": {
+      "enabled": true,
+      "includeComposition": true,
+      "includeVuex": true
+    },
+    "angular": {
+      "enabled": true,
+      "includeRxJS": true,
+      "includeNgRx": false
+    },
+    "express": {
+      "enabled": true,
+      "includeMiddleware": true,
+      "includeAuthentication": true,
+      "includeValidation": true
+    },
+    "fastify": {
+      "enabled": true,
+      "includePlugins": true,
+      "includeSchemas": true
+    },
+    "django": {
+      "enabled": true,
+      "includeDRF": true,
+      "includeAuthentication": true,
+      "includeTestCase": true
+    },
+    "flask": {
+      "enabled": true,
+      "includeBlueprints": true,
+      "includeSQLAlchemy": true,
+      "includeJWT": true
+    },
+    "fastapi": {
+      "enabled": true,
+      "includePydantic": true,
+      "includeAsyncPatterns": true,
+      "includeOpenAPI": true
+    },
+    "spring": {
+      "enabled": true,
+      "includeBootPatterns": true,
+      "includeJPA": false
+    }
+  },
+  "customSections": {
+    "includeProjectSpecific": true,
+    "includeTeamGuidelines": false,
+    "includeDeploymentNotes": false
+  },
+  "formatting": {
+    "maxLineLength": 120,
+    "useCodeBlocks": true,
+    "includeEmojis": true,
+    "sectionHeaders": "##"
+  },
+  "notifications": {
+    "onGeneration": true,
+    "onUpdate": true,
+    "onValidationIssues": false
+  },
+  "version": "1.0.0",
+  "lastUpdated": "2025-09-24T00:00:00.000Z"
+}
