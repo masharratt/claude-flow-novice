@@ -11,6 +11,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { logger } from '../core/logger.js';
 import { TruthConfigManager } from './truth-config-manager.js';
+import { RustFrameworkDetector } from './frameworks/rust-detector.js';
 
 export class CustomFrameworkRegistry {
   constructor(options = {}) {
@@ -18,6 +19,7 @@ export class CustomFrameworkRegistry {
     this.registryPath = path.join(this.basePath, '.swarm', 'custom-frameworks.json');
     this.logger = logger.child({ component: 'CustomFrameworkRegistry' });
     this.frameworks = new Map();
+    this.rustDetector = new RustFrameworkDetector({ basePath: this.basePath });
     this.initialized = false;
   }
 
@@ -27,11 +29,16 @@ export class CustomFrameworkRegistry {
     try {
       await this.ensureRegistryDirectory();
       await this.loadExistingFrameworks();
+
+      // Initialize Rust detector with Byzantine validation
+      await this.rustDetector.initialize();
+
       this.initialized = true;
 
       this.logger.info('Custom Framework Registry initialized', {
         frameworkCount: this.frameworks.size,
-        registryPath: this.registryPath
+        registryPath: this.registryPath,
+        rustDetectorEnabled: true
       });
 
     } catch (error) {
@@ -495,9 +502,339 @@ export class CustomFrameworkRegistry {
   }
 
   /**
+   * Auto-detect and register Rust frameworks with Byzantine consensus
+   */
+  async autoDetectRustFrameworks() {
+    await this.initialize();
+
+    try {
+      const rustDetectionResult = await this.rustDetector.detectRustFramework();
+
+      if (rustDetectionResult.isRustProject && rustDetectionResult.confidence > 0.7) {
+        const rustFramework = await this.createRustFrameworkDefinition(rustDetectionResult);
+
+        // Check if already registered
+        const existingRust = Array.from(this.frameworks.values()).find(
+          f => f.name.toLowerCase().includes('rust') && f.active
+        );
+
+        if (!existingRust) {
+          const registerResult = await this.registerFramework(rustFramework);
+
+          this.logger.info('Rust framework auto-registered with Byzantine validation', {
+            frameworkId: registerResult.frameworkId,
+            confidence: rustDetectionResult.confidence,
+            byzantineConsensus: rustDetectionResult.metadata.byzantineConsensus,
+            detectedFrameworks: {
+              web: rustDetectionResult.frameworks.web.length,
+              database: rustDetectionResult.frameworks.database.length,
+              async: rustDetectionResult.frameworks.async.length,
+              testing: rustDetectionResult.frameworks.testing.length
+            }
+          });
+
+          return registerResult;
+        }
+      }
+
+      return {
+        success: false,
+        reason: 'Rust project not detected or confidence too low',
+        confidence: rustDetectionResult.confidence
+      };
+
+    } catch (error) {
+      this.logger.error('Rust auto-detection failed', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create framework definition from Rust detection results
+   */
+  async createRustFrameworkDefinition(rustResult) {
+    const webFrameworks = rustResult.frameworks.web.map(f => f.name).join(', ');
+    const dbFrameworks = rustResult.frameworks.database.map(f => f.name).join(', ');
+    const asyncRuntimes = rustResult.frameworks.async.map(f => f.name).join(', ');
+
+    let name = 'Rust Project';
+    if (webFrameworks) {
+      name = `Rust Web (${webFrameworks})`;
+    } else if (dbFrameworks) {
+      name = `Rust Database (${dbFrameworks})`;
+    } else if (asyncRuntimes) {
+      name = `Rust Async (${asyncRuntimes})`;
+    }
+
+    const description = this.buildRustDescription(rustResult);
+
+    return {
+      name,
+      description,
+      filePatterns: [
+        'Cargo.toml',
+        'Cargo.lock',
+        '**/*.rs',
+        'src/**/*.rs',
+        'tests/**/*.rs',
+        'benches/**/*.rs',
+        'examples/**/*.rs'
+      ],
+      testingFramework: this.determineRustTestingFramework(rustResult),
+      truthThreshold: this.calculateRustTruthThreshold(rustResult),
+      tags: [
+        'rust',
+        'auto-detected',
+        'byzantine-validated',
+        ...rustResult.frameworks.web.map(f => `web-${f.name}`),
+        ...rustResult.frameworks.database.map(f => `db-${f.name}`),
+        ...rustResult.frameworks.async.map(f => `async-${f.name}`)
+      ],
+      rustSpecific: {
+        edition: rustResult.evidence.editions?.[0] || '2021',
+        cargoWorkspace: rustResult.evidence.workspace !== null,
+        dependencies: rustResult.evidence.dependencies,
+        detectedFrameworks: rustResult.frameworks,
+        byzantineConsensus: rustResult.metadata.byzantineConsensus,
+        confidence: rustResult.confidence
+      }
+    };
+  }
+
+  /**
+   * Build comprehensive description for Rust framework
+   */
+  buildRustDescription(rustResult) {
+    let description = `Auto-detected Rust project with ${rustResult.confidence.toFixed(2)} confidence`;
+
+    if (rustResult.metadata.byzantineConsensus) {
+      description += ' (Byzantine consensus validated)';
+    }
+
+    description += `.\n\nProject Details:`;
+
+    if (rustResult.evidence.cargo.name) {
+      description += `\n• Name: ${rustResult.evidence.cargo.name}`;
+    }
+
+    if (rustResult.evidence.cargo.version) {
+      description += `\n• Version: ${rustResult.evidence.cargo.version}`;
+    }
+
+    if (rustResult.evidence.editions.length > 0) {
+      description += `\n• Rust Edition: ${rustResult.evidence.editions.join(', ')}`;
+    }
+
+    if (rustResult.evidence.workspace) {
+      description += `\n• Cargo Workspace: ${rustResult.evidence.workspace.members.length} members`;
+    }
+
+    if (rustResult.frameworks.web.length > 0) {
+      description += `\n• Web Frameworks: ${rustResult.frameworks.web.map(f => f.name).join(', ')}`;
+    }
+
+    if (rustResult.frameworks.database.length > 0) {
+      description += `\n• Database Frameworks: ${rustResult.frameworks.database.map(f => f.name).join(', ')}`;
+    }
+
+    if (rustResult.frameworks.async.length > 0) {
+      description += `\n• Async Runtimes: ${rustResult.frameworks.async.map(f => f.name).join(', ')}`;
+    }
+
+    if (rustResult.frameworks.testing.length > 0) {
+      description += `\n• Testing Frameworks: ${rustResult.frameworks.testing.map(f => f.name).join(', ')}`;
+    }
+
+    description += `\n\nDetection completed with ${rustResult.metadata.patternsMatched} patterns matched in ${rustResult.metadata.detectionTime}ms`;
+
+    return description;
+  }
+
+  /**
+   * Determine appropriate testing framework for Rust project
+   */
+  determineRustTestingFramework(rustResult) {
+    // Check detected testing frameworks
+    if (rustResult.frameworks.testing.length > 0) {
+      const testFramework = rustResult.frameworks.testing[0].name;
+
+      switch (testFramework) {
+        case 'criterion':
+        case 'proptest':
+        case 'quickcheck':
+          return 'custom'; // Non-standard testing approaches
+        case 'builtin':
+        default:
+          return 'unit'; // Standard Rust unit testing
+      }
+    }
+
+    // Check for testing evidence
+    if (rustResult.evidence.patterns.rust) {
+      const hasTests = rustResult.evidence.patterns.rust.some(p =>
+        p.pattern.includes('test') || p.pattern.includes('assert')
+      );
+
+      if (hasTests) {
+        return 'unit';
+      }
+    }
+
+    return 'unit'; // Default for Rust projects
+  }
+
+  /**
+   * Calculate truth threshold based on Rust project complexity and confidence
+   */
+  calculateRustTruthThreshold(rustResult) {
+    let threshold = 0.80; // Base threshold for Rust projects
+
+    // Adjust based on confidence
+    if (rustResult.confidence > 0.9) {
+      threshold += 0.05; // High confidence allows higher threshold
+    } else if (rustResult.confidence < 0.7) {
+      threshold -= 0.05; // Lower confidence needs lower threshold
+    }
+
+    // Adjust based on complexity
+    const complexityScore = (
+      rustResult.frameworks.web.length +
+      rustResult.frameworks.database.length +
+      rustResult.frameworks.async.length +
+      rustResult.frameworks.testing.length
+    );
+
+    if (complexityScore > 3) {
+      threshold += 0.05; // Complex projects get higher standards
+    } else if (complexityScore === 0) {
+      threshold -= 0.03; // Simple projects get lower requirements
+    }
+
+    // Byzantine consensus bonus
+    if (rustResult.metadata.byzantineConsensus) {
+      threshold += 0.02; // Validated projects get slight boost
+    }
+
+    // Workspace projects
+    if (rustResult.evidence.workspace && rustResult.evidence.workspace.validMembers > 2) {
+      threshold += 0.03; // Multi-crate workspaces need higher standards
+    }
+
+    // Modern edition bonus
+    if (rustResult.evidence.editions.includes('2021')) {
+      threshold += 0.01; // Modern Rust gets slight boost
+    }
+
+    return Math.max(0.65, Math.min(0.95, threshold));
+  }
+
+  /**
+   * Get Rust framework detection statistics
+   */
+  async getRustDetectionStatistics() {
+    await this.initialize();
+
+    const rustFrameworks = Array.from(this.frameworks.values()).filter(
+      f => f.tags && f.tags.includes('rust')
+    );
+
+    const totalRustProjects = rustFrameworks.length;
+    const byzantineValidated = rustFrameworks.filter(
+      f => f.rustSpecific?.byzantineConsensus
+    ).length;
+
+    const frameworkDistribution = {
+      web: rustFrameworks.filter(f => f.tags.some(tag => tag.startsWith('web-'))).length,
+      database: rustFrameworks.filter(f => f.tags.some(tag => tag.startsWith('db-'))).length,
+      async: rustFrameworks.filter(f => f.tags.some(tag => tag.startsWith('async-'))).length
+    };
+
+    const avgConfidence = totalRustProjects > 0
+      ? rustFrameworks.reduce((sum, f) => sum + (f.rustSpecific?.confidence || 0), 0) / totalRustProjects
+      : 0;
+
+    return {
+      totalRustProjects,
+      byzantineValidated,
+      byzantineValidationRate: totalRustProjects > 0 ? byzantineValidated / totalRustProjects : 0,
+      frameworkDistribution,
+      averageConfidence: avgConfidence,
+      editions: this.getRustEditionDistribution(rustFrameworks),
+      workspaceProjects: rustFrameworks.filter(f => f.rustSpecific?.cargoWorkspace).length
+    };
+  }
+
+  /**
+   * Get Rust edition distribution
+   */
+  getRustEditionDistribution(rustFrameworks) {
+    const editions = {};
+
+    for (const framework of rustFrameworks) {
+      const edition = framework.rustSpecific?.edition || 'unknown';
+      editions[edition] = (editions[edition] || 0) + 1;
+    }
+
+    return editions;
+  }
+
+  /**
+   * Enhanced search with Rust-specific criteria
+   */
+  async searchRustFrameworks(criteria) {
+    await this.initialize();
+
+    let frameworks = Array.from(this.frameworks.values()).filter(
+      f => f.tags && f.tags.includes('rust') && f.active
+    );
+
+    // Filter by Rust edition
+    if (criteria.edition) {
+      frameworks = frameworks.filter(
+        f => f.rustSpecific?.edition === criteria.edition
+      );
+    }
+
+    // Filter by workspace status
+    if (criteria.workspace !== undefined) {
+      frameworks = frameworks.filter(
+        f => f.rustSpecific?.cargoWorkspace === criteria.workspace
+      );
+    }
+
+    // Filter by Byzantine validation status
+    if (criteria.byzantineValidated !== undefined) {
+      frameworks = frameworks.filter(
+        f => f.rustSpecific?.byzantineConsensus === criteria.byzantineValidated
+      );
+    }
+
+    // Filter by specific Rust framework types
+    if (criteria.frameworkType) {
+      const tagPrefix = `${criteria.frameworkType}-`;
+      frameworks = frameworks.filter(
+        f => f.tags.some(tag => tag.startsWith(tagPrefix))
+      );
+    }
+
+    // Filter by confidence threshold
+    if (criteria.minConfidence) {
+      frameworks = frameworks.filter(
+        f => (f.rustSpecific?.confidence || 0) >= criteria.minConfidence
+      );
+    }
+
+    return frameworks;
+  }
+
+  /**
    * Cleanup resources
    */
   async cleanup() {
+    if (this.rustDetector) {
+      await this.rustDetector.cleanup();
+    }
+
     this.frameworks.clear();
     this.initialized = false;
     this.logger.debug('Custom Framework Registry cleanup completed');

@@ -28,6 +28,7 @@ const FRAMEWORK_MAPPING = {
   javascript: { name: 'JavaScript/Node.js', config: 'TDD' },
   typescript: { name: 'TypeScript', config: 'TDD' },
   python: { name: 'Python', config: 'BDD' },
+  rust: { name: 'Rust', config: 'TDD' },
   unknown: { name: 'Custom Framework', config: 'CUSTOM' }
 };
 
@@ -277,6 +278,7 @@ export class InteractiveSetupWizard {
         { name: 'JavaScript/Node.js with Jest', value: 'TDD' },
         { name: 'TypeScript with Jest', value: 'TDD' },
         { name: 'Python with pytest', value: 'BDD' },
+        { name: 'Rust with cargo test', value: 'TDD' },
         { name: 'SPARC Methodology', value: 'SPARC' },
         { name: 'Custom Framework', value: 'CUSTOM' }
       ]
@@ -429,6 +431,9 @@ export class InteractiveSetupWizard {
       if (this.detectedFramework.evidence.files.pyFiles) {
         console.log(chalk.gray(`  📄 ${this.detectedFramework.evidence.files.pyFiles} Python files`));
       }
+      if (this.detectedFramework.evidence.files.rsFiles) {
+        console.log(chalk.gray(`  📄 ${this.detectedFramework.evidence.files.rsFiles} Rust files`));
+      }
 
       // Show testing frameworks
       if (this.detectedFramework.evidence.testingFrameworks.length > 0) {
@@ -455,7 +460,8 @@ export class InteractiveSetupWizard {
         'jest.config.js', 'jest.config.json',
         'pytest.ini', 'pyproject.toml',
         '.eslintrc.js', '.eslintrc.json',
-        'tsconfig.json'
+        'tsconfig.json',
+        'Cargo.toml', 'Cargo.lock'
       ];
 
       const existingConfigs = [];
@@ -598,6 +604,7 @@ export class InteractiveSetupWizard {
       javascript: { truthScore: 0.85, testCoverage: 90, codeQuality: 'A', documentationCoverage: 80 },
       typescript: { truthScore: 0.90, testCoverage: 95, codeQuality: 'A', documentationCoverage: 85 },
       python: { truthScore: 0.80, testCoverage: 85, codeQuality: 'B', documentationCoverage: 75 },
+      rust: { truthScore: 0.88, testCoverage: 92, codeQuality: 'A', documentationCoverage: 82 },
       unknown: { truthScore: 0.75, testCoverage: 80, codeQuality: 'B', documentationCoverage: 70 }
     };
 

@@ -22,6 +22,7 @@ import JestIntegration from './test-framework-integrations/jest-integration.js';
 import PytestIntegration from './test-framework-integrations/pytest-integration.js';
 import PlaywrightIntegration from './test-framework-integrations/playwright-integration.js';
 import SPARCIntegration from './test-framework-integrations/sparc-integration.js';
+import RustIntegration from './test-framework-integrations/rust-integration.js';
 
 // Real-world validators (NO SIMULATION)
 import BuildValidator from './real-world-validators/build-validator.js';
@@ -37,7 +38,7 @@ export class ProductionValidationSuite extends EventEmitter {
       falseCompletionRateThreshold: options.falseCompletionRateThreshold || 0.05, // 5%
       parallelValidation: options.parallelValidation !== false,
       timeout: options.timeout || 1800000, // 30 minutes
-      frameworks: options.frameworks || ['jest', 'pytest', 'playwright', 'sparc'],
+      frameworks: options.frameworks || ['jest', 'pytest', 'playwright', 'sparc', 'rust'],
       realWorldValidators: options.realWorldValidators || ['build', 'deployment', 'performance'],
       cicdIntegration: options.cicdIntegration !== false,
       ...options
@@ -51,7 +52,8 @@ export class ProductionValidationSuite extends EventEmitter {
       jest: new JestIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
       pytest: new PytestIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
       playwright: new PlaywrightIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
-      sparc: new SPARCIntegration({ enableByzantineValidation: this.options.enableByzantineValidation })
+      sparc: new SPARCIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
+      rust: new RustIntegration({ enableByzantineValidation: this.options.enableByzantineValidation })
     };
 
     // Initialize real-world validators
@@ -285,6 +287,19 @@ export class ProductionValidationSuite extends EventEmitter {
         setup.detected.testFrameworks.push('pytest');
       }
 
+      // Detect Rust projects
+      if (await this.fileExists(path.join(projectPath, 'Cargo.toml'))) {
+        setup.runtime = 'rust';
+        setup.projectType = 'rust';
+        setup.detected.testFrameworks.push('rust');
+        setup.packageManager = 'cargo';
+
+        // Check if Cargo.lock exists
+        if (await this.fileExists(path.join(projectPath, 'Cargo.lock'))) {
+          setup.detected.buildSystems.push('cargo');
+        }
+      }
+
       // Detect SPARC usage
       if (await this.fileExists(path.join(projectPath, 'ARCHITECTURE.md')) ||
           await this.fileExists(path.join(projectPath, 'SPECIFICATION.md'))) {
@@ -396,6 +411,9 @@ export class ProductionValidationSuite extends EventEmitter {
 
         case 'sparc':
           return await testFramework.validateSPARCCompletion(projectPath, validationConfig.sparc || {});
+
+        case 'rust':
+          return await testFramework.executeTests(projectPath, validationConfig.rust || {});
 
         default:
           throw new Error(`Framework execution not implemented: ${framework}`);

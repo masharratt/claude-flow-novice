@@ -96,6 +96,36 @@ export class FrameworkDetector {
           { pattern: /install_requires\s*=/g, weight: 0.1, fileType: 'py' },
           { pattern: /setup\s*\(/g, weight: 0.15, fileType: 'py' }
         ]
+      },
+
+      rust: {
+        files: [
+          { pattern: 'Cargo.toml', weight: 0.4, required: true },
+          { pattern: '*.rs', weight: 0.35, multiple: true },
+          { pattern: 'Cargo.lock', weight: 0.15, optional: true },
+          { pattern: 'src/main.rs', weight: 0.1, optional: true },
+          { pattern: 'src/lib.rs', weight: 0.1, optional: true },
+          { pattern: 'tests/', weight: 0.05, directory: true, optional: true },
+          { pattern: 'examples/', weight: 0.03, directory: true, optional: true },
+          { pattern: 'benches/', weight: 0.02, directory: true, optional: true }
+        ],
+        contentPatterns: [
+          { pattern: /^use\s+\w+/gm, weight: 0.15, fileType: 'rs' },
+          { pattern: /fn\s+\w+\s*\(/g, weight: 0.1, fileType: 'rs' },
+          { pattern: /struct\s+\w+/g, weight: 0.1, fileType: 'rs' },
+          { pattern: /enum\s+\w+/g, weight: 0.1, fileType: 'rs' },
+          { pattern: /impl\s+(\w+\s+for\s+)?\w+/g, weight: 0.1, fileType: 'rs' },
+          { pattern: /fn\s+main\s*\(\)/g, weight: 0.05, fileType: 'rs' },
+          { pattern: /#\[test\]/g, weight: 0.15, fileType: 'rs', testFile: true },
+          { pattern: /#\[cfg\(test\)\]/g, weight: 0.1, fileType: 'rs', testFile: true },
+          { pattern: /assert_eq!|assert!|assert_ne!/g, weight: 0.1, fileType: 'rs', testFile: true }
+        ],
+        cargoPatterns: [
+          { pattern: /\[package\]/g, weight: 0.2, fileType: 'toml' },
+          { pattern: /\[dependencies\]/g, weight: 0.15, fileType: 'toml' },
+          { pattern: /\[dev-dependencies\]/g, weight: 0.1, fileType: 'toml' },
+          { pattern: /edition\s*=\s*["']\d{4}["']/g, weight: 0.1, fileType: 'toml' }
+        ]
       }
     };
 
@@ -173,6 +203,10 @@ export class FrameworkDetector {
       },
       unittest: {
         patterns: [/import\s+unittest/g, /class\s+\w+\(unittest\.TestCase\)/g, /def\s+test\w+/g]
+      },
+      cargo_test: {
+        files: ['Cargo.toml'],
+        patterns: [/#\[test\]/g, /#\[cfg\(test\)\]/g, /assert_eq!|assert!|assert_ne!/g]
       }
     };
   }
@@ -199,7 +233,8 @@ export class FrameworkDetector {
       scores: {
         javascript: 0,
         typescript: 0,
-        python: 0
+        python: 0,
+        rust: 0
       },
       evidence: {
         files: {},
@@ -229,6 +264,9 @@ export class FrameworkDetector {
 
       // Detect Python frameworks (Django, Flask, FastAPI)
       await this.detectPythonFrameworks(results);
+
+      // Detect Rust-specific patterns
+      await this.analyzeCargoToml(results);
 
       // Detect testing frameworks
       await this.detectTestingFrameworks(results);
@@ -267,7 +305,8 @@ export class FrameworkDetector {
     const fileStats = {
       javascript: { js: 0, jsx: 0 },
       typescript: { ts: 0, tsx: 0, d: 0 },
-      python: { py: 0, pyw: 0, pyi: 0 }
+      python: { py: 0, pyw: 0, pyi: 0 },
+      rust: { rs: 0 }
     };
 
     try {
@@ -303,6 +342,9 @@ export class FrameworkDetector {
           case '.pyi':
             fileStats.python.pyi++;
             break;
+          case '.rs':
+            fileStats.rust.rs++;
+            break;
         }
 
         // Check specific files
@@ -328,6 +370,7 @@ export class FrameworkDetector {
       const totalJSFiles = fileStats.javascript.js + fileStats.javascript.jsx;
       const totalTSFiles = fileStats.typescript.ts + fileStats.typescript.tsx + fileStats.typescript.d;
       const totalPYFiles = fileStats.python.py + fileStats.python.pyw + fileStats.python.pyi;
+      const totalRSFiles = fileStats.rust.rs;
 
       if (totalJSFiles > 0) {
         results.scores.javascript += Math.min(0.3, totalJSFiles * 0.02);
@@ -342,6 +385,11 @@ export class FrameworkDetector {
       if (totalPYFiles > 0) {
         results.scores.python += Math.min(0.3, totalPYFiles * 0.02);
         results.evidence.files.pyFiles = totalPYFiles;
+      }
+
+      if (totalRSFiles > 0) {
+        results.scores.rust += Math.min(0.3, totalRSFiles * 0.02);
+        results.evidence.files.rsFiles = totalRSFiles;
       }
 
       results.metadata.filesAnalyzed = files.length;
@@ -365,7 +413,7 @@ export class FrameworkDetector {
 
         // Analyze package.json structure and dependencies
         for (const [framework, patterns] of Object.entries(this.detectionPatterns)) {
-          if (framework === 'python') continue;
+          if (framework === 'python' || framework === 'rust') continue;
 
           for (const keyPattern of patterns.packageJsonKeys || []) {
             const value = this.getNestedProperty(pkg, keyPattern.key);
@@ -517,6 +565,10 @@ export class FrameworkDetector {
       results.scores.python += 0.1; // Python bonus
     }
 
+    if (results.evidence.files['Cargo.toml'] || results.evidence.files['Cargo.lock']) {
+      results.scores.rust += 0.15; // Rust bonus
+    }
+
     // Find the framework with the highest score
     const maxScore = Math.max(...Object.values(results.scores));
     const detectedFramework = Object.keys(results.scores).find(
@@ -593,7 +645,7 @@ export class FrameworkDetector {
     // Filter to relevant file types and limit for performance
     const relevantFiles = allFiles.filter(file => {
       const ext = path.extname(file).toLowerCase();
-      return ['.js', '.ts', '.jsx', '.tsx', '.py', '.json'].includes(ext);
+      return ['.js', '.ts', '.jsx', '.tsx', '.py', '.rs', '.json', '.toml'].includes(ext);
     });
 
     // Return a sample of files (up to 20 for performance)
@@ -797,6 +849,7 @@ export class FrameworkDetector {
     const jsFiles = results.evidence.files.jsFiles || 0;
     const tsFiles = results.evidence.files.tsFiles || 0;
     const pyFiles = results.evidence.files.pyFiles || 0;
+    const rsFiles = results.evidence.files.rsFiles || 0;
 
     // TypeScript gets bonus if it has more files than JavaScript
     if (tsFiles > jsFiles && tsFiles > 0) {
@@ -845,12 +898,17 @@ export class FrameworkDetector {
       results.scores.python += 0.1;
     }
 
+    if (results.evidence.testingFrameworks.includes('cargo_test')) {
+      results.scores.rust += 0.1;
+    }
+
     // Penalty for conflicting indicators
-    const totalFiles = jsFiles + tsFiles + pyFiles;
+    const totalFiles = jsFiles + tsFiles + pyFiles + rsFiles;
     if (totalFiles > 0) {
       const jsPct = jsFiles / totalFiles;
       const tsPct = tsFiles / totalFiles;
       const pyPct = pyFiles / totalFiles;
+      const rsPct = rsFiles / totalFiles;
 
       // Reduce scores if file distribution doesn't match framework
       if (results.scores.python > 0.5 && pyPct < 0.3) {
@@ -859,6 +917,14 @@ export class FrameworkDetector {
       if (results.scores.typescript > 0.5 && tsPct < 0.2) {
         results.scores.typescript *= 0.9;
       }
+      if (results.scores.rust > 0.5 && rsPct < 0.4) {
+        results.scores.rust *= 0.9;
+      }
+    }
+
+    // Strong Rust indicators
+    if (results.evidence.files['Cargo.toml'] && rsFiles > 0) {
+      results.scores.rust += 0.2; // Strong Rust project indicator
     }
   }
 
@@ -868,6 +934,78 @@ export class FrameworkDetector {
   async getPythonFiles() {
     const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 3 });
     return allFiles.filter(file => path.extname(file).toLowerCase() === '.py');
+  }
+
+  /**
+   * Get Rust files for content analysis
+   */
+  async getRustFiles() {
+    const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 3 });
+    return allFiles.filter(file => path.extname(file).toLowerCase() === '.rs');
+  }
+
+  /**
+   * Analyze Cargo.toml for Rust-specific configuration
+   */
+  async analyzeCargoToml(results) {
+    try {
+      const cargoTomlPath = path.join(this.basePath, 'Cargo.toml');
+      if (await this.fileExists(cargoTomlPath)) {
+        const cargoContent = await fs.readFile(cargoTomlPath, 'utf8');
+        results.evidence.files['Cargo.toml'] = true;
+
+        // Apply Cargo.toml patterns
+        const patterns = this.detectionPatterns.rust.cargoPatterns || [];
+        for (const pattern of patterns) {
+          const matches = cargoContent.match(pattern.pattern);
+          if (matches) {
+            results.scores.rust += pattern.weight;
+            results.metadata.patternsMatched++;
+
+            if (!results.evidence.patterns.rust) {
+              results.evidence.patterns.rust = [];
+            }
+            results.evidence.patterns.rust.push({
+              pattern: pattern.pattern.toString(),
+              matches: matches.length,
+              file: 'Cargo.toml'
+            });
+          }
+        }
+
+        // Check for specific Rust project indicators
+        if (cargoContent.includes('[package]')) {
+          results.scores.rust += 0.2;
+        }
+
+        if (cargoContent.includes('edition = "')) {
+          results.scores.rust += 0.1;
+        }
+
+        // Check for testing configuration
+        if (cargoContent.includes('[dev-dependencies]') || cargoContent.includes('[[test]]')) {
+          results.scores.rust += 0.05;
+        }
+
+        // Check for common Rust dependencies
+        const commonRustDeps = ['serde', 'tokio', 'clap', 'reqwest', 'actix-web', 'diesel'];
+        for (const dep of commonRustDeps) {
+          if (cargoContent.includes(dep)) {
+            results.scores.rust += 0.03;
+          }
+        }
+      }
+
+      // Check Cargo.lock for additional evidence
+      const cargoLockPath = path.join(this.basePath, 'Cargo.lock');
+      if (await this.fileExists(cargoLockPath)) {
+        results.evidence.files['Cargo.lock'] = true;
+        results.scores.rust += 0.1;
+      }
+
+    } catch (error) {
+      console.warn('Cargo.toml analysis error:', error.message);
+    }
   }
 
   /**
@@ -911,8 +1049,13 @@ export class FrameworkDetector {
       strength += 0.1;
     }
 
+    // Cargo.toml presence for Rust projects
+    if (evidence.files['Cargo.toml'] && evidence.files.rsFiles > 0) {
+      strength += 0.15;
+    }
+
     // Strong configuration files
-    if (evidence.files['tsconfig.json'] || evidence.files['pyproject.toml'] || evidence.files['angular.json']) {
+    if (evidence.files['tsconfig.json'] || evidence.files['pyproject.toml'] || evidence.files['angular.json'] || evidence.files['Cargo.toml']) {
       strength += 0.1;
     }
 

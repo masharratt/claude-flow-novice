@@ -445,7 +445,7 @@ export class ValidationCommands {
     });
 
     const filePatterns = await prompts.text({
-      message: 'File patterns (comma-separated, e.g., *.java,*.kt):',
+      message: 'File patterns (comma-separated, e.g., *.java,*.kt,*.rs):',
       validate: (value) => value.length > 0 || 'At least one pattern required'
     });
 
@@ -455,6 +455,7 @@ export class ValidationCommands {
         { name: 'Unit Testing (TDD-style)', value: 'unit' },
         { name: 'Behavior Testing (BDD-style)', value: 'behavior' },
         { name: 'Integration Testing', value: 'integration' },
+        { name: 'Rust Testing (cargo test)', value: 'rust' },
         { name: 'Custom Testing Approach', value: 'custom' }
       ]
     });
@@ -486,6 +487,8 @@ export class ValidationCommands {
       baseFramework = 'TDD';
     } else if (frameworkInfo.testingFramework === 'behavior') {
       baseFramework = 'BDD';
+    } else if (frameworkInfo.testingFramework === 'rust') {
+      baseFramework = 'TDD'; // Rust uses TDD-style testing with cargo test
     }
 
     const config = await configManager.createFromFramework(baseFramework, {
@@ -582,6 +585,46 @@ export class ValidationCommands {
       console.log(`  Framework: ${chalk.yellow(preferences.truthConfig.framework)}`);
       console.log(`  Validation Checks: ${chalk.yellow(Object.values(preferences.truthConfig.checks).filter(Boolean).length)}`);
     }
+
+    // Display framework-specific commands
+    this.displayFrameworkCommands(preferences);
+  }
+
+  /**
+   * Display framework-specific commands based on detected framework
+   */
+  displayFrameworkCommands(preferences) {
+    const framework = preferences.framework?.detected || 'unknown';
+
+    console.log(chalk.blue('\n🚀 Framework-Specific Commands:'));
+
+    switch (framework) {
+      case 'javascript':
+      case 'typescript':
+        console.log(chalk.gray('  npm test                    # Run tests'));
+        console.log(chalk.gray('  npm run build              # Build project'));
+        console.log(chalk.gray('  npx jest --coverage        # Test with coverage'));
+        break;
+
+      case 'python':
+        console.log(chalk.gray('  pytest                     # Run tests'));
+        console.log(chalk.gray('  pytest --cov=.            # Test with coverage'));
+        console.log(chalk.gray('  python -m pytest -v       # Verbose test output'));
+        break;
+
+      case 'rust':
+        console.log(chalk.gray('  cargo test                 # Run tests'));
+        console.log(chalk.gray('  cargo build                # Build project'));
+        console.log(chalk.gray('  cargo test -- --nocapture # Test with output'));
+        console.log(chalk.gray('  cargo clippy               # Lint code'));
+        console.log(chalk.gray('  cargo fmt                  # Format code'));
+        console.log(chalk.gray('  cargo check                # Fast compile check'));
+        break;
+
+      default:
+        console.log(chalk.gray('  # Framework-specific commands will appear here'));
+        console.log(chalk.gray('  # after running setup with your project'));
+    }
   }
 
   /**
@@ -669,6 +712,47 @@ export class ValidationCommands {
       }
     }
 
+    // Check for Cargo.toml to determine if this is a Rust project
+    if (await this.fileExists(path.join(this.basePath, 'Cargo.toml'))) {
+      try {
+        const cargoContent = await fs.readFile(path.join(this.basePath, 'Cargo.toml'), 'utf8');
+
+        // Check for dev-dependencies section (testing is built into Rust)
+        if (!cargoContent.includes('[dev-dependencies]') && !cargoContent.includes('[[test]]')) {
+          // Rust has built-in testing, but warn if no test dependencies or test configuration
+          missing.push('Test configuration (consider adding dev-dependencies or [[test]] section)');
+        }
+      } catch (error) {
+        missing.push('Valid Cargo.toml');
+      }
+    }
+
+    // Check for Python dependencies
+    if (await this.fileExists(path.join(this.basePath, 'requirements.txt')) ||
+        await this.fileExists(path.join(this.basePath, 'pyproject.toml'))) {
+      try {
+        let hasTestingFramework = false;
+
+        // Check requirements.txt
+        if (await this.fileExists(path.join(this.basePath, 'requirements.txt'))) {
+          const requirements = await fs.readFile(path.join(this.basePath, 'requirements.txt'), 'utf8');
+          hasTestingFramework = /pytest|unittest2|nose/.test(requirements);
+        }
+
+        // Check pyproject.toml
+        if (!hasTestingFramework && await this.fileExists(path.join(this.basePath, 'pyproject.toml'))) {
+          const pyproject = await fs.readFile(path.join(this.basePath, 'pyproject.toml'), 'utf8');
+          hasTestingFramework = /pytest|unittest/.test(pyproject);
+        }
+
+        if (!hasTestingFramework) {
+          missing.push('Python testing framework (pytest, unittest, or nose)');
+        }
+      } catch (error) {
+        missing.push('Valid Python project configuration');
+      }
+    }
+
     return {
       allPresent: missing.length === 0,
       missing
@@ -712,7 +796,13 @@ export class ValidationCommands {
    */
   async suggestDependencyInstallation(issue) {
     console.log(chalk.yellow(`  🔧 ${issue}`));
-    console.log(chalk.gray('  💡 Consider installing missing dependencies with npm/yarn/pip'));
+    if (issue.includes('cargo') || issue.includes('Rust')) {
+      console.log(chalk.gray('  💡 Consider installing missing dependencies with cargo or updating Cargo.toml'));
+    } else if (issue.includes('Python') || issue.includes('pytest')) {
+      console.log(chalk.gray('  💡 Consider installing missing dependencies with pip or updating requirements.txt'));
+    } else {
+      console.log(chalk.gray('  💡 Consider installing missing dependencies with npm/yarn/pip/cargo'));
+    }
   }
 
   /**

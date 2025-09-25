@@ -21,7 +21,7 @@ export class BuildValidator {
     this.options = {
       timeout: options.timeout || 600000, // 10 minutes
       enableByzantineValidation: options.enableByzantineValidation !== false,
-      buildSystems: options.buildSystems || ['npm', 'webpack', 'typescript', 'maven', 'gradle'],
+      buildSystems: options.buildSystems || ['npm', 'webpack', 'typescript', 'maven', 'gradle', 'cargo'],
       buildArtifactValidation: options.buildArtifactValidation !== false,
       performanceThresholds: options.performanceThresholds || {
         buildTime: 300000, // 5 minutes
@@ -216,6 +216,9 @@ export class BuildValidator {
         case 'gradle':
           await this.analyzeGradleBuild(projectPath, systemInfo);
           break;
+        case 'cargo':
+          await this.analyzeCargoBuild(projectPath, systemInfo);
+          break;
         default:
           systemInfo.buildCommands = [this.getDefaultBuildCommand(system)];
       }
@@ -334,6 +337,52 @@ export class BuildValidator {
       await fs.access(path.join(projectPath, 'gradlew'));
     } catch (error) {
       systemInfo.buildCommands = ['gradle build', 'gradle assemble'];
+    }
+  }
+
+  /**
+   * Analyze Cargo build configuration
+   */
+  async analyzeCargoBuild(projectPath, systemInfo) {
+    systemInfo.buildCommands = ['cargo build', 'cargo build --release'];
+    systemInfo.artifacts = ['target/debug/', 'target/release/'];
+
+    try {
+      const cargoTomlPath = path.join(projectPath, 'Cargo.toml');
+      const cargoTomlContent = await fs.readFile(cargoTomlPath, 'utf8');
+
+      // Extract package name for artifact prediction
+      const nameMatch = cargoTomlContent.match(/name\s*=\s*"([^"]+)"/);
+      if (nameMatch) {
+        systemInfo.packageName = nameMatch[1];
+        systemInfo.artifactName = nameMatch[1]; // Binary will have this name
+      }
+
+      // Check if it's a library
+      if (cargoTomlContent.includes('[lib]')) {
+        systemInfo.projectType = 'library';
+        systemInfo.artifacts.push('target/debug/lib*.rlib', 'target/release/lib*.rlib');
+      } else {
+        systemInfo.projectType = 'binary';
+      }
+
+      // Check for workspace
+      if (cargoTomlContent.includes('[workspace]')) {
+        systemInfo.projectType = 'workspace';
+        systemInfo.buildCommands = ['cargo build --workspace', 'cargo build --workspace --release'];
+      }
+
+      // Extract dependencies count
+      const depsMatch = cargoTomlContent.match(/\[dependencies\]([\s\S]*?)(?=\[|$)/);
+      if (depsMatch) {
+        const depsSection = depsMatch[1];
+        const deps = depsSection.match(/^\s*\w+\s*=/gm);
+        systemInfo.dependencyCount = deps ? deps.length : 0;
+      }
+
+    } catch (error) {
+      console.warn('Could not analyze Cargo.toml:', error.message);
+      systemInfo.analysisError = error.message;
     }
   }
 
@@ -568,6 +617,11 @@ export class BuildValidator {
       case 'npm':
         metrics.packagesInstalled = (output.match(/added \d+ package/g) || []).length;
         break;
+
+      case 'cargo':
+        metrics.cratesCompiled = (output.match(/Compiling\s+[\w-]+/g) || []).length;
+        metrics.buildTime = this.extractCargoBuildTime(output);
+        break;
     }
 
     return metrics;
@@ -596,6 +650,20 @@ export class BuildValidator {
         }
       }
       return totalSize;
+    }
+    return 0;
+  }
+
+  /**
+   * Extract cargo build time
+   */
+  extractCargoBuildTime(output) {
+    // Look for "Finished" message which includes build time
+    const finishedMatch = output.match(/Finished.*?in\s+([0-9.]+)([sm])/);
+    if (finishedMatch) {
+      const time = parseFloat(finishedMatch[1]);
+      const unit = finishedMatch[2];
+      return unit === 's' ? time * 1000 : time; // Convert to milliseconds
     }
     return 0;
   }
@@ -698,6 +766,8 @@ export class BuildValidator {
           validation.checks.push(await this.validateJavaScriptArtifact(artifactPath));
         } else if (ext === '.jar' || ext === '.war') {
           validation.checks.push(await this.validateJavaArtifact(artifactPath));
+        } else if (ext === '.rlib' || artifactPath.includes('target/')) {
+          validation.checks.push(await this.validateRustArtifact(artifactPath));
         }
 
         // Generate checksum for integrity
@@ -770,6 +840,66 @@ export class BuildValidator {
 
     } catch (error) {
       return { type: 'java_validation', result: 'validation_error', error: error.message };
+    }
+  }
+
+  /**
+   * Validate Rust artifact (executables, libraries)
+   */
+  async validateRustArtifact(filePath) {
+    try {
+      const stats = await fs.stat(filePath);
+
+      // Check file extensions
+      if (filePath.endsWith('.rlib')) {
+        // Rust library file
+        return {
+          type: 'rust_library',
+          result: stats.size > 0 ? 'valid' : 'empty',
+          size: stats.size
+        };
+      } else if (filePath.includes('target/debug/') || filePath.includes('target/release/')) {
+        // Rust executable
+        const buffer = await fs.readFile(filePath, { start: 0, end: 16 });
+
+        // Check for executable signatures
+        let isValidExecutable = false;
+
+        // ELF signature (Linux/Unix)
+        if (buffer[0] === 0x7f && buffer[1] === 0x45 && buffer[2] === 0x4c && buffer[3] === 0x46) {
+          isValidExecutable = true;
+        }
+        // PE signature (Windows)
+        else if (buffer[0] === 0x4d && buffer[1] === 0x5a) {
+          isValidExecutable = true;
+        }
+        // Mach-O signature (macOS)
+        else if ((buffer[0] === 0xfe && buffer[1] === 0xed && buffer[2] === 0xfa && buffer[3] === 0xce) ||
+                 (buffer[0] === 0xcf && buffer[1] === 0xfa && buffer[2] === 0xed && buffer[3] === 0xfe)) {
+          isValidExecutable = true;
+        }
+
+        return {
+          type: 'rust_executable',
+          result: isValidExecutable ? 'valid' : 'invalid_signature',
+          size: stats.size,
+          executable: true
+        };
+      } else {
+        // Generic Rust artifact
+        return {
+          type: 'rust_artifact',
+          result: stats.size > 0 ? 'valid' : 'empty',
+          size: stats.size
+        };
+      }
+
+    } catch (error) {
+      return {
+        type: 'rust_validation',
+        result: 'validation_error',
+        error: error.message
+      };
     }
   }
 
