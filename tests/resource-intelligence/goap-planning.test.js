@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Consensus Tests for GOAP Agent Assignment System
  * Phase 2 - Checkpoint 2.3

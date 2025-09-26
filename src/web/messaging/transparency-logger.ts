@@ -27,7 +27,7 @@ export interface TransparencyLog {
   visibility: 'public' | 'team' | 'private';
 }
 
-export interface LoggingConfig {
+export interface TransparencyLoggingConfig {
   level: 'debug' | 'info' | 'warn' | 'error';
   logToFile: boolean;
   logPath?: string;
@@ -50,7 +50,7 @@ export class TransparencyLogger extends EventEmitter {
   private logsBySwarm = new Map<string, string[]>();
   private logPath: string;
 
-  constructor(private config: LoggingConfig, private logger: ILogger) {
+  constructor(private config: TransparencyLoggingConfig, private logger: ILogger) {
     super();
     this.logPath = config.logPath || './logs/transparency';
     this.ensureLogDirectory();

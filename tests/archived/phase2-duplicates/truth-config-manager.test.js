@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * Truth Config Manager Test Suite
  *

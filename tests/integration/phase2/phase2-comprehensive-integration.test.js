@@ -1,3 +1,8 @@
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * Phase 2 Comprehensive Integration Tests
  * Tests for the complete Phase 2 Completion Validation Framework

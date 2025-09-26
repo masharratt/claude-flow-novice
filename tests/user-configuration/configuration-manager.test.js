@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * Phase 2 User Configuration Manager Tests
  * Byzantine-secure test suite integrating with existing personalization system

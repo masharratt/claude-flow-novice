@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Custom Framework Addition with Byzantine Validation Tests
  * Phase 2 Integration Test Suite - Byzantine Consensus Component

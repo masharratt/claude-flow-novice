@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * Phase 2 Quality Gates Manager Tests
  * Analytics integration and user-customizable gate configuration

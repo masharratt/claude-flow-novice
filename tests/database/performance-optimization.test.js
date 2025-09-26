@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 /**
  * CRITICAL FAILING TESTS - Phase 3 Database Performance Optimization
  * REQUIREMENT: Positive performance improvement (currently -42.5% regression - CRITICAL FAILURE)

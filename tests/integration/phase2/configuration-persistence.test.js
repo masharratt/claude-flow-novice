@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach } from '@jest/globals';
 /**
  * Configuration Persistence Tests
  * Phase 2 Integration Test Suite - Configuration Management Component

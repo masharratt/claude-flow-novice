@@ -1,3 +1,8 @@
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * Comprehensive Rust Validation Test Suite
  * Tests framework detection, cargo test execution, build validation, and quality checks

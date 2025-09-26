@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * CRITICAL FAILING TESTS - Phase 3 Temporal Prediction Accuracy
  * REQUIREMENT: 89% minimum accuracy (currently 8.2% - CRITICAL FAILURE)

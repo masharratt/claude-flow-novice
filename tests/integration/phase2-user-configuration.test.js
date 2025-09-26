@@ -1,3 +1,7 @@
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 /**
  * Phase 2 User Configuration System Integration Tests
  * Critical Implementation Validation Tests
@@ -548,7 +552,7 @@ export class UserService {
   await fs.writeFile(
     path.join(dir, 'src', 'index.test.ts'),
     `
-import { UserService } from './index';
+import { UserService } from './index.js';
 
 describe('UserService', () => {
   test('should add and retrieve user', () => {

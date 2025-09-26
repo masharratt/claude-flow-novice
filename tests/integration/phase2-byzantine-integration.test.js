@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Phase 2 Byzantine Integration Tests
  * Validates coordination between all Phase 2 components with Byzantine security

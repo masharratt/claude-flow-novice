@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 /**
  * Gossip Protocol Integration Tests
  * Tests the complete gossip-based verification workflow

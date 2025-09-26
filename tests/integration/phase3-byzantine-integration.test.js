@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Phase 3 Byzantine Integration Tests
  * Complete TDD Protocol with Cross-Component Byzantine Validation

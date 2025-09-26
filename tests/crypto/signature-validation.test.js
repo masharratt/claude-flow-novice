@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeAll } from '@jest/globals';
 /**
  * CRITICAL FAILING TESTS - Phase 3 Cryptographic Signature Validation
  * REQUIREMENT: 100% test pass rate for signature verification (currently failing)

@@ -1,3 +1,4 @@
+import { describe, test, expect } from '@jest/globals';
 /**
  * Integration tests for real metrics implementation
  * Tests that the updated files correctly collect real system metrics

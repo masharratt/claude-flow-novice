@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 /**
  * INTEGRATION TESTS - Phase 3 Critical Fixes Verification
  * REQUIREMENT: Verify all critical fixes pass Byzantine consensus validation

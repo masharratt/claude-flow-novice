@@ -1,0 +1,534 @@
+name: Swarm Test Automation Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of tests to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - e2e
+        - regression
+        - performance
+        - visual
+      agent_count:
+        description: 'Number of test agents'
+        required: false
+        default: '4'
+        type: choice
+        options:
+        - '2'
+        - '4'
+        - '8'
+        - '12'
+
+env:
+  NODE_VERSION: '20'
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/ms-playwright
+
+jobs:
+  # Initialize swarm coordination
+  swarm-initialization:
+    runs-on: ubuntu-latest
+    outputs:
+      swarm-id: ${{ steps.init.outputs.swarm-id }}
+      topology: ${{ steps.init.outputs.topology }}
+      agent-count: ${{ steps.init.outputs.agent-count }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize Swarm Test Coordination
+        id: init
+        run: |
+          AGENT_COUNT="${{ github.event.inputs.agent_count || '4' }}"
+          SWARM_ID="swarm_$(date +%s)_${GITHUB_RUN_ID}"
+
+          echo "swarm-id=$SWARM_ID" >> $GITHUB_OUTPUT
+          echo "topology=hierarchical" >> $GITHUB_OUTPUT
+          echo "agent-count=$AGENT_COUNT" >> $GITHUB_OUTPUT
+
+          # Initialize swarm coordination
+          npx claude-flow@alpha swarm init --topology hierarchical --max-agents $AGENT_COUNT
+
+          # Store swarm configuration
+          echo "{ \"swarmId\": \"$SWARM_ID\", \"topology\": \"hierarchical\", \"maxAgents\": $AGENT_COUNT }" > swarm-config.json
+
+      - name: Upload swarm configuration
+        uses: actions/upload-artifact@v4
+        with:
+          name: swarm-config
+          path: swarm-config.json
+          retention-days: 1
+
+  # Dynamic test generation
+  test-generation:
+    runs-on: ubuntu-latest
+    needs: swarm-initialization
+    strategy:
+      matrix:
+        test-category: [e2e, regression, performance, visual, accessibility]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for change detection
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Download swarm configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: swarm-config
+          path: .
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
+
+          echo "changed-files<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Generate ${{ matrix.test-category }} tests
+        run: |
+          # Initialize test generation agent
+          npx claude-flow@alpha agent spawn \
+            --type test-generator \
+            --name ${{ matrix.test-category }}-generator \
+            --capabilities playwright-integration,chrome-mcp,test-generation
+
+          # Generate tests based on category and changes
+          case "${{ matrix.test-category }}" in
+            "e2e")
+              npx claude-flow@alpha test generate e2e \
+                --features $(echo '${{ steps.changes.outputs.changed-files }}' | grep -E '\.(ts|tsx|js|jsx)$' | head -5 | tr '\n' ',')
+              ;;
+            "regression")
+              npx claude-flow@alpha test generate regression \
+                --changed-files '${{ steps.changes.outputs.changed-files }}'
+              ;;
+            "performance")
+              npx claude-flow@alpha test generate performance \
+                --targets response_time:2000,throughput:100,error_rate:0.05
+              ;;
+            "visual")
+              npx claude-flow@alpha test generate visual \
+                --pages home,dashboard,profile
+              ;;
+            "accessibility")
+              npx claude-flow@alpha test generate accessibility \
+                --components $(echo '${{ steps.changes.outputs.changed-files }}' | grep -E 'components/.*\.(tsx|jsx)$' | head -3 | tr '\n' ',')
+              ;;
+          esac
+
+      - name: Upload generated tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-tests-${{ matrix.test-category }}
+          path: tests/generated/${{ matrix.test-category }}/
+          retention-days: 7
+
+  # Parallel test execution with swarm coordination
+  swarm-test-execution:
+    runs-on: ubuntu-latest
+    needs: [swarm-initialization, test-generation]
+    strategy:
+      matrix:
+        agent-id: [1, 2, 3, 4]
+        test-category: [e2e, regression, performance, visual, accessibility]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Download swarm configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: swarm-config
+          path: .
+
+      - name: Download generated tests
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-tests-${{ matrix.test-category }}
+          path: tests/generated/${{ matrix.test-category }}/
+
+      - name: Initialize test agent
+        run: |
+          SWARM_ID=$(jq -r '.swarmId' swarm-config.json)
+
+          # Spawn specialized test execution agent
+          npx claude-flow@alpha agent spawn \
+            --type test-executor \
+            --name agent-${{ matrix.agent-id }}-${{ matrix.test-category }} \
+            --capabilities ${{ matrix.test-category }}-testing,parallel-execution,failure-analysis \
+            --swarm-id $SWARM_ID
+
+      - name: Execute tests with swarm coordination
+        run: |
+          # Set up test execution with swarm coordination hooks
+          npx claude-flow@alpha hooks pre-task --description "Execute ${{ matrix.test-category }} tests on agent ${{ matrix.agent-id }}"
+
+          # Execute tests based on category
+          case "${{ matrix.test-category }}" in
+            "e2e"|"regression"|"visual"|"accessibility")
+              npx playwright test tests/generated/${{ matrix.test-category }}/ \
+                --shard=${{ matrix.agent-id }}/4 \
+                --reporter=json \
+                --output-dir=test-results/agent-${{ matrix.agent-id }}-${{ matrix.test-category }}
+              ;;
+            "performance")
+              npx playwright test tests/generated/performance/ \
+                --shard=${{ matrix.agent-id }}/4 \
+                --reporter=json \
+                --timeout=60000 \
+                --output-dir=test-results/agent-${{ matrix.agent-id }}-performance
+              ;;
+          esac
+
+          # Post-execution coordination
+          npx claude-flow@alpha hooks post-task --task-id "test-${{ matrix.test-category }}-${{ matrix.agent-id }}"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-agent-${{ matrix.agent-id }}-${{ matrix.test-category }}
+          path: test-results/agent-${{ matrix.agent-id }}-${{ matrix.test-category }}/
+          retention-days: 30
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-artifacts-agent-${{ matrix.agent-id }}-${{ matrix.test-category }}
+          path: |
+            test-results/agent-${{ matrix.agent-id }}-${{ matrix.test-category }}/screenshots/
+            test-results/agent-${{ matrix.agent-id }}-${{ matrix.test-category }}/videos/
+            test-results/agent-${{ matrix.agent-id }}-${{ matrix.test-category }}/traces/
+          retention-days: 30
+
+  # Test result aggregation and reporting
+  test-result-aggregation:
+    runs-on: ubuntu-latest
+    needs: swarm-test-execution
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          path: test-results/
+          merge-multiple: true
+
+      - name: Download swarm configuration
+        uses: actions/download-artifact@v4
+        with:
+          name: swarm-config
+          path: .
+
+      - name: Aggregate test results
+        run: |
+          # Initialize result aggregation agent
+          npx claude-flow@alpha agent spawn \
+            --type result-aggregator \
+            --name test-result-aggregator \
+            --capabilities result-analysis,report-generation,trend-analysis
+
+          # Aggregate and analyze results
+          npx claude-flow@alpha test aggregate \
+            --results-dir test-results/ \
+            --output test-results/aggregated-report.json \
+            --format json,html,junit
+
+          # Generate performance trends if applicable
+          if [ -d "test-results/performance" ]; then
+            npx claude-flow@alpha test analyze-trends \
+              --category performance \
+              --baseline-days 30
+          fi
+
+      - name: Generate comprehensive test report
+        run: |
+          # Generate HTML test report with swarm coordination insights
+          npx claude-flow@alpha report generate \
+            --input test-results/aggregated-report.json \
+            --output test-results/swarm-test-report.html \
+            --include-swarm-metrics \
+            --include-performance-trends
+
+      - name: Upload aggregated test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: aggregated-test-results
+          path: test-results/
+          retention-days: 90
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Swarm Test Results
+          path: 'test-results/**/*.xml'
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'test-results/aggregated-report.json';
+
+            if (fs.existsSync(path)) {
+              const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+              const comment = `## 🤖 Swarm Test Automation Results
+
+              **Swarm Configuration:** Hierarchical topology with ${report.swarmMetrics.agentCount} agents
+
+              ### Test Summary
+              - **Total Tests:** ${report.summary.total}
+              - **Passed:** ${report.summary.passed} ✅
+              - **Failed:** ${report.summary.failed} ❌
+              - **Skipped:** ${report.summary.skipped} ⏭️
+
+              ### Performance Metrics
+              - **Average Response Time:** ${report.performance.averageResponseTime}ms
+              - **Test Execution Time:** ${report.performance.totalExecutionTime}s
+              - **Parallel Efficiency:** ${report.swarmMetrics.parallelEfficiency}%
+
+              ### Test Categories
+              ${Object.entries(report.categories).map(([category, results]) =>
+                `- **${category}:** ${results.passed}/${results.total} passed`
+              ).join('\n')}
+
+              [View Full Report](${context.payload.pull_request.html_url}/checks)`;
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  # Performance monitoring and optimization
+  performance-analysis:
+    runs-on: ubuntu-latest
+    needs: test-result-aggregation
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download aggregated results
+        uses: actions/download-artifact@v4
+        with:
+          name: aggregated-test-results
+          path: test-results/
+
+      - name: Performance bottleneck analysis
+        run: |
+          # Initialize performance analysis agent
+          npx claude-flow@alpha agent spawn \
+            --type performance-analyzer \
+            --name bottleneck-analyzer \
+            --capabilities performance-analysis,bottleneck-detection,optimization-recommendations
+
+          # Analyze performance bottlenecks
+          npx claude-flow@alpha performance analyze \
+            --results test-results/aggregated-report.json \
+            --output performance-analysis.json \
+            --include-recommendations
+
+      - name: Generate optimization recommendations
+        run: |
+          # Generate actionable optimization recommendations
+          npx claude-flow@alpha performance optimize \
+            --analysis performance-analysis.json \
+            --output optimization-recommendations.md \
+            --format markdown
+
+      - name: Upload performance analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-analysis
+          path: |
+            performance-analysis.json
+            optimization-recommendations.md
+          retention-days: 30
+
+  # Test data cleanup and management
+  test-data-cleanup:
+    runs-on: ubuntu-latest
+    needs: test-result-aggregation
+    if: always()
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize cleanup agent
+        run: |
+          npx claude-flow@alpha agent spawn \
+            --type data-manager \
+            --name test-data-cleanup \
+            --capabilities data-cleanup,fixture-management,environment-reset
+
+      - name: Clean up test data
+        run: |
+          # Clean up test databases
+          npx claude-flow@alpha data cleanup --type database --pattern "test_*"
+
+          # Clean up temporary files
+          npx claude-flow@alpha data cleanup --type files --pattern "tmp/test_*"
+
+          # Reset test fixtures
+          npx claude-flow@alpha data reset-fixtures --environment test
+
+      - name: Archive test data
+        run: |
+          # Archive important test data for debugging
+          npx claude-flow@alpha data archive \
+            --source test-results/ \
+            --destination archived-test-data/ \
+            --retention-days 90
+
+  # Deployment gate based on test results
+  deployment-gate:
+    runs-on: ubuntu-latest
+    needs: [test-result-aggregation, performance-analysis]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: aggregated-test-results
+          path: test-results/
+
+      - name: Download performance analysis
+        uses: actions/download-artifact@v4
+        with:
+          name: performance-analysis
+          path: performance/
+
+      - name: Evaluate deployment readiness
+        id: deployment-gate
+        run: |
+          # Initialize deployment gate agent
+          npx claude-flow@alpha agent spawn \
+            --type deployment-gatekeeper \
+            --name deployment-gate \
+            --capabilities quality-gates,risk-assessment,deployment-approval
+
+          # Evaluate deployment criteria
+          DEPLOYMENT_READY=$(npx claude-flow@alpha deployment evaluate \
+            --test-results test-results/aggregated-report.json \
+            --performance-analysis performance/performance-analysis.json \
+            --criteria tests-pass:95%,performance-regression:none,critical-failures:0)
+
+          echo "deployment-ready=$DEPLOYMENT_READY" >> $GITHUB_OUTPUT
+
+      - name: Trigger deployment workflow
+        if: steps.deployment-gate.outputs.deployment-ready == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'main',
+              inputs: {
+                environment: 'production',
+                test_approval: 'swarm-automation'
+              }
+            });
+
+      - name: Block deployment on failure
+        if: steps.deployment-gate.outputs.deployment-ready == 'false'
+        run: |
+          echo "🚫 Deployment blocked due to test failures or performance regressions"
+          echo "Review the test results and performance analysis before deploying"
+          exit 1

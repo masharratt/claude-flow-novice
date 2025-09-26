@@ -1,3 +1,4 @@
+import { test } from '@jest/globals';
 /**
  * Test suite for Hello World functions
  */

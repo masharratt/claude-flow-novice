@@ -1,3 +1,4 @@
+import { describe, test, it } from '@jest/globals';
 /**
  * Test Suite for Notes CLI
  * Created by Swarm Agent: Tester-1

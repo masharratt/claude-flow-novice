@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach } from '@jest/globals';
 /**
  * Error Handling and Edge Cases Tests
  * Phase 2 Integration Test Suite - Comprehensive Error Handling Component

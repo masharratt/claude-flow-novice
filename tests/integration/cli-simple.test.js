@@ -1,3 +1,4 @@
+import { describe, test, expect } from '@jest/globals';
 /**
  * Simple CLI tests that don't spawn processes
  */

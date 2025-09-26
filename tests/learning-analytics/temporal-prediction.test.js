@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Byzantine-Secure Temporal Advantage Prediction Engine Tests
  * Phase 3.2 - TDD Protocol with Consensus Protocols

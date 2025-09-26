@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Cryptographic Tests for Sublinear Resource Optimization Engine
  * Phase 2 - Checkpoint 2.2

@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Byzantine-Secure Mathematical Analytics Pipeline Tests
  * Phase 3.3 - TDD Protocol with SQLite Byzantine Integration

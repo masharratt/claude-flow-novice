@@ -2,8 +2,8 @@
  * Core type definitions for Claude-Flow
  */
 
-// Configuration interface
-export interface Config {
+// Base Configuration interface
+export interface BaseConfig {
   env: 'development' | 'production' | 'test';
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   enableMetrics?: boolean;
@@ -60,16 +60,20 @@ export interface Config {
   };
 }
 
-// Logging configuration interface
+// Unified logging configuration interface
 export interface LoggingConfig {
   level: 'debug' | 'info' | 'warn' | 'error';
-  format: 'text' | 'json';
+  format: 'json' | 'text';
   destination: 'console' | 'file' | 'both';
+  // Support both file object and filePath string for backwards compatibility
   file?: {
     path: string;
     maxSize: number;
     maxFiles: number;
   };
+  filePath?: string;
+  maxFileSize?: number;
+  maxFiles?: number;
   enableTimestamps?: boolean;
   enableContext?: boolean;
 }
@@ -250,8 +254,8 @@ export interface EventMap extends Record<string, unknown> {
   'metrics:collected': OrchestratorMetrics;
 }
 
-// Configuration types
-export interface Config {
+// Detailed Configuration types
+export interface DetailedConfig {
   orchestrator: OrchestratorConfig;
   terminal: TerminalConfig;
   memory: MemoryConfig;
@@ -317,14 +321,7 @@ export interface MCPConfig {
   corsOrigins?: string[];
 }
 
-export interface LoggingConfig {
-  level: 'debug' | 'info' | 'warn' | 'error';
-  format: 'json' | 'text';
-  destination: 'console' | 'file' | 'both';
-  filePath?: string;
-  maxFileSize?: number;
-  maxFiles?: number;
-}
+// Duplicate LoggingConfig removed - using the one defined earlier in the file
 
 // Health and monitoring types
 export interface HealthStatus {

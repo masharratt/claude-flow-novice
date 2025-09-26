@@ -115,7 +115,7 @@ export interface CorsConfig {
   maxAge: number;
 }
 
-export interface LoggingConfig {
+export interface WebPortalLoggingConfig {
   level: 'error' | 'warn' | 'info' | 'debug';
   format: 'json' | 'text';
   outputs: Array<'console' | 'file' | 'syslog'>;
@@ -152,7 +152,7 @@ export interface WebPortalConfig {
   security: SecurityConfig;
   frontend: FrontendConfig;
   cors: CorsConfig;
-  logging: LoggingConfig;
+  logging: WebPortalLoggingConfig;
   monitoring: MonitoringConfig;
 }
 

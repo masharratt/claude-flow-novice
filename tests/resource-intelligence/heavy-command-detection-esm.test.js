@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Byzantine-Secure Tests for Heavy Command Detection System
  * Phase 2 - Checkpoint 2.1 - ES Module Version

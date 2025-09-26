@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach } from '@jest/globals';
 const { expect } = require('chai');
 const crypto = require('crypto');
 const { ContextAwareSmartHooks } = require('../../src/advanced/context-aware-smart-hooks');

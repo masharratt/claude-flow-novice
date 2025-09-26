@@ -276,7 +276,7 @@ export class SwarmMessageRouter extends EventEmitter {
           threadId,
           title: firstMessage.content.substring(0, 50) + '...',
           messageCount: messages.length,
-          participants: [...new Set(messages.map(m => m.agentId))],
+          participants: Array.from(new Set(messages.map(m => m.agentId))),
           lastActivity: messages[messages.length - 1]?.timestamp,
           messages: messages.sort((a, b) =>
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -390,7 +390,7 @@ export class SwarmMessageRouter extends EventEmitter {
   public cleanupOldMessages(maxAge: number = 24 * 60 * 60 * 1000): void {
     const cutoff = new Date(Date.now() - maxAge);
 
-    for (const [id, message] of this.messages.entries()) {
+    for (const [id, message] of Array.from(this.messages.entries())) {
       if (new Date(message.timestamp) < cutoff) {
         this.messages.delete(id);
         // Clean up indices too

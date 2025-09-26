@@ -1,3 +1,4 @@
+import { describe, test, it, expect } from '@jest/globals';
 // Test file to verify typo and syntax fixes
 
 import fs from 'fs';

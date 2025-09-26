@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach } from '@jest/globals';
 /**
  * Byzantine Consensus Integration Tests
  * Phase 2 Integration Test Suite - Distributed Consensus Component

@@ -199,7 +199,9 @@ export class InitializationError extends SystemError {
       : `Failed to initialize ${componentOrMessage}`;
     super(
       message,
-      details ? { component: componentOrMessage, ...details } : { component: componentOrMessage },
+      details && typeof details === 'object' && details !== null
+        ? { component: componentOrMessage, ...(details as Record<string, unknown>) }
+        : { component: componentOrMessage },
     );
   }
 }

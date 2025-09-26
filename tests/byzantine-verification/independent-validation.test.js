@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * INDEPENDENT BYZANTINE VERIFICATION OF PHASE 4 CLAIMS
  * Conducts rigorous independent testing with attack simulations

@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Test Coverage Validation
  * Phase 2 Integration Test Suite - Coverage Analysis and Validation Component

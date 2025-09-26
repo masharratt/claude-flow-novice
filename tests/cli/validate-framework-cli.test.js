@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * CLI Integration Tests for Framework Validation
  * Comprehensive testing of CLI commands with user-friendly error handling

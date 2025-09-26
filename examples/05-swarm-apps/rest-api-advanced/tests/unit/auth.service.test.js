@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach } from '@jest/globals';
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const authService = require('../../src/services/auth.service');

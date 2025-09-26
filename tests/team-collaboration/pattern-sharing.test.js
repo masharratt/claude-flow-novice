@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Phase 4 TDD Tests: Mathematical Team Pattern Sharing with Byzantine Security
  * Tests MUST fail initially to ensure proper TDD implementation

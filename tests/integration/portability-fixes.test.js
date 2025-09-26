@@ -1,3 +1,4 @@
+import { describe, test, expect } from '@jest/globals';
 /**
  * Integration tests for portability fixes
  * Tests that non-portable commands have been replaced with cross-platform alternatives

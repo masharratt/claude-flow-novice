@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * Phase 2 Custom Framework Registry Tests
  * Framework addition with Byzantine validation and security testing

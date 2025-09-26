@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from '@jest/globals';
 /**
  * Phase 4 TDD Tests: Byzantine-Secure Team Synchronization
  * Tests MUST fail initially to ensure proper TDD implementation

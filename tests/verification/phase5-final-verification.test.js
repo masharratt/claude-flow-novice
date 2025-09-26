@@ -1,3 +1,4 @@
+import { describe, test, it, expect, beforeEach, afterAll } from '@jest/globals';
 // Using Jest's built-in expect
 const { UnifiedHookSystem } = require('../../src/core/unified-hook-system');
 const { ByzantineSecurityManager } = require('../../src/security/byzantine-security');

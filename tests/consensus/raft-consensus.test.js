@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 /**
  * Comprehensive Test Suite for Raft Consensus Manager
  * Tests leader election, log replication, resource validation, and fault tolerance
