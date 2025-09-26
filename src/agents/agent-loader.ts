@@ -36,6 +36,23 @@ export interface AgentDefinition {
   hooks?: {
     pre?: string;
     post?: string;
+    task_complete?: string;
+    on_rerun_request?: string;
+    lifecycle?: {
+      init?: string;
+      start?: string;
+      pause?: string;
+      resume?: string;
+      stop?: string;
+      cleanup?: string;
+    };
+  };
+  lifecycle?: {
+    state_management?: boolean;
+    persistent_memory?: boolean;
+    max_retries?: number;
+    timeout_ms?: number;
+    auto_cleanup?: boolean;
   };
   content?: string; // The markdown content after frontmatter
 }

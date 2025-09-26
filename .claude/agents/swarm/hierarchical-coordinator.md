@@ -11,6 +11,12 @@ capabilities:
   - performance_monitoring
   - conflict_resolution
 priority: critical
+lifecycle:
+  state_management: true
+  persistent_memory: true
+  max_retries: 5
+  timeout_ms: 600000
+  auto_cleanup: true
 hooks:
   pre: |
     echo "👑 Hierarchical Coordinator initializing swarm: $TASK"
@@ -28,6 +34,44 @@ hooks:
     mcp__claude-flow__memory_usage store "swarm:hierarchy:${TASK_ID}:complete" "$(date): Task completed with $(mcp__claude-flow__swarm_status | jq '.agents.total') agents"
     # Cleanup resources
     mcp__claude-flow__coordination_sync --swarmId="${SWARM_ID}"
+  task_complete: |
+    echo "📋 Hierarchical Coordinator: Processing task completion"
+    # Update worker performance metrics
+    mcp__claude-flow__agent_metrics --format=detailed
+    # Store task completion data
+    mcp__claude-flow__memory_usage store "hierarchy:task:${TASK_ID}:metrics" "$(mcp__claude-flow__performance_report --format=json)" --namespace=hierarchy
+    # Dismiss workers and consolidate results
+    mcp__claude-flow__load_balance --tasks="cleanup" --strategy=sequential
+  on_rerun_request: |
+    echo "🔄 Hierarchical Coordinator: Preparing for task rerun"
+    # Reset worker assignments
+    mcp__claude-flow__memory_usage store "hierarchy:rerun:${TASK_ID}" "$(date): Rerun preparation started" --namespace=hierarchy
+    # Reinitialize worker coordination
+    mcp__claude-flow__coordination_sync --swarmId="${SWARM_ID}"
+    # Update task assignments for fresh start
+    mcp__claude-flow__task_orchestrate "Task rerun: ${TASK}" --strategy=adaptive --priority=high
+  lifecycle:
+    init: |
+      echo "🚀 Hierarchical Coordinator: Lifecycle initialization"
+      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "initialized" --namespace=lifecycle
+    start: |
+      echo "▶️ Hierarchical Coordinator: Beginning task coordination"
+      mcp__claude-flow__swarm_scale --targetSize=5 --swarmId="${SWARM_ID}"
+      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "running" --namespace=lifecycle
+    pause: |
+      echo "⏸️ Hierarchical Coordinator: Pausing worker coordination"
+      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "paused" --namespace=lifecycle
+    resume: |
+      echo "▶️ Hierarchical Coordinator: Resuming worker coordination"
+      mcp__claude-flow__coordination_sync --swarmId="${SWARM_ID}"
+      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "running" --namespace=lifecycle
+    stop: |
+      echo "⏹️ Hierarchical Coordinator: Stopping coordination"
+      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "stopping" --namespace=lifecycle
+    cleanup: |
+      echo "🧹 Hierarchical Coordinator: Final cleanup"
+      mcp__claude-flow__swarm_destroy --swarmId="${SWARM_ID}"
+      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "cleaned" --namespace=lifecycle
 ---
 
 # Hierarchical Swarm Coordinator

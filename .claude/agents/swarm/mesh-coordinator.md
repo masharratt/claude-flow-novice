@@ -11,6 +11,12 @@ capabilities:
   - load_balancing
   - network_resilience
 priority: high
+lifecycle:
+  state_management: true
+  persistent_memory: true
+  max_retries: 3
+  timeout_ms: 300000
+  auto_cleanup: true
 hooks:
   pre: |
     echo "🌐 Mesh Coordinator establishing peer network: $TASK"
@@ -30,6 +36,43 @@ hooks:
     mcp__claude-flow__memory_usage store "mesh:metrics:${TASK_ID}" "$(mcp__claude-flow__swarm_status)" --namespace=mesh
     # Graceful network shutdown
     mcp__claude-flow__daa_communication --from="mesh-coordinator" --to="all" --message="{\"type\":\"network_shutdown\",\"reason\":\"task_complete\"}"
+  task_complete: |
+    echo "📋 Mesh Coordinator: Task completion processing"
+    # Store task completion metrics
+    mcp__claude-flow__memory_usage store "mesh:task:${TASK_ID}:complete" "$(date): Task completed successfully" --namespace=mesh
+    # Notify peer network of task completion
+    mcp__claude-flow__daa_communication --from="mesh-coordinator" --to="all" --message="{\"type\":\"task_complete\",\"task_id\":\"${TASK_ID}\",\"status\":\"success\"}"
+    # Update network topology for next task
+    mcp__claude-flow__topology_optimize --swarmId="${SWARM_ID}"
+  on_rerun_request: |
+    echo "🔄 Mesh Coordinator: Rerun request received"
+    # Reset network state for rerun
+    mcp__claude-flow__memory_usage store "mesh:rerun:${TASK_ID}" "$(date): Rerun requested" --namespace=mesh
+    # Reinitialize consensus for fresh start
+    mcp__claude-flow__daa_consensus --agents="all" --proposal="{\"coordination_protocol\":\"gossip\",\"consensus_threshold\":0.67,\"rerun\":true}"
+    # Notify network of rerun
+    mcp__claude-flow__daa_communication --from="mesh-coordinator" --to="all" --message="{\"type\":\"rerun_init\",\"task_id\":\"${TASK_ID}\"}"
+  lifecycle:
+    init: |
+      echo "🚀 Mesh Coordinator: Initializing lifecycle state"
+      mcp__claude-flow__memory_usage store "mesh:lifecycle:${AGENT_ID}:init" "$(date): Agent initialized" --namespace=lifecycle
+    start: |
+      echo "▶️ Mesh Coordinator: Starting task execution"
+      mcp__claude-flow__memory_usage store "mesh:lifecycle:${AGENT_ID}:start" "$(date): Task execution started" --namespace=lifecycle
+    pause: |
+      echo "⏸️ Mesh Coordinator: Pausing operations"
+      mcp__claude-flow__memory_usage store "mesh:lifecycle:${AGENT_ID}:pause" "$(date): Operations paused" --namespace=lifecycle
+    resume: |
+      echo "▶️ Mesh Coordinator: Resuming operations"
+      mcp__claude-flow__memory_usage store "mesh:lifecycle:${AGENT_ID}:resume" "$(date): Operations resumed" --namespace=lifecycle
+    stop: |
+      echo "⏹️ Mesh Coordinator: Stopping operations"
+      mcp__claude-flow__daa_communication --from="mesh-coordinator" --to="all" --message="{\"type\":\"coordinator_stopping\",\"agent_id\":\"${AGENT_ID}\"}"
+    cleanup: |
+      echo "🧹 Mesh Coordinator: Cleaning up resources"
+      mcp__claude-flow__memory_usage store "mesh:lifecycle:${AGENT_ID}:cleanup" "$(date): Cleanup completed" --namespace=lifecycle
+      # Final network cleanup
+      mcp__claude-flow__swarm_destroy --swarmId="${SWARM_ID}"
 ---
 
 # Mesh Network Swarm Coordinator
