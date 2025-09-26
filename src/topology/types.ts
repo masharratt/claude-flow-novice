@@ -1,6 +1,6 @@
 /**
  * Topology Coordination Types and Interfaces
- * 
+ *
  * Enhanced topology coordination types that build upon lifecycle management
  * and dependency tracking to provide robust coordination systems.
  */
@@ -16,7 +16,11 @@ import { DependencyTracker } from '../lifecycle/dependency-tracker.js';
 export type TopologyType = 'mesh' | 'hierarchical' | 'ring' | 'star' | 'hybrid';
 export type CoordinationStrategy = 'centralized' | 'distributed' | 'hybrid' | 'adaptive';
 export type FaultToleranceLevel = 'none' | 'basic' | 'byzantine' | 'full';
-export type LoadBalancingStrategy = 'round-robin' | 'least-loaded' | 'capability-based' | 'adaptive';
+export type LoadBalancingStrategy =
+  | 'round-robin'
+  | 'least-loaded'
+  | 'capability-based'
+  | 'adaptive';
 
 export interface TopologyConfiguration {
   type: TopologyType;
@@ -246,32 +250,32 @@ export interface ITopologyCoordinator extends EventEmitter {
   readonly id: string;
   readonly type: TopologyType;
   readonly config: TopologyConfiguration;
-  
+
   // Lifecycle management
   initialize(): Promise<void>;
   shutdown(force?: boolean): Promise<void>;
   isRunning(): boolean;
-  
+
   // Agent management
   registerAgent(agentId: string, agentInfo: Partial<AgentNode>): Promise<void>;
   unregisterAgent(agentId: string): Promise<void>;
   getAgent(agentId: string): AgentNode | undefined;
   getAllAgents(): AgentNode[];
-  
+
   // Task coordination
   coordinateTask(task: CoordinationTask): Promise<string>;
   delegateTask(taskId: string, agentIds: string[]): Promise<void>;
   handleTaskCompletion(taskId: string, agentId: string, result: unknown): Promise<void>;
   handleTaskFailure(taskId: string, agentId: string, error: string): Promise<void>;
-  
+
   // Communication
   sendMessage(message: CoordinationMessage): Promise<void>;
   broadcastMessage(message: Omit<CoordinationMessage, 'targetId'>): Promise<void>;
-  
+
   // Metrics and monitoring
   getMetrics(): TopologyMetrics;
   getPerformanceStats(): Record<string, number>;
-  
+
   // Adaptation and optimization
   canAdaptTo(newType: TopologyType): boolean;
   getOptimizationRecommendations(): AdaptationDecision[];
@@ -283,17 +287,17 @@ export interface ITopologyManager {
   destroyTopology(topologyId: string): Promise<void>;
   getTopology(topologyId: string): ITopologyCoordinator | undefined;
   getAllTopologies(): ITopologyCoordinator[];
-  
+
   // Cross-topology operations
   createBridge(sourceId: string, targetId: string, bridgeType: string): Promise<TopologyBridge>;
   removeBridge(bridgeId: string): Promise<void>;
   routeMessage(message: CoordinationMessage, route: string[]): Promise<void>;
-  
+
   // Optimization and adaptation
   optimizeTopology(topologyId: string): Promise<TopologyOptimizationResult>;
   adaptTopology(topologyId: string, newConfig: Partial<TopologyConfiguration>): Promise<void>;
   recommendTopology(requirements: Record<string, unknown>): Promise<TopologyConfiguration>;
-  
+
   // Monitoring and metrics
   getGlobalMetrics(): Record<string, TopologyMetrics>;
   getResourceUtilization(): Record<string, number>;
@@ -303,10 +307,10 @@ export interface ITopologyManager {
 export interface IAdaptiveCoordinator extends ITopologyCoordinator {
   // Adaptive capabilities
   analyzePerformance(): Promise<Record<string, number>>;
-  detectOptimizationOpportunities(): Promise<AdaptationDecision[]>
+  detectOptimizationOpportunities(): Promise<AdaptationDecision[]>;
   switchTopology(newType: TopologyType): Promise<void>;
   optimizeConfiguration(): Promise<TopologyConfiguration>;
-  
+
   // Hybrid coordination
   enableHybridMode(secondaryType: TopologyType): Promise<void>;
   balanceTopologies(ratio: number): Promise<void>;
@@ -315,17 +319,22 @@ export interface IAdaptiveCoordinator extends ITopologyCoordinator {
 export interface ICommunicationBridge {
   // Message routing
   routeMessage(message: CoordinationMessage): Promise<void>;
-  translateProtocol(message: CoordinationMessage, targetProtocol: string): Promise<CoordinationMessage>;
+  translateProtocol(
+    message: CoordinationMessage,
+    targetProtocol: string,
+  ): Promise<CoordinationMessage>;
   queueMessage(message: CoordinationMessage): Promise<void>;
-  
+
   // Bridge management
   establishBridge(sourceTopology: string, targetTopology: string): Promise<void>;
   closeBridge(bridgeId: string): Promise<void>;
   getBridgeStatus(bridgeId: string): TopologyBridge | undefined;
-  
+
   // Synchronization
   synchronizeState(topologyIds: string[]): Promise<void>;
-  resolveConflicts(conflicts: Array<{ source: string; target: string; data: unknown }>): Promise<void>;
+  resolveConflicts(
+    conflicts: Array<{ source: string; target: string; data: unknown }>,
+  ): Promise<void>;
 }
 
 // ============================================================================
@@ -364,12 +373,10 @@ export interface AdaptationEvent extends TopologyEvent {
 // ============================================================================
 
 export type TopologyFactory<T extends ITopologyCoordinator> = (
-  config: TopologyConfiguration
+  config: TopologyConfiguration,
 ) => Promise<T>;
 
-export type CoordinationHook = (
-  event: TopologyEvent
-) => Promise<void> | void;
+export type CoordinationHook = (event: TopologyEvent) => Promise<void> | void;
 
 export type PerformanceMetric = {
   name: string;

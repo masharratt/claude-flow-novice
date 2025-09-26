@@ -1,6 +1,6 @@
 /**
  * Enhanced Mesh Coordinator with Byzantine Fault Tolerance
- * 
+ *
  * Advanced mesh topology coordinator with distributed consensus,
  * Byzantine fault tolerance, peer discovery, and cross-topology communication.
  * Builds upon the lifecycle management and dependency tracking systems.
@@ -15,12 +15,12 @@ import {
   removeAgentDependency,
   getAgentDependencyStatus,
   forceAgentCompletion,
-  type AgentLifecycleContext
+  type AgentLifecycleContext,
 } from '../agents/lifecycle-manager.js';
 import {
   DependencyType,
   getDependencyTracker,
-  type DependencyTracker
+  type DependencyTracker,
 } from '../lifecycle/dependency-tracker.js';
 import {
   TopologyType,
@@ -33,7 +33,7 @@ import {
   ByzantineFaultToleranceConfig,
   CommunicationChannel,
   ITopologyCoordinator,
-  ICommunicationBridge
+  ICommunicationBridge,
 } from './types.js';
 
 // ============================================================================
@@ -112,7 +112,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   readonly id: string;
   readonly type: TopologyType = 'mesh';
   readonly config: EnhancedMeshConfig;
-  
+
   private logger: Logger;
   private agents: Map<string, AgentNode>;
   private peers: Map<string, PeerInfo>;
@@ -121,7 +121,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   private dependencyTracker: DependencyTracker;
   private lifecycleContext?: AgentLifecycleContext;
   private communicationBridge?: ICommunicationBridge;
-  
+
   private isRunning: boolean = false;
   private consensusState: ConsensusState;
   private networkPartitions: Map<string, NetworkPartition>;
@@ -129,7 +129,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   private heartbeatTimer?: NodeJS.Timeout;
   private loadBalanceTimer?: NodeJS.Timeout;
   private consensusTimer?: NodeJS.Timeout;
-  
+
   // Performance tracking
   private metrics: {
     messagesProcessed: number;
@@ -158,30 +158,30 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       performanceThresholds: {
         latency: 500,
         throughput: 50,
-        errorRate: 0.05
+        errorRate: 0.05,
       },
       timeouts: {
         coordination: 30000,
         completion: 300000,
-        heartbeat: 5000
+        heartbeat: 5000,
       },
       memoryNamespace: `enhanced-mesh-${this.id}`,
       peerDiscovery: {
         enabled: true,
         discoveryInterval: 10000,
         maxDiscoveryAttempts: 5,
-        bootstrapNodes: []
+        bootstrapNodes: [],
       },
       consensus: {
         algorithm: 'pbft',
         requiredVotes: 3,
         timeoutMs: 15000,
-        enableByzantine: true
+        enableByzantine: true,
       },
       loadBalancing: {
         strategy: 'capability-weighted',
         rebalanceInterval: 30000,
-        loadThreshold: 0.8
+        loadThreshold: 0.8,
       },
       faultTolerance: {
         enabled: true,
@@ -189,16 +189,16 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
         consensusAlgorithm: 'pbft',
         verificationRequired: true,
         redundancyFactor: 3,
-        timeoutMultiplier: 2
+        timeoutMultiplier: 2,
       },
       networking: {
         enableCompression: true,
         enableEncryption: false,
         maxMessageSize: 1024 * 1024, // 1MB
         heartbeatInterval: 10000,
-        connectionTimeout: 15000
+        connectionTimeout: 15000,
       },
-      ...config
+      ...config,
     };
 
     this.agents = new Map();
@@ -214,8 +214,8 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       votingRound: 0,
       leaderElection: {
         candidates: [],
-        electionInProgress: false
-      }
+        electionInProgress: false,
+      },
     };
 
     this.metrics = {
@@ -223,7 +223,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       consensusRounds: 0,
       failureRecoveries: 0,
       averageLatency: 0,
-      byzantineDetections: 0
+      byzantineDetections: 0,
     };
 
     this.setupEventHandlers();
@@ -255,28 +255,24 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
           'byzantine-fault-tolerance',
           'distributed-consensus',
           'peer-discovery',
-          'load-balancing'
+          'load-balancing',
         ],
         lifecycle: {
           state_management: true,
           persistent_memory: true,
-          max_retries: 3
+          max_retries: 3,
         },
         hooks: {
           init: 'echo "Enhanced mesh coordinator initialized"',
           task_complete: 'echo "Enhanced mesh coordination completed"',
           on_rerun_request: this.handleRerunRequest.bind(this),
-          cleanup: 'echo "Enhanced mesh coordinator cleanup"'
-        }
+          cleanup: 'echo "Enhanced mesh coordinator cleanup"',
+        },
       },
-      generateId('enhanced-mesh-task')
+      generateId('enhanced-mesh-task'),
     );
 
-    await lifecycleManager.transitionState(
-      this.id,
-      'running',
-      'Enhanced mesh coordinator started'
-    );
+    await lifecycleManager.transitionState(this.id, 'running', 'Enhanced mesh coordinator started');
 
     // Initialize peer discovery
     if (this.config.peerDiscovery.enabled) {
@@ -308,10 +304,12 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     if (!force && this.config.enableCrossTopology) {
       const canComplete = await this.checkCompletionDependencies();
       if (!canComplete) {
-        this.logger.info('Enhanced mesh coordinator has pending dependencies - deferring completion');
+        this.logger.info(
+          'Enhanced mesh coordinator has pending dependencies - deferring completion',
+        );
         this.emit('coordinator:completion_deferred', {
           coordinatorId: this.id,
-          reason: 'Pending cross-topology dependencies'
+          reason: 'Pending cross-topology dependencies',
         });
         return;
       }
@@ -332,7 +330,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     await lifecycleManager.transitionState(
       this.id,
       'stopped',
-      'Enhanced mesh coordinator shutdown'
+      'Enhanced mesh coordinator shutdown',
     );
 
     // Shutdown dependency tracker
@@ -363,7 +361,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       capabilities: agentInfo.capabilities || [],
       topologyRole: agentInfo.topologyRole || 'worker',
       position: {
-        connections: []
+        connections: [],
       },
       workload: 0,
       lastActivity: new Date(),
@@ -371,12 +369,12 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
         tasksCompleted: 0,
         averageTaskTime: 0,
         errorCount: 0,
-        reliability: 1.0
+        reliability: 1.0,
       },
       communicationChannels: new Map(),
       dependencies: [],
       dependents: [],
-      ...agentInfo
+      ...agentInfo,
     };
 
     this.agents.set(agentId, agent);
@@ -386,28 +384,34 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
     // Register dependency relationships
     await registerAgentDependency(
-      this.id,    // Coordinator depends on agent
-      agentId,    // Agent provides mesh participation
+      this.id, // Coordinator depends on agent
+      agentId, // Agent provides mesh participation
       DependencyType.COORDINATION,
       {
         timeout: this.config.timeouts.coordination,
         metadata: {
           coordinatorType: 'enhanced-mesh',
           relationship: 'mesh-participation',
-          capabilities: agent.capabilities
-        }
-      }
+          capabilities: agent.capabilities,
+        },
+      },
     );
 
     // Update agent status
     agent.status = 'ready';
 
-    this.logger.info(`Registered agent ${agentId} in enhanced mesh (${this.agents.size}/${this.config.maxAgents})`);
+    this.logger.info(
+      `Registered agent ${agentId} in enhanced mesh (${this.agents.size}/${this.config.maxAgents})`,
+    );
     this.emit('agent:registered', { agentId, coordinatorId: this.id });
 
     // Trigger consensus if this is a significant topology change
-    if (this.agents.size % 5 === 0) { // Every 5 agents
-      await this.proposeTopologyChange('agent_registered', { agentId, agentCount: this.agents.size });
+    if (this.agents.size % 5 === 0) {
+      // Every 5 agents
+      await this.proposeTopologyChange('agent_registered', {
+        agentId,
+        agentCount: this.agents.size,
+      });
     }
   }
 
@@ -432,7 +436,10 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     this.emit('agent:unregistered', { agentId, coordinatorId: this.id });
 
     // Trigger consensus for topology change
-    await this.proposeTopologyChange('agent_unregistered', { agentId, agentCount: this.agents.size });
+    await this.proposeTopologyChange('agent_unregistered', {
+      agentId,
+      agentCount: this.agents.size,
+    });
   }
 
   getAgent(agentId: string): AgentNode | undefined {
@@ -453,7 +460,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
     // Find optimal mesh connections using enhanced algorithms
     const connections = await this.findOptimalConnections(agentId);
-    
+
     for (const targetId of connections) {
       await this.createSecureConnection(agentId, targetId);
     }
@@ -473,24 +480,26 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       if (target.position.connections?.includes(agentId)) continue;
 
       // Calculate connection score based on multiple factors
-      const capabilityOverlap = this.calculateCapabilityOverlap(agent.capabilities, target.capabilities);
+      const capabilityOverlap = this.calculateCapabilityOverlap(
+        agent.capabilities,
+        target.capabilities,
+      );
       const loadBalance = 1 / (target.workload + 1);
       const reliability = target.performanceMetrics.reliability;
       const connectionCount = target.position.connections?.length || 0;
       const connectionPenalty = connectionCount >= this.config.maxConnections ? 0 : 1;
-      
+
       // Byzantine fault tolerance consideration
       const byzantineScore = this.config.faultTolerance.enabled
         ? this.getByzantineReliabilityScore(targetId)
         : 1;
 
-      const score = (
+      const score =
         capabilityOverlap * 0.3 +
         loadBalance * 0.25 +
         reliability * 0.25 +
         connectionPenalty * 0.1 +
-        byzantineScore * 0.1
-      );
+        byzantineScore * 0.1;
 
       candidates.push({ id: targetId, score });
     }
@@ -499,13 +508,13 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     return candidates
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.min(this.config.maxConnections || 10, candidates.length))
-      .map(c => c.id);
+      .map((c) => c.id);
   }
 
   private calculateCapabilityOverlap(caps1: string[], caps2: string[]): number {
     const set1 = new Set(caps1);
     const set2 = new Set(caps2);
-    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const intersection = new Set([...set1].filter((x) => set2.has(x)));
     const union = new Set([...set1, ...set2]);
     return union.size > 0 ? intersection.size / union.size : 0;
   }
@@ -513,14 +522,14 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   private getByzantineReliabilityScore(agentId: string): number {
     const peer = this.peers.get(agentId);
     if (!peer) return 0.5; // Default neutral score
-    
+
     // Higher score = more reliable, lower Byzantine risk
     return Math.max(0, 1 - peer.byzantineScore);
   }
 
   private async createSecureConnection(sourceId: string, targetId: string): Promise<void> {
     const channelId = generateId('channel');
-    
+
     const channel: CommunicationChannel = {
       id: channelId,
       sourceAgentId: sourceId,
@@ -533,12 +542,12 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
         messagesReceived: 0,
         averageLatency: 0,
         errorCount: 0,
-        bandwidth: 0
+        bandwidth: 0,
       },
       queueSize: 0,
       maxQueueSize: 100,
       compressionEnabled: this.config.networking.enableCompression,
-      encryptionEnabled: this.config.networking.enableEncryption
+      encryptionEnabled: this.config.networking.enableEncryption,
     };
 
     this.channels.set(channelId, channel);
@@ -546,11 +555,11 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     // Update agent connections
     const source = this.agents.get(sourceId);
     const target = this.agents.get(targetId);
-    
+
     if (source && target) {
       source.communicationChannels.set(targetId, channel);
       target.communicationChannels.set(sourceId, channel);
-      
+
       // Bidirectional connections
       if (!source.position.connections?.includes(targetId)) {
         source.position.connections?.push(targetId);
@@ -583,19 +592,21 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     const target = this.agents.get(targetId);
 
     if (source) {
-      source.position.connections = source.position.connections?.filter(id => id !== targetId);
+      source.position.connections = source.position.connections?.filter((id) => id !== targetId);
       source.communicationChannels.delete(targetId);
     }
 
     if (target) {
-      target.position.connections = target.position.connections?.filter(id => id !== sourceId);
+      target.position.connections = target.position.connections?.filter((id) => id !== sourceId);
       target.communicationChannels.delete(sourceId);
     }
 
     // Remove channel
     for (const [channelId, channel] of this.channels) {
-      if ((channel.sourceAgentId === sourceId && channel.targetAgentId === targetId) ||
-          (channel.sourceAgentId === targetId && channel.targetAgentId === sourceId)) {
+      if (
+        (channel.sourceAgentId === sourceId && channel.targetAgentId === targetId) ||
+        (channel.sourceAgentId === targetId && channel.targetAgentId === sourceId)
+      ) {
         this.channels.delete(channelId);
         break;
       }
@@ -610,7 +621,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   async coordinateTask(task: CoordinationTask): Promise<string> {
     const taskId = task.id || generateId('enhanced-task');
-    
+
     const enhancedTask: CoordinationTask = {
       ...task,
       id: taskId,
@@ -622,15 +633,15 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
         ...task.metadata,
         enhancedMesh: true,
         consensusRequired: task.priority > 7, // High priority tasks need consensus
-        byzantineTolerance: this.config.faultTolerance.enabled
-      }
+        byzantineTolerance: this.config.faultTolerance.enabled,
+      },
     };
 
     this.tasks.set(taskId, enhancedTask);
 
     // Select agents using enhanced algorithms
     const selectedAgents = await this.selectAgentsForEnhancedTask(enhancedTask);
-    
+
     if (selectedAgents.length === 0) {
       enhancedTask.status = 'failed';
       enhancedTask.error = 'No suitable agents available for enhanced task';
@@ -638,7 +649,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       return taskId;
     }
 
-    enhancedTask.assignedAgents = selectedAgents.map(a => a.id);
+    enhancedTask.assignedAgents = selectedAgents.map((a) => a.id);
 
     // Create enhanced dependencies
     await this.createEnhancedTaskDependencies(taskId, selectedAgents);
@@ -673,7 +684,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     }
 
     const agents = agentIds
-      .map(id => this.agents.get(id))
+      .map((id) => this.agents.get(id))
       .filter((agent): agent is AgentNode => agent !== undefined);
 
     if (agents.length !== agentIds.length) {
@@ -697,22 +708,23 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       const capabilityMatch = this.calculateTaskCapabilityMatch(task, agent);
       const loadScore = 1 / (agent.workload + 1);
       const reliabilityScore = agent.performanceMetrics.reliability;
-      const connectivityScore = (agent.position.connections?.length || 0) / this.config.maxConnections!;
+      const connectivityScore =
+        (agent.position.connections?.length || 0) / this.config.maxConnections!;
       const byzantineScore = this.getByzantineReliabilityScore(agentId);
-      
+
       // Consider resource requirements
       const resourceScore = this.calculateResourceCompatibility(task, agent);
 
-      const score = (
+      const score =
         capabilityMatch * 0.35 +
         loadScore * 0.2 +
         reliabilityScore * 0.2 +
         connectivityScore * 0.1 +
         byzantineScore * 0.1 +
-        resourceScore * 0.05
-      );
+        resourceScore * 0.05;
 
-      if (score > 0.3) { // Minimum threshold
+      if (score > 0.3) {
+        // Minimum threshold
         candidates.push({ agent, score });
       }
     }
@@ -721,18 +733,18 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     const sortedCandidates = candidates.sort((a, b) => b.score - a.score);
     const maxAgents = Math.min(
       task.assignedAgents.length || 3,
-      Math.floor(this.agents.size / 2) + 1 // Byzantine fault tolerance requirement
+      Math.floor(this.agents.size / 2) + 1, // Byzantine fault tolerance requirement
     );
 
-    return sortedCandidates.slice(0, maxAgents).map(c => c.agent);
+    return sortedCandidates.slice(0, maxAgents).map((c) => c.agent);
   }
 
   private calculateTaskCapabilityMatch(task: CoordinationTask, agent: AgentNode): number {
     // Extract required capabilities from task description or metadata
-    const requiredCaps = task.metadata.requiredCapabilities as string[] || [];
+    const requiredCaps = (task.metadata.requiredCapabilities as string[]) || [];
     if (requiredCaps.length === 0) return 1; // No specific requirements
 
-    const matches = requiredCaps.filter(cap => agent.capabilities.includes(cap)).length;
+    const matches = requiredCaps.filter((cap) => agent.capabilities.includes(cap)).length;
     return matches / requiredCaps.length;
   }
 
@@ -750,8 +762,8 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     // Create completion dependencies with Byzantine fault tolerance
     for (const agent of agents) {
       await registerAgentDependency(
-        this.id,    // Coordinator depends on agents
-        agent.id,   // Agent provides task completion
+        this.id, // Coordinator depends on agents
+        agent.id, // Agent provides task completion
         DependencyType.COMPLETION,
         {
           timeout: this.config.timeouts.completion,
@@ -760,9 +772,9 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
             coordinatorType: 'enhanced-mesh',
             relationship: 'enhanced-task-completion',
             byzantineTolerance: this.config.faultTolerance.enabled,
-            redundancyFactor: this.config.faultTolerance.redundancyFactor
-          }
-        }
+            redundancyFactor: this.config.faultTolerance.redundancyFactor,
+          },
+        },
       );
 
       agent.dependencies.push(this.id);
@@ -779,13 +791,13 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       payload: {
         taskId: task.id,
         assignedAgents: task.assignedAgents,
-        priority: task.priority
+        priority: task.priority,
       },
       timestamp: new Date(),
       requiredVotes: this.config.consensus.requiredVotes,
       votes: new Map(),
       status: 'pending',
-      deadline: new Date(Date.now() + this.config.consensus.timeoutMs)
+      deadline: new Date(Date.now() + this.config.consensus.timeoutMs),
     };
 
     this.consensusState.activeProposals.set(proposal.id, proposal);
@@ -802,9 +814,10 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
           return;
         }
 
-        const yesVotes = Array.from(currentProposal.votes.values())
-          .filter(vote => vote === true).length;
-        
+        const yesVotes = Array.from(currentProposal.votes.values()).filter(
+          (vote) => vote === true,
+        ).length;
+
         if (yesVotes >= currentProposal.requiredVotes) {
           currentProposal.status = 'accepted';
           resolve(true);
@@ -832,7 +845,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       requiresAck: true,
       ttl: this.config.consensus.timeoutMs,
       retryCount: 0,
-      maxRetries: 2
+      maxRetries: 2,
     };
 
     await this.broadcastMessage(message);
@@ -840,11 +853,11 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   private async distributeTaskWithFaultTolerance(
     task: CoordinationTask,
-    agents: AgentNode[]
+    agents: AgentNode[],
   ): Promise<void> {
     // Distribute task with redundancy for Byzantine fault tolerance
     const redundancyFactor = this.config.faultTolerance.redundancyFactor;
-    
+
     for (const agent of agents) {
       agent.status = 'working';
       agent.workload += 1;
@@ -859,14 +872,14 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
         payload: {
           ...task,
           redundancyLevel: redundancyFactor,
-          verificationRequired: this.config.faultTolerance.verificationRequired
+          verificationRequired: this.config.faultTolerance.verificationRequired,
         },
         timestamp: new Date(),
         priority: task.priority,
         requiresAck: true,
         ttl: this.config.timeouts.completion,
         retryCount: 0,
-        maxRetries: 3
+        maxRetries: 3,
       };
 
       await this.sendMessage(taskMessage);
@@ -903,7 +916,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     }
 
     // Check if all assigned agents completed
-    const completedAgents = task.assignedAgents.filter(aId => {
+    const completedAgents = task.assignedAgents.filter((aId) => {
       const a = this.agents.get(aId);
       return a && a.status === 'ready';
     });
@@ -912,7 +925,8 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       task.status = 'completed';
       task.completedAt = new Date();
       task.result = result;
-      task.actualDuration = task.completedAt.getTime() - (task.startedAt?.getTime() || task.createdAt.getTime());
+      task.actualDuration =
+        task.completedAt.getTime() - (task.startedAt?.getTime() || task.createdAt.getTime());
 
       // Resolve dependencies
       await this.resolveTaskDependencies(taskId);
@@ -933,9 +947,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
     // Update agent metrics
     agent.performanceMetrics.errorCount += 1;
-    agent.performanceMetrics.reliability = Math.max(0, 
-      agent.performanceMetrics.reliability - 0.1
-    );
+    agent.performanceMetrics.reliability = Math.max(0, agent.performanceMetrics.reliability - 0.1);
 
     // Increment Byzantine score if pattern detected
     const peer = this.peers.get(agentId);
@@ -964,11 +976,15 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     this.emit('task:failed', { taskId, error, agentId });
   }
 
-  private async verifyTaskResult(taskId: string, agentId: string, result: unknown): Promise<boolean> {
+  private async verifyTaskResult(
+    taskId: string,
+    agentId: string,
+    result: unknown,
+  ): Promise<boolean> {
     // Byzantine fault tolerance: verify result integrity
     // In a real implementation, this would use cryptographic verification
     // or cross-validation with other agents
-    
+
     // Simple verification: check if result is not null/undefined
     if (result === null || result === undefined) {
       return false;
@@ -985,19 +1001,23 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     return true;
   }
 
-  private async attemptTaskRecovery(taskId: string, failedAgentId: string, error: string): Promise<boolean> {
+  private async attemptTaskRecovery(
+    taskId: string,
+    failedAgentId: string,
+    error: string,
+  ): Promise<boolean> {
     const task = this.tasks.get(taskId);
     if (!task) return false;
 
     this.logger.info(`Attempting recovery for task ${taskId} after failure from ${failedAgentId}`);
 
     // Find alternative agents for recovery
-    const availableAgents = Array.from(this.agents.values())
-      .filter(agent => 
-        agent.status === 'ready' && 
+    const availableAgents = Array.from(this.agents.values()).filter(
+      (agent) =>
+        agent.status === 'ready' &&
         !task.assignedAgents.includes(agent.id) &&
-        agent.performanceMetrics.reliability > 0.8
-      );
+        agent.performanceMetrics.reliability > 0.8,
+    );
 
     if (availableAgents.length === 0) {
       this.logger.warn(`No suitable agents available for task ${taskId} recovery`);
@@ -1005,12 +1025,13 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     }
 
     // Select best recovery agent
-    const recoveryAgent = availableAgents
-      .sort((a, b) => b.performanceMetrics.reliability - a.performanceMetrics.reliability)[0];
+    const recoveryAgent = availableAgents.sort(
+      (a, b) => b.performanceMetrics.reliability - a.performanceMetrics.reliability,
+    )[0];
 
     // Replace failed agent with recovery agent
-    task.assignedAgents = task.assignedAgents.map(id => 
-      id === failedAgentId ? recoveryAgent.id : id
+    task.assignedAgents = task.assignedAgents.map((id) =>
+      id === failedAgentId ? recoveryAgent.id : id,
     );
 
     // Redistribute task to recovery agent
@@ -1026,27 +1047,28 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   async sendMessage(message: CoordinationMessage): Promise<void> {
     this.metrics.messagesProcessed += 1;
-    
+
     const startTime = Date.now();
-    
+
     try {
       // Find communication channel
       const channel = this.findChannel(message.sourceId, message.targetId);
       if (channel) {
         channel.metrics.messagesSent += 1;
         channel.queueSize += 1;
-        
+
         // Simulate message processing
         await this.processMessage(message, channel);
-        
+
         // Update latency metrics
         const latency = Date.now() - startTime;
-        channel.metrics.averageLatency = 
-          (channel.metrics.averageLatency + latency) / 2;
-        
+        channel.metrics.averageLatency = (channel.metrics.averageLatency + latency) / 2;
+
         this.updateGlobalLatency(latency);
       } else {
-        throw new Error(`No communication channel found between ${message.sourceId} and ${message.targetId}`);
+        throw new Error(
+          `No communication channel found between ${message.sourceId} and ${message.targetId}`,
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to send message ${message.id}: ${error}`);
@@ -1057,12 +1079,12 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   async broadcastMessage(message: Omit<CoordinationMessage, 'targetId'>): Promise<void> {
     const broadcastMessage: CoordinationMessage = {
       ...message,
-      targetId: 'broadcast'
+      targetId: 'broadcast',
     };
 
     // Send to all connected agents
-    const promises = Array.from(this.agents.keys()).map(agentId => 
-      this.sendMessage({ ...broadcastMessage, targetId: agentId })
+    const promises = Array.from(this.agents.keys()).map((agentId) =>
+      this.sendMessage({ ...broadcastMessage, targetId: agentId }),
     );
 
     await Promise.allSettled(promises);
@@ -1070,15 +1092,20 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   private findChannel(sourceId: string, targetId: string): CommunicationChannel | undefined {
     for (const channel of this.channels.values()) {
-      if ((channel.sourceAgentId === sourceId && channel.targetAgentId === targetId) ||
-          (channel.sourceAgentId === targetId && channel.targetAgentId === sourceId)) {
+      if (
+        (channel.sourceAgentId === sourceId && channel.targetAgentId === targetId) ||
+        (channel.sourceAgentId === targetId && channel.targetAgentId === sourceId)
+      ) {
         return channel;
       }
     }
     return undefined;
   }
 
-  private async processMessage(message: CoordinationMessage, channel: CommunicationChannel): Promise<void> {
+  private async processMessage(
+    message: CoordinationMessage,
+    channel: CommunicationChannel,
+  ): Promise<void> {
     // Apply compression if enabled
     if (channel.compressionEnabled) {
       // Simulate compression
@@ -1113,7 +1140,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   private async handleCoordinationMessage(message: CoordinationMessage): Promise<void> {
     if (message.payload && typeof message.payload === 'object') {
       const payload = message.payload as { type?: string };
-      
+
       if (payload.type === 'consensus_proposal') {
         await this.handleConsensusProposal(message);
       } else if (payload.type === 'consensus_vote') {
@@ -1146,10 +1173,10 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   private async handleConsensusProposal(message: CoordinationMessage): Promise<void> {
     const proposal = message.payload as ConsensusProposal;
-    
+
     // Evaluate proposal
     const vote = await this.evaluateProposal(proposal);
-    
+
     // Send vote back
     const voteMessage: CoordinationMessage = {
       id: generateId('vote'),
@@ -1159,14 +1186,14 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       payload: {
         type: 'consensus_vote',
         proposalId: proposal.id,
-        vote: vote
+        vote: vote,
       },
       timestamp: new Date(),
       priority: 8,
       requiresAck: false,
       ttl: 10000,
       retryCount: 0,
-      maxRetries: 1
+      maxRetries: 1,
     };
 
     await this.sendMessage(voteMessage);
@@ -1181,7 +1208,9 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     const proposal = this.consensusState.activeProposals.get(votePayload.proposalId);
     if (proposal) {
       proposal.votes.set(message.sourceId, votePayload.vote);
-      this.logger.debug(`Received vote for proposal ${votePayload.proposalId}: ${votePayload.vote}`);
+      this.logger.debug(
+        `Received vote for proposal ${votePayload.proposalId}: ${votePayload.vote}`,
+      );
     }
   }
 
@@ -1207,7 +1236,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     };
 
     // Check if agents are available and suitable
-    const suitableAgents = payload.assignedAgents.filter(agentId => {
+    const suitableAgents = payload.assignedAgents.filter((agentId) => {
       const agent = this.agents.get(agentId);
       return agent && agent.status === 'ready' && agent.performanceMetrics.reliability > 0.7;
     });
@@ -1223,10 +1252,12 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   private evaluateLeaderElectionProposal(proposal: ConsensusProposal): boolean {
     const payload = proposal.payload as { candidateId: string };
     const candidate = this.agents.get(payload.candidateId);
-    
-    return candidate !== undefined && 
-           candidate.performanceMetrics.reliability > 0.8 &&
-           candidate.capabilities.includes('coordination');
+
+    return (
+      candidate !== undefined &&
+      candidate.performanceMetrics.reliability > 0.8 &&
+      candidate.capabilities.includes('coordination')
+    );
   }
 
   // ============================================================================
@@ -1235,7 +1266,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   private async initializePeerDiscovery(): Promise<void> {
     this.logger.info('Initializing peer discovery...');
-    
+
     // Bootstrap with known nodes
     for (const bootstrapNode of this.config.peerDiscovery.bootstrapNodes) {
       await this.connectToPeer(bootstrapNode);
@@ -1251,7 +1282,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     try {
       // In a real implementation, this would establish network connection
       const peerId = generateId('peer');
-      
+
       const peer: PeerInfo = {
         id: peerId,
         address: peerAddress,
@@ -1260,7 +1291,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
         lastSeen: new Date(),
         connectionAttempts: 1,
         isReliable: true,
-        byzantineScore: 0
+        byzantineScore: 0,
       };
 
       this.peers.set(peerId, peer);
@@ -1339,40 +1370,46 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       payload: {
         timestamp: new Date(),
         status: 'running',
-        load: this.calculateCurrentLoad()
+        load: this.calculateCurrentLoad(),
       },
       timestamp: new Date(),
       priority: 1,
       requiresAck: false,
       ttl: this.config.networking.heartbeatInterval * 2,
       retryCount: 0,
-      maxRetries: 0
+      maxRetries: 0,
     };
 
     await this.broadcastMessage(heartbeatMessage);
   }
 
   private calculateCurrentLoad(): number {
-    const totalWorkload = Array.from(this.agents.values())
-      .reduce((sum, agent) => sum + agent.workload, 0);
-    
+    const totalWorkload = Array.from(this.agents.values()).reduce(
+      (sum, agent) => sum + agent.workload,
+      0,
+    );
+
     return this.agents.size > 0 ? totalWorkload / this.agents.size : 0;
   }
 
   private async rebalanceLoad(): Promise<void> {
     const currentLoad = this.calculateCurrentLoad();
-    
+
     if (currentLoad > this.config.loadBalancing.loadThreshold) {
       this.logger.info(`High load detected (${currentLoad.toFixed(2)}), rebalancing...`);
-      
+
       // Find overloaded agents
-      const overloadedAgents = Array.from(this.agents.values())
-        .filter(agent => agent.workload > this.config.loadBalancing.loadThreshold * 2);
-      
+      const overloadedAgents = Array.from(this.agents.values()).filter(
+        (agent) => agent.workload > this.config.loadBalancing.loadThreshold * 2,
+      );
+
       // Find underloaded agents
-      const underloadedAgents = Array.from(this.agents.values())
-        .filter(agent => agent.workload < this.config.loadBalancing.loadThreshold * 0.5 && agent.status === 'ready');
-      
+      const underloadedAgents = Array.from(this.agents.values()).filter(
+        (agent) =>
+          agent.workload < this.config.loadBalancing.loadThreshold * 0.5 &&
+          agent.status === 'ready',
+      );
+
       // Redistribute workload (simplified)
       for (const overloaded of overloadedAgents) {
         if (underloadedAgents.length > 0) {
@@ -1386,7 +1423,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   private cleanupExpiredProposals(): void {
     const now = new Date();
-    
+
     for (const [proposalId, proposal] of this.consensusState.activeProposals) {
       if (proposal.deadline < now) {
         proposal.status = 'timeout';
@@ -1424,10 +1461,13 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       type: 'topology_change',
       payload: { changeType, ...payload },
       timestamp: new Date(),
-      requiredVotes: Math.min(this.config.consensus.requiredVotes, Math.floor(this.agents.size / 2) + 1),
+      requiredVotes: Math.min(
+        this.config.consensus.requiredVotes,
+        Math.floor(this.agents.size / 2) + 1,
+      ),
       votes: new Map(),
       status: 'pending',
-      deadline: new Date(Date.now() + this.config.consensus.timeoutMs)
+      deadline: new Date(Date.now() + this.config.consensus.timeoutMs),
     };
 
     this.consensusState.activeProposals.set(proposal.id, proposal);
@@ -1436,7 +1476,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   private async disconnectFromMesh(): Promise<void> {
     this.logger.info('Disconnecting from mesh network...');
-    
+
     // Notify peers of departure
     const departureMessage: Omit<CoordinationMessage, 'targetId'> = {
       id: generateId('departure'),
@@ -1448,11 +1488,11 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       requiresAck: false,
       ttl: 5000,
       retryCount: 0,
-      maxRetries: 1
+      maxRetries: 1,
     };
 
     await this.broadcastMessage(departureMessage);
-    
+
     // Close all channels
     this.channels.clear();
     this.peers.clear();
@@ -1474,8 +1514,9 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   }
 
   private async checkCoordinatorCompletion(): Promise<void> {
-    const pendingTasks = Array.from(this.tasks.values())
-      .filter(t => t.status === 'pending' || t.status === 'active');
+    const pendingTasks = Array.from(this.tasks.values()).filter(
+      (t) => t.status === 'pending' || t.status === 'active',
+    );
 
     if (pendingTasks.length === 0) {
       const canComplete = await this.checkCompletionDependencies();
@@ -1488,7 +1529,11 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   private async finalizeCompletion(): Promise<void> {
     this.logger.info('Enhanced mesh coordinator ready for completion');
     await this.cleanupDependencies();
-    await lifecycleManager.transitionState(this.id, 'stopped', 'Enhanced mesh coordination completed');
+    await lifecycleManager.transitionState(
+      this.id,
+      'stopped',
+      'Enhanced mesh coordination completed',
+    );
     this.emit('coordinator:completed', { coordinatorId: this.id });
   }
 
@@ -1500,8 +1545,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
   }
 
   private updateGlobalLatency(latency: number): void {
-    this.metrics.averageLatency = 
-      (this.metrics.averageLatency + latency) / 2;
+    this.metrics.averageLatency = (this.metrics.averageLatency + latency) / 2;
   }
 
   private async handleRerunRequest(): Promise<void> {
@@ -1518,7 +1562,10 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
     this.on('agent:registered', this.handleAgentRegistrationEvent.bind(this));
   }
 
-  private async handleTaskCompletionEvent(event: { taskId: string; result: unknown }): Promise<void> {
+  private async handleTaskCompletionEvent(event: {
+    taskId: string;
+    result: unknown;
+  }): Promise<void> {
     this.logger.debug(`Enhanced mesh task completion event: ${event.taskId}`);
   }
 
@@ -1536,18 +1583,26 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   getMetrics(): TopologyMetrics {
     const connectionCount = this.channels.size;
-    const totalLatency = Array.from(this.channels.values())
-      .reduce((sum, channel) => sum + channel.metrics.averageLatency, 0);
+    const totalLatency = Array.from(this.channels.values()).reduce(
+      (sum, channel) => sum + channel.metrics.averageLatency,
+      0,
+    );
     const averageLatency = connectionCount > 0 ? totalLatency / connectionCount : 0;
-    
-    const totalErrors = Array.from(this.channels.values())
-      .reduce((sum, channel) => sum + channel.metrics.errorCount, 0);
-    const totalMessages = Array.from(this.channels.values())
-      .reduce((sum, channel) => sum + channel.metrics.messagesSent + channel.metrics.messagesReceived, 0);
+
+    const totalErrors = Array.from(this.channels.values()).reduce(
+      (sum, channel) => sum + channel.metrics.errorCount,
+      0,
+    );
+    const totalMessages = Array.from(this.channels.values()).reduce(
+      (sum, channel) => sum + channel.metrics.messagesSent + channel.metrics.messagesReceived,
+      0,
+    );
     const errorRate = totalMessages > 0 ? totalErrors / totalMessages : 0;
 
-    const throughput = Array.from(this.agents.values())
-      .reduce((sum, agent) => sum + agent.performanceMetrics.tasksCompleted, 0);
+    const throughput = Array.from(this.agents.values()).reduce(
+      (sum, agent) => sum + agent.performanceMetrics.tasksCompleted,
+      0,
+    );
 
     return {
       id: this.id,
@@ -1561,7 +1616,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       memoryUsage: 0.3, // Placeholder
       lastUpdate: new Date(),
       coordinationEfficiency: this.calculateCoordinationEfficiency(),
-      faultToleranceScore: this.calculateFaultToleranceScore()
+      faultToleranceScore: this.calculateFaultToleranceScore(),
     };
   }
 
@@ -1574,7 +1629,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
       byzantineDetections: this.metrics.byzantineDetections,
       activeProposals: this.consensusState.activeProposals.size,
       peerCount: this.peers.size,
-      channelCount: this.channels.size
+      channelCount: this.channels.size,
     };
   }
 
@@ -1590,16 +1645,19 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 
   private calculateCoordinationEfficiency(): number {
     const totalTasks = this.tasks.size;
-    const completedTasks = Array.from(this.tasks.values())
-      .filter(t => t.status === 'completed').length;
-    
+    const completedTasks = Array.from(this.tasks.values()).filter(
+      (t) => t.status === 'completed',
+    ).length;
+
     return totalTasks > 0 ? completedTasks / totalTasks : 1;
   }
 
   private calculateFaultToleranceScore(): number {
-    const byzantineDetectionRate = this.metrics.byzantineDetections / Math.max(1, this.metrics.messagesProcessed);
-    const recoveryRate = this.metrics.failureRecoveries / Math.max(1, this.metrics.byzantineDetections + 1);
-    
+    const byzantineDetectionRate =
+      this.metrics.byzantineDetections / Math.max(1, this.metrics.messagesProcessed);
+    const recoveryRate =
+      this.metrics.failureRecoveries / Math.max(1, this.metrics.byzantineDetections + 1);
+
     return Math.max(0, 1 - byzantineDetectionRate + recoveryRate * 0.5);
   }
 }
@@ -1609,7 +1667,7 @@ export class EnhancedMeshCoordinator extends EventEmitter implements ITopologyCo
 // ============================================================================
 
 export function createEnhancedMeshCoordinator(
-  config?: Partial<EnhancedMeshConfig>
+  config?: Partial<EnhancedMeshConfig>,
 ): EnhancedMeshCoordinator {
   return new EnhancedMeshCoordinator(config);
 }
@@ -1617,7 +1675,7 @@ export function createEnhancedMeshCoordinator(
 export function createEnhancedMeshCoordinatorWithByzantine(
   namespace: string,
   maxFaultyNodes: number = 1,
-  config?: Partial<EnhancedMeshConfig>
+  config?: Partial<EnhancedMeshConfig>,
 ): EnhancedMeshCoordinator {
   const enhancedConfig: Partial<EnhancedMeshConfig> = {
     ...config,
@@ -1628,14 +1686,14 @@ export function createEnhancedMeshCoordinatorWithByzantine(
       consensusAlgorithm: 'pbft',
       verificationRequired: true,
       redundancyFactor: Math.max(3, maxFaultyNodes * 2 + 1),
-      timeoutMultiplier: 2
+      timeoutMultiplier: 2,
     },
     consensus: {
       algorithm: 'pbft',
       requiredVotes: Math.max(3, maxFaultyNodes * 2 + 1),
       timeoutMs: 15000,
-      enableByzantine: true
-    }
+      enableByzantine: true,
+    },
   };
 
   return new EnhancedMeshCoordinator(enhancedConfig);

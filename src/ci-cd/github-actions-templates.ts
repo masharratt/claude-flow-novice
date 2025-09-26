@@ -327,7 +327,7 @@ export class GitHubActionsTemplates {
               run: `
                 aws eks update-kubeconfig --name claude-flow-cluster --region us-west-2
                 kubectl apply -f k8s/aws/
-                kubectl set image deployment/claude-flow-novice claude-flow-novice=${{ env.IMAGE_TAG }}
+                kubectl set image deployment/claude-flow-novice claude-flow-novice=\${{ env.IMAGE_TAG }}
                 kubectl rollout status deployment/claude-flow-novice
               `
             }
@@ -352,7 +352,7 @@ export class GitHubActionsTemplates {
               run: `
                 gcloud container clusters get-credentials claude-flow-cluster --zone us-central1-a
                 kubectl apply -f k8s/gcp/
-                kubectl set image deployment/claude-flow-novice claude-flow-novice=${{ env.IMAGE_TAG }}
+                kubectl set image deployment/claude-flow-novice claude-flow-novice=\${{ env.IMAGE_TAG }}
                 kubectl rollout status deployment/claude-flow-novice
               `
             }
@@ -376,7 +376,7 @@ export class GitHubActionsTemplates {
               run: `
                 az aks get-credentials --resource-group claude-flow-rg --name claude-flow-aks
                 kubectl apply -f k8s/azure/
-                kubectl set image deployment/claude-flow-novice claude-flow-novice=${{ env.IMAGE_TAG }}
+                kubectl set image deployment/claude-flow-novice claude-flow-novice=\${{ env.IMAGE_TAG }}
                 kubectl rollout status deployment/claude-flow-novice
               `
             }

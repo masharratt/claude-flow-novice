@@ -1,6 +1,6 @@
 /**
  * Topology Manager - Centralized Topology Configuration and Management
- * 
+ *
  * Provides centralized management of multiple topology coordinators with
  * cross-topology communication, dynamic optimization, and adaptive reconfiguration.
  * Builds upon lifecycle management and dependency tracking systems.
@@ -14,12 +14,12 @@ import {
   registerAgentDependency,
   removeAgentDependency,
   getAgentDependencyStatus,
-  type AgentLifecycleContext
+  type AgentLifecycleContext,
 } from '../agents/lifecycle-manager.js';
 import {
   DependencyType,
   getDependencyTracker,
-  type DependencyTracker
+  type DependencyTracker,
 } from '../lifecycle/dependency-tracker.js';
 import {
   TopologyType,
@@ -34,7 +34,7 @@ import {
   ICommunicationBridge,
   TopologyEvent,
   OptimizationRule,
-  PerformanceMetric
+  PerformanceMetric,
 } from './types.js';
 
 // ============================================================================
@@ -101,16 +101,16 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         latencyCritical: 5000, // 5s
         throughputWarning: 10, // 10 ops/s
         errorRateWarning: 0.05, // 5%
-        errorRateCritical: 0.15 // 15%
+        errorRateCritical: 0.15, // 15%
       },
       defaultTimeouts: {
         coordination: 30000, // 30s
         completion: 300000, // 5m
-        adaptation: 120000 // 2m
+        adaptation: 120000, // 2m
       },
       memoryNamespace: 'topology-manager',
       enablePersistence: true,
-      ...config
+      ...config,
     };
 
     this.topologies = new Map();
@@ -148,27 +148,23 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
           'topology-management',
           'cross-topology-routing',
           'adaptive-optimization',
-          'performance-monitoring'
+          'performance-monitoring',
         ],
         lifecycle: {
           state_management: true,
           persistent_memory: true,
-          max_retries: 3
+          max_retries: 3,
         },
         hooks: {
           init: 'echo "Topology manager initialized"',
           task_complete: 'echo "Topology management task completed"',
-          cleanup: 'echo "Topology manager cleanup"'
-        }
+          cleanup: 'echo "Topology manager cleanup"',
+        },
       },
-      generateId('topo-mgr-task')
+      generateId('topo-mgr-task'),
     );
 
-    await lifecycleManager.transitionState(
-      this.managerId,
-      'running',
-      'Topology manager started'
-    );
+    await lifecycleManager.transitionState(this.managerId, 'running', 'Topology manager started');
 
     // Initialize communication bridge if cross-topology routing is enabled
     if (this.config.enableCrossTopologyRouting) {
@@ -178,7 +174,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         enableCompression: true,
         enableEncryption: false,
         maxQueueSize: 1000,
-        retryAttempts: 3
+        retryAttempts: 3,
       });
       await this.communicationBridge.initialize();
     }
@@ -220,11 +216,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
     }
 
     // Transition to stopped state
-    await lifecycleManager.transitionState(
-      this.managerId,
-      'stopped',
-      'Topology manager shutdown'
-    );
+    await lifecycleManager.transitionState(this.managerId, 'stopped', 'Topology manager shutdown');
 
     // Shutdown dependency tracker
     await this.dependencyTracker.shutdown();
@@ -254,16 +246,18 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         coordinator = new EnhancedMeshCoordinator({
           ...config,
           managerId: this.managerId,
-          communicationBridge: this.communicationBridge
+          communicationBridge: this.communicationBridge,
         });
         break;
       }
       case 'hierarchical': {
-        const { EnhancedHierarchicalCoordinator } = await import('./enhanced-hierarchical-coordinator.js');
+        const { EnhancedHierarchicalCoordinator } = await import(
+          './enhanced-hierarchical-coordinator.js'
+        );
         coordinator = new EnhancedHierarchicalCoordinator({
           ...config,
           managerId: this.managerId,
-          communicationBridge: this.communicationBridge
+          communicationBridge: this.communicationBridge,
         });
         break;
       }
@@ -272,7 +266,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         coordinator = new AdaptiveCoordinator({
           ...config,
           managerId: this.managerId,
-          communicationBridge: this.communicationBridge
+          communicationBridge: this.communicationBridge,
         });
         break;
       }
@@ -292,15 +286,15 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
     // Register dependency relationship
     await registerAgentDependency(
       this.managerId, // Manager depends on topology
-      topologyId,     // Topology provides coordination
+      topologyId, // Topology provides coordination
       DependencyType.COORDINATION,
       {
         timeout: this.config.defaultTimeouts.coordination,
         metadata: {
           topologyType: config.type,
-          relationship: 'management'
-        }
-      }
+          relationship: 'management',
+        },
+      },
     );
 
     this.logger.info(`Created topology ${topologyId} of type ${config.type}`);
@@ -308,7 +302,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       type: 'topology:created',
       timestamp: new Date(),
       topologyId,
-      data: { config }
+      data: { config },
     } as TopologyEvent);
 
     return coordinator;
@@ -324,11 +318,10 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
 
     // Remove all bridges connected to this topology
     const bridgesToRemove = Array.from(this.bridges.values())
-      .filter(bridge => 
-        bridge.sourceTopology === topologyId || 
-        bridge.targetTopology === topologyId
+      .filter(
+        (bridge) => bridge.sourceTopology === topologyId || bridge.targetTopology === topologyId,
       )
-      .map(bridge => bridge.id);
+      .map((bridge) => bridge.id);
 
     for (const bridgeId of bridgesToRemove) {
       await this.removeBridge(bridgeId);
@@ -354,7 +347,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       type: 'topology:destroyed',
       timestamp: new Date(),
       topologyId,
-      data: {}
+      data: {},
     } as TopologyEvent);
   }
 
@@ -373,7 +366,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
   async createBridge(
     sourceId: string,
     targetId: string,
-    bridgeType: string = 'protocol_adapter'
+    bridgeType: string = 'protocol_adapter',
   ): Promise<TopologyBridge> {
     if (this.bridges.size >= this.config.maxBridges) {
       throw new Error('Maximum bridge limit reached');
@@ -397,14 +390,14 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         enableCompression: true,
         enableEncryption: false,
         maxQueueSize: 100,
-        timeoutMs: 5000
+        timeoutMs: 5000,
       },
       metrics: {
         messagesRouted: 0,
         averageLatency: 0,
         errorRate: 0,
-        throughput: 0
-      }
+        throughput: 0,
+      },
     };
 
     this.bridges.set(bridgeId, bridge);
@@ -419,7 +412,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       type: 'bridge:created',
       timestamp: new Date(),
       topologyId: bridgeId,
-      data: { bridge }
+      data: { bridge },
     } as TopologyEvent);
 
     return bridge;
@@ -443,7 +436,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       type: 'bridge:removed',
       timestamp: new Date(),
       topologyId: bridgeId,
-      data: { bridge }
+      data: { bridge },
     } as TopologyEvent);
   }
 
@@ -461,7 +454,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
 
     await this.communicationBridge.routeMessage({
       ...message,
-      route
+      route,
     });
 
     this.logger.debug(`Routed message ${message.id} through ${route.join(' -> ')}`);
@@ -485,17 +478,16 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
     // Generate optimization recommendations
     const recommendations = await this.generateOptimizationRecommendations(
       currentConfig,
-      currentMetrics
+      currentMetrics,
     );
 
     // Apply best recommendation if confidence is high enough
-    const bestRecommendation = recommendations
-      .sort((a, b) => b.confidence - a.confidence)[0];
+    const bestRecommendation = recommendations.sort((a, b) => b.confidence - a.confidence)[0];
 
     if (bestRecommendation && bestRecommendation.confidence > 0.7) {
       const optimizedConfig = {
         ...currentConfig,
-        ...this.applyOptimizationRecommendation(currentConfig, bestRecommendation)
+        ...this.applyOptimizationRecommendation(currentConfig, bestRecommendation),
       };
 
       const result: TopologyOptimizationResult = {
@@ -505,26 +497,28 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
           performance: bestRecommendation.expectedImprovements.latency,
           efficiency: bestRecommendation.expectedImprovements.throughput,
           reliability: bestRecommendation.expectedImprovements.reliability,
-          cost: bestRecommendation.expectedImprovements.cost
+          cost: bestRecommendation.expectedImprovements.cost,
         },
-        changes: [{
-          component: 'topology_configuration',
-          before: currentConfig,
-          after: optimizedConfig,
-          impact: bestRecommendation.reasoning.join('; ')
-        }],
+        changes: [
+          {
+            component: 'topology_configuration',
+            before: currentConfig,
+            after: optimizedConfig,
+            impact: bestRecommendation.reasoning.join('; '),
+          },
+        ],
         validationResults: {
           passed: true,
           warnings: [],
-          errors: []
-        }
+          errors: [],
+        },
       };
 
       this.emit('topology:optimized', {
         type: 'topology:optimized',
         timestamp: new Date(),
         topologyId,
-        data: { result }
+        data: { result },
       } as TopologyEvent);
 
       return result;
@@ -539,14 +533,14 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       validationResults: {
         passed: true,
         warnings: ['No optimization opportunities found'],
-        errors: []
-      }
+        errors: [],
+      },
     };
   }
 
   async adaptTopology(
     topologyId: string,
-    newConfig: Partial<TopologyConfiguration>
+    newConfig: Partial<TopologyConfiguration>,
   ): Promise<void> {
     const topology = this.topologies.get(topologyId);
     if (!topology) {
@@ -569,19 +563,17 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       type: 'topology:adapted',
       timestamp: new Date(),
       topologyId,
-      data: { newConfig }
+      data: { newConfig },
     } as TopologyEvent);
   }
 
-  async recommendTopology(
-    requirements: Record<string, unknown>
-  ): Promise<TopologyConfiguration> {
+  async recommendTopology(requirements: Record<string, unknown>): Promise<TopologyConfiguration> {
     const {
       expectedAgents = 10,
       latencyRequirement = 1000,
       throughputRequirement = 100,
       faultToleranceLevel = 'basic',
-      consistencyLevel = 'eventual'
+      consistencyLevel = 'eventual',
     } = requirements;
 
     // Simple heuristic-based recommendation
@@ -601,17 +593,17 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       strategy: 'adaptive',
       faultTolerance: faultToleranceLevel as any,
       loadBalancing: 'adaptive',
-      maxAgents: expectedAgents as number * 1.2, // 20% buffer
+      maxAgents: (expectedAgents as number) * 1.2, // 20% buffer
       maxConnections: Math.min(expectedAgents as number, 20),
       enableCrossTopology: true,
       enableAdaptiveOptimization: true,
       performanceThresholds: {
         latency: latencyRequirement as number,
         throughput: throughputRequirement as number,
-        errorRate: 0.05
+        errorRate: 0.05,
       },
       timeouts: this.config.defaultTimeouts,
-      memoryNamespace: generateId('topo')
+      memoryNamespace: generateId('topo'),
     };
 
     this.logger.info(`Recommended ${recommendedType} topology for requirements`);
@@ -624,7 +616,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
 
   getGlobalMetrics(): Record<string, TopologyMetrics> {
     const metrics: Record<string, TopologyMetrics> = {};
-    
+
     for (const [topologyId, topology] of this.topologies) {
       metrics[topologyId] = topology.getMetrics();
     }
@@ -639,7 +631,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       totalAgents: 0,
       averageLatency: 0,
       totalThroughput: 0,
-      aggregateErrorRate: 0
+      aggregateErrorRate: 0,
     };
 
     let totalLatency = 0;
@@ -673,13 +665,13 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         bottlenecks.push({
           component: `topology:${topologyId}:latency`,
           severity: 0.9,
-          description: `Critical latency: ${metrics.averageLatency}ms > ${thresholds.latencyCritical}ms`
+          description: `Critical latency: ${metrics.averageLatency}ms > ${thresholds.latencyCritical}ms`,
         });
       } else if (metrics.averageLatency > thresholds.latencyWarning) {
         bottlenecks.push({
           component: `topology:${topologyId}:latency`,
           severity: 0.6,
-          description: `High latency: ${metrics.averageLatency}ms > ${thresholds.latencyWarning}ms`
+          description: `High latency: ${metrics.averageLatency}ms > ${thresholds.latencyWarning}ms`,
         });
       }
 
@@ -688,13 +680,13 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         bottlenecks.push({
           component: `topology:${topologyId}:errors`,
           severity: 0.95,
-          description: `Critical error rate: ${(metrics.errorRate * 100).toFixed(1)}% > ${(thresholds.errorRateCritical * 100).toFixed(1)}%`
+          description: `Critical error rate: ${(metrics.errorRate * 100).toFixed(1)}% > ${(thresholds.errorRateCritical * 100).toFixed(1)}%`,
         });
       } else if (metrics.errorRate > thresholds.errorRateWarning) {
         bottlenecks.push({
           component: `topology:${topologyId}:errors`,
           severity: 0.7,
-          description: `High error rate: ${(metrics.errorRate * 100).toFixed(1)}% > ${(thresholds.errorRateWarning * 100).toFixed(1)}%`
+          description: `High error rate: ${(metrics.errorRate * 100).toFixed(1)}% > ${(thresholds.errorRateWarning * 100).toFixed(1)}%`,
         });
       }
 
@@ -703,7 +695,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         bottlenecks.push({
           component: `topology:${topologyId}:throughput`,
           severity: 0.5,
-          description: `Low throughput: ${metrics.throughput} ops/s < ${thresholds.throughputWarning} ops/s`
+          description: `Low throughput: ${metrics.throughput} ops/s < ${thresholds.throughputWarning} ops/s`,
         });
       }
     }
@@ -722,10 +714,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
     this.on('bridge:removed', this.handleBridgeRemoved.bind(this));
   }
 
-  private setupTopologyEventForwarding(
-    topologyId: string,
-    topology: ITopologyCoordinator
-  ): void {
+  private setupTopologyEventForwarding(topologyId: string, topology: ITopologyCoordinator): void {
     // Forward topology events to manager level
     topology.on('agent:registered', (event) => {
       this.emit('agent:registered', { ...event, topologyId });
@@ -744,34 +733,41 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
     this.optimizationRules = [
       {
         id: 'high-latency-rule',
-        condition: (metrics) => metrics.averageLatency > this.config.performanceThresholds.latencyCritical,
+        condition: (metrics) =>
+          metrics.averageLatency > this.config.performanceThresholds.latencyCritical,
         action: async (coordinator) => {
           // Suggest topology optimization
           this.logger.warn(`High latency detected in ${coordinator.id}, suggesting optimization`);
         },
         priority: 0.9,
-        description: 'Triggers optimization when latency exceeds critical threshold'
+        description: 'Triggers optimization when latency exceeds critical threshold',
       },
       {
         id: 'high-error-rate-rule',
-        condition: (metrics) => metrics.errorRate > this.config.performanceThresholds.errorRateCritical,
+        condition: (metrics) =>
+          metrics.errorRate > this.config.performanceThresholds.errorRateCritical,
         action: async (coordinator) => {
           // Suggest fault tolerance improvements
-          this.logger.warn(`High error rate detected in ${coordinator.id}, reviewing fault tolerance`);
+          this.logger.warn(
+            `High error rate detected in ${coordinator.id}, reviewing fault tolerance`,
+          );
         },
         priority: 0.95,
-        description: 'Triggers fault tolerance review when error rate is high'
+        description: 'Triggers fault tolerance review when error rate is high',
       },
       {
         id: 'low-throughput-rule',
-        condition: (metrics) => metrics.throughput < this.config.performanceThresholds.throughputWarning,
+        condition: (metrics) =>
+          metrics.throughput < this.config.performanceThresholds.throughputWarning,
         action: async (coordinator) => {
           // Suggest load balancing improvements
-          this.logger.info(`Low throughput detected in ${coordinator.id}, reviewing load balancing`);
+          this.logger.info(
+            `Low throughput detected in ${coordinator.id}, reviewing load balancing`,
+          );
         },
         priority: 0.6,
-        description: 'Triggers load balancing review when throughput is low'
-      }
+        description: 'Triggers load balancing review when throughput is low',
+      },
     ];
   }
 
@@ -805,7 +801,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
     try {
       for (const [topologyId, topology] of this.topologies) {
         const metrics = topology.getMetrics();
-        
+
         // Apply optimization rules
         for (const rule of this.optimizationRules) {
           if (rule.condition(metrics)) {
@@ -821,16 +817,16 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
   private collectMetrics(): void {
     try {
       const timestamp = new Date();
-      
+
       // Collect global metrics
       const utilization = this.getResourceUtilization();
-      
+
       for (const [key, value] of Object.entries(utilization)) {
         this.globalMetrics.set(key, {
           name: key,
           value,
           unit: this.getMetricUnit(key),
-          timestamp
+          timestamp,
         });
       }
 
@@ -841,7 +837,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
           type: 'bottlenecks:detected',
           timestamp,
           topologyId: this.managerId,
-          data: { bottlenecks }
+          data: { bottlenecks },
         } as TopologyEvent);
       }
     } catch (error) {
@@ -856,14 +852,14 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       totalAgents: 'count',
       averageLatency: 'ms',
       totalThroughput: 'ops/s',
-      aggregateErrorRate: 'percentage'
+      aggregateErrorRate: 'percentage',
     };
     return units[metricName] || 'unknown';
   }
 
   private async generateOptimizationRecommendations(
     config: TopologyConfiguration,
-    metrics: TopologyMetrics
+    metrics: TopologyMetrics,
   ): Promise<AdaptationDecision[]> {
     const recommendations: AdaptationDecision[] = [];
 
@@ -878,13 +874,13 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
         reasoning: [
           'High latency detected',
           'Mesh topology may provide better performance',
-          'Direct agent connections reduce coordination overhead'
+          'Direct agent connections reduce coordination overhead',
         ],
         expectedImprovements: {
           latency: -0.3, // 30% reduction
           throughput: 0.2, // 20% increase
           reliability: 0.1, // 10% increase
-          cost: 0.05 // 5% increase
+          cost: 0.05, // 5% increase
         },
         migrationPlan: {
           steps: [
@@ -892,24 +888,24 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
               description: 'Create mesh topology',
               estimatedDuration: 30000,
               riskLevel: 'low',
-              rollbackPossible: true
+              rollbackPossible: true,
             },
             {
               description: 'Migrate agents',
               estimatedDuration: 60000,
               riskLevel: 'medium',
-              rollbackPossible: true
+              rollbackPossible: true,
             },
             {
               description: 'Destroy old topology',
               estimatedDuration: 15000,
               riskLevel: 'low',
-              rollbackPossible: false
-            }
+              rollbackPossible: false,
+            },
           ],
           totalDuration: 105000,
-          resources: { cpu: 0.2, memory: 0.3, bandwidth: 0.1 }
-        }
+          resources: { cpu: 0.2, memory: 0.3, bandwidth: 0.1 },
+        },
       });
     }
 
@@ -918,7 +914,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
 
   private applyOptimizationRecommendation(
     config: TopologyConfiguration,
-    recommendation: AdaptationDecision
+    recommendation: AdaptationDecision,
   ): Partial<TopologyConfiguration> {
     const changes: Partial<TopologyConfiguration> = {};
 
@@ -930,7 +926,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
     if (recommendation.expectedImprovements.latency < -0.2) {
       changes.performanceThresholds = {
         ...config.performanceThresholds,
-        latency: config.performanceThresholds.latency * 0.8
+        latency: config.performanceThresholds.latency * 0.8,
       };
     }
 
@@ -971,7 +967,7 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
       topologyCount: this.topologies.size,
       bridgeCount: this.bridges.size,
       isOptimizing: this.config.enableAdaptiveOptimization,
-      metrics: Object.fromEntries(this.globalMetrics)
+      metrics: Object.fromEntries(this.globalMetrics),
     };
   }
 }
@@ -980,20 +976,18 @@ export class TopologyManager extends EventEmitter implements ITopologyManager {
 // Factory Functions
 // ============================================================================
 
-export function createTopologyManager(
-  config?: Partial<TopologyManagerConfig>
-): TopologyManager {
+export function createTopologyManager(config?: Partial<TopologyManagerConfig>): TopologyManager {
   return new TopologyManager(config);
 }
 
 export function createTopologyManagerWithPersistence(
   namespace: string,
-  config?: Partial<TopologyManagerConfig>
+  config?: Partial<TopologyManagerConfig>,
 ): TopologyManager {
   const enhancedConfig = {
     ...config,
     memoryNamespace: namespace,
-    enablePersistence: true
+    enablePersistence: true,
   };
 
   return new TopologyManager(enhancedConfig);
