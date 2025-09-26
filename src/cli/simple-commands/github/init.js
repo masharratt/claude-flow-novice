@@ -17,7 +17,7 @@ const exec = promisify(spawn);
 async function createGitHubCheckpointHooks() {
   const helpersDir = join(process.cwd(), '.claude', 'helpers');
   const checkpointHooksPath = join(helpersDir, 'github-checkpoint-hooks.sh');
-  
+
   const content = `#!/bin/bash
 # GitHub-specific checkpoint hook functions for Claude settings.json
 
@@ -237,7 +237,7 @@ case "$1" in
         ;;
 esac
 `;
-  
+
   await writeFile(checkpointHooksPath, content, { mode: 0o755 });
   return checkpointHooksPath;
 }
@@ -247,7 +247,7 @@ esac
  */
 async function createGitHubSettingsJson() {
   const settingsPath = join(process.cwd(), '.claude', 'settings.json');
-  
+
   const settings = {
     env: {
       CLAUDE_FLOW_AUTO_COMMIT: 'false',
@@ -257,7 +257,7 @@ async function createGitHubSettingsJson() {
       CLAUDE_FLOW_REMOTE_EXECUTION: 'true',
       CLAUDE_FLOW_GITHUB_INTEGRATION: 'true',
       CLAUDE_FLOW_CHECKPOINTS_ENABLED: 'true',
-      CREATE_GH_RELEASE: 'true'
+      CREATE_GH_RELEASE: 'true',
     },
     permissions: {
       allow: [
@@ -297,14 +297,9 @@ async function createGitHubSettingsJson() {
         'Bash(echo *)',
         'Bash(npx claude-flow@alpha *)',
         'Bash(./claude-flow *)',
-        'Bash(./.claude/helpers/*)'
+        'Bash(./.claude/helpers/*)',
       ],
-      deny: [
-        'Bash(rm -rf /)',
-        'Bash(curl * | bash)',
-        'Bash(wget * | sh)',
-        'Bash(eval *)'
-      ]
+      deny: ['Bash(rm -rf /)', 'Bash(curl * | bash)', 'Bash(wget * | sh)', 'Bash(eval *)'],
     },
     hooks: {
       PreToolUse: [
@@ -313,23 +308,25 @@ async function createGitHubSettingsJson() {
           hooks: [
             {
               type: 'command',
-              command: 'cat | jq -r \'.tool_input.command // empty\' | tr \'\\n\' \'\\0\' | xargs -0 -I {} npx claude-flow@alpha hooks pre-command --command \'{}\' --validate-safety true --prepare-resources true'
-            }
-          ]
+              command:
+                "cat | jq -r '.tool_input.command // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow@alpha hooks pre-command --command '{}' --validate-safety true --prepare-resources true",
+            },
+          ],
         },
         {
           matcher: 'Write|Edit|MultiEdit',
           hooks: [
             {
               type: 'command',
-              command: 'cat | jq -r \'.tool_input.file_path // .tool_input.path // empty\' | tr \'\\n\' \'\\0\' | xargs -0 -I {} npx claude-flow@alpha hooks pre-edit --file \'{}\' --auto-assign-agents true --load-context true'
+              command:
+                "cat | jq -r '.tool_input.file_path // .tool_input.path // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow@alpha hooks pre-edit --file '{}' --auto-assign-agents true --load-context true",
             },
             {
               type: 'command',
-              command: 'bash .claude/helpers/github-checkpoint-hooks.sh pre-edit "{{tool_input}}"'
-            }
-          ]
-        }
+              command: 'bash .claude/helpers/github-checkpoint-hooks.sh pre-edit "{{tool_input}}"',
+            },
+          ],
+        },
       ],
       PostToolUse: [
         {
@@ -337,47 +334,50 @@ async function createGitHubSettingsJson() {
           hooks: [
             {
               type: 'command',
-              command: 'cat | jq -r \'.tool_input.command // empty\' | tr \'\\n\' \'\\0\' | xargs -0 -I {} npx claude-flow@alpha hooks post-command --command \'{}\' --track-metrics true --store-results true'
-            }
-          ]
+              command:
+                "cat | jq -r '.tool_input.command // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow@alpha hooks post-command --command '{}' --track-metrics true --store-results true",
+            },
+          ],
         },
         {
           matcher: 'Write|Edit|MultiEdit',
           hooks: [
             {
               type: 'command',
-              command: 'cat | jq -r \'.tool_input.file_path // .tool_input.path // empty\' | tr \'\\n\' \'\\0\' | xargs -0 -I {} npx claude-flow@alpha hooks post-edit --file \'{}\' --format true --update-memory true'
+              command:
+                "cat | jq -r '.tool_input.file_path // .tool_input.path // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow@alpha hooks post-edit --file '{}' --format true --update-memory true",
             },
             {
               type: 'command',
-              command: 'bash .claude/helpers/github-checkpoint-hooks.sh post-edit "{{tool_input}}"'
-            }
-          ]
-        }
+              command: 'bash .claude/helpers/github-checkpoint-hooks.sh post-edit "{{tool_input}}"',
+            },
+          ],
+        },
       ],
       UserPromptSubmit: [
         {
           hooks: [
             {
               type: 'command',
-              command: 'bash .claude/helpers/github-checkpoint-hooks.sh task "{{user_prompt}}"'
-            }
-          ]
-        }
+              command: 'bash .claude/helpers/github-checkpoint-hooks.sh task "{{user_prompt}}"',
+            },
+          ],
+        },
       ],
       Stop: [
         {
           hooks: [
             {
               type: 'command',
-              command: 'npx claude-flow@alpha hooks session-end --generate-summary true --persist-state true --export-metrics true'
+              command:
+                'npx claude-flow@alpha hooks session-end --generate-summary true --persist-state true --export-metrics true',
             },
             {
               type: 'command',
-              command: 'bash .claude/helpers/github-checkpoint-hooks.sh session-end'
-            }
-          ]
-        }
+              command: 'bash .claude/helpers/github-checkpoint-hooks.sh session-end',
+            },
+          ],
+        },
       ],
       PreCompact: [
         {
@@ -385,25 +385,27 @@ async function createGitHubSettingsJson() {
           hooks: [
             {
               type: 'command',
-              command: '/bin/bash -c \'INPUT=$(cat); CUSTOM=$(echo "$INPUT" | jq -r ".custom_instructions // \"\""); echo "🔄 PreCompact Guidance:"; echo "📋 IMPORTANT: Review CLAUDE.md in project root for:"; echo "   • 54 available agents and concurrent usage patterns"; echo "   • Swarm coordination strategies (hierarchical, mesh, adaptive)"; echo "   • SPARC methodology workflows with batchtools optimization"; echo "   • Critical concurrent execution rules (GOLDEN RULE: 1 MESSAGE = ALL OPERATIONS)"; if [ -n "$CUSTOM" ]; then echo "🎯 Custom compact instructions: $CUSTOM"; fi; echo "✅ Ready for compact operation"\''
-            }
-          ]
+              command:
+                '/bin/bash -c \'INPUT=$(cat); CUSTOM=$(echo "$INPUT" | jq -r ".custom_instructions // \"\""); echo "🔄 PreCompact Guidance:"; echo "📋 IMPORTANT: Review CLAUDE.md in project root for:"; echo "   • 54 available agents and concurrent usage patterns"; echo "   • Swarm coordination strategies (hierarchical, mesh, adaptive)"; echo "   • SPARC methodology workflows with batchtools optimization"; echo "   • Critical concurrent execution rules (GOLDEN RULE: 1 MESSAGE = ALL OPERATIONS)"; if [ -n "$CUSTOM" ]; then echo "🎯 Custom compact instructions: $CUSTOM"; fi; echo "✅ Ready for compact operation"\'',
+            },
+          ],
         },
         {
           matcher: 'auto',
           hooks: [
             {
               type: 'command',
-              command: '/bin/bash -c \'echo "🔄 Auto-Compact Guidance (Context Window Full):"; echo "📋 CRITICAL: Before compacting, ensure you understand:"; echo "   • All 54 agents available in .claude/agents/ directory"; echo "   • Concurrent execution patterns from CLAUDE.md"; echo "   • Batchtools optimization for 300% performance gains"; echo "   • Swarm coordination strategies for complex tasks"; echo "⚡ Apply GOLDEN RULE: Always batch operations in single messages"; echo "✅ Auto-compact proceeding with full agent context"\''
-            }
-          ]
-        }
-      ]
+              command:
+                '/bin/bash -c \'echo "🔄 Auto-Compact Guidance (Context Window Full):"; echo "📋 CRITICAL: Before compacting, ensure you understand:"; echo "   • All 54 agents available in .claude/agents/ directory"; echo "   • Concurrent execution patterns from CLAUDE.md"; echo "   • Batchtools optimization for 300% performance gains"; echo "   • Swarm coordination strategies for complex tasks"; echo "⚡ Apply GOLDEN RULE: Always batch operations in single messages"; echo "✅ Auto-compact proceeding with full agent context"\'',
+            },
+          ],
+        },
+      ],
     },
     includeCoAuthoredBy: true,
-    enabledMcpjsonServers: ['claude-flow', 'ruv-swarm']
+    enabledMcpjsonServers: ['claude-flow', 'ruv-swarm'],
   };
-  
+
   await writeFile(settingsPath, JSON.stringify(settings, null, 2));
   return settingsPath;
 }
@@ -414,7 +416,7 @@ async function createGitHubSettingsJson() {
 export async function githubInitCommand(flags = {}) {
   try {
     console.log('🐙 Initializing GitHub-specific hooks and checkpoint system...\n');
-    
+
     // Check if we're in a git repository
     try {
       const { execSync } = await import('child_process');
@@ -423,7 +425,7 @@ export async function githubInitCommand(flags = {}) {
       printError('❌ Not in a git repository. Please initialize git first.');
       return;
     }
-    
+
     // Check if gh CLI is available
     let ghAvailable = false;
     try {
@@ -435,32 +437,40 @@ export async function githubInitCommand(flags = {}) {
       printWarning('⚠️  GitHub CLI not found. Some features will be limited.');
       console.log('   Install gh: https://cli.github.com/');
     }
-    
+
     // Create .claude directory structure
     const claudeDir = join(process.cwd(), '.claude');
     const helpersDir = join(claudeDir, 'helpers');
     const checkpointsDir = join(claudeDir, 'checkpoints');
-    
+
     await mkdir(claudeDir, { recursive: true });
     await mkdir(helpersDir, { recursive: true });
     await mkdir(checkpointsDir, { recursive: true });
-    
+
     // Check if settings.json already exists
     const settingsPath = join(claudeDir, 'settings.json');
     if (existsSync(settingsPath) && !flags.force) {
       printWarning('⚠️  settings.json already exists. Use --force to overwrite.');
       return;
     }
-    
+
     // Create GitHub checkpoint hooks
     const hooksPath = await createGitHubCheckpointHooks();
     printSuccess(`✅ Created GitHub checkpoint hooks: ${hooksPath}`);
-    
+
     // Copy standard checkpoint manager
     const checkpointManagerPath = join(helpersDir, 'checkpoint-manager.sh');
     const checkpointManagerContent = await readFile(
-      join(dirname(import.meta.url).replace('file://', ''), '..', 'init', 'templates', 'commands', 'helpers', 'checkpoint-manager.sh'),
-      'utf8'
+      join(
+        dirname(import.meta.url).replace('file://', ''),
+        '..',
+        'init',
+        'templates',
+        'commands',
+        'helpers',
+        'checkpoint-manager.sh',
+      ),
+      'utf8',
     ).catch(() => {
       // Fallback content if template not found
       return `#!/bin/bash
@@ -468,40 +478,45 @@ export async function githubInitCommand(flags = {}) {
 # Use github-checkpoint-hooks.sh for checkpoint operations
 `;
     });
-    
+
     await writeFile(checkpointManagerPath, checkpointManagerContent, { mode: 0o755 });
     printSuccess(`✅ Created checkpoint manager: ${checkpointManagerPath}`);
-    
+
     // Create GitHub-specific settings.json
     await createGitHubSettingsJson();
     printSuccess(`✅ Created GitHub settings: ${settingsPath}`);
-    
+
     // Initialize first checkpoint
     try {
       const { execSync } = await import('child_process');
-      execSync(`bash ${hooksPath} task "Initialize GitHub checkpoint system"`, { stdio: 'inherit' });
+      execSync(`bash ${hooksPath} task "Initialize GitHub checkpoint system"`, {
+        stdio: 'inherit',
+      });
       printSuccess('✅ Created initial checkpoint');
     } catch (error) {
       printWarning('⚠️  Could not create initial checkpoint: ' + error.message);
     }
-    
+
     // Show completion message
     console.log('\n' + '='.repeat(60));
     printSuccess('🎉 GitHub hooks initialized successfully!');
     console.log('='.repeat(60) + '\n');
-    
-    console.log('📋 What\'s been set up:\n');
+
+    console.log("📋 What's been set up:\n");
     console.log('  1. GitHub-specific checkpoint hooks in .claude/helpers/');
-    console.log('  2. Automatic GitHub releases for checkpoints' + (ghAvailable ? ' ✅' : ' (requires gh CLI)'));
+    console.log(
+      '  2. Automatic GitHub releases for checkpoints' +
+        (ghAvailable ? ' ✅' : ' (requires gh CLI)'),
+    );
     console.log('  3. Enhanced rollback with GitHub integration');
     console.log('  4. Session summaries with GitHub releases');
     console.log('  5. Full GitHub CLI permissions in settings.json');
-    
+
     console.log('\n🚀 Quick Start:\n');
     console.log('  1. Edit any file - automatic checkpoint created');
     console.log('  2. Start new tasks - task checkpoints with GitHub releases');
     console.log('  3. End sessions - comprehensive GitHub summary');
-    
+
     console.log('\n📚 Checkpoint Management:\n');
     console.log('  # List all checkpoints');
     console.log('  .claude/helpers/checkpoint-manager.sh list');
@@ -514,14 +529,13 @@ export async function githubInitCommand(flags = {}) {
     console.log('');
     console.log('  # Download release');
     console.log('  gh release download checkpoint-YYYYMMDD-HHMMSS');
-    
+
     if (!ghAvailable) {
       console.log('\n⚠️  Note: Install GitHub CLI for full features:');
       console.log('  https://cli.github.com/');
     }
-    
+
     console.log('\n💡 Pro tip: GitHub releases make it easy to share checkpoints with your team!');
-    
   } catch (error) {
     printError(`❌ Failed to initialize GitHub hooks: ${error.message}`);
     console.error(error);

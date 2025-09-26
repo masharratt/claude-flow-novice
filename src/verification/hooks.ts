@@ -1,6 +1,6 @@
 /**
  * Verification Hooks Module
- * 
+ *
  * Comprehensive verification and validation system for claude-flow operations.
  * Provides pre-task verification, post-task validation, integration testing,
  * truth telemetry, and rollback capabilities.
@@ -17,11 +17,14 @@ import type {
   MemoryHookPayload,
 } from '../services/agentic-flow-hooks/types.js';
 
-const logger = new Logger({
-  level: 'info',
-  format: 'text',
-  destination: 'console'
-}, { prefix: 'VerificationHooks' });
+const logger = new Logger(
+  {
+    level: 'info',
+    format: 'text',
+    destination: 'console',
+  },
+  { prefix: 'VerificationHooks' },
+);
 
 // ===== Types & Interfaces =====
 
@@ -178,10 +181,10 @@ export interface VerificationError {
   recoverable: boolean;
 }
 
-export type RollbackAction = 
-  | 'restore-snapshot' 
-  | 'revert-changes' 
-  | 'reset-state' 
+export type RollbackAction =
+  | 'restore-snapshot'
+  | 'revert-changes'
+  | 'reset-state'
   | 'abort-task'
   | 'retry-with-fallback';
 
@@ -234,16 +237,16 @@ export class VerificationHookManager {
   private registerHooks(): void {
     // Pre-task verification hook
     this.registerPreTaskHook();
-    
+
     // Post-task validation hook
     this.registerPostTaskHook();
-    
+
     // Integration test hook
     this.registerIntegrationTestHook();
-    
+
     // Truth telemetry hook
     this.registerTruthTelemetryHook();
-    
+
     // Rollback trigger hook
     this.registerRollbackTriggerHook();
 
@@ -257,28 +260,31 @@ export class VerificationHookManager {
       id: 'verification-pre-task',
       type: 'workflow-start',
       priority: 100, // High priority to run early
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (
+        payload: WorkflowHookPayload,
+        context: AgenticHookContext,
+      ): Promise<HookHandlerResult> => {
         if (!this.config.preTask.enabled) {
           return { continue: true };
         }
 
         const verificationContext = this.createVerificationContext(payload, context);
-        
+
         try {
           await this.executePreTaskChecks(verificationContext);
-          
+
           const state = verificationContext.state;
           if (state.checksFailed.length > 0) {
             const strategy = this.config.preTask.failureStrategy;
-            
+
             if (strategy === 'abort') {
               return {
                 continue: false,
                 metadata: {
                   verificationFailed: true,
                   failedChecks: state.checksFailed,
-                  error: 'Pre-task verification failed'
-                }
+                  error: 'Pre-task verification failed',
+                },
               };
             } else if (strategy === 'warn') {
               logger.warn('Pre-task verification warnings:', state.checksFailed);
@@ -293,30 +299,30 @@ export class VerificationHookManager {
             modified: true,
             payload: {
               ...payload,
-              verificationContext: verificationContext.taskId
+              verificationContext: verificationContext.taskId,
             },
             metadata: {
               verificationPassed: true,
               checksExecuted: state.checksPassed.length,
-              warnings: state.checksFailed.length
-            }
+              warnings: state.checksFailed.length,
+            },
           };
         } catch (error) {
           logger.error('Pre-task verification error:', error);
-          
+
           return {
             continue: this.config.preTask.failureStrategy !== 'abort',
             metadata: {
               verificationError: true,
-              error: (error as Error).message
-            }
+              error: (error as Error).message,
+            },
           };
         }
       },
       options: {
         timeout: 30000, // 30 second timeout
         async: false,
-      }
+      },
     };
 
     agenticHookManager.register(preTaskHook);
@@ -324,11 +330,11 @@ export class VerificationHookManager {
 
   private async executePreTaskChecks(context: VerificationContext): Promise<void> {
     const checkers = this.config.preTask.checkers.sort((a, b) => b.priority - a.priority);
-    
+
     for (const checker of checkers) {
       try {
         const result = await checker.check(context);
-        
+
         if (result.passed) {
           context.state.checksPassed.push(checker.id);
         } else {
@@ -338,7 +344,7 @@ export class VerificationHookManager {
             phase: 'pre-task',
             message: result.message,
             details: result.details,
-            recoverable: true
+            recoverable: true,
           });
         }
 
@@ -357,7 +363,7 @@ export class VerificationHookManager {
           phase: 'pre-task',
           message: `Checker '${checker.id}' threw an error: ${(error as Error).message}`,
           details: error,
-          recoverable: false
+          recoverable: false,
         });
       }
     }
@@ -370,17 +376,21 @@ export class VerificationHookManager {
       id: 'verification-post-task',
       type: 'workflow-complete',
       priority: 90,
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (
+        payload: WorkflowHookPayload,
+        context: AgenticHookContext,
+      ): Promise<HookHandlerResult> => {
         if (!this.config.postTask.enabled) {
           return { continue: true };
         }
 
-        const verificationContext = this.getVerificationContext(payload.workflowId) || 
-                                   this.createVerificationContext(payload, context);
-        
+        const verificationContext =
+          this.getVerificationContext(payload.workflowId) ||
+          this.createVerificationContext(payload, context);
+
         try {
           await this.executePostTaskValidation(verificationContext, payload);
-          
+
           const accuracy = this.calculateAccuracy(verificationContext);
           const meetsThreshold = accuracy >= this.config.postTask.accuracyThreshold;
 
@@ -394,55 +404,57 @@ export class VerificationHookManager {
               ...payload,
               validationResults: verificationContext.state.validationResults,
               accuracy,
-              meetsThreshold
+              meetsThreshold,
             },
             metadata: {
               validationComplete: true,
               accuracy,
               meetsThreshold,
-              validationCount: verificationContext.state.validationResults.length
+              validationCount: verificationContext.state.validationResults.length,
             },
-            sideEffects: [{
-              type: 'metric',
-              action: 'update',
-              data: {
-                name: 'verification.accuracy',
-                value: accuracy
-              }
-            }]
+            sideEffects: [
+              {
+                type: 'metric',
+                action: 'update',
+                data: {
+                  name: 'verification.accuracy',
+                  value: accuracy,
+                },
+              },
+            ],
           };
         } catch (error) {
           logger.error('Post-task validation error:', error);
-          
+
           return {
             continue: true,
             metadata: {
               validationError: true,
-              error: (error as Error).message
-            }
+              error: (error as Error).message,
+            },
           };
         }
       },
       options: {
         timeout: 60000, // 60 second timeout
         async: true,
-      }
+      },
     };
 
     agenticHookManager.register(postTaskHook);
   }
 
   private async executePostTaskValidation(
-    context: VerificationContext, 
-    payload: WorkflowHookPayload
+    context: VerificationContext,
+    payload: WorkflowHookPayload,
   ): Promise<void> {
     const validators = this.config.postTask.validators.sort((a, b) => b.priority - a.priority);
-    
+
     for (const validator of validators) {
       try {
         const result = await validator.validate(context, payload.state);
         context.state.validationResults.push(result);
-        
+
         // Update metrics
         if (result.valid) {
           context.metrics.accuracyScore += result.accuracy;
@@ -455,7 +467,7 @@ export class VerificationHookManager {
           phase: 'post-task',
           message: `Validator '${validator.id}' threw an error: ${(error as Error).message}`,
           details: error,
-          recoverable: false
+          recoverable: false,
         });
       }
     }
@@ -469,22 +481,26 @@ export class VerificationHookManager {
       type: 'workflow-step',
       priority: 80,
       filter: {
-        patterns: [/integration.*test/i, /test.*integration/i]
+        patterns: [/integration.*test/i, /test.*integration/i],
       },
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (
+        payload: WorkflowHookPayload,
+        context: AgenticHookContext,
+      ): Promise<HookHandlerResult> => {
         if (!this.config.integration.enabled) {
           return { continue: true };
         }
 
-        const verificationContext = this.getVerificationContext(payload.workflowId) || 
-                                   this.createVerificationContext(payload, context);
-        
+        const verificationContext =
+          this.getVerificationContext(payload.workflowId) ||
+          this.createVerificationContext(payload, context);
+
         try {
           await this.executeIntegrationTests(verificationContext);
-          
-          const allTestsPassed = verificationContext.state.testResults.every(r => r.passed);
+
+          const allTestsPassed = verificationContext.state.testResults.every((r) => r.passed);
           const testCount = verificationContext.state.testResults.length;
-          const passedCount = verificationContext.state.testResults.filter(r => r.passed).length;
+          const passedCount = verificationContext.state.testResults.filter((r) => r.passed).length;
 
           return {
             continue: true,
@@ -496,40 +512,42 @@ export class VerificationHookManager {
               testSummary: {
                 total: testCount,
                 passed: passedCount,
-                failed: testCount - passedCount
-              }
+                failed: testCount - passedCount,
+              },
             },
             metadata: {
               integrationTestsComplete: true,
               allTestsPassed,
               testCount,
-              passedCount
+              passedCount,
             },
-            sideEffects: [{
-              type: 'metric',
-              action: 'update',
-              data: {
-                name: 'verification.integration.success_rate',
-                value: passedCount / testCount
-              }
-            }]
+            sideEffects: [
+              {
+                type: 'metric',
+                action: 'update',
+                data: {
+                  name: 'verification.integration.success_rate',
+                  value: passedCount / testCount,
+                },
+              },
+            ],
           };
         } catch (error) {
           logger.error('Integration test execution error:', error);
-          
+
           return {
             continue: true,
             metadata: {
               integrationTestError: true,
-              error: (error as Error).message
-            }
+              error: (error as Error).message,
+            },
           };
         }
       },
       options: {
         timeout: 120000, // 2 minute timeout for tests
         async: true,
-      }
+      },
     };
 
     agenticHookManager.register(integrationTestHook);
@@ -537,7 +555,7 @@ export class VerificationHookManager {
 
   private async executeIntegrationTests(context: VerificationContext): Promise<void> {
     const testSuites = this.config.integration.testSuites;
-    
+
     for (const suite of testSuites) {
       // Check if requirements are met
       const requirementsMet = await this.checkTestRequirements(suite.requirements, context);
@@ -548,9 +566,9 @@ export class VerificationHookManager {
 
       if (this.config.integration.parallel) {
         // Execute tests in parallel
-        const testPromises = suite.tests.map(test => this.executeIntegrationTest(test, context));
+        const testPromises = suite.tests.map((test) => this.executeIntegrationTest(test, context));
         const results = await Promise.allSettled(testPromises);
-        
+
         results.forEach((result, index) => {
           if (result.status === 'fulfilled') {
             context.state.testResults.push(result.value);
@@ -559,7 +577,7 @@ export class VerificationHookManager {
               passed: false,
               duration: 0,
               message: `Test '${suite.tests[index].id}' failed: ${result.reason}`,
-              details: result.reason
+              details: result.reason,
             });
           }
         });
@@ -574,7 +592,7 @@ export class VerificationHookManager {
               passed: false,
               duration: 0,
               message: `Test '${test.id}' failed: ${(error as Error).message}`,
-              details: error
+              details: error,
             });
           }
         }
@@ -583,15 +601,15 @@ export class VerificationHookManager {
   }
 
   private async executeIntegrationTest(
-    test: IntegrationTest, 
-    context: VerificationContext
+    test: IntegrationTest,
+    context: VerificationContext,
   ): Promise<TestResult> {
     const startTime = Date.now();
-    
+
     try {
       const result = await test.execute(context);
       result.duration = Date.now() - startTime;
-      
+
       // Cleanup if provided
       if (test.cleanup) {
         try {
@@ -600,21 +618,21 @@ export class VerificationHookManager {
           logger.warn(`Test cleanup failed for '${test.id}':`, cleanupError);
         }
       }
-      
+
       return result;
     } catch (error) {
       return {
         passed: false,
         duration: Date.now() - startTime,
         message: `Test execution failed: ${(error as Error).message}`,
-        details: error
+        details: error,
       };
     }
   }
 
   private async checkTestRequirements(
-    requirements: string[], 
-    context: VerificationContext
+    requirements: string[],
+    context: VerificationContext,
   ): Promise<boolean> {
     // Simple requirement checking - can be extended
     for (const requirement of requirements) {
@@ -640,30 +658,33 @@ export class VerificationHookManager {
       id: 'verification-truth-telemetry',
       type: 'performance-metric',
       priority: 70,
-      handler: async (payload: PerformanceHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (
+        payload: PerformanceHookPayload,
+        context: AgenticHookContext,
+      ): Promise<HookHandlerResult> => {
         if (!this.config.telemetry.enabled) {
           return { continue: true };
         }
 
         const verificationContext = this.getOrCreateVerificationContext(payload, context);
-        
+
         try {
           await this.executeTruthValidation(verificationContext, payload);
-          
+
           const truthfulness = this.calculateTruthfulness(verificationContext);
-          
+
           return {
             continue: true,
             modified: true,
             payload: {
               ...payload,
               truthResults: verificationContext.state.truthResults,
-              truthfulness
+              truthfulness,
             },
             metadata: {
               truthValidationComplete: true,
               truthfulness,
-              validatorCount: this.config.telemetry.truthValidators.length
+              validatorCount: this.config.telemetry.truthValidators.length,
             },
             sideEffects: [
               {
@@ -671,8 +692,8 @@ export class VerificationHookManager {
                 action: 'update',
                 data: {
                   name: 'verification.truthfulness',
-                  value: truthfulness
-                }
+                  value: truthfulness,
+                },
               },
               {
                 type: 'memory',
@@ -682,45 +703,45 @@ export class VerificationHookManager {
                   value: {
                     timestamp: Date.now(),
                     truthfulness,
-                    results: verificationContext.state.truthResults
-                  }
-                }
-              }
-            ]
+                    results: verificationContext.state.truthResults,
+                  },
+                },
+              },
+            ],
           };
         } catch (error) {
           logger.error('Truth telemetry execution error:', error);
-          
+
           return {
             continue: true,
             metadata: {
               truthTelemetryError: true,
-              error: (error as Error).message
-            }
+              error: (error as Error).message,
+            },
           };
         }
       },
       options: {
         timeout: 45000, // 45 second timeout
         async: true,
-      }
+      },
     };
 
     agenticHookManager.register(truthTelemetryHook);
   }
 
   private async executeTruthValidation(
-    context: VerificationContext, 
-    payload: PerformanceHookPayload
+    context: VerificationContext,
+    payload: PerformanceHookPayload,
   ): Promise<void> {
     const validators = this.config.telemetry.truthValidators;
-    
+
     for (const validator of validators) {
       try {
         // Extract data and expected values from payload
         const data = payload.context.metrics || payload.value;
         const expected = payload.threshold; // Use threshold as expected value
-        
+
         const result = await validator.validate(data, expected);
         context.state.truthResults.push(result);
       } catch (error) {
@@ -730,7 +751,7 @@ export class VerificationHookManager {
           phase: 'telemetry',
           message: `Truth validator '${validator.id}' threw an error: ${(error as Error).message}`,
           details: error,
-          recoverable: false
+          recoverable: false,
         });
       }
     }
@@ -739,7 +760,7 @@ export class VerificationHookManager {
   private calculateTruthfulness(context: VerificationContext): number {
     const truthResults = context.state.truthResults;
     if (truthResults.length === 0) return 1.0;
-    
+
     const totalAccuracy = truthResults.reduce((sum, result) => sum + result.accuracy, 0);
     return totalAccuracy / truthResults.length;
   }
@@ -751,7 +772,10 @@ export class VerificationHookManager {
       id: 'verification-rollback-trigger',
       type: 'workflow-error',
       priority: 95, // Very high priority for error handling
-      handler: async (payload: WorkflowHookPayload, context: AgenticHookContext): Promise<HookHandlerResult> => {
+      handler: async (
+        payload: WorkflowHookPayload,
+        context: AgenticHookContext,
+      ): Promise<HookHandlerResult> => {
         if (!this.config.rollback.enabled) {
           return { continue: true };
         }
@@ -763,23 +787,26 @@ export class VerificationHookManager {
         }
 
         try {
-          const shouldRollback = await this.evaluateRollbackTriggers(verificationContext, payload.error);
-          
+          const shouldRollback = await this.evaluateRollbackTriggers(
+            verificationContext,
+            payload.error,
+          );
+
           if (shouldRollback) {
             const rollbackResult = await this.executeRollback(verificationContext);
-            
+
             return {
               continue: rollbackResult.success,
               modified: true,
               payload: {
                 ...payload,
                 rollbackExecuted: true,
-                rollbackResult
+                rollbackResult,
               },
               metadata: {
                 rollbackTriggered: true,
                 rollbackSuccess: rollbackResult.success,
-                rollbackAction: rollbackResult.action
+                rollbackAction: rollbackResult.action,
               },
               sideEffects: [
                 {
@@ -788,48 +815,48 @@ export class VerificationHookManager {
                   data: {
                     level: 'warn',
                     message: 'Rollback triggered due to verification failure',
-                    data: rollbackResult
-                  }
+                    data: rollbackResult,
+                  },
                 },
                 {
                   type: 'metric',
                   action: 'increment',
                   data: {
-                    name: 'verification.rollbacks.triggered'
-                  }
-                }
-              ]
+                    name: 'verification.rollbacks.triggered',
+                  },
+                },
+              ],
             };
           }
 
           return { continue: true };
         } catch (error) {
           logger.error('Rollback trigger evaluation error:', error);
-          
+
           return {
             continue: true,
             metadata: {
               rollbackError: true,
-              error: (error as Error).message
-            }
+              error: (error as Error).message,
+            },
           };
         }
       },
       options: {
         timeout: 30000, // 30 second timeout
         async: false, // Critical for error handling
-      }
+      },
     };
 
     agenticHookManager.register(rollbackTriggerHook);
   }
 
   private async evaluateRollbackTriggers(
-    context: VerificationContext, 
-    error?: Error
+    context: VerificationContext,
+    error?: Error,
   ): Promise<boolean> {
     const triggers = this.config.rollback.triggers;
-    
+
     for (const trigger of triggers) {
       try {
         if (trigger.condition(context, error)) {
@@ -840,7 +867,7 @@ export class VerificationHookManager {
         logger.error(`Rollback trigger '${trigger.id}' evaluation failed:`, triggerError);
       }
     }
-    
+
     return false;
   }
 
@@ -852,7 +879,7 @@ export class VerificationHookManager {
     try {
       const snapshots = this.snapshots.get(context.taskId) || [];
       const latestSnapshot = snapshots[snapshots.length - 1];
-      
+
       if (!latestSnapshot) {
         throw new Error('No snapshots available for rollback');
       }
@@ -862,13 +889,13 @@ export class VerificationHookManager {
         case 'automatic':
           await this.restoreSnapshot(context, latestSnapshot);
           break;
-          
+
         case 'selective':
           // Find the best snapshot to restore to
           const bestSnapshot = this.findBestRollbackSnapshot(snapshots);
           await this.restoreSnapshot(context, bestSnapshot);
           break;
-          
+
         default:
           await this.restoreSnapshot(context, latestSnapshot);
       }
@@ -878,16 +905,16 @@ export class VerificationHookManager {
         action: 'snapshot-restored',
         details: {
           snapshotId: latestSnapshot.id,
-          timestamp: latestSnapshot.timestamp
-        }
+          timestamp: latestSnapshot.timestamp,
+        },
       };
     } catch (error) {
       logger.error('Rollback execution failed:', error);
-      
+
       return {
         success: false,
         action: 'rollback-failed',
-        details: (error as Error).message
+        details: (error as Error).message,
       };
     }
   }
@@ -895,8 +922,8 @@ export class VerificationHookManager {
   // ===== Helper Methods =====
 
   private createVerificationContext(
-    payload: WorkflowHookPayload, 
-    context: AgenticHookContext
+    payload: WorkflowHookPayload,
+    context: AgenticHookContext,
   ): VerificationContext {
     const verificationContext: VerificationContext = {
       taskId: payload.workflowId,
@@ -910,7 +937,7 @@ export class VerificationHookManager {
         validationResults: [],
         testResults: [],
         truthResults: [],
-        errors: []
+        errors: [],
       },
       snapshots: [],
       metrics: {
@@ -919,8 +946,8 @@ export class VerificationHookManager {
         failedChecks: 0,
         executionTime: 0,
         accuracyScore: 0,
-        confidenceScore: 0
-      }
+        confidenceScore: 0,
+      },
     };
 
     this.contexts.set(verificationContext.taskId, verificationContext);
@@ -932,32 +959,29 @@ export class VerificationHookManager {
   }
 
   private getOrCreateVerificationContext(
-    payload: any, 
-    context: AgenticHookContext
+    payload: any,
+    context: AgenticHookContext,
   ): VerificationContext {
     const taskId = payload.workflowId || payload.context?.taskId || context.correlationId;
-    
+
     let verificationContext = this.contexts.get(taskId);
     if (!verificationContext) {
       verificationContext = this.createVerificationContext(
         { workflowId: taskId, state: payload.context || {} } as WorkflowHookPayload,
-        context
+        context,
       );
     }
-    
+
     return verificationContext;
   }
 
-  private async createSnapshot(
-    context: VerificationContext, 
-    phase: string
-  ): Promise<void> {
+  private async createSnapshot(context: VerificationContext, phase: string): Promise<void> {
     const snapshot: StateSnapshot = {
       id: `snapshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
       phase,
       state: JSON.parse(JSON.stringify(context.state)),
-      metadata: JSON.parse(JSON.stringify(context.metadata))
+      metadata: JSON.parse(JSON.stringify(context.metadata)),
     };
 
     if (!this.snapshots.has(context.taskId)) {
@@ -967,26 +991,28 @@ export class VerificationHookManager {
     this.snapshots.get(context.taskId)!.push(snapshot);
     context.snapshots.push(snapshot);
 
-    logger.debug(`Created snapshot '${snapshot.id}' for task '${context.taskId}' in phase '${phase}'`);
+    logger.debug(
+      `Created snapshot '${snapshot.id}' for task '${context.taskId}' in phase '${phase}'`,
+    );
   }
 
   private async restoreSnapshot(
-    context: VerificationContext, 
-    snapshot: StateSnapshot
+    context: VerificationContext,
+    snapshot: StateSnapshot,
   ): Promise<void> {
     context.state = JSON.parse(JSON.stringify(snapshot.state));
     context.metadata = JSON.parse(JSON.stringify(snapshot.metadata));
-    
+
     logger.info(`Restored snapshot '${snapshot.id}' for task '${context.taskId}'`);
   }
 
   private findBestRollbackSnapshot(snapshots: StateSnapshot[]): StateSnapshot {
     // Find the latest snapshot with successful state
-    const successfulSnapshots = snapshots.filter(s => 
-      s.phase.includes('complete') && !s.phase.includes('error')
+    const successfulSnapshots = snapshots.filter(
+      (s) => s.phase.includes('complete') && !s.phase.includes('error'),
     );
-    
-    return successfulSnapshots.length > 0 
+
+    return successfulSnapshots.length > 0
       ? successfulSnapshots[successfulSnapshots.length - 1]
       : snapshots[snapshots.length - 1];
   }
@@ -994,7 +1020,7 @@ export class VerificationHookManager {
   private calculateAccuracy(context: VerificationContext): number {
     const validationResults = context.state.validationResults;
     if (validationResults.length === 0) return 1.0;
-    
+
     const totalAccuracy = validationResults.reduce((sum, result) => sum + result.accuracy, 0);
     return totalAccuracy / validationResults.length;
   }
@@ -1012,28 +1038,32 @@ export class VerificationHookManager {
       timestamp: Date.now(),
       activeContexts: this.contexts.size,
       totalSnapshots: Array.from(this.snapshots.values()).reduce((sum, arr) => sum + arr.length, 0),
-      metrics: this.aggregateMetrics()
+      metrics: this.aggregateMetrics(),
     };
 
     logger.info('Verification telemetry report:', report);
-    
+
     // Emit telemetry event for external systems
     agenticHookManager.emit('verification:telemetry', report);
   }
 
   private aggregateMetrics(): any {
     const allContexts = Array.from(this.contexts.values());
-    
+
     return {
       totalChecks: allContexts.reduce((sum, ctx) => sum + ctx.metrics.totalChecks, 0),
       totalPassed: allContexts.reduce((sum, ctx) => sum + ctx.metrics.passedChecks, 0),
       totalFailed: allContexts.reduce((sum, ctx) => sum + ctx.metrics.failedChecks, 0),
-      averageAccuracy: allContexts.length > 0 
-        ? allContexts.reduce((sum, ctx) => sum + ctx.metrics.accuracyScore, 0) / allContexts.length
-        : 0,
-      averageConfidence: allContexts.length > 0
-        ? allContexts.reduce((sum, ctx) => sum + ctx.metrics.confidenceScore, 0) / allContexts.length
-        : 0
+      averageAccuracy:
+        allContexts.length > 0
+          ? allContexts.reduce((sum, ctx) => sum + ctx.metrics.accuracyScore, 0) /
+            allContexts.length
+          : 0,
+      averageConfidence:
+        allContexts.length > 0
+          ? allContexts.reduce((sum, ctx) => sum + ctx.metrics.confidenceScore, 0) /
+            allContexts.length
+          : 0,
     };
   }
 
@@ -1106,7 +1136,7 @@ export class VerificationHookManager {
    */
   public cleanup(maxAge: number = 24 * 60 * 60 * 1000): void {
     const cutoff = Date.now() - maxAge;
-    
+
     // Cleanup contexts
     for (const [taskId, context] of this.contexts.entries()) {
       if (context.timestamp < cutoff) {
@@ -1114,7 +1144,7 @@ export class VerificationHookManager {
         this.snapshots.delete(taskId);
       }
     }
-    
+
     logger.info(`Cleaned up verification data older than ${maxAge}ms`);
   }
 }
@@ -1130,20 +1160,22 @@ export const DEFAULT_PRE_TASK_CHECKERS: PreTaskChecker[] = [
     check: async (context: VerificationContext): Promise<VerificationResult> => {
       // Basic environment validation
       const requiredEnvVars = ['NODE_ENV'];
-      const missing = requiredEnvVars.filter(envVar => !process.env[envVar]);
-      
+      const missing = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+
       return {
         passed: missing.length === 0,
         score: missing.length === 0 ? 1.0 : 0.5,
-        message: missing.length === 0 
-          ? 'Environment validation passed' 
-          : `Missing environment variables: ${missing.join(', ')}`,
-        details: { missing, available: requiredEnvVars.filter(envVar => process.env[envVar]) },
-        recommendations: missing.length > 0 
-          ? [`Set missing environment variables: ${missing.join(', ')}`]
-          : undefined
+        message:
+          missing.length === 0
+            ? 'Environment validation passed'
+            : `Missing environment variables: ${missing.join(', ')}`,
+        details: { missing, available: requiredEnvVars.filter((envVar) => process.env[envVar]) },
+        recommendations:
+          missing.length > 0
+            ? [`Set missing environment variables: ${missing.join(', ')}`]
+            : undefined,
       };
-    }
+    },
   },
   {
     id: 'resource-check',
@@ -1156,18 +1188,17 @@ export const DEFAULT_PRE_TASK_CHECKERS: PreTaskChecker[] = [
       const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
       const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
       const usageRatio = heapUsedMB / heapTotalMB;
-      
+
       return {
         passed: usageRatio < 0.9, // Less than 90% memory usage
         score: Math.max(0, 1 - usageRatio),
         message: `Memory usage: ${heapUsedMB.toFixed(2)}MB / ${heapTotalMB.toFixed(2)}MB (${(usageRatio * 100).toFixed(1)}%)`,
         details: { memUsage, usageRatio },
-        recommendations: usageRatio > 0.8 
-          ? ['Consider freeing memory before proceeding']
-          : undefined
+        recommendations:
+          usageRatio > 0.8 ? ['Consider freeing memory before proceeding'] : undefined,
       };
-    }
-  }
+    },
+  },
 ];
 
 export const DEFAULT_POST_TASK_VALIDATORS: PostTaskValidator[] = [
@@ -1179,21 +1210,22 @@ export const DEFAULT_POST_TASK_VALIDATORS: PostTaskValidator[] = [
     validate: async (context: VerificationContext, result: any): Promise<ValidationResult> => {
       const hasErrors = context.state.errors.length > 0;
       const hasFailedChecks = context.state.checksFailed.length > 0;
-      
+
       return {
         valid: !hasErrors && !hasFailedChecks,
         accuracy: hasErrors || hasFailedChecks ? 0.5 : 1.0,
         confidence: 0.9,
-        message: hasErrors || hasFailedChecks 
-          ? 'Task completed with errors or failed checks'
-          : 'Task completed successfully',
+        message:
+          hasErrors || hasFailedChecks
+            ? 'Task completed with errors or failed checks'
+            : 'Task completed successfully',
         details: {
           errorCount: context.state.errors.length,
-          failedCheckCount: context.state.checksFailed.length
-        }
+          failedCheckCount: context.state.checksFailed.length,
+        },
       };
-    }
-  }
+    },
+  },
 ];
 
 export const DEFAULT_TRUTH_VALIDATORS: TruthValidator[] = [
@@ -1206,16 +1238,16 @@ export const DEFAULT_TRUTH_VALIDATORS: TruthValidator[] = [
       const dataStr = JSON.stringify(data);
       const expectedStr = JSON.stringify(expected);
       const isEqual = dataStr === expectedStr;
-      
+
       return {
         truthful: isEqual,
         accuracy: isEqual ? 1.0 : 0.0,
         confidence: 0.95,
         discrepancies: isEqual ? [] : ['Data does not match expected structure'],
-        evidence: [{ data, expected, match: isEqual }]
+        evidence: [{ data, expected, match: isEqual }],
       };
-    }
-  }
+    },
+  },
 ];
 
 export const DEFAULT_ROLLBACK_TRIGGERS: RollbackTrigger[] = [
@@ -1224,9 +1256,9 @@ export const DEFAULT_ROLLBACK_TRIGGERS: RollbackTrigger[] = [
     name: 'Error Threshold Trigger',
     description: 'Triggers rollback when error count exceeds threshold',
     condition: (context: VerificationContext, error?: Error): boolean => {
-      return context.state.errors.filter(e => !e.recoverable).length > 3;
+      return context.state.errors.filter((e) => !e.recoverable).length > 3;
     },
-    action: 'restore-snapshot'
+    action: 'restore-snapshot',
   },
   {
     id: 'accuracy-threshold-trigger',
@@ -1235,8 +1267,8 @@ export const DEFAULT_ROLLBACK_TRIGGERS: RollbackTrigger[] = [
     condition: (context: VerificationContext, error?: Error): boolean => {
       return context.metrics.accuracyScore < 0.5 && context.state.validationResults.length > 0;
     },
-    action: 'restore-snapshot'
-  }
+    action: 'restore-snapshot',
+  },
 ];
 
 // ===== Export Singleton Instance =====
@@ -1245,28 +1277,28 @@ export const verificationHookManager = new VerificationHookManager({
   preTask: {
     enabled: true,
     checkers: DEFAULT_PRE_TASK_CHECKERS,
-    failureStrategy: 'abort'
+    failureStrategy: 'abort',
   },
   postTask: {
     enabled: true,
     validators: DEFAULT_POST_TASK_VALIDATORS,
-    accuracyThreshold: 0.8
+    accuracyThreshold: 0.8,
   },
   integration: {
     enabled: true,
     testSuites: [],
-    parallel: true
+    parallel: true,
   },
   telemetry: {
     enabled: true,
     truthValidators: DEFAULT_TRUTH_VALIDATORS,
-    reportingInterval: 30000
+    reportingInterval: 30000,
   },
   rollback: {
     enabled: true,
     triggers: DEFAULT_ROLLBACK_TRIGGERS,
-    snapshotStrategy: 'automatic'
-  }
+    snapshotStrategy: 'automatic',
+  },
 });
 
 // Initialize default components

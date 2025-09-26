@@ -17,7 +17,7 @@ import type {
   AgentLifecycleTrigger,
   MessageRouter,
   MessageRouterConfig,
-  LifecycleSystemConfig
+  LifecycleSystemConfig,
 } from '../types/agent-lifecycle-types.js';
 import type { ILogger, IEventBus } from '../utils/types.js';
 
@@ -46,7 +46,7 @@ export class InMemoryMessageRouter extends EventEmitter implements MessageRouter
       const matchingSubscriptions = this.findMatchingSubscriptions(topic);
 
       // Deliver message to all matching subscribers
-      const deliveryPromises = matchingSubscriptions.map(async subscription => {
+      const deliveryPromises = matchingSubscriptions.map(async (subscription) => {
         try {
           await subscription.callback(message);
         } catch (error) {
@@ -56,7 +56,9 @@ export class InMemoryMessageRouter extends EventEmitter implements MessageRouter
 
       await Promise.all(deliveryPromises);
 
-      this.logger.debug(`Published message to topic ${topic}, delivered to ${matchingSubscriptions.length} subscribers`);
+      this.logger.debug(
+        `Published message to topic ${topic}, delivered to ${matchingSubscriptions.length} subscribers`,
+      );
     } catch (error) {
       this.logger.error(`Failed to publish message to topic ${topic}`, error);
       throw error;
@@ -68,7 +70,7 @@ export class InMemoryMessageRouter extends EventEmitter implements MessageRouter
       id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       pattern,
       callback,
-      options: { persistent: true }
+      options: { persistent: true },
     };
 
     const existingSubscriptions = this.subscriptions.get(pattern) || [];
@@ -81,7 +83,7 @@ export class InMemoryMessageRouter extends EventEmitter implements MessageRouter
 
   async unsubscribe(subscriptionId: string): Promise<void> {
     for (const [pattern, subscriptions] of this.subscriptions.entries()) {
-      const index = subscriptions.findIndex(sub => sub.id === subscriptionId);
+      const index = subscriptions.findIndex((sub) => sub.id === subscriptionId);
       if (index !== -1) {
         subscriptions.splice(index, 1);
         if (subscriptions.length === 0) {
@@ -109,10 +111,7 @@ export class InMemoryMessageRouter extends EventEmitter implements MessageRouter
 
   private matchesPattern(topic: string, pattern: string): boolean {
     // Simple glob pattern matching
-    const regexPattern = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*/g, '[^.]*')
-      .replace(/\#/g, '.*');
+    const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '[^.]*').replace(/\#/g, '.*');
 
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(topic);
@@ -121,8 +120,11 @@ export class InMemoryMessageRouter extends EventEmitter implements MessageRouter
   getStats() {
     return {
       messageCount: this.messageCount,
-      subscriptionCount: Array.from(this.subscriptions.values()).reduce((sum, subs) => sum + subs.length, 0),
-      patternCount: this.subscriptions.size
+      subscriptionCount: Array.from(this.subscriptions.values()).reduce(
+        (sum, subs) => sum + subs.length,
+        0,
+      ),
+      patternCount: this.subscriptions.size,
     };
   }
 }
@@ -162,26 +164,29 @@ export class RedisMessageRouter implements MessageRouter {
       id: `redis_sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       pattern,
       callback,
-      options: { persistent: true }
+      options: { persistent: true },
     };
 
     // Subscribe to Redis pattern
     await this.redisClient.psubscribe(pattern);
 
     // Set up message handler
-    this.redisClient.on('pmessage', async (subscribedPattern: string, channel: string, message: string) => {
-      if (subscribedPattern === pattern) {
-        try {
-          const decompressedMessage = this.config.compression
-            ? await this.decompress(message)
-            : message;
-          const deserializedMessage = this.deserialize(decompressedMessage);
-          await callback(deserializedMessage);
-        } catch (error) {
-          this.logger.error(`Error processing Redis message for pattern ${pattern}`, error);
+    this.redisClient.on(
+      'pmessage',
+      async (subscribedPattern: string, channel: string, message: string) => {
+        if (subscribedPattern === pattern) {
+          try {
+            const decompressedMessage = this.config.compression
+              ? await this.decompress(message)
+              : message;
+            const deserializedMessage = this.deserialize(decompressedMessage);
+            await callback(deserializedMessage);
+          } catch (error) {
+            this.logger.error(`Error processing Redis message for pattern ${pattern}`, error);
+          }
         }
-      }
-    });
+      },
+    );
 
     const existingSubscriptions = this.subscriptions.get(pattern) || [];
     existingSubscriptions.push(subscription);
@@ -193,7 +198,7 @@ export class RedisMessageRouter implements MessageRouter {
 
   async unsubscribe(subscriptionId: string): Promise<void> {
     for (const [pattern, subscriptions] of this.subscriptions.entries()) {
-      const index = subscriptions.findIndex(sub => sub.id === subscriptionId);
+      const index = subscriptions.findIndex((sub) => sub.id === subscriptionId);
       if (index !== -1) {
         subscriptions.splice(index, 1);
 
@@ -254,7 +259,10 @@ export class RedisMessageRouter implements MessageRouter {
 /**
  * Complete implementation of lifecycle communication manager
  */
-export class DefaultLifecycleCommunicationManager extends EventEmitter implements LifecycleCommunicationManager {
+export class DefaultLifecycleCommunicationManager
+  extends EventEmitter
+  implements LifecycleCommunicationManager
+{
   private eventBus: IEventBus;
   private messageRouter: MessageRouter;
   private subscriptions: Map<string, EventSubscription[]> = new Map();
@@ -267,7 +275,7 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
     eventBus: IEventBus,
     messageRouter: MessageRouter,
     logger: ILogger,
-    config: LifecycleSystemConfig['communication']
+    config: LifecycleSystemConfig['communication'],
   ) {
     super();
     this.eventBus = eventBus;
@@ -286,7 +294,7 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
     agentId: string,
     fromState: AgentLifecycleState,
     toState: AgentLifecycleState,
-    trigger: AgentLifecycleTrigger
+    trigger: AgentLifecycleTrigger,
   ): Promise<void> {
     const event: LifecycleEvent = {
       id: this.generateEventId(),
@@ -296,10 +304,10 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
       data: {
         previousState: fromState,
         currentState: toState,
-        trigger
+        trigger,
       },
       source: 'lifecycle-manager',
-      priority: 'normal'
+      priority: 'normal',
     };
 
     await this.publishEvent(event);
@@ -340,7 +348,7 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
    */
   async subscribeToAgent(
     agentId: string,
-    callback: (event: LifecycleEvent) => void
+    callback: (event: LifecycleEvent) => void,
   ): Promise<EventSubscription> {
     const pattern = `lifecycle.${agentId}.*`;
     return await this.subscribeToPattern(pattern, callback);
@@ -351,7 +359,7 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
    */
   async subscribeToEvents(
     filter: Partial<LifecycleEvent>,
-    callback: (event: LifecycleEvent) => void
+    callback: (event: LifecycleEvent) => void,
   ): Promise<EventSubscription> {
     const filteredCallback = (event: LifecycleEvent) => {
       if (this.matchesFilter(event, filter)) {
@@ -385,8 +393,8 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
     try {
       if (agentIds && agentIds.length > 0) {
         // Send to specific agents
-        const publishPromises = agentIds.map(agentId =>
-          this.messageRouter.publish(`agents.${agentId}.lifecycle`, event)
+        const publishPromises = agentIds.map((agentId) =>
+          this.messageRouter.publish(`agents.${agentId}.lifecycle`, event),
         );
         await Promise.all(publishPromises);
       } else {
@@ -410,7 +418,7 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
 
       // Remove from local tracking
       for (const [pattern, subscriptions] of this.subscriptions.entries()) {
-        const index = subscriptions.findIndex(sub => sub.id === subscriptionId);
+        const index = subscriptions.findIndex((sub) => sub.id === subscriptionId);
         if (index !== -1) {
           subscriptions.splice(index, 1);
           if (subscriptions.length === 0) {
@@ -444,7 +452,7 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
 
   private async subscribeToPattern(
     pattern: string,
-    callback: (event: LifecycleEvent) => void
+    callback: (event: LifecycleEvent) => void,
   ): Promise<EventSubscription> {
     const subscription = await this.messageRouter.subscribe(pattern, callback);
 
@@ -473,7 +481,7 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
   private setupBufferFlushing(): void {
     // Flush event buffer periodically
     this.bufferFlushInterval = setInterval(() => {
-      this.flushEventBuffer().catch(error => {
+      this.flushEventBuffer().catch((error) => {
         this.logger.error('Failed to flush event buffer', error);
       });
     }, 5000); // Flush every 5 seconds
@@ -497,8 +505,10 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
 
   private shouldBufferEvent(event: LifecycleEvent): boolean {
     // Buffer high-frequency events to reduce message router load
-    return event.type === LifecycleEventType.METRICS_UPDATED ||
-           event.type === LifecycleEventType.HOOK_EXECUTED;
+    return (
+      event.type === LifecycleEventType.METRICS_UPDATED ||
+      event.type === LifecycleEventType.HOOK_EXECUTED
+    );
   }
 
   private bufferEvent(event: LifecycleEvent): void {
@@ -520,10 +530,10 @@ export class DefaultLifecycleCommunicationManager extends EventEmitter implement
             timestamp: new Date(),
             data: {
               batchedEvents: events,
-              eventCount: events.length
+              eventCount: events.length,
             } as any,
             source: 'lifecycle-communication-manager',
-            priority: 'low'
+            priority: 'low',
           };
 
           await this.messageRouter.publish(`batch.${bufferKey}`, batchEvent);
@@ -660,7 +670,7 @@ export class CommunicationHealthMonitor {
     messagesReceived: 0,
     subscriptionCount: 0,
     errors: 0,
-    lastHealthCheck: new Date()
+    lastHealthCheck: new Date(),
   };
 
   constructor(router: MessageRouter, logger: ILogger) {
@@ -672,7 +682,7 @@ export class CommunicationHealthMonitor {
 
   private startHealthChecks(): void {
     this.healthCheckInterval = setInterval(() => {
-      this.performHealthCheck().catch(error => {
+      this.performHealthCheck().catch((error) => {
         this.logger.error('Communication health check failed', error);
       });
     }, 30000); // Every 30 seconds

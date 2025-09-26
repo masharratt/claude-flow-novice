@@ -1,9 +1,9 @@
 /**
  * Neural Module - Advanced Domain Mapping and GNN Analysis
- * 
+ *
  * This module provides Graph Neural Network (GNN) based domain relationship
  * mapping, analysis, and optimization capabilities for Claude Flow.
- * 
+ *
  * Key Features:
  * - Domain structure to graph conversion
  * - GNN-based relationship analysis
@@ -12,7 +12,7 @@
  * - Predictive boundary optimization
  * - Neural network training and inference
  * - Integration with Claude Flow hooks system
- * 
+ *
  * @author Claude Flow Neural Team
  * @version 2.0.0
  */
@@ -195,7 +195,7 @@ export const NeuralUtils = {
    */
   createSimpleDomainGraph: (
     domains: Array<{ id: string; name: string; type: string }>,
-    relationships: Array<{ source: string; target: string; type?: string }>
+    relationships: Array<{ source: string; target: string; type?: string }>,
   ) => {
     const graph: DomainGraph = {
       nodes: new Map(),
@@ -211,7 +211,7 @@ export const NeuralUtils = {
     };
 
     // Add nodes
-    domains.forEach(domain => {
+    domains.forEach((domain) => {
       const node: DomainNode = {
         id: domain.id,
         name: domain.name,
@@ -232,7 +232,7 @@ export const NeuralUtils = {
     });
 
     // Add edges
-    relationships.forEach(rel => {
+    relationships.forEach((rel) => {
       const edgeId = `${rel.source}->${rel.target}`;
       const edge: DomainEdge = {
         source: rel.source,
@@ -262,8 +262,8 @@ export const NeuralUtils = {
       features: Array.from({ length: 64 }, () => Math.random()),
     }));
 
-    const outputs = Array.from({ length: size }, () => 
-      Array.from({ length: 4 }, () => Math.random())
+    const outputs = Array.from({ length: size }, () =>
+      Array.from({ length: 4 }, () => Math.random()),
     );
 
     return {
@@ -298,8 +298,10 @@ export const NeuralUtils = {
       inDegrees.set(edge.target, (inDegrees.get(edge.target) || 0) + 1);
     }
 
-    const avgInDegree = Array.from(inDegrees.values()).reduce((sum, deg) => sum + deg, 0) / nodeCount;
-    const avgOutDegree = Array.from(outDegrees.values()).reduce((sum, deg) => sum + deg, 0) / nodeCount;
+    const avgInDegree =
+      Array.from(inDegrees.values()).reduce((sum, deg) => sum + deg, 0) / nodeCount;
+    const avgOutDegree =
+      Array.from(outDegrees.values()).reduce((sum, deg) => sum + deg, 0) / nodeCount;
 
     return {
       nodeCount,
@@ -314,7 +316,9 @@ export const NeuralUtils = {
   /**
    * Validate domain graph structure
    */
-  validateDomainGraph: (graph: DomainGraph): {
+  validateDomainGraph: (
+    graph: DomainGraph,
+  ): {
     valid: boolean;
     errors: string[];
     warnings: string[];
@@ -389,12 +393,12 @@ export const Examples = {
         { source: 'user-service', target: 'auth-service', type: 'dependency' },
         { source: 'user-service', target: 'user-db', type: 'data-flow' },
         { source: 'user-ui', target: 'user-service', type: 'communication' },
-      ]
+      ],
     );
 
     // Perform analysis
     const analysis = await mapper.analyzeDomains(graph);
-    
+
     return {
       cohesionScore: analysis.cohesion.overallScore,
       dependencyCount: analysis.dependencies.graph.size,
@@ -435,7 +439,7 @@ export const Examples = {
   integrationExample: async () => {
     // Create integrated domain mapper
     const integration = await createDomainMapperIntegration(
-      DEFAULT_CONFIGS.MEDIUM_SCALE.integration
+      DEFAULT_CONFIGS.MEDIUM_SCALE.integration,
     );
 
     // Set up event listeners

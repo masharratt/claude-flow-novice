@@ -46,7 +46,7 @@ export class WebPortalServer {
     completedTasks: 0,
     memoryUsage: 0,
     cpuUsage: 0,
-    networkLatency: 0
+    networkLatency: 0,
   };
 
   constructor(config?: WebPortalConfig) {
@@ -57,10 +57,10 @@ export class WebPortalServer {
       cors: {
         origin: this.config.cors.allowedOrigins,
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: true,
       },
       pingTimeout: 60000,
-      pingInterval: 25000
+      pingInterval: 25000,
     });
 
     this.setupMiddleware();
@@ -70,29 +70,37 @@ export class WebPortalServer {
 
   private setupMiddleware(): void {
     // Security middleware
-    this.app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-          fontSrc: ["'self'", "https://fonts.gstatic.com"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          connectSrc: ["'self'", `ws://localhost:${this.config.server.port}`, `wss://localhost:${this.config.server.port}`]
-        }
-      }
-    }));
+    this.app.use(
+      helmet({
+        contentSecurityPolicy: {
+          directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+            fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            connectSrc: [
+              "'self'",
+              `ws://localhost:${this.config.server.port}`,
+              `wss://localhost:${this.config.server.port}`,
+            ],
+          },
+        },
+      }),
+    );
 
     // CORS configuration
-    this.app.use(cors({
-      origin: this.config.cors.allowedOrigins,
-      credentials: true
-    }));
+    this.app.use(
+      cors({
+        origin: this.config.cors.allowedOrigins,
+        credentials: true,
+      }),
+    );
 
     // Rate limiting
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: this.config.security.rateLimit.maxRequests,
-      message: 'Too many requests from this IP, please try again later.'
+      message: 'Too many requests from this IP, please try again later.',
     });
     this.app.use('/api/', limiter);
 
@@ -118,8 +126,8 @@ export class WebPortalServer {
         mcpConnections: Array.from(this.mcpConnections.entries()).map(([name, conn]) => ({
           name,
           status: conn.status,
-          lastPing: conn.lastPing
-        }))
+          lastPing: conn.lastPing,
+        })),
       });
     });
 
@@ -130,8 +138,8 @@ export class WebPortalServer {
           name,
           status: conn.status,
           lastPing: conn.lastPing,
-          capabilities: conn.capabilities || []
-        }))
+          capabilities: conn.capabilities || [],
+        })),
       });
     });
 
@@ -156,7 +164,7 @@ export class WebPortalServer {
         console.error('Error executing Claude Flow command:', error);
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -171,7 +179,7 @@ export class WebPortalServer {
         console.error('Error executing Ruv-Swarm command:', error);
         res.status(500).json({
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     });
@@ -221,22 +229,25 @@ export class WebPortalServer {
         }
       });
 
-      socket.on('execute-command', async (data: { service: 'claude-flow' | 'ruv-swarm', command: string, args?: any[] }) => {
-        try {
-          let result;
-          if (data.service === 'claude-flow') {
-            result = await this.executeClaudeFlowCommand(data.command, data.args || []);
-          } else {
-            result = await this.executeRuvSwarmCommand(data.command, data.args || []);
+      socket.on(
+        'execute-command',
+        async (data: { service: 'claude-flow' | 'ruv-swarm'; command: string; args?: any[] }) => {
+          try {
+            let result;
+            if (data.service === 'claude-flow') {
+              result = await this.executeClaudeFlowCommand(data.command, data.args || []);
+            } else {
+              result = await this.executeRuvSwarmCommand(data.command, data.args || []);
+            }
+            socket.emit('command-result', { success: true, result });
+          } catch (error) {
+            socket.emit('command-result', {
+              success: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
           }
-          socket.emit('command-result', { success: true, result });
-        } catch (error) {
-          socket.emit('command-result', {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          });
-        }
-      });
+        },
+      );
 
       socket.on('disconnect', () => {
         console.log(`Client disconnected: ${socket.id}`);
@@ -263,7 +274,7 @@ export class WebPortalServer {
     try {
       const { stdout, stderr } = await execAsync(cmdString, {
         timeout: 30000,
-        cwd: process.cwd()
+        cwd: process.cwd(),
       });
 
       if (stderr && !stderr.includes('INFO') && !stderr.includes('WARN')) {
@@ -284,7 +295,7 @@ export class WebPortalServer {
     try {
       const { stdout, stderr } = await execAsync(cmdString, {
         timeout: 30000,
-        cwd: process.cwd()
+        cwd: process.cwd(),
       });
 
       if (stderr && !stderr.includes('INFO') && !stderr.includes('WARN')) {
@@ -319,7 +330,7 @@ export class WebPortalServer {
         completedTasks: this.parseCompletedTasks(cfMetrics.output),
         memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024,
         cpuUsage: process.cpuUsage().user / 1000000,
-        networkLatency: Date.now() % 100 // Placeholder
+        networkLatency: Date.now() % 100, // Placeholder
       };
     } catch (error) {
       console.error('Error updating swarm metrics:', error);
@@ -332,21 +343,22 @@ export class WebPortalServer {
     for (const conn of connections) {
       try {
         // Test connection with a simple command
-        const result = conn === 'claude-flow'
-          ? await this.executeClaudeFlowCommand('--version', [])
-          : await this.executeRuvSwarmCommand('--version', []);
+        const result =
+          conn === 'claude-flow'
+            ? await this.executeClaudeFlowCommand('--version', [])
+            : await this.executeRuvSwarmCommand('--version', []);
 
         this.mcpConnections.set(conn, {
           name: conn,
           status: 'connected',
           lastPing: new Date(),
-          capabilities: this.parseCapabilities(result.output)
+          capabilities: this.parseCapabilities(result.output),
         });
       } catch (error) {
         this.mcpConnections.set(conn, {
           name: conn,
           status: 'error',
-          lastPing: new Date()
+          lastPing: new Date(),
         });
       }
     }
@@ -379,10 +391,10 @@ export class WebPortalServer {
   private async listFiles(dirPath: string): Promise<any[]> {
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      return entries.map(entry => ({
+      return entries.map((entry) => ({
         name: entry.name,
         type: entry.isDirectory() ? 'directory' : 'file',
-        path: path.join(dirPath, entry.name)
+        path: path.join(dirPath, entry.name),
       }));
     } catch (error) {
       throw new Error(`Failed to list files in ${dirPath}: ${error}`);

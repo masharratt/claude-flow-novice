@@ -7,7 +7,12 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { ILogger } from '../../core/logger.js';
 
 export interface WebSocketEvent {
-  type: 'agent-message' | 'status-change' | 'human-intervention' | 'transparency-insight' | 'swarm-event';
+  type:
+    | 'agent-message'
+    | 'status-change'
+    | 'human-intervention'
+    | 'transparency-insight'
+    | 'swarm-event';
   data: any;
   swarmId?: string;
   agentId?: string;
@@ -26,7 +31,10 @@ export class WebSocketManager {
   private connections = new Map<string, ClientConnection>();
   private swarmSubscriptions = new Map<string, Set<string>>(); // swarmId -> socketIds
 
-  constructor(private io: SocketIOServer, private logger: ILogger) {
+  constructor(
+    private io: SocketIOServer,
+    private logger: ILogger,
+  ) {
     this.setupSocketHandlers();
   }
 
@@ -74,14 +82,14 @@ export class WebSocketManager {
     const connection: ClientConnection = {
       socketId: socket.id,
       joinedSwarms: new Set(),
-      lastActivity: new Date().toISOString()
+      lastActivity: new Date().toISOString(),
     };
 
     this.connections.set(socket.id, connection);
 
     this.logger.info('WebSocket client connected', {
       socketId: socket.id,
-      clientsCount: this.connections.size
+      clientsCount: this.connections.size,
     });
 
     // Send initial connection success
@@ -94,8 +102,8 @@ export class WebSocketManager {
         'human-intervention',
         'transparency-insight',
         'claude-flow-event',
-        'ruv-swarm-event'
-      ]
+        'ruv-swarm-event',
+      ],
     });
   }
 
@@ -119,14 +127,14 @@ export class WebSocketManager {
     this.logger.info('Client joined swarm', {
       socketId: socket.id,
       swarmId: data.swarmId,
-      userId: data.userId
+      userId: data.userId,
     });
 
     // Send join confirmation with current swarm state
     socket.emit('swarm-joined', {
       swarmId: data.swarmId,
       timestamp: new Date().toISOString(),
-      subscribersCount: this.swarmSubscriptions.get(data.swarmId)!.size
+      subscribersCount: this.swarmSubscriptions.get(data.swarmId)!.size,
     });
 
     // Request initial swarm data using MCP integration
@@ -153,28 +161,31 @@ export class WebSocketManager {
 
     this.logger.info('Client left swarm', {
       socketId: socket.id,
-      swarmId: data.swarmId
+      swarmId: data.swarmId,
     });
 
     socket.emit('swarm-left', {
       swarmId: data.swarmId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
-  private async handleHumanIntervention(socket: Socket, data: {
-    swarmId: string;
-    agentId?: string;
-    message: string;
-    action: string;
-    metadata?: any;
-  }): Promise<void> {
+  private async handleHumanIntervention(
+    socket: Socket,
+    data: {
+      swarmId: string;
+      agentId?: string;
+      message: string;
+      action: string;
+      metadata?: any;
+    },
+  ): Promise<void> {
     try {
       this.logger.info('Human intervention received', {
         socketId: socket.id,
         swarmId: data.swarmId,
         agentId: data.agentId,
-        action: data.action
+        action: data.action,
       });
 
       // Forward intervention to Claude Flow MCP
@@ -184,19 +195,18 @@ export class WebSocketManager {
       socket.to(`swarm-${data.swarmId}`).emit('human-intervention', {
         ...data,
         fromClient: socket.id,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-
     } catch (error) {
       this.logger.error('Error handling human intervention', {
         error: error.message,
         socketId: socket.id,
-        swarmId: data.swarmId
+        swarmId: data.swarmId,
       });
 
       socket.emit('intervention-error', {
         error: 'Failed to process intervention',
-        originalData: data
+        originalData: data,
       });
     }
   }
@@ -221,20 +231,23 @@ export class WebSocketManager {
 
     socket.emit('filter-updated', {
       status: 'success',
-      filterConfig
+      filterConfig,
     });
   }
 
-  private async handleClaudeFlowCommand(socket: Socket, data: {
-    command: string;
-    params?: any;
-    swarmId?: string;
-  }): Promise<void> {
+  private async handleClaudeFlowCommand(
+    socket: Socket,
+    data: {
+      command: string;
+      params?: any;
+      swarmId?: string;
+    },
+  ): Promise<void> {
     try {
       this.logger.info('Claude Flow MCP command received', {
         socketId: socket.id,
         command: data.command,
-        swarmId: data.swarmId
+        swarmId: data.swarmId,
       });
 
       // Execute Claude Flow MCP command
@@ -243,7 +256,7 @@ export class WebSocketManager {
       socket.emit('claude-flow-response', {
         command: data.command,
         result,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // If it's a swarm-related command, broadcast to swarm room
@@ -252,33 +265,35 @@ export class WebSocketManager {
           command: data.command,
           result,
           fromClient: socket.id,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
-
     } catch (error) {
       this.logger.error('Claude Flow MCP command error', {
         error: error.message,
-        command: data.command
+        command: data.command,
       });
 
       socket.emit('claude-flow-error', {
         command: data.command,
-        error: error.message
+        error: error.message,
       });
     }
   }
 
-  private async handleRuvSwarmCommand(socket: Socket, data: {
-    command: string;
-    params?: any;
-    swarmId?: string;
-  }): Promise<void> {
+  private async handleRuvSwarmCommand(
+    socket: Socket,
+    data: {
+      command: string;
+      params?: any;
+      swarmId?: string;
+    },
+  ): Promise<void> {
     try {
       this.logger.info('ruv-swarm MCP command received', {
         socketId: socket.id,
         command: data.command,
-        swarmId: data.swarmId
+        swarmId: data.swarmId,
       });
 
       // Execute ruv-swarm MCP command
@@ -287,7 +302,7 @@ export class WebSocketManager {
       socket.emit('ruv-swarm-response', {
         command: data.command,
         result,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // If it's a swarm-related command, broadcast to swarm room
@@ -296,19 +311,18 @@ export class WebSocketManager {
           command: data.command,
           result,
           fromClient: socket.id,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
-
     } catch (error) {
       this.logger.error('ruv-swarm MCP command error', {
         error: error.message,
-        command: data.command
+        command: data.command,
       });
 
       socket.emit('ruv-swarm-error', {
         command: data.command,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -332,7 +346,7 @@ export class WebSocketManager {
 
     this.logger.info('WebSocket client disconnected', {
       socketId: socket.id,
-      clientsCount: this.connections.size
+      clientsCount: this.connections.size,
     });
   }
 
@@ -344,13 +358,13 @@ export class WebSocketManager {
       ...event.data,
       timestamp: event.timestamp,
       swarmId,
-      agentId: event.agentId
+      agentId: event.agentId,
     });
 
     this.logger.debug('Event broadcast to swarm', {
       swarmId,
       eventType: event.type,
-      subscribersCount: this.swarmSubscriptions.get(swarmId)?.size || 0
+      subscribersCount: this.swarmSubscriptions.get(swarmId)?.size || 0,
     });
   }
 
@@ -362,7 +376,7 @@ export class WebSocketManager {
     if (socket) {
       socket.emit(event.type, {
         ...event.data,
-        timestamp: event.timestamp
+        timestamp: event.timestamp,
       });
     }
   }
@@ -376,13 +390,15 @@ export class WebSocketManager {
     averageSubscriptionsPerSwarm: number;
   } {
     const activeSwarms = this.swarmSubscriptions.size;
-    const totalSubscriptions = Array.from(this.swarmSubscriptions.values())
-      .reduce((sum, subs) => sum + subs.size, 0);
+    const totalSubscriptions = Array.from(this.swarmSubscriptions.values()).reduce(
+      (sum, subs) => sum + subs.size,
+      0,
+    );
 
     return {
       totalConnections: this.connections.size,
       activeSwarms,
-      averageSubscriptionsPerSwarm: activeSwarms > 0 ? totalSubscriptions / activeSwarms : 0
+      averageSubscriptionsPerSwarm: activeSwarms > 0 ? totalSubscriptions / activeSwarms : 0,
     };
   }
 
@@ -398,32 +414,33 @@ export class WebSocketManager {
         swarmId,
         status: swarmStatus,
         source: 'claude-flow-mcp',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Also try ruv-swarm MCP for additional metrics
       try {
-        const ruvSwarmStatus = await this.executeRuvSwarmMCPCommand('swarm_status', { verbose: true });
+        const ruvSwarmStatus = await this.executeRuvSwarmMCPCommand('swarm_status', {
+          verbose: true,
+        });
         socket.emit('ruv-swarm-status', {
           swarmId,
           status: ruvSwarmStatus,
           source: 'ruv-swarm-mcp',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } catch (ruvError) {
         // ruv-swarm might not be available, that's okay
         this.logger.debug('ruv-swarm MCP not available for status', { swarmId });
       }
-
     } catch (error) {
       this.logger.error('Error requesting swarm status from MCP', {
         error: error.message,
-        swarmId
+        swarmId,
       });
 
       socket.emit('status-error', {
         swarmId,
-        error: 'Failed to fetch swarm status'
+        error: 'Failed to fetch swarm status',
       });
     }
   }
@@ -436,7 +453,7 @@ export class WebSocketManager {
       // Try both MCP systems for comprehensive agent data
       const [claudeFlowResult, ruvSwarmResult] = await Promise.allSettled([
         this.executeClaudeFlowMCPCommand('agent_list', { filter: 'all' }),
-        this.executeRuvSwarmMCPCommand('agent_list', { filter: 'all' })
+        this.executeRuvSwarmMCPCommand('agent_list', { filter: 'all' }),
       ]);
 
       const responses: any = { agentId, timestamp: new Date().toISOString() };
@@ -450,16 +467,15 @@ export class WebSocketManager {
       }
 
       socket.emit('agent-status', responses);
-
     } catch (error) {
       this.logger.error('Error requesting agent status from MCP', {
         error: error.message,
-        agentId
+        agentId,
       });
 
       socket.emit('agent-status-error', {
         agentId,
-        error: 'Failed to fetch agent status'
+        error: 'Failed to fetch agent status',
       });
     }
   }
@@ -478,16 +494,15 @@ export class WebSocketManager {
           humanIntervention: true,
           action: intervention.action,
           targetAgent: intervention.agentId,
-          ...intervention.metadata
-        }
+          ...intervention.metadata,
+        },
       });
 
       socket.emit('intervention-forwarded', {
         interventionId: result.taskId || 'unknown',
         status: 'sent',
-        mcpResponse: result
+        mcpResponse: result,
       });
-
     } catch (error) {
       throw new Error(`Failed to forward intervention to Claude Flow MCP: ${error.message}`);
     }
@@ -508,7 +523,7 @@ export class WebSocketManager {
           swarmId: params?.swarmId || 'unknown',
           status: 'active',
           agents: 3,
-          tasks: { active: 2, completed: 5, failed: 0 }
+          tasks: { active: 2, completed: 5, failed: 0 },
         };
 
       case 'agent_list':
@@ -516,8 +531,8 @@ export class WebSocketManager {
           agents: [
             { id: 'researcher-1', type: 'researcher', status: 'active' },
             { id: 'coder-1', type: 'coder', status: 'working' },
-            { id: 'reviewer-1', type: 'reviewer', status: 'idle' }
-          ]
+            { id: 'reviewer-1', type: 'reviewer', status: 'idle' },
+          ],
         };
 
       case 'task_orchestrate':
@@ -525,7 +540,7 @@ export class WebSocketManager {
           taskId: `task_${Date.now()}`,
           status: 'queued',
           priority: params?.priority || 'medium',
-          strategy: params?.strategy || 'adaptive'
+          strategy: params?.strategy || 'adaptive',
         };
 
       default:
@@ -547,7 +562,7 @@ export class WebSocketManager {
           topology: 'mesh',
           agents: 3,
           performance: { efficiency: 87.5 },
-          memory: { usage: '45MB' }
+          memory: { usage: '45MB' },
         };
 
       case 'agent_list':
@@ -555,8 +570,8 @@ export class WebSocketManager {
           agents: [
             { id: 'agent-001', capabilities: ['research', 'analysis'] },
             { id: 'agent-002', capabilities: ['coding', 'testing'] },
-            { id: 'agent-003', capabilities: ['review', 'optimization'] }
-          ]
+            { id: 'agent-003', capabilities: ['review', 'optimization'] },
+          ],
         };
 
       default:

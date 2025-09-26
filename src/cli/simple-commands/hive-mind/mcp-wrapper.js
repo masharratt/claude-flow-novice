@@ -131,7 +131,7 @@ export class MCPToolWrapper {
 
     /** @type {import('better-sqlite3').Database | null} */
     this.memoryDb = null;
-    
+
     // Initialize memory store for fallback
     this.memoryStore = new Map();
 
@@ -144,7 +144,9 @@ export class MCPToolWrapper {
    */
   async initializeMemoryStorage() {
     try {
-      const { createDatabase, isSQLiteAvailable } = await import('../../../memory/sqlite-wrapper.js');
+      const { createDatabase, isSQLiteAvailable } = await import(
+        '../../../memory/sqlite-wrapper.js'
+      );
       const path = await import('path');
       const fs = await import('fs');
 
@@ -186,7 +188,7 @@ export class MCPToolWrapper {
       );
       this.memoryDb = null;
       this.memoryStore = new Map(); // Fallback to in-memory storage
-      
+
       // Log Windows-specific help if applicable
       if (process.platform === 'win32') {
         console.info(`
@@ -636,12 +638,7 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
       );
 
       // Store swarm status
-      await this.storeMemory(
-        swarmId,
-        'status',
-        'active',
-        'status',
-      );
+      await this.storeMemory(swarmId, 'status', 'active', 'status');
 
       // Store swarm config
       await this.storeMemory(
@@ -1162,7 +1159,7 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
         // For each swarm, gather its information
         for (const { namespace } of namespaces) {
           const swarmId = namespace;
-          
+
           // Get swarm metadata
           const metadataQuery = this.memoryDb.prepare(`
             SELECT key, value, type, timestamp FROM memories 
@@ -1184,14 +1181,15 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
             topology: 'hierarchical',
             createdAt: null,
             lastActivity: null,
-            memoryUsage: swarmData.length
+            memoryUsage: swarmData.length,
           };
 
           // Process swarm data
           for (const record of swarmData) {
             try {
-              const value = typeof record.value === 'string' ? JSON.parse(record.value) : record.value;
-              
+              const value =
+                typeof record.value === 'string' ? JSON.parse(record.value) : record.value;
+
               switch (record.key) {
                 case 'init_performance':
                   swarmInfo.createdAt = value.timestamp;
@@ -1238,10 +1236,12 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
           if (swarmInfo.status === 'unknown') {
             const now = Date.now();
             const lastActivityAge = now - (swarmInfo.lastActivity || 0);
-            
-            if (lastActivityAge < 60000) { // Active within last minute
+
+            if (lastActivityAge < 60000) {
+              // Active within last minute
               swarmInfo.status = 'active';
-            } else if (lastActivityAge < 300000) { // Active within last 5 minutes
+            } else if (lastActivityAge < 300000) {
+              // Active within last 5 minutes
               swarmInfo.status = 'idle';
             } else {
               swarmInfo.status = 'inactive';
@@ -1267,23 +1267,23 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
           totalTasks,
           completedTasks,
           pendingTasks: totalTasks - completedTasks,
-          recentActivity: recentActivity.map(r => ({
+          recentActivity: recentActivity.map((r) => ({
             swarmId: r.namespace,
             action: r.key,
             type: r.type,
-            timestamp: r.timestamp
+            timestamp: r.timestamp,
           })),
           summary: {
             totalSwarms: swarms.length,
-            activeSwarms: swarms.filter(s => s.status === 'active').length,
-            idleSwarms: swarms.filter(s => s.status === 'idle').length,
-            inactiveSwarms: swarms.filter(s => s.status === 'inactive').length
-          }
+            activeSwarms: swarms.filter((s) => s.status === 'active').length,
+            idleSwarms: swarms.filter((s) => s.status === 'idle').length,
+            inactiveSwarms: swarms.filter((s) => s.status === 'inactive').length,
+          },
         };
       } else {
         // Fallback to in-memory storage
         const swarmMap = new Map();
-        
+
         for (const [key, memory] of this.memoryStore) {
           const namespace = memory.namespace;
           if (namespace && (namespace.startsWith('swarm-') || namespace.startsWith('hive-'))) {
@@ -1294,18 +1294,18 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
                 status: 'active',
                 agents: 0,
                 tasks: { total: 0, completed: 0, pending: 0, failed: 0 },
-                memoryUsage: 0
+                memoryUsage: 0,
               });
             }
-            
+
             const swarm = swarmMap.get(namespace);
             swarm.memoryUsage++;
-            
+
             if (memory.key.startsWith('agent-')) {
               swarm.agents++;
               activeAgents++;
             }
-            
+
             if (memory.key.startsWith('task-')) {
               swarm.tasks.total++;
               totalTasks++;
@@ -1325,7 +1325,7 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
             }
           }
         }
-        
+
         return {
           swarms: Array.from(swarmMap.values()),
           activeAgents,
@@ -1334,8 +1334,8 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
           pendingTasks: totalTasks - completedTasks,
           summary: {
             totalSwarms: swarmMap.size,
-            activeSwarms: swarmMap.size
-          }
+            activeSwarms: swarmMap.size,
+          },
         };
       }
     } catch (error) {
@@ -1352,9 +1352,9 @@ https://github.com/ruvnet/claude-code-flow/docs/windows-installation.md
           totalSwarms: 0,
           activeSwarms: 0,
           idleSwarms: 0,
-          inactiveSwarms: 0
+          inactiveSwarms: 0,
         },
-        error: error.message
+        error: error.message,
       };
     }
   }

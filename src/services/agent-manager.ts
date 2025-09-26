@@ -47,14 +47,14 @@ export class AgentManager extends EventEmitter {
         tasksCompleted: 0,
         qualityScore: 0.8,
         averageTaskTime: 60000,
-        collaborationScore: 0.9
+        collaborationScore: 0.9,
       },
       byzantineMetrics: {
         trustScore: 1.0,
         verificationCount: 0,
         lastVerification: Date.now(),
-        consensusParticipation: 0
-      }
+        consensusParticipation: 0,
+      },
     };
 
     // Verify agent through Byzantine validation
@@ -86,7 +86,7 @@ export class AgentManager extends EventEmitter {
     return {
       agent,
       taskData: this.getAgentTaskData(agentId),
-      consensusHistory: this.consensusTracker.getAgentHistory(agentId)
+      consensusHistory: this.consensusTracker.getAgentHistory(agentId),
     };
   }
 
@@ -99,8 +99,8 @@ export class AgentManager extends EventEmitter {
       {
         id: `task-${agentId}-1`,
         type: 'standard',
-        description: 'Standard agent task'
-      }
+        description: 'Standard agent task',
+      },
     ];
   }
 
@@ -115,10 +115,10 @@ export class AgentManager extends EventEmitter {
       success: true,
       data: {
         complexity: Math.random() > 0.5 ? 'high' : 'low',
-        additionalResearchNeeded: Math.random() > 0.7
+        additionalResearchNeeded: Math.random() > 0.7,
       },
       byzantineVerified: true,
-      trustScore: agent.byzantineMetrics.trustScore
+      trustScore: agent.byzantineMetrics.trustScore,
     };
 
     // Update consensus participation
@@ -133,18 +133,18 @@ export class AgentManager extends EventEmitter {
     return {
       requirements: {
         functional: ['Authentication required'],
-        nonFunctional: ['Performance < 200ms']
+        nonFunctional: ['Performance < 200ms'],
       },
       technologyRecommendations: {
         backend: 'Express.js with Passport.js',
-        database: 'PostgreSQL'
+        database: 'PostgreSQL',
       },
       apiSpecification: {
         endpoints: [
           { path: '/auth/login', method: 'POST', security: 'public' },
-          { path: '/auth/profile', method: 'GET', security: 'authenticated' }
-        ]
-      }
+          { path: '/auth/profile', method: 'GET', security: 'authenticated' },
+        ],
+      },
     };
   }
 
@@ -156,7 +156,7 @@ export class AgentManager extends EventEmitter {
     const results = {
       valid: [] as Agent[],
       invalid: [] as Agent[],
-      byzantine: [] as Agent[]
+      byzantine: [] as Agent[],
     };
 
     for (const agent of this.agents.values()) {
@@ -184,29 +184,31 @@ class ByzantineAgentValidator {
 
   constructor(private config: any) {}
 
-  async validateNewAgent(agent: Agent): Promise<{ approved: boolean; trustScore: number; reason?: string }> {
+  async validateNewAgent(
+    agent: Agent,
+  ): Promise<{ approved: boolean; trustScore: number; reason?: string }> {
     // Simulate agent validation checks
     const checks = [
       await this.verifyAgentIdentity(agent),
       await this.validateCapabilities(agent),
       await this.checkReputationHistory(agent),
-      await this.detectSybilPatterns(agent)
+      await this.detectSybilPatterns(agent),
     ];
 
-    const passedChecks = checks.filter(c => c.passed).length;
+    const passedChecks = checks.filter((c) => c.passed).length;
     const trustScore = passedChecks / checks.length;
 
     if (trustScore < 0.6) {
       return {
         approved: false,
         trustScore,
-        reason: 'Failed minimum validation checks'
+        reason: 'Failed minimum validation checks',
       };
     }
 
     return {
       approved: true,
-      trustScore
+      trustScore,
     };
   }
 
@@ -244,7 +246,7 @@ class ByzantineAgentValidator {
     const identityValid = !agent.id.includes('malicious') && !agent.id.includes('fake');
     return {
       passed: identityValid,
-      score: identityValid ? 1.0 : 0.0
+      score: identityValid ? 1.0 : 0.0,
     };
   }
 
@@ -253,18 +255,19 @@ class ByzantineAgentValidator {
     const validCapabilities = agent.capabilities.length > 0 && agent.capabilities.length < 10;
     return {
       passed: validCapabilities,
-      score: validCapabilities ? 0.8 : 0.2
+      score: validCapabilities ? 0.8 : 0.2,
     };
   }
 
   private async checkReputationHistory(agent: Agent): Promise<{ passed: boolean; score: number }> {
     // Check agent's historical performance
     const history = this.validationHistory.get(agent.id) || [];
-    const reputationScore = history.length === 0 ? 0.7 : history.reduce((sum, h) => sum + h.score, 0) / history.length;
+    const reputationScore =
+      history.length === 0 ? 0.7 : history.reduce((sum, h) => sum + h.score, 0) / history.length;
 
     return {
       passed: reputationScore >= 0.5,
-      score: reputationScore
+      score: reputationScore,
     };
   }
 
@@ -275,11 +278,13 @@ class ByzantineAgentValidator {
 
     return {
       passed: !suspiciousNaming,
-      score: suspiciousNaming ? 0.3 : 0.9
+      score: suspiciousNaming ? 0.3 : 0.9,
     };
   }
 
-  private async performStateValidation(agent: Agent): Promise<{ valid: boolean; issues: string[] }> {
+  private async performStateValidation(
+    agent: Agent,
+  ): Promise<{ valid: boolean; issues: string[] }> {
     const issues: string[] = [];
 
     // Check for performance anomalies
@@ -288,7 +293,8 @@ class ByzantineAgentValidator {
     }
 
     // Check for response time anomalies
-    if (agent.performance.averageTaskTime > 300000) { // 5 minutes
+    if (agent.performance.averageTaskTime > 300000) {
+      // 5 minutes
       issues.push('Response time too slow');
     }
 
@@ -299,7 +305,7 @@ class ByzantineAgentValidator {
 
     return {
       valid: issues.length === 0,
-      issues
+      issues,
     };
   }
 
@@ -330,7 +336,7 @@ class ConsensusTracker {
       taskId,
       result,
       timestamp: Date.now(),
-      consensusRole: 'participant'
+      consensusRole: 'participant',
     });
   }
 
@@ -349,17 +355,18 @@ class ConsensusTracker {
       return {
         participationCount: 0,
         consensusSuccessRate: 0,
-        averageTrustScore: 0
+        averageTrustScore: 0,
       };
     }
 
-    const successfulConsensus = history.filter(h => h.result.byzantineVerified).length;
-    const avgTrustScore = history.reduce((sum, h) => sum + (h.result.trustScore || 0), 0) / history.length;
+    const successfulConsensus = history.filter((h) => h.result.byzantineVerified).length;
+    const avgTrustScore =
+      history.reduce((sum, h) => sum + (h.result.trustScore || 0), 0) / history.length;
 
     return {
       participationCount: history.length,
       consensusSuccessRate: successfulConsensus / history.length,
-      averageTrustScore: avgTrustScore
+      averageTrustScore: avgTrustScore,
     };
   }
 }

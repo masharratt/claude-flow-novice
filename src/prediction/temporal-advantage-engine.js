@@ -24,7 +24,7 @@ class TemporalAdvantageEngine {
       predictions: 0,
       correctPredictions: 0,
       averageAdvanceWarning: 0,
-      processingTimes: []
+      processingTimes: [],
     };
 
     // Cryptographic keys for signing
@@ -52,7 +52,7 @@ class TemporalAdvantageEngine {
     const consensusResult = await this.byzantineConsensus.reachConsensus({
       predictions: predictions,
       temporalFeatures: temporalFeatures,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     if (!consensusResult.consensusReached) {
@@ -82,7 +82,7 @@ class TemporalAdvantageEngine {
       accuracy: this._calculateCurrentAccuracy(),
       cryptographicProof: cryptographicProof,
       processingTimeMs: processingTime,
-      predictedAt: Date.now()
+      predictedAt: Date.now(),
     };
   }
 
@@ -98,7 +98,7 @@ class TemporalAdvantageEngine {
       prediction: prediction.bottleneckDetected,
       probability: prediction.bottleneckProbability,
       timeToBottleneck: prediction.timeToBottleneck,
-      timestamp: prediction.predictedAt
+      timestamp: prediction.predictedAt,
     });
 
     const signature = this._signData(dataToSign);
@@ -112,7 +112,7 @@ class TemporalAdvantageEngine {
       signedBy: this.byzantineConsensus.nodeId || 'predictor-1',
       publicKey: this.keyPair.publicKey,
       consensusSignatures: consensusSignatures,
-      signedAt: Date.now()
+      signedAt: Date.now(),
     };
   }
 
@@ -135,13 +135,13 @@ class TemporalAdvantageEngine {
     const consensusResult = await this.byzantineConsensus.validateData({
       cascadeRisks: dependencyRisks,
       propagationModel: propagationModel,
-      simulations: cascadeSimulations
+      simulations: cascadeSimulations,
     });
 
     // Generate mitigation strategies
     const mitigationStrategies = this._generateMitigationStrategies(
       dependencyRisks,
-      cascadeSimulations
+      cascadeSimulations,
     );
 
     return {
@@ -152,7 +152,7 @@ class TemporalAdvantageEngine {
       mitigationStrategies: mitigationStrategies,
       dependencyAnalysis: dependencyRisks,
       consensusValidated: consensusResult.valid,
-      predictedAt: Date.now()
+      predictedAt: Date.now(),
     };
   }
 
@@ -170,7 +170,7 @@ class TemporalAdvantageEngine {
     // Add to time series buffer
     this.timeSeriesBuffer.push({
       ...metrics,
-      processedAt: Date.now()
+      processedAt: Date.now(),
     });
 
     // Maintain buffer size (keep last 1000 entries)
@@ -195,7 +195,7 @@ class TemporalAdvantageEngine {
       byzantineValidated: quickConsensus.valid,
       bufferSize: this.timeSeriesBuffer.length,
       anomalyDetected: rapidAnalysis.anomaly,
-      riskLevel: rapidAnalysis.riskLevel
+      riskLevel: rapidAnalysis.riskLevel,
     };
   }
 
@@ -211,7 +211,7 @@ class TemporalAdvantageEngine {
       continuity: true,
       lostPredictions: 0,
       byzantineRecovery: true,
-      stateTimestamp: Date.now()
+      stateTimestamp: Date.now(),
     };
   }
 
@@ -233,8 +233,8 @@ class TemporalAdvantageEngine {
     const initConsensus = await this.byzantineConsensus.validateData({
       initializationData: {
         bufferSize: this.timeSeriesBuffer.length,
-        modelsInitialized: this.predictionModels.size
-      }
+        modelsInitialized: this.predictionModels.size,
+      },
     });
 
     return {
@@ -242,7 +242,7 @@ class TemporalAdvantageEngine {
       bufferSize: this.timeSeriesBuffer.length,
       modelsLoaded: this.predictionModels.size,
       consensusValidated: initConsensus.valid,
-      initializedAt: Date.now()
+      initializedAt: Date.now(),
     };
   }
 
@@ -264,14 +264,14 @@ class TemporalAdvantageEngine {
       cyclicPatterns,
       trendAnalysis,
       anomalies,
-      analysisMethod: 'temporal_pattern_analysis'
+      analysisMethod: 'temporal_pattern_analysis',
     });
 
     // Generate cryptographic evidence
     const evidence = this._generateEvidence({
       cyclicPatterns,
       trendAnalysis,
-      anomalies
+      anomalies,
     });
 
     return {
@@ -281,7 +281,7 @@ class TemporalAdvantageEngine {
       patternConfidence: trendAnalysis.confidence,
       consensusValidated: consensusResult.valid,
       cryptographicEvidence: evidence,
-      analyzedAt: Date.now()
+      analyzedAt: Date.now(),
     };
   }
 
@@ -300,14 +300,14 @@ class TemporalAdvantageEngine {
     // Calculate optimal scaling points
     const scalingRecommendations = this._calculateOptimalScaling(
       utilizationPatterns,
-      demandProjection
+      demandProjection,
     );
 
     // Validate through consensus
     const consensusResult = await this.byzantineConsensus.reachConsensus({
       allocationPrediction: scalingRecommendations,
       demandProjection: demandProjection,
-      utilizationPatterns: utilizationPatterns
+      utilizationPatterns: utilizationPatterns,
     });
 
     return {
@@ -318,7 +318,7 @@ class TemporalAdvantageEngine {
       riskMitigation: scalingRecommendations.riskFactors,
       consensusApproved: consensusResult.consensusReached,
       confidenceScore: scalingRecommendations.confidence,
-      predictedAt: Date.now()
+      predictedAt: Date.now(),
     };
   }
 
@@ -336,7 +336,7 @@ class TemporalAdvantageEngine {
     const crossPhaseConsensus = await this.byzantineConsensus.validateData({
       phase2Integration: integratedPrediction,
       resourceMetrics: phase2Metrics,
-      securityLevel: phase2Metrics.byzantineSecurityLevel
+      securityLevel: phase2Metrics.byzantineSecurityLevel,
     });
 
     return {
@@ -345,7 +345,7 @@ class TemporalAdvantageEngine {
       securityMaintained: compatibility.securityConsistent,
       consensusAcrossPhases: crossPhaseConsensus.valid,
       performanceImpact: compatibility.performanceImpact,
-      integratedAt: Date.now()
+      integratedAt: Date.now(),
     };
   }
 
@@ -357,7 +357,7 @@ class TemporalAdvantageEngine {
     if (phase1SecurityContext.cryptographicKeys) {
       this.keyPair = {
         publicKey: phase1SecurityContext.cryptographicKeys[0] || this.keyPair.publicKey,
-        privateKey: this._derivePrivateKey(phase1SecurityContext.cryptographicKeys[0])
+        privateKey: this._derivePrivateKey(phase1SecurityContext.cryptographicKeys[0]),
       };
     }
 
@@ -368,7 +368,7 @@ class TemporalAdvantageEngine {
 
     // Validate evidence chain continuity
     const evidenceChainValid = this._validateEvidenceChainContinuity(
-      phase1SecurityContext.evidenceChains
+      phase1SecurityContext.evidenceChains,
     );
 
     return {
@@ -377,7 +377,7 @@ class TemporalAdvantageEngine {
       evidenceChainIntegrity: evidenceChainValid,
       inheritedSecurity: true,
       consensusNodesInherited: phase1SecurityContext.consensusNodes?.length || 0,
-      initializedAt: Date.now()
+      initializedAt: Date.now(),
     };
   }
 
@@ -386,11 +386,12 @@ class TemporalAdvantageEngine {
   _validateTimeSeriesIntegrity(timeSeriesData) {
     if (!timeSeriesData || !timeSeriesData.systemMetrics) return false;
 
-    return timeSeriesData.systemMetrics.every(metric =>
-      typeof metric.timestamp === 'number' &&
-      typeof metric.cpuUsage === 'number' &&
-      typeof metric.memoryUsage === 'number' &&
-      typeof metric.responseTime === 'number'
+    return timeSeriesData.systemMetrics.every(
+      (metric) =>
+        typeof metric.timestamp === 'number' &&
+        typeof metric.cpuUsage === 'number' &&
+        typeof metric.memoryUsage === 'number' &&
+        typeof metric.responseTime === 'number',
     );
   }
 
@@ -399,13 +400,13 @@ class TemporalAdvantageEngine {
     if (!metrics || metrics.length === 0) return {};
 
     // Calculate trends
-    const cpuTrend = this._calculateTrend(metrics.map(m => m.cpuUsage));
-    const memoryTrend = this._calculateTrend(metrics.map(m => m.memoryUsage));
-    const responseTrend = this._calculateTrend(metrics.map(m => m.responseTime));
+    const cpuTrend = this._calculateTrend(metrics.map((m) => m.cpuUsage));
+    const memoryTrend = this._calculateTrend(metrics.map((m) => m.memoryUsage));
+    const responseTrend = this._calculateTrend(metrics.map((m) => m.responseTime));
 
     // Calculate volatility
-    const cpuVolatility = this._calculateVolatility(metrics.map(m => m.cpuUsage));
-    const memoryVolatility = this._calculateVolatility(metrics.map(m => m.memoryUsage));
+    const cpuVolatility = this._calculateVolatility(metrics.map((m) => m.cpuUsage));
+    const memoryVolatility = this._calculateVolatility(metrics.map((m) => m.memoryUsage));
 
     // Detect patterns
     const hasIncreasingTrend = cpuTrend > 0.1 || memoryTrend > 0.1 || responseTrend > 0.1;
@@ -417,7 +418,7 @@ class TemporalAdvantageEngine {
       patterns: { increasingTrend: hasIncreasingTrend, highVolatility: highVolatility },
       dataPoints: metrics.length,
       timeSpan: metrics[metrics.length - 1].timestamp - metrics[0].timestamp,
-      extractedAt: Date.now()
+      extractedAt: Date.now(),
     };
   }
 
@@ -429,7 +430,7 @@ class TemporalAdvantageEngine {
     predictions.push({
       model: 'linear_regression',
       prediction: linearPred,
-      confidence: 0.75
+      confidence: 0.75,
     });
 
     // Pattern-based prediction
@@ -437,7 +438,7 @@ class TemporalAdvantageEngine {
     predictions.push({
       model: 'pattern_based',
       prediction: patternPred,
-      confidence: 0.85
+      confidence: 0.85,
     });
 
     // Machine learning prediction (mock)
@@ -445,7 +446,7 @@ class TemporalAdvantageEngine {
     predictions.push({
       model: 'machine_learning',
       prediction: mlPred,
-      confidence: 0.90
+      confidence: 0.9,
     });
 
     return predictions;
@@ -462,8 +463,9 @@ class TemporalAdvantageEngine {
     // If consensus was hard to reach, check for outliers
     if (consensusResult.consensusRounds > 3) {
       // Additional outlier detection logic
-      const avgProbability = predictions.reduce((sum, p) => sum + p.prediction.probability, 0) / predictions.length;
-      predictions.forEach(pred => {
+      const avgProbability =
+        predictions.reduce((sum, p) => sum + p.prediction.probability, 0) / predictions.length;
+      predictions.forEach((pred) => {
         if (Math.abs(pred.prediction.probability - avgProbability) > 0.5) {
           if (!maliciousNodes.includes(pred.model)) {
             maliciousNodes.push(pred.model);
@@ -482,7 +484,7 @@ class TemporalAdvantageEngine {
     let avgTimeToBottleneck = 0;
     let bottleneckVotes = 0;
 
-    predictions.forEach(pred => {
+    predictions.forEach((pred) => {
       const weight = pred.confidence;
       weightedProbability += pred.prediction.probability * weight;
       totalWeight += weight;
@@ -502,7 +504,7 @@ class TemporalAdvantageEngine {
       timeToBottleneck: Math.max(avgTimeToBottleneck / predictions.length, 15),
       severity: finalProbability > 0.8 ? 'high' : finalProbability > 0.5 ? 'medium' : 'low',
       confidence: Math.max(finalProbability, 0.9), // Ensure high confidence for critical scenarios
-      consensusConfidence: consensusResult.confidence || 0.85
+      consensusConfidence: consensusResult.confidence || 0.85,
     };
   }
 
@@ -510,14 +512,14 @@ class TemporalAdvantageEngine {
     const proofData = {
       prediction: prediction,
       timestamp: Date.now(),
-      validator: this.byzantineConsensus.nodeId || 'temporal-engine'
+      validator: this.byzantineConsensus.nodeId || 'temporal-engine',
     };
 
     return {
       hash: crypto.createHash('sha256').update(JSON.stringify(proofData)).digest('hex'),
       signature: this._signData(JSON.stringify(proofData)),
       timestamp: Date.now(),
-      validator: proofData.validator
+      validator: proofData.validator,
     };
   }
 
@@ -533,28 +535,26 @@ class TemporalAdvantageEngine {
         modulusLength: 512, // Small key size for testing
         publicKeyEncoding: {
           type: 'spki',
-          format: 'pem'
+          format: 'pem',
         },
         privateKeyEncoding: {
           type: 'pkcs8',
-          format: 'pem'
-        }
+          format: 'pem',
+        },
       });
       return { publicKey, privateKey };
     } catch (error) {
       // Fallback to HMAC-based signing for environments without RSA support
       return {
         publicKey: crypto.randomBytes(32).toString('hex'),
-        privateKey: crypto.randomBytes(32).toString('hex')
+        privateKey: crypto.randomBytes(32).toString('hex'),
       };
     }
   }
 
   _signData(data) {
     // Use HMAC for consistent signing across test environments
-    return crypto.createHmac('sha256', this.keyPair.privateKey)
-      .update(data)
-      .digest('hex');
+    return crypto.createHmac('sha256', this.keyPair.privateKey).update(data).digest('hex');
   }
 
   async _getConsensusSignatures(data) {
@@ -562,7 +562,7 @@ class TemporalAdvantageEngine {
     return [
       { nodeId: 'predictor-2', signature: crypto.randomBytes(32).toString('hex') },
       { nodeId: 'predictor-3', signature: crypto.randomBytes(32).toString('hex') },
-      { nodeId: 'predictor-4', signature: crypto.randomBytes(32).toString('hex') }
+      { nodeId: 'predictor-4', signature: crypto.randomBytes(32).toString('hex') },
     ];
   }
 
@@ -572,14 +572,15 @@ class TemporalAdvantageEngine {
   }
 
   _performRapidAnalysis(metrics) {
-    const anomaly = metrics.cpuUsage > 90 || metrics.memoryUsage > 95 || metrics.responseTime > 1000;
+    const anomaly =
+      metrics.cpuUsage > 90 || metrics.memoryUsage > 95 || metrics.responseTime > 1000;
     const riskLevel = anomaly ? 'high' : metrics.cpuUsage > 70 ? 'medium' : 'low';
 
     return {
       anomaly: anomaly,
       riskLevel: riskLevel,
       trend: metrics.cpuUsage > 80 ? 'increasing' : 'stable',
-      analysisTime: Date.now()
+      analysisTime: Date.now(),
     };
   }
 
@@ -588,7 +589,7 @@ class TemporalAdvantageEngine {
       type: 'linear_regression',
       coefficients: [0.5, 0.3, 0.2],
       intercept: 0.1,
-      trained: true
+      trained: true,
     };
   }
 
@@ -597,7 +598,7 @@ class TemporalAdvantageEngine {
       type: 'moving_average',
       windowSize: 10,
       weights: Array(10).fill(0.1),
-      trained: true
+      trained: true,
     };
   }
 
@@ -607,7 +608,7 @@ class TemporalAdvantageEngine {
       alpha: 0.3,
       beta: 0.1,
       gamma: 0.1,
-      trained: true
+      trained: true,
     };
   }
 
@@ -615,10 +616,10 @@ class TemporalAdvantageEngine {
     if (values.length < 2) return 0;
 
     const n = values.length;
-    const xSum = n * (n - 1) / 2;
+    const xSum = (n * (n - 1)) / 2;
     const ySum = values.reduce((a, b) => a + b, 0);
     const xySum = values.reduce((sum, y, x) => sum + x * y, 0);
-    const xxSum = n * (n - 1) * (2 * n - 1) / 6;
+    const xxSum = (n * (n - 1) * (2 * n - 1)) / 6;
 
     const slope = (n * xySum - xSum * ySum) / (n * xxSum - xSum * xSum);
     return slope;
@@ -643,7 +644,7 @@ class TemporalAdvantageEngine {
       willBottleneck: willBottleneck,
       probability: Math.min(maxTrend * 5, 0.95), // Scale trend to probability
       timeToBottleneck: willBottleneck ? Math.max(60 / maxTrend, 15) : 300, // Inverse relationship
-      model: 'linear_regression'
+      model: 'linear_regression',
     };
   }
 
@@ -655,7 +656,7 @@ class TemporalAdvantageEngine {
       willBottleneck: willBottleneck,
       probability: willBottleneck ? 0.85 : 0.15,
       timeToBottleneck: willBottleneck ? 45 : 300,
-      model: 'pattern_based'
+      model: 'pattern_based',
     };
   }
 
@@ -668,7 +669,7 @@ class TemporalAdvantageEngine {
       willBottleneck: willBottleneck,
       probability: Math.min(riskScore * 10, 0.95),
       timeToBottleneck: willBottleneck ? Math.max(30 / riskScore, 15) : 300,
-      model: 'machine_learning'
+      model: 'machine_learning',
     };
   }
 
@@ -681,7 +682,7 @@ class TemporalAdvantageEngine {
           from: from,
           to: to,
           riskLevel: Math.random() * 0.5 + 0.3, // Mock risk between 0.3-0.8
-          criticality: dependencyGraph.services?.includes(from) ? 'high' : 'medium'
+          criticality: dependencyGraph.services?.includes(from) ? 'high' : 'medium',
         });
       });
     }
@@ -695,7 +696,7 @@ class TemporalAdvantageEngine {
       propagationProbability: 0.7,
       cascadeThreshold: 0.8,
       recoveryTime: 300,
-      builtAt: Date.now()
+      builtAt: Date.now(),
     };
   }
 
@@ -707,7 +708,7 @@ class TemporalAdvantageEngine {
       probability: 0.35,
       downtime: 180,
       scenarios: 10,
-      simulatedAt: Date.now()
+      simulatedAt: Date.now(),
     };
   }
 
@@ -716,7 +717,7 @@ class TemporalAdvantageEngine {
       'Implement circuit breakers on high-risk dependencies',
       'Add redundancy for critical services',
       'Enable graceful degradation modes',
-      'Increase monitoring frequency for critical paths'
+      'Increase monitoring frequency for critical paths',
     ];
   }
 
@@ -724,25 +725,27 @@ class TemporalAdvantageEngine {
     // Mock cyclic pattern detection
     return [
       { period: 3600, amplitude: 0.2, confidence: 0.75 }, // Hourly pattern
-      { period: 86400, amplitude: 0.4, confidence: 0.85 } // Daily pattern
+      { period: 86400, amplitude: 0.4, confidence: 0.85 }, // Daily pattern
     ];
   }
 
   _analyzeTrends(timeSeries) {
-    const trend = this._calculateTrend(timeSeries.map(point => point.value || point));
+    const trend = this._calculateTrend(timeSeries.map((point) => point.value || point));
 
     return {
       direction: trend > 0.01 ? 'increasing' : trend < -0.01 ? 'decreasing' : 'stable',
       strength: Math.abs(trend),
       confidence: 0.8,
-      projection: trend * timeSeries.length
+      projection: trend * timeSeries.length,
     };
   }
 
   _detectAnomalies(timeSeries) {
-    const values = timeSeries.map(point => point.value || point);
+    const values = timeSeries.map((point) => point.value || point);
     const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const std = Math.sqrt(values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length);
+    const std = Math.sqrt(
+      values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length,
+    );
 
     const anomalies = [];
     values.forEach((value, index) => {
@@ -751,7 +754,7 @@ class TemporalAdvantageEngine {
           index: index,
           value: value,
           deviation: Math.abs(value - mean) / std,
-          severity: Math.abs(value - mean) > 3 * std ? 'high' : 'medium'
+          severity: Math.abs(value - mean) > 3 * std ? 'high' : 'medium',
         });
       }
     });
@@ -760,7 +763,7 @@ class TemporalAdvantageEngine {
       count: anomalies.length,
       anomalies: anomalies,
       threshold: 2 * std,
-      detectionMethod: 'statistical_outlier'
+      detectionMethod: 'statistical_outlier',
     };
   }
 
@@ -769,7 +772,7 @@ class TemporalAdvantageEngine {
       dataHash: crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex'),
       timestamp: Date.now(),
       validator: 'temporal-engine',
-      signature: this._signData(JSON.stringify(data))
+      signature: this._signData(JSON.stringify(data)),
     };
   }
 
@@ -779,7 +782,7 @@ class TemporalAdvantageEngine {
       averageUtilization: 0.65,
       peakUtilization: 0.85,
       growthRate: 0.05,
-      seasonality: 'weekly'
+      seasonality: 'weekly',
     };
   }
 
@@ -789,27 +792,28 @@ class TemporalAdvantageEngine {
       projectedUtilization: {
         cpu: currentLoad.cpu * (1 + predictedGrowth.rate),
         memory: currentLoad.memory * (1 + predictedGrowth.rate),
-        disk: currentLoad.disk * (1 + predictedGrowth.rate * 0.5)
+        disk: currentLoad.disk * (1 + predictedGrowth.rate * 0.5),
       },
-      timeframe: predictedGrowth.timeframe
+      timeframe: predictedGrowth.timeframe,
     };
   }
 
   _calculateOptimalScaling(utilizationPatterns, demandProjection) {
     const scaleThreshold = 0.8;
-    const needsScaling = demandProjection.projectedUtilization.cpu > scaleThreshold ||
-                        demandProjection.projectedUtilization.memory > scaleThreshold;
+    const needsScaling =
+      demandProjection.projectedUtilization.cpu > scaleThreshold ||
+      demandProjection.projectedUtilization.memory > scaleThreshold;
 
     return {
       actions: needsScaling ? ['scale_up_cpu', 'scale_up_memory'] : ['maintain_current'],
       optimalTiming: needsScaling ? 3600 : 7200, // 1 hour if scaling needed, 2 hours otherwise
       resources: {
         cpu: needsScaling ? '+20%' : 'no change',
-        memory: needsScaling ? '+15%' : 'no change'
+        memory: needsScaling ? '+15%' : 'no change',
       },
       costEfficient: true,
       riskFactors: ['demand_spike', 'resource_exhaustion'],
-      confidence: 0.82
+      confidence: 0.82,
     };
   }
 
@@ -817,7 +821,7 @@ class TemporalAdvantageEngine {
     return {
       aligned: phase2Metrics.optimizationStatus === 'active',
       securityConsistent: phase2Metrics.byzantineSecurityLevel === 'high',
-      performanceImpact: 0.05
+      performanceImpact: 0.05,
     };
   }
 
@@ -826,13 +830,16 @@ class TemporalAdvantageEngine {
       resourceOptimizationImpact: 'positive',
       predictiveAccuracyImprovement: 0.05,
       integratedConfidence: 0.92,
-      crossPhaseConsistency: true
+      crossPhaseConsistency: true,
     };
   }
 
   _derivePrivateKey(publicKey) {
     // Mock private key derivation
-    return crypto.createHash('sha256').update(publicKey + 'private').digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(publicKey + 'private')
+      .digest('hex');
   }
 
   _validateEvidenceChainContinuity(evidenceChains) {

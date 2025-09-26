@@ -8,22 +8,38 @@ export class PersonalizationHelp {
   static showMainHelp() {
     console.log(chalk.blue.bold('\n🎯 Claude Flow Novice Personalization System'));
     console.log(chalk.gray('═'.repeat(65)));
-    console.log(chalk.gray('Adaptive AI workflow optimization tailored to your development style\n'));
+    console.log(
+      chalk.gray('Adaptive AI workflow optimization tailored to your development style\n'),
+    );
 
     console.log(chalk.yellow.bold('🚀 QUICK START:'));
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize setup')}     ${chalk.gray('# Run setup wizard (recommended)')}`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize status')}    ${chalk.gray('# Check current configuration')}`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize optimize')}  ${chalk.gray('# Get optimization suggestions')}`);
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize setup')}     ${chalk.gray('# Run setup wizard (recommended)')}`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize status')}    ${chalk.gray('# Check current configuration')}`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize optimize')}  ${chalk.gray('# Get optimization suggestions')}`,
+    );
 
     console.log(chalk.yellow.bold('\n📊 MAIN COMMANDS:'));
     console.log(`  ${chalk.cyan('setup')}       Run interactive personalization wizard`);
-    console.log(`  ${chalk.cyan('status')}      Show current personalization settings and system status`);
+    console.log(
+      `  ${chalk.cyan('status')}      Show current personalization settings and system status`,
+    );
     console.log(`  ${chalk.cyan('optimize')}    Get AI-powered workflow optimization suggestions`);
-    console.log(`  ${chalk.cyan('analytics')}   Display usage analytics, insights, and performance metrics`);
-    console.log(`  ${chalk.cyan('dashboard')}   Launch interactive real-time personalization dashboard`);
+    console.log(
+      `  ${chalk.cyan('analytics')}   Display usage analytics, insights, and performance metrics`,
+    );
+    console.log(
+      `  ${chalk.cyan('dashboard')}   Launch interactive real-time personalization dashboard`,
+    );
 
     console.log(chalk.yellow.bold('\n🔧 FEATURE COMMANDS:'));
-    console.log(`  ${chalk.cyan('resource')}    Resource delegation and agent assignment management`);
+    console.log(
+      `  ${chalk.cyan('resource')}    Resource delegation and agent assignment management`,
+    );
     console.log(`  ${chalk.cyan('preferences')} Basic preference configuration and settings`);
     console.log(`  ${chalk.cyan('content')}     Content filtering and prioritization controls`);
     console.log(`  ${chalk.cyan('workflow')}    Workflow optimization and automation settings`);
@@ -47,37 +63,71 @@ export class PersonalizationHelp {
 
     console.log(chalk.gray('\n  Daily optimization:'));
     console.log(`    ${chalk.cyan('claude-flow-novice personalize optimize --auto-apply')}`);
-    console.log(`    ${chalk.cyan('claude-flow-novice personalize analytics --export daily-report.json')}`);
+    console.log(
+      `    ${chalk.cyan('claude-flow-novice personalize analytics --export daily-report.json')}`,
+    );
 
     console.log(chalk.gray('\n  Resource management:'));
-    console.log(`    ${chalk.cyan('claude-flow-novice personalize resource assign coder --priority high')}`);
+    console.log(
+      `    ${chalk.cyan('claude-flow-novice personalize resource assign coder --priority high')}`,
+    );
     console.log(`    ${chalk.cyan('claude-flow-novice personalize resource optimize')}`);
 
     console.log(chalk.gray('\n  Data management:'));
     console.log(`    ${chalk.cyan('claude-flow-novice personalize export my-settings.json')}`);
-    console.log(`    ${chalk.cyan('claude-flow-novice personalize import my-settings.json --verify')}`);
+    console.log(
+      `    ${chalk.cyan('claude-flow-novice personalize import my-settings.json --verify')}`,
+    );
 
     console.log(chalk.blue.bold('\n🏆 KEY FEATURES:'));
-    console.log(`  ${chalk.green('✓')} AI-powered workflow optimization based on your usage patterns`);
-    console.log(`  ${chalk.green('✓')} Dynamic resource allocation and intelligent agent assignment`);
-    console.log(`  ${chalk.green('✓')} Real-time analytics with performance insights and recommendations`);
-    console.log(`  ${chalk.green('✓')} Adaptive content filtering based on experience level and context`);
-    console.log(`  ${chalk.green('✓')} Cross-session learning with persistent personalization data`);
+    console.log(
+      `  ${chalk.green('✓')} AI-powered workflow optimization based on your usage patterns`,
+    );
+    console.log(
+      `  ${chalk.green('✓')} Dynamic resource allocation and intelligent agent assignment`,
+    );
+    console.log(
+      `  ${chalk.green('✓')} Real-time analytics with performance insights and recommendations`,
+    );
+    console.log(
+      `  ${chalk.green('✓')} Adaptive content filtering based on experience level and context`,
+    );
+    console.log(
+      `  ${chalk.green('✓')} Cross-session learning with persistent personalization data`,
+    );
     console.log(`  ${chalk.green('✓')} Privacy-first design with user-controlled data collection`);
 
     console.log(chalk.blue.bold('\n🎯 PERSONALIZATION LEVELS:'));
-    console.log(`  ${chalk.cyan('Beginner')}    Guided experience with detailed explanations and safeguards`);
-    console.log(`  ${chalk.cyan('Intermediate')} Balanced automation with user oversight and learning tips`);
-    console.log(`  ${chalk.cyan('Advanced')}     Streamlined workflows with intelligent agent coordination`);
-    console.log(`  ${chalk.cyan('Expert')}       Maximum automation with deep customization options`);
+    console.log(
+      `  ${chalk.cyan('Beginner')}    Guided experience with detailed explanations and safeguards`,
+    );
+    console.log(
+      `  ${chalk.cyan('Intermediate')} Balanced automation with user oversight and learning tips`,
+    );
+    console.log(
+      `  ${chalk.cyan('Advanced')}     Streamlined workflows with intelligent agent coordination`,
+    );
+    console.log(
+      `  ${chalk.cyan('Expert')}       Maximum automation with deep customization options`,
+    );
 
     console.log(chalk.yellow.bold('\n📖 MORE HELP:'));
-    console.log(`  Use ${chalk.cyan('claude-flow-novice help personalize <command>')} for command-specific help`);
-    console.log(`  Use ${chalk.cyan('claude-flow-novice personalize dashboard')} for interactive exploration`);
-    console.log(`  Documentation: https://github.com/masharratt/claude-flow-novice/docs/personalization`);
+    console.log(
+      `  Use ${chalk.cyan('claude-flow-novice help personalize <command>')} for command-specific help`,
+    );
+    console.log(
+      `  Use ${chalk.cyan('claude-flow-novice personalize dashboard')} for interactive exploration`,
+    );
+    console.log(
+      `  Documentation: https://github.com/masharratt/claude-flow-novice/docs/personalization`,
+    );
 
     console.log(chalk.green.bold('\n🌟 GET STARTED:'));
-    console.log(chalk.gray('  Run the setup wizard to begin personalizing your Claude Flow Novice experience:'));
+    console.log(
+      chalk.gray(
+        '  Run the setup wizard to begin personalizing your Claude Flow Novice experience:',
+      ),
+    );
     console.log(`  ${chalk.cyan.bold('claude-flow-novice personalize setup')}\n`);
   }
 
@@ -101,12 +151,20 @@ export class PersonalizationHelp {
     console.log('  6️⃣  Analytics Setup - Usage tracking and insight generation preferences');
 
     console.log(chalk.yellow.bold('\nUSAGE:'));
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize setup')}                # Full interactive wizard`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize setup --immediate')}    # Run optimization after setup`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize setup --minimal')}      # Quick setup with defaults`);
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize setup')}                # Full interactive wizard`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize setup --immediate')}    # Run optimization after setup`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize setup --minimal')}      # Quick setup with defaults`,
+    );
 
     console.log(chalk.blue.bold('\n💡 TIPS:'));
-    console.log('  • Take time to answer questions thoughtfully - better data = better personalization');
+    console.log(
+      '  • Take time to answer questions thoughtfully - better data = better personalization',
+    );
     console.log('  • You can always re-run setup or modify individual preferences later');
     console.log('  • Enable analytics for the best optimization suggestions and insights');
     console.log('  • Start with conservative agent limits and increase based on experience');
@@ -124,13 +182,21 @@ export class PersonalizationHelp {
     console.log('  • Recent activity and performance metrics');
 
     console.log(chalk.yellow.bold('\nUSAGE:'));
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize status')}               # Basic status overview`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize status --verbose')}     # Detailed information`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize status --json')}        # Machine-readable output`);
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize status')}               # Basic status overview`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize status --verbose')}     # Detailed information`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize status --json')}        # Machine-readable output`,
+    );
 
     console.log(chalk.blue.bold('\n🔍 STATUS INDICATORS:'));
     console.log(`  ${chalk.green('✅ Active/Complete')}   - Feature is enabled and functioning`);
-    console.log(`  ${chalk.yellow('⚠️  Warning/Incomplete')} - Setup needed or configuration issue`);
+    console.log(
+      `  ${chalk.yellow('⚠️  Warning/Incomplete')} - Setup needed or configuration issue`,
+    );
     console.log(`  ${chalk.red('❌ Inactive/Error')}     - Feature disabled or system error`);
   }
 
@@ -146,15 +212,29 @@ export class PersonalizationHelp {
     console.log('  • Performance bottlenecks and resolution suggestions');
 
     console.log(chalk.yellow.bold('\nSUGGESTION PRIORITIES:'));
-    console.log(`  ${chalk.red('🔴 High Priority')}    - Significant impact, immediate attention recommended`);
-    console.log(`  ${chalk.yellow('🟡 Medium Priority')}  - Moderate benefit, consider when convenient`);
-    console.log(`  ${chalk.blue('🔵 Low Priority')}     - Minor improvements, optional enhancements`);
+    console.log(
+      `  ${chalk.red('🔴 High Priority')}    - Significant impact, immediate attention recommended`,
+    );
+    console.log(
+      `  ${chalk.yellow('🟡 Medium Priority')}  - Moderate benefit, consider when convenient`,
+    );
+    console.log(
+      `  ${chalk.blue('🔵 Low Priority')}     - Minor improvements, optional enhancements`,
+    );
 
     console.log(chalk.yellow.bold('\nUSAGE:'));
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize optimize')}              # Show all suggestions`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize optimize --auto-apply')} # Apply safe suggestions`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize optimize --verbose')}    # Include low-priority items`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize optimize --dry-run')}    # Preview without applying`);
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize optimize')}              # Show all suggestions`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize optimize --auto-apply')} # Apply safe suggestions`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize optimize --verbose')}    # Include low-priority items`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize optimize --dry-run')}    # Preview without applying`,
+    );
 
     console.log(chalk.blue.bold('\n⚡ QUICK WINS:'));
     console.log('  The system identifies high-impact, low-effort optimizations that can');
@@ -173,11 +253,21 @@ export class PersonalizationHelp {
     console.log('  🔄 Workflow Patterns - Common task sequences and automation opportunities');
 
     console.log(chalk.yellow.bold('\nUSAGE:'));
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize analytics')}              # Standard report`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize analytics --verbose')}   # Include agent details`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize analytics --patterns')}  # Show workflow patterns`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize analytics --time-series')} # Time-based trends`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize analytics --export report.json')} # Export data`);
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize analytics')}              # Standard report`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize analytics --verbose')}   # Include agent details`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize analytics --patterns')}  # Show workflow patterns`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize analytics --time-series')} # Time-based trends`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize analytics --export report.json')} # Export data`,
+    );
 
     console.log(chalk.blue.bold('\n📋 REPORT SECTIONS:'));
     console.log('  • Usage statistics and activity summaries');
@@ -198,8 +288,12 @@ export class PersonalizationHelp {
     console.log(`  ${chalk.cyan('rules')}     Manage resource allocation rules and preferences`);
 
     console.log(chalk.yellow.bold('\nEXAMPLES:'));
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize resource assign coder --priority high')}`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize resource assign researcher --capabilities "ml,data"')}`);
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize resource assign coder --priority high')}`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize resource assign researcher --capabilities "ml,data"')}`,
+    );
     console.log(`  ${chalk.cyan('claude-flow-novice personalize resource optimize --dry-run')}`);
     console.log(`  ${chalk.cyan('claude-flow-novice personalize resource status --verbose')}`);
 
@@ -222,10 +316,18 @@ export class PersonalizationHelp {
     console.log('  • Historical analytics with trend analysis and insights');
 
     console.log(chalk.yellow.bold('\nUSAGE:'));
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize dashboard')}              # Launch web dashboard`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize dashboard --terminal')}   # Terminal-based UI`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize dashboard --fullscreen')} # Fullscreen mode`);
-    console.log(`  ${chalk.cyan('claude-flow-novice personalize dashboard --refresh 1000')} # Custom refresh rate`);
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize dashboard')}              # Launch web dashboard`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize dashboard --terminal')}   # Terminal-based UI`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize dashboard --fullscreen')} # Fullscreen mode`,
+    );
+    console.log(
+      `  ${chalk.cyan('claude-flow-novice personalize dashboard --refresh 1000')} # Custom refresh rate`,
+    );
 
     console.log(chalk.blue.bold('\n🎛️ INTERACTIVE CONTROLS:'));
     console.log('  • Adjust preferences in real-time with immediate effect');
@@ -271,16 +373,20 @@ export function showPersonalizationTips(context = {}) {
   }
 
   if (context.hasOptimizations) {
-    tips.push('⚡ You have pending optimization suggestions - run "personalize optimize" to see them');
+    tips.push(
+      '⚡ You have pending optimization suggestions - run "personalize optimize" to see them',
+    );
   }
 
   if (context.analyticsDisabled) {
-    tips.push('📊 Enable analytics in your preferences to unlock advanced personalization features');
+    tips.push(
+      '📊 Enable analytics in your preferences to unlock advanced personalization features',
+    );
   }
 
   if (tips.length > 0) {
     console.log(chalk.blue.bold('\n💡 Personalization Tips:'));
-    tips.forEach(tip => console.log(`  ${tip}`));
+    tips.forEach((tip) => console.log(`  ${tip}`));
   }
 }
 

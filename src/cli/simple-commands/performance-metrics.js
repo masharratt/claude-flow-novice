@@ -27,8 +27,8 @@ let metricsCache = {
     failedTasks: 0,
     totalAgents: 0,
     activeAgents: 0,
-    neuralEvents: 0
-  }
+    neuralEvents: 0,
+  },
 };
 
 // Store interval ID for cleanup
@@ -38,15 +38,15 @@ let systemMonitoringInterval = null;
 export async function initializeMetrics(startMonitoring = true) {
   try {
     await fs.mkdir(METRICS_DIR, { recursive: true });
-    
+
     // Load existing metrics if available
     await loadMetricsFromDisk();
-    
+
     // Start system monitoring only if requested
     if (startMonitoring) {
       startSystemMonitoring();
     }
-    
+
     return true;
   } catch (err) {
     console.error('Failed to initialize metrics:', err);
@@ -63,13 +63,13 @@ async function loadMetricsFromDisk() {
       const saved = JSON.parse(data);
       metricsCache.performance = { ...metricsCache.performance, ...saved };
     }
-    
+
     // Load task metrics
     if (await fileExists(TASK_METRICS_FILE)) {
       const data = await fs.readFile(TASK_METRICS_FILE, 'utf8');
       metricsCache.tasks = JSON.parse(data);
     }
-    
+
     // Load agent metrics
     if (await fileExists(AGENT_METRICS_FILE)) {
       const data = await fs.readFile(AGENT_METRICS_FILE, 'utf8');
@@ -99,23 +99,23 @@ export async function trackTaskExecution(taskId, taskType, success, duration, me
     success,
     duration,
     timestamp: Date.now(),
-    metadata
+    metadata,
   };
-  
+
   metricsCache.tasks.push(task);
   metricsCache.performance.totalTasks++;
-  
+
   if (success) {
     metricsCache.performance.successfulTasks++;
   } else {
     metricsCache.performance.failedTasks++;
   }
-  
+
   // Keep only last 1000 tasks
   if (metricsCache.tasks.length > 1000) {
     metricsCache.tasks = metricsCache.tasks.slice(-1000);
   }
-  
+
   await saveMetricsToDisk();
 }
 
@@ -127,42 +127,42 @@ export async function trackAgentActivity(agentId, agentType, action, duration, s
       successful: 0,
       failed: 0,
       totalDuration: 0,
-      actions: []
+      actions: [],
     };
   }
-  
+
   const agent = metricsCache.agents[agentType];
   agent.total++;
   agent.totalDuration += duration;
-  
+
   if (success) {
     agent.successful++;
   } else {
     agent.failed++;
   }
-  
+
   agent.actions.push({
     id: agentId,
     action,
     duration,
     success,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
-  
+
   // Keep only last 100 actions per agent type
   if (agent.actions.length > 100) {
     agent.actions = agent.actions.slice(-100);
   }
-  
+
   metricsCache.performance.totalAgents = Object.keys(metricsCache.agents).length;
-  
+
   await saveMetricsToDisk();
 }
 
 // Track neural events
 export async function trackNeuralEvent(eventType, metadata = {}) {
   metricsCache.performance.neuralEvents++;
-  
+
   await saveMetricsToDisk();
 }
 
@@ -171,53 +171,52 @@ export async function getPerformanceReport(timeframe = '24h') {
   const now = Date.now();
   const timeframeMs = parseTimeframe(timeframe);
   const cutoff = now - timeframeMs;
-  
+
   // Filter tasks within timeframe
-  const recentTasks = metricsCache.tasks.filter(task => task.timestamp >= cutoff);
-  
+  const recentTasks = metricsCache.tasks.filter((task) => task.timestamp >= cutoff);
+
   // Calculate metrics
   const totalTasks = recentTasks.length;
-  const successfulTasks = recentTasks.filter(t => t.success).length;
+  const successfulTasks = recentTasks.filter((t) => t.success).length;
   const successRate = totalTasks > 0 ? (successfulTasks / totalTasks) * 100 : 0;
-  const avgDuration = totalTasks > 0 
-    ? recentTasks.reduce((sum, t) => sum + t.duration, 0) / totalTasks 
-    : 0;
-  
+  const avgDuration =
+    totalTasks > 0 ? recentTasks.reduce((sum, t) => sum + t.duration, 0) / totalTasks : 0;
+
   // Agent metrics
   const agentMetrics = {};
   Object.entries(metricsCache.agents).forEach(([type, data]) => {
-    const recentActions = data.actions.filter(a => a.timestamp >= cutoff);
+    const recentActions = data.actions.filter((a) => a.timestamp >= cutoff);
     if (recentActions.length > 0) {
-      const successCount = recentActions.filter(a => a.success).length;
+      const successCount = recentActions.filter((a) => a.success).length;
       const avgDur = recentActions.reduce((sum, a) => sum + a.duration, 0) / recentActions.length;
-      
+
       agentMetrics[type] = {
         total: recentActions.length,
         successRate: (successCount / recentActions.length) * 100,
-        avgDuration: avgDur
+        avgDuration: avgDur,
       };
     }
   });
-  
+
   // System metrics
   const systemMetrics = await getSystemMetrics();
-  
+
   // Calculate trends (compare to previous period)
   const prevCutoff = cutoff - timeframeMs;
-  const prevTasks = metricsCache.tasks.filter(t => t.timestamp >= prevCutoff && t.timestamp < cutoff);
-  const prevSuccessRate = prevTasks.length > 0 
-    ? (prevTasks.filter(t => t.success).length / prevTasks.length) * 100 
-    : 0;
-  const prevAvgDuration = prevTasks.length > 0
-    ? prevTasks.reduce((sum, t) => sum + t.duration, 0) / prevTasks.length
-    : 0;
-  
+  const prevTasks = metricsCache.tasks.filter(
+    (t) => t.timestamp >= prevCutoff && t.timestamp < cutoff,
+  );
+  const prevSuccessRate =
+    prevTasks.length > 0 ? (prevTasks.filter((t) => t.success).length / prevTasks.length) * 100 : 0;
+  const prevAvgDuration =
+    prevTasks.length > 0 ? prevTasks.reduce((sum, t) => sum + t.duration, 0) / prevTasks.length : 0;
+
   const trends = {
     successRateChange: successRate - prevSuccessRate,
     durationChange: avgDuration - prevAvgDuration,
-    taskVolumeChange: totalTasks - prevTasks.length
+    taskVolumeChange: totalTasks - prevTasks.length,
   };
-  
+
   return {
     timeframe,
     summary: {
@@ -226,12 +225,12 @@ export async function getPerformanceReport(timeframe = '24h') {
       avgDuration: avgDuration / 1000, // Convert to seconds
       agentsSpawned: Object.values(agentMetrics).reduce((sum, m) => sum + m.total, 0),
       memoryEfficiency: systemMetrics.memoryEfficiency,
-      neuralEvents: metricsCache.performance.neuralEvents
+      neuralEvents: metricsCache.performance.neuralEvents,
     },
     agentMetrics,
     systemMetrics,
     trends,
-    tasks: recentTasks.slice(-20) // Last 20 tasks
+    tasks: recentTasks.slice(-20), // Last 20 tasks
   };
 }
 
@@ -239,89 +238,89 @@ export async function getPerformanceReport(timeframe = '24h') {
 export async function getBottleneckAnalysis(scope = 'system', target = 'all') {
   const bottlenecks = [];
   const recommendations = [];
-  
+
   // Analyze task performance
   if (scope === 'system' || scope === 'task') {
     const slowTasks = metricsCache.tasks
-      .filter(t => t.duration > 10000) // Tasks taking more than 10s
+      .filter((t) => t.duration > 10000) // Tasks taking more than 10s
       .sort((a, b) => b.duration - a.duration)
       .slice(0, 5);
-    
+
     if (slowTasks.length > 0) {
       bottlenecks.push({
         severity: 'warning',
         component: 'Task execution',
         metric: `${slowTasks.length} slow tasks (>10s)`,
-        details: slowTasks.map(t => ({
+        details: slowTasks.map((t) => ({
           id: t.id,
           type: t.type,
-          duration: t.duration / 1000
-        }))
+          duration: t.duration / 1000,
+        })),
       });
       recommendations.push('Optimize slow task types or break them into smaller subtasks');
     }
   }
-  
+
   // Analyze agent performance
   if (scope === 'system' || scope === 'agent') {
     Object.entries(metricsCache.agents).forEach(([type, data]) => {
       const successRate = data.total > 0 ? (data.successful / data.total) * 100 : 100;
       const avgDuration = data.total > 0 ? data.totalDuration / data.total : 0;
-      
+
       if (successRate < 80) {
         bottlenecks.push({
           severity: 'critical',
           component: `${type} agents`,
           metric: `${successRate.toFixed(1)}% success rate`,
-          target: type
+          target: type,
         });
         recommendations.push(`Investigate ${type} agent failures and improve error handling`);
       }
-      
+
       if (avgDuration > 15000) {
         bottlenecks.push({
           severity: 'warning',
           component: `${type} agents`,
           metric: `${(avgDuration / 1000).toFixed(1)}s avg duration`,
-          target: type
+          target: type,
         });
         recommendations.push(`Optimize ${type} agent performance or increase parallelization`);
       }
     });
   }
-  
+
   // Analyze system resources
   if (scope === 'system' || scope === 'memory') {
     const systemMetrics = await getSystemMetrics();
-    
+
     if (systemMetrics.memoryUsagePercent > 80) {
       bottlenecks.push({
         severity: 'critical',
         component: 'Memory usage',
-        metric: `${systemMetrics.memoryUsagePercent}% utilization`
+        metric: `${systemMetrics.memoryUsagePercent}% utilization`,
       });
       recommendations.push('Implement memory optimization or increase system resources');
     }
-    
+
     if (systemMetrics.cpuLoad > 0.8) {
       bottlenecks.push({
         severity: 'warning',
         component: 'CPU usage',
-        metric: `${(systemMetrics.cpuLoad * 100).toFixed(1)}% load`
+        metric: `${(systemMetrics.cpuLoad * 100).toFixed(1)}% load`,
       });
       recommendations.push('Consider horizontal scaling or CPU optimization');
     }
   }
-  
+
   // Add positive indicators
   if (bottlenecks.length === 0) {
     bottlenecks.push({
       severity: 'good',
       component: 'Overall system',
-      metric: 'No bottlenecks detected'
+      metric: 'No bottlenecks detected',
     });
   }
-  
+
   return {
     scope,
     target,
@@ -329,7 +328,7 @@ export async function getBottleneckAnalysis(scope = 'system', target = 'all') {
     recommendations,
     analysisDuration: performance.now(),
     confidenceScore: 0.85,
-    issuesDetected: bottlenecks.filter(b => b.severity !== 'good').length
+    issuesDetected: bottlenecks.filter((b) => b.severity !== 'good').length,
   };
 }
 
@@ -339,25 +338,25 @@ function startSystemMonitoring() {
   if (systemMonitoringInterval) {
     clearInterval(systemMonitoringInterval);
   }
-  
+
   // Collect system metrics every 30 seconds
   systemMonitoringInterval = setInterval(async () => {
     const metrics = await getSystemMetrics();
-    
+
     // Store system metrics
     if (!metricsCache.system) {
       metricsCache.system = [];
     }
-    
+
     metricsCache.system.push({
       timestamp: Date.now(),
-      ...metrics
+      ...metrics,
     });
-    
+
     // Keep only last 24 hours of system metrics
-    const dayAgo = Date.now() - (24 * 60 * 60 * 1000);
-    metricsCache.system = metricsCache.system.filter(m => m.timestamp > dayAgo);
-    
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    metricsCache.system = metricsCache.system.filter((m) => m.timestamp > dayAgo);
+
     // Save to disk
     try {
       await fs.writeFile(SYSTEM_METRICS_FILE, JSON.stringify(metricsCache.system, null, 2));
@@ -365,7 +364,7 @@ function startSystemMonitoring() {
       // Ignore save errors
     }
   }, 30000);
-  
+
   // Allow process to exit even with active interval
   systemMonitoringInterval.unref();
 }
@@ -384,9 +383,9 @@ async function getSystemMetrics() {
   const freeMem = os.freemem();
   const usedMem = totalMem - freeMem;
   const memoryUsagePercent = (usedMem / totalMem) * 100;
-  
+
   const cpuLoad = os.loadavg()[0] / os.cpus().length; // 1-minute load average
-  
+
   return {
     memoryTotal: totalMem,
     memoryUsed: usedMem,
@@ -396,24 +395,24 @@ async function getSystemMetrics() {
     cpuCount: os.cpus().length,
     cpuLoad,
     platform: os.platform(),
-    uptime: os.uptime()
+    uptime: os.uptime(),
   };
 }
 
 // Parse timeframe string to milliseconds
 function parseTimeframe(timeframe) {
   const units = {
-    'h': 60 * 60 * 1000,
-    'd': 24 * 60 * 60 * 1000
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
   };
-  
+
   const match = timeframe.match(/^(\d+)([hd])$/);
   if (match) {
     const value = parseInt(match[1]);
     const unit = match[2];
     return value * units[unit];
   }
-  
+
   // Default to 24 hours
   return 24 * 60 * 60 * 1000;
 }
@@ -437,9 +436,9 @@ export function cleanup() {
 export async function exportMetrics(format = 'json') {
   const timestamp = Date.now();
   const reportsDir = path.join(process.cwd(), 'analysis-reports');
-  
+
   await fs.mkdir(reportsDir, { recursive: true });
-  
+
   if (format === 'json') {
     const reportPath = path.join(reportsDir, `performance-${timestamp}.json`);
     const data = {
@@ -447,42 +446,42 @@ export async function exportMetrics(format = 'json') {
       performance: metricsCache.performance,
       tasks: metricsCache.tasks.slice(-100), // Last 100 tasks
       agents: metricsCache.agents,
-      system: metricsCache.system.slice(-50) // Last 50 system snapshots
+      system: metricsCache.system.slice(-50), // Last 50 system snapshots
     };
-    
+
     await fs.writeFile(reportPath, JSON.stringify(data, null, 2));
     return reportPath;
   }
-  
+
   if (format === 'csv') {
     const reportPath = path.join(reportsDir, `performance-${timestamp}.csv`);
     let csv = 'Timestamp,Type,Metric,Value\n';
-    
+
     // Add performance metrics
     Object.entries(metricsCache.performance).forEach(([key, value]) => {
       csv += `${new Date().toISOString()},performance,${key},${value}\n`;
     });
-    
+
     // Add agent metrics
     Object.entries(metricsCache.agents).forEach(([type, data]) => {
       csv += `${new Date().toISOString()},agent,${type}_total,${data.total}\n`;
       csv += `${new Date().toISOString()},agent,${type}_success_rate,${data.total > 0 ? (data.successful / data.total) * 100 : 0}\n`;
       csv += `${new Date().toISOString()},agent,${type}_avg_duration,${data.total > 0 ? data.totalDuration / data.total : 0}\n`;
     });
-    
+
     await fs.writeFile(reportPath, csv);
     return reportPath;
   }
-  
+
   if (format === 'html') {
     const reportPath = path.join(reportsDir, `performance-${timestamp}.html`);
     const report = await getPerformanceReport('24h');
-    
+
     const html = generateHTMLReport(report);
     await fs.writeFile(reportPath, html);
     return reportPath;
   }
-  
+
   throw new Error(`Unsupported format: ${format}`);
 }
 
@@ -547,14 +546,18 @@ function generateHTMLReport(report) {
         </tr>
       </thead>
       <tbody>
-        ${Object.entries(report.agentMetrics).map(([type, metrics]) => `
+        ${Object.entries(report.agentMetrics)
+          .map(
+            ([type, metrics]) => `
           <tr>
             <td>${type}</td>
             <td>${metrics.total}</td>
             <td>${metrics.successRate.toFixed(1)}%</td>
             <td>${(metrics.avgDuration / 1000).toFixed(1)}s</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join('')}
       </tbody>
     </table>
     
@@ -575,7 +578,11 @@ function generateHTMLReport(report) {
         </tr>
       </thead>
       <tbody>
-        ${report.tasks.slice(-10).reverse().map(task => `
+        ${report.tasks
+          .slice(-10)
+          .reverse()
+          .map(
+            (task) => `
           <tr>
             <td>${task.id}</td>
             <td>${task.type}</td>
@@ -583,7 +590,9 @@ function generateHTMLReport(report) {
             <td>${(task.duration / 1000).toFixed(2)}s</td>
             <td>${new Date(task.timestamp).toLocaleString()}</td>
           </tr>
-        `).join('')}
+        `,
+          )
+          .join('')}
       </tbody>
     </table>
   </div>

@@ -34,14 +34,15 @@ export class AnalyticsDashboard {
       charts: {},
       recommendations: {},
       alerts: [],
-      status: 'active'
+      status: 'active',
     };
 
     try {
       // Get comprehensive analytics
       const report = await this.analyzer.generateComprehensiveReport();
       const optimizations = await this.optimizationEngine.generateOptimizationSuggestions();
-      const personalizedSuggestions = await this.suggestionGenerator.generatePersonalizedSuggestions();
+      const personalizedSuggestions =
+        await this.suggestionGenerator.generatePersonalizedSuggestions();
 
       // Build summary metrics
       data.summary = this.buildSummaryMetrics(report, optimizations);
@@ -75,25 +76,25 @@ export class AnalyticsDashboard {
         status: 'healthy',
         uptime: 0,
         memory: { usage: 0, efficiency: 0 },
-        cpu: { load: 0, utilization: 0 }
+        cpu: { load: 0, utilization: 0 },
       },
       tasks: {
         total: 0,
         completed: 0,
         success_rate: 0,
-        avg_duration: 0
+        avg_duration: 0,
       },
       agents: {
         total: 0,
         active: 0,
         avg_performance: 0,
-        top_performer: null
+        top_performer: null,
       },
       optimization: {
         suggestions: optimizations.priority.high.length + optimizations.priority.medium.length,
         high_priority: optimizations.priority.high.length,
-        potential_impact: 'medium'
-      }
+        potential_impact: 'medium',
+      },
     };
 
     // Extract system metrics
@@ -101,11 +102,11 @@ export class AnalyticsDashboard {
       const resources = report.analysis.performance.resourceAnalysis;
       summary.system.memory = {
         usage: Math.round(resources.memory?.average || 0),
-        efficiency: Math.round(resources.efficiency?.average || 0)
+        efficiency: Math.round(resources.efficiency?.average || 0),
       };
       summary.system.cpu = {
         load: Math.round((resources.cpu?.average || 0) * 100) / 100,
-        utilization: Math.round(((resources.cpu?.average || 0) / 8) * 100) // Assuming 8 cores
+        utilization: Math.round(((resources.cpu?.average || 0) / 8) * 100), // Assuming 8 cores
       };
     }
 
@@ -114,35 +115,43 @@ export class AnalyticsDashboard {
       const taskData = report.analysis.taskPatterns;
       if (taskData.statusAnalysis) {
         summary.tasks.total = taskData.statusAnalysis.reduce((sum, s) => sum + s.count, 0);
-        const completed = taskData.statusAnalysis.find(s => s.status === 'completed');
+        const completed = taskData.statusAnalysis.find((s) => s.status === 'completed');
         summary.tasks.completed = completed ? completed.count : 0;
-        summary.tasks.success_rate = summary.tasks.total > 0
-          ? Math.round((summary.tasks.completed / summary.tasks.total) * 100)
-          : 0;
+        summary.tasks.success_rate =
+          summary.tasks.total > 0
+            ? Math.round((summary.tasks.completed / summary.tasks.total) * 100)
+            : 0;
         summary.tasks.avg_duration = Math.round(completed?.avg_duration || 0);
       }
 
       // Agent performance
       if (taskData.agentPerformance) {
         summary.agents.total = taskData.agentPerformance.length;
-        summary.agents.active = taskData.agentPerformance.filter(a => a.recent_tasks > 0).length;
-        summary.agents.avg_performance = Math.round(
-          taskData.agentPerformance.reduce((sum, a) => sum + a.performance_score, 0)
-          / taskData.agentPerformance.length * 100
-        ) / 100;
+        summary.agents.active = taskData.agentPerformance.filter((a) => a.recent_tasks > 0).length;
+        summary.agents.avg_performance =
+          Math.round(
+            (taskData.agentPerformance.reduce((sum, a) => sum + a.performance_score, 0) /
+              taskData.agentPerformance.length) *
+              100,
+          ) / 100;
 
-        const topAgent = taskData.agentPerformance
-          .sort((a, b) => b.performance_score - a.performance_score)[0];
-        summary.agents.top_performer = topAgent ? {
-          name: topAgent.name,
-          type: topAgent.type,
-          score: Math.round(topAgent.performance_score * 100) / 100
-        } : null;
+        const topAgent = taskData.agentPerformance.sort(
+          (a, b) => b.performance_score - a.performance_score,
+        )[0];
+        summary.agents.top_performer = topAgent
+          ? {
+              name: topAgent.name,
+              type: topAgent.type,
+              score: Math.round(topAgent.performance_score * 100) / 100,
+            }
+          : null;
       }
     }
 
     // Optimization impact assessment
-    const highImpactSuggestions = optimizations.priority.high.filter(s => s.impact === 'high').length;
+    const highImpactSuggestions = optimizations.priority.high.filter(
+      (s) => s.impact === 'high',
+    ).length;
     if (highImpactSuggestions > 2) {
       summary.optimization.potential_impact = 'high';
     } else if (optimizations.priority.medium.length > 3) {
@@ -163,27 +172,27 @@ export class AnalyticsDashboard {
       task_distribution: [],
       agent_performance: [],
       memory_usage: [],
-      success_trends: []
+      success_trends: [],
     };
 
     // Performance timeline
     if (report.analysis.performance && report.analysis.performance.metrics.system) {
       const systemMetrics = report.analysis.performance.metrics.system.slice(-20); // Last 20 data points
 
-      charts.performance_timeline = systemMetrics.map(metric => ({
+      charts.performance_timeline = systemMetrics.map((metric) => ({
         timestamp: new Date(metric.timestamp).toISOString(),
         memory: Math.round(metric.memoryUsagePercent),
         cpu: Math.round(metric.cpuLoad * 100) / 100,
-        efficiency: Math.round(metric.memoryEfficiency)
+        efficiency: Math.round(metric.memoryEfficiency),
       }));
     }
 
     // Task distribution
     if (report.analysis.taskPatterns && report.analysis.taskPatterns.statusAnalysis) {
-      charts.task_distribution = report.analysis.taskPatterns.statusAnalysis.map(status => ({
+      charts.task_distribution = report.analysis.taskPatterns.statusAnalysis.map((status) => ({
         status: status.status,
         count: status.count,
-        percentage: status.percentage
+        percentage: status.percentage,
       }));
     }
 
@@ -191,12 +200,12 @@ export class AnalyticsDashboard {
     if (report.analysis.taskPatterns && report.analysis.taskPatterns.agentPerformance) {
       charts.agent_performance = report.analysis.taskPatterns.agentPerformance
         .slice(0, 10) // Top 10 agents
-        .map(agent => ({
+        .map((agent) => ({
           name: agent.name,
           type: agent.type,
           performance: Math.round(agent.performance_score * 100),
           success_rate: Math.round(agent.success_rate * 100),
-          task_count: agent.task_count
+          task_count: agent.task_count,
         }));
     }
 
@@ -204,11 +213,11 @@ export class AnalyticsDashboard {
     if (report.analysis.performance && report.analysis.performance.metrics.system) {
       const memoryData = report.analysis.performance.metrics.system.slice(-10);
 
-      charts.memory_usage = memoryData.map(metric => ({
+      charts.memory_usage = memoryData.map((metric) => ({
         timestamp: new Date(metric.timestamp).toISOString(),
         used: Math.round(metric.memoryUsagePercent),
         free: Math.round(100 - metric.memoryUsagePercent),
-        efficiency: Math.round(metric.memoryEfficiency)
+        efficiency: Math.round(metric.memoryEfficiency),
       }));
     }
 
@@ -216,11 +225,11 @@ export class AnalyticsDashboard {
     if (report.analysis.taskPatterns && report.analysis.taskPatterns.completionTrends) {
       charts.success_trends = report.analysis.taskPatterns.completionTrends
         .slice(-7) // Last 7 days
-        .map(trend => ({
+        .map((trend) => ({
           date: trend.date,
           total_tasks: trend.total_tasks,
           completed_tasks: trend.completed_tasks,
-          success_rate: Math.round((trend.completed_tasks / trend.total_tasks) * 100)
+          success_rate: Math.round((trend.completed_tasks / trend.total_tasks) * 100),
         }));
     }
 
@@ -240,62 +249,73 @@ export class AnalyticsDashboard {
         performance: 0,
         coordination: 0,
         workflow: 0,
-        automation: 0
-      }
+        automation: 0,
+      },
     };
 
     // Process immediate actions (high priority)
-    recommendations.immediate_actions = optimizations.priority.high.slice(0, 5).map(suggestion => ({
-      title: suggestion.title,
-      description: suggestion.description,
-      category: suggestion.category,
-      impact: suggestion.impact,
-      effort: suggestion.effort,
-      actions: suggestion.suggestions.slice(0, 3) // Top 3 actions
-    }));
+    recommendations.immediate_actions = optimizations.priority.high
+      .slice(0, 5)
+      .map((suggestion) => ({
+        title: suggestion.title,
+        description: suggestion.description,
+        category: suggestion.category,
+        impact: suggestion.impact,
+        effort: suggestion.effort,
+        actions: suggestion.suggestions.slice(0, 3), // Top 3 actions
+      }));
 
     // Process short-term goals (medium priority)
-    recommendations.short_term_goals = optimizations.priority.medium.slice(0, 5).map(suggestion => ({
-      title: suggestion.title,
-      description: suggestion.description,
-      category: suggestion.category,
-      impact: suggestion.impact,
-      effort: suggestion.effort,
-      timeline: this.estimateTimeline(suggestion.effort)
-    }));
+    recommendations.short_term_goals = optimizations.priority.medium
+      .slice(0, 5)
+      .map((suggestion) => ({
+        title: suggestion.title,
+        description: suggestion.description,
+        category: suggestion.category,
+        impact: suggestion.impact,
+        effort: suggestion.effort,
+        timeline: this.estimateTimeline(suggestion.effort),
+      }));
 
     // Process long-term improvements (low priority)
-    recommendations.long_term_improvements = optimizations.priority.low.slice(0, 3).map(suggestion => ({
-      title: suggestion.title,
-      description: suggestion.description,
-      category: suggestion.category,
-      impact: suggestion.impact,
-      potential_benefit: this.describeBenefit(suggestion)
-    }));
+    recommendations.long_term_improvements = optimizations.priority.low
+      .slice(0, 3)
+      .map((suggestion) => ({
+        title: suggestion.title,
+        description: suggestion.description,
+        category: suggestion.category,
+        impact: suggestion.impact,
+        potential_benefit: this.describeBenefit(suggestion),
+      }));
 
     // Process personalized suggestions
     if (personalizedSuggestions.suggestions) {
       recommendations.personalized = [
         ...personalizedSuggestions.suggestions.immediate.slice(0, 2),
         ...personalizedSuggestions.suggestions.shortTerm.slice(0, 2),
-        ...personalizedSuggestions.suggestions.learning.slice(0, 2)
-      ].map(suggestion => ({
+        ...personalizedSuggestions.suggestions.learning.slice(0, 2),
+      ].map((suggestion) => ({
         title: suggestion.title,
         description: suggestion.description,
         category: suggestion.category,
-        personalization_reason: suggestion.personalization ?
-          suggestion.personalization.relevance_score > 0.8 ? 'High relevance to your workflow' :
-          'Matches your working style' : 'General recommendation'
+        personalization_reason: suggestion.personalization
+          ? suggestion.personalization.relevance_score > 0.8
+            ? 'High relevance to your workflow'
+            : 'Matches your working style'
+          : 'General recommendation',
       }));
     }
 
     // Count categories
-    [...optimizations.priority.high, ...optimizations.priority.medium, ...optimizations.priority.low]
-      .forEach(suggestion => {
-        if (recommendations.categories.hasOwnProperty(suggestion.category)) {
-          recommendations.categories[suggestion.category]++;
-        }
-      });
+    [
+      ...optimizations.priority.high,
+      ...optimizations.priority.medium,
+      ...optimizations.priority.low,
+    ].forEach((suggestion) => {
+      if (recommendations.categories.hasOwnProperty(suggestion.category)) {
+        recommendations.categories[suggestion.category]++;
+      }
+    });
 
     return recommendations;
   }
@@ -308,7 +328,7 @@ export class AnalyticsDashboard {
 
     // System performance alerts
     if (report.analysis.performance && report.analysis.performance.bottlenecks) {
-      report.analysis.performance.bottlenecks.forEach(bottleneck => {
+      report.analysis.performance.bottlenecks.forEach((bottleneck) => {
         if (bottleneck.severity === 'high') {
           alerts.push({
             type: 'system_alert',
@@ -317,7 +337,11 @@ export class AnalyticsDashboard {
             message: bottleneck.description,
             timestamp: new Date().toISOString(),
             action_required: true,
-            suggested_actions: ['Investigate resource usage', 'Consider scaling', 'Review recent changes']
+            suggested_actions: [
+              'Investigate resource usage',
+              'Consider scaling',
+              'Review recent changes',
+            ],
           });
         }
       });
@@ -325,8 +349,11 @@ export class AnalyticsDashboard {
 
     // Task performance alerts
     if (report.analysis.taskPatterns && report.analysis.taskPatterns.statusAnalysis) {
-      const failed = report.analysis.taskPatterns.statusAnalysis.find(s => s.status === 'failed');
-      const total = report.analysis.taskPatterns.statusAnalysis.reduce((sum, s) => sum + s.count, 0);
+      const failed = report.analysis.taskPatterns.statusAnalysis.find((s) => s.status === 'failed');
+      const total = report.analysis.taskPatterns.statusAnalysis.reduce(
+        (sum, s) => sum + s.count,
+        0,
+      );
 
       if (failed && total > 0) {
         const failureRate = (failed.count / total) * 100;
@@ -338,16 +365,24 @@ export class AnalyticsDashboard {
             message: `${failureRate.toFixed(1)}% of tasks are failing`,
             timestamp: new Date().toISOString(),
             action_required: true,
-            suggested_actions: ['Review failed task patterns', 'Check agent configurations', 'Validate task inputs']
+            suggested_actions: [
+              'Review failed task patterns',
+              'Check agent configurations',
+              'Validate task inputs',
+            ],
           });
         }
       }
     }
 
     // Coordination alerts
-    if (report.analysis.coordinationPatterns && report.analysis.coordinationPatterns.consensusAnalysis) {
-      const lowConsensus = report.analysis.coordinationPatterns.consensusAnalysis
-        .filter(consensus => consensus.avg_vote < 0.6);
+    if (
+      report.analysis.coordinationPatterns &&
+      report.analysis.coordinationPatterns.consensusAnalysis
+    ) {
+      const lowConsensus = report.analysis.coordinationPatterns.consensusAnalysis.filter(
+        (consensus) => consensus.avg_vote < 0.6,
+      );
 
       if (lowConsensus.length > 2) {
         alerts.push({
@@ -357,13 +392,19 @@ export class AnalyticsDashboard {
           message: `${lowConsensus.length} proposals have low consensus scores`,
           timestamp: new Date().toISOString(),
           action_required: false,
-          suggested_actions: ['Review agent communication', 'Check decision-making processes', 'Adjust consensus thresholds']
+          suggested_actions: [
+            'Review agent communication',
+            'Check decision-making processes',
+            'Adjust consensus thresholds',
+          ],
         });
       }
     }
 
     // Optimization opportunity alerts
-    const highImpactOptimizations = optimizations.priority.high.filter(opt => opt.impact === 'high');
+    const highImpactOptimizations = optimizations.priority.high.filter(
+      (opt) => opt.impact === 'high',
+    );
     if (highImpactOptimizations.length > 0) {
       alerts.push({
         type: 'opportunity_alert',
@@ -372,7 +413,11 @@ export class AnalyticsDashboard {
         message: `${highImpactOptimizations.length} high-impact optimizations identified`,
         timestamp: new Date().toISOString(),
         action_required: false,
-        suggested_actions: ['Review optimization suggestions', 'Plan implementation', 'Prioritize by impact']
+        suggested_actions: [
+          'Review optimization suggestions',
+          'Plan implementation',
+          'Prioritize by impact',
+        ],
       });
     }
 
@@ -391,7 +436,7 @@ export class AnalyticsDashboard {
       'analytics.html': this.generateAnalyticsTemplate(),
       'recommendations.html': this.generateRecommendationsTemplate(),
       'style.css': this.generateStylesheet(),
-      'script.js': this.generateDashboardScript()
+      'script.js': this.generateDashboardScript(),
     };
 
     for (const [filename, content] of Object.entries(templates)) {
@@ -1056,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timelines = {
       low: '1-2 days',
       medium: '1 week',
-      high: '2-4 weeks'
+      high: '2-4 weeks',
     };
     return timelines[effort] || 'Variable';
   }
@@ -1066,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', () => {
       performance: 'Improved system performance and resource utilization',
       coordination: 'Better agent collaboration and decision-making',
       workflow: 'Streamlined processes and higher success rates',
-      automation: 'Reduced manual effort and faster execution'
+      automation: 'Reduced manual effort and faster execution',
     };
     return benefits[suggestion.category] || 'General system improvement';
   }

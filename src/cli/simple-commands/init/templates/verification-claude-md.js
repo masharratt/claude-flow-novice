@@ -342,92 +342,91 @@ Remember: **"Truth is enforced, not assumed"** - All operations require verifica
 }
 
 export function createVerificationSettingsJson() {
-  return JSON.stringify({
-    "version": "1.0.0",
-    "verification": {
-      "enabled": true,
-      "mode": "strict",
-      "threshold": 0.95,
-      "autoRollback": true,
-      "requireConsensus": true
-    },
-    "pairProgramming": {
-      "enabled": true,
-      "mode": "strict",
-      "realTimeVerification": true,
-      "continuousMonitoring": true,
-      "backgroundExecution": true
-    },
-    "agentVerification": {
-      "coder": {
-        "checks": ["compile", "test", "lint", "typecheck"],
-        "weights": {
-          "compile": 0.35,
-          "test": 0.25,
-          "lint": 0.20,
-          "typecheck": 0.20
-        }
+  return JSON.stringify(
+    {
+      version: '1.0.0',
+      verification: {
+        enabled: true,
+        mode: 'strict',
+        threshold: 0.95,
+        autoRollback: true,
+        requireConsensus: true,
       },
-      "reviewer": {
-        "checks": ["code-analysis", "security-scan", "performance-check"],
-        "weights": {
-          "code-analysis": 0.40,
-          "security-scan": 0.35,
-          "performance-check": 0.25
-        }
+      pairProgramming: {
+        enabled: true,
+        mode: 'strict',
+        realTimeVerification: true,
+        continuousMonitoring: true,
+        backgroundExecution: true,
       },
-      "tester": {
-        "checks": ["unit-tests", "integration-tests", "coverage-check"],
-        "weights": {
-          "unit-tests": 0.35,
-          "integration-tests": 0.35,
-          "coverage-check": 0.30
-        }
+      agentVerification: {
+        coder: {
+          checks: ['compile', 'test', 'lint', 'typecheck'],
+          weights: {
+            compile: 0.35,
+            test: 0.25,
+            lint: 0.2,
+            typecheck: 0.2,
+          },
+        },
+        reviewer: {
+          checks: ['code-analysis', 'security-scan', 'performance-check'],
+          weights: {
+            'code-analysis': 0.4,
+            'security-scan': 0.35,
+            'performance-check': 0.25,
+          },
+        },
+        tester: {
+          checks: ['unit-tests', 'integration-tests', 'coverage-check'],
+          weights: {
+            'unit-tests': 0.35,
+            'integration-tests': 0.35,
+            'coverage-check': 0.3,
+          },
+        },
+        planner: {
+          checks: ['task-decomposition', 'dependency-check', 'feasibility'],
+          weights: {
+            'task-decomposition': 0.4,
+            'dependency-check': 0.3,
+            feasibility: 0.3,
+          },
+        },
       },
-      "planner": {
-        "checks": ["task-decomposition", "dependency-check", "feasibility"],
-        "weights": {
-          "task-decomposition": 0.40,
-          "dependency-check": 0.30,
-          "feasibility": 0.30
-        }
-      }
-    },
-    "backgroundTasks": {
-      "autoBackground": {
-        "enabled": true,
-        "patterns": [
-          "./claude-flow pair --start",
-          "./claude-flow verify verify",
-          "./claude-flow truth --monitor",
-          "*--monitor*",
-          "*--watch*"
-        ]
-      }
-    },
-    "metrics": {
-      "targets": {
-        "truthAccuracy": 0.95,
-        "integrationSuccess": 0.90,
-        "rollbackFrequency": 0.05,
-        "humanIntervention": 0.10
-      }
-    },
-    "hooks": {
-      "pre-commit": {
-        "enabled": true,
-        "commands": [
-          "npx claude-flow verify verify pre-commit --agent coder"
-        ],
-        "threshold": 0.85
+      backgroundTasks: {
+        autoBackground: {
+          enabled: true,
+          patterns: [
+            './claude-flow pair --start',
+            './claude-flow verify verify',
+            './claude-flow truth --monitor',
+            '*--monitor*',
+            '*--watch*',
+          ],
+        },
       },
-      "post-task": {
-        "enabled": true,
-        "commands": [
-          "npx claude-flow truth --json",
-          "npx claude-flow verify status"
-        ]
-      }
-    }
-  }, null, 2);
+      metrics: {
+        targets: {
+          truthAccuracy: 0.95,
+          integrationSuccess: 0.9,
+          rollbackFrequency: 0.05,
+          humanIntervention: 0.1,
+        },
+      },
+      hooks: {
+        'pre-commit': {
+          enabled: true,
+          commands: ['npx claude-flow verify verify pre-commit --agent coder'],
+          threshold: 0.85,
+        },
+        'post-task': {
+          enabled: true,
+          commands: ['npx claude-flow truth --json', 'npx claude-flow verify status'],
+        },
+      },
+    },
+    null,
+    2,
+  );
 }

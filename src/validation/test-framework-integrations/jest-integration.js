@@ -25,7 +25,7 @@ export class JestIntegration {
       enableByzantineValidation: options.enableByzantineValidation !== false,
       jestConfigPath: options.jestConfigPath,
       outputFormat: options.outputFormat || 'json',
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -65,7 +65,7 @@ export class JestIntegration {
         testExecution,
         parsedResults,
         coverageMetrics,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof
@@ -74,7 +74,7 @@ export class JestIntegration {
         parsedResults,
         coverageMetrics,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -87,36 +87,37 @@ export class JestIntegration {
           failedTests: parsedResults.numFailedTests,
           skippedTests: parsedResults.numPendingTests,
           duration: parsedResults.testExecTime,
-          success: parsedResults.success
+          success: parsedResults.success,
         },
         coverage: {
           lines: coverageMetrics.lines?.pct || 0,
           functions: coverageMetrics.functions?.pct || 0,
           branches: coverageMetrics.branches?.pct || 0,
           statements: coverageMetrics.statements?.pct || 0,
-          meetsThreshold: this.evaluateCoverageThreshold(coverageMetrics)
+          meetsThreshold: this.evaluateCoverageThreshold(coverageMetrics),
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         performance: {
           executionTime: performance.now() - startTime,
-          testExecutionTime: parsedResults.testExecTime || 0
+          testExecutionTime: parsedResults.testExecTime || 0,
         },
         rawOutput: testExecution.stdout,
-        errors: testExecution.stderr ? [testExecution.stderr] : []
+        errors: testExecution.stderr ? [testExecution.stderr] : [],
       };
 
       // Store execution history
       this.executionHistory.set(executionId, result);
 
-      console.log(`✅ Jest execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`);
+      console.log(
+        `✅ Jest execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         executionId,
@@ -124,7 +125,7 @@ export class JestIntegration {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.executionHistory.set(executionId, errorResult);
@@ -146,14 +147,14 @@ export class JestIntegration {
       const packageJsonContent = await fs.readFile(packageJsonPath, 'utf8');
       packageJson = JSON.parse(packageJsonContent);
 
-      const hasJest = packageJson.devDependencies?.jest ||
-                     packageJson.dependencies?.jest ||
-                     packageJson.scripts?.test?.includes('jest');
+      const hasJest =
+        packageJson.devDependencies?.jest ||
+        packageJson.dependencies?.jest ||
+        packageJson.scripts?.test?.includes('jest');
 
       if (!hasJest) {
         errors.push('Jest not found in package.json dependencies or scripts');
       }
-
     } catch (error) {
       errors.push(`Cannot read package.json: ${error.message}`);
     }
@@ -163,7 +164,7 @@ export class JestIntegration {
       const configPaths = [
         path.join(projectPath, 'jest.config.js'),
         path.join(projectPath, 'jest.config.json'),
-        path.join(projectPath, 'jest.config.ts')
+        path.join(projectPath, 'jest.config.ts'),
       ];
 
       let configFound = false;
@@ -182,7 +183,6 @@ export class JestIntegration {
         // This is a warning, not error - Jest can use defaults
         console.warn('No explicit Jest configuration found, using defaults');
       }
-
     } catch (error) {
       errors.push(`Jest configuration check failed: ${error.message}`);
     }
@@ -195,7 +195,7 @@ export class JestIntegration {
         path.join(projectPath, '**/*.test.js'),
         path.join(projectPath, '**/*.test.ts'),
         path.join(projectPath, '**/*.spec.js'),
-        path.join(projectPath, '**/*.spec.ts')
+        path.join(projectPath, '**/*.spec.ts'),
       ];
 
       let testsFound = false;
@@ -215,7 +215,6 @@ export class JestIntegration {
       if (!testsFound) {
         errors.push('No test files found matching Jest patterns');
       }
-
     } catch (error) {
       errors.push(`Test file detection failed: ${error.message}`);
     }
@@ -224,7 +223,7 @@ export class JestIntegration {
       valid: errors.length === 0,
       errors,
       packageJson,
-      jestConfig
+      jestConfig,
     };
   }
 
@@ -238,31 +237,35 @@ export class JestIntegration {
 
       console.log(`🚀 Running Jest command: ${jestCommand}`);
 
-      exec(jestCommand, {
-        timeout: this.options.timeout,
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large outputs
-        env: {
-          ...process.env,
-          NODE_ENV: 'test',
-          CI: 'true' // Ensure Jest runs in CI mode for consistent output
-        }
-      }, (error, stdout, stderr) => {
-        const result = {
-          success: !error || error.code === 0,
-          exitCode: error?.code || 0,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          command: jestCommand,
-          executedAt: new Date().toISOString()
-        };
+      exec(
+        jestCommand,
+        {
+          timeout: this.options.timeout,
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large outputs
+          env: {
+            ...process.env,
+            NODE_ENV: 'test',
+            CI: 'true', // Ensure Jest runs in CI mode for consistent output
+          },
+        },
+        (error, stdout, stderr) => {
+          const result = {
+            success: !error || error.code === 0,
+            exitCode: error?.code || 0,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            command: jestCommand,
+            executedAt: new Date().toISOString(),
+          };
 
-        // Jest can exit with code 1 if tests fail but execution was successful
-        if (error && error.code !== 1) {
-          console.error(`Jest execution error (code ${error.code}):`, stderr);
-        }
+          // Jest can exit with code 1 if tests fail but execution was successful
+          if (error && error.code !== 1) {
+            console.error(`Jest execution error (code ${error.code}):`, stderr);
+          }
 
-        resolve(result);
-      });
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -281,16 +284,18 @@ export class JestIntegration {
           numPassedTests: jsonResult.numPassedTests,
           numFailedTests: jsonResult.numFailedTests,
           numPendingTests: jsonResult.numPendingTests,
-          testExecTime: jsonResult.testResults?.reduce((sum, result) =>
-            sum + (result.perfStats?.slow || 0), 0) || 0,
+          testExecTime:
+            jsonResult.testResults?.reduce(
+              (sum, result) => sum + (result.perfStats?.slow || 0),
+              0,
+            ) || 0,
           testSuites: jsonResult.testResults || [],
-          coverageMap: jsonResult.coverageMap
+          coverageMap: jsonResult.coverageMap,
         };
       }
 
       // Fallback to stdout parsing if JSON not available
       return this.parseJestStdout(execution.stdout);
-
     } catch (error) {
       console.error('Error parsing Jest results:', error);
       throw new Error(`Failed to parse Jest test results: ${error.message}`);
@@ -332,7 +337,7 @@ export class JestIntegration {
       numFailedTests: failedTests,
       numPendingTests: skippedTests,
       testExecTime: this.extractExecutionTime(stdout),
-      rawOutput: stdout
+      rawOutput: stdout,
     };
   }
 
@@ -352,14 +357,13 @@ export class JestIntegration {
         // Try to extract from stdout if coverage file doesn't exist
         return this.extractCoverageFromOutput(execution.stdout);
       }
-
     } catch (error) {
       console.warn('Could not extract coverage metrics:', error.message);
       return {
         lines: { pct: 0 },
         functions: { pct: 0 },
         branches: { pct: 0 },
-        statements: { pct: 0 }
+        statements: { pct: 0 },
       };
     }
   }
@@ -372,24 +376,24 @@ export class JestIntegration {
       lines: { covered: 0, total: 0 },
       functions: { covered: 0, total: 0 },
       branches: { covered: 0, total: 0 },
-      statements: { covered: 0, total: 0 }
+      statements: { covered: 0, total: 0 },
     };
 
     for (const [file, fileCoverage] of Object.entries(coverageData)) {
       if (fileCoverage.s) {
         stats.statements.total += Object.keys(fileCoverage.s).length;
-        stats.statements.covered += Object.values(fileCoverage.s).filter(hits => hits > 0).length;
+        stats.statements.covered += Object.values(fileCoverage.s).filter((hits) => hits > 0).length;
       }
 
       if (fileCoverage.f) {
         stats.functions.total += Object.keys(fileCoverage.f).length;
-        stats.functions.covered += Object.values(fileCoverage.f).filter(hits => hits > 0).length;
+        stats.functions.covered += Object.values(fileCoverage.f).filter((hits) => hits > 0).length;
       }
 
       if (fileCoverage.b) {
         for (const branches of Object.values(fileCoverage.b)) {
           stats.branches.total += branches.length;
-          stats.branches.covered += branches.filter(hits => hits > 0).length;
+          stats.branches.covered += branches.filter((hits) => hits > 0).length;
         }
       }
     }
@@ -398,20 +402,24 @@ export class JestIntegration {
     return {
       lines: {
         ...stats.lines,
-        pct: stats.lines.total > 0 ? (stats.lines.covered / stats.lines.total) * 100 : 0
+        pct: stats.lines.total > 0 ? (stats.lines.covered / stats.lines.total) * 100 : 0,
       },
       functions: {
         ...stats.functions,
-        pct: stats.functions.total > 0 ? (stats.functions.covered / stats.functions.total) * 100 : 0
+        pct:
+          stats.functions.total > 0 ? (stats.functions.covered / stats.functions.total) * 100 : 0,
       },
       branches: {
         ...stats.branches,
-        pct: stats.branches.total > 0 ? (stats.branches.covered / stats.branches.total) * 100 : 0
+        pct: stats.branches.total > 0 ? (stats.branches.covered / stats.branches.total) * 100 : 0,
       },
       statements: {
         ...stats.statements,
-        pct: stats.statements.total > 0 ? (stats.statements.covered / stats.statements.total) * 100 : 0
-      }
+        pct:
+          stats.statements.total > 0
+            ? (stats.statements.covered / stats.statements.total) * 100
+            : 0,
+      },
     };
   }
 
@@ -435,11 +443,11 @@ export class JestIntegration {
         testResults: {
           totalTests: validationData.parsedResults.numTotalTests,
           passedTests: validationData.parsedResults.numPassedTests,
-          success: validationData.parsedResults.success
+          success: validationData.parsedResults.success,
         },
         coverageMetrics: validationData.coverageMetrics,
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Achieve consensus on test results
@@ -454,15 +462,14 @@ export class JestIntegration {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true // Assume tampering if validation fails
+        tamperedResults: true, // Assume tampering if validation fails
       };
     }
   }
@@ -478,9 +485,14 @@ export class JestIntegration {
 
     return Array.from({ length: validatorCount }, (_, i) => ({
       id: `jest-validator-${i}`,
-      specialization: ['test_execution', 'coverage_verification', 'result_integrity', 'performance_analysis'][i % 4],
-      reputation: 0.85 + (Math.random() * 0.15), // Real reputation system would be implemented
-      riskTolerance: validationData.parsedResults.success ? 'medium' : 'low'
+      specialization: [
+        'test_execution',
+        'coverage_verification',
+        'result_integrity',
+        'performance_analysis',
+      ][i % 4],
+      reputation: 0.85 + Math.random() * 0.15, // Real reputation system would be implemented
+      riskTolerance: validationData.parsedResults.success ? 'medium' : 'low',
     }));
   }
 
@@ -489,9 +501,8 @@ export class JestIntegration {
    */
   detectResultTampering(validationData, consensus) {
     // Check for inconsistencies in voting patterns
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     // Check execution hash integrity
@@ -502,7 +513,7 @@ export class JestIntegration {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -514,7 +525,7 @@ export class JestIntegration {
       executionId: data.executionId,
       testResults: data.parsedResults,
       coverageMetrics: data.coverageMetrics,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -525,7 +536,7 @@ export class JestIntegration {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'jest-integration',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -540,7 +551,7 @@ export class JestIntegration {
       stdout: validationData.testExecution.stdout,
       stderr: validationData.testExecution.stderr,
       exitCode: validationData.testExecution.exitCode,
-      command: validationData.testExecution.command
+      command: validationData.testExecution.command,
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -550,7 +561,7 @@ export class JestIntegration {
     const args = [
       '--json', // Always use JSON output for parsing
       '--passWithNoTests', // Don't fail if no tests found
-      '--verbose'
+      '--verbose',
     ];
 
     if (config.coverage !== false) {
@@ -588,14 +599,16 @@ export class JestIntegration {
   }
 
   extractCoverageFromOutput(stdout) {
-    const coverageMatch = stdout.match(/All files\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)/);
+    const coverageMatch = stdout.match(
+      /All files\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)/,
+    );
 
     if (coverageMatch) {
       return {
         statements: { pct: parseFloat(coverageMatch[1]) },
         branches: { pct: parseFloat(coverageMatch[2]) },
         functions: { pct: parseFloat(coverageMatch[3]) },
-        lines: { pct: parseFloat(coverageMatch[4]) }
+        lines: { pct: parseFloat(coverageMatch[4]) },
       };
     }
 
@@ -603,7 +616,7 @@ export class JestIntegration {
       lines: { pct: 0 },
       functions: { pct: 0 },
       branches: { pct: 0 },
-      statements: { pct: 0 }
+      statements: { pct: 0 },
     };
   }
 
@@ -627,15 +640,14 @@ export class JestIntegration {
     if (totalExecutions === 0) return { rate: 0, sample: 0 };
 
     // A false completion is when tests report success but should have failed
-    const falseCompletions = executions.filter(exec =>
-      exec.testResults?.success &&
-      (exec.coverage && !exec.coverage.meetsThreshold)
+    const falseCompletions = executions.filter(
+      (exec) => exec.testResults?.success && exec.coverage && !exec.coverage.meetsThreshold,
     );
 
     return {
       rate: falseCompletions.length / totalExecutions,
       sample: totalExecutions,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

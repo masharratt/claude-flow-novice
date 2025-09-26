@@ -69,7 +69,7 @@ export class DeploymentOrchestrator extends EventEmitter {
       progress: 0,
       message: 'Deployment registered',
       timestamp: new Date(),
-      healthChecks: {}
+      healthChecks: {},
     });
 
     this.emit('deployment:registered', { id, config });
@@ -89,7 +89,7 @@ export class DeploymentOrchestrator extends EventEmitter {
       progress: 10,
       message: 'Starting deployment',
       timestamp: new Date(),
-      healthChecks: {}
+      healthChecks: {},
     });
 
     try {
@@ -118,16 +118,15 @@ export class DeploymentOrchestrator extends EventEmitter {
         progress: 100,
         message: 'Deployment completed successfully',
         timestamp: new Date(),
-        healthChecks: await this.performHealthChecks(deploymentId, config)
+        healthChecks: await this.performHealthChecks(deploymentId, config),
       });
-
     } catch (error) {
       this.updateDeploymentStatus(deploymentId, {
         phase: 'failed',
         progress: 0,
         message: `Deployment failed: ${error.message}`,
         timestamp: new Date(),
-        healthChecks: {}
+        healthChecks: {},
       });
       throw error;
     }
@@ -177,7 +176,10 @@ export class DeploymentOrchestrator extends EventEmitter {
   /**
    * Canary deployment strategy
    */
-  async deployCanary(deploymentId: string, trafficPercentages: number[] = [10, 25, 50, 100]): Promise<void> {
+  async deployCanary(
+    deploymentId: string,
+    trafficPercentages: number[] = [10, 25, 50, 100],
+  ): Promise<void> {
     const config = this.configs.get(deploymentId);
     if (!config) {
       throw new Error(`Deployment configuration not found: ${deploymentId}`);
@@ -198,7 +200,7 @@ export class DeploymentOrchestrator extends EventEmitter {
       this.updateProgress(
         deploymentId,
         20 + (i + 1) * (60 / trafficPercentages.length),
-        `Traffic split: ${percentage}% to canary`
+        `Traffic split: ${percentage}% to canary`,
       );
 
       // Monitor for issues
@@ -237,7 +239,7 @@ export class DeploymentOrchestrator extends EventEmitter {
         this.updateProgress(
           deploymentId,
           ((index + 1) / clouds.length) * 80,
-          `Deployed to ${cloud}`
+          `Deployed to ${cloud}`,
         );
         return { cloud, status: 'success' };
       } catch (error) {
@@ -248,10 +250,10 @@ export class DeploymentOrchestrator extends EventEmitter {
     const results = await Promise.allSettled(deploymentPromises);
     const failedDeployments = results
       .map((result, index) => ({ ...result, cloud: clouds[index] }))
-      .filter(result => result.status === 'rejected');
+      .filter((result) => result.status === 'rejected');
 
     if (failedDeployments.length > 0) {
-      throw new Error(`Failed deployments: ${failedDeployments.map(f => f.cloud).join(', ')}`);
+      throw new Error(`Failed deployments: ${failedDeployments.map((f) => f.cloud).join(', ')}`);
     }
 
     // Configure global load balancer
@@ -276,7 +278,7 @@ export class DeploymentOrchestrator extends EventEmitter {
 
     try {
       // Get rollback target
-      const rollbackTarget = targetVersion || await this.getPreviousVersion(deploymentId);
+      const rollbackTarget = targetVersion || (await this.getPreviousVersion(deploymentId));
       this.updateProgress(deploymentId, 20, `Rolling back to version ${rollbackTarget}`);
 
       // Perform rollback based on platform
@@ -306,14 +308,13 @@ export class DeploymentOrchestrator extends EventEmitter {
       }
 
       this.updateProgress(deploymentId, 100, 'Rollback completed successfully');
-
     } catch (error) {
       this.updateDeploymentStatus(deploymentId, {
         phase: 'failed',
         progress: 0,
         message: `Rollback failed: ${error.message}`,
         timestamp: new Date(),
-        healthChecks: {}
+        healthChecks: {},
       });
       throw error;
     }
@@ -356,7 +357,7 @@ export class DeploymentOrchestrator extends EventEmitter {
         ...currentStatus,
         progress,
         message,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
   }
@@ -375,7 +376,10 @@ export class DeploymentOrchestrator extends EventEmitter {
     await this.runSecurityChecks(config);
   }
 
-  private async provisionInfrastructure(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async provisionInfrastructure(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     switch (config.platform) {
       case 'aws':
         await this.provisionAWSInfrastructure(deploymentId, config);
@@ -409,7 +413,10 @@ export class DeploymentOrchestrator extends EventEmitter {
     await this.applySecurityPolicies(deploymentId, config);
   }
 
-  private async postDeploymentVerification(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async postDeploymentVerification(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     // Health checks
     const healthChecks = await this.performHealthChecks(deploymentId, config);
     if (!this.allHealthChecksPass(healthChecks)) {
@@ -459,23 +466,38 @@ export class DeploymentOrchestrator extends EventEmitter {
     // Run security validation
   }
 
-  private async provisionAWSInfrastructure(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async provisionAWSInfrastructure(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     // AWS-specific infrastructure provisioning
   }
 
-  private async provisionGCPInfrastructure(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async provisionGCPInfrastructure(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     // GCP-specific infrastructure provisioning
   }
 
-  private async provisionAzureInfrastructure(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async provisionAzureInfrastructure(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     // Azure-specific infrastructure provisioning
   }
 
-  private async provisionKubernetesResources(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async provisionKubernetesResources(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     // Kubernetes-specific resource provisioning
   }
 
-  private async provisionDockerResources(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async provisionDockerResources(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     // Docker-specific resource provisioning
   }
 
@@ -491,22 +513,28 @@ export class DeploymentOrchestrator extends EventEmitter {
     // Configure load balancers, ingress, etc.
   }
 
-  private async applySecurityPolicies(deploymentId: string, config: DeploymentConfig): Promise<void> {
+  private async applySecurityPolicies(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<void> {
     // Apply security policies
   }
 
-  private async performHealthChecks(deploymentId: string, config: DeploymentConfig): Promise<Record<string, boolean>> {
+  private async performHealthChecks(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<Record<string, boolean>> {
     return {
       'application-health': true,
       'database-connectivity': true,
       'external-services': true,
       'memory-usage': true,
-      'cpu-usage': true
+      'cpu-usage': true,
     };
   }
 
   private allHealthChecksPass(healthChecks: Record<string, boolean>): boolean {
-    return Object.values(healthChecks).every(check => check);
+    return Object.values(healthChecks).every((check) => check);
   }
 
   private async runSmokeTests(deploymentId: string, config: DeploymentConfig): Promise<boolean> {
@@ -531,7 +559,11 @@ export class DeploymentOrchestrator extends EventEmitter {
   }
 
   // Blue-Green specific methods
-  private async deployToEnvironment(deploymentId: string, config: DeploymentConfig, environment: string): Promise<void> {
+  private async deployToEnvironment(
+    deploymentId: string,
+    config: DeploymentConfig,
+    environment: string,
+  ): Promise<void> {
     // Deploy to specific environment
   }
 
@@ -539,7 +571,10 @@ export class DeploymentOrchestrator extends EventEmitter {
     // Switch traffic between environments
   }
 
-  private async verifyProductionHealth(deploymentId: string, config: DeploymentConfig): Promise<boolean> {
+  private async verifyProductionHealth(
+    deploymentId: string,
+    config: DeploymentConfig,
+  ): Promise<boolean> {
     // Verify production health
     return true;
   }
@@ -549,7 +584,11 @@ export class DeploymentOrchestrator extends EventEmitter {
   }
 
   // Canary specific methods
-  private async adjustTrafficSplit(deploymentId: string, target: string, percentage: number): Promise<void> {
+  private async adjustTrafficSplit(
+    deploymentId: string,
+    target: string,
+    percentage: number,
+  ): Promise<void> {
     // Adjust traffic split
   }
 
@@ -557,7 +596,9 @@ export class DeploymentOrchestrator extends EventEmitter {
     // Monitor canary health for specified duration
   }
 
-  private async getCanaryMetrics(deploymentId: string): Promise<{ errorRate: number; latencyP99: number }> {
+  private async getCanaryMetrics(
+    deploymentId: string,
+  ): Promise<{ errorRate: number; latencyP99: number }> {
     // Get canary metrics
     return { errorRate: 0.001, latencyP99: 500 };
   }

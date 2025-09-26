@@ -24,7 +24,7 @@ export async function setupCommand(options = {}) {
 
     const wizard = new InteractiveSetupWizard({
       basePath: process.cwd(),
-      verbose: options.verbose
+      verbose: options.verbose,
     });
 
     let result;
@@ -53,9 +53,8 @@ export async function setupCommand(options = {}) {
 
     return {
       ...result,
-      totalTime: setupTime
+      totalTime: setupTime,
     };
-
   } catch (error) {
     logger.error('CLI setup command failed', error);
 
@@ -72,7 +71,7 @@ export async function setupCommand(options = {}) {
     return {
       success: false,
       error: error.message,
-      totalTime: (Date.now() - startTime) / 1000
+      totalTime: (Date.now() - startTime) / 1000,
     };
   }
 }
@@ -84,7 +83,6 @@ export async function showConfigCommand(options = {}) {
   try {
     const commands = new ValidationCommands({ basePath: process.cwd() });
     return await commands.showConfigCommand(options);
-
   } catch (error) {
     logger.error('CLI show-config command failed', error);
     throw error;
@@ -116,7 +114,6 @@ export async function testConfigCommand(options = {}) {
     }
 
     return result;
-
   } catch (error) {
     logger.error('CLI test command failed', error);
     throw error;
@@ -130,7 +127,6 @@ export async function enableHooksCommand(options = {}) {
   try {
     const commands = new ValidationCommands({ basePath: process.cwd() });
     return await commands.enableHooksCommand(options);
-
   } catch (error) {
     logger.error('CLI enable-hooks command failed', error);
     throw error;
@@ -144,7 +140,6 @@ export async function disableHooksCommand(options = {}) {
   try {
     const commands = new ValidationCommands({ basePath: process.cwd() });
     return await commands.disableHooksCommand(options);
-
   } catch (error) {
     logger.error('CLI disable-hooks command failed', error);
     throw error;
@@ -158,7 +153,6 @@ export async function addFrameworkCommand(options = {}) {
   try {
     const commands = new ValidationCommands({ basePath: process.cwd() });
     return await commands.addFrameworkCommand(options);
-
   } catch (error) {
     logger.error('CLI add-framework command failed', error);
     throw error;
@@ -172,7 +166,6 @@ export async function configureGatesCommand(options = {}) {
   try {
     const commands = new ValidationCommands({ basePath: process.cwd() });
     return await commands.configureGatesCommand(options);
-
   } catch (error) {
     logger.error('CLI configure-gates command failed', error);
     throw error;
@@ -186,7 +179,6 @@ export async function checkCommand(options = {}) {
   try {
     const commands = new ValidationCommands({ basePath: process.cwd() });
     return await commands.checkCommand(options);
-
   } catch (error) {
     logger.error('CLI check command failed', error);
     throw error;
@@ -237,5 +229,5 @@ export default {
   addFrameworkCommand,
   configureGatesCommand,
   checkCommand,
-  displayErrorHelp
+  displayErrorHelp,
 };

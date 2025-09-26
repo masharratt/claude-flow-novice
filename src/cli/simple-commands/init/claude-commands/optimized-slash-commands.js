@@ -43,7 +43,9 @@ export async function createOptimizedClaudeSlashCommands(workingDir, selectedMod
 
         await fs.mkdir(join(workingDir, '.claude', 'commands', 'sparc'), { recursive: true });
         await fs.writeFile(commandPath, commandContent, 'utf8');
-        console.log(`  ✓ Created optimized slash command: /sparc-${mode.slug} (Batchtools enhanced)`);
+        console.log(
+          `  ✓ Created optimized slash command: /sparc-${mode.slug} (Batchtools enhanced)`,
+        );
       });
 
       // Execute all command creations in parallel
@@ -51,7 +53,10 @@ export async function createOptimizedClaudeSlashCommands(workingDir, selectedMod
 
       // Create main SPARC command with batchtools optimization
       const mainSparcCommand = createOptimizedMainSparcCommand(roomodes.customModes);
-      await fs.writeFile(join(workingDir, '.claude', 'commands', 'sparc.md', 'utf8'), mainSparcCommand);
+      await fs.writeFile(
+        join(workingDir, '.claude', 'commands', 'sparc.md', 'utf8'),
+        mainSparcCommand,
+      );
       console.log('  ✅ Created optimized main slash command: /sparc (Batchtools enhanced)');
 
       console.log(`  🎯 Total optimized commands created: ${modesToCreate.length + 5}`);
@@ -59,7 +64,7 @@ export async function createOptimizedClaudeSlashCommands(workingDir, selectedMod
       // Fallback to template copier if .roomodes doesn't exist
       console.log('  🔄 Using template copier for optimized SPARC commands...');
       const copyResults = await copyTemplates(workingDir, optimizedOptions);
-      
+
       if (!copyResults.success) {
         console.log(`  ⚠️  Template copier failed: ${copyResults.errors.join(', ')}`);
       }

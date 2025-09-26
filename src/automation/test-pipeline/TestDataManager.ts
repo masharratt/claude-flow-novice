@@ -95,7 +95,7 @@ export class TestDataManager {
       tags: spec.tags || [],
       environment: spec.environment || 'default',
       shared: spec.shared || false,
-      persistent: spec.persistent || false
+      persistent: spec.persistent || false,
     };
 
     console.log(`📋 Creating test fixture: ${fixture.name} (${fixture.type})`);
@@ -127,8 +127,9 @@ export class TestDataManager {
     console.log(`🔒 Getting isolated environment for test suite: ${testSuiteId}`);
 
     // Check for existing environment
-    const existingEnv = Array.from(this.environments.values())
-      .find(env => env.testSuiteId === testSuiteId && env.status === 'available');
+    const existingEnv = Array.from(this.environments.values()).find(
+      (env) => env.testSuiteId === testSuiteId && env.status === 'available',
+    );
 
     if (existingEnv) {
       existingEnv.status = 'in-use';
@@ -147,7 +148,7 @@ export class TestDataManager {
       resources: [],
       lastUsed: new Date(),
       agentId,
-      testSuiteId
+      testSuiteId,
     };
 
     // Initialize environment resources
@@ -229,13 +230,17 @@ export class TestDataManager {
       name: backupName,
       scope,
       timestamp: new Date(),
-      fixtures: scope === 'fixtures' || scope === 'all' ? Object.fromEntries(this.fixtures.entries()) : {},
-      environments: scope === 'environments' || scope === 'all' ? Object.fromEntries(this.environments.entries()) : {},
+      fixtures:
+        scope === 'fixtures' || scope === 'all' ? Object.fromEntries(this.fixtures.entries()) : {},
+      environments:
+        scope === 'environments' || scope === 'all'
+          ? Object.fromEntries(this.environments.entries())
+          : {},
       metadata: {
         totalFixtures: this.fixtures.size,
         totalEnvironments: this.environments.size,
-        version: '1.0.0'
-      }
+        version: '1.0.0',
+      },
     };
 
     // Store backup (in production this would go to persistent storage)
@@ -297,13 +302,13 @@ export class TestDataManager {
       rulesExecuted: 0,
       fixturesRemoved: 0,
       environmentsReset: 0,
-      errors: []
+      errors: [],
     };
 
     try {
-      const rulesToExecute = rules ?
-        Array.from(this.cleanupRules.values()).filter(rule => rules.includes(rule.id)) :
-        Array.from(this.cleanupRules.values()).filter(rule => rule.enabled);
+      const rulesToExecute = rules
+        ? Array.from(this.cleanupRules.values()).filter((rule) => rules.includes(rule.id))
+        : Array.from(this.cleanupRules.values()).filter((rule) => rule.enabled);
 
       for (const rule of rulesToExecute) {
         try {
@@ -320,7 +325,9 @@ export class TestDataManager {
       }
 
       cleanupResults.endTime = new Date();
-      console.log(`🧹 Cleanup completed: ${cleanupResults.fixturesRemoved} fixtures, ${cleanupResults.environmentsReset} environments`);
+      console.log(
+        `🧹 Cleanup completed: ${cleanupResults.fixturesRemoved} fixtures, ${cleanupResults.environmentsReset} environments`,
+      );
 
       return cleanupResults;
     } catch (error) {
@@ -334,7 +341,10 @@ export class TestDataManager {
   /**
    * Manage shared test data with versioning
    */
-  async manageSharedData(operation: 'create' | 'update' | 'version' | 'delete', dataSpec: any): Promise<string> {
+  async manageSharedData(
+    operation: 'create' | 'update' | 'version' | 'delete',
+    dataSpec: any,
+  ): Promise<string> {
     console.log(`📚 Managing shared data: ${operation}`);
 
     switch (operation) {
@@ -362,19 +372,21 @@ export class TestDataManager {
         byType: this.groupFixturesByType(),
         byEnvironment: this.groupFixturesByEnvironment(),
         expired: this.countExpiredFixtures(),
-        shared: Array.from(this.fixtures.values()).filter(f => f.shared).length
+        shared: Array.from(this.fixtures.values()).filter((f) => f.shared).length,
       },
       environments: {
         total: this.environments.size,
-        available: Array.from(this.environments.values()).filter(e => e.status === 'available').length,
-        inUse: Array.from(this.environments.values()).filter(e => e.status === 'in-use').length,
-        needsCleanup: Array.from(this.environments.values()).filter(e => e.status === 'cleanup').length
+        available: Array.from(this.environments.values()).filter((e) => e.status === 'available')
+          .length,
+        inUse: Array.from(this.environments.values()).filter((e) => e.status === 'in-use').length,
+        needsCleanup: Array.from(this.environments.values()).filter((e) => e.status === 'cleanup')
+          .length,
       },
       cleanupRules: {
         total: this.cleanupRules.size,
-        enabled: Array.from(this.cleanupRules.values()).filter(r => r.enabled).length
+        enabled: Array.from(this.cleanupRules.values()).filter((r) => r.enabled).length,
       },
-      health: this.calculateHealthScore()
+      health: this.calculateHealthScore(),
     };
 
     return stats;
@@ -423,7 +435,7 @@ export class TestDataManager {
         action: 'delete',
         scope: 'fixture',
         schedule: '0 */4 * * *', // Every 4 hours
-        enabled: true
+        enabled: true,
       },
       {
         id: 'unused-environments',
@@ -433,7 +445,7 @@ export class TestDataManager {
         action: 'reset',
         scope: 'environment',
         schedule: '0 * * * *', // Every hour
-        enabled: true
+        enabled: true,
       },
       {
         id: 'old-backups',
@@ -443,8 +455,8 @@ export class TestDataManager {
         action: 'archive',
         scope: 'all',
         retentionPeriod: 7 * 24 * 60 * 60 * 1000, // 7 days
-        enabled: true
-      }
+        enabled: true,
+      },
     ];
 
     for (const rule of defaultRules) {
@@ -466,7 +478,7 @@ export class TestDataManager {
         status: 'available',
         configuration: await this.getDefaultEnvironmentConfig(),
         resources: [],
-        lastUsed: new Date()
+        lastUsed: new Date(),
       };
 
       await this.initializeEnvironment(environment);
@@ -479,13 +491,16 @@ export class TestDataManager {
 
     console.log('⏰ Starting cleanup scheduler');
 
-    this.cleanupScheduler = setInterval(async () => {
-      try {
-        await this.executeCleanup();
-      } catch (error) {
-        console.error('❌ Scheduled cleanup failed:', error);
-      }
-    }, 60 * 60 * 1000); // Run every hour
+    this.cleanupScheduler = setInterval(
+      async () => {
+        try {
+          await this.executeCleanup();
+        } catch (error) {
+          console.error('❌ Scheduled cleanup failed:', error);
+        }
+      },
+      60 * 60 * 1000,
+    ); // Run every hour
   }
 
   private async createFixtureByType(fixture: TestFixture): Promise<void> {
@@ -556,7 +571,7 @@ export class TestDataManager {
       database: { url: 'sqlite://test.db', isolated: true },
       storage: { path: '/tmp/test-storage', cleanup: true },
       network: { isolated: true, mocking: true },
-      services: { mocked: true, timeout: 30000 }
+      services: { mocked: true, timeout: 30000 },
     };
   }
 
@@ -723,8 +738,9 @@ export class TestDataManager {
   }
 
   private async cleanupFixturesByRule(rule: CleanupRule): Promise<number> {
-    const fixturesToCleanup = Array.from(this.fixtures.values())
-      .filter(fixture => this.fixtureMatchesRule(fixture, rule));
+    const fixturesToCleanup = Array.from(this.fixtures.values()).filter((fixture) =>
+      this.fixtureMatchesRule(fixture, rule),
+    );
 
     for (const fixture of fixturesToCleanup) {
       try {
@@ -738,8 +754,9 @@ export class TestDataManager {
   }
 
   private async cleanupEnvironmentsByRule(rule: CleanupRule): Promise<number> {
-    const environmentsToCleanup = Array.from(this.environments.values())
-      .filter(environment => this.environmentMatchesRule(environment, rule));
+    const environmentsToCleanup = Array.from(this.environments.values()).filter((environment) =>
+      this.environmentMatchesRule(environment, rule),
+    );
 
     for (const environment of environmentsToCleanup) {
       try {
@@ -852,8 +869,9 @@ export class TestDataManager {
 
   private countExpiredFixtures(): number {
     const now = new Date();
-    return Array.from(this.fixtures.values())
-      .filter(fixture => fixture.expiresAt && fixture.expiresAt < now).length;
+    return Array.from(this.fixtures.values()).filter(
+      (fixture) => fixture.expiresAt && fixture.expiresAt < now,
+    ).length;
   }
 
   private calculateHealthScore(): number {
@@ -864,13 +882,15 @@ export class TestDataManager {
     score -= expiredCount * 5;
 
     // Deduct points for error environments
-    const errorEnvironments = Array.from(this.environments.values())
-      .filter(env => env.status === 'error').length;
+    const errorEnvironments = Array.from(this.environments.values()).filter(
+      (env) => env.status === 'error',
+    ).length;
     score -= errorEnvironments * 10;
 
     // Deduct points for disabled cleanup rules
-    const disabledRules = Array.from(this.cleanupRules.values())
-      .filter(rule => !rule.enabled).length;
+    const disabledRules = Array.from(this.cleanupRules.values()).filter(
+      (rule) => !rule.enabled,
+    ).length;
     score -= disabledRules * 2;
 
     return Math.max(0, Math.min(100, score));

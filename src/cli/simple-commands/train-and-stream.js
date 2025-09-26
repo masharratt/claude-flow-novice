@@ -24,18 +24,16 @@ export class TrainAndStreamSystem {
     // Step 1: Run training to improve agent profiles
     console.log('\n📚 Phase 1: Training Agents with Real Code');
     console.log('─'.repeat(40));
-    
+
     await this.trainingPipeline.initialize();
     const trainingResult = await this.trainingPipeline.runFullPipeline({
       complexity: options.complexity || 'medium',
       iterations: options.iterations || 2,
-      validate: true
+      validate: true,
     });
 
     // Step 2: Load trained profiles
-    const profiles = JSON.parse(
-      await fs.readFile('.claude-flow/agents/profiles.json', 'utf8')
-    );
+    const profiles = JSON.parse(await fs.readFile('.claude-flow/agents/profiles.json', 'utf8'));
 
     // Step 3: Select best strategy based on task requirements
     const strategy = this.selectOptimalStrategy(profiles, options);
@@ -47,9 +45,9 @@ export class TrainAndStreamSystem {
     // Step 4: Execute stream chain with trained agents
     console.log('\n🔗 Phase 2: Stream Chain Execution');
     console.log('─'.repeat(40));
-    
+
     const result = await this.executeStreamChain(task, strategy, options);
-    
+
     // Step 5: Learn from execution results
     await this.updateProfilesFromExecution(strategy.name, result);
 
@@ -60,8 +58,8 @@ export class TrainAndStreamSystem {
       performance: {
         trainingImprovement: trainingResult.improvements,
         executionTime: result.duration,
-        success: result.success
-      }
+        success: result.success,
+      },
     };
   }
 
@@ -72,17 +70,17 @@ export class TrainAndStreamSystem {
     const priorities = options.priorities || {
       reliability: 0.4,
       speed: 0.3,
-      score: 0.3
+      score: 0.3,
     };
 
     let bestScore = -1;
     let bestStrategy = null;
 
     for (const [name, profile] of Object.entries(profiles)) {
-      const score = 
-        (profile.successRate * priorities.reliability) +
-        ((1 - profile.avgExecutionTime / 5000) * priorities.speed) +
-        (profile.avgScore / 100 * priorities.score);
+      const score =
+        profile.successRate * priorities.reliability +
+        (1 - profile.avgExecutionTime / 5000) * priorities.speed +
+        (profile.avgScore / 100) * priorities.score;
 
       if (score > bestScore) {
         bestScore = score;
@@ -99,7 +97,7 @@ export class TrainAndStreamSystem {
   async executeStreamChain(task, strategy, options) {
     const startTime = Date.now();
     const steps = this.decomposeTask(task, strategy.name);
-    
+
     console.log(`\n📝 Task decomposed into ${steps.length} steps:`);
     steps.forEach((step, i) => {
       console.log(`   ${i + 1}. ${step.description}`);
@@ -112,18 +110,18 @@ export class TrainAndStreamSystem {
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
       console.log(`\n🔄 Executing Step ${i + 1}: ${step.description}`);
-      
+
       const output = await this.executeStreamStep(
         step,
         inputStream,
-        i === steps.length - 1 // isLast
+        i === steps.length - 1, // isLast
       );
-      
+
       results.push({
         step: i + 1,
         description: step.description,
         output: output.summary,
-        duration: output.duration
+        duration: output.duration,
       });
 
       inputStream = output.stream;
@@ -131,7 +129,7 @@ export class TrainAndStreamSystem {
     }
 
     const totalDuration = Date.now() - startTime;
-    
+
     console.log('\n✅ Stream Chain Complete');
     console.log(`   Total Duration: ${totalDuration}ms`);
     console.log(`   Steps Completed: ${results.length}`);
@@ -140,7 +138,7 @@ export class TrainAndStreamSystem {
       success: true,
       duration: totalDuration,
       steps: results,
-      finalOutput: lastOutput.summary
+      finalOutput: lastOutput.summary,
     };
   }
 
@@ -150,7 +148,7 @@ export class TrainAndStreamSystem {
   async executeStreamStep(step, inputStream, isLast) {
     return new Promise((resolve) => {
       const startTime = Date.now();
-      
+
       // Build command arguments
       const args = ['-p'];
       if (inputStream) {
@@ -163,7 +161,7 @@ export class TrainAndStreamSystem {
 
       // Spawn Claude process
       const claudeProcess = spawn('claude', args, {
-        stdio: inputStream ? ['pipe', 'pipe', 'pipe'] : ['inherit', 'pipe', 'pipe']
+        stdio: inputStream ? ['pipe', 'pipe', 'pipe'] : ['inherit', 'pipe', 'pipe'],
       });
 
       let output = '';
@@ -185,7 +183,7 @@ export class TrainAndStreamSystem {
 
       claudeProcess.on('close', (code) => {
         const duration = Date.now() - startTime;
-        
+
         // Parse output for summary
         let summary = 'Step completed';
         try {
@@ -212,7 +210,7 @@ export class TrainAndStreamSystem {
           success: code === 0,
           duration,
           summary,
-          stream: !isLast ? streamOutput : null
+          stream: !isLast ? streamOutput : null,
         });
       });
     });
@@ -227,43 +225,43 @@ export class TrainAndStreamSystem {
       return [
         {
           description: 'Thorough analysis and validation',
-          prompt: `Analyze this task thoroughly and identify all requirements: ${task}`
+          prompt: `Analyze this task thoroughly and identify all requirements: ${task}`,
         },
         {
           description: 'Detailed planning with error handling',
-          prompt: 'Create a detailed implementation plan with comprehensive error handling'
+          prompt: 'Create a detailed implementation plan with comprehensive error handling',
         },
         {
           description: 'Safe implementation with validation',
-          prompt: 'Implement the solution with extensive validation and safety checks'
-        }
+          prompt: 'Implement the solution with extensive validation and safety checks',
+        },
       ];
     } else if (strategy === 'aggressive') {
       return [
         {
           description: 'Quick analysis',
-          prompt: `Quickly analyze and implement: ${task}`
+          prompt: `Quickly analyze and implement: ${task}`,
         },
         {
           description: 'Optimization pass',
-          prompt: 'Optimize the implementation for maximum performance'
-        }
+          prompt: 'Optimize the implementation for maximum performance',
+        },
       ];
     } else {
       // Balanced
       return [
         {
           description: 'Analysis and design',
-          prompt: `Analyze and design a solution for: ${task}`
+          prompt: `Analyze and design a solution for: ${task}`,
         },
         {
           description: 'Implementation',
-          prompt: 'Implement the designed solution'
+          prompt: 'Implement the designed solution',
         },
         {
           description: 'Review and refinement',
-          prompt: 'Review the implementation and make necessary refinements'
-        }
+          prompt: 'Review the implementation and make necessary refinements',
+        },
       ];
     }
   }
@@ -272,9 +270,7 @@ export class TrainAndStreamSystem {
    * Update profiles based on execution results
    */
   async updateProfilesFromExecution(strategy, result) {
-    const profiles = JSON.parse(
-      await fs.readFile('.claude-flow/agents/profiles.json', 'utf8')
-    );
+    const profiles = JSON.parse(await fs.readFile('.claude-flow/agents/profiles.json', 'utf8'));
 
     if (profiles[strategy]) {
       const profile = profiles[strategy];
@@ -285,7 +281,8 @@ export class TrainAndStreamSystem {
       // Update with learning
       const learningRate = 0.2;
       profile.avgScore = profile.avgScore * (1 - learningRate) + overallScore * learningRate;
-      profile.avgExecutionTime = profile.avgExecutionTime * (1 - learningRate) + result.duration * learningRate;
+      profile.avgExecutionTime =
+        profile.avgExecutionTime * (1 - learningRate) + result.duration * learningRate;
       profile.uses++;
 
       // Add to trend
@@ -293,13 +290,10 @@ export class TrainAndStreamSystem {
       profile.trend.push({
         score: overallScore,
         timestamp: new Date().toISOString(),
-        streamExecution: true
+        streamExecution: true,
       });
 
-      await fs.writeFile(
-        '.claude-flow/agents/profiles.json',
-        JSON.stringify(profiles, null, 2)
-      );
+      await fs.writeFile('.claude-flow/agents/profiles.json', JSON.stringify(profiles, null, 2));
     }
   }
 }
@@ -321,25 +315,29 @@ export async function trainAndStreamCommand(args, flags) {
     priorities: {
       reliability: parseFloat(flags.reliability) || 0.4,
       speed: parseFloat(flags.speed) || 0.3,
-      score: parseFloat(flags.score) || 0.3
-    }
+      score: parseFloat(flags.score) || 0.3,
+    },
   };
 
   try {
     const result = await system.trainAndExecute(task, options);
-    
+
     console.log('\n' + '═'.repeat(50));
     console.log('📊 Final Report');
     console.log('═'.repeat(50));
-    
+
     console.log('\n🎯 Strategy Used:', result.strategy);
     console.log('⏱️  Total Execution Time:', result.performance.executionTime + 'ms');
     console.log('✅ Success:', result.performance.success ? 'Yes' : 'No');
-    
+
     if (result.performance.trainingImprovement) {
       console.log('\n📈 Training Improvements:');
-      console.log(`   Success Rate: ${result.performance.trainingImprovement.successRate > 0 ? '+' : ''}${result.performance.trainingImprovement.successRate.toFixed(1)}%`);
-      console.log(`   Score: ${result.performance.trainingImprovement.score > 0 ? '+' : ''}${result.performance.trainingImprovement.score.toFixed(1)}%`);
+      console.log(
+        `   Success Rate: ${result.performance.trainingImprovement.successRate > 0 ? '+' : ''}${result.performance.trainingImprovement.successRate.toFixed(1)}%`,
+      );
+      console.log(
+        `   Score: ${result.performance.trainingImprovement.score > 0 ? '+' : ''}${result.performance.trainingImprovement.score.toFixed(1)}%`,
+      );
     }
 
     console.log('\n🔗 Stream Chain Steps:');
@@ -347,7 +345,6 @@ export async function trainAndStreamCommand(args, flags) {
       console.log(`   ${step.step}. ${step.description} (${step.duration}ms)`);
       console.log(`      Output: ${step.output.slice(0, 60)}...`);
     }
-
   } catch (error) {
     console.error('❌ Error:', error.message);
     process.exit(1);

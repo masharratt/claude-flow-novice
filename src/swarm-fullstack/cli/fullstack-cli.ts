@@ -16,7 +16,10 @@ import { Logger } from '../../core/logger.js';
 import { ChromeMCPAdapter } from '../adapters/chrome-mcp-adapter.js';
 import { ShadcnMCPAdapter } from '../adapters/shadcn-mcp-adapter.js';
 
-const logger = new Logger({ level: 'info', format: 'text', destination: 'console' }, { service: 'FullStackCLI' });
+const logger = new Logger(
+  { level: 'info', format: 'text', destination: 'console' },
+  { service: 'FullStackCLI' },
+);
 const program = new Command();
 
 // Global orchestrator instance
@@ -27,14 +30,14 @@ const showHeader = () => {
   console.log(
     boxen(
       chalk.bold.blue('🚀 Full-Stack Swarm Development System\n') +
-      chalk.gray('Dynamic Agent Teams • Chrome MCP • shadcn/ui • Automated Testing'),
+        chalk.gray('Dynamic Agent Teams • Chrome MCP • shadcn/ui • Automated Testing'),
       {
         padding: 1,
         margin: 1,
         borderStyle: 'round',
-        borderColor: 'blue'
-      }
-    )
+        borderColor: 'blue',
+      },
+    ),
   );
 };
 
@@ -44,13 +47,16 @@ const initializeOrchestrator = async () => {
     const spinner = ora('Initializing Full-Stack Orchestrator...').start();
 
     try {
-      orchestrator = new FullStackOrchestrator({
-        maxConcurrentSwarms: 5,
-        enableAutomatedTesting: true,
-        enableUIGeneration: true,
-        chromeMCP: { enabled: true, timeout: 30000 },
-        shadcnMCP: { enabled: true, defaultTheme: 'default' }
-      }, logger);
+      orchestrator = new FullStackOrchestrator(
+        {
+          maxConcurrentSwarms: 5,
+          enableAutomatedTesting: true,
+          enableUIGeneration: true,
+          chromeMCP: { enabled: true, timeout: 30000 },
+          shadcnMCP: { enabled: true, defaultTheme: 'default' },
+        },
+        logger,
+      );
 
       spinner.succeed('Orchestrator initialized successfully');
       return orchestrator;
@@ -98,18 +104,20 @@ program
         description: options.description || 'Feature development',
         requirements: {
           frontend: options.frontend || [],
-          backend: options.backend || []
+          backend: options.backend || [],
         },
         constraints: {
           timeline: options.timeline,
-          quality: options.quality || 'standard'
+          quality: options.quality || 'standard',
         },
-        uiSpec: options.uiTheme ? {
-          components: options.frontend || [],
-          theme: options.uiTheme,
-          responsive: true,
-          accessibility: true
-        } : undefined
+        uiSpec: options.uiTheme
+          ? {
+              components: options.frontend || [],
+              theme: options.uiTheme,
+              responsive: true,
+              accessibility: true,
+            }
+          : undefined,
       };
     }
 
@@ -125,7 +133,6 @@ program
 
       // Monitor progress
       await monitorSwarmProgress(status.swarmId, orchestrator);
-
     } catch (error) {
       spinner.fail(`Feature development failed: ${error.message}`);
       console.error(chalk.red('\n❌ Error Details:'), error);
@@ -176,7 +183,6 @@ program
         showHeader();
         await updateStatus();
       }, 5000);
-
     } else {
       // Single status check
       if (options.swarm) {
@@ -222,13 +228,12 @@ program
       const updatedStatus = await orchestrator.scaleSwarm(options.swarm, {
         action: options.action,
         targetSize: options.target,
-        reason: options.reason || 'Manual scaling request'
+        reason: options.reason || 'Manual scaling request',
       });
 
       spinner.succeed(`Swarm scaled successfully`);
       console.log('\n' + chalk.green('✅ Updated Status:'));
       displaySwarmStatus(updatedStatus);
-
     } catch (error) {
       spinner.fail(`Scaling failed: ${error.message}`);
     }
@@ -251,8 +256,8 @@ program
           type: 'confirm',
           name: 'confirm',
           message: `Are you sure you want to terminate swarm ${options.swarm}?`,
-          default: false
-        }
+          default: false,
+        },
       ]);
 
       if (!confirm) {
@@ -297,12 +302,15 @@ program
     const spinner = ora('Testing Chrome MCP integration...').start();
 
     try {
-      const chromeMCP = new ChromeMCPAdapter({
-        timeout: 30000,
-        retries: 3,
-        version: '1.0.0',
-        capabilities: []
-      }, logger);
+      const chromeMCP = new ChromeMCPAdapter(
+        {
+          timeout: 30000,
+          retries: 3,
+          version: '1.0.0',
+          capabilities: [],
+        },
+        logger,
+      );
 
       await chromeMCP.connect();
 
@@ -326,7 +334,6 @@ program
       }
 
       await chromeMCP.disconnect();
-
     } catch (error) {
       spinner.fail(`Chrome MCP test failed: ${error.message}`);
     }
@@ -344,17 +351,20 @@ program
     const spinner = ora(`Generating ${options.component} component...`).start();
 
     try {
-      const shadcnMCP = new ShadcnMCPAdapter({
-        timeout: 30000,
-        defaultTheme: options.theme
-      }, logger);
+      const shadcnMCP = new ShadcnMCPAdapter(
+        {
+          timeout: 30000,
+          defaultTheme: options.theme,
+        },
+        logger,
+      );
 
       await shadcnMCP.connect();
 
       const result = await shadcnMCP.generateComponent({
         component: options.component,
         variant: options.variant,
-        theme: options.theme
+        theme: options.theme,
       });
 
       if (result.success) {
@@ -375,13 +385,11 @@ program
         console.log(`📦 Component: ${result.component.name}`);
         console.log(`📁 Files: ${result.files.length}`);
         console.log(`📋 Dependencies: ${result.component.dependencies.join(', ')}`);
-
       } else {
         throw new Error(result.error || 'Component generation failed');
       }
 
       await shadcnMCP.disconnect();
-
     } catch (error) {
       spinner.fail(`Component generation failed: ${error.message}`);
     }
@@ -395,19 +403,19 @@ async function promptForFeatureSpec(): Promise<FeatureRequest> {
       type: 'input',
       name: 'name',
       message: 'Feature name:',
-      validate: (input) => input.length > 0 || 'Feature name is required'
+      validate: (input) => input.length > 0 || 'Feature name is required',
     },
     {
       type: 'input',
       name: 'description',
       message: 'Feature description:',
-      default: 'New feature development'
+      default: 'New feature development',
     },
     {
       type: 'list',
       name: 'complexity',
       message: 'Complexity level:',
-      choices: ['simple', 'moderate', 'complex', 'enterprise']
+      choices: ['simple', 'moderate', 'complex', 'enterprise'],
     },
     {
       type: 'checkbox',
@@ -419,8 +427,8 @@ async function promptForFeatureSpec(): Promise<FeatureRequest> {
         'forms',
         'data-visualization',
         'animations',
-        'authentication-ui'
-      ]
+        'authentication-ui',
+      ],
     },
     {
       type: 'checkbox',
@@ -433,8 +441,8 @@ async function promptForFeatureSpec(): Promise<FeatureRequest> {
         'authentication',
         'file-upload',
         'real-time-updates',
-        'background-jobs'
-      ]
+        'background-jobs',
+      ],
     },
     {
       type: 'checkbox',
@@ -445,28 +453,28 @@ async function promptForFeatureSpec(): Promise<FeatureRequest> {
         'integration-tests',
         'e2e-tests',
         'performance-tests',
-        'security-tests'
-      ]
+        'security-tests',
+      ],
     },
     {
       type: 'number',
       name: 'timeline',
       message: 'Timeline (days):',
-      default: 7
+      default: 7,
     },
     {
       type: 'list',
       name: 'quality',
       message: 'Quality level:',
       choices: ['standard', 'high', 'enterprise'],
-      default: 'standard'
+      default: 'standard',
     },
     {
       type: 'confirm',
       name: 'includeUI',
       message: 'Include UI component generation?',
-      default: true
-    }
+      default: true,
+    },
   ]);
 
   let uiSpec;
@@ -476,27 +484,27 @@ async function promptForFeatureSpec(): Promise<FeatureRequest> {
         type: 'input',
         name: 'theme',
         message: 'UI theme:',
-        default: 'default'
+        default: 'default',
       },
       {
         type: 'confirm',
         name: 'responsive',
         message: 'Responsive design?',
-        default: true
+        default: true,
       },
       {
         type: 'confirm',
         name: 'accessibility',
         message: 'Accessibility features?',
-        default: true
-      }
+        default: true,
+      },
     ]);
 
     uiSpec = {
       components: answers.frontend,
       theme: uiAnswers.theme,
       responsive: uiAnswers.responsive,
-      accessibility: uiAnswers.accessibility
+      accessibility: uiAnswers.accessibility,
     };
   }
 
@@ -507,30 +515,32 @@ async function promptForFeatureSpec(): Promise<FeatureRequest> {
     requirements: {
       frontend: answers.frontend,
       backend: answers.backend,
-      testing: answers.testing
+      testing: answers.testing,
     },
     constraints: {
       timeline: answers.timeline,
-      quality: answers.quality
+      quality: answers.quality,
     },
-    uiSpec
+    uiSpec,
   };
 }
 
 function displaySwarmStatus(status: any) {
-  console.log(boxen(
-    `${chalk.bold('Swarm ID:')} ${status.swarmId}\n` +
-    `${chalk.bold('Feature:')} ${status.feature.name}\n` +
-    `${chalk.bold('Status:')} ${getStatusColor(status.status)}\n` +
-    `${chalk.bold('Progress:')} ${status.progress.overallProgress}% (${status.progress.currentPhase})\n` +
-    `${chalk.bold('Team Size:')} ${status.team.agents?.length || 0} agents\n` +
-    `${chalk.bold('Started:')} ${new Date(status.performance.startTime).toLocaleString()}`,
-    {
-      padding: 1,
-      borderStyle: 'round',
-      borderColor: getStatusBorderColor(status.status)
-    }
-  ));
+  console.log(
+    boxen(
+      `${chalk.bold('Swarm ID:')} ${status.swarmId}\n` +
+        `${chalk.bold('Feature:')} ${status.feature.name}\n` +
+        `${chalk.bold('Status:')} ${getStatusColor(status.status)}\n` +
+        `${chalk.bold('Progress:')} ${status.progress.overallProgress}% (${status.progress.currentPhase})\n` +
+        `${chalk.bold('Team Size:')} ${status.team.agents?.length || 0} agents\n` +
+        `${chalk.bold('Started:')} ${new Date(status.performance.startTime).toLocaleString()}`,
+      {
+        padding: 1,
+        borderStyle: 'round',
+        borderColor: getStatusBorderColor(status.status),
+      },
+    ),
+  );
 
   // Show team composition if available
   if (status.team.agents && status.team.agents.length > 0) {
@@ -538,13 +548,10 @@ function displaySwarmStatus(status: any) {
     const teamData = status.team.agents.map((agent: any) => [
       agent.type,
       agent.status,
-      agent.capabilities?.slice(0, 3).join(', ') || 'N/A'
+      agent.capabilities?.slice(0, 3).join(', ') || 'N/A',
     ]);
 
-    console.log(table([
-      ['Agent Type', 'Status', 'Key Capabilities'],
-      ...teamData
-    ]));
+    console.log(table([['Agent Type', 'Status', 'Key Capabilities'], ...teamData]));
   }
 
   // Show issues if any
@@ -560,83 +567,79 @@ function displaySwarmStatus(status: any) {
 }
 
 function displaySwarmTable(swarms: any[]) {
-  const data = swarms.map(swarm => [
+  const data = swarms.map((swarm) => [
     swarm.swarmId.substring(0, 12) + '...',
     swarm.feature.name,
     getStatusColor(swarm.status),
     `${swarm.progress.overallProgress}%`,
     `${swarm.team.agents?.length || 0}`,
-    new Date(swarm.performance.startTime).toLocaleTimeString()
+    new Date(swarm.performance.startTime).toLocaleTimeString(),
   ]);
 
-  console.log(table([
-    ['Swarm ID', 'Feature', 'Status', 'Progress', 'Agents', 'Started'],
-    ...data
-  ]));
+  console.log(table([['Swarm ID', 'Feature', 'Status', 'Progress', 'Agents', 'Started'], ...data]));
 }
 
 function displaySystemHealth(health: any) {
-  console.log(boxen(
-    `${chalk.bold('System Status:')} ${getHealthColor(health.status)}\n` +
-    `${chalk.bold('Active Swarms:')} ${health.activeSwarms}\n` +
-    `${chalk.bold('Total Agents:')} ${health.totalAgents}\n` +
-    `${chalk.bold('Success Rate:')} ${(health.performance.successRate * 100).toFixed(1)}%`,
-    {
-      padding: 1,
-      borderStyle: 'round',
-      borderColor: getHealthBorderColor(health.status)
-    }
-  ));
+  console.log(
+    boxen(
+      `${chalk.bold('System Status:')} ${getHealthColor(health.status)}\n` +
+        `${chalk.bold('Active Swarms:')} ${health.activeSwarms}\n` +
+        `${chalk.bold('Total Agents:')} ${health.totalAgents}\n` +
+        `${chalk.bold('Success Rate:')} ${(health.performance.successRate * 100).toFixed(1)}%`,
+      {
+        padding: 1,
+        borderStyle: 'round',
+        borderColor: getHealthBorderColor(health.status),
+      },
+    ),
+  );
 
   console.log(`\n${chalk.bold('🔧 Component Health:')}`);
   const healthData = Object.entries(health.systemHealth).map(([component, healthy]) => [
     component,
-    healthy ? chalk.green('✅ Healthy') : chalk.red('❌ Unhealthy')
+    healthy ? chalk.green('✅ Healthy') : chalk.red('❌ Unhealthy'),
   ]);
 
-  console.log(table([
-    ['Component', 'Status'],
-    ...healthData
-  ]));
+  console.log(table([['Component', 'Status'], ...healthData]));
 }
 
 function getStatusColor(status: string): string {
   const colors: Record<string, any> = {
-    'planning': chalk.blue(status),
-    'spawning': chalk.yellow(status),
-    'developing': chalk.cyan(status),
-    'testing': chalk.magenta(status),
-    'deploying': chalk.rgb(255, 165, 0)(status),
-    'completed': chalk.green(status),
-    'failed': chalk.red(status)
+    planning: chalk.blue(status),
+    spawning: chalk.yellow(status),
+    developing: chalk.cyan(status),
+    testing: chalk.magenta(status),
+    deploying: chalk.rgb(255, 165, 0)(status),
+    completed: chalk.green(status),
+    failed: chalk.red(status),
   };
   return colors[status] || chalk.gray(status);
 }
 
 function getStatusBorderColor(status: string): string {
   const colors: Record<string, string> = {
-    'completed': 'green',
-    'failed': 'red',
-    'developing': 'cyan',
-    'testing': 'magenta'
+    completed: 'green',
+    failed: 'red',
+    developing: 'cyan',
+    testing: 'magenta',
   };
   return colors[status] || 'yellow';
 }
 
 function getHealthColor(status: string): string {
   const colors: Record<string, any> = {
-    'healthy': chalk.green(status),
-    'degraded': chalk.yellow(status),
-    'critical': chalk.red(status)
+    healthy: chalk.green(status),
+    degraded: chalk.yellow(status),
+    critical: chalk.red(status),
   };
   return colors[status] || chalk.gray(status);
 }
 
 function getHealthBorderColor(status: string): string {
   const colors: Record<string, string> = {
-    'healthy': 'green',
-    'degraded': 'yellow',
-    'critical': 'red'
+    healthy: 'green',
+    degraded: 'yellow',
+    critical: 'red',
   };
   return colors[status] || 'gray';
 }
@@ -694,10 +697,7 @@ async function monitorSwarmProgress(swarmId: string, orchestrator: FullStackOrch
 }
 
 // Program configuration
-program
-  .name('fullstack-cli')
-  .description('Full-Stack Swarm Development CLI')
-  .version('1.0.0');
+program.name('fullstack-cli').description('Full-Stack Swarm Development CLI').version('1.0.0');
 
 // Parse command line arguments
 program.parse();

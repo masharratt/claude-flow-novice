@@ -94,7 +94,6 @@ export class PerformanceTestRunner extends EventEmitter {
       this.emit('testCompleted', result);
 
       return result;
-
     } catch (error) {
       const failedResult: TestResult = {
         testName: testName,
@@ -103,7 +102,7 @@ export class PerformanceTestRunner extends EventEmitter {
         endTime: Date.now(),
         metrics: this.getEmptyMetrics(),
         violations: [`Test execution failed: ${error.message}`],
-        recommendations: ['Review test configuration and target function']
+        recommendations: ['Review test configuration and target function'],
       };
 
       this.testResults.set(testName, failedResult);
@@ -112,7 +111,10 @@ export class PerformanceTestRunner extends EventEmitter {
   }
 
   // Execute warmup phase
-  private async executeWarmup(config: PerformanceTestConfig, targetFunction: Function): Promise<void> {
+  private async executeWarmup(
+    config: PerformanceTestConfig,
+    targetFunction: Function,
+  ): Promise<void> {
     console.log(`Executing warmup phase for ${config.warmupDuration}ms`);
 
     const warmupEndTime = Date.now() + config.warmupDuration;
@@ -131,7 +133,10 @@ export class PerformanceTestRunner extends EventEmitter {
   }
 
   // Execute main performance test
-  private async executeMainTest(config: PerformanceTestConfig, targetFunction: Function): Promise<PerformanceMetrics> {
+  private async executeMainTest(
+    config: PerformanceTestConfig,
+    targetFunction: Function,
+  ): Promise<PerformanceMetrics> {
     console.log(`Executing main test phase for ${config.duration}ms`);
 
     const testStartTime = Date.now();
@@ -142,7 +147,7 @@ export class PerformanceTestRunner extends EventEmitter {
       successes: 0,
       failures: 0,
       latencies: [] as number[],
-      startTime: testStartTime
+      startTime: testStartTime,
     };
 
     // Ramp up phase
@@ -201,7 +206,9 @@ export class PerformanceTestRunner extends EventEmitter {
   }
 
   // Execute target function and measure performance
-  private async executeAndMeasure(targetFunction: Function): Promise<{ success: boolean; latency: number }> {
+  private async executeAndMeasure(
+    targetFunction: Function,
+  ): Promise<{ success: boolean; latency: number }> {
     const startTime = performance.now();
 
     try {
@@ -239,7 +246,8 @@ export class PerformanceTestRunner extends EventEmitter {
 
     // Calculate latency percentiles
     const sortedLatencies = metrics.latencies.sort((a, b) => a - b);
-    const avgLatency = sortedLatencies.reduce((sum, lat) => sum + lat, 0) / sortedLatencies.length || 0;
+    const avgLatency =
+      sortedLatencies.reduce((sum, lat) => sum + lat, 0) / sortedLatencies.length || 0;
     const p95Index = Math.floor(sortedLatencies.length * 0.95);
     const p99Index = Math.floor(sortedLatencies.length * 0.99);
     const p95Latency = sortedLatencies[p95Index] || 0;
@@ -255,39 +263,51 @@ export class PerformanceTestRunner extends EventEmitter {
       successRate: successRate,
       errorRate: errorRate,
       memoryUsage: 0, // Will be filled by resource monitor
-      cpuUsage: 0,    // Will be filled by resource monitor
-      networkIO: 0,   // Will be filled by resource monitor
-      diskIO: 0       // Will be filled by resource monitor
+      cpuUsage: 0, // Will be filled by resource monitor
+      networkIO: 0, // Will be filled by resource monitor
+      diskIO: 0, // Will be filled by resource monitor
     };
   }
 
   // Combine performance and resource metrics
-  private combineMetrics(perfMetrics: PerformanceMetrics, resourceMetrics: any): PerformanceMetrics {
+  private combineMetrics(
+    perfMetrics: PerformanceMetrics,
+    resourceMetrics: any,
+  ): PerformanceMetrics {
     return {
       ...perfMetrics,
       memoryUsage: resourceMetrics.avgMemoryUsage || 0,
       cpuUsage: resourceMetrics.avgCpuUsage || 0,
       networkIO: resourceMetrics.totalNetworkIO || 0,
-      diskIO: resourceMetrics.totalDiskIO || 0
+      diskIO: resourceMetrics.totalDiskIO || 0,
     };
   }
 
   // Evaluate test results against thresholds
-  private evaluateTestResult(testName: string, config: PerformanceTestConfig, metrics: PerformanceMetrics, startTime: number): TestResult {
+  private evaluateTestResult(
+    testName: string,
+    config: PerformanceTestConfig,
+    metrics: PerformanceMetrics,
+    startTime: number,
+  ): TestResult {
     const violations: string[] = [];
     const recommendations: string[] = [];
     let status: 'PASSED' | 'FAILED' | 'WARNING' = 'PASSED';
 
     // Check throughput
     if (config.targetThroughput && metrics.throughput < config.targetThroughput * 0.9) {
-      violations.push(`Throughput ${metrics.throughput.toFixed(2)} req/s below target ${config.targetThroughput} req/s`);
+      violations.push(
+        `Throughput ${metrics.throughput.toFixed(2)} req/s below target ${config.targetThroughput} req/s`,
+      );
       recommendations.push('Consider optimizing critical path or increasing concurrency');
       status = 'FAILED';
     }
 
     // Check latency
     if (config.maxLatency && metrics.p95Latency > config.maxLatency) {
-      violations.push(`P95 latency ${metrics.p95Latency.toFixed(2)}ms exceeds limit ${config.maxLatency}ms`);
+      violations.push(
+        `P95 latency ${metrics.p95Latency.toFixed(2)}ms exceeds limit ${config.maxLatency}ms`,
+      );
       recommendations.push('Investigate latency bottlenecks and optimize slow operations');
       status = status === 'PASSED' ? 'WARNING' : status;
     }
@@ -295,21 +315,27 @@ export class PerformanceTestRunner extends EventEmitter {
     // Check success rate
     const minSuccessRate = config.successRate || 0.95;
     if (metrics.successRate < minSuccessRate) {
-      violations.push(`Success rate ${(metrics.successRate * 100).toFixed(2)}% below threshold ${(minSuccessRate * 100).toFixed(2)}%`);
+      violations.push(
+        `Success rate ${(metrics.successRate * 100).toFixed(2)}% below threshold ${(minSuccessRate * 100).toFixed(2)}%`,
+      );
       recommendations.push('Review error handling and system stability');
       status = 'FAILED';
     }
 
     // Check memory usage
     if (config.memoryLimit && metrics.memoryUsage > config.memoryLimit) {
-      violations.push(`Memory usage ${metrics.memoryUsage}MB exceeds limit ${config.memoryLimit}MB`);
+      violations.push(
+        `Memory usage ${metrics.memoryUsage}MB exceeds limit ${config.memoryLimit}MB`,
+      );
       recommendations.push('Optimize memory allocation and implement garbage collection tuning');
       status = status === 'PASSED' ? 'WARNING' : status;
     }
 
     // Check CPU usage
     if (config.cpuLimit && metrics.cpuUsage > config.cpuLimit) {
-      violations.push(`CPU usage ${metrics.cpuUsage.toFixed(2)}% exceeds limit ${config.cpuLimit}%`);
+      violations.push(
+        `CPU usage ${metrics.cpuUsage.toFixed(2)}% exceeds limit ${config.cpuLimit}%`,
+      );
       recommendations.push('Optimize CPU-intensive operations and consider async processing');
       status = status === 'PASSED' ? 'WARNING' : status;
     }
@@ -321,7 +347,7 @@ export class PerformanceTestRunner extends EventEmitter {
       endTime: Date.now(),
       metrics: metrics,
       violations: violations,
-      recommendations: recommendations
+      recommendations: recommendations,
     };
   }
 
@@ -354,7 +380,11 @@ export class PerformanceTestRunner extends EventEmitter {
     const report = await this.reportGenerator.generateSuiteReport(results);
 
     // Save report to file
-    const reportPath = path.join(process.cwd(), 'performance-reports', `suite-report-${Date.now()}.json`);
+    const reportPath = path.join(
+      process.cwd(),
+      'performance-reports',
+      `suite-report-${Date.now()}.json`,
+    );
     await fs.mkdir(path.dirname(reportPath), { recursive: true });
     await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
 
@@ -375,13 +405,13 @@ export class PerformanceTestRunner extends EventEmitter {
       memoryUsage: 0,
       cpuUsage: 0,
       networkIO: 0,
-      diskIO: 0
+      diskIO: 0,
     };
   }
 
   // Utility sleep function
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Get test results
@@ -412,7 +442,7 @@ class ResourceMonitor {
       this.metrics.push({
         timestamp: Date.now(),
         testName: testName,
-        ...metric
+        ...metric,
       });
     }, 1000); // Collect every second
   }
@@ -436,7 +466,7 @@ class ResourceMonitor {
       memoryRSS: memoryUsage.rss / 1024 / 1024, // MB
       memoryHeap: memoryUsage.heapUsed / 1024 / 1024, // MB
       cpuUser: cpuUsage.user,
-      cpuSystem: cpuUsage.system
+      cpuSystem: cpuUsage.system,
     };
   }
 
@@ -448,12 +478,12 @@ class ResourceMonitor {
         avgCpuUsage: 0,
         maxCpuUsage: 0,
         totalNetworkIO: 0,
-        totalDiskIO: 0
+        totalDiskIO: 0,
       };
     }
 
-    const memoryValues = this.metrics.map(m => m.memoryRSS);
-    const cpuValues = this.metrics.map(m => (m.cpuUser + m.cpuSystem) / 1000000); // Convert to ms
+    const memoryValues = this.metrics.map((m) => m.memoryRSS);
+    const cpuValues = this.metrics.map((m) => (m.cpuUser + m.cpuSystem) / 1000000); // Convert to ms
 
     return {
       avgMemoryUsage: memoryValues.reduce((sum, val) => sum + val, 0) / memoryValues.length,
@@ -461,7 +491,7 @@ class ResourceMonitor {
       avgCpuUsage: cpuValues.reduce((sum, val) => sum + val, 0) / cpuValues.length,
       maxCpuUsage: Math.max(...cpuValues),
       totalNetworkIO: 0, // Would need OS-specific implementation
-      totalDiskIO: 0     // Would need OS-specific implementation
+      totalDiskIO: 0, // Would need OS-specific implementation
     };
   }
 }
@@ -470,9 +500,9 @@ class ResourceMonitor {
 class PerformanceReportGenerator {
   async generateSuiteReport(results: TestResult[]): Promise<any> {
     const totalTests = results.length;
-    const passedTests = results.filter(r => r.status === 'PASSED').length;
-    const failedTests = results.filter(r => r.status === 'FAILED').length;
-    const warningTests = results.filter(r => r.status === 'WARNING').length;
+    const passedTests = results.filter((r) => r.status === 'PASSED').length;
+    const failedTests = results.filter((r) => r.status === 'FAILED').length;
+    const warningTests = results.filter((r) => r.status === 'WARNING').length;
 
     const avgThroughput = results.reduce((sum, r) => sum + r.metrics.throughput, 0) / totalTests;
     const avgLatency = results.reduce((sum, r) => sum + r.metrics.avgLatency, 0) / totalTests;
@@ -487,19 +517,19 @@ class PerformanceReportGenerator {
         successRate: passedTests / totalTests,
         avgThroughput: avgThroughput,
         avgLatency: avgLatency,
-        avgSuccessRate: avgSuccessRate
+        avgSuccessRate: avgSuccessRate,
       },
       results: results,
       timestamp: Date.now(),
-      recommendations: this.generateRecommendations(results)
+      recommendations: this.generateRecommendations(results),
     };
   }
 
   private generateRecommendations(results: TestResult[]): string[] {
     const recommendations = new Set<string>();
 
-    results.forEach(result => {
-      result.recommendations.forEach(rec => recommendations.add(rec));
+    results.forEach((result) => {
+      result.recommendations.forEach((rec) => recommendations.add(rec));
     });
 
     return Array.from(recommendations);

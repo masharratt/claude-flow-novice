@@ -148,10 +148,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
   /**
    * Migrate configuration to target version
    */
-  async migrate(
-    config: any,
-    targetVersion: string
-  ): Promise<MigrationResult> {
+  async migrate(config: any, targetVersion: string): Promise<MigrationResult> {
     const startTime = Date.now();
     const currentVersion = config.version || '1.0.0';
     const migrationId = this.generateMigrationId();
@@ -169,15 +166,13 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
       // Find migration path
       const migrationPath = this.findMigrationPath(currentVersion, targetVersion);
       if (!migrationPath) {
-        throw new MigrationError(`No migration path found from ${currentVersion} to ${targetVersion}`);
+        throw new MigrationError(
+          `No migration path found from ${currentVersion} to ${targetVersion}`,
+        );
       }
 
       // Execute migration steps
-      const result = await this.executeMigrationPath(
-        config,
-        migrationPath,
-        migrationId
-      );
+      const result = await this.executeMigrationPath(config, migrationPath, migrationId);
 
       // Validate migrated configuration
       const postValidation = await this.validator.validate(result.configuration, targetVersion);
@@ -197,7 +192,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
         breaking: migrationPath.breaking,
         automated: true,
         timestamp: new Date(),
-        status: 'completed'
+        status: 'completed',
       });
 
       const duration = Date.now() - startTime;
@@ -206,7 +201,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
         migrationId,
         fromVersion: currentVersion,
         toVersion: targetVersion,
-        duration
+        duration,
       });
 
       return {
@@ -219,9 +214,8 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
         warnings: result.warnings,
         changes: result.changes,
         timestamp: new Date(),
-        duration
+        duration,
       };
-
     } catch (error) {
       // Rollback on any error
       try {
@@ -240,14 +234,14 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
         breaking: false,
         automated: true,
         timestamp: new Date(),
-        status: 'failed'
+        status: 'failed',
       });
 
       this.emit('migrationFailed', {
         migrationId,
         fromVersion: currentVersion,
         toVersion: targetVersion,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -283,13 +277,12 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
       this.emit('migrationRolledBack', {
         migrationId,
         fromVersion: migration.toVersion,
-        toVersion: migration.fromVersion
+        toVersion: migration.fromVersion,
       });
-
     } catch (error) {
       this.emit('rollbackFailed', {
         migrationId,
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -298,10 +291,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
   /**
    * Validate configuration for migration without executing
    */
-  async validateMigration(
-    config: any,
-    targetVersion: string
-  ): Promise<ValidationResult> {
+  async validateMigration(config: any, targetVersion: string): Promise<ValidationResult> {
     const currentVersion = config.version || '1.0.0';
 
     // Validate current configuration
@@ -315,20 +305,22 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
     if (!migrationPath) {
       return {
         valid: false,
-        errors: [{
-          type: 'reference',
-          message: `No migration path available from ${currentVersion} to ${targetVersion}`,
-          path: 'version',
-          value: currentVersion
-        }],
+        errors: [
+          {
+            type: 'reference',
+            message: `No migration path available from ${currentVersion} to ${targetVersion}`,
+            path: 'version',
+            value: currentVersion,
+          },
+        ],
         warnings: [],
         compatibility: {
           compatible: false,
           requiredActions: ['Manual migration required'],
           optionalActions: [],
           deprecatedFeatures: [],
-          newFeatures: []
-        }
+          newFeatures: [],
+        },
       };
     }
 
@@ -341,20 +333,21 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
         valid: true,
         errors: [],
         warnings: result.warnings,
-        compatibility: this.buildCompatibilityInfo(migrationPath)
+        compatibility: this.buildCompatibilityInfo(migrationPath),
       };
-
     } catch (error) {
       return {
         valid: false,
-        errors: [{
-          type: 'constraint',
-          message: `Migration simulation failed: ${error.message}`,
-          path: 'migration',
-          value: migrationPath.steps.map(s => s.id)
-        }],
+        errors: [
+          {
+            type: 'constraint',
+            message: `Migration simulation failed: ${error.message}`,
+            path: 'migration',
+            value: migrationPath.steps.map((s) => s.id),
+          },
+        ],
         warnings: [],
-        compatibility: this.buildCompatibilityInfo(migrationPath)
+        compatibility: this.buildCompatibilityInfo(migrationPath),
       };
     }
   }
@@ -403,7 +396,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
             return config;
           },
           breaking: false,
-          optional: false
+          optional: false,
         },
         {
           id: 'add-project-autodetect',
@@ -423,9 +416,9 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
             return config;
           },
           breaking: false,
-          optional: true
-        }
-      ]
+          optional: true,
+        },
+      ],
     });
 
     // 1.1.0 -> 2.0.0 (Major version with breaking changes)
@@ -454,7 +447,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
             return config;
           },
           breaking: true,
-          optional: false
+          optional: false,
         },
         {
           id: 'restructure-features',
@@ -467,14 +460,13 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
             if (config.features && !config.features.security) {
               config.features.security = {
                 encryption: { enabled: false },
-                authentication: { enabled: false }
+                authentication: { enabled: false },
               };
             }
             return config;
           },
           validate: async (config: any) => {
-            return config.features?.neural !== undefined &&
-                   config.features?.security !== undefined;
+            return config.features?.neural !== undefined && config.features?.security !== undefined;
           },
           rollback: async (config: any) => {
             if (config.features) {
@@ -484,7 +476,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
             return config;
           },
           breaking: false,
-          optional: false
+          optional: false,
         },
         {
           id: 'add-storage-tiers',
@@ -495,32 +487,30 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
               config.storage = {
                 local: {
                   path: '~/.claude-flow/config.json',
-                  backup: true
+                  backup: true,
                 },
                 project: {
                   enabled: true,
                   path: '.claude-flow/config.json',
-                  versionControl: true
+                  versionControl: true,
                 },
                 team: { enabled: false },
-                cloud: { enabled: false }
+                cloud: { enabled: false },
               };
             }
             return config;
           },
           validate: async (config: any) => {
-            return config.storage &&
-                   config.storage.local &&
-                   config.storage.project;
+            return config.storage && config.storage.local && config.storage.project;
           },
           rollback: async (config: any) => {
             delete config.storage;
             return config;
           },
           breaking: false,
-          optional: false
-        }
-      ]
+          optional: false,
+        },
+      ],
     });
 
     // Direct migration path 1.0.0 -> 2.0.0
@@ -533,8 +523,8 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
       steps: [
         // Combine steps from both migrations
         ...this.migrationPaths.get('1.0.0->1.1.0')!.steps,
-        ...this.migrationPaths.get('1.1.0->2.0.0')!.steps
-      ]
+        ...this.migrationPaths.get('1.1.0->2.0.0')!.steps,
+      ],
     });
 
     // Add more migration paths as needed
@@ -560,23 +550,23 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
             properties: {
               type: { enum: ['web-app', 'api', 'cli', 'library', 'mobile', 'ml', 'data'] },
               language: { type: 'string' },
-              framework: { type: 'string' }
-            }
+              framework: { type: 'string' },
+            },
           },
           agent: {
             type: 'object',
             properties: {
               maxAgents: { type: 'number', minimum: 1, maximum: 20 },
-              legacyMode: { type: 'boolean' } // Deprecated in later versions
-            }
-          }
-        }
+              legacyMode: { type: 'boolean' }, // Deprecated in later versions
+            },
+          },
+        },
       },
       breaking: [],
       deprecated: [],
       added: [],
       removed: [],
-      migrationNotes: 'Initial version with basic configuration support'
+      migrationNotes: 'Initial version with basic configuration support',
     });
 
     this.versionSchemas.set('1.1.0', {
@@ -594,24 +584,24 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
               type: { enum: ['web-app', 'api', 'cli', 'library', 'mobile', 'ml', 'data'] },
               language: { type: 'string' },
               framework: { type: 'string' },
-              autoDetect: { type: 'boolean' } // New in 1.1.0
-            }
+              autoDetect: { type: 'boolean' }, // New in 1.1.0
+            },
           },
           agent: {
             type: 'object',
             properties: {
               maxAgents: { type: 'number', minimum: 1, maximum: 20 },
               autoSpawn: { type: 'boolean' }, // New in 1.1.0
-              legacyMode: { type: 'boolean' } // Deprecated
-            }
-          }
-        }
+              legacyMode: { type: 'boolean' }, // Deprecated
+            },
+          },
+        },
       },
       breaking: [],
       deprecated: ['agent.legacyMode'],
       added: ['project.autoDetect', 'agent.autoSpawn'],
       removed: [],
-      migrationNotes: 'Added auto-detection and auto-spawn capabilities'
+      migrationNotes: 'Added auto-detection and auto-spawn capabilities',
     });
 
     this.versionSchemas.set('2.0.0', {
@@ -629,17 +619,17 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
               type: { enum: ['web-app', 'api', 'cli', 'library', 'mobile', 'ml', 'data'] },
               language: { type: 'string' },
               framework: { type: 'string' },
-              autoDetect: { type: 'boolean' }
-            }
+              autoDetect: { type: 'boolean' },
+            },
           },
           agent: {
             type: 'object',
             properties: {
               maxAgents: { type: 'number', minimum: 1, maximum: 50 },
               autoSpawn: { type: 'boolean' },
-              topology: { enum: ['mesh', 'hierarchical', 'ring', 'star'] }
+              topology: { enum: ['mesh', 'hierarchical', 'ring', 'star'] },
               // legacyMode removed (breaking change)
-            }
+            },
           },
           features: {
             type: 'object',
@@ -647,8 +637,8 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
               neural: {
                 type: 'object',
                 properties: {
-                  enabled: { type: 'boolean' }
-                }
+                  enabled: { type: 'boolean' },
+                },
               },
               security: {
                 type: 'object',
@@ -656,18 +646,18 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
                   encryption: {
                     type: 'object',
                     properties: {
-                      enabled: { type: 'boolean' }
-                    }
+                      enabled: { type: 'boolean' },
+                    },
                   },
                   authentication: {
                     type: 'object',
                     properties: {
-                      enabled: { type: 'boolean' }
-                    }
-                  }
-                }
-              }
-            }
+                      enabled: { type: 'boolean' },
+                    },
+                  },
+                },
+              },
+            },
           },
           storage: {
             type: 'object',
@@ -675,16 +665,16 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
               local: { type: 'object' },
               project: { type: 'object' },
               team: { type: 'object' },
-              cloud: { type: 'object' }
-            }
-          }
-        }
+              cloud: { type: 'object' },
+            },
+          },
+        },
       },
       breaking: ['agent.legacyMode'],
       deprecated: [],
       added: ['mode.enterprise', 'features.*', 'storage.*', 'agent.topology'],
       removed: ['agent.legacyMode'],
-      migrationNotes: 'Major restructure with enterprise features. Removed legacy mode support.'
+      migrationNotes: 'Major restructure with enterprise features. Removed legacy mode support.',
     });
   }
 
@@ -699,10 +689,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
   /**
    * Find migration path between two versions
    */
-  private findMigrationPath(
-    fromVersion: string,
-    toVersion: string
-  ): MigrationPath | null {
+  private findMigrationPath(fromVersion: string, toVersion: string): MigrationPath | null {
     // Direct path
     const directPath = this.migrationPaths.get(`${fromVersion}->${toVersion}`);
     if (directPath) return directPath;
@@ -714,10 +701,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
   /**
    * Find indirect migration path through intermediate versions
    */
-  private findIndirectMigrationPath(
-    fromVersion: string,
-    toVersion: string
-  ): MigrationPath | null {
+  private findIndirectMigrationPath(fromVersion: string, toVersion: string): MigrationPath | null {
     // Implementation of path-finding algorithm (e.g., Dijkstra's algorithm)
     // For now, implement simple intermediate version checking
 
@@ -750,7 +734,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
       steps,
       type,
       breaking,
-      description: `Indirect migration from ${fromVersion} to ${toVersion}`
+      description: `Indirect migration from ${fromVersion} to ${toVersion}`,
     };
   }
 
@@ -760,7 +744,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
   private async executeMigrationPath(
     config: any,
     path: MigrationPath,
-    migrationId: string
+    migrationId: string,
   ): Promise<{ configuration: any; warnings: Warning[]; changes: Change[] }> {
     let currentConfig = JSON.parse(JSON.stringify(config)); // Deep clone
     const warnings: Warning[] = [];
@@ -773,7 +757,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
       this.emit('migrationStepStarted', {
         migrationId,
         stepId: step.id,
-        stepName: step.name
+        stepName: step.name,
       });
 
       try {
@@ -797,7 +781,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
             type: 'compatibility',
             message: `Breaking change applied: ${step.description}`,
             severity: 'high',
-            remediation: 'Manual review may be required'
+            remediation: 'Manual review may be required',
           });
         }
 
@@ -805,15 +789,14 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
           migrationId,
           stepId: step.id,
           stepName: step.name,
-          changes: stepChanges.length
+          changes: stepChanges.length,
         });
-
       } catch (error) {
         this.emit('migrationStepFailed', {
           migrationId,
           stepId: step.id,
           stepName: step.name,
-          error: error.message
+          error: error.message,
         });
 
         throw new MigrationError(`Step failed: ${step.name} - ${error.message}`);
@@ -823,7 +806,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
     return {
       configuration: currentConfig,
       warnings,
-      changes
+      changes,
     };
   }
 
@@ -832,7 +815,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
    */
   private async simulateMigrationPath(
     config: any,
-    path: MigrationPath
+    path: MigrationPath,
   ): Promise<{ warnings: Warning[] }> {
     const warnings: Warning[] = [];
 
@@ -842,7 +825,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
         type: 'compatibility',
         message: 'This migration contains breaking changes',
         severity: 'high',
-        remediation: 'Review changes carefully before proceeding'
+        remediation: 'Review changes carefully before proceeding',
       });
     }
 
@@ -853,7 +836,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
           type: 'deprecation',
           message: `Breaking change in step: ${step.name}`,
           severity: 'medium',
-          remediation: step.description
+          remediation: step.description,
         });
       }
     }
@@ -874,7 +857,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
         requiredActions: ['Schema validation required'],
         optionalActions: [],
         deprecatedFeatures: [],
-        newFeatures: []
+        newFeatures: [],
       };
     }
 
@@ -883,7 +866,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
       requiredActions: path.breaking ? ['Review breaking changes'] : [],
       optionalActions: ['Test configuration after migration'],
       deprecatedFeatures: sourceSchema.deprecated,
-      newFeatures: targetSchema.added
+      newFeatures: targetSchema.added,
     };
   }
 
@@ -894,7 +877,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
     before: any,
     after: any,
     stepName: string,
-    basePath: string = ''
+    basePath: string = '',
   ): Change[] {
     const changes: Change[] = [];
 
@@ -911,10 +894,14 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
           path: currentPath,
           newValue: after[key],
           reason: stepName,
-          automatic: true
+          automatic: true,
         });
-      } else if (typeof after[key] === 'object' && after[key] !== null &&
-                 typeof before[key] === 'object' && before[key] !== null) {
+      } else if (
+        typeof after[key] === 'object' &&
+        after[key] !== null &&
+        typeof before[key] === 'object' &&
+        before[key] !== null
+      ) {
         // Recursively check nested objects
         const nestedChanges = this.detectChanges(before[key], after[key], stepName, currentPath);
         changes.push(...nestedChanges);
@@ -925,7 +912,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
           oldValue: before[key],
           newValue: after[key],
           reason: stepName,
-          automatic: true
+          automatic: true,
         });
       }
     }
@@ -939,7 +926,7 @@ export class VersionMigrationEngine extends EventEmitter implements MigrationEng
           path: currentPath,
           oldValue: before[key],
           reason: stepName,
-          automatic: true
+          automatic: true,
         });
       }
     }
@@ -969,7 +956,7 @@ class BackupManager {
       version,
       timestamp: new Date(),
       size: Buffer.byteLength(configString, 'utf8'),
-      checksum
+      checksum,
     };
 
     // Store backup (in real implementation, would write to file system)
@@ -1016,8 +1003,8 @@ class SchemaValidator {
         requiredActions: [],
         optionalActions: [],
         deprecatedFeatures: [],
-        newFeatures: []
-      }
+        newFeatures: [],
+      },
     };
   }
 }
@@ -1043,14 +1030,17 @@ class MigrationHistory {
 
   async getAllMigrations(): Promise<MigrationInfo[]> {
     return Array.from(this.migrations.values()).sort(
-      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
     );
   }
 }
 
 // Custom error class
 export class MigrationError extends Error {
-  constructor(message: string, public details?: any) {
+  constructor(
+    message: string,
+    public details?: any,
+  ) {
     super(message);
     this.name = 'MigrationError';
   }

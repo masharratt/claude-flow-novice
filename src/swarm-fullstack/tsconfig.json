@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../config/typescript/tsconfig.json",
   "compilerOptions": {
     "outDir": "../../dist/swarm-fullstack",
     "rootDir": ".",
@@ -8,12 +8,6 @@
       "../../*": ["../../*"]
     }
   },
-  "include": [
-    "./**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.spec.ts"]
 }

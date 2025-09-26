@@ -78,7 +78,7 @@ async function runSetupWizard(flags) {
   try {
     const preferences = await wizard.run({
       force: flags.force,
-      verbose: flags.verbose
+      verbose: flags.verbose,
     });
 
     console.log(chalk.green('\n✅ Setup completed successfully!'));
@@ -92,7 +92,6 @@ async function runSetupWizard(flags) {
     console.log('  • Run: claude-flow-novice preferences show');
     console.log('  • Try: claude-flow-novice agent spawn researcher');
     console.log('  • Update: claude-flow-novice preferences set <key> <value>');
-
   } catch (error) {
     console.error(chalk.red('❌ Setup failed:'), error.message);
     if (flags.verbose) {
@@ -109,9 +108,8 @@ async function showPreferences(manager, scope, flags) {
   const spinner = ora('Loading preferences...').start();
 
   try {
-    const preferences = scope && scope !== 'all'
-      ? await manager.list(scope)
-      : await manager.loadPreferences();
+    const preferences =
+      scope && scope !== 'all' ? await manager.list(scope) : await manager.loadPreferences();
 
     spinner.succeed('Preferences loaded');
 
@@ -139,7 +137,6 @@ async function showPreferences(manager, scope, flags) {
         console.log(`  Source: Setup wizard`);
       }
     }
-
   } catch (error) {
     spinner.fail('Failed to load preferences');
     throw error;
@@ -182,7 +179,6 @@ async function setPreference(manager, key, value, flags) {
     } else {
       console.log(chalk.gray('Applied to project preferences'));
     }
-
   } catch (error) {
     spinner.fail(`Failed to set preference: ${error.message}`);
     throw error;
@@ -210,7 +206,6 @@ async function getPreference(manager, key, flags) {
     } else {
       console.log(`${chalk.blue(key)}: ${chalk.green(JSON.stringify(value))}`);
     }
-
   } catch (error) {
     spinner.fail(`Failed to get preference: ${error.message}`);
     throw error;
@@ -228,8 +223,8 @@ async function resetPreferences(manager, flags) {
         type: 'confirm',
         name: 'confirm',
         message: 'Are you sure you want to reset all preferences to defaults?',
-        default: false
-      }
+        default: false,
+      },
     ]);
 
     if (!confirm) {
@@ -246,7 +241,6 @@ async function resetPreferences(manager, flags) {
     spinner.succeed(`${scope === 'global' ? 'Global' : 'Project'} preferences reset to defaults`);
 
     console.log(chalk.blue('\nTo reconfigure, run: claude-flow-novice preferences setup'));
-
   } catch (error) {
     spinner.fail(`Failed to reset preferences: ${error.message}`);
     throw error;
@@ -268,7 +262,7 @@ async function validatePreferences(manager, flags) {
     } else {
       spinner.warn('Preference validation issues found');
       console.log(chalk.yellow('⚠️  Validation issues:'));
-      result.errors.forEach(error => {
+      result.errors.forEach((error) => {
         console.log(chalk.red(`  • ${error}`));
       });
     }
@@ -277,7 +271,6 @@ async function validatePreferences(manager, flags) {
       console.log(chalk.gray('\nValidated preferences:'));
       console.log(JSON.stringify(result.preferences, null, 2));
     }
-
   } catch (error) {
     spinner.fail(`Validation failed: ${error.message}`);
     throw error;
@@ -300,7 +293,6 @@ async function exportPreferences(manager, filePath, flags) {
 
     spinner.succeed(`Preferences exported to ${exportedPath}`);
     console.log(chalk.gray(`Scope: ${scope}`));
-
   } catch (error) {
     spinner.fail(`Export failed: ${error.message}`);
     throw error;
@@ -324,7 +316,6 @@ async function importPreferences(manager, filePath, flags) {
 
     spinner.succeed(`Preferences imported from ${filePath}`);
     console.log(chalk.gray(`Applied to ${scope} scope`));
-
   } catch (error) {
     spinner.fail(`Import failed: ${error.message}`);
     throw error;
@@ -350,7 +341,8 @@ async function suggestPreferences(manager, flags) {
     console.log(chalk.blue.bold('\n💡 Preference Suggestions'));
 
     suggestions.forEach((suggestion, index) => {
-      const impactColor = suggestion.impact === 'high' ? 'red' : suggestion.impact === 'medium' ? 'yellow' : 'gray';
+      const impactColor =
+        suggestion.impact === 'high' ? 'red' : suggestion.impact === 'medium' ? 'yellow' : 'gray';
       console.log(`\n${index + 1}. ${chalk.blue(suggestion.key)}`);
       console.log(`   ${suggestion.reason}`);
       console.log(`   Suggested value: ${chalk.green(JSON.stringify(suggestion.value))}`);
@@ -358,10 +350,13 @@ async function suggestPreferences(manager, flags) {
     });
 
     console.log(chalk.gray('\nTo apply suggestions:'));
-    suggestions.forEach(suggestion => {
-      console.log(chalk.gray(`  claude-flow-novice preferences set ${suggestion.key} ${JSON.stringify(suggestion.value)}`));
+    suggestions.forEach((suggestion) => {
+      console.log(
+        chalk.gray(
+          `  claude-flow-novice preferences set ${suggestion.key} ${JSON.stringify(suggestion.value)}`,
+        ),
+      );
     });
-
   } catch (error) {
     spinner.fail(`Analysis failed: ${error.message}`);
     throw error;
@@ -383,7 +378,6 @@ async function listPreferenceKeys(manager, flags) {
     console.log(chalk.blue.bold('\n📚 Available Preference Keys'));
 
     displaySchemaKeys('', schema, currentPrefs);
-
   } catch (error) {
     spinner.fail(`Failed to load preference keys: ${error.message}`);
     throw error;
@@ -403,9 +397,7 @@ function displayPreferencesTree(preferences, prefix = '') {
       console.log(`${chalk.blue.bold(fullKey)}:`);
       displayPreferencesTree(value, fullKey);
     } else {
-      const displayValue = Array.isArray(value)
-        ? `[${value.join(', ')}]`
-        : JSON.stringify(value);
+      const displayValue = Array.isArray(value) ? `[${value.join(', ')}]` : JSON.stringify(value);
       console.log(`  ${chalk.cyan(fullKey)}: ${chalk.green(displayValue)}`);
     }
   }
@@ -432,11 +424,12 @@ function displaySchemaKeys(prefix, schema, currentPrefs, level = 0) {
         typeInfo += ` [${spec.min || 0}..${spec.max || '∞'}]`;
       }
 
-      const currentDisplay = currentValue !== undefined
-        ? chalk.green(` = ${JSON.stringify(currentValue)}`)
-        : '';
+      const currentDisplay =
+        currentValue !== undefined ? chalk.green(` = ${JSON.stringify(currentValue)}`) : '';
 
-      console.log(`${indent}${chalk.cyan(fullKey)} ${chalk.gray(`(${typeInfo})`)}${currentDisplay}`);
+      console.log(
+        `${indent}${chalk.cyan(fullKey)} ${chalk.gray(`(${typeInfo})`)}${currentDisplay}`,
+      );
     }
   }
 }

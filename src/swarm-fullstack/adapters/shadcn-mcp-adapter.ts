@@ -65,7 +65,10 @@ export class ShadcnMCPAdapter extends EventEmitter {
   private componentCache = new Map<string, ComponentGenerationResult>();
   private themeCache = new Map<string, ThemeCustomization>();
 
-  constructor(config: Partial<ShadcnMCPConfig>, private logger: ILogger) {
+  constructor(
+    config: Partial<ShadcnMCPConfig>,
+    private logger: ILogger,
+  ) {
     super();
     this.config = {
       serverUrl: 'http://localhost:8080/shadcn-mcp',
@@ -75,7 +78,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
       componentRegistry: 'official',
       defaultTheme: 'default',
       frameworks: ['react', 'next'],
-      ...config
+      ...config,
     };
   }
 
@@ -86,7 +89,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
     try {
       this.logger.info('Connecting to shadcn MCP Server', {
         version: this.config.version,
-        registry: this.config.componentRegistry
+        registry: this.config.componentRegistry,
       });
 
       // Detect available components and capabilities
@@ -96,9 +99,8 @@ export class ShadcnMCPAdapter extends EventEmitter {
       this.emit('connected', { capabilities });
 
       this.logger.info('Connected to shadcn MCP Server', {
-        componentsAvailable: capabilities.length
+        componentsAvailable: capabilities.length,
       });
-
     } catch (error) {
       this.logger.error('Failed to connect to shadcn MCP Server', { error });
       throw new Error(`shadcn MCP connection failed: ${error.message}`);
@@ -108,11 +110,13 @@ export class ShadcnMCPAdapter extends EventEmitter {
   /**
    * Generate UI component with swarm coordination
    */
-  async generateComponent(request: ShadcnComponentRequest & {
-    swarmId?: string;
-    agentId?: string;
-    framework?: 'react' | 'vue' | 'svelte';
-  }): Promise<ComponentGenerationResult> {
+  async generateComponent(
+    request: ShadcnComponentRequest & {
+      swarmId?: string;
+      agentId?: string;
+      framework?: 'react' | 'vue' | 'svelte';
+    },
+  ): Promise<ComponentGenerationResult> {
     const cacheKey = this.generateCacheKey(request);
 
     // Check cache first
@@ -140,7 +144,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
         component: request.component,
         duration,
         swarmId: request.swarmId,
-        agentId: request.agentId
+        agentId: request.agentId,
       });
 
       // Emit event for swarm coordination
@@ -148,16 +152,15 @@ export class ShadcnMCPAdapter extends EventEmitter {
         component: request.component,
         swarmId: request.swarmId,
         agentId: request.agentId,
-        result: enhancedResult
+        result: enhancedResult,
       });
 
       return enhancedResult;
-
     } catch (error) {
       this.logger.error('Component generation failed', {
         error,
         component: request.component,
-        swarmId: request.swarmId
+        swarmId: request.swarmId,
       });
 
       return {
@@ -167,15 +170,15 @@ export class ShadcnMCPAdapter extends EventEmitter {
           code: '',
           dependencies: [],
           props: {},
-          examples: []
+          examples: [],
         },
         files: [],
         documentation: {
           usage: '',
           props: {},
-          examples: []
+          examples: [],
         },
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -212,18 +215,18 @@ export class ShadcnMCPAdapter extends EventEmitter {
       this.logger.info('Generating UI feature', {
         feature: featureSpec.name,
         componentCount: featureSpec.components.length,
-        swarmId: featureSpec.swarmId
+        swarmId: featureSpec.swarmId,
       });
 
       // Generate all components in parallel
       const componentResults = await Promise.all(
-        featureSpec.components.map(comp =>
+        featureSpec.components.map((comp) =>
           this.generateComponent({
             ...comp,
             swarmId: featureSpec.swarmId,
-            agentId: featureSpec.agentId
-          })
-        )
+            agentId: featureSpec.agentId,
+          }),
+        ),
       );
 
       // Generate or retrieve theme
@@ -233,13 +236,16 @@ export class ShadcnMCPAdapter extends EventEmitter {
       const layoutFiles = await this.generateLayoutFiles(featureSpec, componentResults, theme);
 
       // Generate documentation
-      const documentationFiles = await this.generateFeatureDocumentation(featureSpec, componentResults);
+      const documentationFiles = await this.generateFeatureDocumentation(
+        featureSpec,
+        componentResults,
+      );
 
       // Combine all files
       const allFiles = [
-        ...componentResults.flatMap(r => r.files),
+        ...componentResults.flatMap((r) => r.files),
         ...layoutFiles,
-        ...documentationFiles
+        ...documentationFiles,
       ];
 
       const result = {
@@ -248,25 +254,24 @@ export class ShadcnMCPAdapter extends EventEmitter {
           name: featureSpec.name,
           components: componentResults,
           layout: featureSpec.layout,
-          theme
+          theme,
         },
-        files: allFiles
+        files: allFiles,
       };
 
       this.emit('feature-generated', {
         feature: featureSpec.name,
         swarmId: featureSpec.swarmId,
         agentId: featureSpec.agentId,
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       this.logger.error('UI feature generation failed', {
         error,
         feature: featureSpec.name,
-        swarmId: featureSpec.swarmId
+        swarmId: featureSpec.swarmId,
       });
 
       return {
@@ -275,10 +280,10 @@ export class ShadcnMCPAdapter extends EventEmitter {
           name: featureSpec.name,
           components: [],
           layout: featureSpec.layout,
-          theme: {} as ThemeCustomization
+          theme: {} as ThemeCustomization,
         },
         files: [],
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -308,7 +313,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
         fonts: { ...baseTheme.fonts, ...themeSpec.customizations.fonts },
         spacing: { ...baseTheme.spacing, ...themeSpec.customizations.spacing },
         borderRadius: { ...baseTheme.borderRadius, ...themeSpec.customizations.borderRadius },
-        shadows: { ...baseTheme.shadows, ...themeSpec.customizations.shadows }
+        shadows: { ...baseTheme.shadows, ...themeSpec.customizations.shadows },
       };
 
       // Cache customized theme
@@ -317,11 +322,10 @@ export class ShadcnMCPAdapter extends EventEmitter {
       this.emit('theme-customized', {
         themeName: themeSpec.name,
         swarmId: themeSpec.swarmId,
-        theme: customizedTheme
+        theme: customizedTheme,
       });
 
       return customizedTheme;
-
     } catch (error) {
       this.logger.error('Theme customization failed', { error, theme: themeSpec.name });
       throw error;
@@ -335,7 +339,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
     try {
       const library = await this.executeShadcnCommand({
         action: 'list_components',
-        params: { registry: this.config.componentRegistry }
+        params: { registry: this.config.componentRegistry },
       });
 
       return {
@@ -346,10 +350,9 @@ export class ShadcnMCPAdapter extends EventEmitter {
           category: comp.category || 'general',
           description: comp.description || '',
           variants: comp.variants || [],
-          props: comp.props || {}
-        }))
+          props: comp.props || {},
+        })),
       };
-
     } catch (error) {
       this.logger.error('Failed to get component library', { error });
       throw error;
@@ -368,20 +371,23 @@ export class ShadcnMCPAdapter extends EventEmitter {
     try {
       const library = await this.getComponentLibrary();
 
-      return library.components.filter(comp => {
+      return library.components.filter((comp) => {
         if (query.name && !comp.name.toLowerCase().includes(query.name.toLowerCase())) {
           return false;
         }
         if (query.category && comp.category !== query.category) {
           return false;
         }
-        if (query.features && !query.features.some(feature =>
-          comp.description.toLowerCase().includes(feature.toLowerCase()))) {
+        if (
+          query.features &&
+          !query.features.some((feature) =>
+            comp.description.toLowerCase().includes(feature.toLowerCase()),
+          )
+        ) {
           return false;
         }
         return true;
       });
-
     } catch (error) {
       this.logger.error('Component search failed', { error, query });
       return [];
@@ -409,13 +415,19 @@ export class ShadcnMCPAdapter extends EventEmitter {
       }
 
       // Check accessibility
-      if (!component.component.code.includes('aria-') && !component.component.code.includes('role=')) {
+      if (
+        !component.component.code.includes('aria-') &&
+        !component.component.code.includes('role=')
+      ) {
         suggestions.push('Consider adding ARIA attributes for better accessibility');
         score -= 5;
       }
 
       // Check responsive design
-      if (!component.component.code.includes('responsive') && !component.component.code.includes('breakpoint')) {
+      if (
+        !component.component.code.includes('responsive') &&
+        !component.component.code.includes('breakpoint')
+      ) {
         suggestions.push('Consider adding responsive design features');
         score -= 5;
       }
@@ -435,14 +447,13 @@ export class ShadcnMCPAdapter extends EventEmitter {
       const valid = issues.length === 0;
 
       return { valid, issues, suggestions, score };
-
     } catch (error) {
       this.logger.error('Component validation failed', { error });
       return {
         valid: false,
         issues: ['Validation process failed'],
         suggestions: [],
-        score: 0
+        score: 0,
       };
     }
   }
@@ -474,16 +485,15 @@ export class ShadcnMCPAdapter extends EventEmitter {
         this.logger.debug('shadcn MCP command executed', {
           action: command.action,
           duration,
-          attempt: attempt + 1
+          attempt: attempt + 1,
         });
 
         return result;
-
       } catch (error) {
         lastError = error;
         this.logger.warn(`shadcn MCP command failed (attempt ${attempt + 1})`, {
           action: command.action,
-          error: error.message
+          error: error.message,
         });
 
         if (attempt < this.config.retries - 1) {
@@ -507,7 +517,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
       if (command.action === 'generate_component') {
         adapted.params = {
           ...command.params,
-          framework: command.params.framework || 'react'
+          framework: command.params.framework || 'react',
         };
       }
     }
@@ -545,9 +555,9 @@ export class ShadcnMCPAdapter extends EventEmitter {
         code: `import { cn } from "@/lib/utils"\n\nexport interface ${params.component}Props {\n  className?: string\n}\n\nexport function ${params.component}({ className, ...props }: ${params.component}Props) {\n  return (\n    <div className={cn("", className)} {...props}>\n      {/* ${params.component} implementation */}\n    </div>\n  )\n}`,
         dependencies: ['@radix-ui/react-slot', 'class-variance-authority'],
         props: {
-          className: 'string'
-        }
-      }
+          className: 'string',
+        },
+      },
     };
   }
 
@@ -559,16 +569,16 @@ export class ShadcnMCPAdapter extends EventEmitter {
           category: 'forms',
           description: 'A customizable button component',
           variants: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
-          props: { variant: 'string', size: 'string', asChild: 'boolean' }
+          props: { variant: 'string', size: 'string', asChild: 'boolean' },
         },
         {
           name: 'Card',
           category: 'layout',
           description: 'A container component with header, content, and footer',
           variants: [],
-          props: { className: 'string' }
-        }
-      ]
+          props: { className: 'string' },
+        },
+      ],
     };
   }
 
@@ -577,38 +587,41 @@ export class ShadcnMCPAdapter extends EventEmitter {
       colors: {
         primary: '#000000',
         secondary: '#f1f5f9',
-        accent: '#e2e8f0'
+        accent: '#e2e8f0',
       },
       fonts: {
         default: 'Inter, sans-serif',
-        heading: 'Inter, sans-serif'
+        heading: 'Inter, sans-serif',
       },
       spacing: {
         xs: '0.25rem',
         sm: '0.5rem',
         md: '1rem',
-        lg: '2rem'
+        lg: '2rem',
       },
       borderRadius: {
         sm: '0.25rem',
         md: '0.5rem',
-        lg: '1rem'
+        lg: '1rem',
       },
       shadows: {
         sm: '0 1px 2px rgba(0, 0, 0, 0.05)',
-        md: '0 4px 6px rgba(0, 0, 0, 0.1)'
-      }
+        md: '0 4px 6px rgba(0, 0, 0, 0.1)',
+      },
     };
   }
 
   private async executeComponentGeneration(request: ShadcnComponentRequest): Promise<any> {
     return this.executeShadcnCommand({
       action: 'generate_component',
-      params: request
+      params: request,
     });
   }
 
-  private async enhanceGeneratedComponent(result: any, request: ShadcnComponentRequest): Promise<ComponentGenerationResult> {
+  private async enhanceGeneratedComponent(
+    result: any,
+    request: ShadcnComponentRequest,
+  ): Promise<ComponentGenerationResult> {
     return {
       success: true,
       component: result.component,
@@ -616,16 +629,14 @@ export class ShadcnMCPAdapter extends EventEmitter {
         {
           path: `components/${result.component.name.toLowerCase()}.tsx`,
           content: result.component.code,
-          type: 'component'
-        }
+          type: 'component',
+        },
       ],
       documentation: {
         usage: `import { ${result.component.name} } from '@/components/${result.component.name.toLowerCase()}'`,
         props: result.component.props,
-        examples: [
-          `<${result.component.name} />`
-        ]
-      }
+        examples: [`<${result.component.name} />`],
+      },
     };
   }
 
@@ -634,12 +645,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
   }
 
   private async detectCapabilities(): Promise<string[]> {
-    return [
-      'generate_component',
-      'list_components',
-      'customize_theme',
-      'validate_component'
-    ];
+    return ['generate_component', 'list_components', 'customize_theme', 'validate_component'];
   }
 
   private async getOrCreateTheme(themeName: string): Promise<ThemeCustomization> {
@@ -656,28 +662,35 @@ export class ShadcnMCPAdapter extends EventEmitter {
     return this.simulateThemeRetrieval(themeName);
   }
 
-  private async generateLayoutFiles(featureSpec: any, componentResults: ComponentGenerationResult[], theme: ThemeCustomization): Promise<any[]> {
+  private async generateLayoutFiles(
+    featureSpec: any,
+    componentResults: ComponentGenerationResult[],
+    theme: ThemeCustomization,
+  ): Promise<any[]> {
     return [
       {
         path: `layouts/${featureSpec.name.toLowerCase()}-layout.tsx`,
         content: `// Layout for ${featureSpec.name}`,
-        type: 'layout'
-      }
+        type: 'layout',
+      },
     ];
   }
 
-  private async generateFeatureDocumentation(featureSpec: any, componentResults: ComponentGenerationResult[]): Promise<any[]> {
+  private async generateFeatureDocumentation(
+    featureSpec: any,
+    componentResults: ComponentGenerationResult[],
+  ): Promise<any[]> {
     return [
       {
         path: `docs/${featureSpec.name.toLowerCase()}.md`,
         content: `# ${featureSpec.name}\n\n${featureSpec.description}`,
-        type: 'documentation'
-      }
+        type: 'documentation',
+      },
     ];
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async disconnect(): Promise<void> {
@@ -698,7 +711,7 @@ export class ShadcnMCPAdapter extends EventEmitter {
       version: this.config.version,
       registry: this.config.componentRegistry,
       cachedComponents: this.componentCache.size,
-      cachedThemes: this.themeCache.size
+      cachedThemes: this.themeCache.size,
     };
   }
 }

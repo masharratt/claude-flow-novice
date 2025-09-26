@@ -10,7 +10,7 @@ import {
   getDependencyTracker,
   DependencyType,
   type CompletionBlockerInfo,
-  type DependencyViolation
+  type DependencyViolation,
 } from '../lifecycle/dependency-tracker.js';
 
 export type AgentLifecycleState =
@@ -95,9 +95,12 @@ class AgentLifecycleManager {
       this.handleCompletionApproved(event.agentId);
     });
 
-    this.dependencyTracker.on('agent:completion_blocked', (event: { agentId: string; blockerInfo: CompletionBlockerInfo }) => {
-      this.handleCompletionBlocked(event.agentId, event.blockerInfo);
-    });
+    this.dependencyTracker.on(
+      'agent:completion_blocked',
+      (event: { agentId: string; blockerInfo: CompletionBlockerInfo }) => {
+        this.handleCompletionBlocked(event.agentId, event.blockerInfo);
+      },
+    );
 
     this.dependencyTracker.on('dependency:violation', (violation: DependencyViolation) => {
       this.handleDependencyViolation(violation);
@@ -110,7 +113,7 @@ class AgentLifecycleManager {
   async initializeAgent(
     agentId: string,
     agentDefinition: AgentDefinition,
-    taskId?: string
+    taskId?: string,
   ): Promise<AgentLifecycleContext> {
     const context: AgentLifecycleContext = {
       agentId,
@@ -123,11 +126,13 @@ class AgentLifecycleManager {
       retryCount: 0,
       maxRetries: agentDefinition.lifecycle?.max_retries ?? 3,
       errorHistory: [],
-      stateHistory: [{
-        state: 'uninitialized',
-        timestamp: new Date(),
-        reason: 'Agent initialization'
-      }]
+      stateHistory: [
+        {
+          state: 'uninitialized',
+          timestamp: new Date(),
+          reason: 'Agent initialization',
+        },
+      ],
     };
 
     this.agents.set(agentId, context);
@@ -149,7 +154,7 @@ class AgentLifecycleManager {
   async transitionState(
     agentId: string,
     newState: AgentLifecycleState,
-    reason?: string
+    reason?: string,
   ): Promise<boolean> {
     const context = this.agents.get(agentId);
     if (!context) {
@@ -158,9 +163,7 @@ class AgentLifecycleManager {
 
     const validTransitions = this.getValidTransitions(context.state);
     if (!validTransitions.includes(newState)) {
-      throw new Error(
-        `Invalid state transition from ${context.state} to ${newState}`
-      );
+      throw new Error(`Invalid state transition from ${context.state} to ${newState}`);
     }
 
     // Check dependency constraints for completion states
@@ -186,7 +189,7 @@ class AgentLifecycleManager {
     context.stateHistory.push({
       state: newState,
       timestamp: new Date(),
-      reason
+      reason,
     });
 
     // Execute lifecycle hook for the new state
@@ -195,7 +198,11 @@ class AgentLifecycleManager {
       const hookResult = await this.executeLifecycleHook(agentId, hookName);
       if (!hookResult.success && newState !== 'error') {
         // If hook fails, transition to error state
-        await this.transitionState(agentId, 'error', `Hook ${hookName} failed: ${hookResult.error?.message}`);
+        await this.transitionState(
+          agentId,
+          'error',
+          `Hook ${hookName} failed: ${hookResult.error?.message}`,
+        );
         return false;
       }
     }
@@ -204,7 +211,7 @@ class AgentLifecycleManager {
     this.dependencyTracker.emit('agent:state_changed', {
       agentId,
       newState,
-      oldState: previousState
+      oldState: previousState,
     });
 
     // Save state if persistent memory is enabled
@@ -225,7 +232,10 @@ class AgentLifecycleManager {
   /**
    * Check dependency constraints before allowing state transition
    */
-  private async checkDependencyConstraints(agentId: string, targetState: AgentLifecycleState): Promise<boolean> {
+  private async checkDependencyConstraints(
+    agentId: string,
+    targetState: AgentLifecycleState,
+  ): Promise<boolean> {
     if (!this.isInitialized) {
       return true; // Allow if dependency tracker not initialized
     }
@@ -244,7 +254,7 @@ class AgentLifecycleManager {
     options: {
       timeout?: number;
       metadata?: Record<string, unknown>;
-    } = {}
+    } = {},
   ): Promise<string> {
     if (!this.isInitialized) {
       throw new Error('Lifecycle manager not initialized');
@@ -254,7 +264,7 @@ class AgentLifecycleManager {
       dependentAgentId,
       providerAgentId,
       type,
-      options
+      options,
     );
 
     // Update agent contexts
@@ -334,7 +344,10 @@ class AgentLifecycleManager {
   /**
    * Handle completion blocked from dependency tracker
    */
-  private async handleCompletionBlocked(agentId: string, blockerInfo: CompletionBlockerInfo): Promise<void> {
+  private async handleCompletionBlocked(
+    agentId: string,
+    blockerInfo: CompletionBlockerInfo,
+  ): Promise<void> {
     const context = this.agents.get(agentId);
     if (!context) {
       return;
@@ -367,7 +380,7 @@ class AgentLifecycleManager {
   private async completeStateTransition(
     agentId: string,
     newState: AgentLifecycleState,
-    reason: string
+    reason: string,
   ): Promise<void> {
     const context = this.agents.get(agentId);
     if (!context) {
@@ -383,7 +396,7 @@ class AgentLifecycleManager {
     context.stateHistory.push({
       state: newState,
       timestamp: new Date(),
-      reason
+      reason,
     });
 
     // Execute lifecycle hook for the new state
@@ -396,7 +409,7 @@ class AgentLifecycleManager {
     this.dependencyTracker.emit('agent:state_changed', {
       agentId,
       newState,
-      oldState: previousState
+      oldState: previousState,
     });
 
     // Save state if persistent memory is enabled
@@ -410,7 +423,7 @@ class AgentLifecycleManager {
    */
   private async executeLifecycleHook(
     agentId: string,
-    hookName: string
+    hookName: string,
   ): Promise<LifecycleHookResult> {
     const context = this.agents.get(agentId);
     if (!context) {
@@ -440,13 +453,15 @@ class AgentLifecycleManager {
       return {
         success: true,
         message: `Hook ${hookName} executed successfully`,
-        data: result
+        data: result,
       };
     } catch (error) {
-      context.errorHistory.push(`Hook ${hookName} failed: ${error instanceof Error ? error.message : String(error)}`);
+      context.errorHistory.push(
+        `Hook ${hookName} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return {
         success: false,
-        error: error instanceof Error ? error : new Error(String(error))
+        error: error instanceof Error ? error : new Error(String(error)),
       };
     }
   }
@@ -454,11 +469,7 @@ class AgentLifecycleManager {
   /**
    * Execute hook script with proper environment setup
    */
-  private async executeHookScript(
-    agentId: string,
-    script: string,
-    hookName: string
-  ): Promise<any> {
+  private async executeHookScript(agentId: string, script: string, hookName: string): Promise<any> {
     const context = this.agents.get(agentId);
     if (!context) {
       throw new Error(`Agent ${agentId} not found`);
@@ -473,7 +484,7 @@ class AgentLifecycleManager {
       TASK_ID: context.taskId || '',
       HOOK_NAME: hookName,
       SWARM_ID: process.env.SWARM_ID || agentId,
-      LIFECYCLE_STATE: context.state
+      LIFECYCLE_STATE: context.state,
     };
 
     // Execute the hook (this would integrate with the existing hook system)
@@ -498,7 +509,7 @@ class AgentLifecycleManager {
       stopping: ['stopped', 'error', 'cleanup'],
       stopped: ['cleanup', 'initializing', 'error'],
       error: ['cleanup', 'initializing', 'stopped'],
-      cleanup: ['stopped']
+      cleanup: ['stopped'],
     };
 
     return transitions[currentState] || [];
@@ -517,7 +528,7 @@ class AgentLifecycleManager {
       stopping: 'stop',
       stopped: 'stop',
       error: null,
-      cleanup: 'cleanup'
+      cleanup: 'cleanup',
     };
 
     return stateHookMap[state] || null;
@@ -529,7 +540,7 @@ class AgentLifecycleManager {
   async handleTaskComplete(
     agentId: string,
     taskResult: any,
-    success: boolean = true
+    success: boolean = true,
   ): Promise<LifecycleHookResult> {
     const context = this.agents.get(agentId);
     if (!context) {
@@ -550,7 +561,11 @@ class AgentLifecycleManager {
       if (context.retryCount >= context.maxRetries) {
         await this.transitionState(agentId, 'error', 'Task failed after max retries');
       } else {
-        await this.transitionState(agentId, 'idle', `Task failed, retry ${context.retryCount}/${context.maxRetries}`);
+        await this.transitionState(
+          agentId,
+          'idle',
+          `Task failed, retry ${context.retryCount}/${context.maxRetries}`,
+        );
       }
     }
 
@@ -560,10 +575,7 @@ class AgentLifecycleManager {
   /**
    * Handle rerun request
    */
-  async handleRerunRequest(
-    agentId: string,
-    reason?: string
-  ): Promise<LifecycleHookResult> {
+  async handleRerunRequest(agentId: string, reason?: string): Promise<LifecycleHookResult> {
     const context = this.agents.get(agentId);
     if (!context) {
       return { success: false, error: new Error(`Agent ${agentId} not found`) };
@@ -709,7 +721,7 @@ class AgentLifecycleManager {
       dependencies: context?.dependencies ?? [],
       dependentAgents: context?.dependentAgents ?? [],
       pendingCompletion: context?.pendingCompletion ?? false,
-      blockerInfo: context?.completionBlocker
+      blockerInfo: context?.completionBlocker,
     };
   }
 
@@ -731,7 +743,7 @@ class AgentLifecycleManager {
    * Get agents by state
    */
   getAgentsByState(state: AgentLifecycleState): AgentLifecycleContext[] {
-    return Array.from(this.agents.values()).filter(agent => agent.state === state);
+    return Array.from(this.agents.values()).filter((agent) => agent.state === state);
   }
 
   /**
@@ -777,11 +789,17 @@ class AgentLifecycleManager {
 export const lifecycleManager = new AgentLifecycleManager();
 
 // Convenience functions
-export const initializeAgent = (agentId: string, agentDefinition: AgentDefinition, taskId?: string) =>
-  lifecycleManager.initializeAgent(agentId, agentDefinition, taskId);
+export const initializeAgent = (
+  agentId: string,
+  agentDefinition: AgentDefinition,
+  taskId?: string,
+) => lifecycleManager.initializeAgent(agentId, agentDefinition, taskId);
 
-export const transitionAgentState = (agentId: string, newState: AgentLifecycleState, reason?: string) =>
-  lifecycleManager.transitionState(agentId, newState, reason);
+export const transitionAgentState = (
+  agentId: string,
+  newState: AgentLifecycleState,
+  reason?: string,
+) => lifecycleManager.transitionState(agentId, newState, reason);
 
 export const handleTaskComplete = (agentId: string, taskResult: any, success?: boolean) =>
   lifecycleManager.handleTaskComplete(agentId, taskResult, success);
@@ -789,11 +807,9 @@ export const handleTaskComplete = (agentId: string, taskResult: any, success?: b
 export const handleRerunRequest = (agentId: string, reason?: string) =>
   lifecycleManager.handleRerunRequest(agentId, reason);
 
-export const cleanupAgent = (agentId: string) =>
-  lifecycleManager.cleanupAgent(agentId);
+export const cleanupAgent = (agentId: string) => lifecycleManager.cleanupAgent(agentId);
 
-export const getAgentContext = (agentId: string) =>
-  lifecycleManager.getAgentContext(agentId);
+export const getAgentContext = (agentId: string) => lifecycleManager.getAgentContext(agentId);
 
 export const updateAgentMemory = (agentId: string, key: string, value: any) =>
   lifecycleManager.updateAgentMemory(agentId, key, value);
@@ -805,7 +821,7 @@ export const registerAgentDependency = (
   dependentAgentId: string,
   providerAgentId: string,
   type?: DependencyType,
-  options?: { timeout?: number; metadata?: Record<string, unknown> }
+  options?: { timeout?: number; metadata?: Record<string, unknown> },
 ) => lifecycleManager.registerAgentDependency(dependentAgentId, providerAgentId, type, options);
 
 export const removeAgentDependency = (dependencyId: string) =>
@@ -817,10 +833,8 @@ export const forceAgentCompletion = (agentId: string, reason: string) =>
 export const getAgentDependencyStatus = (agentId: string) =>
   lifecycleManager.getAgentDependencyStatus(agentId);
 
-export const initializeLifecycleManager = () =>
-  lifecycleManager.initialize();
+export const initializeLifecycleManager = () => lifecycleManager.initialize();
 
-export const shutdownLifecycleManager = () =>
-  lifecycleManager.shutdown();
+export const shutdownLifecycleManager = () => lifecycleManager.shutdown();
 
 export { AgentLifecycleManager, DependencyType };

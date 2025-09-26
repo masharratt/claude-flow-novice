@@ -35,7 +35,7 @@ export class TeamCollaborationSystem {
       join(this.teamConfigPath, 'profiles'),
       join(this.teamConfigPath, 'sync'),
       join(this.teamConfigPath, 'conflicts'),
-      join(this.teamConfigPath, 'backups')
+      join(this.teamConfigPath, 'backups'),
     ];
 
     for (const dir of directories) {
@@ -55,11 +55,11 @@ export class TeamCollaborationSystem {
         'documentation.verbosity',
         'languages.auto_setup_linting',
         'resourceDelegation.mode',
-        'customizations.message_filters'
+        'customizations.message_filters',
       ],
       conflictResolution: 'vote',
       autoSync: true,
-      syncFrequency: 'on-change'
+      syncFrequency: 'on-change',
     });
 
     // Research Team Mode - Focus on documentation and analysis
@@ -70,11 +70,11 @@ export class TeamCollaborationSystem {
         'documentation.verbosity',
         'tone.technical_depth',
         'guidance.experience_level',
-        'workflow.analytics_driven'
+        'workflow.analytics_driven',
       ],
       conflictResolution: 'merge',
       autoSync: false,
-      syncFrequency: 'manual'
+      syncFrequency: 'manual',
     });
 
     // Enterprise Mode - Focus on standardization and compliance
@@ -86,24 +86,21 @@ export class TeamCollaborationSystem {
         'documentation.verbosity',
         'resourceDelegation',
         'customizations',
-        'languages.auto_setup_linting'
+        'languages.auto_setup_linting',
       ],
       conflictResolution: 'admin-override',
       autoSync: true,
-      syncFrequency: 'scheduled'
+      syncFrequency: 'scheduled',
     });
 
     // Flexible Mode - Minimal shared preferences
     this.collaborationModes.set('flexible', {
       name: 'Flexible Team',
       description: 'Minimal shared preferences, maximum individual flexibility',
-      sharedPreferences: [
-        'tone.style',
-        'resourceDelegation.mode'
-      ],
+      sharedPreferences: ['tone.style', 'resourceDelegation.mode'],
       conflictResolution: 'individual-choice',
       autoSync: false,
-      syncFrequency: 'on-request'
+      syncFrequency: 'on-request',
     });
   }
 
@@ -136,7 +133,7 @@ export class TeamCollaborationSystem {
       mode = 'developer',
       members = [],
       adminId,
-      sharedPreferences = {}
+      sharedPreferences = {},
     } = teamConfig;
 
     const teamId = this.generateTeamId(name);
@@ -146,18 +143,18 @@ export class TeamCollaborationSystem {
       description,
       mode,
       adminId,
-      members: members.map(member => ({
+      members: members.map((member) => ({
         id: member.id || this.generateMemberId(),
         name: member.name,
         role: member.role || 'member',
         joinedAt: new Date().toISOString(),
-        preferences: member.preferences || {}
+        preferences: member.preferences || {},
       })),
       sharedPreferences,
       collaborationMode: this.collaborationModes.get(mode),
       createdAt: new Date().toISOString(),
       lastSyncAt: null,
-      version: 1
+      version: 1,
     };
 
     await this.saveTeamConfig(team);
@@ -178,7 +175,7 @@ export class TeamCollaborationSystem {
       name: memberInfo.name,
       role: memberInfo.role || 'member',
       joinedAt: new Date().toISOString(),
-      preferences: memberInfo.preferences || {}
+      preferences: memberInfo.preferences || {},
     };
 
     team.members.push(member);
@@ -209,7 +206,6 @@ export class TeamCollaborationSystem {
 
       await this.releaseSyncLock(teamId, memberId);
       return syncResult;
-
     } finally {
       this.syncInProgress = false;
     }
@@ -247,14 +243,18 @@ export class TeamCollaborationSystem {
     await this.saveTeamConfig(team);
 
     // Merge resolved shared preferences back into local preferences
-    const mergedPreferences = this.mergePreferences(localPreferences, resolvedPreferences, sharedKeys);
+    const mergedPreferences = this.mergePreferences(
+      localPreferences,
+      resolvedPreferences,
+      sharedKeys,
+    );
 
     return {
       success: true,
       conflicts: conflicts.length,
       resolvedPreferences: resolvedPreferences,
       mergedPreferences: mergedPreferences,
-      syncedAt: team.lastSyncAt
+      syncedAt: team.lastSyncAt,
     };
   }
 
@@ -265,13 +265,16 @@ export class TeamCollaborationSystem {
       const currentValue = this.getNestedValue(currentShared, key);
       const localValue = this.getNestedValue(localShared, key);
 
-      if (currentValue !== undefined && localValue !== undefined &&
-          JSON.stringify(currentValue) !== JSON.stringify(localValue)) {
+      if (
+        currentValue !== undefined &&
+        localValue !== undefined &&
+        JSON.stringify(currentValue) !== JSON.stringify(localValue)
+      ) {
         conflicts.push({
           key,
           currentValue,
           localValue,
-          type: this.getConflictType(currentValue, localValue)
+          type: this.getConflictType(currentValue, localValue),
         });
       }
     }
@@ -313,12 +316,12 @@ export class TeamCollaborationSystem {
     // Simulate voting - in real implementation, would be interactive
     const votes = {
       current: Math.floor(teamMembers.length * 0.4),
-      local: Math.floor(teamMembers.length * 0.6)
+      local: Math.floor(teamMembers.length * 0.6),
     };
 
     return {
       winner: votes.local > votes.current ? conflict.localValue : conflict.currentValue,
-      votes
+      votes,
     };
   }
 
@@ -329,13 +332,13 @@ export class TeamCollaborationSystem {
       if (conflict.type === 'array-difference') {
         // Merge arrays by combining unique values
         resolutions[conflict.key] = [
-          ...new Set([...conflict.currentValue, ...conflict.localValue])
+          ...new Set([...conflict.currentValue, ...conflict.localValue]),
         ];
       } else if (conflict.type === 'object-difference') {
         // Merge objects
         resolutions[conflict.key] = {
           ...conflict.currentValue,
-          ...conflict.localValue
+          ...conflict.localValue,
         };
       } else {
         // For primitive values, prefer local changes
@@ -348,7 +351,7 @@ export class TeamCollaborationSystem {
 
   async resolveByAdminOverride(conflicts, teamMembers) {
     // Admin preferences take precedence
-    const admin = teamMembers.find(member => member.role === 'admin');
+    const admin = teamMembers.find((member) => member.role === 'admin');
     const resolutions = {};
 
     for (const conflict of conflicts) {
@@ -419,7 +422,7 @@ export class TeamCollaborationSystem {
     const lockData = {
       memberId,
       timestamp: Date.now(),
-      expires: Date.now() + this.lockTimeout
+      expires: Date.now() + this.lockTimeout,
     };
 
     try {
@@ -445,7 +448,7 @@ export class TeamCollaborationSystem {
         const lockData = JSON.parse(await readFile(lockFile, 'utf8'));
         if (lockData.memberId === memberId) {
           // Remove lock file
-          await import('fs/promises').then(fs => fs.unlink(lockFile));
+          await import('fs/promises').then((fs) => fs.unlink(lockFile));
         }
       }
     } catch (error) {
@@ -486,7 +489,7 @@ export class TeamCollaborationSystem {
   async initializeSharedPreferences(team) {
     const sharedPrefs = this.extractSharedPreferences(
       team.sharedPreferences,
-      team.collaborationMode.sharedPreferences
+      team.collaborationMode.sharedPreferences,
     );
 
     await this.saveSharedPreferences(team.id, sharedPrefs);
@@ -504,12 +507,12 @@ export class TeamCollaborationSystem {
     const logEntry = {
       teamId,
       timestamp: new Date().toISOString(),
-      conflicts: conflicts.map(c => ({
+      conflicts: conflicts.map((c) => ({
         key: c.key,
         type: c.type,
-        resolved: this.getNestedValue(resolutions, c.key)
+        resolved: this.getNestedValue(resolutions, c.key),
       })),
-      resolutionMethod: 'automated'
+      resolutionMethod: 'automated',
     };
 
     const logFile = join(this.teamConfigPath, 'conflicts', `${teamId}_${Date.now()}.json`);
@@ -541,17 +544,17 @@ export class TeamCollaborationSystem {
         memberCount: team.members.length,
         mode: team.mode,
         lastSync: team.lastSyncAt,
-        version: team.version
+        version: team.version,
       },
       preferences: {
         sharedCount: Object.keys(sharedPrefs).length,
-        sharedKeys: team.collaborationMode.sharedPreferences
+        sharedKeys: team.collaborationMode.sharedPreferences,
       },
       sync: {
         frequency: team.collaborationMode.syncFrequency,
         autoSync: team.collaborationMode.autoSync,
-        conflictResolution: team.collaborationMode.conflictResolution
-      }
+        conflictResolution: team.collaborationMode.conflictResolution,
+      },
     };
   }
 }

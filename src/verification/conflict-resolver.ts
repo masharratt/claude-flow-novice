@@ -77,7 +77,7 @@ export class CRDTConflictResolver extends EventEmitter {
       },
       resolve: (results: BenchmarkResult[]): BenchmarkResult => {
         return this.statisticalAggregation(results);
-      }
+      },
     });
 
     // Environment-weighted strategy
@@ -85,12 +85,12 @@ export class CRDTConflictResolver extends EventEmitter {
       name: 'environment-weighted',
       priority: 2,
       applicability: (results: BenchmarkResult[]): number => {
-        const environments = new Set(results.map(r => r.metadata.environment));
+        const environments = new Set(results.map((r) => r.metadata.environment));
         return environments.size > 1 ? 0.8 : 0.3;
       },
       resolve: (results: BenchmarkResult[]): BenchmarkResult => {
         return this.environmentWeightedResolution(results);
-      }
+      },
     });
 
     // Temporal consensus strategy
@@ -98,13 +98,14 @@ export class CRDTConflictResolver extends EventEmitter {
       name: 'temporal',
       priority: 3,
       applicability: (results: BenchmarkResult[]): number => {
-        const timeSpread = Math.max(...results.map(r => r.timestamp)) -
-                          Math.min(...results.map(r => r.timestamp));
+        const timeSpread =
+          Math.max(...results.map((r) => r.timestamp)) -
+          Math.min(...results.map((r) => r.timestamp));
         return timeSpread > 300000 ? 0.7 : 0.4; // 5 minutes
       },
       resolve: (results: BenchmarkResult[]): BenchmarkResult => {
         return this.temporalConsensus(results);
-      }
+      },
     });
 
     // CRDT-based merge strategy
@@ -117,7 +118,7 @@ export class CRDTConflictResolver extends EventEmitter {
       },
       resolve: (results: BenchmarkResult[]): BenchmarkResult => {
         return this.crdtMergeResolution(results);
-      }
+      },
     });
 
     // Performance-optimized strategy
@@ -125,21 +126,23 @@ export class CRDTConflictResolver extends EventEmitter {
       name: 'performance-optimized',
       priority: 5,
       applicability: (results: BenchmarkResult[]): number => {
-        const hasPerformanceMetrics = results.every(r =>
-          r.metrics.executionTime && r.metrics.throughput
+        const hasPerformanceMetrics = results.every(
+          (r) => r.metrics.executionTime && r.metrics.throughput,
         );
         return hasPerformanceMetrics ? 0.85 : 0.2;
       },
       resolve: (results: BenchmarkResult[]): BenchmarkResult => {
         return this.performanceOptimizedResolution(results);
-      }
+      },
     });
   }
 
   /**
    * Resolve conflicts in performance benchmark results
    */
-  async resolveConflicts(conflictingResults: Map<string, BenchmarkResult[]>): Promise<Map<string, BenchmarkResult>> {
+  async resolveConflicts(
+    conflictingResults: Map<string, BenchmarkResult[]>,
+  ): Promise<Map<string, BenchmarkResult>> {
     const resolved = new Map<string, BenchmarkResult>();
 
     for (const [benchmarkId, results] of conflictingResults) {
@@ -174,16 +177,15 @@ export class CRDTConflictResolver extends EventEmitter {
           strategy: strategy.name,
           inputCount: results.length,
           analysis: analysis,
-          result: resolvedResult
+          result: resolvedResult,
         });
 
         this.emit('conflict-resolved', {
           benchmarkId,
           strategy: strategy.name,
           inputCount: results.length,
-          analysis: analysis
+          analysis: analysis,
         });
-
       } catch (error) {
         this.emit('resolution-error', { benchmarkId, error, results });
 
@@ -198,19 +200,22 @@ export class CRDTConflictResolver extends EventEmitter {
   /**
    * Analyze conflict characteristics
    */
-  private async analyzeConflict(benchmarkId: string, results: BenchmarkResult[]): Promise<ConflictAnalysis> {
+  private async analyzeConflict(
+    benchmarkId: string,
+    results: BenchmarkResult[],
+  ): Promise<ConflictAnalysis> {
     const analysis: ConflictAnalysis = {
       conflictType: 'data',
       severity: 'medium',
       affectedMetrics: [],
       recommendedStrategy: 'statistical',
-      confidence: 0.5
+      confidence: 0.5,
     };
 
     // Analyze metric variations
     const metricVariations = this.calculateMetricVariations(results);
     analysis.affectedMetrics = Object.keys(metricVariations).filter(
-      metric => metricVariations[metric].coefficient > 0.2
+      (metric) => metricVariations[metric].coefficient > 0.2,
     );
 
     // Determine conflict type
@@ -229,7 +234,7 @@ export class CRDTConflictResolver extends EventEmitter {
     }
 
     // Determine severity
-    const maxVariation = Math.max(...Object.values(metricVariations).map(v => v.coefficient));
+    const maxVariation = Math.max(...Object.values(metricVariations).map((v) => v.coefficient));
     if (maxVariation > 0.5) analysis.severity = 'critical';
     else if (maxVariation > 0.3) analysis.severity = 'high';
     else if (maxVariation > 0.1) analysis.severity = 'medium';
@@ -251,7 +256,7 @@ export class CRDTConflictResolver extends EventEmitter {
         throughput: 0,
         errorRate: 0,
         memoryUsage: 0,
-        cpuUtilization: 0
+        cpuUtilization: 0,
       },
       metadata: {
         testSuite: results[0].metadata.testSuite,
@@ -260,22 +265,29 @@ export class CRDTConflictResolver extends EventEmitter {
         configuration: {
           aggregation: 'statistical',
           sources: results.length,
-          outliers_removed: false
-        }
+          outliers_removed: false,
+        },
       },
-      conflicts: []
+      conflicts: [],
     };
 
     // Remove statistical outliers
     const filteredResults = this.removeOutliers(results);
 
     // Calculate statistical measures
-    const metrics = ['executionTime', 'throughput', 'errorRate', 'memoryUsage', 'cpuUtilization'] as const;
+    const metrics = [
+      'executionTime',
+      'throughput',
+      'errorRate',
+      'memoryUsage',
+      'cpuUtilization',
+    ] as const;
 
     for (const metric of metrics) {
-      const values = filteredResults.map(r => r.metrics[metric]);
+      const values = filteredResults.map((r) => r.metrics[metric]);
       const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-      const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+      const variance =
+        values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
       const stdDev = Math.sqrt(variance);
 
       // Use median for skewed distributions, mean for normal
@@ -294,7 +306,7 @@ export class CRDTConflictResolver extends EventEmitter {
 
     // Track aggregated conflicts
     const allConflicts = new Set<string>();
-    results.forEach(r => r.conflicts.forEach(c => allConflicts.add(c)));
+    results.forEach((r) => r.conflicts.forEach((c) => allConflicts.add(c)));
     aggregated.conflicts = Array.from(allConflicts);
 
     return aggregated;
@@ -309,7 +321,7 @@ export class CRDTConflictResolver extends EventEmitter {
     const environmentCounts = new Map<string, number>();
 
     // Count environment occurrences
-    results.forEach(r => {
+    results.forEach((r) => {
       const env = r.metadata.environment;
       environmentCounts.set(env, (environmentCounts.get(env) || 0) + 1);
     });
@@ -330,7 +342,7 @@ export class CRDTConflictResolver extends EventEmitter {
         throughput: 0,
         errorRate: 0,
         memoryUsage: 0,
-        cpuUtilization: 0
+        cpuUtilization: 0,
       },
       metadata: {
         testSuite: results[0].metadata.testSuite,
@@ -339,26 +351,26 @@ export class CRDTConflictResolver extends EventEmitter {
         configuration: {
           resolution: 'environment-weighted',
           environments: Array.from(environmentCounts.keys()),
-          weights: Object.fromEntries(environmentWeights)
-        }
+          weights: Object.fromEntries(environmentWeights),
+        },
       },
-      conflicts: []
+      conflicts: [],
     };
 
     let totalWeight = 0;
     const metrics = Object.keys(weightedResult.metrics) as (keyof BenchmarkResult['metrics'])[];
 
-    results.forEach(result => {
+    results.forEach((result) => {
       const weight = environmentWeights.get(result.metadata.environment) || 0;
       totalWeight += weight;
 
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         weightedResult.metrics[metric] += result.metrics[metric] * weight;
       });
     });
 
     // Normalize by total weight
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       weightedResult.metrics[metric] /= totalWeight;
     });
 
@@ -374,7 +386,7 @@ export class CRDTConflictResolver extends EventEmitter {
 
     // Give more weight to recent results
     const now = Date.now();
-    const maxAge = now - Math.min(...results.map(r => r.timestamp));
+    const maxAge = now - Math.min(...results.map((r) => r.timestamp));
 
     const temporalResult: BenchmarkResult = {
       benchmarkId: results[0].benchmarkId,
@@ -385,7 +397,7 @@ export class CRDTConflictResolver extends EventEmitter {
         throughput: 0,
         errorRate: 0,
         memoryUsage: 0,
-        cpuUtilization: 0
+        cpuUtilization: 0,
       },
       metadata: {
         testSuite: results[0].metadata.testSuite,
@@ -394,28 +406,28 @@ export class CRDTConflictResolver extends EventEmitter {
         configuration: {
           resolution: 'temporal',
           timeWindow: maxAge,
-          samples: results.length
-        }
+          samples: results.length,
+        },
       },
-      conflicts: []
+      conflicts: [],
     };
 
     let totalWeight = 0;
     const metrics = Object.keys(temporalResult.metrics) as (keyof BenchmarkResult['metrics'])[];
 
-    sortedResults.forEach(result => {
+    sortedResults.forEach((result) => {
       const age = now - result.timestamp;
       // Exponential decay weight (more recent = higher weight)
       const weight = Math.exp(-age / (maxAge / 4));
       totalWeight += weight;
 
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         temporalResult.metrics[metric] += result.metrics[metric] * weight;
       });
     });
 
     // Normalize
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       temporalResult.metrics[metric] /= totalWeight;
     });
 
@@ -427,7 +439,7 @@ export class CRDTConflictResolver extends EventEmitter {
    */
   private crdtMergeResolution(results: BenchmarkResult[]): BenchmarkResult {
     // Use CRDT semantics for conflict-free merge
-    const nodeIds = results.map(r => r.nodeId);
+    const nodeIds = results.map((r) => r.nodeId);
 
     // G-Counters for additive metrics
     const executionTimeCounter = new GCounter(this.nodeId, nodeIds);
@@ -443,7 +455,7 @@ export class CRDTConflictResolver extends EventEmitter {
     const envRegister = new LWWRegister<string>(this.nodeId);
 
     // Populate CRDTs
-    results.forEach(result => {
+    results.forEach((result) => {
       executionTimeCounter.increment(result.metrics.executionTime);
       throughputCounter.increment(result.metrics.throughput);
       memoryCounter.increment(result.metrics.memoryUsage);
@@ -463,9 +475,10 @@ export class CRDTConflictResolver extends EventEmitter {
       metrics: {
         executionTime: executionTimeCounter.value() / results.length, // Average
         throughput: throughputCounter.value() / results.length,
-        errorRate: Array.from(errorSet.values()).reduce((sum, val) => sum + val, 0) / errorSet.values().size,
+        errorRate:
+          Array.from(errorSet.values()).reduce((sum, val) => sum + val, 0) / errorSet.values().size,
         memoryUsage: memoryCounter.value() / results.length,
-        cpuUtilization: cpuCounter.value() / results.length
+        cpuUtilization: cpuCounter.value() / results.length,
       },
       metadata: {
         testSuite: results[0].metadata.testSuite,
@@ -474,10 +487,10 @@ export class CRDTConflictResolver extends EventEmitter {
         configuration: {
           resolution: 'crdt-merge',
           merged_nodes: nodeIds,
-          merge_timestamp: Date.now()
-        }
+          merge_timestamp: Date.now(),
+        },
       },
-      conflicts: []
+      conflicts: [],
     };
 
     return mergedResult;
@@ -488,7 +501,7 @@ export class CRDTConflictResolver extends EventEmitter {
    */
   private performanceOptimizedResolution(results: BenchmarkResult[]): BenchmarkResult {
     // Select results with best performance characteristics
-    const scored = results.map(result => {
+    const scored = results.map((result) => {
       const score = this.calculatePerformanceScore(result);
       return { result, score };
     });
@@ -511,7 +524,7 @@ export class CRDTConflictResolver extends EventEmitter {
         throughput: 0,
         errorRate: 0,
         memoryUsage: 0,
-        cpuUtilization: 0
+        cpuUtilization: 0,
       },
       metadata: {
         testSuite: results[0].metadata.testSuite,
@@ -520,10 +533,10 @@ export class CRDTConflictResolver extends EventEmitter {
         configuration: {
           resolution: 'performance-optimized',
           top_performers: topCount,
-          performance_threshold: 0.5
-        }
+          performance_threshold: 0.5,
+        },
       },
-      conflicts: []
+      conflicts: [],
     };
 
     const metrics = Object.keys(optimizedResult.metrics) as (keyof BenchmarkResult['metrics'])[];
@@ -531,13 +544,13 @@ export class CRDTConflictResolver extends EventEmitter {
     topPerformers.forEach(({ result, score }) => {
       totalWeight += score;
 
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         optimizedResult.metrics[metric] += result.metrics[metric] * score;
       });
     });
 
     // Normalize
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       optimizedResult.metrics[metric] /= totalWeight;
     });
 
@@ -545,14 +558,17 @@ export class CRDTConflictResolver extends EventEmitter {
   }
 
   // Helper methods
-  private selectResolutionStrategy(results: BenchmarkResult[], analysis: ConflictAnalysis): ResolutionStrategy {
+  private selectResolutionStrategy(
+    results: BenchmarkResult[],
+    analysis: ConflictAnalysis,
+  ): ResolutionStrategy {
     const candidates = Array.from(this.strategies.values())
-      .map(strategy => ({
+      .map((strategy) => ({
         strategy,
         applicability: strategy.applicability(results),
-        priority: strategy.priority
+        priority: strategy.priority,
       }))
-      .filter(c => c.applicability > 0.3)
+      .filter((c) => c.applicability > 0.3)
       .sort((a, b) => b.applicability - a.applicability || a.priority - b.priority);
 
     // Use recommended strategy if available and applicable
@@ -566,14 +582,23 @@ export class CRDTConflictResolver extends EventEmitter {
     return candidates[0]?.strategy || this.strategies.get('statistical')!;
   }
 
-  private calculateMetricVariations(results: BenchmarkResult[]): Record<string, { mean: number; stdDev: number; coefficient: number }> {
+  private calculateMetricVariations(
+    results: BenchmarkResult[],
+  ): Record<string, { mean: number; stdDev: number; coefficient: number }> {
     const variations: Record<string, { mean: number; stdDev: number; coefficient: number }> = {};
-    const metrics = ['executionTime', 'throughput', 'errorRate', 'memoryUsage', 'cpuUtilization'] as const;
+    const metrics = [
+      'executionTime',
+      'throughput',
+      'errorRate',
+      'memoryUsage',
+      'cpuUtilization',
+    ] as const;
 
-    metrics.forEach(metric => {
-      const values = results.map(r => r.metrics[metric]);
+    metrics.forEach((metric) => {
+      const values = results.map((r) => r.metrics[metric]);
       const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-      const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+      const variance =
+        values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
       const stdDev = Math.sqrt(variance);
       const coefficient = mean > 0 ? stdDev / mean : 0;
 
@@ -584,18 +609,18 @@ export class CRDTConflictResolver extends EventEmitter {
   }
 
   private hasEnvironmentConflicts(results: BenchmarkResult[]): boolean {
-    const environments = new Set(results.map(r => r.metadata.environment));
+    const environments = new Set(results.map((r) => r.metadata.environment));
     return environments.size > 1;
   }
 
   private hasTimingConflicts(results: BenchmarkResult[]): boolean {
-    const timestamps = results.map(r => r.timestamp);
+    const timestamps = results.map((r) => r.timestamp);
     const timeSpread = Math.max(...timestamps) - Math.min(...timestamps);
     return timeSpread > 300000; // 5 minutes
   }
 
   private hasConfigurationConflicts(results: BenchmarkResult[]): boolean {
-    const configs = results.map(r => JSON.stringify(r.metadata.configuration));
+    const configs = results.map((r) => JSON.stringify(r.metadata.configuration));
     return new Set(configs).size > 1;
   }
 
@@ -603,16 +628,15 @@ export class CRDTConflictResolver extends EventEmitter {
     if (results.length < 4) return results;
 
     // Use IQR method for outlier detection on execution time
-    const times = results.map(r => r.metrics.executionTime).sort((a, b) => a - b);
+    const times = results.map((r) => r.metrics.executionTime).sort((a, b) => a - b);
     const q1 = times[Math.floor(times.length * 0.25)];
     const q3 = times[Math.floor(times.length * 0.75)];
     const iqr = q3 - q1;
     const lowerBound = q1 - 1.5 * iqr;
     const upperBound = q3 + 1.5 * iqr;
 
-    return results.filter(r =>
-      r.metrics.executionTime >= lowerBound &&
-      r.metrics.executionTime <= upperBound
+    return results.filter(
+      (r) => r.metrics.executionTime >= lowerBound && r.metrics.executionTime <= upperBound,
     );
   }
 
@@ -631,9 +655,7 @@ export class CRDTConflictResolver extends EventEmitter {
   private median(values: number[]): number {
     const sorted = [...values].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
   }
 
   private calculatePerformanceScore(result: BenchmarkResult): number {
@@ -642,6 +664,6 @@ export class CRDTConflictResolver extends EventEmitter {
     const normalizedTime = Math.max(1 - result.metrics.executionTime / 10000, 0); // Lower is better
     const normalizedError = Math.max(1 - result.metrics.errorRate, 0); // Lower is better
 
-    return (normalizedThroughput * 0.4 + normalizedTime * 0.4 + normalizedError * 0.2);
+    return normalizedThroughput * 0.4 + normalizedTime * 0.4 + normalizedError * 0.2;
   }
 }

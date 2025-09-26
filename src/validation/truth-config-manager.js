@@ -22,27 +22,27 @@ import TruthScorer from '../verification/truth-scorer.js';
 const FRAMEWORK_PRESETS = {
   TDD: {
     name: 'Test-Driven Development',
-    threshold: 0.90,
+    threshold: 0.9,
     description: 'High confidence required for test-first development',
     weights: {
       agentReliability: 0.35,
       crossValidation: 0.25,
       externalVerification: 0.15,
       factualConsistency: 0.15,
-      logicalCoherence: 0.10
+      logicalCoherence: 0.1,
     },
     checks: {
       historicalValidation: true,
       crossAgentValidation: true,
       externalValidation: true,
       logicalValidation: true,
-      statisticalValidation: true
+      statisticalValidation: true,
     },
     confidence: {
       level: 0.95,
       minSampleSize: 10,
-      maxErrorMargin: 0.03
-    }
+      maxErrorMargin: 0.03,
+    },
   },
 
   BDD: {
@@ -50,49 +50,49 @@ const FRAMEWORK_PRESETS = {
     threshold: 0.85,
     description: 'Balanced confidence for behavior validation',
     weights: {
-      agentReliability: 0.30,
-      crossValidation: 0.30,
-      externalVerification: 0.20,
-      factualConsistency: 0.10,
-      logicalCoherence: 0.10
+      agentReliability: 0.3,
+      crossValidation: 0.3,
+      externalVerification: 0.2,
+      factualConsistency: 0.1,
+      logicalCoherence: 0.1,
     },
     checks: {
       historicalValidation: true,
       crossAgentValidation: true,
       externalValidation: true,
       logicalValidation: true,
-      statisticalValidation: false
+      statisticalValidation: false,
     },
     confidence: {
-      level: 0.90,
+      level: 0.9,
       minSampleSize: 8,
-      maxErrorMargin: 0.05
-    }
+      maxErrorMargin: 0.05,
+    },
   },
 
   SPARC: {
     name: 'Specification, Pseudocode, Architecture, Refinement, Completion',
-    threshold: 0.80,
+    threshold: 0.8,
     description: 'Progressive validation for systematic development',
     weights: {
       agentReliability: 0.25,
-      crossValidation: 0.20,
+      crossValidation: 0.2,
       externalVerification: 0.25,
       factualConsistency: 0.15,
-      logicalCoherence: 0.15
+      logicalCoherence: 0.15,
     },
     checks: {
       historicalValidation: true,
       crossAgentValidation: true,
       externalValidation: true,
       logicalValidation: true,
-      statisticalValidation: true
+      statisticalValidation: true,
     },
     confidence: {
       level: 0.85,
       minSampleSize: 5,
-      maxErrorMargin: 0.08
-    }
+      maxErrorMargin: 0.08,
+    },
   },
 
   CUSTOM: {
@@ -100,25 +100,25 @@ const FRAMEWORK_PRESETS = {
     threshold: 0.75,
     description: 'User-defined configuration template',
     weights: {
-      agentReliability: 0.30,
+      agentReliability: 0.3,
       crossValidation: 0.25,
-      externalVerification: 0.20,
+      externalVerification: 0.2,
       factualConsistency: 0.15,
-      logicalCoherence: 0.10
+      logicalCoherence: 0.1,
     },
     checks: {
       historicalValidation: true,
       crossAgentValidation: true,
       externalValidation: false,
       logicalValidation: true,
-      statisticalValidation: true
+      statisticalValidation: true,
     },
     confidence: {
-      level: 0.80,
+      level: 0.8,
       minSampleSize: 5,
-      maxErrorMargin: 0.10
-    }
-  }
+      maxErrorMargin: 0.1,
+    },
+  },
 };
 
 /**
@@ -130,57 +130,69 @@ const CONFIGURATION_SCHEMA = {
   properties: {
     framework: {
       type: 'string',
-      enum: Object.keys(FRAMEWORK_PRESETS)
+      enum: Object.keys(FRAMEWORK_PRESETS),
     },
     threshold: {
       type: 'number',
       minimum: 0,
       maximum: 1,
-      description: 'Minimum truth score threshold (0-1)'
+      description: 'Minimum truth score threshold (0-1)',
     },
     weights: {
       type: 'object',
-      required: ['agentReliability', 'crossValidation', 'externalVerification', 'factualConsistency', 'logicalCoherence'],
+      required: [
+        'agentReliability',
+        'crossValidation',
+        'externalVerification',
+        'factualConsistency',
+        'logicalCoherence',
+      ],
       properties: {
         agentReliability: {
           type: 'number',
           minimum: 0,
-          maximum: 1
+          maximum: 1,
         },
         crossValidation: {
           type: 'number',
           minimum: 0,
-          maximum: 1
+          maximum: 1,
         },
         externalVerification: {
           type: 'number',
           minimum: 0,
-          maximum: 1
+          maximum: 1,
         },
         factualConsistency: {
           type: 'number',
           minimum: 0,
-          maximum: 1
+          maximum: 1,
         },
         logicalCoherence: {
           type: 'number',
           minimum: 0,
-          maximum: 1
-        }
+          maximum: 1,
+        },
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
     checks: {
       type: 'object',
-      required: ['historicalValidation', 'crossAgentValidation', 'externalValidation', 'logicalValidation', 'statisticalValidation'],
+      required: [
+        'historicalValidation',
+        'crossAgentValidation',
+        'externalValidation',
+        'logicalValidation',
+        'statisticalValidation',
+      ],
       properties: {
         historicalValidation: { type: 'boolean' },
         crossAgentValidation: { type: 'boolean' },
         externalValidation: { type: 'boolean' },
         logicalValidation: { type: 'boolean' },
-        statisticalValidation: { type: 'boolean' }
+        statisticalValidation: { type: 'boolean' },
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
     confidence: {
       type: 'object',
@@ -189,20 +201,20 @@ const CONFIGURATION_SCHEMA = {
         level: {
           type: 'number',
           minimum: 0.5,
-          maximum: 0.99
+          maximum: 0.99,
         },
         minSampleSize: {
           type: 'integer',
           minimum: 1,
-          maximum: 1000
+          maximum: 1000,
         },
         maxErrorMargin: {
           type: 'number',
           minimum: 0.001,
-          maximum: 0.5
-        }
+          maximum: 0.5,
+        },
       },
-      additionalProperties: false
+      additionalProperties: false,
     },
     metadata: {
       type: 'object',
@@ -213,11 +225,11 @@ const CONFIGURATION_SCHEMA = {
         author: { type: 'string' },
         created: { type: 'string', format: 'date-time' },
         modified: { type: 'string', format: 'date-time' },
-        tags: { type: 'array', items: { type: 'string' } }
-      }
-    }
+        tags: { type: 'array', items: { type: 'string' } },
+      },
+    },
   },
-  additionalProperties: false
+  additionalProperties: false,
 };
 
 /**
@@ -239,7 +251,7 @@ export class TruthConfigManager {
 
     this.logger.info('TruthConfigManager initialized', {
       configDir: this.configDir,
-      frameworks: Object.keys(FRAMEWORK_PRESETS)
+      frameworks: Object.keys(FRAMEWORK_PRESETS),
     });
   }
 
@@ -259,7 +271,7 @@ export class TruthConfigManager {
       throw new AppError(
         `Configuration manager initialization failed: ${error.message}`,
         'CONFIG_MANAGER_INIT_FAILED',
-        500
+        500,
       );
     }
   }
@@ -275,7 +287,7 @@ export class TruthConfigManager {
       throw new AppError(
         `Unknown framework: ${framework}. Available: ${Object.keys(FRAMEWORK_PRESETS).join(', ')}`,
         'UNKNOWN_FRAMEWORK',
-        400
+        400,
       );
     }
 
@@ -292,8 +304,8 @@ export class TruthConfigManager {
         author: 'TruthConfigManager',
         created: new Date().toISOString(),
         modified: new Date().toISOString(),
-        tags: customizations.tags || [framework.toLowerCase()]
-      }
+        tags: customizations.tags || [framework.toLowerCase()],
+      },
     };
 
     const validationResult = await this.validateConfiguration(config);
@@ -301,12 +313,15 @@ export class TruthConfigManager {
       throw new AppError(
         `Configuration validation failed: ${validationResult.errors.join(', ')}`,
         'CONFIG_VALIDATION_FAILED',
-        400
+        400,
       );
     }
 
     this.currentConfig = config;
-    this.logger.info('Configuration created from framework', { framework, threshold: config.threshold });
+    this.logger.info('Configuration created from framework', {
+      framework,
+      threshold: config.threshold,
+    });
 
     return config;
   }
@@ -318,7 +333,10 @@ export class TruthConfigManager {
     const startTime = Date.now();
     const validationId = crypto.randomUUID();
 
-    this.logger.debug('Starting configuration validation', { validationId, framework: config?.framework });
+    this.logger.debug('Starting configuration validation', {
+      validationId,
+      framework: config?.framework,
+    });
 
     try {
       const result = {
@@ -328,7 +346,7 @@ export class TruthConfigManager {
         byzantineFaultTolerant: true,
         validationId,
         timestamp: new Date(),
-        duration: 0
+        duration: 0,
       };
 
       // Schema validation
@@ -339,7 +357,10 @@ export class TruthConfigManager {
       }
 
       // Weight sum validation
-      const weightSum = Object.values(config.weights || {}).reduce((sum, weight) => sum + weight, 0);
+      const weightSum = Object.values(config.weights || {}).reduce(
+        (sum, weight) => sum + weight,
+        0,
+      );
       if (Math.abs(weightSum - 1.0) > 0.001) {
         result.valid = false;
         result.errors.push(`Weight sum must equal 1.0, got ${weightSum.toFixed(3)}`);
@@ -360,7 +381,9 @@ export class TruthConfigManager {
 
       // Threshold reasonableness check
       if (config.threshold < 0.5) {
-        result.warnings.push(`Low truth threshold ${config.threshold} may accept unreliable results`);
+        result.warnings.push(
+          `Low truth threshold ${config.threshold} may accept unreliable results`,
+        );
       }
 
       if (config.threshold > 0.98) {
@@ -374,7 +397,7 @@ export class TruthConfigManager {
         validationId,
         config: this.hashConfig(config),
         result: { ...result },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // Keep only last 100 validations
@@ -387,17 +410,16 @@ export class TruthConfigManager {
         valid: result.valid,
         errors: result.errors.length,
         warnings: result.warnings.length,
-        duration: result.duration
+        duration: result.duration,
       });
 
       return result;
-
     } catch (error) {
       this.logger.error('Configuration validation failed', error);
       throw new AppError(
         `Configuration validation error: ${error.message}`,
         'CONFIG_VALIDATION_ERROR',
-        500
+        500,
       );
     }
   }
@@ -439,8 +461,11 @@ export class TruthConfigManager {
         for (const weight of requiredWeights) {
           if (!(weight in config.weights)) {
             errors.push(`Missing weight: ${weight}`);
-          } else if (typeof config.weights[weight] !== 'number' ||
-                     config.weights[weight] < 0 || config.weights[weight] > 1) {
+          } else if (
+            typeof config.weights[weight] !== 'number' ||
+            config.weights[weight] < 0 ||
+            config.weights[weight] > 1
+          ) {
             errors.push(`Invalid weight ${weight}: must be number between 0 and 1`);
           }
         }
@@ -462,24 +487,32 @@ export class TruthConfigManager {
       if (config.confidence) {
         const confidenceProps = CONFIGURATION_SCHEMA.properties.confidence.properties;
 
-        if (typeof config.confidence.level !== 'number' ||
-            config.confidence.level < 0.5 || config.confidence.level > 0.99) {
+        if (
+          typeof config.confidence.level !== 'number' ||
+          config.confidence.level < 0.5 ||
+          config.confidence.level > 0.99
+        ) {
           errors.push('Confidence level must be number between 0.5 and 0.99');
         }
 
-        if (!Number.isInteger(config.confidence.minSampleSize) ||
-            config.confidence.minSampleSize < 1 || config.confidence.minSampleSize > 1000) {
+        if (
+          !Number.isInteger(config.confidence.minSampleSize) ||
+          config.confidence.minSampleSize < 1 ||
+          config.confidence.minSampleSize > 1000
+        ) {
           errors.push('Min sample size must be integer between 1 and 1000');
         }
 
-        if (typeof config.confidence.maxErrorMargin !== 'number' ||
-            config.confidence.maxErrorMargin < 0.001 || config.confidence.maxErrorMargin > 0.5) {
+        if (
+          typeof config.confidence.maxErrorMargin !== 'number' ||
+          config.confidence.maxErrorMargin < 0.001 ||
+          config.confidence.maxErrorMargin > 0.5
+        ) {
           errors.push('Max error margin must be number between 0.001 and 0.5');
         }
       }
 
       return { valid: errors.length === 0, errors };
-
     } catch (error) {
       errors.push(`Schema validation error: ${error.message}`);
       return { valid: false, errors };
@@ -503,7 +536,7 @@ export class TruthConfigManager {
         results.push(hash);
 
         // Small delay between validations to simulate distributed validation
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
       // All hashes should be identical for Byzantine fault tolerance
@@ -517,21 +550,22 @@ export class TruthConfigManager {
       const maliciousPatterns = this.detectMaliciousPatterns(config);
       if (maliciousPatterns.length > 0) {
         faultTolerant = false;
-        warnings.push(...maliciousPatterns.map(pattern => `Malicious pattern detected: ${pattern}`));
+        warnings.push(
+          ...maliciousPatterns.map((pattern) => `Malicious pattern detected: ${pattern}`),
+        );
       }
 
       // Validate against historical configurations for anomaly detection
       const anomalies = this.detectConfigurationAnomalies(config);
       if (anomalies.length > 0) {
-        warnings.push(...anomalies.map(anomaly => `Configuration anomaly: ${anomaly}`));
+        warnings.push(...anomalies.map((anomaly) => `Configuration anomaly: ${anomaly}`));
       }
 
       return { faultTolerant, warnings };
-
     } catch (error) {
       return {
         faultTolerant: false,
-        warnings: [`Byzantine validation failed: ${error.message}`]
+        warnings: [`Byzantine validation failed: ${error.message}`],
       };
     }
   }
@@ -556,7 +590,7 @@ export class TruthConfigManager {
 
     // All validation checks disabled
     const checks = Object.values(config.checks || {});
-    const enabledChecks = checks.filter(check => check === true);
+    const enabledChecks = checks.filter((check) => check === true);
     if (enabledChecks.length === 0) {
       patterns.push('All validation checks disabled');
     }
@@ -660,7 +694,7 @@ export class TruthConfigManager {
         throw new AppError(
           `Cannot save invalid configuration: ${validation.errors.join(', ')}`,
           'INVALID_CONFIG_SAVE',
-          400
+          400,
         );
       }
 
@@ -673,8 +707,8 @@ export class TruthConfigManager {
           name,
           saved: timestamp,
           modified: timestamp,
-          version: config.metadata?.version || '1.0.0'
-        }
+          version: config.metadata?.version || '1.0.0',
+        },
       };
 
       // Generate filename
@@ -690,25 +724,20 @@ export class TruthConfigManager {
       this.configCache.set(configId, {
         config: configWithMetadata,
         filepath,
-        checksum: this.hashConfig(configWithMetadata)
+        checksum: this.hashConfig(configWithMetadata),
       });
 
       this.logger.info('Configuration saved successfully', {
         configId,
         name,
         filepath,
-        framework: config.framework
+        framework: config.framework,
       });
 
       return { configId, filepath, saved: timestamp };
-
     } catch (error) {
       this.logger.error('Failed to save configuration', error);
-      throw new AppError(
-        `Configuration save failed: ${error.message}`,
-        'CONFIG_SAVE_FAILED',
-        500
-      );
+      throw new AppError(`Configuration save failed: ${error.message}`, 'CONFIG_SAVE_FAILED', 500);
     }
   }
 
@@ -727,16 +756,12 @@ export class TruthConfigManager {
       } else {
         // Look for config by ID or name
         const files = await fs.readdir(this.configDir);
-        const configFile = files.find(file =>
-          file.includes(identifier) || file.startsWith(identifier)
+        const configFile = files.find(
+          (file) => file.includes(identifier) || file.startsWith(identifier),
         );
 
         if (!configFile) {
-          throw new AppError(
-            `Configuration not found: ${identifier}`,
-            'CONFIG_NOT_FOUND',
-            404
-          );
+          throw new AppError(`Configuration not found: ${identifier}`, 'CONFIG_NOT_FOUND', 404);
         }
 
         filepath = path.join(this.configDir, configFile);
@@ -751,7 +776,7 @@ export class TruthConfigManager {
       if (!validation.valid) {
         this.logger.warn('Loaded configuration has validation issues', {
           filepath,
-          errors: validation.errors
+          errors: validation.errors,
         });
       }
 
@@ -761,24 +786,19 @@ export class TruthConfigManager {
         config,
         filepath,
         checksum: this.hashConfig(config),
-        loaded: new Date()
+        loaded: new Date(),
       });
 
       this.logger.info('Configuration loaded successfully', {
         filepath,
         framework: config.framework,
-        configId
+        configId,
       });
 
       return config;
-
     } catch (error) {
       this.logger.error('Failed to load configuration', error);
-      throw new AppError(
-        `Configuration load failed: ${error.message}`,
-        'CONFIG_LOAD_FAILED',
-        500
-      );
+      throw new AppError(`Configuration load failed: ${error.message}`, 'CONFIG_LOAD_FAILED', 500);
     }
   }
 
@@ -795,7 +815,7 @@ export class TruthConfigManager {
         throw new AppError(
           `Cannot apply invalid configuration: ${validation.errors.join(', ')}`,
           'INVALID_CONFIG_APPLY',
-          400
+          400,
         );
       }
 
@@ -810,9 +830,9 @@ export class TruthConfigManager {
             threshold: config.threshold,
             weights: config.weights,
             checks: config.checks,
-            confidence: config.confidence
+            confidence: config.confidence,
           },
-          logger: this.logger.child({ component: 'TruthScorer' })
+          logger: this.logger.child({ component: 'TruthScorer' }),
         });
       }
 
@@ -822,17 +842,16 @@ export class TruthConfigManager {
         framework: config.framework,
         threshold: config.threshold,
         weightsSet: Object.keys(config.weights).length,
-        checksEnabled: Object.values(config.checks).filter(Boolean).length
+        checksEnabled: Object.values(config.checks).filter(Boolean).length,
       });
 
       return this.truthScorer;
-
     } catch (error) {
       this.logger.error('Failed to apply configuration', error);
       throw new AppError(
         `Configuration application failed: ${error.message}`,
         'CONFIG_APPLY_FAILED',
-        500
+        500,
       );
     }
   }
@@ -843,7 +862,7 @@ export class TruthConfigManager {
   async listConfigurations() {
     try {
       const files = await fs.readdir(this.configDir);
-      const configFiles = files.filter(file => file.endsWith('.json'));
+      const configFiles = files.filter((file) => file.endsWith('.json'));
 
       const configurations = [];
 
@@ -861,23 +880,25 @@ export class TruthConfigManager {
             description: config.metadata?.description,
             created: config.metadata?.created,
             modified: config.metadata?.modified,
-            filepath: filepath
+            filepath: filepath,
           });
         } catch (parseError) {
-          this.logger.warn('Failed to parse configuration file', { file, error: parseError.message });
+          this.logger.warn('Failed to parse configuration file', {
+            file,
+            error: parseError.message,
+          });
         }
       }
 
-      return configurations.sort((a, b) =>
-        new Date(b.modified || b.created || 0) - new Date(a.modified || a.created || 0)
+      return configurations.sort(
+        (a, b) => new Date(b.modified || b.created || 0) - new Date(a.modified || a.created || 0),
       );
-
     } catch (error) {
       this.logger.error('Failed to list configurations', error);
       throw new AppError(
         `Configuration listing failed: ${error.message}`,
         'CONFIG_LIST_FAILED',
-        500
+        500,
       );
     }
   }
@@ -963,14 +984,14 @@ export class TruthConfigManager {
             invalidCount++;
             this.logger.warn('Invalid configuration found', {
               name: configInfo.name,
-              errors: validation.errors
+              errors: validation.errors,
             });
           }
         } catch (error) {
           invalidCount++;
           this.logger.error('Failed to validate stored configuration', {
             name: configInfo.name,
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -978,11 +999,10 @@ export class TruthConfigManager {
       this.logger.info('Configuration integrity check completed', {
         total: configs.length,
         valid: validCount,
-        invalid: invalidCount
+        invalid: invalidCount,
       });
 
       return { total: configs.length, valid: validCount, invalid: invalidCount };
-
     } catch (error) {
       this.logger.error('Configuration integrity check failed', error);
       return { total: 0, valid: 0, invalid: 0, error: error.message };
@@ -1003,7 +1023,7 @@ export class TruthConfigManager {
         throw new AppError(
           `Cannot hot reload invalid configuration: ${validation.errors.join(', ')}`,
           'INVALID_HOT_RELOAD',
-          400
+          400,
         );
       }
 
@@ -1012,18 +1032,13 @@ export class TruthConfigManager {
       this.logger.info('Configuration hot reloaded successfully', {
         identifier,
         framework: config.framework,
-        threshold: config.threshold
+        threshold: config.threshold,
       });
 
       return config;
-
     } catch (error) {
       this.logger.error('Configuration hot reload failed', error);
-      throw new AppError(
-        `Hot reload failed: ${error.message}`,
-        'HOT_RELOAD_FAILED',
-        500
-      );
+      throw new AppError(`Hot reload failed: ${error.message}`, 'HOT_RELOAD_FAILED', 500);
     }
   }
 

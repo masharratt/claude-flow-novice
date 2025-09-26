@@ -22,8 +22,8 @@ export class OptimizationEngine {
             'Consider reducing concurrent agent count',
             'Implement memory cleanup routines',
             'Use memory-efficient data structures',
-            'Add garbage collection optimization'
-          ]
+            'Add garbage collection optimization',
+          ],
         },
         highCpuLoad: {
           threshold: 2.0, // Per core
@@ -32,8 +32,8 @@ export class OptimizationEngine {
             'Distribute tasks across more time intervals',
             'Optimize algorithm complexity',
             'Use asynchronous processing where possible',
-            'Consider task batching strategies'
-          ]
+            'Consider task batching strategies',
+          ],
         },
         longTaskDuration: {
           threshold: 300000, // 5 minutes in ms
@@ -42,9 +42,9 @@ export class OptimizationEngine {
             'Break down complex tasks into smaller subtasks',
             'Implement task parallelization',
             'Add progress checkpoints',
-            'Consider timeout mechanisms'
-          ]
-        }
+            'Consider timeout mechanisms',
+          ],
+        },
       },
       coordination: {
         lowConsensusVotes: {
@@ -54,8 +54,8 @@ export class OptimizationEngine {
             'Improve agent communication protocols',
             'Add consensus weight balancing',
             'Implement better conflict resolution',
-            'Review agent role assignments'
-          ]
+            'Review agent role assignments',
+          ],
         },
         unbalancedAgentTypes: {
           threshold: 0.3, // 30% variance
@@ -64,8 +64,8 @@ export class OptimizationEngine {
             'Rebalance agent type distribution',
             'Consider specialized agent roles',
             'Optimize agent skill matching',
-            'Implement dynamic agent allocation'
-          ]
+            'Implement dynamic agent allocation',
+          ],
         },
         lowKnowledgeSharing: {
           threshold: 2, // Average access count
@@ -74,9 +74,9 @@ export class OptimizationEngine {
             'Improve knowledge discovery mechanisms',
             'Add knowledge recommendation systems',
             'Implement cross-agent learning',
-            'Enhance knowledge tagging and categorization'
-          ]
-        }
+            'Enhance knowledge tagging and categorization',
+          ],
+        },
       },
       workflow: {
         lowSuccessRate: {
@@ -86,8 +86,8 @@ export class OptimizationEngine {
             'Analyze failed task patterns',
             'Implement retry mechanisms',
             'Add task validation steps',
-            'Improve error handling'
-          ]
+            'Improve error handling',
+          ],
         },
         inefficientMemoryUsage: {
           threshold: 5, // Low access count
@@ -96,10 +96,10 @@ export class OptimizationEngine {
             'Implement memory cleanup for unused entries',
             'Add TTL (Time To Live) for temporary data',
             'Optimize data structure sizes',
-            'Use compression for large values'
-          ]
-        }
-      }
+            'Use compression for large values',
+          ],
+        },
+      },
     };
   }
 
@@ -115,10 +115,10 @@ export class OptimizationEngine {
         performance: [],
         coordination: [],
         workflow: [],
-        automation: []
+        automation: [],
       },
       recommendations: [],
-      metrics: this.extractKeyMetrics(report)
+      metrics: this.extractKeyMetrics(report),
     };
 
     // Analyze performance metrics
@@ -158,7 +158,10 @@ export class OptimizationEngine {
 
     // Check memory usage
     if (resourceAnalysis && resourceAnalysis.memory) {
-      if (resourceAnalysis.memory.average > this.optimizationRules.performance.highMemoryUsage.threshold) {
+      if (
+        resourceAnalysis.memory.average >
+        this.optimizationRules.performance.highMemoryUsage.threshold
+      ) {
         const suggestion = {
           category: 'performance',
           type: 'memory_optimization',
@@ -167,7 +170,7 @@ export class OptimizationEngine {
           description: `Average memory usage is ${resourceAnalysis.memory.average.toFixed(1)}%`,
           suggestions: this.optimizationRules.performance.highMemoryUsage.suggestions,
           impact: 'high',
-          effort: 'medium'
+          effort: 'medium',
         };
         suggestions.categories.performance.push(suggestion);
         suggestions.priority.high.push(suggestion);
@@ -185,7 +188,7 @@ export class OptimizationEngine {
           description: `Average CPU load is ${resourceAnalysis.cpu.average.toFixed(2)}`,
           suggestions: this.optimizationRules.performance.highCpuLoad.suggestions,
           impact: 'high',
-          effort: 'medium'
+          effort: 'medium',
         };
         suggestions.categories.performance.push(suggestion);
         suggestions.priority.high.push(suggestion);
@@ -194,7 +197,7 @@ export class OptimizationEngine {
 
     // Analyze bottlenecks
     if (bottlenecks && bottlenecks.length > 0) {
-      bottlenecks.forEach(bottleneck => {
+      bottlenecks.forEach((bottleneck) => {
         const suggestion = {
           category: 'performance',
           type: 'bottleneck_resolution',
@@ -203,7 +206,7 @@ export class OptimizationEngine {
           description: bottleneck.description,
           suggestions: this.generateBottleneckSuggestions(bottleneck.type),
           impact: bottleneck.severity,
-          effort: 'medium'
+          effort: 'medium',
         };
         suggestions.categories.performance.push(suggestion);
         suggestions.priority[bottleneck.severity].push(suggestion);
@@ -223,10 +226,10 @@ export class OptimizationEngine {
             'Monitor memory usage patterns',
             'Implement proactive memory management',
             'Consider memory usage alerts',
-            'Review memory-intensive operations'
+            'Review memory-intensive operations',
           ],
           impact: 'medium',
-          effort: 'low'
+          effort: 'low',
         };
         suggestions.categories.performance.push(suggestion);
         suggestions.priority.medium.push(suggestion);
@@ -238,11 +241,13 @@ export class OptimizationEngine {
    * Analyze coordination-related optimizations
    */
   analyzeCoordinationOptimizations(coordinationData, suggestions) {
-    const { consensusAnalysis, collaborationPatterns, knowledgeSharing, swarmTopology } = coordinationData;
+    const { consensusAnalysis, collaborationPatterns, knowledgeSharing, swarmTopology } =
+      coordinationData;
 
     // Check consensus effectiveness
     if (consensusAnalysis && consensusAnalysis.length > 0) {
-      const avgConsensus = consensusAnalysis.reduce((sum, item) => sum + item.avg_vote, 0) / consensusAnalysis.length;
+      const avgConsensus =
+        consensusAnalysis.reduce((sum, item) => sum + item.avg_vote, 0) / consensusAnalysis.length;
 
       if (avgConsensus < this.optimizationRules.coordination.lowConsensusVotes.threshold) {
         const suggestion = {
@@ -253,7 +258,7 @@ export class OptimizationEngine {
           description: `Average consensus vote is ${avgConsensus.toFixed(2)}`,
           suggestions: this.optimizationRules.coordination.lowConsensusVotes.suggestions,
           impact: 'medium',
-          effort: 'high'
+          effort: 'high',
         };
         suggestions.categories.coordination.push(suggestion);
         suggestions.priority.medium.push(suggestion);
@@ -262,8 +267,9 @@ export class OptimizationEngine {
 
     // Check knowledge sharing patterns
     if (knowledgeSharing && knowledgeSharing.length > 0) {
-      const lowAccessItems = knowledgeSharing.filter(item =>
-        item.avg_access_count < this.optimizationRules.coordination.lowKnowledgeSharing.threshold
+      const lowAccessItems = knowledgeSharing.filter(
+        (item) =>
+          item.avg_access_count < this.optimizationRules.coordination.lowKnowledgeSharing.threshold,
       );
 
       if (lowAccessItems.length > knowledgeSharing.length * 0.5) {
@@ -275,7 +281,7 @@ export class OptimizationEngine {
           description: `${lowAccessItems.length} knowledge categories have low access rates`,
           suggestions: this.optimizationRules.coordination.lowKnowledgeSharing.suggestions,
           impact: 'medium',
-          effort: 'medium'
+          effort: 'medium',
         };
         suggestions.categories.coordination.push(suggestion);
         suggestions.priority.medium.push(suggestion);
@@ -295,7 +301,7 @@ export class OptimizationEngine {
           description: topologyEfficiency.description,
           suggestions: topologyEfficiency.suggestions,
           impact: 'medium',
-          effort: 'high'
+          effort: 'high',
         };
         suggestions.categories.coordination.push(suggestion);
         suggestions.priority.medium.push(suggestion);
@@ -311,7 +317,7 @@ export class OptimizationEngine {
 
     // Check task success rates
     if (statusAnalysis) {
-      const completedTasks = statusAnalysis.find(item => item.status === 'completed');
+      const completedTasks = statusAnalysis.find((item) => item.status === 'completed');
       const totalTasks = statusAnalysis.reduce((sum, item) => sum + item.count, 0);
       const successRate = completedTasks ? completedTasks.count / totalTasks : 0;
 
@@ -324,7 +330,7 @@ export class OptimizationEngine {
           description: `Task success rate is ${(successRate * 100).toFixed(1)}%`,
           suggestions: this.optimizationRules.workflow.lowSuccessRate.suggestions,
           impact: 'high',
-          effort: 'high'
+          effort: 'high',
         };
         suggestions.categories.workflow.push(suggestion);
         suggestions.priority.high.push(suggestion);
@@ -335,7 +341,9 @@ export class OptimizationEngine {
     if (agentPerformance && agentPerformance.length > 0) {
       const performanceVariance = this.calculateAgentPerformanceVariance(agentPerformance);
 
-      if (performanceVariance > this.optimizationRules.coordination.unbalancedAgentTypes.threshold) {
+      if (
+        performanceVariance > this.optimizationRules.coordination.unbalancedAgentTypes.threshold
+      ) {
         const suggestion = {
           category: 'workflow',
           type: 'agent_balancing',
@@ -344,7 +352,7 @@ export class OptimizationEngine {
           description: `High variance in agent performance detected (${(performanceVariance * 100).toFixed(1)}%)`,
           suggestions: this.optimizationRules.coordination.unbalancedAgentTypes.suggestions,
           impact: 'medium',
-          effort: 'medium'
+          effort: 'medium',
         };
         suggestions.categories.workflow.push(suggestion);
         suggestions.priority.medium.push(suggestion);
@@ -353,8 +361,8 @@ export class OptimizationEngine {
 
     // Analyze task complexity vs success rates
     if (complexityAnalysis) {
-      const problematicComplexity = complexityAnalysis.find(item =>
-        item.complexity_level === 'High' && item.success_rate < 60
+      const problematicComplexity = complexityAnalysis.find(
+        (item) => item.complexity_level === 'High' && item.success_rate < 60,
       );
 
       if (problematicComplexity) {
@@ -368,10 +376,10 @@ export class OptimizationEngine {
             'Break down high-complexity tasks into smaller components',
             'Add complexity-based task routing',
             'Implement specialized agents for complex tasks',
-            'Add task complexity estimation improvements'
+            'Add task complexity estimation improvements',
           ],
           impact: 'high',
-          effort: 'high'
+          effort: 'high',
         };
         suggestions.categories.workflow.push(suggestion);
         suggestions.priority.high.push(suggestion);
@@ -387,7 +395,7 @@ export class OptimizationEngine {
 
     // Check for unused memory entries
     if (efficiencyAnalysis) {
-      const unusedEntry = efficiencyAnalysis.find(item => item.usage_category === 'Unused');
+      const unusedEntry = efficiencyAnalysis.find((item) => item.usage_category === 'Unused');
 
       if (unusedEntry && unusedEntry.entry_count > 50) {
         const suggestion = {
@@ -398,7 +406,7 @@ export class OptimizationEngine {
           description: `${unusedEntry.entry_count} unused memory entries consuming ${this.formatBytes(unusedEntry.total_size)}`,
           suggestions: this.optimizationRules.workflow.inefficientMemoryUsage.suggestions,
           impact: 'medium',
-          effort: 'low'
+          effort: 'low',
         };
         suggestions.categories.performance.push(suggestion);
         suggestions.priority.medium.push(suggestion);
@@ -410,7 +418,8 @@ export class OptimizationEngine {
       const hotData = accessPatterns.slice(0, 10); // Top 10 most accessed
       const totalSize = hotData.reduce((sum, item) => sum + item.value_size, 0);
 
-      if (totalSize > 1024 * 1024) { // > 1MB
+      if (totalSize > 1024 * 1024) {
+        // > 1MB
         const suggestion = {
           category: 'performance',
           type: 'memory_caching',
@@ -421,10 +430,10 @@ export class OptimizationEngine {
             'Implement intelligent caching for frequently accessed data',
             'Consider data compression for large values',
             'Add memory pooling for common data structures',
-            'Implement lazy loading for infrequently accessed data'
+            'Implement lazy loading for infrequently accessed data',
           ],
           impact: 'medium',
-          effort: 'medium'
+          effort: 'medium',
         };
         suggestions.categories.performance.push(suggestion);
         suggestions.priority.low.push(suggestion);
@@ -455,10 +464,10 @@ export class OptimizationEngine {
               'Implement task templates for common patterns',
               'Add automated task scheduling',
               'Create workflow presets',
-              'Implement smart task routing'
+              'Implement smart task routing',
             ],
             impact: 'high',
-            effort: 'high'
+            effort: 'high',
           });
         }
       }
@@ -474,15 +483,15 @@ export class OptimizationEngine {
           'Implement automated performance alerts',
           'Add self-healing mechanisms for common issues',
           'Create performance baseline monitoring',
-          'Implement predictive performance analysis'
+          'Implement predictive performance analysis',
         ],
         impact: 'medium',
-        effort: 'medium'
+        effort: 'medium',
       });
     }
 
     // Add automation suggestions to the recommendations
-    automationOpportunities.forEach(opportunity => {
+    automationOpportunities.forEach((opportunity) => {
       const suggestion = {
         category: 'automation',
         type: opportunity.type,
@@ -491,7 +500,7 @@ export class OptimizationEngine {
         description: opportunity.description,
         suggestions: opportunity.suggestions,
         impact: opportunity.impact,
-        effort: opportunity.effort
+        effort: opportunity.effort,
       };
 
       suggestions.categories.automation.push(suggestion);
@@ -510,10 +519,10 @@ export class OptimizationEngine {
       if (resourceAnalysis) {
         metrics.memory = {
           usage: resourceAnalysis.memory?.average,
-          efficiency: resourceAnalysis.efficiency?.average
+          efficiency: resourceAnalysis.efficiency?.average,
         };
         metrics.cpu = {
-          load: resourceAnalysis.cpu?.average
+          load: resourceAnalysis.cpu?.average,
         };
       }
     }
@@ -521,11 +530,11 @@ export class OptimizationEngine {
     if (report.analysis.taskPatterns) {
       const { statusAnalysis } = report.analysis.taskPatterns;
       if (statusAnalysis) {
-        const completed = statusAnalysis.find(s => s.status === 'completed');
+        const completed = statusAnalysis.find((s) => s.status === 'completed');
         const total = statusAnalysis.reduce((sum, s) => sum + s.count, 0);
         metrics.tasks = {
           successRate: completed ? completed.count / total : 0,
-          total: total
+          total: total,
         };
       }
     }
@@ -542,20 +551,20 @@ export class OptimizationEngine {
         'Implement memory pooling',
         'Add garbage collection optimization',
         'Use streaming for large data processing',
-        'Implement data compression'
+        'Implement data compression',
       ],
       cpu: [
         'Optimize algorithm complexity',
         'Implement task batching',
         'Use worker threads for CPU-intensive tasks',
-        'Add task prioritization'
+        'Add task prioritization',
       ],
       task_duration: [
         'Break tasks into smaller chunks',
         'Add progress checkpoints',
         'Implement task timeouts',
-        'Use parallel processing where possible'
-      ]
+        'Use parallel processing where possible',
+      ],
     };
 
     return suggestions[bottleneckType] || ['Review and optimize the identified bottleneck'];
@@ -568,7 +577,8 @@ export class OptimizationEngine {
     // Simple heuristic: mesh topology is generally more efficient for small teams,
     // hierarchical for larger teams
     const totalSwarms = swarmTopology.reduce((sum, item) => sum + item.swarm_count, 0);
-    const avgAgents = swarmTopology.reduce((sum, item) => sum + item.avg_agents, 0) / swarmTopology.length;
+    const avgAgents =
+      swarmTopology.reduce((sum, item) => sum + item.avg_agents, 0) / swarmTopology.length;
 
     let needsOptimization = false;
     let description = '';
@@ -576,7 +586,7 @@ export class OptimizationEngine {
 
     if (avgAgents > 10) {
       // Large teams should prefer hierarchical
-      const hierarchical = swarmTopology.find(item => item.topology === 'hierarchical');
+      const hierarchical = swarmTopology.find((item) => item.topology === 'hierarchical');
       if (!hierarchical || hierarchical.swarm_count < totalSwarms * 0.5) {
         needsOptimization = true;
         description = 'Large agent teams would benefit from hierarchical topology';
@@ -584,12 +594,12 @@ export class OptimizationEngine {
           'Consider switching to hierarchical topology for large teams',
           'Implement coordinator agents',
           'Add team-based task distribution',
-          'Create role-based agent organization'
+          'Create role-based agent organization',
         ];
       }
     } else if (avgAgents < 5) {
       // Small teams should prefer mesh
-      const mesh = swarmTopology.find(item => item.topology === 'mesh');
+      const mesh = swarmTopology.find((item) => item.topology === 'mesh');
       if (!mesh || mesh.swarm_count < totalSwarms * 0.5) {
         needsOptimization = true;
         description = 'Small agent teams would benefit from mesh topology';
@@ -597,7 +607,7 @@ export class OptimizationEngine {
           'Consider switching to mesh topology for small teams',
           'Enable direct agent-to-agent communication',
           'Implement peer-to-peer task sharing',
-          'Add collaborative decision making'
+          'Add collaborative decision making',
         ];
       }
     }
@@ -611,9 +621,10 @@ export class OptimizationEngine {
   calculateAgentPerformanceVariance(agentPerformance) {
     if (agentPerformance.length === 0) return 0;
 
-    const scores = agentPerformance.map(agent => agent.performance_score);
+    const scores = agentPerformance.map((agent) => agent.performance_score);
     const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+    const variance =
+      scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
 
     return Math.sqrt(variance) / mean; // Coefficient of variation
   }
@@ -625,18 +636,23 @@ export class OptimizationEngine {
     const patterns = [];
 
     // Look for consistent daily task volumes
-    const taskCounts = trends.map(t => t.total_tasks);
+    const taskCounts = trends.map((t) => t.total_tasks);
     const avgTasks = taskCounts.reduce((sum, count) => sum + count, 0) / taskCounts.length;
-    const consistency = taskCounts.filter(count => Math.abs(count - avgTasks) < avgTasks * 0.2).length;
+    const consistency = taskCounts.filter(
+      (count) => Math.abs(count - avgTasks) < avgTasks * 0.2,
+    ).length;
 
     if (consistency / taskCounts.length > 0.7) {
       patterns.push('consistent_daily_volume');
     }
 
     // Look for consistent completion rates
-    const completionRates = trends.map(t => t.completed_tasks / t.total_tasks);
-    const avgCompletion = completionRates.reduce((sum, rate) => sum + rate, 0) / completionRates.length;
-    const completionConsistency = completionRates.filter(rate => Math.abs(rate - avgCompletion) < 0.1).length;
+    const completionRates = trends.map((t) => t.completed_tasks / t.total_tasks);
+    const avgCompletion =
+      completionRates.reduce((sum, rate) => sum + rate, 0) / completionRates.length;
+    const completionConsistency = completionRates.filter(
+      (rate) => Math.abs(rate - avgCompletion) < 0.1,
+    ).length;
 
     if (completionConsistency / completionRates.length > 0.7) {
       patterns.push('consistent_completion_rate');
@@ -657,7 +673,7 @@ export class OptimizationEngine {
     };
 
     // Sort each priority level by priority score
-    Object.keys(suggestions.priority).forEach(level => {
+    Object.keys(suggestions.priority).forEach((level) => {
       suggestions.priority[level].sort((a, b) => priorityScore(b) - priorityScore(a));
     });
 
@@ -665,7 +681,7 @@ export class OptimizationEngine {
     const allSuggestions = [
       ...suggestions.priority.high,
       ...suggestions.priority.medium,
-      ...suggestions.priority.low
+      ...suggestions.priority.low,
     ];
 
     suggestions.recommendations = allSuggestions
@@ -692,29 +708,35 @@ export class OptimizationEngine {
       throw new Error('Hive database not available for agent analysis');
     }
 
-    const agent = await this.analyzer.hiveDb.get(`
+    const agent = await this.analyzer.hiveDb.get(
+      `
       SELECT * FROM agents WHERE id = ?
-    `, [agentId]);
+    `,
+      [agentId],
+    );
 
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
     }
 
-    const agentTasks = await this.analyzer.hiveDb.all(`
+    const agentTasks = await this.analyzer.hiveDb.all(
+      `
       SELECT * FROM tasks
       WHERE agent_id = ?
       ORDER BY created_at DESC
       LIMIT 50
-    `, [agentId]);
+    `,
+      [agentId],
+    );
 
     const recommendations = {
       agent: agent,
       performance: {
         score: agent.performance_score,
         successRate: agent.success_rate,
-        taskCount: agent.task_count
+        taskCount: agent.task_count,
       },
-      suggestions: []
+      suggestions: [],
     };
 
     // Analyze agent performance
@@ -728,8 +750,8 @@ export class OptimizationEngine {
           'Review recent task failures and patterns',
           'Consider additional training or capability updates',
           'Analyze task-agent matching effectiveness',
-          'Review agent workload distribution'
-        ]
+          'Review agent workload distribution',
+        ],
       });
     }
 
@@ -743,14 +765,14 @@ export class OptimizationEngine {
           'Implement retry mechanisms for failed tasks',
           'Add task validation and error checking',
           'Review task complexity assignments',
-          'Consider agent specialization'
-        ]
+          'Consider agent specialization',
+        ],
       });
     }
 
     // Analyze recent task patterns
     if (agentTasks.length > 0) {
-      const recentFailures = agentTasks.filter(t => t.status === 'failed').length;
+      const recentFailures = agentTasks.filter((t) => t.status === 'failed').length;
       const failureRate = recentFailures / agentTasks.length;
 
       if (failureRate > 0.2) {
@@ -763,8 +785,8 @@ export class OptimizationEngine {
             'Investigate recent failure patterns',
             'Check for environmental or system issues',
             'Review task assignment criteria',
-            'Consider temporary workload reduction'
-          ]
+            'Consider temporary workload reduction',
+          ],
         });
       }
     }
@@ -780,31 +802,41 @@ export class OptimizationEngine {
       throw new Error('Hive database not available for swarm analysis');
     }
 
-    const swarm = await this.analyzer.hiveDb.get(`
+    const swarm = await this.analyzer.hiveDb.get(
+      `
       SELECT * FROM swarms WHERE id = ?
-    `, [swarmId]);
+    `,
+      [swarmId],
+    );
 
     if (!swarm) {
       throw new Error(`Swarm ${swarmId} not found`);
     }
 
-    const swarmAgents = await this.analyzer.hiveDb.all(`
+    const swarmAgents = await this.analyzer.hiveDb.all(
+      `
       SELECT * FROM agents WHERE swarm_id = ?
-    `, [swarmId]);
+    `,
+      [swarmId],
+    );
 
-    const swarmTasks = await this.analyzer.hiveDb.all(`
+    const swarmTasks = await this.analyzer.hiveDb.all(
+      `
       SELECT * FROM tasks WHERE swarm_id = ? ORDER BY created_at DESC LIMIT 100
-    `, [swarmId]);
+    `,
+      [swarmId],
+    );
 
     const recommendations = {
       swarm: swarm,
       agents: swarmAgents.length,
       performance: {
-        avgAgentScore: swarmAgents.reduce((sum, a) => sum + a.performance_score, 0) / swarmAgents.length,
+        avgAgentScore:
+          swarmAgents.reduce((sum, a) => sum + a.performance_score, 0) / swarmAgents.length,
         totalTasks: swarmTasks.length,
-        completedTasks: swarmTasks.filter(t => t.status === 'completed').length
+        completedTasks: swarmTasks.filter((t) => t.status === 'completed').length,
       },
-      suggestions: []
+      suggestions: [],
     };
 
     // Analyze swarm composition
@@ -825,8 +857,8 @@ export class OptimizationEngine {
           'Add complementary agent types',
           'Implement cross-functional capabilities',
           'Consider specialized roles',
-          'Review task requirements vs agent capabilities'
-        ]
+          'Review task requirements vs agent capabilities',
+        ],
       });
     }
 
@@ -838,7 +870,8 @@ export class OptimizationEngine {
     }, {});
 
     const distributionValues = Object.values(taskDistribution);
-    const avgTasks = distributionValues.reduce((sum, count) => sum + count, 0) / distributionValues.length;
+    const avgTasks =
+      distributionValues.reduce((sum, count) => sum + count, 0) / distributionValues.length;
     const maxTasks = Math.max(...distributionValues);
     const minTasks = Math.min(...distributionValues);
 
@@ -852,8 +885,8 @@ export class OptimizationEngine {
           'Implement load balancing mechanisms',
           'Review task assignment algorithms',
           'Consider agent capacity planning',
-          'Add dynamic task redistribution'
-        ]
+          'Add dynamic task redistribution',
+        ],
       });
     }
 

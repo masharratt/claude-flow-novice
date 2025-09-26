@@ -25,7 +25,7 @@ export async function registerNeuralGoalCommands(program) {
       await initNeuralModule(options);
     });
 
-  // Goal init command  
+  // Goal init command
   program
     .command('goal')
     .description('Goal module commands')
@@ -40,19 +40,19 @@ export async function registerNeuralGoalCommands(program) {
 
 async function initNeuralModule(options) {
   const targetDir = path.resolve(process.cwd(), options.target || '.claude/agents/neural');
-  
+
   console.log(chalk.cyan('🧠 Initializing Claude Flow Neural Module...'));
-  
+
   try {
     // Check if exists
-    if (await exists(targetDir) && !options.force) {
+    if ((await exists(targetDir)) && !options.force) {
       console.log(chalk.yellow('⚠️  Neural module already exists. Use --force to overwrite.'));
       return;
     }
-    
+
     // Create directory
     await fs.mkdir(targetDir, { recursive: true });
-    
+
     // Create SAFLA neural agent
     const saflaContent = `---
 name: safla-neural
@@ -74,10 +74,10 @@ mcp__claude-flow__neural_train {
 }
 \`\`\`
 `;
-    
+
     await fs.writeFile(path.join(targetDir, 'safla-neural.md'), saflaContent);
     console.log(chalk.gray('  ✓ Created safla-neural.md'));
-    
+
     // Create config
     const config = {
       version: '1.0.0',
@@ -85,20 +85,16 @@ mcp__claude-flow__neural_train {
         enabled: true,
         defaultModel: 'safla',
         wasmOptimization: true,
-        memoryCompression: 0.6
-      }
+        memoryCompression: 0.6,
+      },
     };
-    
-    await fs.writeFile(
-      path.join(targetDir, 'config.json'),
-      JSON.stringify(config, null, 2)
-    );
+
+    await fs.writeFile(path.join(targetDir, 'config.json'), JSON.stringify(config, null, 2));
     console.log(chalk.gray('  ✓ Created config.json'));
-    
+
     console.log(chalk.green('✅ Neural module initialized successfully!'));
     console.log(chalk.cyan('\n📚 Usage:'));
     console.log(chalk.gray('  @agent-safla-neural "Create self-improving system"'));
-    
   } catch (error) {
     console.error(chalk.red('❌ Failed:'), error.message);
     process.exit(1);
@@ -107,19 +103,19 @@ mcp__claude-flow__neural_train {
 
 async function initGoalModule(options) {
   const targetDir = path.resolve(process.cwd(), options.target || '.claude/agents/goal');
-  
+
   console.log(chalk.magenta('🎯 Initializing Claude Flow Goal Module...'));
-  
+
   try {
     // Check if exists
-    if (await exists(targetDir) && !options.force) {
+    if ((await exists(targetDir)) && !options.force) {
       console.log(chalk.yellow('⚠️  Goal module already exists. Use --force to overwrite.'));
       return;
     }
-    
+
     // Create directory
     await fs.mkdir(targetDir, { recursive: true });
-    
+
     // Create goal-planner agent
     const plannerContent = `---
 name: goal-planner
@@ -141,10 +137,10 @@ mcp__claude-flow__task_orchestrate {
 }
 \`\`\`
 `;
-    
+
     await fs.writeFile(path.join(targetDir, 'goal-planner.md'), plannerContent);
     console.log(chalk.gray('  ✓ Created goal-planner.md'));
-    
+
     // Create config
     const config = {
       version: '1.0.0',
@@ -154,21 +150,17 @@ mcp__claude-flow__task_orchestrate {
         maxPlanDepth: 100,
         replanning: {
           enabled: true,
-          threshold: 0.3
-        }
-      }
+          threshold: 0.3,
+        },
+      },
     };
-    
-    await fs.writeFile(
-      path.join(targetDir, 'config.json'),
-      JSON.stringify(config, null, 2)
-    );
+
+    await fs.writeFile(path.join(targetDir, 'config.json'), JSON.stringify(config, null, 2));
     console.log(chalk.gray('  ✓ Created config.json'));
-    
+
     console.log(chalk.green('✅ Goal module initialized successfully!'));
     console.log(chalk.magenta('\n📚 Usage:'));
     console.log(chalk.gray('  @agent-goal-planner "Create deployment plan"'));
-    
   } catch (error) {
     console.error(chalk.red('❌ Failed:'), error.message);
     process.exit(1);

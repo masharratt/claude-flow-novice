@@ -85,7 +85,7 @@ export class RegressionTestManager {
       affectedTests: [],
       riskLevel: 'low',
       recommendedTests: [],
-      estimatedExecutionTime: 0
+      estimatedExecutionTime: 0,
     };
 
     if (!this.impactAnalysisEnabled) {
@@ -112,7 +112,9 @@ export class RegressionTestManager {
     // Estimate execution time
     analysis.estimatedExecutionTime = this.calculateTotalExecutionTime(analysis.recommendedTests);
 
-    console.log(`📊 Impact analysis complete: ${analysis.recommendedTests.length} tests recommended (Risk: ${analysis.riskLevel})`);
+    console.log(
+      `📊 Impact analysis complete: ${analysis.recommendedTests.length} tests recommended (Risk: ${analysis.riskLevel})`,
+    );
     return analysis;
   }
 
@@ -131,8 +133,8 @@ export class RegressionTestManager {
       resourceRequirements: {
         agents: 1,
         memory: '2GB',
-        timeout: 3600000 // 1 hour
-      }
+        timeout: 3600000, // 1 hour
+      },
     };
 
     if (this.swarmCoordinated) {
@@ -145,12 +147,12 @@ export class RegressionTestManager {
       // Optimize execution order within groups
       for (const group of plan.parallelGroups) {
         const optimizedOrder = await this.optimizeExecutionOrder(group);
-        plan.executionOrder.push(...optimizedOrder.map(test => test.id));
+        plan.executionOrder.push(...optimizedOrder.map((test) => test.id));
       }
     } else {
       // Sequential execution order
       const orderedTests = await this.optimizeExecutionOrder(tests);
-      plan.executionOrder = orderedTests.map(test => test.id);
+      plan.executionOrder = orderedTests.map((test) => test.id);
       plan.parallelGroups = [tests];
     }
 
@@ -160,7 +162,9 @@ export class RegressionTestManager {
     // Adjust resource requirements based on plan complexity
     plan.resourceRequirements = this.calculateResourceRequirements(plan);
 
-    console.log(`✅ Execution plan created: ${plan.parallelGroups.length} groups, ${plan.resourceRequirements.agents} agents, ~${Math.round(plan.estimatedTotalTime / 1000)}s`);
+    console.log(
+      `✅ Execution plan created: ${plan.parallelGroups.length} groups, ${plan.resourceRequirements.agents} agents, ~${Math.round(plan.estimatedTotalTime / 1000)}s`,
+    );
     return plan;
   }
 
@@ -180,7 +184,7 @@ export class RegressionTestManager {
       skipped: 0,
       results: new Map<string, any>(),
       swarmMetrics: null,
-      performanceMetrics: null
+      performanceMetrics: null,
     };
 
     try {
@@ -200,7 +204,9 @@ export class RegressionTestManager {
       // Update execution history
       await this.updateExecutionHistory(executionResults);
 
-      console.log(`✅ Regression tests completed: ${executionResults.passed}/${executionResults.totalTests} passed`);
+      console.log(
+        `✅ Regression tests completed: ${executionResults.passed}/${executionResults.totalTests} passed`,
+      );
       return executionResults;
     } catch (error) {
       console.error('❌ Regression test execution failed:', error);
@@ -221,7 +227,7 @@ export class RegressionTestManager {
       flakyTests: [],
       newFailures: [],
       regressionFailures: [],
-      recommendations: []
+      recommendations: [],
     };
 
     // Analyze failure patterns
@@ -241,7 +247,7 @@ export class RegressionTestManager {
             testId,
             name: test.name,
             flakiness: test.flakiness,
-            recentFailures: await this.getRecentFailures(testId)
+            recentFailures: await this.getRecentFailures(testId),
           });
         }
 
@@ -251,7 +257,7 @@ export class RegressionTestManager {
             testId,
             name: test.name,
             error: result.error,
-            firstFailure: new Date()
+            firstFailure: new Date(),
           });
         }
       }
@@ -260,7 +266,9 @@ export class RegressionTestManager {
     // Generate actionable recommendations
     failureAnalysis.recommendations = await this.generateFailureRecommendations(failureAnalysis);
 
-    console.log(`📊 Failure analysis complete: ${failureAnalysis.totalFailures} failures, ${failureAnalysis.flakyTests.length} flaky tests`);
+    console.log(
+      `📊 Failure analysis complete: ${failureAnalysis.totalFailures} failures, ${failureAnalysis.flakyTests.length} flaky tests`,
+    );
     return failureAnalysis;
   }
 
@@ -274,7 +282,7 @@ export class RegressionTestManager {
       immediateRetries: [],
       delayedRetries: [],
       skipRetries: [],
-      retryConfiguration: new Map<string, any>()
+      retryConfiguration: new Map<string, any>(),
     };
 
     for (const testId of failedTests) {
@@ -294,7 +302,7 @@ export class RegressionTestManager {
           maxRetries: retryConfig.maxRetries,
           delay: retryConfig.delay,
           isolation: retryConfig.isolation,
-          timeout: retryConfig.timeout
+          timeout: retryConfig.timeout,
         });
       } else {
         retryStrategy.skipRetries.push(testId);
@@ -311,7 +319,7 @@ export class RegressionTestManager {
       { pattern: '**/*.test.ts', category: 'unit' },
       { pattern: '**/*.spec.ts', category: 'integration' },
       { pattern: 'tests/e2e/**/*.ts', category: 'e2e' },
-      { pattern: 'tests/api/**/*.ts', category: 'api' }
+      { pattern: 'tests/api/**/*.ts', category: 'api' },
     ];
 
     for (const source of testSources) {
@@ -331,7 +339,7 @@ export class RegressionTestManager {
           estimatedDuration: testInfo.duration || 30000,
           lastRun: new Date(0),
           successRate: 100,
-          flakiness: 0
+          flakiness: 0,
         };
 
         this.testRegistry.set(regressionTest.id, regressionTest);
@@ -352,7 +360,7 @@ export class RegressionTestManager {
       priority: 'medium',
       dependencies: [],
       components: [],
-      duration: 30000
+      duration: 30000,
     };
   }
 
@@ -371,9 +379,12 @@ export class RegressionTestManager {
 
     // Simple implementation - in reality this would be more sophisticated
     for (const test of this.testRegistry.values()) {
-      if (test.affectedComponents.some(component =>
-        filePath.includes(component) || component.includes(filePath.split('/').pop() || '')
-      )) {
+      if (
+        test.affectedComponents.some(
+          (component) =>
+            filePath.includes(component) || component.includes(filePath.split('/').pop() || ''),
+        )
+      ) {
         affectedTests.push(test);
       }
     }
@@ -383,14 +394,17 @@ export class RegressionTestManager {
 
   private deduplicateTests(tests: RegressionTest[]): RegressionTest[] {
     const seen = new Set<string>();
-    return tests.filter(test => {
+    return tests.filter((test) => {
       if (seen.has(test.id)) return false;
       seen.add(test.id);
       return true;
     });
   }
 
-  private calculateRiskLevel(changedFiles: string[], affectedTests: RegressionTest[]): 'low' | 'medium' | 'high' | 'critical' {
+  private calculateRiskLevel(
+    changedFiles: string[],
+    affectedTests: RegressionTest[],
+  ): 'low' | 'medium' | 'high' | 'critical' {
     // Risk calculation based on various factors
     let riskScore = 0;
 
@@ -398,14 +412,14 @@ export class RegressionTestManager {
     riskScore += Math.min(affectedTests.length / 10, 3);
 
     // Factor 2: Critical component changes
-    const criticalFiles = changedFiles.filter(file =>
-      file.includes('core') || file.includes('auth') || file.includes('api')
+    const criticalFiles = changedFiles.filter(
+      (file) => file.includes('core') || file.includes('auth') || file.includes('api'),
     );
     riskScore += criticalFiles.length * 2;
 
     // Factor 3: High priority tests affected
-    const highPriorityTests = affectedTests.filter(test =>
-      test.priority === 'high' || test.priority === 'critical'
+    const highPriorityTests = affectedTests.filter(
+      (test) => test.priority === 'high' || test.priority === 'critical',
     );
     riskScore += highPriorityTests.length * 1.5;
 
@@ -415,21 +429,25 @@ export class RegressionTestManager {
     return 'low';
   }
 
-  private async generateTestRecommendations(analysis: TestImpactAnalysis): Promise<RegressionTest[]> {
+  private async generateTestRecommendations(
+    analysis: TestImpactAnalysis,
+  ): Promise<RegressionTest[]> {
     let recommendations = [...analysis.affectedTests];
 
     if (this.riskBasedTesting) {
       // Add additional tests based on risk level
       if (analysis.riskLevel === 'high' || analysis.riskLevel === 'critical') {
         // Include all high priority tests
-        const highPriorityTests = Array.from(this.testRegistry.values())
-          .filter(test => test.priority === 'high' || test.priority === 'critical');
+        const highPriorityTests = Array.from(this.testRegistry.values()).filter(
+          (test) => test.priority === 'high' || test.priority === 'critical',
+        );
         recommendations.push(...highPriorityTests);
       }
 
       // Add flaky tests that might be affected
-      const flakyTests = Array.from(this.testRegistry.values())
-        .filter(test => test.flakiness > 0.1);
+      const flakyTests = Array.from(this.testRegistry.values()).filter(
+        (test) => test.flakiness > 0.1,
+      );
       recommendations.push(...flakyTests.slice(0, 5)); // Limit to top 5 flaky tests
     }
 
@@ -457,19 +475,20 @@ export class RegressionTestManager {
 
     // Create groups ensuring no dependency conflicts
     for (const [category, categoryTests] of testsByCategory) {
-      const independentTests = categoryTests.filter(test =>
-        test.dependencies.length === 0 ||
-        test.dependencies.every(dep => !tests.some(t => t.id === dep))
+      const independentTests = categoryTests.filter(
+        (test) =>
+          test.dependencies.length === 0 ||
+          test.dependencies.every((dep) => !tests.some((t) => t.id === dep)),
       );
 
       if (independentTests.length > 0) {
         groups.push(independentTests);
-        independentTests.forEach(test => processed.add(test.id));
+        independentTests.forEach((test) => processed.add(test.id));
       }
     }
 
     // Add remaining tests with dependencies to appropriate groups
-    const remainingTests = tests.filter(test => !processed.has(test.id));
+    const remainingTests = tests.filter((test) => !processed.has(test.id));
     if (remainingTests.length > 0) {
       groups.push(remainingTests);
     }
@@ -479,7 +498,7 @@ export class RegressionTestManager {
 
   private calculateOptimalAgentCount(parallelGroups: RegressionTest[][]): number {
     // Calculate optimal number of agents based on test distribution
-    const maxGroupSize = Math.max(...parallelGroups.map(group => group.length));
+    const maxGroupSize = Math.max(...parallelGroups.map((group) => group.length));
     const totalTests = parallelGroups.reduce((sum, group) => sum + group.length, 0);
 
     // Aim for 4-8 tests per agent, with minimum of 2 agents and maximum of 8
@@ -509,8 +528,8 @@ export class RegressionTestManager {
     }
 
     // Calculate parallel execution time
-    const groupExecutionTimes = plan.parallelGroups.map(group =>
-      this.calculateTotalExecutionTime(group) / plan.resourceRequirements.agents
+    const groupExecutionTimes = plan.parallelGroups.map(
+      (group) => this.calculateTotalExecutionTime(group) / plan.resourceRequirements.agents,
     );
 
     return Math.max(...groupExecutionTimes);
@@ -527,7 +546,7 @@ export class RegressionTestManager {
     return {
       agents: plan.resourceRequirements.agents,
       memory: `${totalMemory}GB`,
-      timeout
+      timeout,
     };
   }
 
@@ -574,17 +593,17 @@ export class RegressionTestManager {
 
     try {
       // Simulate test execution
-      await new Promise(resolve => setTimeout(resolve, Math.min(test.estimatedDuration, 5000)));
+      await new Promise((resolve) => setTimeout(resolve, Math.min(test.estimatedDuration, 5000)));
 
       const executionTime = Date.now() - startTime;
-      const success = Math.random() > (test.flakiness / 100); // Simulate based on flakiness
+      const success = Math.random() > test.flakiness / 100; // Simulate based on flakiness
 
       return {
         testId: test.id,
         success,
         executionTime,
         error: success ? null : `Simulated test failure`,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     } catch (error) {
       return {
@@ -592,7 +611,7 @@ export class RegressionTestManager {
         success: false,
         executionTime: Date.now() - startTime,
         error: error.message,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
     }
   }
@@ -605,7 +624,7 @@ export class RegressionTestManager {
         test.lastRun = new Date();
 
         // Update success rate
-        const historicalSuccesses = Math.round(test.successRate / 100 * 10); // Assume 10 historical runs
+        const historicalSuccesses = Math.round((test.successRate / 100) * 10); // Assume 10 historical runs
         const newSuccesses = historicalSuccesses + (result.success ? 1 : 0);
         test.successRate = (newSuccesses / 11) * 100;
 
@@ -625,7 +644,7 @@ export class RegressionTestManager {
       totalTests: results.totalTests,
       passed: results.passed,
       failed: results.failed,
-      executionTime: results.endTime.getTime() - results.startTime.getTime()
+      executionTime: results.endTime.getTime() - results.startTime.getTime(),
     };
 
     const history = this.executionHistory.get('overall') || [];
@@ -664,18 +683,25 @@ export class RegressionTestManager {
     const recommendations = [];
 
     if (analysis.flakyTests.length > 0) {
-      recommendations.push(`Consider investigating ${analysis.flakyTests.length} flaky tests for stability improvements`);
+      recommendations.push(
+        `Consider investigating ${analysis.flakyTests.length} flaky tests for stability improvements`,
+      );
     }
 
     if (analysis.newFailures.length > 0) {
-      recommendations.push(`${analysis.newFailures.length} new test failures detected - review recent changes`);
+      recommendations.push(
+        `${analysis.newFailures.length} new test failures detected - review recent changes`,
+      );
     }
 
-    const topFailurePattern = Array.from(analysis.failurePatterns.entries())
-      .sort((a, b) => b[1] - a[1])[0];
+    const topFailurePattern = Array.from(analysis.failurePatterns.entries()).sort(
+      (a, b) => b[1] - a[1],
+    )[0];
 
     if (topFailurePattern) {
-      recommendations.push(`Most common failure type: ${topFailurePattern[0]} (${topFailurePattern[1]} occurrences)`);
+      recommendations.push(
+        `Most common failure type: ${topFailurePattern[0]} (${topFailurePattern[1]} occurrences)`,
+      );
     }
 
     return recommendations;
@@ -692,7 +718,7 @@ export class RegressionTestManager {
       maxRetries: test.flakiness > 0.5 ? 3 : 2,
       delay: test.flakiness > 0.3 ? 5000 : 1000,
       isolation: test.category === 'e2e',
-      timeout: test.estimatedDuration * 1.5
+      timeout: test.estimatedDuration * 1.5,
     };
 
     return config;

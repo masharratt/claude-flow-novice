@@ -31,7 +31,7 @@ class ConsensusTestSuite extends EventEmitter {
       'single_byzantine_node_test',
       'multiple_byzantine_nodes_test',
       'byzantine_collusion_test',
-      'byzantine_recovery_test'
+      'byzantine_recovery_test',
     ]);
 
     // Network partition tests
@@ -39,7 +39,7 @@ class ConsensusTestSuite extends EventEmitter {
       'simple_partition_test',
       'complex_partition_test',
       'partition_recovery_test',
-      'minority_partition_test'
+      'minority_partition_test',
     ]);
 
     // Performance stress tests
@@ -47,7 +47,7 @@ class ConsensusTestSuite extends EventEmitter {
       'high_load_test',
       'latency_stress_test',
       'throughput_stress_test',
-      'concurrent_consensus_test'
+      'concurrent_consensus_test',
     ]);
 
     // Scaling tests
@@ -55,7 +55,7 @@ class ConsensusTestSuite extends EventEmitter {
       'scale_up_test',
       'scale_down_test',
       'rapid_scaling_test',
-      'scaling_under_load_test'
+      'scaling_under_load_test',
     ]);
 
     // Fault injection tests
@@ -63,7 +63,7 @@ class ConsensusTestSuite extends EventEmitter {
       'node_failure_test',
       'network_failure_test',
       'message_corruption_test',
-      'timing_failure_test'
+      'timing_failure_test',
     ]);
 
     // Security tests
@@ -71,7 +71,7 @@ class ConsensusTestSuite extends EventEmitter {
       'signature_validation_test',
       'vote_integrity_test',
       'authentication_test',
-      'authorization_test'
+      'authorization_test',
     ]);
   }
 
@@ -93,7 +93,7 @@ class ConsensusTestSuite extends EventEmitter {
         timeout: 300000, // 5 minutes default
         retries: 2,
         prerequisites: [],
-        cleanup: true
+        cleanup: true,
       });
     }
   }
@@ -116,7 +116,7 @@ class ConsensusTestSuite extends EventEmitter {
       failedTests: 0,
       skippedTests: 0,
       categories: new Map(),
-      overallResult: 'PENDING'
+      overallResult: 'PENDING',
     };
 
     try {
@@ -151,7 +151,6 @@ class ConsensusTestSuite extends EventEmitter {
       this.emit('testSuiteCompleted', { testResults, report });
 
       return { testResults, report };
-
     } catch (error) {
       console.error(`❌ Test Suite Failed [${suiteId}]:`, error);
       testResults.endTime = Date.now();
@@ -173,7 +172,7 @@ class ConsensusTestSuite extends EventEmitter {
       failedTests: 0,
       skippedTests: 0,
       tests: new Map(),
-      duration: 0
+      duration: 0,
     };
 
     const startTime = Date.now();
@@ -197,14 +196,13 @@ class ConsensusTestSuite extends EventEmitter {
         } else {
           categoryResult.skippedTests++;
         }
-
       } catch (error) {
         console.error(`    ❌ ${testName} failed:`, error.message);
         categoryResult.failedTests++;
         categoryResult.tests.set(testName, {
           status: 'FAILED',
           error: error.message,
-          duration: 0
+          duration: 0,
         });
       }
     }
@@ -234,7 +232,10 @@ class ConsensusTestSuite extends EventEmitter {
         // Execute test with timeout
         const testPromise = testConfig.executor(testId, options);
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`Test timeout after ${testConfig.timeout}ms`)), testConfig.timeout)
+          setTimeout(
+            () => reject(new Error(`Test timeout after ${testConfig.timeout}ms`)),
+            testConfig.timeout,
+          ),
         );
 
         const result = await Promise.race([testPromise, timeoutPromise]);
@@ -252,9 +253,8 @@ class ConsensusTestSuite extends EventEmitter {
           status: 'PASSED',
           duration: endTime - startTime,
           attempts,
-          result
+          result,
         };
-
       } catch (error) {
         lastError = error;
         console.warn(`    ⚠️  ${testName} attempt ${attempts} failed: ${error.message}`);
@@ -284,7 +284,7 @@ class ConsensusTestSuite extends EventEmitter {
       duration: endTime - startTime,
       attempts,
       error: lastError.message,
-      lastError
+      lastError,
     };
   }
 
@@ -306,13 +306,13 @@ class ConsensusTestSuite extends EventEmitter {
       const verificationTask = {
         id: `verify-${testId}`,
         type: 'BYZANTINE_SINGLE_TEST',
-        expectedConsensus: 'APPROVE'
+        expectedConsensus: 'APPROVE',
       };
 
       // Start consensus with Byzantine node
       const consensusResult = await this.quorumManager.establishVerificationQuorum(
         verificationTask,
-        { byzantineFaultTolerance: true }
+        { byzantineFaultTolerance: true },
       );
 
       // Inject Byzantine behavior
@@ -321,7 +321,7 @@ class ConsensusTestSuite extends EventEmitter {
       // Coordinate voting
       const votingResult = await this.quorumManager.coordinateVerificationVoting(
         consensusResult.result,
-        { detectByzantine: true }
+        { detectByzantine: true },
       );
 
       // Validate results
@@ -329,19 +329,18 @@ class ConsensusTestSuite extends EventEmitter {
         consensusReached: votingResult.consensusReached,
         byzantineDetected: votingResult.byzantineNodesDetected.includes(byzantineNodeId),
         correctDecision: votingResult.finalDecision === verificationTask.expectedConsensus,
-        faultTolerance: votingResult.votingDetails.validVotes >= Math.ceil((testNodes * 2) / 3)
+        faultTolerance: votingResult.votingDetails.validVotes >= Math.ceil((testNodes * 2) / 3),
       };
 
       // All validations must pass
-      const testPassed = Object.values(validationResults).every(result => result === true);
+      const testPassed = Object.values(validationResults).every((result) => result === true);
 
       return {
         testPassed,
         validationResults,
         consensusResult: votingResult,
-        byzantineNodesDetected: votingResult.byzantineNodesDetected
+        byzantineNodesDetected: votingResult.byzantineNodesDetected,
       };
-
     } finally {
       await this.cleanupTestQuorum(quorum);
     }
@@ -360,7 +359,7 @@ class ConsensusTestSuite extends EventEmitter {
     for (const nodeId of byzantineNodes) {
       quorum.nodes.set(nodeId, {
         type: 'BYZANTINE',
-        behavior: Math.random() > 0.5 ? 'DOUBLE_VOTING' : 'SIGNATURE_FORGERY'
+        behavior: Math.random() > 0.5 ? 'DOUBLE_VOTING' : 'SIGNATURE_FORGERY',
       });
     }
 
@@ -368,7 +367,7 @@ class ConsensusTestSuite extends EventEmitter {
       const verificationTask = {
         id: `verify-multi-${testId}`,
         type: 'BYZANTINE_MULTI_TEST',
-        expectedConsensus: 'APPROVE'
+        expectedConsensus: 'APPROVE',
       };
 
       // Establish quorum
@@ -376,8 +375,8 @@ class ConsensusTestSuite extends EventEmitter {
         verificationTask,
         {
           byzantineFaultTolerance: true,
-          maxByzantineNodes: byzantineNodes.length
-        }
+          maxByzantineNodes: byzantineNodes.length,
+        },
       );
 
       // Inject Byzantine behaviors
@@ -389,31 +388,32 @@ class ConsensusTestSuite extends EventEmitter {
       // Coordinate voting
       const votingResult = await this.quorumManager.coordinateVerificationVoting(
         consensusResult.result,
-        { detectByzantine: true, requiredMajority: 0.67 }
+        { detectByzantine: true, requiredMajority: 0.67 },
       );
 
       // Validate that majority of Byzantine nodes were detected
-      const detectedByzantine = votingResult.byzantineNodesDetected.filter(
-        nodeId => byzantineNodes.includes(nodeId)
+      const detectedByzantine = votingResult.byzantineNodesDetected.filter((nodeId) =>
+        byzantineNodes.includes(nodeId),
       );
 
       const validationResults = {
         consensusReached: votingResult.consensusReached,
-        majorityByzantineDetected: detectedByzantine.length >= Math.ceil(byzantineNodes.length * 0.7),
+        majorityByzantineDetected:
+          detectedByzantine.length >= Math.ceil(byzantineNodes.length * 0.7),
         correctDecision: votingResult.finalDecision === verificationTask.expectedConsensus,
-        sufficientValidVotes: votingResult.votingDetails.validVotes >= (testNodes - byzantineNodes.length)
+        sufficientValidVotes:
+          votingResult.votingDetails.validVotes >= testNodes - byzantineNodes.length,
       };
 
-      const testPassed = Object.values(validationResults).every(result => result === true);
+      const testPassed = Object.values(validationResults).every((result) => result === true);
 
       return {
         testPassed,
         validationResults,
         byzantineNodesSetup: byzantineNodes.length,
         byzantineNodesDetected: detectedByzantine.length,
-        votingResult
+        votingResult,
       };
-
     } finally {
       await this.cleanupTestQuorum(quorum);
     }
@@ -432,19 +432,19 @@ class ConsensusTestSuite extends EventEmitter {
       // Create partition: 6 nodes in majority, 3 in minority
       const partitionConfig = {
         majorityPartition: Array.from({ length: 6 }, (_, i) => `node-${i}`),
-        minorityPartition: Array.from({ length: 3 }, (_, i) => `node-${i + 6}`)
+        minorityPartition: Array.from({ length: 3 }, (_, i) => `node-${i + 6}`),
       };
 
       // Start consensus process
       const verificationTask = {
         id: `verify-partition-${testId}`,
         type: 'PARTITION_TEST',
-        expectedConsensus: 'APPROVE'
+        expectedConsensus: 'APPROVE',
       };
 
       const consensusResult = await this.quorumManager.establishVerificationQuorum(
         verificationTask,
-        { partitionTolerance: true }
+        { partitionTolerance: true },
       );
 
       // Simulate network partition
@@ -453,7 +453,7 @@ class ConsensusTestSuite extends EventEmitter {
       // Continue voting process with partition
       const votingResult = await this.quorumManager.coordinateVerificationVoting(
         consensusResult.result,
-        { partitionTolerant: true, timeout: 15000 }
+        { partitionTolerant: true, timeout: 15000 },
       );
 
       // Validate partition handling
@@ -461,7 +461,7 @@ class ConsensusTestSuite extends EventEmitter {
         consensusReached: votingResult.consensusReached,
         majorityFunctional: votingResult.votingDetails.validVotes >= Math.ceil(testNodes / 2),
         partitionDetected: await this.partitionSimulator.isPartitionDetected(),
-        correctDecision: votingResult.finalDecision === verificationTask.expectedConsensus
+        correctDecision: votingResult.finalDecision === verificationTask.expectedConsensus,
       };
 
       // Heal partition and verify recovery
@@ -470,16 +470,15 @@ class ConsensusTestSuite extends EventEmitter {
       const recoveryTime = await this.measurePartitionRecovery(quorum);
       validationResults.fastRecovery = recoveryTime < 30000; // Recovery within 30 seconds
 
-      const testPassed = Object.values(validationResults).every(result => result === true);
+      const testPassed = Object.values(validationResults).every((result) => result === true);
 
       return {
         testPassed,
         validationResults,
         partitionConfig,
         recoveryTime,
-        votingResult
+        votingResult,
       };
-
     } finally {
       await this.partitionSimulator.healPartition();
       await this.cleanupTestQuorum(quorum);
@@ -499,7 +498,9 @@ class ConsensusTestSuite extends EventEmitter {
     const quorum = await this.setupTestQuorum(testNodes);
 
     try {
-      console.log(`    🚀 Starting high load test with ${concurrentConsensuses} concurrent consensuses`);
+      console.log(
+        `    🚀 Starting high load test with ${concurrentConsensuses} concurrent consensuses`,
+      );
 
       const loadTestPromises = [];
       const startTime = Date.now();
@@ -509,18 +510,16 @@ class ConsensusTestSuite extends EventEmitter {
         const verificationTask = {
           id: `load-test-${testId}-${i}`,
           type: 'LOAD_TEST',
-          expectedConsensus: 'APPROVE'
+          expectedConsensus: 'APPROVE',
         };
 
-        const consensusPromise = this.quorumManager.establishVerificationQuorum(
-          verificationTask,
-          { priorityLevel: 'NORMAL' }
-        ).then(async (consensusResult) => {
-          return await this.quorumManager.coordinateVerificationVoting(
-            consensusResult.result,
-            { timeout: targetLatency }
-          );
-        });
+        const consensusPromise = this.quorumManager
+          .establishVerificationQuorum(verificationTask, { priorityLevel: 'NORMAL' })
+          .then(async (consensusResult) => {
+            return await this.quorumManager.coordinateVerificationVoting(consensusResult.result, {
+              timeout: targetLatency,
+            });
+          });
 
         loadTestPromises.push(consensusPromise);
       }
@@ -530,19 +529,19 @@ class ConsensusTestSuite extends EventEmitter {
       const endTime = Date.now();
 
       // Analyze results
-      const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const successful = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.filter((r) => r.status === 'rejected').length;
       const averageLatency = (endTime - startTime) / concurrentConsensuses;
       const throughput = (successful * 1000) / (endTime - startTime); // consensuses per second
 
       const validationResults = {
-        highSuccessRate: (successful / concurrentConsensuses) >= 0.9, // 90% success rate
+        highSuccessRate: successful / concurrentConsensuses >= 0.9, // 90% success rate
         acceptableLatency: averageLatency <= targetLatency,
         reasonableThroughput: throughput >= 1.0, // At least 1 consensus per second
-        noSystemFailure: failed < (concurrentConsensuses * 0.2) // Less than 20% failures
+        noSystemFailure: failed < concurrentConsensuses * 0.2, // Less than 20% failures
       };
 
-      const testPassed = Object.values(validationResults).every(result => result === true);
+      const testPassed = Object.values(validationResults).every((result) => result === true);
 
       return {
         testPassed,
@@ -553,10 +552,9 @@ class ConsensusTestSuite extends EventEmitter {
           failed,
           averageLatency,
           throughput,
-          totalDuration: endTime - startTime
-        }
+          totalDuration: endTime - startTime,
+        },
       };
-
     } finally {
       await this.cleanupTestQuorum(quorum);
     }
@@ -582,16 +580,18 @@ class ConsensusTestSuite extends EventEmitter {
 
       // Perform incremental scaling
       for (let step = 1; step <= scalingSteps; step++) {
-        const targetSize = initialNodes + (step * ((finalNodes - initialNodes) / scalingSteps));
+        const targetSize = initialNodes + step * ((finalNodes - initialNodes) / scalingSteps);
 
-        console.log(`    📈 Scaling to ${Math.round(targetSize)} nodes (step ${step}/${scalingSteps})`);
+        console.log(
+          `    📈 Scaling to ${Math.round(targetSize)} nodes (step ${step}/${scalingSteps})`,
+        );
 
         const scalingStart = Date.now();
 
         // Scale up the quorum
         await this.quorumManager.scaleUpQuorum(Math.round(targetSize), {
           gradual: true,
-          maintainConsensus: true
+          maintainConsensus: true,
         });
 
         const scalingDuration = Date.now() - scalingStart;
@@ -601,14 +601,14 @@ class ConsensusTestSuite extends EventEmitter {
           scalingDuration,
           quorumSizeAchieved: this.quorumManager.currentQuorum.size >= Math.round(targetSize),
           consensusContinuity: await this.checkConsensusContinuity(),
-          performanceImpact: await this.measurePerformanceImpact(backgroundLoad)
+          performanceImpact: await this.measurePerformanceImpact(backgroundLoad),
         };
 
         scalingResults.push({
           step,
           targetSize: Math.round(targetSize),
           actualSize: this.quorumManager.currentQuorum.size,
-          validation: scalingValidation
+          validation: scalingValidation,
         });
       }
 
@@ -618,20 +618,21 @@ class ConsensusTestSuite extends EventEmitter {
       // Validate overall scaling success
       const validationResults = {
         finalSizeAchieved: this.quorumManager.currentQuorum.size >= finalNodes,
-        allStepsSuccessful: scalingResults.every(r => Object.values(r.validation).every(v => v === true)),
-        reasonableScalingTime: scalingResults.every(r => r.validation.scalingDuration < 60000), // < 1 minute per step
-        consensusMaintained: scalingResults.every(r => r.validation.consensusContinuity === true)
+        allStepsSuccessful: scalingResults.every((r) =>
+          Object.values(r.validation).every((v) => v === true),
+        ),
+        reasonableScalingTime: scalingResults.every((r) => r.validation.scalingDuration < 60000), // < 1 minute per step
+        consensusMaintained: scalingResults.every((r) => r.validation.consensusContinuity === true),
       };
 
-      const testPassed = Object.values(validationResults).every(result => result === true);
+      const testPassed = Object.values(validationResults).every((result) => result === true);
 
       return {
         testPassed,
         validationResults,
         scalingResults,
-        finalQuorumSize: this.quorumManager.currentQuorum.size
+        finalQuorumSize: this.quorumManager.currentQuorum.size,
       };
-
     } finally {
       await this.cleanupTestQuorum(quorum);
     }
@@ -647,14 +648,14 @@ class ConsensusTestSuite extends EventEmitter {
     try {
       const verificationTask = {
         id: `default-${testId}`,
-        type: 'DEFAULT_TEST'
+        type: 'DEFAULT_TEST',
       };
 
       const result = await this.quorumManager.establishVerificationQuorum(verificationTask);
 
       return {
         testPassed: result !== null,
-        result
+        result,
       };
     } finally {
       await this.cleanupTestQuorum(quorum);
@@ -677,14 +678,14 @@ class ConsensusTestSuite extends EventEmitter {
     const quorum = {
       id: crypto.randomUUID(),
       nodes: new Map(),
-      nodeCount
+      nodeCount,
     };
 
     // Create mock nodes
     for (let i = 0; i < nodeCount; i++) {
       quorum.nodes.set(`node-${i}`, {
         type: 'NORMAL',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
       });
     }
 
@@ -699,14 +700,15 @@ class ConsensusTestSuite extends EventEmitter {
   // Utility methods
 
   async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async measurePartitionRecovery(quorum) {
     const startTime = Date.now();
 
     // Wait for partition to be detected and healed
-    while (Date.now() - startTime < 60000) { // Max 1 minute
+    while (Date.now() - startTime < 60000) {
+      // Max 1 minute
       const isHealed = await this.partitionSimulator.isPartitionHealed();
       if (isHealed) {
         return Date.now() - startTime;
@@ -722,7 +724,7 @@ class ConsensusTestSuite extends EventEmitter {
     return {
       id: crypto.randomUUID(),
       intensity,
-      active: true
+      active: true,
     };
   }
 
@@ -748,7 +750,7 @@ class ConsensusTestSuite extends EventEmitter {
       metadata: {
         suiteId: testResults.suiteId,
         generatedAt: Date.now(),
-        testFrameworkVersion: '1.0.0'
+        testFrameworkVersion: '1.0.0',
       },
 
       summary: {
@@ -757,8 +759,9 @@ class ConsensusTestSuite extends EventEmitter {
         passedTests: testResults.passedTests,
         failedTests: testResults.failedTests,
         skippedTests: testResults.skippedTests,
-        successRate: testResults.totalTests > 0 ? (testResults.passedTests / testResults.totalTests) * 100 : 0,
-        duration: testResults.duration
+        successRate:
+          testResults.totalTests > 0 ? (testResults.passedTests / testResults.totalTests) * 100 : 0,
+        duration: testResults.duration,
       },
 
       categoryResults: Array.from(testResults.categories.entries()).map(([category, result]) => ({
@@ -773,13 +776,13 @@ class ConsensusTestSuite extends EventEmitter {
           status: testResult.status,
           duration: testResult.duration,
           attempts: testResult.attempts,
-          error: testResult.error
-        }))
+          error: testResult.error,
+        })),
       })),
 
       recommendations: await this.generateTestRecommendations(testResults),
 
-      performanceInsights: await this.generatePerformanceInsights(testResults)
+      performanceInsights: await this.generatePerformanceInsights(testResults),
     };
 
     return report;
@@ -795,7 +798,7 @@ class ConsensusTestSuite extends EventEmitter {
           category,
           priority: 'HIGH',
           recommendation: `Review ${result.failedTests} failed tests in ${category}`,
-          actions: ['Investigate root causes', 'Improve error handling', 'Add monitoring']
+          actions: ['Investigate root causes', 'Improve error handling', 'Add monitoring'],
         });
       }
     }
@@ -810,8 +813,8 @@ class ConsensusTestSuite extends EventEmitter {
       recommendations: [
         'Consider parallel test execution for faster feedback',
         'Optimize Byzantine detection algorithms',
-        'Implement more efficient consensus protocols'
-      ]
+        'Implement more efficient consensus protocols',
+      ],
     };
   }
 }
@@ -846,7 +849,7 @@ class FaultInjector {
   }
 
   async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -864,10 +867,12 @@ class PartitionSimulator {
     this.activePartitions.set(partitionId, {
       ...partitionConfig,
       createdAt: Date.now(),
-      status: 'ACTIVE'
+      status: 'ACTIVE',
     });
 
-    console.log(`      🔀 Created network partition: ${partitionConfig.majorityPartition.length} vs ${partitionConfig.minorityPartition.length} nodes`);
+    console.log(
+      `      🔀 Created network partition: ${partitionConfig.majorityPartition.length} vs ${partitionConfig.minorityPartition.length} nodes`,
+    );
 
     // Simulate partition creation
     await this.delay(1000);
@@ -890,11 +895,11 @@ class PartitionSimulator {
   }
 
   async isPartitionHealed() {
-    return Array.from(this.activePartitions.values()).every(p => p.status === 'HEALED');
+    return Array.from(this.activePartitions.values()).every((p) => p.status === 'HEALED');
   }
 
   async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -916,7 +921,7 @@ class PerformanceBenchmark {
       config: benchmarkConfig,
       startTime,
       endTime: null,
-      metrics: {}
+      metrics: {},
     };
 
     // Simulate benchmark execution
@@ -926,7 +931,7 @@ class PerformanceBenchmark {
     results.metrics = {
       averageLatency: 1500 + Math.random() * 500,
       throughput: 100 + Math.random() * 50,
-      successRate: 0.95 + Math.random() * 0.04
+      successRate: 0.95 + Math.random() * 0.04,
     };
 
     this.benchmarkResults.push(results);
@@ -934,7 +939,7 @@ class PerformanceBenchmark {
   }
 
   async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

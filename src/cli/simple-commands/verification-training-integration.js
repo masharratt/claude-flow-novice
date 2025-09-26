@@ -25,12 +25,8 @@ export class VerificationTrainingIntegration {
    */
   async initialize() {
     // Ensure directories exist
-    const dirs = [
-      '.claude-flow/training',
-      '.claude-flow/models',
-      '.claude-flow/metrics'
-    ];
-    
+    const dirs = ['.claude-flow/training', '.claude-flow/models', '.claude-flow/metrics'];
+
     for (const dir of dirs) {
       await fs.mkdir(dir, { recursive: true });
     }
@@ -38,7 +34,7 @@ export class VerificationTrainingIntegration {
     // Load or create model
     await this.loadModel();
     this.initialized = true;
-    
+
     console.log('✅ Verification-Training integration initialized');
   }
 
@@ -55,17 +51,17 @@ export class VerificationTrainingIntegration {
         agentType: verification.agentType,
         timestamp: verification.timestamp,
         mode: verification.mode || 'moderate',
-        checksPerformed: verification.results?.map(r => r.name) || []
+        checksPerformed: verification.results?.map((r) => r.name) || [],
       },
       output: {
         score: verification.score,
         passed: verification.passed,
-        threshold: verification.threshold
+        threshold: verification.threshold,
       },
       metadata: {
         sessionId: process.env.SESSION_ID || 'default',
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
 
     // Append to training data
@@ -88,27 +84,27 @@ export class VerificationTrainingIntegration {
    */
   async incrementalLearn(trainingData) {
     const model = await this.loadModel();
-    
+
     // Update agent reliability scores
     const agentType = trainingData.input.agentType;
     if (!model.agentReliability) model.agentReliability = {};
-    
+
     const currentReliability = model.agentReliability[agentType] || 0.5;
     const newScore = trainingData.output.score;
-    
+
     // Exponential moving average for reliability
-    model.agentReliability[agentType] = 
+    model.agentReliability[agentType] =
       currentReliability * (1 - this.learningRate) + newScore * this.learningRate;
 
     // Update verification patterns
     if (!model.patterns) model.patterns = {};
     const patternKey = `${agentType}_${trainingData.output.passed ? 'success' : 'failure'}`;
-    
+
     if (!model.patterns[patternKey]) {
       model.patterns[patternKey] = {
         count: 0,
         avgScore: 0,
-        checks: {}
+        checks: {},
       };
     }
 
@@ -128,7 +124,9 @@ export class VerificationTrainingIntegration {
     await this.saveModel(model);
 
     // Log learning progress
-    console.log(`📊 Learning update for ${agentType}: reliability ${model.agentReliability[agentType].toFixed(3)}`);
+    console.log(
+      `📊 Learning update for ${agentType}: reliability ${model.agentReliability[agentType].toFixed(3)}`,
+    );
   }
 
   /**
@@ -136,26 +134,26 @@ export class VerificationTrainingIntegration {
    */
   async predictVerificationOutcome(taskType, agentType) {
     const model = await this.loadModel();
-    
+
     // Get agent reliability
     const reliability = model.agentReliability?.[agentType] || 0.5;
-    
+
     // Get pattern statistics
     const successPattern = model.patterns?.[`${agentType}_success`];
     const failurePattern = model.patterns?.[`${agentType}_failure`];
-    
+
     if (!successPattern && !failurePattern) {
       return {
         predictedScore: reliability,
         confidence: 0.1,
-        recommendation: 'insufficient_data'
+        recommendation: 'insufficient_data',
       };
     }
 
     // Calculate prediction
     const totalCount = (successPattern?.count || 0) + (failurePattern?.count || 0);
     const successRate = (successPattern?.count || 0) / totalCount;
-    
+
     const predictedScore = reliability * 0.7 + successRate * 0.3;
     const confidence = Math.min(totalCount / 100, 1.0); // Confidence increases with data
 
@@ -175,7 +173,7 @@ export class VerificationTrainingIntegration {
       recommendation,
       agentReliability: reliability,
       historicalSuccessRate: successRate,
-      dataPoints: totalCount
+      dataPoints: totalCount,
     };
   }
 
@@ -184,35 +182,34 @@ export class VerificationTrainingIntegration {
    */
   async recommendAgent(taskType) {
     const model = await this.loadModel();
-    
+
     if (!model.agentReliability) {
       return {
         recommended: 'coder', // Default
-        reason: 'no_historical_data'
+        reason: 'no_historical_data',
       };
     }
 
     // Sort agents by reliability
-    const agents = Object.entries(model.agentReliability)
-      .sort(([, a], [, b]) => b - a);
+    const agents = Object.entries(model.agentReliability).sort(([, a], [, b]) => b - a);
 
     if (agents.length === 0) {
       return {
         recommended: 'coder',
-        reason: 'no_agent_data'
+        reason: 'no_agent_data',
       };
     }
 
     const [bestAgent, bestScore] = agents[0];
-    
+
     return {
       recommended: bestAgent,
       reliability: bestScore,
       alternatives: agents.slice(1, 3).map(([agent, score]) => ({
         agent,
-        reliability: score
+        reliability: score,
       })),
-      reason: `highest_reliability_score`
+      reason: `highest_reliability_score`,
     };
   }
 
@@ -221,7 +218,7 @@ export class VerificationTrainingIntegration {
    */
   async updateAgentModel(agentType, verification) {
     const modelFile = `.claude-flow/models/agent-${agentType}.json`;
-    
+
     let agentModel = {};
     try {
       const data = await fs.readFile(modelFile, 'utf8');
@@ -233,24 +230,24 @@ export class VerificationTrainingIntegration {
         successfulTasks: 0,
         averageScore: 0,
         scoreHistory: [],
-        checkPerformance: {}
+        checkPerformance: {},
       };
     }
 
     // Update statistics
     agentModel.totalTasks++;
     if (verification.passed) agentModel.successfulTasks++;
-    
+
     // Update average score
-    agentModel.averageScore = 
-      (agentModel.averageScore * (agentModel.totalTasks - 1) + verification.score) / 
+    agentModel.averageScore =
+      (agentModel.averageScore * (agentModel.totalTasks - 1) + verification.score) /
       agentModel.totalTasks;
 
     // Keep last 100 scores for trend analysis
     agentModel.scoreHistory.push({
       score: verification.score,
       timestamp: verification.timestamp,
-      passed: verification.passed
+      passed: verification.passed,
     });
     if (agentModel.scoreHistory.length > 100) {
       agentModel.scoreHistory = agentModel.scoreHistory.slice(-100);
@@ -263,14 +260,14 @@ export class VerificationTrainingIntegration {
           agentModel.checkPerformance[result.name] = {
             total: 0,
             passed: 0,
-            avgScore: 0
+            avgScore: 0,
           };
         }
-        
+
         const checkPerf = agentModel.checkPerformance[result.name];
         checkPerf.total++;
         if (result.passed) checkPerf.passed++;
-        checkPerf.avgScore = 
+        checkPerf.avgScore =
           (checkPerf.avgScore * (checkPerf.total - 1) + result.score) / checkPerf.total;
       }
     }
@@ -279,15 +276,15 @@ export class VerificationTrainingIntegration {
     if (agentModel.scoreHistory.length >= 20) {
       const recent10 = agentModel.scoreHistory.slice(-10);
       const previous10 = agentModel.scoreHistory.slice(-20, -10);
-      
+
       const recentAvg = recent10.reduce((sum, h) => sum + h.score, 0) / 10;
       const previousAvg = previous10.reduce((sum, h) => sum + h.score, 0) / 10;
-      
+
       agentModel.trend = {
         direction: recentAvg > previousAvg ? 'improving' : 'declining',
         change: recentAvg - previousAvg,
         recentAverage: recentAvg,
-        previousAverage: previousAvg
+        previousAverage: previousAvg,
       };
     }
 
@@ -297,7 +294,9 @@ export class VerificationTrainingIntegration {
     // Log if agent is improving or declining
     if (agentModel.trend) {
       const emoji = agentModel.trend.direction === 'improving' ? '📈' : '📉';
-      console.log(`${emoji} Agent ${agentType} is ${agentModel.trend.direction} (${agentModel.trend.change > 0 ? '+' : ''}${agentModel.trend.change.toFixed(3)})`);
+      console.log(
+        `${emoji} Agent ${agentType} is ${agentModel.trend.direction} (${agentModel.trend.change > 0 ? '+' : ''}${agentModel.trend.change.toFixed(3)})`,
+      );
     }
 
     return agentModel;
@@ -318,7 +317,7 @@ export class VerificationTrainingIntegration {
             type: 'retrain_agent',
             agent,
             currentReliability: reliability,
-            action: `Retrain ${agent} agent - reliability below 70%`
+            action: `Retrain ${agent} agent - reliability below 70%`,
           });
         }
       }
@@ -329,7 +328,7 @@ export class VerificationTrainingIntegration {
       for (const [pattern, data] of Object.entries(model.patterns)) {
         if (pattern.includes('failure') && data.count > 10) {
           const [agentType] = pattern.split('_');
-          
+
           // Find most common failing checks
           const failingChecks = Object.entries(data.checks || {})
             .filter(([, stats]) => stats.failure > stats.success)
@@ -340,7 +339,7 @@ export class VerificationTrainingIntegration {
               type: 'improve_checks',
               agent: agentType,
               checks: failingChecks,
-              action: `Focus training on ${failingChecks.join(', ')} for ${agentType}`
+              action: `Focus training on ${failingChecks.join(', ')} for ${agentType}`,
             });
           }
         }
@@ -348,14 +347,16 @@ export class VerificationTrainingIntegration {
     }
 
     // Check if we need more data
-    const totalDataPoints = Object.values(model.patterns || {})
-      .reduce((sum, p) => sum + p.count, 0);
-    
+    const totalDataPoints = Object.values(model.patterns || {}).reduce(
+      (sum, p) => sum + p.count,
+      0,
+    );
+
     if (totalDataPoints < 50) {
       recommendations.push({
         type: 'collect_more_data',
         currentDataPoints: totalDataPoints,
-        action: 'Run more verification cycles to improve training accuracy'
+        action: 'Run more verification cycles to improve training accuracy',
       });
     }
 
@@ -367,7 +368,7 @@ export class VerificationTrainingIntegration {
    */
   async updatePerformanceMetrics(verification) {
     let metrics = {};
-    
+
     try {
       const data = await fs.readFile(this.metricsPath, 'utf8');
       metrics = JSON.parse(data);
@@ -378,15 +379,15 @@ export class VerificationTrainingIntegration {
         averageScore: 0,
         byAgent: {},
         byHour: {},
-        created: new Date().toISOString()
+        created: new Date().toISOString(),
       };
     }
 
     // Update totals
     metrics.totalVerifications++;
     if (verification.passed) metrics.passedVerifications++;
-    metrics.averageScore = 
-      (metrics.averageScore * (metrics.totalVerifications - 1) + verification.score) / 
+    metrics.averageScore =
+      (metrics.averageScore * (metrics.totalVerifications - 1) + verification.score) /
       metrics.totalVerifications;
 
     // Update by agent
@@ -394,29 +395,28 @@ export class VerificationTrainingIntegration {
       metrics.byAgent[verification.agentType] = {
         total: 0,
         passed: 0,
-        avgScore: 0
+        avgScore: 0,
       };
     }
-    
+
     const agentMetrics = metrics.byAgent[verification.agentType];
     agentMetrics.total++;
     if (verification.passed) agentMetrics.passed++;
-    agentMetrics.avgScore = 
-      (agentMetrics.avgScore * (agentMetrics.total - 1) + verification.score) / 
-      agentMetrics.total;
+    agentMetrics.avgScore =
+      (agentMetrics.avgScore * (agentMetrics.total - 1) + verification.score) / agentMetrics.total;
 
     // Update by hour (for pattern detection)
     const hour = new Date().getHours();
     if (!metrics.byHour[hour]) {
       metrics.byHour[hour] = {
         total: 0,
-        avgScore: 0
+        avgScore: 0,
       };
     }
-    
+
     metrics.byHour[hour].total++;
-    metrics.byHour[hour].avgScore = 
-      (metrics.byHour[hour].avgScore * (metrics.byHour[hour].total - 1) + verification.score) / 
+    metrics.byHour[hour].avgScore =
+      (metrics.byHour[hour].avgScore * (metrics.byHour[hour].total - 1) + verification.score) /
       metrics.byHour[hour].total;
 
     metrics.lastUpdated = new Date().toISOString();
@@ -430,14 +430,14 @@ export class VerificationTrainingIntegration {
    */
   async trainNeuralPatterns() {
     console.log('🧠 Training neural patterns from verification data...');
-    
+
     try {
       // Call the training command
       const result = execSync(
         'npx claude-flow training neural-train --data .claude-flow/training/verification-data.jsonl --model verification-predictor --epochs 100',
-        { encoding: 'utf8', stdio: 'pipe' }
+        { encoding: 'utf8', stdio: 'pipe' },
       );
-      
+
       console.log('✅ Neural training completed');
       return { success: true, output: result };
     } catch (error) {
@@ -463,7 +463,7 @@ export class VerificationTrainingIntegration {
         created: new Date().toISOString(),
         agentReliability: {},
         patterns: {},
-        checkWeights: {}
+        checkWeights: {},
       };
     }
   }
@@ -479,12 +479,12 @@ export class VerificationTrainingIntegration {
   async getTrainingStatus() {
     const model = await this.loadModel();
     const metrics = await this.loadMetrics();
-    
+
     // Count training data
     let trainingDataCount = 0;
     try {
       const data = await fs.readFile(this.trainingDataPath, 'utf8');
-      trainingDataCount = data.split('\n').filter(line => line.trim()).length;
+      trainingDataCount = data.split('\n').filter((line) => line.trim()).length;
     } catch {
       // File doesn't exist
     }
@@ -496,11 +496,12 @@ export class VerificationTrainingIntegration {
       agentReliability: model.agentReliability,
       totalVerifications: metrics.totalVerifications || 0,
       averageScore: metrics.averageScore || 0,
-      passRate: metrics.totalVerifications > 0 
-        ? metrics.passedVerifications / metrics.totalVerifications 
-        : 0,
+      passRate:
+        metrics.totalVerifications > 0
+          ? metrics.passedVerifications / metrics.totalVerifications
+          : 0,
       agentPerformance: metrics.byAgent || {},
-      recommendations: await this.generateTrainingRecommendations()
+      recommendations: await this.generateTrainingRecommendations(),
     };
   }
 
@@ -530,14 +531,14 @@ export async function verificationTrainingCommand(args, flags) {
       try {
         const data = await fs.readFile(verificationFile, 'utf8');
         const memory = JSON.parse(data);
-        
+
         if (memory.history && memory.history.length > 0) {
           console.log(`📊 Feeding ${memory.history.length} verification records to training...`);
-          
+
           for (const verification of memory.history) {
             await integration.feedVerificationToTraining(verification);
           }
-          
+
           console.log('✅ Training data updated');
         } else {
           console.log('No verification history to feed');
@@ -551,13 +552,15 @@ export async function verificationTrainingCommand(args, flags) {
       // Predict verification outcome
       const taskType = args[1] || 'default';
       const agentType = args[2] || 'coder';
-      
+
       const prediction = await integration.predictVerificationOutcome(taskType, agentType);
       console.log('\n🔮 Verification Prediction:');
       console.log(`   Predicted Score: ${prediction.predictedScore.toFixed(3)}`);
       console.log(`   Confidence: ${(prediction.confidence * 100).toFixed(1)}%`);
       console.log(`   Recommendation: ${prediction.recommendation}`);
-      console.log(`   Historical Success Rate: ${(prediction.historicalSuccessRate * 100).toFixed(1)}%`);
+      console.log(
+        `   Historical Success Rate: ${(prediction.historicalSuccessRate * 100).toFixed(1)}%`,
+      );
       console.log(`   Data Points: ${prediction.dataPoints}`);
       break;
 
@@ -565,12 +568,12 @@ export async function verificationTrainingCommand(args, flags) {
       // Get agent recommendation
       const task = args[1] || 'default';
       const recommendation = await integration.recommendAgent(task);
-      
+
       console.log('\n🤖 Agent Recommendation:');
       console.log(`   Recommended: ${recommendation.recommended}`);
       console.log(`   Reliability: ${(recommendation.reliability * 100).toFixed(1)}%`);
       console.log(`   Reason: ${recommendation.reason}`);
-      
+
       if (recommendation.alternatives && recommendation.alternatives.length > 0) {
         console.log('   Alternatives:');
         for (const alt of recommendation.alternatives) {
@@ -587,7 +590,7 @@ export async function verificationTrainingCommand(args, flags) {
     case 'recommendations':
       // Get training recommendations
       const recs = await integration.generateTrainingRecommendations();
-      
+
       console.log('\n💡 Training Recommendations:');
       if (recs.length === 0) {
         console.log('   No recommendations at this time');
@@ -602,7 +605,7 @@ export async function verificationTrainingCommand(args, flags) {
     default:
       // Show training status
       const status = await integration.getTrainingStatus();
-      
+
       console.log('\n📊 Verification-Training Status');
       console.log('━'.repeat(50));
       console.log(`Model Version: ${status.modelVersion}`);
@@ -611,21 +614,21 @@ export async function verificationTrainingCommand(args, flags) {
       console.log(`Total Verifications: ${status.totalVerifications}`);
       console.log(`Average Score: ${status.averageScore.toFixed(3)}`);
       console.log(`Pass Rate: ${(status.passRate * 100).toFixed(1)}%`);
-      
+
       if (Object.keys(status.agentReliability).length > 0) {
         console.log('\n🤖 Agent Reliability:');
         for (const [agent, reliability] of Object.entries(status.agentReliability)) {
           console.log(`   ${agent}: ${(reliability * 100).toFixed(1)}%`);
         }
       }
-      
+
       if (status.recommendations.length > 0) {
         console.log('\n💡 Recommendations:');
         for (const rec of status.recommendations) {
           console.log(`   • ${rec.action}`);
         }
       }
-      
+
       console.log('\n📚 Commands:');
       console.log('   feed        - Feed verification data to training');
       console.log('   predict     - Predict verification outcome');
@@ -639,5 +642,5 @@ export async function verificationTrainingCommand(args, flags) {
 // Export for use in other modules
 export default {
   VerificationTrainingIntegration,
-  verificationTrainingCommand
+  verificationTrainingCommand,
 };

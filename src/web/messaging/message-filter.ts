@@ -59,19 +59,22 @@ export class MessageFilter {
    * Filter an array of messages
    */
   public filterMessages(messages: any[], filter: FilterConfig): any[] {
-    return messages.filter(message => this.messagePassesFilter(message, filter));
+    return messages.filter((message) => this.messagePassesFilter(message, filter));
   }
 
   /**
    * Search messages with advanced criteria
    */
-  public searchMessages(messages: any[], searchConfig: {
-    query?: string;
-    fuzzy?: boolean;
-    fields?: string[];
-    sortBy?: 'timestamp' | 'relevance' | 'priority';
-    sortOrder?: 'asc' | 'desc';
-  }): any[] {
+  public searchMessages(
+    messages: any[],
+    searchConfig: {
+      query?: string;
+      fuzzy?: boolean;
+      fields?: string[];
+      sortBy?: 'timestamp' | 'relevance' | 'priority';
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): any[] {
     let results = [...messages];
 
     // Apply text search
@@ -98,23 +101,19 @@ export class MessageFilter {
     tags: string[];
     dateRange: { start: string; end: string };
   } {
-    const messageTypes = [...new Set(messages.map(m => m.messageType))];
-    const agentTypes = [...new Set(messages.map(m => m.agentType))];
-    const agentIds = [...new Set(messages.map(m => m.agentId))];
-    const priorities = [...new Set(messages.map(m => m.priority))];
+    const messageTypes = [...new Set(messages.map((m) => m.messageType))];
+    const agentTypes = [...new Set(messages.map((m) => m.agentType))];
+    const agentIds = [...new Set(messages.map((m) => m.agentId))];
+    const priorities = [...new Set(messages.map((m) => m.priority))];
 
     // Extract tags from metadata
-    const tags = [...new Set(
-      messages
-        .flatMap(m => m.metadata?.tags || [])
-        .filter(Boolean)
-    )];
+    const tags = [...new Set(messages.flatMap((m) => m.metadata?.tags || []).filter(Boolean))];
 
     // Get date range
-    const timestamps = messages.map(m => new Date(m.timestamp).getTime());
+    const timestamps = messages.map((m) => new Date(m.timestamp).getTime());
     const dateRange = {
       start: new Date(Math.min(...timestamps)).toISOString(),
-      end: new Date(Math.max(...timestamps)).toISOString()
+      end: new Date(Math.max(...timestamps)).toISOString(),
     };
 
     return {
@@ -123,7 +122,7 @@ export class MessageFilter {
       agentIds,
       priorities,
       tags,
-      dateRange
+      dateRange,
     };
   }
 
@@ -135,8 +134,8 @@ export class MessageFilter {
 
     // Analyze user's viewing patterns
     const viewedMessageTypes = interactionHistory
-      .filter(h => h.action === 'view')
-      .map(h => h.messageType);
+      .filter((h) => h.action === 'view')
+      .map((h) => h.messageType);
 
     if (viewedMessageTypes.length > 0) {
       const mostViewedTypes = this.getMostFrequent(viewedMessageTypes, 3);
@@ -145,8 +144,8 @@ export class MessageFilter {
 
     // Analyze searched keywords
     const searchQueries = interactionHistory
-      .filter(h => h.action === 'search')
-      .map(h => h.query);
+      .filter((h) => h.action === 'search')
+      .map((h) => h.query);
 
     if (searchQueries.length > 0) {
       smartFilter.contentKeywords = this.extractKeywords(searchQueries);
@@ -154,15 +153,15 @@ export class MessageFilter {
 
     // Analyze time preferences
     const viewTimes = interactionHistory
-      .filter(h => h.action === 'view')
-      .map(h => new Date(h.timestamp).getHours());
+      .filter((h) => h.action === 'view')
+      .map((h) => new Date(h.timestamp).getHours());
 
     // If user typically views recent messages, prefer recent timeRange
     const averageHour = viewTimes.reduce((sum, hour) => sum + hour, 0) / viewTimes.length;
     if (averageHour > 0) {
       smartFilter.timeRange = {
         start: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        end: new Date().toISOString()
+        end: new Date().toISOString(),
       };
     }
 
@@ -204,8 +203,8 @@ export class MessageFilter {
     // Content keywords filter
     if (filter.contentKeywords && filter.contentKeywords.length > 0) {
       const content = message.content.toLowerCase();
-      const hasKeyword = filter.contentKeywords.some(keyword =>
-        content.includes(keyword.toLowerCase())
+      const hasKeyword = filter.contentKeywords.some((keyword) =>
+        content.includes(keyword.toLowerCase()),
       );
       if (!hasKeyword) return false;
     }
@@ -218,7 +217,9 @@ export class MessageFilter {
 
     // Alternatives filter
     if (filter.hasAlternatives !== undefined) {
-      const hasAlternatives = !!(message.metadata?.alternatives && message.metadata.alternatives.length > 0);
+      const hasAlternatives = !!(
+        message.metadata?.alternatives && message.metadata.alternatives.length > 0
+      );
       if (filter.hasAlternatives !== hasAlternatives) return false;
     }
 
@@ -238,7 +239,7 @@ export class MessageFilter {
     // Tags filter
     if (filter.tags && filter.tags.length > 0) {
       const messageTags = message.metadata?.tags || [];
-      const hasTag = filter.tags.some(tag => messageTags.includes(tag));
+      const hasTag = filter.tags.some((tag) => messageTags.includes(tag));
       if (!hasTag) return false;
     }
 
@@ -249,7 +250,7 @@ export class MessageFilter {
     const searchFields = config.fields || ['content', 'metadata.reasoning'];
     const fuzzy = config.fuzzy || false;
 
-    return messages.filter(message => {
+    return messages.filter((message) => {
       for (const field of searchFields) {
         const value = this.getNestedProperty(message, field);
         if (value && this.matchesQuery(value, query, fuzzy)) {
@@ -270,7 +271,7 @@ export class MessageFilter {
 
     // Simple fuzzy matching - check if most query words are present
     const queryWords = normalizedQuery.split(' ');
-    const matchedWords = queryWords.filter(word => normalizedText.includes(word));
+    const matchedWords = queryWords.filter((word) => normalizedText.includes(word));
 
     return matchedWords.length / queryWords.length >= 0.6; // 60% word match threshold
   }
@@ -285,8 +286,9 @@ export class MessageFilter {
           break;
         case 'priority':
           const priorityOrder = { low: 1, medium: 2, high: 3, urgent: 4 };
-          compareValue = priorityOrder[a.priority as keyof typeof priorityOrder] -
-                       priorityOrder[b.priority as keyof typeof priorityOrder];
+          compareValue =
+            priorityOrder[a.priority as keyof typeof priorityOrder] -
+            priorityOrder[b.priority as keyof typeof priorityOrder];
           break;
         case 'relevance':
           // Simple relevance based on message metadata richness
@@ -312,13 +314,13 @@ export class MessageFilter {
 
     // Score based on message type importance
     const typeScores = {
-      'decision': 5,
-      'coordination': 4,
-      'reasoning': 3,
+      decision: 5,
+      coordination: 4,
+      reasoning: 3,
       'progress-update': 2,
       'task-start': 2,
-      'completion': 1,
-      'error': 4
+      completion: 1,
+      error: 4,
     };
 
     score += typeScores[message.messageType as keyof typeof typeScores] || 1;
@@ -340,14 +342,14 @@ export class MessageFilter {
     return Array.from(frequency.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, count)
-      .map(entry => entry[0]);
+      .map((entry) => entry[0]);
   }
 
   private extractKeywords(queries: string[]): string[] {
     // Simple keyword extraction - split queries and find common terms
     const words = queries
-      .flatMap(query => query.toLowerCase().split(' '))
-      .filter(word => word.length > 3); // Filter out short words
+      .flatMap((query) => query.toLowerCase().split(' '))
+      .filter((word) => word.length > 3); // Filter out short words
 
     return this.getMostFrequent(words, 5);
   }
@@ -382,14 +384,16 @@ export class MessageFilter {
       if (filter.agentTypes) filterTypes['agentTypes'] = (filterTypes['agentTypes'] || 0) + 1;
       if (filter.priorities) filterTypes['priorities'] = (filterTypes['priorities'] || 0) + 1;
       if (filter.timeRange) filterTypes['timeRange'] = (filterTypes['timeRange'] || 0) + 1;
-      if (filter.contentKeywords) filterTypes['contentKeywords'] = (filterTypes['contentKeywords'] || 0) + 1;
-      if (filter.hasReasoning !== undefined) filterTypes['hasReasoning'] = (filterTypes['hasReasoning'] || 0) + 1;
+      if (filter.contentKeywords)
+        filterTypes['contentKeywords'] = (filterTypes['contentKeywords'] || 0) + 1;
+      if (filter.hasReasoning !== undefined)
+        filterTypes['hasReasoning'] = (filterTypes['hasReasoning'] || 0) + 1;
     }
 
     return {
       totalUsers: this.userFilters.size,
       mostUsedFilters: filterTypes,
-      averageFiltersPerUser: allFilters.length / this.userFilters.size || 0
+      averageFiltersPerUser: allFilters.length / this.userFilters.size || 0,
     };
   }
 }

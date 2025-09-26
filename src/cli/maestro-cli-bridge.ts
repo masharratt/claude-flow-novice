@@ -1,10 +1,10 @@
 /**
  * Maestro CLI Bridge - Optimization Implementation
- * 
+ *
  * This bridge provides optimized CLI integration for the Maestro specifications-driven
  * development framework, implementing performance enhancements and intelligent features
  * while maintaining compatibility with existing infrastructure.
- * 
+ *
  * Key optimizations:
  * - Parallel dependency initialization with caching
  * - Performance monitoring integration
@@ -26,7 +26,10 @@ import { AgentManager } from '../agents/agent-manager.js';
 import { Orchestrator } from '../core/orchestrator.js';
 
 // Maestro system
-import { MaestroSwarmCoordinator, MaestroSwarmConfig } from '../maestro/maestro-swarm-coordinator.js';
+import {
+  MaestroSwarmCoordinator,
+  MaestroSwarmConfig,
+} from '../maestro/maestro-swarm-coordinator.js';
 
 // Performance monitoring
 import { agenticHookManager } from '../services/agentic-flow-hooks/index.js';
@@ -57,16 +60,14 @@ export class MaestroCLIBridge {
   private performanceMetrics: PerformanceMetrics[] = [];
   private initialized: boolean = false;
 
-  constructor(
-    private bridgeConfig: Partial<MaestroCLIBridgeConfig> = {}
-  ) {
+  constructor(private bridgeConfig: Partial<MaestroCLIBridgeConfig> = {}) {
     // Set default configuration
     this.bridgeConfig = {
       enablePerformanceMonitoring: true,
       initializationTimeout: 30000, // 30 seconds
       cacheEnabled: true,
       logLevel: 'info',
-      ...this.bridgeConfig
+      ...this.bridgeConfig,
     };
   }
 
@@ -85,25 +86,21 @@ export class MaestroCLIBridge {
       console.log(chalk.blue('🚀 Initializing Maestro orchestrator...'));
 
       // Parallel initialization with caching
-      const [config, eventBus, logger, memoryManager, agentManager, mainOrchestrator] = 
+      const [config, eventBus, logger, memoryManager, agentManager, mainOrchestrator] =
         await Promise.all([
           this.getOrCreateConfig(),
           this.getOrCreateEventBus(),
           this.getOrCreateLogger(),
           this.getOrCreateMemoryManager(),
           this.getOrCreateAgentManager(),
-          this.getOrCreateMainOrchestrator()
+          this.getOrCreateMainOrchestrator(),
         ]);
 
       // Create optimized Maestro configuration
       const maestroConfig = this.getOptimizedMaestroConfig();
 
       // Initialize native swarm coordinator
-      this.swarmCoordinator = new MaestroSwarmCoordinator(
-        maestroConfig,
-        eventBus,
-        logger
-      );
+      this.swarmCoordinator = new MaestroSwarmCoordinator(maestroConfig, eventBus, logger);
 
       // Initialize native hive mind swarm with performance monitoring
       await this.executeWithMonitoring('swarm_init', async () => {
@@ -113,19 +110,27 @@ export class MaestroCLIBridge {
 
       this.initialized = true;
       const duration = Date.now() - startTime;
-      
+
       console.log(chalk.green(`✅ Maestro orchestrator ready (${duration}ms)`));
-      
+
       // Report performance metrics
       await this.reportPerformanceMetric('orchestrator_init', duration, true);
 
       return this.swarmCoordinator;
-
     } catch (error) {
       const duration = Date.now() - startTime;
-      await this.reportPerformanceMetric('orchestrator_init', duration, false, error instanceof Error ? error.message : String(error));
-      
-      console.error(chalk.red(`❌ Failed to initialize Maestro orchestrator: ${error instanceof Error ? error.message : String(error)}`));
+      await this.reportPerformanceMetric(
+        'orchestrator_init',
+        duration,
+        false,
+        error instanceof Error ? error.message : String(error),
+      );
+
+      console.error(
+        chalk.red(
+          `❌ Failed to initialize Maestro orchestrator: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
       throw error;
     }
   }
@@ -136,7 +141,7 @@ export class MaestroCLIBridge {
   async executeWithMonitoring<T>(
     operation: string,
     fn: () => Promise<T>,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ): Promise<T> {
     if (!this.bridgeConfig.enablePerformanceMonitoring) {
       return await fn();
@@ -151,11 +156,11 @@ export class MaestroCLIBridge {
         metric: `${operation}_start`,
         value: startTime,
         unit: 'timestamp',
-        context: { operation, ...context }
+        context: { operation, ...context },
       });
 
       const result = await fn();
-      
+
       const endTime = Date.now();
       const endMemory = process.memoryUsage().heapUsed;
       const duration = endTime - startTime;
@@ -169,34 +174,39 @@ export class MaestroCLIBridge {
         metric: `${operation}_complete`,
         value: duration,
         unit: 'milliseconds',
-        context: { 
-          operation, 
-          success: true, 
+        context: {
+          operation,
+          success: true,
           memoryDelta: memoryDelta / 1024 / 1024, // MB
-          ...context 
-        }
+          ...context,
+        },
       });
 
       return result;
-
     } catch (error) {
       const duration = Date.now() - startTime;
       const memoryDelta = process.memoryUsage().heapUsed - startMemory;
 
-      await this.reportPerformanceMetric(operation, duration, false, error instanceof Error ? error.message : String(error), memoryDelta);
+      await this.reportPerformanceMetric(
+        operation,
+        duration,
+        false,
+        error instanceof Error ? error.message : String(error),
+        memoryDelta,
+      );
 
       // Execute error hooks
       await this.executePerformanceHook('performance-metric', {
         metric: `${operation}_error`,
         value: duration,
         unit: 'milliseconds',
-        context: { 
-          operation, 
-          success: false, 
+        context: {
+          operation,
+          success: false,
           error: error instanceof Error ? error.message : String(error),
           memoryDelta: memoryDelta / 1024 / 1024, // MB
-          ...context 
-        }
+          ...context,
+        },
       });
 
       throw error;
@@ -218,13 +228,13 @@ export class MaestroCLIBridge {
         autoSpawn: true,
         enableConsensus: true,
         enableMemory: true,
-        enableCommunication: true
+        enableCommunication: true,
       },
       enableConsensusValidation: true,
       enableLivingDocumentation: true,
       enableSteeringIntegration: true,
       specsDirectory: join(process.cwd(), 'docs', 'maestro', 'specs'),
-      steeringDirectory: join(process.cwd(), 'docs', 'maestro', 'steering')
+      steeringDirectory: join(process.cwd(), 'docs', 'maestro', 'steering'),
     };
   }
 
@@ -233,7 +243,7 @@ export class MaestroCLIBridge {
    */
   private async getOrCreateConfig(): Promise<Config> {
     const cacheKey = 'config';
-    
+
     if (this.bridgeConfig.cacheEnabled && this.initializationCache.has(cacheKey)) {
       return this.initializationCache.get(cacheKey);
     }
@@ -242,7 +252,7 @@ export class MaestroCLIBridge {
     const config: Config = {
       env: (process.env.NODE_ENV as 'development' | 'production' | 'test') || 'development',
       logLevel: this.bridgeConfig.logLevel || 'info',
-      enableMetrics: this.bridgeConfig.enablePerformanceMonitoring || true
+      enableMetrics: this.bridgeConfig.enablePerformanceMonitoring || true,
     };
 
     if (this.bridgeConfig.cacheEnabled) {
@@ -257,7 +267,7 @@ export class MaestroCLIBridge {
    */
   private async getOrCreateEventBus(): Promise<IEventBus> {
     const cacheKey = 'eventBus';
-    
+
     if (this.bridgeConfig.cacheEnabled && this.initializationCache.has(cacheKey)) {
       return this.initializationCache.get(cacheKey);
     }
@@ -277,7 +287,7 @@ export class MaestroCLIBridge {
    */
   private async getOrCreateLogger(): Promise<ILogger> {
     const cacheKey = 'logger';
-    
+
     if (this.bridgeConfig.cacheEnabled && this.initializationCache.has(cacheKey)) {
       return this.initializationCache.get(cacheKey);
     }
@@ -298,8 +308,10 @@ export class MaestroCLIBridge {
       error: (message: string, ...args: any[]) => {
         console.log(chalk.red(`[ERROR] ${message}`), ...args);
       },
-      configure: async (config: any) => { /* no-op */ },
-      level: this.bridgeConfig.logLevel
+      configure: async (config: any) => {
+        /* no-op */
+      },
+      level: this.bridgeConfig.logLevel,
     };
 
     if (this.bridgeConfig.cacheEnabled) {
@@ -314,7 +326,7 @@ export class MaestroCLIBridge {
    */
   private async getOrCreateMemoryManager(): Promise<IMemoryManager> {
     const cacheKey = 'memoryManager';
-    
+
     if (this.bridgeConfig.cacheEnabled && this.initializationCache.has(cacheKey)) {
       return this.initializationCache.get(cacheKey);
     }
@@ -331,7 +343,7 @@ export class MaestroCLIBridge {
       update: async (id: string, updates: any) => {},
       delete: async (id: string) => {},
       getHealthStatus: async () => ({ healthy: true }),
-      performMaintenance: async () => {}
+      performMaintenance: async () => {},
     };
 
     if (this.bridgeConfig.cacheEnabled) {
@@ -346,7 +358,7 @@ export class MaestroCLIBridge {
    */
   private async getOrCreateAgentManager(): Promise<AgentManager> {
     const cacheKey = 'agentManager';
-    
+
     if (this.bridgeConfig.cacheEnabled && this.initializationCache.has(cacheKey)) {
       return this.initializationCache.get(cacheKey);
     }
@@ -356,12 +368,12 @@ export class MaestroCLIBridge {
     const eventBus = await this.getOrCreateEventBus();
     const logger = await this.getOrCreateLogger();
     const memoryManager = await this.getOrCreateMemoryManager();
-    
+
     const agentManager = new AgentManager(
       { maxAgents: 10 }, // AgentManagerConfig
       logger,
       eventBus,
-      memoryManager as any // Cast to DistributedMemorySystem
+      memoryManager as any, // Cast to DistributedMemorySystem
     );
 
     if (this.bridgeConfig.cacheEnabled) {
@@ -376,7 +388,7 @@ export class MaestroCLIBridge {
    */
   private async getOrCreateMainOrchestrator(): Promise<Orchestrator> {
     const cacheKey = 'mainOrchestrator';
-    
+
     if (this.bridgeConfig.cacheEnabled && this.initializationCache.has(cacheKey)) {
       return this.initializationCache.get(cacheKey);
     }
@@ -386,12 +398,12 @@ export class MaestroCLIBridge {
     const eventBus = await this.getOrCreateEventBus();
     const logger = await this.getOrCreateLogger();
     const memoryManager = await this.getOrCreateMemoryManager();
-    
+
     // Create mock dependencies for orchestrator
     const mockTerminalManager = {} as any;
     const mockCoordinationManager = {} as any;
     const mockMCPServer = {} as any;
-    
+
     const orchestrator = new Orchestrator(
       config,
       mockTerminalManager,
@@ -399,7 +411,7 @@ export class MaestroCLIBridge {
       mockCoordinationManager,
       mockMCPServer,
       eventBus,
-      logger
+      logger,
     );
 
     if (this.bridgeConfig.cacheEnabled) {
@@ -421,11 +433,15 @@ export class MaestroCLIBridge {
         metadata: { source: 'maestro-cli-bridge' },
         memory: { namespace: 'maestro', provider: 'memory', cache: new Map() },
         neural: { modelId: 'default', patterns: null as any, training: null as any },
-        performance: { metrics: new Map(), bottlenecks: [], optimizations: [] }
+        performance: { metrics: new Map(), bottlenecks: [], optimizations: [] },
       } as any);
     } catch (error) {
       // Don't let hook failures break the main operation
-      console.warn(chalk.yellow(`⚠️  Performance hook failed: ${error instanceof Error ? error.message : String(error)}`));
+      console.warn(
+        chalk.yellow(
+          `⚠️  Performance hook failed: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
     }
   }
 
@@ -437,7 +453,7 @@ export class MaestroCLIBridge {
     duration: number,
     success: boolean,
     error?: string,
-    memoryUsage?: number
+    memoryUsage?: number,
   ): Promise<void> {
     const metric: PerformanceMetrics = {
       operation,
@@ -445,7 +461,7 @@ export class MaestroCLIBridge {
       success,
       timestamp: Date.now(),
       memoryUsage,
-      error
+      error,
     };
 
     this.performanceMetrics.push(metric);
@@ -459,9 +475,7 @@ export class MaestroCLIBridge {
     if (this.bridgeConfig.logLevel === 'debug') {
       const memoryInfo = memoryUsage ? ` (${(memoryUsage / 1024 / 1024).toFixed(2)}MB)` : '';
       console.log(
-        chalk.gray(
-          `[PERF] ${operation}: ${duration}ms ${success ? '✓' : '✗'}${memoryInfo}`
-        )
+        chalk.gray(`[PERF] ${operation}: ${duration}ms ${success ? '✓' : '✗'}${memoryInfo}`),
       );
     }
   }
@@ -470,22 +484,24 @@ export class MaestroCLIBridge {
    * Get performance summary
    */
   getPerformanceSummary(): any {
-    const successful = this.performanceMetrics.filter(m => m.success);
-    const failed = this.performanceMetrics.filter(m => !m.success);
-    
-    const avgDuration = successful.length > 0 
-      ? successful.reduce((sum, m) => sum + m.duration, 0) / successful.length
-      : 0;
+    const successful = this.performanceMetrics.filter((m) => m.success);
+    const failed = this.performanceMetrics.filter((m) => !m.success);
+
+    const avgDuration =
+      successful.length > 0
+        ? successful.reduce((sum, m) => sum + m.duration, 0) / successful.length
+        : 0;
 
     return {
       totalOperations: this.performanceMetrics.length,
       successfulOperations: successful.length,
       failedOperations: failed.length,
-      successRate: this.performanceMetrics.length > 0 
-        ? (successful.length / this.performanceMetrics.length) * 100
-        : 0,
+      successRate:
+        this.performanceMetrics.length > 0
+          ? (successful.length / this.performanceMetrics.length) * 100
+          : 0,
       averageDuration: Math.round(avgDuration),
-      recentMetrics: this.performanceMetrics.slice(-10)
+      recentMetrics: this.performanceMetrics.slice(-10),
     };
   }
 
@@ -506,7 +522,8 @@ export class MaestroCLIBridge {
       // Check available memory
       const memoryUsage = process.memoryUsage();
       const availableMemory = memoryUsage.heapTotal;
-      if (availableMemory < 100 * 1024 * 1024) { // 100MB
+      if (availableMemory < 100 * 1024 * 1024) {
+        // 100MB
         issues.push('Low available memory detected. Maestro requires at least 100MB heap space');
       }
 
@@ -521,11 +538,12 @@ export class MaestroCLIBridge {
 
       return {
         valid: issues.length === 0,
-        issues
+        issues,
       };
-
     } catch (error) {
-      issues.push(`Configuration validation failed: ${error instanceof Error ? error.message : String(error)}`);
+      issues.push(
+        `Configuration validation failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return { valid: false, issues };
     }
   }
@@ -547,10 +565,10 @@ export class MaestroCLIBridge {
     if (this.swarmCoordinator) {
       await this.swarmCoordinator.shutdown();
     }
-    
+
     this.clearCache();
     this.performanceMetrics = [];
-    
+
     console.log(chalk.green('✅ Maestro CLI bridge shutdown complete'));
   }
 }

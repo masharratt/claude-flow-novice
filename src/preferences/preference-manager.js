@@ -6,8 +6,18 @@ import chalk from 'chalk';
 
 export class PreferenceManager {
   constructor() {
-    this.globalPrefsPath = path.join(os.homedir(), '.claude-flow-novice', 'preferences', 'global.json');
-    this.projectPrefsPath = path.join(process.cwd(), '.claude-flow-novice', 'preferences', 'user-global.json');
+    this.globalPrefsPath = path.join(
+      os.homedir(),
+      '.claude-flow-novice',
+      'preferences',
+      'global.json',
+    );
+    this.projectPrefsPath = path.join(
+      process.cwd(),
+      '.claude-flow-novice',
+      'preferences',
+      'user-global.json',
+    );
     this.cachedPreferences = null;
     this.schema = new PreferenceSchema();
   }
@@ -49,7 +59,7 @@ export class PreferenceManager {
     const errors = this.schema.validate(merged);
     if (errors.length > 0) {
       console.warn(chalk.yellow('Warning: Preference validation errors:'));
-      errors.forEach(error => console.warn(chalk.yellow(`  - ${error}`)));
+      errors.forEach((error) => console.warn(chalk.yellow(`  - ${error}`)));
 
       // Use defaults for invalid preferences
       this.cachedPreferences = this.mergePreferences(defaults, this.sanitizePreferences(merged));
@@ -166,9 +176,7 @@ export class PreferenceManager {
    * Export preferences to a file
    */
   async export(filePath, scope = 'all') {
-    const preferences = scope === 'all'
-      ? await this.loadPreferences()
-      : await this.list(scope);
+    const preferences = scope === 'all' ? await this.loadPreferences() : await this.list(scope);
 
     await fs.ensureDir(path.dirname(filePath));
     await fs.writeJson(filePath, preferences, { spaces: 2 });
@@ -180,7 +188,7 @@ export class PreferenceManager {
    * Import preferences from a file
    */
   async import(filePath, scope = 'project') {
-    if (!await fs.pathExists(filePath)) {
+    if (!(await fs.pathExists(filePath))) {
       throw new Error(`Preference file not found: ${filePath}`);
     }
 
@@ -219,7 +227,7 @@ export class PreferenceManager {
     return {
       valid: errors.length === 0,
       errors,
-      preferences
+      preferences,
     };
   }
 
@@ -265,18 +273,21 @@ export class PreferenceManager {
         key: 'advanced.neuralLearning',
         value: true,
         reason: 'Enable neural learning to improve agent performance over time',
-        impact: 'medium'
+        impact: 'medium',
       });
     }
 
     // Suggest reducing verbosity for experienced users
-    if (preferences.experience?.level === 'advanced' && preferences.documentation?.verbosity === 'detailed') {
+    if (
+      preferences.experience?.level === 'advanced' &&
+      preferences.documentation?.verbosity === 'detailed'
+    ) {
       suggestions.push({
         type: 'optimization',
         key: 'documentation.verbosity',
         value: 'standard',
         reason: 'Reduce verbosity for faster workflows',
-        impact: 'low'
+        impact: 'low',
       });
     }
 
@@ -287,7 +298,7 @@ export class PreferenceManager {
         key: 'advanced.memoryPersistence',
         value: true,
         reason: 'Enable memory persistence for better context retention',
-        impact: 'high'
+        impact: 'high',
       });
     }
 
@@ -347,44 +358,44 @@ class PreferenceSchema {
       experience: {
         level: 'beginner',
         background: ['Full-Stack Development'],
-        goals: ''
+        goals: '',
       },
       documentation: {
         verbosity: 'standard',
         explanations: true,
         codeComments: 'standard',
-        stepByStep: true
+        stepByStep: true,
       },
       feedback: {
         tone: 'friendly',
         errorHandling: 'guided',
         notifications: true,
-        confirmations: 'important'
+        confirmations: 'important',
       },
       workflow: {
         defaultAgents: ['researcher', 'coder'],
         concurrency: 2,
         autoSave: true,
-        testRunning: 'completion'
+        testRunning: 'completion',
       },
       advanced: {
         memoryPersistence: false,
         neuralLearning: false,
         hookIntegration: false,
-        customAgents: ''
+        customAgents: '',
       },
       project: {
         language: 'unknown',
         frameworks: [],
         buildTool: null,
         packageManager: null,
-        environment: 'development'
+        environment: 'development',
       },
       meta: {
         version: '1.0.0',
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     };
   }
 
@@ -404,8 +415,13 @@ class PreferenceSchema {
 
     // Validate documentation verbosity
     const validVerbosity = ['minimal', 'standard', 'detailed', 'verbose'];
-    if (preferences.documentation?.verbosity && !validVerbosity.includes(preferences.documentation.verbosity)) {
-      errors.push('Invalid documentation verbosity. Must be: minimal, standard, detailed, or verbose');
+    if (
+      preferences.documentation?.verbosity &&
+      !validVerbosity.includes(preferences.documentation.verbosity)
+    ) {
+      errors.push(
+        'Invalid documentation verbosity. Must be: minimal, standard, detailed, or verbose',
+      );
     }
 
     // Validate feedback tone
@@ -416,14 +432,22 @@ class PreferenceSchema {
 
     // Validate error handling
     const validErrorHandling = ['immediate', 'summary', 'guided'];
-    if (preferences.feedback?.errorHandling && !validErrorHandling.includes(preferences.feedback.errorHandling)) {
+    if (
+      preferences.feedback?.errorHandling &&
+      !validErrorHandling.includes(preferences.feedback.errorHandling)
+    ) {
       errors.push('Invalid error handling. Must be: immediate, summary, or guided');
     }
 
     // Validate confirmations
     const validConfirmations = ['never', 'destructive', 'important', 'always'];
-    if (preferences.feedback?.confirmations && !validConfirmations.includes(preferences.feedback.confirmations)) {
-      errors.push('Invalid confirmations setting. Must be: never, destructive, important, or always');
+    if (
+      preferences.feedback?.confirmations &&
+      !validConfirmations.includes(preferences.feedback.confirmations)
+    ) {
+      errors.push(
+        'Invalid confirmations setting. Must be: never, destructive, important, or always',
+      );
     }
 
     // Validate concurrency
@@ -446,7 +470,10 @@ class PreferenceSchema {
 
     // Validate test running
     const validTestRunning = ['never', 'completion', 'continuous'];
-    if (preferences.workflow?.testRunning && !validTestRunning.includes(preferences.workflow.testRunning)) {
+    if (
+      preferences.workflow?.testRunning &&
+      !validTestRunning.includes(preferences.workflow.testRunning)
+    ) {
       errors.push('Invalid test running setting. Must be: never, completion, or continuous');
     }
 
@@ -458,32 +485,35 @@ class PreferenceSchema {
       experience: {
         level: { type: 'enum', values: ['beginner', 'intermediate', 'advanced'] },
         background: { type: 'array', items: { type: 'string' } },
-        goals: { type: 'string' }
+        goals: { type: 'string' },
       },
       documentation: {
         verbosity: { type: 'enum', values: ['minimal', 'standard', 'detailed', 'verbose'] },
         explanations: { type: 'boolean' },
         codeComments: { type: 'enum', values: ['minimal', 'standard', 'detailed', 'extensive'] },
-        stepByStep: { type: 'boolean' }
+        stepByStep: { type: 'boolean' },
       },
       feedback: {
         tone: { type: 'enum', values: ['professional', 'friendly', 'direct', 'educational'] },
         errorHandling: { type: 'enum', values: ['immediate', 'summary', 'guided'] },
         notifications: { type: 'boolean' },
-        confirmations: { type: 'enum', values: ['never', 'destructive', 'important', 'always'] }
+        confirmations: { type: 'enum', values: ['never', 'destructive', 'important', 'always'] },
       },
       workflow: {
-        defaultAgents: { type: 'array', items: { type: 'enum', values: ['researcher', 'coder', 'reviewer', 'planner', 'tester'] } },
+        defaultAgents: {
+          type: 'array',
+          items: { type: 'enum', values: ['researcher', 'coder', 'reviewer', 'planner', 'tester'] },
+        },
         concurrency: { type: 'integer', min: 1, max: 8 },
         autoSave: { type: 'boolean' },
-        testRunning: { type: 'enum', values: ['never', 'completion', 'continuous'] }
+        testRunning: { type: 'enum', values: ['never', 'completion', 'continuous'] },
       },
       advanced: {
         memoryPersistence: { type: 'boolean' },
         neuralLearning: { type: 'boolean' },
         hookIntegration: { type: 'boolean' },
-        customAgents: { type: 'string' }
-      }
+        customAgents: { type: 'string' },
+      },
     };
   }
 }

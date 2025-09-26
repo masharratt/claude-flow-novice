@@ -29,7 +29,17 @@ export interface TestScenario {
 }
 
 export interface TestStep {
-  type: 'navigate' | 'click' | 'type' | 'wait' | 'select' | 'upload' | 'hover' | 'drag' | 'evaluate' | 'screenshot';
+  type:
+    | 'navigate'
+    | 'click'
+    | 'type'
+    | 'wait'
+    | 'select'
+    | 'upload'
+    | 'hover'
+    | 'drag'
+    | 'evaluate'
+    | 'screenshot';
   selector?: string;
   value?: string | string[];
   url?: string;
@@ -178,14 +188,14 @@ export class ChromeMCPIntegration extends EventEmitter {
       headless: true,
       viewport: {
         width: 1280,
-        height: 720
+        height: 720,
       },
       timeout: 30000,
       retries: 2,
       slowMo: 0,
       devtools: false,
       browsers: ['chromium'],
-      ...config
+      ...config,
     };
 
     this.initializeMCPConnection();
@@ -205,7 +215,7 @@ export class ChromeMCPIntegration extends EventEmitter {
 
   public async runScenario(
     scenario: TestScenario,
-    browser: BrowserType = 'chromium'
+    browser: BrowserType = 'chromium',
   ): Promise<TestExecution> {
     if (!this.mcpConnected) {
       throw new Error('Chrome MCP not connected');
@@ -232,9 +242,9 @@ export class ChromeMCPIntegration extends EventEmitter {
         firstInputDelay: 0,
         cumulativeLayoutShift: 0,
         timeToInteractive: 0,
-        networkRequests: []
+        networkRequests: [],
       },
-      errors: []
+      errors: [],
     };
 
     this.testExecutions.set(executionId, execution);
@@ -266,7 +276,6 @@ export class ChromeMCPIntegration extends EventEmitter {
       execution.endTime = new Date();
 
       this.emit('test:completed', { execution, scenario });
-
     } catch (error) {
       execution.status = 'failed';
       execution.endTime = new Date();
@@ -274,7 +283,7 @@ export class ChromeMCPIntegration extends EventEmitter {
         type: 'runtime',
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       this.emit('test:failed', { execution, scenario, error });
@@ -289,7 +298,7 @@ export class ChromeMCPIntegration extends EventEmitter {
   private async executeSteps(
     execution: TestExecution,
     steps: TestStep[],
-    phase: string
+    phase: string,
   ): Promise<void> {
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
@@ -298,7 +307,7 @@ export class ChromeMCPIntegration extends EventEmitter {
         type: step.type,
         status: 'pending',
         startTime: new Date(),
-        duration: 0
+        duration: 0,
       };
 
       execution.steps.push(stepResult);
@@ -308,7 +317,6 @@ export class ChromeMCPIntegration extends EventEmitter {
         stepResult.status = 'running';
         await this.executeStep(execution, step, stepResult);
         stepResult.status = 'passed';
-
       } catch (error) {
         stepResult.status = 'failed';
         stepResult.error = error instanceof Error ? error.message : String(error);
@@ -317,7 +325,7 @@ export class ChromeMCPIntegration extends EventEmitter {
           type: 'step',
           message: stepResult.error,
           stepIndex: i,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
 
         // Take screenshot on failure
@@ -336,7 +344,7 @@ export class ChromeMCPIntegration extends EventEmitter {
   private async executeStep(
     execution: TestExecution,
     step: TestStep,
-    stepResult: StepResult
+    stepResult: StepResult,
   ): Promise<void> {
     // Use Chrome MCP to execute browser actions
     switch (step.type) {
@@ -379,7 +387,7 @@ export class ChromeMCPIntegration extends EventEmitter {
       case 'screenshot':
         stepResult.screenshot = await this.takeScreenshot(
           execution,
-          step.value as string || 'step_screenshot'
+          (step.value as string) || 'step_screenshot',
         );
         break;
 
@@ -389,7 +397,7 @@ export class ChromeMCPIntegration extends EventEmitter {
 
     // Add delay if specified
     if (this.config.slowMo && this.config.slowMo > 0) {
-      await new Promise(resolve => setTimeout(resolve, this.config.slowMo));
+      await new Promise((resolve) => setTimeout(resolve, this.config.slowMo));
     }
   }
 
@@ -406,12 +414,17 @@ export class ChromeMCPIntegration extends EventEmitter {
     this.logBrowserEvent(executionId, `Clicked element: ${selector}`);
   }
 
-  private async mcpType(executionId: string, selector: string, text: string, options?: any): Promise<void> {
+  private async mcpType(
+    executionId: string,
+    selector: string,
+    text: string,
+    options?: any,
+  ): Promise<void> {
     await this.simulateMCPCall('browser_type', {
       element: selector,
       ref: selector,
       text,
-      ...options
+      ...options,
     });
     this.logBrowserEvent(executionId, `Typed text in ${selector}: ${text}`);
   }
@@ -435,11 +448,15 @@ export class ChromeMCPIntegration extends EventEmitter {
     this.logBrowserEvent(executionId, `Waited ${timeout}ms`);
   }
 
-  private async mcpSelectOption(executionId: string, selector: string, values: string[]): Promise<void> {
+  private async mcpSelectOption(
+    executionId: string,
+    selector: string,
+    values: string[],
+  ): Promise<void> {
     await this.simulateMCPCall('browser_select_option', {
       element: selector,
       ref: selector,
-      values
+      values,
     });
     this.logBrowserEvent(executionId, `Selected options in ${selector}: ${values.join(', ')}`);
   }
@@ -454,12 +471,16 @@ export class ChromeMCPIntegration extends EventEmitter {
     this.logBrowserEvent(executionId, `Hovered over element: ${selector}`);
   }
 
-  private async mcpDragAndDrop(executionId: string, fromSelector: string, toSelector: string): Promise<void> {
+  private async mcpDragAndDrop(
+    executionId: string,
+    fromSelector: string,
+    toSelector: string,
+  ): Promise<void> {
     await this.simulateMCPCall('browser_drag', {
       startElement: fromSelector,
       startRef: fromSelector,
       endElement: toSelector,
-      endRef: toSelector
+      endRef: toSelector,
     });
     this.logBrowserEvent(executionId, `Dragged from ${fromSelector} to ${toSelector}`);
   }
@@ -472,10 +493,11 @@ export class ChromeMCPIntegration extends EventEmitter {
 
   private async simulateMCPCall(method: string, params: any): Promise<any> {
     // Simulate MCP call with delay
-    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+    await new Promise((resolve) => setTimeout(resolve, 100 + Math.random() * 200));
 
     // Simulate occasional failures
-    if (Math.random() < 0.05) { // 5% failure rate
+    if (Math.random() < 0.05) {
+      // 5% failure rate
       throw new Error(`Simulated MCP error for ${method}`);
     }
 
@@ -490,7 +512,7 @@ export class ChromeMCPIntegration extends EventEmitter {
       timestamp: new Date(),
       level: 'info',
       source: 'page',
-      message
+      message,
     };
 
     execution.logs.push(log);
@@ -498,7 +520,7 @@ export class ChromeMCPIntegration extends EventEmitter {
 
   private async executeAssertions(
     execution: TestExecution,
-    assertions: TestAssertion[]
+    assertions: TestAssertion[],
   ): Promise<void> {
     for (let i = 0; i < assertions.length; i++) {
       const assertion = assertions[i];
@@ -509,7 +531,7 @@ export class ChromeMCPIntegration extends EventEmitter {
         actual: null,
         passed: false,
         message: assertion.message || '',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       execution.assertions.push(assertionResult);
@@ -531,7 +553,7 @@ export class ChromeMCPIntegration extends EventEmitter {
             assertionResult.actual = await this.getElementAttribute(
               execution.id,
               assertion.selector!,
-              assertion.expected.attribute
+              assertion.expected.attribute,
             );
             assertionResult.passed = assertionResult.actual === assertion.expected.value;
             break;
@@ -554,7 +576,7 @@ export class ChromeMCPIntegration extends EventEmitter {
           case 'custom':
             assertionResult.actual = await this.mcpEvaluate(
               execution.id,
-              assertion.expected.expression
+              assertion.expected.expression,
             );
             assertionResult.passed = assertion.expected.validator(assertionResult.actual);
             break;
@@ -567,12 +589,11 @@ export class ChromeMCPIntegration extends EventEmitter {
           execution.errors.push({
             type: 'assertion',
             message: `Assertion failed: Expected ${assertion.expected}, got ${assertionResult.actual}`,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
         }
 
         this.emit('test:assertion-completed', { execution, assertion, assertionResult });
-
       } catch (error) {
         assertionResult.passed = false;
         assertionResult.message = error instanceof Error ? error.message : String(error);
@@ -580,7 +601,7 @@ export class ChromeMCPIntegration extends EventEmitter {
         execution.errors.push({
           type: 'assertion',
           message: assertionResult.message,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
 
         this.emit('test:assertion-failed', { execution, assertion, error });
@@ -601,7 +622,7 @@ export class ChromeMCPIntegration extends EventEmitter {
   private async getElementAttribute(
     executionId: string,
     selector: string,
-    attribute: string
+    attribute: string,
   ): Promise<string> {
     // Simulate getting element attribute
     return `${attribute}-value`;
@@ -628,7 +649,7 @@ export class ChromeMCPIntegration extends EventEmitter {
       filename: `${name}_${execution.browser}_${Date.now()}.png`,
       path: `/screenshots/${execution.scenarioId}/${screenshot.filename}`,
       timestamp: new Date(),
-      fullPage: false
+      fullPage: false,
     };
 
     execution.screenshots.push(screenshot);
@@ -636,7 +657,7 @@ export class ChromeMCPIntegration extends EventEmitter {
     // Use Chrome MCP to take actual screenshot
     await this.simulateMCPCall('browser_take_screenshot', {
       filename: screenshot.filename,
-      fullPage: screenshot.fullPage
+      fullPage: screenshot.fullPage,
     });
 
     return screenshot.path;
@@ -657,7 +678,7 @@ export class ChromeMCPIntegration extends EventEmitter {
             timeToInteractive: perfEntries.loadEventEnd - perfEntries.fetchStart
           };
         }
-      `
+      `,
     });
 
     execution.performance = {
@@ -665,7 +686,7 @@ export class ChromeMCPIntegration extends EventEmitter {
       ...metrics,
       largestContentfulPaint: Math.random() * 2000 + 1000,
       firstInputDelay: Math.random() * 100,
-      cumulativeLayoutShift: Math.random() * 0.1
+      cumulativeLayoutShift: Math.random() * 0.1,
     };
 
     // Collect network requests
@@ -682,7 +703,7 @@ export class ChromeMCPIntegration extends EventEmitter {
       duration: Math.random() * 500 + 100,
       size: Math.random() * 10000 + 1000,
       timestamp: new Date(),
-      type: 'xhr'
+      type: 'xhr',
     }));
   }
 
@@ -696,7 +717,7 @@ export class ChromeMCPIntegration extends EventEmitter {
 
   public async runCrossBrowserTests(
     scenario: TestScenario,
-    browsers?: BrowserType[]
+    browsers?: BrowserType[],
   ): Promise<CrossBrowserResults> {
     const testBrowsers = browsers || this.config.browsers;
     const executions = new Map<BrowserType, TestExecution>();
@@ -716,11 +737,11 @@ export class ChromeMCPIntegration extends EventEmitter {
       executions,
       summary: {
         totalBrowsers: testBrowsers.length,
-        passedBrowsers: Array.from(executions.values()).filter(e => e.status === 'passed').length,
-        failedBrowsers: Array.from(executions.values()).filter(e => e.status === 'failed').length,
-        compatibility: 0
+        passedBrowsers: Array.from(executions.values()).filter((e) => e.status === 'passed').length,
+        failedBrowsers: Array.from(executions.values()).filter((e) => e.status === 'failed').length,
+        compatibility: 0,
       },
-      differences: []
+      differences: [],
     };
 
     results.summary.compatibility =
@@ -735,7 +756,7 @@ export class ChromeMCPIntegration extends EventEmitter {
   }
 
   private async analyzeBrowserDifferences(
-    executions: Map<BrowserType, TestExecution>
+    executions: Map<BrowserType, TestExecution>,
   ): Promise<BrowserDifference[]> {
     const differences: BrowserDifference[] = [];
 
@@ -743,18 +764,20 @@ export class ChromeMCPIntegration extends EventEmitter {
     const performanceMetrics = Array.from(executions.entries()).map(([browser, exec]) => ({
       browser,
       loadTime: exec.performance.loadTime,
-      fcp: exec.performance.firstContentfulPaint
+      fcp: exec.performance.firstContentfulPaint,
     }));
 
-    const avgLoadTime = performanceMetrics.reduce((sum, m) => sum + m.loadTime, 0) / performanceMetrics.length;
+    const avgLoadTime =
+      performanceMetrics.reduce((sum, m) => sum + m.loadTime, 0) / performanceMetrics.length;
 
     for (const metric of performanceMetrics) {
-      if (Math.abs(metric.loadTime - avgLoadTime) > avgLoadTime * 0.2) { // 20% difference
+      if (Math.abs(metric.loadTime - avgLoadTime) > avgLoadTime * 0.2) {
+        // 20% difference
         differences.push({
           type: 'performance',
           browsers: [metric.browser],
           description: `Load time significantly different: ${metric.loadTime}ms vs avg ${avgLoadTime.toFixed(0)}ms`,
-          severity: 'medium'
+          severity: 'medium',
         });
       }
     }
@@ -762,16 +785,16 @@ export class ChromeMCPIntegration extends EventEmitter {
     // Error differences
     const browserErrors = Array.from(executions.entries()).map(([browser, exec]) => ({
       browser,
-      errors: exec.errors
+      errors: exec.errors,
     }));
 
-    const browsersWithErrors = browserErrors.filter(be => be.errors.length > 0);
+    const browsersWithErrors = browserErrors.filter((be) => be.errors.length > 0);
     if (browsersWithErrors.length > 0 && browsersWithErrors.length < executions.size) {
       differences.push({
         type: 'functionality',
-        browsers: browsersWithErrors.map(be => be.browser),
+        browsers: browsersWithErrors.map((be) => be.browser),
         description: 'Functionality errors in some browsers',
-        severity: 'high'
+        severity: 'high',
       });
     }
 
@@ -787,8 +810,9 @@ export class ChromeMCPIntegration extends EventEmitter {
   }
 
   public getExecutionsByScenario(scenarioId: string): TestExecution[] {
-    return Array.from(this.testExecutions.values())
-      .filter(exec => exec.scenarioId === scenarioId);
+    return Array.from(this.testExecutions.values()).filter(
+      (exec) => exec.scenarioId === scenarioId,
+    );
   }
 
   public async cleanup(): Promise<void> {

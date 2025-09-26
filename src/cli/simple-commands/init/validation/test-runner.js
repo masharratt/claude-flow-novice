@@ -413,7 +413,11 @@ export class ValidationTestRunner {
     try {
       await fs.mkdir(`${this.workingDir}/test-temp`, { recursive: true });
       await fs.writeFile(`${this.workingDir}/test-temp/CLAUDE.md`, '# Test CLAUDE.md', 'utf8');
-      await fs.writeFile(`${this.workingDir}/test-temp/memory-bank.md`, '# Test Memory Bank', 'utf8');
+      await fs.writeFile(
+        `${this.workingDir}/test-temp/memory-bank.md`,
+        '# Test Memory Bank',
+        'utf8',
+      );
     } catch {
       // Test files creation failed - not critical for testing
     }
@@ -439,7 +443,8 @@ export class ValidationTestRunner {
       };
 
       await fs.writeFile(
-        `${this.workingDir}/test-roomodes`, JSON.stringify(testConfig, null, 2, 'utf8'),
+        `${this.workingDir}/test-roomodes`,
+        JSON.stringify(testConfig, null, 2, 'utf8'),
       );
     } catch {
       // Test config creation failed - not critical

@@ -17,7 +17,7 @@ class SQLiteIntegrity {
     return {
       valid: true,
       hash: crypto.randomBytes(32).toString('hex'),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }

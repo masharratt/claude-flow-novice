@@ -73,12 +73,11 @@ export class CRDTVerificationCoordinator extends EventEmitter {
           statusCounts.set(report.status, count + 1);
         }
 
-        const majority = Array.from(statusCounts.entries())
-          .sort((a, b) => b[1] - a[1])[0];
+        const majority = Array.from(statusCounts.entries()).sort((a, b) => b[1] - a[1])[0];
 
-        const majorityReports = reports.filter(r => r.status === majority[0]);
+        const majorityReports = reports.filter((r) => r.status === majority[0]);
         return this.mergeReports(majorityReports);
-      }
+      },
     });
 
     // Performance-weighted strategy
@@ -87,7 +86,7 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       priority: 2,
       resolve: (reports: VerificationReport[]): VerificationReport => {
         // Weight by performance metrics
-        const weighted = reports.map(report => {
+        const weighted = reports.map((report) => {
           const performanceScore = report.metrics.get('performance_score') || 0;
           const reliability = report.metadata.agent_reliability || 1.0;
           return { report, weight: performanceScore * reliability };
@@ -97,8 +96,8 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
         // Take top 50% by weight
         const topHalf = weighted.slice(0, Math.ceil(weighted.length / 2));
-        return this.mergeReports(topHalf.map(w => w.report));
-      }
+        return this.mergeReports(topHalf.map((w) => w.report));
+      },
     });
 
     // Latest timestamp strategy
@@ -108,7 +107,7 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       resolve: (reports: VerificationReport[]): VerificationReport => {
         const sorted = reports.sort((a, b) => b.timestamp - a.timestamp);
         return sorted[0];
-      }
+      },
     });
   }
 
@@ -147,11 +146,10 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       await this.executeHooks('post-edit', {
         file: `verification-state-${stateKey}`,
         memoryKey: `crdt-verification/state/${stateKey}`,
-        report: crdtState.toReport()
+        report: crdtState.toReport(),
       });
 
       this.emit('report-processed', report);
-
     } catch (error) {
       this.emit('error', { error, report });
       throw error;
@@ -190,7 +188,6 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       this.emit('reports-merged', { original: reports, merged: finalMerged });
 
       return finalMerged;
-
     } catch (error) {
       this.emit('merge-error', { error, reports });
       throw error;
@@ -201,7 +198,8 @@ export class CRDTVerificationCoordinator extends EventEmitter {
    * Synchronize verification state across distributed nodes
    */
   async synchronizeWithNodes(targetNodes?: string[]): Promise<void> {
-    const nodes = targetNodes || this.config.replicationGroup.filter(n => n !== this.config.nodeId);
+    const nodes =
+      targetNodes || this.config.replicationGroup.filter((n) => n !== this.config.nodeId);
     const syncPromises: Promise<void>[] = [];
 
     for (const node of nodes) {
@@ -225,15 +223,17 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
     try {
       // Get states to sync
-      const statesToSync = Array.from(this.verificationStates.entries())
-        .map(([key, state]) => ({ key, serialized: state.serialize() }));
+      const statesToSync = Array.from(this.verificationStates.entries()).map(([key, state]) => ({
+        key,
+        serialized: state.serialize(),
+      }));
 
       // Send sync request (implementation depends on transport layer)
       const syncResult = await this.sendSyncRequest(nodeId, {
         type: 'CRDT_SYNC_REQUEST',
         sender: this.config.nodeId,
         timestamp: Date.now(),
-        states: statesToSync
+        states: statesToSync,
       });
 
       if (syncResult.success && syncResult.states) {
@@ -251,7 +251,6 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       }
 
       this.emit('node-synced', { nodeId, success: syncResult.success });
-
     } catch (error) {
       this.emit('node-sync-error', { nodeId, error });
 
@@ -279,7 +278,7 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
         // Mark conflicts as resolved
         const conflicts = Array.from(this.activeConflicts.values());
-        const agentConflicts = conflicts.filter(c => c.includes(agentId));
+        const agentConflicts = conflicts.filter((c) => c.includes(agentId));
 
         for (const conflict of agentConflicts) {
           this.activeConflicts.remove(conflict);
@@ -293,7 +292,6 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
         this.emit('agent-terminated', { agentId, nodeId, cleanedUp: true });
       }
-
     } catch (error) {
       this.emit('cleanup-error', { agentId, nodeId, error });
       throw error;
@@ -322,7 +320,10 @@ export class CRDTVerificationCoordinator extends EventEmitter {
           for (const [metric, value] of Object.entries(result.metrics || {})) {
             if (typeof value === 'number') {
               if (!metricCRDTs.has(metric)) {
-                metricCRDTs.set(metric, new GCounter(this.config.nodeId, this.config.replicationGroup));
+                metricCRDTs.set(
+                  metric,
+                  new GCounter(this.config.nodeId, this.config.replicationGroup),
+                );
               }
               metricCRDTs.get(metric)!.increment(value);
             }
@@ -343,7 +344,7 @@ export class CRDTVerificationCoordinator extends EventEmitter {
           timestamp: Date.now(),
           metrics: {},
           metadata: {},
-          resolved_conflicts: results.length - 1
+          resolved_conflicts: results.length - 1,
         };
 
         // Average numeric metrics
@@ -360,7 +361,6 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
         // Track conflict resolution
         this.activeConflicts.add(`benchmark-${benchmark}-${Date.now()}`);
-
       } catch (error) {
         this.emit('benchmark-resolution-error', { benchmark, error });
         // Fallback to latest result
@@ -386,7 +386,7 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       activeConflicts: this.activeConflicts.values().size,
       consensusMetrics: this.consensusMetrics.value(),
       networkPartitions: this.networkPartitions.size,
-      lastSync: Date.now() // Would track actual last sync
+      lastSync: Date.now(), // Would track actual last sync
     };
   }
 
@@ -409,8 +409,9 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
       // Persist all states if enabled
       if (this.config.enablePersistence) {
-        const persistPromises = Array.from(this.verificationStates.entries())
-          .map(([key, state]) => this.persistState(key, state));
+        const persistPromises = Array.from(this.verificationStates.entries()).map(([key, state]) =>
+          this.persistState(key, state),
+        );
 
         await Promise.allSettled(persistPromises);
       }
@@ -418,11 +419,10 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       // Execute shutdown hooks
       await this.executeHooks('session-end', {
         exportMetrics: true,
-        finalStatus: this.getVerificationStatus()
+        finalStatus: this.getVerificationStatus(),
       });
 
       this.emit('shutdown-complete');
-
     } catch (error) {
       this.emit('shutdown-error', error);
       throw error;
@@ -451,15 +451,19 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
   private hasConflict(report1: VerificationReport, report2: VerificationReport): boolean {
     // Simple conflict detection: same test, different results
-    return report1.id !== report2.id &&
-           report1.status !== report2.status &&
-           this.haveSameTarget(report1, report2);
+    return (
+      report1.id !== report2.id &&
+      report1.status !== report2.status &&
+      this.haveSameTarget(report1, report2)
+    );
   }
 
   private haveSameTarget(report1: VerificationReport, report2: VerificationReport): boolean {
     // Check if reports target the same verification subject
-    return report1.metadata.target === report2.metadata.target ||
-           report1.metadata.testSuite === report2.metadata.testSuite;
+    return (
+      report1.metadata.target === report2.metadata.target ||
+      report1.metadata.testSuite === report2.metadata.testSuite
+    );
   }
 
   private groupReportsByConflict(reports: VerificationReport[]): Map<string, VerificationReport[]> {
@@ -477,10 +481,14 @@ export class CRDTVerificationCoordinator extends EventEmitter {
     return groups;
   }
 
-  private selectResolutionStrategy(conflictType: string, reports: VerificationReport[]): ConflictResolutionStrategy {
+  private selectResolutionStrategy(
+    conflictType: string,
+    reports: VerificationReport[],
+  ): ConflictResolutionStrategy {
     // Select strategy based on conflict type and context
-    const strategies = Array.from(this.resolutionStrategies.values())
-      .sort((a, b) => a.priority - b.priority);
+    const strategies = Array.from(this.resolutionStrategies.values()).sort(
+      (a, b) => a.priority - b.priority,
+    );
 
     if (conflictType.includes('performance')) {
       return this.resolutionStrategies.get('performance')!;
@@ -504,20 +512,19 @@ export class CRDTVerificationCoordinator extends EventEmitter {
       status: 'partial',
       metrics: new Map(),
       conflicts: [],
-      metadata: {}
+      metadata: {},
     };
 
     // Merge status (majority wins)
     const statusCounts = new Map<string, number>();
-    reports.forEach(r => {
+    reports.forEach((r) => {
       statusCounts.set(r.status, (statusCounts.get(r.status) || 0) + 1);
     });
 
-    merged.status = Array.from(statusCounts.entries())
-      .sort((a, b) => b[1] - a[1])[0][0] as any;
+    merged.status = Array.from(statusCounts.entries()).sort((a, b) => b[1] - a[1])[0][0] as any;
 
     // Merge metrics (sum)
-    reports.forEach(r => {
+    reports.forEach((r) => {
       for (const [key, value] of r.metrics) {
         merged.metrics.set(key, (merged.metrics.get(key) || 0) + value);
       }
@@ -525,12 +532,12 @@ export class CRDTVerificationCoordinator extends EventEmitter {
 
     // Merge conflicts (union)
     const allConflicts = new Set<string>();
-    reports.forEach(r => r.conflicts.forEach(c => allConflicts.add(c)));
+    reports.forEach((r) => r.conflicts.forEach((c) => allConflicts.add(c)));
     merged.conflicts = Array.from(allConflicts);
 
     // Merge metadata (latest wins for each key)
     reports.sort((a, b) => b.timestamp - a.timestamp);
-    reports.forEach(r => {
+    reports.forEach((r) => {
       Object.assign(merged.metadata, r.metadata);
     });
 
@@ -561,7 +568,7 @@ export class CRDTVerificationCoordinator extends EventEmitter {
     return {
       success: true,
       states: [],
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -570,7 +577,7 @@ export class CRDTVerificationCoordinator extends EventEmitter {
     this.networkPartitions.set(partitionId, {
       partitionId,
       nodes: [this.config.nodeId, nodeId],
-      startTime: Date.now()
+      startTime: Date.now(),
     });
   }
 

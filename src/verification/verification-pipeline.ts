@@ -53,7 +53,9 @@ export class VerificationPipeline {
 
   constructor(options: PipelineOptions) {
     this.config = options.config;
-    this.logger = options.logger || logger.child({ component: 'VerificationPipeline', pipelineId: options.config.id });
+    this.logger =
+      options.logger ||
+      logger.child({ component: 'VerificationPipeline', pipelineId: options.config.id });
     this.truthScorer = options.truthScorer || new TruthScorer();
     this.claimValidator = options.claimValidator || new AgentClaimValidator();
     this.testRunner = options.testRunner || new IntegrationTestRunner();
@@ -73,7 +75,7 @@ export class VerificationPipeline {
    */
   async execute(
     context: VerificationContext,
-    callbacks?: PipelineCallbacks
+    callbacks?: PipelineCallbacks,
   ): Promise<VerificationResult> {
     const startTime = Date.now();
     const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -114,7 +116,11 @@ export class VerificationPipeline {
       const sortedCheckpoints = [...this.config.checkpoints].sort((a, b) => a.order - b.order);
 
       // Execute checkpoints
-      const checkpointResults = await this.executeCheckpoints(sortedCheckpoints, context, callbacks);
+      const checkpointResults = await this.executeCheckpoints(
+        sortedCheckpoints,
+        context,
+        callbacks,
+      );
 
       // Calculate overall result
       const overallResult = this.calculateOverallResult(checkpointResults);
@@ -157,14 +163,14 @@ export class VerificationPipeline {
         passed: result.passed,
         score: result.score,
         duration: result.duration,
-        checkpointsPassed: checkpointResults.filter(r => r.passed).length,
+        checkpointsPassed: checkpointResults.filter((r) => r.passed).length,
         checkpointsTotal: checkpointResults.length,
       });
 
       return result;
     } catch (error) {
       const errorResult = await this.handleExecutionError(error, executionId, startTime);
-      
+
       if (this.currentExecution) {
         this.currentExecution.status = 'error';
         this.currentExecution.endTime = new Date();
@@ -174,7 +180,7 @@ export class VerificationPipeline {
       }
 
       this.eventEmitter?.emit('pipeline:error', errorResult);
-      
+
       return errorResult;
     }
   }
@@ -186,14 +192,16 @@ export class VerificationPipeline {
     return {
       pipelineId: this.config.id,
       isRunning: this.currentExecution !== undefined,
-      currentExecution: this.currentExecution ? {
-        id: this.currentExecution.id,
-        status: this.currentExecution.status,
-        progress: this.calculateProgress(),
-        startTime: this.currentExecution.startTime,
-        resourceUsage: this.currentExecution.resourceUsage,
-      } : undefined,
-      history: this.executionHistory.slice(-10).map(exec => ({
+      currentExecution: this.currentExecution
+        ? {
+            id: this.currentExecution.id,
+            status: this.currentExecution.status,
+            progress: this.calculateProgress(),
+            startTime: this.currentExecution.startTime,
+            resourceUsage: this.currentExecution.resourceUsage,
+          }
+        : undefined,
+      history: this.executionHistory.slice(-10).map((exec) => ({
         id: exec.id,
         status: exec.status,
         startTime: exec.startTime,
@@ -241,7 +249,7 @@ export class VerificationPipeline {
 
     this.currentExecution.status = 'cancelled';
     this.currentExecution.endTime = new Date();
-    
+
     this.logger.info('Pipeline execution cancelled', { executionId: this.currentExecution.id });
     this.eventEmitter?.emit('pipeline:cancelled', this.currentExecution.id);
 
@@ -273,14 +281,16 @@ export class VerificationPipeline {
       resourceUsage: this.currentExecution.resourceUsage,
       evidence: [],
       artifacts: {},
-      errors: [{
-        code: 'PIPELINE_CANCELLED',
-        message: 'Pipeline execution was cancelled',
-        severity: 'medium',
-        context: { executionId: this.currentExecution.id },
-        recoverable: true,
-        timestamp: new Date(),
-      }],
+      errors: [
+        {
+          code: 'PIPELINE_CANCELLED',
+          message: 'Pipeline execution was cancelled',
+          severity: 'medium',
+          context: { executionId: this.currentExecution.id },
+          recoverable: true,
+          timestamp: new Date(),
+        },
+      ],
       warnings: [],
       recommendations: ['Consider reviewing cancellation reason', 'Check for incomplete state'],
       nextSteps: ['Restart pipeline if needed', 'Clean up any partial state'],
@@ -308,7 +318,7 @@ export class VerificationPipeline {
     }
 
     // Check for mandatory checkpoints
-    const mandatoryCheckpoints = this.config.checkpoints.filter(cp => cp.mandatory);
+    const mandatoryCheckpoints = this.config.checkpoints.filter((cp) => cp.mandatory);
     if (mandatoryCheckpoints.length === 0) {
       errors.push('Pipeline must have at least one mandatory checkpoint');
     }
@@ -316,7 +326,7 @@ export class VerificationPipeline {
     // Validate checkpoint dependencies
     for (const checkpoint of this.config.checkpoints) {
       for (const depId of checkpoint.dependencies) {
-        if (!this.config.checkpoints.find(cp => cp.id === depId)) {
+        if (!this.config.checkpoints.find((cp) => cp.id === depId)) {
           errors.push(`Checkpoint ${checkpoint.id} depends on non-existent checkpoint ${depId}`);
         }
       }
@@ -328,24 +338,26 @@ export class VerificationPipeline {
     }
 
     if (errors.length > 0) {
-      throw new AppError(`Pipeline configuration validation failed: ${errors.join(', ')}`, 'INVALID_PIPELINE_CONFIG');
+      throw new AppError(
+        `Pipeline configuration validation failed: ${errors.join(', ')}`,
+        'INVALID_PIPELINE_CONFIG',
+      );
     }
   }
 
   private async executeCheckpoints(
     checkpoints: VerificationCheckpoint[],
     context: VerificationContext,
-    callbacks?: PipelineCallbacks
+    callbacks?: PipelineCallbacks,
   ): Promise<CheckpointResult[]> {
     const results: CheckpointResult[] = [];
     const completed = new Set<string>();
-    const pending = new Set(checkpoints.map(cp => cp.id));
+    const pending = new Set(checkpoints.map((cp) => cp.id));
 
     while (pending.size > 0) {
       // Find checkpoints that can be executed (dependencies satisfied)
-      const ready = checkpoints.filter(cp => 
-        pending.has(cp.id) && 
-        cp.dependencies.every(depId => completed.has(depId))
+      const ready = checkpoints.filter(
+        (cp) => pending.has(cp.id) && cp.dependencies.every((depId) => completed.has(depId)),
       );
 
       if (ready.length === 0) {
@@ -355,34 +367,34 @@ export class VerificationPipeline {
       // Execute ready checkpoints
       if (this.config.parallel && ready.length > 1) {
         const batchResults = await Promise.all(
-          ready.map(checkpoint => this.executeCheckpoint(checkpoint, context, callbacks))
+          ready.map((checkpoint) => this.executeCheckpoint(checkpoint, context, callbacks)),
         );
         results.push(...batchResults);
       } else {
         for (const checkpoint of ready) {
           const result = await this.executeCheckpoint(checkpoint, context, callbacks);
           results.push(result);
-          
+
           // Check if we should stop on failure
           if (!result.passed && checkpoint.mandatory) {
             throw new AppError(
               `Mandatory checkpoint ${checkpoint.id} failed`,
-              'MANDATORY_CHECKPOINT_FAILED'
+              'MANDATORY_CHECKPOINT_FAILED',
             );
           }
         }
       }
 
       // Update completion status
-      ready.forEach(cp => {
+      ready.forEach((cp) => {
         completed.add(cp.id);
         pending.delete(cp.id);
       });
     }
 
     return results.sort((a, b) => {
-      const aCheckpoint = checkpoints.find(cp => cp.id === a.checkpointId)!;
-      const bCheckpoint = checkpoints.find(cp => cp.id === b.checkpointId)!;
+      const aCheckpoint = checkpoints.find((cp) => cp.id === a.checkpointId)!;
+      const bCheckpoint = checkpoints.find((cp) => cp.id === b.checkpointId)!;
       return aCheckpoint.order - bCheckpoint.order;
     });
   }
@@ -390,10 +402,10 @@ export class VerificationPipeline {
   private async executeCheckpoint(
     checkpoint: VerificationCheckpoint,
     context: VerificationContext,
-    callbacks?: PipelineCallbacks
+    callbacks?: PipelineCallbacks,
   ): Promise<CheckpointResult> {
     const startTime = Date.now();
-    
+
     this.logger.info('Executing checkpoint', {
       checkpointId: checkpoint.id,
       type: checkpoint.type,
@@ -404,7 +416,7 @@ export class VerificationPipeline {
     try {
       // Check if paused
       while (this.currentExecution?.status === 'paused') {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       // Check if cancelled
@@ -421,11 +433,17 @@ export class VerificationPipeline {
       const validatorResults = await this.executeValidators(checkpoint.validators, context);
 
       // Evaluate conditions
-      const conditionResults = this.evaluateConditions(checkpoint.conditions, context, validatorResults);
+      const conditionResults = this.evaluateConditions(
+        checkpoint.conditions,
+        context,
+        validatorResults,
+      );
 
       // Calculate checkpoint result
-      const passed = validatorResults.every(vr => vr.passed) && conditionResults.every(cr => cr.passed);
-      const score = validatorResults.reduce((sum, vr) => sum + vr.score, 0) / validatorResults.length;
+      const passed =
+        validatorResults.every((vr) => vr.passed) && conditionResults.every((cr) => cr.passed);
+      const score =
+        validatorResults.reduce((sum, vr) => sum + vr.score, 0) / validatorResults.length;
 
       const result: CheckpointResult = {
         checkpointId: checkpoint.id,
@@ -434,9 +452,9 @@ export class VerificationPipeline {
         passed,
         duration: Date.now() - startTime,
         validatorResults,
-        evidence: validatorResults.flatMap(vr => vr.evidence),
-        errors: validatorResults.flatMap(vr => vr.errors || []),
-        warnings: validatorResults.flatMap(vr => vr.warnings || []),
+        evidence: validatorResults.flatMap((vr) => vr.evidence),
+        errors: validatorResults.flatMap((vr) => vr.errors || []),
+        warnings: validatorResults.flatMap((vr) => vr.warnings || []),
       };
 
       // Handle rollback on failure
@@ -476,14 +494,16 @@ export class VerificationPipeline {
         duration: Date.now() - startTime,
         validatorResults: [],
         evidence: [],
-        errors: [{
-          code: 'CHECKPOINT_EXECUTION_ERROR',
-          message: `Checkpoint execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          severity: 'high',
-          context: { checkpointId: checkpoint.id },
-          recoverable: !checkpoint.mandatory,
-          timestamp: new Date(),
-        }],
+        errors: [
+          {
+            code: 'CHECKPOINT_EXECUTION_ERROR',
+            message: `Checkpoint execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            severity: 'high',
+            context: { checkpointId: checkpoint.id },
+            recoverable: !checkpoint.mandatory,
+            timestamp: new Date(),
+          },
+        ],
         warnings: [],
       };
 
@@ -498,7 +518,7 @@ export class VerificationPipeline {
 
   private async executeValidators(
     validators: CheckpointValidator[],
-    context: VerificationContext
+    context: VerificationContext,
   ): Promise<ValidatorResult[]> {
     const results: ValidatorResult[] = [];
 
@@ -523,7 +543,10 @@ export class VerificationPipeline {
             result = await this.executeCustomValidator(validator, context);
             break;
           default:
-            throw new AppError(`Unknown validator type: ${validator.type}`, 'UNKNOWN_VALIDATOR_TYPE');
+            throw new AppError(
+              `Unknown validator type: ${validator.type}`,
+              'UNKNOWN_VALIDATOR_TYPE',
+            );
         }
 
         results.push(result);
@@ -540,14 +563,16 @@ export class VerificationPipeline {
           passed: false,
           details: { error: error instanceof Error ? error.message : 'Unknown error' },
           evidence: [],
-          errors: [{
-            code: 'VALIDATOR_EXECUTION_ERROR',
-            message: `Validator execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            severity: 'medium',
-            context: { validatorId: validator.id },
-            recoverable: true,
-            timestamp: new Date(),
-          }],
+          errors: [
+            {
+              code: 'VALIDATOR_EXECUTION_ERROR',
+              message: `Validator execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              severity: 'medium',
+              context: { validatorId: validator.id },
+              recoverable: true,
+              timestamp: new Date(),
+            },
+          ],
         });
       }
     }
@@ -557,7 +582,7 @@ export class VerificationPipeline {
 
   private async executeTruthScoreValidator(
     validator: CheckpointValidator,
-    context: VerificationContext
+    context: VerificationContext,
   ): Promise<ValidatorResult> {
     if (!context.claims || context.claims.length === 0) {
       return {
@@ -571,11 +596,13 @@ export class VerificationPipeline {
     }
 
     const scores = await Promise.all(
-      context.claims.map(claim => this.truthScorer.scoreClaim(claim, context.scoringContext))
+      context.claims.map((claim) => this.truthScorer.scoreClaim(claim, context.scoringContext)),
     );
 
     const averageScore = scores.reduce((sum, score) => sum + score.score, 0) / scores.length;
-    const passed = averageScore >= (validator.config.threshold as number || VERIFICATION_CONSTANTS.DEFAULT_TRUTH_THRESHOLD);
+    const passed =
+      averageScore >=
+      ((validator.config.threshold as number) || VERIFICATION_CONSTANTS.DEFAULT_TRUTH_THRESHOLD);
 
     return {
       validatorId: validator.id,
@@ -586,15 +613,15 @@ export class VerificationPipeline {
         claimCount: context.claims.length,
         averageScore,
         threshold: validator.config.threshold,
-        scores: scores.map(s => s.score),
+        scores: scores.map((s) => s.score),
       },
-      evidence: scores.flatMap(s => s.evidence),
+      evidence: scores.flatMap((s) => s.evidence),
     };
   }
 
   private async executeAgentClaimValidator(
     validator: CheckpointValidator,
-    context: VerificationContext
+    context: VerificationContext,
   ): Promise<ValidatorResult> {
     if (!context.claims || context.claims.length === 0) {
       return {
@@ -608,13 +635,14 @@ export class VerificationPipeline {
     }
 
     const validationResults = await Promise.all(
-      context.claims.map(claim => this.claimValidator.validateClaim(claim, validator.config))
+      context.claims.map((claim) => this.claimValidator.validateClaim(claim, validator.config)),
     );
 
-    const passedCount = validationResults.filter(r => r.passed).length;
+    const passedCount = validationResults.filter((r) => r.passed).length;
     const successRate = passedCount / validationResults.length;
-    const averageScore = validationResults.reduce((sum, r) => sum + r.score, 0) / validationResults.length;
-    const passed = successRate >= (validator.config.minSuccessRate as number || 0.8);
+    const averageScore =
+      validationResults.reduce((sum, r) => sum + r.score, 0) / validationResults.length;
+    const passed = successRate >= ((validator.config.minSuccessRate as number) || 0.8);
 
     return {
       validatorId: validator.id,
@@ -628,13 +656,13 @@ export class VerificationPipeline {
         averageScore,
         results: validationResults,
       },
-      evidence: validationResults.flatMap(r => r.evidence),
+      evidence: validationResults.flatMap((r) => r.evidence),
     };
   }
 
   private async executeIntegrationTestValidator(
     validator: CheckpointValidator,
-    context: VerificationContext
+    context: VerificationContext,
   ): Promise<ValidatorResult> {
     if (!context.testConfig) {
       return {
@@ -648,7 +676,7 @@ export class VerificationPipeline {
     }
 
     const testResult = await this.testRunner.runTests(context.testConfig);
-    
+
     return {
       validatorId: validator.id,
       status: testResult.passed ? 'passed' : 'failed',
@@ -657,7 +685,7 @@ export class VerificationPipeline {
       details: {
         testId: testResult.testId,
         scenarioCount: testResult.scenarioResults.length,
-        passedScenarios: testResult.scenarioResults.filter(sr => sr.passed).length,
+        passedScenarios: testResult.scenarioResults.filter((sr) => sr.passed).length,
         duration: testResult.duration,
         coverage: testResult.coverage,
       },
@@ -667,11 +695,11 @@ export class VerificationPipeline {
 
   private async executeStateValidationValidator(
     validator: CheckpointValidator,
-    context: VerificationContext
+    context: VerificationContext,
   ): Promise<ValidatorResult> {
     // Validate current system state
     const validationScore = 0.85; // Simplified - implement actual state validation
-    const passed = validationScore >= (validator.config.threshold as number || 0.8);
+    const passed = validationScore >= ((validator.config.threshold as number) || 0.8);
 
     return {
       validatorId: validator.id,
@@ -683,24 +711,26 @@ export class VerificationPipeline {
         validationScore,
         threshold: validator.config.threshold,
       },
-      evidence: [{
-        type: 'state_validation',
-        source: 'system_state',
-        timestamp: new Date(),
-        data: { score: validationScore },
-        reliability: 0.9,
-        weight: 1.0,
-      }],
+      evidence: [
+        {
+          type: 'state_validation',
+          source: 'system_state',
+          timestamp: new Date(),
+          data: { score: validationScore },
+          reliability: 0.9,
+          weight: 1.0,
+        },
+      ],
     };
   }
 
   private async executeCustomValidator(
     validator: CheckpointValidator,
-    context: VerificationContext
+    context: VerificationContext,
   ): Promise<ValidatorResult> {
     // Implement custom validator logic based on config
     const customScore = 0.8; // Simplified - implement actual custom validation
-    const passed = customScore >= (validator.config.threshold as number || 0.8);
+    const passed = customScore >= ((validator.config.threshold as number) || 0.8);
 
     return {
       validatorId: validator.id,
@@ -712,23 +742,25 @@ export class VerificationPipeline {
         config: validator.config,
         customScore,
       },
-      evidence: [{
-        type: 'custom',
-        source: 'custom_validator',
-        timestamp: new Date(),
-        data: validator.config,
-        reliability: 0.8,
-        weight: 1.0,
-      }],
+      evidence: [
+        {
+          type: 'custom',
+          source: 'custom_validator',
+          timestamp: new Date(),
+          data: validator.config,
+          reliability: 0.8,
+          weight: 1.0,
+        },
+      ],
     };
   }
 
   private evaluateConditions(
     conditions: CheckpointCondition[],
     context: VerificationContext,
-    validatorResults: ValidatorResult[]
+    validatorResults: ValidatorResult[],
   ): ConditionResult[] {
-    return conditions.map(condition => {
+    return conditions.map((condition) => {
       try {
         const value = this.extractConditionValue(condition.field, context, validatorResults);
         const passed = this.evaluateCondition(condition, value);
@@ -753,17 +785,17 @@ export class VerificationPipeline {
   private extractConditionValue(
     field: string,
     context: VerificationContext,
-    validatorResults: ValidatorResult[]
+    validatorResults: ValidatorResult[],
   ): unknown {
     // Extract value from context or validator results based on field path
     if (field.startsWith('validator.')) {
       const validatorId = field.split('.')[1];
       const validatorField = field.split('.').slice(2).join('.');
-      const validator = validatorResults.find(vr => vr.validatorId === validatorId);
-      
+      const validator = validatorResults.find((vr) => vr.validatorId === validatorId);
+
       if (validatorField === 'score') return validator?.score;
       if (validatorField === 'passed') return validator?.passed;
-      
+
       return this.getNestedValue(validator?.details, validatorField);
     }
 
@@ -805,15 +837,16 @@ export class VerificationPipeline {
   }
 
   private calculateOverallResult(checkpointResults: CheckpointResult[]): OverallResult {
-    const mandatoryResults = checkpointResults.filter(r => {
-      const checkpoint = this.config.checkpoints.find(cp => cp.id === r.checkpointId);
+    const mandatoryResults = checkpointResults.filter((r) => {
+      const checkpoint = this.config.checkpoints.find((cp) => cp.id === r.checkpointId);
       return checkpoint?.mandatory;
     });
 
-    const mandatoryPassed = mandatoryResults.every(r => r.passed);
-    const overallPassed = mandatoryPassed && checkpointResults.every(r => r.passed);
-    
-    const totalScore = checkpointResults.reduce((sum, r) => sum + r.score, 0) / checkpointResults.length;
+    const mandatoryPassed = mandatoryResults.every((r) => r.passed);
+    const overallPassed = mandatoryPassed && checkpointResults.every((r) => r.passed);
+
+    const totalScore =
+      checkpointResults.reduce((sum, r) => sum + r.score, 0) / checkpointResults.length;
     const status: VerificationStatus = overallPassed ? 'passed' : 'failed';
 
     // Aggregate truth score (simplified)
@@ -828,7 +861,7 @@ export class VerificationPipeline {
         overall: totalScore,
       },
       confidence: { lower: totalScore - 0.1, upper: totalScore + 0.1, level: 0.95 },
-      evidence: checkpointResults.flatMap(r => r.evidence),
+      evidence: checkpointResults.flatMap((r) => r.evidence),
       timestamp: new Date(),
       metadata: { pipelineId: this.config.id },
     };
@@ -838,10 +871,10 @@ export class VerificationPipeline {
       passed: overallPassed,
       score: totalScore,
       truthScore,
-      evidence: checkpointResults.flatMap(r => r.evidence),
+      evidence: checkpointResults.flatMap((r) => r.evidence),
       artifacts: {},
-      errors: checkpointResults.flatMap(r => r.errors),
-      warnings: checkpointResults.flatMap(r => r.warnings),
+      errors: checkpointResults.flatMap((r) => r.errors),
+      warnings: checkpointResults.flatMap((r) => r.warnings),
       recommendations: [
         ...(overallPassed ? ['Pipeline verification successful'] : ['Review failed checkpoints']),
         'Monitor ongoing performance',
@@ -860,9 +893,9 @@ export class VerificationPipeline {
         description,
         context: { pipelineId: this.config.id, checkpointId },
       });
-      
+
       this.currentExecution.snapshots.push(snapshot.id);
-      
+
       this.logger.debug('Snapshot created', {
         snapshotId: snapshot.id,
         checkpointId,
@@ -877,15 +910,16 @@ export class VerificationPipeline {
       return;
     }
 
-    const latestSnapshotId = this.currentExecution.snapshots[this.currentExecution.snapshots.length - 1];
-    
+    const latestSnapshotId =
+      this.currentExecution.snapshots[this.currentExecution.snapshots.length - 1];
+
     try {
       await this.snapshotManager.rollback({
         snapshotId: latestSnapshotId,
         reason: `Checkpoint ${checkpoint.id} failed`,
         scope: { includeAgents: true, includeTasks: true, includeSwarms: true },
       });
-      
+
       this.logger.info('Rollback completed', {
         checkpointId: checkpoint.id,
         snapshotId: latestSnapshotId,
@@ -899,7 +933,11 @@ export class VerificationPipeline {
     }
   }
 
-  private async handleExecutionError(error: unknown, executionId: string, startTime: number): Promise<VerificationResult> {
+  private async handleExecutionError(
+    error: unknown,
+    executionId: string,
+    startTime: number,
+  ): Promise<VerificationResult> {
     this.logger.error('Pipeline execution error', {
       executionId,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -932,14 +970,16 @@ export class VerificationPipeline {
       resourceUsage: this.currentExecution?.resourceUsage || this.initializeResourceUsage(),
       evidence: [],
       artifacts: {},
-      errors: [{
-        code: 'PIPELINE_EXECUTION_ERROR',
-        message: `Pipeline execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        severity: 'critical',
-        context: { executionId, pipelineId: this.config.id },
-        recoverable: false,
-        timestamp: new Date(),
-      }],
+      errors: [
+        {
+          code: 'PIPELINE_EXECUTION_ERROR',
+          message: `Pipeline execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          severity: 'critical',
+          context: { executionId, pipelineId: this.config.id },
+          recoverable: false,
+          timestamp: new Date(),
+        },
+      ],
       warnings: [],
       recommendations: ['Review pipeline configuration', 'Check system logs for details'],
       nextSteps: ['Fix identified issues', 'Restart pipeline execution'],
@@ -948,10 +988,10 @@ export class VerificationPipeline {
 
   private calculateProgress(): number {
     if (!this.currentExecution) return 0;
-    
+
     const totalCheckpoints = this.config.checkpoints.length;
     const completedCheckpoints = this.currentExecution.checkpointResults.length;
-    
+
     return totalCheckpoints > 0 ? (completedCheckpoints / totalCheckpoints) * 100 : 0;
   }
 
@@ -966,7 +1006,7 @@ export class VerificationPipeline {
       visited.add(checkpointId);
       recursionStack.add(checkpointId);
 
-      const checkpoint = this.config.checkpoints.find(cp => cp.id === checkpointId);
+      const checkpoint = this.config.checkpoints.find((cp) => cp.id === checkpointId);
       if (checkpoint) {
         for (const depId of checkpoint.dependencies) {
           if (hasCircle(depId)) return true;
@@ -977,7 +1017,7 @@ export class VerificationPipeline {
       return false;
     };
 
-    return this.config.checkpoints.some(cp => hasCircle(cp.id));
+    return this.config.checkpoints.some((cp) => hasCircle(cp.id));
   }
 
   private initializeResourceUsage(): ResourceUsage {

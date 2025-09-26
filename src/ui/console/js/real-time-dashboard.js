@@ -15,9 +15,9 @@ export class RealTimeDashboard {
     this.websocket = null;
     this.metrics = {
       history: [],
-      current: null
+      current: null,
     };
-    
+
     this.init();
   }
 
@@ -80,14 +80,14 @@ export class RealTimeDashboard {
     dashboard.appendChild(footer);
 
     this.container.appendChild(dashboard);
-    
+
     this.elements = {
       dashboard,
       header,
       content,
       leftPanel,
       rightPanel,
-      footer
+      footer,
     };
   }
 
@@ -127,21 +127,21 @@ export class RealTimeDashboard {
       type: 'primary',
       text: 'Start All',
       icon: '▶️',
-      onclick: () => this.startAllMonitoring()
+      onclick: () => this.startAllMonitoring(),
     });
 
     const stopBtn = this.components.createActionButton({
       type: 'secondary',
       text: 'Stop All',
       icon: '⏹️',
-      onclick: () => this.stopAllMonitoring()
+      onclick: () => this.stopAllMonitoring(),
     });
 
     const exportBtn = this.components.createActionButton({
       type: 'secondary',
       text: 'Export Data',
       icon: '💾',
-      onclick: () => this.exportDashboardData()
+      onclick: () => this.exportDashboardData(),
     });
 
     controls.appendChild(startBtn.element);
@@ -154,7 +154,7 @@ export class RealTimeDashboard {
     this.headerElements = {
       startBtn,
       stopBtn,
-      exportBtn
+      exportBtn,
     };
 
     return header;
@@ -203,12 +203,12 @@ export class RealTimeDashboard {
       title: 'Performance Metrics',
       width: 350,
       height: 200,
-      type: 'line'
+      type: 'line',
     });
 
     // Sample data
     this.updateMetricsChart(metricsChart);
-    
+
     this.metricsChart = metricsChart;
     return metricsChart.element;
   }
@@ -218,7 +218,7 @@ export class RealTimeDashboard {
    */
   createHealthPanel() {
     const panel = this.components.createInfoPanel({
-      title: '🏥 System Health'
+      title: '🏥 System Health',
     });
 
     const healthMetrics = [
@@ -226,22 +226,30 @@ export class RealTimeDashboard {
       { name: 'Memory Usage', value: '2.1GB', status: 'good' },
       { name: 'Network I/O', value: '120 Mbps', status: 'good' },
       { name: 'Disk Usage', value: '67%', status: 'warning' },
-      { name: 'Response Time', value: '234ms', status: 'good' }
+      { name: 'Response Time', value: '234ms', status: 'good' },
     ];
 
-    const healthHTML = healthMetrics.map(metric => `
+    const healthHTML = healthMetrics
+      .map(
+        (metric) => `
       <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0;">
         <span>${metric.name}:</span>
         <span class="health-metric health-${metric.status}" style="
           padding: 4px 8px;
           border-radius: 4px;
           font-weight: bold;
-          ${metric.status === 'good' ? 'background: #22c55e; color: white;' : 
-            metric.status === 'warning' ? 'background: #f59e0b; color: white;' : 
-            'background: #ef4444; color: white;'}
+          ${
+            metric.status === 'good'
+              ? 'background: #22c55e; color: white;'
+              : metric.status === 'warning'
+                ? 'background: #f59e0b; color: white;'
+                : 'background: #ef4444; color: white;'
+          }
         ">${metric.value}</span>
       </div>
-    `).join('');
+    `,
+      )
+      .join('');
 
     panel.setContent(healthHTML);
     this.healthPanel = panel;
@@ -256,7 +264,7 @@ export class RealTimeDashboard {
       title: 'Memory Usage Over Time',
       width: 350,
       height: 150,
-      type: 'line'
+      type: 'line',
     });
 
     this.updateMemoryChart(memoryChart);
@@ -269,14 +277,14 @@ export class RealTimeDashboard {
    */
   createQueueStatus() {
     const panel = this.components.createInfoPanel({
-      title: '📋 Task Queue Status'
+      title: '📋 Task Queue Status',
     });
 
     const queueData = {
       pending: Math.floor(Math.random() * 20),
       processing: Math.floor(Math.random() * 8),
       completed: Math.floor(Math.random() * 150) + 50,
-      failed: Math.floor(Math.random() * 5)
+      failed: Math.floor(Math.random() * 5),
     };
 
     const queueHTML = `
@@ -310,7 +318,7 @@ export class RealTimeDashboard {
    */
   createActivityLog() {
     const panel = this.components.createInfoPanel({
-      title: '📝 Recent Activity'
+      title: '📝 Recent Activity',
     });
 
     const activities = [
@@ -318,10 +326,12 @@ export class RealTimeDashboard {
       { time: '14:22:58', type: 'success', message: 'Swarm topology optimized (+12% efficiency)' },
       { time: '14:22:45', type: 'warning', message: 'Agent analyzer_03 high memory usage (89%)' },
       { time: '14:22:30', type: 'info', message: 'New task assigned to researcher_02' },
-      { time: '14:22:12', type: 'error', message: 'Connection timeout to agent reviewer_01' }
+      { time: '14:22:12', type: 'error', message: 'Connection timeout to agent reviewer_01' },
     ];
 
-    const activityHTML = activities.map(activity => `
+    const activityHTML = activities
+      .map(
+        (activity) => `
       <div class="activity-item" style="
         display: flex; 
         gap: 8px; 
@@ -330,15 +340,21 @@ export class RealTimeDashboard {
         background: #2a2a2a; 
         border-radius: 4px;
         border-left: 3px solid ${
-          activity.type === 'success' ? '#22c55e' :
-          activity.type === 'warning' ? '#f59e0b' :
-          activity.type === 'error' ? '#ef4444' : '#00d4ff'
+          activity.type === 'success'
+            ? '#22c55e'
+            : activity.type === 'warning'
+              ? '#f59e0b'
+              : activity.type === 'error'
+                ? '#ef4444'
+                : '#00d4ff'
         };
       ">
         <span style="color: #888; font-size: 12px; min-width: 60px;">${activity.time}</span>
         <span style="font-size: 14px;">${activity.message}</span>
       </div>
-    `).join('');
+    `,
+      )
+      .join('');
 
     panel.setContent(`<div style="max-height: 200px; overflow-y: auto;">${activityHTML}</div>`);
     this.activityPanel = panel;
@@ -385,7 +401,7 @@ export class RealTimeDashboard {
       uptime: leftStatus.querySelector('#dashboard-uptime'),
       lastUpdate: leftStatus.querySelector('#dashboard-last-update'),
       messages: rightStatus.querySelector('#dashboard-messages'),
-      dataPoints: rightStatus.querySelector('#dashboard-data-points')
+      dataPoints: rightStatus.querySelector('#dashboard-data-points'),
     };
 
     return footer;
@@ -423,7 +439,6 @@ export class RealTimeDashboard {
       this.websocket.onerror = (error) => {
         console.error('📡 Dashboard WebSocket error:', error);
       };
-
     } catch (error) {
       console.warn('WebSocket not available, using polling fallback');
       this.startPollingFallback();
@@ -499,21 +514,21 @@ export class RealTimeDashboard {
         active: 4,
         busy: 2,
         idle: 2,
-        errors: 0
+        errors: 0,
       },
       metrics: {
         cpuUsage: Math.random() * 30 + 20,
         memoryUsage: Math.random() * 40 + 40,
         throughput: Math.random() * 50 + 25,
-        latency: Math.random() * 200 + 100
+        latency: Math.random() * 200 + 100,
       },
       health: {
         overall: 'good',
-        services: ['swarm', 'memory', 'neural'].map(service => ({
+        services: ['swarm', 'memory', 'neural'].map((service) => ({
           name: service,
-          status: Math.random() > 0.8 ? 'warning' : 'good'
-        }))
-      }
+          status: Math.random() > 0.8 ? 'warning' : 'good',
+        })),
+      },
     };
   }
 
@@ -524,7 +539,7 @@ export class RealTimeDashboard {
     // Add to history
     this.metrics.history.push({
       timestamp: Date.now(),
-      ...data
+      ...data,
     });
 
     // Keep only last 50 data points
@@ -545,7 +560,7 @@ export class RealTimeDashboard {
 
     const data = this.metrics.history.map((point, index) => ({
       x: index,
-      value: point.throughput || Math.random() * 100
+      value: point.throughput || Math.random() * 100,
     }));
 
     chart.updateData(data);
@@ -559,7 +574,7 @@ export class RealTimeDashboard {
 
     const data = this.metrics.history.map((point, index) => ({
       x: index,
-      value: point.memoryUsage || Math.random() * 100
+      value: point.memoryUsage || Math.random() * 100,
     }));
 
     chart.updateData(data);
@@ -570,7 +585,7 @@ export class RealTimeDashboard {
    */
   startAllMonitoring() {
     this.isActive = true;
-    
+
     // Start swarm visualizer
     if (this.swarmVisualizer) {
       this.swarmVisualizer.startMonitoring();
@@ -648,11 +663,11 @@ export class RealTimeDashboard {
       timestamp: Date.now(),
       metrics: this.metrics,
       swarmData: this.swarmVisualizer?.swarmData,
-      version: 'Claude Flow v2.0.0'
+      version: 'Claude Flow v2.0.0',
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json'
+      type: 'application/json',
     });
 
     const url = URL.createObjectURL(blob);
@@ -680,8 +695,8 @@ export class RealTimeDashboard {
         swarmVisualizer: 'active',
         metricsChart: 'active',
         healthPanel: 'active',
-        activityLog: 'active'
-      }
+        activityLog: 'active',
+      },
     };
 
     try {
@@ -697,7 +712,7 @@ export class RealTimeDashboard {
    */
   destroy() {
     this.stopAllMonitoring();
-    
+
     if (this.websocket) {
       this.websocket.close();
     }

@@ -44,7 +44,6 @@ export class ValidationCommands {
       await wizard.cleanup();
 
       return result;
-
     } catch (error) {
       this.logger.error('Setup command failed', error);
       throw error;
@@ -62,7 +61,7 @@ export class ValidationCommands {
     try {
       // Load configuration
       const configManager = new TruthConfigManager({
-        configDir: path.join(this.configPath, 'configs')
+        configDir: path.join(this.configPath, 'configs'),
       });
       await configManager.initialize();
 
@@ -88,7 +87,9 @@ export class ValidationCommands {
       const frameworkResult = await detector.detectFramework();
       await detector.close();
 
-      spinner.succeed(`Framework detected: ${frameworkResult.detected} (${(frameworkResult.confidence * 100).toFixed(1)}% confidence)`);
+      spinner.succeed(
+        `Framework detected: ${frameworkResult.detected} (${(frameworkResult.confidence * 100).toFixed(1)}% confidence)`,
+      );
 
       // Validation check
       spinner.start('Running validation checks...');
@@ -105,9 +106,8 @@ export class ValidationCommands {
 
       return {
         success: checkResults.passed,
-        results: checkResults
+        results: checkResults,
       };
-
     } catch (error) {
       spinner.fail('Validation check failed');
       this.logger.error('Check command failed', error);
@@ -125,7 +125,7 @@ export class ValidationCommands {
 
     try {
       // Check if configuration exists
-      if (!await this.fileExists(this.preferencesPath)) {
+      if (!(await this.fileExists(this.preferencesPath))) {
         spinner.fail('Configuration not found');
         console.log(chalk.yellow('⚠️  Run setup first: claude-flow-novice validate setup'));
         return { success: false, error: 'No configuration found' };
@@ -137,7 +137,7 @@ export class ValidationCommands {
       // Initialize completion interceptor
       const interceptor = new CompletionInterceptor({
         basePath: this.basePath,
-        config: preferences.truthConfig
+        config: preferences.truthConfig,
       });
 
       await interceptor.initialize();
@@ -157,7 +157,6 @@ export class ValidationCommands {
       console.log(chalk.gray('\nTo disable: claude-flow-novice validate disable-hooks'));
 
       return { success: true };
-
     } catch (error) {
       spinner.fail('Failed to enable hooks');
       this.logger.error('Enable hooks command failed', error);
@@ -176,7 +175,7 @@ export class ValidationCommands {
     try {
       // Initialize completion interceptor
       const interceptor = new CompletionInterceptor({
-        basePath: this.basePath
+        basePath: this.basePath,
       });
 
       await interceptor.initialize();
@@ -195,11 +194,12 @@ export class ValidationCommands {
       spinner.succeed('Automatic hooks disabled successfully');
 
       console.log(chalk.yellow('\n⚠️  Completion validation hooks have been disabled.'));
-      console.log(chalk.gray('Manual validation is still available via: claude-flow-novice validate check'));
+      console.log(
+        chalk.gray('Manual validation is still available via: claude-flow-novice validate check'),
+      );
       console.log(chalk.gray('\nTo re-enable: claude-flow-novice validate enable-hooks'));
 
       return { success: true };
-
     } catch (error) {
       spinner.fail('Failed to disable hooks');
       this.logger.error('Disable hooks command failed', error);
@@ -230,9 +230,8 @@ export class ValidationCommands {
 
       return {
         success: true,
-        framework: frameworkConfig
+        framework: frameworkConfig,
       };
-
     } catch (error) {
       this.logger.error('Add framework command failed', error);
       throw error;
@@ -247,7 +246,7 @@ export class ValidationCommands {
 
     try {
       // Load current configuration
-      if (!await this.fileExists(this.preferencesPath)) {
+      if (!(await this.fileExists(this.preferencesPath))) {
         console.log(chalk.yellow('⚠️  Run setup first: claude-flow-novice validate setup'));
         return { success: false, error: 'No configuration found' };
       }
@@ -260,7 +259,7 @@ export class ValidationCommands {
       // Ask if user wants to modify
       const shouldModify = await prompts.confirm({
         message: 'Modify quality gate thresholds?',
-        default: false
+        default: false,
       });
 
       if (!shouldModify) {
@@ -288,9 +287,8 @@ export class ValidationCommands {
 
       return {
         success: true,
-        qualityGates: newGates
+        qualityGates: newGates,
       };
-
     } catch (error) {
       this.logger.error('Configure gates command failed', error);
       throw error;
@@ -304,7 +302,7 @@ export class ValidationCommands {
     console.log(chalk.blue.bold('📊 Current Validation Configuration\n'));
 
     try {
-      if (!await this.fileExists(this.preferencesPath)) {
+      if (!(await this.fileExists(this.preferencesPath))) {
         console.log(chalk.yellow('⚠️  No configuration found. Run setup first.'));
         return { success: false, error: 'No configuration found' };
       }
@@ -319,7 +317,6 @@ export class ValidationCommands {
       this.displayConfiguration(preferences);
 
       return { success: true, config: preferences };
-
     } catch (error) {
       this.logger.error('Show config command failed', error);
       throw error;
@@ -338,10 +335,18 @@ export class ValidationCommands {
 
     // Framework detection check
     if (frameworkResult.confidence > 0.7) {
-      checks.push({ name: 'Framework Detection', status: 'pass', details: `${frameworkResult.detected} (${(frameworkResult.confidence * 100).toFixed(1)}%)` });
+      checks.push({
+        name: 'Framework Detection',
+        status: 'pass',
+        details: `${frameworkResult.detected} (${(frameworkResult.confidence * 100).toFixed(1)}%)`,
+      });
       passed++;
     } else {
-      checks.push({ name: 'Framework Detection', status: 'warn', details: 'Low confidence detection' });
+      checks.push({
+        name: 'Framework Detection',
+        status: 'warn',
+        details: 'Low confidence detection',
+      });
       issues.push('Framework detection has low confidence - consider manual configuration');
     }
 
@@ -351,10 +356,18 @@ export class ValidationCommands {
       const validation = await configManager.validateConfiguration(config);
 
       if (validation.valid) {
-        checks.push({ name: 'Configuration Validation', status: 'pass', details: 'Configuration is valid' });
+        checks.push({
+          name: 'Configuration Validation',
+          status: 'pass',
+          details: 'Configuration is valid',
+        });
         passed++;
       } else {
-        checks.push({ name: 'Configuration Validation', status: 'fail', details: validation.errors.join(', ') });
+        checks.push({
+          name: 'Configuration Validation',
+          status: 'fail',
+          details: validation.errors.join(', '),
+        });
         issues.push(...validation.errors);
       }
     } catch (error) {
@@ -365,21 +378,37 @@ export class ValidationCommands {
     // File permissions check
     try {
       await this.testFilePermissions();
-      checks.push({ name: 'File Permissions', status: 'pass', details: 'Read/write access confirmed' });
+      checks.push({
+        name: 'File Permissions',
+        status: 'pass',
+        details: 'Read/write access confirmed',
+      });
       passed++;
     } catch (error) {
-      checks.push({ name: 'File Permissions', status: 'fail', details: 'Permission issues detected' });
+      checks.push({
+        name: 'File Permissions',
+        status: 'fail',
+        details: 'Permission issues detected',
+      });
       issues.push('File permission problems - check directory access');
     }
 
     // Dependencies check
     const depsCheck = await this.checkDependencies();
     if (depsCheck.allPresent) {
-      checks.push({ name: 'Dependencies', status: 'pass', details: 'All required dependencies available' });
+      checks.push({
+        name: 'Dependencies',
+        status: 'pass',
+        details: 'All required dependencies available',
+      });
       passed++;
     } else {
-      checks.push({ name: 'Dependencies', status: 'warn', details: `Missing: ${depsCheck.missing.join(', ')}` });
-      issues.push(...depsCheck.missing.map(dep => `Missing dependency: ${dep}`));
+      checks.push({
+        name: 'Dependencies',
+        status: 'warn',
+        details: `Missing: ${depsCheck.missing.join(', ')}`,
+      });
+      issues.push(...depsCheck.missing.map((dep) => `Missing dependency: ${dep}`));
     }
 
     return {
@@ -387,7 +416,7 @@ export class ValidationCommands {
       totalChecks: checks.length,
       passedChecks: passed,
       checks,
-      issues
+      issues,
     };
   }
 
@@ -397,7 +426,7 @@ export class ValidationCommands {
   displayCheckResults(results) {
     console.log(chalk.blue('\n📋 Validation Check Results\n'));
 
-    results.checks.forEach(check => {
+    results.checks.forEach((check) => {
       let icon, color;
       switch (check.status) {
         case 'pass':
@@ -427,12 +456,14 @@ export class ValidationCommands {
     } else {
       console.log(chalk.red.bold('❌ Some validation checks failed'));
       console.log(chalk.yellow('\n🔧 Issues found:'));
-      results.issues.forEach(issue => {
+      results.issues.forEach((issue) => {
         console.log(chalk.gray(`  • ${issue}`));
       });
     }
 
-    console.log(chalk.gray(`\n📊 Summary: ${results.passedChecks}/${results.totalChecks} checks passed`));
+    console.log(
+      chalk.gray(`\n📊 Summary: ${results.passedChecks}/${results.totalChecks} checks passed`),
+    );
   }
 
   /**
@@ -441,12 +472,12 @@ export class ValidationCommands {
   async gatherFrameworkInfo() {
     const name = await prompts.text({
       message: 'Framework name:',
-      validate: (value) => value.length > 0 || 'Name is required'
+      validate: (value) => value.length > 0 || 'Name is required',
     });
 
     const filePatterns = await prompts.text({
       message: 'File patterns (comma-separated, e.g., *.java,*.kt,*.rs):',
-      validate: (value) => value.length > 0 || 'At least one pattern required'
+      validate: (value) => value.length > 0 || 'At least one pattern required',
     });
 
     const testingFramework = await prompts.select({
@@ -456,21 +487,21 @@ export class ValidationCommands {
         { name: 'Behavior Testing (BDD-style)', value: 'behavior' },
         { name: 'Integration Testing', value: 'integration' },
         { name: 'Rust Testing (cargo test)', value: 'rust' },
-        { name: 'Custom Testing Approach', value: 'custom' }
-      ]
+        { name: 'Custom Testing Approach', value: 'custom' },
+      ],
     });
 
     const truthThreshold = await prompts.number({
       message: 'Truth score threshold (0.0-1.0):',
       default: 0.75,
-      validate: (value) => value >= 0 && value <= 1 || 'Must be between 0.0 and 1.0'
+      validate: (value) => (value >= 0 && value <= 1) || 'Must be between 0.0 and 1.0',
     });
 
     return {
       name,
-      filePatterns: filePatterns.split(',').map(p => p.trim()),
+      filePatterns: filePatterns.split(',').map((p) => p.trim()),
       testingFramework,
-      truthThreshold
+      truthThreshold,
     };
   }
 
@@ -495,7 +526,7 @@ export class ValidationCommands {
       name: frameworkInfo.name,
       description: `Custom configuration for ${frameworkInfo.name} framework`,
       threshold: frameworkInfo.truthThreshold,
-      tags: ['custom', frameworkInfo.testingFramework]
+      tags: ['custom', frameworkInfo.testingFramework],
     });
 
     await configManager.cleanup();
@@ -504,7 +535,7 @@ export class ValidationCommands {
       ...frameworkInfo,
       truthConfig: config,
       id: `custom_${frameworkInfo.name.toLowerCase().replace(/\s+/g, '_')}`,
-      createdDate: new Date().toISOString()
+      createdDate: new Date().toISOString(),
     };
   }
 
@@ -517,13 +548,13 @@ export class ValidationCommands {
     const truthScore = await prompts.number({
       message: 'Truth score threshold (0.0-1.0):',
       default: currentGates.truthScore,
-      validate: (value) => value >= 0 && value <= 1 || 'Must be between 0.0 and 1.0'
+      validate: (value) => (value >= 0 && value <= 1) || 'Must be between 0.0 and 1.0',
     });
 
     const testCoverage = await prompts.number({
       message: 'Test coverage threshold (%):',
       default: currentGates.testCoverage,
-      validate: (value) => value >= 0 && value <= 100 || 'Must be between 0 and 100'
+      validate: (value) => (value >= 0 && value <= 100) || 'Must be between 0 and 100',
     });
 
     const codeQuality = await prompts.select({
@@ -532,22 +563,22 @@ export class ValidationCommands {
         { name: 'A - Excellent', value: 'A' },
         { name: 'B - Good', value: 'B' },
         { name: 'C - Acceptable', value: 'C' },
-        { name: 'D - Poor', value: 'D' }
+        { name: 'D - Poor', value: 'D' },
       ],
-      default: currentGates.codeQuality
+      default: currentGates.codeQuality,
     });
 
     const documentationCoverage = await prompts.number({
       message: 'Documentation coverage threshold (%):',
       default: currentGates.documentationCoverage,
-      validate: (value) => value >= 0 && value <= 100 || 'Must be between 0 and 100'
+      validate: (value) => (value >= 0 && value <= 100) || 'Must be between 0 and 100',
     });
 
     return {
       truthScore,
       testCoverage,
       codeQuality,
-      documentationCoverage
+      documentationCoverage,
     };
   }
 
@@ -569,11 +600,15 @@ export class ValidationCommands {
     console.log(chalk.blue('🔧 Framework Configuration:'));
     if (preferences.framework) {
       console.log(`  Framework: ${chalk.yellow(preferences.framework.detected || 'Unknown')}`);
-      console.log(`  Confidence: ${chalk.yellow((preferences.framework.confidence * 100).toFixed(1) + '%')}`);
+      console.log(
+        `  Confidence: ${chalk.yellow((preferences.framework.confidence * 100).toFixed(1) + '%')}`,
+      );
     }
 
     console.log(`  Experience Level: ${chalk.yellow(preferences.experienceLevel || 'Not set')}`);
-    console.log(`  Hooks Enabled: ${preferences.hooksEnabled ? chalk.green('Yes') : chalk.red('No')}`);
+    console.log(
+      `  Hooks Enabled: ${preferences.hooksEnabled ? chalk.green('Yes') : chalk.red('No')}`,
+    );
     console.log(`  Setup Date: ${chalk.gray(preferences.setupDate || 'Unknown')}`);
 
     console.log('');
@@ -583,7 +618,9 @@ export class ValidationCommands {
       console.log(chalk.blue('\n🎯 Truth Scoring Configuration:'));
       console.log(`  Threshold: ${chalk.yellow(preferences.truthConfig.threshold.toFixed(2))}`);
       console.log(`  Framework: ${chalk.yellow(preferences.truthConfig.framework)}`);
-      console.log(`  Validation Checks: ${chalk.yellow(Object.values(preferences.truthConfig.checks).filter(Boolean).length)}`);
+      console.log(
+        `  Validation Checks: ${chalk.yellow(Object.values(preferences.truthConfig.checks).filter(Boolean).length)}`,
+      );
     }
 
     // Display framework-specific commands
@@ -682,7 +719,7 @@ export class ValidationCommands {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -700,8 +737,8 @@ export class ValidationCommands {
 
         // Check for common testing frameworks
         const testingDeps = ['jest', 'mocha', 'vitest', 'cypress'];
-        const hasTesting = testingDeps.some(dep =>
-          pkg.dependencies?.[dep] || pkg.devDependencies?.[dep]
+        const hasTesting = testingDeps.some(
+          (dep) => pkg.dependencies?.[dep] || pkg.devDependencies?.[dep],
         );
 
         if (!hasTesting) {
@@ -728,19 +765,27 @@ export class ValidationCommands {
     }
 
     // Check for Python dependencies
-    if (await this.fileExists(path.join(this.basePath, 'requirements.txt')) ||
-        await this.fileExists(path.join(this.basePath, 'pyproject.toml'))) {
+    if (
+      (await this.fileExists(path.join(this.basePath, 'requirements.txt'))) ||
+      (await this.fileExists(path.join(this.basePath, 'pyproject.toml')))
+    ) {
       try {
         let hasTestingFramework = false;
 
         // Check requirements.txt
         if (await this.fileExists(path.join(this.basePath, 'requirements.txt'))) {
-          const requirements = await fs.readFile(path.join(this.basePath, 'requirements.txt'), 'utf8');
+          const requirements = await fs.readFile(
+            path.join(this.basePath, 'requirements.txt'),
+            'utf8',
+          );
           hasTestingFramework = /pytest|unittest2|nose/.test(requirements);
         }
 
         // Check pyproject.toml
-        if (!hasTestingFramework && await this.fileExists(path.join(this.basePath, 'pyproject.toml'))) {
+        if (
+          !hasTestingFramework &&
+          (await this.fileExists(path.join(this.basePath, 'pyproject.toml')))
+        ) {
           const pyproject = await fs.readFile(path.join(this.basePath, 'pyproject.toml'), 'utf8');
           hasTestingFramework = /pytest|unittest/.test(pyproject);
         }
@@ -755,7 +800,7 @@ export class ValidationCommands {
 
     return {
       allPresent: missing.length === 0,
-      missing
+      missing,
     };
   }
 
@@ -797,11 +842,21 @@ export class ValidationCommands {
   async suggestDependencyInstallation(issue) {
     console.log(chalk.yellow(`  🔧 ${issue}`));
     if (issue.includes('cargo') || issue.includes('Rust')) {
-      console.log(chalk.gray('  💡 Consider installing missing dependencies with cargo or updating Cargo.toml'));
+      console.log(
+        chalk.gray(
+          '  💡 Consider installing missing dependencies with cargo or updating Cargo.toml',
+        ),
+      );
     } else if (issue.includes('Python') || issue.includes('pytest')) {
-      console.log(chalk.gray('  💡 Consider installing missing dependencies with pip or updating requirements.txt'));
+      console.log(
+        chalk.gray(
+          '  💡 Consider installing missing dependencies with pip or updating requirements.txt',
+        ),
+      );
     } else {
-      console.log(chalk.gray('  💡 Consider installing missing dependencies with npm/yarn/pip/cargo'));
+      console.log(
+        chalk.gray('  💡 Consider installing missing dependencies with npm/yarn/pip/cargo'),
+      );
     }
   }
 

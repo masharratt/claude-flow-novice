@@ -16,8 +16,8 @@ class EnhancedHookManager {
       workflowPreferences: {
         autoFormat: true,
         showHints: true,
-        detailedLogs: true
-      }
+        detailedLogs: true,
+      },
     };
   }
 
@@ -33,7 +33,7 @@ class EnhancedHookManager {
     }
 
     // Simulate async loading (real implementation would load from storage)
-    await new Promise(resolve => setTimeout(resolve, 10)); // Simulate 10ms load time
+    await new Promise((resolve) => setTimeout(resolve, 10)); // Simulate 10ms load time
 
     const userPrefs = preferences || this.generateDefaultPreferences(userId);
 
@@ -65,7 +65,7 @@ class EnhancedHookManager {
           showHints: true,
           explanations: true,
           stepByStep: true,
-          experienceLevel: 'novice'
+          experienceLevel: 'novice',
         };
 
       case 'expert':
@@ -74,7 +74,7 @@ class EnhancedHookManager {
           showHints: false,
           explanations: false,
           stepByStep: false,
-          experienceLevel: 'expert'
+          experienceLevel: 'expert',
         };
 
       case 'intermediate':
@@ -84,7 +84,7 @@ class EnhancedHookManager {
           showHints: true,
           explanations: false,
           stepByStep: false,
-          experienceLevel: 'intermediate'
+          experienceLevel: 'intermediate',
         };
     }
   }
@@ -109,13 +109,13 @@ class EnhancedHookManager {
       linting: {
         python: { enabled: true, rules: [] },
         javascript: { enabled: true, rules: [] },
-        go: { enabled: true, rules: [] }
+        go: { enabled: true, rules: [] },
       },
       testing: {
         python: { framework: 'pytest' },
         javascript: { framework: 'jest' },
-        go: { framework: 'testing' }
-      }
+        go: { framework: 'testing' },
+      },
     };
   }
 
@@ -127,7 +127,7 @@ class EnhancedHookManager {
     let workflowPrefs = {
       autoFormat: true,
       showHints: true,
-      detailedLogs: true
+      detailedLogs: true,
     };
 
     // Check if any user has preferences cached
@@ -155,7 +155,7 @@ class EnhancedHookManager {
     const startTime = performance.now();
 
     // Simulate hook execution
-    await new Promise(resolve => setTimeout(resolve, 5)); // 5ms execution
+    await new Promise((resolve) => setTimeout(resolve, 5)); // 5ms execution
 
     const result = {
       hookType,
@@ -163,8 +163,10 @@ class EnhancedHookManager {
       personalized: true,
       adapted: true,
       context,
-      content: context.adaptedHooks ? `Task: ${context.task || 'undefined'}` : `Executing hook: ${hookType}`,
-      timestamp: Date.now()
+      content: context.adaptedHooks
+        ? `Task: ${context.task || 'undefined'}`
+        : `Executing hook: ${hookType}`,
+      timestamp: Date.now(),
     };
 
     // Ensure performance requirement
@@ -181,14 +183,16 @@ class EnhancedHookManager {
    */
   generateDefaultPreferences(userId) {
     const experienceLevels = ['novice', 'intermediate', 'expert'];
-    const level = userId.includes('novice') ? 'novice' :
-                  userId.includes('expert') ? 'expert' :
-                  'intermediate';
+    const level = userId.includes('novice')
+      ? 'novice'
+      : userId.includes('expert')
+        ? 'expert'
+        : 'intermediate';
 
     return {
       ...this.defaultPreferences,
       experienceLevel: level,
-      userId
+      userId,
     };
   }
 }

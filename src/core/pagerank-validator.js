@@ -14,13 +14,13 @@ class PageRankValidator {
       convergenceCheck: this.validateConvergence(scores),
       distributionCheck: this.validateScoreDistribution(scores),
       consistencyCheck: this.validateMathematicalConsistency(scores, graph),
-      normalityCheck: this.validateNormalization(scores)
+      normalityCheck: this.validateNormalization(scores),
     };
 
     return {
-      valid: Object.values(validations).every(v => v),
+      valid: Object.values(validations).every((v) => v),
       validations,
-      overallScore: this.calculateValidationScore(validations)
+      overallScore: this.calculateValidationScore(validations),
     };
   }
 
@@ -34,7 +34,7 @@ class PageRankValidator {
     if (values.length === 0) return false;
 
     // Check if all scores are positive
-    const allPositive = values.every(score => score > 0);
+    const allPositive = values.every((score) => score > 0);
 
     // Check if distribution is reasonable (no single score dominates)
     const maxScore = Math.max(...values);
@@ -62,8 +62,10 @@ class PageRankValidator {
           const nodeConnectivity1 = nodeConnectivity[node] || 0;
           const nodeConnectivity2 = nodeConnectivity[otherNode] || 0;
 
-          if ((nodeConnectivity1 > nodeConnectivity2 && nodeScore >= otherScore) ||
-              (nodeConnectivity1 <= nodeConnectivity2 && nodeScore <= otherScore)) {
+          if (
+            (nodeConnectivity1 > nodeConnectivity2 && nodeScore >= otherScore) ||
+            (nodeConnectivity1 <= nodeConnectivity2 && nodeScore <= otherScore)
+          ) {
             consistentPairs++;
           }
           totalPairs++;
@@ -78,12 +80,12 @@ class PageRankValidator {
   calculateNodeConnectivity(graph) {
     const connectivity = {};
 
-    graph.nodes.forEach(node => {
+    graph.nodes.forEach((node) => {
       connectivity[node] = 0;
     });
 
     if (graph.edges) {
-      graph.edges.forEach(edge => {
+      graph.edges.forEach((edge) => {
         connectivity[edge.from] = (connectivity[edge.from] || 0) + 1;
         connectivity[edge.to] = (connectivity[edge.to] || 0) + 1;
       });
@@ -107,14 +109,14 @@ class PageRankValidator {
   }
 
   calculateValidationScore(validations) {
-    const validCount = Object.values(validations).filter(v => v).length;
+    const validCount = Object.values(validations).filter((v) => v).length;
     const totalChecks = Object.keys(validations).length;
 
     return totalChecks > 0 ? validCount / totalChecks : 0;
   }
 
   validatePageRankImplementation(implementation, testCases) {
-    const results = testCases.map(testCase => {
+    const results = testCases.map((testCase) => {
       try {
         const result = implementation(testCase.graph);
         const validation = this.validatePageRankScores(result.scores, testCase.graph);
@@ -124,26 +126,26 @@ class PageRankValidator {
           passed: validation.valid,
           validationScore: validation.overallScore,
           expectedConvergence: testCase.expectedConvergence,
-          actualConvergence: result.converged
+          actualConvergence: result.converged,
         };
       } catch (error) {
         return {
           testCase: testCase.name,
           passed: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     return {
-      allTestsPassed: results.every(r => r.passed),
+      allTestsPassed: results.every((r) => r.passed),
       results,
-      averageValidationScore: this.calculateAverageScore(results)
+      averageValidationScore: this.calculateAverageScore(results),
     };
   }
 
   calculateAverageScore(results) {
-    const validResults = results.filter(r => r.validationScore !== undefined);
+    const validResults = results.filter((r) => r.validationScore !== undefined);
     if (validResults.length === 0) return 0;
 
     const totalScore = validResults.reduce((sum, r) => sum + r.validationScore, 0);

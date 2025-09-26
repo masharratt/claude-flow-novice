@@ -34,27 +34,58 @@ export class RustFrameworkDetector {
         { pattern: 'build.rs', weight: 0.08, optional: true },
         { pattern: '*.rs', weight: 0.2, multiple: true },
         { pattern: 'target/', weight: 0.1, directory: true, optional: true },
-        { pattern: 'Cargo.workspace', weight: 0.12, optional: true }
+        { pattern: 'Cargo.workspace', weight: 0.12, optional: true },
       ],
 
       // File extension patterns
       fileExtensions: [
         { ext: '.rs', weight: 0.02, maxBonus: 0.3 },
-        { ext: '.toml', weight: 0.01, maxBonus: 0.1 }
+        { ext: '.toml', weight: 0.01, maxBonus: 0.1 },
       ],
 
       // Content patterns in Rust files
       contentPatterns: [
-        { pattern: /fn\s+main\s*\(\)/g, weight: 0.15, fileType: 'rs', description: 'main function' },
+        {
+          pattern: /fn\s+main\s*\(\)/g,
+          weight: 0.15,
+          fileType: 'rs',
+          description: 'main function',
+        },
         { pattern: /use\s+[\w:]+;/g, weight: 0.1, fileType: 'rs', description: 'use statements' },
-        { pattern: /extern\s+crate\s+\w+;/g, weight: 0.08, fileType: 'rs', description: 'extern crate' },
-        { pattern: /pub\s+(fn|struct|enum|trait|mod)/g, weight: 0.1, fileType: 'rs', description: 'public items' },
+        {
+          pattern: /extern\s+crate\s+\w+;/g,
+          weight: 0.08,
+          fileType: 'rs',
+          description: 'extern crate',
+        },
+        {
+          pattern: /pub\s+(fn|struct|enum|trait|mod)/g,
+          weight: 0.1,
+          fileType: 'rs',
+          description: 'public items',
+        },
         { pattern: /#!\[.*\]/g, weight: 0.08, fileType: 'rs', description: 'inner attributes' },
-        { pattern: /impl\s+.*\s+for\s+/g, weight: 0.1, fileType: 'rs', description: 'trait implementations' },
+        {
+          pattern: /impl\s+.*\s+for\s+/g,
+          weight: 0.1,
+          fileType: 'rs',
+          description: 'trait implementations',
+        },
         { pattern: /derive\s*\(/g, weight: 0.08, fileType: 'rs', description: 'derive macros' },
-        { pattern: /#\[test\]/g, weight: 0.12, fileType: 'rs', description: 'test functions', testFile: true },
-        { pattern: /async\s+fn\s+\w+/g, weight: 0.1, fileType: 'rs', description: 'async functions' }
-      ]
+        {
+          pattern: /#\[test\]/g,
+          weight: 0.12,
+          fileType: 'rs',
+          description: 'test functions',
+          testFile: true,
+        },
+        {
+          pattern: /async\s+fn\s+\w+/g,
+          weight: 0.1,
+          fileType: 'rs',
+          description: 'async functions',
+        },
+      ],
     };
 
     // Comprehensive Rust web framework patterns
@@ -67,11 +98,11 @@ export class RustFrameworkDetector {
           /Router::new\(\)/g,
           /async\s+fn\s+\w+.*axum/g,
           /#\[tokio::main\]/g,
-          /axum::extract::/g
+          /axum::extract::/g,
         ],
         files: ['src/main.rs', 'src/routes.rs', 'src/handlers.rs'],
         weight: 0.35,
-        description: 'Modern async web framework built on tokio'
+        description: 'Modern async web framework built on tokio',
       },
 
       // Warp - Fast web framework with filters
@@ -82,11 +113,11 @@ export class RustFrameworkDetector {
           /warp::Filter/g,
           /warp::path/g,
           /warp::reply/g,
-          /\.and\(warp::/g
+          /\.and\(warp::/g,
         ],
         files: ['src/main.rs', 'src/filters.rs'],
         weight: 0.3,
-        description: 'Fast web framework with composable filters'
+        description: 'Fast web framework with composable filters',
       },
 
       // Actix-web - High-performance web framework
@@ -97,11 +128,11 @@ export class RustFrameworkDetector {
           /HttpServer::new/g,
           /App::new\(\)/g,
           /#\[actix_web::(get|post|put|delete)\]/g,
-          /web::(Data|Json|Query)/g
+          /web::(Data|Json|Query)/g,
         ],
         files: ['src/main.rs', 'src/handlers.rs'],
         weight: 0.35,
-        description: 'High-performance actor-based web framework'
+        description: 'High-performance actor-based web framework',
       },
 
       // Rocket - Type-safe web framework
@@ -112,11 +143,11 @@ export class RustFrameworkDetector {
           /#\[rocket::(get|post|put|delete)\]/g,
           /#\[launch\]/g,
           /rocket::build\(\)/g,
-          /Rocket<.*>/g
+          /Rocket<.*>/g,
         ],
         files: ['src/main.rs', 'Rocket.toml'],
         weight: 0.3,
-        description: 'Type-safe web framework with code generation'
+        description: 'Type-safe web framework with code generation',
       },
 
       // Hyper - Low-level HTTP library
@@ -127,11 +158,11 @@ export class RustFrameworkDetector {
           /hyper::Server/g,
           /hyper::service/g,
           /Response<Body>/g,
-          /Request<Body>/g
+          /Request<Body>/g,
         ],
         files: ['src/main.rs'],
         weight: 0.25,
-        description: 'Low-level HTTP implementation'
+        description: 'Low-level HTTP implementation',
       },
 
       // Tide - Async web framework
@@ -142,12 +173,12 @@ export class RustFrameworkDetector {
           /tide::Request/g,
           /tide::Response/g,
           /app\.at\(/g,
-          /async_std::/g
+          /async_std::/g,
         ],
         files: ['src/main.rs'],
         weight: 0.25,
-        description: 'Async web framework built on async-std'
-      }
+        description: 'Async web framework built on async-std',
+      },
     };
 
     // Database and ORM framework patterns
@@ -161,12 +192,12 @@ export class RustFrameworkDetector {
           /#\[derive\(Insertable\)\]/g,
           /diesel::prelude::\*/g,
           /diesel::result::/g,
-          /table!\s*{/g
+          /table!\s*{/g,
         ],
         files: ['src/schema.rs', 'src/models.rs', 'migrations/'],
         configFiles: ['diesel.toml'],
         weight: 0.3,
-        description: 'Safe, extensible ORM and Query Builder'
+        description: 'Safe, extensible ORM and Query Builder',
       },
 
       // SeaORM - Async ORM
@@ -177,11 +208,11 @@ export class RustFrameworkDetector {
           /#\[derive\(.*DeriveEntityModel.*\)\]/g,
           /EntityTrait/g,
           /ActiveModelTrait/g,
-          /sea_orm::Database/g
+          /sea_orm::Database/g,
         ],
         files: ['src/entities/', 'src/models/'],
         weight: 0.25,
-        description: 'Async ORM for Rust'
+        description: 'Async ORM for Rust',
       },
 
       // SQLx - Async SQL toolkit
@@ -192,12 +223,12 @@ export class RustFrameworkDetector {
           /sqlx::query!/g,
           /sqlx::FromRow/g,
           /PgPool|MySqlPool|SqlitePool/g,
-          /#\[sqlx\(::/g
+          /#\[sqlx\(::/g,
         ],
         files: ['migrations/', '.env'],
         weight: 0.25,
-        description: 'Async SQL toolkit with compile-time checked queries'
-      }
+        description: 'Async SQL toolkit with compile-time checked queries',
+      },
     };
 
     // Async runtime patterns
@@ -209,10 +240,10 @@ export class RustFrameworkDetector {
           /#\[tokio::main\]/g,
           /#\[tokio::test\]/g,
           /tokio::spawn/g,
-          /tokio::time::/g
+          /tokio::time::/g,
         ],
         weight: 0.2,
-        description: 'The most popular async runtime'
+        description: 'The most popular async runtime',
       },
 
       'async-std': {
@@ -221,26 +252,20 @@ export class RustFrameworkDetector {
           /use\s+async_std::/g,
           /#\[async_std::main\]/g,
           /#\[async_std::test\]/g,
-          /async_std::task::/g
+          /async_std::task::/g,
         ],
         weight: 0.15,
-        description: 'Async version of the Rust standard library'
-      }
+        description: 'Async version of the Rust standard library',
+      },
     };
 
     // Testing framework patterns
     this.rustTestingFrameworkPatterns = {
       // Built-in testing
       builtin: {
-        patterns: [
-          /#\[test\]/g,
-          /#\[cfg\(test\)\]/g,
-          /assert_eq!/g,
-          /assert_ne!/g,
-          /assert!/g
-        ],
+        patterns: [/#\[test\]/g, /#\[cfg\(test\)\]/g, /assert_eq!/g, /assert_ne!/g, /assert!/g],
         weight: 0.15,
-        description: 'Built-in Rust testing framework'
+        description: 'Built-in Rust testing framework',
       },
 
       // Criterion - Benchmarking
@@ -250,52 +275,38 @@ export class RustFrameworkDetector {
           /use\s+criterion::/g,
           /Criterion::default/g,
           /criterion_group!/g,
-          /criterion_main!/g
+          /criterion_main!/g,
         ],
         files: ['benches/'],
         weight: 0.1,
-        description: 'Statistics-driven benchmarking library'
+        description: 'Statistics-driven benchmarking library',
       },
 
       // PropTest - Property testing
       proptest: {
         dependencies: ['proptest'],
-        patterns: [
-          /use\s+proptest::/g,
-          /proptest!/g,
-          /prop_assert!/g,
-          /TestCaseError/g
-        ],
+        patterns: [/use\s+proptest::/g, /proptest!/g, /prop_assert!/g, /TestCaseError/g],
         weight: 0.1,
-        description: 'Property-based testing framework'
+        description: 'Property-based testing framework',
       },
 
       // Quickcheck - Property testing
       quickcheck: {
         dependencies: ['quickcheck'],
-        patterns: [
-          /use\s+quickcheck::/g,
-          /#\[quickcheck\]/g,
-          /TestResult/g
-        ],
+        patterns: [/use\s+quickcheck::/g, /#\[quickcheck\]/g, /TestResult/g],
         weight: 0.08,
-        description: 'Property-based testing library'
-      }
+        description: 'Property-based testing library',
+      },
     };
 
     // Workspace detection patterns
     this.workspacePatterns = {
       cargoWorkspace: {
-        patterns: [
-          /\[workspace\]/g,
-          /members\s*=\s*\[/g,
-          /default-members/g,
-          /resolver\s*=/g
-        ],
+        patterns: [/\[workspace\]/g, /members\s*=\s*\[/g, /default-members/g, /resolver\s*=/g],
         files: ['Cargo.toml'],
         weight: 0.2,
-        description: 'Cargo workspace configuration'
-      }
+        description: 'Cargo workspace configuration',
+      },
     };
   }
 
@@ -313,9 +324,8 @@ export class RustFrameworkDetector {
 
       this.logger.info('RustFrameworkDetector initialized', {
         basePath: this.basePath,
-        byzantineEnabled: true
+        byzantineEnabled: true,
       });
-
     } catch (error) {
       this.logger.error('Failed to initialize RustFrameworkDetector', error);
       throw error;
@@ -330,11 +340,10 @@ export class RustFrameworkDetector {
       // Pre-detection hook
       await this.executeHook('pre-rust-detection', {
         basePath: this.basePath,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       this.logger.debug('Byzantine validation hooks initialized');
-
     } catch (error) {
       this.logger.warn('Failed to initialize Byzantine hooks', error);
       // Continue without hooks - detection still works
@@ -357,7 +366,7 @@ export class RustFrameworkDetector {
         webFrameworks: {},
         databaseFrameworks: {},
         asyncRuntimes: {},
-        testingFrameworks: {}
+        testingFrameworks: {},
       },
       evidence: {
         files: {},
@@ -365,20 +374,20 @@ export class RustFrameworkDetector {
         dependencies: [],
         patterns: {},
         workspace: null,
-        editions: []
+        editions: [],
       },
       frameworks: {
         web: [],
         database: [],
         async: [],
-        testing: []
+        testing: [],
       },
       metadata: {
         detectionTime: 0,
         filesAnalyzed: 0,
         patternsMatched: 0,
-        byzantineConsensus: false
-      }
+        byzantineConsensus: false,
+      },
     };
 
     try {
@@ -430,7 +439,6 @@ export class RustFrameworkDetector {
       await this.executeHook('rust-detection-complete', results);
 
       return results;
-
     } catch (error) {
       this.logger.error('Rust framework detection error', error);
       results.error = error.message;
@@ -480,9 +488,8 @@ export class RustFrameworkDetector {
       // Execute hook for core detection
       await this.executeHook('rust-core-detection', {
         isRustProject: results.isRustProject,
-        score: results.scores.rust
+        score: results.scores.rust,
       });
-
     } catch (error) {
       this.logger.warn('Core Rust detection error', error);
     }
@@ -494,7 +501,7 @@ export class RustFrameworkDetector {
   async analyzeCargoToml(results) {
     try {
       const cargoTomlPath = path.join(this.basePath, 'Cargo.toml');
-      if (!await this.fileExists(cargoTomlPath)) return;
+      if (!(await this.fileExists(cargoTomlPath))) return;
 
       const cargoContent = await fs.readFile(cargoTomlPath, 'utf8');
       const cargoData = this.parseToml(cargoContent);
@@ -505,7 +512,7 @@ export class RustFrameworkDetector {
         version: cargoData.package?.version,
         edition: cargoData.package?.edition,
         authors: cargoData.package?.authors,
-        description: cargoData.package?.description
+        description: cargoData.package?.description,
       };
 
       // Track Rust edition
@@ -524,7 +531,7 @@ export class RustFrameworkDetector {
       const allDependencies = {
         ...cargoData.dependencies,
         ...cargoData['dev-dependencies'],
-        ...cargoData['build-dependencies']
+        ...cargoData['build-dependencies'],
       };
 
       results.evidence.dependencies = Object.keys(allDependencies || {});
@@ -534,7 +541,7 @@ export class RustFrameworkDetector {
         results.evidence.workspace = {
           members: cargoData.workspace.members || [],
           defaultMembers: cargoData.workspace['default-members'] || [],
-          resolver: cargoData.workspace.resolver
+          resolver: cargoData.workspace.resolver,
         };
         results.scores.rust += 0.1; // Workspace bonus
       }
@@ -545,15 +552,14 @@ export class RustFrameworkDetector {
       this.logger.debug('Cargo.toml analyzed', {
         dependencies: results.evidence.dependencies.length,
         edition: cargoData.package?.edition,
-        workspace: !!cargoData.workspace
+        workspace: !!cargoData.workspace,
       });
 
       // Execute hook for cargo analysis
       await this.executeHook('cargo-analysis-complete', {
         dependencies: results.evidence.dependencies,
-        workspace: results.evidence.workspace
+        workspace: results.evidence.workspace,
       });
-
     } catch (error) {
       this.logger.warn('Cargo.toml analysis error', error);
     }
@@ -567,16 +573,16 @@ export class RustFrameworkDetector {
 
     // Web framework analysis
     for (const [framework, patterns] of Object.entries(this.rustWebFrameworkPatterns)) {
-      const matchCount = patterns.dependencies.filter(dep => dependencies[dep]).length;
+      const matchCount = patterns.dependencies.filter((dep) => dependencies[dep]).length;
       if (matchCount > 0) {
         const confidence = Math.min(1.0, matchCount / patterns.dependencies.length);
         results.scores.webFrameworks[framework] = confidence * patterns.weight;
 
-        if (!results.frameworks.web.find(f => f.name === framework)) {
+        if (!results.frameworks.web.find((f) => f.name === framework)) {
           results.frameworks.web.push({
             name: framework,
             confidence,
-            description: patterns.description
+            description: patterns.description,
           });
         }
       }
@@ -584,16 +590,16 @@ export class RustFrameworkDetector {
 
     // Database framework analysis
     for (const [framework, patterns] of Object.entries(this.rustDatabaseFrameworkPatterns)) {
-      const matchCount = patterns.dependencies.filter(dep => dependencies[dep]).length;
+      const matchCount = patterns.dependencies.filter((dep) => dependencies[dep]).length;
       if (matchCount > 0) {
         const confidence = Math.min(1.0, matchCount / patterns.dependencies.length);
         results.scores.databaseFrameworks[framework] = confidence * patterns.weight;
 
-        if (!results.frameworks.database.find(f => f.name === framework)) {
+        if (!results.frameworks.database.find((f) => f.name === framework)) {
           results.frameworks.database.push({
             name: framework,
             confidence,
-            description: patterns.description
+            description: patterns.description,
           });
         }
       }
@@ -601,14 +607,14 @@ export class RustFrameworkDetector {
 
     // Async runtime analysis
     for (const [runtime, patterns] of Object.entries(this.rustAsyncRuntimePatterns)) {
-      if (patterns.dependencies.some(dep => dependencies[dep])) {
+      if (patterns.dependencies.some((dep) => dependencies[dep])) {
         results.scores.asyncRuntimes[runtime] = patterns.weight;
 
-        if (!results.frameworks.async.find(f => f.name === runtime)) {
+        if (!results.frameworks.async.find((f) => f.name === runtime)) {
           results.frameworks.async.push({
             name: runtime,
             confidence: 0.8,
-            description: patterns.description
+            description: patterns.description,
           });
         }
       }
@@ -616,14 +622,14 @@ export class RustFrameworkDetector {
 
     // Testing framework analysis
     for (const [framework, patterns] of Object.entries(this.rustTestingFrameworkPatterns)) {
-      if (patterns.dependencies && patterns.dependencies.some(dep => dependencies[dep])) {
+      if (patterns.dependencies && patterns.dependencies.some((dep) => dependencies[dep])) {
         results.scores.testingFrameworks[framework] = patterns.weight;
 
-        if (!results.frameworks.testing.find(f => f.name === framework)) {
+        if (!results.frameworks.testing.find((f) => f.name === framework)) {
           results.frameworks.testing.push({
             name: framework,
             confidence: 0.7,
-            description: patterns.description
+            description: patterns.description,
           });
         }
       }
@@ -652,7 +658,7 @@ export class RustFrameworkDetector {
         'src/bin/',
         'tests/',
         'benches/',
-        'examples/'
+        'examples/',
       ];
 
       let structureScore = 0;
@@ -667,9 +673,8 @@ export class RustFrameworkDetector {
 
       this.logger.debug('Rust file system analyzed', {
         rustFiles: rustFiles.length,
-        structureScore
+        structureScore,
       });
-
     } catch (error) {
       this.logger.warn('Rust file system analysis error', error);
     }
@@ -703,19 +708,17 @@ export class RustFrameworkDetector {
                 pattern: pattern.description,
                 matches: matches.length,
                 file: path.basename(file),
-                weight: pattern.weight
+                weight: pattern.weight,
               });
             }
           }
 
           // Web framework content analysis
           await this.analyzeWebFrameworkContent(content, file, results);
-
         } catch (fileError) {
           // Skip unreadable files
         }
       }
-
     } catch (error) {
       this.logger.warn('Rust content analysis error', error);
     }
@@ -737,10 +740,13 @@ export class RustFrameworkDetector {
       if (patternMatches > 0) {
         const confidence = Math.min(1.0, patternMatches / patterns.patterns.length);
         const currentScore = results.scores.webFrameworks[framework] || 0;
-        results.scores.webFrameworks[framework] = Math.max(currentScore, confidence * patterns.weight);
+        results.scores.webFrameworks[framework] = Math.max(
+          currentScore,
+          confidence * patterns.weight,
+        );
 
         // Update or add framework info
-        const existingFramework = results.frameworks.web.find(f => f.name === framework);
+        const existingFramework = results.frameworks.web.find((f) => f.name === framework);
         if (existingFramework) {
           existingFramework.confidence = Math.max(existingFramework.confidence, confidence);
         } else {
@@ -748,7 +754,7 @@ export class RustFrameworkDetector {
             name: framework,
             confidence,
             description: patterns.description,
-            evidenceFile: path.basename(file)
+            evidenceFile: path.basename(file),
           });
         }
       }
@@ -820,7 +826,6 @@ export class RustFrameworkDetector {
             results.scores.asyncRuntimes[runtime] = Math.max(currentScore, patterns.weight);
             break; // Found evidence, no need to check more files for this runtime
           }
-
         } catch (error) {
           // Skip unreadable files
         }
@@ -831,10 +836,9 @@ export class RustFrameworkDetector {
   async detectRustTestingFrameworks(results) {
     // Testing framework detection via patterns and files
     const rustFiles = await this.getRustFiles();
-    const testFiles = rustFiles.filter(file =>
-      file.includes('/tests/') ||
-      file.includes('/test/') ||
-      path.basename(file).includes('test')
+    const testFiles = rustFiles.filter(
+      (file) =>
+        file.includes('/tests/') || file.includes('/test/') || path.basename(file).includes('test'),
     );
 
     for (const [framework, patterns] of Object.entries(this.rustTestingFrameworkPatterns)) {
@@ -853,7 +857,6 @@ export class RustFrameworkDetector {
           }
 
           if (detected) break;
-
         } catch (error) {
           // Skip unreadable files
         }
@@ -872,11 +875,11 @@ export class RustFrameworkDetector {
       if (detected) {
         results.scores.testingFrameworks[framework] = patterns.weight;
 
-        if (!results.frameworks.testing.find(f => f.name === framework)) {
+        if (!results.frameworks.testing.find((f) => f.name === framework)) {
           results.frameworks.testing.push({
             name: framework,
             confidence: 0.8,
-            description: patterns.description
+            description: patterns.description,
           });
         }
       }
@@ -889,7 +892,7 @@ export class RustFrameworkDetector {
   async analyzeWorkspaceStructure(results) {
     try {
       const cargoTomlPath = path.join(this.basePath, 'Cargo.toml');
-      if (!await this.fileExists(cargoTomlPath)) return;
+      if (!(await this.fileExists(cargoTomlPath))) return;
 
       const cargoContent = await fs.readFile(cargoTomlPath, 'utf8');
 
@@ -914,7 +917,6 @@ export class RustFrameworkDetector {
 
         results.evidence.workspace.validMembers = workspaceMembers.length;
       }
-
     } catch (error) {
       this.logger.warn('Workspace analysis error', error);
     }
@@ -969,7 +971,7 @@ export class RustFrameworkDetector {
     }
 
     // File structure bonus
-    const standardFiles = ['src/main.rs', 'src/lib.rs'].filter(f => results.evidence.files[f]);
+    const standardFiles = ['src/main.rs', 'src/lib.rs'].filter((f) => results.evidence.files[f]);
     if (standardFiles.length > 0) {
       results.scores.rust += 0.03 * standardFiles.length;
     }
@@ -991,7 +993,7 @@ export class RustFrameworkDetector {
         results.frameworks.web.length,
         results.frameworks.database.length,
         results.frameworks.async.length,
-        results.frameworks.testing.length
+        results.frameworks.testing.length,
       ];
 
       const totalFrameworks = frameworkTypes.reduce((sum, count) => sum + count, 0);
@@ -1000,9 +1002,11 @@ export class RustFrameworkDetector {
       }
 
       // High confidence adjustments
-      if (results.evidence.files['Cargo.toml'] &&
-          results.evidence.files.rustFileCount > 5 &&
-          results.evidence.workspace) {
+      if (
+        results.evidence.files['Cargo.toml'] &&
+        results.evidence.files.rustFileCount > 5 &&
+        results.evidence.workspace
+      ) {
         results.confidence = Math.min(1.0, results.confidence + 0.1);
       }
     } else {
@@ -1015,7 +1019,7 @@ export class RustFrameworkDetector {
       web: this.calculateFrameworkConfidence(results.scores.webFrameworks),
       database: this.calculateFrameworkConfidence(results.scores.databaseFrameworks),
       async: this.calculateFrameworkConfidence(results.scores.asyncRuntimes),
-      testing: this.calculateFrameworkConfidence(results.scores.testingFrameworks)
+      testing: this.calculateFrameworkConfidence(results.scores.testingFrameworks),
     };
   }
 
@@ -1036,7 +1040,7 @@ export class RustFrameworkDetector {
         this.validateFileEvidence(results),
         this.validateCargoEvidence(results),
         this.validatePatternEvidence(results),
-        this.validateFrameworkConsistency(results)
+        this.validateFrameworkConsistency(results),
       ];
 
       const consensusResults = await Promise.all(validators);
@@ -1054,9 +1058,8 @@ export class RustFrameworkDetector {
 
       await this.executeHook('byzantine-consensus-complete', {
         consensusScore,
-        consensusReached: results.metadata.byzantineConsensus
+        consensusReached: results.metadata.byzantineConsensus,
       });
-
     } catch (error) {
       this.logger.warn('Byzantine consensus error', error);
       results.metadata.byzantineConsensus = false;
@@ -1065,26 +1068,27 @@ export class RustFrameworkDetector {
 
   // Byzantine validation methods
   validateFileEvidence(results) {
-    return results.evidence.files['Cargo.toml'] &&
-           results.evidence.files.rustFileCount > 0;
+    return results.evidence.files['Cargo.toml'] && results.evidence.files.rustFileCount > 0;
   }
 
   validateCargoEvidence(results) {
-    return results.evidence.cargo &&
-           results.evidence.cargo.name &&
-           results.evidence.dependencies.length > 0;
+    return (
+      results.evidence.cargo &&
+      results.evidence.cargo.name &&
+      results.evidence.dependencies.length > 0
+    );
   }
 
   validatePatternEvidence(results) {
-    return results.evidence.patterns.rust &&
-           results.evidence.patterns.rust.length > 2;
+    return results.evidence.patterns.rust && results.evidence.patterns.rust.length > 2;
   }
 
   validateFrameworkConsistency(results) {
-    const totalFrameworks = results.frameworks.web.length +
-                           results.frameworks.database.length +
-                           results.frameworks.async.length +
-                           results.frameworks.testing.length;
+    const totalFrameworks =
+      results.frameworks.web.length +
+      results.frameworks.database.length +
+      results.frameworks.async.length +
+      results.frameworks.testing.length;
     return totalFrameworks > 0 || results.scores.rust > 0.6;
   }
 
@@ -1101,15 +1105,14 @@ export class RustFrameworkDetector {
           timestamp: new Date().toISOString(),
           basePath: this.basePath,
           byzantineValidated: results.metadata.byzantineConsensus,
-          confidence: results.confidence
-        }
+          confidence: results.confidence,
+        },
       });
 
       this.logger.debug('Rust detection results cached', {
         cacheKey,
-        byzantineValidated: results.metadata.byzantineConsensus
+        byzantineValidated: results.metadata.byzantineConsensus,
       });
-
     } catch (error) {
       this.logger.warn('Failed to cache detection results', error);
     }
@@ -1128,7 +1131,6 @@ export class RustFrameworkDetector {
       this.logger.debug('Executing Byzantine hook', { hookName, data });
 
       return true;
-
     } catch (error) {
       this.logger.warn(`Hook execution failed: ${hookName}`, error);
       return false;
@@ -1139,7 +1141,7 @@ export class RustFrameworkDetector {
 
   async getRustFiles() {
     const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 4 });
-    return allFiles.filter(file => path.extname(file).toLowerCase() === '.rs');
+    return allFiles.filter((file) => path.extname(file).toLowerCase() === '.rs');
   }
 
   async getFileList(dir, options = {}) {
@@ -1156,8 +1158,10 @@ export class RustFrameworkDetector {
           const fullPath = path.join(currentDir, entry.name);
 
           // Skip target directory and other build artifacts
-          if (entry.isDirectory() &&
-              ['target', '.git', 'node_modules', '__pycache__'].includes(entry.name)) {
+          if (
+            entry.isDirectory() &&
+            ['target', '.git', 'node_modules', '__pycache__'].includes(entry.name)
+          ) {
             continue;
           }
 
@@ -1181,7 +1185,7 @@ export class RustFrameworkDetector {
       const files = await this.getFileList(this.basePath, { recursive: true, maxDepth: 2 });
       const regexPattern = pattern.replace(/\*/g, '.*');
       const regex = new RegExp(regexPattern);
-      return files.some(file => regex.test(path.basename(file)));
+      return files.some((file) => regex.test(path.basename(file)));
     } else {
       return await this.pathExists(path.join(this.basePath, pattern));
     }
@@ -1189,7 +1193,7 @@ export class RustFrameworkDetector {
 
   async countFilesByExtension(extension) {
     const files = await this.getFileList(this.basePath, { recursive: true, maxDepth: 3 });
-    return files.filter(file => path.extname(file).toLowerCase() === extension).length;
+    return files.filter((file) => path.extname(file).toLowerCase() === extension).length;
   }
 
   async fileExists(filePath) {
@@ -1252,14 +1256,19 @@ export class RustFrameworkDetector {
         let value = line.slice(equalsIndex + 1).trim();
 
         // Remove quotes
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
           value = value.slice(1, -1);
         }
 
         // Handle arrays (basic support)
         if (value.startsWith('[') && value.endsWith(']')) {
-          value = value.slice(1, -1).split(',').map(v => v.trim().replace(/['"]/g, ''));
+          value = value
+            .slice(1, -1)
+            .split(',')
+            .map((v) => v.trim().replace(/['"]/g, ''));
         }
 
         if (currentSubSection) {

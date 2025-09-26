@@ -26,7 +26,7 @@ export class ExperimentalConfig {
         showWarnings: true,
         requireConsent: true,
         enableTelemetry: true,
-        maxConcurrentExperimental: 3
+        maxConcurrentExperimental: 3,
       },
 
       // Feature flags for different categories
@@ -54,7 +54,7 @@ export class ExperimentalConfig {
         'experimental.performance.precision.enabled': false,
         'experimental.math.advanced.enabled': false,
         'experimental.math.matrix.enabled': false,
-        'experimental.analysis.graph.enabled': false
+        'experimental.analysis.graph.enabled': false,
       },
 
       // Per-feature configurations
@@ -65,43 +65,43 @@ export class ExperimentalConfig {
             enabled: false,
             stability: 'alpha',
             maxInstances: 1,
-            resourceLimits: { cpu: 50, memory: 256 }
+            resourceLimits: { cpu: 50, memory: 256 },
           },
           'byzantine-coordinator': {
             enabled: false,
             stability: 'alpha',
             maxInstances: 1,
-            resourceLimits: { cpu: 40, memory: 128 }
+            resourceLimits: { cpu: 40, memory: 128 },
           },
           'raft-manager': {
             enabled: false,
             stability: 'beta',
             maxInstances: 1,
-            resourceLimits: { cpu: 30, memory: 128 }
+            resourceLimits: { cpu: 30, memory: 128 },
           },
           'gossip-coordinator': {
             enabled: false,
             stability: 'beta',
             maxInstances: 1,
-            resourceLimits: { cpu: 25, memory: 96 }
+            resourceLimits: { cpu: 25, memory: 96 },
           },
           'crdt-synchronizer': {
             enabled: false,
             stability: 'alpha',
             maxInstances: 1,
-            resourceLimits: { cpu: 35, memory: 200 }
+            resourceLimits: { cpu: 35, memory: 200 },
           },
           'quorum-manager': {
             enabled: false,
             stability: 'beta',
             maxInstances: 1,
-            resourceLimits: { cpu: 20, memory: 64 }
+            resourceLimits: { cpu: 20, memory: 64 },
           },
           'security-manager': {
             enabled: false,
             stability: 'alpha',
             maxInstances: 1,
-            resourceLimits: { cpu: 30, memory: 128 }
+            resourceLimits: { cpu: 30, memory: 128 },
           },
 
           // Neural and AI features
@@ -109,25 +109,25 @@ export class ExperimentalConfig {
             enabled: false,
             stability: 'research',
             maxInstances: 1,
-            resourceLimits: { cpu: 80, memory: 512 }
+            resourceLimits: { cpu: 80, memory: 512 },
           },
           'consciousness-evolution': {
             enabled: false,
             stability: 'research',
             maxInstances: 1,
-            resourceLimits: { cpu: 90, memory: 1024 }
+            resourceLimits: { cpu: 90, memory: 1024 },
           },
           'psycho-symbolic': {
             enabled: false,
             stability: 'research',
             maxInstances: 1,
-            resourceLimits: { cpu: 70, memory: 512 }
+            resourceLimits: { cpu: 70, memory: 512 },
           },
           'safla-neural': {
             enabled: false,
             stability: 'research',
             maxInstances: 1,
-            resourceLimits: { cpu: 85, memory: 768 }
+            resourceLimits: { cpu: 85, memory: 768 },
           },
 
           // Performance and math features
@@ -135,27 +135,27 @@ export class ExperimentalConfig {
             enabled: false,
             stability: 'alpha',
             maxInstances: 2,
-            resourceLimits: { cpu: 60, memory: 256 }
+            resourceLimits: { cpu: 60, memory: 256 },
           },
           'nanosecond-scheduler': {
             enabled: false,
             stability: 'alpha',
             maxInstances: 1,
-            resourceLimits: { cpu: 40, memory: 128 }
+            resourceLimits: { cpu: 40, memory: 128 },
           },
           'matrix-solver': {
             enabled: false,
             stability: 'beta',
             maxInstances: 2,
-            resourceLimits: { cpu: 70, memory: 512 }
+            resourceLimits: { cpu: 70, memory: 512 },
           },
-          'pagerank': {
+          pagerank: {
             enabled: false,
             stability: 'beta',
             maxInstances: 1,
-            resourceLimits: { cpu: 50, memory: 256 }
-          }
-        }
+            resourceLimits: { cpu: 50, memory: 256 },
+          },
+        },
       },
 
       // Performance monitoring settings
@@ -165,10 +165,10 @@ export class ExperimentalConfig {
         alertThresholds: {
           cpu: { warning: 70, critical: 85 },
           memory: { warning: 75, critical: 90 },
-          responseTime: { warning: 1000, critical: 5000 }
+          responseTime: { warning: 1000, critical: 5000 },
         },
         retentionPeriod: 86400000, // 24 hours
-        autoDisableOnCritical: true
+        autoDisableOnCritical: true,
       },
 
       // User interface settings
@@ -177,8 +177,8 @@ export class ExperimentalConfig {
         enableAdvancedMode: false,
         hideWarningsAfterAcknowledge: false,
         groupByStability: true,
-        showRiskIndicators: true
-      }
+        showRiskIndicators: true,
+      },
     };
   }
 
@@ -211,7 +211,6 @@ export class ExperimentalConfig {
 
       // Load feature flags into memory
       this.loadFeatureFlags(mergedConfig.featureFlags || {});
-
     } catch (error) {
       console.error('[ExperimentalConfig] Failed to load configuration:', error);
       // Use defaults on failure
@@ -453,16 +452,16 @@ export class ExperimentalConfig {
     const summary = {
       featureFlags: {
         total: this.featureFlags.size,
-        enabled: Array.from(this.featureFlags.values()).filter(v => v).length
+        enabled: Array.from(this.featureFlags.values()).filter((v) => v).length,
       },
       experimentalFeatures: {
         total: Object.keys(FeatureClassification.EXPERIMENTAL_AGENTS).length,
-        byStability: {}
+        byStability: {},
       },
       users: {
         total: this.userProfiles.size,
-        byLevel: {}
-      }
+        byLevel: {},
+      },
     };
 
     // Count features by stability
@@ -499,7 +498,7 @@ export class ExperimentalConfig {
       timestamp: new Date().toISOString(),
       configuration: await this.configManager.get('experimental'),
       featureFlags: Object.fromEntries(this.featureFlags),
-      userProfiles: Object.fromEntries(this.userProfiles)
+      userProfiles: Object.fromEntries(this.userProfiles),
     };
   }
 

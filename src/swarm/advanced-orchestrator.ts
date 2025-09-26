@@ -1,6 +1,6 @@
 /**
  * Advanced Swarm Orchestration Engine
- * 
+ *
  * This is the core orchestration engine that manages swarm lifecycle,
  * agent coordination, task distribution, and result aggregation.
  * It integrates with existing MCP tools and provides production-ready
@@ -43,17 +43,17 @@ export interface AdvancedSwarmConfig extends SwarmConfig {
   loadBalancing: boolean;
   faultTolerance: boolean;
   realTimeMonitoring: boolean;
-  
+
   // Performance settings
   maxThroughput: number;
   latencyTarget: number;
   reliabilityTarget: number;
-  
+
   // Integration settings
   mcpIntegration: boolean;
   hiveIntegration: boolean;
   claudeCodeIntegration: boolean;
-  
+
   // Neural capabilities
   neuralProcessing: boolean;
   learningEnabled: boolean;
@@ -107,10 +107,10 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
   constructor(config: Partial<AdvancedSwarmConfig> = {}) {
     super();
-    
+
     this.logger = new Logger('AdvancedSwarmOrchestrator');
     this.config = this.createDefaultConfig(config);
-    
+
     // Initialize components
     this.coordinator = new SwarmCoordinator({
       maxAgents: this.config.maxAgents,
@@ -147,20 +147,19 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
     }
 
     this.logger.info('Initializing advanced swarm orchestrator...');
-    
+
     try {
       // Initialize subsystems
       await this.coordinator.start();
       await this.memoryManager.initialize();
-      
+
       // Start background processes
       this.startHealthChecks();
       this.startMetricsCollection();
-      
+
       this.isRunning = true;
       this.logger.info('Advanced swarm orchestrator initialized successfully');
       this.emit('orchestrator:initialized');
-      
     } catch (error) {
       this.logger.error('Failed to initialize orchestrator', error);
       throw error;
@@ -176,7 +175,7 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
     }
 
     this.logger.info('Shutting down advanced swarm orchestrator...');
-    
+
     try {
       // Stop background processes
       if (this.healthCheckInterval) {
@@ -187,8 +186,8 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
       }
 
       // Shutdown active swarms gracefully
-      const shutdownPromises = Array.from(this.activeSwarms.keys()).map(
-        swarmId => this.stopSwarm(swarmId, 'Orchestrator shutdown')
+      const shutdownPromises = Array.from(this.activeSwarms.keys()).map((swarmId) =>
+        this.stopSwarm(swarmId, 'Orchestrator shutdown'),
       );
       await Promise.allSettled(shutdownPromises);
 
@@ -198,7 +197,6 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
       this.isRunning = false;
       this.logger.info('Advanced swarm orchestrator shut down successfully');
       this.emit('orchestrator:shutdown');
-      
     } catch (error) {
       this.logger.error('Error during orchestrator shutdown', error);
       throw error;
@@ -211,7 +209,7 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
   async createSwarm(
     objective: string,
     strategy: SwarmObjective['strategy'] = 'auto',
-    options: Partial<SwarmDeploymentOptions> = {}
+    options: Partial<SwarmDeploymentOptions> = {},
   ): Promise<string> {
     const swarmId = generateId('swarm');
     const swarmObjective: SwarmObjective = {
@@ -341,13 +339,13 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
       context.objective.tasks = tasks;
 
       // Store tasks in context
-      tasks.forEach(task => {
+      tasks.forEach((task) => {
         context.tasks.set(task.id.id, task as SwarmTask);
       });
 
       // Spawn required agents
       const agents = await this.spawnRequiredAgents(context);
-      agents.forEach(agent => {
+      agents.forEach((agent) => {
         context.agents.set(agent.id, agent);
       });
 
@@ -362,7 +360,6 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
       });
 
       this.emit('swarm:started', { swarmId, context });
-
     } catch (error) {
       context.objective.status = 'failed';
       this.logger.error('Failed to start swarm', { swarmId, error });
@@ -412,7 +409,6 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
       this.logger.info('Swarm stopped successfully', { swarmId, reason });
       this.emit('swarm:stopped', { swarmId, reason, context });
-
     } catch (error) {
       this.logger.error('Error stopping swarm', { swarmId, error });
       throw error;
@@ -461,10 +457,14 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
       swarms: swarmMetrics,
       system: {
         activeSwarms: this.activeSwarms.size,
-        totalAgents: Array.from(this.activeSwarms.values())
-          .reduce((sum, ctx) => sum + ctx.agents.size, 0),
-        totalTasks: Array.from(this.activeSwarms.values())
-          .reduce((sum, ctx) => sum + ctx.tasks.size, 0),
+        totalAgents: Array.from(this.activeSwarms.values()).reduce(
+          (sum, ctx) => sum + ctx.agents.size,
+          0,
+        ),
+        totalTasks: Array.from(this.activeSwarms.values()).reduce(
+          (sum, ctx) => sum + ctx.tasks.size,
+          0,
+        ),
         uptime: this.isRunning ? Date.now() - performance.timeOrigin : 0,
         memoryUsage: process.memoryUsage().heapUsed,
         cpuUsage: process.cpuUsage().user,
@@ -518,7 +518,8 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
         // Check for stalled swarms
         const swarmAge = Date.now() - context.startTime.getTime();
-        if (swarmAge > 3600000 && context.objective.status === 'executing') { // 1 hour
+        if (swarmAge > 3600000 && context.objective.status === 'executing') {
+          // 1 hour
           issues.push(`Swarm ${swarmId} appears to be stalled`);
         }
       }
@@ -537,7 +538,6 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
         },
         timestamp: new Date(),
       };
-
     } catch (error) {
       issues.push(`Health check failed: ${error instanceof Error ? error.message : String(error)}`);
       return {
@@ -558,41 +558,151 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
     switch (objective.strategy) {
       case 'research':
         tasks.push(
-          this.createTaskDefinition(`${baseTaskId}-1`, 'research', 'Conduct comprehensive research', 'high', []),
-          this.createTaskDefinition(`${baseTaskId}-2`, 'analysis', 'Analyze research findings', 'high', [`${baseTaskId}-1`]),
-          this.createTaskDefinition(`${baseTaskId}-3`, 'synthesis', 'Synthesize insights and recommendations', 'high', [`${baseTaskId}-2`]),
-          this.createTaskDefinition(`${baseTaskId}-4`, 'documentation', 'Create research documentation', 'medium', [`${baseTaskId}-3`]),
+          this.createTaskDefinition(
+            `${baseTaskId}-1`,
+            'research',
+            'Conduct comprehensive research',
+            'high',
+            [],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-2`,
+            'analysis',
+            'Analyze research findings',
+            'high',
+            [`${baseTaskId}-1`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-3`,
+            'synthesis',
+            'Synthesize insights and recommendations',
+            'high',
+            [`${baseTaskId}-2`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-4`,
+            'documentation',
+            'Create research documentation',
+            'medium',
+            [`${baseTaskId}-3`],
+          ),
         );
         break;
 
       case 'development':
         tasks.push(
-          this.createTaskDefinition(`${baseTaskId}-1`, 'system-design', 'Design system architecture', 'high', []),
-          this.createTaskDefinition(`${baseTaskId}-2`, 'code-generation', 'Generate core implementation', 'high', [`${baseTaskId}-1`]),
-          this.createTaskDefinition(`${baseTaskId}-3`, 'unit-testing', 'Create comprehensive tests', 'high', [`${baseTaskId}-2`]),
-          this.createTaskDefinition(`${baseTaskId}-4`, 'integration-testing', 'Perform integration testing', 'high', [`${baseTaskId}-3`]),
-          this.createTaskDefinition(`${baseTaskId}-5`, 'code-review', 'Conduct code review', 'medium', [`${baseTaskId}-4`]),
-          this.createTaskDefinition(`${baseTaskId}-6`, 'documentation', 'Create technical documentation', 'medium', [`${baseTaskId}-5`]),
+          this.createTaskDefinition(
+            `${baseTaskId}-1`,
+            'system-design',
+            'Design system architecture',
+            'high',
+            [],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-2`,
+            'code-generation',
+            'Generate core implementation',
+            'high',
+            [`${baseTaskId}-1`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-3`,
+            'unit-testing',
+            'Create comprehensive tests',
+            'high',
+            [`${baseTaskId}-2`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-4`,
+            'integration-testing',
+            'Perform integration testing',
+            'high',
+            [`${baseTaskId}-3`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-5`,
+            'code-review',
+            'Conduct code review',
+            'medium',
+            [`${baseTaskId}-4`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-6`,
+            'documentation',
+            'Create technical documentation',
+            'medium',
+            [`${baseTaskId}-5`],
+          ),
         );
         break;
 
       case 'analysis':
         tasks.push(
-          this.createTaskDefinition(`${baseTaskId}-1`, 'data-collection', 'Collect and prepare data', 'high', []),
-          this.createTaskDefinition(`${baseTaskId}-2`, 'data-analysis', 'Perform statistical analysis', 'high', [`${baseTaskId}-1`]),
-          this.createTaskDefinition(`${baseTaskId}-3`, 'visualization', 'Create data visualizations', 'medium', [`${baseTaskId}-2`]),
-          this.createTaskDefinition(`${baseTaskId}-4`, 'reporting', 'Generate analysis report', 'high', [`${baseTaskId}-2`, `${baseTaskId}-3`]),
+          this.createTaskDefinition(
+            `${baseTaskId}-1`,
+            'data-collection',
+            'Collect and prepare data',
+            'high',
+            [],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-2`,
+            'data-analysis',
+            'Perform statistical analysis',
+            'high',
+            [`${baseTaskId}-1`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-3`,
+            'visualization',
+            'Create data visualizations',
+            'medium',
+            [`${baseTaskId}-2`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-4`,
+            'reporting',
+            'Generate analysis report',
+            'high',
+            [`${baseTaskId}-2`, `${baseTaskId}-3`],
+          ),
         );
         break;
 
       default: // auto
         // Use AI-driven decomposition based on objective description
         tasks.push(
-          this.createTaskDefinition(`${baseTaskId}-1`, 'exploration', 'Explore and understand requirements', 'high', []),
-          this.createTaskDefinition(`${baseTaskId}-2`, 'planning', 'Create detailed execution plan', 'high', [`${baseTaskId}-1`]),
-          this.createTaskDefinition(`${baseTaskId}-3`, 'execution', 'Execute main tasks', 'high', [`${baseTaskId}-2`]),
-          this.createTaskDefinition(`${baseTaskId}-4`, 'validation', 'Validate and test results', 'high', [`${baseTaskId}-3`]),
-          this.createTaskDefinition(`${baseTaskId}-5`, 'completion', 'Finalize and document outcomes', 'medium', [`${baseTaskId}-4`]),
+          this.createTaskDefinition(
+            `${baseTaskId}-1`,
+            'exploration',
+            'Explore and understand requirements',
+            'high',
+            [],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-2`,
+            'planning',
+            'Create detailed execution plan',
+            'high',
+            [`${baseTaskId}-1`],
+          ),
+          this.createTaskDefinition(`${baseTaskId}-3`, 'execution', 'Execute main tasks', 'high', [
+            `${baseTaskId}-2`,
+          ]),
+          this.createTaskDefinition(
+            `${baseTaskId}-4`,
+            'validation',
+            'Validate and test results',
+            'high',
+            [`${baseTaskId}-3`],
+          ),
+          this.createTaskDefinition(
+            `${baseTaskId}-5`,
+            'completion',
+            'Finalize and document outcomes',
+            'medium',
+            [`${baseTaskId}-4`],
+          ),
         );
     }
 
@@ -622,7 +732,7 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
     type: string,
     description: string,
     priority: 'high' | 'medium' | 'low',
-    dependencies: string[]
+    dependencies: string[],
   ): TaskDefinition {
     return {
       id: { id, swarmId: '', sequence: 0, priority: this.getPriorityNumber(priority) },
@@ -638,7 +748,12 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
         memoryRequired: 512 * 1024 * 1024, // 512MB
       },
       constraints: {
-        dependencies: dependencies.map(depId => ({ id: depId, swarmId: '', sequence: 0, priority: 0 })),
+        dependencies: dependencies.map((depId) => ({
+          id: depId,
+          swarmId: '',
+          sequence: 0,
+          priority: 0,
+        })),
         dependents: [],
         conflicts: [],
         maxRetries: 3,
@@ -662,7 +777,7 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
     for (const agentType of requiredTypes) {
       const agentId = generateId('agent');
-      
+
       const agent: SwarmAgent = {
         id: agentId,
         name: `${agentType}-${agentId}`,
@@ -720,7 +835,6 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
           clearInterval(monitorInterval);
           await this.failSwarm(context, 'Too many failures or timeout');
         }
-
       } catch (error) {
         this.logger.error('Error monitoring swarm execution', {
           swarmId: context.swarmId.id,
@@ -733,9 +847,9 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
   private updateSwarmProgress(context: SwarmExecutionContext): void {
     const tasks = Array.from(context.tasks.values());
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const failedTasks = tasks.filter(t => t.status === 'failed').length;
-    const runningTasks = tasks.filter(t => t.status === 'running').length;
+    const completedTasks = tasks.filter((t) => t.status === 'completed').length;
+    const failedTasks = tasks.filter((t) => t.status === 'failed').length;
+    const runningTasks = tasks.filter((t) => t.status === 'running').length;
 
     context.objective.progress = {
       totalTasks,
@@ -750,20 +864,20 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
       passedTests: 0,
       resourceUtilization: {},
       costSpent: 0,
-      activeAgents: Array.from(context.agents.values()).filter(a => a.status === 'busy').length,
-      idleAgents: Array.from(context.agents.values()).filter(a => a.status === 'idle').length,
-      busyAgents: Array.from(context.agents.values()).filter(a => a.status === 'busy').length,
+      activeAgents: Array.from(context.agents.values()).filter((a) => a.status === 'busy').length,
+      idleAgents: Array.from(context.agents.values()).filter((a) => a.status === 'idle').length,
+      busyAgents: Array.from(context.agents.values()).filter((a) => a.status === 'busy').length,
     };
   }
 
   private isSwarmComplete(context: SwarmExecutionContext): boolean {
     const tasks = Array.from(context.tasks.values());
-    return tasks.every(task => task.status === 'completed' || task.status === 'failed');
+    return tasks.every((task) => task.status === 'completed' || task.status === 'failed');
   }
 
   private shouldFailSwarm(context: SwarmExecutionContext): boolean {
     const tasks = Array.from(context.tasks.values());
-    const failedTasks = tasks.filter(t => t.status === 'failed').length;
+    const failedTasks = tasks.filter((t) => t.status === 'failed').length;
     const totalTasks = tasks.length;
 
     // Fail if too many tasks failed
@@ -772,7 +886,10 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
     }
 
     // Fail if deadline exceeded
-    if (context.objective.constraints.deadline && new Date() > context.objective.constraints.deadline) {
+    if (
+      context.objective.constraints.deadline &&
+      new Date() > context.objective.constraints.deadline
+    ) {
       return true;
     }
 
@@ -813,8 +930,8 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
   private async collectSwarmResults(context: SwarmExecutionContext): Promise<SwarmResults> {
     const tasks = Array.from(context.tasks.values());
-    const completedTasks = tasks.filter(t => t.status === 'completed');
-    const failedTasks = tasks.filter(t => t.status === 'failed');
+    const completedTasks = tasks.filter((t) => t.status === 'completed');
+    const failedTasks = tasks.filter((t) => t.status === 'failed');
 
     return {
       outputs: {},
@@ -825,8 +942,8 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
       totalExecutionTime: context.endTime!.getTime() - context.startTime.getTime(),
       resourcesUsed: {},
       efficiency: completedTasks.length / tasks.length,
-      objectivesMet: completedTasks.map(t => t.id),
-      objectivesFailed: failedTasks.map(t => t.id),
+      objectivesMet: completedTasks.map((t) => t.id),
+      objectivesFailed: failedTasks.map((t) => t.id),
       improvements: [],
       nextActions: [],
     };
@@ -905,10 +1022,14 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
   private getPriorityNumber(priority: string): number {
     switch (priority) {
-      case 'high': return 1;
-      case 'medium': return 2;
-      case 'low': return 3;
-      default: return 2;
+      case 'high':
+        return 1;
+      case 'medium':
+        return 2;
+      case 'low':
+        return 3;
+      default:
+        return 2;
     }
   }
 
@@ -938,7 +1059,7 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
   private updateGlobalMetrics(): void {
     const swarms = Array.from(this.activeSwarms.values());
-    
+
     this.globalMetrics = {
       throughput: this.calculateGlobalThroughput(swarms),
       latency: this.calculateGlobalLatency(swarms),
@@ -968,18 +1089,24 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
 
   private calculateGlobalEfficiency(swarms: SwarmExecutionContext[]): number {
     const totalTasks = swarms.reduce((sum, ctx) => sum + ctx.objective.progress.totalTasks, 0);
-    const completedTasks = swarms.reduce((sum, ctx) => sum + ctx.objective.progress.completedTasks, 0);
+    const completedTasks = swarms.reduce(
+      (sum, ctx) => sum + ctx.objective.progress.completedTasks,
+      0,
+    );
     return totalTasks > 0 ? completedTasks / totalTasks : 0;
   }
 
   private calculateGlobalReliability(swarms: SwarmExecutionContext[]): number {
     const totalSwarms = swarms.length;
-    const successfulSwarms = swarms.filter(ctx => ctx.objective.status === 'completed').length;
+    const successfulSwarms = swarms.filter((ctx) => ctx.objective.status === 'completed').length;
     return totalSwarms > 0 ? successfulSwarms / totalSwarms : 1;
   }
 
   private calculateGlobalQuality(swarms: SwarmExecutionContext[]): number {
-    return swarms.reduce((sum, ctx) => sum + ctx.objective.progress.averageQuality, 0) / Math.max(swarms.length, 1);
+    return (
+      swarms.reduce((sum, ctx) => sum + ctx.objective.progress.averageQuality, 0) /
+      Math.max(swarms.length, 1)
+    );
   }
 
   private calculateGlobalDefectRate(swarms: SwarmExecutionContext[]): number {
@@ -990,7 +1117,9 @@ export class AdvancedSwarmOrchestrator extends EventEmitter {
     return 0.1; // Placeholder
   }
 
-  private calculateGlobalResourceUtilization(swarms: SwarmExecutionContext[]): Record<string, number> {
+  private calculateGlobalResourceUtilization(
+    swarms: SwarmExecutionContext[],
+  ): Record<string, number> {
     return {
       cpu: 0.6,
       memory: 0.7,

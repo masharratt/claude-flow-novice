@@ -7,7 +7,7 @@ import {
   trackTaskExecution,
   trackAgentActivity,
   trackNeuralEvent,
-  initializeMetrics
+  initializeMetrics,
 } from './performance-metrics.js';
 import { performance } from 'perf_hooks';
 
@@ -17,7 +17,7 @@ const activeOperations = new Map();
 // Initialize performance tracking
 export async function initializePerformanceTracking() {
   await initializeMetrics();
-  
+
   // Hook into global events if available
   if (global.claudeFlowHooks) {
     global.claudeFlowHooks.on('task:start', onTaskStart);
@@ -34,40 +34,28 @@ export function onTaskStart(taskId, taskType, metadata = {}) {
     type: 'task',
     taskType,
     startTime: performance.now(),
-    metadata
+    metadata,
   });
 }
 
 export async function onTaskEnd(taskId, success = true, error = null) {
   const operation = activeOperations.get(taskId);
   if (!operation) return;
-  
+
   const duration = performance.now() - operation.startTime;
   activeOperations.delete(taskId);
-  
-  await trackTaskExecution(
-    taskId,
-    operation.taskType,
-    success,
-    duration,
-    {
-      ...operation.metadata,
-      error: error ? error.message : undefined
-    }
-  );
+
+  await trackTaskExecution(taskId, operation.taskType, success, duration, {
+    ...operation.metadata,
+    error: error ? error.message : undefined,
+  });
 }
 
 // Agent tracking
 export async function onAgentSpawn(agentId, agentType, metadata = {}) {
   const startTime = performance.now();
-  
-  await trackAgentActivity(
-    agentId,
-    agentType,
-    'spawn',
-    performance.now() - startTime,
-    true
-  );
+
+  await trackAgentActivity(agentId, agentType, 'spawn', performance.now() - startTime, true);
 }
 
 export function onAgentActionStart(agentId, agentType, action) {
@@ -77,34 +65,22 @@ export function onAgentActionStart(agentId, agentType, action) {
     agentId,
     agentType,
     action,
-    startTime: performance.now()
+    startTime: performance.now(),
   });
 }
 
 export async function onAgentAction(agentId, agentType, action, success = true) {
   const key = `${agentId}:${action}`;
   const operation = activeOperations.get(key);
-  
+
   if (operation) {
     const duration = performance.now() - operation.startTime;
     activeOperations.delete(key);
-    
-    await trackAgentActivity(
-      agentId,
-      agentType,
-      action,
-      duration,
-      success
-    );
+
+    await trackAgentActivity(agentId, agentType, action, duration, success);
   } else {
     // Quick action without start tracking
-    await trackAgentActivity(
-      agentId,
-      agentType,
-      action,
-      0,
-      success
-    );
+    await trackAgentActivity(agentId, agentType, action, 0, success);
   }
 }
 
@@ -146,12 +122,12 @@ export function wrapAgentAction(agentId, agentType, action, fn) {
 export function trackCommand(commandName) {
   return function decorator(target, propertyKey, descriptor) {
     const originalMethod = descriptor.value;
-    
-    descriptor.value = async function(...args) {
+
+    descriptor.value = async function (...args) {
       const taskId = `cmd-${commandName}-${Date.now()}`;
       return wrapTaskExecution(taskId, commandName, originalMethod.bind(this))(...args);
     };
-    
+
     return descriptor;
   };
 }
@@ -169,5 +145,5 @@ export const performanceTracker = {
   trackAgent: onAgentAction,
   trackNeural: onNeuralEvent,
   wrapTask: wrapTaskExecution,
-  wrapAgent: wrapAgentAction
+  wrapAgent: wrapAgentAction,
 };

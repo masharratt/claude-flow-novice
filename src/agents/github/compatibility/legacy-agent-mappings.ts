@@ -11,7 +11,7 @@ import {
   PullRequest,
   Issue,
   WorkflowRun,
-  Release
+  Release,
 } from '../types';
 
 export const LEGACY_AGENT_MAPPINGS: LegacyAgentMapping[] = [
@@ -23,72 +23,43 @@ export const LEGACY_AGENT_MAPPINGS: LegacyAgentMapping[] = [
       'getRepositoryStructure',
       'configureRepository',
       'getWorkflows',
-      'monitorWorkflows'
-    ]
+      'monitorWorkflows',
+    ],
   },
   {
     legacy_type: 'pr-manager',
     consolidated_agent: 'collaboration',
-    methods: [
-      'createPullRequest',
-      'getPullRequests',
-      'updatePullRequest',
-      'mergePullRequest'
-    ]
+    methods: ['createPullRequest', 'getPullRequests', 'updatePullRequest', 'mergePullRequest'],
   },
   {
     legacy_type: 'code-review-swarm',
     consolidated_agent: 'collaboration',
-    methods: [
-      'createCodeReview',
-      'getPullRequestFiles',
-      'addReviewComments'
-    ]
+    methods: ['createCodeReview', 'getPullRequestFiles', 'addReviewComments'],
   },
   {
     legacy_type: 'issue-tracker',
     consolidated_agent: 'collaboration',
-    methods: [
-      'createIssue',
-      'getIssues',
-      'updateIssue',
-      'triageIssues'
-    ]
+    methods: ['createIssue', 'getIssues', 'updateIssue', 'triageIssues'],
   },
   {
     legacy_type: 'release-manager',
     consolidated_agent: 'release',
-    methods: [
-      'createRelease',
-      'getReleases',
-      'updateRelease',
-      'deleteRelease'
-    ]
+    methods: ['createRelease', 'getReleases', 'updateRelease', 'deleteRelease'],
   },
   {
     legacy_type: 'workflow-automation',
     consolidated_agent: 'integration',
-    methods: [
-      'getWorkflows',
-      'triggerWorkflow',
-      'monitorWorkflows'
-    ]
+    methods: ['getWorkflows', 'triggerWorkflow', 'monitorWorkflows'],
   },
   {
     legacy_type: 'project-board-sync',
     consolidated_agent: 'collaboration',
-    methods: [
-      'syncWithProjectBoards'
-    ]
+    methods: ['syncWithProjectBoards'],
   },
   {
     legacy_type: 'repo-architect',
     consolidated_agent: 'integration',
-    methods: [
-      'analyzeRepository',
-      'analyzeArchitecture',
-      'configureRepository'
-    ]
+    methods: ['analyzeRepository', 'analyzeArchitecture', 'configureRepository'],
   },
   {
     legacy_type: 'multi-repo-swarm',
@@ -97,175 +68,172 @@ export const LEGACY_AGENT_MAPPINGS: LegacyAgentMapping[] = [
       'coordinateMultiRepoRelease',
       'syncReleases',
       'triggerDeployments',
-      'monitorDeployments'
-    ]
+      'monitorDeployments',
+    ],
   },
   {
     legacy_type: 'github-integration',
     consolidated_agent: 'integration',
-    methods: [
-      'analyzeRepository',
-      'executeMultiRepoOperation',
-      'syncRepositoryConfigurations'
-    ]
+    methods: ['analyzeRepository', 'executeMultiRepoOperation', 'syncRepositoryConfigurations'],
   },
   {
     legacy_type: 'github-analytics',
     consolidated_agent: 'release',
-    methods: [
-      'generateReleaseAnalytics'
-    ]
+    methods: ['generateReleaseAnalytics'],
   },
   {
     legacy_type: 'github-security',
     consolidated_agent: 'integration',
     methods: [
-      'analyzeRepository' // Security analysis is part of repository analysis
-    ]
-  }
+      'analyzeRepository', // Security analysis is part of repository analysis
+    ],
+  },
 ];
 
-export const LEGACY_METHOD_MAPPINGS: Record<string, {
-  consolidated_agent: 'integration' | 'collaboration' | 'release';
-  method_name: string;
-  parameter_mapping?: (args: any[]) => any[];
-}> = {
+export const LEGACY_METHOD_MAPPINGS: Record<
+  string,
+  {
+    consolidated_agent: 'integration' | 'collaboration' | 'release';
+    method_name: string;
+    parameter_mapping?: (args: any[]) => any[];
+  }
+> = {
   // GitHub Modes (Integration Manager)
-  'repo_analyze': {
+  repo_analyze: {
     consolidated_agent: 'integration',
-    method_name: 'analyzeRepository'
+    method_name: 'analyzeRepository',
   },
-  'repo_structure': {
+  repo_structure: {
     consolidated_agent: 'integration',
-    method_name: 'getRepositoryStructure'
+    method_name: 'getRepositoryStructure',
   },
-  'repo_configure': {
+  repo_configure: {
     consolidated_agent: 'integration',
-    method_name: 'configureRepository'
+    method_name: 'configureRepository',
   },
-  'workflow_list': {
+  workflow_list: {
     consolidated_agent: 'integration',
-    method_name: 'getWorkflows'
+    method_name: 'getWorkflows',
   },
-  'workflow_trigger': {
+  workflow_trigger: {
     consolidated_agent: 'integration',
-    method_name: 'triggerWorkflow'
+    method_name: 'triggerWorkflow',
   },
-  'workflow_monitor': {
+  workflow_monitor: {
     consolidated_agent: 'integration',
-    method_name: 'monitorWorkflows'
+    method_name: 'monitorWorkflows',
   },
 
   // PR Manager (Collaboration Manager)
-  'pr_create': {
+  pr_create: {
     consolidated_agent: 'collaboration',
-    method_name: 'createPullRequest'
+    method_name: 'createPullRequest',
   },
-  'pr_list': {
+  pr_list: {
     consolidated_agent: 'collaboration',
-    method_name: 'getPullRequests'
+    method_name: 'getPullRequests',
   },
-  'pr_update': {
+  pr_update: {
     consolidated_agent: 'collaboration',
-    method_name: 'updatePullRequest'
+    method_name: 'updatePullRequest',
   },
-  'pr_merge': {
+  pr_merge: {
     consolidated_agent: 'collaboration',
-    method_name: 'mergePullRequest'
+    method_name: 'mergePullRequest',
   },
 
   // Code Review Swarm (Collaboration Manager)
-  'review_create': {
+  review_create: {
     consolidated_agent: 'collaboration',
-    method_name: 'createCodeReview'
+    method_name: 'createCodeReview',
   },
-  'review_files': {
+  review_files: {
     consolidated_agent: 'collaboration',
-    method_name: 'getPullRequestFiles'
+    method_name: 'getPullRequestFiles',
   },
-  'review_comment': {
+  review_comment: {
     consolidated_agent: 'collaboration',
-    method_name: 'addReviewComments'
+    method_name: 'addReviewComments',
   },
 
   // Issue Tracker (Collaboration Manager)
-  'issue_create': {
+  issue_create: {
     consolidated_agent: 'collaboration',
-    method_name: 'createIssue'
+    method_name: 'createIssue',
   },
-  'issue_list': {
+  issue_list: {
     consolidated_agent: 'collaboration',
-    method_name: 'getIssues'
+    method_name: 'getIssues',
   },
-  'issue_update': {
+  issue_update: {
     consolidated_agent: 'collaboration',
-    method_name: 'updateIssue'
+    method_name: 'updateIssue',
   },
-  'issue_triage': {
+  issue_triage: {
     consolidated_agent: 'collaboration',
-    method_name: 'triageIssues'
+    method_name: 'triageIssues',
   },
 
   // Release Manager (Release Coordinator)
-  'release_create': {
+  release_create: {
     consolidated_agent: 'release',
-    method_name: 'createRelease'
+    method_name: 'createRelease',
   },
-  'release_list': {
+  release_list: {
     consolidated_agent: 'release',
-    method_name: 'getReleases'
+    method_name: 'getReleases',
   },
-  'release_update': {
+  release_update: {
     consolidated_agent: 'release',
-    method_name: 'updateRelease'
+    method_name: 'updateRelease',
   },
-  'release_delete': {
+  release_delete: {
     consolidated_agent: 'release',
-    method_name: 'deleteRelease'
+    method_name: 'deleteRelease',
   },
 
   // Multi-Repo Operations (Release Coordinator)
-  'multi_repo_release': {
+  multi_repo_release: {
     consolidated_agent: 'release',
-    method_name: 'coordinateMultiRepoRelease'
+    method_name: 'coordinateMultiRepoRelease',
   },
-  'sync_releases': {
+  sync_releases: {
     consolidated_agent: 'release',
-    method_name: 'syncReleases'
+    method_name: 'syncReleases',
   },
-  'deploy_trigger': {
+  deploy_trigger: {
     consolidated_agent: 'release',
-    method_name: 'triggerDeployments'
+    method_name: 'triggerDeployments',
   },
-  'deploy_monitor': {
+  deploy_monitor: {
     consolidated_agent: 'release',
-    method_name: 'monitorDeployments'
+    method_name: 'monitorDeployments',
   },
 
   // Project Board Sync (Collaboration Manager)
-  'board_sync': {
+  board_sync: {
     consolidated_agent: 'collaboration',
-    method_name: 'syncWithProjectBoards'
+    method_name: 'syncWithProjectBoards',
   },
 
   // Repository Architecture (Integration Manager)
-  'arch_analyze': {
+  arch_analyze: {
     consolidated_agent: 'integration',
-    method_name: 'analyzeArchitecture'
+    method_name: 'analyzeArchitecture',
   },
 
   // Analytics (Release Coordinator)
-  'analytics_generate': {
+  analytics_generate: {
     consolidated_agent: 'release',
-    method_name: 'generateReleaseAnalytics'
-  }
+    method_name: 'generateReleaseAnalytics',
+  },
 };
 
 /**
  * Maps legacy agent types to their consolidated counterparts
  */
 export function getLegacyMapping(legacyType: LegacyAgentType): LegacyAgentMapping | null {
-  return LEGACY_AGENT_MAPPINGS.find(mapping => mapping.legacy_type === legacyType) || null;
+  return LEGACY_AGENT_MAPPINGS.find((mapping) => mapping.legacy_type === legacyType) || null;
 }
 
 /**
@@ -283,11 +251,11 @@ export function getLegacyMethodMapping(legacyMethod: string): {
  * Get all legacy agent types that map to a consolidated agent
  */
 export function getLegacyTypesForConsolidatedAgent(
-  consolidatedAgent: 'integration' | 'collaboration' | 'release'
+  consolidatedAgent: 'integration' | 'collaboration' | 'release',
 ): LegacyAgentType[] {
-  return LEGACY_AGENT_MAPPINGS
-    .filter(mapping => mapping.consolidated_agent === consolidatedAgent)
-    .map(mapping => mapping.legacy_type);
+  return LEGACY_AGENT_MAPPINGS.filter(
+    (mapping) => mapping.consolidated_agent === consolidatedAgent,
+  ).map((mapping) => mapping.legacy_type);
 }
 
 /**
@@ -321,7 +289,7 @@ export function getMigrationSuggestions(legacyType: LegacyAgentType): {
       consolidated_agent: 'unknown',
       migration_steps: ['Legacy agent type not recognized'],
       breaking_changes: [],
-      compatibility_notes: []
+      compatibility_notes: [],
     };
   }
 
@@ -331,31 +299,31 @@ export function getMigrationSuggestions(legacyType: LegacyAgentType): {
       `Replace '${legacyType}' with '${mapping.consolidated_agent}' agent`,
       `Update method calls to use consolidated agent methods`,
       `Review parameter structures for any changes`,
-      `Test functionality with new agent implementation`
+      `Test functionality with new agent implementation`,
     ],
     breaking_changes: [],
     compatibility_notes: [
       'All legacy methods are supported through compatibility layer',
       'Performance improvements may change timing behavior',
-      'Error handling has been improved and may return different error structures'
-    ]
+      'Error handling has been improved and may return different error structures',
+    ],
   };
 
   // Add specific breaking changes based on legacy type
   switch (legacyType) {
     case 'github-modes':
       suggestions.breaking_changes.push(
-        'Mode-specific methods consolidated into general repository operations'
+        'Mode-specific methods consolidated into general repository operations',
       );
       break;
     case 'code-review-swarm':
       suggestions.breaking_changes.push(
-        'Swarm coordination replaced with single agent review capabilities'
+        'Swarm coordination replaced with single agent review capabilities',
       );
       break;
     case 'multi-repo-swarm':
       suggestions.breaking_changes.push(
-        'Swarm-based coordination replaced with dependency-aware release coordination'
+        'Swarm-based coordination replaced with dependency-aware release coordination',
       );
       break;
   }

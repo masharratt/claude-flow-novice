@@ -140,12 +140,12 @@ async function preTaskCommand(subArgs, flags) {
     // Execute ruv-swarm hook if available (with timeout for npx scenarios)
     try {
       const checkPromise = checkRuvSwarmAvailable();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 3000),
       );
-      
+
       const isAvailable = await Promise.race([checkPromise, timeoutPromise]);
-      
+
       if (isAvailable) {
         console.log(`\n🔄 Executing ruv-swarm pre-task hook...`);
         const hookResult = await execRuvSwarmHook('pre-task', {
@@ -174,24 +174,24 @@ async function preTaskCommand(subArgs, flags) {
     }
 
     console.log(`\n🎯 TASK PREPARATION COMPLETE`);
-    
+
     // Close the memory store to prevent hanging
     if (memoryStore && memoryStore.close) {
       memoryStore.close();
     }
-    
+
     // Force exit after a short delay to ensure cleanup
     setTimeout(() => {
       process.exit(0);
     }, 100);
   } catch (err) {
     printError(`Pre-task hook failed: ${err.message}`);
-    
+
     // Close the memory store on error too
     if (memoryStore && memoryStore.close) {
       memoryStore.close();
     }
-    
+
     // Force exit after a short delay to ensure cleanup
     setTimeout(() => {
       process.exit(1);
@@ -330,8 +330,14 @@ async function preBashCommand(subArgs, flags) {
   const options = flags;
   const command = options.command || subArgs.slice(1).join(' ') || '';
   const workingDir = options.cwd || process.cwd();
-  const validateSafety = options['validate-safety'] === true || options['validate-safety'] === 'true' || options.validate === true || options.validate === 'true' || false;
-  const prepareResources = options['prepare-resources'] === true || options['prepare-resources'] === 'true' || false;
+  const validateSafety =
+    options['validate-safety'] === true ||
+    options['validate-safety'] === 'true' ||
+    options.validate === true ||
+    options.validate === 'true' ||
+    false;
+  const prepareResources =
+    options['prepare-resources'] === true || options['prepare-resources'] === 'true' || false;
 
   console.log(`🔧 Executing pre-bash hook...`);
   console.log(`📜 Command: ${command}`);
@@ -359,11 +365,12 @@ async function preBashCommand(subArgs, flags) {
         'chmod 777',
       ];
 
-      const isDangerous = command && typeof command === 'string' && command.length > 0 
-        ? dangerousCommands.some((dangerous) =>
-            command.toLowerCase().includes(dangerous.toLowerCase()),
-          )
-        : false;
+      const isDangerous =
+        command && typeof command === 'string' && command.length > 0
+          ? dangerousCommands.some((dangerous) =>
+              command.toLowerCase().includes(dangerous.toLowerCase()),
+            )
+          : false;
 
       safetyResult = isDangerous ? 'dangerous' : 'safe';
 
@@ -470,7 +477,7 @@ async function postEditCommand(subArgs, flags) {
   const options = flags;
   const file = options.file || 'unknown-file';
   let memoryKey = options['memory-key'] || options.memoryKey;
-  
+
   // Handle case where memory-key is passed as a boolean flag without value
   if (memoryKey === true) {
     // Generate a default memory key based on the file path and timestamp
@@ -478,7 +485,7 @@ async function postEditCommand(subArgs, flags) {
     const basename = path.basename(file);
     memoryKey = `edit:${basename}:${Date.now()}`;
   }
-  
+
   const format = options.format || false;
   const updateMemory = options['update-memory'] || false;
   const trainNeural = options['train-neural'] || false;

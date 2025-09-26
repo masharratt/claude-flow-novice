@@ -68,7 +68,7 @@ export class TeamCollaborationCLI {
       description: '',
       mode: 'developer',
       members: [],
-      sharedPreferences: {}
+      sharedPreferences: {},
     };
 
     if (interactive) {
@@ -104,7 +104,7 @@ export class TeamCollaborationCLI {
         type: 'input',
         name: 'description',
         message: 'Team description (optional):',
-        default: ''
+        default: '',
       },
       {
         type: 'list',
@@ -113,33 +113,33 @@ export class TeamCollaborationCLI {
         choices: [
           {
             name: 'Developer Team - Code quality focused',
-            value: 'developer'
+            value: 'developer',
           },
           {
             name: 'Research Team - Documentation focused',
-            value: 'research'
+            value: 'research',
           },
           {
             name: 'Enterprise Team - Standardized settings',
-            value: 'enterprise'
+            value: 'enterprise',
           },
           {
             name: 'Flexible Team - Minimal shared preferences',
-            value: 'flexible'
-          }
-        ]
+            value: 'flexible',
+          },
+        ],
       },
       {
         type: 'confirm',
         name: 'autoSync',
         message: 'Enable automatic preference synchronization?',
-        default: true
-      }
+        default: true,
+      },
     ]);
 
     return {
       ...baseConfig,
-      ...answers
+      ...answers,
     };
   }
 
@@ -160,7 +160,7 @@ export class TeamCollaborationCLI {
       const memberInfo = {
         name: memberName,
         role: 'member',
-        preferences: currentPrefs
+        preferences: currentPrefs,
       };
 
       const member = await this.teamSystem.joinTeam(teamId, memberInfo);
@@ -221,8 +221,8 @@ export class TeamCollaborationCLI {
               type: 'confirm',
               name: 'applyChanges',
               message: 'Apply synchronized preferences to your local settings?',
-              default: true
-            }
+              default: true,
+            },
           ]);
 
           if (applyChanges) {
@@ -260,7 +260,9 @@ export class TeamCollaborationCLI {
       console.log(`👥 Members: ${stats.team.memberCount}`);
       console.log(`🎯 Mode: ${stats.team.mode}`);
       console.log(`📊 Version: ${stats.team.version}`);
-      console.log(`📅 Last Sync: ${stats.team.lastSync ? new Date(stats.team.lastSync).toLocaleString() : 'Never'}\n`);
+      console.log(
+        `📅 Last Sync: ${stats.team.lastSync ? new Date(stats.team.lastSync).toLocaleString() : 'Never'}\n`,
+      );
 
       console.log('⚙️  Shared Preferences:');
       console.log(`  Count: ${stats.preferences.sharedCount}`);
@@ -345,7 +347,7 @@ export class TeamCollaborationCLI {
       const exportData = {
         team,
         sharedPreferences: sharedPrefs,
-        exportedAt: new Date().toISOString()
+        exportedAt: new Date().toISOString(),
       };
 
       await writeFile(outputFile, JSON.stringify(exportData, null, 2));

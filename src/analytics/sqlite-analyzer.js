@@ -26,7 +26,7 @@ export class SQLiteAnalyzer {
       if (await fs.pathExists(this.hiveDbPath)) {
         this.hiveDb = await open({
           filename: this.hiveDbPath,
-          driver: sqlite3.Database
+          driver: sqlite3.Database,
         });
       }
 
@@ -34,7 +34,7 @@ export class SQLiteAnalyzer {
       if (await fs.pathExists(this.swarmDbPath)) {
         this.swarmDb = await open({
           filename: this.swarmDbPath,
-          driver: sqlite3.Database
+          driver: sqlite3.Database,
         });
       }
 
@@ -118,7 +118,7 @@ export class SQLiteAnalyzer {
         completionTrends,
         agentPerformance,
         complexityAnalysis,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       throw new Error(`Task pattern analysis failed: ${error.message}`);
@@ -133,7 +133,7 @@ export class SQLiteAnalyzer {
       const metrics = {
         system: await this.loadSystemMetrics(),
         tasks: await this.loadTaskMetrics(),
-        performance: await this.loadPerformanceMetrics()
+        performance: await this.loadPerformanceMetrics(),
       };
 
       // Identify performance bottlenecks
@@ -150,7 +150,7 @@ export class SQLiteAnalyzer {
         bottlenecks,
         trends,
         resourceAnalysis,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       throw new Error(`Performance metrics analysis failed: ${error.message}`);
@@ -225,7 +225,7 @@ export class SQLiteAnalyzer {
         collaborationPatterns,
         consensusAnalysis,
         knowledgeSharing,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       throw new Error(`Coordination pattern analysis failed: ${error.message}`);
@@ -290,7 +290,7 @@ export class SQLiteAnalyzer {
         namespaceUsage,
         accessPatterns,
         efficiencyAnalysis,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       throw new Error(`Memory pattern analysis failed: ${error.message}`);
@@ -357,15 +357,17 @@ export class SQLiteAnalyzer {
     if (metrics.system && metrics.system.length > 0) {
       const recentMetrics = metrics.system.slice(-10); // Last 10 entries
 
-      const avgMemoryUsage = recentMetrics.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / recentMetrics.length;
-      const avgCpuLoad = recentMetrics.reduce((sum, m) => sum + m.cpuLoad, 0) / recentMetrics.length;
+      const avgMemoryUsage =
+        recentMetrics.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / recentMetrics.length;
+      const avgCpuLoad =
+        recentMetrics.reduce((sum, m) => sum + m.cpuLoad, 0) / recentMetrics.length;
 
       if (avgMemoryUsage > 80) {
         bottlenecks.push({
           type: 'memory',
           severity: 'high',
           value: avgMemoryUsage,
-          description: 'High memory usage detected'
+          description: 'High memory usage detected',
         });
       }
 
@@ -374,7 +376,7 @@ export class SQLiteAnalyzer {
           type: 'cpu',
           severity: 'high',
           value: avgCpuLoad,
-          description: 'High CPU load detected'
+          description: 'High CPU load detected',
         });
       }
     }
@@ -392,7 +394,7 @@ export class SQLiteAnalyzer {
           type: 'task_duration',
           severity: 'medium',
           value: longRunningTasks[0].count,
-          description: `${longRunningTasks[0].count} tasks took longer than 5 minutes`
+          description: `${longRunningTasks[0].count} tasks took longer than 5 minutes`,
         });
       }
     }
@@ -411,8 +413,10 @@ export class SQLiteAnalyzer {
       const older = metrics.system.slice(-10, -5);
 
       if (older.length > 0) {
-        const recentAvgMemory = recent.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / recent.length;
-        const olderAvgMemory = older.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / older.length;
+        const recentAvgMemory =
+          recent.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / recent.length;
+        const olderAvgMemory =
+          older.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / older.length;
 
         trends.memoryTrend = recentAvgMemory > olderAvgMemory ? 'increasing' : 'decreasing';
         trends.memoryChange = Math.abs(recentAvgMemory - olderAvgMemory);
@@ -438,20 +442,22 @@ export class SQLiteAnalyzer {
 
     const analysis = {
       memory: {
-        peak: Math.max(...systemMetrics.map(m => m.memoryUsagePercent)),
-        average: systemMetrics.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / systemMetrics.length,
-        minimum: Math.min(...systemMetrics.map(m => m.memoryUsagePercent))
+        peak: Math.max(...systemMetrics.map((m) => m.memoryUsagePercent)),
+        average:
+          systemMetrics.reduce((sum, m) => sum + m.memoryUsagePercent, 0) / systemMetrics.length,
+        minimum: Math.min(...systemMetrics.map((m) => m.memoryUsagePercent)),
       },
       cpu: {
-        peak: Math.max(...systemMetrics.map(m => m.cpuLoad)),
+        peak: Math.max(...systemMetrics.map((m) => m.cpuLoad)),
         average: systemMetrics.reduce((sum, m) => sum + m.cpuLoad, 0) / systemMetrics.length,
-        minimum: Math.min(...systemMetrics.map(m => m.cpuLoad))
+        minimum: Math.min(...systemMetrics.map((m) => m.cpuLoad)),
       },
       efficiency: {
-        peak: Math.max(...systemMetrics.map(m => m.memoryEfficiency)),
-        average: systemMetrics.reduce((sum, m) => sum + m.memoryEfficiency, 0) / systemMetrics.length,
-        minimum: Math.min(...systemMetrics.map(m => m.memoryEfficiency))
-      }
+        peak: Math.max(...systemMetrics.map((m) => m.memoryEfficiency)),
+        average:
+          systemMetrics.reduce((sum, m) => sum + m.memoryEfficiency, 0) / systemMetrics.length,
+        minimum: Math.min(...systemMetrics.map((m) => m.memoryEfficiency)),
+      },
     };
 
     return analysis;
@@ -467,9 +473,9 @@ export class SQLiteAnalyzer {
       timestamp: new Date().toISOString(),
       databases: {
         hive: this.hiveDb !== null,
-        swarm: this.swarmDb !== null
+        swarm: this.swarmDb !== null,
       },
-      analysis: {}
+      analysis: {},
     };
 
     try {

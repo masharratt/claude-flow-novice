@@ -17,7 +17,7 @@ class GossipVerificationWorkflow extends EventEmitter {
     // Initialize components
     this.gossip = new GossipCoordinator({
       nodeId: this.nodeId,
-      ...options.gossip
+      ...options.gossip,
     });
 
     this.verification = new VerificationEngine(this.gossip, options.verification);
@@ -30,7 +30,7 @@ class GossipVerificationWorkflow extends EventEmitter {
       tasksCompleted: 0,
       consensusReached: 0,
       alertsGenerated: 0,
-      validationsPerformed: 0
+      validationsPerformed: 0,
     };
 
     this.setupEventHandlers();
@@ -101,7 +101,6 @@ class GossipVerificationWorkflow extends EventEmitter {
 
       this.emit('workflowStarted', { nodeId: this.nodeId });
       console.log(`🚀 Gossip verification workflow started on ${this.nodeId}`);
-
     } catch (error) {
       this.isRunning = false;
       console.error(`❌ Failed to start workflow on ${this.nodeId}:`, error.message);
@@ -126,7 +125,6 @@ class GossipVerificationWorkflow extends EventEmitter {
 
       this.emit('workflowStopped', { nodeId: this.nodeId });
       console.log(`🛑 Gossip verification workflow stopped on ${this.nodeId}`);
-
     } catch (error) {
       console.error(`❌ Error stopping workflow on ${this.nodeId}:`, error.message);
     }
@@ -155,7 +153,7 @@ class GossipVerificationWorkflow extends EventEmitter {
       cpuThreshold: requirements.cpuThreshold || 75,
       networkThreshold: requirements.networkThreshold || 90,
       priority: requirements.priority || 'medium',
-      ...requirements
+      ...requirements,
     });
 
     console.log(`🔍 Started resource monitoring verification: ${taskId}`);
@@ -171,15 +169,19 @@ class GossipVerificationWorkflow extends EventEmitter {
       agentConfig: {
         memory: agentConfig.memory || 512,
         cpu: agentConfig.cpu || 0.5,
-        ...agentConfig
+        ...agentConfig,
       },
       maxAgents: requirements.maxAgents || 20,
       priority: requirements.priority || 'medium',
-      ...requirements
+      ...requirements,
     });
 
     // Also run consensus validation
-    const validationId = await this.validator.validateAgentSpawning(agentType, agentConfig, requirements);
+    const validationId = await this.validator.validateAgentSpawning(
+      agentType,
+      agentConfig,
+      requirements,
+    );
 
     console.log(`🚀 Started agent spawning verification: ${taskId}, validation: ${validationId}`);
     return { taskId, validationId };
@@ -189,17 +191,27 @@ class GossipVerificationWorkflow extends EventEmitter {
    * Start distributed verification of agent termination
    */
   async verifyAgentTermination(agentId, terminationReason = 'shutdown', requirements = {}) {
-    const taskId = await this.verification.startVerification('agent_termination', 'agent-terminate', {
-      agentId,
-      terminationReason,
-      priority: requirements.priority || 'medium',
-      ...requirements
-    });
+    const taskId = await this.verification.startVerification(
+      'agent_termination',
+      'agent-terminate',
+      {
+        agentId,
+        terminationReason,
+        priority: requirements.priority || 'medium',
+        ...requirements,
+      },
+    );
 
     // Also run consensus validation
-    const validationId = await this.validator.validateAgentTermination(agentId, terminationReason, requirements);
+    const validationId = await this.validator.validateAgentTermination(
+      agentId,
+      terminationReason,
+      requirements,
+    );
 
-    console.log(`🛑 Started agent termination verification: ${taskId}, validation: ${validationId}`);
+    console.log(
+      `🛑 Started agent termination verification: ${taskId}, validation: ${validationId}`,
+    );
     return { taskId, validationId };
   }
 
@@ -211,7 +223,7 @@ class GossipVerificationWorkflow extends EventEmitter {
       minPeers: requirements.minPeers || 1,
       maxLatency: requirements.maxLatency || 1000,
       priority: requirements.priority || 'medium',
-      ...requirements
+      ...requirements,
     });
 
     console.log(`🌐 Started network connectivity verification: ${taskId}`);
@@ -226,7 +238,7 @@ class GossipVerificationWorkflow extends EventEmitter {
       consensusThreshold: requirements.consensusThreshold || 0.66,
       stateHash: requirements.stateHash,
       priority: requirements.priority || 'medium',
-      ...requirements
+      ...requirements,
     });
 
     console.log(`🎯 Started consensus state verification: ${taskId}`);
@@ -243,38 +255,42 @@ class GossipVerificationWorkflow extends EventEmitter {
     const results = {
       suiteId,
       startTime: Date.now(),
-      tasks: {}
+      tasks: {},
     };
 
     try {
       // 1. Resource monitoring verification
       if (options.includeResourceMonitoring !== false) {
         results.tasks.resourceMonitoring = await this.verifyResourceMonitoring('system-resources', {
-          priority: 'high'
+          priority: 'high',
         });
       }
 
       // 2. Agent spawning verification
       if (options.includeAgentSpawning !== false) {
-        results.tasks.agentSpawning = await this.verifyAgentSpawning('coordinator', {
-          memory: 512,
-          cpu: 0.5
-        }, {
-          priority: 'high'
-        });
+        results.tasks.agentSpawning = await this.verifyAgentSpawning(
+          'coordinator',
+          {
+            memory: 512,
+            cpu: 0.5,
+          },
+          {
+            priority: 'high',
+          },
+        );
       }
 
       // 3. Network connectivity verification
       if (options.includeNetworkConnectivity !== false) {
         results.tasks.networkConnectivity = await this.verifyNetworkConnectivity('network-health', {
-          priority: 'medium'
+          priority: 'medium',
         });
       }
 
       // 4. Consensus state verification
       if (options.includeConsensusState !== false) {
         results.tasks.consensusState = await this.verifyConsensusState('state-consistency', {
-          priority: 'medium'
+          priority: 'medium',
         });
       }
 
@@ -282,10 +298,11 @@ class GossipVerificationWorkflow extends EventEmitter {
       results.duration = results.endTime - results.startTime;
 
       this.emit('verificationSuiteStarted', results);
-      console.log(`✅ Verification suite started: ${suiteId} with ${Object.keys(results.tasks).length} tasks`);
+      console.log(
+        `✅ Verification suite started: ${suiteId} with ${Object.keys(results.tasks).length} tasks`,
+      );
 
       return results;
-
     } catch (error) {
       console.error(`❌ Error in verification suite ${suiteId}:`, error.message);
       throw error;
@@ -304,8 +321,8 @@ class GossipVerificationWorkflow extends EventEmitter {
         gossip: this.gossip.getStatus(),
         verification: this.verification.getStatus(),
         monitoring: this.monitor.getResourceStatus(),
-        validation: this.validator.getValidationStatus()
-      }
+        validation: this.validator.getValidationStatus(),
+      },
     };
   }
 
@@ -320,13 +337,15 @@ class GossipVerificationWorkflow extends EventEmitter {
       workflow: {
         tasksStarted: this.metrics.tasksStarted,
         tasksCompleted: this.metrics.tasksCompleted,
-        successRate: this.metrics.tasksStarted > 0
-          ? this.metrics.tasksCompleted / this.metrics.tasksStarted
-          : 0,
-        consensusRate: this.metrics.tasksCompleted > 0
-          ? this.metrics.consensusReached / this.metrics.tasksCompleted
-          : 0
-      }
+        successRate:
+          this.metrics.tasksStarted > 0
+            ? this.metrics.tasksCompleted / this.metrics.tasksStarted
+            : 0,
+        consensusRate:
+          this.metrics.tasksCompleted > 0
+            ? this.metrics.consensusReached / this.metrics.tasksCompleted
+            : 0,
+      },
     };
   }
 
@@ -339,7 +358,7 @@ class GossipVerificationWorkflow extends EventEmitter {
       gossip: this.gossip.config,
       verification: this.verification.config,
       monitoring: this.monitor.config,
-      consensus: this.validator.config
+      consensus: this.validator.config,
     };
   }
 
@@ -356,9 +375,9 @@ class GossipVerificationWorkflow extends EventEmitter {
         gossip: {
           gossipInterval: options.gossipInterval || 1000,
           fanout: Math.min(3, nodeCount - 1),
-          ...options.gossip
+          ...options.gossip,
         },
-        ...options
+        ...options,
       });
 
       workflows.push(workflow);
@@ -388,11 +407,11 @@ class GossipVerificationWorkflow extends EventEmitter {
         }
       },
       getNetworkStatus() {
-        return workflows.map(w => w.getStatus());
+        return workflows.map((w) => w.getStatus());
       },
       getNetworkConvergence() {
-        return workflows.map(w => w.getConvergenceMetrics());
-      }
+        return workflows.map((w) => w.getConvergenceMetrics());
+      },
     };
   }
 }

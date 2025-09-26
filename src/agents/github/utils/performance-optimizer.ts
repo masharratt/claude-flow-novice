@@ -60,22 +60,22 @@ export class GitHubPerformanceOptimizer {
         enabled: true,
         ttl: 300, // 5 minutes
         maxSize: 10000,
-        compressionThreshold: 1024 // Compress responses > 1KB
+        compressionThreshold: 1024, // Compress responses > 1KB
       },
       requestBatching: {
         enabled: true,
         batchSize: 10,
-        batchTimeout: 100 // 100ms
+        batchTimeout: 100, // 100ms
       },
       rateLimit: {
         requestsPerSecond: 50,
-        burstLimit: 100
+        burstLimit: 100,
       },
       compression: {
         enabled: true,
-        threshold: 1024
+        threshold: 1024,
       },
-      ...config
+      ...config,
     };
 
     this.metrics = {
@@ -85,7 +85,7 @@ export class GitHubPerformanceOptimizer {
       requests_batched: 0,
       compression_saved_bytes: 0,
       rate_limit_hits: 0,
-      total_requests: 0
+      total_requests: 0,
     };
 
     this.startCacheCleanup();
@@ -132,7 +132,7 @@ export class GitHubPerformanceOptimizer {
       key,
       data: compressedData,
       timestamp: Date.now(),
-      ttl
+      ttl,
     };
 
     this.cache.set(key, entry);
@@ -178,7 +178,7 @@ export class GitHubPerformanceOptimizer {
       key: string;
       fetcher: () => Promise<any>;
       ttl?: number;
-    }>
+    }>,
   ): Promise<void> {
     const preloadPromises = preloadConfig.map(async (config) => {
       try {
@@ -211,7 +211,7 @@ export class GitHubPerformanceOptimizer {
         options,
         resolve,
         reject,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.requestQueue.push(batchRequest);
@@ -262,7 +262,7 @@ export class GitHubPerformanceOptimizer {
         }
       } catch (error) {
         // Reject all requests in the group
-        group.forEach(req => req.reject(error));
+        group.forEach((req) => req.reject(error));
       }
     }
   }
@@ -303,7 +303,7 @@ export class GitHubPerformanceOptimizer {
     const requests = this.rateLimiter.get(identifier)!;
 
     // Remove old requests (older than 1 second)
-    const recentRequests = requests.filter(timestamp => now - timestamp < 1000);
+    const recentRequests = requests.filter((timestamp) => now - timestamp < 1000);
     this.rateLimiter.set(identifier, recentRequests);
 
     // Check rate limit
@@ -322,7 +322,7 @@ export class GitHubPerformanceOptimizer {
    */
   async waitForRateLimit(identifier: string = 'default'): Promise<void> {
     while (!this.checkRateLimit(identifier)) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
@@ -337,14 +337,19 @@ export class GitHubPerformanceOptimizer {
     endpoint: string,
     options: any = {},
     cacheKey?: string,
-    identifier?: string
+    identifier?: string,
   ): Promise<any> {
     const startTime = Date.now();
     this.metrics.total_requests++;
 
     try {
       // Check cache first
-      if (cacheKey && options.method !== 'POST' && options.method !== 'PUT' && options.method !== 'DELETE') {
+      if (
+        cacheKey &&
+        options.method !== 'POST' &&
+        options.method !== 'PUT' &&
+        options.method !== 'DELETE'
+      ) {
         const cached = this.getFromCache(cacheKey);
         if (cached) {
           this.updateResponseTimeMetrics(Date.now() - startTime);
@@ -364,7 +369,12 @@ export class GitHubPerformanceOptimizer {
       }
 
       // Cache successful GET requests
-      if (cacheKey && options.method !== 'POST' && options.method !== 'PUT' && options.method !== 'DELETE') {
+      if (
+        cacheKey &&
+        options.method !== 'POST' &&
+        options.method !== 'PUT' &&
+        options.method !== 'DELETE'
+      ) {
         this.setCache(cacheKey, result);
       }
 
@@ -385,17 +395,19 @@ export class GitHubPerformanceOptimizer {
       options?: any;
       cacheKey?: string;
       identifier?: string;
-    }>
+    }>,
   ): Promise<any[]> {
     // Check cache for all requests first
     const cachedResults: Array<{ index: number; result: any }> = [];
     const uncachedRequests: Array<{ index: number; request: any }> = [];
 
     requests.forEach((request, index) => {
-      if (request.cacheKey &&
-          request.options?.method !== 'POST' &&
-          request.options?.method !== 'PUT' &&
-          request.options?.method !== 'DELETE') {
+      if (
+        request.cacheKey &&
+        request.options?.method !== 'POST' &&
+        request.options?.method !== 'PUT' &&
+        request.options?.method !== 'DELETE'
+      ) {
         const cached = this.getFromCache(request.cacheKey);
         if (cached) {
           cachedResults.push({ index, result: cached });
@@ -412,7 +424,7 @@ export class GitHubPerformanceOptimizer {
         request.endpoint,
         request.options,
         request.cacheKey,
-        request.identifier
+        request.identifier,
       );
       return { index, result };
     });
@@ -449,7 +461,7 @@ export class GitHubPerformanceOptimizer {
         __compressed: true,
         data: serialized, // Would use actual compression library here
         originalSize: serialized.length,
-        compressedSize: serialized.length // Would be smaller with real compression
+        compressedSize: serialized.length, // Would be smaller with real compression
       };
 
       this.metrics.compression_saved_bytes += serialized.length - compressed.compressedSize;
@@ -546,7 +558,7 @@ export class GitHubPerformanceOptimizer {
       requests_batched: 0,
       compression_saved_bytes: 0,
       rate_limit_hits: 0,
-      total_requests: 0
+      total_requests: 0,
     };
   }
 
@@ -557,22 +569,22 @@ export class GitHubPerformanceOptimizer {
     const cacheStats = {
       size: this.cache.size,
       hit_rate: this.metrics.cache_hit_rate,
-      memory_usage_bytes: this.metrics.memory_usage
+      memory_usage_bytes: this.metrics.memory_usage,
     };
 
     const batchingStats = {
       requests_batched: this.metrics.requests_batched,
-      batch_efficiency: this.metrics.requests_batched / Math.max(this.metrics.total_requests, 1)
+      batch_efficiency: this.metrics.requests_batched / Math.max(this.metrics.total_requests, 1),
     };
 
     const compressionStats = {
       enabled: this.config.compression.enabled,
-      bytes_saved: this.metrics.compression_saved_bytes
+      bytes_saved: this.metrics.compression_saved_bytes,
     };
 
     const rateLimitStats = {
       hits: this.metrics.rate_limit_hits,
-      hit_rate: this.metrics.rate_limit_hits / Math.max(this.metrics.total_requests, 1)
+      hit_rate: this.metrics.rate_limit_hits / Math.max(this.metrics.total_requests, 1),
     };
 
     return {
@@ -582,7 +594,7 @@ export class GitHubPerformanceOptimizer {
       batching_stats: batchingStats,
       compression_stats: compressionStats,
       rate_limit_stats: rateLimitStats,
-      recommendations: this.generateOptimizationRecommendations()
+      recommendations: this.generateOptimizationRecommendations(),
     };
   }
 
@@ -598,7 +610,7 @@ export class GitHubPerformanceOptimizer {
 
   private async executeGroupedRequests(group: BatchRequest[]): Promise<any[]> {
     // Execute grouped requests - can be optimized for similar endpoints
-    const promises = group.map(req => this.executeSingleRequest(req.endpoint, req.options));
+    const promises = group.map((req) => this.executeSingleRequest(req.endpoint, req.options));
     return await Promise.all(promises);
   }
 
@@ -609,13 +621,9 @@ export class GitHubPerformanceOptimizer {
     }
 
     // Don't batch real-time critical operations
-    const realTimeCritical = [
-      '/notifications',
-      '/user/starred',
-      '/user/subscriptions'
-    ];
+    const realTimeCritical = ['/notifications', '/user/starred', '/user/subscriptions'];
 
-    return !realTimeCritical.some(critical => endpoint.includes(critical));
+    return !realTimeCritical.some((critical) => endpoint.includes(critical));
   }
 
   private generateRequestId(): string {
@@ -623,8 +631,7 @@ export class GitHubPerformanceOptimizer {
   }
 
   private updateResponseTimeMetrics(responseTime: number): void {
-    this.metrics.avg_response_time =
-      (this.metrics.avg_response_time + responseTime) / 2;
+    this.metrics.avg_response_time = (this.metrics.avg_response_time + responseTime) / 2;
   }
 
   private updateMemoryMetrics(): void {
@@ -646,23 +653,33 @@ export class GitHubPerformanceOptimizer {
     const recommendations = [];
 
     if (this.metrics.cache_hit_rate < 0.3) {
-      recommendations.push('Low cache hit rate detected. Consider increasing TTL or preloading frequently accessed data.');
+      recommendations.push(
+        'Low cache hit rate detected. Consider increasing TTL or preloading frequently accessed data.',
+      );
     }
 
     if (this.metrics.rate_limit_hits > this.metrics.total_requests * 0.1) {
-      recommendations.push('High rate limit hit rate. Consider implementing more aggressive request throttling.');
+      recommendations.push(
+        'High rate limit hit rate. Consider implementing more aggressive request throttling.',
+      );
     }
 
     if (this.cache.size > this.config.caching.maxSize * 0.9) {
-      recommendations.push('Cache approaching size limit. Consider increasing max size or reducing TTL.');
+      recommendations.push(
+        'Cache approaching size limit. Consider increasing max size or reducing TTL.',
+      );
     }
 
     if (this.metrics.avg_response_time > 2000) {
-      recommendations.push('High average response time. Consider enabling request batching or connection pooling.');
+      recommendations.push(
+        'High average response time. Consider enabling request batching or connection pooling.',
+      );
     }
 
     if (this.config.compression.enabled && this.metrics.compression_saved_bytes === 0) {
-      recommendations.push('Compression enabled but no bytes saved. Consider adjusting compression threshold.');
+      recommendations.push(
+        'Compression enabled but no bytes saved. Consider adjusting compression threshold.',
+      );
     }
 
     return recommendations;

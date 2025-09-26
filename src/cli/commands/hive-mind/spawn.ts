@@ -57,7 +57,7 @@ const CAPABILITY_MAP: Record<AgentType, AgentCapability[]> = {
   implementation_coder: ['code_generation', 'implementation', 'debugging'],
   developer: ['code_generation', 'implementation', 'debugging'],
   quality_reviewer: ['code_review', 'quality_assurance', 'testing'],
-  steering_documenter: ['documentation_generation', 'governance']
+  steering_documenter: ['documentation_generation', 'governance'],
 };
 
 export const spawnCommand = new Command('spawn')

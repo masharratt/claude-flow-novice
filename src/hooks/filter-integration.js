@@ -61,8 +61,8 @@ class FilterIntegrationHooks {
           '^TEMP_',
           '^WORKING_',
           'STATUS_UPDATE',
-          'PROGRESS_REPORT'
-        ]
+          'PROGRESS_REPORT',
+        ],
       },
       toneProcessors: {
         enabled: true,
@@ -74,21 +74,21 @@ class FilterIntegrationHooks {
           'we have successfully': 'we have',
           'perfectly implemented': 'implemented',
           'flawless execution': 'execution',
-          'amazing results': 'good results'
-        }
+          'amazing results': 'good results',
+        },
       },
       hooks: {
         preDocumentGeneration: true,
         postAgentMessage: true,
         preFileWrite: true,
-        realTimeFiltering: true
+        realTimeFiltering: true,
       },
       userPreferences: {
         tonePreset: 'professional',
         maxDocumentLength: 5000,
         allowReports: false,
-        consolidateDocuments: true
-      }
+        consolidateDocuments: true,
+      },
     };
   }
 
@@ -131,11 +131,11 @@ class FilterIntegrationHooks {
       'pre-document-generation',
       'post-agent-message',
       'pre-file-write',
-      'filter-check'
+      'filter-check',
     ];
 
     // This would integrate with the existing hook system
-    hookCommands.forEach(command => {
+    hookCommands.forEach((command) => {
       this.registerHook(command);
     });
   }
@@ -177,7 +177,7 @@ class FilterIntegrationHooks {
       const toneResult = this.toneProcessors.processMessage(
         content,
         this.settings.userPreferences.tonePreset,
-        this.settings.userPreferences
+        this.settings.userPreferences,
       );
       processedContent = toneResult.processed;
 
@@ -185,7 +185,7 @@ class FilterIntegrationHooks {
       if (toneResult.changes.length > 0) {
         this.logAction('TONE_PROCESSED', filePath, {
           changes: toneResult.changes,
-          metrics: toneResult.metrics
+          metrics: toneResult.metrics,
         });
       }
     }
@@ -197,7 +197,7 @@ class FilterIntegrationHooks {
       reason: filterResult.reason,
       modifications: filterResult.modifications,
       originalPath: filePath,
-      processed: content !== processedContent
+      processed: content !== processedContent,
     };
 
     this.logAction('DOCUMENT_INTERCEPT', filePath, result);
@@ -235,14 +235,14 @@ class FilterIntegrationHooks {
     const result = this.toneProcessors.processMessage(
       message,
       tonePreset,
-      this.settings.userPreferences
+      this.settings.userPreferences,
     );
 
     this.logAction('MESSAGE_PROCESSED', agentType, {
       originalLength: message.length,
       processedLength: result.processed.length,
       changes: result.changes,
-      tone: tonePreset
+      tone: tonePreset,
     });
 
     return result.processed;
@@ -295,7 +295,7 @@ class FilterIntegrationHooks {
         const result = this.interceptDocumentGeneration(
           request.filePath,
           request.content,
-          request.metadata
+          request.metadata,
         );
 
         if (!result.allowed) {
@@ -303,7 +303,7 @@ class FilterIntegrationHooks {
             error: 'Document generation blocked',
             reason: result.reason,
             suggestedPath: result.suggestedPath,
-            modifications: result.modifications
+            modifications: result.modifications,
           });
           return;
         }
@@ -321,9 +321,9 @@ class FilterIntegrationHooks {
    * Process multiple documents in batch
    */
   batchProcessDocuments(documents) {
-    return documents.map(doc => ({
+    return documents.map((doc) => ({
       ...doc,
-      ...this.interceptDocumentGeneration(doc.filePath, doc.content, doc.metadata)
+      ...this.interceptDocumentGeneration(doc.filePath, doc.content, doc.metadata),
     }));
   }
 
@@ -335,38 +335,41 @@ class FilterIntegrationHooks {
       messages: [],
       files: [],
       blocked: [],
-      modified: []
+      modified: [],
     };
 
     // Process messages
     if (output.messages) {
-      output.messages.forEach(message => {
+      output.messages.forEach((message) => {
         const processed = this.processAgentMessage(message.content, agentType, { taskId });
         processedOutput.messages.push({
           ...message,
           content: processed,
-          modified: processed !== message.content
+          modified: processed !== message.content,
         });
       });
     }
 
     // Process file operations
     if (output.files) {
-      output.files.forEach(file => {
-        const result = this.interceptDocumentGeneration(file.path, file.content, { taskId, agentType });
+      output.files.forEach((file) => {
+        const result = this.interceptDocumentGeneration(file.path, file.content, {
+          taskId,
+          agentType,
+        });
 
         if (result.allowed) {
           processedOutput.files.push({
             ...file,
             path: result.filePath,
             content: result.content,
-            modified: result.processed || result.filePath !== file.path
+            modified: result.processed || result.filePath !== file.path,
           });
         } else {
           processedOutput.blocked.push({
             ...file,
             reason: result.reason,
-            suggestedPath: result.suggestedPath
+            suggestedPath: result.suggestedPath,
           });
         }
       });
@@ -376,7 +379,7 @@ class FilterIntegrationHooks {
       agentType,
       messagesProcessed: processedOutput.messages.length,
       filesAllowed: processedOutput.files.length,
-      filesBlocked: processedOutput.blocked.length
+      filesBlocked: processedOutput.blocked.length,
     });
 
     return processedOutput;
@@ -386,15 +389,15 @@ class FilterIntegrationHooks {
 
   determineTonePreset(agentType, context = {}) {
     const agentToneMap = {
-      'researcher': 'technical',
-      'coder': 'concise',
-      'reviewer': 'professional',
-      'tester': 'professional',
-      'planner': 'professional',
+      researcher: 'technical',
+      coder: 'concise',
+      reviewer: 'professional',
+      tester: 'professional',
+      planner: 'professional',
       'backend-dev': 'technical',
       'frontend-dev': 'friendly',
-      'devops': 'concise',
-      'generic': this.settings.userPreferences.tonePreset
+      devops: 'concise',
+      generic: this.settings.userPreferences.tonePreset,
     };
 
     return agentToneMap[agentType] || this.settings.userPreferences.tonePreset;
@@ -404,8 +407,10 @@ class FilterIntegrationHooks {
     const docExtensions = ['.md', '.txt', '.rst', '.adoc'];
     const docPaths = ['/docs/', '/documentation/', '/guides/', '/README'];
 
-    return docExtensions.some(ext => filePath.endsWith(ext)) ||
-           docPaths.some(path => filePath.includes(path));
+    return (
+      docExtensions.some((ext) => filePath.endsWith(ext)) ||
+      docPaths.some((path) => filePath.includes(path))
+    );
   }
 
   logAction(action, target, details = {}) {
@@ -414,7 +419,7 @@ class FilterIntegrationHooks {
       action,
       target,
       details,
-      id: this.actionLog.length + 1
+      id: this.actionLog.length + 1,
     };
 
     this.actionLog.push(logEntry);
@@ -450,7 +455,7 @@ class FilterIntegrationHooks {
       toneProcessors: this.toneProcessors.getProcessingStats(),
       recentActions: this.actionLog.slice(-20),
       settings: this.settings,
-      topBlockedReasons: this.getTopBlockedReasons()
+      topBlockedReasons: this.getTopBlockedReasons(),
     };
   }
 
@@ -458,14 +463,14 @@ class FilterIntegrationHooks {
     const reasonCounts = {};
 
     this.actionLog
-      .filter(entry => entry.action === 'DOCUMENT_INTERCEPT' && !entry.details.allowed)
-      .forEach(entry => {
+      .filter((entry) => entry.action === 'DOCUMENT_INTERCEPT' && !entry.details.allowed)
+      .forEach((entry) => {
         const reason = entry.details.reason;
         reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
       });
 
     return Object.entries(reasonCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([reason, count]) => ({ reason, count }));
   }
@@ -490,7 +495,7 @@ class FilterIntegrationHooks {
       settings: this.settings,
       stats: this.getFilterStats(),
       contentFiltersConfig: this.contentFilters.exportConfig(),
-      toneProcessorsConfig: this.toneProcessors.exportConfig()
+      toneProcessorsConfig: this.toneProcessors.exportConfig(),
     };
   }
 
@@ -528,7 +533,7 @@ class FilterIntegrationHooks {
       'filter-reset': () => {
         hooks.reset();
         return { reset: true };
-      }
+      },
     };
   }
 }

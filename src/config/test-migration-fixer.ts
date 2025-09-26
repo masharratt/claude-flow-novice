@@ -50,7 +50,7 @@ export class TestMigrationFixer {
           file,
           changes: [],
           success: false,
-          error: (error as Error).message
+          error: (error as Error).message,
         });
       }
     }
@@ -65,7 +65,7 @@ export class TestMigrationFixer {
     const result: TestFileFix = {
       file: filePath,
       changes: [],
-      success: false
+      success: false,
     };
 
     try {
@@ -109,7 +109,6 @@ export class TestMigrationFixer {
       } else {
         result.success = true; // No changes needed
       }
-
     } catch (error) {
       result.error = (error as Error).message;
     }
@@ -125,10 +124,10 @@ export class TestMigrationFixer {
 
     const files = await glob(['**/*.test.js', '**/*.spec.js'], {
       cwd: this.projectRoot,
-      ignore: ['node_modules/**', 'dist/**', 'bin/**']
+      ignore: ['node_modules/**', 'dist/**', 'bin/**'],
     });
 
-    return files.map(file => path.join(this.projectRoot, file));
+    return files.map((file) => path.join(this.projectRoot, file));
   }
 
   /**
@@ -139,11 +138,15 @@ export class TestMigrationFixer {
     let newContent = content;
 
     // Convert const { ... } = require(...) to import { ... } from ...
-    const destructuringRequireRegex = /const\s+\{\s*([^}]+)\s*\}\s*=\s*require\s*\(\s*['"`]([^'"`]+)['"`]\s*\);?/g;
-    newContent = newContent.replace(destructuringRequireRegex, (match, destructured, moduleName) => {
-      changes.push('Convert destructuring require to import');
-      return `import { ${destructured} } from '${this.addJsExtensionIfNeeded(moduleName)}';`;
-    });
+    const destructuringRequireRegex =
+      /const\s+\{\s*([^}]+)\s*\}\s*=\s*require\s*\(\s*['"`]([^'"`]+)['"`]\s*\);?/g;
+    newContent = newContent.replace(
+      destructuringRequireRegex,
+      (match, destructured, moduleName) => {
+        changes.push('Convert destructuring require to import');
+        return `import { ${destructured} } from '${this.addJsExtensionIfNeeded(moduleName)}';`;
+      },
+    );
 
     // Convert const ... = require(...) to import ... from ...
     const basicRequireRegex = /const\s+(\w+)\s*=\s*require\s*\(\s*['"`]([^'"`]+)['"`]\s*\);?/g;
@@ -189,14 +192,21 @@ export class TestMigrationFixer {
   /**
    * Fix import extensions
    */
-  private fixImportExtensions(content: string, filePath: string): { content: string; changes: string[] } {
+  private fixImportExtensions(
+    content: string,
+    filePath: string,
+  ): { content: string; changes: string[] } {
     const changes: string[] = [];
     let newContent = content;
 
     // Fix relative imports without .js extension
     const importRegex = /import\s+(.+?)\s+from\s+['"`](\.\/.+?)['"`];?/g;
     newContent = newContent.replace(importRegex, (match, imported, modulePath) => {
-      if (!modulePath.endsWith('.js') && !modulePath.endsWith('.ts') && !modulePath.includes('node_modules')) {
+      if (
+        !modulePath.endsWith('.js') &&
+        !modulePath.endsWith('.ts') &&
+        !modulePath.includes('node_modules')
+      ) {
         // Check if it's a relative import
         if (modulePath.startsWith('./') || modulePath.startsWith('../')) {
           const correctedPath = this.addJsExtensionIfNeeded(modulePath);
@@ -220,13 +230,23 @@ export class TestMigrationFixer {
     let newContent = content;
 
     // Add Jest globals import if test functions are used but not imported
-    const hasJestFunctions = /\b(describe|test|it|expect|beforeEach|afterEach|beforeAll|afterAll)\b/.test(content);
+    const hasJestFunctions =
+      /\b(describe|test|it|expect|beforeEach|afterEach|beforeAll|afterAll)\b/.test(content);
     const hasJestImport = /import.*@jest\/globals/.test(content);
 
     if (hasJestFunctions && !hasJestImport) {
       // Check which Jest functions are used
-      const jestFunctions = ['describe', 'test', 'it', 'expect', 'beforeEach', 'afterEach', 'beforeAll', 'afterAll'];
-      const usedFunctions = jestFunctions.filter(fn => new RegExp(`\\b${fn}\\b`).test(content));
+      const jestFunctions = [
+        'describe',
+        'test',
+        'it',
+        'expect',
+        'beforeEach',
+        'afterEach',
+        'beforeAll',
+        'afterAll',
+      ];
+      const usedFunctions = jestFunctions.filter((fn) => new RegExp(`\\b${fn}\\b`).test(content));
 
       if (usedFunctions.length > 0) {
         const jestImport = `import { ${usedFunctions.join(', ')} } from '@jest/globals';\n`;
@@ -257,10 +277,10 @@ export class TestMigrationFixer {
       }
 
       if (hasDirname && !newContent.includes('const __dirname')) {
-        imports.push("const __filename = fileURLToPath(import.meta.url);");
-        imports.push("const __dirname = dirname(__filename);");
+        imports.push('const __filename = fileURLToPath(import.meta.url);');
+        imports.push('const __dirname = dirname(__filename);');
       } else if (hasFilename && !newContent.includes('const __filename')) {
-        imports.push("const __filename = fileURLToPath(import.meta.url);");
+        imports.push('const __filename = fileURLToPath(import.meta.url);');
       }
 
       if (imports.length > 0) {
@@ -332,9 +352,9 @@ export class TestMigrationFixer {
 
     return {
       totalFiles: fixes.length,
-      fixedFiles: fixes.filter(f => f.success && f.changes.length > 0).length,
+      fixedFiles: fixes.filter((f) => f.success && f.changes.length > 0).length,
       totalChanges,
-      changesByType
+      changesByType,
     };
   }
 }
@@ -365,7 +385,7 @@ export async function runTestMigrationFixer(projectRoot?: string): Promise<void>
       }
     }
 
-    const failures = results.filter(r => !r.success);
+    const failures = results.filter((r) => !r.success);
     if (failures.length > 0) {
       console.log('\n⚠️ Failed files:');
       for (const failure of failures) {
@@ -374,7 +394,6 @@ export async function runTestMigrationFixer(projectRoot?: string): Promise<void>
     }
 
     console.log('\n✅ ES module test file migration completed!');
-
   } catch (error) {
     console.error('❌ Migration failed:', error);
     process.exit(1);

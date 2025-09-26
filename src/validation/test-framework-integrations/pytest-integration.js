@@ -27,7 +27,7 @@ export class PytestIntegration {
       outputFormat: options.outputFormat || 'json',
       pythonExecutable: options.pythonExecutable || 'python',
       virtualEnv: options.virtualEnv,
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -70,7 +70,7 @@ export class PytestIntegration {
         parsedResults,
         coverageMetrics,
         projectPath,
-        pythonEnvironment: this.pythonEnvironment
+        pythonEnvironment: this.pythonEnvironment,
       });
 
       // Generate cryptographic proof
@@ -79,7 +79,7 @@ export class PytestIntegration {
         parsedResults,
         coverageMetrics,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -89,7 +89,7 @@ export class PytestIntegration {
         pythonEnvironment: {
           version: this.pythonEnvironment.pythonVersion,
           pytestVersion: this.pythonEnvironment.pytestVersion,
-          virtualEnv: this.pythonEnvironment.virtualEnv
+          virtualEnv: this.pythonEnvironment.virtualEnv,
         },
         testResults: {
           totalTests: parsedResults.total || 0,
@@ -98,36 +98,37 @@ export class PytestIntegration {
           skippedTests: parsedResults.skipped || 0,
           errorTests: parsedResults.errors || 0,
           duration: parsedResults.duration || 0,
-          success: parsedResults.exitCode === 0
+          success: parsedResults.exitCode === 0,
         },
         coverage: {
           lines: coverageMetrics.lines || 0,
           functions: coverageMetrics.functions || 0,
           branches: coverageMetrics.branches || 0,
           statements: coverageMetrics.statements || 0,
-          meetsThreshold: this.evaluateCoverageThreshold(coverageMetrics)
+          meetsThreshold: this.evaluateCoverageThreshold(coverageMetrics),
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         performance: {
           executionTime: performance.now() - startTime,
-          testExecutionTime: parsedResults.duration || 0
+          testExecutionTime: parsedResults.duration || 0,
         },
         rawOutput: testExecution.stdout,
-        errors: testExecution.stderr ? [testExecution.stderr] : []
+        errors: testExecution.stderr ? [testExecution.stderr] : [],
       };
 
       // Store execution history
       this.executionHistory.set(executionId, result);
 
-      console.log(`✅ Pytest execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`);
+      console.log(
+        `✅ Pytest execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         executionId,
@@ -135,7 +136,7 @@ export class PytestIntegration {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.executionHistory.set(executionId, errorResult);
@@ -154,16 +155,15 @@ export class PytestIntegration {
 
     try {
       // Detect Python executable
-      const pythonCmd = this.options.virtualEnv ?
-        path.join(this.options.virtualEnv, 'bin', 'python') :
-        this.options.pythonExecutable;
+      const pythonCmd = this.options.virtualEnv
+        ? path.join(this.options.virtualEnv, 'bin', 'python')
+        : this.options.pythonExecutable;
 
       // Get Python version
       pythonVersion = await this.getPythonVersion(pythonCmd);
       if (!pythonVersion) {
         errors.push('Python executable not found or not working');
       }
-
     } catch (error) {
       errors.push(`Python detection failed: ${error.message}`);
     }
@@ -174,7 +174,6 @@ export class PytestIntegration {
       if (!pytestVersion) {
         errors.push('pytest not installed or not accessible');
       }
-
     } catch (error) {
       errors.push(`pytest detection failed: ${error.message}`);
     }
@@ -186,7 +185,7 @@ export class PytestIntegration {
         path.join(projectPath, '*_test.py'),
         path.join(projectPath, 'tests/*.py'),
         path.join(projectPath, '**/test_*.py'),
-        path.join(projectPath, '**/*_test.py')
+        path.join(projectPath, '**/*_test.py'),
       ];
 
       let testsFound = false;
@@ -206,7 +205,6 @@ export class PytestIntegration {
       if (!testsFound) {
         errors.push('No Python test files found matching pytest patterns');
       }
-
     } catch (error) {
       errors.push(`Test file detection failed: ${error.message}`);
     }
@@ -229,9 +227,10 @@ export class PytestIntegration {
       }
 
       if (!hasConfig) {
-        console.warn('No Python configuration files found (requirements.txt, setup.py, pyproject.toml)');
+        console.warn(
+          'No Python configuration files found (requirements.txt, setup.py, pyproject.toml)',
+        );
       }
-
     } catch (error) {
       console.warn(`Python config detection failed: ${error.message}`);
     }
@@ -248,7 +247,7 @@ export class PytestIntegration {
       errors,
       pythonVersion,
       pytestVersion,
-      virtualEnv
+      virtualEnv,
     };
   }
 
@@ -275,9 +274,9 @@ export class PytestIntegration {
    */
   async getPytestVersion() {
     return new Promise((resolve) => {
-      const pytestCmd = this.options.virtualEnv ?
-        path.join(this.options.virtualEnv, 'bin', 'pytest') :
-        'pytest';
+      const pytestCmd = this.options.virtualEnv
+        ? path.join(this.options.virtualEnv, 'bin', 'pytest')
+        : 'pytest';
 
       exec(`${pytestCmd} --version`, (error, stdout, stderr) => {
         if (error) {
@@ -297,34 +296,38 @@ export class PytestIntegration {
   async runPytestTests(projectPath, testConfig) {
     return new Promise((resolve, reject) => {
       const pytestArgs = this.buildPytestArgs(testConfig);
-      const pytestCmd = this.options.virtualEnv ?
-        path.join(this.options.virtualEnv, 'bin', 'pytest') :
-        'pytest';
+      const pytestCmd = this.options.virtualEnv
+        ? path.join(this.options.virtualEnv, 'bin', 'pytest')
+        : 'pytest';
 
       const command = `cd "${projectPath}" && ${pytestCmd} ${pytestArgs.join(' ')}`;
 
       console.log(`🚀 Running pytest command: ${command}`);
 
-      exec(command, {
-        timeout: this.options.timeout,
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-        env: {
-          ...process.env,
-          PYTHONDONTWRITEBYTECODE: '1',
-          PYTEST_CURRENT_TEST: '1'
-        }
-      }, (error, stdout, stderr) => {
-        const result = {
-          success: !error || [0, 1, 2].includes(error.code), // pytest can exit 1-2 for test failures
-          exitCode: error?.code || 0,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          command,
-          executedAt: new Date().toISOString()
-        };
+      exec(
+        command,
+        {
+          timeout: this.options.timeout,
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env: {
+            ...process.env,
+            PYTHONDONTWRITEBYTECODE: '1',
+            PYTEST_CURRENT_TEST: '1',
+          },
+        },
+        (error, stdout, stderr) => {
+          const result = {
+            success: !error || [0, 1, 2].includes(error.code), // pytest can exit 1-2 for test failures
+            exitCode: error?.code || 0,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            command,
+            executedAt: new Date().toISOString(),
+          };
 
-        resolve(result);
-      });
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -347,7 +350,6 @@ export class PytestIntegration {
 
       // Fallback to stdout parsing
       return this.parsePytestStdout(execution.stdout, execution.exitCode);
-
     } catch (error) {
       console.error('Error parsing pytest results:', error);
       throw new Error(`Failed to parse pytest results: ${error.message}`);
@@ -366,7 +368,7 @@ export class PytestIntegration {
       errors: jsonResult.summary?.error || 0,
       duration: jsonResult.duration || 0,
       tests: jsonResult.tests || [],
-      exitCode: 0
+      exitCode: 0,
     };
   }
 
@@ -397,7 +399,7 @@ export class PytestIntegration {
       errors,
       skipped,
       duration: duration * 1000, // Convert to milliseconds
-      exitCode: failed > 0 || errors > 0 ? 1 : 0
+      exitCode: failed > 0 || errors > 0 ? 1 : 0,
     };
   }
 
@@ -416,7 +418,9 @@ export class PytestIntegration {
     // Parse pytest summary line
     for (const line of lines) {
       // Look for summary like "=== 3 failed, 2 passed in 1.23s ==="
-      const summaryMatch = line.match(/=+\s*(?:(\d+)\s*failed[^,]*,?\s*)?(?:(\d+)\s*passed[^,]*,?\s*)?(?:(\d+)\s*skipped[^,]*,?\s*)?(?:(\d+)\s*error[^,]*,?\s*)?.*in\s*([\d.]+)s\s*=+/);
+      const summaryMatch = line.match(
+        /=+\s*(?:(\d+)\s*failed[^,]*,?\s*)?(?:(\d+)\s*passed[^,]*,?\s*)?(?:(\d+)\s*skipped[^,]*,?\s*)?(?:(\d+)\s*error[^,]*,?\s*)?.*in\s*([\d.]+)s\s*=+/,
+      );
 
       if (summaryMatch) {
         failed = parseInt(summaryMatch[1] || '0');
@@ -448,7 +452,7 @@ export class PytestIntegration {
       errors,
       duration,
       exitCode,
-      rawOutput: stdout
+      rawOutput: stdout,
     };
   }
 
@@ -458,9 +462,9 @@ export class PytestIntegration {
   async extractCoverageMetrics(projectPath, execution) {
     try {
       // Check for coverage.py integration
-      const coverageCmd = this.options.virtualEnv ?
-        path.join(this.options.virtualEnv, 'bin', 'coverage') :
-        'coverage';
+      const coverageCmd = this.options.virtualEnv
+        ? path.join(this.options.virtualEnv, 'bin', 'coverage')
+        : 'coverage';
 
       // Try to get coverage report
       const coverageResult = await this.runCoverageReport(projectPath, coverageCmd);
@@ -471,14 +475,13 @@ export class PytestIntegration {
 
       // Fallback to extracting from pytest output if coverage plugin used
       return this.extractCoverageFromPytestOutput(execution.stdout);
-
     } catch (error) {
       console.warn('Could not extract coverage metrics:', error.message);
       return {
         lines: 0,
         functions: 0,
         branches: 0,
-        statements: 0
+        statements: 0,
       };
     }
   }
@@ -494,7 +497,7 @@ export class PytestIntegration {
         resolve({
           success: !error,
           stdout: stdout.toString(),
-          stderr: stderr.toString()
+          stderr: stderr.toString(),
         });
       });
     });
@@ -516,7 +519,7 @@ export class PytestIntegration {
             lines: percentage,
             functions: percentage, // coverage.py doesn't separate these
             branches: percentage,
-            statements: percentage
+            statements: percentage,
           };
         }
       }
@@ -537,7 +540,7 @@ export class PytestIntegration {
         lines: percentage,
         functions: percentage,
         branches: percentage,
-        statements: percentage
+        statements: percentage,
       };
     }
 
@@ -562,15 +565,15 @@ export class PytestIntegration {
           total: validationData.parsedResults.total,
           passed: validationData.parsedResults.passed,
           failed: validationData.parsedResults.failed,
-          exitCode: validationData.parsedResults.exitCode
+          exitCode: validationData.parsedResults.exitCode,
         },
         pythonEnvironment: {
           version: validationData.pythonEnvironment.pythonVersion,
-          pytestVersion: validationData.pythonEnvironment.pytestVersion
+          pytestVersion: validationData.pythonEnvironment.pytestVersion,
         },
         coverageMetrics: validationData.coverageMetrics,
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -582,15 +585,14 @@ export class PytestIntegration {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -606,9 +608,14 @@ export class PytestIntegration {
 
     return Array.from({ length: validatorCount }, (_, i) => ({
       id: `pytest-validator-${i}`,
-      specialization: ['python_execution', 'coverage_verification', 'result_integrity', 'environment_validation'][i % 4],
-      reputation: 0.85 + (Math.random() * 0.15),
-      riskTolerance: validationData.parsedResults.exitCode === 0 ? 'medium' : 'low'
+      specialization: [
+        'python_execution',
+        'coverage_verification',
+        'result_integrity',
+        'environment_validation',
+      ][i % 4],
+      reputation: 0.85 + Math.random() * 0.15,
+      riskTolerance: validationData.parsedResults.exitCode === 0 ? 'medium' : 'low',
     }));
   }
 
@@ -616,9 +623,8 @@ export class PytestIntegration {
    * Detect result tampering for Python tests
    */
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -628,7 +634,7 @@ export class PytestIntegration {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -643,7 +649,7 @@ export class PytestIntegration {
       stdout: validationData.testExecution.stdout,
       stderr: validationData.testExecution.stderr,
       exitCode: validationData.testExecution.exitCode,
-      command: validationData.testExecution.command
+      command: validationData.testExecution.command,
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -654,7 +660,7 @@ export class PytestIntegration {
       executionId: data.executionId,
       testResults: data.parsedResults,
       coverageMetrics: data.coverageMetrics,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -665,7 +671,7 @@ export class PytestIntegration {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'pytest-integration',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -707,10 +713,7 @@ export class PytestIntegration {
 
   evaluateCoverageThreshold(coverageMetrics) {
     const threshold = this.options.coverageThreshold;
-    return (
-      coverageMetrics.lines >= threshold &&
-      coverageMetrics.statements >= threshold
-    );
+    return coverageMetrics.lines >= threshold && coverageMetrics.statements >= threshold;
   }
 
   /**
@@ -732,15 +735,14 @@ export class PytestIntegration {
 
     if (totalExecutions === 0) return { rate: 0, sample: 0 };
 
-    const falseCompletions = executions.filter(exec =>
-      exec.testResults?.success &&
-      (exec.coverage && !exec.coverage.meetsThreshold)
+    const falseCompletions = executions.filter(
+      (exec) => exec.testResults?.success && exec.coverage && !exec.coverage.meetsThreshold,
     );
 
     return {
       rate: falseCompletions.length / totalExecutions,
       sample: totalExecutions,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

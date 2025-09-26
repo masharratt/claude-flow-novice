@@ -40,7 +40,7 @@ export interface BaseProviderOptions {
 export abstract class BaseProvider extends EventEmitter implements ILLMProvider {
   abstract readonly name: LLMProvider;
   abstract readonly capabilities: ProviderCapabilities;
-  
+
   protected logger: ILogger;
   protected circuitBreaker: CircuitBreaker;
   protected healthCheckInterval?: NodeJS.Timeout;
@@ -50,21 +50,21 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
   protected totalTokens = 0;
   protected totalCost = 0;
   protected requestMetrics: Map<string, any> = new Map();
-  
+
   public config: LLMProviderConfig;
 
   constructor(options: BaseProviderOptions) {
     super();
     this.logger = options.logger;
     this.config = options.config;
-    
+
     // Initialize circuit breaker
     this.circuitBreaker = circuitBreaker(`llm-${this.name}`, {
       threshold: options.circuitBreakerOptions?.threshold || 5,
       timeout: options.circuitBreakerOptions?.timeout || 60000,
       resetTimeout: options.circuitBreakerOptions?.resetTimeout || 300000,
     });
-    
+
     // Start health checks if enabled
     if (this.config.enableCaching) {
       this.startHealthChecks();
@@ -80,13 +80,13 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
       temperature: this.config.temperature,
       maxTokens: this.config.maxTokens,
     });
-    
+
     // Validate configuration
     this.validateConfig();
-    
+
     // Provider-specific initialization
     await this.doInitialize();
-    
+
     // Perform initial health check
     await this.healthCheck();
   }
@@ -103,17 +103,17 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
     if (!this.config.model) {
       throw new Error(`Model is required for ${this.name} provider`);
     }
-    
+
     if (!this.validateModel(this.config.model)) {
       throw new Error(`Model ${this.config.model} is not supported by ${this.name} provider`);
     }
-    
+
     if (this.config.temperature !== undefined) {
       if (this.config.temperature < 0 || this.config.temperature > 2) {
         throw new Error('Temperature must be between 0 and 2');
       }
     }
-    
+
     if (this.config.maxTokens !== undefined) {
       const maxAllowed = this.capabilities.maxOutputTokens[this.config.model] || 4096;
       if (this.config.maxTokens > maxAllowed) {
@@ -127,17 +127,17 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
    */
   async complete(request: LLMRequest): Promise<LLMResponse> {
     const startTime = Date.now();
-    
+
     try {
       // Use circuit breaker
       const response = await this.circuitBreaker.execute(async () => {
         return await this.doComplete(request);
       });
-      
+
       // Track metrics
       const latency = Date.now() - startTime;
       this.trackRequest(request, response, latency);
-      
+
       // Emit events
       this.emit('response', {
         provider: this.name,
@@ -146,21 +146,21 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
         tokens: response.usage.totalTokens,
         cost: response.cost?.totalCost,
       });
-      
+
       return response;
     } catch (error) {
       this.errorCount++;
-      
+
       // Transform to provider error
       const providerError = this.transformError(error);
-      
+
       // Track error
       this.emit('error', {
         provider: this.name,
         error: providerError,
         request,
       });
-      
+
       throw providerError;
     }
   }
@@ -177,7 +177,7 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
     const startTime = Date.now();
     let totalTokens = 0;
     let totalCost = 0;
-    
+
     try {
       // Check if streaming is supported
       if (!this.capabilities.supportsStreaming) {
@@ -186,15 +186,15 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
           'STREAMING_NOT_SUPPORTED',
           this.name,
           undefined,
-          false
+          false,
         );
       }
-      
+
       // Use circuit breaker
       const stream = await this.circuitBreaker.execute(async () => {
         return this.doStreamComplete(request);
       });
-      
+
       // Process stream
       for await (const event of stream) {
         if (event.usage) {
@@ -203,26 +203,25 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
         if (event.cost) {
           totalCost = event.cost.totalCost;
         }
-        
+
         yield event;
       }
-      
+
       // Track metrics
       const latency = Date.now() - startTime;
       this.trackStreamRequest(request, totalTokens, totalCost, latency);
-      
     } catch (error) {
       this.errorCount++;
-      
+
       // Transform to provider error
       const providerError = this.transformError(error);
-      
+
       // Yield error event
       yield {
         type: 'error',
         error: providerError,
       };
-      
+
       throw providerError;
     }
   }
@@ -254,20 +253,19 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
    */
   async healthCheck(): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       // Provider-specific health check
       const result = await this.doHealthCheck();
-      
+
       this.lastHealthCheck = {
         ...result,
         latency: Date.now() - startTime,
         timestamp: new Date(),
       };
-      
+
       this.emit('health_check', this.lastHealthCheck);
       return this.lastHealthCheck;
-      
     } catch (error) {
       this.lastHealthCheck = {
         healthy: false,
@@ -275,7 +273,7 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
         latency: Date.now() - startTime,
         timestamp: new Date(),
       };
-      
+
       this.emit('health_check', this.lastHealthCheck);
       return this.lastHealthCheck;
     }
@@ -292,7 +290,7 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
   getStatus(): ProviderStatus {
     const queueLength = this.requestMetrics.size;
     const errorRate = this.requestCount > 0 ? this.errorCount / this.requestCount : 0;
-    
+
     return {
       available: this.lastHealthCheck?.healthy ?? false,
       currentLoad: queueLength / 100, // Normalize to 0-1
@@ -323,7 +321,7 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
   async estimateCost(request: LLMRequest): Promise<CostEstimate> {
     const model = request.model || this.config.model;
     const pricing = this.capabilities.pricing?.[model];
-    
+
     if (!pricing) {
       return {
         estimatedPromptTokens: 0,
@@ -338,14 +336,14 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
         confidence: 0,
       };
     }
-    
+
     // Estimate tokens (simple approximation, providers should override)
     const promptTokens = this.estimateTokens(JSON.stringify(request.messages));
     const completionTokens = request.maxTokens || this.config.maxTokens || 1000;
-    
+
     const promptCost = (promptTokens / 1000) * pricing.promptCostPer1k;
     const completionCost = (completionTokens / 1000) * pricing.completionCostPer1k;
-    
+
     return {
       estimatedPromptTokens: promptTokens,
       estimatedCompletionTokens: completionTokens,
@@ -373,7 +371,7 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
   async getUsage(period: UsagePeriod = 'day'): Promise<UsageStats> {
     const now = new Date();
     const start = this.getStartDate(now, period);
-    
+
     // In a real implementation, this would query a database
     // For now, return current session stats
     return {
@@ -426,17 +424,17 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
    */
   private calculateAverageLatency(): number {
     if (this.requestMetrics.size === 0) return 0;
-    
+
     let totalLatency = 0;
     let count = 0;
-    
+
     this.requestMetrics.forEach((metrics) => {
       if (metrics.latency) {
         totalLatency += metrics.latency;
         count++;
       }
     });
-    
+
     return count > 0 ? totalLatency / count : 0;
   }
 
@@ -446,11 +444,11 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
   protected trackRequest(request: LLMRequest, response: LLMResponse, latency: number): void {
     this.requestCount++;
     this.totalTokens += response.usage.totalTokens;
-    
+
     if (response.cost) {
       this.totalCost += response.cost.totalCost;
     }
-    
+
     // Store metrics (in memory for now)
     const requestId = response.id;
     this.requestMetrics.set(requestId, {
@@ -460,7 +458,7 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
       cost: response.cost?.totalCost,
       latency,
     });
-    
+
     // Clean up old metrics (keep last 1000)
     if (this.requestMetrics.size > 1000) {
       const oldestKey = this.requestMetrics.keys().next().value;
@@ -475,12 +473,12 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
     request: LLMRequest,
     totalTokens: number,
     totalCost: number,
-    latency: number
+    latency: number,
   ): void {
     this.requestCount++;
     this.totalTokens += totalTokens;
     this.totalCost += totalCost;
-    
+
     // Store metrics
     const requestId = `stream-${Date.now()}`;
     this.requestMetrics.set(requestId, {
@@ -500,34 +498,28 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
     if (error instanceof LLMProviderError) {
       return error;
     }
-    
+
     if (error instanceof Error) {
       // Check for common error patterns
       if (error.message.includes('rate limit')) {
         return new RateLimitError(error.message, this.name);
       }
-      
+
       if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
-        return new LLMProviderError(
-          'Request timed out',
-          'TIMEOUT',
-          this.name,
-          undefined,
-          true
-        );
+        return new LLMProviderError('Request timed out', 'TIMEOUT', this.name, undefined, true);
       }
-      
+
       if (error.message.includes('ECONNREFUSED') || error.message.includes('fetch failed')) {
         return new ProviderUnavailableError(this.name, { originalError: error.message });
       }
     }
-    
+
     return new LLMProviderError(
       error instanceof Error ? error.message : String(error),
       'UNKNOWN',
       this.name,
       undefined,
-      true
+      true,
     );
   }
 
@@ -536,7 +528,7 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
    */
   protected startHealthChecks(): void {
     const interval = this.config.cacheTimeout || 300000; // 5 minutes default
-    
+
     this.healthCheckInterval = setInterval(() => {
       this.healthCheck().catch((error) => {
         this.logger.error(`Health check failed for ${this.name}`, error);
@@ -551,10 +543,10 @@ export abstract class BaseProvider extends EventEmitter implements ILLMProvider 
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
-    
+
     this.requestMetrics.clear();
     this.removeAllListeners();
-    
+
     this.logger.info(`${this.name} provider destroyed`);
   }
 }

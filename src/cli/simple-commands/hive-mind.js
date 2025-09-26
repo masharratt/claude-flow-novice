@@ -428,7 +428,7 @@ async function spawnSwarm(args, flags) {
 
   // Check for non-interactive mode FIRST
   const isNonInteractive = flags['non-interactive'] || flags.nonInteractive;
-  
+
   if (!objective && !flags.wizard) {
     if (isNonInteractive) {
       console.error(chalk.red('Error: Objective required in non-interactive mode'));
@@ -439,7 +439,7 @@ async function spawnSwarm(args, flags) {
     }
     return;
   }
-  
+
   // Log non-interactive mode status
   if (isNonInteractive && flags.verbose) {
     console.log(chalk.cyan('🤖 Running in non-interactive mode'));
@@ -455,7 +455,11 @@ async function spawnSwarm(args, flags) {
   const validQueenTypes = ['strategic', 'tactical', 'adaptive'];
   const queenType = flags.queenType || flags['queen-type'] || 'strategic';
   if (!validQueenTypes.includes(queenType)) {
-    console.error(chalk.red(`Error: Invalid queen type '${queenType}'. Must be one of: ${validQueenTypes.join(', ')}`));
+    console.error(
+      chalk.red(
+        `Error: Invalid queen type '${queenType}'. Must be one of: ${validQueenTypes.join(', ')}`,
+      ),
+    );
     return;
   }
 
@@ -470,7 +474,11 @@ async function spawnSwarm(args, flags) {
   const validConsensusTypes = ['majority', 'weighted', 'byzantine'];
   const consensusAlgorithm = flags.consensus || flags.consensusAlgorithm || 'majority';
   if (!validConsensusTypes.includes(consensusAlgorithm)) {
-    console.error(chalk.red(`Error: Invalid consensus algorithm '${consensusAlgorithm}'. Must be one of: ${validConsensusTypes.join(', ')}`));
+    console.error(
+      chalk.red(
+        `Error: Invalid consensus algorithm '${consensusAlgorithm}'. Must be one of: ${validConsensusTypes.join(', ')}`,
+      ),
+    );
     return;
   }
 
@@ -487,7 +495,12 @@ async function spawnSwarm(args, flags) {
         queenType: flags.queenType || flags['queen-type'] || 'strategic',
         maxWorkers: parseInt(flags.maxWorkers || flags['max-workers'] || '8'),
         consensusAlgorithm: flags.consensus || flags.consensusAlgorithm || 'majority',
-        autoScale: flags.autoScale !== undefined ? flags.autoScale : (flags['auto-scale'] !== undefined ? flags['auto-scale'] : true),
+        autoScale:
+          flags.autoScale !== undefined
+            ? flags.autoScale
+            : flags['auto-scale'] !== undefined
+              ? flags['auto-scale']
+              : true,
         namespace: flags.namespace || 'default',
         encryption: flags.encryption || false,
       });
@@ -816,11 +829,11 @@ async function spawnSwarm(args, flags) {
       isExiting = true;
 
       console.log('\n\n' + chalk.yellow('⏸️  Pausing session...'));
-      
+
       try {
         // Save current checkpoint using the existing session manager
         // const sessionManager = new HiveMindSessionManager(); // Use existing one
-        
+
         // Create checkpoint data
         const checkpointData = {
           timestamp: new Date().toISOString(),
@@ -831,26 +844,26 @@ async function spawnSwarm(args, flags) {
           status: 'paused_by_user',
           reason: 'User pressed Ctrl+C',
         };
-        
+
         // Save checkpoint
         await sessionManager.saveCheckpoint(sessionId, 'auto-pause', checkpointData);
-        
+
         // Pause the session
         await sessionManager.pauseSession(sessionId);
-        
+
         // Close session manager
         sessionManager.close();
-        
+
         console.log(chalk.green('✓') + ' Session paused successfully');
         console.log(chalk.cyan('\nTo resume this session, run:'));
         console.log(chalk.bold(`  claude-flow hive-mind resume ${sessionId}`));
         console.log();
-        
+
         // Clean up auto-save if active
         if (global.autoSaveInterval) {
           clearInterval(global.autoSaveInterval);
         }
-        
+
         process.exit(0);
       } catch (error) {
         console.error(chalk.red('Error pausing session:'), error.message);
@@ -1635,7 +1648,7 @@ async function listMemories() {
       console.log(`   Type: ${memory.type || 'knowledge'}`);
       console.log(`   Created: ${new Date(memory.created_at).toLocaleString()}`);
       console.log(`   Created by: ${memory.created_by || 'system'}`);
-      
+
       // Parse and display value
       let displayValue = memory.value;
       try {
@@ -1644,17 +1657,17 @@ async function listMemories() {
       } catch {
         // Keep as string
       }
-      
+
       if (displayValue.length > 100) {
         console.log(`   Value: ${displayValue.substring(0, 100)}...`);
       } else {
         console.log(`   Value: ${displayValue}`);
       }
-      
+
       if (memory.confidence !== null && memory.confidence !== 1) {
         console.log(`   Confidence: ${(memory.confidence * 100).toFixed(1)}%`);
       }
-      
+
       console.log('');
     });
   } catch (error) {
@@ -1711,7 +1724,7 @@ async function searchMemories() {
       console.log(`   Swarm: ${memory.swarm_name || memory.swarm_id}`);
       console.log(`   Type: ${memory.type || 'knowledge'}`);
       console.log(`   Created: ${new Date(memory.created_at).toLocaleString()}`);
-      
+
       // Parse and display value with highlighting
       let displayValue = memory.value;
       try {
@@ -1720,7 +1733,7 @@ async function searchMemories() {
       } catch {
         // Keep as string
       }
-      
+
       console.log(`   Value: ${displayValue}`);
       console.log('');
     });
@@ -1974,7 +1987,7 @@ async function getActiveSessionId(swarmId) {
   const sessionManager = new HiveMindSessionManager();
   try {
     const sessions = await sessionManager.getActiveSessions();
-    const activeSession = sessions.find(s => s.swarm_id === swarmId && s.status === 'active');
+    const activeSession = sessions.find((s) => s.swarm_id === swarmId && s.status === 'active');
     return activeSession ? activeSession.id : null;
   } finally {
     sessionManager.close();
@@ -2042,14 +2055,14 @@ async function spawnClaudeCodeInstances(swarmId, swarmName, objective, workers, 
         // Check if we should run in non-interactive mode
         // Respect --non-interactive flag regardless of --claude
         const isNonInteractive = flags['non-interactive'] || flags.nonInteractive;
-        
+
         // Build arguments in correct order: flags first, then prompt
         const claudeArgs = [];
-        
+
         // Add non-interactive flags FIRST if needed
         if (isNonInteractive) {
           claudeArgs.push('-p'); // Print mode
-          claudeArgs.push('--output-format', 'stream-json'); // JSON streaming  
+          claudeArgs.push('--output-format', 'stream-json'); // JSON streaming
           claudeArgs.push('--verbose'); // Verbose output
           console.log(chalk.cyan('🤖 Running in non-interactive mode'));
         }
@@ -2065,7 +2078,7 @@ async function spawnClaudeCodeInstances(swarmId, swarmName, objective, workers, 
             );
           }
         }
-        
+
         // Add the prompt as the LAST argument
         claudeArgs.push(hiveMindPrompt);
 
@@ -2089,7 +2102,7 @@ async function spawnClaudeCodeInstances(swarmId, swarmName, objective, workers, 
           isExiting = true;
 
           console.log('\n\n' + chalk.yellow('⏸️  Pausing session and terminating Claude Code...'));
-          
+
           try {
             // Terminate Claude Code process
             if (claudeProcess && !claudeProcess.killed) {
@@ -2106,15 +2119,15 @@ async function spawnClaudeCodeInstances(swarmId, swarmName, objective, workers, 
                 reason: 'User pressed Ctrl+C during Claude Code execution',
                 claudePid: claudeProcess.pid,
               };
-              
+
               await sessionManager.saveCheckpoint(sessionId, 'auto-pause-claude', checkpointData);
               await sessionManager.pauseSession(sessionId);
-              
+
               console.log(chalk.green('✓') + ' Session paused successfully');
               console.log(chalk.cyan('\nTo resume this session, run:'));
               console.log(chalk.bold(`  claude-flow hive-mind resume ${sessionId}`));
             }
-            
+
             sessionManager.close();
             process.exit(0);
           } catch (error) {
@@ -2798,69 +2811,80 @@ function generateRestoredSessionPrompt(session) {
   const allAgents = session.agents || [];
   const activeAgents = allAgents.filter((a) => a.status === 'active' || a.status === 'busy');
   const idleAgents = allAgents.filter((a) => a.status === 'idle');
-  
+
   // Get all tasks categorized by status
   const allTasks = session.tasks || [];
   const completedTasks = allTasks.filter((t) => t.status === 'completed');
   const inProgressTasks = allTasks.filter((t) => t.status === 'in_progress');
   const pendingTasks = allTasks.filter((t) => t.status === 'pending');
-  
+
   // Calculate session duration
   const sessionStart = new Date(session.created_at);
   const sessionPaused = session.paused_at ? new Date(session.paused_at) : new Date();
   const duration = Math.round((sessionPaused - sessionStart) / 1000 / 60); // minutes
-  
+
   // Get more checkpoint history
   const checkpointHistory = session.checkpoints || [];
-  
+
   // Get more activity logs
   const activityLogs = session.recentLogs || [];
-  
+
   // Format agent details with their current tasks
   const formatAgentDetails = (agents) => {
     if (!agents.length) return 'No agents found';
-    return agents.map(agent => {
-      const agentTasks = allTasks.filter(t => t.agent_id === agent.id);
-      const currentTask = agentTasks.find(t => t.status === 'in_progress');
-      return `• ${agent.name} (${agent.type}) - ${agent.status}${currentTask ? `\n  └─ Working on: ${currentTask.description}` : ''}`;
-    }).join('\n');
+    return agents
+      .map((agent) => {
+        const agentTasks = allTasks.filter((t) => t.agent_id === agent.id);
+        const currentTask = agentTasks.find((t) => t.status === 'in_progress');
+        return `• ${agent.name} (${agent.type}) - ${agent.status}${currentTask ? `\n  └─ Working on: ${currentTask.description}` : ''}`;
+      })
+      .join('\n');
   };
-  
+
   // Format task details with more information
   const formatTaskDetails = (tasks, limit = 15) => {
     if (!tasks.length) return 'No tasks found';
     const displayTasks = tasks.slice(0, limit);
-    return displayTasks.map(task => {
-      const agent = allAgents.find(a => a.id === task.agent_id);
-      return `• [${task.priority?.toUpperCase() || 'NORMAL'}] ${task.description}${agent ? ` (Assigned to: ${agent.name})` : ''}${task.created_at ? ` - Created: ${new Date(task.created_at).toLocaleTimeString()}` : ''}`;
-    }).join('\n') + (tasks.length > limit ? `\n... and ${tasks.length - limit} more tasks` : '');
+    return (
+      displayTasks
+        .map((task) => {
+          const agent = allAgents.find((a) => a.id === task.agent_id);
+          return `• [${task.priority?.toUpperCase() || 'NORMAL'}] ${task.description}${agent ? ` (Assigned to: ${agent.name})` : ''}${task.created_at ? ` - Created: ${new Date(task.created_at).toLocaleTimeString()}` : ''}`;
+        })
+        .join('\n') + (tasks.length > limit ? `\n... and ${tasks.length - limit} more tasks` : '')
+    );
   };
-  
+
   // Format checkpoint details
   const formatCheckpoints = (checkpoints, limit = 5) => {
     if (!checkpoints.length) return 'No checkpoints found';
     const displayCheckpoints = checkpoints.slice(0, limit);
-    return displayCheckpoints.map(cp => 
-      `• ${cp.checkpoint_name} - ${new Date(cp.created_at).toLocaleString()}`
-    ).join('\n');
+    return displayCheckpoints
+      .map((cp) => `• ${cp.checkpoint_name} - ${new Date(cp.created_at).toLocaleString()}`)
+      .join('\n');
   };
-  
+
   // Format activity logs with more detail
   const formatActivityLogs = (logs, limit = 20) => {
     if (!logs.length) return 'No activity logs found';
     const displayLogs = logs.slice(0, limit);
-    return displayLogs.map(log => {
-      const timestamp = new Date(log.timestamp).toLocaleTimeString();
-      const agent = log.agent_id ? allAgents.find(a => a.id === log.agent_id) : null;
-      return `[${timestamp}] ${log.message}${agent ? ` (by ${agent.name})` : ''}${log.data ? ` - ${JSON.stringify(log.data)}` : ''}`;
-    }).join('\n');
+    return displayLogs
+      .map((log) => {
+        const timestamp = new Date(log.timestamp).toLocaleTimeString();
+        const agent = log.agent_id ? allAgents.find((a) => a.id === log.agent_id) : null;
+        return `[${timestamp}] ${log.message}${agent ? ` (by ${agent.name})` : ''}${log.data ? ` - ${JSON.stringify(log.data)}` : ''}`;
+      })
+      .join('\n');
   };
-  
+
   // Extract metadata if available
   const metadata = session.metadata || {};
-  const metadataStr = Object.keys(metadata).length > 0 ? 
-    Object.entries(metadata).map(([k, v]) => `• ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join('\n') : 
-    'No metadata available';
+  const metadataStr =
+    Object.keys(metadata).length > 0
+      ? Object.entries(metadata)
+          .map(([k, v]) => `• ${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+          .join('\n')
+      : 'No metadata available';
 
   return `🔄 RESUMING HIVE MIND SESSION
 ═══════════════════════════════════
@@ -2982,7 +3006,7 @@ async function launchClaudeWithContext(prompt, flags, sessionId) {
       console.log(chalk.blue('\n🔍 Debug: About to spawn Claude Code process...'));
       console.log(chalk.gray(`  Session ID: ${sessionId}`));
       console.log(chalk.gray(`  Process ID: ${process.pid}`));
-      
+
       // Remove --print to allow interactive session (same as initial spawn)
       const claudeArgs = [prompt];
 
@@ -2997,21 +3021,24 @@ async function launchClaudeWithContext(prompt, flags, sessionId) {
         );
       }
 
-      console.log(chalk.blue('🔍 Debug: Spawning with args:'), claudeArgs.slice(0, 1).map(a => a.substring(0, 50) + '...'));
-      
+      console.log(
+        chalk.blue('🔍 Debug: Spawning with args:'),
+        claudeArgs.slice(0, 1).map((a) => a.substring(0, 50) + '...'),
+      );
+
       // Use 'inherit' for interactive session (same as initial spawn)
       const claudeProcess = childSpawn('claude', claudeArgs, {
         stdio: 'inherit',
         shell: false,
       });
-      
+
       console.log(chalk.blue('🔍 Debug: Claude process spawned with PID:'), claudeProcess.pid);
 
       // Track child process PID in session (same as initial spawn)
       const sessionManager = new HiveMindSessionManager();
       if (claudeProcess.pid) {
         const sessions = await sessionManager.getActiveSessions();
-        const currentSession = sessions.find(s => s.id === sessionId);
+        const currentSession = sessions.find((s) => s.id === sessionId);
         if (currentSession) {
           await sessionManager.addChildPid(currentSession.id, claudeProcess.pid);
         }
@@ -3024,21 +3051,21 @@ async function launchClaudeWithContext(prompt, flags, sessionId) {
         isExiting = true;
 
         console.log('\n\n' + chalk.yellow('⏸️  Pausing session and terminating Claude Code...'));
-        
+
         try {
           // Terminate Claude Code process if still running
           if (claudeProcess && !claudeProcess.killed) {
             claudeProcess.kill('SIGTERM');
           }
-          
+
           // Clean up and close session manager
           sessionManager.close();
-          
+
           console.log(chalk.green('✓') + ' Session paused successfully');
           console.log(chalk.cyan('\nTo resume this session, run:'));
           console.log(chalk.bold(`  claude-flow hive-mind resume ${sessionId}`));
           console.log();
-          
+
           process.exit(0);
         } catch (error) {
           console.error(chalk.red('Error during shutdown:'), error.message);
@@ -3053,14 +3080,14 @@ async function launchClaudeWithContext(prompt, flags, sessionId) {
       claudeProcess.on('exit', async (code, signal) => {
         if (!isExiting) {
           console.log('\n' + chalk.yellow('Claude Code has exited'));
-          
+
           // Clean up signal handlers
           process.removeListener('SIGINT', sigintHandler);
           process.removeListener('SIGTERM', sigintHandler);
-          
+
           // Close session manager
           sessionManager.close();
-          
+
           process.exit(code || 0);
         }
       });

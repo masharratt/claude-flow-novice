@@ -24,7 +24,10 @@ export class ScopeBoundedValidator {
   constructor(originalScope, suggestionMode = 'validation_only', options = {}) {
     // Core scope control components
     this.originalScope = this.normalizeScope(originalScope);
-    this.scopeGuard = new ValidationScopeGuard(this.originalScope, suggestionMode !== 'validation_only');
+    this.scopeGuard = new ValidationScopeGuard(
+      this.originalScope,
+      suggestionMode !== 'validation_only',
+    );
     this.suggestionConfig = new FeatureSuggestionConfig(suggestionMode);
     this.violationMonitor = new ScopeViolationMonitor(this.originalScope, this.suggestionConfig);
     this.escalationManager = new ScopeEscalationManager(options.escalationConfig || {});
@@ -34,7 +37,7 @@ export class ScopeBoundedValidator {
       core_validation: {},
       scope_compliance: {},
       suggestions: [],
-      violations: []
+      violations: [],
     };
 
     // Metrics tracking
@@ -43,7 +46,7 @@ export class ScopeBoundedValidator {
       scope_checks_performed: 0,
       violations_detected: 0,
       suggestions_generated: 0,
-      escalations_triggered: 0
+      escalations_triggered: 0,
     };
 
     // Configuration
@@ -51,7 +54,7 @@ export class ScopeBoundedValidator {
       strict_enforcement: options.strict_enforcement !== false,
       auto_escalate: options.auto_escalate !== false,
       track_metrics: options.track_metrics !== false,
-      ...options
+      ...options,
     };
   }
 
@@ -66,7 +69,7 @@ export class ScopeBoundedValidator {
         must_validate: [scope],
         must_not_validate: ['architecture', 'enterprise_features', 'security_frameworks'],
         success_criteria: ['validation_completed'],
-        excluded_areas: ['implementation', 'feature_development', 'system_design']
+        excluded_areas: ['implementation', 'feature_development', 'system_design'],
       };
     }
 
@@ -77,8 +80,11 @@ export class ScopeBoundedValidator {
       must_not_validate: scope.must_not_validate || [],
       success_criteria: scope.success_criteria || [],
       excluded_areas: scope.excluded_areas || [],
-      complexity_limits: scope.complexity_limits || { max_new_features: 0, max_architecture_changes: 0 },
-      ...scope
+      complexity_limits: scope.complexity_limits || {
+        max_new_features: 0,
+        max_architecture_changes: 0,
+      },
+      ...scope,
     };
   }
 
@@ -102,7 +108,7 @@ export class ScopeBoundedValidator {
       const coreResults = await this.executeCoreValidation(
         target,
         scopeCheck.approved_actions,
-        context
+        context,
       );
 
       // Step 4: Process suggestions if enabled
@@ -120,7 +126,7 @@ export class ScopeBoundedValidator {
         scope_compliance: scopeAudit,
         suggestions: suggestions,
         violations: this.validationResults.violations,
-        metrics: this.calculateValidationMetrics()
+        metrics: this.calculateValidationMetrics(),
       };
 
       // Step 7: Track metrics if enabled
@@ -129,7 +135,6 @@ export class ScopeBoundedValidator {
       }
 
       return finalResults;
-
     } catch (error) {
       if (error instanceof ScopeViolationError) {
         return this.handleScopeViolationError(error);
@@ -147,21 +152,21 @@ export class ScopeBoundedValidator {
     const scopeCheck = this.scopeGuard.validateRequest({
       actions: validationPlan.actions,
       objectives: validationPlan.objectives,
-      complexity_estimate: validationPlan.complexity_estimate
+      complexity_estimate: validationPlan.complexity_estimate,
     });
 
     // Real-time violation monitoring
     for (const action of validationPlan.actions) {
       const violationCheck = this.violationMonitor.monitorValidationAction(action, {
         current_scope: this.originalScope,
-        suggestion_mode: this.suggestionConfig.mode
+        suggestion_mode: this.suggestionConfig.mode,
       });
 
       if (violationCheck.violation_detected) {
         scopeCheck.violations.push({
           action: action,
           violation: violationCheck,
-          severity: violationCheck.severity
+          severity: violationCheck.severity,
         });
         scopeCheck.withinBounds = false;
         this.metrics.violations_detected++;
@@ -175,13 +180,13 @@ export class ScopeBoundedValidator {
    * Handle scope violations through escalation process
    */
   async handleScopeViolations(violations, context) {
-    const criticalViolations = violations.filter(v => v.severity === 'CRITICAL');
-    const nonCriticalViolations = violations.filter(v => v.severity !== 'CRITICAL');
+    const criticalViolations = violations.filter((v) => v.severity === 'CRITICAL');
+    const nonCriticalViolations = violations.filter((v) => v.severity !== 'CRITICAL');
 
     // Critical violations always halt execution
     if (criticalViolations.length > 0) {
       const criticalError = new ScopeViolationError(
-        `Critical scope violations detected: ${criticalViolations.map(v => v.violation.violation_type).join(', ')}`
+        `Critical scope violations detected: ${criticalViolations.map((v) => v.violation.violation_type).join(', ')}`,
       );
       criticalError.violations = criticalViolations;
       throw criticalError;
@@ -192,20 +197,22 @@ export class ScopeBoundedValidator {
       const escalation = await this.escalationManager.escalateOutOfScopeAction(
         violation.action,
         violation.violation.violation_type,
-        context
+        context,
       );
 
       this.metrics.escalations_triggered++;
 
       if (escalation.status === 'REJECTED') {
-        throw new ScopeViolationError(`Scope violation rejected: ${violation.violation.violation_type}`);
+        throw new ScopeViolationError(
+          `Scope violation rejected: ${violation.violation.violation_type}`,
+        );
       }
 
       // Store approved escalations for audit trail
       this.validationResults.violations.push({
         violation: violation,
         escalation: escalation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   }
@@ -224,14 +231,16 @@ export class ScopeBoundedValidator {
           category: this.categorizeSuggestion(suggestion),
           priority: this.prioritizeSuggestion(suggestion),
           implementation_complexity: this.estimateImplementationComplexity(suggestion),
-          requires_approval: suggestion.complexity > this.suggestionConfig.config.max_suggestion_complexity / 2,
+          requires_approval:
+            suggestion.complexity > this.suggestionConfig.config.max_suggestion_complexity / 2,
           source: 'scope_bounded_validator',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
 
         // Add implementation guidance if appropriate
         if (processedSuggestion.category === 'minor_enhancement') {
-          processedSuggestion.implementation_guidance = this.generateImplementationGuidance(suggestion);
+          processedSuggestion.implementation_guidance =
+            this.generateImplementationGuidance(suggestion);
         }
 
         processedSuggestions.push(processedSuggestion);
@@ -254,10 +263,14 @@ export class ScopeBoundedValidator {
       violations_detected: violations,
       warnings: warnings,
       scope_adherence_score: this.calculateScopeAdherenceScore(),
-      scope_expansion_attempted: violations.some(v => v.violation_type === 'SCOPE_EXPANSION'),
-      enterprise_overreach_detected: violations.some(v => v.violation_type === 'ENTERPRISE_OVERREACH'),
-      feature_implementation_attempted: violations.some(v => v.violation_type === 'FEATURE_IMPLEMENTATION'),
-      audit_timestamp: Date.now()
+      scope_expansion_attempted: violations.some((v) => v.violation_type === 'SCOPE_EXPANSION'),
+      enterprise_overreach_detected: violations.some(
+        (v) => v.violation_type === 'ENTERPRISE_OVERREACH',
+      ),
+      feature_implementation_attempted: violations.some(
+        (v) => v.violation_type === 'FEATURE_IMPLEMENTATION',
+      ),
+      audit_timestamp: Date.now(),
     };
 
     // Add detailed compliance breakdown
@@ -265,7 +278,7 @@ export class ScopeBoundedValidator {
       objectives_met: this.checkObjectivesFulfilled(),
       constraints_respected: this.checkConstraintsRespected(),
       success_criteria_achieved: this.checkSuccessCriteriaAchieved(),
-      excluded_areas_avoided: this.checkExcludedAreasAvoided()
+      excluded_areas_avoided: this.checkExcludedAreasAvoided(),
     };
 
     return audit;
@@ -282,8 +295,8 @@ export class ScopeBoundedValidator {
     if (totalActions === 0) return 100;
 
     // Score formula: (total - violations - (warnings * 0.5)) / total * 100
-    const penaltyScore = violations + (warnings * 0.5);
-    const adherenceScore = Math.max(0, (totalActions - penaltyScore) / totalActions * 100);
+    const penaltyScore = violations + warnings * 0.5;
+    const adherenceScore = Math.max(0, ((totalActions - penaltyScore) / totalActions) * 100);
 
     return Math.round(adherenceScore * 100) / 100; // Round to 2 decimal places
   }
@@ -303,7 +316,7 @@ export class ScopeBoundedValidator {
       escalations_triggered: this.metrics.escalations_triggered,
       scope_adherence_score: this.calculateScopeAdherenceScore(),
       efficiency_score: this.calculateEfficiencyScore(),
-      validation_timestamp: endTime
+      validation_timestamp: endTime,
     };
   }
 
@@ -315,7 +328,7 @@ export class ScopeBoundedValidator {
     const overheadActions = this.metrics.violations_detected + this.metrics.escalations_triggered;
 
     if (validationActions === 0) return 0;
-    return Math.max(0, (validationActions - overheadActions) / validationActions * 100);
+    return Math.max(0, ((validationActions - overheadActions) / validationActions) * 100);
   }
 
   // Abstract methods to be implemented by concrete validators
@@ -340,48 +353,42 @@ export class ScopeBoundedValidator {
 
   checkObjectivesFulfilled() {
     // Check if all must_validate objectives were addressed
-    return this.originalScope.must_validate.every(objective =>
-      this.wasObjectiveAddressed(objective)
+    return this.originalScope.must_validate.every((objective) =>
+      this.wasObjectiveAddressed(objective),
     );
   }
 
   checkConstraintsRespected() {
     // Check if any must_not_validate constraints were violated
-    return !this.originalScope.must_not_validate.some(constraint =>
-      this.wasConstraintViolated(constraint)
+    return !this.originalScope.must_not_validate.some((constraint) =>
+      this.wasConstraintViolated(constraint),
     );
   }
 
   checkSuccessCriteriaAchieved() {
     // Check if success criteria were met
-    return this.originalScope.success_criteria.every(criteria =>
-      this.wasCriteriaMet(criteria)
-    );
+    return this.originalScope.success_criteria.every((criteria) => this.wasCriteriaMet(criteria));
   }
 
   checkExcludedAreasAvoided() {
     // Check if excluded areas were properly avoided
-    return !this.originalScope.excluded_areas.some(area =>
-      this.wasExcludedAreaEntered(area)
-    );
+    return !this.originalScope.excluded_areas.some((area) => this.wasExcludedAreaEntered(area));
   }
 
   // Utility methods for suggestion processing
 
   categorizeSuggestion(suggestion) {
     const categories = {
-      'code_quality': ['refactor', 'cleanup', 'documentation'],
-      'performance_minor': ['optimization', 'caching', 'efficiency'],
-      'testing': ['test_coverage', 'test_quality', 'test_automation'],
-      'architecture': ['design', 'structure', 'patterns'],
-      'security': ['vulnerability', 'authentication', 'encryption'],
-      'scalability': ['performance', 'distributed', 'horizontal']
+      code_quality: ['refactor', 'cleanup', 'documentation'],
+      performance_minor: ['optimization', 'caching', 'efficiency'],
+      testing: ['test_coverage', 'test_quality', 'test_automation'],
+      architecture: ['design', 'structure', 'patterns'],
+      security: ['vulnerability', 'authentication', 'encryption'],
+      scalability: ['performance', 'distributed', 'horizontal'],
     };
 
     for (const [category, keywords] of Object.entries(categories)) {
-      if (keywords.some(keyword =>
-        suggestion.description.toLowerCase().includes(keyword)
-      )) {
+      if (keywords.some((keyword) => suggestion.description.toLowerCase().includes(keyword))) {
         return category;
       }
     }
@@ -400,7 +407,7 @@ export class ScopeBoundedValidator {
       7: 'high',
       8: 'high',
       9: 'critical',
-      10: 'critical'
+      10: 'critical',
     };
 
     return complexityPriority[suggestion.complexity] || 'medium';
@@ -411,12 +418,12 @@ export class ScopeBoundedValidator {
     const baseComplexity = suggestion.complexity || 5;
 
     const categoryComplexityModifiers = {
-      'code_quality': 0.8,
-      'testing': 1.0,
-      'performance_minor': 1.2,
-      'architecture': 1.5,
-      'security': 1.8,
-      'scalability': 2.0
+      code_quality: 0.8,
+      testing: 1.0,
+      performance_minor: 1.2,
+      architecture: 1.5,
+      security: 1.8,
+      scalability: 2.0,
     };
 
     const category = this.categorizeSuggestion(suggestion);
@@ -430,20 +437,38 @@ export class ScopeBoundedValidator {
       estimated_effort: `${this.estimateImplementationComplexity(suggestion)} story points`,
       prerequisites: this.identifyPrerequisites(suggestion),
       potential_risks: this.identifyPotentialRisks(suggestion),
-      implementation_steps: this.generateImplementationSteps(suggestion)
+      implementation_steps: this.generateImplementationSteps(suggestion),
     };
   }
 
   // Placeholder methods for concrete implementation details
-  wasObjectiveAddressed(objective) { return true; }
-  wasConstraintViolated(constraint) { return false; }
-  wasCriteriaMet(criteria) { return true; }
-  wasExcludedAreaEntered(area) { return false; }
-  getTotalActionsAttempted() { return 1; }
-  getTotalValidationActions() { return 1; }
-  identifyPrerequisites(suggestion) { return []; }
-  identifyPotentialRisks(suggestion) { return []; }
-  generateImplementationSteps(suggestion) { return []; }
+  wasObjectiveAddressed(objective) {
+    return true;
+  }
+  wasConstraintViolated(constraint) {
+    return false;
+  }
+  wasCriteriaMet(criteria) {
+    return true;
+  }
+  wasExcludedAreaEntered(area) {
+    return false;
+  }
+  getTotalActionsAttempted() {
+    return 1;
+  }
+  getTotalValidationActions() {
+    return 1;
+  }
+  identifyPrerequisites(suggestion) {
+    return [];
+  }
+  identifyPotentialRisks(suggestion) {
+    return [];
+  }
+  generateImplementationSteps(suggestion) {
+    return [];
+  }
 
   /**
    * Handle scope violation errors
@@ -453,17 +478,17 @@ export class ScopeBoundedValidator {
       validation_result: {
         success: false,
         error: 'Scope violation prevented validation completion',
-        details: error.message
+        details: error.message,
       },
       scope_compliance: {
         within_original_scope: false,
         critical_violation: true,
         violations_detected: error.violations || [],
-        scope_adherence_score: 0
+        scope_adherence_score: 0,
       },
       suggestions: [],
       violations: error.violations || [],
-      metrics: this.calculateValidationMetrics()
+      metrics: this.calculateValidationMetrics(),
     };
   }
 
@@ -478,7 +503,7 @@ export class ScopeBoundedValidator {
       violations_count: results.violations.length,
       suggestions_count: results.suggestions.length,
       validation_duration: results.metrics.validation_duration_ms,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // Store metrics for analysis

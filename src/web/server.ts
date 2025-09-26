@@ -51,15 +51,15 @@ export class WebPortalServer {
   constructor(
     private config: WebPortalConfig,
     private logger: ILogger,
-    private configManager: ConfigManager
+    private configManager: ConfigManager,
   ) {
     this.app = express();
     this.server = createServer(this.app);
     this.io = new SocketIOServer(this.server, {
       cors: {
-        origin: this.config.corsOrigins || ["*"],
-        methods: ["GET", "POST"]
-      }
+        origin: this.config.corsOrigins || ['*'],
+        methods: ['GET', 'POST'],
+      },
     });
 
     this.initializeComponents();
@@ -80,10 +80,12 @@ export class WebPortalServer {
   private setupMiddleware(): void {
     // CORS
     if (this.config.enableCors) {
-      this.app.use(cors({
-        origin: this.config.corsOrigins || ["*"],
-        credentials: true
-      }));
+      this.app.use(
+        cors({
+          origin: this.config.corsOrigins || ['*'],
+          credentials: true,
+        }),
+      );
     }
 
     // JSON parsing
@@ -96,7 +98,7 @@ export class WebPortalServer {
         method: req.method,
         path: req.path,
         ip: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get('User-Agent'),
       });
       next();
     });
@@ -106,10 +108,12 @@ export class WebPortalServer {
     this.app.use(express.static(staticPath));
 
     // Error handling
-    this.app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      this.logger.error('Express error', { error: err.message, stack: err.stack });
-      res.status(500).json({ error: 'Internal server error' });
-    });
+    this.app.use(
+      (err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+        this.logger.error('Express error', { error: err.message, stack: err.stack });
+        res.status(500).json({ error: 'Internal server error' });
+      },
+    );
   }
 
   private setupRoutes(): void {
@@ -118,7 +122,7 @@ export class WebPortalServer {
       res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0.0',
       });
     });
 
@@ -131,7 +135,7 @@ export class WebPortalServer {
           agentId: agentId as string,
           messageType: messageType as string,
           limit: parseInt(limit as string) || 100,
-          offset: parseInt(offset as string) || 0
+          offset: parseInt(offset as string) || 0,
         });
         res.json({ messages, total: messages.length });
       } catch (error) {
@@ -155,7 +159,7 @@ export class WebPortalServer {
           message,
           action: action || 'redirect',
           timestamp: new Date().toISOString(),
-          userId: req.ip // Simple user identification
+          userId: req.ip, // Simple user identification
         });
 
         res.json({ interventionId, status: 'sent' });
@@ -183,7 +187,7 @@ export class WebPortalServer {
         const { swarmId, timeRange } = req.query;
         const stats = await this.transparencyLogger.getMessageStats(
           swarmId as string,
-          timeRange as string
+          timeRange as string,
         );
         res.json(stats);
       } catch (error) {
@@ -295,7 +299,7 @@ export class WebPortalServer {
           this.logger.info('Web portal server started', {
             host: this.config.host,
             port: this.config.port,
-            url: `http://${this.config.host}:${this.config.port}`
+            url: `http://${this.config.host}:${this.config.port}`,
           });
           resolve();
         }
@@ -324,7 +328,7 @@ export class WebPortalServer {
       totalMessages: this.messageRouter.getMessageCount(),
       activeSwarms: this.statusTracker.getActiveSwarmCount(),
       interventions: this.interventionSystem.getInterventionCount(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
     };
   }
 }

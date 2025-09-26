@@ -7,8 +7,8 @@ import crypto from 'crypto';
 
 class ByzantineConsensus {
   constructor(options = {}) {
-    this.faultTolerance = options.faultTolerance || 1/3; // Can tolerate up to 1/3 faulty nodes
-    this.consensusThreshold = options.consensusThreshold || 2/3;
+    this.faultTolerance = options.faultTolerance || 1 / 3; // Can tolerate up to 1/3 faulty nodes
+    this.consensusThreshold = options.consensusThreshold || 2 / 3;
   }
 
   async achieveConsensus(proposal, validators) {
@@ -19,34 +19,35 @@ class ByzantineConsensus {
       achieved: result.consensus,
       votes,
       consensusRatio: result.ratio,
-      byzantineProof: result.proof
+      byzantineProof: result.proof,
     };
   }
 
   async collectVotes(proposal, validators) {
-    return validators.map(validator => ({
+    return validators.map((validator) => ({
       validatorId: validator.id,
       vote: Math.random() > 0.15, // 85% approval rate
       signature: this.signVote(validator, proposal),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   }
 
   signVote(validator, proposal) {
-    return crypto.createHash('sha256')
+    return crypto
+      .createHash('sha256')
       .update(validator.id + JSON.stringify(proposal) + 'consensus_secret')
       .digest('hex');
   }
 
   evaluateConsensus(votes) {
-    const positiveVotes = votes.filter(vote => vote.vote).length;
+    const positiveVotes = votes.filter((vote) => vote.vote).length;
     const ratio = positiveVotes / votes.length;
     const consensus = ratio >= this.consensusThreshold;
 
     return {
       consensus,
       ratio,
-      proof: consensus ? this.generateConsensusProof(votes) : null
+      proof: consensus ? this.generateConsensusProof(votes) : null,
     };
   }
 
@@ -54,9 +55,9 @@ class ByzantineConsensus {
     return {
       consensusType: 'byzantine_fault_tolerant',
       voteCount: votes.length,
-      positiveVotes: votes.filter(v => v.vote).length,
+      positiveVotes: votes.filter((v) => v.vote).length,
       proofHash: crypto.createHash('sha256').update(JSON.stringify(votes)).digest('hex'),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }

@@ -27,7 +27,7 @@ class PerformanceTestSuite {
     // Initialize memory store
     this.memoryStore = new SqliteMemoryStore({
       dbName: 'test-performance.db',
-      directory: './.swarm-test'
+      directory: './.swarm-test',
     });
 
     // Initialize optimized hook system
@@ -73,7 +73,6 @@ class PerformanceTestSuite {
 
       // Test 8: Cache performance testing
       await this.testCachePerformance();
-
     } catch (error) {
       console.error('❌ Test suite execution failed:', error);
       throw error;
@@ -99,7 +98,7 @@ class PerformanceTestSuite {
       'pre-bash',
       'post-bash',
       'session-end',
-      'notify'
+      'notify',
     ];
 
     const results = {
@@ -107,7 +106,7 @@ class PerformanceTestSuite {
       hookResults: {},
       overallPass: true,
       averageTime: 0,
-      maxTime: 0
+      maxTime: 0,
     };
 
     let totalTime = 0;
@@ -125,28 +124,27 @@ class PerformanceTestSuite {
             taskId: `test-${i}`,
             file: 'test-file.js',
             command: 'test command',
-            description: `Test execution ${i}`
+            description: `Test execution ${i}`,
           });
 
           const executionTime = performance.now() - start;
           hookResults.push({
             execution: i + 1,
             time: executionTime,
-            success: true
+            success: true,
           });
 
           this.performanceMonitor.recordExecution(hookType, executionTime, true);
 
           totalTime += executionTime;
           executionCount++;
-
         } catch (error) {
           const executionTime = performance.now() - start;
           hookResults.push({
             execution: i + 1,
             time: executionTime,
             success: false,
-            error: error.message
+            error: error.message,
           });
 
           this.performanceMonitor.recordExecution(hookType, executionTime, false);
@@ -155,23 +153,26 @@ class PerformanceTestSuite {
       }
 
       // Calculate hook-specific metrics
-      const successfulExecutions = hookResults.filter(r => r.success);
-      const hookAverage = successfulExecutions.length > 0 ?
-        successfulExecutions.reduce((sum, r) => sum + r.time, 0) / successfulExecutions.length :
-        Infinity;
-      const hookMax = Math.max(...hookResults.map(r => r.time));
+      const successfulExecutions = hookResults.filter((r) => r.success);
+      const hookAverage =
+        successfulExecutions.length > 0
+          ? successfulExecutions.reduce((sum, r) => sum + r.time, 0) / successfulExecutions.length
+          : Infinity;
+      const hookMax = Math.max(...hookResults.map((r) => r.time));
 
       results.hookResults[hookType] = {
         executions: hookResults,
         averageTime: hookAverage,
         maxTime: hookMax,
         successRate: successfulExecutions.length / hookResults.length,
-        meetsTarget: hookAverage < 100
+        meetsTarget: hookAverage < 100,
       };
 
       // Check if hook meets performance target
       if (hookAverage >= 100) {
-        console.error(`❌ FAILED: ${hookType} average time ${hookAverage.toFixed(2)}ms exceeds 100ms target`);
+        console.error(
+          `❌ FAILED: ${hookType} average time ${hookAverage.toFixed(2)}ms exceeds 100ms target`,
+        );
         results.overallPass = false;
       } else {
         console.log(`✅ PASSED: ${hookType} average time ${hookAverage.toFixed(2)}ms`);
@@ -203,7 +204,7 @@ class PerformanceTestSuite {
     const results = {
       testName: 'Concurrent Hook Execution',
       concurrencyResults: {},
-      overallPass: true
+      overallPass: true,
     };
 
     for (const concurrency of concurrencyLevels) {
@@ -215,10 +216,12 @@ class PerformanceTestSuite {
       for (let i = 0; i < concurrency; i++) {
         const hookType = ['pre-task', 'post-task', 'pre-edit', 'post-edit'][i % 4];
         promises.push(
-          this.hookSystem.executeHook(hookType, {
-            taskId: `concurrent-${i}`,
-            executionIndex: i
-          }).catch(error => ({ error: error.message, executionIndex: i }))
+          this.hookSystem
+            .executeHook(hookType, {
+              taskId: `concurrent-${i}`,
+              executionIndex: i,
+            })
+            .catch((error) => ({ error: error.message, executionIndex: i })),
         );
       }
 
@@ -226,25 +229,33 @@ class PerformanceTestSuite {
       const totalTime = performance.now() - start;
       const averageTime = totalTime / concurrency;
 
-      const failures = concurrentResults.filter(r => r.error);
+      const failures = concurrentResults.filter((r) => r.error);
 
       results.concurrencyResults[concurrency] = {
         totalTime,
         averageTimePerExecution: averageTime,
         failures: failures.length,
         successRate: (concurrency - failures.length) / concurrency,
-        meetsTarget: averageTime < 100
+        meetsTarget: averageTime < 100,
       };
 
       if (averageTime >= 100) {
-        console.error(`❌ FAILED: ${concurrency} concurrent executions averaged ${averageTime.toFixed(2)}ms`);
+        console.error(
+          `❌ FAILED: ${concurrency} concurrent executions averaged ${averageTime.toFixed(2)}ms`,
+        );
         results.overallPass = false;
       } else {
-        console.log(`✅ PASSED: ${concurrency} concurrent executions averaged ${averageTime.toFixed(2)}ms`);
+        console.log(
+          `✅ PASSED: ${concurrency} concurrent executions averaged ${averageTime.toFixed(2)}ms`,
+        );
       }
     }
 
-    console.log(results.overallPass ? '✅ Concurrent execution test PASSED' : '❌ Concurrent execution test FAILED');
+    console.log(
+      results.overallPass
+        ? '✅ Concurrent execution test PASSED'
+        : '❌ Concurrent execution test FAILED',
+    );
     this.testResults.push(results);
     return results;
   }
@@ -258,14 +269,14 @@ class PerformanceTestSuite {
     const results = {
       testName: 'Memory Persistence Performance',
       operations: {},
-      overallPass: true
+      overallPass: true,
     };
 
     const operations = [
       { op: 'store', iterations: 100 },
       { op: 'retrieve', iterations: 100 },
       { op: 'list', iterations: 50 },
-      { op: 'search', iterations: 30 }
+      { op: 'search', iterations: 30 },
     ];
 
     for (const { op, iterations } of operations) {
@@ -297,7 +308,6 @@ class PerformanceTestSuite {
           operationTimes.push(operationTime);
 
           this.performanceMonitor.recordMemoryOperation(op, operationTime, true);
-
         } catch (error) {
           const operationTime = performance.now() - start;
           operationTimes.push(operationTime);
@@ -308,7 +318,8 @@ class PerformanceTestSuite {
         }
       }
 
-      const averageTime = operationTimes.reduce((sum, time) => sum + time, 0) / operationTimes.length;
+      const averageTime =
+        operationTimes.reduce((sum, time) => sum + time, 0) / operationTimes.length;
       const maxTime = Math.max(...operationTimes);
 
       results.operations[op] = {
@@ -316,7 +327,7 @@ class PerformanceTestSuite {
         maxTime,
         failures,
         successRate: (iterations - failures) / iterations,
-        meetsTarget: averageTime < 20 // Memory operations should be faster
+        meetsTarget: averageTime < 20, // Memory operations should be faster
       };
 
       if (averageTime >= 20) {
@@ -327,7 +338,11 @@ class PerformanceTestSuite {
       }
     }
 
-    console.log(results.overallPass ? '✅ Memory persistence test PASSED' : '❌ Memory persistence test FAILED');
+    console.log(
+      results.overallPass
+        ? '✅ Memory persistence test PASSED'
+        : '❌ Memory persistence test FAILED',
+    );
     this.testResults.push(results);
     return results;
   }
@@ -339,16 +354,16 @@ class PerformanceTestSuite {
     console.log('🔧 Testing Hook Compatibility...');
 
     const testScenarios = [
-      { hookType: 'pre-task', context: { description: 'Test task' }},
-      { hookType: 'pre-task', context: { taskId: 'custom-123', agentId: 'test-agent' }},
-      { hookType: 'post-edit', context: { file: 'test.js', memoryKey: 'edit-test' }},
-      { hookType: 'post-edit', context: { file: 'test.py', format: true, trainNeural: true }},
-      { hookType: 'pre-bash', context: { command: 'ls -la', validateSafety: true }},
-      { hookType: 'session-end', context: { generateSummary: true, exportMetrics: true }},
+      { hookType: 'pre-task', context: { description: 'Test task' } },
+      { hookType: 'pre-task', context: { taskId: 'custom-123', agentId: 'test-agent' } },
+      { hookType: 'post-edit', context: { file: 'test.js', memoryKey: 'edit-test' } },
+      { hookType: 'post-edit', context: { file: 'test.py', format: true, trainNeural: true } },
+      { hookType: 'pre-bash', context: { command: 'ls -la', validateSafety: true } },
+      { hookType: 'session-end', context: { generateSummary: true, exportMetrics: true } },
       // Edge cases
       { hookType: 'unknown-hook', context: {} },
       { hookType: 'pre-task', context: null },
-      { hookType: 'post-edit', context: { file: '' }}
+      { hookType: 'post-edit', context: { file: '' } },
     ];
 
     const results = {
@@ -358,7 +373,7 @@ class PerformanceTestSuite {
       failedExecutions: 0,
       compatibilityRate: 0,
       scenarios: [],
-      overallPass: false
+      overallPass: false,
     };
 
     for (let i = 0; i < testScenarios.length; i++) {
@@ -373,11 +388,10 @@ class PerformanceTestSuite {
           scenario: i + 1,
           hookType: scenario.hookType,
           success: true,
-          executionTime
+          executionTime,
         });
 
         results.successfulExecutions++;
-
       } catch (error) {
         const executionTime = performance.now() - start;
 
@@ -386,7 +400,7 @@ class PerformanceTestSuite {
           hookType: scenario.hookType,
           success: false,
           executionTime,
-          error: error.message
+          error: error.message,
         });
 
         results.failedExecutions++;
@@ -396,7 +410,9 @@ class PerformanceTestSuite {
     results.compatibilityRate = results.successfulExecutions / results.totalScenarios;
     results.overallPass = results.compatibilityRate >= 0.95;
 
-    console.log(`📊 Compatibility rate: ${(results.compatibilityRate * 100).toFixed(1)}% (${results.successfulExecutions}/${results.totalScenarios})`);
+    console.log(
+      `📊 Compatibility rate: ${(results.compatibilityRate * 100).toFixed(1)}% (${results.successfulExecutions}/${results.totalScenarios})`,
+    );
 
     if (results.overallPass) {
       console.log('✅ Hook compatibility test PASSED (≥95% compatibility)');
@@ -417,17 +433,19 @@ class PerformanceTestSuite {
     const loadTests = [
       { name: 'Light Load', executions: 50, concurrency: 5 },
       { name: 'Medium Load', executions: 200, concurrency: 10 },
-      { name: 'Heavy Load', executions: 500, concurrency: 20 }
+      { name: 'Heavy Load', executions: 500, concurrency: 20 },
     ];
 
     const results = {
       testName: 'Load Performance',
       loadTests: {},
-      overallPass: true
+      overallPass: true,
     };
 
     for (const test of loadTests) {
-      console.log(`Running ${test.name}: ${test.executions} executions, ${test.concurrency} concurrent...`);
+      console.log(
+        `Running ${test.name}: ${test.executions} executions, ${test.concurrency} concurrent...`,
+      );
 
       const testStart = performance.now();
       const batchSize = Math.ceil(test.executions / test.concurrency);
@@ -436,15 +454,17 @@ class PerformanceTestSuite {
       for (let batch = 0; batch < test.concurrency; batch++) {
         const batchPromises = [];
 
-        for (let i = 0; i < batchSize && (batch * batchSize + i) < test.executions; i++) {
+        for (let i = 0; i < batchSize && batch * batchSize + i < test.executions; i++) {
           const executionIndex = batch * batchSize + i;
           const hookType = ['pre-task', 'post-task', 'pre-edit', 'post-edit'][executionIndex % 4];
 
           batchPromises.push(
-            this.hookSystem.executeHook(hookType, {
-              taskId: `load-test-${executionIndex}`,
-              loadTest: test.name
-            }).catch(error => ({ error: error.message }))
+            this.hookSystem
+              .executeHook(hookType, {
+                taskId: `load-test-${executionIndex}`,
+                loadTest: test.name,
+              })
+              .catch((error) => ({ error: error.message })),
           );
         }
 
@@ -455,7 +475,7 @@ class PerformanceTestSuite {
       const totalTime = performance.now() - testStart;
 
       const allResults = batchResults.flat();
-      const failures = allResults.filter(r => r.error).length;
+      const failures = allResults.filter((r) => r.error).length;
       const avgExecutionTime = totalTime / test.executions;
 
       results.loadTests[test.name] = {
@@ -465,18 +485,24 @@ class PerformanceTestSuite {
         failures,
         successRate: (test.executions - failures) / test.executions,
         throughput: test.executions / (totalTime / 1000), // executions per second
-        meetsTarget: avgExecutionTime < 100
+        meetsTarget: avgExecutionTime < 100,
       };
 
       if (avgExecutionTime >= 100) {
-        console.error(`❌ FAILED: ${test.name} averaged ${avgExecutionTime.toFixed(2)}ms per execution`);
+        console.error(
+          `❌ FAILED: ${test.name} averaged ${avgExecutionTime.toFixed(2)}ms per execution`,
+        );
         results.overallPass = false;
       } else {
-        console.log(`✅ PASSED: ${test.name} averaged ${avgExecutionTime.toFixed(2)}ms per execution`);
+        console.log(
+          `✅ PASSED: ${test.name} averaged ${avgExecutionTime.toFixed(2)}ms per execution`,
+        );
       }
     }
 
-    console.log(results.overallPass ? '✅ Load performance test PASSED' : '❌ Load performance test FAILED');
+    console.log(
+      results.overallPass ? '✅ Load performance test PASSED' : '❌ Load performance test FAILED',
+    );
     this.testResults.push(results);
     return results;
   }
@@ -492,7 +518,7 @@ class PerformanceTestSuite {
       memoryUsageBefore: process.memoryUsage(),
       memoryUsageAfter: null,
       maxConcurrentExecutions: 0,
-      overallPass: true
+      overallPass: true,
     };
 
     // Gradually increase concurrent executions until system becomes stressed
@@ -507,10 +533,12 @@ class PerformanceTestSuite {
 
       for (let i = 0; i < concurrency; i++) {
         promises.push(
-          this.hookSystem.executeHook('pre-task', {
-            taskId: `stress-${i}`,
-            stressTest: true
-          }).catch(error => ({ error: error.message }))
+          this.hookSystem
+            .executeHook('pre-task', {
+              taskId: `stress-${i}`,
+              stressTest: true,
+            })
+            .catch((error) => ({ error: error.message })),
         );
       }
 
@@ -518,10 +546,12 @@ class PerformanceTestSuite {
       const totalTime = performance.now() - start;
       const avgTime = totalTime / concurrency;
 
-      const failures = stressResults.filter(r => r.error).length;
+      const failures = stressResults.filter((r) => r.error).length;
       const failureRate = failures / concurrency;
 
-      console.log(`Concurrency ${concurrency}: ${avgTime.toFixed(2)}ms avg, ${failureRate.toFixed(2)} failure rate`);
+      console.log(
+        `Concurrency ${concurrency}: ${avgTime.toFixed(2)}ms avg, ${failureRate.toFixed(2)} failure rate`,
+      );
 
       // Detect stress conditions
       if (avgTime > 150 || failureRate > 0.1) {
@@ -537,8 +567,14 @@ class PerformanceTestSuite {
     results.memoryUsageAfter = process.memoryUsage();
     results.overallPass = results.maxConcurrentExecutions >= 50; // Should handle at least 50 concurrent
 
-    console.log(`📊 Maximum concurrent executions before stress: ${results.maxConcurrentExecutions}`);
-    console.log(results.overallPass ? '✅ Stress performance test PASSED' : '❌ Stress performance test FAILED');
+    console.log(
+      `📊 Maximum concurrent executions before stress: ${results.maxConcurrentExecutions}`,
+    );
+    console.log(
+      results.overallPass
+        ? '✅ Stress performance test PASSED'
+        : '❌ Stress performance test FAILED',
+    );
 
     this.testResults.push(results);
     return results;
@@ -556,7 +592,7 @@ class PerformanceTestSuite {
     for (let i = 0; i < 1000; i++) {
       await this.hookSystem.executeHook('pre-task', {
         taskId: `memory-test-${i}`,
-        data: 'x'.repeat(1000) // 1KB of data per execution
+        data: 'x'.repeat(1000), // 1KB of data per execution
       });
     }
 
@@ -570,13 +606,17 @@ class PerformanceTestSuite {
       finalMemory,
       memoryIncrease,
       memoryPerExecution,
-      overallPass: memoryPerExecution < 10000 // Less than 10KB per execution
+      overallPass: memoryPerExecution < 10000, // Less than 10KB per execution
     };
 
-    console.log(`📊 Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB for 1000 executions`);
+    console.log(
+      `📊 Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)}MB for 1000 executions`,
+    );
     console.log(`📊 Memory per execution: ${(memoryPerExecution / 1024).toFixed(2)}KB`);
 
-    console.log(results.overallPass ? '✅ Memory efficiency test PASSED' : '❌ Memory efficiency test FAILED');
+    console.log(
+      results.overallPass ? '✅ Memory efficiency test PASSED' : '❌ Memory efficiency test FAILED',
+    );
 
     this.testResults.push(results);
     return results;
@@ -591,7 +631,7 @@ class PerformanceTestSuite {
     const results = {
       testName: 'Cache Performance',
       cacheTests: {},
-      overallPass: true
+      overallPass: true,
     };
 
     // Test cache hit performance
@@ -612,7 +652,7 @@ class PerformanceTestSuite {
       cacheHitTime: hitTime,
       speedupRatio: missTime / hitTime,
       cacheWorking: hitResult.fromCache === true,
-      meetsTarget: hitTime < 10 // Cache hits should be very fast
+      meetsTarget: hitTime < 10, // Cache hits should be very fast
     };
 
     if (!results.cacheTests.cacheWorking) {
@@ -622,10 +662,14 @@ class PerformanceTestSuite {
       console.error(`❌ FAILED: Cache hit took ${hitTime.toFixed(2)}ms (target: <10ms)`);
       results.overallPass = false;
     } else {
-      console.log(`✅ PASSED: Cache hit ${hitTime.toFixed(2)}ms, speedup ${results.cacheTests.speedupRatio.toFixed(1)}x`);
+      console.log(
+        `✅ PASSED: Cache hit ${hitTime.toFixed(2)}ms, speedup ${results.cacheTests.speedupRatio.toFixed(1)}x`,
+      );
     }
 
-    console.log(results.overallPass ? '✅ Cache performance test PASSED' : '❌ Cache performance test FAILED');
+    console.log(
+      results.overallPass ? '✅ Cache performance test PASSED' : '❌ Cache performance test FAILED',
+    );
 
     this.testResults.push(results);
     return results;
@@ -638,19 +682,19 @@ class PerformanceTestSuite {
     console.log('\n📋 Generating Performance Test Report...\n');
 
     const performanceReport = this.performanceMonitor.generatePerformanceReport();
-    const overallPass = this.testResults.every(test => test.overallPass);
+    const overallPass = this.testResults.every((test) => test.overallPass);
 
     const report = {
       testSuiteResults: {
         timestamp: new Date().toISOString(),
         overallPass,
         totalTests: this.testResults.length,
-        passedTests: this.testResults.filter(test => test.overallPass).length,
-        failedTests: this.testResults.filter(test => !test.overallPass).length
+        passedTests: this.testResults.filter((test) => test.overallPass).length,
+        failedTests: this.testResults.filter((test) => !test.overallPass).length,
       },
       performanceMetrics: performanceReport,
       individualTests: this.testResults,
-      recommendations: this._generateTestRecommendations()
+      recommendations: this._generateTestRecommendations(),
     };
 
     // Print summary
@@ -659,15 +703,23 @@ class PerformanceTestSuite {
     console.log('='.repeat(80));
 
     console.log(`Overall Result: ${overallPass ? '✅ PASSED' : '❌ FAILED'}`);
-    console.log(`Tests Passed: ${report.testSuiteResults.passedTests}/${report.testSuiteResults.totalTests}`);
-    console.log(`Average Execution Time: ${performanceReport.summary.averageExecutionTime.toFixed(2)}ms`);
+    console.log(
+      `Tests Passed: ${report.testSuiteResults.passedTests}/${report.testSuiteResults.totalTests}`,
+    );
+    console.log(
+      `Average Execution Time: ${performanceReport.summary.averageExecutionTime.toFixed(2)}ms`,
+    );
     console.log(`Target Met (<100ms): ${performanceReport.summary.targetMet ? '✅ YES' : '❌ NO'}`);
-    console.log(`Compatibility Rate: ${(performanceReport.summary.compatibilityRate * 100).toFixed(1)}%`);
-    console.log(`Compatibility Target (≥95%): ${performanceReport.summary.compatibilityRate >= 0.95 ? '✅ YES' : '❌ NO'}`);
+    console.log(
+      `Compatibility Rate: ${(performanceReport.summary.compatibilityRate * 100).toFixed(1)}%`,
+    );
+    console.log(
+      `Compatibility Target (≥95%): ${performanceReport.summary.compatibilityRate >= 0.95 ? '✅ YES' : '❌ NO'}`,
+    );
 
     if (performanceReport.recommendations.length > 0) {
       console.log('\n🔧 Recommendations:');
-      performanceReport.recommendations.forEach(rec => {
+      performanceReport.recommendations.forEach((rec) => {
         console.log(`  ${rec.type}: ${rec.message}`);
       });
     }
@@ -680,13 +732,13 @@ class PerformanceTestSuite {
   _generateTestRecommendations() {
     const recommendations = [];
 
-    const failedTests = this.testResults.filter(test => !test.overallPass);
+    const failedTests = this.testResults.filter((test) => !test.overallPass);
 
     if (failedTests.length > 0) {
       recommendations.push({
         type: 'CRITICAL',
         message: `${failedTests.length} test(s) failed`,
-        failedTests: failedTests.map(test => test.testName)
+        failedTests: failedTests.map((test) => test.testName),
       });
     }
 

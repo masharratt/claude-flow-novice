@@ -64,7 +64,7 @@ export class InteractiveHelp {
       currentPath: [],
       completedTopics: [],
       userQuestions: [],
-      suggestions: this.getInitialSuggestions(context)
+      suggestions: this.getInitialSuggestions(context),
     };
 
     this.displayWelcome(context);
@@ -103,7 +103,10 @@ export class InteractiveHelp {
   /**
    * Get contextual help for specific command
    */
-  getCommandHelp(commandName: string, context: HelpContext): {
+  getCommandHelp(
+    commandName: string,
+    context: HelpContext,
+  ): {
     overview: string;
     usage: string;
     examples: string[];
@@ -112,7 +115,7 @@ export class InteractiveHelp {
     troubleshooting: string[];
   } {
     const commands = this.tierManager.getAvailableCommands();
-    const command = commands.find(cmd => cmd.name === commandName);
+    const command = commands.find((cmd) => cmd.name === commandName);
 
     if (!command) {
       return this.getCommandNotFoundHelp(commandName, context);
@@ -124,7 +127,7 @@ export class InteractiveHelp {
       examples: this.getCommandExamples(command, context),
       tips: this.getCommandTips(command, context),
       relatedCommands: this.getRelatedCommands(command, context),
-      troubleshooting: this.getCommandTroubleshooting(command, context)
+      troubleshooting: this.getCommandTroubleshooting(command, context),
     };
   }
 
@@ -133,14 +136,15 @@ export class InteractiveHelp {
    */
   getRecommendedLearningPaths(context: HelpContext): LearningPath[] {
     const userTier = context.userTier;
-    const availablePaths = Array.from(this.learningPaths.values())
-      .filter(path => this.canAccessLearningPath(path, userTier));
+    const availablePaths = Array.from(this.learningPaths.values()).filter((path) =>
+      this.canAccessLearningPath(path, userTier),
+    );
 
     // Sort by relevance to user's context
     return availablePaths
-      .map(path => ({
+      .map((path) => ({
         ...path,
-        relevance: this.calculatePathRelevance(path, context)
+        relevance: this.calculatePathRelevance(path, context),
       }))
       .sort((a, b) => b.relevance - a.relevance)
       .slice(0, 5)
@@ -168,14 +172,17 @@ export class InteractiveHelp {
     return {
       path,
       currentStep,
-      progress: { current: 1, total: path.steps.length }
+      progress: { current: 1, total: path.steps.length },
     };
   }
 
   /**
    * Get help for natural language queries
    */
-  async getNaturalLanguageHelp(query: string, context: HelpContext): Promise<{
+  async getNaturalLanguageHelp(
+    query: string,
+    context: HelpContext,
+  ): Promise<{
     interpretation: string;
     suggestions: string[];
     examples: string[];
@@ -187,7 +194,7 @@ export class InteractiveHelp {
       interpretation: `I think you want to ${analysis.intent} something related to ${analysis.domain}`,
       suggestions: this.getSuggestionsForQuery(analysis, context),
       examples: this.getExamplesForQuery(analysis, context),
-      learnMore: this.getLearnMoreForQuery(analysis, context)
+      learnMore: this.getLearnMoreForQuery(analysis, context),
     };
   }
 
@@ -206,44 +213,49 @@ export class InteractiveHelp {
         {
           id: 'welcome',
           title: 'Welcome to Claude Flow',
-          content: 'Claude Flow is your AI-powered development companion. It uses intelligent agents to help you build software faster and better.',
+          content:
+            'Claude Flow is your AI-powered development companion. It uses intelligent agents to help you build software faster and better.',
           type: 'explanation',
           interactive: false,
-          nextSteps: ['core-commands']
+          nextSteps: ['core-commands'],
         },
         {
           id: 'core-commands',
           title: 'The 5 Core Commands',
-          content: 'Claude Flow has 5 essential commands:\n• init - Start new projects\n• build - Create features\n• status - Check progress\n• help - Get assistance\n• learn - Unlock more features',
+          content:
+            'Claude Flow has 5 essential commands:\n• init - Start new projects\n• build - Create features\n• status - Check progress\n• help - Get assistance\n• learn - Unlock more features',
           type: 'explanation',
           interactive: true,
-          nextSteps: ['first-project']
+          nextSteps: ['first-project'],
         },
         {
           id: 'first-project',
           title: 'Create Your First Project',
-          content: 'Try: claude-flow init "my first app"\n\nThis will create a new project with intelligent defaults based on your description.',
+          content:
+            'Try: claude-flow init "my first app"\n\nThis will create a new project with intelligent defaults based on your description.',
           type: 'exercise',
           interactive: true,
-          nextSteps: ['natural-language']
+          nextSteps: ['natural-language'],
         },
         {
           id: 'natural-language',
           title: 'Natural Language Magic',
-          content: 'You can describe what you want in plain English:\n• "add user authentication"\n• "create a REST API"\n• "setup testing"',
+          content:
+            'You can describe what you want in plain English:\n• "add user authentication"\n• "create a REST API"\n• "setup testing"',
           type: 'example',
           interactive: true,
-          nextSteps: ['next-tier']
+          nextSteps: ['next-tier'],
         },
         {
           id: 'next-tier',
           title: 'Unlock More Features',
-          content: 'Keep using Claude Flow to unlock Intermediate tier with more commands and direct agent control!',
+          content:
+            'Keep using Claude Flow to unlock Intermediate tier with more commands and direct agent control!',
           type: 'explanation',
           interactive: false,
-          nextSteps: []
-        }
-      ]
+          nextSteps: [],
+        },
+      ],
     });
 
     this.learningPaths.set('natural-language', {
@@ -257,36 +269,40 @@ export class InteractiveHelp {
         {
           id: 'basic-patterns',
           title: 'Basic Language Patterns',
-          content: 'Effective patterns:\n• "add [feature]" - Add new functionality\n• "create [component]" - Build components\n• "setup [tool]" - Configure tools\n• "fix [problem]" - Resolve issues',
+          content:
+            'Effective patterns:\n• "add [feature]" - Add new functionality\n• "create [component]" - Build components\n• "setup [tool]" - Configure tools\n• "fix [problem]" - Resolve issues',
           type: 'explanation',
           interactive: false,
-          nextSteps: ['specificity']
+          nextSteps: ['specificity'],
         },
         {
           id: 'specificity',
           title: 'Be Specific',
-          content: 'Better: "add JWT authentication with login/logout"\nWorse: "add auth"\n\nSpecific descriptions get better results!',
+          content:
+            'Better: "add JWT authentication with login/logout"\nWorse: "add auth"\n\nSpecific descriptions get better results!',
           type: 'example',
           interactive: true,
-          nextSteps: ['context']
+          nextSteps: ['context'],
         },
         {
           id: 'context',
           title: 'Provide Context',
-          content: 'Include relevant details:\n• Framework: "using React"\n• Database: "with PostgreSQL"\n• Style: "following REST conventions"',
+          content:
+            'Include relevant details:\n• Framework: "using React"\n• Database: "with PostgreSQL"\n• Style: "following REST conventions"',
           type: 'explanation',
           interactive: true,
-          nextSteps: ['practice']
+          nextSteps: ['practice'],
         },
         {
           id: 'practice',
           title: 'Practice Exercise',
-          content: 'Try describing these in natural language:\n1. Add a user registration form\n2. Create API endpoints for blog posts\n3. Setup automated testing',
+          content:
+            'Try describing these in natural language:\n1. Add a user registration form\n2. Create API endpoints for blog posts\n3. Setup automated testing',
           type: 'exercise',
           interactive: true,
-          nextSteps: []
-        }
-      ]
+          nextSteps: [],
+        },
+      ],
     });
 
     // Intermediate Learning Paths
@@ -301,36 +317,40 @@ export class InteractiveHelp {
         {
           id: 'agent-types',
           title: 'Agent Specializations',
-          content: 'Different agents for different tasks:\n• Coder - General programming\n• Tester - Quality assurance\n• Reviewer - Code review\n• Researcher - Analysis & planning',
+          content:
+            'Different agents for different tasks:\n• Coder - General programming\n• Tester - Quality assurance\n• Reviewer - Code review\n• Researcher - Analysis & planning',
           type: 'explanation',
           interactive: false,
-          nextSteps: ['agent-selection']
+          nextSteps: ['agent-selection'],
         },
         {
           id: 'agent-selection',
           title: 'How Agents Are Selected',
-          content: 'Claude Flow automatically selects agents based on:\n• Task description\n• Project context\n• Complexity level\n• Your tier level',
+          content:
+            'Claude Flow automatically selects agents based on:\n• Task description\n• Project context\n• Complexity level\n• Your tier level',
           type: 'explanation',
           interactive: true,
-          nextSteps: ['coordination']
+          nextSteps: ['coordination'],
         },
         {
           id: 'coordination',
           title: 'Agent Coordination',
-          content: 'Agents work together through:\n• Shared memory\n• Workflow orchestration\n• Progress synchronization\n• Result handoffs',
+          content:
+            'Agents work together through:\n• Shared memory\n• Workflow orchestration\n• Progress synchronization\n• Result handoffs',
           type: 'explanation',
           interactive: false,
-          nextSteps: ['direct-control']
+          nextSteps: ['direct-control'],
         },
         {
           id: 'direct-control',
           title: 'Direct Agent Control',
-          content: 'In Intermediate tier, you can:\n• claude-flow agents list\n• claude-flow agents spawn coder\n• claude-flow agents metrics',
+          content:
+            'In Intermediate tier, you can:\n• claude-flow agents list\n• claude-flow agents spawn coder\n• claude-flow agents metrics',
           type: 'example',
           interactive: true,
-          nextSteps: []
-        }
-      ]
+          nextSteps: [],
+        },
+      ],
     });
 
     // Expert Learning Paths
@@ -345,13 +365,14 @@ export class InteractiveHelp {
         {
           id: 'workflow-types',
           title: 'Workflow Patterns',
-          content: 'Advanced patterns:\n• Parallel execution\n• Pipeline workflows\n• Conditional branching\n• Error recovery',
+          content:
+            'Advanced patterns:\n• Parallel execution\n• Pipeline workflows\n• Conditional branching\n• Error recovery',
           type: 'explanation',
           interactive: false,
-          nextSteps: ['custom-workflows']
-        }
+          nextSteps: ['custom-workflows'],
+        },
         // More steps would be defined...
-      ]
+      ],
     });
   }
 
@@ -425,7 +446,7 @@ export class InteractiveHelp {
     try {
       const context: HelpContext = {
         userTier: this.tierManager.getCurrentTier(),
-        recentCommands: []
+        recentCommands: [],
       };
 
       const nlHelp = await this.getNaturalLanguageHelp(input, context);
@@ -434,7 +455,7 @@ export class InteractiveHelp {
         response: `${nlHelp.interpretation}\n\n${nlHelp.suggestions.join('\n')}`,
         suggestions: nlHelp.examples,
         nextSteps: nlHelp.learnMore,
-        canExit: false
+        canExit: false,
       };
     } catch (error) {
       return this.handleUnknownQuestion(input);
@@ -447,34 +468,30 @@ export class InteractiveHelp {
       suggestions: [
         'Show me an example project setup',
         'What project types can I create?',
-        'How does the AI understand my requests?'
+        'How does the AI understand my requests?',
       ],
       nextSteps: [
         'Try creating your first project',
         'Learn about natural language commands',
-        'Explore the learning paths'
+        'Explore the learning paths',
       ],
-      canExit: false
+      canExit: false,
     };
   }
 
   private handleAvailableCommandsQuestion(): any {
     const commands = this.tierManager.getAvailableCommands();
-    const commandList = commands.map(cmd => `• ${cmd.name} - ${cmd.description}`).join('\n');
+    const commandList = commands.map((cmd) => `• ${cmd.name} - ${cmd.description}`).join('\n');
 
     return {
       response: `📋 Available Commands (${commands.length} total):\n\n${commandList}\n\nUse natural language with any command!`,
       suggestions: [
         'Tell me more about the build command',
         'How do I unlock more commands?',
-        'Show me command examples'
+        'Show me command examples',
       ],
-      nextSteps: [
-        'Try using a command',
-        'Learn about tier progression',
-        'Practice with examples'
-      ],
-      canExit: false
+      nextSteps: ['Try using a command', 'Learn about tier progression', 'Practice with examples'],
+      canExit: false,
     };
   }
 
@@ -484,14 +501,14 @@ export class InteractiveHelp {
       suggestions: [
         'Give me more examples',
         'What makes a good description?',
-        'How specific should I be?'
+        'How specific should I be?',
       ],
       nextSteps: [
         'Try a natural language command',
         'Learn the learning path for natural language',
-        'Practice with different descriptions'
+        'Practice with different descriptions',
       ],
-      canExit: false
+      canExit: false,
     };
   }
 
@@ -504,14 +521,14 @@ export class InteractiveHelp {
         suggestions: [
           'How do I unlock more agent features?',
           'What agents are available?',
-          'How do agents work together?'
+          'How do agents work together?',
         ],
         nextSteps: [
           'Use more commands to unlock Intermediate tier',
           'Learn about agent coordination',
-          'Try the agents learning path'
+          'Try the agents learning path',
         ],
-        canExit: false
+        canExit: false,
       };
     } else {
       return {
@@ -519,14 +536,10 @@ export class InteractiveHelp {
         suggestions: [
           'Show me agent commands',
           'How do I spawn specific agents?',
-          'What metrics can I see?'
+          'What metrics can I see?',
         ],
-        nextSteps: [
-          'Try listing active agents',
-          'Spawn a specific agent',
-          'Check agent metrics'
-        ],
-        canExit: false
+        nextSteps: ['Try listing active agents', 'Spawn a specific agent', 'Check agent metrics'],
+        canExit: false,
       };
     }
   }
@@ -539,57 +552,52 @@ export class InteractiveHelp {
       suggestions: [
         'What features unlock at each tier?',
         'How do I progress faster?',
-        'What can I do at my current tier?'
+        'What can I do at my current tier?',
       ],
       nextSteps: [
         'Use more commands to progress',
         'Try different types of commands',
-        'Explore learning paths'
+        'Explore learning paths',
       ],
-      canExit: false
+      canExit: false,
     };
   }
 
   private handleUnknownQuestion(input: string): any {
     return {
       response: `🤔 I'm not sure about "${input}"\n\nTry asking about:\n• Getting started\n• Available commands\n• Natural language\n• Agents and tiers\n• Specific features\n\nOr type "menu" to see learning paths!`,
-      suggestions: [
-        'How do I get started?',
-        'What commands are available?',
-        'Show me the menu'
-      ],
+      suggestions: ['How do I get started?', 'What commands are available?', 'Show me the menu'],
       nextSteps: [
         'Try a more specific question',
         'Explore the learning menu',
-        'Ask about a specific command'
+        'Ask about a specific command',
       ],
-      canExit: false
+      canExit: false,
     };
   }
 
   private showMainMenu(): any {
     const paths = this.getRecommendedLearningPaths({
       userTier: this.tierManager.getCurrentTier(),
-      recentCommands: []
+      recentCommands: [],
     });
 
-    const pathList = paths.map((path, index) =>
-      `${index + 1}. ${path.name} (${path.estimatedTime})\n   ${path.description}`
-    ).join('\n\n');
+    const pathList = paths
+      .map(
+        (path, index) =>
+          `${index + 1}. ${path.name} (${path.estimatedTime})\n   ${path.description}`,
+      )
+      .join('\n\n');
 
     return {
       response: `📚 Learning Menu\n\nRecommended learning paths:\n\n${pathList}\n\nType the number or name of a path to start, or ask a specific question.`,
       suggestions: [
         'Start getting started path',
         'Learn about natural language',
-        'Understand agents'
+        'Understand agents',
       ],
-      nextSteps: [
-        'Choose a learning path',
-        'Ask a specific question',
-        'Type "exit" to leave help'
-      ],
-      canExit: false
+      nextSteps: ['Choose a learning path', 'Ask a specific question', 'Type "exit" to leave help'],
+      canExit: false,
     };
   }
 
@@ -605,9 +613,9 @@ export class InteractiveHelp {
       nextSteps: [
         'Try what you learned',
         'Start a new help session anytime',
-        'Use claude-flow learn for more'
+        'Use claude-flow learn for more',
       ],
-      canExit: true
+      canExit: true,
     };
   }
 
@@ -664,11 +672,11 @@ export class InteractiveHelp {
 
   private getRelatedCommands(command: CommandMetadata, context: HelpContext): string[] {
     const related: Record<string, string[]> = {
-      'init': ['build', 'status'],
-      'build': ['status', 'test', 'review'],
-      'status': ['build', 'agents'],
-      'help': ['learn'],
-      'learn': ['help']
+      init: ['build', 'status'],
+      build: ['status', 'test', 'review'],
+      status: ['build', 'agents'],
+      help: ['learn'],
+      learn: ['help'],
     };
 
     return related[command.name] || [];
@@ -701,7 +709,7 @@ export class InteractiveHelp {
       examples: ['claude-flow help', 'claude-flow learn'],
       tips: ['Check your tier level', 'Use more commands to unlock new features'],
       relatedCommands: ['help', 'learn'],
-      troubleshooting: ['Command might require higher tier', 'Check spelling']
+      troubleshooting: ['Command might require higher tier', 'Check spelling'],
     };
   }
 
@@ -715,13 +723,13 @@ export class InteractiveHelp {
       build: {
         web: [
           'claude-flow build "add React component for user profile"',
-          'claude-flow build "create responsive navigation"'
+          'claude-flow build "create responsive navigation"',
         ],
         api: [
           'claude-flow build "add REST endpoint for users"',
-          'claude-flow build "implement JWT middleware"'
-        ]
-      }
+          'claude-flow build "implement JWT middleware"',
+        ],
+      },
     };
 
     return examples[commandName]?.[projectType] || [];
@@ -754,7 +762,7 @@ export class InteractiveHelp {
 
     // Boost for struggling areas
     if (context.strugglingWith) {
-      context.strugglingWith.forEach(area => {
+      context.strugglingWith.forEach((area) => {
         if (path.id.includes(area) || path.name.toLowerCase().includes(area)) {
           relevance += 4;
         }
@@ -816,7 +824,7 @@ export class InteractiveHelp {
     return [
       'claude-flow learn natural-language',
       'claude-flow help build',
-      'claude-flow learn agents'
+      'claude-flow learn agents',
     ];
   }
 }

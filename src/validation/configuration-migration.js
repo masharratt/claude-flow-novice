@@ -27,7 +27,7 @@ export class ConfigurationMigration {
     this.migrationHandlers = new Map([
       ['1.0.0', this.migrateFromV1_0_0.bind(this)],
       ['1.1.0', this.migrateFromV1_1_0.bind(this)],
-      ['1.2.0', this.migrateFromV1_2_0.bind(this)]
+      ['1.2.0', this.migrateFromV1_2_0.bind(this)],
     ]);
   }
 
@@ -47,7 +47,7 @@ export class ConfigurationMigration {
       this.logger.info('Starting configuration migration', {
         currentVersion,
         targetVersion: MIGRATION_VERSION,
-        backupId
+        backupId,
       });
 
       // Perform migration if needed
@@ -72,7 +72,7 @@ export class ConfigurationMigration {
         toVersion: MIGRATION_VERSION,
         backupId,
         timestamp: new Date().toISOString(),
-        success: true
+        success: true,
       });
 
       // Cleanup old backups
@@ -84,9 +84,8 @@ export class ConfigurationMigration {
         success: true,
         fromVersion: currentVersion,
         toVersion: MIGRATION_VERSION,
-        backupId
+        backupId,
       };
-
     } catch (error) {
       this.logger.error('Configuration migration failed', error);
 
@@ -95,7 +94,7 @@ export class ConfigurationMigration {
         toVersion: MIGRATION_VERSION,
         timestamp: new Date().toISOString(),
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -128,8 +127,8 @@ export class ConfigurationMigration {
         backupId,
         timestamp: new Date().toISOString(),
         version: await this.detectConfigurationVersion(),
-        files: configFiles.map(f => path.relative(this.configDir, f)),
-        checksums: {}
+        files: configFiles.map((f) => path.relative(this.configDir, f)),
+        checksums: {},
       };
 
       // Calculate checksums for integrity verification
@@ -139,19 +138,15 @@ export class ConfigurationMigration {
         manifest.checksums[path.relative(this.configDir, file)] = checksum;
       }
 
-      await fs.writeFile(
-        path.join(backupPath, 'manifest.json'),
-        JSON.stringify(manifest, null, 2)
-      );
+      await fs.writeFile(path.join(backupPath, 'manifest.json'), JSON.stringify(manifest, null, 2));
 
       this.logger.info('Configuration backup created', {
         backupId,
         fileCount: configFiles.length,
-        backupPath
+        backupPath,
       });
 
       return backupId;
-
     } catch (error) {
       // Cleanup failed backup
       await fs.rm(backupPath, { recursive: true, force: true });
@@ -174,7 +169,7 @@ export class ConfigurationMigration {
       this.logger.info('Restoring configuration from backup', {
         backupId,
         version: manifest.version,
-        fileCount: manifest.files.length
+        fileCount: manifest.files.length,
       });
 
       // Restore files
@@ -200,9 +195,8 @@ export class ConfigurationMigration {
         success: true,
         backupId,
         restoredVersion: manifest.version,
-        fileCount: manifest.files.length
+        fileCount: manifest.files.length,
       };
-
     } catch (error) {
       this.logger.error('Failed to restore from backup', error);
       throw error;
@@ -242,7 +236,6 @@ export class ConfigurationMigration {
 
       // No configuration found
       return '0.0.0';
-
     } catch (error) {
       this.logger.warn('Could not detect configuration version', error);
       return '0.0.0';
@@ -258,7 +251,7 @@ export class ConfigurationMigration {
     this.logger.info('Performing migration', {
       fromVersion,
       toVersion,
-      migrationPath
+      migrationPath,
     });
 
     for (const version of migrationPath) {
@@ -311,7 +304,7 @@ export class ConfigurationMigration {
         name: 'Migrated Configuration',
         description: 'Migrated from v1.0.0',
         threshold: oldConfig.threshold || 0.75,
-        tags: ['migrated', 'v1.0.0']
+        tags: ['migrated', 'v1.0.0'],
       });
 
       await configManager.saveConfiguration(newConfig, 'migrated_v1_0_0');
@@ -365,26 +358,26 @@ export class ConfigurationMigration {
     // Create user preferences file
     const preferencesPath = path.join(this.configDir, 'user-preferences.json');
 
-    if (!await this.fileExists(preferencesPath)) {
+    if (!(await this.fileExists(preferencesPath))) {
       const defaultPreferences = {
         version: '2.0.0',
         experienceLevel: 'intermediate',
         setupDate: new Date().toISOString(),
         hooksEnabled: false,
         qualityGates: {
-          truthScore: 0.80,
+          truthScore: 0.8,
           testCoverage: 85,
           codeQuality: 'B',
-          documentationCoverage: 75
+          documentationCoverage: 75,
         },
         migrationHistory: [
           {
             fromVersion: '1.2.0',
             toVersion: '2.0.0',
             date: new Date().toISOString(),
-            type: 'automatic'
-          }
-        ]
+            type: 'automatic',
+          },
+        ],
       };
 
       await fs.writeFile(preferencesPath, JSON.stringify(defaultPreferences, null, 2));
@@ -406,13 +399,13 @@ export class ConfigurationMigration {
     try {
       // Verify version file
       const versionFile = path.join(this.configDir, 'version.json');
-      if (!await this.fileExists(versionFile)) {
+      if (!(await this.fileExists(versionFile))) {
         errors.push('Version file not found after migration');
       }
 
       // Verify user preferences
       const preferencesFile = path.join(this.configDir, 'user-preferences.json');
-      if (!await this.fileExists(preferencesFile)) {
+      if (!(await this.fileExists(preferencesFile))) {
         errors.push('User preferences file not found after migration');
       } else {
         const preferences = JSON.parse(await fs.readFile(preferencesFile, 'utf8'));
@@ -423,14 +416,14 @@ export class ConfigurationMigration {
 
       // Verify configuration directory
       const configsDir = path.join(this.configDir, 'configs');
-      if (!await this.dirExists(configsDir)) {
+      if (!(await this.dirExists(configsDir))) {
         warnings.push('Configuration directory not found');
       }
 
       // Verify truth configuration manager
       try {
         const configManager = new TruthConfigManager({
-          configDir: configsDir
+          configDir: configsDir,
         });
         await configManager.initialize();
 
@@ -440,7 +433,6 @@ export class ConfigurationMigration {
         }
 
         await configManager.cleanup();
-
       } catch (error) {
         errors.push(`Truth configuration manager verification failed: ${error.message}`);
       }
@@ -450,7 +442,6 @@ export class ConfigurationMigration {
         const registry = new CustomFrameworkRegistry({ basePath: this.basePath });
         await registry.initialize();
         await registry.cleanup();
-
       } catch (error) {
         errors.push(`Custom framework registry verification failed: ${error.message}`);
       }
@@ -458,14 +449,13 @@ export class ConfigurationMigration {
       return {
         success: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
-
     } catch (error) {
       return {
         success: false,
         errors: [error.message],
-        warnings
+        warnings,
       };
     }
   }
@@ -477,7 +467,7 @@ export class ConfigurationMigration {
     const versionData = {
       version,
       updatedDate: new Date().toISOString(),
-      migrationTool: 'ConfigurationMigration'
+      migrationTool: 'ConfigurationMigration',
     };
 
     const versionFile = path.join(this.configDir, 'version.json');
@@ -531,10 +521,11 @@ export class ConfigurationMigration {
    * Log migration activity
    */
   async logMigration(logEntry) {
-    const logLine = JSON.stringify({
-      timestamp: new Date().toISOString(),
-      ...logEntry
-    }) + '\n';
+    const logLine =
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        ...logEntry,
+      }) + '\n';
 
     await fs.appendFile(this.migrationLogPath, logLine);
   }

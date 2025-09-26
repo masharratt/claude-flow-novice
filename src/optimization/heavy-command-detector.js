@@ -4,36 +4,36 @@
  */
 
 class HeavyCommandDetector {
-    constructor(options = {}) {
-        this.securityManager = options.securityManager;
-        this.heavyOperationThreshold = options.threshold || 1000; // ms
-    }
+  constructor(options = {}) {
+    this.securityManager = options.securityManager;
+    this.heavyOperationThreshold = options.threshold || 1000; // ms
+  }
 
-    async initialize() {
-        this.initialized = true;
-        return { initialized: true, detectorReady: true };
-    }
+  async initialize() {
+    this.initialized = true;
+    return { initialized: true, detectorReady: true };
+  }
 
-    async detectHeavyOperations(workflow) {
-        // Detect heavy operations in workflow
-        const heavyOps = [];
+  async detectHeavyOperations(workflow) {
+    // Detect heavy operations in workflow
+    const heavyOps = [];
 
-        // Simulate detection of heavy operations
-        if (workflow.codebase && workflow.codebase.languages) {
-            workflow.codebase.languages.forEach(lang => {
-                if (['rust', 'cpp'].includes(lang)) {
-                    heavyOps.push({
-                        type: 'compilation',
-                        language: lang,
-                        estimatedTime: 5000,
-                        optimizable: true
-                    });
-                }
-            });
+    // Simulate detection of heavy operations
+    if (workflow.codebase && workflow.codebase.languages) {
+      workflow.codebase.languages.forEach((lang) => {
+        if (['rust', 'cpp'].includes(lang)) {
+          heavyOps.push({
+            type: 'compilation',
+            language: lang,
+            estimatedTime: 5000,
+            optimizable: true,
+          });
         }
-
-        return heavyOps;
+      });
     }
+
+    return heavyOps;
+  }
 }
 
 module.exports = { HeavyCommandDetector };

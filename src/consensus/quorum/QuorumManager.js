@@ -19,7 +19,7 @@ class QuorumManager extends EventEmitter {
       byzantineFaultTolerance: true,
       networkTimeout: 5000,
       consensusTimeout: 30000,
-      ...options
+      ...options,
     };
 
     // Core state management
@@ -42,7 +42,7 @@ class QuorumManager extends EventEmitter {
     this.hooks = {
       preTask: this.executePreTaskHook.bind(this),
       postEdit: this.executePostEditHook.bind(this),
-      postTask: this.executePostTaskHook.bind(this)
+      postTask: this.executePostTaskHook.bind(this),
     };
   }
 
@@ -77,7 +77,9 @@ class QuorumManager extends EventEmitter {
 
       // Initialize quorum consensus
       const quorumConsensus = await this.initializeQuorumConsensus(
-        quorumId, verificationAgents, verificationTask
+        quorumId,
+        verificationAgents,
+        verificationTask,
       );
 
       // Establish Byzantine fault tolerance
@@ -85,7 +87,8 @@ class QuorumManager extends EventEmitter {
 
       // Start verification process
       const verificationResult = await this.startVerificationProcess(
-        quorumConsensus, verificationTask
+        quorumConsensus,
+        verificationTask,
       );
 
       // Record quorum establishment
@@ -95,7 +98,7 @@ class QuorumManager extends EventEmitter {
       await this.hooks.postTask('establish-verification-quorum', {
         quorumId,
         success: true,
-        result: verificationResult
+        result: verificationResult,
       });
 
       return {
@@ -103,16 +106,15 @@ class QuorumManager extends EventEmitter {
         consensus: quorumConsensus,
         result: verificationResult,
         byzantineFaultTolerance: true,
-        establishmentTime: Date.now()
+        establishmentTime: Date.now(),
       };
-
     } catch (error) {
       console.error('Failed to establish verification quorum:', error);
 
       await this.hooks.postTask('establish-verification-quorum', {
         quorumId,
         success: false,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -146,11 +148,10 @@ class QuorumManager extends EventEmitter {
       await this.hooks.postTask('test-dynamic-scaling', {
         testId,
         success: true,
-        results: scalingAnalysis
+        results: scalingAnalysis,
       });
 
       return scalingAnalysis;
-
     } catch (error) {
       console.error('Dynamic scaling test failed:', error);
       throw error;
@@ -191,15 +192,14 @@ class QuorumManager extends EventEmitter {
         finalSize: finalQuorumSize,
         duration: endTime - startTime,
         success: true,
-        resourceMetrics: await this.collectResourceMetrics()
+        resourceMetrics: await this.collectResourceMetrics(),
       };
-
     } catch (error) {
       return {
         scenarioId: scenario.id,
         type: scenario.type,
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -218,7 +218,7 @@ class QuorumManager extends EventEmitter {
         this.validateByzantineFaultTolerance(specifications.byzantineFaultTolerance),
         this.validatePerformanceRequirements(specifications.performance),
         this.validateSecurityRequirements(specifications.security),
-        this.validateScalabilityRequirements(specifications.scalability)
+        this.validateScalabilityRequirements(specifications.scalability),
       ]);
 
       // Aggregate validation results
@@ -226,17 +226,18 @@ class QuorumManager extends EventEmitter {
 
       // Generate compliance report
       const complianceReport = await this.generateComplianceReport(
-        specifications, validationResults, overallValidation
+        specifications,
+        validationResults,
+        overallValidation,
       );
 
       await this.hooks.postTask('validate-technical-specs', {
         validationId,
         success: overallValidation.compliant,
-        report: complianceReport
+        report: complianceReport,
       });
 
       return complianceReport;
-
     } catch (error) {
       console.error('Technical specification validation failed:', error);
       throw error;
@@ -260,8 +261,8 @@ class QuorumManager extends EventEmitter {
           votingMethod: 'BYZANTINE_AGREEMENT',
           requiredMajority: 0.67, // 2/3 majority for Byzantine fault tolerance
           timeout: this.options.consensusTimeout,
-          ...votingConfig
-        }
+          ...votingConfig,
+        },
       });
 
       // Distribute verification results to quorum members
@@ -290,20 +291,19 @@ class QuorumManager extends EventEmitter {
           totalVotes: votes.length,
           validVotes: consensusResult.validVotes,
           byzantineVotes: consensusResult.byzantineVotes,
-          majorityThreshold: votingProcess.config.requiredMajority
+          majorityThreshold: votingProcess.config.requiredMajority,
         },
         participants: votingProcess.participants,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       await this.hooks.postTask('coordinate-verification-voting', {
         votingId,
         success: consensusResult.consensusReached,
-        result: votingResult
+        result: votingResult,
       });
 
       return votingResult;
-
     } catch (error) {
       console.error('Verification voting coordination failed:', error);
       throw error;
@@ -317,10 +317,15 @@ class QuorumManager extends EventEmitter {
     const toleranceId = crypto.randomUUID();
 
     try {
-      await this.hooks.preTask('ensure-byzantine-fault-tolerance', { toleranceId, verificationProcess });
+      await this.hooks.preTask('ensure-byzantine-fault-tolerance', {
+        toleranceId,
+        verificationProcess,
+      });
 
       // Calculate minimum nodes needed for Byzantine fault tolerance
-      const minNodesRequired = this.calculateByzantineMinimumNodes(verificationProcess.maxByzantineNodes || 0);
+      const minNodesRequired = this.calculateByzantineMinimumNodes(
+        verificationProcess.maxByzantineNodes || 0,
+      );
 
       // Verify current quorum size meets requirements
       if (this.currentQuorum.size < minNodesRequired) {
@@ -346,17 +351,16 @@ class QuorumManager extends EventEmitter {
         redundancySystems,
         testResults: faultToleranceTest,
         guaranteedToleranceLevel: Math.floor((this.currentQuorum.size - 1) / 3),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       await this.hooks.postTask('ensure-byzantine-fault-tolerance', {
         toleranceId,
         success: true,
-        result: toleranceResult
+        result: toleranceResult,
       });
 
       return toleranceResult;
-
     } catch (error) {
       console.error('Byzantine fault tolerance setup failed:', error);
       throw error;
@@ -376,8 +380,9 @@ class QuorumManager extends EventEmitter {
       membershipStatus,
       performanceMetrics,
       currentQuorum: this.currentQuorum,
-      faultToleranceRequirements: analysisInput.faultToleranceRequirements || this.getDefaultFaultTolerance(),
-      ...analysisInput
+      faultToleranceRequirements:
+        analysisInput.faultToleranceRequirements || this.getDefaultFaultTolerance(),
+      ...analysisInput,
     };
 
     // Apply multiple strategies and select optimal result
@@ -400,7 +405,7 @@ class QuorumManager extends EventEmitter {
       strategy: optimalResult.strategy,
       confidence: optimalResult.confidence,
       reasoning: optimalResult.reasoning,
-      expectedImpact: optimalResult.expectedImpact
+      expectedImpact: optimalResult.expectedImpact,
     };
   }
 
@@ -468,7 +473,7 @@ class QuorumManager extends EventEmitter {
       maxByzantineNodes: Math.floor((this.currentQuorum.size - 1) / 3),
       minViableQuorum: Math.ceil(this.currentQuorum.size / 2) + 1,
       partitionTolerance: true,
-      consistencyLevel: 'STRONG'
+      consistencyLevel: 'STRONG',
     };
   }
 }

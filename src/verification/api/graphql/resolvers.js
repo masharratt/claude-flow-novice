@@ -61,7 +61,7 @@ const JSONScalar = new GraphQLScalarType({
       case Kind.OBJECT:
         return parseObject(ast);
       case Kind.LIST:
-        return ast.values.map(value => parseValue(value));
+        return ast.values.map((value) => parseValue(value));
       default:
         return null;
     }
@@ -70,7 +70,7 @@ const JSONScalar = new GraphQLScalarType({
 
 function parseObject(ast) {
   const value = Object.create(null);
-  ast.fields.forEach(field => {
+  ast.fields.forEach((field) => {
     value[field.name.value] = parseValue(field.value);
   });
   return value;
@@ -87,7 +87,7 @@ function parseValue(ast) {
     case Kind.OBJECT:
       return parseObject(ast);
     case Kind.LIST:
-      return ast.values.map(value => parseValue(value));
+      return ast.values.map((value) => parseValue(value));
     default:
       return null;
   }
@@ -97,7 +97,7 @@ function parseValue(ast) {
 const resolvers = {
   DateTime: DateTimeScalar,
   JSON: JSONScalar,
-  
+
   Query: {
     verification: async (parent, args, context) => {
       const verification = dataStore.verifications.get(args.id);
@@ -108,23 +108,23 @@ const resolvers = {
       }
       return verification;
     },
-    
+
     verifications: async (parent, args, context) => {
       const { filter = {}, pagination = {}, sort = [] } = args;
-      
+
       let verifications = Array.from(dataStore.verifications.values());
-      
+
       // Apply filters
       verifications = applyVerificationFilters(verifications, filter);
-      
+
       // Apply sorting
       verifications = applySorting(verifications, sort);
-      
+
       // Apply pagination
       const { edges, pageInfo, totalCount } = applyPagination(verifications, pagination);
-      
+
       return {
-        edges: edges.map(item => ({
+        edges: edges.map((item) => ({
           node: item,
           cursor: Buffer.from(item.id).toString('base64'),
         })),
@@ -132,7 +132,7 @@ const resolvers = {
         totalCount,
       };
     },
-    
+
     batch: async (parent, args, context) => {
       const batch = dataStore.batches.get(args.id);
       if (!batch) {
@@ -142,20 +142,20 @@ const resolvers = {
       }
       return batch;
     },
-    
+
     batches: async (parent, args, context) => {
       const { filter = {}, pagination = {} } = args;
-      
+
       let batches = Array.from(dataStore.batches.values());
-      
+
       // Apply filters
       batches = applyBatchFilters(batches, filter);
-      
+
       // Apply pagination
       const { edges, pageInfo, totalCount } = applyPagination(batches, pagination);
-      
+
       return {
-        edges: edges.map(item => ({
+        edges: edges.map((item) => ({
           node: item,
           cursor: Buffer.from(item.id).toString('base64'),
         })),
@@ -163,28 +163,28 @@ const resolvers = {
         totalCount,
       };
     },
-    
+
     verificationMetrics: async (parent, args, context) => {
       const { timeframe = 'TWENTY_FOUR_HOURS', groupBy = [] } = args;
       return calculateVerificationMetrics(timeframe, groupBy);
     },
-    
+
     truthEvents: async (parent, args, context) => {
       const { filter = {}, pagination = {} } = args;
-      
+
       let events = [...dataStore.events];
-      
+
       // Apply filters
       events = applyTruthEventFilters(events, filter);
-      
+
       // Sort by timestamp (newest first)
       events.sort((a, b) => b.timestamp - a.timestamp);
-      
+
       // Apply pagination
       const { edges, pageInfo, totalCount } = applyPagination(events, pagination);
-      
+
       return {
-        edges: edges.map(item => ({
+        edges: edges.map((item) => ({
           node: item,
           cursor: Buffer.from(item.id).toString('base64'),
         })),
@@ -192,32 +192,32 @@ const resolvers = {
         totalCount,
       };
     },
-    
+
     systemHealth: async (parent, args, context) => {
       return calculateSystemHealth();
     },
-    
+
     systemMetrics: async (parent, args, context) => {
       return calculateSystemMetrics();
     },
-    
+
     verificationRules: async (parent, args, context) => {
       return Array.from(dataStore.rules.values());
     },
-    
+
     agentConfigs: async (parent, args, context) => {
       return Array.from(dataStore.agentConfigs.values());
     },
   },
-  
+
   Mutation: {
     createVerification: async (parent, args, context) => {
       try {
         const verification = createVerification(args.input);
-        
+
         // Start async verification process
         processVerification(verification.id);
-        
+
         return {
           success: true,
           verification,
@@ -229,14 +229,14 @@ const resolvers = {
         };
       }
     },
-    
+
     createBatchVerification: async (parent, args, context) => {
       try {
         const batch = createVerificationBatch(args.input);
-        
+
         // Start async batch processing
         processBatch(batch.id);
-        
+
         return {
           success: true,
           batch,
@@ -248,18 +248,18 @@ const resolvers = {
         };
       }
     },
-    
+
     updateVerification: async (parent, args, context) => {
       try {
         const verification = dataStore.verifications.get(args.id);
         if (!verification) {
           throw new Error(`Verification ${args.id} not found`);
         }
-        
+
         Object.assign(verification, args.input, {
           updatedAt: Date.now(),
         });
-        
+
         return {
           success: true,
           verification,
@@ -271,22 +271,22 @@ const resolvers = {
         };
       }
     },
-    
+
     cancelVerification: async (parent, args, context) => {
       try {
         const verification = dataStore.verifications.get(args.id);
         if (!verification) {
           throw new Error(`Verification ${args.id} not found`);
         }
-        
+
         if (verification.status !== 'PENDING') {
           throw new Error('Can only cancel pending verifications');
         }
-        
+
         verification.status = 'CANCELLED';
         verification.updatedAt = Date.now();
         verification.completedAt = Date.now();
-        
+
         return {
           success: true,
           verification,
@@ -298,7 +298,7 @@ const resolvers = {
         };
       }
     },
-    
+
     createVerificationRule: async (parent, args, context) => {
       try {
         const rule = {
@@ -309,9 +309,9 @@ const resolvers = {
           executionCount: 0,
           successCount: 0,
         };
-        
+
         dataStore.rules.set(rule.id, rule);
-        
+
         return {
           success: true,
           rule,
@@ -323,18 +323,18 @@ const resolvers = {
         };
       }
     },
-    
+
     updateVerificationRule: async (parent, args, context) => {
       try {
         const rule = dataStore.rules.get(args.id);
         if (!rule) {
           throw new Error(`Rule ${args.id} not found`);
         }
-        
+
         Object.assign(rule, args.input, {
           updatedAt: Date.now(),
         });
-        
+
         return {
           success: true,
           rule,
@@ -346,16 +346,16 @@ const resolvers = {
         };
       }
     },
-    
+
     deleteVerificationRule: async (parent, args, context) => {
       try {
         const exists = dataStore.rules.has(args.id);
         if (!exists) {
           throw new Error(`Rule ${args.id} not found`);
         }
-        
+
         dataStore.rules.delete(args.id);
-        
+
         return {
           success: true,
           deletedId: args.id,
@@ -367,11 +367,11 @@ const resolvers = {
         };
       }
     },
-    
+
     updateAgentConfig: async (parent, args, context) => {
       try {
         let config = dataStore.agentConfigs.get(args.agentId);
-        
+
         if (!config) {
           config = {
             agentId: args.agentId,
@@ -388,10 +388,10 @@ const resolvers = {
             successfulRequests: 0,
           };
         }
-        
+
         Object.assign(config, args.input);
         dataStore.agentConfigs.set(args.agentId, config);
-        
+
         return {
           success: true,
           config,
@@ -404,55 +404,56 @@ const resolvers = {
       }
     },
   },
-  
+
   Subscription: {
     verificationUpdates: {
       subscribe: async function* (parent, args, context) {
         // This is a simplified implementation
         // In production, you'd use a proper pub/sub system
         const filter = args.filter || {};
-        
+
         while (true) {
           // Yield verification updates that match the filter
           const verifications = Array.from(dataStore.verifications.values())
-            .filter(v => matchesSubscriptionFilter(v, filter))
-            .filter(v => v.updatedAt > (Date.now() - 5000)); // Last 5 seconds
-          
+            .filter((v) => matchesSubscriptionFilter(v, filter))
+            .filter((v) => v.updatedAt > Date.now() - 5000); // Last 5 seconds
+
           for (const verification of verifications) {
             yield { verificationUpdates: verification };
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       },
     },
-    
+
     truthMonitoring: {
       subscribe: async function* (parent, args, context) {
         const filter = args.filter || {};
-        
+
         while (true) {
           // Yield truth monitoring events that match the filter
           const recentEvents = dataStore.events
-            .filter(e => e.timestamp > (Date.now() - 5000)) // Last 5 seconds
-            .filter(e => matchesTruthMonitoringFilter(e, filter));
-          
+            .filter((e) => e.timestamp > Date.now() - 5000) // Last 5 seconds
+            .filter((e) => matchesTruthMonitoringFilter(e, filter));
+
           for (const event of recentEvents) {
             yield { truthMonitoring: event };
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       },
     },
-    
+
     systemAlerts: {
       subscribe: async function* (parent, args, context) {
         const severityFilter = args.severity || ['HIGH', 'CRITICAL'];
-        
+
         while (true) {
           // Generate mock system alerts
-          if (Math.random() < 0.1) { // 10% chance per iteration
+          if (Math.random() < 0.1) {
+            // 10% chance per iteration
             const alert = {
               id: nanoid(),
               type: 'SYSTEM',
@@ -462,64 +463,64 @@ const resolvers = {
               data: { source: 'monitoring' },
               acknowledged: false,
             };
-            
+
             yield { systemAlerts: alert };
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 5000));
+
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
       },
     },
-    
+
     metricsUpdates: {
       subscribe: async function* (parent, args, context) {
         const interval = (args.interval || 30) * 1000;
-        
+
         while (true) {
           const metrics = calculateVerificationMetrics('TWENTY_FOUR_HOURS', []);
           yield { metricsUpdates: metrics };
-          
-          await new Promise(resolve => setTimeout(resolve, interval));
+
+          await new Promise((resolve) => setTimeout(resolve, interval));
         }
       },
     },
   },
-  
+
   // Nested resolvers
   Verification: {
     batch: (parent) => {
       return parent.batchId ? dataStore.batches.get(parent.batchId) : null;
     },
-    
+
     events: (parent) => {
-      return dataStore.events.filter(e => e.verificationId === parent.id);
+      return dataStore.events.filter((e) => e.verificationId === parent.id);
     },
-    
+
     appliedRules: (parent) => {
-      return parent.appliedRuleIds ? 
-        parent.appliedRuleIds.map(id => dataStore.rules.get(id)).filter(Boolean) : 
-        [];
+      return parent.appliedRuleIds
+        ? parent.appliedRuleIds.map((id) => dataStore.rules.get(id)).filter(Boolean)
+        : [];
     },
   },
-  
+
   VerificationBatch: {
     progress: (parent) => {
       return parent.totalItems > 0 ? parent.completedItems / parent.totalItems : 0;
     },
-    
+
     successRate: (parent) => {
       if (!parent.results || parent.results.length === 0) return null;
-      const successful = parent.results.filter(r => r.status === 'VERIFIED').length;
+      const successful = parent.results.filter((r) => r.status === 'VERIFIED').length;
       return successful / parent.results.length;
     },
-    
+
     averageConfidence: (parent) => {
       if (!parent.results || parent.results.length === 0) return null;
       const sum = parent.results.reduce((acc, r) => acc + r.confidence, 0);
       return sum / parent.results.length;
     },
   },
-  
+
   TruthMonitoringEvent: {
     verification: (parent) => {
       return parent.verificationId ? dataStore.verifications.get(parent.verificationId) : null;
@@ -543,11 +544,11 @@ function createVerification(input) {
     timeout: input.timeout || 30000,
     createdAt: Date.now(),
   };
-  
+
   dataStore.verifications.set(id, verification);
   dataStore.metrics.totalVerifications++;
   dataStore.metrics.pendingVerifications++;
-  
+
   // Log event
   logEvent({
     type: 'VERIFICATION_COMPLETE',
@@ -556,7 +557,7 @@ function createVerification(input) {
     source: input.source,
     confidence: 1.0,
   });
-  
+
   return verification;
 }
 
@@ -568,44 +569,44 @@ function createVerificationBatch(input) {
     createdAt: Date.now(),
     totalItems: input.items.length,
     completedItems: 0,
-    items: input.items.map(item => createVerification(item)),
+    items: input.items.map((item) => createVerification(item)),
     results: [],
   };
-  
+
   // Set batch reference on items
-  batch.items.forEach(item => {
+  batch.items.forEach((item) => {
     item.batchId = id;
   });
-  
+
   dataStore.batches.set(id, batch);
-  
+
   return batch;
 }
 
 async function processVerification(id) {
   const verification = dataStore.verifications.get(id);
   if (!verification) return;
-  
+
   try {
     // Simulate verification process
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
-    
+    await new Promise((resolve) => setTimeout(resolve, Math.random() * 2000 + 1000));
+
     // Random result for demo
     const success = Math.random() > 0.2;
     const confidence = success ? Math.random() * 0.4 + 0.6 : Math.random() * 0.4;
-    
+
     verification.status = success ? 'VERIFIED' : 'FAILED';
     verification.confidence = confidence;
     verification.completedAt = Date.now();
     verification.updatedAt = Date.now();
-    
+
     dataStore.metrics.pendingVerifications--;
     if (success) {
       dataStore.metrics.successfulVerifications++;
     } else {
       dataStore.metrics.failedVerifications++;
     }
-    
+
     // Log completion event
     logEvent({
       type: 'VERIFICATION_COMPLETE',
@@ -614,16 +615,15 @@ async function processVerification(id) {
       source: verification.source,
       confidence,
     });
-    
   } catch (error) {
     verification.status = 'FAILED';
     verification.error = error.message;
     verification.completedAt = Date.now();
     verification.updatedAt = Date.now();
-    
+
     dataStore.metrics.pendingVerifications--;
     dataStore.metrics.failedVerifications++;
-    
+
     logEvent({
       type: 'ERROR',
       verificationId: id,
@@ -637,19 +637,18 @@ async function processVerification(id) {
 async function processBatch(batchId) {
   const batch = dataStore.batches.get(batchId);
   if (!batch) return;
-  
+
   batch.status = 'PROCESSING';
-  
+
   try {
     for (const item of batch.items) {
       await processVerification(item.id);
       batch.completedItems++;
       batch.results.push(dataStore.verifications.get(item.id));
     }
-    
+
     batch.status = 'COMPLETED';
     batch.completedAt = Date.now();
-    
   } catch (error) {
     batch.status = 'FAILED';
     batch.error = error.message;
@@ -658,65 +657,71 @@ async function processBatch(batchId) {
 }
 
 function applyVerificationFilters(verifications, filter) {
-  return verifications.filter(v => {
+  return verifications.filter((v) => {
     if (filter.ids && !filter.ids.includes(v.id)) return false;
     if (filter.sources && !filter.sources.includes(v.source)) return false;
     if (filter.targets && !filter.targets.includes(v.target)) return false;
     if (filter.statuses && !filter.statuses.includes(v.status)) return false;
     if (filter.priorities && !filter.priorities.includes(v.priority)) return false;
     if (filter.batchId && v.batchId !== filter.batchId) return false;
-    if (filter.hasError !== undefined && (!!v.error) !== filter.hasError) return false;
-    
+    if (filter.hasError !== undefined && !!v.error !== filter.hasError) return false;
+
     if (filter.confidenceRange) {
-      if (filter.confidenceRange.min !== undefined && v.confidence < filter.confidenceRange.min) return false;
-      if (filter.confidenceRange.max !== undefined && v.confidence > filter.confidenceRange.max) return false;
+      if (filter.confidenceRange.min !== undefined && v.confidence < filter.confidenceRange.min)
+        return false;
+      if (filter.confidenceRange.max !== undefined && v.confidence > filter.confidenceRange.max)
+        return false;
     }
-    
+
     if (filter.timestampRange) {
       if (filter.timestampRange.start && v.timestamp < filter.timestampRange.start) return false;
       if (filter.timestampRange.end && v.timestamp > filter.timestampRange.end) return false;
     }
-    
+
     return true;
   });
 }
 
 function applyBatchFilters(batches, filter) {
-  return batches.filter(b => {
+  return batches.filter((b) => {
     if (filter.ids && !filter.ids.includes(b.id)) return false;
     if (filter.statuses && !filter.statuses.includes(b.status)) return false;
-    
+
     if (filter.itemCountRange) {
-      if (filter.itemCountRange.min !== undefined && b.totalItems < filter.itemCountRange.min) return false;
-      if (filter.itemCountRange.max !== undefined && b.totalItems > filter.itemCountRange.max) return false;
+      if (filter.itemCountRange.min !== undefined && b.totalItems < filter.itemCountRange.min)
+        return false;
+      if (filter.itemCountRange.max !== undefined && b.totalItems > filter.itemCountRange.max)
+        return false;
     }
-    
+
     if (filter.timestampRange) {
       if (filter.timestampRange.start && b.createdAt < filter.timestampRange.start) return false;
       if (filter.timestampRange.end && b.createdAt > filter.timestampRange.end) return false;
     }
-    
+
     return true;
   });
 }
 
 function applyTruthEventFilters(events, filter) {
-  return events.filter(e => {
+  return events.filter((e) => {
     if (filter.types && !filter.types.includes(e.type)) return false;
     if (filter.severities && !filter.severities.includes(e.severity)) return false;
     if (filter.sources && !filter.sources.includes(e.source)) return false;
     if (filter.verificationId && e.verificationId !== filter.verificationId) return false;
-    
+
     if (filter.confidenceRange) {
-      if (filter.confidenceRange.min !== undefined && e.confidence < filter.confidenceRange.min) return false;
-      if (filter.confidenceRange.max !== undefined && e.confidence > filter.confidenceRange.max) return false;
+      if (filter.confidenceRange.min !== undefined && e.confidence < filter.confidenceRange.min)
+        return false;
+      if (filter.confidenceRange.max !== undefined && e.confidence > filter.confidenceRange.max)
+        return false;
     }
-    
+
     if (filter.timestampRange) {
       if (filter.timestampRange.start && e.timestamp < filter.timestampRange.start) return false;
       if (filter.timestampRange.end && e.timestamp > filter.timestampRange.end) return false;
     }
-    
+
     return true;
   });
 }
@@ -725,13 +730,13 @@ function applySorting(items, sortInputs) {
   if (!sortInputs || sortInputs.length === 0) {
     return items.sort((a, b) => b.timestamp - a.timestamp); // Default: newest first
   }
-  
+
   return items.sort((a, b) => {
     for (const sort of sortInputs) {
       const { field, direction } = sort;
       let aValue = a[field.toLowerCase()];
       let bValue = b[field.toLowerCase()];
-      
+
       if (aValue < bValue) return direction === 'ASC' ? -1 : 1;
       if (aValue > bValue) return direction === 'ASC' ? 1 : -1;
     }
@@ -741,39 +746,40 @@ function applySorting(items, sortInputs) {
 
 function applyPagination(items, pagination) {
   const { first, after, last, before } = pagination;
-  
+
   let startIndex = 0;
   let endIndex = items.length;
-  
+
   if (after) {
     const afterId = Buffer.from(after, 'base64').toString();
-    const afterIndex = items.findIndex(item => item.id === afterId);
+    const afterIndex = items.findIndex((item) => item.id === afterId);
     if (afterIndex !== -1) startIndex = afterIndex + 1;
   }
-  
+
   if (before) {
     const beforeId = Buffer.from(before, 'base64').toString();
-    const beforeIndex = items.findIndex(item => item.id === beforeId);
+    const beforeIndex = items.findIndex((item) => item.id === beforeId);
     if (beforeIndex !== -1) endIndex = beforeIndex;
   }
-  
+
   if (first) {
     endIndex = Math.min(startIndex + first, endIndex);
   }
-  
+
   if (last) {
     startIndex = Math.max(endIndex - last, startIndex);
   }
-  
+
   const edges = items.slice(startIndex, endIndex);
-  
+
   return {
     edges,
     pageInfo: {
       hasNextPage: endIndex < items.length,
       hasPreviousPage: startIndex > 0,
       startCursor: edges.length > 0 ? Buffer.from(edges[0].id).toString('base64') : null,
-      endCursor: edges.length > 0 ? Buffer.from(edges[edges.length - 1].id).toString('base64') : null,
+      endCursor:
+        edges.length > 0 ? Buffer.from(edges[edges.length - 1].id).toString('base64') : null,
     },
     totalCount: items.length,
   };
@@ -787,21 +793,24 @@ function calculateVerificationMetrics(timeframe, groupBy) {
     SEVEN_DAYS: 7 * 24 * 60 * 60 * 1000,
     THIRTY_DAYS: 30 * 24 * 60 * 60 * 1000,
   };
-  
+
   const period = timeframePeriods[timeframe] || timeframePeriods.TWENTY_FOUR_HOURS;
   const cutoff = now - period;
-  
-  const verifications = Array.from(dataStore.verifications.values())
-    .filter(v => v.timestamp >= cutoff);
-  
+
+  const verifications = Array.from(dataStore.verifications.values()).filter(
+    (v) => v.timestamp >= cutoff,
+  );
+
   const total = verifications.length;
-  const successful = verifications.filter(v => v.status === 'VERIFIED').length;
-  const failed = verifications.filter(v => v.status === 'FAILED').length;
-  const pending = verifications.filter(v => v.status === 'PENDING').length;
-  
-  const avgConfidence = verifications.length > 0 ?
-    verifications.reduce((sum, v) => sum + v.confidence, 0) / verifications.length : 0;
-  
+  const successful = verifications.filter((v) => v.status === 'VERIFIED').length;
+  const failed = verifications.filter((v) => v.status === 'FAILED').length;
+  const pending = verifications.filter((v) => v.status === 'PENDING').length;
+
+  const avgConfidence =
+    verifications.length > 0
+      ? verifications.reduce((sum, v) => sum + v.confidence, 0) / verifications.length
+      : 0;
+
   return {
     timeframe,
     totalVerifications: total,
@@ -847,15 +856,15 @@ function calculateDistribution(verifications) {
   const statusCounts = {};
   const sourceCounts = {};
   const priorityCounts = {};
-  
-  verifications.forEach(v => {
+
+  verifications.forEach((v) => {
     statusCounts[v.status] = (statusCounts[v.status] || 0) + 1;
     sourceCounts[v.source] = (sourceCounts[v.source] || 0) + 1;
     priorityCounts[v.priority] = (priorityCounts[v.priority] || 0) + 1;
   });
-  
+
   const total = verifications.length;
-  
+
   return {
     byStatus: Object.entries(statusCounts).map(([status, count]) => ({
       status,
@@ -863,8 +872,9 @@ function calculateDistribution(verifications) {
       percentage: (count / total) * 100,
     })),
     bySource: Object.entries(sourceCounts).map(([source, count]) => {
-      const sourceVerifications = verifications.filter(v => v.source === source);
-      const avgConfidence = sourceVerifications.reduce((sum, v) => sum + v.confidence, 0) / sourceVerifications.length;
+      const sourceVerifications = verifications.filter((v) => v.source === source);
+      const avgConfidence =
+        sourceVerifications.reduce((sum, v) => sum + v.confidence, 0) / sourceVerifications.length;
       return {
         source,
         count,
@@ -898,15 +908,16 @@ function generateTimeSeries(verifications, timeframe) {
     SEVEN_DAYS: 7, // 1-day intervals
     THIRTY_DAYS: 30, // 1-day intervals
   };
-  
+
   const intervalCount = intervals[timeframe] || 24;
-  const intervalSize = {
-    ONE_HOUR: 5 * 60 * 1000,
-    TWENTY_FOUR_HOURS: 60 * 60 * 1000,
-    SEVEN_DAYS: 24 * 60 * 60 * 1000,
-    THIRTY_DAYS: 24 * 60 * 60 * 1000,
-  }[timeframe] || 60 * 60 * 1000;
-  
+  const intervalSize =
+    {
+      ONE_HOUR: 5 * 60 * 1000,
+      TWENTY_FOUR_HOURS: 60 * 60 * 1000,
+      SEVEN_DAYS: 24 * 60 * 60 * 1000,
+      THIRTY_DAYS: 24 * 60 * 60 * 1000,
+    }[timeframe] || 60 * 60 * 1000;
+
   for (let i = 0; i < intervalCount; i++) {
     const timestamp = now - (intervalCount - i - 1) * intervalSize;
     points.push({
@@ -915,13 +926,13 @@ function generateTimeSeries(verifications, timeframe) {
       metric: 'verification_count',
     });
   }
-  
+
   return points;
 }
 
 function calculateSystemHealth() {
   const now = Date.now();
-  
+
   return {
     status: 'HEALTHY',
     timestamp: now,
@@ -985,7 +996,8 @@ function matchesSubscriptionFilter(verification, filter) {
   if (filter.targets && !filter.targets.includes(verification.target)) return false;
   if (filter.statuses && !filter.statuses.includes(verification.status)) return false;
   if (filter.priorities && !filter.priorities.includes(verification.priority)) return false;
-  if (filter.confidenceThreshold && verification.confidence < filter.confidenceThreshold) return false;
+  if (filter.confidenceThreshold && verification.confidence < filter.confidenceThreshold)
+    return false;
   return true;
 }
 
@@ -1006,9 +1018,9 @@ function logEvent(eventData) {
     severity: 'MEDIUM',
     ...eventData,
   };
-  
+
   dataStore.events.push(event);
-  
+
   // Keep only last 1000 events
   if (dataStore.events.length > 1000) {
     dataStore.events = dataStore.events.slice(-1000);

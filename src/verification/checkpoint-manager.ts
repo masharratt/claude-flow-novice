@@ -3,10 +3,10 @@
  * Manages system state snapshots and verification checkpoints
  */
 
-import { 
-  Checkpoint, 
-  StateSnapshot, 
-  CheckpointScope, 
+import {
+  Checkpoint,
+  StateSnapshot,
+  CheckpointScope,
   CheckpointFilter,
   Validation,
   AgentState,
@@ -16,7 +16,7 @@ import {
   FileSystemState,
   DatabaseState,
   StateScope,
-  SnapshotMetadata
+  SnapshotMetadata,
 } from './interfaces.js';
 import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
@@ -36,18 +36,18 @@ export class CheckpointManager {
    * Create a new checkpoint with state snapshot
    */
   async createCheckpoint(
-    description: string, 
+    description: string,
     scope: CheckpointScope,
     agentId?: string,
     taskId?: string,
-    validations: Validation[] = []
+    validations: Validation[] = [],
   ): Promise<string> {
     const checkpointId = this.generateCheckpointId();
     const timestamp = Date.now();
-    
+
     // Capture current system state
     const stateSnapshot = await this.captureSystemState(scope, agentId, taskId);
-    
+
     const checkpoint: Checkpoint = {
       id: checkpointId,
       type: 'during', // Default type, can be overridden
@@ -58,12 +58,12 @@ export class CheckpointManager {
       validations,
       state_snapshot: stateSnapshot,
       description,
-      scope
+      scope,
     };
 
     // Store checkpoint
     await this.storeCheckpoint(checkpoint);
-    
+
     console.log(`✅ Checkpoint created: ${checkpointId} (${description})`);
     return checkpointId;
   }
@@ -74,7 +74,7 @@ export class CheckpointManager {
   async createPreExecutionCheckpoint(
     agentId: string,
     taskId: string,
-    description: string
+    description: string,
   ): Promise<string> {
     const validations: Validation[] = [
       {
@@ -84,7 +84,7 @@ export class CheckpointManager {
         expected_result: true,
         passed: false,
         weight: 0.3,
-        execution_time_ms: 0
+        execution_time_ms: 0,
       },
       {
         name: 'resource_availability',
@@ -93,7 +93,7 @@ export class CheckpointManager {
         expected_result: true,
         passed: false,
         weight: 0.3,
-        execution_time_ms: 0
+        execution_time_ms: 0,
       },
       {
         name: 'dependency_verification',
@@ -102,8 +102,8 @@ export class CheckpointManager {
         expected_result: true,
         passed: false,
         weight: 0.4,
-        execution_time_ms: 0
-      }
+        execution_time_ms: 0,
+      },
     ];
 
     const checkpointId = await this.createCheckpoint(
@@ -111,7 +111,7 @@ export class CheckpointManager {
       'task',
       agentId,
       taskId,
-      validations
+      validations,
     );
 
     // Execute validations
@@ -127,7 +127,7 @@ export class CheckpointManager {
     agentId: string,
     taskId: string,
     description: string,
-    truthScore: number
+    truthScore: number,
   ): Promise<string> {
     const validations: Validation[] = [
       {
@@ -137,7 +137,7 @@ export class CheckpointManager {
         expected_result: true,
         passed: false,
         weight: 0.4,
-        execution_time_ms: 0
+        execution_time_ms: 0,
       },
       {
         name: 'system_integrity',
@@ -146,7 +146,7 @@ export class CheckpointManager {
         expected_result: true,
         passed: false,
         weight: 0.3,
-        execution_time_ms: 0
+        execution_time_ms: 0,
       },
       {
         name: 'truth_score_validation',
@@ -155,8 +155,8 @@ export class CheckpointManager {
         expected_result: truthScore >= 0.95,
         passed: truthScore >= 0.95,
         weight: 0.3,
-        execution_time_ms: 0
-      }
+        execution_time_ms: 0,
+      },
     ];
 
     const checkpointId = await this.createCheckpoint(
@@ -164,7 +164,7 @@ export class CheckpointManager {
       'task',
       agentId,
       taskId,
-      validations
+      validations,
     );
 
     // Execute validations
@@ -180,7 +180,7 @@ export class CheckpointManager {
     let checkpoints = Array.from(this.checkpointStore.values());
 
     if (filter) {
-      checkpoints = checkpoints.filter(checkpoint => {
+      checkpoints = checkpoints.filter((checkpoint) => {
         if (filter.agent_id && checkpoint.agent_id !== filter.agent_id) return false;
         if (filter.task_id && checkpoint.task_id !== filter.task_id) return false;
         if (filter.type && checkpoint.type !== filter.type) return false;
@@ -216,7 +216,11 @@ export class CheckpointManager {
 
     // Remove from disk
     const checkpointFile = path.join(this.storagePath, `${checkpointId}.json`);
-    const snapshotFile = path.join(this.storagePath, 'snapshots', `${checkpoint.state_snapshot.id}.json`);
+    const snapshotFile = path.join(
+      this.storagePath,
+      'snapshots',
+      `${checkpoint.state_snapshot.id}.json`,
+    );
 
     try {
       await fs.unlink(checkpointFile);
@@ -233,7 +237,7 @@ export class CheckpointManager {
   private async captureSystemState(
     scope: CheckpointScope,
     agentId?: string,
-    taskId?: string
+    taskId?: string,
   ): Promise<StateSnapshot> {
     const snapshotId = this.generateSnapshotId();
     const timestamp = Date.now();
@@ -245,16 +249,28 @@ export class CheckpointManager {
       include_filesystem: scope === 'system' || scope === 'global',
       include_database: scope === 'system' || scope === 'global',
       agent_filter: agentId ? [agentId] : undefined,
-      task_filter: taskId ? [taskId] : undefined
+      task_filter: taskId ? [taskId] : undefined,
     };
 
     // Capture different state components based on scope
-    const agentStates = stateScope.include_agents ? await this.captureAgentStates(stateScope.agent_filter) : new Map();
-    const systemState = stateScope.include_agents ? await this.captureSystemState_Component() : {} as SystemState;
-    const taskStates = stateScope.include_tasks ? await this.captureTaskStates(stateScope.task_filter) : new Map();
-    const memoryState = stateScope.include_memory ? await this.captureMemoryState() : {} as MemoryState;
-    const fileSystemState = stateScope.include_filesystem ? await this.captureFileSystemState() : {} as FileSystemState;
-    const databaseState = stateScope.include_database ? await this.captureDatabaseState() : {} as DatabaseState;
+    const agentStates = stateScope.include_agents
+      ? await this.captureAgentStates(stateScope.agent_filter)
+      : new Map();
+    const systemState = stateScope.include_agents
+      ? await this.captureSystemState_Component()
+      : ({} as SystemState);
+    const taskStates = stateScope.include_tasks
+      ? await this.captureTaskStates(stateScope.task_filter)
+      : new Map();
+    const memoryState = stateScope.include_memory
+      ? await this.captureMemoryState()
+      : ({} as MemoryState);
+    const fileSystemState = stateScope.include_filesystem
+      ? await this.captureFileSystemState()
+      : ({} as FileSystemState);
+    const databaseState = stateScope.include_database
+      ? await this.captureDatabaseState()
+      : ({} as DatabaseState);
 
     // Calculate checksum for integrity verification
     const checksum = this.calculateStateChecksum({
@@ -263,7 +279,7 @@ export class CheckpointManager {
       taskStates,
       memoryState,
       fileSystemState,
-      databaseState
+      databaseState,
     });
 
     const metadata: SnapshotMetadata = {
@@ -272,7 +288,7 @@ export class CheckpointManager {
       description: `State snapshot for ${scope} scope`,
       tags: [scope, timestamp.toString()],
       size_bytes: 0, // Will be calculated after serialization
-      compression_ratio: 1.0
+      compression_ratio: 1.0,
     };
 
     const snapshot: StateSnapshot = {
@@ -285,7 +301,7 @@ export class CheckpointManager {
       file_system_state: fileSystemState,
       database_state: databaseState,
       checksum,
-      metadata
+      metadata,
     };
 
     // Store snapshot
@@ -299,14 +315,14 @@ export class CheckpointManager {
    */
   private async captureAgentStates(agentFilter?: string[]): Promise<Map<string, AgentState>> {
     const agentStates = new Map<string, AgentState>();
-    
+
     // This would integrate with the actual agent manager
     // For now, we'll simulate capturing agent states
     const mockAgents = ['coordinator', 'coder', 'tester', 'researcher'];
-    
+
     for (const agentId of mockAgents) {
       if (agentFilter && !agentFilter.includes(agentId)) continue;
-      
+
       const agentState: AgentState = {
         id: agentId,
         status: 'idle',
@@ -316,7 +332,7 @@ export class CheckpointManager {
           working_memory: {},
           long_term_memory: {},
           shared_memory_keys: [],
-          memory_usage_mb: 10
+          memory_usage_mb: 10,
         },
         configuration: {
           model: 'claude-3-sonnet',
@@ -324,21 +340,21 @@ export class CheckpointManager {
           max_tokens: 4096,
           timeout_ms: 30000,
           retry_attempts: 3,
-          custom_parameters: {}
+          custom_parameters: {},
         },
         performance_metrics: {
           response_time_p95_ms: 500,
           throughput_requests_per_second: 10,
           error_rate_percentage: 0.1,
           cpu_usage_percentage: 5,
-          memory_usage_mb: 50
+          memory_usage_mb: 50,
         },
-        last_heartbeat: Date.now()
+        last_heartbeat: Date.now(),
       };
-      
+
       agentStates.set(agentId, agentState);
     }
-    
+
     return agentStates;
   }
 
@@ -356,15 +372,15 @@ export class CheckpointManager {
         memory_usage_mb: 256,
         disk_usage_mb: 1024,
         network_io_mbps: 1.5,
-        file_descriptors_used: 50
+        file_descriptors_used: 50,
       },
       configuration: {
         max_agents: 10,
         max_concurrent_tasks: 5,
         truth_threshold: 0.95,
         verification_enabled: true,
-        rollback_enabled: true
-      }
+        rollback_enabled: true,
+      },
     };
   }
 
@@ -373,13 +389,13 @@ export class CheckpointManager {
    */
   private async captureTaskStates(taskFilter?: string[]): Promise<Map<string, TaskState>> {
     const taskStates = new Map<string, TaskState>();
-    
+
     // Mock task states
     const mockTasks = ['task_001', 'task_002'];
-    
+
     for (const taskId of mockTasks) {
       if (taskFilter && !taskFilter.includes(taskId)) continue;
-      
+
       const taskState: TaskState = {
         id: taskId,
         status: 'running',
@@ -387,12 +403,12 @@ export class CheckpointManager {
         dependencies: [],
         start_time: Date.now() - 60000,
         progress_percentage: 50,
-        result: null
+        result: null,
       };
-      
+
       taskStates.set(taskId, taskState);
     }
-    
+
     return taskStates;
   }
 
@@ -405,7 +421,7 @@ export class CheckpointManager {
       used_size_mb: 128,
       fragmentation_percentage: 10,
       cache_hit_rate: 0.85,
-      active_sessions: 3
+      active_sessions: 3,
     };
   }
 
@@ -419,9 +435,9 @@ export class CheckpointManager {
       last_modified: Date.now(),
       checksums: {
         'package.json': 'abc123',
-        'src/index.ts': 'def456'
+        'src/index.ts': 'def456',
       },
-      permissions_valid: true
+      permissions_valid: true,
     };
   }
 
@@ -434,7 +450,7 @@ export class CheckpointManager {
       transaction_count: 0,
       pending_migrations: 0,
       data_integrity_check: true,
-      backup_status: 'current'
+      backup_status: 'current',
     };
   }
 
@@ -455,15 +471,17 @@ export class CheckpointManager {
 
     for (const validation of validations) {
       const startTime = Date.now();
-      
+
       try {
         // Execute validation command
-        const result = await this.executeValidationCommand(validation.command, validation.expected_result);
-        
+        const result = await this.executeValidationCommand(
+          validation.command,
+          validation.expected_result,
+        );
+
         validation.actual_result = result;
         validation.passed = this.compareResults(validation.expected_result, result);
         validation.execution_time_ms = Date.now() - startTime;
-        
       } catch (error: any) {
         validation.passed = false;
         validation.error_message = error.message;
@@ -506,11 +524,11 @@ export class CheckpointManager {
     if (typeof expected === 'boolean' && typeof actual === 'boolean') {
       return expected === actual;
     }
-    
+
     if (typeof expected === 'number' && typeof actual === 'number') {
       return Math.abs(expected - actual) < 0.001; // Allow small floating point differences
     }
-    
+
     return JSON.stringify(expected) === JSON.stringify(actual);
   }
 
@@ -520,7 +538,7 @@ export class CheckpointManager {
   private async storeCheckpoint(checkpoint: Checkpoint): Promise<void> {
     // Store in memory
     this.checkpointStore.set(checkpoint.id, checkpoint);
-    
+
     // Store to disk
     const checkpointFile = path.join(this.storagePath, `${checkpoint.id}.json`);
     await this.writeJsonFile(checkpointFile, checkpoint);
@@ -532,14 +550,14 @@ export class CheckpointManager {
   private async storeSnapshot(snapshot: StateSnapshot): Promise<void> {
     // Store in memory
     this.snapshotStore.set(snapshot.id, snapshot);
-    
+
     // Store to disk
     const snapshotDir = path.join(this.storagePath, 'snapshots');
     await this.ensureDirectory(snapshotDir);
-    
+
     const snapshotFile = path.join(snapshotDir, `${snapshot.id}.json`);
     await this.writeJsonFile(snapshotFile, snapshot);
-    
+
     // Update metadata with actual file size
     const stats = await fs.stat(snapshotFile);
     snapshot.metadata.size_bytes = stats.size;
@@ -592,15 +610,17 @@ export class CheckpointManager {
   async loadCheckpointsFromDisk(): Promise<void> {
     try {
       const files = await fs.readdir(this.storagePath);
-      const checkpointFiles = files.filter(f => f.startsWith('checkpoint_') && f.endsWith('.json'));
-      
+      const checkpointFiles = files.filter(
+        (f) => f.startsWith('checkpoint_') && f.endsWith('.json'),
+      );
+
       for (const file of checkpointFiles) {
         const filePath = path.join(this.storagePath, file);
         const data = await fs.readFile(filePath, 'utf8');
         const checkpoint: Checkpoint = JSON.parse(data);
         this.checkpointStore.set(checkpoint.id, checkpoint);
       }
-      
+
       console.log(`📁 Loaded ${checkpointFiles.length} checkpoints from disk`);
     } catch (error) {
       console.warn('Warning: Failed to load checkpoints from disk:', error);
@@ -614,15 +634,15 @@ export class CheckpointManager {
     try {
       const snapshotDir = path.join(this.storagePath, 'snapshots');
       const files = await fs.readdir(snapshotDir);
-      const snapshotFiles = files.filter(f => f.startsWith('snapshot_') && f.endsWith('.json'));
-      
+      const snapshotFiles = files.filter((f) => f.startsWith('snapshot_') && f.endsWith('.json'));
+
       for (const file of snapshotFiles) {
         const filePath = path.join(snapshotDir, file);
         const data = await fs.readFile(filePath, 'utf8');
         const snapshot: StateSnapshot = JSON.parse(data);
         this.snapshotStore.set(snapshot.id, snapshot);
       }
-      
+
       console.log(`📁 Loaded ${snapshotFiles.length} snapshots from disk`);
     } catch (error) {
       console.warn('Warning: Failed to load snapshots from disk:', error);
@@ -633,7 +653,7 @@ export class CheckpointManager {
    * Cleanup old checkpoints and snapshots
    */
   async cleanup(retentionDays: number = 7): Promise<void> {
-    const cutoffTime = Date.now() - (retentionDays * 24 * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
     let deletedCount = 0;
 
     // Cleanup checkpoints

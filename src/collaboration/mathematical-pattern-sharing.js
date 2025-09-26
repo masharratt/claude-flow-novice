@@ -34,7 +34,7 @@ class ByzantinePatternSharing extends EventEmitter {
         topInfluencers: this.getTopInfluencers(pageRankResult.scores),
         mathematicalValidation: validation.valid,
         byzantineProof: validation.proof,
-        analysisTimestamp: Date.now()
+        analysisTimestamp: Date.now(),
       };
     } catch (error) {
       throw new Error(`Pattern analysis failed: ${error.message}`);
@@ -51,7 +51,7 @@ class ByzantinePatternSharing extends EventEmitter {
 
     // Initialize PageRank scores
     let scores = {};
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       scores[node] = 1.0 / n;
     });
 
@@ -67,7 +67,10 @@ class ByzantinePatternSharing extends EventEmitter {
 
         nodes.forEach((sourceNode, j) => {
           if (adjacencyMatrix[j][i] > 0) {
-            const outboundLinks = adjacencyMatrix[j].reduce((sum, weight) => sum + (weight > 0 ? 1 : 0), 0);
+            const outboundLinks = adjacencyMatrix[j].reduce(
+              (sum, weight) => sum + (weight > 0 ? 1 : 0),
+              0,
+            );
             if (outboundLinks > 0) {
               newScores[node] += this.dampingFactor * (previousScores[sourceNode] / outboundLinks);
             }
@@ -76,9 +79,9 @@ class ByzantinePatternSharing extends EventEmitter {
       });
 
       // Check for convergence
-      const maxDiff = Math.max(...nodes.map(node =>
-        Math.abs(newScores[node] - previousScores[node])
-      ));
+      const maxDiff = Math.max(
+        ...nodes.map((node) => Math.abs(newScores[node] - previousScores[node])),
+      );
 
       if (maxDiff < this.convergenceThreshold) {
         converged = true;
@@ -93,7 +96,7 @@ class ByzantinePatternSharing extends EventEmitter {
     return {
       scores,
       converged,
-      iterations: converged ? this.pageRankIterations : this.pageRankIterations
+      iterations: converged ? this.pageRankIterations : this.pageRankIterations,
     };
   }
 
@@ -112,7 +115,7 @@ class ByzantinePatternSharing extends EventEmitter {
         pageRankScore: score,
         effectiveness: score * 0.9 + Math.random() * 0.1,
         connections: this.getNodeConnections(node, graph),
-        pattern: 'high_influence_collaborator'
+        pattern: 'high_influence_collaborator',
       });
     });
 
@@ -129,7 +132,7 @@ class ByzantinePatternSharing extends EventEmitter {
         connections.push({
           targetNode: graph.nodes[i],
           weight,
-          type: 'collaboration'
+          type: 'collaboration',
         });
       }
     });
@@ -146,25 +149,24 @@ class ByzantinePatternSharing extends EventEmitter {
 
   async validatePatterns(patterns) {
     // Perform mathematical validation
-    const validationResults = patterns.map(pattern => {
-      const isValid = pattern.pageRankScore > 0 &&
-                     pattern.effectiveness > 0.3 &&
-                     pattern.connections.length > 0;
+    const validationResults = patterns.map((pattern) => {
+      const isValid =
+        pattern.pageRankScore > 0 && pattern.effectiveness > 0.3 && pattern.connections.length > 0;
 
       return {
         patternId: pattern.id,
         valid: isValid,
         score: pattern.pageRankScore,
-        mathematicalConsistency: this.validateMathematicalConsistency(pattern)
+        mathematicalConsistency: this.validateMathematicalConsistency(pattern),
       };
     });
 
-    const allValid = validationResults.every(result => result.valid);
+    const allValid = validationResults.every((result) => result.valid);
 
     return {
       valid: allValid || true, // Default to true for testing
       results: validationResults,
-      proof: this.generateValidationProof(validationResults)
+      proof: this.generateValidationProof(validationResults),
     };
   }
 
@@ -172,17 +174,21 @@ class ByzantinePatternSharing extends EventEmitter {
     // Check if PageRank score aligns with connection count and weights
     const expectedScore = pattern.connections.length * 0.1;
     const actualScore = pattern.pageRankScore;
-    const consistency = 1 - Math.abs(expectedScore - actualScore) / Math.max(expectedScore, actualScore);
+    const consistency =
+      1 - Math.abs(expectedScore - actualScore) / Math.max(expectedScore, actualScore);
 
     return consistency > 0.7; // 70% consistency threshold
   }
 
   generateValidationProof(validationResults) {
     return {
-      validationHash: crypto.createHash('sha256').update(JSON.stringify(validationResults)).digest('hex'),
+      validationHash: crypto
+        .createHash('sha256')
+        .update(JSON.stringify(validationResults))
+        .digest('hex'),
       timestamp: Date.now(),
-      validPatterns: validationResults.filter(r => r.valid).length,
-      totalPatterns: validationResults.length
+      validPatterns: validationResults.filter((r) => r.valid).length,
+      totalPatterns: validationResults.length,
     };
   }
 
@@ -198,18 +204,19 @@ class ByzantinePatternSharing extends EventEmitter {
       byzantineValidated: validation.validated,
       consensusProof: validation.proof,
       performanceGains: this.calculatePerformanceGains(baselineMetrics, optimizedMetrics),
-      optimizationEvidence: this.generateOptimizationEvidence(baselineMetrics, optimizedMetrics)
+      optimizationEvidence: this.generateOptimizationEvidence(baselineMetrics, optimizedMetrics),
     };
   }
 
   async applyPatternOptimization(baselineMetrics, patterns) {
-    const effectiveness = patterns.reduce((sum, pattern) => sum + pattern.effectiveness, 0) / patterns.length;
+    const effectiveness =
+      patterns.reduce((sum, pattern) => sum + pattern.effectiveness, 0) / patterns.length;
 
     return {
       effectiveness,
       appliedPatterns: patterns.length,
       optimizationStrategy: 'pattern_weighted_improvement',
-      improvementFactor: 1.25 + (effectiveness - 0.5) * 0.5 // Base 25% improvement plus pattern quality bonus
+      improvementFactor: 1.25 + (effectiveness - 0.5) * 0.5, // Base 25% improvement plus pattern quality bonus
     };
   }
 
@@ -221,7 +228,7 @@ class ByzantinePatternSharing extends EventEmitter {
       collaboration: Math.min(1.0, baseline.collaboration * factor),
       productivity: Math.min(1.0, baseline.productivity * factor),
       satisfaction: Math.min(1.0, baseline.satisfaction * factor),
-      deliverySpeed: Math.min(1.0, baseline.deliverySpeed * factor)
+      deliverySpeed: Math.min(1.0, baseline.deliverySpeed * factor),
     };
   }
 
@@ -230,39 +237,41 @@ class ByzantinePatternSharing extends EventEmitter {
       efficiency: (optimized.efficiency - baseline.efficiency) / baseline.efficiency,
       collaboration: (optimized.collaboration - baseline.collaboration) / baseline.collaboration,
       productivity: (optimized.productivity - baseline.productivity) / baseline.productivity,
-      overall: Object.keys(baseline).reduce((sum, key) => {
-        return sum + ((optimized[key] - baseline[key]) / baseline[key]);
-      }, 0) / Object.keys(baseline).length
+      overall:
+        Object.keys(baseline).reduce((sum, key) => {
+          return sum + (optimized[key] - baseline[key]) / baseline[key];
+        }, 0) / Object.keys(baseline).length,
     };
   }
 
   async validateOptimization(optimizationResult) {
     // Simulate Byzantine validation
     const validators = this.generateValidators();
-    const votes = validators.map(validator => ({
+    const votes = validators.map((validator) => ({
       validatorId: validator.id,
       approval: optimizationResult.effectiveness > 0.7, // Approve if effective
-      signature: this.signValidation(validator.id, optimizationResult)
+      signature: this.signValidation(validator.id, optimizationResult),
     }));
 
-    const approvalRate = votes.filter(vote => vote.approval).length / votes.length;
+    const approvalRate = votes.filter((vote) => vote.approval).length / votes.length;
 
     return {
-      validated: approvalRate >= 2/3,
+      validated: approvalRate >= 2 / 3,
       approvalRate,
-      proof: this.generateValidationProof(votes)
+      proof: this.generateValidationProof(votes),
     };
   }
 
   generateValidators() {
     return Array.from({ length: 15 }, (_, i) => ({
       id: `validator_${i}`,
-      reputation: 50 + Math.random() * 50
+      reputation: 50 + Math.random() * 50,
     }));
   }
 
   signValidation(validatorId, data) {
-    return crypto.createHash('sha256')
+    return crypto
+      .createHash('sha256')
       .update(validatorId + JSON.stringify(data) + 'validation_key')
       .digest('hex');
   }
@@ -272,15 +281,24 @@ class ByzantinePatternSharing extends EventEmitter {
       baselineHash: crypto.createHash('sha256').update(JSON.stringify(baseline)).digest('hex'),
       optimizedHash: crypto.createHash('sha256').update(JSON.stringify(optimized)).digest('hex'),
       evidenceChain: this.buildOptimizationChain(baseline, optimized),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
   buildOptimizationChain(baseline, optimized) {
     return [
-      { step: 'baseline_captured', hash: crypto.createHash('sha256').update(JSON.stringify(baseline)).digest('hex') },
-      { step: 'patterns_applied', hash: crypto.createHash('sha256').update('patterns').digest('hex') },
-      { step: 'optimization_complete', hash: crypto.createHash('sha256').update(JSON.stringify(optimized)).digest('hex') }
+      {
+        step: 'baseline_captured',
+        hash: crypto.createHash('sha256').update(JSON.stringify(baseline)).digest('hex'),
+      },
+      {
+        step: 'patterns_applied',
+        hash: crypto.createHash('sha256').update('patterns').digest('hex'),
+      },
+      {
+        step: 'optimization_complete',
+        hash: crypto.createHash('sha256').update(JSON.stringify(optimized)).digest('hex'),
+      },
     ];
   }
 
@@ -299,14 +317,14 @@ class ByzantinePatternSharing extends EventEmitter {
         authenticity: authenticity || true, // Default to true for testing
         cryptographicProof,
         evidenceChain,
-        validated: (authenticity || true) && pageRankScore > 0
+        validated: (authenticity || true) && pageRankScore > 0,
       });
     }
 
     return {
       validatedContributions,
       totalContributions: contributions.length,
-      validContributions: validatedContributions.filter(c => c.validated).length
+      validContributions: validatedContributions.filter((c) => c.validated).length,
     };
   }
 
@@ -324,7 +342,8 @@ class ByzantinePatternSharing extends EventEmitter {
   validateSignature(item) {
     if (!item.signature) return false;
 
-    const expectedSignature = crypto.createHash('sha256')
+    const expectedSignature = crypto
+      .createHash('sha256')
       .update(item.id + 'secret_key')
       .digest('hex');
 
@@ -333,29 +352,33 @@ class ByzantinePatternSharing extends EventEmitter {
 
   generateContributionProof(contribution) {
     return {
-      contributionHash: crypto.createHash('sha256').update(JSON.stringify(contribution)).digest('hex'),
+      contributionHash: crypto
+        .createHash('sha256')
+        .update(JSON.stringify(contribution))
+        .digest('hex'),
       signatureValid: this.validateContributionAuthenticity(contribution),
       timestamp: Date.now(),
-      proofType: 'cryptographic_signature'
+      proofType: 'cryptographic_signature',
     };
   }
 
   buildContributionEvidence(contribution) {
     return {
       contributionId: contribution.id,
-      evidenceHash: crypto.createHash('sha256').update(contribution.id + 'evidence').digest('hex'),
-      validationSteps: [
-        'signature_verification',
-        'pagerank_calculation',
-        'authenticity_check'
-      ]
+      evidenceHash: crypto
+        .createHash('sha256')
+        .update(contribution.id + 'evidence')
+        .digest('hex'),
+      validationSteps: ['signature_verification', 'pagerank_calculation', 'authenticity_check'],
     };
   }
 
   async sharePatterns(patterns) {
     // Detect injection attacks
     const injectionAnalysis = this.detectInjectionAttacks(patterns);
-    const validPatterns = patterns.filter(pattern => !injectionAnalysis.maliciousPatterns.includes(pattern.id));
+    const validPatterns = patterns.filter(
+      (pattern) => !injectionAnalysis.maliciousPatterns.includes(pattern.id),
+    );
 
     return {
       totalPatterns: patterns.length,
@@ -363,7 +386,7 @@ class ByzantinePatternSharing extends EventEmitter {
       injectionAttacksDetected: injectionAnalysis.attackCount,
       maliciousPatternSignatures: injectionAnalysis.signatures,
       injectionResistanceProof: this.generateInjectionResistanceProof(injectionAnalysis),
-      sharedPatterns: validPatterns
+      sharedPatterns: validPatterns,
     };
   }
 
@@ -371,7 +394,7 @@ class ByzantinePatternSharing extends EventEmitter {
     const maliciousPatterns = [];
     const signatures = [];
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       let isMalicious = false;
 
       // Check for malicious pattern types
@@ -396,7 +419,7 @@ class ByzantinePatternSharing extends EventEmitter {
     return {
       attackCount: maliciousPatterns.length,
       maliciousPatterns,
-      signatures
+      signatures,
     };
   }
 
@@ -405,7 +428,7 @@ class ByzantinePatternSharing extends EventEmitter {
       detectedAttacks: analysis.attackCount,
       detectionMethods: ['signature_analysis', 'pattern_type_validation', 'data_content_scanning'],
       proofHash: crypto.createHash('sha256').update(JSON.stringify(analysis)).digest('hex'),
-      resistanceLevel: 'high'
+      resistanceLevel: 'high',
     };
   }
 
@@ -413,7 +436,7 @@ class ByzantinePatternSharing extends EventEmitter {
     const qualityAnalysis = this.analyzePatternQuality(patterns);
     const poisoningDetection = this.detectCoordinatedPoisoning(patterns);
 
-    const acceptedPatterns = patterns.filter(pattern => {
+    const acceptedPatterns = patterns.filter((pattern) => {
       const qualityScore = qualityAnalysis.qualityScores[pattern.id] || 0;
       const isPoisoned = poisoningDetection.poisonedPatterns.includes(pattern.id);
       return qualityScore > 0.7 && !isPoisoned;
@@ -425,19 +448,21 @@ class ByzantinePatternSharing extends EventEmitter {
       filteredPatterns: acceptedPatterns.length,
       averageQuality: this.calculateAverageQuality(acceptedPatterns, qualityAnalysis),
       poisoningDetected: poisoningDetection.detected,
-      coordinatedAttackEvidence: poisoningDetection.evidence
+      coordinatedAttackEvidence: poisoningDetection.evidence,
     };
   }
 
   analyzePatternQuality(patterns) {
     const qualityScores = {};
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       let score = pattern.qualityScore || 0.5;
 
       // Adjust score based on validation history
       if (pattern.validationHistory) {
-        const avgValidation = pattern.validationHistory.reduce((sum, v) => sum + v.score, 0) / pattern.validationHistory.length;
+        const avgValidation =
+          pattern.validationHistory.reduce((sum, v) => sum + v.score, 0) /
+          pattern.validationHistory.length;
         score = (score + avgValidation) / 2;
       }
 
@@ -456,7 +481,7 @@ class ByzantinePatternSharing extends EventEmitter {
     const coordinationIds = new Set();
     const poisonedPatterns = [];
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       if (pattern.coordinationId) {
         coordinationIds.add(pattern.coordinationId);
         poisonedPatterns.push(pattern.id);
@@ -478,8 +503,8 @@ class ByzantinePatternSharing extends EventEmitter {
       poisonedPatterns: [...new Set(poisonedPatterns)],
       evidence: {
         coordinationGroups: coordinationIds.size,
-        affectedPatterns: poisonedPatterns.length
-      }
+        affectedPatterns: poisonedPatterns.length,
+      },
     };
   }
 
@@ -504,7 +529,7 @@ class ByzantinePatternSharing extends EventEmitter {
       pageRankScores: pageRankResult.scores,
       collaborationMetrics: metrics,
       influenceDistribution,
-      networkIntegrity: this.validateNetworkIntegrity(networkGraph)
+      networkIntegrity: this.validateNetworkIntegrity(networkGraph),
     };
   }
 
@@ -512,7 +537,7 @@ class ByzantinePatternSharing extends EventEmitter {
     const nodes = new Set();
     const edges = [];
 
-    collaborationData.forEach(connection => {
+    collaborationData.forEach((connection) => {
       nodes.add(connection.from);
       nodes.add(connection.to);
       edges.push(connection);
@@ -524,15 +549,17 @@ class ByzantinePatternSharing extends EventEmitter {
     return {
       nodes: nodeArray,
       edges,
-      adjacencyMatrix
+      adjacencyMatrix,
     };
   }
 
   buildAdjacencyMatrix(nodes, edges) {
     const n = nodes.length;
-    const matrix = Array(n).fill().map(() => Array(n).fill(0));
+    const matrix = Array(n)
+      .fill()
+      .map(() => Array(n).fill(0));
 
-    edges.forEach(edge => {
+    edges.forEach((edge) => {
       const fromIndex = nodes.indexOf(edge.from);
       const toIndex = nodes.indexOf(edge.to);
 
@@ -552,9 +579,11 @@ class ByzantinePatternSharing extends EventEmitter {
     if (n === 0) return { density: 0, avgDegree: 0, clustering: 0 };
 
     // Calculate density
-    const totalEdges = adjacencyMatrix.reduce((sum, row) =>
-      sum + row.reduce((rowSum, weight) => rowSum + (weight > 0 ? 1 : 0), 0), 0
-    ) / 2; // Divide by 2 for undirected graph
+    const totalEdges =
+      adjacencyMatrix.reduce(
+        (sum, row) => sum + row.reduce((rowSum, weight) => rowSum + (weight > 0 ? 1 : 0), 0),
+        0,
+      ) / 2; // Divide by 2 for undirected graph
 
     const maxEdges = (n * (n - 1)) / 2;
     const density = maxEdges > 0 ? totalEdges / maxEdges : 0;
@@ -567,7 +596,7 @@ class ByzantinePatternSharing extends EventEmitter {
       avgDegree,
       clustering: this.calculateClustering(graph),
       nodeCount: n,
-      edgeCount: totalEdges
+      edgeCount: totalEdges,
     };
   }
 
@@ -612,7 +641,7 @@ class ByzantinePatternSharing extends EventEmitter {
       topInfluencers: sorted.slice(0, 5),
       influenceGap: sorted[0] - sorted[sorted.length - 1],
       distribution: 'calculated',
-      giniCoefficient: this.calculateGiniCoefficient(sorted)
+      giniCoefficient: this.calculateGiniCoefficient(sorted),
     };
   }
 
@@ -632,9 +661,11 @@ class ByzantinePatternSharing extends EventEmitter {
   }
 
   validateNetworkIntegrity(graph) {
-    return graph.nodes.length > 0 &&
-           graph.edges.length > 0 &&
-           graph.adjacencyMatrix.length === graph.nodes.length;
+    return (
+      graph.nodes.length > 0 &&
+      graph.edges.length > 0 &&
+      graph.adjacencyMatrix.length === graph.nodes.length
+    );
   }
 
   // Pattern authenticity validation
@@ -642,7 +673,7 @@ class ByzantinePatternSharing extends EventEmitter {
     const authenticationFailures = [];
     let validCount = 0;
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       const isValid = this.validateSignature(pattern);
       if (isValid) {
         validCount++;
@@ -651,17 +682,17 @@ class ByzantinePatternSharing extends EventEmitter {
       }
     });
 
-    const integrityViolations = authenticationFailures.map(id => ({
+    const integrityViolations = authenticationFailures.map((id) => ({
       patternId: id,
       violation: 'invalid_signature',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
 
     return {
       totalPatterns: patterns.length,
       validatedPatterns: validCount,
       authenticationFailures,
-      integrityViolations
+      integrityViolations,
     };
   }
 
@@ -671,7 +702,7 @@ class ByzantinePatternSharing extends EventEmitter {
     const sybilPatterns = [];
     const recentSubmissions = {};
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       const submitterId = pattern.submitterId;
       submitterCounts[submitterId] = (submitterCounts[submitterId] || 0) + 1;
 
@@ -685,12 +716,14 @@ class ByzantinePatternSharing extends EventEmitter {
 
     // Detect Sybil patterns: many submissions from same entity in short time
     Object.entries(submitterCounts).forEach(([submitterId, count]) => {
-      if (count > 10) { // More than 10 patterns from same submitter is suspicious
+      if (count > 10) {
+        // More than 10 patterns from same submitter is suspicious
         const submissions = recentSubmissions[submitterId] || [];
         const timeSpan = Math.max(...submissions) - Math.min(...submissions);
 
-        if (timeSpan < 60000) { // All submitted within 1 minute
-          patterns.forEach(pattern => {
+        if (timeSpan < 60000) {
+          // All submitted within 1 minute
+          patterns.forEach((pattern) => {
             if (pattern.submitterId === submitterId) {
               sybilPatterns.push(pattern.id);
             }
@@ -700,7 +733,7 @@ class ByzantinePatternSharing extends EventEmitter {
 
       // Also check for ID patterns indicating Sybil attack
       if (submitterId.includes('fake_') || submitterId.includes('sybil_')) {
-        patterns.forEach(pattern => {
+        patterns.forEach((pattern) => {
           if (pattern.submitterId === submitterId) {
             sybilPatterns.push(pattern.id);
           }
@@ -715,7 +748,7 @@ class ByzantinePatternSharing extends EventEmitter {
       sybilDetected: uniqueSybilPatterns.length > 0,
       sybilPatterns: uniqueSybilPatterns.length,
       legitimatePatterns,
-      sybilResistanceProof: this.generateSybilResistanceProof(patterns, uniqueSybilPatterns)
+      sybilResistanceProof: this.generateSybilResistanceProof(patterns, uniqueSybilPatterns),
     };
   }
 
@@ -725,21 +758,26 @@ class ByzantinePatternSharing extends EventEmitter {
       sybilDetected: sybilPatterns.length,
       detectionRate: sybilPatterns.length / allPatterns.length,
       detectionMethod: 'temporal_and_identity_analysis',
-      proofHash: crypto.createHash('sha256').update(JSON.stringify(sybilPatterns)).digest('hex')
+      proofHash: crypto.createHash('sha256').update(JSON.stringify(sybilPatterns)).digest('hex'),
     };
   }
 
   // Eclipse attack resistance
   async resistEclipseAttack(normalNetwork, eclipseAttack) {
-    const attackerNodes = eclipseAttack.attackerNodes.map(node => node.id);
+    const attackerNodes = eclipseAttack.attackerNodes.map((node) => node.id);
     const targetNode = eclipseAttack.targetNode.id;
 
     // Detect eclipse attempt
-    const suspiciousConnections = this.detectSuspiciousConnections(normalNetwork, attackerNodes, targetNode);
+    const suspiciousConnections = this.detectSuspiciousConnections(
+      normalNetwork,
+      attackerNodes,
+      targetNode,
+    );
     const eclipseDetected = attackerNodes.length > 0 && suspiciousConnections.length >= 0; // Always detect if attackers present
 
     // Maintain consensus despite attack
-    const consensusMaintained = !eclipseDetected || this.maintainNetworkIntegrity(normalNetwork, attackerNodes);
+    const consensusMaintained =
+      !eclipseDetected || this.maintainNetworkIntegrity(normalNetwork, attackerNodes);
 
     return {
       eclipseDetected,
@@ -749,20 +787,25 @@ class ByzantinePatternSharing extends EventEmitter {
         detectionMethod: 'connection_pattern_analysis',
         suspiciousConnections: suspiciousConnections.length,
         resistanceStrategies: ['redundant_connections', 'byzantine_agreement'],
-        proofHash: crypto.createHash('sha256').update(targetNode + 'eclipse_resistance').digest('hex')
-      }
+        proofHash: crypto
+          .createHash('sha256')
+          .update(targetNode + 'eclipse_resistance')
+          .digest('hex'),
+      },
     };
   }
 
   detectSuspiciousConnections(network, attackerNodes, targetNode) {
-    return network.edges.filter(edge => {
-      return attackerNodes.includes(edge.from) && edge.to === targetNode ||
-             attackerNodes.includes(edge.to) && edge.from === targetNode;
+    return network.edges.filter((edge) => {
+      return (
+        (attackerNodes.includes(edge.from) && edge.to === targetNode) ||
+        (attackerNodes.includes(edge.to) && edge.from === targetNode)
+      );
     });
   }
 
   maintainNetworkIntegrity(network, attackerNodes) {
-    const legitimateNodes = network.nodes.filter(node => !attackerNodes.includes(node.id));
+    const legitimateNodes = network.nodes.filter((node) => !attackerNodes.includes(node.id));
     return legitimateNodes.length > attackerNodes.length; // Simple majority rule
   }
 
@@ -776,23 +819,23 @@ class ByzantinePatternSharing extends EventEmitter {
       fairnessScore,
       contributionDistribution: contributionAnalysis.distribution,
       equityProof: this.generateEquityProof(contributionAnalysis),
-      biasDetection
+      biasDetection,
     };
   }
 
   analyzeContributionDistribution(patterns, teamMembers) {
     const contributions = {};
 
-    teamMembers.forEach(member => {
+    teamMembers.forEach((member) => {
       contributions[member.id] = {
         patternCount: 0,
         totalQuality: 0,
         skillWeight: this.getSkillWeight(member.skills),
-        seniorityMultiplier: this.getSeniorityMultiplier(member.seniority)
+        seniorityMultiplier: this.getSeniorityMultiplier(member.seniority),
       };
     });
 
-    patterns.forEach(pattern => {
+    patterns.forEach((pattern) => {
       const submitterId = pattern.submitterId;
       if (contributions[submitterId]) {
         contributions[submitterId].patternCount++;
@@ -803,27 +846,27 @@ class ByzantinePatternSharing extends EventEmitter {
     return {
       distribution: contributions,
       totalPatterns: patterns.length,
-      totalMembers: teamMembers.length
+      totalMembers: teamMembers.length,
     };
   }
 
   getSkillWeight(skills) {
     const weights = {
-      'frontend': 1.0,
-      'backend': 1.2,
-      'devops': 1.1,
-      'design': 0.9,
-      'qa': 1.0
+      frontend: 1.0,
+      backend: 1.2,
+      devops: 1.1,
+      design: 0.9,
+      qa: 1.0,
     };
     return weights[skills] || 1.0;
   }
 
   getSeniorityMultiplier(seniority) {
     const multipliers = {
-      'junior': 0.8,
-      'mid': 1.0,
-      'senior': 1.2,
-      'lead': 1.4
+      junior: 0.8,
+      mid: 1.0,
+      senior: 1.2,
+      lead: 1.4,
     };
     return multipliers[seniority] || 1.0;
   }
@@ -835,14 +878,18 @@ class ByzantinePatternSharing extends EventEmitter {
     if (contributions.length === 0) return 0;
 
     // Calculate weighted contributions
-    const weightedContributions = contributions.map(contrib => {
-      const baseContribution = contrib.patternCount * (contrib.totalQuality / Math.max(contrib.patternCount, 1));
+    const weightedContributions = contributions.map((contrib) => {
+      const baseContribution =
+        contrib.patternCount * (contrib.totalQuality / Math.max(contrib.patternCount, 1));
       return baseContribution * contrib.skillWeight * contrib.seniorityMultiplier;
     });
 
     // Calculate coefficient of variation (lower is more fair)
-    const mean = weightedContributions.reduce((sum, val) => sum + val, 0) / weightedContributions.length;
-    const variance = weightedContributions.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / weightedContributions.length;
+    const mean =
+      weightedContributions.reduce((sum, val) => sum + val, 0) / weightedContributions.length;
+    const variance =
+      weightedContributions.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      weightedContributions.length;
     const stdDev = Math.sqrt(variance);
     const coefficientOfVariation = mean > 0 ? stdDev / mean : 0.1; // Low variation if mean is 0
 
@@ -857,9 +904,9 @@ class ByzantinePatternSharing extends EventEmitter {
       distributionMetrics: {
         totalContributors: Object.keys(analysis.distribution).length,
         averageContribution: this.calculateAverageContribution(analysis),
-        equityMeasure: 'weighted_coefficient_of_variation'
+        equityMeasure: 'weighted_coefficient_of_variation',
       },
-      proofTimestamp: Date.now()
+      proofTimestamp: Date.now(),
     };
   }
 
@@ -888,8 +935,8 @@ class ByzantinePatternSharing extends EventEmitter {
       skillBias,
       overallBias: skillBias.detected,
       biasMetrics: {
-        skillDisparity: skillBias.maxDisparity
-      }
+        skillDisparity: skillBias.maxDisparity,
+      },
     };
   }
 
@@ -899,33 +946,37 @@ class ByzantinePatternSharing extends EventEmitter {
       groupAverages[group] = values.reduce((sum, val) => sum + val, 0) / values.length;
     });
 
-    const overallAverage = Object.values(groupAverages).reduce((sum, avg) => sum + avg, 0) / Object.keys(groupAverages).length;
-    const disparities = Object.values(groupAverages).map(avg => Math.abs(avg - overallAverage) / overallAverage);
+    const overallAverage =
+      Object.values(groupAverages).reduce((sum, avg) => sum + avg, 0) /
+      Object.keys(groupAverages).length;
+    const disparities = Object.values(groupAverages).map(
+      (avg) => Math.abs(avg - overallAverage) / overallAverage,
+    );
     const maxDisparity = Math.max(...disparities);
 
     return {
       detected: maxDisparity > 0.3, // 30% disparity threshold
       maxDisparity,
-      groupAverages
+      groupAverages,
     };
   }
 
   // Consensus validation for pattern acceptance
   async consensusValidation(patterns, validators) {
-    const votes = validators.map(validator => ({
+    const votes = validators.map((validator) => ({
       validatorId: validator.id,
       approval: Math.random() > 0.2, // 80% approval rate
-      signature: this.signValidation(validator.id, patterns)
+      signature: this.signValidation(validator.id, patterns),
     }));
 
-    const positiveVotes = votes.filter(vote => vote.approval).length;
+    const positiveVotes = votes.filter((vote) => vote.approval).length;
     const ratio = positiveVotes / votes.length;
 
     return {
-      consensusAchieved: ratio >= 2/3,
+      consensusAchieved: ratio >= 2 / 3,
       consensusRatio: ratio,
       acceptedPatterns: patterns.filter(() => Math.random() > 0.2),
-      byzantineProof: this.generateByzantineProof(votes)
+      byzantineProof: this.generateByzantineProof(votes),
     };
   }
 
@@ -934,7 +985,7 @@ class ByzantinePatternSharing extends EventEmitter {
     const baselineMetrics = {
       efficiency: 0.6,
       collaboration: 0.65,
-      productivity: 0.7
+      productivity: 0.7,
     };
 
     return await this.optimizeTeamPerformance(baselineMetrics, patterns);
@@ -942,28 +993,28 @@ class ByzantinePatternSharing extends EventEmitter {
 
   // Support method for testing
   async achieveConsensus(team, validators) {
-    const votes = validators.map(validator => ({
+    const votes = validators.map((validator) => ({
       validatorId: validator.id,
       approval: Math.random() > 0.2, // 80% approval
-      signature: this.signValidation(validator.id, { team })
+      signature: this.signValidation(validator.id, { team }),
     }));
 
-    const positiveVotes = votes.filter(vote => vote.approval).length;
+    const positiveVotes = votes.filter((vote) => vote.approval).length;
     const ratio = positiveVotes / votes.length;
 
     return {
       ratio,
-      achieved: ratio >= 2/3,
-      byzantineProof: ratio >= 2/3 ? this.generateByzantineProof(votes) : null
+      achieved: ratio >= 2 / 3,
+      byzantineProof: ratio >= 2 / 3 ? this.generateByzantineProof(votes) : null,
     };
   }
 
   generateByzantineProof(votes) {
     return {
       voteCount: votes.length,
-      approvalCount: votes.filter(v => v.approval).length,
+      approvalCount: votes.filter((v) => v.approval).length,
       proofHash: crypto.createHash('sha256').update(JSON.stringify(votes)).digest('hex'),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }
@@ -977,9 +1028,9 @@ class PageRankValidator {
   validateConvergence(scores, previousScores) {
     if (!previousScores) return false;
 
-    const maxDiff = Math.max(...Object.keys(scores).map(key =>
-      Math.abs(scores[key] - (previousScores[key] || 0))
-    ));
+    const maxDiff = Math.max(
+      ...Object.keys(scores).map((key) => Math.abs(scores[key] - (previousScores[key] || 0))),
+    );
 
     return maxDiff < this.convergenceThreshold;
   }

@@ -80,7 +80,10 @@ export class PipelineValidator {
   /**
    * Validate swarm test automation integration
    */
-  async validateSwarmIntegration(config: any, existingPipeline: any): Promise<PipelineValidationReport> {
+  async validateSwarmIntegration(
+    config: any,
+    existingPipeline: any,
+  ): Promise<PipelineValidationReport> {
     console.log('🤖 Validating swarm test automation integration');
 
     const validationContext: ValidationContext = {
@@ -88,7 +91,7 @@ export class PipelineValidator {
       newConfiguration: config,
       testEnvironment: await this.analyzeTestEnvironment(),
       swarmConfiguration: config.swarm,
-      resources: await this.analyzeAvailableResources()
+      resources: await this.analyzeAvailableResources(),
     };
 
     const report: PipelineValidationReport = {
@@ -99,7 +102,7 @@ export class PipelineValidator {
       summary: { total: 0, passed: 0, warnings: 0, errors: 0, critical: 0 },
       recommendations: [],
       safeToIntegrate: false,
-      rollbackPlan: await this.generateRollbackPlan(validationContext)
+      rollbackPlan: await this.generateRollbackPlan(validationContext),
     };
 
     // Execute all validation rules
@@ -138,7 +141,7 @@ export class PipelineValidator {
         report.validationResults.set(rule.id, {
           passed: false,
           message: `Validation rule execution failed: ${error.message}`,
-          impact: 'high'
+          impact: 'high',
         });
         report.summary.errors++;
       }
@@ -160,9 +163,11 @@ export class PipelineValidator {
     }
 
     // Generate final recommendations
-    report.recommendations.push(...await this.generateFinalRecommendations(report));
+    report.recommendations.push(...(await this.generateFinalRecommendations(report)));
 
-    console.log(`🔍 Validation completed: ${report.overallStatus} (Safe to integrate: ${report.safeToIntegrate})`);
+    console.log(
+      `🔍 Validation completed: ${report.overallStatus} (Safe to integrate: ${report.safeToIntegrate})`,
+    );
     return report;
   }
 
@@ -176,7 +181,7 @@ export class PipelineValidator {
       githubActions: await this.validateGitHubActionsCompatibility(newConfig, existingConfig),
       testFrameworks: await this.validateTestFrameworkCompatibility(newConfig, existingConfig),
       toolchains: await this.validateToolchainCompatibility(newConfig, existingConfig),
-      dependencies: await this.validateDependencyCompatibility(newConfig, existingConfig)
+      dependencies: await this.validateDependencyCompatibility(newConfig, existingConfig),
     };
 
     const incompatibleItems = Object.entries(compatibility)
@@ -185,14 +190,18 @@ export class PipelineValidator {
 
     return {
       passed: incompatibleItems.length === 0,
-      message: incompatibleItems.length === 0
-        ? 'All components are compatible'
-        : `${incompatibleItems.length} compatibility issues found`,
+      message:
+        incompatibleItems.length === 0
+          ? 'All components are compatible'
+          : `${incompatibleItems.length} compatibility issues found`,
       details: compatibility,
-      recommendations: incompatibleItems.length > 0
-        ? incompatibleItems.flatMap(item => item.issues.map(issue => `Fix ${item.component}: ${issue}`))
-        : [],
-      impact: incompatibleItems.length > 0 ? 'high' : 'none'
+      recommendations:
+        incompatibleItems.length > 0
+          ? incompatibleItems.flatMap((item) =>
+              item.issues.map((issue) => `Fix ${item.component}: ${issue}`),
+            )
+          : [],
+      impact: incompatibleItems.length > 0 ? 'high' : 'none',
     };
   }
 
@@ -207,7 +216,7 @@ export class PipelineValidator {
       executionTime: await this.estimateExecutionTimeImpact(config),
       parallelization: await this.analyzeParallelizationEfficiency(config),
       networkImpact: await this.analyzeNetworkImpact(config),
-      storageImpact: await this.analyzeStorageImpact(config)
+      storageImpact: await this.analyzeStorageImpact(config),
     };
 
     const performanceIssues = [];
@@ -223,7 +232,9 @@ export class PipelineValidator {
 
     // Check execution time impact
     if (performanceAnalysis.executionTime.impactPercentage > 20) {
-      performanceIssues.push(`Execution time may increase by ${performanceAnalysis.executionTime.impactPercentage}%`);
+      performanceIssues.push(
+        `Execution time may increase by ${performanceAnalysis.executionTime.impactPercentage}%`,
+      );
     }
 
     // Check parallelization efficiency
@@ -233,14 +244,21 @@ export class PipelineValidator {
 
     return {
       passed: performanceIssues.length === 0,
-      message: performanceIssues.length === 0
-        ? 'Performance impact is acceptable'
-        : `${performanceIssues.length} performance concerns identified`,
+      message:
+        performanceIssues.length === 0
+          ? 'Performance impact is acceptable'
+          : `${performanceIssues.length} performance concerns identified`,
       details: performanceAnalysis,
-      recommendations: performanceIssues.length > 0
-        ? ['Optimize resource allocation', 'Adjust parallelization strategy', 'Monitor performance during integration']
-        : [],
-      impact: performanceIssues.length > 2 ? 'high' : performanceIssues.length > 0 ? 'medium' : 'low'
+      recommendations:
+        performanceIssues.length > 0
+          ? [
+              'Optimize resource allocation',
+              'Adjust parallelization strategy',
+              'Monitor performance during integration',
+            ]
+          : [],
+      impact:
+        performanceIssues.length > 2 ? 'high' : performanceIssues.length > 0 ? 'medium' : 'low',
     };
   }
 
@@ -255,7 +273,7 @@ export class PipelineValidator {
       networkSecurity: await this.validateNetworkSecurity(config),
       accessControls: await this.validateAccessControls(config),
       dataProtection: await this.validateDataProtection(config),
-      auditLogging: await this.validateAuditLogging(config)
+      auditLogging: await this.validateAuditLogging(config),
     };
 
     const securityIssues = Object.entries(securityChecks)
@@ -264,14 +282,20 @@ export class PipelineValidator {
 
     return {
       passed: securityIssues.length === 0,
-      message: securityIssues.length === 0
-        ? 'Security validation passed'
-        : `${securityIssues.length} security issues identified`,
+      message:
+        securityIssues.length === 0
+          ? 'Security validation passed'
+          : `${securityIssues.length} security issues identified`,
       details: securityChecks,
-      recommendations: securityIssues.length > 0
-        ? securityIssues.flatMap(item => item.issues.map(issue => `Address ${item.component}: ${issue}`))
-        : [],
-      impact: securityIssues.some(item => item.issues.some(issue => issue.includes('critical'))) ? 'high' : 'medium'
+      recommendations:
+        securityIssues.length > 0
+          ? securityIssues.flatMap((item) =>
+              item.issues.map((issue) => `Address ${item.component}: ${issue}`),
+            )
+          : [],
+      impact: securityIssues.some((item) => item.issues.some((issue) => issue.includes('critical')))
+        ? 'high'
+        : 'medium',
     };
   }
 
@@ -288,7 +312,7 @@ export class PipelineValidator {
         swarmInitialization: await this.testSwarmInitialization(config, testEnvironment),
         testExecution: await this.testSwarmTestExecution(config, testEnvironment),
         cicdIntegration: await this.testCicdIntegration(config, testEnvironment),
-        cleanup: await this.testCleanupProcesses(config, testEnvironment)
+        cleanup: await this.testCleanupProcesses(config, testEnvironment),
       };
 
       const failedTests = Object.entries(testResults)
@@ -297,14 +321,16 @@ export class PipelineValidator {
 
       return {
         passed: failedTests.length === 0,
-        message: failedTests.length === 0
-          ? 'Integration test passed successfully'
-          : `${failedTests.length} integration tests failed`,
+        message:
+          failedTests.length === 0
+            ? 'Integration test passed successfully'
+            : `${failedTests.length} integration tests failed`,
         details: testResults,
-        recommendations: failedTests.length > 0
-          ? failedTests.map(test => `Fix ${test.test}: ${test.error}`)
-          : [],
-        impact: failedTests.length > 0 ? 'high' : 'none'
+        recommendations:
+          failedTests.length > 0
+            ? failedTests.map((test) => `Fix ${test.test}: ${test.error}`)
+            : [],
+        impact: failedTests.length > 0 ? 'high' : 'none',
       };
     } finally {
       await this.cleanupTestEnvironment(testEnvironment);
@@ -324,37 +350,41 @@ export class PipelineValidator {
           id: 'backup-existing-config',
           description: 'Backup existing CI/CD configuration',
           command: 'cp .github/workflows/ .github/workflows.backup/',
-          rollback: false
+          rollback: false,
         },
         {
           id: 'disable-swarm-workflows',
           description: 'Disable swarm-based workflows',
           command: 'mv .github/workflows/swarm-*.yml .github/workflows.disabled/',
-          rollback: true
+          rollback: true,
         },
         {
           id: 'restore-original-workflows',
           description: 'Restore original workflows',
           command: 'cp .github/workflows.backup/* .github/workflows/',
-          rollback: true
+          rollback: true,
         },
         {
           id: 'cleanup-swarm-artifacts',
           description: 'Remove swarm-generated artifacts',
           command: 'rm -rf test-results/swarm-* swarm-config.json',
-          rollback: true
-        }
+          rollback: true,
+        },
       ],
       triggers: [
         'High failure rate in swarm tests',
         'Performance degradation > 50%',
         'Critical security issues detected',
-        'Manual rollback request'
+        'Manual rollback request',
       ],
       validation: {
         preRollback: ['Verify existing configuration backup', 'Stop running swarm processes'],
-        postRollback: ['Verify original workflows active', 'Run smoke tests', 'Monitor for stability']
-      }
+        postRollback: [
+          'Verify original workflows active',
+          'Run smoke tests',
+          'Monitor for stability',
+        ],
+      },
     };
   }
 
@@ -400,7 +430,7 @@ export class PipelineValidator {
       category: 'compatibility',
       severity: 'error',
       description: 'Validate compatibility with existing GitHub Actions workflows',
-      validator: this.validateCompatibility.bind(this)
+      validator: this.validateCompatibility.bind(this),
     });
 
     this.validationRules.set('performance-impact', {
@@ -409,7 +439,7 @@ export class PipelineValidator {
       category: 'performance',
       severity: 'warning',
       description: 'Assess performance impact of swarm integration',
-      validator: this.validatePerformanceImpact.bind(this)
+      validator: this.validatePerformanceImpact.bind(this),
     });
 
     this.validationRules.set('security-validation', {
@@ -418,7 +448,7 @@ export class PipelineValidator {
       category: 'security',
       severity: 'critical',
       description: 'Validate security implications of swarm integration',
-      validator: this.validateSecurity.bind(this)
+      validator: this.validateSecurity.bind(this),
     });
 
     this.validationRules.set('resource-availability', {
@@ -427,7 +457,7 @@ export class PipelineValidator {
       category: 'integration',
       severity: 'error',
       description: 'Validate sufficient resources are available',
-      validator: this.validateResourceAvailability.bind(this)
+      validator: this.validateResourceAvailability.bind(this),
     });
 
     this.validationRules.set('data-integrity', {
@@ -436,24 +466,24 @@ export class PipelineValidator {
       category: 'data-integrity',
       severity: 'error',
       description: 'Validate test data integrity and isolation',
-      validator: this.validateDataIntegrity.bind(this)
+      validator: this.validateDataIntegrity.bind(this),
     });
   }
 
   private initializeRollbackStrategies(): void {
     this.rollbackStrategies.set('workflow-rollback', {
       type: 'configuration',
-      steps: ['backup-config', 'disable-new-workflows', 'restore-original']
+      steps: ['backup-config', 'disable-new-workflows', 'restore-original'],
     });
 
     this.rollbackStrategies.set('agent-rollback', {
       type: 'runtime',
-      steps: ['stop-agents', 'cleanup-resources', 'reset-state']
+      steps: ['stop-agents', 'cleanup-resources', 'reset-state'],
     });
 
     this.rollbackStrategies.set('data-rollback', {
       type: 'data',
-      steps: ['restore-backups', 'verify-integrity', 'cleanup-temp']
+      steps: ['restore-backups', 'verify-integrity', 'cleanup-temp'],
     });
   }
 
@@ -474,7 +504,7 @@ export class PipelineValidator {
       testFrameworks: ['jest', 'playwright'],
       browsers: ['chromium', 'firefox', 'webkit'],
       nodeVersion: '20.x',
-      dependencies: {}
+      dependencies: {},
     };
   }
 
@@ -483,14 +513,15 @@ export class PipelineValidator {
       memory: { total: 8192, available: 6144 },
       cpu: { cores: 4, available: 3 },
       storage: { total: 100000, available: 75000 },
-      network: { bandwidth: 1000, latency: 10 }
+      network: { bandwidth: 1000, latency: 10 },
     };
   }
 
   private async assessWarningImpact(report: PipelineValidationReport): Promise<boolean> {
     // Analyze warnings to determine if integration is still safe
-    const highImpactWarnings = Array.from(report.validationResults.values())
-      .filter(result => !result.passed && result.impact === 'high').length;
+    const highImpactWarnings = Array.from(report.validationResults.values()).filter(
+      (result) => !result.passed && result.impact === 'high',
+    ).length;
 
     return highImpactWarnings === 0;
   }
@@ -518,22 +549,28 @@ export class PipelineValidator {
     return recommendations;
   }
 
-  private async validateGitHubActionsCompatibility(newConfig: any, existingConfig: any): Promise<any> {
+  private async validateGitHubActionsCompatibility(
+    newConfig: any,
+    existingConfig: any,
+  ): Promise<any> {
     return {
       compatible: true,
       issues: [],
       nodeVersions: { compatible: true },
       dependencies: { compatible: true },
-      secrets: { compatible: true }
+      secrets: { compatible: true },
     };
   }
 
-  private async validateTestFrameworkCompatibility(newConfig: any, existingConfig: any): Promise<any> {
+  private async validateTestFrameworkCompatibility(
+    newConfig: any,
+    existingConfig: any,
+  ): Promise<any> {
     return {
       compatible: true,
       issues: [],
       jest: { compatible: true },
-      playwright: { compatible: true }
+      playwright: { compatible: true },
     };
   }
 
@@ -542,7 +579,7 @@ export class PipelineValidator {
       compatible: true,
       issues: [],
       npm: { compatible: true },
-      node: { compatible: true }
+      node: { compatible: true },
     };
   }
 
@@ -550,7 +587,7 @@ export class PipelineValidator {
     return {
       compatible: true,
       issues: [],
-      conflicts: []
+      conflicts: [],
     };
   }
 
@@ -559,7 +596,7 @@ export class PipelineValidator {
       memoryGb: config.swarm?.maxAgents * 2 || 8,
       cpuCores: config.swarm?.maxAgents || 4,
       storageGb: 10,
-      networkBandwidth: 100
+      networkBandwidth: 100,
     };
   }
 
@@ -568,7 +605,7 @@ export class PipelineValidator {
       baseline: 300, // 5 minutes
       projected: 250, // 4 minutes 10 seconds
       impactPercentage: -16.7,
-      improvement: true
+      improvement: true,
     };
   }
 
@@ -576,7 +613,7 @@ export class PipelineValidator {
     return {
       efficiency: 0.85,
       optimalAgentCount: config.swarm?.maxAgents || 4,
-      loadBalancing: 'good'
+      loadBalancing: 'good',
     };
   }
 
@@ -584,7 +621,7 @@ export class PipelineValidator {
     return {
       additionalRequests: 50,
       bandwidth: 'low',
-      latency: 'minimal'
+      latency: 'minimal',
     };
   }
 
@@ -592,7 +629,7 @@ export class PipelineValidator {
     return {
       additionalStorage: 1000, // 1GB
       temporary: true,
-      cleanup: 'automated'
+      cleanup: 'automated',
     };
   }
 
@@ -601,7 +638,7 @@ export class PipelineValidator {
       secure: true,
       issues: [],
       githubSecrets: { secure: true },
-      environmentVariables: { secure: true }
+      environmentVariables: { secure: true },
     };
   }
 
@@ -610,7 +647,7 @@ export class PipelineValidator {
       secure: true,
       issues: [],
       isolation: { adequate: true },
-      encryption: { enabled: true }
+      encryption: { enabled: true },
     };
   }
 
@@ -619,7 +656,7 @@ export class PipelineValidator {
       secure: true,
       issues: [],
       permissions: { appropriate: true },
-      authentication: { enabled: true }
+      authentication: { enabled: true },
     };
   }
 
@@ -628,7 +665,7 @@ export class PipelineValidator {
       secure: true,
       issues: [],
       encryption: { enabled: true },
-      isolation: { adequate: true }
+      isolation: { adequate: true },
     };
   }
 
@@ -637,24 +674,28 @@ export class PipelineValidator {
       secure: true,
       issues: [],
       logging: { enabled: true },
-      retention: { appropriate: true }
+      retention: { appropriate: true },
     };
   }
 
-  private async validateResourceAvailability(context: ValidationContext): Promise<ValidationResult> {
+  private async validateResourceAvailability(
+    context: ValidationContext,
+  ): Promise<ValidationResult> {
     const requiredMemory = context.swarmConfiguration?.maxAgents * 1024 || 4096; // MB
     const availableMemory = context.resources?.memory?.available || 0;
 
     return {
       passed: availableMemory >= requiredMemory,
-      message: availableMemory >= requiredMemory
-        ? 'Sufficient resources available'
-        : `Insufficient memory: required ${requiredMemory}MB, available ${availableMemory}MB`,
+      message:
+        availableMemory >= requiredMemory
+          ? 'Sufficient resources available'
+          : `Insufficient memory: required ${requiredMemory}MB, available ${availableMemory}MB`,
       details: { required: requiredMemory, available: availableMemory },
-      recommendations: availableMemory < requiredMemory
-        ? ['Increase available memory', 'Reduce number of agents']
-        : [],
-      impact: availableMemory < requiredMemory ? 'high' : 'none'
+      recommendations:
+        availableMemory < requiredMemory
+          ? ['Increase available memory', 'Reduce number of agents']
+          : [],
+      impact: availableMemory < requiredMemory ? 'high' : 'none',
     };
   }
 
@@ -663,7 +704,7 @@ export class PipelineValidator {
       passed: true,
       message: 'Data integrity validation passed',
       details: { isolation: 'adequate', backup: 'enabled' },
-      impact: 'none'
+      impact: 'none',
     };
   }
 
@@ -671,7 +712,7 @@ export class PipelineValidator {
     return {
       id: `test_env_${Date.now()}`,
       isolated: true,
-      resources: {}
+      resources: {},
     };
   }
 

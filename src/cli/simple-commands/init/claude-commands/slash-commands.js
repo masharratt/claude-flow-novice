@@ -42,7 +42,7 @@ export async function createClaudeSlashCommands(workingDir) {
       // Fallback to template copier if .roomodes doesn't exist
       console.log('  🔄 Using template copier for SPARC commands...');
       const copyResults = await copyTemplates(workingDir, slashCommandOptions);
-      
+
       if (!copyResults.success) {
         console.log(`  ⚠️  Template copier failed: ${copyResults.errors.join(', ')}`);
       }

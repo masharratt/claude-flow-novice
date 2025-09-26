@@ -73,8 +73,17 @@
         "type": {
           "type": "string",
           "enum": [
-            "web-app", "api", "cli", "library", "mobile",
-            "ml", "data", "game", "desktop", "iot", "mixed"
+            "web-app",
+            "api",
+            "cli",
+            "library",
+            "mobile",
+            "ml",
+            "data",
+            "game",
+            "desktop",
+            "iot",
+            "mixed"
           ],
           "description": "Project type (auto-detected or user-specified)",
           "meta": {
@@ -357,7 +366,11 @@
               "properties": {
                 "enabled": { "type": "boolean", "default": true },
                 "command": { "type": "string", "default": "npx" },
-                "args": { "type": "array", "items": { "type": "string" }, "default": ["claude-flow@alpha"] },
+                "args": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": ["claude-flow@alpha"]
+                },
                 "timeout": { "type": "integer", "default": 30000 },
                 "retryAttempts": { "type": "integer", "default": 3 }
               }
@@ -367,7 +380,11 @@
               "properties": {
                 "enabled": { "type": "boolean", "default": false },
                 "command": { "type": "string", "default": "npx" },
-                "args": { "type": "array", "items": { "type": "string" }, "default": ["ruv-swarm"] },
+                "args": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": ["ruv-swarm"]
+                },
                 "timeout": { "type": "integer", "default": 30000 }
               }
             },
@@ -376,7 +393,11 @@
               "properties": {
                 "enabled": { "type": "boolean", "default": false },
                 "command": { "type": "string", "default": "npx" },
-                "args": { "type": "array", "items": { "type": "string" }, "default": ["flow-nexus@latest"] },
+                "args": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": ["flow-nexus@latest"]
+                },
                 "requiresAuth": { "type": "boolean", "default": true }
               }
             }
@@ -764,11 +785,21 @@
       },
       "advanced": {
         "description": "Full configuration access for power users",
-        "sections": ["agent.coordination", "features.neural", "storage.local", "ui.progressiveDisclosure"]
+        "sections": [
+          "agent.coordination",
+          "features.neural",
+          "storage.local",
+          "ui.progressiveDisclosure"
+        ]
       },
       "enterprise": {
         "description": "Organization and compliance features",
-        "sections": ["features.security", "storage.team", "storage.cloud", "features.monitoring.alerting"]
+        "sections": [
+          "features.security",
+          "storage.team",
+          "storage.cloud",
+          "features.monitoring.alerting"
+        ]
       }
     },
     "categories": {

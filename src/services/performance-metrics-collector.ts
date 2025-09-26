@@ -83,7 +83,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
       coordinationEfficiency: await this.calculateCoordinationEfficiency(),
       handoffEfficiency: await this.calculateHandoffEfficiency(),
       trends: await this.calculateTrends(),
-      byzantineMetrics: await this.byzantineDetector.collectByzantineMetrics()
+      byzantineMetrics: await this.byzantineDetector.collectByzantineMetrics(),
     };
 
     // Store metrics in history
@@ -116,7 +116,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
       phases: task.phases,
       timestamp: Date.now(),
       totalDuration: this.calculateTaskDuration(task),
-      qualityScore: this.calculateTaskQuality(task)
+      qualityScore: this.calculateTaskQuality(task),
     };
 
     // Store task metrics
@@ -140,7 +140,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
   }): Promise<void> {
     const learningRecord = {
       ...params,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     if (!this.metricsHistory.has('learning')) {
@@ -176,10 +176,10 @@ export class PerformanceMetricsCollector extends EventEmitter {
       const taskMetric = {
         taskId: `sample-task-${i}`,
         agentId,
-        startTime: startTime + (i * (duration / taskCount)),
+        startTime: startTime + i * (duration / taskCount),
         completionTime: Math.random() * 5000 + 1000, // 1-6 seconds
         qualityScore: Math.random() * 0.4 + 0.6, // 0.6-1.0
-        byzantineVerified: Math.random() > 0.05 // 95% verification rate
+        byzantineVerified: Math.random() > 0.05, // 95% verification rate
       };
 
       if (!this.metricsHistory.has('performance')) {
@@ -227,11 +227,11 @@ export class PerformanceMetricsCollector extends EventEmitter {
       totalTasks: performanceData.length,
       taskCompletionRate: this.calculateCompletionRate(performanceData),
       averageQuality: this.calculateAverageQuality(performanceData),
-      byzantineAnomalies: this.byzantineDetector.getAnomalyCount()
+      byzantineAnomalies: this.byzantineDetector.getAnomalyCount(),
     };
 
     const timeSeries = {
-      hourly: this.generateTimeSeriesData(performanceData, 'hourly')
+      hourly: this.generateTimeSeriesData(performanceData, 'hourly'),
     };
 
     const agentPerformance = await this.generateAgentPerformanceBreakdown();
@@ -240,7 +240,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
       summary,
       timeSeries,
       agentPerformance,
-      comparisons: options.includeComparisons ? await this.generateComparisons() : {}
+      comparisons: options.includeComparisons ? await this.generateComparisons() : {},
     };
   }
 
@@ -259,19 +259,21 @@ export class PerformanceMetricsCollector extends EventEmitter {
     const metrics = await this.collectSwarmMetrics({
       timeRange: 'all',
       includeAgentBreakdown: true,
-      includeTaskMetrics: true
+      includeTaskMetrics: true,
     });
 
     const executiveSummary = this.generateExecutiveSummary(metrics);
-    const recommendations = options.includeRecommendations ? await this.generateRecommendations(metrics) : [];
+    const recommendations = options.includeRecommendations
+      ? await this.generateRecommendations(metrics)
+      : [];
 
     return {
       executiveSummary,
       detailedAnalysis: metrics,
       recommendations,
       appendices: {
-        rawData: Object.fromEntries(this.metricsHistory)
-      }
+        rawData: Object.fromEntries(this.metricsHistory),
+      },
     };
   }
 
@@ -289,7 +291,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
     customMetrics.set(metric.name, {
       ...metric,
       values: [],
-      registered: Date.now()
+      registered: Date.now(),
     });
   }
 
@@ -299,7 +301,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
       const metric = customMetrics.get(name);
       metric.values.push({
         value,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
   }
@@ -317,12 +319,13 @@ export class PerformanceMetricsCollector extends EventEmitter {
       needsAttention: string[];
     };
   }> {
-    const customMetrics = this.metricsHistory.get('custom_metrics') as Map<string, any> || new Map();
+    const customMetrics =
+      (this.metricsHistory.get('custom_metrics') as Map<string, any>) || new Map();
     const results: any = {};
     const trending = {
       improving: [] as string[],
       declining: [] as string[],
-      needsAttention: [] as string[]
+      needsAttention: [] as string[],
     };
 
     for (const [name, metric] of customMetrics) {
@@ -349,7 +352,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
         status,
         currentValue: latestValue,
         target,
-        trend
+        trend,
       };
 
       // Categorize trending
@@ -377,25 +380,28 @@ export class PerformanceMetricsCollector extends EventEmitter {
     actionItems: string[];
   }> {
     const kpiAnalysis = await this.analyzeCustomKPIs();
-    const statuses = Object.values(kpiAnalysis).filter(item => typeof item === 'object' && 'status' in item);
+    const statuses = Object.values(kpiAnalysis).filter(
+      (item) => typeof item === 'object' && 'status' in item,
+    );
 
     const statusCounts = {
-      green: statuses.filter(s => ['above_target', 'at_target'].includes(s.status)).length,
-      yellow: statuses.filter(s => s.status === 'approaching_target').length,
-      red: statuses.filter(s => s.status === 'below_target').length
+      green: statuses.filter((s) => ['above_target', 'at_target'].includes(s.status)).length,
+      yellow: statuses.filter((s) => s.status === 'approaching_target').length,
+      red: statuses.filter((s) => s.status === 'below_target').length,
     };
 
-    const overallHealth = statusCounts.red > 0 ? 'critical' : statusCounts.yellow > 0 ? 'warning' : 'healthy';
+    const overallHealth =
+      statusCounts.red > 0 ? 'critical' : statusCounts.yellow > 0 ? 'warning' : 'healthy';
 
     const actionItems = [
-      ...kpiAnalysis.trending.needsAttention.map(metric => `Address declining metric: ${metric}`),
-      ...kpiAnalysis.trending.declining.map(metric => `Monitor declining trend: ${metric}`)
+      ...kpiAnalysis.trending.needsAttention.map((metric) => `Address declining metric: ${metric}`),
+      ...kpiAnalysis.trending.declining.map((metric) => `Monitor declining trend: ${metric}`),
     ];
 
     return {
       overallHealth,
       metricsStatus: statusCounts,
-      actionItems
+      actionItems,
     };
   }
 
@@ -418,9 +424,10 @@ export class PerformanceMetricsCollector extends EventEmitter {
     const qualities = tasks.map((task: any) => task.qualityScore).filter((q: number) => q > 0);
 
     return {
-      averageQuality: qualities.reduce((sum: number, q: number) => sum + q, 0) / Math.max(1, qualities.length),
+      averageQuality:
+        qualities.reduce((sum: number, q: number) => sum + q, 0) / Math.max(1, qualities.length),
       qualityTrend: qualities.slice(-10),
-      byzantineAnomalies: this.byzantineDetector.getAnomalyCount()
+      byzantineAnomalies: this.byzantineDetector.getAnomalyCount(),
     };
   }
 
@@ -433,7 +440,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
         tasksCompleted: Math.floor(Math.random() * 50) + 10,
         averageQuality: Math.random() * 0.3 + 0.7,
         throughput: Math.random() * 0.5 + 0.5,
-        byzantineScore: Math.random() * 0.2 + 0.8
+        byzantineScore: Math.random() * 0.2 + 0.8,
       };
     }
 
@@ -452,13 +459,17 @@ export class PerformanceMetricsCollector extends EventEmitter {
     return {
       qualityTrend: Array.from({ length: 10 }, () => Math.random() * 0.3 + 0.7),
       speedTrend: Array.from({ length: 10 }, () => Math.random() * 0.4 + 0.6),
-      coordinationTrend: Array.from({ length: 10 }, () => Math.random() * 0.2 + 0.8)
+      coordinationTrend: Array.from({ length: 10 }, () => Math.random() * 0.2 + 0.8),
     };
   }
 
   private calculateTaskDuration(task: any): number {
     if (task.phases) {
-      return task.phases.reduce((sum: number, phase: any) => sum + (phase.actualDuration || phase.estimatedDuration || 60000), 0);
+      return task.phases.reduce(
+        (sum: number, phase: any) =>
+          sum + (phase.actualDuration || phase.estimatedDuration || 60000),
+        0,
+      );
     }
     return task.estimatedDuration || 60000;
   }
@@ -478,7 +489,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
 
     this.metricsHistory.get('snapshots')!.push({
       timestamp: Date.now(),
-      metrics
+      metrics,
     });
   }
 
@@ -488,7 +499,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
         records: [],
         totalTasks: 0,
         averageQuality: 0,
-        averageTime: 0
+        averageTime: 0,
       });
     }
 
@@ -498,26 +509,28 @@ export class PerformanceMetricsCollector extends EventEmitter {
 
     // Recalculate averages
     const records = agentData.records;
-    agentData.averageQuality = records.reduce((sum: number, r: any) => sum + r.qualityScore, 0) / records.length;
-    agentData.averageTime = records.reduce((sum: number, r: any) => sum + r.completionTime, 0) / records.length;
+    agentData.averageQuality =
+      records.reduce((sum: number, r: any) => sum + r.qualityScore, 0) / records.length;
+    agentData.averageTime =
+      records.reduce((sum: number, r: any) => sum + r.completionTime, 0) / records.length;
   }
 
   private getLearningHistory(agentId: string, taskType: string): any[] {
     const learningData = this.metricsHistory.get('learning') || [];
-    return learningData.filter((record: any) =>
-      record.agentId === agentId && record.taskType === taskType
+    return learningData.filter(
+      (record: any) => record.agentId === agentId && record.taskType === taskType,
     );
   }
 
   private calculateCompletionRate(performanceData: any[]): number {
     if (performanceData.length === 0) return 1.0;
-    const completed = performanceData.filter(task => task.completed !== false).length;
+    const completed = performanceData.filter((task) => task.completed !== false).length;
     return completed / performanceData.length;
   }
 
   private calculateAverageQuality(performanceData: any[]): number {
     if (performanceData.length === 0) return 0.8;
-    const qualities = performanceData.map(task => task.qualityScore || 0.8);
+    const qualities = performanceData.map((task) => task.qualityScore || 0.8);
     return qualities.reduce((sum, q) => sum + q, 0) / qualities.length;
   }
 
@@ -527,7 +540,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
       timestamp: Date.now() - (23 - hour) * 3600000,
       tasks: Math.floor(Math.random() * 10) + 1,
       quality: Math.random() * 0.3 + 0.7,
-      byzantineScore: Math.random() * 0.2 + 0.8
+      byzantineScore: Math.random() * 0.2 + 0.8,
     }));
   }
 
@@ -540,7 +553,7 @@ export class PerformanceMetricsCollector extends EventEmitter {
         tasksCompleted: Math.floor(Math.random() * 30) + 10,
         averageQuality: Math.random() * 0.3 + 0.7,
         throughput: Math.random() * 0.4 + 0.6,
-        byzantineReliability: Math.random() * 0.1 + 0.9
+        byzantineReliability: Math.random() * 0.1 + 0.9,
       };
     }
 
@@ -551,12 +564,12 @@ export class PerformanceMetricsCollector extends EventEmitter {
     return {
       previousDay: {
         taskCompletionRate: Math.random() * 0.2 + 0.8,
-        averageQuality: Math.random() * 0.3 + 0.7
+        averageQuality: Math.random() * 0.3 + 0.7,
       },
       weeklyAverage: {
         taskCompletionRate: Math.random() * 0.15 + 0.85,
-        averageQuality: Math.random() * 0.25 + 0.75
-      }
+        averageQuality: Math.random() * 0.25 + 0.75,
+      },
     };
   }
 
@@ -582,7 +595,9 @@ export class PerformanceMetricsCollector extends EventEmitter {
     return recommendations;
   }
 
-  private calculateMetricTrend(values: Array<{ value: number; timestamp: number }>): 'improving' | 'declining' | 'stable' {
+  private calculateMetricTrend(
+    values: Array<{ value: number; timestamp: number }>,
+  ): 'improving' | 'declining' | 'stable' {
     if (values.length < 2) return 'stable';
 
     const recent = values.slice(-5);
@@ -604,7 +619,7 @@ class ByzantinePerformanceDetector {
     return {
       detectedAnomalies: this.anomalies.length,
       consensusSuccessRate: Math.random() * 0.1 + 0.9,
-      trustScoreDistribution: Array.from({ length: 10 }, () => Math.random() * 0.3 + 0.7)
+      trustScoreDistribution: Array.from({ length: 10 }, () => Math.random() * 0.3 + 0.7),
     };
   }
 
@@ -615,7 +630,7 @@ class ByzantinePerformanceDetector {
         taskId: taskMetrics.taskId,
         type: 'performance_anomaly',
         timestamp: Date.now(),
-        details: taskMetrics
+        details: taskMetrics,
       });
     }
   }
@@ -636,7 +651,8 @@ class LearningAnalyzer {
     const lastRecord = sortedHistory[sortedHistory.length - 1];
 
     const qualityImprovement = lastRecord.qualityScore - firstRecord.qualityScore;
-    const speedImprovement = (firstRecord.completionTime - lastRecord.completionTime) / firstRecord.completionTime;
+    const speedImprovement =
+      (firstRecord.completionTime - lastRecord.completionTime) / firstRecord.completionTime;
 
     return {
       qualityImprovement,
@@ -644,19 +660,19 @@ class LearningAnalyzer {
       learningRate: qualityImprovement / sortedHistory.length,
       learningCurve: {
         type: 'exponential_improvement',
-        parameters: { rate: 0.1, ceiling: 0.95 }
+        parameters: { rate: 0.1, ceiling: 0.95 },
       },
       predictedPerformance: {
         nextIteration: {
           quality: Math.min(0.95, lastRecord.qualityScore + 0.05),
-          speed: Math.max(0.8, lastRecord.completionTime * 0.95)
-        }
+          speed: Math.max(0.8, lastRecord.completionTime * 0.95),
+        },
       },
       masteryIndicators: {
         consistency: Math.random() * 0.3 + 0.7,
         autonomy: Math.random() * 0.2 + 0.8,
-        adaptability: Math.random() * 0.25 + 0.75
-      }
+        adaptability: Math.random() * 0.25 + 0.75,
+      },
     };
   }
 
@@ -667,13 +683,13 @@ class LearningAnalyzer {
       learningRate: 0,
       learningCurve: { type: 'no_data', parameters: {} },
       predictedPerformance: {
-        nextIteration: { quality: 0.8, speed: 60000 }
+        nextIteration: { quality: 0.8, speed: 60000 },
       },
       masteryIndicators: {
         consistency: 0.5,
         autonomy: 0.5,
-        adaptability: 0.5
-      }
+        adaptability: 0.5,
+      },
     };
   }
 }
@@ -695,12 +711,13 @@ class BottleneckAnalyzer {
           const actualDuration = phase.actualDuration || expectedDuration;
           const delay = actualDuration - expectedDuration;
 
-          if (delay > expectedDuration * 0.5) { // 50% over expected
+          if (delay > expectedDuration * 0.5) {
+            // 50% over expected
             bottlenecks.push({
               phase: phase.name,
               agent: phase.agent || 'unknown',
               severity: delay > expectedDuration ? 'high' : 'medium',
-              delayFactor: delay / expectedDuration
+              delayFactor: delay / expectedDuration,
             });
 
             totalDelay += delay;
@@ -725,7 +742,7 @@ class BottleneckAnalyzer {
         optimizations[agent] = [
           'Additional training in implementation techniques',
           'Consider task breakdown for complex implementations',
-          'Optimize workflow for this agent type'
+          'Optimize workflow for this agent type',
         ];
       }
     }
@@ -735,8 +752,8 @@ class BottleneckAnalyzer {
       optimizations,
       impactAssessment: {
         timeDelay: totalDelay,
-        qualityImpact
-      }
+        qualityImpact,
+      },
     };
   }
 }

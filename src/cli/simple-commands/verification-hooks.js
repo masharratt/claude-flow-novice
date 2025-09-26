@@ -19,7 +19,7 @@ const additionalData = args[3] ? JSON.parse(args[3]) : {};
 const THRESHOLDS = {
   strict: 0.95,
   moderate: 0.85,
-  development: 0.75
+  development: 0.75,
 };
 
 // Get current mode from environment or default
@@ -31,9 +31,9 @@ const threshold = THRESHOLDS[mode];
  */
 async function preTaskVerification(taskId, agentType, data) {
   console.log(`🔍 Pre-task verification: ${taskId} (${agentType})`);
-  
+
   const checks = [];
-  
+
   // Check git status
   try {
     const gitStatus = execSync('git status --porcelain', { encoding: 'utf8' });
@@ -41,12 +41,12 @@ async function preTaskVerification(taskId, agentType, data) {
     checks.push({
       name: 'git-status',
       passed: isClean || data.allowDirty,
-      score: isClean ? 1.0 : 0.7
+      score: isClean ? 1.0 : 0.7,
     });
   } catch (e) {
     checks.push({ name: 'git-status', passed: false, score: 0 });
   }
-  
+
   // Check npm dependencies
   if (fs.existsSync('package.json')) {
     try {
@@ -56,23 +56,23 @@ async function preTaskVerification(taskId, agentType, data) {
       checks.push({ name: 'npm-deps', passed: false, score: 0.5 });
     }
   }
-  
+
   const avgScore = checks.reduce((sum, c) => sum + c.score, 0) / checks.length;
   const passed = avgScore >= threshold;
-  
+
   // Store result
-  storeVerification(taskId, 'pre', { 
-    passed, 
-    score: avgScore, 
+  storeVerification(taskId, 'pre', {
+    passed,
+    score: avgScore,
     checks,
-    agentType 
+    agentType,
   });
-  
+
   if (!passed) {
     console.error(`❌ Pre-task verification failed (${avgScore.toFixed(2)} < ${threshold})`);
     process.exit(1);
   }
-  
+
   console.log(`✅ Pre-task verification passed (${avgScore.toFixed(2)})`);
   return 0;
 }
@@ -82,9 +82,9 @@ async function preTaskVerification(taskId, agentType, data) {
  */
 async function postTaskVerification(taskId, agentType, data) {
   console.log(`🔍 Post-task verification: ${taskId} (${agentType})`);
-  
+
   const checks = [];
-  
+
   // Run type checking if available
   if (fs.existsSync('tsconfig.json') || fs.existsSync('package.json')) {
     try {
@@ -93,13 +93,13 @@ async function postTaskVerification(taskId, agentType, data) {
       checks.push({
         name: 'typecheck',
         passed: !hasErrors,
-        score: hasErrors ? 0.5 : 1.0
+        score: hasErrors ? 0.5 : 1.0,
       });
     } catch {
       checks.push({ name: 'typecheck', passed: false, score: 0.3 });
     }
   }
-  
+
   // Run tests if available
   if (fs.existsSync('package.json')) {
     try {
@@ -110,14 +110,14 @@ async function postTaskVerification(taskId, agentType, data) {
         checks.push({
           name: 'tests',
           passed,
-          score: passed ? 1.0 : 0.4
+          score: passed ? 1.0 : 0.4,
         });
       }
     } catch {
       checks.push({ name: 'tests', passed: false, score: 0.2 });
     }
   }
-  
+
   // Run linting if available
   if (fs.existsSync('.eslintrc.js') || fs.existsSync('.eslintrc.json')) {
     try {
@@ -126,36 +126,36 @@ async function postTaskVerification(taskId, agentType, data) {
       checks.push({
         name: 'lint',
         passed: !hasErrors,
-        score: hasErrors ? 0.6 : 1.0
+        score: hasErrors ? 0.6 : 1.0,
       });
     } catch {
       checks.push({ name: 'lint', passed: false, score: 0.4 });
     }
   }
-  
+
   // If no checks were possible, use default
   if (checks.length === 0) {
     checks.push({
       name: 'default',
       passed: true,
-      score: 0.8
+      score: 0.8,
     });
   }
-  
+
   const avgScore = checks.reduce((sum, c) => sum + c.score, 0) / checks.length;
   const passed = avgScore >= threshold;
-  
+
   // Store result
-  storeVerification(taskId, 'post', { 
-    passed, 
-    score: avgScore, 
+  storeVerification(taskId, 'post', {
+    passed,
+    score: avgScore,
     checks,
-    agentType 
+    agentType,
   });
-  
+
   if (!passed) {
     console.error(`❌ Post-task verification failed (${avgScore.toFixed(2)} < ${threshold})`);
-    
+
     // Attempt rollback if enabled
     if (process.env.VERIFICATION_ROLLBACK === 'true') {
       console.log('🔄 Attempting rollback...');
@@ -166,10 +166,10 @@ async function postTaskVerification(taskId, agentType, data) {
         console.error('❌ Rollback failed:', e.message);
       }
     }
-    
+
     process.exit(1);
   }
-  
+
   console.log(`✅ Post-task verification passed (${avgScore.toFixed(2)})`);
   return 0;
 }
@@ -179,12 +179,12 @@ async function postTaskVerification(taskId, agentType, data) {
  */
 async function feedToTraining(taskId, agentType, data) {
   const verificationData = loadVerification(taskId);
-  
+
   if (!verificationData) {
     console.log('⚠️  No verification data to feed to training');
     return;
   }
-  
+
   // Format for training system
   const trainingData = {
     taskId,
@@ -192,20 +192,20 @@ async function feedToTraining(taskId, agentType, data) {
     preScore: verificationData.pre?.score || 0,
     postScore: verificationData.post?.score || 0,
     success: verificationData.post?.passed || false,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Store in training data file
   const trainingFile = '.claude-flow/training/verification-data.jsonl';
   const dir = path.dirname(trainingFile);
-  
+
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  
+
   fs.appendFileSync(trainingFile, JSON.stringify(trainingData) + '\n');
   console.log(`📊 Verification data fed to training system`);
-  
+
   // If score is particularly low, flag for attention
   if (trainingData.postScore < 0.5) {
     console.warn(`⚠️  Low verification score for ${agentType}: ${trainingData.postScore}`);
@@ -218,11 +218,11 @@ async function feedToTraining(taskId, agentType, data) {
 function storeVerification(taskId, phase, data) {
   const file = '.swarm/verification-memory.json';
   const dir = path.dirname(file);
-  
+
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  
+
   let memory = {};
   if (fs.existsSync(file)) {
     try {
@@ -231,29 +231,29 @@ function storeVerification(taskId, phase, data) {
       memory = {};
     }
   }
-  
+
   if (!memory.history) memory.history = [];
   if (!memory.tasks) memory.tasks = {};
-  
+
   // Store task-specific data
   if (!memory.tasks[taskId]) {
     memory.tasks[taskId] = {};
   }
   memory.tasks[taskId][phase] = data;
-  
+
   // Add to history
   memory.history.push({
     taskId,
     phase,
     ...data,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
-  
+
   // Keep only last 1000 entries
   if (memory.history.length > 1000) {
     memory.history = memory.history.slice(-1000);
   }
-  
+
   fs.writeFileSync(file, JSON.stringify(memory, null, 2));
 }
 
@@ -262,11 +262,11 @@ function storeVerification(taskId, phase, data) {
  */
 function loadVerification(taskId) {
   const file = '.swarm/verification-memory.json';
-  
+
   if (!fs.existsSync(file)) {
     return null;
   }
-  
+
   try {
     const memory = JSON.parse(fs.readFileSync(file, 'utf8'));
     return memory.tasks?.[taskId] || null;
@@ -280,20 +280,20 @@ function loadVerification(taskId) {
  */
 function showStatus() {
   const file = '.swarm/verification-memory.json';
-  
+
   if (!fs.existsSync(file)) {
     console.log('No verification history found');
     return;
   }
-  
+
   try {
     const memory = JSON.parse(fs.readFileSync(file, 'utf8'));
     const recent = memory.history?.slice(-10) || [];
-    
+
     console.log(`📊 Verification Status`);
     console.log(`Mode: ${mode} (threshold: ${threshold})`);
     console.log(`Total verifications: ${memory.history?.length || 0}`);
-    
+
     if (recent.length > 0) {
       console.log(`\nRecent verifications:`);
       for (const v of recent) {
@@ -311,16 +311,16 @@ async function main() {
   switch (command) {
     case 'pre':
       return preTaskVerification(taskId, agentType, additionalData);
-    
+
     case 'post':
       return postTaskVerification(taskId, agentType, additionalData);
-    
+
     case 'train':
       return feedToTraining(taskId, agentType, additionalData);
-    
+
     case 'status':
       return showStatus();
-    
+
     default:
       console.log('Usage: verification-hooks <pre|post|train|status> <taskId> [agentType] [data]');
       process.exit(1);
@@ -333,9 +333,4 @@ if (require.main === module) {
 }
 
 // Export for programmatic use
-export {
-  preTaskVerification,
-  postTaskVerification,
-  feedToTraining,
-  showStatus
-};
+export { preTaskVerification, postTaskVerification, feedToTraining, showStatus };

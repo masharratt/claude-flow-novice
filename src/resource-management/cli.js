@@ -55,8 +55,12 @@ export class ResourceManagementCLI {
     console.log('🔧 Resource Management Status\n');
     console.log(`Current Mode: ${this.coordinator.preferences.resourceDelegation.mode}`);
     console.log(`Active Commands: ${stats.activeCommands}`);
-    console.log(`Heavy Command Threshold: ${this.coordinator.preferences.resourceDelegation.heavyCommandThreshold}ms`);
-    console.log(`Max Concurrent Heavy: ${this.coordinator.preferences.resourceDelegation.maxConcurrentHeavyCommands}\n`);
+    console.log(
+      `Heavy Command Threshold: ${this.coordinator.preferences.resourceDelegation.heavyCommandThreshold}ms`,
+    );
+    console.log(
+      `Max Concurrent Heavy: ${this.coordinator.preferences.resourceDelegation.maxConcurrentHeavyCommands}\n`,
+    );
 
     console.log('📊 System Load:');
     console.log(`  CPU: ${currentLoad.cpu.toFixed(1)}%`);
@@ -115,7 +119,7 @@ export class ResourceManagementCLI {
     });
 
     console.log('\n🔨 Heavy Commands:');
-    prefs.commands.heavyCommands.slice(0, 10).forEach(cmd => {
+    prefs.commands.heavyCommands.slice(0, 10).forEach((cmd) => {
       console.log(`  - ${cmd}`);
     });
     if (prefs.commands.heavyCommands.length > 10) {
@@ -141,17 +145,17 @@ export class ResourceManagementCLI {
     await this.coordinator.updatePreferences({
       resourceDelegation: {
         ...this.coordinator.preferences.resourceDelegation,
-        mode
-      }
+        mode,
+      },
     });
 
     console.log(`✅ Delegation mode set to: ${mode}`);
 
     // Show mode description
     const descriptions = {
-      'distributed': 'All agents can execute heavy commands simultaneously',
+      distributed: 'All agents can execute heavy commands simultaneously',
       'single-delegate': 'One agent executes, results shared with others',
-      'adaptive': 'Automatically chooses best strategy based on conditions'
+      adaptive: 'Automatically chooses best strategy based on conditions',
     };
 
     console.log(`📝 ${descriptions[mode]}`);
@@ -197,8 +201,8 @@ export class ResourceManagementCLI {
     await this.coordinator.updatePreferences({
       commands: {
         ...this.coordinator.preferences.commands,
-        heavyCommands
-      }
+        heavyCommands,
+      },
     });
 
     console.log(`✅ Added heavy command: ${command}`);
@@ -212,7 +216,7 @@ export class ResourceManagementCLI {
     }
 
     const heavyCommands = this.coordinator.preferences.commands.heavyCommands.filter(
-      cmd => cmd !== command
+      (cmd) => cmd !== command,
     );
 
     if (heavyCommands.length === this.coordinator.preferences.commands.heavyCommands.length) {
@@ -223,8 +227,8 @@ export class ResourceManagementCLI {
     await this.coordinator.updatePreferences({
       commands: {
         ...this.coordinator.preferences.commands,
-        heavyCommands
-      }
+        heavyCommands,
+      },
     });
 
     console.log(`✅ Removed heavy command: ${command}`);
@@ -250,7 +254,9 @@ export class ResourceManagementCLI {
     if (stats.totalCommands > 0) {
       console.log(`📈 Command Execution:`);
       console.log(`  Total Commands: ${stats.totalCommands}`);
-      console.log(`  Heavy Commands: ${stats.heavyCommands} (${((stats.heavyCommands / stats.totalCommands) * 100).toFixed(1)}%)`);
+      console.log(
+        `  Heavy Commands: ${stats.heavyCommands} (${((stats.heavyCommands / stats.totalCommands) * 100).toFixed(1)}%)`,
+      );
       console.log(`  Success Rate: ${(stats.successRate * 100).toFixed(1)}%`);
       console.log(`  Average Duration: ${stats.averageDuration?.toFixed(0)}ms\n`);
 
@@ -269,7 +275,9 @@ export class ResourceManagementCLI {
 
     console.log(`🔄 Current Status:`);
     console.log(`  Active Commands: ${stats.activeCommands}`);
-    console.log(`  System Load: CPU ${stats.currentLoad?.cpu?.toFixed(1) || 'N/A'}%, Memory ${stats.currentLoad?.memory?.toFixed(1) || 'N/A'}%`);
+    console.log(
+      `  System Load: CPU ${stats.currentLoad?.cpu?.toFixed(1) || 'N/A'}%, Memory ${stats.currentLoad?.memory?.toFixed(1) || 'N/A'}%`,
+    );
 
     return { success: true, data: stats };
   }
@@ -283,7 +291,7 @@ export class ResourceManagementCLI {
     const mockAgents = [
       { id: 'agent-1', capabilities: ['test', 'build'] },
       { id: 'agent-2', capabilities: ['code', 'review'] },
-      { id: 'agent-3', capabilities: ['test', 'performance'] }
+      { id: 'agent-3', capabilities: ['test', 'performance'] },
     ];
 
     try {
@@ -300,7 +308,7 @@ export class ResourceManagementCLI {
 
       if (result.results) {
         console.log(`  Participating Agents: ${result.results.length}`);
-        result.results.forEach(r => {
+        result.results.forEach((r) => {
           const status = r.status === 'fulfilled' ? '✅' : '❌';
           console.log(`    ${status} ${r.agent}: ${r.status}`);
         });
@@ -334,7 +342,7 @@ export class ResourceManagementCLI {
       suggestions.push({
         type: 'reliability',
         message: 'Consider using single-delegate mode to improve reliability',
-        action: 'Set mode to single-delegate for better error handling'
+        action: 'Set mode to single-delegate for better error handling',
       });
     }
 
@@ -343,7 +351,7 @@ export class ResourceManagementCLI {
       suggestions.push({
         type: 'performance',
         message: 'Long execution times detected',
-        action: 'Consider adjusting heavy command threshold or using adaptive mode'
+        action: 'Consider adjusting heavy command threshold or using adaptive mode',
       });
     }
 
@@ -353,7 +361,7 @@ export class ResourceManagementCLI {
       suggestions.push({
         type: 'resource-usage',
         message: 'High single-delegate usage detected',
-        action: 'System might be resource-constrained. Consider upgrading or optimizing workloads'
+        action: 'System might be resource-constrained. Consider upgrading or optimizing workloads',
       });
     }
 

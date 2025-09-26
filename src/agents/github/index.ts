@@ -15,7 +15,7 @@ export {
   createGitHubAgent,
   type ConsolidatedAgentType,
   type AgentInstance,
-  type AgentRegistryStats
+  type AgentRegistryStats,
 } from './agent-factory';
 
 // Legacy compatibility
@@ -25,14 +25,17 @@ export {
   LEGACY_METHOD_MAPPINGS,
   getLegacyMapping,
   getLegacyMethodMapping,
-  getMigrationSuggestions
+  getMigrationSuggestions,
 } from './compatibility/legacy-agent-mappings';
 
 // Utilities and systems
 export { GitHubClient, githubConnectionPool, ConnectionPool } from './utils/github-client';
 export { GitHubHookIntegration, githubHooks } from './utils/hook-integration';
 export { GitHubErrorHandler, githubErrorHandler } from './utils/error-handling';
-export { GitHubPerformanceOptimizer, githubPerformanceOptimizer } from './utils/performance-optimizer';
+export {
+  GitHubPerformanceOptimizer,
+  githubPerformanceOptimizer,
+} from './utils/performance-optimizer';
 
 // Type definitions
 export type {
@@ -51,7 +54,7 @@ export type {
   CodeReviewContext,
   ReleaseCoordination,
   LegacyAgentType,
-  LegacyAgentMapping
+  LegacyAgentMapping,
 } from './types';
 
 // Version and metadata
@@ -97,26 +100,23 @@ export const GitHub = {
   /**
    * Create integration manager for repository operations
    */
-  integration: (config?: Partial<GitHubConfig>) =>
-    createGitHubAgent('integration', config),
+  integration: (config?: Partial<GitHubConfig>) => createGitHubAgent('integration', config),
 
   /**
    * Create collaboration manager for PR/issue management
    */
-  collaboration: (config?: Partial<GitHubConfig>) =>
-    createGitHubAgent('collaboration', config),
+  collaboration: (config?: Partial<GitHubConfig>) => createGitHubAgent('collaboration', config),
 
   /**
    * Create release coordinator for deployment management
    */
-  release: (config?: Partial<GitHubConfig>) =>
-    createGitHubAgent('release', config),
+  release: (config?: Partial<GitHubConfig>) => createGitHubAgent('release', config),
 
   /**
    * Create legacy agent for backward compatibility
    */
   legacy: (type: LegacyAgentType, config?: Partial<GitHubConfig>) =>
-    createGitHubAgent(type, config)
+    createGitHubAgent(type, config),
 };
 
 // Default exports for common usage patterns
@@ -124,5 +124,5 @@ export default {
   initializeGitHubAgents,
   GitHub,
   GitHubAgentFactory,
-  version: GITHUB_AGENT_VERSION
+  version: GITHUB_AGENT_VERSION,
 };

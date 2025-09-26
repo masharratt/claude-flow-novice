@@ -23,7 +23,11 @@ export class PreferenceWizard {
       spinner.succeed('Preference wizard initialized');
 
       console.log(chalk.blue.bold('\n🧙‍♂️ Claude Flow Novice - Preference Setup Wizard\n'));
-      console.log(chalk.gray('This wizard will help you configure your preferences for the best experience.\n'));
+      console.log(
+        chalk.gray(
+          'This wizard will help you configure your preferences for the best experience.\n',
+        ),
+      );
 
       // Step 1: Project detection
       await this.detectProject();
@@ -49,10 +53,13 @@ export class PreferenceWizard {
       await this.savePreferences();
 
       console.log(chalk.green.bold('\n✅ Preferences configured successfully!'));
-      console.log(chalk.gray('You can update these anytime with: claude-flow-novice preferences set <key> <value>'));
+      console.log(
+        chalk.gray(
+          'You can update these anytime with: claude-flow-novice preferences set <key> <value>',
+        ),
+      );
 
       return this.preferences;
-
     } catch (error) {
       spinner.fail('Failed to initialize preference wizard');
       throw error;
@@ -75,7 +82,6 @@ export class PreferenceWizard {
       if (detection.buildTool) {
         console.log(chalk.cyan(`  Build tool: ${detection.buildTool}`));
       }
-
     } catch (error) {
       spinner.warn('Could not detect project environment');
       this.preferences.project = { language: 'unknown', frameworks: [], buildTool: null };
@@ -93,8 +99,8 @@ export class PreferenceWizard {
         choices: [
           { name: '🟢 Beginner - New to AI development tools', value: 'beginner' },
           { name: '🟡 Intermediate - Some experience with AI tools', value: 'intermediate' },
-          { name: '🔴 Advanced - Experienced with AI development workflows', value: 'advanced' }
-        ]
+          { name: '🔴 Advanced - Experienced with AI development workflows', value: 'advanced' },
+        ],
       },
       {
         type: 'checkbox',
@@ -109,15 +115,15 @@ export class PreferenceWizard {
           'Mobile Development',
           'Desktop Applications',
           'Game Development',
-          'Other'
-        ]
+          'Other',
+        ],
       },
       {
         type: 'input',
         name: 'goals',
         message: 'What are your main goals with Claude Flow Novice? (optional)',
-        default: ''
-      }
+        default: '',
+      },
     ]);
 
     this.preferences.experience = { level, background, goals };
@@ -135,15 +141,15 @@ export class PreferenceWizard {
           { name: '📝 Minimal - Just the essentials', value: 'minimal' },
           { name: '📄 Standard - Balanced explanations', value: 'standard' },
           { name: '📚 Detailed - Comprehensive explanations', value: 'detailed' },
-          { name: '🔍 Verbose - Very detailed with examples', value: 'verbose' }
+          { name: '🔍 Verbose - Very detailed with examples', value: 'verbose' },
         ],
-        default: this.preferences.experience?.level === 'beginner' ? 'detailed' : 'standard'
+        default: this.preferences.experience?.level === 'beginner' ? 'detailed' : 'standard',
       },
       {
         type: 'confirm',
         name: 'explanations',
         message: 'Include explanations of AI agent decisions and reasoning?',
-        default: this.preferences.experience?.level === 'beginner'
+        default: this.preferences.experience?.level === 'beginner',
       },
       {
         type: 'list',
@@ -153,16 +159,16 @@ export class PreferenceWizard {
           { name: 'Minimal - Only complex logic', value: 'minimal' },
           { name: 'Standard - Key functions and classes', value: 'standard' },
           { name: 'Detailed - Most functions and important blocks', value: 'detailed' },
-          { name: 'Extensive - Nearly everything explained', value: 'extensive' }
+          { name: 'Extensive - Nearly everything explained', value: 'extensive' },
         ],
-        default: 'standard'
+        default: 'standard',
       },
       {
         type: 'confirm',
         name: 'stepByStep',
         message: 'Show step-by-step progress for complex operations?',
-        default: true
-      }
+        default: true,
+      },
     ]);
 
     this.preferences.documentation = { verbosity, explanations, codeComments, stepByStep };
@@ -180,9 +186,9 @@ export class PreferenceWizard {
           { name: '🤖 Professional - Formal and precise', value: 'professional' },
           { name: '😊 Friendly - Warm and encouraging', value: 'friendly' },
           { name: '🎯 Direct - Concise and to-the-point', value: 'direct' },
-          { name: '🎓 Educational - Teaching-focused explanations', value: 'educational' }
+          { name: '🎓 Educational - Teaching-focused explanations', value: 'educational' },
         ],
-        default: 'friendly'
+        default: 'friendly',
       },
       {
         type: 'list',
@@ -191,15 +197,15 @@ export class PreferenceWizard {
         choices: [
           { name: '🚨 Immediate - Stop and show errors right away', value: 'immediate' },
           { name: '📋 Summary - Collect and show at the end', value: 'summary' },
-          { name: '🔧 Guided - Provide suggestions to fix errors', value: 'guided' }
+          { name: '🔧 Guided - Provide suggestions to fix errors', value: 'guided' },
         ],
-        default: 'guided'
+        default: 'guided',
       },
       {
         type: 'confirm',
         name: 'notifications',
         message: 'Enable progress notifications for long-running tasks?',
-        default: true
+        default: true,
       },
       {
         type: 'list',
@@ -209,10 +215,10 @@ export class PreferenceWizard {
           { name: 'Never - Run commands without asking', value: 'never' },
           { name: 'Destructive - Only for potentially harmful operations', value: 'destructive' },
           { name: 'Important - For significant changes', value: 'important' },
-          { name: 'Always - Ask before any operation', value: 'always' }
+          { name: 'Always - Ask before any operation', value: 'always' },
         ],
-        default: 'important'
-      }
+        default: 'important',
+      },
     ]);
 
     this.preferences.feedback = { tone, errorHandling, notifications, confirmations };
@@ -227,12 +233,16 @@ export class PreferenceWizard {
         name: 'defaultAgents',
         message: 'Which agents do you want enabled by default?',
         choices: [
-          { name: '🔬 Researcher - Analyzes requirements and best practices', value: 'researcher', checked: true },
+          {
+            name: '🔬 Researcher - Analyzes requirements and best practices',
+            value: 'researcher',
+            checked: true,
+          },
           { name: '💻 Coder - Implements features and fixes', value: 'coder', checked: true },
           { name: '👀 Reviewer - Reviews code quality and standards', value: 'reviewer' },
           { name: '📋 Planner - Creates project plans and task breakdowns', value: 'planner' },
-          { name: '🧪 Tester - Creates and runs tests', value: 'tester' }
-        ]
+          { name: '🧪 Tester - Creates and runs tests', value: 'tester' },
+        ],
       },
       {
         type: 'list',
@@ -242,15 +252,15 @@ export class PreferenceWizard {
           { name: '1 - Sequential (safer, slower)', value: 1 },
           { name: '2 - Light parallel (balanced)', value: 2 },
           { name: '3 - Moderate parallel (faster)', value: 3 },
-          { name: '4 - Heavy parallel (fastest, more complex)', value: 4 }
+          { name: '4 - Heavy parallel (fastest, more complex)', value: 4 },
         ],
-        default: this.preferences.experience?.level === 'beginner' ? 2 : 3
+        default: this.preferences.experience?.level === 'beginner' ? 2 : 3,
       },
       {
         type: 'confirm',
         name: 'autoSave',
         message: 'Automatically save progress and intermediate results?',
-        default: true
+        default: true,
       },
       {
         type: 'list',
@@ -259,10 +269,10 @@ export class PreferenceWizard {
         choices: [
           { name: 'Never - Manual testing only', value: 'never' },
           { name: 'On completion - After major changes', value: 'completion' },
-          { name: 'Continuous - After each significant change', value: 'continuous' }
+          { name: 'Continuous - After each significant change', value: 'continuous' },
         ],
-        default: 'completion'
-      }
+        default: 'completion',
+      },
     ]);
 
     this.preferences.workflow = { defaultAgents, concurrency, autoSave, testRunning };
@@ -271,53 +281,63 @@ export class PreferenceWizard {
   async collectAdvancedPreferences() {
     console.log(chalk.blue('\n⚙️ Advanced Configuration'));
 
-    const { memoryPersistence, neuralLearning, hookIntegration, customAgents } = await inquirer.prompt([
-      {
-        type: 'confirm',
-        name: 'memoryPersistence',
-        message: 'Enable cross-session memory persistence?',
-        default: true
-      },
-      {
-        type: 'confirm',
-        name: 'neuralLearning',
-        message: 'Enable neural pattern learning and optimization?',
-        default: false
-      },
-      {
-        type: 'confirm',
-        name: 'hookIntegration',
-        message: 'Enable advanced hooks and automation?',
-        default: false
-      },
-      {
-        type: 'input',
-        name: 'customAgents',
-        message: 'Custom agent configurations (comma-separated, optional):',
-        default: ''
-      }
-    ]);
+    const { memoryPersistence, neuralLearning, hookIntegration, customAgents } =
+      await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'memoryPersistence',
+          message: 'Enable cross-session memory persistence?',
+          default: true,
+        },
+        {
+          type: 'confirm',
+          name: 'neuralLearning',
+          message: 'Enable neural pattern learning and optimization?',
+          default: false,
+        },
+        {
+          type: 'confirm',
+          name: 'hookIntegration',
+          message: 'Enable advanced hooks and automation?',
+          default: false,
+        },
+        {
+          type: 'input',
+          name: 'customAgents',
+          message: 'Custom agent configurations (comma-separated, optional):',
+          default: '',
+        },
+      ]);
 
-    this.preferences.advanced = { memoryPersistence, neuralLearning, hookIntegration, customAgents };
+    this.preferences.advanced = {
+      memoryPersistence,
+      neuralLearning,
+      hookIntegration,
+      customAgents,
+    };
   }
 
   async savePreferences() {
     const spinner = ora('Saving preferences...').start();
 
     try {
-      const prefsPath = path.join(process.cwd(), '.claude-flow-novice', 'preferences', 'user-global.json');
+      const prefsPath = path.join(
+        process.cwd(),
+        '.claude-flow-novice',
+        'preferences',
+        'user-global.json',
+      );
 
       // Add metadata
       this.preferences.meta = {
         version: '1.0.0',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        wizard: true
+        wizard: true,
       };
 
       await fs.writeJson(prefsPath, this.preferences, { spaces: 2 });
       spinner.succeed(`Preferences saved to ${prefsPath}`);
-
     } catch (error) {
       spinner.fail('Failed to save preferences');
       throw error;
@@ -333,7 +353,7 @@ class ProjectDetection {
       frameworks: [],
       buildTool: null,
       packageManager: null,
-      environment: 'development'
+      environment: 'development',
     };
 
     // Check for package.json (Node.js/JavaScript/TypeScript)
@@ -358,14 +378,13 @@ class ProjectDetection {
         if (pkg.scripts?.build) result.buildTool = 'npm-scripts';
         if (pkg.devDependencies?.webpack) result.buildTool = 'webpack';
         if (pkg.devDependencies?.vite) result.buildTool = 'vite';
-
       } catch (error) {
         console.warn('Could not read package.json');
       }
     }
 
     // Check for Python
-    if (await fs.pathExists('requirements.txt') || await fs.pathExists('pyproject.toml')) {
+    if ((await fs.pathExists('requirements.txt')) || (await fs.pathExists('pyproject.toml'))) {
       result.language = 'python';
       if (await fs.pathExists('requirements.txt')) result.buildTool = 'pip';
       if (await fs.pathExists('pyproject.toml')) result.buildTool = 'poetry';
@@ -382,9 +401,9 @@ class ProjectDetection {
       result.buildTool = 'go';
     }
 
-    if (await fs.pathExists('pom.xml') || await fs.pathExists('build.gradle')) {
+    if ((await fs.pathExists('pom.xml')) || (await fs.pathExists('build.gradle'))) {
       result.language = 'java';
-      result.buildTool = await fs.pathExists('pom.xml') ? 'maven' : 'gradle';
+      result.buildTool = (await fs.pathExists('pom.xml')) ? 'maven' : 'gradle';
     }
 
     return result;
@@ -412,37 +431,37 @@ class PreferenceSchema {
       experience: {
         level: 'beginner',
         background: ['Full-Stack Development'],
-        goals: ''
+        goals: '',
       },
       documentation: {
         verbosity: 'standard',
         explanations: true,
         codeComments: 'standard',
-        stepByStep: true
+        stepByStep: true,
       },
       feedback: {
         tone: 'friendly',
         errorHandling: 'guided',
         notifications: true,
-        confirmations: 'important'
+        confirmations: 'important',
       },
       workflow: {
         defaultAgents: ['researcher', 'coder'],
         concurrency: 2,
         autoSave: true,
-        testRunning: 'completion'
+        testRunning: 'completion',
       },
       advanced: {
         memoryPersistence: false,
         neuralLearning: false,
         hookIntegration: false,
-        customAgents: ''
+        customAgents: '',
       },
       project: {
         language: 'unknown',
         frameworks: [],
-        buildTool: null
-      }
+        buildTool: null,
+      },
     };
   }
 

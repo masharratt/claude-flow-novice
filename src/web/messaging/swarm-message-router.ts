@@ -11,7 +11,14 @@ export interface AgentMessage {
   swarmId: string;
   agentId: string;
   agentType: 'researcher' | 'coder' | 'reviewer';
-  messageType: 'task-start' | 'progress-update' | 'decision' | 'coordination' | 'completion' | 'error' | 'reasoning';
+  messageType:
+    | 'task-start'
+    | 'progress-update'
+    | 'decision'
+    | 'coordination'
+    | 'completion'
+    | 'error'
+    | 'reasoning';
   content: string;
   metadata?: {
     reasoning?: string;
@@ -78,11 +85,11 @@ export class SwarmMessageRouter extends EventEmitter {
     try {
       // Validate swarm has max 3 agents
       const swarmState = this.getOrCreateSwarmState(message.swarmId);
-      if (!swarmState.agents.find(a => a.id === message.agentId)) {
+      if (!swarmState.agents.find((a) => a.id === message.agentId)) {
         if (swarmState.agents.length >= this.MAX_AGENTS_PER_SWARM) {
           this.logger.warn('Swarm already has maximum 3 agents', {
             swarmId: message.swarmId,
-            agentId: message.agentId
+            agentId: message.agentId,
           });
           return;
         }
@@ -91,7 +98,7 @@ export class SwarmMessageRouter extends EventEmitter {
         swarmState.agents.push({
           id: message.agentId,
           type: message.agentType,
-          status: 'active'
+          status: 'active',
         });
       }
 
@@ -114,9 +121,8 @@ export class SwarmMessageRouter extends EventEmitter {
         messageId: message.id,
         swarmId: message.swarmId,
         agentId: message.agentId,
-        type: message.messageType
+        type: message.messageType,
       });
-
     } catch (error) {
       this.logger.error('Error handling agent message', { error, messageId: message.id });
       throw error;
@@ -148,7 +154,7 @@ export class SwarmMessageRouter extends EventEmitter {
 
   private handleTaskStart(message: AgentMessage, swarmState: SwarmState): void {
     // Notify other agents about new task
-    const otherAgents = swarmState.agents.filter(a => a.id !== message.agentId);
+    const otherAgents = swarmState.agents.filter((a) => a.id !== message.agentId);
 
     const coordinationMessage: AgentMessage = {
       id: this.generateMessageId(),
@@ -159,12 +165,12 @@ export class SwarmMessageRouter extends EventEmitter {
       content: `Agent ${message.agentId} started: ${message.content}`,
       metadata: {
         reasoning: 'Notifying team of new task initiation',
-        dependencies: [message.agentId]
+        dependencies: [message.agentId],
       },
       timestamp: new Date().toISOString(),
-      targetAgents: otherAgents.map(a => a.id),
+      targetAgents: otherAgents.map((a) => a.id),
       priority: 'medium',
-      threadId: message.threadId || message.id
+      threadId: message.threadId || message.id,
     };
 
     this.emit('coordination-message', coordinationMessage);
@@ -191,7 +197,7 @@ export class SwarmMessageRouter extends EventEmitter {
       reasoning: message.metadata?.reasoning,
       alternatives: message.metadata?.alternatives,
       confidence: message.metadata?.confidence,
-      timestamp: message.timestamp
+      timestamp: message.timestamp,
     });
 
     // Check if other agents need to respond to this decision
@@ -202,19 +208,19 @@ export class SwarmMessageRouter extends EventEmitter {
 
   private handleTaskCompletion(message: AgentMessage, swarmState: SwarmState): void {
     // Update agent status
-    const agent = swarmState.agents.find(a => a.id === message.agentId);
+    const agent = swarmState.agents.find((a) => a.id === message.agentId);
     if (agent) {
       agent.status = 'completed';
       agent.currentTask = undefined;
     }
 
     // Check if all agents are completed
-    const allCompleted = swarmState.agents.every(a => a.status === 'completed');
+    const allCompleted = swarmState.agents.every((a) => a.status === 'completed');
     if (allCompleted) {
       this.emit('swarm-completed', {
         swarmId: message.swarmId,
         completionTime: message.timestamp,
-        totalMessages: swarmState.messageCount
+        totalMessages: swarmState.messageCount,
       });
     }
   }
@@ -233,8 +239,8 @@ export class SwarmMessageRouter extends EventEmitter {
 
     // Apply additional filters
     let filteredMessages = messageIds
-      .map(id => this.messages.get(id)!)
-      .filter(msg => {
+      .map((id) => this.messages.get(id)!)
+      .filter((msg) => {
         if (query.agentId && msg.agentId !== query.agentId) return false;
         if (query.messageType && msg.messageType !== query.messageType) return false;
         if (query.threadId && msg.threadId !== query.threadId) return false;
@@ -250,8 +256,8 @@ export class SwarmMessageRouter extends EventEmitter {
       });
 
     // Sort by timestamp (newest first)
-    filteredMessages.sort((a, b) =>
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    filteredMessages.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 
     // Apply pagination
@@ -267,7 +273,7 @@ export class SwarmMessageRouter extends EventEmitter {
   public getConversationThreads(swarmId: string): any[] {
     const threads = Array.from(this.messageThreads.entries())
       .map(([threadId, messageIds]) => {
-        const messages = messageIds.map(id => this.messages.get(id)!);
+        const messages = messageIds.map((id) => this.messages.get(id)!);
         const firstMessage = messages[0];
 
         if (firstMessage?.swarmId !== swarmId) return null;
@@ -276,17 +282,17 @@ export class SwarmMessageRouter extends EventEmitter {
           threadId,
           title: firstMessage.content.substring(0, 50) + '...',
           messageCount: messages.length,
-          participants: Array.from(new Set(messages.map(m => m.agentId))),
+          participants: Array.from(new Set(messages.map((m) => m.agentId))),
           lastActivity: messages[messages.length - 1]?.timestamp,
-          messages: messages.sort((a, b) =>
-            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          )
+          messages: messages.sort(
+            (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+          ),
         };
       })
-      .filter(thread => thread !== null);
+      .filter((thread) => thread !== null);
 
-    return threads.sort((a, b) =>
-      new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+    return threads.sort(
+      (a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime(),
     );
   }
 
@@ -301,8 +307,9 @@ export class SwarmMessageRouter extends EventEmitter {
    * Get all active swarms (limited to 3 agents each)
    */
   public getActiveSwarms(): SwarmState[] {
-    return Array.from(this.swarmStates.values())
-      .filter(state => state.agents.some(a => a.status === 'active' || a.status === 'working'));
+    return Array.from(this.swarmStates.values()).filter((state) =>
+      state.agents.some((a) => a.status === 'active' || a.status === 'working'),
+    );
   }
 
   private getOrCreateSwarmState(swarmId: string): SwarmState {
@@ -314,9 +321,9 @@ export class SwarmMessageRouter extends EventEmitter {
         coordination: {
           activeThreads: 0,
           pendingHandoffs: 0,
-          blockedTasks: 0
+          blockedTasks: 0,
         },
-        lastActivity: new Date().toISOString()
+        lastActivity: new Date().toISOString(),
       });
     }
     return this.swarmStates.get(swarmId)!;
@@ -350,7 +357,7 @@ export class SwarmMessageRouter extends EventEmitter {
     state.lastActivity = message.timestamp;
 
     // Update agent status
-    const agent = state.agents.find(a => a.id === message.agentId);
+    const agent = state.agents.find((a) => a.id === message.agentId);
     if (agent) {
       switch (message.messageType) {
         case 'task-start':

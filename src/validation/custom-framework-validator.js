@@ -39,7 +39,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       validationTimeout: options.validationTimeout || 300000, // 5 minutes
       sandboxMemoryLimit: options.sandboxMemoryLimit || 32 * 1024 * 1024, // 32MB
       cacheValidationResults: options.cacheValidationResults !== false,
-      ...options
+      ...options,
     };
 
     // Core components
@@ -59,33 +59,45 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         successfulValidations: 0,
         securityViolations: 0,
         byzantineRejections: 0,
-        averageValidationTime: 0
-      }
+        averageValidationTime: 0,
+      },
     };
 
     // Validation execution contexts
     this.validationContexts = {
       sandbox: new Map(),
       truthScoring: new Map(),
-      byzantine: new Map()
+      byzantine: new Map(),
     };
 
     // Security enforcement patterns
     this.securityEnforcement = {
       allowedAPIs: [
-        'Math', 'Date', 'JSON', 'parseInt', 'parseFloat', 'isNaN', 'isFinite',
-        'encodeURIComponent', 'decodeURIComponent', 'String', 'Number', 'Boolean',
-        'Array', 'Object', 'RegExp'
+        'Math',
+        'Date',
+        'JSON',
+        'parseInt',
+        'parseFloat',
+        'isNaN',
+        'isFinite',
+        'encodeURIComponent',
+        'decodeURIComponent',
+        'String',
+        'Number',
+        'Boolean',
+        'Array',
+        'Object',
+        'RegExp',
       ],
       blockedPatterns: [
         ...SecurityPatterns.codeInjection,
         ...SecurityPatterns.systemAccess,
         ...SecurityPatterns.fileSystem,
         ...SecurityPatterns.networkAccess,
-        ...SecurityPatterns.systemCommands
+        ...SecurityPatterns.systemCommands,
       ],
       maxExecutionTime: 30000,
-      maxMemoryUsage: this.options.sandboxMemoryLimit
+      maxMemoryUsage: this.options.sandboxMemoryLimit,
     };
   }
 
@@ -122,7 +134,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         enhancedValidatorReady: true,
         byzantineEnabled: this.options.enableByzantineValidation,
         sandboxEnabled: this.options.enableSecuritySandbox,
-        duration
+        duration,
       });
 
       console.log(`✅ Enhanced Custom Framework Validator initialized (${duration.toFixed(2)}ms)`);
@@ -130,9 +142,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       return {
         success: true,
         initialized: true,
-        duration
+        duration,
       };
-
     } catch (error) {
       this.emit('error', error);
       throw new Error(`Failed to initialize Enhanced Custom Framework Validator: ${error.message}`);
@@ -149,13 +160,15 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     const startTime = performance.now();
 
     try {
-      console.log(`🔍 Starting comprehensive framework validation: ${frameworkDefinition.id} [${validationId}]`);
+      console.log(
+        `🔍 Starting comprehensive framework validation: ${frameworkDefinition.id} [${validationId}]`,
+      );
 
       // Track active validation
       this.state.activeValidations.set(validationId, {
         frameworkId: frameworkDefinition.id,
         startTime,
-        phase: 'schema_validation'
+        phase: 'schema_validation',
       });
 
       // Phase 1: Schema and basic validation
@@ -167,44 +180,53 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           frameworkId: frameworkDefinition.id,
           errors: schemaResult.errors,
           warnings: schemaResult.warnings,
-          securityIssues: schemaResult.securityIssues
+          securityIssues: schemaResult.securityIssues,
         });
       }
 
       // Phase 2: Security validation with sandbox testing
       this.updateValidationPhase(validationId, 'security_validation');
-      const securityResult = await this.performSecurityValidation(frameworkDefinition, validationId);
+      const securityResult = await this.performSecurityValidation(
+        frameworkDefinition,
+        validationId,
+      );
       if (!securityResult.secure) {
         return this.completeValidation(validationId, {
           success: false,
           phase: 'security_validation',
           frameworkId: frameworkDefinition.id,
           securityViolations: securityResult.violations,
-          criticalSecurityIssues: securityResult.criticalIssues
+          criticalSecurityIssues: securityResult.criticalIssues,
         });
       }
 
       // Phase 3: Truth scoring integration validation
       this.updateValidationPhase(validationId, 'truth_scoring_validation');
-      const truthScoringResult = await this.performTruthScoringValidation(frameworkDefinition, validationId);
+      const truthScoringResult = await this.performTruthScoringValidation(
+        frameworkDefinition,
+        validationId,
+      );
       if (!truthScoringResult.compatible) {
         return this.completeValidation(validationId, {
           success: false,
           phase: 'truth_scoring_validation',
           frameworkId: frameworkDefinition.id,
-          truthScoringIssues: truthScoringResult.issues
+          truthScoringIssues: truthScoringResult.issues,
         });
       }
 
       // Phase 4: Framework logic execution testing
       this.updateValidationPhase(validationId, 'logic_execution_testing');
-      const executionResult = await this.performLogicExecutionTesting(frameworkDefinition, validationId);
+      const executionResult = await this.performLogicExecutionTesting(
+        frameworkDefinition,
+        validationId,
+      );
       if (!executionResult.safe) {
         return this.completeValidation(validationId, {
           success: false,
           phase: 'logic_execution_testing',
           frameworkId: frameworkDefinition.id,
-          executionIssues: executionResult.issues
+          executionIssues: executionResult.issues,
         });
       }
 
@@ -218,9 +240,9 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
             schemaResult,
             securityResult,
             truthScoringResult,
-            executionResult
+            executionResult,
           },
-          validationId
+          validationId,
         );
 
         if (!byzantineResult.approved) {
@@ -230,7 +252,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
             frameworkId: frameworkDefinition.id,
             byzantineRejected: true,
             consensus: byzantineResult.consensus,
-            maliciousBehaviorDetected: byzantineResult.maliciousBehaviorDetected
+            maliciousBehaviorDetected: byzantineResult.maliciousBehaviorDetected,
           });
         }
       }
@@ -244,8 +266,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           security: securityResult,
           truthScoring: truthScoringResult,
           execution: executionResult,
-          byzantine: byzantineResult
-        }
+          byzantine: byzantineResult,
+        },
       });
 
       if (!registrationResult.success) {
@@ -253,7 +275,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           success: false,
           phase: 'framework_registration',
           frameworkId: frameworkDefinition.id,
-          registrationError: registrationResult.error
+          registrationError: registrationResult.error,
         });
       }
 
@@ -268,28 +290,32 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           truthScoring: truthScoringResult,
           execution: executionResult,
           byzantine: byzantineResult,
-          registration: registrationResult
+          registration: registrationResult,
         },
         performance: {
           totalTime: performance.now() - startTime,
-          phases: this.getValidationPhaseMetrics(validationId)
-        }
+          phases: this.getValidationPhaseMetrics(validationId),
+        },
       });
 
       this.emit('frameworkValidated', result);
 
-      console.log(`✅ Framework validation completed: ${frameworkDefinition.id} [${validationId}] (${(performance.now() - startTime).toFixed(2)}ms)`);
+      console.log(
+        `✅ Framework validation completed: ${frameworkDefinition.id} [${validationId}] (${(performance.now() - startTime).toFixed(2)}ms)`,
+      );
 
       return result;
-
     } catch (error) {
-      console.error(`❌ Framework validation failed: ${frameworkDefinition.id} [${validationId}]`, error);
+      console.error(
+        `❌ Framework validation failed: ${frameworkDefinition.id} [${validationId}]`,
+        error,
+      );
 
       return this.completeValidation(validationId, {
         success: false,
         frameworkId: frameworkDefinition.id,
         error: error.message,
-        phase: this.state.activeValidations.get(validationId)?.phase || 'unknown'
+        phase: this.state.activeValidations.get(validationId)?.phase || 'unknown',
       });
     }
   }
@@ -320,7 +346,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       const frameworkValidationResult = await this.executeFrameworkValidationRules(
         completion,
         framework,
-        truthScore
+        truthScore,
       );
 
       // Apply quality gates
@@ -328,7 +354,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         completion,
         framework,
         truthScore,
-        frameworkValidationResult
+        frameworkValidationResult,
       );
 
       // Determine final validation result
@@ -336,7 +362,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         truthScore,
         framework,
         frameworkValidationResult,
-        qualityGateResult
+        qualityGateResult,
       );
 
       const result = {
@@ -351,19 +377,18 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         evidence: [
           ...truthScore.evidence,
           ...frameworkValidationResult.evidence,
-          ...qualityGateResult.evidence
+          ...qualityGateResult.evidence,
         ],
         metadata: {
           validatedAt: new Date().toISOString(),
           validatorVersion: '2.0.0',
-          frameworkCompliant: passed
-        }
+          frameworkCompliant: passed,
+        },
       };
 
       this.emit('completionValidated', result);
 
       return result;
-
     } catch (error) {
       return {
         success: false,
@@ -372,8 +397,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         validationFailed: true,
         metadata: {
           validatedAt: new Date().toISOString(),
-          errorType: 'validation_error'
-        }
+          errorType: 'validation_error',
+        },
       };
     }
   }
@@ -387,20 +412,21 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       this.emit('validationPhaseComplete', {
         validationId,
         phase: 'schema_validation',
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       return {
         valid: false,
-        errors: [{
-          type: 'schema_validation_error',
-          message: `Schema validation failed: ${error.message}`
-        }],
+        errors: [
+          {
+            type: 'schema_validation_error',
+            message: `Schema validation failed: ${error.message}`,
+          },
+        ],
         warnings: [],
-        securityIssues: []
+        securityIssues: [],
       };
     }
   }
@@ -424,7 +450,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
               category,
               severity,
               pattern: pattern.toString(),
-              matches: matches.slice(0, 3)
+              matches: matches.slice(0, 3),
             };
 
             violations.push(violation);
@@ -439,8 +465,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       // Validation rules security scanning
       if (framework.validation_rules) {
         const rulesViolations = await this.scanValidationRulesSecurity(framework.validation_rules);
-        violations.push(...rulesViolations.filter(v => v.severity !== 'critical'));
-        criticalIssues.push(...rulesViolations.filter(v => v.severity === 'critical'));
+        violations.push(...rulesViolations.filter((v) => v.severity !== 'critical'));
+        criticalIssues.push(...rulesViolations.filter((v) => v.severity === 'critical'));
       }
 
       // Security configuration validation
@@ -451,26 +477,27 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         secure: criticalIssues.length === 0,
         violations,
         criticalIssues,
-        securityScore: this.calculateSecurityScore(violations)
+        securityScore: this.calculateSecurityScore(violations),
       };
 
       this.emit('validationPhaseComplete', {
         validationId,
         phase: 'security_validation',
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       return {
         secure: false,
-        violations: [{
-          type: 'security_validation_error',
-          severity: 'critical',
-          message: `Security validation failed: ${error.message}`
-        }],
-        criticalIssues: []
+        violations: [
+          {
+            type: 'security_validation_error',
+            severity: 'critical',
+            message: `Security validation failed: ${error.message}`,
+          },
+        ],
+        criticalIssues: [],
       };
     }
   }
@@ -483,8 +510,11 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       if (framework.validation_config.truth_component_weights) {
         const weights = framework.validation_config.truth_component_weights;
         const requiredComponents = [
-          'agent_reliability', 'cross_validation', 'external_verification',
-          'factual_consistency', 'logical_coherence'
+          'agent_reliability',
+          'cross_validation',
+          'external_verification',
+          'factual_consistency',
+          'logical_coherence',
         ];
 
         // Check for invalid weight values
@@ -494,7 +524,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
               type: 'invalid_weight_value',
               component,
               value: weight,
-              message: `Invalid weight value for ${component}: must be number between 0 and 1`
+              message: `Invalid weight value for ${component}: must be number between 0 and 1`,
             });
           }
         }
@@ -505,7 +535,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           issues.push({
             type: 'weight_distribution_warning',
             totalWeight,
-            message: `Truth component weights sum to ${totalWeight.toFixed(3)} instead of 1.0`
+            message: `Truth component weights sum to ${totalWeight.toFixed(3)} instead of 1.0`,
           });
         }
       }
@@ -516,13 +546,13 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         issues.push({
           type: 'threshold_too_low',
           value: threshold,
-          message: `Truth threshold ${threshold} may be too low for reliable validation`
+          message: `Truth threshold ${threshold} may be too low for reliable validation`,
         });
       } else if (threshold > 0.95) {
         issues.push({
           type: 'threshold_too_high',
           value: threshold,
-          message: `Truth threshold ${threshold} may be too restrictive`
+          message: `Truth threshold ${threshold} may be too restrictive`,
         });
       }
 
@@ -533,26 +563,30 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       }
 
       const result = {
-        compatible: issues.filter(i => i.type !== 'weight_distribution_warning' && i.type !== 'threshold_too_low').length === 0,
+        compatible:
+          issues.filter(
+            (i) => i.type !== 'weight_distribution_warning' && i.type !== 'threshold_too_low',
+          ).length === 0,
         issues,
-        integrationTest: testResult
+        integrationTest: testResult,
       };
 
       this.emit('validationPhaseComplete', {
         validationId,
         phase: 'truth_scoring_validation',
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       return {
         compatible: false,
-        issues: [{
-          type: 'truth_scoring_validation_error',
-          message: `Truth scoring validation failed: ${error.message}`
-        }]
+        issues: [
+          {
+            type: 'truth_scoring_validation_error',
+            message: `Truth scoring validation failed: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -576,7 +610,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
               type: 'unsafe_rule_execution',
               ruleIndex: i,
               ruleName: typeof rule === 'object' ? rule.name : `rule_${i}`,
-              issues: ruleTest.issues
+              issues: ruleTest.issues,
             });
           }
         }
@@ -585,24 +619,25 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       const result = {
         safe: issues.length === 0,
         issues,
-        sandboxTested: true
+        sandboxTested: true,
       };
 
       this.emit('validationPhaseComplete', {
         validationId,
         phase: 'logic_execution_testing',
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       return {
         safe: false,
-        issues: [{
-          type: 'logic_execution_testing_error',
-          message: `Logic execution testing failed: ${error.message}`
-        }]
+        issues: [
+          {
+            type: 'logic_execution_testing_error',
+            message: `Logic execution testing failed: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -617,17 +652,17 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           name: framework.name,
           version: framework.version,
           author: framework.metadata?.author,
-          checksum: this.calculateFrameworkChecksum(framework)
+          checksum: this.calculateFrameworkChecksum(framework),
         },
         validationResults: {
           schemaValid: validationResults.schemaResult.valid,
           securityViolations: validationResults.securityResult.violations.length,
           criticalSecurityIssues: validationResults.securityResult.criticalIssues.length,
           truthScoringCompatible: validationResults.truthScoringResult.compatible,
-          logicExecutionSafe: validationResults.executionResult.safe
+          logicExecutionSafe: validationResults.executionResult.safe,
         },
         riskAssessment: this.assessFrameworkRisk(framework, validationResults),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Generate validators based on risk and complexity
@@ -645,35 +680,36 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           consensusReached: consensusResult.achieved,
           consensusRatio: consensusResult.consensusRatio,
           validatorCount: validators.length,
-          approvalCount: consensusResult.votes.filter(v => v.vote).length,
-          rejectionCount: consensusResult.votes.filter(v => !v.vote).length,
-          securityConcerns: consensusResult.votes.filter(v => !v.vote && v.reason?.includes('security')).length
+          approvalCount: consensusResult.votes.filter((v) => v.vote).length,
+          rejectionCount: consensusResult.votes.filter((v) => !v.vote).length,
+          securityConcerns: consensusResult.votes.filter(
+            (v) => !v.vote && v.reason?.includes('security'),
+          ).length,
         },
         maliciousBehaviorDetected: maliciousBehaviorAnalysis.detected,
         evidence: {
           byzantineProof: consensusResult.byzantineProof,
-          validatorVotes: consensusResult.votes.map(v => ({
+          validatorVotes: consensusResult.votes.map((v) => ({
             validatorId: v.validatorId,
             vote: v.vote,
             confidence: v.confidence,
-            reasonCategory: this.categorizeRejectionReason(v.reason)
-          }))
-        }
+            reasonCategory: this.categorizeRejectionReason(v.reason),
+          })),
+        },
       };
 
       this.emit('validationPhaseComplete', {
         validationId,
         phase: 'byzantine_consensus',
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       return {
         approved: false,
         error: error.message,
-        maliciousBehaviorDetected: false
+        maliciousBehaviorDetected: false,
       };
     }
   }
@@ -687,7 +723,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       rulesPassed: 0,
       rulesFailed: 0,
       evidence: [],
-      errors: []
+      errors: [],
     };
 
     if (!framework.validation_rules || framework.validation_rules.length === 0) {
@@ -718,23 +754,22 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           score: ruleResult.score,
           weight: ruleResult.weight,
           executionTime: ruleResult.executionTime,
-          details: ruleResult.details
+          details: ruleResult.details,
         });
 
         if (ruleResult.error) {
           results.errors.push({
             ruleIndex: i,
             ruleName: ruleResult.ruleName,
-            error: ruleResult.error
+            error: ruleResult.error,
           });
         }
       }
-
     } catch (error) {
       results.passed = false;
       results.errors.push({
         type: 'framework_execution_error',
-        message: `Framework validation rules execution failed: ${error.message}`
+        message: `Framework validation rules execution failed: ${error.message}`,
       });
     }
 
@@ -763,9 +798,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         required: rule.required !== false,
         ruleName,
         executionTime: performance.now() - ruleStartTime,
-        details: ruleResult.details
+        details: ruleResult.details,
       };
-
     } catch (error) {
       return {
         passed: false,
@@ -774,7 +808,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         required: rule.required !== false,
         ruleName,
         executionTime: performance.now() - ruleStartTime,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -786,7 +820,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       gatesPassed: 0,
       gatesFailed: 0,
       evidence: [],
-      errors: []
+      errors: [],
     };
 
     if (!framework.quality_gates || framework.quality_gates.length === 0) {
@@ -796,7 +830,12 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     try {
       for (let i = 0; i < framework.quality_gates.length; i++) {
         const gate = framework.quality_gates[i];
-        const gateResult = await this.applyQualityGate(gate, completion, truthScore, frameworkValidation);
+        const gateResult = await this.applyQualityGate(
+          gate,
+          completion,
+          truthScore,
+          frameworkValidation,
+        );
 
         results.gatesApplied++;
 
@@ -817,23 +856,22 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           threshold: gate.threshold,
           actualValue: gateResult.actualValue,
           passed: gateResult.passed,
-          operator: gate.operator || '>='
+          operator: gate.operator || '>=',
         });
 
         if (gateResult.error) {
           results.errors.push({
             gateIndex: i,
             gateName: gate.name,
-            error: gateResult.error
+            error: gateResult.error,
           });
         }
       }
-
     } catch (error) {
       results.passed = false;
       results.errors.push({
         type: 'quality_gates_error',
-        message: `Quality gates application failed: ${error.message}`
+        message: `Quality gates application failed: ${error.message}`,
       });
     }
 
@@ -856,7 +894,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           actualValue = completion.memory_usage || 0;
           break;
         case 'error_rate':
-          actualValue = frameworkValidation.rulesFailed / Math.max(frameworkValidation.rulesExecuted, 1);
+          actualValue =
+            frameworkValidation.rulesFailed / Math.max(frameworkValidation.rulesExecuted, 1);
           break;
         case 'test_coverage':
           actualValue = completion.test_coverage || 0;
@@ -902,14 +941,13 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         passed,
         actualValue,
         threshold: gate.threshold,
-        operator
+        operator,
       };
-
     } catch (error) {
       return {
         passed: false,
         actualValue: null,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -918,7 +956,9 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
 
   ensureInitialized() {
     if (!this.state.initialized) {
-      throw new Error('Enhanced Custom Framework Validator not initialized. Call initialize() first.');
+      throw new Error(
+        'Enhanced Custom Framework Validator not initialized. Call initialize() first.',
+      );
     }
   }
 
@@ -950,8 +990,14 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
   getValidationPhaseMetrics(validationId) {
     // Return phase-specific timing metrics
     return {
-      phases: ['schema_validation', 'security_validation', 'truth_scoring_validation',
-               'logic_execution_testing', 'byzantine_consensus', 'framework_registration']
+      phases: [
+        'schema_validation',
+        'security_validation',
+        'truth_scoring_validation',
+        'logic_execution_testing',
+        'byzantine_consensus',
+        'framework_registration',
+      ],
     };
   }
 
@@ -965,7 +1011,9 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       if (result.success) {
         console.log(`✅ Framework successfully validated and added: ${result.frameworkId}`);
       } else {
-        console.log(`❌ Framework validation failed: ${result.frameworkId} (Phase: ${result.phase})`);
+        console.log(
+          `❌ Framework validation failed: ${result.frameworkId} (Phase: ${result.phase})`,
+        );
       }
     });
   }
@@ -983,7 +1031,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     riskScore += validationResults.securityResult.violations.length * 2;
 
     // Complexity risk assessment
-    if (framework.validation_rules) riskScore += Math.min(framework.validation_rules.length * 0.5, 5);
+    if (framework.validation_rules)
+      riskScore += Math.min(framework.validation_rules.length * 0.5, 5);
     if (framework.quality_gates) riskScore += Math.min(framework.quality_gates.length * 0.3, 3);
     if (framework.extends) riskScore += 2;
     if (framework.composes) riskScore += framework.composes.length * 1.5;
@@ -996,7 +1045,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
 
     return {
       score: Math.min(riskScore, 50),
-      level: riskScore < 5 ? 'low' : riskScore < 15 ? 'medium' : riskScore < 25 ? 'high' : 'critical'
+      level:
+        riskScore < 5 ? 'low' : riskScore < 15 ? 'medium' : riskScore < 25 ? 'high' : 'critical',
     };
   }
 
@@ -1006,7 +1056,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       low: 1,
       medium: 1.2,
       high: 1.5,
-      critical: 2
+      critical: 2,
     };
 
     const validatorCount = Math.ceil(baseValidatorCount * riskMultiplier[riskAssessment.level]);
@@ -1015,13 +1065,13 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       id: `enhanced-validator-${i}`,
       specialization: ['security', 'architecture', 'performance', 'integration'][i % 4],
       reputation: 0.8 + Math.random() * 0.2,
-      riskTolerance: riskAssessment.level === 'critical' ? 'very_low' : 'low'
+      riskTolerance: riskAssessment.level === 'critical' ? 'very_low' : 'low',
     }));
   }
 
   analyzeMaliciousBehavior(consensusResult) {
-    const securityRejections = consensusResult.votes.filter(vote =>
-      !vote.vote && vote.reason?.toLowerCase().includes('security')
+    const securityRejections = consensusResult.votes.filter(
+      (vote) => !vote.vote && vote.reason?.toLowerCase().includes('security'),
     ).length;
 
     const totalVotes = consensusResult.votes.length;
@@ -1029,7 +1079,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     return {
       detected: securityRejections > totalVotes * 0.3,
       securityConcernRatio: securityRejections / totalVotes,
-      indicators: securityRejections
+      indicators: securityRejections,
     };
   }
 
@@ -1061,10 +1111,11 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     }
 
     // Update average validation time
-    const newAvgTime = (
-      (this.state.performanceMetrics.averageValidationTime * (this.state.performanceMetrics.totalValidations - 1)) +
-      (result.totalTime || 0)
-    ) / this.state.performanceMetrics.totalValidations;
+    const newAvgTime =
+      (this.state.performanceMetrics.averageValidationTime *
+        (this.state.performanceMetrics.totalValidations - 1) +
+        (result.totalTime || 0)) /
+      this.state.performanceMetrics.totalValidations;
 
     this.state.performanceMetrics.averageValidationTime = newAvgTime;
   }
@@ -1080,14 +1131,15 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       await testTruthScorer.scoreClaim(mockClaim);
 
       return { compatible: true, issues: [] };
-
     } catch (error) {
       return {
         compatible: false,
-        issues: [{
-          type: 'truth_scorer_integration_error',
-          message: `Truth scorer integration test failed: ${error.message}`
-        }]
+        issues: [
+          {
+            type: 'truth_scorer_integration_error',
+            message: `Truth scorer integration test failed: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -1119,7 +1171,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       status: 'pending',
       confidence: 0.8,
       submittedAt: new Date(),
-      metadata: {}
+      metadata: {},
     };
   }
 
@@ -1136,7 +1188,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         executionTime: completion.execution_time,
         resourceUsage: completion.resource_usage,
         errorRate: completion.error_rate,
-        custom: completion.custom_metrics || {}
+        custom: completion.custom_metrics || {},
       },
       evidence: completion.evidence || [],
       status: 'pending',
@@ -1144,8 +1196,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       submittedAt: new Date(),
       metadata: {
         framework: framework.id,
-        frameworkVersion: framework.version
-      }
+        frameworkVersion: framework.version,
+      },
     };
   }
 
@@ -1182,8 +1234,8 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
           completion: { test: true },
           truthScore: { score: 0.8 },
           Math,
-          console: { log: () => {} } // Mock console
-        }
+          console: { log: () => {} }, // Mock console
+        },
       });
 
       const ruleCode = typeof rule === 'string' ? rule : rule.validator;
@@ -1192,14 +1244,15 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       vm.run(ruleCode);
 
       return { safe: true, issues: [] };
-
     } catch (error) {
       return {
         safe: false,
-        issues: [{
-          type: 'sandbox_execution_error',
-          message: error.message
-        }]
+        issues: [
+          {
+            type: 'sandbox_execution_error',
+            message: error.message,
+          },
+        ],
       };
     }
   }
@@ -1210,7 +1263,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       const context = {
         completion,
         truthScore: truthScore.score,
-        components: truthScore.components
+        components: truthScore.components,
       };
 
       // Very basic evaluation - in production this would be more sophisticated
@@ -1219,12 +1272,11 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
         return {
           passed: truthScore.score > threshold,
           score: truthScore.score > threshold ? 1 : 0,
-          details: { threshold, actualScore: truthScore.score }
+          details: { threshold, actualScore: truthScore.score },
         };
       }
 
       return { passed: true, score: 1, details: { evaluation: 'default_pass' } };
-
     } catch (error) {
       return { passed: false, score: 0, details: { error: error.message } };
     }
@@ -1237,7 +1289,6 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       }
 
       return { passed: true, score: 1, details: { type: 'object_rule_default' } };
-
     } catch (error) {
       return { passed: false, score: 0, details: { error: error.message } };
     }
@@ -1265,17 +1316,27 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
 
     let passed = false;
     switch (operator) {
-      case '>=': passed = value >= threshold; break;
-      case '>': passed = value > threshold; break;
-      case '<=': passed = value <= threshold; break;
-      case '<': passed = value < threshold; break;
-      case '==': passed = value === threshold; break;
+      case '>=':
+        passed = value >= threshold;
+        break;
+      case '>':
+        passed = value > threshold;
+        break;
+      case '<=':
+        passed = value <= threshold;
+        break;
+      case '<':
+        passed = value < threshold;
+        break;
+      case '==':
+        passed = value === threshold;
+        break;
     }
 
     return {
       passed,
       score: passed ? 1 : 0,
-      details: { value, threshold, operator }
+      details: { value, threshold, operator },
     };
   }
 
@@ -1287,7 +1348,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     return {
       passed,
       score: passed ? 1 : 0,
-      details: { value, pattern: config.pattern }
+      details: { value, pattern: config.pattern },
     };
   }
 
@@ -1300,7 +1361,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     return {
       passed,
       score: passed ? 1 : 0,
-      details: { value, min, max }
+      details: { value, min, max },
     };
   }
 
@@ -1311,7 +1372,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
     return {
       passed,
       score: passed ? 1 : 0,
-      details: { exists: passed, field: config.field }
+      details: { exists: passed, field: config.field },
     };
   }
 
@@ -1344,7 +1405,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       systemAccess: 'high',
       fileSystem: 'high',
       networkAccess: 'medium',
-      suspiciousKeywords: 'low'
+      suspiciousKeywords: 'low',
     };
     return severityMap[category] || 'medium';
   }
@@ -1365,7 +1426,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
               ruleIndex: i,
               category,
               severity: this.getSecuritySeverity(category),
-              pattern: pattern.toString()
+              pattern: pattern.toString(),
             });
           }
         }
@@ -1383,7 +1444,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       violations.push({
         type: 'external_calls_enabled',
         severity: 'high',
-        message: 'Framework allows external calls which may pose security risk'
+        message: 'Framework allows external calls which may pose security risk',
       });
     }
 
@@ -1391,7 +1452,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       violations.push({
         type: 'sandbox_disabled',
         severity: 'high',
-        message: 'Framework disables sandbox execution'
+        message: 'Framework disables sandbox execution',
       });
     }
 
@@ -1399,7 +1460,7 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       violations.push({
         type: 'excessive_execution_time',
         severity: 'medium',
-        message: 'Framework allows excessive execution time'
+        message: 'Framework allows excessive execution time',
       });
     }
 
@@ -1411,10 +1472,18 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
 
     for (const violation of violations) {
       switch (violation.severity) {
-        case 'critical': score -= 0.3; break;
-        case 'high': score -= 0.2; break;
-        case 'medium': score -= 0.1; break;
-        case 'low': score -= 0.05; break;
+        case 'critical':
+          score -= 0.3;
+          break;
+        case 'high':
+          score -= 0.2;
+          break;
+        case 'medium':
+          score -= 0.1;
+          break;
+        case 'low':
+          score -= 0.05;
+          break;
       }
     }
 
@@ -1447,7 +1516,6 @@ export class EnhancedCustomFrameworkValidator extends EventEmitter {
       this.emit('shutdown');
 
       console.log('✅ Enhanced Custom Framework Validator shut down');
-
     } catch (error) {
       this.emit('error', error);
       throw error;

@@ -27,7 +27,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
       modified: 0,
       errors: 0,
       avgProcessingTime: 0,
-      throughput: 0
+      throughput: 0,
     };
 
     this.setupProcessingLoop();
@@ -45,7 +45,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
       const preferences = this.preferenceManager.getContextualPreferences({
         agentType: metadata.agentType,
         projectType: metadata.projectType,
-        taskType: metadata.taskType
+        taskType: metadata.taskType,
       });
 
       // Apply content filtering
@@ -54,7 +54,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
         metadata,
         allowed: true,
         modified: false,
-        suggestions: []
+        suggestions: [],
       };
 
       // Document generation filtering
@@ -62,7 +62,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
         const docResult = this.filterHooks.interceptDocumentGeneration(
           metadata.filePath || 'unknown.md',
           content,
-          metadata
+          metadata,
         );
 
         result.allowed = docResult.allowed;
@@ -78,7 +78,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
         const processedMessage = this.filterHooks.processAgentMessage(
           content,
           metadata.agentType,
-          metadata
+          metadata,
         );
 
         if (processedMessage !== content) {
@@ -106,7 +106,6 @@ class RealtimeFilterMiddleware extends EventEmitter {
       }
 
       return result;
-
     } catch (error) {
       this.stats.errors++;
       this.emit('processingError', { error, content, metadata });
@@ -117,7 +116,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
         allowed: false,
         modified: false,
         error: error.message,
-        suggestions: ['Manual review required due to processing error']
+        suggestions: ['Manual review required due to processing error'],
       };
     }
   }
@@ -132,7 +131,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
       buffer: [],
       processing: false,
       stats: { processed: 0, filtered: 0, errors: 0 },
-      preferences: this.preferenceManager.getContextualPreferences(options.context || {})
+      preferences: this.preferenceManager.getContextualPreferences(options.context || {}),
     };
 
     this.activeStreams.set(streamId, stream);
@@ -141,7 +140,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
       write: (chunk) => this.writeToStream(streamId, chunk),
       end: () => this.endStream(streamId),
       on: (event, callback) => this.on(`${streamId}:${event}`, callback),
-      getStats: () => stream.stats
+      getStats: () => stream.stats,
     };
 
     this.emit('streamCreated', { streamId, options });
@@ -160,7 +159,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
 
     stream.buffer.push({
       data: chunk,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // Process buffer if it reaches batch size
@@ -186,9 +185,9 @@ class RealtimeFilterMiddleware extends EventEmitter {
             ...stream.options.context,
             streamId,
             timestamp,
-            isStreaming: true
-          })
-        )
+            isStreaming: true,
+          }),
+        ),
       );
 
       results.forEach((result, index) => {
@@ -200,7 +199,6 @@ class RealtimeFilterMiddleware extends EventEmitter {
       });
 
       this.emit(`${streamId}:batch`, { results, streamId });
-
     } catch (error) {
       stream.stats.errors++;
       this.emit(`${streamId}:error`, error);
@@ -244,8 +242,8 @@ class RealtimeFilterMiddleware extends EventEmitter {
         allowed: 0,
         blocked: 0,
         modified: 0,
-        errors: 0
-      }
+        errors: 0,
+      },
     };
 
     // Process in chunks to respect concurrent limits
@@ -257,7 +255,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
           const itemMetadata = {
             ...metadata,
             batchIndex: index,
-            isBatch: false
+            isBatch: false,
           };
 
           return await this.processContent(item, itemMetadata);
@@ -267,14 +265,14 @@ class RealtimeFilterMiddleware extends EventEmitter {
             metadata: itemMetadata,
             allowed: false,
             modified: false,
-            error: error.message
+            error: error.message,
           };
         }
       });
 
       const chunkResults = await Promise.all(chunkPromises);
 
-      chunkResults.forEach(result => {
+      chunkResults.forEach((result) => {
         if (result.error) {
           batchResults.errors.push(result);
           batchResults.summary.errors++;
@@ -313,7 +311,6 @@ class RealtimeFilterMiddleware extends EventEmitter {
 
       // Cleanup stale streams
       this.cleanupStaleStreams();
-
     }, this.processingInterval);
   }
 
@@ -324,9 +321,12 @@ class RealtimeFilterMiddleware extends EventEmitter {
     if (this.processingQueue.length === 0) return;
 
     const batch = this.processingQueue.splice(0, this.batchSize);
-    const results = await this.processBatch(batch.map(item => item.content), {
-      queueProcessing: true
-    });
+    const results = await this.processBatch(
+      batch.map((item) => item.content),
+      {
+        queueProcessing: true,
+      },
+    );
 
     batch.forEach((item, index) => {
       const result = results.processed[index] || results.blocked[index] || results.errors[index];
@@ -344,7 +344,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
       content,
       metadata: { ...metadata, queued: true },
       callback,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -390,21 +390,23 @@ class RealtimeFilterMiddleware extends EventEmitter {
         this.processContent(content, {
           method: req.method,
           path: req.path,
-          isResponse: true
-        }).then(result => {
-          if (result.allowed) {
-            originalSend.call(res, result.content);
-          } else {
-            res.status(403).json({
-              error: 'Content filtered',
-              reason: result.reason,
-              suggestions: result.suggestions
-            });
-          }
-        }).catch(error => {
-          console.error('Middleware processing error:', error);
-          originalSend.call(res, content);
-        });
+          isResponse: true,
+        })
+          .then((result) => {
+            if (result.allowed) {
+              originalSend.call(res, result.content);
+            } else {
+              res.status(403).json({
+                error: 'Content filtered',
+                reason: result.reason,
+                suggestions: result.suggestions,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error('Middleware processing error:', error);
+            originalSend.call(res, content);
+          });
       };
 
       res.json = (obj) => {
@@ -412,26 +414,28 @@ class RealtimeFilterMiddleware extends EventEmitter {
           method: req.method,
           path: req.path,
           isResponse: true,
-          isJson: true
-        }).then(result => {
-          if (result.allowed) {
-            try {
-              const processedObj = JSON.parse(result.content);
-              originalJson.call(res, processedObj);
-            } catch (e) {
-              originalJson.call(res, obj);
+          isJson: true,
+        })
+          .then((result) => {
+            if (result.allowed) {
+              try {
+                const processedObj = JSON.parse(result.content);
+                originalJson.call(res, processedObj);
+              } catch (e) {
+                originalJson.call(res, obj);
+              }
+            } else {
+              res.status(403).json({
+                error: 'Content filtered',
+                reason: result.reason,
+                suggestions: result.suggestions,
+              });
             }
-          } else {
-            res.status(403).json({
-              error: 'Content filtered',
-              reason: result.reason,
-              suggestions: result.suggestions
-            });
-          }
-        }).catch(error => {
-          console.error('Middleware JSON processing error:', error);
-          originalJson.call(res, obj);
-        });
+          })
+          .catch((error) => {
+            console.error('Middleware JSON processing error:', error);
+            originalJson.call(res, obj);
+          });
       };
 
       next();
@@ -444,7 +448,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
   createWebSocketHandler(ws, metadata = {}) {
     const streamId = `ws_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const processor = this.createStreamProcessor(streamId, {
-      context: { ...metadata, isWebSocket: true }
+      context: { ...metadata, isWebSocket: true },
     });
 
     ws.on('message', async (message) => {
@@ -454,7 +458,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
           ...metadata,
           streamId,
           isWebSocket: true,
-          messageType: 'incoming'
+          messageType: 'incoming',
         });
 
         if (result.allowed) {
@@ -462,17 +466,21 @@ class RealtimeFilterMiddleware extends EventEmitter {
           ws.emit('processedMessage', result);
         } else {
           // Send filter notification
-          ws.send(JSON.stringify({
-            type: 'filterNotification',
-            reason: result.reason,
-            suggestions: result.suggestions
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'filterNotification',
+              reason: result.reason,
+              suggestions: result.suggestions,
+            }),
+          );
         }
       } catch (error) {
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Message processing failed'
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'error',
+            message: 'Message processing failed',
+          }),
+        );
       }
     });
 
@@ -491,22 +499,22 @@ class RealtimeFilterMiddleware extends EventEmitter {
     }
 
     // Heuristic: check if content looks like documentation
-    return content.length > 200 && (
-      content.includes('# ') ||
-      content.includes('## ') ||
-      content.includes('```') ||
-      content.includes('documentation')
+    return (
+      content.length > 200 &&
+      (content.includes('# ') ||
+        content.includes('## ') ||
+        content.includes('```') ||
+        content.includes('documentation'))
     );
   }
 
   isMessageContent(content, metadata) {
-    return metadata.isMessage ||
-           (!metadata.filePath && content.length < 1000);
+    return metadata.isMessage || (!metadata.filePath && content.length < 1000);
   }
 
   shouldProcessRequest(req) {
     const processablePaths = ['/api/documents', '/api/generate', '/api/content'];
-    return processablePaths.some(path => req.path.startsWith(path));
+    return processablePaths.some((path) => req.path.startsWith(path));
   }
 
   chunkArray(array, chunkSize) {
@@ -525,10 +533,9 @@ class RealtimeFilterMiddleware extends EventEmitter {
     if (result.modified) this.stats.modified++;
 
     // Update average processing time
-    this.stats.avgProcessingTime = (
+    this.stats.avgProcessingTime =
       (this.stats.avgProcessingTime * (this.stats.processed - 1) + processingTime) /
-      this.stats.processed
-    );
+      this.stats.processed;
   }
 
   updateStreamStats(streamId, statType) {
@@ -547,7 +554,8 @@ class RealtimeFilterMiddleware extends EventEmitter {
     }
 
     const timeDiff = now - this.lastThroughputUpdate;
-    if (timeDiff >= 1000) { // Update every second
+    if (timeDiff >= 1000) {
+      // Update every second
       const processedDiff = this.stats.processed - this.lastProcessedCount;
       this.stats.throughput = (processedDiff / timeDiff) * 1000; // per second
 
@@ -562,8 +570,8 @@ class RealtimeFilterMiddleware extends EventEmitter {
 
     for (const [streamId, stream] of this.activeStreams.entries()) {
       const lastActivity = Math.max(
-        ...stream.buffer.map(item => item.timestamp),
-        now - staleThreshold
+        ...stream.buffer.map((item) => item.timestamp),
+        now - staleThreshold,
       );
 
       if (now - lastActivity > staleThreshold && stream.buffer.length === 0) {
@@ -580,7 +588,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
       ...this.stats,
       activeStreams: this.activeStreams.size,
       queueLength: this.processingQueue.length,
-      uptime: Date.now() - (this.startTime || Date.now())
+      uptime: Date.now() - (this.startTime || Date.now()),
     };
   }
 
@@ -594,7 +602,7 @@ class RealtimeFilterMiddleware extends EventEmitter {
       modified: 0,
       errors: 0,
       avgProcessingTime: 0,
-      throughput: 0
+      throughput: 0,
     };
     this.startTime = Date.now();
   }

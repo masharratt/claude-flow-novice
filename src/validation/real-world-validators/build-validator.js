@@ -21,14 +21,21 @@ export class BuildValidator {
     this.options = {
       timeout: options.timeout || 600000, // 10 minutes
       enableByzantineValidation: options.enableByzantineValidation !== false,
-      buildSystems: options.buildSystems || ['npm', 'webpack', 'typescript', 'maven', 'gradle', 'cargo'],
+      buildSystems: options.buildSystems || [
+        'npm',
+        'webpack',
+        'typescript',
+        'maven',
+        'gradle',
+        'cargo',
+      ],
       buildArtifactValidation: options.buildArtifactValidation !== false,
       performanceThresholds: options.performanceThresholds || {
         buildTime: 300000, // 5 minutes
         bundleSize: 5 * 1024 * 1024, // 5MB
-        memoryUsage: 1024 * 1024 * 1024 // 1GB
+        memoryUsage: 1024 * 1024 * 1024, // 1GB
       },
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -57,7 +64,11 @@ export class BuildValidator {
       const buildEnvironment = await this.prepareBuildEnvironment(projectPath, buildConfig);
 
       // Execute builds for all detected systems
-      const buildResults = await this.executeBuildSystems(projectPath, detectedSystems, buildConfig);
+      const buildResults = await this.executeBuildSystems(
+        projectPath,
+        detectedSystems,
+        buildConfig,
+      );
 
       // Validate build artifacts
       const artifactValidation = await this.validateBuildArtifacts(projectPath, buildResults);
@@ -72,7 +83,7 @@ export class BuildValidator {
         artifactValidation,
         performanceMetrics,
         detectedSystems,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof
@@ -82,7 +93,7 @@ export class BuildValidator {
         artifactValidation,
         performanceMetrics,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -92,47 +103,48 @@ export class BuildValidator {
         buildEnvironment,
         buildSystems: {
           detected: detectedSystems,
-          executed: buildResults.map(r => r.system),
-          successful: buildResults.filter(r => r.success).map(r => r.system),
-          failed: buildResults.filter(r => !r.success).map(r => r.system)
+          executed: buildResults.map((r) => r.system),
+          successful: buildResults.filter((r) => r.success).map((r) => r.system),
+          failed: buildResults.filter((r) => !r.success).map((r) => r.system),
         },
         buildResults: {
           totalBuilds: buildResults.length,
-          successfulBuilds: buildResults.filter(r => r.success).length,
-          failedBuilds: buildResults.filter(r => !r.success).length,
-          overallSuccess: buildResults.every(r => r.success),
-          builds: buildResults
+          successfulBuilds: buildResults.filter((r) => r.success).length,
+          failedBuilds: buildResults.filter((r) => !r.success).length,
+          overallSuccess: buildResults.every((r) => r.success),
+          builds: buildResults,
         },
         artifacts: {
           validated: artifactValidation.validatedCount,
           total: artifactValidation.totalCount,
           integrity: artifactValidation.integrityPassed,
-          details: artifactValidation.details
+          details: artifactValidation.details,
         },
         performance: {
           totalBuildTime: performanceMetrics.totalBuildTime,
           averageBuildTime: performanceMetrics.averageBuildTime,
           maxMemoryUsage: performanceMetrics.maxMemoryUsage,
           totalArtifactSize: performanceMetrics.totalArtifactSize,
-          meetsThresholds: this.evaluatePerformanceThresholds(performanceMetrics)
+          meetsThresholds: this.evaluatePerformanceThresholds(performanceMetrics),
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         executionTime: performance.now() - startTime,
-        errors: this.extractBuildErrors(buildResults)
+        errors: this.extractBuildErrors(buildResults),
       };
 
       // Store build history
       this.buildHistory.set(validationId, result);
 
-      console.log(`✅ Build validation completed [${validationId}]: ${result.buildResults.successfulBuilds}/${result.buildResults.totalBuilds} successful`);
+      console.log(
+        `✅ Build validation completed [${validationId}]: ${result.buildResults.successfulBuilds}/${result.buildResults.totalBuilds} successful`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -140,7 +152,7 @@ export class BuildValidator {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.buildHistory.set(validationId, errorResult);
@@ -164,7 +176,7 @@ export class BuildValidator {
       cargo: ['Cargo.toml'],
       go: ['go.mod'],
       dotnet: ['*.csproj', '*.sln'],
-      python: ['setup.py', 'pyproject.toml']
+      python: ['setup.py', 'pyproject.toml'],
     };
 
     for (const [system, indicators] of Object.entries(buildSystemIndicators)) {
@@ -193,10 +205,10 @@ export class BuildValidator {
   async analyzeBuildSystem(projectPath, system, configFiles) {
     const systemInfo = {
       system,
-      configFiles: configFiles.map(file => path.relative(projectPath, file)),
+      configFiles: configFiles.map((file) => path.relative(projectPath, file)),
       buildCommands: [],
       artifacts: [],
-      dependencies: []
+      dependencies: [],
     };
 
     try {
@@ -252,7 +264,7 @@ export class BuildValidator {
     // Extract dependencies
     systemInfo.dependencies = {
       production: Object.keys(packageJson.dependencies || {}),
-      development: Object.keys(packageJson.devDependencies || {})
+      development: Object.keys(packageJson.devDependencies || {}),
     };
 
     // Predict build artifacts
@@ -267,8 +279,8 @@ export class BuildValidator {
 
     try {
       // Try to read webpack config for output paths
-      const webpackConfigPath = systemInfo.configFiles.find(file =>
-        file.includes('webpack.config')
+      const webpackConfigPath = systemInfo.configFiles.find((file) =>
+        file.includes('webpack.config'),
       );
 
       if (webpackConfigPath) {
@@ -379,7 +391,6 @@ export class BuildValidator {
         const deps = depsSection.match(/^\s*\w+\s*=/gm);
         systemInfo.dependencyCount = deps ? deps.length : 0;
       }
-
     } catch (error) {
       console.warn('Could not analyze Cargo.toml:', error.message);
       systemInfo.analysisError = error.message;
@@ -395,7 +406,7 @@ export class BuildValidator {
       cargo: 'cargo build',
       go: 'go build',
       dotnet: 'dotnet build',
-      python: 'python setup.py build'
+      python: 'python setup.py build',
     };
 
     return defaultCommands[system] || 'build';
@@ -410,7 +421,7 @@ export class BuildValidator {
       nodeVersion: null,
       javaVersion: null,
       pythonVersion: null,
-      environmentVariables: { ...process.env, ...buildConfig.env }
+      environmentVariables: { ...process.env, ...buildConfig.env },
     };
 
     try {
@@ -470,27 +481,26 @@ export class BuildValidator {
             projectPath,
             buildCommand,
             systemInfo,
-            buildConfig
+            buildConfig,
           );
 
           buildResults.push({
             system: systemInfo.system,
             command: buildCommand,
-            ...buildResult
+            ...buildResult,
           });
 
           // If build failed and it's a critical command, stop
           if (!buildResult.success && this.isCriticalBuildCommand(buildCommand)) {
             console.warn(`Critical build failed for ${systemInfo.system}: ${buildCommand}`);
           }
-
         } catch (error) {
           buildResults.push({
             system: systemInfo.system,
             command: buildCommand,
             success: false,
             error: error.message,
-            duration: 0
+            duration: 0,
           });
         }
       }
@@ -506,35 +516,39 @@ export class BuildValidator {
     const buildStartTime = performance.now();
 
     return new Promise((resolve) => {
-      const buildProcess = exec(command, {
-        cwd: projectPath,
-        timeout: this.options.timeout,
-        maxBuffer: 50 * 1024 * 1024, // 50MB buffer
-        env: {
-          ...process.env,
-          NODE_ENV: 'production',
-          CI: 'true',
-          ...(buildConfig.env || {})
-        }
-      }, (error, stdout, stderr) => {
-        const duration = performance.now() - buildStartTime;
-        const success = !error || error.code === 0;
+      const buildProcess = exec(
+        command,
+        {
+          cwd: projectPath,
+          timeout: this.options.timeout,
+          maxBuffer: 50 * 1024 * 1024, // 50MB buffer
+          env: {
+            ...process.env,
+            NODE_ENV: 'production',
+            CI: 'true',
+            ...(buildConfig.env || {}),
+          },
+        },
+        (error, stdout, stderr) => {
+          const duration = performance.now() - buildStartTime;
+          const success = !error || error.code === 0;
 
-        const result = {
-          success,
-          exitCode: error?.code || 0,
-          duration,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          memoryUsage: this.extractMemoryUsage(stdout, stderr),
-          timestamp: Date.now()
-        };
+          const result = {
+            success,
+            exitCode: error?.code || 0,
+            duration,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            memoryUsage: this.extractMemoryUsage(stdout, stderr),
+            timestamp: Date.now(),
+          };
 
-        // Parse build-specific output
-        result.buildMetrics = this.parseBuildOutput(command, systemInfo.system, stdout, stderr);
+          // Parse build-specific output
+          result.buildMetrics = this.parseBuildOutput(command, systemInfo.system, stdout, stderr);
 
-        resolve(result);
-      });
+          resolve(result);
+        },
+      );
 
       // Monitor memory usage during build
       this.monitorBuildProcess(buildProcess);
@@ -568,11 +582,7 @@ export class BuildValidator {
     const output = stdout + stderr;
 
     // Look for memory usage indicators in output
-    const memoryPatterns = [
-      /memory.*?(\d+)MB/i,
-      /heap.*?(\d+)MB/i,
-      /used.*?(\d+)MB/i
-    ];
+    const memoryPatterns = [/memory.*?(\d+)MB/i, /heap.*?(\d+)MB/i, /used.*?(\d+)MB/i];
 
     for (const pattern of memoryPatterns) {
       const match = output.match(pattern);
@@ -594,7 +604,7 @@ export class BuildValidator {
       warnings: 0,
       errors: 0,
       bundleSize: 0,
-      optimizations: []
+      optimizations: [],
     };
 
     const output = stdout + stderr;
@@ -690,14 +700,14 @@ export class BuildValidator {
       validatedCount: 0,
       totalCount: 0,
       integrityPassed: true,
-      details: []
+      details: [],
     };
 
     // Collect expected artifacts from all build systems
     const expectedArtifacts = new Set();
     for (const build of buildResults) {
       if (build.success && build.systemInfo?.artifacts) {
-        build.systemInfo.artifacts.forEach(artifact => expectedArtifacts.add(artifact));
+        build.systemInfo.artifacts.forEach((artifact) => expectedArtifacts.add(artifact));
       }
     }
 
@@ -720,13 +730,12 @@ export class BuildValidator {
             validation.integrityPassed = false;
           }
         }
-
       } catch (error) {
         validation.details.push({
           path: artifactPattern,
           valid: false,
           error: error.message,
-          type: 'pattern'
+          type: 'pattern',
         });
         validation.totalCount++;
         validation.integrityPassed = false;
@@ -748,7 +757,7 @@ export class BuildValidator {
         size: stats.size,
         modified: stats.mtime,
         type: stats.isDirectory() ? 'directory' : 'file',
-        checks: []
+        checks: [],
       };
 
       // File-specific validations
@@ -783,13 +792,12 @@ export class BuildValidator {
       }
 
       return validation;
-
     } catch (error) {
       return {
         path: artifactPath,
         valid: false,
         error: error.message,
-        checks: ['access_failed']
+        checks: ['access_failed'],
       };
     }
   }
@@ -813,9 +821,8 @@ export class BuildValidator {
         type: 'javascript_validation',
         result: 'valid',
         minified: isMinified,
-        size: content.length
+        size: content.length,
       };
-
     } catch (error) {
       return { type: 'javascript_validation', result: 'validation_error', error: error.message };
     }
@@ -835,9 +842,8 @@ export class BuildValidator {
 
       return {
         type: 'java_validation',
-        result: isValidArchive ? 'valid' : 'invalid_signature'
+        result: isValidArchive ? 'valid' : 'invalid_signature',
       };
-
     } catch (error) {
       return { type: 'java_validation', result: 'validation_error', error: error.message };
     }
@@ -856,7 +862,7 @@ export class BuildValidator {
         return {
           type: 'rust_library',
           result: stats.size > 0 ? 'valid' : 'empty',
-          size: stats.size
+          size: stats.size,
         };
       } else if (filePath.includes('target/debug/') || filePath.includes('target/release/')) {
         // Rust executable
@@ -874,8 +880,10 @@ export class BuildValidator {
           isValidExecutable = true;
         }
         // Mach-O signature (macOS)
-        else if ((buffer[0] === 0xfe && buffer[1] === 0xed && buffer[2] === 0xfa && buffer[3] === 0xce) ||
-                 (buffer[0] === 0xcf && buffer[1] === 0xfa && buffer[2] === 0xed && buffer[3] === 0xfe)) {
+        else if (
+          (buffer[0] === 0xfe && buffer[1] === 0xed && buffer[2] === 0xfa && buffer[3] === 0xce) ||
+          (buffer[0] === 0xcf && buffer[1] === 0xfa && buffer[2] === 0xed && buffer[3] === 0xfe)
+        ) {
           isValidExecutable = true;
         }
 
@@ -883,22 +891,21 @@ export class BuildValidator {
           type: 'rust_executable',
           result: isValidExecutable ? 'valid' : 'invalid_signature',
           size: stats.size,
-          executable: true
+          executable: true,
         };
       } else {
         // Generic Rust artifact
         return {
           type: 'rust_artifact',
           result: stats.size > 0 ? 'valid' : 'empty',
-          size: stats.size
+          size: stats.size,
         };
       }
-
     } catch (error) {
       return {
         type: 'rust_validation',
         result: 'validation_error',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -924,15 +931,15 @@ export class BuildValidator {
       averageBuildTime: 0,
       maxMemoryUsage: 0,
       totalArtifactSize: 0,
-      buildSpeeds: []
+      buildSpeeds: [],
     };
 
-    const successfulBuilds = buildResults.filter(r => r.success);
+    const successfulBuilds = buildResults.filter((r) => r.success);
 
     if (successfulBuilds.length > 0) {
       metrics.totalBuildTime = successfulBuilds.reduce((sum, build) => sum + build.duration, 0);
       metrics.averageBuildTime = metrics.totalBuildTime / successfulBuilds.length;
-      metrics.maxMemoryUsage = Math.max(...successfulBuilds.map(build => build.memoryUsage || 0));
+      metrics.maxMemoryUsage = Math.max(...successfulBuilds.map((build) => build.memoryUsage || 0));
 
       // Calculate build speeds
       for (const build of successfulBuilds) {
@@ -940,7 +947,7 @@ export class BuildValidator {
         if (bundleSize > 0 && build.duration > 0) {
           metrics.buildSpeeds.push({
             system: build.system,
-            bytesPerSecond: bundleSize / (build.duration / 1000)
+            bytesPerSecond: bundleSize / (build.duration / 1000),
           });
         }
       }
@@ -958,10 +965,9 @@ export class BuildValidator {
     return {
       buildTime: performanceMetrics.totalBuildTime <= thresholds.buildTime,
       memoryUsage: performanceMetrics.maxMemoryUsage <= thresholds.memoryUsage,
-      overallPerformance: (
+      overallPerformance:
         performanceMetrics.totalBuildTime <= thresholds.buildTime &&
-        performanceMetrics.maxMemoryUsage <= thresholds.memoryUsage
-      )
+        performanceMetrics.maxMemoryUsage <= thresholds.memoryUsage,
     };
   }
 
@@ -979,23 +985,23 @@ export class BuildValidator {
       const proposal = {
         type: 'build_process_validation',
         validationId: validationData.validationId,
-        buildSystems: validationData.detectedSystems.map(s => s.system),
+        buildSystems: validationData.detectedSystems.map((s) => s.system),
         buildResults: {
-          successful: validationData.buildResults.filter(r => r.success).length,
-          failed: validationData.buildResults.filter(r => !r.success).length,
-          total: validationData.buildResults.length
+          successful: validationData.buildResults.filter((r) => r.success).length,
+          failed: validationData.buildResults.filter((r) => !r.success).length,
+          total: validationData.buildResults.length,
         },
         artifacts: {
           validated: validationData.artifactValidation.validatedCount,
           total: validationData.artifactValidation.totalCount,
-          integrity: validationData.artifactValidation.integrityPassed
+          integrity: validationData.artifactValidation.integrityPassed,
         },
         performance: {
           buildTime: validationData.performanceMetrics.totalBuildTime,
-          memoryUsage: validationData.performanceMetrics.maxMemoryUsage
+          memoryUsage: validationData.performanceMetrics.maxMemoryUsage,
         },
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -1007,15 +1013,14 @@ export class BuildValidator {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -1025,15 +1030,22 @@ export class BuildValidator {
    */
   generateBuildValidators(validationData) {
     const baseValidatorCount = 6;
-    const failureMultiplier = validationData.buildResults.some(r => !r.success) ? 1.5 : 1;
+    const failureMultiplier = validationData.buildResults.some((r) => !r.success) ? 1.5 : 1;
 
     const validatorCount = Math.ceil(baseValidatorCount * failureMultiplier);
 
     return Array.from({ length: validatorCount }, (_, i) => ({
       id: `build-validator-${i}`,
-      specialization: ['build_execution', 'artifact_validation', 'performance_analysis', 'dependency_verification', 'security_scanning', 'integrity_checking'][i % 6],
-      reputation: 0.85 + (Math.random() * 0.15),
-      riskTolerance: validationData.buildResults.every(r => r.success) ? 'medium' : 'low'
+      specialization: [
+        'build_execution',
+        'artifact_validation',
+        'performance_analysis',
+        'dependency_verification',
+        'security_scanning',
+        'integrity_checking',
+      ][i % 6],
+      reputation: 0.85 + Math.random() * 0.15,
+      riskTolerance: validationData.buildResults.every((r) => r.success) ? 'medium' : 'low',
     }));
   }
 
@@ -1045,16 +1057,16 @@ export class BuildValidator {
 
   generateExecutionHash(validationData) {
     const hashData = JSON.stringify({
-      buildResults: validationData.buildResults.map(r => ({
+      buildResults: validationData.buildResults.map((r) => ({
         system: r.system,
         success: r.success,
-        duration: r.duration
+        duration: r.duration,
       })),
       artifactValidation: {
         validatedCount: validationData.artifactValidation.validatedCount,
-        integrityPassed: validationData.artifactValidation.integrityPassed
+        integrityPassed: validationData.artifactValidation.integrityPassed,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -1066,7 +1078,7 @@ export class BuildValidator {
       buildResults: data.buildResults,
       artifactValidation: data.artifactValidation,
       performanceMetrics: data.performanceMetrics,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -1077,7 +1089,7 @@ export class BuildValidator {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'build-validator',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -1087,10 +1099,10 @@ export class BuildValidator {
       'webpack --mode=production',
       'mvn package',
       './gradlew build',
-      'dotnet build'
+      'dotnet build',
     ];
 
-    return criticalCommands.some(critical => command.includes(critical));
+    return criticalCommands.some((critical) => command.includes(critical));
   }
 
   extractBuildErrors(buildResults) {
@@ -1102,7 +1114,7 @@ export class BuildValidator {
           system: build.system,
           command: build.command,
           error: build.error || 'Build failed',
-          stderr: build.stderr
+          stderr: build.stderr,
         });
       }
     }
@@ -1111,9 +1123,8 @@ export class BuildValidator {
   }
 
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -1123,7 +1134,7 @@ export class BuildValidator {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -1146,15 +1157,16 @@ export class BuildValidator {
 
     if (totalBuilds === 0) return { rate: 0, sample: 0 };
 
-    const falseCompletions = builds.filter(build =>
-      build.buildResults?.overallSuccess &&
-      (!build.artifacts?.integrity || !build.performance?.meetsThresholds?.overallPerformance)
+    const falseCompletions = builds.filter(
+      (build) =>
+        build.buildResults?.overallSuccess &&
+        (!build.artifacts?.integrity || !build.performance?.meetsThresholds?.overallPerformance),
     );
 
     return {
       rate: falseCompletions.length / totalBuilds,
       sample: totalBuilds,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

@@ -31,7 +31,7 @@ export default {
       }
     }],
     '^.+\\.js$': ['babel-jest', {
-      presets: [['@babel/preset-env', { modules: false }]]
+      configFile: '<rootDir>/config/build/babel.config.cjs'
     }]
   },
   moduleNameMapper: {
@@ -60,7 +60,7 @@ export default {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
+  setupFilesAfterEnv: ['./jest.setup.cjs'],
   testTimeout: 30000,
   verbose: true,
   // Enhanced error handling

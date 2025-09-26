@@ -58,7 +58,7 @@ export class RolloutController extends EventEmitter {
    * Create Phase 4 specific rollout plan: 10% Week 5 → 25% Week 6
    */
   async createPhase4RolloutPlan(flagName: string): Promise<RolloutPlan> {
-    const flag = this.flagManager.getAllFlags().find(f => f.name === flagName);
+    const flag = this.flagManager.getAllFlags().find((f) => f.name === flagName);
     if (!flag) {
       throw new Error(`Flag ${flagName} not found`);
     }
@@ -77,8 +77,8 @@ export class RolloutController extends EventEmitter {
           conditions: {
             minActiveTime: 12 * 60 * 60 * 1000, // 12 hours
             maxErrorRate: 0.005,
-            minSuccessRate: 0.98
-          }
+            minSuccessRate: 0.98,
+          },
         },
         {
           stageNumber: 2,
@@ -90,8 +90,8 @@ export class RolloutController extends EventEmitter {
           conditions: {
             minActiveTime: 24 * 60 * 60 * 1000, // 24 hours
             maxErrorRate: 0.01,
-            minSuccessRate: 0.95
-          }
+            minSuccessRate: 0.95,
+          },
         },
         {
           stageNumber: 3,
@@ -103,13 +103,13 @@ export class RolloutController extends EventEmitter {
           conditions: {
             minActiveTime: 48 * 60 * 60 * 1000, // 48 hours
             maxErrorRate: 0.01,
-            minSuccessRate: 0.95
-          }
-        }
+            minSuccessRate: 0.95,
+          },
+        },
       ],
       currentStage: 0,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     this.activePlans.set(plan.id, plan);
@@ -158,7 +158,7 @@ export class RolloutController extends EventEmitter {
       this.emit('stage_started', {
         planId,
         stage: stage.stageNumber,
-        targetPercentage: stage.targetPercentage
+        targetPercentage: stage.targetPercentage,
       });
 
       // Set timer for stage evaluation
@@ -169,9 +169,11 @@ export class RolloutController extends EventEmitter {
       this.rolloutTimers.set(`${planId}-stage-${stage.stageNumber}`, timer);
 
       await this.savePlans();
-
     } catch (error) {
-      await this.failRollout(planId, `Failed to progress to stage ${stage.stageNumber}: ${error.message}`);
+      await this.failRollout(
+        planId,
+        `Failed to progress to stage ${stage.stageNumber}: ${error.message}`,
+      );
     }
   }
 
@@ -194,12 +196,18 @@ export class RolloutController extends EventEmitter {
 
     // Check failure conditions
     if (flagMetric.errorRate > stage.conditions.maxErrorRate) {
-      await this.rollbackRollout(planId, `Error rate ${flagMetric.errorRate} exceeded threshold ${stage.conditions.maxErrorRate}`);
+      await this.rollbackRollout(
+        planId,
+        `Error rate ${flagMetric.errorRate} exceeded threshold ${stage.conditions.maxErrorRate}`,
+      );
       return;
     }
 
     if (flagMetric.successRate < stage.conditions.minSuccessRate) {
-      await this.rollbackRollout(planId, `Success rate ${flagMetric.successRate} below threshold ${stage.conditions.minSuccessRate}`);
+      await this.rollbackRollout(
+        planId,
+        `Success rate ${flagMetric.successRate} below threshold ${stage.conditions.minSuccessRate}`,
+      );
       return;
     }
 
@@ -214,7 +222,7 @@ export class RolloutController extends EventEmitter {
       this.emit('stage_completed', {
         planId,
         completedStage: stage.stageNumber,
-        metrics: flagMetric
+        metrics: flagMetric,
       });
 
       if (stage.autoProgress) {
@@ -222,7 +230,7 @@ export class RolloutController extends EventEmitter {
       } else {
         this.emit('manual_approval_required', {
           planId,
-          nextStage: plan.stages[plan.currentStage]
+          nextStage: plan.stages[plan.currentStage],
         });
       }
     } else {
@@ -253,7 +261,7 @@ export class RolloutController extends EventEmitter {
 
     this.emit('stage_approved', {
       planId,
-      approvedStage: plan.currentStage
+      approvedStage: plan.currentStage,
     });
   }
 
@@ -281,7 +289,7 @@ export class RolloutController extends EventEmitter {
     this.emit('rollout_rolled_back', {
       planId,
       reason,
-      stage: plan.currentStage
+      stage: plan.currentStage,
     });
   }
 
@@ -317,7 +325,7 @@ export class RolloutController extends EventEmitter {
 
     this.emit('rollout_failed', {
       planId,
-      reason
+      reason,
     });
   }
 
@@ -333,8 +341,9 @@ export class RolloutController extends EventEmitter {
   private setupMonitoringListeners(): void {
     this.monitor.on('critical_alert', async (alert) => {
       if (alert.flagName) {
-        const activePlans = Array.from(this.activePlans.values())
-          .filter(plan => plan.flagName === alert.flagName && plan.status === 'active');
+        const activePlans = Array.from(this.activePlans.values()).filter(
+          (plan) => plan.flagName === alert.flagName && plan.status === 'active',
+        );
 
         for (const plan of activePlans) {
           await this.rollbackRollout(plan.id, `Critical alert: ${alert.message}`);
@@ -344,8 +353,9 @@ export class RolloutController extends EventEmitter {
   }
 
   private async resumeActivePlans(): Promise<void> {
-    const activePlans = Array.from(this.activePlans.values())
-      .filter(plan => plan.status === 'active');
+    const activePlans = Array.from(this.activePlans.values()).filter(
+      (plan) => plan.status === 'active',
+    );
 
     for (const plan of activePlans) {
       // Resume monitoring for active plans
@@ -383,8 +393,7 @@ export class RolloutController extends EventEmitter {
    * Get all active rollouts
    */
   getActiveRollouts(): RolloutPlan[] {
-    return Array.from(this.activePlans.values())
-      .filter(plan => plan.status === 'active');
+    return Array.from(this.activePlans.values()).filter((plan) => plan.status === 'active');
   }
 
   /**
@@ -394,7 +403,7 @@ export class RolloutController extends EventEmitter {
     const plans = Array.from(this.activePlans.values());
 
     if (flagName) {
-      return plans.filter(plan => plan.flagName === flagName);
+      return plans.filter((plan) => plan.flagName === flagName);
     }
 
     return plans;

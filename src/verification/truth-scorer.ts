@@ -35,7 +35,7 @@ export class TruthScorer {
   constructor(options: TruthScorerOptions = {}) {
     this.logger = options.logger || logger.child({ component: 'TruthScorer' });
     this.config = this.mergeConfig(options.config);
-    
+
     this.logger.info('TruthScorer initialized', {
       threshold: this.config.threshold,
       checks: this.config.checks,
@@ -66,11 +66,21 @@ export class TruthScorer {
       }
 
       if (this.config.checks.crossAgentValidation && context?.peers) {
-        components.crossValidation = await this.calculateCrossValidation(claim, context.peers, evidence, errors);
+        components.crossValidation = await this.calculateCrossValidation(
+          claim,
+          context.peers,
+          evidence,
+          errors,
+        );
       }
 
       if (this.config.checks.externalValidation && context?.externalSources) {
-        components.externalVerification = await this.calculateExternalVerification(claim, context.externalSources, evidence, errors);
+        components.externalVerification = await this.calculateExternalVerification(
+          claim,
+          context.externalSources,
+          evidence,
+          errors,
+        );
       }
 
       if (this.config.checks.logicalValidation) {
@@ -78,7 +88,11 @@ export class TruthScorer {
       }
 
       if (this.config.checks.statisticalValidation) {
-        components.factualConsistency = await this.calculateFactualConsistency(claim, evidence, errors);
+        components.factualConsistency = await this.calculateFactualConsistency(
+          claim,
+          evidence,
+          errors,
+        );
       }
 
       // Calculate overall score using weighted average
@@ -125,7 +139,7 @@ export class TruthScorer {
       throw new AppError(
         `Truth score calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'TRUTH_SCORE_CALCULATION_FAILED',
-        500
+        500,
       );
     }
   }
@@ -148,7 +162,7 @@ export class TruthScorer {
    */
   updateAgentHistory(agentId: AgentId, performance: AgentPerformanceRecord): void {
     const agentKey = typeof agentId === 'string' ? agentId : agentId.id;
-    
+
     if (!this.agentHistory.has(agentKey)) {
       this.agentHistory.set(agentKey, {
         agentId: agentKey,
@@ -186,7 +200,7 @@ export class TruthScorer {
   getAgentReliability(agentId: AgentId): number {
     const agentKey = typeof agentId === 'string' ? agentId : agentId.id;
     const history = this.agentHistory.get(agentKey);
-    
+
     if (!history || history.records.length === 0) {
       return 0.5; // Default neutral score for unknown agents
     }
@@ -236,7 +250,7 @@ export class TruthScorer {
   private async calculateAgentReliability(
     claim: AgentClaim,
     evidence: TruthEvidence[],
-    errors: VerificationError[]
+    errors: VerificationError[],
   ): Promise<number> {
     try {
       const agentKey = typeof claim.agentId === 'string' ? claim.agentId : claim.agentId.id;
@@ -257,11 +271,12 @@ export class TruthScorer {
 
       // Calculate reliability based on recent performance
       const recentRecords = history.records.slice(-10); // Last 10 records
-      const avgScore = recentRecords.reduce((sum, record) => sum + record.score, 0) / recentRecords.length;
-      const consistency = 1 - this.calculateVariance(recentRecords.map(r => r.score));
+      const avgScore =
+        recentRecords.reduce((sum, record) => sum + record.score, 0) / recentRecords.length;
+      const consistency = 1 - this.calculateVariance(recentRecords.map((r) => r.score));
       const trendFactor = this.calculateTrendFactor(recentRecords);
 
-      const reliability = (avgScore * 0.6) + (consistency * 0.3) + (trendFactor * 0.1);
+      const reliability = avgScore * 0.6 + consistency * 0.3 + trendFactor * 0.1;
 
       evidence.push({
         type: 'agent_history',
@@ -295,7 +310,7 @@ export class TruthScorer {
     claim: AgentClaim,
     peers: AgentState[],
     evidence: TruthEvidence[],
-    errors: VerificationError[]
+    errors: VerificationError[],
   ): Promise<number> {
     try {
       if (peers.length === 0) {
@@ -313,9 +328,10 @@ export class TruthScorer {
       // Simulate cross-validation with peer agents
       // In a real implementation, this would involve querying other agents
       const validationScores: number[] = [];
-      const reliablePeers = peers.filter(peer => this.getAgentReliability(peer.id) > 0.7);
+      const reliablePeers = peers.filter((peer) => this.getAgentReliability(peer.id) > 0.7);
 
-      for (const peer of reliablePeers.slice(0, 5)) { // Limit to 5 peers
+      for (const peer of reliablePeers.slice(0, 5)) {
+        // Limit to 5 peers
         const peerReliability = this.getAgentReliability(peer.id);
         const validationScore = this.simulatePeerValidation(claim, peer);
         validationScores.push(validationScore * peerReliability);
@@ -333,9 +349,10 @@ export class TruthScorer {
         return 0.5;
       }
 
-      const avgValidation = validationScores.reduce((sum, score) => sum + score, 0) / validationScores.length;
+      const avgValidation =
+        validationScores.reduce((sum, score) => sum + score, 0) / validationScores.length;
       const consensus = 1 - this.calculateVariance(validationScores);
-      const crossValidationScore = (avgValidation * 0.8) + (consensus * 0.2);
+      const crossValidationScore = avgValidation * 0.8 + consensus * 0.2;
 
       evidence.push({
         type: 'cross_validation',
@@ -369,7 +386,7 @@ export class TruthScorer {
     claim: AgentClaim,
     externalSources: ExternalSource[],
     evidence: TruthEvidence[],
-    errors: VerificationError[]
+    errors: VerificationError[],
   ): Promise<number> {
     try {
       if (externalSources.length === 0) {
@@ -388,14 +405,16 @@ export class TruthScorer {
       // In a real implementation, this would query external APIs, databases, etc.
       const verificationResults: number[] = [];
 
-      for (const source of externalSources.slice(0, 3)) { // Limit to 3 sources
+      for (const source of externalSources.slice(0, 3)) {
+        // Limit to 3 sources
         const verificationScore = await this.simulateExternalVerification(claim, source);
         verificationResults.push(verificationScore * source.reliability);
       }
 
-      const avgVerification = verificationResults.reduce((sum, score) => sum + score, 0) / verificationResults.length;
+      const avgVerification =
+        verificationResults.reduce((sum, score) => sum + score, 0) / verificationResults.length;
       const sourceAgreement = 1 - this.calculateVariance(verificationResults);
-      const externalScore = (avgVerification * 0.7) + (sourceAgreement * 0.3);
+      const externalScore = avgVerification * 0.7 + sourceAgreement * 0.3;
 
       evidence.push({
         type: 'external_source',
@@ -428,7 +447,7 @@ export class TruthScorer {
   private async calculateLogicalCoherence(
     claim: AgentClaim,
     evidence: TruthEvidence[],
-    errors: VerificationError[]
+    errors: VerificationError[],
   ): Promise<number> {
     try {
       // Analyze logical consistency of the claim
@@ -439,7 +458,8 @@ export class TruthScorer {
         metricConsistency: this.checkMetricConsistency(claim),
       };
 
-      const coherenceScore = Object.values(coherenceChecks).reduce((sum, score) => sum + score, 0) / 4;
+      const coherenceScore =
+        Object.values(coherenceChecks).reduce((sum, score) => sum + score, 0) / 4;
 
       evidence.push({
         type: 'logical_proof',
@@ -467,7 +487,7 @@ export class TruthScorer {
   private async calculateFactualConsistency(
     claim: AgentClaim,
     evidence: TruthEvidence[],
-    errors: VerificationError[]
+    errors: VerificationError[],
   ): Promise<number> {
     try {
       // Perform statistical validation of claim metrics
@@ -478,7 +498,8 @@ export class TruthScorer {
         correlationAnalysis: this.performCorrelationAnalysis(claim),
       };
 
-      const consistencyScore = Object.values(statisticalTests).reduce((sum, score) => sum + score, 0) / 4;
+      const consistencyScore =
+        Object.values(statisticalTests).reduce((sum, score) => sum + score, 0) / 4;
 
       evidence.push({
         type: 'statistical_test',
@@ -506,30 +527,33 @@ export class TruthScorer {
   private calculateWeightedScore(components: TruthScoreComponents): number {
     const weights = this.config.weights;
     const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    
-    const weightedSum = 
-      (components.agentReliability * weights.agentReliability) +
-      (components.crossValidation * weights.crossValidation) +
-      (components.externalVerification * weights.externalVerification) +
-      (components.factualConsistency * weights.factualConsistency) +
-      (components.logicalCoherence * weights.logicalCoherence);
+
+    const weightedSum =
+      components.agentReliability * weights.agentReliability +
+      components.crossValidation * weights.crossValidation +
+      components.externalVerification * weights.externalVerification +
+      components.factualConsistency * weights.factualConsistency +
+      components.logicalCoherence * weights.logicalCoherence;
 
     return weightedSum / totalWeight;
   }
 
-  private calculateConfidenceInterval(components: TruthScoreComponents, evidenceCount: number): ConfidenceInterval {
+  private calculateConfidenceInterval(
+    components: TruthScoreComponents,
+    evidenceCount: number,
+  ): ConfidenceInterval {
     const score = components.overall;
     const sampleSize = Math.max(evidenceCount, 1);
     const confidenceLevel = this.config.confidence.level;
-    
+
     // Calculate standard error (simplified)
     const variance = this.calculateComponentVariance(components);
     const standardError = Math.sqrt(variance / sampleSize);
-    
+
     // Z-score for confidence level (approximation)
     const zScore = this.getZScore(confidenceLevel);
     const margin = zScore * standardError;
-    
+
     return {
       lower: Math.max(0, score - margin),
       upper: Math.min(1, score + margin),
@@ -545,33 +569,33 @@ export class TruthScorer {
       components.factualConsistency,
       components.logicalCoherence,
     ];
-    
+
     return this.calculateVariance(scores);
   }
 
   private calculateVariance(values: number[]): number {
     if (values.length === 0) return 0;
-    
+
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+    const squaredDiffs = values.map((val) => Math.pow(val - mean, 2));
     return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / values.length;
   }
 
   private calculateTrendFactor(records: AgentPerformanceRecord[]): number {
     if (records.length < 2) return 0.5;
-    
+
     // Simple linear trend calculation
-    const scores = records.map(r => r.score);
+    const scores = records.map((r) => r.score);
     const n = scores.length;
     const x = Array.from({ length: n }, (_, i) => i);
-    
+
     const sumX = x.reduce((a, b) => a + b, 0);
     const sumY = scores.reduce((a, b) => a + b, 0);
     const sumXY = x.reduce((sum, xi, i) => sum + xi * scores[i], 0);
     const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
-    
+
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-    
+
     // Convert slope to factor (positive trend increases score)
     return 0.5 + Math.max(-0.5, Math.min(0.5, slope));
   }
@@ -580,8 +604,8 @@ export class TruthScorer {
     // Simplified Z-score lookup
     if (confidenceLevel >= 0.99) return 2.576;
     if (confidenceLevel >= 0.95) return 1.96;
-    if (confidenceLevel >= 0.90) return 1.645;
-    if (confidenceLevel >= 0.80) return 1.282;
+    if (confidenceLevel >= 0.9) return 1.645;
+    if (confidenceLevel >= 0.8) return 1.282;
     return 1.0;
   }
 
@@ -589,8 +613,8 @@ export class TruthScorer {
     const records = history.records;
     if (records.length === 0) return;
 
-    const scores = records.map(r => r.score);
-    const successCount = records.filter(r => r.success).length;
+    const scores = records.map((r) => r.score);
+    const successCount = records.filter((r) => r.success).length;
 
     history.statistics.averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
     history.statistics.successRate = successCount / records.length;
@@ -600,11 +624,12 @@ export class TruthScorer {
     if (records.length >= 5) {
       const recentScores = scores.slice(-5);
       const earlierScores = scores.slice(-10, -5);
-      
+
       if (earlierScores.length > 0) {
         const recentAvg = recentScores.reduce((sum, score) => sum + score, 0) / recentScores.length;
-        const earlierAvg = earlierScores.reduce((sum, score) => sum + score, 0) / earlierScores.length;
-        
+        const earlierAvg =
+          earlierScores.reduce((sum, score) => sum + score, 0) / earlierScores.length;
+
         if (recentAvg > earlierAvg + 0.05) {
           history.statistics.recentTrend = 'improving';
         } else if (recentAvg < earlierAvg - 0.05) {
@@ -624,7 +649,10 @@ export class TruthScorer {
     return Math.max(0, Math.min(1, baseScore + randomFactor));
   }
 
-  private async simulateExternalVerification(claim: AgentClaim, source: ExternalSource): Promise<number> {
+  private async simulateExternalVerification(
+    claim: AgentClaim,
+    source: ExternalSource,
+  ): Promise<number> {
     // Simulate external source verification
     const baseScore = source.reliability * 0.8;
     const randomFactor = (Math.random() - 0.5) * 0.3;
@@ -634,11 +662,11 @@ export class TruthScorer {
   private checkStructuralIntegrity(claim: AgentClaim): number {
     // Check if claim has required fields and proper structure
     let score = 0.8;
-    
+
     if (!claim.data || typeof claim.data !== 'object') score -= 0.3;
     if (!claim.evidence || claim.evidence.length === 0) score -= 0.2;
     if (!claim.metrics) score -= 0.2;
-    
+
     return Math.max(0, score);
   }
 
@@ -651,27 +679,28 @@ export class TruthScorer {
     // Check temporal consistency of claim
     const now = new Date();
     const claimAge = now.getTime() - claim.submittedAt.getTime();
-    
+
     // Claims should be recent
-    if (claimAge > 24 * 60 * 60 * 1000) { // More than 24 hours
+    if (claimAge > 24 * 60 * 60 * 1000) {
+      // More than 24 hours
       return 0.5;
     }
-    
+
     return 0.9;
   }
 
   private checkMetricConsistency(claim: AgentClaim): number {
     // Check consistency of metrics in claim
     if (!claim.metrics) return 0.5;
-    
+
     // Check for reasonable metric values
     const metrics = claim.metrics;
     let score = 0.8;
-    
+
     if (metrics.accuracy && (metrics.accuracy < 0 || metrics.accuracy > 1)) score -= 0.3;
     if (metrics.errorRate && metrics.errorRate < 0) score -= 0.2;
     if (metrics.executionTime && metrics.executionTime < 0) score -= 0.2;
-    
+
     return Math.max(0, score);
   }
 

@@ -73,23 +73,18 @@ interface GoogleAIResponse {
 export class GoogleProvider extends BaseProvider {
   readonly name: LLMProvider = 'google';
   readonly capabilities: ProviderCapabilities = {
-    supportedModels: [
-      'gemini-pro',
-      'gemini-pro-vision',
-      'palm-2',
-      'bison',
-    ],
+    supportedModels: ['gemini-pro', 'gemini-pro-vision', 'palm-2', 'bison'],
     maxContextLength: {
       'gemini-pro': 32768,
       'gemini-pro-vision': 16384,
       'palm-2': 8192,
-      'bison': 4096,
+      bison: 4096,
     } as Record<LLMModel, number>,
     maxOutputTokens: {
       'gemini-pro': 2048,
       'gemini-pro-vision': 2048,
       'palm-2': 1024,
-      'bison': 1024,
+      bison: 1024,
     } as Record<LLMModel, number>,
     supportsStreaming: true,
     supportsFunctionCalling: true,
@@ -122,7 +117,7 @@ export class GoogleProvider extends BaseProvider {
         completionCostPer1k: 0.001,
         currency: 'USD',
       },
-      'bison': {
+      bison: {
         promptCostPer1k: 0.0005,
         completionCostPer1k: 0.001,
         currency: 'USD',
@@ -149,9 +144,9 @@ export class GoogleProvider extends BaseProvider {
   protected async doComplete(request: LLMRequest): Promise<LLMResponse> {
     const googleRequest = this.buildGoogleRequest(request);
     const model = this.mapToGoogleModel(request.model || this.config.model);
-    
+
     const url = `${this.baseUrl}/models/${model}:generateContent?key=${this.config.apiKey}`;
-    
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeout || 60000);
 
@@ -172,20 +167,20 @@ export class GoogleProvider extends BaseProvider {
       }
 
       const data: GoogleAIResponse = await response.json();
-      
+
       if (!data.candidates || data.candidates.length === 0) {
         throw new LLMProviderError(
           'No response generated',
           'NO_RESPONSE',
           'google',
           undefined,
-          false
+          false,
         );
       }
 
       const candidate = data.candidates[0];
-      const content = candidate.content.parts.map(part => part.text).join('');
-      
+      const content = candidate.content.parts.map((part) => part.text).join('');
+
       // Calculate cost
       const usageData = data.usageMetadata || {
         promptTokenCount: this.estimateTokens(JSON.stringify(request.messages)),
@@ -225,9 +220,9 @@ export class GoogleProvider extends BaseProvider {
   protected async *doStreamComplete(request: LLMRequest): AsyncIterable<LLMStreamEvent> {
     const googleRequest = this.buildGoogleRequest(request);
     const model = this.mapToGoogleModel(request.model || this.config.model);
-    
+
     const url = `${this.baseUrl}/models/${model}:streamGenerateContent?key=${this.config.apiKey}`;
-    
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), (this.config.timeout || 60000) * 2);
 
@@ -262,14 +257,14 @@ export class GoogleProvider extends BaseProvider {
 
         for (const line of lines) {
           if (line.trim() === '') continue;
-          
+
           try {
             const data: GoogleAIResponse = JSON.parse(line);
-            
+
             if (data.candidates && data.candidates.length > 0) {
               const candidate = data.candidates[0];
-              const content = candidate.content.parts.map(part => part.text).join('');
-              
+              const content = candidate.content.parts.map((part) => part.text).join('');
+
               if (content) {
                 totalContent += content;
                 yield {
@@ -277,7 +272,7 @@ export class GoogleProvider extends BaseProvider {
                   delta: { content },
                 };
               }
-              
+
               if (data.usageMetadata) {
                 promptTokens = data.usageMetadata.promptTokenCount;
                 completionTokens = data.usageMetadata.candidatesTokenCount;
@@ -362,7 +357,7 @@ export class GoogleProvider extends BaseProvider {
   private buildGoogleRequest(request: LLMRequest): GoogleAIRequest {
     // Convert messages to Google format
     const contents: GoogleAIRequest['contents'] = [];
-    
+
     for (const message of request.messages) {
       // Skip system messages or prepend to first user message
       if (message.role === 'system') {
@@ -374,7 +369,7 @@ export class GoogleProvider extends BaseProvider {
         }
         continue;
       }
-      
+
       contents.push({
         role: message.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: message.content }],
@@ -416,7 +411,7 @@ export class GoogleProvider extends BaseProvider {
       'gemini-pro': 'gemini-pro',
       'gemini-pro-vision': 'gemini-pro-vision',
       'palm-2': 'text-bison-001',
-      'bison': 'text-bison-001',
+      bison: 'text-bison-001',
     };
     return modelMap[model] || model;
   }
@@ -437,10 +432,10 @@ export class GoogleProvider extends BaseProvider {
 
   private getModelDescription(model: LLMModel): string {
     const descriptions: Record<string, string> = {
-      'gemini-pro': 'Google\'s most capable text model',
+      'gemini-pro': "Google's most capable text model",
       'gemini-pro-vision': 'Gemini Pro with vision capabilities',
       'palm-2': 'Previous generation large language model',
-      'bison': 'Efficient model for various tasks',
+      bison: 'Efficient model for various tasks',
     };
     return descriptions[model] || 'Google AI language model';
   }
@@ -470,7 +465,7 @@ export class GoogleProvider extends BaseProvider {
           'google',
           response.status,
           response.status >= 500,
-          errorData
+          errorData,
         );
     }
   }

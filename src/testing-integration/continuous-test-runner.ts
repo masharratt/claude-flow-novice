@@ -85,16 +85,16 @@ export class ContinuousTestRunner extends EventEmitter {
         lines: 80,
         functions: 80,
         branches: 75,
-        statements: 80
+        statements: 80,
       },
       browsers: ['chromium', 'firefox', 'webkit'],
       environments: ['node', 'jsdom'],
       notifications: {
         onFailure: true,
         onSuccess: false,
-        onCoverageChange: true
+        onCoverageChange: true,
       },
-      ...config
+      ...config,
     };
 
     this.initializeDefaultTestSuites();
@@ -111,7 +111,7 @@ export class ContinuousTestRunner extends EventEmitter {
       parallelizable: true,
       timeout: 5000,
       coverage: true,
-      environment: 'node'
+      environment: 'node',
     });
 
     // Integration Tests
@@ -124,7 +124,7 @@ export class ContinuousTestRunner extends EventEmitter {
       parallelizable: true,
       timeout: 15000,
       coverage: true,
-      environment: 'node'
+      environment: 'node',
     });
 
     // E2E Tests
@@ -138,7 +138,7 @@ export class ContinuousTestRunner extends EventEmitter {
       timeout: 60000,
       coverage: false,
       browsers: this.config.browsers,
-      environment: 'browser'
+      environment: 'browser',
     });
 
     // Performance Tests
@@ -151,7 +151,7 @@ export class ContinuousTestRunner extends EventEmitter {
       parallelizable: false,
       timeout: 120000,
       coverage: false,
-      environment: 'hybrid'
+      environment: 'hybrid',
     });
   }
 
@@ -200,7 +200,7 @@ export class ContinuousTestRunner extends EventEmitter {
 
   public async runTestSuite(
     suiteId: string,
-    options: { triggeredBy?: string; file?: string; parallel?: boolean } = {}
+    options: { triggeredBy?: string; file?: string; parallel?: boolean } = {},
   ): Promise<TestResult> {
     const suite = this.testSuites.get(suiteId);
     if (!suite) {
@@ -230,7 +230,7 @@ export class ContinuousTestRunner extends EventEmitter {
       const command = this.buildTestCommand(suite, options);
       testProcess = spawn(command.cmd, command.args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, ...command.env }
+        env: { ...process.env, ...command.env },
       });
 
       this.runningTests.set(suiteId, testProcess);
@@ -249,7 +249,6 @@ export class ContinuousTestRunner extends EventEmitter {
       }
 
       return result;
-
     } catch (error) {
       const result: TestResult = {
         suiteId,
@@ -259,18 +258,19 @@ export class ContinuousTestRunner extends EventEmitter {
         passed: 0,
         failed: 1,
         skipped: 0,
-        errors: [{
-          file: '',
-          line: 0,
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack || '' : '',
-          type: 'runtime'
-        }]
+        errors: [
+          {
+            file: '',
+            line: 0,
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack || '' : '',
+            type: 'runtime',
+          },
+        ],
       };
 
       this.emit('suite:failed', { suite, result, error, options });
       return result;
-
     } finally {
       this.runningTests.delete(suiteId);
     }
@@ -278,7 +278,7 @@ export class ContinuousTestRunner extends EventEmitter {
 
   private buildTestCommand(
     suite: TestSuite,
-    options: any
+    options: any,
   ): { cmd: string; args: string[]; env: Record<string, string> } {
     const env: Record<string, string> = {};
 
@@ -294,22 +294,16 @@ export class ContinuousTestRunner extends EventEmitter {
             this.config.parallelWorkers.toString(),
             ...(suite.coverage ? ['--coverage'] : []),
             '--testTimeout',
-            suite.timeout.toString()
+            suite.timeout.toString(),
           ],
-          env
+          env,
         };
 
       case 'integration':
         return {
           cmd: 'npm',
-          args: [
-            'run',
-            'test:integration',
-            '--',
-            '--testTimeout',
-            suite.timeout.toString()
-          ],
-          env
+          args: ['run', 'test:integration', '--', '--testTimeout', suite.timeout.toString()],
+          env,
         };
 
       case 'e2e':
@@ -320,16 +314,16 @@ export class ContinuousTestRunner extends EventEmitter {
             'test',
             '--timeout',
             suite.timeout.toString(),
-            ...(suite.browsers ? suite.browsers.flatMap(b => ['--browser', b]) : [])
+            ...(suite.browsers ? suite.browsers.flatMap((b) => ['--browser', b]) : []),
           ],
-          env
+          env,
         };
 
       case 'performance':
         return {
           cmd: 'npm',
           args: ['run', 'test:performance'],
-          env: { ...env, NODE_ENV: 'production' }
+          env: { ...env, NODE_ENV: 'production' },
         };
 
       default:
@@ -337,10 +331,7 @@ export class ContinuousTestRunner extends EventEmitter {
     }
   }
 
-  private async executeTestProcess(
-    process: ChildProcess,
-    suite: TestSuite
-  ): Promise<TestResult> {
+  private async executeTestProcess(process: ChildProcess, suite: TestSuite): Promise<TestResult> {
     return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
@@ -376,7 +367,7 @@ export class ContinuousTestRunner extends EventEmitter {
     suite: TestSuite,
     stdout: string,
     stderr: string,
-    exitCode: number
+    exitCode: number,
   ): TestResult {
     const result: TestResult = {
       suiteId: suite.id,
@@ -386,7 +377,7 @@ export class ContinuousTestRunner extends EventEmitter {
       passed: 0,
       failed: 0,
       skipped: 0,
-      errors: []
+      errors: [],
     };
 
     // Parse Jest output
@@ -448,10 +439,12 @@ export class ContinuousTestRunner extends EventEmitter {
       lines: 0,
       functions: 0,
       branches: 0,
-      statements: 0
+      statements: 0,
     };
 
-    const coverageMatch = output.match(/All files[|\s]+(\d+\.?\d*)[|\s]+(\d+\.?\d*)[|\s]+(\d+\.?\d*)[|\s]+(\d+\.?\d*)/);
+    const coverageMatch = output.match(
+      /All files[|\s]+(\d+\.?\d*)[|\s]+(\d+\.?\d*)[|\s]+(\d+\.?\d*)[|\s]+(\d+\.?\d*)/,
+    );
     if (coverageMatch) {
       coverage.statements = parseFloat(coverageMatch[1]);
       coverage.branches = parseFloat(coverageMatch[2]);
@@ -466,9 +459,11 @@ export class ContinuousTestRunner extends EventEmitter {
     const errors: TestError[] = [];
 
     // Simple error parsing - in reality this would be more sophisticated
-    const errorLines = stderr.split('\n').filter(line =>
-      line.includes('Error') || line.includes('Failed') || line.includes('Exception')
-    );
+    const errorLines = stderr
+      .split('\n')
+      .filter(
+        (line) => line.includes('Error') || line.includes('Failed') || line.includes('Exception'),
+      );
 
     for (const line of errorLines) {
       errors.push({
@@ -476,7 +471,7 @@ export class ContinuousTestRunner extends EventEmitter {
         line: 0,
         message: line.trim(),
         stack: line,
-        type: 'runtime'
+        type: 'runtime',
       });
     }
 
@@ -502,7 +497,7 @@ export class ContinuousTestRunner extends EventEmitter {
         result,
         failedThresholds,
         thresholds,
-        coverage
+        coverage,
       });
     } else {
       this.emit('coverage:threshold-passed', { suite, result, coverage });
@@ -513,8 +508,8 @@ export class ContinuousTestRunner extends EventEmitter {
     const suiteIds = Array.from(this.testSuites.keys());
 
     if (parallel) {
-      const promises = suiteIds.map(id =>
-        this.runTestSuite(id, { triggeredBy: 'batch-run', parallel: true })
+      const promises = suiteIds.map((id) =>
+        this.runTestSuite(id, { triggeredBy: 'batch-run', parallel: true }),
       );
       return Promise.all(promises);
     } else {
@@ -533,7 +528,7 @@ export class ContinuousTestRunner extends EventEmitter {
 
   public getLastResult(suiteId: string): TestResult | undefined {
     return this.testHistory
-      .filter(result => result.suiteId === suiteId)
+      .filter((result) => result.suiteId === suiteId)
       .sort((a, b) => b.endTime.getTime() - a.endTime.getTime())[0];
   }
 

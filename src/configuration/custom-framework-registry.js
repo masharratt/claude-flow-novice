@@ -33,14 +33,15 @@ export class CustomFrameworkRegistry extends EventEmitter {
     super();
 
     this.options = {
-      frameworksPath: options.frameworksPath || path.join(process.cwd(), '.claude-flow-novice', 'frameworks'),
+      frameworksPath:
+        options.frameworksPath || path.join(process.cwd(), '.claude-flow-novice', 'frameworks'),
       enableSecurityValidation: options.enableSecurityValidation !== false,
       enableByzantineValidation: options.enableByzantineValidation !== false,
       maliciousCodeDetection: options.maliciousCodeDetection !== false,
       sandboxValidation: options.sandboxValidation !== false,
       cryptographicSigning: options.cryptographicSigning !== false,
       maxInheritanceDepth: options.maxInheritanceDepth || 5,
-      ...options
+      ...options,
     };
 
     // Core components
@@ -54,7 +55,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       frameworkVersions: new Map(),
       inheritanceGraph: new Map(),
       validationCache: new Map(),
-      signatureStore: new Map()
+      signatureStore: new Map(),
     };
 
     // Security patterns for malicious code detection
@@ -69,7 +70,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         /process\./gi,
         /global\./gi,
         /__dirname/gi,
-        /__filename/gi
+        /__filename/gi,
       ],
       fileSystemAccess: [
         /fs\./gi,
@@ -78,7 +79,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         /unlink/gi,
         /rmdir/gi,
         /mkdir/gi,
-        /\.\.\/\.\.\//g
+        /\.\.\/\.\.\//g,
       ],
       systemCommands: [
         /exec\s*\(/gi,
@@ -87,7 +88,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         /rm\s+-rf/gi,
         /sudo/gi,
         /chmod/gi,
-        /chown/gi
+        /chown/gi,
       ],
       networkAccess: [
         /http\./gi,
@@ -95,8 +96,8 @@ export class CustomFrameworkRegistry extends EventEmitter {
         /fetch\s*\(/gi,
         /XMLHttpRequest/gi,
         /WebSocket/gi,
-        /net\./gi
-      ]
+        /net\./gi,
+      ],
     };
 
     // Framework validation rules
@@ -106,7 +107,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       max_validation_rules: 50,
       max_quality_gates: 20,
       max_name_length: 100,
-      max_description_length: 1000
+      max_description_length: 1000,
     };
 
     // Performance tracking
@@ -115,7 +116,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       securityViolationsDetected: 0,
       byzantineValidationsPerformed: 0,
       inheritanceResolutions: 0,
-      averageValidationTime: 0
+      averageValidationTime: 0,
     };
   }
 
@@ -153,7 +154,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         frameworksLoaded: this.state.frameworks.size,
         securityEnabled: this.options.enableSecurityValidation,
         byzantineEnabled: this.options.enableByzantineValidation,
-        duration
+        duration,
       });
 
       console.log(`✅ Custom Framework Registry initialized (${duration.toFixed(2)}ms)`);
@@ -163,9 +164,8 @@ export class CustomFrameworkRegistry extends EventEmitter {
         success: true,
         initialized: true,
         frameworksLoaded: this.state.frameworks.size,
-        duration
+        duration,
       };
-
     } catch (error) {
       this.emit('error', error);
       throw new Error(`Failed to initialize Custom Framework Registry: ${error.message}`);
@@ -193,7 +193,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           frameworkId,
           validationPassed: false,
           validationErrors: definitionValidation.errors,
-          reason: 'Framework definition validation failed'
+          reason: 'Framework definition validation failed',
         };
       }
 
@@ -208,7 +208,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             frameworkId,
             securityCheckPassed: false,
             securityViolations: securityValidation.violations,
-            reason: 'Security validation failed'
+            reason: 'Security validation failed',
           };
         }
       }
@@ -223,7 +223,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             success: false,
             frameworkId,
             compatibilityIssues: compatibilityValidation.issues,
-            reason: 'Compatibility validation failed'
+            reason: 'Compatibility validation failed',
           };
         }
       }
@@ -239,7 +239,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             frameworkId,
             inheritanceValidated: false,
             inheritanceIssues: inheritanceValidation.issues,
-            reason: 'Inheritance validation failed'
+            reason: 'Inheritance validation failed',
           };
         }
       }
@@ -255,7 +255,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             frameworkId,
             compositionValidated: false,
             compositionIssues: compositionValidation.issues,
-            reason: 'Composition validation failed'
+            reason: 'Composition validation failed',
           };
         }
       }
@@ -272,7 +272,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             sandboxValidationPassed: false,
             sandboxViolations: sandboxValidation.violations,
             unsafeRules: sandboxValidation.unsafeRules,
-            reason: 'Sandbox validation failed'
+            reason: 'Sandbox validation failed',
           };
         }
       }
@@ -284,7 +284,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           securityValidation,
           compatibilityValidation,
           inheritanceValidation,
-          compositionValidation
+          compositionValidation,
         });
 
         if (!byzantineValidation.approved) {
@@ -295,7 +295,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             byzantineRejected: true,
             byzantineConsensus: byzantineValidation.consensus,
             maliciousBehaviorDetected: byzantineValidation.maliciousBehaviorDetected,
-            reason: 'Byzantine consensus rejection'
+            reason: 'Byzantine consensus rejection',
           };
         }
       }
@@ -316,9 +316,9 @@ export class CustomFrameworkRegistry extends EventEmitter {
             inheritance: inheritanceValidation,
             composition: compositionValidation,
             sandbox: sandboxValidation,
-            byzantine: byzantineValidation
-          }
-        }
+            byzantine: byzantineValidation,
+          },
+        },
       };
 
       // Add cryptographic signature if enabled
@@ -339,7 +339,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       this.updateMetrics('framework_added', {
         duration,
         securityViolations: securityValidation.violations.length,
-        byzantineValidated: byzantineValidation !== null
+        byzantineValidated: byzantineValidation !== null,
       });
 
       const result = {
@@ -353,7 +353,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         compositionValidated: compositionValidation?.valid || true,
         resolvedFramework: resolvedFramework,
         validationResults: frameworkRecord.metadata.validationResults,
-        duration
+        duration,
       };
 
       this.emit('frameworkAdded', result);
@@ -361,7 +361,6 @@ export class CustomFrameworkRegistry extends EventEmitter {
       console.log(`✅ Custom framework added: ${frameworkId} (${duration.toFixed(2)}ms)`);
 
       return result;
-
     } catch (error) {
       console.error(`❌ Failed to add framework ${frameworkId}:`, error.message);
 
@@ -369,7 +368,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         success: false,
         frameworkId,
         error: error.message,
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
     }
   }
@@ -387,7 +386,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           errors.push({
             type: 'missing_required_field',
             field,
-            message: `Required field '${field}' is missing`
+            message: `Required field '${field}' is missing`,
           });
         }
       }
@@ -398,7 +397,8 @@ export class CustomFrameworkRegistry extends EventEmitter {
           errors.push({
             type: 'invalid_id_format',
             field: 'id',
-            message: 'Framework ID must contain only lowercase letters, numbers, hyphens, and underscores'
+            message:
+              'Framework ID must contain only lowercase letters, numbers, hyphens, and underscores',
           });
         }
 
@@ -406,7 +406,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           errors.push({
             type: 'id_already_exists',
             field: 'id',
-            message: `Framework with ID '${framework.id}' already exists`
+            message: `Framework with ID '${framework.id}' already exists`,
           });
         }
       }
@@ -417,17 +417,20 @@ export class CustomFrameworkRegistry extends EventEmitter {
           errors.push({
             type: 'name_too_long',
             field: 'name',
-            message: `Framework name exceeds maximum length of ${this.validationRules.max_name_length} characters`
+            message: `Framework name exceeds maximum length of ${this.validationRules.max_name_length} characters`,
           });
         }
       }
 
       // Validate description
-      if (framework.description && framework.description.length > this.validationRules.max_description_length) {
+      if (
+        framework.description &&
+        framework.description.length > this.validationRules.max_description_length
+      ) {
         errors.push({
           type: 'description_too_long',
           field: 'description',
-          message: `Framework description exceeds maximum length of ${this.validationRules.max_description_length} characters`
+          message: `Framework description exceeds maximum length of ${this.validationRules.max_description_length} characters`,
         });
       }
 
@@ -441,7 +444,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             errors.push({
               type: 'invalid_truth_threshold_type',
               field: 'validation_config.truth_threshold',
-              message: 'Truth threshold must be a number'
+              message: 'Truth threshold must be a number',
             });
           } else if (
             config.truth_threshold < this.validationRules.allowed_threshold_range.min ||
@@ -450,7 +453,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             errors.push({
               type: 'truth_threshold_out_of_range',
               field: 'validation_config.truth_threshold',
-              message: `Truth threshold must be between ${this.validationRules.allowed_threshold_range.min} and ${this.validationRules.allowed_threshold_range.max}`
+              message: `Truth threshold must be between ${this.validationRules.allowed_threshold_range.min} and ${this.validationRules.allowed_threshold_range.max}`,
             });
           }
         }
@@ -462,14 +465,14 @@ export class CustomFrameworkRegistry extends EventEmitter {
           errors.push({
             type: 'invalid_validation_rules_type',
             field: 'validation_rules',
-            message: 'Validation rules must be an array'
+            message: 'Validation rules must be an array',
           });
         } else {
           if (framework.validation_rules.length > this.validationRules.max_validation_rules) {
             errors.push({
               type: 'too_many_validation_rules',
               field: 'validation_rules',
-              message: `Too many validation rules (max: ${this.validationRules.max_validation_rules})`
+              message: `Too many validation rules (max: ${this.validationRules.max_validation_rules})`,
             });
           }
 
@@ -483,7 +486,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
                 errors.push({
                   type: 'empty_validation_rule',
                   field: `validation_rules[${i}]`,
-                  message: 'Validation rule cannot be empty'
+                  message: 'Validation rule cannot be empty',
                 });
               }
             } else if (typeof rule === 'object') {
@@ -492,7 +495,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
                 errors.push({
                   type: 'missing_rule_name',
                   field: `validation_rules[${i}].name`,
-                  message: 'Validation rule must have a name'
+                  message: 'Validation rule must have a name',
                 });
               }
 
@@ -500,7 +503,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
                 errors.push({
                   type: 'missing_rule_validator',
                   field: `validation_rules[${i}].validator`,
-                  message: 'Validation rule must have a validator'
+                  message: 'Validation rule must have a validator',
                 });
               }
             }
@@ -514,29 +517,30 @@ export class CustomFrameworkRegistry extends EventEmitter {
           errors.push({
             type: 'invalid_quality_gates_type',
             field: 'quality_gates',
-            message: 'Quality gates must be an array'
+            message: 'Quality gates must be an array',
           });
         } else if (framework.quality_gates.length > this.validationRules.max_quality_gates) {
           errors.push({
             type: 'too_many_quality_gates',
             field: 'quality_gates',
-            message: `Too many quality gates (max: ${this.validationRules.max_quality_gates})`
+            message: `Too many quality gates (max: ${this.validationRules.max_quality_gates})`,
           });
         }
       }
 
       return {
         valid: errors.length === 0,
-        errors
+        errors,
       };
-
     } catch (error) {
       return {
         valid: false,
-        errors: [{
-          type: 'validation_error',
-          message: `Framework definition validation error: ${error.message}`
-        }]
+        errors: [
+          {
+            type: 'validation_error',
+            message: `Framework definition validation error: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -559,7 +563,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
               category,
               pattern: pattern.toString(),
               severity: this.getSecuritySeverity(category),
-              message: `Potentially malicious ${category} pattern detected`
+              message: `Potentially malicious ${category} pattern detected`,
             });
           }
         }
@@ -577,7 +581,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
               type: 'malicious_validation_rule',
               rule_index: i,
               severity: 'critical',
-              message: 'Validation rule contains dangerous code execution patterns'
+              message: 'Validation rule contains dangerous code execution patterns',
             });
           }
 
@@ -587,7 +591,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
               type: 'file_system_access_attempt',
               rule_index: i,
               severity: 'high',
-              message: 'Validation rule attempts to access file system'
+              message: 'Validation rule attempts to access file system',
             });
           }
         }
@@ -599,8 +603,12 @@ export class CustomFrameworkRegistry extends EventEmitter {
 
         // Check for bypass attempts
         const suspiciousFlags = [
-          'bypass_validation', 'disable_security', 'skip_byzantine_consensus',
-          'allow_unsigned_completions', 'override_security', 'disable_all_checks'
+          'bypass_validation',
+          'disable_security',
+          'skip_byzantine_consensus',
+          'allow_unsigned_completions',
+          'override_security',
+          'disable_all_checks',
         ];
 
         for (const flag of suspiciousFlags) {
@@ -609,7 +617,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
               type: 'security_bypass_attempt',
               flag,
               severity: 'critical',
-              message: `Attempt to bypass security with ${flag} flag`
+              message: `Attempt to bypass security with ${flag} flag`,
             });
           }
         }
@@ -620,7 +628,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             type: 'invalid_truth_threshold',
             value: config.truth_threshold,
             severity: 'high',
-            message: 'Truth threshold is dangerously low'
+            message: 'Truth threshold is dangerously low',
           });
         }
       }
@@ -633,7 +641,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           violations.push({
             type: 'suspicious_metadata',
             severity: 'medium',
-            message: 'Metadata contains suspicious keywords'
+            message: 'Metadata contains suspicious keywords',
           });
         }
       }
@@ -641,17 +649,18 @@ export class CustomFrameworkRegistry extends EventEmitter {
       return {
         secure: violations.length === 0,
         violations,
-        severityBreakdown: this.categorizeSeverities(violations)
+        severityBreakdown: this.categorizeSeverities(violations),
       };
-
     } catch (error) {
       return {
         secure: false,
-        violations: [{
-          type: 'security_validation_error',
-          severity: 'high',
-          message: `Security validation failed: ${error.message}`
-        }]
+        violations: [
+          {
+            type: 'security_validation_error',
+            severity: 'high',
+            message: `Security validation failed: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -669,7 +678,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           issues.push({
             type: 'name_conflict',
             conflicting_framework: existingId,
-            message: `Framework name '${framework.name}' conflicts with existing framework '${existingId}'`
+            message: `Framework name '${framework.name}' conflicts with existing framework '${existingId}'`,
           });
         }
       }
@@ -681,14 +690,14 @@ export class CustomFrameworkRegistry extends EventEmitter {
             const existingRuleNames = this.extractRuleNames(existingFramework.validation_rules);
             const newRuleNames = this.extractRuleNames(framework.validation_rules);
 
-            const conflicts = existingRuleNames.filter(name => newRuleNames.includes(name));
+            const conflicts = existingRuleNames.filter((name) => newRuleNames.includes(name));
 
             if (conflicts.length > 0) {
               issues.push({
                 type: 'rule_name_conflict',
                 conflicting_framework: existingId,
                 conflicting_rules: conflicts,
-                message: `Validation rule names conflict with framework '${existingId}': ${conflicts.join(', ')}`
+                message: `Validation rule names conflict with framework '${existingId}': ${conflicts.join(', ')}`,
               });
             }
           }
@@ -704,13 +713,13 @@ export class CustomFrameworkRegistry extends EventEmitter {
             issues.push({
               type: 'invalid_override_target',
               target: overrideId,
-              message: `Cannot override non-existent framework '${overrideId}'`
+              message: `Cannot override non-existent framework '${overrideId}'`,
             });
           } else if (!existingFramework.allows_override) {
             issues.push({
               type: 'unauthorized_override_attempt',
               target: overrideId,
-              message: `Framework '${overrideId}' does not allow overrides`
+              message: `Framework '${overrideId}' does not allow overrides`,
             });
           }
         }
@@ -718,16 +727,17 @@ export class CustomFrameworkRegistry extends EventEmitter {
 
       return {
         compatible: issues.length === 0,
-        issues
+        issues,
       };
-
     } catch (error) {
       return {
         compatible: false,
-        issues: [{
-          type: 'compatibility_validation_error',
-          message: `Compatibility validation failed: ${error.message}`
-        }]
+        issues: [
+          {
+            type: 'compatibility_validation_error',
+            message: `Compatibility validation failed: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -750,7 +760,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         issues.push({
           type: 'parent_framework_not_found',
           parent: framework.extends,
-          message: `Parent framework '${framework.extends}' not found`
+          message: `Parent framework '${framework.extends}' not found`,
         });
 
         return { valid: false, issues };
@@ -761,7 +771,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         issues.push({
           type: 'inheritance_not_allowed',
           parent: framework.extends,
-          message: `Parent framework '${framework.extends}' does not allow inheritance`
+          message: `Parent framework '${framework.extends}' does not allow inheritance`,
         });
       }
 
@@ -777,7 +787,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
                 type: 'override_not_allowed',
                 field,
                 parent: framework.extends,
-                message: `Field '${field}' cannot be overridden in framework '${framework.extends}'`
+                message: `Field '${field}' cannot be overridden in framework '${framework.extends}'`,
               });
             }
           }
@@ -786,12 +796,15 @@ export class CustomFrameworkRegistry extends EventEmitter {
         // Check required extensions
         if (rules.require_extension) {
           for (const field of rules.require_extension) {
-            if (!framework[field] || (Array.isArray(framework[field]) && framework[field].length === 0)) {
+            if (
+              !framework[field] ||
+              (Array.isArray(framework[field]) && framework[field].length === 0)
+            ) {
               issues.push({
                 type: 'required_extension_missing',
                 field,
                 parent: framework.extends,
-                message: `Field '${field}' must be extended in framework '${framework.extends}'`
+                message: `Field '${field}' must be extended in framework '${framework.extends}'`,
               });
             }
           }
@@ -805,7 +818,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         issues.push({
           type: 'circular_inheritance',
           chain: [...inheritanceChain, framework.id],
-          message: 'Circular inheritance detected'
+          message: 'Circular inheritance detected',
         });
       }
 
@@ -815,7 +828,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           type: 'inheritance_depth_exceeded',
           depth: inheritanceChain.length + 1,
           max_depth: this.options.maxInheritanceDepth,
-          message: `Inheritance depth exceeds maximum of ${this.options.maxInheritanceDepth}`
+          message: `Inheritance depth exceeds maximum of ${this.options.maxInheritanceDepth}`,
         });
       }
 
@@ -823,16 +836,17 @@ export class CustomFrameworkRegistry extends EventEmitter {
         valid: issues.length === 0,
         issues,
         inheritanceChain,
-        inheritanceDepth: inheritanceChain.length + 1
+        inheritanceDepth: inheritanceChain.length + 1,
       };
-
     } catch (error) {
       return {
         valid: false,
-        issues: [{
-          type: 'inheritance_validation_error',
-          message: `Inheritance validation failed: ${error.message}`
-        }]
+        issues: [
+          {
+            type: 'inheritance_validation_error',
+            message: `Inheritance validation failed: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -858,7 +872,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           issues.push({
             type: 'component_framework_not_found',
             component: componentId,
-            message: `Component framework '${componentId}' not found`
+            message: `Component framework '${componentId}' not found`,
           });
         } else {
           // Check if component allows composition
@@ -866,7 +880,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             issues.push({
               type: 'composition_not_allowed',
               component: componentId,
-              message: `Component framework '${componentId}' does not allow composition`
+              message: `Component framework '${componentId}' does not allow composition`,
             });
           } else {
             componentFrameworks.push(component);
@@ -882,11 +896,13 @@ export class CustomFrameworkRegistry extends EventEmitter {
       const conflictAnalysis = this.analyzeComponentConflicts(componentFrameworks);
 
       if (conflictAnalysis.hasConflicts) {
-        issues.push(...conflictAnalysis.conflicts.map(conflict => ({
-          type: 'component_conflict',
-          ...conflict,
-          message: `Conflict between components: ${conflict.description}`
-        })));
+        issues.push(
+          ...conflictAnalysis.conflicts.map((conflict) => ({
+            type: 'component_conflict',
+            ...conflict,
+            message: `Conflict between components: ${conflict.description}`,
+          })),
+        );
       }
 
       // Validate composition rules
@@ -898,7 +914,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
           if (componentFrameworks.length !== framework.composes.length) {
             issues.push({
               type: 'missing_required_components',
-              message: 'All composed components are required but some are missing or invalid'
+              message: 'All composed components are required but some are missing or invalid',
             });
           }
         }
@@ -908,16 +924,17 @@ export class CustomFrameworkRegistry extends EventEmitter {
         valid: issues.length === 0,
         issues,
         componentFrameworks,
-        componentCompatibility: !conflictAnalysis.hasConflicts
+        componentCompatibility: !conflictAnalysis.hasConflicts,
       };
-
     } catch (error) {
       return {
         valid: false,
-        issues: [{
-          type: 'composition_validation_error',
-          message: `Composition validation failed: ${error.message}`
-        }]
+        issues: [
+          {
+            type: 'composition_validation_error',
+            message: `Composition validation failed: ${error.message}`,
+          },
+        ],
       };
     }
   }
@@ -934,7 +951,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       if (framework.validation_rules) {
         for (let i = 0; i < framework.validation_rules.length; i++) {
           const rule = framework.validation_rules[i];
-          const ruleString = typeof rule === 'string' ? rule : (rule.validator || '');
+          const ruleString = typeof rule === 'string' ? rule : rule.validator || '';
 
           // Simulate sandbox execution checks
           const sandboxResult = this.simulateSandboxExecution(ruleString);
@@ -944,7 +961,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
               type: sandboxResult.violation_type,
               rule_index: i,
               rule_name: typeof rule === 'object' ? rule.name : `rule_${i}`,
-              message: sandboxResult.message
+              message: sandboxResult.message,
             });
 
             unsafeRules.push(typeof rule === 'object' ? rule.name : `rule_${i}`);
@@ -955,17 +972,18 @@ export class CustomFrameworkRegistry extends EventEmitter {
       return {
         safe: violations.length === 0,
         violations,
-        unsafeRules
+        unsafeRules,
       };
-
     } catch (error) {
       return {
         safe: false,
-        violations: [{
-          type: 'sandbox_validation_error',
-          message: `Sandbox validation failed: ${error.message}`
-        }],
-        unsafeRules: []
+        violations: [
+          {
+            type: 'sandbox_validation_error',
+            message: `Sandbox validation failed: ${error.message}`,
+          },
+        ],
+        unsafeRules: [],
       };
     }
   }
@@ -982,16 +1000,16 @@ export class CustomFrameworkRegistry extends EventEmitter {
           id: framework.id,
           name: framework.name,
           version: framework.version,
-          validation_config: framework.validation_config
+          validation_config: framework.validation_config,
         },
         validationResults,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Generate validators based on framework complexity and risk
       const validators = this.generateFrameworkValidators(framework, {
         securityRisk: this.assessSecurityRisk(validationResults.securityValidation),
-        complexityLevel: this.assessComplexityLevel(framework)
+        complexityLevel: this.assessComplexityLevel(framework),
       });
 
       // Achieve consensus
@@ -1006,23 +1024,26 @@ export class CustomFrameworkRegistry extends EventEmitter {
           consensusReached: consensusResult.achieved,
           consensusRatio: consensusResult.consensusRatio,
           validatorCount: validators.length,
-          validatorApprovals: consensusResult.votes.filter(v => v.vote).length,
-          securityRejections: consensusResult.votes.filter(v => !v.vote && v.reason?.includes('security')).length,
-          faultTolerant: consensusResult.votes.filter(v => !v.vote).length <= Math.floor(validators.length / 3)
+          validatorApprovals: consensusResult.votes.filter((v) => v.vote).length,
+          securityRejections: consensusResult.votes.filter(
+            (v) => !v.vote && v.reason?.includes('security'),
+          ).length,
+          faultTolerant:
+            consensusResult.votes.filter((v) => !v.vote).length <=
+            Math.floor(validators.length / 3),
         },
         maliciousBehaviorDetected: maliciousBehaviorAnalysis.detected,
         consensusEvidence: {
           byzantineProof: consensusResult.byzantineProof,
           votes: consensusResult.votes,
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       };
-
     } catch (error) {
       return {
         approved: false,
         error: error.message,
-        maliciousBehaviorDetected: false
+        maliciousBehaviorDetected: false,
       };
     }
   }
@@ -1045,7 +1066,6 @@ export class CustomFrameworkRegistry extends EventEmitter {
       }
 
       return resolved;
-
     } catch (error) {
       console.warn(`Framework resolution failed for ${framework.id}:`, error.message);
       return framework;
@@ -1093,7 +1113,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       parent: framework.extends,
       inheritanceChain: this.getInheritanceChain(framework.extends),
       resolved: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return resolved;
@@ -1103,7 +1123,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
    * Apply composition to framework definition
    */
   async applyComposition(framework) {
-    const componentFrameworks = framework.composes.map(id => this.state.frameworks.get(id));
+    const componentFrameworks = framework.composes.map((id) => this.state.frameworks.get(id));
 
     // Start with base framework
     let resolved = { ...framework };
@@ -1119,7 +1139,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
     resolved.composition = {
       components: framework.composes,
       resolved: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return resolved;
@@ -1147,7 +1167,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       // Use the truth validator with the custom framework
       const validationResult = await this.truthValidator.validateCompletion({
         ...completion,
-        customFramework: framework
+        customFramework: framework,
       });
 
       // Apply framework-specific validation rules
@@ -1162,17 +1182,16 @@ export class CustomFrameworkRegistry extends EventEmitter {
         customValidationPassed: frameworkValidation.passed,
         criteriaResults: frameworkValidation.criteriaResults,
         evidence: validationResult.evidence,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       return result;
-
     } catch (error) {
       return {
         success: false,
         error: error.message,
         frameworkUsed: completion.framework,
-        validationFailed: true
+        validationFailed: true,
       };
     }
   }
@@ -1198,7 +1217,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
     if (!framework.cryptographicSignature) {
       return {
         valid: false,
-        reason: 'No signature present'
+        reason: 'No signature present',
       };
     }
 
@@ -1206,20 +1225,20 @@ export class CustomFrameworkRegistry extends EventEmitter {
       // Regenerate signature and compare
       const expectedSignature = this.generateFrameworkSignature(framework);
 
-      const signatureMatch = expectedSignature.signature === framework.cryptographicSignature.signature;
+      const signatureMatch =
+        expectedSignature.signature === framework.cryptographicSignature.signature;
 
       return {
         valid: signatureMatch,
         trustedSource: signatureMatch,
         tamperEvidence: !signatureMatch,
         signatureTimestamp: framework.cryptographicSignature.timestamp,
-        verificationTimestamp: Date.now()
+        verificationTimestamp: Date.now(),
       };
-
     } catch (error) {
       return {
         valid: false,
-        reason: `Signature verification failed: ${error.message}`
+        reason: `Signature verification failed: ${error.message}`,
       };
     }
   }
@@ -1249,7 +1268,6 @@ export class CustomFrameworkRegistry extends EventEmitter {
           }
         }
       }
-
     } catch (error) {
       // Directory doesn't exist or is empty - this is fine
       console.log('ℹ️ No existing frameworks found');
@@ -1297,14 +1315,16 @@ export class CustomFrameworkRegistry extends EventEmitter {
   }
 
   extractRuleNames(rules) {
-    return rules.map(rule => {
-      if (typeof rule === 'string') {
-        return rule;
-      } else if (typeof rule === 'object' && rule.name) {
-        return rule.name;
-      }
-      return null;
-    }).filter(Boolean);
+    return rules
+      .map((rule) => {
+        if (typeof rule === 'string') {
+          return rule;
+        } else if (typeof rule === 'object' && rule.name) {
+          return rule.name;
+        }
+        return null;
+      })
+      .filter(Boolean);
   }
 
   getSecuritySeverity(category) {
@@ -1312,7 +1332,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       codeInjection: 'critical',
       systemCommands: 'critical',
       fileSystemAccess: 'high',
-      networkAccess: 'medium'
+      networkAccess: 'medium',
     };
 
     return severityMap[category] || 'low';
@@ -1343,7 +1363,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             conflicts.push({
               type: 'rule_name_conflict',
               rule: ruleName,
-              description: `Validation rule '${ruleName}' is defined in multiple components`
+              description: `Validation rule '${ruleName}' is defined in multiple components`,
             });
           } else {
             allRuleNames.push(ruleName);
@@ -1362,7 +1382,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
             conflicts.push({
               type: 'config_conflict',
               key,
-              description: `Configuration key '${key}' is defined in multiple components`
+              description: `Configuration key '${key}' is defined in multiple components`,
             });
           } else {
             configKeys.add(key);
@@ -1373,18 +1393,38 @@ export class CustomFrameworkRegistry extends EventEmitter {
 
     return {
       hasConflicts: conflicts.length > 0,
-      conflicts
+      conflicts,
     };
   }
 
   simulateSandboxExecution(code) {
     // Mock sandbox validation - checks for dangerous patterns
     const dangerousPatterns = [
-      { pattern: /require\s*\(/, type: 'module_access_attempt', message: 'Attempt to require external modules' },
-      { pattern: /fs\.|readFile|writeFile/, type: 'file_system_access_attempt', message: 'Attempt to access file system' },
-      { pattern: /exec\s*\(|spawn\s*\(/, type: 'system_command_attempt', message: 'Attempt to execute system commands' },
-      { pattern: /eval\s*\(/, type: 'code_evaluation_attempt', message: 'Attempt to evaluate arbitrary code' },
-      { pattern: /process\./, type: 'process_access_attempt', message: 'Attempt to access process object' }
+      {
+        pattern: /require\s*\(/,
+        type: 'module_access_attempt',
+        message: 'Attempt to require external modules',
+      },
+      {
+        pattern: /fs\.|readFile|writeFile/,
+        type: 'file_system_access_attempt',
+        message: 'Attempt to access file system',
+      },
+      {
+        pattern: /exec\s*\(|spawn\s*\(/,
+        type: 'system_command_attempt',
+        message: 'Attempt to execute system commands',
+      },
+      {
+        pattern: /eval\s*\(/,
+        type: 'code_evaluation_attempt',
+        message: 'Attempt to evaluate arbitrary code',
+      },
+      {
+        pattern: /process\./,
+        type: 'process_access_attempt',
+        message: 'Attempt to access process object',
+      },
     ];
 
     for (const { pattern, type, message } of dangerousPatterns) {
@@ -1392,7 +1432,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
         return {
           safe: false,
           violation_type: type,
-          message
+          message,
         };
       }
     }
@@ -1411,15 +1451,17 @@ export class CustomFrameworkRegistry extends EventEmitter {
       id: `framework-validator-${i}`,
       specialization: ['security', 'compatibility', 'architecture', 'performance'][i % 4],
       reputation: 0.75 + Math.random() * 0.25,
-      risk_tolerance: options.securityRisk === 'high' ? 'low' : 'medium'
+      risk_tolerance: options.securityRisk === 'high' ? 'low' : 'medium',
     }));
   }
 
   assessSecurityRisk(securityValidation) {
     if (!securityValidation || !securityValidation.violations) return 'low';
 
-    const criticalCount = securityValidation.violations.filter(v => v.severity === 'critical').length;
-    const highCount = securityValidation.violations.filter(v => v.severity === 'high').length;
+    const criticalCount = securityValidation.violations.filter(
+      (v) => v.severity === 'critical',
+    ).length;
+    const highCount = securityValidation.violations.filter((v) => v.severity === 'high').length;
 
     if (criticalCount > 0) return 'critical';
     if (highCount > 2) return 'high';
@@ -1442,18 +1484,18 @@ export class CustomFrameworkRegistry extends EventEmitter {
   }
 
   analyzeMaliciousBehavior(consensusResult) {
-    const maliciousIndicators = consensusResult.votes.filter(vote =>
-      !vote.vote && (
-        vote.reason?.includes('security') ||
-        vote.reason?.includes('malicious') ||
-        vote.reason?.includes('dangerous')
-      )
+    const maliciousIndicators = consensusResult.votes.filter(
+      (vote) =>
+        !vote.vote &&
+        (vote.reason?.includes('security') ||
+          vote.reason?.includes('malicious') ||
+          vote.reason?.includes('dangerous')),
     );
 
     return {
       detected: maliciousIndicators.length > Math.floor(consensusResult.votes.length * 0.3),
       indicators: maliciousIndicators.length,
-      reasons: maliciousIndicators.map(v => v.reason)
+      reasons: maliciousIndicators.map((v) => v.reason),
     };
   }
 
@@ -1496,7 +1538,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
       name: framework.name,
       version: framework.version,
       validation_config: framework.validation_config,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     const dataString = JSON.stringify(signatureData);
@@ -1504,14 +1546,14 @@ export class CustomFrameworkRegistry extends EventEmitter {
 
     for (let i = 0; i < dataString.length; i++) {
       const char = dataString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
 
     return {
       signature: Math.abs(hash).toString(16),
       algorithm: 'simple-hash',
-      timestamp: signatureData.timestamp
+      timestamp: signatureData.timestamp,
     };
   }
 
@@ -1524,7 +1566,7 @@ export class CustomFrameworkRegistry extends EventEmitter {
     // Mock implementation - in production, this would execute actual validation rules
     const results = {
       passed: true,
-      criteriaResults: {}
+      criteriaResults: {},
     };
 
     if (framework.validation_rules) {
@@ -1554,10 +1596,10 @@ export class CustomFrameworkRegistry extends EventEmitter {
         }
 
         // Update average validation time
-        const newAvgTime = (
-          (this.metrics.averageValidationTime * (this.metrics.frameworksAdded - 1)) +
-          data.duration
-        ) / this.metrics.frameworksAdded;
+        const newAvgTime =
+          (this.metrics.averageValidationTime * (this.metrics.frameworksAdded - 1) +
+            data.duration) /
+          this.metrics.frameworksAdded;
 
         this.metrics.averageValidationTime = newAvgTime;
         break;
@@ -1575,7 +1617,6 @@ export class CustomFrameworkRegistry extends EventEmitter {
       this.emit('shutdown');
 
       console.log('✅ Custom Framework Registry shut down');
-
     } catch (error) {
       this.emit('error', error);
       throw error;

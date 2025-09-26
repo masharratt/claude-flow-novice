@@ -11,7 +11,7 @@ import {
   GitHubError,
   HookContext,
   AgentCapabilities,
-  CodeReviewContext
+  CodeReviewContext,
 } from '../types';
 import { GitHubClient, githubConnectionPool } from '../utils/github-client';
 
@@ -29,7 +29,7 @@ export class GitHubCollaborationManager {
       issues: true,
       workflows: false,
       releases: false,
-      multi_repo: true
+      multi_repo: true,
     };
   }
 
@@ -46,32 +46,29 @@ export class GitHubCollaborationManager {
     head: string,
     base: string,
     body?: string,
-    draft: boolean = false
+    draft: boolean = false,
   ): Promise<PullRequest> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'create_pull_request',
       repository,
-      metadata: { title, head, base, draft }
+      metadata: { title, head, base, draft },
     };
 
     await this.executePreHook(context);
 
     try {
-      const pr = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/pulls`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            title,
-            head,
-            base,
-            body: body || '',
-            draft
-          }),
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      const pr = await this.client.request(`/repos/${repository.owner}/${repository.repo}/pulls`, {
+        method: 'POST',
+        body: JSON.stringify({
+          title,
+          head,
+          base,
+          body: body || '',
+          draft,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
 
       const pullRequest: PullRequest = {
         number: pr.number,
@@ -80,12 +77,12 @@ export class GitHubCollaborationManager {
         state: pr.state,
         base: pr.base.ref,
         head: pr.head.ref,
-        repository
+        repository,
       };
 
       await this.executePostHook({
         ...context,
-        metadata: { ...context.metadata, pr_number: pr.number }
+        metadata: { ...context.metadata, pr_number: pr.number },
       });
 
       return pullRequest;
@@ -104,18 +101,18 @@ export class GitHubCollaborationManager {
       sort?: 'created' | 'updated' | 'popularity';
       direction?: 'asc' | 'desc';
       limit?: number;
-    } = {}
+    } = {},
   ): Promise<PullRequest[]> {
     try {
       const params = new URLSearchParams({
         state: options.state || 'open',
         sort: options.sort || 'created',
         direction: options.direction || 'desc',
-        per_page: (options.limit || 30).toString()
+        per_page: (options.limit || 30).toString(),
       });
 
       const prs = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/pulls?${params}`
+        `/repos/${repository.owner}/${repository.repo}/pulls?${params}`,
       );
 
       return prs.map((pr: any) => ({
@@ -125,7 +122,7 @@ export class GitHubCollaborationManager {
         state: pr.state,
         base: pr.base.ref,
         head: pr.head.ref,
-        repository
+        repository,
       }));
     } catch (error) {
       throw this.handleError(error, 'get_pull_requests', repository);
@@ -143,13 +140,13 @@ export class GitHubCollaborationManager {
       body: string;
       state: 'open' | 'closed';
       base: string;
-    }>
+    }>,
   ): Promise<PullRequest> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'update_pull_request',
       repository,
-      metadata: { pr_number: prNumber, updates }
+      metadata: { pr_number: prNumber, updates },
     };
 
     await this.executePreHook(context);
@@ -160,8 +157,8 @@ export class GitHubCollaborationManager {
         {
           method: 'PATCH',
           body: JSON.stringify(updates),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       const pullRequest: PullRequest = {
@@ -171,7 +168,7 @@ export class GitHubCollaborationManager {
         state: pr.state,
         base: pr.base.ref,
         head: pr.head.ref,
-        repository
+        repository,
       };
 
       await this.executePostHook(context);
@@ -191,13 +188,13 @@ export class GitHubCollaborationManager {
       commit_title?: string;
       commit_message?: string;
       merge_method?: 'merge' | 'squash' | 'rebase';
-    } = {}
+    } = {},
   ): Promise<any> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'merge_pull_request',
       repository,
-      metadata: { pr_number: prNumber, merge_method: options.merge_method || 'merge' }
+      metadata: { pr_number: prNumber, merge_method: options.merge_method || 'merge' },
     };
 
     await this.executePreHook(context);
@@ -210,10 +207,10 @@ export class GitHubCollaborationManager {
           body: JSON.stringify({
             commit_title: options.commit_title,
             commit_message: options.commit_message,
-            merge_method: options.merge_method || 'merge'
+            merge_method: options.merge_method || 'merge',
           }),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       await this.executePostHook(context);
@@ -233,13 +230,13 @@ export class GitHubCollaborationManager {
   async createCodeReview(
     repository: Repository,
     prNumber: number,
-    reviewContext: CodeReviewContext
+    reviewContext: CodeReviewContext,
   ): Promise<any> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'create_code_review',
       repository,
-      metadata: { pr_number: prNumber, review_type: reviewContext.review_type }
+      metadata: { pr_number: prNumber, review_type: reviewContext.review_type },
     };
 
     await this.executePreHook(context);
@@ -262,21 +259,21 @@ export class GitHubCollaborationManager {
           body: JSON.stringify({
             body: this.generateReviewSummary(analysis, reviewContext),
             event: this.determineReviewEvent(analysis),
-            comments: comments
+            comments: comments,
           }),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       await this.executePostHook({
         ...context,
-        metadata: { ...context.metadata, review_id: review.id, comments_count: comments.length }
+        metadata: { ...context.metadata, review_id: review.id, comments_count: comments.length },
       });
 
       return {
         review,
         analysis,
-        comments_count: comments.length
+        comments_count: comments.length,
       };
     } catch (error) {
       throw this.handleError(error, 'create_code_review', repository);
@@ -289,7 +286,7 @@ export class GitHubCollaborationManager {
   async getPullRequestFiles(repository: Repository, prNumber: number): Promise<any[]> {
     try {
       return await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/pulls/${prNumber}/files`
+        `/repos/${repository.owner}/${repository.repo}/pulls/${prNumber}/files`,
       );
     } catch (error) {
       throw this.handleError(error, 'get_pull_request_files', repository);
@@ -306,7 +303,7 @@ export class GitHubCollaborationManager {
       path: string;
       position: number;
       body: string;
-    }>
+    }>,
   ): Promise<any[]> {
     try {
       const results = [];
@@ -319,10 +316,10 @@ export class GitHubCollaborationManager {
             body: JSON.stringify({
               body: comment.body,
               path: comment.path,
-              position: comment.position
+              position: comment.position,
             }),
-            headers: { 'Content-Type': 'application/json' }
-          }
+            headers: { 'Content-Type': 'application/json' },
+          },
         );
 
         results.push(result);
@@ -346,13 +343,13 @@ export class GitHubCollaborationManager {
     title: string,
     body?: string,
     labels?: string[],
-    assignees?: string[]
+    assignees?: string[],
   ): Promise<Issue> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'create_issue',
       repository,
-      metadata: { title, labels_count: labels?.length || 0 }
+      metadata: { title, labels_count: labels?.length || 0 },
     };
 
     await this.executePreHook(context);
@@ -366,10 +363,10 @@ export class GitHubCollaborationManager {
             title,
             body: body || '',
             labels: labels || [],
-            assignees: assignees || []
+            assignees: assignees || [],
           }),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       const issueObj: Issue = {
@@ -379,12 +376,12 @@ export class GitHubCollaborationManager {
         state: issue.state,
         labels: issue.labels?.map((l: any) => l.name) || [],
         assignees: issue.assignees?.map((a: any) => a.login) || [],
-        repository
+        repository,
       };
 
       await this.executePostHook({
         ...context,
-        metadata: { ...context.metadata, issue_number: issue.number }
+        metadata: { ...context.metadata, issue_number: issue.number },
       });
 
       return issueObj;
@@ -404,14 +401,14 @@ export class GitHubCollaborationManager {
       sort?: 'created' | 'updated' | 'comments';
       direction?: 'asc' | 'desc';
       limit?: number;
-    } = {}
+    } = {},
   ): Promise<Issue[]> {
     try {
       const params = new URLSearchParams({
         state: options.state || 'open',
         sort: options.sort || 'created',
         direction: options.direction || 'desc',
-        per_page: (options.limit || 30).toString()
+        per_page: (options.limit || 30).toString(),
       });
 
       if (options.labels?.length) {
@@ -419,7 +416,7 @@ export class GitHubCollaborationManager {
       }
 
       const issues = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/issues?${params}`
+        `/repos/${repository.owner}/${repository.repo}/issues?${params}`,
       );
 
       return issues
@@ -431,7 +428,7 @@ export class GitHubCollaborationManager {
           state: issue.state,
           labels: issue.labels?.map((l: any) => l.name) || [],
           assignees: issue.assignees?.map((a: any) => a.login) || [],
-          repository
+          repository,
         }));
     } catch (error) {
       throw this.handleError(error, 'get_issues', repository);
@@ -450,13 +447,13 @@ export class GitHubCollaborationManager {
       state: 'open' | 'closed';
       labels: string[];
       assignees: string[];
-    }>
+    }>,
   ): Promise<Issue> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'update_issue',
       repository,
-      metadata: { issue_number: issueNumber, updates }
+      metadata: { issue_number: issueNumber, updates },
     };
 
     await this.executePreHook(context);
@@ -467,8 +464,8 @@ export class GitHubCollaborationManager {
         {
           method: 'PATCH',
           body: JSON.stringify(updates),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       const issueObj: Issue = {
@@ -478,7 +475,7 @@ export class GitHubCollaborationManager {
         state: issue.state,
         labels: issue.labels?.map((l: any) => l.name) || [],
         assignees: issue.assignees?.map((a: any) => a.login) || [],
-        repository
+        repository,
       };
 
       await this.executePostHook(context);
@@ -496,7 +493,7 @@ export class GitHubCollaborationManager {
       agent_id: this.agentId,
       operation: 'triage_issues',
       repository,
-      metadata: { limit }
+      metadata: { limit },
     };
 
     await this.executePreHook(context);
@@ -505,7 +502,7 @@ export class GitHubCollaborationManager {
       const issues = await this.getIssues(repository, {
         state: 'open',
         sort: 'created',
-        limit
+        limit,
       });
 
       const triageResults = [];
@@ -529,20 +526,20 @@ export class GitHubCollaborationManager {
           triageResults.push({
             issue: updatedIssue,
             triage,
-            updated: true
+            updated: true,
           });
         } else {
           triageResults.push({
             issue,
             triage,
-            updated: false
+            updated: false,
           });
         }
       }
 
       await this.executePostHook({
         ...context,
-        metadata: { ...context.metadata, triaged_count: triageResults.length }
+        metadata: { ...context.metadata, triaged_count: triageResults.length },
       });
 
       return triageResults;
@@ -558,19 +555,14 @@ export class GitHubCollaborationManager {
   /**
    * Sync issues and PRs with project boards
    */
-  async syncWithProjectBoards(
-    repository: Repository,
-    projectId?: number
-  ): Promise<any> {
+  async syncWithProjectBoards(repository: Repository, projectId?: number): Promise<any> {
     try {
       // Get repository projects
       const projects = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/projects`
+        `/repos/${repository.owner}/${repository.repo}/projects`,
       );
 
-      const targetProject = projectId
-        ? projects.find((p: any) => p.id === projectId)
-        : projects[0];
+      const targetProject = projectId ? projects.find((p: any) => p.id === projectId) : projects[0];
 
       if (!targetProject) {
         throw new Error('No project found for synchronization');
@@ -582,14 +574,14 @@ export class GitHubCollaborationManager {
       // Get open issues and PRs
       const [issues, prs] = await Promise.all([
         this.getIssues(repository, { state: 'open' }),
-        this.getPullRequests(repository, { state: 'open' })
+        this.getPullRequests(repository, { state: 'open' }),
       ]);
 
       const syncResults = {
         project: targetProject,
         synced_issues: 0,
         synced_prs: 0,
-        errors: []
+        errors: [],
       };
 
       // Sync issues to appropriate columns
@@ -601,7 +593,7 @@ export class GitHubCollaborationManager {
           syncResults.errors.push({
             type: 'issue',
             id: issue.number,
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -615,7 +607,7 @@ export class GitHubCollaborationManager {
           syncResults.errors.push({
             type: 'pull_request',
             id: pr.number,
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -638,7 +630,7 @@ export class GitHubCollaborationManager {
       issues: [],
       suggestions: [],
       security_concerns: [],
-      performance_concerns: []
+      performance_concerns: [],
     };
 
     for (const file of files) {
@@ -671,7 +663,7 @@ export class GitHubCollaborationManager {
       { pattern: /password\s*=\s*['"][^'"]+['"]/, message: 'Hardcoded password detected' },
       { pattern: /api_key\s*=\s*['"][^'"]+['"]/, message: 'Hardcoded API key detected' },
       { pattern: /eval\s*\(/i, message: 'Use of eval() detected - potential security risk' },
-      { pattern: /innerHTML\s*=/i, message: 'Use of innerHTML - potential XSS risk' }
+      { pattern: /innerHTML\s*=/i, message: 'Use of innerHTML - potential XSS risk' },
     ];
 
     for (const { pattern, message } of securityPatterns) {
@@ -680,7 +672,7 @@ export class GitHubCollaborationManager {
           file: file.filename,
           line: this.findLineNumber(content, pattern),
           message,
-          severity: 'high'
+          severity: 'high',
         });
       }
     }
@@ -693,9 +685,15 @@ export class GitHubCollaborationManager {
     const content = file.patch || '';
 
     const performancePatterns = [
-      { pattern: /for\s*\([^)]*\)\s*{\s*for\s*\(/i, message: 'Nested loops detected - consider optimization' },
-      { pattern: /querySelector\s*\(/i, message: 'Consider using more specific selectors or caching' },
-      { pattern: /console\.log/i, message: 'Remove console.log statements in production' }
+      {
+        pattern: /for\s*\([^)]*\)\s*{\s*for\s*\(/i,
+        message: 'Nested loops detected - consider optimization',
+      },
+      {
+        pattern: /querySelector\s*\(/i,
+        message: 'Consider using more specific selectors or caching',
+      },
+      { pattern: /console\.log/i, message: 'Remove console.log statements in production' },
     ];
 
     for (const { pattern, message } of performancePatterns) {
@@ -704,7 +702,7 @@ export class GitHubCollaborationManager {
           file: file.filename,
           line: this.findLineNumber(content, pattern),
           message,
-          severity: 'medium'
+          severity: 'medium',
         });
       }
     }
@@ -717,9 +715,15 @@ export class GitHubCollaborationManager {
     const content = file.patch || '';
 
     const qualityPatterns = [
-      { pattern: /function\s+\w+\s*\([^)]*\)\s*{[^}]{500,}}/i, message: 'Large function detected - consider breaking into smaller functions' },
-      { pattern: /\/\/\s*TODO|\/\/\s*FIXME|\/\/\s*HACK/i, message: 'TODO/FIXME comment found - consider addressing' },
-      { pattern: /var\s+\w+/i, message: 'Use const or let instead of var' }
+      {
+        pattern: /function\s+\w+\s*\([^)]*\)\s*{[^}]{500,}}/i,
+        message: 'Large function detected - consider breaking into smaller functions',
+      },
+      {
+        pattern: /\/\/\s*TODO|\/\/\s*FIXME|\/\/\s*HACK/i,
+        message: 'TODO/FIXME comment found - consider addressing',
+      },
+      { pattern: /var\s+\w+/i, message: 'Use const or let instead of var' },
     ];
 
     for (const { pattern, message } of qualityPatterns) {
@@ -728,7 +732,7 @@ export class GitHubCollaborationManager {
           file: file.filename,
           line: this.findLineNumber(content, pattern),
           message,
-          severity: 'low'
+          severity: 'low',
         });
       }
     }
@@ -743,7 +747,7 @@ export class GitHubCollaborationManager {
     const stylePatterns = [
       { pattern: /\s{5,}/g, message: 'Inconsistent indentation - consider using 2 or 4 spaces' },
       { pattern: /;\s*$/gm, message: 'Missing semicolon' },
-      { pattern: /\{\s*\n\s*\n/g, message: 'Unnecessary blank line after opening brace' }
+      { pattern: /\{\s*\n\s*\n/g, message: 'Unnecessary blank line after opening brace' },
     ];
 
     for (const { pattern, message } of stylePatterns) {
@@ -752,7 +756,7 @@ export class GitHubCollaborationManager {
           file: file.filename,
           line: this.findLineNumber(content, pattern),
           message,
-          severity: 'low'
+          severity: 'low',
         });
       }
     }
@@ -778,7 +782,7 @@ export class GitHubCollaborationManager {
       comments.push({
         path: issue.file,
         position: issue.line,
-        body: `**${issue.severity.toUpperCase()}**: ${issue.message}`
+        body: `**${issue.severity.toUpperCase()}**: ${issue.message}`,
       });
     }
 
@@ -786,7 +790,7 @@ export class GitHubCollaborationManager {
       comments.push({
         path: concern.file,
         position: concern.line,
-        body: `🔒 **SECURITY**: ${concern.message}`
+        body: `🔒 **SECURITY**: ${concern.message}`,
       });
     }
 
@@ -794,7 +798,7 @@ export class GitHubCollaborationManager {
       comments.push({
         path: concern.file,
         position: concern.line,
-        body: `⚡ **PERFORMANCE**: ${concern.message}`
+        body: `⚡ **PERFORMANCE**: ${concern.message}`,
       });
     }
 
@@ -850,14 +854,18 @@ export class GitHubCollaborationManager {
       priority: 'medium',
       suggested_labels: [],
       suggested_assignees: [],
-      category: 'general'
+      category: 'general',
     };
 
     // Analyze priority
     if (content.includes('urgent') || content.includes('critical') || content.includes('broken')) {
       triage.priority = 'high';
       triage.suggested_labels.push('priority:high');
-    } else if (content.includes('low') || content.includes('minor') || content.includes('enhancement')) {
+    } else if (
+      content.includes('low') ||
+      content.includes('minor') ||
+      content.includes('enhancement')
+    ) {
       triage.priority = 'low';
       triage.suggested_labels.push('priority:low');
     }
@@ -866,10 +874,18 @@ export class GitHubCollaborationManager {
     if (content.includes('bug') || content.includes('error') || content.includes('broken')) {
       triage.category = 'bug';
       triage.suggested_labels.push('bug');
-    } else if (content.includes('feature') || content.includes('enhancement') || content.includes('improve')) {
+    } else if (
+      content.includes('feature') ||
+      content.includes('enhancement') ||
+      content.includes('improve')
+    ) {
       triage.category = 'enhancement';
       triage.suggested_labels.push('enhancement');
-    } else if (content.includes('question') || content.includes('help') || content.includes('how')) {
+    } else if (
+      content.includes('question') ||
+      content.includes('help') ||
+      content.includes('how')
+    ) {
       triage.category = 'question';
       triage.suggested_labels.push('question');
     } else if (content.includes('documentation') || content.includes('docs')) {
@@ -884,11 +900,11 @@ export class GitHubCollaborationManager {
     projectId: number,
     columns: any[],
     type: 'issue' | 'pull_request',
-    item: Issue | PullRequest
+    item: Issue | PullRequest,
   ): Promise<any> {
     // Find appropriate column based on item state and type
-    let targetColumn = columns.find(col =>
-      col.name.toLowerCase().includes(type === 'pull_request' ? 'review' : 'todo')
+    let targetColumn = columns.find((col) =>
+      col.name.toLowerCase().includes(type === 'pull_request' ? 'review' : 'todo'),
     );
 
     if (!targetColumn) {
@@ -900,9 +916,9 @@ export class GitHubCollaborationManager {
       method: 'POST',
       body: JSON.stringify({
         content_id: item.number,
-        content_type: type === 'pull_request' ? 'PullRequest' : 'Issue'
+        content_type: type === 'pull_request' ? 'PullRequest' : 'Issue',
       }),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 
@@ -928,7 +944,7 @@ export class GitHubCollaborationManager {
       message: `${operation} failed: ${error.message}`,
       status: error.status,
       repository: repository || undefined,
-      context: { operation, agent_id: this.agentId }
+      context: { operation, agent_id: this.agentId },
     };
 
     console.error(`[${this.agentId}] Error in ${operation}:`, gitHubError);
@@ -947,7 +963,7 @@ export class GitHubCollaborationManager {
     return {
       ...this.client.getMetrics(),
       agent_id: this.agentId,
-      capabilities: this.capabilities
+      capabilities: this.capabilities,
     };
   }
 }

@@ -970,7 +970,7 @@ npx claude-flow workflow export --name "deploy-api" --include-history
 `,
     },
     swarm: {
-      'swarm': `# swarm
+      swarm: `# swarm
 
 Main swarm orchestration command for Claude Flow.
 
@@ -1239,8 +1239,30 @@ export const COMMAND_STRUCTURE = {
   optimization: ['topology-optimize', 'parallel-execute', 'cache-manage'],
   training: ['neural-train', 'pattern-learn', 'model-update'],
   workflows: ['workflow-create', 'workflow-execute', 'workflow-export'],
-  swarm: ['swarm', 'swarm-init', 'swarm-spawn', 'swarm-status', 'swarm-monitor', 'swarm-strategies', 'swarm-modes', 'swarm-background', 'swarm-analysis'],
-  'hive-mind': ['hive-mind', 'hive-mind-init', 'hive-mind-spawn', 'hive-mind-status', 'hive-mind-resume', 'hive-mind-stop', 'hive-mind-sessions', 'hive-mind-consensus', 'hive-mind-memory', 'hive-mind-metrics', 'hive-mind-wizard'],
+  swarm: [
+    'swarm',
+    'swarm-init',
+    'swarm-spawn',
+    'swarm-status',
+    'swarm-monitor',
+    'swarm-strategies',
+    'swarm-modes',
+    'swarm-background',
+    'swarm-analysis',
+  ],
+  'hive-mind': [
+    'hive-mind',
+    'hive-mind-init',
+    'hive-mind-spawn',
+    'hive-mind-status',
+    'hive-mind-resume',
+    'hive-mind-stop',
+    'hive-mind-sessions',
+    'hive-mind-consensus',
+    'hive-mind-memory',
+    'hive-mind-metrics',
+    'hive-mind-wizard',
+  ],
   agents: ['agent-types', 'agent-capabilities', 'agent-coordination', 'agent-spawning'],
 };
 
@@ -2284,7 +2306,8 @@ function createEnhancedSettingsJsonFallback() {
               },
               {
                 type: 'command',
-                command: './.claude/helpers/standard-checkpoint-hooks.sh post-edit "{{tool_input}}"',
+                command:
+                  './.claude/helpers/standard-checkpoint-hooks.sh post-edit "{{tool_input}}"',
               },
             ],
           },
@@ -2309,7 +2332,8 @@ function createEnhancedSettingsJsonFallback() {
               },
               {
                 type: 'command',
-                command: '/usr/bin/env bash -c \'if [ -f ./.claude/helpers/standard-checkpoint-hooks.sh ]; then ./.claude/helpers/standard-checkpoint-hooks.sh session-end; else echo "⚠️  Checkpoint hooks not found"; fi\'',
+                command:
+                  '/usr/bin/env bash -c \'if [ -f ./.claude/helpers/standard-checkpoint-hooks.sh ]; then ./.claude/helpers/standard-checkpoint-hooks.sh session-end; else echo "⚠️  Checkpoint hooks not found"; fi\'',
               },
             ],
           },

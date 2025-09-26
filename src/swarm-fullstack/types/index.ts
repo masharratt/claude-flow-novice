@@ -43,28 +43,56 @@ export type BaseAgentType = 'researcher' | 'coder' | 'reviewer';
 // Extended agent types for full-stack development
 export type ExtendedAgentType =
   // Frontend agents
-  | 'frontend-developer' | 'ui-designer' | 'accessibility-specialist'
+  | 'frontend-developer'
+  | 'ui-designer'
+  | 'accessibility-specialist'
   // Backend agents
-  | 'backend-developer' | 'api-developer' | 'microservices-architect'
+  | 'backend-developer'
+  | 'api-developer'
+  | 'microservices-architect'
   // Database agents
-  | 'database-developer' | 'data-architect' | 'migration-specialist'
+  | 'database-developer'
+  | 'data-architect'
+  | 'migration-specialist'
   // Testing agents
-  | 'qa-engineer' | 'e2e-tester' | 'performance-tester' | 'security-tester'
+  | 'qa-engineer'
+  | 'e2e-tester'
+  | 'performance-tester'
+  | 'security-tester'
   // DevOps agents
-  | 'devops-engineer' | 'deployment-specialist' | 'monitoring-specialist'
+  | 'devops-engineer'
+  | 'deployment-specialist'
+  | 'monitoring-specialist'
   // Coordination agents
-  | 'project-coordinator' | 'integration-specialist' | 'release-manager';
+  | 'project-coordinator'
+  | 'integration-specialist'
+  | 'release-manager';
 
 // Full union type
 export type FullStackAgentType = BaseAgentType | ExtendedAgentType;
 
 export type FullStackMessageType =
   // Legacy compatibility
-  | 'task-start' | 'progress-update' | 'decision' | 'coordination' | 'completion' | 'error' | 'reasoning'
+  | 'task-start'
+  | 'progress-update'
+  | 'decision'
+  | 'coordination'
+  | 'completion'
+  | 'error'
+  | 'reasoning'
   // Full-stack specific
-  | 'feature-spec' | 'design-review' | 'code-review' | 'test-result' | 'deployment-status'
-  | 'integration-check' | 'performance-report' | 'security-scan' | 'quality-gate'
-  | 'dependency-update' | 'conflict-resolution' | 'rollback-request';
+  | 'feature-spec'
+  | 'design-review'
+  | 'code-review'
+  | 'test-result'
+  | 'deployment-status'
+  | 'integration-check'
+  | 'performance-report'
+  | 'security-scan'
+  | 'quality-gate'
+  | 'dependency-update'
+  | 'conflict-resolution'
+  | 'rollback-request';
 
 export interface SwarmTeamComposition {
   swarmId: string;
@@ -171,4 +199,8 @@ export interface QualityGate {
 }
 
 // Re-export existing types from the original router for compatibility
-export type { AgentMessage, MessageQuery, SwarmState } from '../../web/messaging/swarm-message-router.js';
+export type {
+  AgentMessage,
+  MessageQuery,
+  SwarmState,
+} from '../../web/messaging/swarm-message-router.js';

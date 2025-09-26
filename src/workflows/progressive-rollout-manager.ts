@@ -142,7 +142,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
             maxErrorRate: 0.5,
             maxLatency: 500,
             minThroughput: 10,
-            customMetrics: {}
+            customMetrics: {},
           },
           healthChecks: [
             {
@@ -151,11 +151,11 @@ export class ProgressiveRolloutManager extends EventEmitter {
               endpoint: '/health',
               timeout: 5000,
               interval: 30000,
-              retries: 3
-            }
+              retries: 3,
+            },
           ],
           rollbackThreshold: 2.0,
-          autoProgress: true
+          autoProgress: true,
         },
         {
           name: 'canary-25',
@@ -166,7 +166,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
             maxErrorRate: 0.3,
             maxLatency: 400,
             minThroughput: 50,
-            customMetrics: {}
+            customMetrics: {},
           },
           healthChecks: [
             {
@@ -175,7 +175,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
               endpoint: '/health',
               timeout: 5000,
               interval: 30000,
-              retries: 3
+              retries: 3,
             },
             {
               name: 'metrics-check',
@@ -185,11 +185,11 @@ export class ProgressiveRolloutManager extends EventEmitter {
               tolerance: 0.2,
               timeout: 10000,
               interval: 60000,
-              retries: 2
-            }
+              retries: 2,
+            },
           ],
           rollbackThreshold: 1.0,
-          autoProgress: true
+          autoProgress: true,
         },
         {
           name: 'full-rollout',
@@ -200,7 +200,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
             maxErrorRate: 0.1,
             maxLatency: 300,
             minThroughput: 100,
-            customMetrics: {}
+            customMetrics: {},
           },
           healthChecks: [
             {
@@ -209,36 +209,36 @@ export class ProgressiveRolloutManager extends EventEmitter {
               endpoint: '/health/comprehensive',
               timeout: 10000,
               interval: 60000,
-              retries: 5
-            }
+              retries: 5,
+            },
           ],
           rollbackThreshold: 0.5,
-          autoProgress: false
-        }
+          autoProgress: false,
+        },
       ],
       globalRollbackCriteria: {
         minSuccessRate: 95.0,
         maxErrorRate: 2.0,
         maxLatency: 1000,
         minThroughput: 1,
-        customMetrics: {}
+        customMetrics: {},
       },
       notifications: {
         channels: ['slack', 'email'],
         events: ['stage_started', 'stage_completed', 'rollback_triggered', 'deployment_completed'],
         templates: {
           stage_started: 'Deployment stage {stageName} started for {featureId}',
-          rollback_triggered: 'ALERT: Rollback triggered for {featureId} due to {reason}'
-        }
+          rollback_triggered: 'ALERT: Rollback triggered for {featureId} due to {reason}',
+        },
       },
       monitoring: {
         metricsInterval: 30000,
         alertThresholds: {
           error_rate: 1.0,
-          response_time: 500
+          response_time: 500,
         },
-        logsRetention: 30 * 24 * 60 * 60 * 1000 // 30 days
-      }
+        logsRetention: 30 * 24 * 60 * 60 * 1000, // 30 days
+      },
     });
 
     // Blue-Green deployment configuration
@@ -254,7 +254,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
             maxErrorRate: 0.3,
             maxLatency: 400,
             minThroughput: 1,
-            customMetrics: {}
+            customMetrics: {},
           },
           healthChecks: [
             {
@@ -263,11 +263,11 @@ export class ProgressiveRolloutManager extends EventEmitter {
               endpoint: '/health',
               timeout: 5000,
               interval: 15000,
-              retries: 3
-            }
+              retries: 3,
+            },
           ],
           rollbackThreshold: 1.0,
-          autoProgress: true
+          autoProgress: true,
         },
         {
           name: 'traffic-switch',
@@ -278,7 +278,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
             maxErrorRate: 0.5,
             maxLatency: 500,
             minThroughput: 10,
-            customMetrics: {}
+            customMetrics: {},
           },
           healthChecks: [
             {
@@ -287,40 +287,40 @@ export class ProgressiveRolloutManager extends EventEmitter {
               endpoint: '/health',
               timeout: 3000,
               interval: 10000,
-              retries: 5
-            }
+              retries: 5,
+            },
           ],
           rollbackThreshold: 2.0,
-          autoProgress: false
-        }
+          autoProgress: false,
+        },
       ],
       globalRollbackCriteria: {
         minSuccessRate: 98.0,
         maxErrorRate: 1.0,
         maxLatency: 600,
         minThroughput: 5,
-        customMetrics: {}
+        customMetrics: {},
       },
       notifications: {
         channels: ['slack', 'pagerduty'],
         events: ['traffic_switched', 'rollback_triggered'],
-        templates: {}
+        templates: {},
       },
       monitoring: {
         metricsInterval: 15000,
         alertThresholds: {
           error_rate: 0.5,
-          response_time: 400
+          response_time: 400,
         },
-        logsRetention: 30 * 24 * 60 * 60 * 1000
-      }
+        logsRetention: 30 * 24 * 60 * 60 * 1000,
+      },
     });
   }
 
   public async startRollout(
     featureId: string,
     strategy: 'canary' | 'blue-green' | 'rolling' | 'a-b-test',
-    customConfig?: Partial<RolloutConfig>
+    customConfig?: Partial<RolloutConfig>,
   ): Promise<string> {
     const rolloutId = `rollout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -349,30 +349,34 @@ export class ProgressiveRolloutManager extends EventEmitter {
           errorRate: 0,
           averageLatency: 0,
           throughput: 0,
-          customMetrics: {}
+          customMetrics: {},
         },
         traffic: {
           totalRequests: 0,
           successfulRequests: 0,
           failedRequests: 0,
           averageResponseTime: 0,
-          errorsByType: {}
-        }
+          errorsByType: {},
+        },
       })),
       metrics: {
         overallSuccessRate: 0,
         overallErrorRate: 0,
         totalTraffic: 0,
         rollbackCount: 0,
-        stages: []
+        stages: [],
       },
-      logs: []
+      logs: [],
     };
 
     this.rollouts.set(rolloutId, execution);
 
-    this.addLog(rolloutId, 'info', 'initialization',
-      `Starting ${strategy} rollout for feature ${featureId}`);
+    this.addLog(
+      rolloutId,
+      'info',
+      'initialization',
+      `Starting ${strategy} rollout for feature ${featureId}`,
+    );
 
     this.emit('rollout:started', { rolloutId, featureId, strategy, config });
 
@@ -388,7 +392,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
       ...custom,
       stages: custom.stages || base.stages,
       notifications: { ...base.notifications, ...custom.notifications },
-      monitoring: { ...base.monitoring, ...custom.monitoring }
+      monitoring: { ...base.monitoring, ...custom.monitoring },
     };
   }
 
@@ -408,13 +412,17 @@ export class ProgressiveRolloutManager extends EventEmitter {
     stageExecution.status = 'running';
     stageExecution.startTime = new Date();
 
-    this.addLog(rolloutId, 'info', stageConfig.name,
-      `Starting stage ${stageConfig.name} (${stageConfig.percentage}% traffic)`);
+    this.addLog(
+      rolloutId,
+      'info',
+      stageConfig.name,
+      `Starting stage ${stageConfig.name} (${stageConfig.percentage}% traffic)`,
+    );
 
     this.emit('rollout:stage-started', {
       rolloutId,
       stage: stageConfig,
-      stageIndex: execution.currentStage
+      stageIndex: execution.currentStage,
     });
 
     // Start health checks for this stage
@@ -425,9 +433,12 @@ export class ProgressiveRolloutManager extends EventEmitter {
 
     // Set stage completion timer (if duration is specified)
     if (stageConfig.duration > 0) {
-      setTimeout(async () => {
-        await this.evaluateStageCompletion(rolloutId, config);
-      }, stageConfig.duration * 60 * 1000);
+      setTimeout(
+        async () => {
+          await this.evaluateStageCompletion(rolloutId, config);
+        },
+        stageConfig.duration * 60 * 1000,
+      );
     }
 
     // For immediate evaluation (e.g., blue-green switch)
@@ -441,7 +452,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
   private async startHealthChecks(
     rolloutId: string,
     stage: RolloutStage,
-    config: RolloutConfig
+    config: RolloutConfig,
   ): Promise<void> {
     for (const healthCheck of stage.healthChecks) {
       const intervalId = setInterval(async () => {
@@ -458,7 +469,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
   private async runHealthCheck(
     rolloutId: string,
     healthCheck: HealthCheck,
-    stageName: string
+    stageName: string,
   ): Promise<void> {
     const execution = this.rollouts.get(rolloutId);
     if (!execution) return;
@@ -494,35 +505,41 @@ export class ProgressiveRolloutManager extends EventEmitter {
 
       // Keep only last 100 results per check
       const checkResults = stageExecution.healthCheckResults.filter(
-        r => r.checkName === healthCheck.name
+        (r) => r.checkName === healthCheck.name,
       );
       if (checkResults.length > 100) {
         stageExecution.healthCheckResults = stageExecution.healthCheckResults.filter(
-          r => r.checkName !== healthCheck.name ||
-          checkResults.slice(-100).includes(r)
+          (r) => r.checkName !== healthCheck.name || checkResults.slice(-100).includes(r),
         );
       }
 
       if (!result.success) {
-        this.addLog(rolloutId, 'warn', stageName,
-          `Health check ${healthCheck.name} failed: ${result.error}`);
+        this.addLog(
+          rolloutId,
+          'warn',
+          stageName,
+          `Health check ${healthCheck.name} failed: ${result.error}`,
+        );
 
         await this.evaluateRollbackConditions(rolloutId);
       }
-
     } catch (error) {
       const result: HealthCheckResult = {
         checkName: healthCheck.name,
         timestamp: new Date(),
         success: false,
         error: error instanceof Error ? error.message : String(error),
-        latency: Date.now() - startTime
+        latency: Date.now() - startTime,
       };
 
       stageExecution.healthCheckResults.push(result);
 
-      this.addLog(rolloutId, 'error', stageName,
-        `Health check ${healthCheck.name} error: ${result.error}`);
+      this.addLog(
+        rolloutId,
+        'error',
+        stageName,
+        `Health check ${healthCheck.name} error: ${result.error}`,
+      );
     }
   }
 
@@ -537,7 +554,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
       success: simulatedSuccess,
       value: simulatedSuccess ? 200 : 500,
       error: simulatedSuccess ? undefined : 'HTTP 500 Internal Server Error',
-      latency: simulatedLatency
+      latency: simulatedLatency,
     };
   }
 
@@ -547,7 +564,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
       checkName: healthCheck.name,
       timestamp: new Date(),
       success: Math.random() > 0.02,
-      latency: Math.random() * 50 + 10
+      latency: Math.random() * 50 + 10,
     };
   }
 
@@ -557,7 +574,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
       checkName: healthCheck.name,
       timestamp: new Date(),
       success: Math.random() > 0.1,
-      latency: Math.random() * 200 + 100
+      latency: Math.random() * 200 + 100,
     };
   }
 
@@ -575,7 +592,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
       success: withinTolerance,
       value: currentValue,
       error: withinTolerance ? undefined : `Value ${currentValue} outside tolerance`,
-      latency: Math.random() * 100 + 50
+      latency: Math.random() * 100 + 50,
     };
   }
 
@@ -601,8 +618,8 @@ export class ProgressiveRolloutManager extends EventEmitter {
       throughput: Math.random() * 100 + 50, // 50-150 req/sec
       customMetrics: {
         memory_usage: Math.random() * 30 + 70, // 70-100%
-        cpu_usage: Math.random() * 40 + 30 // 30-70%
-      }
+        cpu_usage: Math.random() * 40 + 30, // 30-70%
+      },
     };
 
     // Simulate traffic metrics
@@ -613,14 +630,15 @@ export class ProgressiveRolloutManager extends EventEmitter {
       averageResponseTime: simulatedMetrics.averageLatency,
       errorsByType: {
         '4xx': Math.floor(Math.random() * 5),
-        '5xx': Math.floor(Math.random() * 2)
-      }
+        '5xx': Math.floor(Math.random() * 2),
+      },
     };
 
     trafficMetrics.successfulRequests = Math.floor(
-      trafficMetrics.totalRequests * simulatedMetrics.successRate / 100
+      (trafficMetrics.totalRequests * simulatedMetrics.successRate) / 100,
     );
-    trafficMetrics.failedRequests = trafficMetrics.totalRequests - trafficMetrics.successfulRequests;
+    trafficMetrics.failedRequests =
+      trafficMetrics.totalRequests - trafficMetrics.successfulRequests;
 
     stageExecution.metrics = simulatedMetrics;
     stageExecution.traffic = trafficMetrics;
@@ -634,11 +652,19 @@ export class ProgressiveRolloutManager extends EventEmitter {
   }
 
   private calculateOverallSuccessRate(execution: RolloutExecution): number {
-    const completedStages = execution.stages.filter(s => s.status === 'completed' || s.status === 'running');
+    const completedStages = execution.stages.filter(
+      (s) => s.status === 'completed' || s.status === 'running',
+    );
     if (completedStages.length === 0) return 0;
 
-    const totalRequests = completedStages.reduce((sum, stage) => sum + stage.traffic.totalRequests, 0);
-    const successfulRequests = completedStages.reduce((sum, stage) => sum + stage.traffic.successfulRequests, 0);
+    const totalRequests = completedStages.reduce(
+      (sum, stage) => sum + stage.traffic.totalRequests,
+      0,
+    );
+    const successfulRequests = completedStages.reduce(
+      (sum, stage) => sum + stage.traffic.successfulRequests,
+      0,
+    );
 
     return totalRequests > 0 ? (successfulRequests / totalRequests) * 100 : 0;
   }
@@ -665,13 +691,17 @@ export class ProgressiveRolloutManager extends EventEmitter {
       stageExecution.status = 'completed';
       stageExecution.endTime = new Date();
 
-      this.addLog(rolloutId, 'info', stageConfig.name,
-        `Stage ${stageConfig.name} completed successfully`);
+      this.addLog(
+        rolloutId,
+        'info',
+        stageConfig.name,
+        `Stage ${stageConfig.name} completed successfully`,
+      );
 
       this.emit('rollout:stage-completed', {
         rolloutId,
         stage: stageConfig,
-        stageIndex: execution.currentStage
+        stageIndex: execution.currentStage,
       });
 
       // Clean up health checks for this stage
@@ -686,10 +716,13 @@ export class ProgressiveRolloutManager extends EventEmitter {
         execution.status = 'paused';
         this.emit('rollout:paused', { rolloutId, reason: 'Manual approval required' });
       }
-
     } else {
-      this.addLog(rolloutId, 'warn', stageConfig.name,
-        'Stage criteria not met, extending evaluation period');
+      this.addLog(
+        rolloutId,
+        'warn',
+        stageConfig.name,
+        'Stage criteria not met, extending evaluation period',
+      );
 
       // Extend evaluation period or trigger rollback based on configuration
       setTimeout(async () => {
@@ -727,12 +760,18 @@ export class ProgressiveRolloutManager extends EventEmitter {
 
     // Check stage-specific rollback threshold
     if (stageExecution.metrics.errorRate > stageConfig.rollbackThreshold) {
-      await this.triggerRollback(rolloutId, `Error rate ${stageExecution.metrics.errorRate}% exceeds threshold ${stageConfig.rollbackThreshold}%`);
+      await this.triggerRollback(
+        rolloutId,
+        `Error rate ${stageExecution.metrics.errorRate}% exceeds threshold ${stageConfig.rollbackThreshold}%`,
+      );
       return;
     }
 
     // Check global rollback criteria
-    const globalCriteriaMet = this.evaluateStageCriteria(stageExecution, config.globalRollbackCriteria);
+    const globalCriteriaMet = this.evaluateStageCriteria(
+      stageExecution,
+      config.globalRollbackCriteria,
+    );
     if (!globalCriteriaMet) {
       await this.triggerRollback(rolloutId, 'Global rollback criteria not met');
       return;
@@ -740,10 +779,14 @@ export class ProgressiveRolloutManager extends EventEmitter {
 
     // Check recent health check failures
     const recentHealthChecks = stageExecution.healthCheckResults.slice(-10);
-    const failureRate = recentHealthChecks.filter(check => !check.success).length / recentHealthChecks.length;
+    const failureRate =
+      recentHealthChecks.filter((check) => !check.success).length / recentHealthChecks.length;
 
     if (recentHealthChecks.length >= 5 && failureRate > 0.5) {
-      await this.triggerRollback(rolloutId, `Health check failure rate ${(failureRate * 100).toFixed(1)}% exceeds 50%`);
+      await this.triggerRollback(
+        rolloutId,
+        `Health check failure rate ${(failureRate * 100).toFixed(1)}% exceeds 50%`,
+      );
       return;
     }
   }
@@ -795,10 +838,13 @@ export class ProgressiveRolloutManager extends EventEmitter {
 
       this.addLog(rolloutId, 'info', 'rollback', 'Rollback completed successfully');
       this.emit('rollout:rollback-completed', { rolloutId });
-
     } catch (error) {
-      this.addLog(rolloutId, 'error', 'rollback',
-        `Rollback failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.addLog(
+        rolloutId,
+        'error',
+        'rollback',
+        `Rollback failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
 
       execution.status = 'failed';
       this.emit('rollout:rollback-failed', { rolloutId, error });
@@ -807,17 +853,17 @@ export class ProgressiveRolloutManager extends EventEmitter {
 
   private async rollbackCanary(rolloutId: string): Promise<void> {
     // Simulate canary rollback - redirect all traffic back to stable version
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
   private async rollbackBlueGreen(rolloutId: string): Promise<void> {
     // Simulate blue-green rollback - switch traffic back to blue environment
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   private async rollbackRolling(rolloutId: string): Promise<void> {
     // Simulate rolling rollback - gradually replace new version with old version
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   }
 
   private async completeRollout(rolloutId: string): Promise<void> {
@@ -826,8 +872,12 @@ export class ProgressiveRolloutManager extends EventEmitter {
 
     execution.status = 'completed';
 
-    this.addLog(rolloutId, 'info', 'completion',
-      `Rollout completed successfully for feature ${execution.featureId}`);
+    this.addLog(
+      rolloutId,
+      'info',
+      'completion',
+      `Rollout completed successfully for feature ${execution.featureId}`,
+    );
 
     // Stop all monitoring
     this.stopAllMonitoring(rolloutId);
@@ -854,8 +904,9 @@ export class ProgressiveRolloutManager extends EventEmitter {
     }
 
     // Stop all health checks
-    const keysToDelete = Array.from(this.healthCheckIntervals.keys())
-      .filter(key => key.startsWith(`${rolloutId}:`));
+    const keysToDelete = Array.from(this.healthCheckIntervals.keys()).filter((key) =>
+      key.startsWith(`${rolloutId}:`),
+    );
 
     for (const key of keysToDelete) {
       const intervalId = this.healthCheckIntervals.get(key);
@@ -866,7 +917,13 @@ export class ProgressiveRolloutManager extends EventEmitter {
     }
   }
 
-  private addLog(rolloutId: string, level: RolloutLog['level'], stage: string, message: string, data?: any): void {
+  private addLog(
+    rolloutId: string,
+    level: RolloutLog['level'],
+    stage: string,
+    message: string,
+    data?: any,
+  ): void {
     const execution = this.rollouts.get(rolloutId);
     if (!execution) return;
 
@@ -875,7 +932,7 @@ export class ProgressiveRolloutManager extends EventEmitter {
       level,
       stage,
       message,
-      data
+      data,
     };
 
     execution.logs.push(log);
@@ -921,10 +978,10 @@ export class ProgressiveRolloutManager extends EventEmitter {
   }
 
   public getRolloutsByFeature(featureId: string): RolloutExecution[] {
-    return Array.from(this.rollouts.values()).filter(r => r.featureId === featureId);
+    return Array.from(this.rollouts.values()).filter((r) => r.featureId === featureId);
   }
 
   public getRolloutsByStatus(status: RolloutExecution['status']): RolloutExecution[] {
-    return Array.from(this.rollouts.values()).filter(r => r.status === status);
+    return Array.from(this.rollouts.values()).filter((r) => r.status === status);
   }
 }

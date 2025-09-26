@@ -25,14 +25,14 @@ class NetworkBasedStrategy {
     // Calculate minimum quorum for fault tolerance
     const minQuorum = this.calculateMinimumQuorum(
       membershipStatus.activeNodes.length,
-      partitionRisk.maxPartitionSize
+      partitionRisk.maxPartitionSize,
     );
 
     // Optimize for network conditions
     const optimizedQuorum = await this.optimizeForNetworkConditions(
       minQuorum,
       networkConditions,
-      topologyAnalysis
+      topologyAnalysis,
     );
 
     return {
@@ -42,8 +42,8 @@ class NetworkBasedStrategy {
       reasoning: this.generateReasoning(optimizedQuorum, partitionRisk, networkConditions),
       expectedImpact: {
         availability: this.estimateAvailabilityImpact(optimizedQuorum),
-        performance: this.estimatePerformanceImpact(optimizedQuorum, networkConditions)
-      }
+        performance: this.estimatePerformanceImpact(optimizedQuorum, networkConditions),
+      },
     };
   }
 
@@ -53,7 +53,7 @@ class NetworkBasedStrategy {
       edges: 0,
       clusters: [],
       diameter: 0,
-      connectivity: new Map()
+      connectivity: new Map(),
     };
 
     // Build connectivity matrix
@@ -77,29 +77,26 @@ class NetworkBasedStrategy {
       connectivityReliability: this.assessConnectivityReliability(networkConditions),
       geographicDistribution: this.assessGeographicRisk(topologyAnalysis),
       networkLatency: this.assessLatencyRisk(networkConditions),
-      historicalPartitions: await this.getHistoricalPartitionData()
+      historicalPartitions: await this.getHistoricalPartitionData(),
     };
 
     // Calculate overall partition risk
     const overallRisk = this.calculateOverallPartitionRisk(riskFactors);
 
     // Estimate maximum partition size
-    const maxPartitionSize = this.estimateMaxPartitionSize(
-      topologyAnalysis,
-      riskFactors
-    );
+    const maxPartitionSize = this.estimateMaxPartitionSize(topologyAnalysis, riskFactors);
 
     return {
       overallRisk: overallRisk,
       maxPartitionSize: maxPartitionSize,
       riskFactors: riskFactors,
-      mitigationStrategies: this.suggestMitigationStrategies(riskFactors)
+      mitigationStrategies: this.suggestMitigationStrategies(riskFactors),
     };
   }
 
   calculateMinimumQuorum(totalNodes, maxPartitionSize) {
     // For Byzantine fault tolerance: need > 2/3 of total nodes
-    const byzantineMinimum = Math.floor(2 * totalNodes / 3) + 1;
+    const byzantineMinimum = Math.floor((2 * totalNodes) / 3) + 1;
 
     // For network partition tolerance: need > 1/2 of largest connected component
     const partitionMinimum = Math.floor((totalNodes - maxPartitionSize) / 2) + 1;
@@ -112,15 +109,16 @@ class NetworkBasedStrategy {
     const optimization = {
       baseQuorum: minQuorum,
       nodes: new Map(),
-      totalWeight: 0
+      totalWeight: 0,
     };
 
     // Select nodes for quorum based on network position and reliability
     const nodeScores = await this.scoreNodesForQuorum(networkConditions, topologyAnalysis);
 
     // Sort nodes by score (higher is better)
-    const sortedNodes = Array.from(nodeScores.entries())
-      .sort(([,scoreA], [,scoreB]) => scoreB - scoreA);
+    const sortedNodes = Array.from(nodeScores.entries()).sort(
+      ([, scoreA], [, scoreB]) => scoreB - scoreA,
+    );
 
     // Select top nodes for quorum
     let selectedCount = 0;
@@ -130,7 +128,7 @@ class NetworkBasedStrategy {
         optimization.nodes.set(nodeId, {
           weight: weight,
           score: score,
-          role: selectedCount === 0 ? 'primary' : 'secondary'
+          role: selectedCount === 0 ? 'primary' : 'secondary',
         });
         optimization.totalWeight += weight;
         selectedCount++;
@@ -173,11 +171,11 @@ class NetworkBasedStrategy {
 
     // Adjust based on normalized score (0-1)
     const normalizedScore = score / 100;
-    weight *= (0.5 + normalizedScore);
+    weight *= 0.5 + normalizedScore;
 
     // Adjust based on network latency
     const nodeLatency = networkConditions.nodeLatencies.get(nodeId) || 100;
-    const latencyFactor = Math.max(0.1, 1.0 - (nodeLatency / 1000)); // Lower latency = higher weight
+    const latencyFactor = Math.max(0.1, 1.0 - nodeLatency / 1000); // Lower latency = higher weight
     weight *= latencyFactor;
 
     // Ensure minimum weight
@@ -279,20 +277,22 @@ class NetworkBasedStrategy {
       packetLoss: 1 - (networkConditions.packetLoss || 0),
       jitter: Math.max(0, 1 - (networkConditions.jitter || 0) / 100),
       bandwidth: Math.min(1, (networkConditions.bandwidth || 1000) / 1000),
-      uptime: networkConditions.uptime || 0.99
+      uptime: networkConditions.uptime || 0.99,
     };
 
     // Calculate weighted average
-    return (reliability.packetLoss * 0.3 +
-            reliability.jitter * 0.2 +
-            reliability.bandwidth * 0.2 +
-            reliability.uptime * 0.3);
+    return (
+      reliability.packetLoss * 0.3 +
+      reliability.jitter * 0.2 +
+      reliability.bandwidth * 0.2 +
+      reliability.uptime * 0.3
+    );
   }
 
   assessGeographicRisk(topologyAnalysis) {
     // Assess risk based on geographic distribution
     // Higher clustering = higher risk
-    const clusterSizes = topologyAnalysis.clusters.map(cluster => cluster.length);
+    const clusterSizes = topologyAnalysis.clusters.map((cluster) => cluster.length);
     const largestCluster = Math.max(...clusterSizes);
     const totalNodes = topologyAnalysis.nodes;
 
@@ -315,7 +315,7 @@ class NetworkBasedStrategy {
     return {
       partitionFrequency: 0.05, // 5% chance of partition
       averagePartitionDuration: 30000, // 30 seconds
-      maxPartitionSize: 3
+      maxPartitionSize: 3,
     };
   }
 
@@ -325,7 +325,7 @@ class NetworkBasedStrategy {
       connectivityReliability: 0.3,
       geographicDistribution: 0.25,
       networkLatency: 0.2,
-      historicalPartitions: 0.25
+      historicalPartitions: 0.25,
     };
 
     return (
@@ -338,7 +338,7 @@ class NetworkBasedStrategy {
 
   estimateMaxPartitionSize(topologyAnalysis, riskFactors) {
     // Estimate the maximum size of a potential network partition
-    const clusterSizes = topologyAnalysis.clusters.map(cluster => cluster.length);
+    const clusterSizes = topologyAnalysis.clusters.map((cluster) => cluster.length);
     const largestCluster = Math.max(...clusterSizes);
 
     // Adjust based on risk factors
@@ -346,7 +346,7 @@ class NetworkBasedStrategy {
 
     return Math.min(
       Math.ceil(largestCluster * riskMultiplier),
-      Math.floor(topologyAnalysis.nodes / 2)
+      Math.floor(topologyAnalysis.nodes / 2),
     );
   }
 
@@ -377,7 +377,7 @@ class NetworkBasedStrategy {
     const factors = {
       networkStability: this.assessConnectivityReliability(networkConditions),
       topologyHealth: 1 - this.assessGeographicRisk(topologyAnalysis),
-      dataQuality: this.assessDataQuality(networkConditions, topologyAnalysis)
+      dataQuality: this.assessDataQuality(networkConditions, topologyAnalysis),
     };
 
     return (factors.networkStability + factors.topologyHealth + factors.dataQuality) / 3;
@@ -400,14 +400,14 @@ class NetworkBasedStrategy {
       primaryFactors: [
         `Network partition risk: ${(partitionRisk.overallRisk * 100).toFixed(1)}%`,
         `Recommended quorum size: ${optimizedQuorum.nodes.size}`,
-        `Byzantine fault tolerance: ${Math.floor((optimizedQuorum.nodes.size - 1) / 3)} nodes`
+        `Byzantine fault tolerance: ${Math.floor((optimizedQuorum.nodes.size - 1) / 3)} nodes`,
       ],
       networkFactors: [
         `Average latency: ${networkConditions.averageLatency || 'unknown'}ms`,
         `Connectivity reliability: ${(this.assessConnectivityReliability(networkConditions) * 100).toFixed(1)}%`,
-        `Geographic distribution risk: ${(partitionRisk.riskFactors.geographicDistribution * 100).toFixed(1)}%`
+        `Geographic distribution risk: ${(partitionRisk.riskFactors.geographicDistribution * 100).toFixed(1)}%`,
       ],
-      mitigationStrategies: partitionRisk.mitigationStrategies
+      mitigationStrategies: partitionRisk.mitigationStrategies,
     };
   }
 
@@ -423,7 +423,7 @@ class NetworkBasedStrategy {
     return {
       estimatedAvailability: availabilityImprovement,
       faultToleranceLevel: faultTolerance,
-      quorumSize: quorumSize
+      quorumSize: quorumSize,
     };
   }
 
@@ -437,8 +437,8 @@ class NetworkBasedStrategy {
 
     return {
       estimatedConsensusLatency: consensusLatency,
-      throughputImpact: Math.max(0.1, 1 - (quorumSize / 20)), // Decreases with size
-      scalabilityScore: Math.max(0, 1 - (quorumSize / 50))
+      throughputImpact: Math.max(0.1, 1 - quorumSize / 20), // Decreases with size
+      scalabilityScore: Math.max(0, 1 - quorumSize / 50),
     };
   }
 

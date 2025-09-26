@@ -6,7 +6,16 @@
 
 import { EventEmitter } from 'events';
 import { SwarmMessageRouter } from '../../web/messaging/swarm-message-router.js';
-import { AgentMessage, MessageQuery, SwarmState, FullStackAgentMessage, FullStackAgentType, SwarmTeamComposition, FullStackAgent, ComplexityLevel } from '../types/index.js';
+import {
+  AgentMessage,
+  MessageQuery,
+  SwarmState,
+  FullStackAgentMessage,
+  FullStackAgentType,
+  SwarmTeamComposition,
+  FullStackAgent,
+  ComplexityLevel,
+} from '../types/index.js';
 import type { ILogger } from '../../utils/types.js';
 
 export interface EnhancedSwarmState extends SwarmState {
@@ -44,15 +53,18 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   private resourceAllocator: ResourceAllocator;
   private backwardCompatibilityManager: BackwardCompatibilityManager;
 
-  constructor(logger: ILogger, config: {
-    maxAgentsPerSwarm?: number;
-    enableLegacyMode?: boolean;
-    resourceLimits?: {
-      maxCpuPerAgent: number;
-      maxMemoryPerAgent: number;
-      maxNetworkPerSwarm: number;
-    };
-  } = {}) {
+  constructor(
+    logger: ILogger,
+    config: {
+      maxAgentsPerSwarm?: number;
+      enableLegacyMode?: boolean;
+      resourceLimits?: {
+        maxCpuPerAgent: number;
+        maxMemoryPerAgent: number;
+        maxNetworkPerSwarm: number;
+      };
+    } = {},
+  ) {
     super(logger);
 
     this.resourceAllocator = new ResourceAllocator(config.resourceLimits);
@@ -62,7 +74,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
       warmAgents: new Map(),
       coldAgents: new Map(),
       maxPoolSize: config.maxAgentsPerSwarm || 20,
-      recycleThreshold: 0.8
+      recycleThreshold: 0.8,
     };
 
     this.initializeRoutingStrategies();
@@ -92,7 +104,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
         console.warn('Agent limit validation failed', {
           swarmId: enhancedMessage.swarmId,
           currentAgents: swarmState.agents.length,
-          maxAgents: this.agentPool.maxPoolSize
+          maxAgents: this.agentPool.maxPoolSize,
         });
         return;
       }
@@ -118,14 +130,13 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
         swarmId: enhancedMessage.swarmId,
         agentId: enhancedMessage.agentId,
         agentType: enhancedMessage.agentType,
-        layer: enhancedMessage.layer
+        layer: enhancedMessage.layer,
       });
-
     } catch (error) {
       console.error('Error handling enhanced agent message', {
         error,
         messageId: message.id,
-        swarmId: message.swarmId
+        swarmId: message.swarmId,
       });
       throw error;
     }
@@ -134,7 +145,10 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   /**
    * Intelligent message routing based on agent types and dependencies
    */
-  private routeEnhancedMessage(message: FullStackAgentMessage, swarmState: EnhancedSwarmState): void {
+  private routeEnhancedMessage(
+    message: FullStackAgentMessage,
+    swarmState: EnhancedSwarmState,
+  ): void {
     const strategy = this.selectRoutingStrategy(message, swarmState);
 
     switch (strategy.type) {
@@ -159,7 +173,10 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   /**
    * Select optimal routing strategy based on message and swarm context
    */
-  private selectRoutingStrategy(message: FullStackAgentMessage, swarmState: EnhancedSwarmState): MessageRoutingStrategy {
+  private selectRoutingStrategy(
+    message: FullStackAgentMessage,
+    swarmState: EnhancedSwarmState,
+  ): MessageRoutingStrategy {
     // High priority messages use direct routing
     if (message.priority === 'critical' || message.priority === 'urgent') {
       return { type: 'direct', criteria: {}, priority: 10 };
@@ -172,7 +189,11 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
 
     // Messages with dependencies use dependency-chain routing
     if (message.dependencies && message.dependencies.length > 0) {
-      return { type: 'dependency-chain', criteria: { dependencies: message.dependencies }, priority: 7 };
+      return {
+        type: 'dependency-chain',
+        criteria: { dependencies: message.dependencies },
+        priority: 7,
+      };
     }
 
     // Large swarms use load-balanced routing for performance
@@ -189,7 +210,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
    */
   private routeDirect(message: FullStackAgentMessage, swarmState: EnhancedSwarmState): void {
     if (message.targetAgents) {
-      message.targetAgents.forEach(agentId => {
+      message.targetAgents.forEach((agentId) => {
         this.emit('direct-message', { ...message, targetAgent: agentId });
       });
     }
@@ -198,15 +219,19 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   /**
    * Broadcast to agents in specific layer or category
    */
-  private routeBroadcast(message: FullStackAgentMessage, swarmState: EnhancedSwarmState, criteria: any): void {
-    const targetAgents = swarmState.teamComposition.agents.filter(agent => {
+  private routeBroadcast(
+    message: FullStackAgentMessage,
+    swarmState: EnhancedSwarmState,
+    criteria: any,
+  ): void {
+    const targetAgents = swarmState.teamComposition.agents.filter((agent) => {
       if (criteria.layer && message.layer) {
         return this.getAgentLayer(agent.type) === message.layer;
       }
       return true;
     });
 
-    targetAgents.forEach(agent => {
+    targetAgents.forEach((agent) => {
       this.emit('broadcast-message', { ...message, targetAgent: agent.id });
     });
   }
@@ -215,12 +240,12 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
    * Hierarchical routing through coordinators
    */
   private routeHierarchical(message: FullStackAgentMessage, swarmState: EnhancedSwarmState): void {
-    const coordinators = swarmState.teamComposition.agents.filter(agent =>
-      agent.type === 'project-coordinator' || agent.type === 'integration-specialist'
+    const coordinators = swarmState.teamComposition.agents.filter(
+      (agent) => agent.type === 'project-coordinator' || agent.type === 'integration-specialist',
     );
 
     if (coordinators.length > 0) {
-      coordinators.forEach(coordinator => {
+      coordinators.forEach((coordinator) => {
         this.emit('hierarchical-message', { ...message, coordinator: coordinator.id });
       });
     } else {
@@ -232,17 +257,23 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   /**
    * Route based on dependency chain
    */
-  private routeDependencyChain(message: FullStackAgentMessage, swarmState: EnhancedSwarmState): void {
+  private routeDependencyChain(
+    message: FullStackAgentMessage,
+    swarmState: EnhancedSwarmState,
+  ): void {
     if (!message.dependencies) return;
 
-    const dependentAgents = swarmState.teamComposition.agents.filter(agent =>
-      message.dependencies!.some(dep => agent.capabilities.includes(dep))
+    const dependentAgents = swarmState.teamComposition.agents.filter((agent) =>
+      message.dependencies!.some((dep) => agent.capabilities.includes(dep)),
     );
 
     // Route in dependency order
     dependentAgents
-      .sort((a, b) => this.calculateDependencyPriority(a, message.dependencies!) -
-                     this.calculateDependencyPriority(b, message.dependencies!))
+      .sort(
+        (a, b) =>
+          this.calculateDependencyPriority(a, message.dependencies!) -
+          this.calculateDependencyPriority(b, message.dependencies!),
+      )
       .forEach((agent, index) => {
         setTimeout(() => {
           this.emit('dependency-message', { ...message, targetAgent: agent.id, order: index });
@@ -255,7 +286,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
    */
   private routeLoadBalanced(message: FullStackAgentMessage, swarmState: EnhancedSwarmState): void {
     const availableAgents = swarmState.teamComposition.agents
-      .filter(agent => agent.resources.cpuUsage < 0.8) // Not overloaded
+      .filter((agent) => agent.resources.cpuUsage < 0.8) // Not overloaded
       .sort((a, b) => a.resources.cpuUsage - b.resources.cpuUsage); // Least loaded first
 
     if (availableAgents.length > 0) {
@@ -293,7 +324,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
           blockedTasks: 0,
           crossLayerMessages: 0,
           dependencyChainLength: 0,
-          bottleneckAgents: []
+          bottleneckAgents: [],
         },
         lastActivity: new Date().toISOString(),
         complexity: 'simple',
@@ -308,14 +339,14 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
             maxAgents: this.agentPool.maxPoolSize,
             maxCpuPerAgent: 1.0,
             maxMemoryPerAgent: 1024,
-            timeoutMinutes: 60
-          }
+            timeoutMinutes: 60,
+          },
         },
         resourceUsage: {
           totalCpu: 0,
           totalMemory: 0,
-          networkBandwidth: 0
-        }
+          networkBandwidth: 0,
+        },
       };
 
       this.enhancedSwarms.set(swarmId, enhancedState);
@@ -328,8 +359,11 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   /**
    * Update enhanced swarm agent information
    */
-  private updateEnhancedSwarmAgent(swarmState: EnhancedSwarmState, message: FullStackAgentMessage): void {
-    let agent = swarmState.teamComposition.agents.find(a => a.id === message.agentId);
+  private updateEnhancedSwarmAgent(
+    swarmState: EnhancedSwarmState,
+    message: FullStackAgentMessage,
+  ): void {
+    let agent = swarmState.teamComposition.agents.find((a) => a.id === message.agentId);
 
     if (!agent) {
       // Add new agent to swarm
@@ -342,13 +376,13 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
           tasksCompleted: 0,
           successRate: 1.0,
           averageTime: 0,
-          qualityScore: 1.0
+          qualityScore: 1.0,
         },
         resources: {
           cpuUsage: 0.1,
           memoryUsage: 128,
-          activeTasks: 0
-        }
+          activeTasks: 0,
+        },
       };
 
       swarmState.teamComposition.agents.push(agent);
@@ -358,7 +392,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
         id: agent.id,
         type: this.mapToLegacyType(agent.type),
         status: agent.status as any,
-        currentTask: message.content
+        currentTask: message.content,
       });
     }
 
@@ -371,7 +405,8 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
    */
   private mapToLegacyType(agentType: FullStackAgentType): 'researcher' | 'coder' | 'reviewer' {
     if (agentType === 'researcher' || agentType.includes('research')) return 'researcher';
-    if (agentType === 'reviewer' || agentType.includes('review') || agentType.includes('qa')) return 'reviewer';
+    if (agentType === 'reviewer' || agentType.includes('review') || agentType.includes('qa'))
+      return 'reviewer';
     return 'coder'; // Default mapping
   }
 
@@ -387,7 +422,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
       'ui-designer': ['design', 'user-experience', 'accessibility', 'visual-design'],
       'database-developer': ['sql', 'database-design', 'optimization', 'migration'],
       'security-tester': ['security', 'penetration-testing', 'vulnerability-assessment'],
-      'performance-tester': ['performance', 'load-testing', 'optimization', 'monitoring']
+      'performance-tester': ['performance', 'load-testing', 'optimization', 'monitoring'],
     };
 
     return capabilityMap[agentType] || ['general'];
@@ -410,7 +445,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
       'e2e-tester': 'testing',
       'performance-tester': 'testing',
       'devops-engineer': 'infrastructure',
-      'deployment-specialist': 'infrastructure'
+      'deployment-specialist': 'infrastructure',
     };
 
     return layerMap[agentType] || 'general';
@@ -419,12 +454,15 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   /**
    * Validate agent limits for the swarm
    */
-  private validateAgentLimits(swarmState: EnhancedSwarmState, message: FullStackAgentMessage): boolean {
+  private validateAgentLimits(
+    swarmState: EnhancedSwarmState,
+    message: FullStackAgentMessage,
+  ): boolean {
     const currentAgentCount = swarmState.teamComposition.agents.length;
     const maxAgents = swarmState.teamComposition.resourceLimits.maxAgents;
 
     // Allow existing agents to send messages
-    const existingAgent = swarmState.teamComposition.agents.find(a => a.id === message.agentId);
+    const existingAgent = swarmState.teamComposition.agents.find((a) => a.id === message.agentId);
     if (existingAgent) {
       return true;
     }
@@ -450,7 +488,11 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
   private initializeRoutingStrategies(): void {
     this.routingStrategies.set('critical', { type: 'direct', criteria: {}, priority: 10 });
     this.routingStrategies.set('coordination', { type: 'hierarchical', criteria: {}, priority: 8 });
-    this.routingStrategies.set('dependency', { type: 'dependency-chain', criteria: {}, priority: 7 });
+    this.routingStrategies.set('dependency', {
+      type: 'dependency-chain',
+      criteria: {},
+      priority: 7,
+    });
     this.routingStrategies.set('performance', { type: 'load-balanced', criteria: {}, priority: 6 });
     this.routingStrategies.set('default', { type: 'broadcast', criteria: {}, priority: 5 });
   }
@@ -463,10 +505,10 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
       'frontend-developer',
       'backend-developer',
       'qa-engineer',
-      'devops-engineer'
+      'devops-engineer',
     ];
 
-    commonTypes.forEach(type => {
+    commonTypes.forEach((type) => {
       this.agentPool.warmAgents.set(type, []);
       this.agentPool.coldAgents.set(type, 2); // 2 cold agents per type
     });
@@ -476,13 +518,16 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
    * Calculate dependency priority for routing
    */
   private calculateDependencyPriority(agent: FullStackAgent, dependencies: string[]): number {
-    return dependencies.filter(dep => agent.capabilities.includes(dep)).length;
+    return dependencies.filter((dep) => agent.capabilities.includes(dep)).length;
   }
 
   /**
    * Update agent status based on message
    */
-  private updateAgentStatusFromMessage(agent: FullStackAgent, message: FullStackAgentMessage): void {
+  private updateAgentStatusFromMessage(
+    agent: FullStackAgent,
+    message: FullStackAgentMessage,
+  ): void {
     switch (message.messageType) {
       case 'task-start':
         agent.status = 'working';
@@ -514,7 +559,7 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
         swarmId: legacyState.swarmId,
         feature: 'legacy-upgrade',
         complexity: 'simple',
-        agents: legacyState.agents.map(a => ({
+        agents: legacyState.agents.map((a) => ({
           id: a.id,
           type: a.type as FullStackAgentType,
           capabilities: this.getAgentCapabilities(a.type as FullStackAgentType),
@@ -524,13 +569,13 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
             tasksCompleted: 0,
             successRate: 1.0,
             averageTime: 0,
-            qualityScore: 1.0
+            qualityScore: 1.0,
           },
           resources: {
             cpuUsage: 0.1,
             memoryUsage: 128,
-            activeTasks: 0
-          }
+            activeTasks: 0,
+          },
         })),
         estimatedDuration: 60,
         requiredSkills: [],
@@ -538,20 +583,20 @@ export class EnhancedSwarmMessageRouter extends SwarmMessageRouter {
           maxAgents: 3, // Keep legacy limit
           maxCpuPerAgent: 1.0,
           maxMemoryPerAgent: 512,
-          timeoutMinutes: 30
-        }
+          timeoutMinutes: 30,
+        },
       },
       resourceUsage: {
         totalCpu: 0.3,
         totalMemory: 384,
-        networkBandwidth: 0
+        networkBandwidth: 0,
       },
       coordination: {
         ...legacyState.coordination,
         crossLayerMessages: 0,
         dependencyChainLength: 0,
-        bottleneckAgents: []
-      }
+        bottleneckAgents: [],
+      },
     };
   }
 
@@ -577,13 +622,19 @@ class ResourceAllocator {
   constructor(private limits: any = {}) {}
 
   updateResourceUsage(swarmState: EnhancedSwarmState): void {
-    const totalCpu = swarmState.teamComposition.agents.reduce((sum, agent) => sum + agent.resources.cpuUsage, 0);
-    const totalMemory = swarmState.teamComposition.agents.reduce((sum, agent) => sum + agent.resources.memoryUsage, 0);
+    const totalCpu = swarmState.teamComposition.agents.reduce(
+      (sum, agent) => sum + agent.resources.cpuUsage,
+      0,
+    );
+    const totalMemory = swarmState.teamComposition.agents.reduce(
+      (sum, agent) => sum + agent.resources.memoryUsage,
+      0,
+    );
 
     swarmState.resourceUsage = {
       totalCpu,
       totalMemory,
-      networkBandwidth: this.estimateNetworkBandwidth(swarmState)
+      networkBandwidth: this.estimateNetworkBandwidth(swarmState),
     };
   }
 
@@ -604,7 +655,9 @@ class BackwardCompatibilityManager {
   }
 
   isLegacySwarm(swarmState: SwarmState): boolean {
-    return swarmState.agents.length <= 3 &&
-           swarmState.agents.every(a => ['researcher', 'coder', 'reviewer'].includes(a.type));
+    return (
+      swarmState.agents.length <= 3 &&
+      swarmState.agents.every((a) => ['researcher', 'coder', 'reviewer'].includes(a.type))
+    );
   }
 }

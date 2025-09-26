@@ -1,6 +1,6 @@
 /**
  * Comprehensive Security Enforcement System for Agent Truth Verification
- * 
+ *
  * This module implements enterprise-grade security mechanisms to ensure
  * no agent can bypass verification and all truth claims are authenticated,
  * cryptographically signed, audited, and protected against Byzantine attacks.
@@ -69,15 +69,15 @@ class CryptographicCore {
   private readonly keyDerivation = 'pbkdf2';
   private readonly hashAlgorithm = 'sha256';
   private readonly signatureAlgorithm = 'rsa';
-  
+
   // Generate secure key pair for agent
   generateKeyPair(): { publicKey: string; privateKey: string } {
     const { publicKey, privateKey } = crypto.generateKeyPairSync(this.signatureAlgorithm, {
       modulusLength: 4096,
       publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     });
-    
+
     return { publicKey, privateKey };
   }
 
@@ -102,7 +102,7 @@ class CryptographicCore {
           key: publicKey,
           padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
         },
-        Buffer.from(signature, 'base64')
+        Buffer.from(signature, 'base64'),
       );
     } catch (error) {
       return false;
@@ -124,16 +124,16 @@ class CryptographicCore {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipher(this.algorithm, key);
     cipher.setAAD(Buffer.from('claude-flow-verification'));
-    
+
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     const tag = (cipher as any).getAuthTag();
-    
+
     return {
       encrypted,
       iv: iv.toString('hex'),
-      tag: tag.toString('hex')
+      tag: tag.toString('hex'),
     };
   }
 
@@ -142,10 +142,10 @@ class CryptographicCore {
     const decipher = crypto.createDecipher(this.algorithm, key);
     decipher.setAAD(Buffer.from('claude-flow-verification'));
     decipher.setAuthTag(Buffer.from(encryptedData.tag, 'hex'));
-    
+
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
   }
 }
@@ -177,7 +177,7 @@ class ThresholdSignatureSystem {
 
     // Phase 1: Generate key pairs for each participant
     const keyPairs = new Map<string, { publicKey: string; privateKey: string }>();
-    participants.forEach(participant => {
+    participants.forEach((participant) => {
       keyPairs.set(participant, this.crypto.generateKeyPair());
     });
 
@@ -187,7 +187,7 @@ class ThresholdSignatureSystem {
 
     // Phase 3: Generate key shares using Shamir's Secret Sharing
     const keyShares = this.generateSecretShares(masterKeyPair.privateKey, participants);
-    
+
     // Store key shares
     keyShares.forEach((share, participant) => {
       this.privateKeyShares.set(participant, share);
@@ -196,7 +196,7 @@ class ThresholdSignatureSystem {
 
     return {
       masterPublicKey: this.masterPublicKey,
-      keyShares: keyShares
+      keyShares: keyShares,
     };
   }
 
@@ -204,7 +204,7 @@ class ThresholdSignatureSystem {
   private generateSecretShares(secret: string, participants: string[]): Map<string, string> {
     const shares = new Map<string, string>();
     const secretHash = this.crypto.hash(secret);
-    
+
     participants.forEach((participant, index) => {
       // Create deterministic but secure share based on participant and secret
       const shareData = `${secretHash}_${participant}_${index}`;
@@ -237,10 +237,10 @@ class ThresholdSignatureSystem {
       // Create partial signature (simplified)
       const messageHash = this.crypto.hash(JSON.stringify(message));
       const partialSig = this.crypto.hash(`${messageHash}_${privateShare}_${signatory}`);
-      
+
       partialSignatures.push({
         signatory,
-        signature: partialSig
+        signature: partialSig,
       });
     }
 
@@ -251,15 +251,15 @@ class ThresholdSignatureSystem {
 
   // Combine partial signatures using cryptographic combination
   private combinePartialSignatures(
-    message: any, 
-    partialSignatures: Array<{ signatory: string; signature: string }>
+    message: any,
+    partialSignatures: Array<{ signatory: string; signature: string }>,
   ): string {
     const messageHash = this.crypto.hash(JSON.stringify(message));
     const signatureData = partialSignatures
-      .map(ps => `${ps.signatory}:${ps.signature}`)
+      .map((ps) => `${ps.signatory}:${ps.signature}`)
       .sort()
       .join('|');
-    
+
     const combinedData = `${messageHash}|${signatureData}|${this.threshold}`;
     return this.crypto.hash(combinedData);
   }
@@ -272,15 +272,18 @@ class ThresholdSignatureSystem {
 
     try {
       // Reconstruct expected signature
-      const partialSignatures = signatories.slice(0, this.threshold).map(signatory => {
-        const privateShare = this.privateKeyShares.get(signatory);
-        if (!privateShare) return null;
-        
-        const messageHash = this.crypto.hash(JSON.stringify(message));
-        const partialSig = this.crypto.hash(`${messageHash}_${privateShare}_${signatory}`);
-        
-        return { signatory, signature: partialSig };
-      }).filter(ps => ps !== null) as Array<{ signatory: string; signature: string }>;
+      const partialSignatures = signatories
+        .slice(0, this.threshold)
+        .map((signatory) => {
+          const privateShare = this.privateKeyShares.get(signatory);
+          if (!privateShare) return null;
+
+          const messageHash = this.crypto.hash(JSON.stringify(message));
+          const partialSig = this.crypto.hash(`${messageHash}_${privateShare}_${signatory}`);
+
+          return { signatory, signature: partialSig };
+        })
+        .filter((ps) => ps !== null) as Array<{ signatory: string; signature: string }>;
 
       const expectedSignature = this.combinePartialSignatures(message, partialSignatures);
       return signature === expectedSignature;
@@ -300,7 +303,11 @@ class ZeroKnowledgeProofSystem {
   }
 
   // Prove knowledge without revealing the knowledge
-  async proveKnowledge(secret: string, publicCommitment: string, challenge?: string): Promise<{
+  async proveKnowledge(
+    secret: string,
+    publicCommitment: string,
+    challenge?: string,
+  ): Promise<{
     commitment: string;
     challenge: string;
     response: string;
@@ -308,20 +315,20 @@ class ZeroKnowledgeProofSystem {
     // Generate random nonce
     const nonce = this.crypto.generateNonce();
     const commitment = this.crypto.hash(`${nonce}_${publicCommitment}`);
-    
+
     // Use provided challenge or generate Fiat-Shamir challenge
     const c = challenge || this.crypto.hash(`${commitment}_${publicCommitment}`);
-    
+
     // Compute response (simplified ZK proof)
     const response = this.crypto.hash(`${nonce}_${secret}_${c}`);
-    
+
     return { commitment, challenge: c, response };
   }
 
   // Verify zero-knowledge proof
   verifyProof(
     proof: { commitment: string; challenge: string; response: string },
-    publicCommitment: string
+    publicCommitment: string,
   ): boolean {
     try {
       // Verify the proof relationship (simplified)
@@ -333,7 +340,11 @@ class ZeroKnowledgeProofSystem {
   }
 
   // Range proof for committed values
-  async proveRange(value: number, min: number, max: number): Promise<{
+  async proveRange(
+    value: number,
+    min: number,
+    max: number,
+  ): Promise<{
     commitment: string;
     rangeProof: string;
     bulletproof: string;
@@ -343,11 +354,11 @@ class ZeroKnowledgeProofSystem {
     }
 
     const commitment = this.crypto.hash(`${value}_${Date.now()}`);
-    
+
     // Create range proof (simplified bulletproof)
     const rangeData = `${value}_${min}_${max}_${commitment}`;
     const rangeProof = this.crypto.hash(rangeData);
-    
+
     // Generate bulletproof-style proof
     const bulletproof = this.crypto.hash(`bulletproof_${rangeData}_${this.crypto.generateNonce()}`);
 
@@ -358,13 +369,15 @@ class ZeroKnowledgeProofSystem {
   verifyRangeProof(
     proof: { commitment: string; rangeProof: string; bulletproof: string },
     min: number,
-    max: number
+    max: number,
   ): boolean {
     try {
       // Verify proof structure and range validity
-      return proof.commitment.length === 64 && 
-             proof.rangeProof.length === 64 && 
-             proof.bulletproof.length === 64;
+      return (
+        proof.commitment.length === 64 &&
+        proof.rangeProof.length === 64 &&
+        proof.bulletproof.length === 64
+      );
     } catch (error) {
       return false;
     }
@@ -385,9 +398,13 @@ class AgentAuthenticationSystem {
   }
 
   // Register new agent with authentication
-  async registerAgent(agentId: string, capabilities: string[], securityLevel: AgentIdentity['securityLevel']): Promise<AgentIdentity> {
+  async registerAgent(
+    agentId: string,
+    capabilities: string[],
+    securityLevel: AgentIdentity['securityLevel'],
+  ): Promise<AgentIdentity> {
     const keyPair = this.crypto.generateKeyPair();
-    
+
     const identity: AgentIdentity = {
       agentId,
       publicKey: keyPair.publicKey,
@@ -395,7 +412,7 @@ class AgentAuthenticationSystem {
       capabilities,
       securityLevel,
       reputation: 100, // Start with perfect reputation
-      lastVerified: new Date()
+      lastVerified: new Date(),
     };
 
     this.agentRegistry.set(agentId, identity);
@@ -410,7 +427,7 @@ class AgentAuthenticationSystem {
       issuer: 'claude-flow-verification-authority',
       validFrom: new Date(),
       validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-      serialNumber: this.crypto.generateNonce()
+      serialNumber: this.crypto.generateNonce(),
     };
 
     return this.crypto.hash(JSON.stringify(certificateData));
@@ -446,22 +463,25 @@ class AgentAuthenticationSystem {
       permissions,
       issued: new Date(),
       expiry: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-      nonce: this.crypto.generateNonce()
+      nonce: this.crypto.generateNonce(),
     };
 
     const token = this.crypto.hash(JSON.stringify(tokenData));
-    
+
     this.authTokens.set(token, {
       agentId,
       expiry: tokenData.expiry,
-      permissions
+      permissions,
     });
 
     return token;
   }
 
   // Validate authentication token
-  validateAuthToken(token: string, requiredPermission?: string): { valid: boolean; agentId?: string } {
+  validateAuthToken(
+    token: string,
+    requiredPermission?: string,
+  ): { valid: boolean; agentId?: string } {
     const tokenData = this.authTokens.get(token);
     if (!tokenData) {
       return { valid: false };
@@ -489,9 +509,11 @@ class AgentAuthenticationSystem {
     }
 
     identity.reputation = Math.max(0, Math.min(100, identity.reputation + delta));
-    
+
     // Log reputation change
-    console.log(`Reputation update for ${agentId}: ${delta} (${reason}). New score: ${identity.reputation}`);
+    console.log(
+      `Reputation update for ${agentId}: ${delta} (${reason}). New score: ${identity.reputation}`,
+    );
   }
 
   // Get agent identity
@@ -513,7 +535,7 @@ class AdvancedRateLimiter {
     perSecond: 10,
     perMinute: 100,
     perHour: 1000,
-    perDay: 10000
+    perDay: 10000,
   };
   private agentLimits = new Map<string, typeof this.globalLimits>();
 
@@ -527,36 +549,36 @@ class AdvancedRateLimiter {
   checkRateLimit(agentId: string): { allowed: boolean; reason?: string; retryAfter?: number } {
     const now = new Date();
     const limits = this.agentLimits.get(agentId) || this.globalLimits;
-    
+
     // Check different time windows
     const windows = [
       { period: 'second', limit: limits.perSecond, duration: 1000 },
       { period: 'minute', limit: limits.perMinute, duration: 60000 },
       { period: 'hour', limit: limits.perHour, duration: 3600000 },
-      { period: 'day', limit: limits.perDay, duration: 86400000 }
+      { period: 'day', limit: limits.perDay, duration: 86400000 },
     ];
 
     for (const window of windows) {
       const key = `${agentId}_${window.period}`;
       const record = this.requestCounts.get(key);
-      
+
       if (!record || record.resetTime <= now) {
         // Reset or initialize counter
         this.requestCounts.set(key, {
           count: 1,
           resetTime: new Date(now.getTime() + window.duration),
-          violations: record?.violations || 0
+          violations: record?.violations || 0,
         });
       } else {
         record.count++;
-        
+
         if (record.count > window.limit) {
           record.violations++;
-          
+
           return {
             allowed: false,
             reason: `Rate limit exceeded: ${window.limit} requests per ${window.period}`,
-            retryAfter: Math.ceil((record.resetTime.getTime() - now.getTime()) / 1000)
+            retryAfter: Math.ceil((record.resetTime.getTime() - now.getTime()) / 1000),
           };
         }
       }
@@ -575,7 +597,7 @@ class AdvancedRateLimiter {
     const currentUsage: Record<string, number> = {};
     const violations: Record<string, number> = {};
 
-    ['second', 'minute', 'hour', 'day'].forEach(period => {
+    ['second', 'minute', 'hour', 'day'].forEach((period) => {
       const key = `${agentId}_${period}`;
       const record = this.requestCounts.get(key);
       currentUsage[period] = record?.count || 0;
@@ -587,7 +609,7 @@ class AdvancedRateLimiter {
 
   // Reset rate limits for agent (emergency use)
   resetRateLimits(agentId: string): void {
-    ['second', 'minute', 'hour', 'day'].forEach(period => {
+    ['second', 'minute', 'hour', 'day'].forEach((period) => {
       const key = `${agentId}_${period}`;
       this.requestCounts.delete(key);
     });
@@ -610,25 +632,25 @@ class AuditTrailSystem {
     agentId: string,
     action: string,
     details: any,
-    witnesses: string[] = []
+    witnesses: string[] = [],
   ): AuditEntry {
     const eventId = this.crypto.generateNonce();
     const timestamp = new Date();
-    
+
     // Create cryptographic proof of the event
     const eventData = {
       eventId,
       timestamp,
       agentId,
       action,
-      details
+      details,
     };
-    
+
     const cryptographicProof = this.crypto.hash(JSON.stringify(eventData));
-    
+
     // Collect witness signatures
     const witnessSignatures: string[] = [];
-    witnesses.forEach(witnessId => {
+    witnesses.forEach((witnessId) => {
       const witnessSignature = this.crypto.hash(`${cryptographicProof}_${witnessId}_${Date.now()}`);
       witnessSignatures.push(`${witnessId}:${witnessSignature}`);
     });
@@ -640,7 +662,7 @@ class AuditTrailSystem {
       action,
       details,
       cryptographicProof,
-      witnessSignatures
+      witnessSignatures,
     };
 
     this.auditLog.push(auditEntry);
@@ -652,13 +674,15 @@ class AuditTrailSystem {
     const corruptedEntries: string[] = [];
 
     for (const entry of this.auditLog) {
-      const expectedProof = this.crypto.hash(JSON.stringify({
-        eventId: entry.eventId,
-        timestamp: entry.timestamp,
-        agentId: entry.agentId,
-        action: entry.action,
-        details: entry.details
-      }));
+      const expectedProof = this.crypto.hash(
+        JSON.stringify({
+          eventId: entry.eventId,
+          timestamp: entry.timestamp,
+          agentId: entry.agentId,
+          action: entry.action,
+          details: entry.details,
+        }),
+      );
 
       if (entry.cryptographicProof !== expectedProof) {
         corruptedEntries.push(entry.eventId);
@@ -667,14 +691,14 @@ class AuditTrailSystem {
 
     return {
       valid: corruptedEntries.length === 0,
-      corruptedEntries
+      corruptedEntries,
     };
   }
 
   // Get audit history for agent
   getAgentAuditHistory(agentId: string, limit?: number): AuditEntry[] {
     const agentEntries = this.auditLog
-      .filter(entry => entry.agentId === agentId)
+      .filter((entry) => entry.agentId === agentId)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     return limit ? agentEntries.slice(0, limit) : agentEntries;
@@ -688,7 +712,7 @@ class AuditTrailSystem {
     dateTo?: Date;
     details?: any;
   }): AuditEntry[] {
-    return this.auditLog.filter(entry => {
+    return this.auditLog.filter((entry) => {
       if (query.agentId && entry.agentId !== query.agentId) return false;
       if (query.action && entry.action !== query.action) return false;
       if (query.dateFrom && entry.timestamp < query.dateFrom) return false;
@@ -715,15 +739,15 @@ class AuditTrailSystem {
   exportAuditTrail(format: 'json' | 'csv' = 'json'): string {
     if (format === 'csv') {
       const headers = ['eventId', 'timestamp', 'agentId', 'action', 'cryptographicProof'];
-      const rows = this.auditLog.map(entry => [
+      const rows = this.auditLog.map((entry) => [
         entry.eventId,
         entry.timestamp.toISOString(),
         entry.agentId,
         entry.action,
-        entry.cryptographicProof
+        entry.cryptographicProof,
       ]);
-      
-      return [headers, ...rows].map(row => row.join(',')).join('\n');
+
+      return [headers, ...rows].map((row) => row.join(',')).join('\n');
     }
 
     return JSON.stringify(this.auditLog, null, 2);
@@ -733,14 +757,17 @@ class AuditTrailSystem {
 // ======================== BYZANTINE FAULT TOLERANCE ========================
 
 class ByzantineFaultToleranceSystem {
-  private nodeStates = new Map<string, {
-    isAlive: boolean;
-    lastHeartbeat: Date;
-    messageHistory: any[];
-    suspicionLevel: number;
-    byzantineBehavior: string[];
-  }>();
-  
+  private nodeStates = new Map<
+    string,
+    {
+      isAlive: boolean;
+      lastHeartbeat: Date;
+      messageHistory: any[];
+      suspicionLevel: number;
+      byzantineBehavior: string[];
+    }
+  >();
+
   private consensusThreshold: number;
   private totalNodes: number;
   private crypto: CryptographicCore;
@@ -758,7 +785,7 @@ class ByzantineFaultToleranceSystem {
       lastHeartbeat: new Date(),
       messageHistory: [],
       suspicionLevel: 0,
-      byzantineBehavior: []
+      byzantineBehavior: [],
     });
   }
 
@@ -785,7 +812,10 @@ class ByzantineFaultToleranceSystem {
   }
 
   // Detect Byzantine behavior patterns
-  detectByzantineBehavior(nodeId: string, message: any): {
+  detectByzantineBehavior(
+    nodeId: string,
+    message: any,
+  ): {
     isByzantine: boolean;
     reasons: string[];
     confidence: number;
@@ -827,7 +857,7 @@ class ByzantineFaultToleranceSystem {
     nodeState.messageHistory.push({
       timestamp: new Date(),
       message,
-      hash: this.crypto.hash(JSON.stringify(message))
+      hash: this.crypto.hash(JSON.stringify(message)),
     });
 
     // Keep only recent messages
@@ -852,9 +882,11 @@ class ByzantineFaultToleranceSystem {
 
     for (const historyEntry of history) {
       // Check for same type but different content
-      if (newMessage.type === historyEntry.message.type &&
-          newMessage.requestId === historyEntry.message.requestId &&
-          newMessageHash !== historyEntry.hash) {
+      if (
+        newMessage.type === historyEntry.message.type &&
+        newMessage.requestId === historyEntry.message.requestId &&
+        newMessageHash !== historyEntry.hash
+      ) {
         contradictions.push(historyEntry);
       }
     }
@@ -870,14 +902,17 @@ class ByzantineFaultToleranceSystem {
     const intervals = [];
 
     for (let i = 1; i < recentMessages.length; i++) {
-      const interval = recentMessages[i].timestamp.getTime() - recentMessages[i-1].timestamp.getTime();
+      const interval =
+        recentMessages[i].timestamp.getTime() - recentMessages[i - 1].timestamp.getTime();
       intervals.push(interval);
     }
 
     // Check for suspiciously regular intervals (possible timing attack)
     const avgInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
-    const variance = intervals.reduce((sum, interval) => sum + Math.pow(interval - avgInterval, 2), 0) / intervals.length;
-    
+    const variance =
+      intervals.reduce((sum, interval) => sum + Math.pow(interval - avgInterval, 2), 0) /
+      intervals.length;
+
     // Low variance might indicate automated/scripted behavior
     return variance < 100; // milliseconds²
   }
@@ -886,9 +921,9 @@ class ByzantineFaultToleranceSystem {
   private detectSpamming(history: any[]): boolean {
     const now = new Date();
     const recentWindow = 60000; // 1 minute
-    
-    const recentMessages = history.filter(entry => 
-      now.getTime() - entry.timestamp.getTime() < recentWindow
+
+    const recentMessages = history.filter(
+      (entry) => now.getTime() - entry.timestamp.getTime() < recentWindow,
     );
 
     return recentMessages.length > 50; // More than 50 messages per minute
@@ -901,15 +936,16 @@ class ByzantineFaultToleranceSystem {
     if (!nodeState || nodeState.messageHistory.length < 10) return false;
 
     const nodePattern = this.getMessagePattern(nodeState.messageHistory);
-    
+
     let similarPatterns = 0;
     for (const [otherId, otherState] of this.nodeStates) {
       if (otherId === nodeId || otherState.messageHistory.length < 10) continue;
-      
+
       const otherPattern = this.getMessagePattern(otherState.messageHistory);
       const similarity = this.calculatePatternSimilarity(nodePattern, otherPattern);
-      
-      if (similarity > 0.8) { // 80% similarity threshold
+
+      if (similarity > 0.8) {
+        // 80% similarity threshold
         similarPatterns++;
       }
     }
@@ -919,8 +955,9 @@ class ByzantineFaultToleranceSystem {
 
   // Get message pattern for collusion detection
   private getMessagePattern(history: any[]): string {
-    return history.slice(-10)
-      .map(entry => `${entry.message.type}_${entry.timestamp.getHours()}`)
+    return history
+      .slice(-10)
+      .map((entry) => `${entry.message.type}_${entry.timestamp.getHours()}`)
       .join('|');
   }
 
@@ -928,14 +965,14 @@ class ByzantineFaultToleranceSystem {
   private calculatePatternSimilarity(pattern1: string, pattern2: string): number {
     const tokens1 = pattern1.split('|');
     const tokens2 = pattern2.split('|');
-    
+
     if (tokens1.length !== tokens2.length) return 0;
-    
+
     let matches = 0;
     for (let i = 0; i < tokens1.length; i++) {
       if (tokens1[i] === tokens2[i]) matches++;
     }
-    
+
     return matches / tokens1.length;
   }
 
@@ -946,12 +983,15 @@ class ByzantineFaultToleranceSystem {
 
     nodeState.suspicionLevel += 10;
     nodeState.byzantineBehavior.push(`${new Date().toISOString()}: ${behavior}`);
-    
+
     console.warn(`Byzantine behavior detected for node ${nodeId}: ${behavior}`);
   }
 
   // Achieve Byzantine consensus
-  async achieveConsensus(proposalId: string, votes: Map<string, boolean>): Promise<{
+  async achieveConsensus(
+    proposalId: string,
+    votes: Map<string, boolean>,
+  ): Promise<{
     consensus: boolean;
     result: boolean | null;
     participatingNodes: string[];
@@ -971,7 +1011,7 @@ class ByzantineFaultToleranceSystem {
         consensus: false,
         result: null,
         participatingNodes: aliveNodes,
-        byzantineNodes
+        byzantineNodes,
       };
     }
 
@@ -998,7 +1038,7 @@ class ByzantineFaultToleranceSystem {
         consensus: false,
         result: null,
         participatingNodes,
-        byzantineNodes
+        byzantineNodes,
       };
     }
 
@@ -1007,7 +1047,7 @@ class ByzantineFaultToleranceSystem {
       consensus: true,
       result,
       participatingNodes,
-      byzantineNodes
+      byzantineNodes,
     };
   }
 
@@ -1019,17 +1059,20 @@ class ByzantineFaultToleranceSystem {
     consensusCapable: boolean;
     avgSuspicionLevel: number;
   } {
-    const aliveNodes = Array.from(this.nodeStates.values()).filter(state => state.isAlive).length;
-    const byzantineNodes = Array.from(this.nodeStates.values()).filter(state => state.suspicionLevel >= 50).length;
-    const avgSuspicionLevel = Array.from(this.nodeStates.values())
-      .reduce((sum, state) => sum + state.suspicionLevel, 0) / this.nodeStates.size;
+    const aliveNodes = Array.from(this.nodeStates.values()).filter((state) => state.isAlive).length;
+    const byzantineNodes = Array.from(this.nodeStates.values()).filter(
+      (state) => state.suspicionLevel >= 50,
+    ).length;
+    const avgSuspicionLevel =
+      Array.from(this.nodeStates.values()).reduce((sum, state) => sum + state.suspicionLevel, 0) /
+      this.nodeStates.size;
 
     return {
       totalNodes: this.totalNodes,
       aliveNodes,
       byzantineNodes,
       consensusCapable: aliveNodes >= this.consensusThreshold,
-      avgSuspicionLevel
+      avgSuspicionLevel,
     };
   }
 }
@@ -1049,7 +1092,7 @@ export class SecurityEnforcementSystem extends EventEmitter {
 
   constructor(totalNodes: number = 5, threshold: number = 3) {
     super();
-    
+
     this.auth = new AgentAuthenticationSystem();
     this.rateLimiter = new AdvancedRateLimiter();
     this.auditTrail = new AuditTrailSystem();
@@ -1064,7 +1107,7 @@ export class SecurityEnforcementSystem extends EventEmitter {
       bypassAttempts: 0,
       byzantineAttacks: 0,
       averageResponseTime: 0,
-      reputationScores: new Map()
+      reputationScores: new Map(),
     };
   }
 
@@ -1078,7 +1121,7 @@ export class SecurityEnforcementSystem extends EventEmitter {
     await this.thresholdSig.generateDistributedKeys(participants);
 
     // Register participants in Byzantine system
-    participants.forEach(participant => {
+    participants.forEach((participant) => {
       this.byzantine.registerNode(participant);
     });
 
@@ -1104,12 +1147,11 @@ export class SecurityEnforcementSystem extends EventEmitter {
       if (!authResult.success) {
         this.metrics.rejectedRequests++;
         this.metrics.bypassAttempts++;
-        
-        await this.auditTrail.createAuditEntry(
-          request.agentId,
-          'VERIFICATION_REJECTED',
-          { reason: authResult.reason, request }
-        );
+
+        await this.auditTrail.createAuditEntry(request.agentId, 'VERIFICATION_REJECTED', {
+          reason: authResult.reason,
+          request,
+        });
 
         throw new Error(`Authentication failed: ${authResult.reason}`);
       }
@@ -1118,12 +1160,11 @@ export class SecurityEnforcementSystem extends EventEmitter {
       const rateLimitResult = this.rateLimiter.checkRateLimit(request.agentId);
       if (!rateLimitResult.allowed) {
         this.metrics.rejectedRequests++;
-        
-        await this.auditTrail.createAuditEntry(
-          request.agentId,
-          'RATE_LIMIT_EXCEEDED',
-          { reason: rateLimitResult.reason, retryAfter: rateLimitResult.retryAfter }
-        );
+
+        await this.auditTrail.createAuditEntry(request.agentId, 'RATE_LIMIT_EXCEEDED', {
+          reason: rateLimitResult.reason,
+          retryAfter: rateLimitResult.retryAfter,
+        });
 
         throw new Error(rateLimitResult.reason);
       }
@@ -1133,15 +1174,14 @@ export class SecurityEnforcementSystem extends EventEmitter {
       if (byzantineResult.isByzantine) {
         this.metrics.byzantineAttacks++;
         this.metrics.rejectedRequests++;
-        
+
         // Update reputation negatively
         this.auth.updateReputation(request.agentId, -20, 'Byzantine behavior detected');
-        
-        await this.auditTrail.createAuditEntry(
-          request.agentId,
-          'BYZANTINE_BEHAVIOR',
-          { reasons: byzantineResult.reasons, confidence: byzantineResult.confidence }
-        );
+
+        await this.auditTrail.createAuditEntry(request.agentId, 'BYZANTINE_BEHAVIOR', {
+          reasons: byzantineResult.reasons,
+          confidence: byzantineResult.confidence,
+        });
 
         throw new Error(`Byzantine behavior detected: ${byzantineResult.reasons.join(', ')}`);
       }
@@ -1158,18 +1198,18 @@ export class SecurityEnforcementSystem extends EventEmitter {
           agentId: request.agentId,
           truthClaim: request.truthClaim,
           timestamp: request.timestamp,
-          nonce: request.nonce
+          nonce: request.nonce,
         };
 
-        const isValidSignature = this.crypto.verify(requestData, request.signature, agentIdentity.publicKey);
+        const isValidSignature = this.crypto.verify(
+          requestData,
+          request.signature,
+          agentIdentity.publicKey,
+        );
         if (!isValidSignature) {
           this.metrics.bypassAttempts++;
-          
-          await this.auditTrail.createAuditEntry(
-            request.agentId,
-            'INVALID_SIGNATURE',
-            { request }
-          );
+
+          await this.auditTrail.createAuditEntry(request.agentId, 'INVALID_SIGNATURE', { request });
 
           throw new Error('Invalid request signature');
         }
@@ -1181,18 +1221,18 @@ export class SecurityEnforcementSystem extends EventEmitter {
       // 6. THRESHOLD SIGNATURE: Sign result with threshold signature
       const thresholdSignature = await this.thresholdSig.createThresholdSignature(
         verificationResult,
-        [request.agentId] // Simplified - in real implementation, multiple signers
+        [request.agentId], // Simplified - in real implementation, multiple signers
       );
 
       // 7. CREATE AUDIT TRAIL: Record successful verification
       const auditEntry = await this.auditTrail.createAuditEntry(
         request.agentId,
         'VERIFICATION_COMPLETED',
-        { 
+        {
           request,
           result: verificationResult,
-          processingTime: Date.now() - startTime
-        }
+          processingTime: Date.now() - startTime,
+        },
       );
 
       // 8. UPDATE METRICS AND REPUTATION
@@ -1209,25 +1249,23 @@ export class SecurityEnforcementSystem extends EventEmitter {
         confidence: verificationResult.confidence,
         timestamp: new Date(),
         signature: thresholdSignature,
-        auditTrail: [auditEntry]
+        auditTrail: [auditEntry],
       };
 
       this.emit('verificationCompleted', finalResult);
       return finalResult;
-
     } catch (error) {
       // Handle any errors with proper audit trail
       this.metrics.rejectedRequests++;
-      
-      await this.auditTrail.createAuditEntry(
-        request.agentId,
-        'VERIFICATION_ERROR',
-        { error: error.message, request }
-      );
+
+      await this.auditTrail.createAuditEntry(request.agentId, 'VERIFICATION_ERROR', {
+        error: error.message,
+        request,
+      });
 
       this.updateMetrics(request.agentId, Date.now() - startTime, false);
       this.emit('verificationError', { request, error: error.message });
-      
+
       throw error;
     }
   }
@@ -1259,7 +1297,7 @@ export class SecurityEnforcementSystem extends EventEmitter {
       const isAuthenticated = await this.auth.authenticateAgent(
         request.agentId,
         challenge,
-        request.signature || 'dummy_signature'
+        request.signature || 'dummy_signature',
       );
 
       if (!isAuthenticated) {
@@ -1282,14 +1320,15 @@ export class SecurityEnforcementSystem extends EventEmitter {
     return {
       verified: true,
       evidence: ['automated_verification'],
-      confidence: 0.95
+      confidence: 0.95,
     };
   }
 
   // Update metrics
   private updateMetrics(agentId: string, processingTime: number, success: boolean): void {
     // Update average response time
-    const totalTime = this.metrics.averageResponseTime * (this.metrics.totalRequests - 1) + processingTime;
+    const totalTime =
+      this.metrics.averageResponseTime * (this.metrics.totalRequests - 1) + processingTime;
     this.metrics.averageResponseTime = totalTime / this.metrics.totalRequests;
 
     // Update agent reputation scores
@@ -1303,7 +1342,7 @@ export class SecurityEnforcementSystem extends EventEmitter {
   async registerAgent(
     agentId: string,
     capabilities: string[],
-    securityLevel: AgentIdentity['securityLevel']
+    securityLevel: AgentIdentity['securityLevel'],
   ): Promise<AgentIdentity> {
     if (this.auth.getAgentIdentity(agentId)) {
       throw new Error('Agent already registered');
@@ -1312,11 +1351,11 @@ export class SecurityEnforcementSystem extends EventEmitter {
     const identity = await this.auth.registerAgent(agentId, capabilities, securityLevel);
     this.byzantine.registerNode(agentId);
 
-    await this.auditTrail.createAuditEntry(
-      'system',
-      'AGENT_REGISTERED',
-      { agentId, capabilities, securityLevel }
-    );
+    await this.auditTrail.createAuditEntry('system', 'AGENT_REGISTERED', {
+      agentId,
+      capabilities,
+      securityLevel,
+    });
 
     this.emit('agentRegistered', identity);
     return identity;
@@ -1332,11 +1371,7 @@ export class SecurityEnforcementSystem extends EventEmitter {
     // Set reputation to zero
     this.auth.updateReputation(agentId, -identity.reputation, reason);
 
-    await this.auditTrail.createAuditEntry(
-      'system',
-      'AGENT_REVOKED',
-      { agentId, reason }
-    );
+    await this.auditTrail.createAuditEntry('system', 'AGENT_REVOKED', { agentId, reason });
 
     this.emit('agentRevoked', { agentId, reason });
   }
@@ -1350,15 +1385,19 @@ export class SecurityEnforcementSystem extends EventEmitter {
   } {
     const systemHealth = this.byzantine.getSystemHealth();
     const auditVerification = this.auditTrail.verifyAuditTrail();
-    
+
     // Identify top threats based on recent audit entries
     const recentAudits = this.auditTrail.searchAuditTrail({
-      dateFrom: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+      dateFrom: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
     });
-    
+
     const threatCounts = new Map<string, number>();
-    recentAudits.forEach(entry => {
-      if (entry.action.includes('REJECTED') || entry.action.includes('ATTACK') || entry.action.includes('BYZANTINE')) {
+    recentAudits.forEach((entry) => {
+      if (
+        entry.action.includes('REJECTED') ||
+        entry.action.includes('ATTACK') ||
+        entry.action.includes('BYZANTINE')
+      ) {
         const count = threatCounts.get(entry.action) || 0;
         threatCounts.set(entry.action, count + 1);
       }
@@ -1375,22 +1414,21 @@ export class SecurityEnforcementSystem extends EventEmitter {
       auditSummary: {
         totalEntries: recentAudits.length,
         integrityValid: auditVerification.valid,
-        corruptedEntries: auditVerification.corruptedEntries.length
+        corruptedEntries: auditVerification.corruptedEntries.length,
       },
-      topThreats
+      topThreats,
     };
   }
 
   // Emergency shutdown
   async emergencyShutdown(reason: string): Promise<void> {
-    await this.auditTrail.createAuditEntry(
-      'system',
-      'EMERGENCY_SHUTDOWN',
-      { reason, timestamp: new Date() }
-    );
+    await this.auditTrail.createAuditEntry('system', 'EMERGENCY_SHUTDOWN', {
+      reason,
+      timestamp: new Date(),
+    });
 
     this.emit('emergencyShutdown', { reason });
-    
+
     // Stop accepting new requests
     this.isInitialized = false;
   }
@@ -1406,7 +1444,7 @@ export class SecurityEnforcementSystem extends EventEmitter {
       timestamp: new Date(),
       systemStatus: this.getSecurityStatus(),
       auditTrail: this.auditTrail.exportAuditTrail('json'),
-      metrics: this.metrics
+      metrics: this.metrics,
     };
   }
 }
@@ -1419,7 +1457,7 @@ export {
   ByzantineFaultToleranceSystem,
   ThresholdSignatureSystem,
   ZeroKnowledgeProofSystem,
-  CryptographicCore
+  CryptographicCore,
 };
 
 // Default export

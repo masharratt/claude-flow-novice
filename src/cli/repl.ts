@@ -686,14 +686,16 @@ async function handleAgentSpawn(args: string[]): Promise<void> {
   const type = args[0];
   const name =
     args[1] ||
-    (await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'name',
-        message: 'Agent name:',
-        default: `${type}-agent`,
-      },
-    ])).name;
+    (
+      await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'name',
+          message: 'Agent name:',
+          default: `${type}-agent`,
+        },
+      ])
+    ).name;
 
   console.log(chalk.yellow('Spawning agent...'));
 
@@ -969,14 +971,16 @@ async function handleSessionSave(args: string[]): Promise<void> {
   const name =
     args.length > 0
       ? args.join(' ')
-      : (await inquirer.prompt([
-          {
-            type: 'input',
-            name: 'name',
-            message: 'Session name:',
-            default: `session-${new Date().toISOString().split('T')[0]}`,
-          },
-        ])).name;
+      : (
+          await inquirer.prompt([
+            {
+              type: 'input',
+              name: 'name',
+              message: 'Session name:',
+              default: `session-${new Date().toISOString().split('T')[0]}`,
+            },
+          ])
+        ).name;
 
   console.log(chalk.yellow('Saving session...'));
   await new Promise((resolve) => setTimeout(resolve, 1000));

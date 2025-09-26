@@ -31,7 +31,7 @@ class ByzantineFaultDetector extends EventEmitter {
       severity: 'HIGH',
       threshold: 1, // Any instance is critical
       detector: this.detectDoubleVoting.bind(this),
-      punishment: 'IMMEDIATE_EXCLUSION'
+      punishment: 'IMMEDIATE_EXCLUSION',
     });
 
     // Signature forgery detection
@@ -39,7 +39,7 @@ class ByzantineFaultDetector extends EventEmitter {
       severity: 'HIGH',
       threshold: 1,
       detector: this.detectSignatureForgery.bind(this),
-      punishment: 'IMMEDIATE_EXCLUSION'
+      punishment: 'IMMEDIATE_EXCLUSION',
     });
 
     // Timing anomaly detection
@@ -47,7 +47,7 @@ class ByzantineFaultDetector extends EventEmitter {
       severity: 'MEDIUM',
       threshold: 3, // Multiple instances needed
       detector: this.detectTimingAnomalies.bind(this),
-      punishment: 'TEMPORARY_SUSPENSION'
+      punishment: 'TEMPORARY_SUSPENSION',
     });
 
     // Consensus deviation detection
@@ -55,7 +55,7 @@ class ByzantineFaultDetector extends EventEmitter {
       severity: 'MEDIUM',
       threshold: 5,
       detector: this.detectConsensusDeviation.bind(this),
-      punishment: 'WARNING'
+      punishment: 'WARNING',
     });
 
     // Network partition abuse
@@ -63,7 +63,7 @@ class ByzantineFaultDetector extends EventEmitter {
       severity: 'HIGH',
       threshold: 2,
       detector: this.detectPartitionAbuse.bind(this),
-      punishment: 'REPUTATION_PENALTY'
+      punishment: 'REPUTATION_PENALTY',
     });
 
     // Vote manipulation detection
@@ -71,7 +71,7 @@ class ByzantineFaultDetector extends EventEmitter {
       severity: 'HIGH',
       threshold: 1,
       detector: this.detectVoteManipulation.bind(this),
-      punishment: 'IMMEDIATE_EXCLUSION'
+      punishment: 'IMMEDIATE_EXCLUSION',
     });
   }
 
@@ -98,7 +98,7 @@ class ByzantineFaultDetector extends EventEmitter {
               evidence: detection.evidence,
               confidence: detection.confidence,
               timestamp: Date.now(),
-              punishment: rule.punishment
+              punishment: rule.punishment,
             };
 
             analysisResults.push(suspicionRecord);
@@ -111,7 +111,6 @@ class ByzantineFaultDetector extends EventEmitter {
               await this.triggerByzantineResponse(nodeId, suspicionRecord);
             }
           }
-
         } catch (error) {
           console.error(`Detection rule ${ruleName} failed for node ${nodeId}:`, error);
         }
@@ -127,18 +126,17 @@ class ByzantineFaultDetector extends EventEmitter {
           evidence: mlResults.evidence,
           confidence: mlResults.byzantineProbability,
           timestamp: Date.now(),
-          punishment: 'DETAILED_INVESTIGATION'
+          punishment: 'DETAILED_INVESTIGATION',
         });
       }
 
       this.emit('behaviorAnalyzed', {
         nodeId,
         suspiciousPatterns: analysisResults.length,
-        results: analysisResults
+        results: analysisResults,
       });
 
       return analysisResults;
-
     } catch (error) {
       console.error(`Behavior analysis failed for node ${nodeId}:`, error);
       throw error;
@@ -172,8 +170,8 @@ class ByzantineFaultDetector extends EventEmitter {
             votingRound: roundKey,
             voteCount: roundVotes.length,
             votes: roundVotes,
-            detectionTime: Date.now()
-          }
+            detectionTime: Date.now(),
+          },
         };
       }
     }
@@ -201,8 +199,8 @@ class ByzantineFaultDetector extends EventEmitter {
               invalidSignature: vote.signature,
               voteId: vote.id,
               timestamp: vote.timestamp,
-              detectionMethod: 'CRYPTOGRAPHIC_VERIFICATION'
-            }
+              detectionMethod: 'CRYPTOGRAPHIC_VERIFICATION',
+            },
           };
         }
 
@@ -217,11 +215,10 @@ class ByzantineFaultDetector extends EventEmitter {
               reusedSignature: vote.signature,
               originalVoteId: signatureReused.originalVoteId,
               currentVoteId: vote.id,
-              detectionMethod: 'SIGNATURE_REUSE_DETECTION'
-            }
+              detectionMethod: 'SIGNATURE_REUSE_DETECTION',
+            },
           };
         }
-
       } catch (error) {
         console.warn(`Signature verification failed for vote ${vote.id}:`, error);
       }
@@ -238,7 +235,7 @@ class ByzantineFaultDetector extends EventEmitter {
     const timingPatterns = this.analyzeTiming(actions);
 
     // Check for impossible response times
-    const impossibleTimes = timingPatterns.responseTimes.filter(time => time < 10); // < 10ms is suspicious
+    const impossibleTimes = timingPatterns.responseTimes.filter((time) => time < 10); // < 10ms is suspicious
 
     if (impossibleTimes.length > 0) {
       return {
@@ -247,8 +244,8 @@ class ByzantineFaultDetector extends EventEmitter {
         evidence: {
           impossibleResponseTimes: impossibleTimes,
           averageResponseTime: timingPatterns.averageResponseTime,
-          detectionMethod: 'RESPONSE_TIME_ANALYSIS'
-        }
+          detectionMethod: 'RESPONSE_TIME_ANALYSIS',
+        },
       };
     }
 
@@ -262,8 +259,8 @@ class ByzantineFaultDetector extends EventEmitter {
         evidence: {
           regularityScore,
           responseTimes: timingPatterns.responseTimes,
-          detectionMethod: 'REGULARITY_ANALYSIS'
-        }
+          detectionMethod: 'REGULARITY_ANALYSIS',
+        },
       };
     }
 
@@ -289,14 +286,15 @@ class ByzantineFaultDetector extends EventEmitter {
           consensusId: decision.consensusId,
           nodeVote: decision.vote,
           majorityDecision: majorityDecision.result,
-          timestamp: decision.timestamp
+          timestamp: decision.timestamp,
         });
       }
     }
 
     const deviationRate = decisions.length > 0 ? deviationCount / decisions.length : 0;
 
-    if (deviationRate > 0.6) { // More than 60% deviation is suspicious
+    if (deviationRate > 0.6) {
+      // More than 60% deviation is suspicious
       return {
         suspicious: true,
         confidence: Math.min(0.9, deviationRate),
@@ -305,8 +303,8 @@ class ByzantineFaultDetector extends EventEmitter {
           totalDecisions: decisions.length,
           deviationRate,
           deviations: deviations.slice(-5), // Last 5 deviations
-          detectionMethod: 'CONSENSUS_DEVIATION_ANALYSIS'
-        }
+          detectionMethod: 'CONSENSUS_DEVIATION_ANALYSIS',
+        },
       };
     }
 
@@ -318,7 +316,7 @@ class ByzantineFaultDetector extends EventEmitter {
    */
   async detectPartitionAbuse(nodeId, behaviorData) {
     const networkEvents = behaviorData.networkEvents || [];
-    const partitionEvents = networkEvents.filter(event => event.type === 'PARTITION');
+    const partitionEvents = networkEvents.filter((event) => event.type === 'PARTITION');
 
     if (partitionEvents.length === 0) {
       return { suspicious: false };
@@ -338,7 +336,7 @@ class ByzantineFaultDetector extends EventEmitter {
       if (beneficialOutcome) {
         suspiciousPatterns.push({
           ...event,
-          beneficialOutcome
+          beneficialOutcome,
         });
       }
     }
@@ -350,8 +348,8 @@ class ByzantineFaultDetector extends EventEmitter {
         evidence: {
           suspiciousPartitions: suspiciousPatterns,
           totalPartitions: partitionEvents.length,
-          detectionMethod: 'PARTITION_ABUSE_ANALYSIS'
-        }
+          detectionMethod: 'PARTITION_ABUSE_ANALYSIS',
+        },
       };
     }
 
@@ -372,7 +370,7 @@ class ByzantineFaultDetector extends EventEmitter {
         manipulationEvidence.push({
           type: 'CONTENT_TAMPERING',
           vote: vote,
-          evidence: contentTampered
+          evidence: contentTampered,
         });
       }
 
@@ -382,7 +380,7 @@ class ByzantineFaultDetector extends EventEmitter {
         manipulationEvidence.push({
           type: 'TIMESTAMP_MANIPULATION',
           vote: vote,
-          evidence: timestampManipulated
+          evidence: timestampManipulated,
         });
       }
 
@@ -392,7 +390,7 @@ class ByzantineFaultDetector extends EventEmitter {
         manipulationEvidence.push({
           type: 'ORDERING_MANIPULATION',
           vote: vote,
-          evidence: orderingManipulated
+          evidence: orderingManipulated,
         });
       }
     }
@@ -404,8 +402,8 @@ class ByzantineFaultDetector extends EventEmitter {
         evidence: {
           manipulationAttempts: manipulationEvidence,
           totalVotes: votes.length,
-          detectionMethod: 'VOTE_MANIPULATION_ANALYSIS'
-        }
+          detectionMethod: 'VOTE_MANIPULATION_ANALYSIS',
+        },
       };
     }
 
@@ -422,7 +420,7 @@ class ByzantineFaultDetector extends EventEmitter {
         totalActions: 0,
         behaviorSamples: [],
         patterns: new Map(),
-        trustScore: 1.0
+        trustScore: 1.0,
       });
     }
 
@@ -432,7 +430,7 @@ class ByzantineFaultDetector extends EventEmitter {
     history.behaviorSamples.push({
       timestamp: Date.now(),
       data: behaviorData,
-      hash: crypto.createHash('sha256').update(JSON.stringify(behaviorData)).digest('hex')
+      hash: crypto.createHash('sha256').update(JSON.stringify(behaviorData)).digest('hex'),
     });
 
     // Maintain rolling window of behavior samples
@@ -457,7 +455,7 @@ class ByzantineFaultDetector extends EventEmitter {
         totalSuspicions: 0,
         suspicionsByRule: new Map(),
         trustScore: 1.0,
-        status: 'MONITORING'
+        status: 'MONITORING',
       });
     }
 
@@ -472,7 +470,7 @@ class ByzantineFaultDetector extends EventEmitter {
     record.suspicionsByRule.get(ruleName).push(suspicionRecord);
 
     // Update trust score
-    record.trustScore = Math.max(0, record.trustScore - (0.1 * suspicionRecord.confidence));
+    record.trustScore = Math.max(0, record.trustScore - 0.1 * suspicionRecord.confidence);
 
     // Update status based on severity and frequency
     if (suspicionRecord.severity === 'HIGH') {
@@ -501,7 +499,7 @@ class ByzantineFaultDetector extends EventEmitter {
       this.emit('byzantineDetected', {
         nodeId,
         suspicionRecord,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       // Execute punishment based on rule
@@ -529,7 +527,6 @@ class ByzantineFaultDetector extends EventEmitter {
 
       // Notify quorum manager
       await this.notifyQuorumManager(nodeId, suspicionRecord);
-
     } catch (error) {
       console.error(`Failed to trigger Byzantine response for ${nodeId}:`, error);
     }
@@ -542,7 +539,7 @@ class ByzantineFaultDetector extends EventEmitter {
     await this.quorumManager.removeNodeFromQuorum(nodeId, {
       reason: 'BYZANTINE_BEHAVIOR',
       duration: duration,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     console.log(`Node ${nodeId} excluded from quorum due to Byzantine behavior`);
@@ -557,7 +554,7 @@ class ByzantineFaultDetector extends EventEmitter {
     await this.quorumManager.suspendNode(nodeId, {
       suspensionEnd,
       reason: 'SUSPICIOUS_BEHAVIOR',
-      canAppeal: true
+      canAppeal: true,
     });
 
     // Set timer to restore node
@@ -589,7 +586,7 @@ class ByzantineFaultDetector extends EventEmitter {
       severity: suspicionRecord.severity,
       evidence: suspicionRecord.evidence,
       timestamp: Date.now(),
-      expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
     };
 
     await this.quorumManager.issueNodeWarning(nodeId, warning);
@@ -634,14 +631,14 @@ class ByzantineFaultDetector extends EventEmitter {
     let totalTime = 0;
 
     for (let i = 1; i < actions.length; i++) {
-      const responseTime = actions[i].timestamp - actions[i-1].timestamp;
+      const responseTime = actions[i].timestamp - actions[i - 1].timestamp;
       responseTimes.push(responseTime);
       totalTime += responseTime;
     }
 
     return {
       responseTimes,
-      averageResponseTime: responseTimes.length > 0 ? totalTime / responseTimes.length : 0
+      averageResponseTime: responseTimes.length > 0 ? totalTime / responseTimes.length : 0,
     };
   }
 
@@ -649,7 +646,8 @@ class ByzantineFaultDetector extends EventEmitter {
     if (responseTimes.length < 5) return 0;
 
     const mean = responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
-    const variance = responseTimes.reduce((sum, time) => sum + Math.pow(time - mean, 2), 0) / responseTimes.length;
+    const variance =
+      responseTimes.reduce((sum, time) => sum + Math.pow(time - mean, 2), 0) / responseTimes.length;
     const standardDeviation = Math.sqrt(variance);
 
     // Lower standard deviation means more regular (suspicious)
@@ -669,7 +667,7 @@ class ByzantineFaultDetector extends EventEmitter {
     if (!history) return false;
 
     const usedSignatures = history.patterns.get('signatures') || [];
-    const reusedInstance = usedSignatures.find(sig => sig.signature === signature);
+    const reusedInstance = usedSignatures.find((sig) => sig.signature === signature);
 
     return reusedInstance ? { originalVoteId: reusedInstance.voteId } : false;
   }
@@ -679,7 +677,7 @@ class ByzantineFaultDetector extends EventEmitter {
     // In real implementation, this would query the consensus database
     return new Map([
       ['consensus-1', { result: 'APPROVE', confidence: 0.8 }],
-      ['consensus-2', { result: 'REJECT', confidence: 0.9 }]
+      ['consensus-2', { result: 'REJECT', confidence: 0.9 }],
     ]);
   }
 
@@ -692,7 +690,9 @@ class ByzantineFaultDetector extends EventEmitter {
   async checkContentTampering(vote) {
     // Check for vote content tampering
     const expectedHash = crypto.createHash('sha256').update(vote.decision).digest('hex');
-    return vote.contentHash && vote.contentHash !== expectedHash ? { expectedHash, actualHash: vote.contentHash } : false;
+    return vote.contentHash && vote.contentHash !== expectedHash
+      ? { expectedHash, actualHash: vote.contentHash }
+      : false;
   }
 
   async checkTimestampManipulation(vote, nodeId) {
@@ -705,7 +705,7 @@ class ByzantineFaultDetector extends EventEmitter {
       return {
         voteTimestamp: voteTime,
         currentTime: now,
-        deviation: Math.abs(voteTime - now)
+        deviation: Math.abs(voteTime - now),
       };
     }
 
@@ -722,7 +722,7 @@ class ByzantineFaultDetector extends EventEmitter {
       return {
         expectedIndex,
         actualIndex,
-        deviation: Math.abs(expectedIndex - actualIndex)
+        deviation: Math.abs(expectedIndex - actualIndex),
       };
     }
 
@@ -745,21 +745,22 @@ class ByzantineFaultDetector extends EventEmitter {
   extractVotePattern(votes) {
     return {
       frequency: votes.length,
-      decisions: votes.map(v => v.decision),
-      averageConfidence: votes.reduce((sum, v) => sum + (v.confidence || 0.5), 0) / votes.length
+      decisions: votes.map((v) => v.decision),
+      averageConfidence: votes.reduce((sum, v) => sum + (v.confidence || 0.5), 0) / votes.length,
     };
   }
 
   extractTimingPattern(actions) {
     const intervals = [];
     for (let i = 1; i < actions.length; i++) {
-      intervals.push(actions[i].timestamp - actions[i-1].timestamp);
+      intervals.push(actions[i].timestamp - actions[i - 1].timestamp);
     }
 
     return {
-      averageInterval: intervals.length > 0 ? intervals.reduce((sum, i) => sum + i, 0) / intervals.length : 0,
+      averageInterval:
+        intervals.length > 0 ? intervals.reduce((sum, i) => sum + i, 0) / intervals.length : 0,
       variance: this.calculateVariance(intervals),
-      regularity: this.calculateRegularityScore(intervals)
+      regularity: this.calculateRegularityScore(intervals),
     };
   }
 
@@ -775,11 +776,9 @@ class ByzantineFaultDetector extends EventEmitter {
     return {
       actions: [
         { type: 'VOTE', timestamp: Date.now() - 30000 },
-        { type: 'CONSENSUS', timestamp: Date.now() - 15000 }
+        { type: 'CONSENSUS', timestamp: Date.now() - 15000 },
       ],
-      votes: [
-        { id: 'vote-1', decision: 'APPROVE', timestamp: Date.now() - 30000 }
-      ]
+      votes: [{ id: 'vote-1', decision: 'APPROVE', timestamp: Date.now() - 30000 }],
     };
   }
 
@@ -787,14 +786,14 @@ class ByzantineFaultDetector extends EventEmitter {
     this.quorumManager.emit('byzantineNodeDetected', {
       nodeId,
       suspicion: suspicionRecord,
-      detector: 'ByzantineFaultDetector'
+      detector: 'ByzantineFaultDetector',
     });
   }
 
   async restoreNode(nodeId) {
     await this.quorumManager.restoreNode(nodeId, {
       reason: 'SUSPENSION_EXPIRED',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -808,7 +807,7 @@ class ByzantineFaultDetector extends EventEmitter {
       investigationId: crypto.randomUUID(),
       startTime: Date.now(),
       status: 'IN_PROGRESS',
-      evidence: await this.gatherDetailedEvidence(nodeId)
+      evidence: await this.gatherDetailedEvidence(nodeId),
     };
 
     this.emit('investigationStarted', investigation);
@@ -824,7 +823,7 @@ class ByzantineFaultDetector extends EventEmitter {
       behaviorHistory: history,
       suspicionRecord: suspicions,
       networkAnalysis: await this.analyzeNetworkBehavior(nodeId),
-      cryptographicAnalysis: await this.analyzeCryptographicBehavior(nodeId)
+      cryptographicAnalysis: await this.analyzeCryptographicBehavior(nodeId),
     };
   }
 
@@ -833,7 +832,7 @@ class ByzantineFaultDetector extends EventEmitter {
     return {
       connectionPatterns: 'analyzed',
       latencyPatterns: 'analyzed',
-      partitionBehavior: 'analyzed'
+      partitionBehavior: 'analyzed',
     };
   }
 
@@ -842,7 +841,7 @@ class ByzantineFaultDetector extends EventEmitter {
     return {
       signaturePatterns: 'analyzed',
       hashingBehavior: 'analyzed',
-      keyUsage: 'analyzed'
+      keyUsage: 'analyzed',
     };
   }
 }
@@ -863,7 +862,7 @@ class MLPatternDetector {
     return {
       trained: false,
       accuracy: 0.0,
-      version: '1.0'
+      version: '1.0',
     };
   }
 
@@ -877,8 +876,8 @@ class MLPatternDetector {
       evidence: {
         features,
         modelVersion: this.model.version,
-        confidence: Math.min(1.0, byzantineProbability * 1.2)
-      }
+        confidence: Math.min(1.0, byzantineProbability * 1.2),
+      },
     };
   }
 
@@ -888,7 +887,7 @@ class MLPatternDetector {
       voteFrequency: (behaviorData.votes || []).length,
       averageResponseTime: this.calculateAverageResponseTime(behaviorData.actions || []),
       decisionConsistency: this.calculateDecisionConsistency(behaviorData.votes || []),
-      timingRegularity: this.calculateTimingRegularity(behaviorData.actions || [])
+      timingRegularity: this.calculateTimingRegularity(behaviorData.actions || []),
     };
   }
 
@@ -910,7 +909,7 @@ class MLPatternDetector {
 
     let totalTime = 0;
     for (let i = 1; i < actions.length; i++) {
-      totalTime += actions[i].timestamp - actions[i-1].timestamp;
+      totalTime += actions[i].timestamp - actions[i - 1].timestamp;
     }
 
     return totalTime / (actions.length - 1);
@@ -919,7 +918,7 @@ class MLPatternDetector {
   calculateDecisionConsistency(votes) {
     if (votes.length === 0) return 1;
 
-    const decisions = votes.map(v => v.decision);
+    const decisions = votes.map((v) => v.decision);
     const uniqueDecisions = [...new Set(decisions)];
 
     return uniqueDecisions.length / decisions.length;
@@ -930,11 +929,12 @@ class MLPatternDetector {
 
     const intervals = [];
     for (let i = 1; i < actions.length; i++) {
-      intervals.push(actions[i].timestamp - actions[i-1].timestamp);
+      intervals.push(actions[i].timestamp - actions[i - 1].timestamp);
     }
 
     const mean = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
-    const variance = intervals.reduce((sum, interval) => sum + Math.pow(interval - mean, 2), 0) / intervals.length;
+    const variance =
+      intervals.reduce((sum, interval) => sum + Math.pow(interval - mean, 2), 0) / intervals.length;
     const standardDeviation = Math.sqrt(variance);
 
     return 1 - Math.min(1, standardDeviation / mean);

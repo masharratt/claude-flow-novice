@@ -15,17 +15,17 @@ interface InitOptions {
 
 export class NeuralInitCommand {
   private readonly sourcePath = path.resolve(__dirname, '../../../.claude/agents/neural');
-  
+
   async execute(options: InitOptions = {}): Promise<void> {
     const targetDir = options.targetDir || '.claude/agents/neural';
     const absoluteTarget = path.resolve(process.cwd(), targetDir);
-    
+
     logger.info(chalk.cyan('🧠 Initializing Claude Flow Neural Module...'));
-    
+
     try {
       // Check if target exists
       const exists = await this.checkExists(absoluteTarget);
-      
+
       if (exists && !options.force) {
         logger.warn(chalk.yellow('⚠️  Neural module already exists. Use --force to overwrite.'));
         const prompt = await this.confirmOverwrite();
@@ -34,32 +34,31 @@ export class NeuralInitCommand {
           return;
         }
       }
-      
+
       // Create target directory
       await fs.mkdir(absoluteTarget, { recursive: true });
-      
+
       // Copy neural agent files
       await this.copyNeuralFiles(absoluteTarget);
-      
+
       // Initialize configuration
       await this.initializeConfig(absoluteTarget);
-      
+
       // Verify installation
       const verified = await this.verifyInstallation(absoluteTarget);
-      
+
       if (verified) {
         logger.success(chalk.green('✅ Neural module initialized successfully!'));
         this.printUsage();
       } else {
         throw new Error('Installation verification failed');
       }
-      
     } catch (error) {
       logger.error(chalk.red('❌ Failed to initialize neural module:'), error);
       throw error;
     }
   }
-  
+
   private async checkExists(targetPath: string): Promise<boolean> {
     try {
       await fs.access(targetPath);
@@ -68,19 +67,19 @@ export class NeuralInitCommand {
       return false;
     }
   }
-  
+
   private async confirmOverwrite(): Promise<boolean> {
     // In a real implementation, this would use inquirer or similar
     // For now, we'll return false to be safe
     console.log(chalk.yellow('Would you like to overwrite? (y/N)'));
     return false;
   }
-  
+
   private async copyNeuralFiles(targetDir: string): Promise<void> {
     // Copy SAFLA neural agent
     const saflaSource = path.join(this.sourcePath, 'safla-neural.md');
     const saflaTarget = path.join(targetDir, 'safla-neural.md');
-    
+
     // Check if source exists in package
     try {
       // First try to copy from local installation
@@ -91,11 +90,11 @@ export class NeuralInitCommand {
       await this.createSaflaTemplate(saflaTarget);
       logger.info(chalk.gray('  • Created safla-neural.md from template'));
     }
-    
+
     // Create additional neural agents if needed
     await this.createNeuralAgents(targetDir);
   }
-  
+
   private async createSaflaTemplate(targetPath: string): Promise<void> {
     const template = `---
 name: safla-neural
@@ -125,27 +124,27 @@ npx claude-flow neural predict --model safla
 `;
     await fs.writeFile(targetPath, template);
   }
-  
+
   private async createNeuralAgents(targetDir: string): Promise<void> {
     // Create additional neural agent templates
     const agents = [
       {
         name: 'neural-trainer.md',
-        content: this.getTrainerTemplate()
+        content: this.getTrainerTemplate(),
       },
       {
         name: 'neural-predictor.md',
-        content: this.getPredictorTemplate()
-      }
+        content: this.getPredictorTemplate(),
+      },
     ];
-    
+
     for (const agent of agents) {
       const targetPath = path.join(targetDir, agent.name);
       await fs.writeFile(targetPath, agent.content);
       logger.info(chalk.gray(`  • Created ${agent.name}`));
     }
   }
-  
+
   private getTrainerTemplate(): string {
     return `---
 name: neural-trainer
@@ -158,7 +157,7 @@ color: purple
 Manages distributed neural network training with Claude Flow.
 `;
   }
-  
+
   private getPredictorTemplate(): string {
     return `---
 name: neural-predictor  
@@ -171,7 +170,7 @@ color: blue
 Handles neural network inference and predictions.
 `;
   }
-  
+
   private async initializeConfig(targetDir: string): Promise<void> {
     const config = {
       version: '1.0.0',
@@ -180,28 +179,24 @@ Handles neural network inference and predictions.
         defaultModel: 'safla',
         wasmOptimization: true,
         memoryCompression: 0.6,
-        operationsPerSecond: 172000
+        operationsPerSecond: 172000,
       },
-      agents: [
-        'safla-neural',
-        'neural-trainer',
-        'neural-predictor'
-      ]
+      agents: ['safla-neural', 'neural-trainer', 'neural-predictor'],
     };
-    
+
     const configPath = path.join(targetDir, 'config.json');
     await fs.writeFile(configPath, JSON.stringify(config, null, 2));
     logger.info(chalk.gray('  • Created neural config.json'));
   }
-  
+
   private async verifyInstallation(targetDir: string): Promise<boolean> {
     const requiredFiles = [
       'safla-neural.md',
       'neural-trainer.md',
       'neural-predictor.md',
-      'config.json'
+      'config.json',
     ];
-    
+
     for (const file of requiredFiles) {
       const filePath = path.join(targetDir, file);
       const exists = await this.checkExists(filePath);
@@ -211,10 +206,10 @@ Handles neural network inference and predictions.
       }
       logger.info(chalk.gray(`  ✓ Verified ${file}`));
     }
-    
+
     return true;
   }
-  
+
   private printUsage(): void {
     console.log('\n' + chalk.cyan('📚 Usage:'));
     console.log(chalk.gray('  npx claude-flow neural train --type safla'));
@@ -229,16 +224,16 @@ Handles neural network inference and predictions.
 if (import.meta.url === `file://${process.argv[1]}`) {
   const command = new NeuralInitCommand();
   const options: InitOptions = {};
-  
+
   if (process.argv.includes('--force')) {
     options.force = true;
   }
-  
+
   const targetIndex = process.argv.indexOf('--target');
   if (targetIndex !== -1 && process.argv[targetIndex + 1]) {
     options.targetDir = process.argv[targetIndex + 1];
   }
-  
+
   command.execute(options).catch(process.exit);
 }
 

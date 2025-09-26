@@ -11,14 +11,14 @@ const __dirname = dirname(__filename);
  */
 export async function copyAgentFiles(targetDir, options = {}) {
   const { force = false, dryRun = false } = options;
-  
+
   // Path to agent files - try multiple locations
   const packageAgentsDir = join(__dirname, '../../../../.claude/agents'); // From npm package
-  const localAgentsDir = '/workspaces/claude-code-flow/.claude/agents';   // Local development
-  const cwdAgentsDir = join(process.cwd(), '.claude/agents');              // Current working directory
-  
+  const localAgentsDir = '/workspaces/claude-code-flow/.claude/agents'; // Local development
+  const cwdAgentsDir = join(process.cwd(), '.claude/agents'); // Current working directory
+
   let sourceAgentsDir;
-  
+
   // Try local development first, then package, then cwd
   try {
     await fs.access(localAgentsDir);
@@ -41,29 +41,28 @@ export async function copyAgentFiles(targetDir, options = {}) {
     }
   }
   const targetAgentsDir = join(targetDir, '.claude/agents');
-  
+
   console.log('📁 Copying agent system files...');
   console.log(`  📂 Source: ${sourceAgentsDir}`);
   console.log(`  📂 Target: ${targetAgentsDir}`);
-  
+
   try {
-    
     // Create target directory
     if (!dryRun) {
       await fs.mkdir(targetAgentsDir, { recursive: true });
     }
-    
+
     const copiedFiles = [];
     const errors = [];
-    
+
     // Recursively copy all agent files
     async function copyRecursive(srcDir, destDir) {
       const items = await fs.readdir(srcDir, { withFileTypes: true });
-      
+
       for (const item of items) {
         const srcPath = join(srcDir, item.name);
         const destPath = join(destDir, item.name);
-        
+
         if (item.isDirectory()) {
           if (!dryRun) {
             await fs.mkdir(destPath, { recursive: true });
@@ -83,7 +82,7 @@ export async function copyAgentFiles(targetDir, options = {}) {
                 shouldCopy = true;
               }
             }
-            
+
             if (shouldCopy && !dryRun) {
               const content = await fs.readFile(srcPath, 'utf8');
               await fs.writeFile(destPath, content, 'utf8');
@@ -97,36 +96,37 @@ export async function copyAgentFiles(targetDir, options = {}) {
         }
       }
     }
-    
+
     await copyRecursive(sourceAgentsDir, targetAgentsDir);
-    
+
     if (!dryRun && copiedFiles.length > 0) {
       console.log(`  ✅ Copied ${copiedFiles.length} agent files`);
       console.log('  📋 Agent system initialized with 64 specialized agents');
-      console.log('  🎯 Available categories: Core, Swarm, Consensus, Performance, GitHub, SPARC, Testing');
+      console.log(
+        '  🎯 Available categories: Core, Swarm, Consensus, Performance, GitHub, SPARC, Testing',
+      );
     } else if (dryRun) {
       console.log(`  [DRY RUN] Would copy ${copiedFiles.length} agent files`);
     }
-    
+
     if (errors.length > 0) {
       console.log('  ⚠️  Some agent files could not be copied:');
-      errors.forEach(error => console.log(`    - ${error}`));
+      errors.forEach((error) => console.log(`    - ${error}`));
     }
-    
+
     return {
       success: true,
       copiedFiles,
       errors,
-      totalAgents: copiedFiles.length
+      totalAgents: copiedFiles.length,
     };
-    
   } catch (err) {
     console.log(`  ❌ Failed to copy agent files: ${err.message}`);
     return {
       success: false,
       error: err.message,
       copiedFiles: [],
-      errors: [err.message]
+      errors: [err.message],
     };
   }
 }
@@ -139,7 +139,7 @@ export async function createAgentDirectories(targetDir, dryRun = false) {
     '.claude',
     '.claude/agents',
     '.claude/agents/core',
-    '.claude/agents/swarm', 
+    '.claude/agents/swarm',
     '.claude/agents/hive-mind',
     '.claude/agents/consensus',
     '.claude/agents/optimization',
@@ -165,18 +165,18 @@ export async function createAgentDirectories(targetDir, dryRun = false) {
     '.claude/agents/specialized/mobile',
     '.claude/agents/flow-nexus',
     '.claude/commands',
-    '.claude/commands/flow-nexus'
+    '.claude/commands/flow-nexus',
   ];
-  
+
   if (dryRun) {
     console.log(`  [DRY RUN] Would create ${agentDirs.length} agent directories`);
     return;
   }
-  
+
   for (const dir of agentDirs) {
     await fs.mkdir(join(targetDir, dir), { recursive: true });
   }
-  
+
   console.log(`  ✅ Created ${agentDirs.length} agent directories`);
 }
 
@@ -188,14 +188,14 @@ export async function createAgentDirectories(targetDir, dryRun = false) {
  */
 export async function copyCommandFiles(targetDir, options = {}) {
   const { force = false, dryRun = false } = options;
-  
+
   // Path to command files - try multiple locations
   const packageCommandsDir = join(__dirname, '../../../../.claude/commands'); // From npm package
-  const localCommandsDir = '/workspaces/claude-code-flow/.claude/commands';   // Local development
-  const cwdCommandsDir = join(process.cwd(), '.claude/commands');              // Current working directory
-  
+  const localCommandsDir = '/workspaces/claude-code-flow/.claude/commands'; // Local development
+  const cwdCommandsDir = join(process.cwd(), '.claude/commands'); // Current working directory
+
   let sourceCommandsDir;
-  
+
   // Try local development first, then package, then cwd
   try {
     await fs.access(localCommandsDir);
@@ -217,30 +217,30 @@ export async function copyCommandFiles(targetDir, options = {}) {
       }
     }
   }
-  
+
   const targetCommandsDir = join(targetDir, '.claude/commands');
-  
+
   console.log('📁 Copying command system files...');
   console.log(`  📂 Source: ${sourceCommandsDir}`);
   console.log(`  📂 Target: ${targetCommandsDir}`);
-  
+
   try {
     // Create target directory
     if (!dryRun) {
       await fs.mkdir(targetCommandsDir, { recursive: true });
     }
-    
+
     const copiedFiles = [];
     const errors = [];
-    
+
     // Recursively copy all command files
     async function copyRecursive(srcDir, destDir) {
       const items = await fs.readdir(srcDir, { withFileTypes: true });
-      
+
       for (const item of items) {
         const srcPath = join(srcDir, item.name);
         const destPath = join(destDir, item.name);
-        
+
         if (item.isDirectory()) {
           if (!dryRun) {
             await fs.mkdir(destPath, { recursive: true });
@@ -260,7 +260,7 @@ export async function copyCommandFiles(targetDir, options = {}) {
                 shouldCopy = true;
               }
             }
-            
+
             if (shouldCopy && !dryRun) {
               const content = await fs.readFile(srcPath, 'utf8');
               await fs.writeFile(destPath, content, 'utf8');
@@ -274,72 +274,74 @@ export async function copyCommandFiles(targetDir, options = {}) {
         }
       }
     }
-    
+
     await copyRecursive(sourceCommandsDir, targetCommandsDir);
-    
+
     if (!dryRun && copiedFiles.length > 0) {
       console.log(`  ✅ Copied ${copiedFiles.length} command files`);
       console.log('  📋 Command system initialized with comprehensive documentation');
-      console.log('  🎯 Available categories: Analysis, Automation, GitHub, Hooks, Memory, Flow Nexus');
+      console.log(
+        '  🎯 Available categories: Analysis, Automation, GitHub, Hooks, Memory, Flow Nexus',
+      );
     } else if (dryRun) {
       console.log(`  [DRY RUN] Would copy ${copiedFiles.length} command files`);
     }
-    
+
     if (errors.length > 0) {
       console.log('  ⚠️  Some command files could not be copied:');
-      errors.forEach(error => console.log(`    - ${error}`));
+      errors.forEach((error) => console.log(`    - ${error}`));
     }
-    
+
     return {
       success: true,
       copiedFiles,
       errors,
-      totalCommands: copiedFiles.length
+      totalCommands: copiedFiles.length,
     };
-    
   } catch (err) {
     console.log(`  ❌ Failed to copy command files: ${err.message}`);
     return {
       success: false,
       error: err.message,
       copiedFiles: [],
-      errors: [err.message]
+      errors: [err.message],
     };
   }
 }
 
 export async function validateAgentSystem(targetDir) {
   const agentsDir = join(targetDir, '.claude/agents');
-  
+
   try {
     const categories = await fs.readdir(agentsDir, { withFileTypes: true });
-    const agentCategories = categories.filter(item => item.isDirectory()).map(item => item.name);
-    
+    const agentCategories = categories
+      .filter((item) => item.isDirectory())
+      .map((item) => item.name);
+
     let totalAgents = 0;
     for (const category of agentCategories) {
       const categoryPath = join(agentsDir, category);
       const items = await fs.readdir(categoryPath, { withFileTypes: true });
-      const agentFiles = items.filter(item => item.isFile() && item.name.endsWith('.md'));
+      const agentFiles = items.filter((item) => item.isFile() && item.name.endsWith('.md'));
       totalAgents += agentFiles.length;
     }
-    
+
     console.log('  🔍 Agent system validation:');
     console.log(`    • Categories: ${agentCategories.length}`);
     console.log(`    • Total agents: ${totalAgents}`);
     console.log(`    • Categories: ${agentCategories.join(', ')}`);
-    
+
     return {
       valid: totalAgents > 50, // Should have at least 50+ agents
       categories: agentCategories.length,
       totalAgents,
-      categoryNames: agentCategories
+      categoryNames: agentCategories,
     };
-    
   } catch (err) {
     console.log(`  ⚠️  Agent system validation failed: ${err.message}`);
     return {
       valid: false,
-      error: err.message
+      error: err.message,
     };
   }
 }

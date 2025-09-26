@@ -83,7 +83,7 @@ export class CRDTMemoryManager extends EventEmitter {
       cleanupOperations: 0,
       lastCleanup: 0,
       activeAgents: 0,
-      orphanedStates: 0
+      orphanedStates: 0,
     };
 
     this.initialize();
@@ -109,7 +109,6 @@ export class CRDTMemoryManager extends EventEmitter {
       this.registerAgent(this.nodeId, this.nodeId);
 
       this.emit('initialized', { nodeId: this.nodeId });
-
     } catch (error) {
       this.emit('initialization-error', error);
       throw error;
@@ -137,7 +136,6 @@ export class CRDTMemoryManager extends EventEmitter {
       await this.checkMemoryPressure();
 
       this.emit('state-stored', { key, nodeId: state.nodeId });
-
     } catch (error) {
       this.emit('storage-error', { key, error });
       throw error;
@@ -165,7 +163,6 @@ export class CRDTMemoryManager extends EventEmitter {
       }
 
       return state || null;
-
     } catch (error) {
       this.emit('retrieval-error', { key, error });
       throw error;
@@ -178,7 +175,7 @@ export class CRDTMemoryManager extends EventEmitter {
   registerAgent(agentId: string, nodeId: string): void {
     this.agentRegistry.set(agentId, {
       lastSeen: Date.now(),
-      nodeId: nodeId
+      nodeId: nodeId,
     });
 
     this.emit('agent-registered', { agentId, nodeId });
@@ -196,8 +193,9 @@ export class CRDTMemoryManager extends EventEmitter {
       }
 
       // Find all states for this agent
-      const agentStates = Array.from(this.memoryStore.entries())
-        .filter(([key]) => key.includes(agentId));
+      const agentStates = Array.from(this.memoryStore.entries()).filter(([key]) =>
+        key.includes(agentId),
+      );
 
       // Persist final states before cleanup
       if (this.config.persistence.enabled) {
@@ -207,7 +205,10 @@ export class CRDTMemoryManager extends EventEmitter {
       }
 
       // Create final backup
-      await this.createAgentBackup(agentId, agentStates.map(([_, state]) => state));
+      await this.createAgentBackup(
+        agentId,
+        agentStates.map(([_, state]) => state),
+      );
 
       // Schedule cleanup
       for (const [key] of agentStates) {
@@ -220,9 +221,8 @@ export class CRDTMemoryManager extends EventEmitter {
       this.emit('agent-terminated', {
         agentId,
         statesCount: agentStates.length,
-        cleanupScheduled: true
+        cleanupScheduled: true,
       });
-
     } catch (error) {
       this.emit('termination-error', { agentId, error });
       throw error;
@@ -232,7 +232,10 @@ export class CRDTMemoryManager extends EventEmitter {
   /**
    * Synchronize state across distributed nodes
    */
-  async synchronizeStates(nodeIds: string[], states?: Map<string, VerificationCRDT>): Promise<void> {
+  async synchronizeStates(
+    nodeIds: string[],
+    states?: Map<string, VerificationCRDT>,
+  ): Promise<void> {
     try {
       const statesToSync = states || this.memoryStore;
       const syncBatches = this.createSyncBatches(statesToSync);
@@ -248,9 +251,8 @@ export class CRDTMemoryManager extends EventEmitter {
       this.emit('states-synchronized', {
         nodeIds,
         statesCount: statesToSync.size,
-        batchCount: syncBatches.length
+        batchCount: syncBatches.length,
       });
-
     } catch (error) {
       this.emit('sync-error', { nodeIds, error });
       throw error;
@@ -271,7 +273,7 @@ export class CRDTMemoryManager extends EventEmitter {
         orphanedStates: [] as string[],
         memoryLeaks: [] as string[],
         persistenceIssues: [] as string[],
-        cleanupSuccess: true
+        cleanupSuccess: true,
       };
 
       // Check for orphaned states
@@ -304,7 +306,6 @@ export class CRDTMemoryManager extends EventEmitter {
 
       this.emit('cleanup-validated', validation);
       return validation;
-
     } catch (error) {
       this.emit('validation-error', error);
       throw error;
@@ -324,10 +325,10 @@ export class CRDTMemoryManager extends EventEmitter {
         timestamp: Date.now(),
         states: Array.from(this.memoryStore.entries()).map(([key, state]) => ({
           key,
-          state: state.serialize()
+          state: state.serialize(),
         })),
         agentRegistry: Array.from(this.agentRegistry.entries()),
-        stats: this.currentStats
+        stats: this.currentStats,
       };
 
       const serialized = JSON.stringify(backupData);
@@ -345,14 +346,13 @@ export class CRDTMemoryManager extends EventEmitter {
         nodeId: this.nodeId,
         stateCount: this.memoryStore.size,
         size: stats.size,
-        checksum: this.calculateChecksum(serialized)
+        checksum: this.calculateChecksum(serialized),
       };
 
       this.backupHistory.set(backupId, metadata);
       this.emit('backup-created', metadata);
 
       return metadata;
-
     } catch (error) {
       this.emit('backup-error', error);
       throw error;
@@ -394,7 +394,6 @@ export class CRDTMemoryManager extends EventEmitter {
       }
 
       this.emit('backup-restored', { backupId, statesCount: this.memoryStore.size });
-
     } catch (error) {
       this.emit('restore-error', { backupId, error });
       throw error;
@@ -437,7 +436,6 @@ export class CRDTMemoryManager extends EventEmitter {
       await this.validateCleanup();
 
       this.emit('shutdown-complete');
-
     } catch (error) {
       this.emit('shutdown-error', error);
       throw error;
@@ -467,8 +465,8 @@ export class CRDTMemoryManager extends EventEmitter {
       // Clean orphaned states
       for (const [key, state] of this.memoryStore) {
         const age = now - state.timestamp;
-        const isOrphaned = !this.agentRegistry.has(state.nodeId) &&
-                          age > this.config.cleanup.agentTimeout * 1000;
+        const isOrphaned =
+          !this.agentRegistry.has(state.nodeId) && age > this.config.cleanup.agentTimeout * 1000;
 
         if (isOrphaned || this.cleanupQueue.has(key)) {
           this.memoryStore.delete(key);
@@ -490,7 +488,6 @@ export class CRDTMemoryManager extends EventEmitter {
         this.currentStats.lastCleanup = now;
         this.emit('cleanup-performed', { cleanedKeys, count: cleanedKeys.length });
       }
-
     } catch (error) {
       this.emit('cleanup-error', error);
     }
@@ -542,11 +539,13 @@ export class CRDTMemoryManager extends EventEmitter {
 
     return {
       bytes: used.heapUsed,
-      percentage: (usedMB / totalMB) * 100
+      percentage: (usedMB / totalMB) * 100,
     };
   }
 
-  private createSyncBatches(states: Map<string, VerificationCRDT>): Array<Map<string, VerificationCRDT>> {
+  private createSyncBatches(
+    states: Map<string, VerificationCRDT>,
+  ): Array<Map<string, VerificationCRDT>> {
     const batches: Array<Map<string, VerificationCRDT>> = [];
     const entries = Array.from(states.entries());
 
@@ -558,17 +557,23 @@ export class CRDTMemoryManager extends EventEmitter {
     return batches;
   }
 
-  private async syncBatchToNode(nodeId: string, batch: Map<string, VerificationCRDT>): Promise<void> {
+  private async syncBatchToNode(
+    nodeId: string,
+    batch: Map<string, VerificationCRDT>,
+  ): Promise<void> {
     // Mock implementation - would use actual network transport
     this.emit('batch-synced', { nodeId, batchSize: batch.size });
   }
 
   private async createAgentBackup(agentId: string, states: VerificationCRDT[]): Promise<void> {
-    const backupPath = path.join(this.config.persistence.directory, `agent-${agentId}-${Date.now()}.json`);
+    const backupPath = path.join(
+      this.config.persistence.directory,
+      `agent-${agentId}-${Date.now()}.json`,
+    );
     const backupData = {
       agentId,
       timestamp: Date.now(),
-      states: states.map(s => s.serialize())
+      states: states.map((s) => s.serialize()),
     };
 
     await fs.writeFile(backupPath, JSON.stringify(backupData));
@@ -579,17 +584,19 @@ export class CRDTMemoryManager extends EventEmitter {
 
     try {
       const files = await fs.readdir(this.config.persistence.directory);
-      const stateFiles = files.filter(f => f.endsWith('.json') && !f.startsWith('backup-'));
+      const stateFiles = files.filter((f) => f.endsWith('.json') && !f.startsWith('backup-'));
 
       for (const file of stateFiles) {
         try {
-          const content = await fs.readFile(path.join(this.config.persistence.directory, file), 'utf-8');
+          const content = await fs.readFile(
+            path.join(this.config.persistence.directory, file),
+            'utf-8',
+          );
           JSON.parse(content);
         } catch {
           issues.push(`Corrupted persistence file: ${file}`);
         }
       }
-
     } catch (error) {
       issues.push(`Persistence validation failed: ${error}`);
     }
@@ -602,7 +609,7 @@ export class CRDTMemoryManager extends EventEmitter {
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return hash.toString(16);
@@ -617,7 +624,7 @@ export class CRDTMemoryManager extends EventEmitter {
       cleanupOperations: this.currentStats.cleanupOperations,
       lastCleanup: this.currentStats.lastCleanup,
       activeAgents: this.agentRegistry.size,
-      orphanedStates: this.cleanupQueue.size
+      orphanedStates: this.cleanupQueue.size,
     };
   }
 }

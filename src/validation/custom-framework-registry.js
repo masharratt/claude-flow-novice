@@ -38,9 +38,8 @@ export class CustomFrameworkRegistry {
       this.logger.info('Custom Framework Registry initialized', {
         frameworkCount: this.frameworks.size,
         registryPath: this.registryPath,
-        rustDetectorEnabled: true
+        rustDetectorEnabled: true,
       });
-
     } catch (error) {
       this.logger.error('Failed to initialize Custom Framework Registry', error);
       throw error;
@@ -67,7 +66,7 @@ export class CustomFrameworkRegistry {
         ...frameworkDef,
         registeredDate: new Date().toISOString(),
         version: '1.0.0',
-        active: true
+        active: true,
       };
 
       // Create truth configuration for the framework
@@ -83,15 +82,14 @@ export class CustomFrameworkRegistry {
       this.logger.info('Custom framework registered', {
         frameworkId,
         name: framework.name,
-        truthConfigId: framework.truthConfigId
+        truthConfigId: framework.truthConfigId,
       });
 
       return {
         success: true,
         frameworkId,
-        framework
+        framework,
       };
-
     } catch (error) {
       this.logger.error('Failed to register custom framework', error);
       throw error;
@@ -108,13 +106,11 @@ export class CustomFrameworkRegistry {
 
     // Filter by active status if specified
     if (options.activeOnly) {
-      return frameworks.filter(f => f.active);
+      return frameworks.filter((f) => f.active);
     }
 
     // Sort by registration date
-    return frameworks.sort((a, b) =>
-      new Date(b.registeredDate) - new Date(a.registeredDate)
-    );
+    return frameworks.sort((a, b) => new Date(b.registeredDate) - new Date(a.registeredDate));
   }
 
   /**
@@ -170,7 +166,10 @@ export class CustomFrameworkRegistry {
     this.frameworks.set(frameworkId, updatedFramework);
     await this.saveRegistry();
 
-    this.logger.info('Custom framework updated', { frameworkId, version: updatedFramework.version });
+    this.logger.info('Custom framework updated', {
+      frameworkId,
+      version: updatedFramework.version,
+    });
 
     return updatedFramework;
   }
@@ -210,13 +209,13 @@ export class CustomFrameworkRegistry {
     const exportData = {
       ...framework,
       exportedDate: new Date().toISOString(),
-      exportedBy: 'CustomFrameworkRegistry'
+      exportedBy: 'CustomFrameworkRegistry',
     };
 
     // Include truth configuration if requested
     if (options.includeTruthConfig) {
       const configManager = new TruthConfigManager({
-        configDir: path.join(this.basePath, '.swarm', 'configs')
+        configDir: path.join(this.basePath, '.swarm', 'configs'),
       });
       await configManager.initialize();
 
@@ -258,7 +257,7 @@ export class CustomFrameworkRegistry {
         testingFramework: importData.testingFramework,
         truthThreshold: importData.truthThreshold || 0.75,
         description: importData.description,
-        tags: [...(importData.tags || []), 'imported']
+        tags: [...(importData.tags || []), 'imported'],
       };
 
       // Register the imported framework
@@ -266,11 +265,10 @@ export class CustomFrameworkRegistry {
 
       this.logger.info('Custom framework imported', {
         frameworkId: result.frameworkId,
-        name: importData.name
+        name: importData.name,
       });
 
       return result;
-
     } catch (error) {
       this.logger.error('Failed to import custom framework', error);
       throw error;
@@ -298,9 +296,11 @@ export class CustomFrameworkRegistry {
 
     // Validate truth threshold
     if (frameworkDef.truthThreshold !== undefined) {
-      if (typeof frameworkDef.truthThreshold !== 'number' ||
-          frameworkDef.truthThreshold < 0 ||
-          frameworkDef.truthThreshold > 1) {
+      if (
+        typeof frameworkDef.truthThreshold !== 'number' ||
+        frameworkDef.truthThreshold < 0 ||
+        frameworkDef.truthThreshold > 1
+      ) {
         errors.push('Truth threshold must be a number between 0 and 1');
       }
     }
@@ -317,14 +317,16 @@ export class CustomFrameworkRegistry {
 
     // Validate testing framework
     const validTestingFrameworks = ['unit', 'behavior', 'integration', 'custom'];
-    if (frameworkDef.testingFramework &&
-        !validTestingFrameworks.includes(frameworkDef.testingFramework)) {
+    if (
+      frameworkDef.testingFramework &&
+      !validTestingFrameworks.includes(frameworkDef.testingFramework)
+    ) {
       errors.push(`Testing framework must be one of: ${validTestingFrameworks.join(', ')}`);
     }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -333,7 +335,7 @@ export class CustomFrameworkRegistry {
    */
   async createFrameworkTruthConfig(framework) {
     const configManager = new TruthConfigManager({
-      configDir: path.join(this.basePath, '.swarm', 'configs')
+      configDir: path.join(this.basePath, '.swarm', 'configs'),
     });
 
     await configManager.initialize();
@@ -352,22 +354,21 @@ export class CustomFrameworkRegistry {
         name: `${framework.name} Configuration`,
         description: `Custom configuration for ${framework.name} framework`,
         threshold: framework.truthThreshold || 0.75,
-        tags: ['custom-framework', framework.testingFramework]
+        tags: ['custom-framework', framework.testingFramework],
       });
 
       // Save the configuration
       const saveResult = await configManager.saveConfiguration(
         config,
-        `custom_${framework.name.replace(/\s+/g, '_').toLowerCase()}`
+        `custom_${framework.name.replace(/\s+/g, '_').toLowerCase()}`,
       );
 
       await configManager.cleanup();
 
       return {
         configId: saveResult.configId,
-        filepath: saveResult.filepath
+        filepath: saveResult.filepath,
       };
-
     } catch (error) {
       await configManager.cleanup();
       throw error;
@@ -378,7 +379,10 @@ export class CustomFrameworkRegistry {
    * Generate unique framework ID
    */
   generateFrameworkId(name) {
-    const normalized = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const normalized = name
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
     const timestamp = Date.now().toString(36);
     const hash = crypto.createHash('md5').update(name).digest('hex').slice(0, 8);
     return `custom-${normalized}-${timestamp}-${hash}`;
@@ -406,7 +410,6 @@ export class CustomFrameworkRegistry {
       }
 
       this.logger.debug('Loaded existing custom frameworks', { count: frameworksArray.length });
-
     } catch (error) {
       if (error.code !== 'ENOENT') {
         this.logger.warn('Failed to load existing frameworks', error);
@@ -421,11 +424,7 @@ export class CustomFrameworkRegistry {
   async saveRegistry() {
     const frameworksArray = Array.from(this.frameworks.values());
 
-    await fs.writeFile(
-      this.registryPath,
-      JSON.stringify(frameworksArray, null, 2),
-      'utf8'
-    );
+    await fs.writeFile(this.registryPath, JSON.stringify(frameworksArray, null, 2), 'utf8');
 
     this.logger.debug('Custom framework registry saved', { count: frameworksArray.length });
   }
@@ -448,32 +447,30 @@ export class CustomFrameworkRegistry {
 
     // Filter by active status
     if (criteria.activeOnly !== false) {
-      frameworks = frameworks.filter(f => f.active);
+      frameworks = frameworks.filter((f) => f.active);
     }
 
     // Filter by name
     if (criteria.name) {
       const namePattern = new RegExp(criteria.name, 'i');
-      frameworks = frameworks.filter(f => namePattern.test(f.name));
+      frameworks = frameworks.filter((f) => namePattern.test(f.name));
     }
 
     // Filter by testing framework
     if (criteria.testingFramework) {
-      frameworks = frameworks.filter(f => f.testingFramework === criteria.testingFramework);
+      frameworks = frameworks.filter((f) => f.testingFramework === criteria.testingFramework);
     }
 
     // Filter by file patterns
     if (criteria.filePattern) {
-      frameworks = frameworks.filter(f =>
-        f.filePatterns.some(pattern => pattern.includes(criteria.filePattern))
+      frameworks = frameworks.filter((f) =>
+        f.filePatterns.some((pattern) => pattern.includes(criteria.filePattern)),
       );
     }
 
     // Filter by tags
     if (criteria.tag) {
-      frameworks = frameworks.filter(f =>
-        f.tags && f.tags.includes(criteria.tag)
-      );
+      frameworks = frameworks.filter((f) => f.tags && f.tags.includes(criteria.tag));
     }
 
     return frameworks;
@@ -489,15 +486,15 @@ export class CustomFrameworkRegistry {
 
     return {
       total: frameworks.length,
-      active: frameworks.filter(f => f.active).length,
-      inactive: frameworks.filter(f => !f.active).length,
+      active: frameworks.filter((f) => f.active).length,
+      inactive: frameworks.filter((f) => !f.active).length,
       byTestingFramework: {
-        unit: frameworks.filter(f => f.testingFramework === 'unit').length,
-        behavior: frameworks.filter(f => f.testingFramework === 'behavior').length,
-        integration: frameworks.filter(f => f.testingFramework === 'integration').length,
-        custom: frameworks.filter(f => f.testingFramework === 'custom').length
+        unit: frameworks.filter((f) => f.testingFramework === 'unit').length,
+        behavior: frameworks.filter((f) => f.testingFramework === 'behavior').length,
+        integration: frameworks.filter((f) => f.testingFramework === 'integration').length,
+        custom: frameworks.filter((f) => f.testingFramework === 'custom').length,
       },
-      registryPath: this.registryPath
+      registryPath: this.registryPath,
     };
   }
 
@@ -515,7 +512,7 @@ export class CustomFrameworkRegistry {
 
         // Check if already registered
         const existingRust = Array.from(this.frameworks.values()).find(
-          f => f.name.toLowerCase().includes('rust') && f.active
+          (f) => f.name.toLowerCase().includes('rust') && f.active,
         );
 
         if (!existingRust) {
@@ -529,8 +526,8 @@ export class CustomFrameworkRegistry {
               web: rustDetectionResult.frameworks.web.length,
               database: rustDetectionResult.frameworks.database.length,
               async: rustDetectionResult.frameworks.async.length,
-              testing: rustDetectionResult.frameworks.testing.length
-            }
+              testing: rustDetectionResult.frameworks.testing.length,
+            },
           });
 
           return registerResult;
@@ -540,9 +537,8 @@ export class CustomFrameworkRegistry {
       return {
         success: false,
         reason: 'Rust project not detected or confidence too low',
-        confidence: rustDetectionResult.confidence
+        confidence: rustDetectionResult.confidence,
       };
-
     } catch (error) {
       this.logger.error('Rust auto-detection failed', error);
       throw error;
@@ -553,9 +549,9 @@ export class CustomFrameworkRegistry {
    * Create framework definition from Rust detection results
    */
   async createRustFrameworkDefinition(rustResult) {
-    const webFrameworks = rustResult.frameworks.web.map(f => f.name).join(', ');
-    const dbFrameworks = rustResult.frameworks.database.map(f => f.name).join(', ');
-    const asyncRuntimes = rustResult.frameworks.async.map(f => f.name).join(', ');
+    const webFrameworks = rustResult.frameworks.web.map((f) => f.name).join(', ');
+    const dbFrameworks = rustResult.frameworks.database.map((f) => f.name).join(', ');
+    const asyncRuntimes = rustResult.frameworks.async.map((f) => f.name).join(', ');
 
     let name = 'Rust Project';
     if (webFrameworks) {
@@ -578,7 +574,7 @@ export class CustomFrameworkRegistry {
         'src/**/*.rs',
         'tests/**/*.rs',
         'benches/**/*.rs',
-        'examples/**/*.rs'
+        'examples/**/*.rs',
       ],
       testingFramework: this.determineRustTestingFramework(rustResult),
       truthThreshold: this.calculateRustTruthThreshold(rustResult),
@@ -586,9 +582,9 @@ export class CustomFrameworkRegistry {
         'rust',
         'auto-detected',
         'byzantine-validated',
-        ...rustResult.frameworks.web.map(f => `web-${f.name}`),
-        ...rustResult.frameworks.database.map(f => `db-${f.name}`),
-        ...rustResult.frameworks.async.map(f => `async-${f.name}`)
+        ...rustResult.frameworks.web.map((f) => `web-${f.name}`),
+        ...rustResult.frameworks.database.map((f) => `db-${f.name}`),
+        ...rustResult.frameworks.async.map((f) => `async-${f.name}`),
       ],
       rustSpecific: {
         edition: rustResult.evidence.editions?.[0] || '2021',
@@ -596,8 +592,8 @@ export class CustomFrameworkRegistry {
         dependencies: rustResult.evidence.dependencies,
         detectedFrameworks: rustResult.frameworks,
         byzantineConsensus: rustResult.metadata.byzantineConsensus,
-        confidence: rustResult.confidence
-      }
+        confidence: rustResult.confidence,
+      },
     };
   }
 
@@ -630,19 +626,19 @@ export class CustomFrameworkRegistry {
     }
 
     if (rustResult.frameworks.web.length > 0) {
-      description += `\n• Web Frameworks: ${rustResult.frameworks.web.map(f => f.name).join(', ')}`;
+      description += `\n• Web Frameworks: ${rustResult.frameworks.web.map((f) => f.name).join(', ')}`;
     }
 
     if (rustResult.frameworks.database.length > 0) {
-      description += `\n• Database Frameworks: ${rustResult.frameworks.database.map(f => f.name).join(', ')}`;
+      description += `\n• Database Frameworks: ${rustResult.frameworks.database.map((f) => f.name).join(', ')}`;
     }
 
     if (rustResult.frameworks.async.length > 0) {
-      description += `\n• Async Runtimes: ${rustResult.frameworks.async.map(f => f.name).join(', ')}`;
+      description += `\n• Async Runtimes: ${rustResult.frameworks.async.map((f) => f.name).join(', ')}`;
     }
 
     if (rustResult.frameworks.testing.length > 0) {
-      description += `\n• Testing Frameworks: ${rustResult.frameworks.testing.map(f => f.name).join(', ')}`;
+      description += `\n• Testing Frameworks: ${rustResult.frameworks.testing.map((f) => f.name).join(', ')}`;
     }
 
     description += `\n\nDetection completed with ${rustResult.metadata.patternsMatched} patterns matched in ${rustResult.metadata.detectionTime}ms`;
@@ -671,8 +667,8 @@ export class CustomFrameworkRegistry {
 
     // Check for testing evidence
     if (rustResult.evidence.patterns.rust) {
-      const hasTests = rustResult.evidence.patterns.rust.some(p =>
-        p.pattern.includes('test') || p.pattern.includes('assert')
+      const hasTests = rustResult.evidence.patterns.rust.some(
+        (p) => p.pattern.includes('test') || p.pattern.includes('assert'),
       );
 
       if (hasTests) {
@@ -687,7 +683,7 @@ export class CustomFrameworkRegistry {
    * Calculate truth threshold based on Rust project complexity and confidence
    */
   calculateRustTruthThreshold(rustResult) {
-    let threshold = 0.80; // Base threshold for Rust projects
+    let threshold = 0.8; // Base threshold for Rust projects
 
     // Adjust based on confidence
     if (rustResult.confidence > 0.9) {
@@ -697,12 +693,11 @@ export class CustomFrameworkRegistry {
     }
 
     // Adjust based on complexity
-    const complexityScore = (
+    const complexityScore =
       rustResult.frameworks.web.length +
       rustResult.frameworks.database.length +
       rustResult.frameworks.async.length +
-      rustResult.frameworks.testing.length
-    );
+      rustResult.frameworks.testing.length;
 
     if (complexityScore > 3) {
       threshold += 0.05; // Complex projects get higher standards
@@ -735,23 +730,25 @@ export class CustomFrameworkRegistry {
     await this.initialize();
 
     const rustFrameworks = Array.from(this.frameworks.values()).filter(
-      f => f.tags && f.tags.includes('rust')
+      (f) => f.tags && f.tags.includes('rust'),
     );
 
     const totalRustProjects = rustFrameworks.length;
     const byzantineValidated = rustFrameworks.filter(
-      f => f.rustSpecific?.byzantineConsensus
+      (f) => f.rustSpecific?.byzantineConsensus,
     ).length;
 
     const frameworkDistribution = {
-      web: rustFrameworks.filter(f => f.tags.some(tag => tag.startsWith('web-'))).length,
-      database: rustFrameworks.filter(f => f.tags.some(tag => tag.startsWith('db-'))).length,
-      async: rustFrameworks.filter(f => f.tags.some(tag => tag.startsWith('async-'))).length
+      web: rustFrameworks.filter((f) => f.tags.some((tag) => tag.startsWith('web-'))).length,
+      database: rustFrameworks.filter((f) => f.tags.some((tag) => tag.startsWith('db-'))).length,
+      async: rustFrameworks.filter((f) => f.tags.some((tag) => tag.startsWith('async-'))).length,
     };
 
-    const avgConfidence = totalRustProjects > 0
-      ? rustFrameworks.reduce((sum, f) => sum + (f.rustSpecific?.confidence || 0), 0) / totalRustProjects
-      : 0;
+    const avgConfidence =
+      totalRustProjects > 0
+        ? rustFrameworks.reduce((sum, f) => sum + (f.rustSpecific?.confidence || 0), 0) /
+          totalRustProjects
+        : 0;
 
     return {
       totalRustProjects,
@@ -760,7 +757,7 @@ export class CustomFrameworkRegistry {
       frameworkDistribution,
       averageConfidence: avgConfidence,
       editions: this.getRustEditionDistribution(rustFrameworks),
-      workspaceProjects: rustFrameworks.filter(f => f.rustSpecific?.cargoWorkspace).length
+      workspaceProjects: rustFrameworks.filter((f) => f.rustSpecific?.cargoWorkspace).length,
     };
   }
 
@@ -785,42 +782,36 @@ export class CustomFrameworkRegistry {
     await this.initialize();
 
     let frameworks = Array.from(this.frameworks.values()).filter(
-      f => f.tags && f.tags.includes('rust') && f.active
+      (f) => f.tags && f.tags.includes('rust') && f.active,
     );
 
     // Filter by Rust edition
     if (criteria.edition) {
-      frameworks = frameworks.filter(
-        f => f.rustSpecific?.edition === criteria.edition
-      );
+      frameworks = frameworks.filter((f) => f.rustSpecific?.edition === criteria.edition);
     }
 
     // Filter by workspace status
     if (criteria.workspace !== undefined) {
-      frameworks = frameworks.filter(
-        f => f.rustSpecific?.cargoWorkspace === criteria.workspace
-      );
+      frameworks = frameworks.filter((f) => f.rustSpecific?.cargoWorkspace === criteria.workspace);
     }
 
     // Filter by Byzantine validation status
     if (criteria.byzantineValidated !== undefined) {
       frameworks = frameworks.filter(
-        f => f.rustSpecific?.byzantineConsensus === criteria.byzantineValidated
+        (f) => f.rustSpecific?.byzantineConsensus === criteria.byzantineValidated,
       );
     }
 
     // Filter by specific Rust framework types
     if (criteria.frameworkType) {
       const tagPrefix = `${criteria.frameworkType}-`;
-      frameworks = frameworks.filter(
-        f => f.tags.some(tag => tag.startsWith(tagPrefix))
-      );
+      frameworks = frameworks.filter((f) => f.tags.some((tag) => tag.startsWith(tagPrefix)));
     }
 
     // Filter by confidence threshold
     if (criteria.minConfidence) {
       frameworks = frameworks.filter(
-        f => (f.rustSpecific?.confidence || 0) >= criteria.minConfidence
+        (f) => (f.rustSpecific?.confidence || 0) >= criteria.minConfidence,
       );
     }
 

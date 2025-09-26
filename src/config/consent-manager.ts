@@ -51,15 +51,15 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
     implications: [
       'May consume significant system resources',
       'Training data is stored locally',
-      'Model performance varies with data quality'
+      'Model performance varies with data quality',
     ],
     mitigation: [
       'Monitor system resources during training',
       'Use sample data for initial experiments',
-      'Enable performance limits'
+      'Enable performance limits',
     ],
     requiresExplicitConsent: false,
-    minimumExperienceLevel: 'advanced'
+    minimumExperienceLevel: 'advanced',
   },
   byzantineConsensus: {
     level: 'high',
@@ -68,16 +68,16 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
       'Complex distributed system behavior',
       'Network partition tolerance required',
       'May affect system stability',
-      'Requires deep understanding of consensus algorithms'
+      'Requires deep understanding of consensus algorithms',
     ],
     mitigation: [
       'Start with small agent networks',
       'Monitor network partitions',
       'Enable fallback mechanisms',
-      'Review consensus literature'
+      'Review consensus literature',
     ],
     requiresExplicitConsent: true,
-    minimumExperienceLevel: 'advanced'
+    minimumExperienceLevel: 'advanced',
   },
   enterpriseIntegrations: {
     level: 'critical',
@@ -86,16 +86,16 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
       'Requires enterprise credentials',
       'May expose sensitive data',
       'Subject to compliance requirements',
-      'Audit logging enabled'
+      'Audit logging enabled',
     ],
     mitigation: [
       'Verify enterprise credentials',
       'Review data handling policies',
       'Enable audit trails',
-      'Consult security team'
+      'Consult security team',
     ],
     requiresExplicitConsent: true,
-    minimumExperienceLevel: 'enterprise'
+    minimumExperienceLevel: 'enterprise',
   },
   advancedMonitoring: {
     level: 'low',
@@ -103,15 +103,15 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
     implications: [
       'Collects detailed system metrics',
       'May impact performance slightly',
-      'Stores monitoring data locally'
+      'Stores monitoring data locally',
     ],
     mitigation: [
       'Configure data retention limits',
       'Monitor storage usage',
-      'Review collected metrics periodically'
+      'Review collected metrics periodically',
     ],
     requiresExplicitConsent: false,
-    minimumExperienceLevel: 'intermediate'
+    minimumExperienceLevel: 'intermediate',
   },
   multiTierStorage: {
     level: 'medium',
@@ -119,15 +119,15 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
     implications: [
       'Data stored across multiple locations',
       'Synchronization delays possible',
-      'Increased complexity in data management'
+      'Increased complexity in data management',
     ],
     mitigation: [
       'Configure backup strategies',
       'Monitor synchronization status',
-      'Test recovery procedures'
+      'Test recovery procedures',
     ],
     requiresExplicitConsent: false,
-    minimumExperienceLevel: 'intermediate'
+    minimumExperienceLevel: 'intermediate',
   },
   teamCollaboration: {
     level: 'medium',
@@ -135,15 +135,15 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
     implications: [
       'Shares data with team members',
       'Requires network connectivity',
-      'May expose work-in-progress'
+      'May expose work-in-progress',
     ],
     mitigation: [
       'Configure sharing permissions',
       'Review team member access',
-      'Enable privacy controls'
+      'Enable privacy controls',
     ],
     requiresExplicitConsent: false,
-    minimumExperienceLevel: 'intermediate'
+    minimumExperienceLevel: 'intermediate',
   },
   customWorkflows: {
     level: 'low',
@@ -151,15 +151,15 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
     implications: [
       'Executes user-defined automation',
       'May affect system behavior',
-      'Workflow errors can impact productivity'
+      'Workflow errors can impact productivity',
     ],
     mitigation: [
       'Test workflows in safe environment',
       'Enable workflow validation',
-      'Implement error handling'
+      'Implement error handling',
     ],
     requiresExplicitConsent: false,
-    minimumExperienceLevel: 'intermediate'
+    minimumExperienceLevel: 'intermediate',
   },
   performanceAnalytics: {
     level: 'low',
@@ -167,16 +167,16 @@ const FEATURE_RISKS: Record<keyof FeatureFlags, FeatureRisk> = {
     implications: [
       'Collects usage statistics',
       'May identify performance patterns',
-      'Analytics data stored locally'
+      'Analytics data stored locally',
     ],
     mitigation: [
       'Review data collection scope',
       'Configure retention policies',
-      'Enable data anonymization'
+      'Enable data anonymization',
     ],
     requiresExplicitConsent: false,
-    minimumExperienceLevel: 'intermediate'
-  }
+    minimumExperienceLevel: 'intermediate',
+  },
 };
 
 export class ConsentManager extends EventEmitter {
@@ -216,7 +216,7 @@ export class ConsentManager extends EventEmitter {
   async requestConsent(
     feature: keyof FeatureFlags,
     userExperienceLevel: ExperienceLevel,
-    options: Partial<ConsentDialogOptions> = {}
+    options: Partial<ConsentDialogOptions> = {},
   ): Promise<boolean> {
     const risk = FEATURE_RISKS[feature];
 
@@ -226,7 +226,7 @@ export class ConsentManager extends EventEmitter {
         feature,
         userLevel: userExperienceLevel,
         requiredLevel: risk.minimumExperienceLevel,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
       return false;
     }
@@ -244,7 +244,7 @@ export class ConsentManager extends EventEmitter {
       description: risk.description,
       risk,
       interactive: true,
-      ...options
+      ...options,
     };
 
     const granted = await this.showConsentDialog(dialogOptions);
@@ -258,7 +258,7 @@ export class ConsentManager extends EventEmitter {
       consentType: granted ? 'explicit' : 'revoked',
       userExperienceLevel,
       consentVersion: this.CONSENT_VERSION,
-      expiresAt: this.calculateExpirationDate(risk.level)
+      expiresAt: this.calculateExpirationDate(risk.level),
     };
 
     this.consentRecords.set(feature, consentRecord);
@@ -302,7 +302,7 @@ export class ConsentManager extends EventEmitter {
     const readline = await import('readline');
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
 
     return new Promise((resolve) => {
@@ -358,7 +358,7 @@ export class ConsentManager extends EventEmitter {
       riskLevel: existingRecord?.riskLevel || 'medium',
       consentType: 'revoked',
       userExperienceLevel: existingRecord?.userExperienceLevel || 'novice',
-      consentVersion: this.CONSENT_VERSION
+      consentVersion: this.CONSENT_VERSION,
     };
 
     this.consentRecords.set(feature, revokedRecord);
@@ -378,7 +378,7 @@ export class ConsentManager extends EventEmitter {
    * Get consent records by risk level
    */
   getConsentRecordsByRiskLevel(riskLevel: FeatureRisk['level']): ConsentRecord[] {
-    return this.getAllConsentRecords().filter(record => record.riskLevel === riskLevel);
+    return this.getAllConsentRecords().filter((record) => record.riskLevel === riskLevel);
   }
 
   /**
@@ -414,7 +414,7 @@ export class ConsentManager extends EventEmitter {
     return {
       records: this.getAllConsentRecords(),
       exportDate: new Date(),
-      version: this.CONSENT_VERSION
+      version: this.CONSENT_VERSION,
     };
   }
 
@@ -436,7 +436,10 @@ export class ConsentManager extends EventEmitter {
       grantedConsents: 0,
       revokedConsents: 0,
       expiredConsents: 0,
-      byRiskLevel: { low: 0, medium: 0, high: 0, critical: 0 } as Record<FeatureRisk['level'], number>
+      byRiskLevel: { low: 0, medium: 0, high: 0, critical: 0 } as Record<
+        FeatureRisk['level'],
+        number
+      >,
     };
 
     for (const record of records) {
@@ -477,7 +480,7 @@ export class ConsentManager extends EventEmitter {
     const data = {
       version: this.CONSENT_VERSION,
       records: this.getAllConsentRecords(),
-      lastModified: new Date()
+      lastModified: new Date(),
     };
 
     await fs.writeFile(this.consentStorePath, JSON.stringify(data, null, 2), 'utf8');
@@ -505,7 +508,10 @@ export class ConsentManager extends EventEmitter {
     }
   }
 
-  private isExperienceLevelSufficient(userLevel: ExperienceLevel, requiredLevel: ExperienceLevel): boolean {
+  private isExperienceLevelSufficient(
+    userLevel: ExperienceLevel,
+    requiredLevel: ExperienceLevel,
+  ): boolean {
     const levels = ['novice', 'intermediate', 'advanced', 'enterprise'];
     return levels.indexOf(userLevel) >= levels.indexOf(requiredLevel);
   }
@@ -515,7 +521,7 @@ export class ConsentManager extends EventEmitter {
       low: '🟢 LOW - Minimal impact',
       medium: '🟡 MEDIUM - Moderate considerations',
       high: '🟠 HIGH - Significant implications',
-      critical: '🔴 CRITICAL - Requires careful evaluation'
+      critical: '🔴 CRITICAL - Requires careful evaluation',
     };
     return displays[level];
   }

@@ -23,7 +23,7 @@ class VerificationEngine extends EventEmitter {
       consensusThreshold: options.consensusThreshold || 0.66,
       maxConcurrentTasks: options.maxConcurrentTasks || 10,
       retryAttempts: options.retryAttempts || 3,
-      ...options
+      ...options,
     };
 
     // Bind gossip events
@@ -57,18 +57,22 @@ class VerificationEngine extends EventEmitter {
       initiator: this.nodeId,
       timestamp,
       status: 'spreading',
-      attempts: 0
+      attempts: 0,
     };
 
     this.activeTasks.set(taskId, task);
 
     // Spread verification task via gossip
-    await this.gossip.spreadVerificationTask(taskId, {
-      type,
-      target,
-      requirements,
-      initiator: this.nodeId
-    }, requirements.priority || 'medium');
+    await this.gossip.spreadVerificationTask(
+      taskId,
+      {
+        type,
+        target,
+        requirements,
+        initiator: this.nodeId,
+      },
+      requirements.priority || 'medium',
+    );
 
     // Set timeout for task completion
     setTimeout(() => {
@@ -108,15 +112,18 @@ class VerificationEngine extends EventEmitter {
 
       this.emit('taskCompleted', { taskId, result });
       console.log(`✅ Completed verification task ${taskId}`);
-
     } catch (error) {
       console.error(`❌ Failed verification task ${taskId}:`, error.message);
 
       // Propagate failure
-      await this.gossip.propagateVerificationResult(taskId, {
-        error: error.message,
-        nodeId: this.nodeId
-      }, 'failed');
+      await this.gossip.propagateVerificationResult(
+        taskId,
+        {
+          error: error.message,
+          nodeId: this.nodeId,
+        },
+        'failed',
+      );
     }
   }
 
@@ -151,12 +158,12 @@ class VerificationEngine extends EventEmitter {
       this.checkMemoryThresholds(requirements.memoryThreshold || 80),
       this.checkCpuThresholds(requirements.cpuThreshold || 75),
       this.checkNetworkThresholds(requirements.networkThreshold || 90),
-      this.checkAlertSystem(requirements.alertConfig)
+      this.checkAlertSystem(requirements.alertConfig),
     ];
 
     const results = await Promise.allSettled(checks);
-    const passed = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const passed = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
 
     return {
       type: 'resource_monitoring',
@@ -171,8 +178,8 @@ class VerificationEngine extends EventEmitter {
       details: results.map((r, i) => ({
         check: ['memory', 'cpu', 'network', 'alerts'][i],
         status: r.status,
-        result: r.status === 'fulfilled' ? r.value : r.reason.message
-      }))
+        result: r.status === 'fulfilled' ? r.value : r.reason.message,
+      })),
     };
   }
 
@@ -188,7 +195,7 @@ class VerificationEngine extends EventEmitter {
     const lifecycleCheck = await this.checkAgentLifecycle();
 
     const allChecks = [testSpawn, resourceCheck, lifecycleCheck];
-    const success = allChecks.every(check => check.success);
+    const success = allChecks.every((check) => check.success);
 
     return {
       type: 'agent_spawning',
@@ -197,7 +204,7 @@ class VerificationEngine extends EventEmitter {
       timestamp: Date.now(),
       duration: Date.now() - startTime,
       success,
-      checks: allChecks
+      checks: allChecks,
     };
   }
 
@@ -213,7 +220,7 @@ class VerificationEngine extends EventEmitter {
     const stateConsistency = await this.checkStateConsistency();
 
     const allChecks = [cleanupCheck, resourceCleanup, stateConsistency];
-    const success = allChecks.every(check => check.success);
+    const success = allChecks.every((check) => check.success);
 
     return {
       type: 'agent_termination',
@@ -222,7 +229,7 @@ class VerificationEngine extends EventEmitter {
       timestamp: Date.now(),
       duration: Date.now() - startTime,
       success,
-      checks: allChecks
+      checks: allChecks,
     };
   }
 
@@ -240,7 +247,7 @@ class VerificationEngine extends EventEmitter {
     taskResults.set(verificationResult.nodeId, {
       ...verificationResult,
       status,
-      received: Date.now()
+      received: Date.now(),
     });
 
     // Check if we have consensus
@@ -258,8 +265,7 @@ class VerificationEngine extends EventEmitter {
     if (!task || task.status === 'completed') return;
 
     const totalResults = taskResults.size;
-    const successfulResults = Array.from(taskResults.values())
-      .filter(r => r.success).length;
+    const successfulResults = Array.from(taskResults.values()).filter((r) => r.success).length;
 
     const activePeers = this.gossip.peers.size;
     const consensusRequired = Math.ceil(activePeers * this.config.consensusThreshold);
@@ -276,7 +282,7 @@ class VerificationEngine extends EventEmitter {
         task,
         results: Array.from(taskResults.values()),
         consensus: consensusReached,
-        successRate: successfulResults / totalResults
+        successRate: successfulResults / totalResults,
       });
 
       this.activeTasks.delete(taskId);
@@ -285,10 +291,12 @@ class VerificationEngine extends EventEmitter {
         taskId,
         consensus: consensusReached,
         successRate: successfulResults / totalResults,
-        totalResults
+        totalResults,
       });
 
-      console.log(`🎯 Consensus reached for task ${taskId}: ${consensusReached ? 'SUCCESS' : 'FAILED'} (${successfulResults}/${totalResults})`);
+      console.log(
+        `🎯 Consensus reached for task ${taskId}: ${consensusReached ? 'SUCCESS' : 'FAILED'} (${successfulResults}/${totalResults})`,
+      );
     }
   }
 
@@ -309,7 +317,7 @@ class VerificationEngine extends EventEmitter {
       task,
       results: Array.from(taskResults.values()),
       consensus: false,
-      timeout: true
+      timeout: true,
     });
 
     this.activeTasks.delete(taskId);
@@ -325,7 +333,7 @@ class VerificationEngine extends EventEmitter {
       metric: 'memory',
       usage,
       threshold,
-      success: usage < threshold
+      success: usage < threshold,
     };
   }
 
@@ -335,7 +343,7 @@ class VerificationEngine extends EventEmitter {
       metric: 'cpu',
       usage,
       threshold,
-      success: usage < threshold
+      success: usage < threshold,
     };
   }
 
@@ -345,7 +353,7 @@ class VerificationEngine extends EventEmitter {
       metric: 'network',
       usage,
       threshold,
-      success: usage < threshold
+      success: usage < threshold,
     };
   }
 
@@ -353,7 +361,7 @@ class VerificationEngine extends EventEmitter {
     return {
       metric: 'alerts',
       configured: config ? Object.keys(config).length : 0,
-      success: true
+      success: true,
     };
   }
 
@@ -361,7 +369,7 @@ class VerificationEngine extends EventEmitter {
     return {
       name: 'agent_spawn_simulation',
       success: Math.random() > 0.1, // 90% success rate
-      duration: Math.random() * 1000
+      duration: Math.random() * 1000,
     };
   }
 
@@ -369,7 +377,7 @@ class VerificationEngine extends EventEmitter {
     return {
       name: 'spawning_resources',
       success: Math.random() > 0.05, // 95% success rate
-      availableSlots: Math.floor(Math.random() * 10)
+      availableSlots: Math.floor(Math.random() * 10),
     };
   }
 
@@ -377,7 +385,7 @@ class VerificationEngine extends EventEmitter {
     return {
       name: 'agent_lifecycle',
       success: Math.random() > 0.05, // 95% success rate
-      phases: ['init', 'running', 'cleanup']
+      phases: ['init', 'running', 'cleanup'],
     };
   }
 
@@ -385,7 +393,7 @@ class VerificationEngine extends EventEmitter {
     return {
       name: 'graceful_termination',
       success: Math.random() > 0.1, // 90% success rate
-      cleanupTime: Math.random() * 500
+      cleanupTime: Math.random() * 500,
     };
   }
 
@@ -393,7 +401,7 @@ class VerificationEngine extends EventEmitter {
     return {
       name: 'resource_cleanup',
       success: Math.random() > 0.05, // 95% success rate
-      freedResources: Math.floor(Math.random() * 100)
+      freedResources: Math.floor(Math.random() * 100),
     };
   }
 
@@ -401,7 +409,7 @@ class VerificationEngine extends EventEmitter {
     return {
       name: 'state_consistency',
       success: Math.random() > 0.05, // 95% success rate
-      stateHash: crypto.randomBytes(16).toString('hex')
+      stateHash: crypto.randomBytes(16).toString('hex'),
     };
   }
 
@@ -418,19 +426,19 @@ class VerificationEngine extends EventEmitter {
       completedTasks: completedTasks.length,
       consensusThreshold: this.config.consensusThreshold,
       tasks: {
-        active: activeTasks.map(t => ({
+        active: activeTasks.map((t) => ({
           id: t.id,
           type: t.type,
           status: t.status,
-          age: Date.now() - t.timestamp
+          age: Date.now() - t.timestamp,
         })),
-        completed: completedTasks.slice(-10).map(t => ({
+        completed: completedTasks.slice(-10).map((t) => ({
           id: t.taskId,
           consensus: t.consensus,
           successRate: t.successRate,
-          duration: t.task.completedAt - t.task.timestamp
-        }))
-      }
+          duration: t.task.completedAt - t.task.timestamp,
+        })),
+      },
     };
   }
 
@@ -439,20 +447,23 @@ class VerificationEngine extends EventEmitter {
    */
   getConvergenceMetrics() {
     const completedTasks = Array.from(this.completedTasks.values());
-    const consensusRate = completedTasks.length > 0
-      ? completedTasks.filter(t => t.consensus).length / completedTasks.length
-      : 0;
+    const consensusRate =
+      completedTasks.length > 0
+        ? completedTasks.filter((t) => t.consensus).length / completedTasks.length
+        : 0;
 
-    const avgConsensusTime = completedTasks.length > 0
-      ? completedTasks.reduce((sum, t) => sum + (t.task.completedAt - t.task.timestamp), 0) / completedTasks.length
-      : 0;
+    const avgConsensusTime =
+      completedTasks.length > 0
+        ? completedTasks.reduce((sum, t) => sum + (t.task.completedAt - t.task.timestamp), 0) /
+          completedTasks.length
+        : 0;
 
     return {
       totalTasks: completedTasks.length,
       consensusRate,
       averageConsensusTime: avgConsensusTime,
       activeVerifications: this.activeTasks.size,
-      networkParticipation: this.gossip.peers.size
+      networkParticipation: this.gossip.peers.size,
     };
   }
 }

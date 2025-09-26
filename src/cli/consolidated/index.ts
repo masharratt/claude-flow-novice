@@ -12,7 +12,11 @@ export type { CommandMetadata, TierConfig } from './core/TierManager.js';
 
 // Intelligence engine
 export { IntelligenceEngine } from './intelligence/IntelligenceEngine.js';
-export type { TaskAnalysis, AgentRecommendation, ProjectContext } from './intelligence/IntelligenceEngine.js';
+export type {
+  TaskAnalysis,
+  AgentRecommendation,
+  ProjectContext,
+} from './intelligence/IntelligenceEngine.js';
 
 // Command handlers
 export { CommandHandlers } from './core/CommandHandlers.js';
@@ -22,7 +26,7 @@ export type {
   BuildOptions,
   StatusOptions,
   HelpOptions,
-  LearnOptions
+  LearnOptions,
 } from './core/CommandHandlers.js';
 
 // Command routing
@@ -39,7 +43,7 @@ export type {
   DefaultsProfile,
   UserPreferences,
   TemplateConfig,
-  AgentDefaults
+  AgentDefaults,
 } from './utils/IntelligentDefaults.js';
 
 // Interactive help system
@@ -48,7 +52,7 @@ export type {
   HelpSession,
   LearningPath,
   LearningStep,
-  HelpContext
+  HelpContext,
 } from './help/InteractiveHelp.js';
 
 // Configuration types
@@ -69,7 +73,7 @@ export const FEATURES = {
   intelligentAgentSelection: true,
   performanceOptimization: true,
   backwardCompatibility: true,
-  tierProgression: true
+  tierProgression: true,
 };
 
 /**
@@ -83,7 +87,7 @@ export function createQuickSetup(mode: 'novice' | 'development' | 'production') 
       enableNaturalLanguage: true,
       enableBackwardCompatibility: false,
       debugMode: false,
-      maxResponseTime: 2000
+      maxResponseTime: 2000,
     },
     development: {
       enablePerformanceOptimization: false,
@@ -91,7 +95,7 @@ export function createQuickSetup(mode: 'novice' | 'development' | 'production') 
       enableNaturalLanguage: true,
       enableBackwardCompatibility: true,
       debugMode: true,
-      maxResponseTime: 5000
+      maxResponseTime: 5000,
     },
     production: {
       enablePerformanceOptimization: true,
@@ -99,8 +103,8 @@ export function createQuickSetup(mode: 'novice' | 'development' | 'production') 
       enableNaturalLanguage: true,
       enableBackwardCompatibility: true,
       debugMode: false,
-      maxResponseTime: 1500
-    }
+      maxResponseTime: 1500,
+    },
   };
 
   return createConsolidatedCLI(configs[mode]);

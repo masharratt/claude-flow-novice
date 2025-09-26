@@ -1,6 +1,6 @@
 /**
  * Claude Code Coordination Interface
- * 
+ *
  * This module provides the interface layer for coordinating with Claude Code
  * instances, managing agent spawning through the claude CLI, handling process
  * lifecycle, and enabling seamless communication between the swarm system
@@ -15,10 +15,10 @@ import * as fs from 'node:fs/promises';
 import { Logger } from '../core/logger.js';
 import { generateId } from '../utils/helpers.js';
 import { MemoryManager } from '../memory/manager.js';
-import TaskExecutor, { 
+import TaskExecutor, {
   ClaudeExecutionOptions,
   ExecutionResult,
-  ExecutionContext
+  ExecutionContext,
 } from './executor.js';
 import {
   SwarmAgent,
@@ -124,17 +124,14 @@ export class ClaudeCodeInterface extends EventEmitter {
   private healthCheckInterval?: NodeJS.Timeout;
   private isInitialized: boolean = false;
 
-  constructor(
-    config: Partial<ClaudeCodeConfig> = {},
-    memoryManager: MemoryManager
-  ) {
+  constructor(config: Partial<ClaudeCodeConfig> = {}, memoryManager: MemoryManager) {
     super();
-    
+
     this.logger = new Logger('ClaudeCodeInterface');
     this.config = this.createDefaultConfig(config);
     this.memoryManager = memoryManager;
     this.processPool = this.initializeProcessPool();
-    
+
     this.taskExecutor = new TaskExecutor({
       timeoutMs: this.config.timeout,
       enableMetrics: true,
@@ -178,7 +175,6 @@ export class ClaudeCodeInterface extends EventEmitter {
       });
 
       this.emit('initialized');
-
     } catch (error) {
       this.logger.error('Failed to initialize Claude Code interface', error);
       throw error;
@@ -200,9 +196,10 @@ export class ClaudeCodeInterface extends EventEmitter {
       }
 
       // Cancel active executions
-      const cancellationPromises = Array.from(this.activeExecutions.keys())
-        .map(executionId => this.cancelExecution(executionId, 'Interface shutdown'));
-      
+      const cancellationPromises = Array.from(this.activeExecutions.keys()).map((executionId) =>
+        this.cancelExecution(executionId, 'Interface shutdown'),
+      );
+
       await Promise.allSettled(cancellationPromises);
 
       // Terminate all agents
@@ -214,7 +211,6 @@ export class ClaudeCodeInterface extends EventEmitter {
       this.isInitialized = false;
       this.logger.info('Claude Code interface shut down successfully');
       this.emit('shutdown');
-
     } catch (error) {
       this.logger.error('Error during Claude Code interface shutdown', error);
       throw error;
@@ -239,7 +235,7 @@ export class ClaudeCodeInterface extends EventEmitter {
 
       // Build Claude command
       const command = this.buildClaudeCommand(options);
-      
+
       // Spawn process
       const process = spawn(command.executable, command.args, {
         cwd: options.workingDirectory || this.config.workingDirectory,
@@ -298,7 +294,6 @@ export class ClaudeCodeInterface extends EventEmitter {
       });
 
       return agentId;
-
     } catch (error) {
       this.logger.error('Failed to spawn Claude agent', {
         type: options.type,
@@ -314,10 +309,10 @@ export class ClaudeCodeInterface extends EventEmitter {
   async executeTask(
     taskDefinition: TaskDefinition,
     agentId?: string,
-    options: Partial<ClaudeExecutionOptions> = {}
+    options: Partial<ClaudeExecutionOptions> = {},
   ): Promise<ClaudeTaskExecution> {
     const executionId = generateId('claude-execution');
-    
+
     this.logger.info('Executing task with Claude agent', {
       executionId,
       taskId: taskDefinition.id.id,
@@ -326,8 +321,10 @@ export class ClaudeCodeInterface extends EventEmitter {
 
     try {
       // Get or select agent
-      const agent = agentId ? this.agents.get(agentId) : await this.selectOptimalAgent(taskDefinition);
-      
+      const agent = agentId
+        ? this.agents.get(agentId)
+        : await this.selectOptimalAgent(taskDefinition);
+
       if (!agent) {
         throw new Error(agentId ? `Agent not found: ${agentId}` : 'No suitable agent available');
       }
@@ -402,7 +399,6 @@ export class ClaudeCodeInterface extends EventEmitter {
       });
 
       return execution;
-
     } catch (error) {
       const execution = this.activeExecutions.get(executionId);
       if (execution) {
@@ -464,7 +460,6 @@ export class ClaudeCodeInterface extends EventEmitter {
         taskId: execution.taskId,
         agentId: execution.agentId,
       });
-
     } finally {
       this.activeExecutions.delete(executionId);
     }
@@ -514,7 +509,6 @@ export class ClaudeCodeInterface extends EventEmitter {
         reason,
         metrics: agent.metrics,
       });
-
     } catch (error) {
       this.logger.error('Error terminating agent', {
         agentId,
@@ -581,9 +575,10 @@ export class ClaudeCodeInterface extends EventEmitter {
     const totalCompleted = agents.reduce((sum, a) => sum + a.metrics.tasksCompleted, 0);
     const totalFailed = agents.reduce((sum, a) => sum + a.metrics.tasksFailed, 0);
     const totalTokens = agents.reduce((sum, a) => sum + a.metrics.totalTokensUsed, 0);
-    const avgResponseTime = agents.length > 0 
-      ? agents.reduce((sum, a) => sum + a.metrics.averageResponseTime, 0) / agents.length 
-      : 0;
+    const avgResponseTime =
+      agents.length > 0
+        ? agents.reduce((sum, a) => sum + a.metrics.averageResponseTime, 0) / agents.length
+        : 0;
 
     return {
       agents: {
@@ -594,15 +589,16 @@ export class ClaudeCodeInterface extends EventEmitter {
         terminated: this.processPool.totalTerminated,
       },
       executions: {
-        active: executions.filter(e => e.status === 'running').length,
+        active: executions.filter((e) => e.status === 'running').length,
         completed: totalCompleted,
         failed: totalFailed,
-        cancelled: executions.filter(e => e.status === 'cancelled').length,
+        cancelled: executions.filter((e) => e.status === 'cancelled').length,
       },
       performance: {
         averageResponseTime: avgResponseTime,
         totalTokensUsed: totalTokens,
-        successRate: totalCompleted + totalFailed > 0 ? totalCompleted / (totalCompleted + totalFailed) : 0,
+        successRate:
+          totalCompleted + totalFailed > 0 ? totalCompleted / (totalCompleted + totalFailed) : 0,
         throughput: this.calculateThroughput(),
       },
       pool: {
@@ -625,7 +621,7 @@ export class ClaudeCodeInterface extends EventEmitter {
 
       return new Promise((resolve, reject) => {
         let output = '';
-        
+
         process.stdout?.on('data', (data) => {
           output += data.toString();
         });
@@ -644,7 +640,6 @@ export class ClaudeCodeInterface extends EventEmitter {
 
         process.on('error', reject);
       });
-
     } catch (error) {
       throw new Error(`Claude executable not found: ${this.config.claudeExecutablePath}`);
     }
@@ -656,18 +651,20 @@ export class ClaudeCodeInterface extends EventEmitter {
     });
 
     const promises: Promise<string>[] = [];
-    
+
     for (let i = 0; i < this.config.agentPoolSize; i++) {
-      promises.push(this.spawnAgent({
-        type: 'general',
-        name: `pool-agent-${i}`,
-        capabilities: ['general'],
-      }));
+      promises.push(
+        this.spawnAgent({
+          type: 'general',
+          name: `pool-agent-${i}`,
+          capabilities: ['general'],
+        }),
+      );
     }
 
     const results = await Promise.allSettled(promises);
-    const successful = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const successful = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.filter((r) => r.status === 'rejected').length;
 
     this.logger.info('Agent pool pre-warming completed', {
       successful,
@@ -779,7 +776,7 @@ export class ClaudeCodeInterface extends EventEmitter {
 
       const checkReady = () => {
         const elapsed = Date.now() - startTime;
-        
+
         if (elapsed > timeout) {
           reject(new Error(`Agent ${agent.id} failed to become ready within ${timeout}ms`));
           return;
@@ -793,7 +790,8 @@ export class ClaudeCodeInterface extends EventEmitter {
 
         // For now, assume agent is ready after a short delay
         // In a real implementation, you might check for specific output or response
-        if (elapsed > 2000) { // 2 seconds
+        if (elapsed > 2000) {
+          // 2 seconds
           resolve();
         } else {
           setTimeout(checkReady, checkInterval);
@@ -805,8 +803,8 @@ export class ClaudeCodeInterface extends EventEmitter {
   }
 
   private async selectOptimalAgent(taskDefinition: TaskDefinition): Promise<ClaudeAgent | null> {
-    const availableAgents = this.processPool.idle.filter(agent => agent.status === 'idle');
-    
+    const availableAgents = this.processPool.idle.filter((agent) => agent.status === 'idle');
+
     if (availableAgents.length === 0) {
       // Try to spawn a new agent if under limit
       if (this.getTotalActiveAgents() < this.config.maxConcurrentAgents) {
@@ -820,7 +818,7 @@ export class ClaudeCodeInterface extends EventEmitter {
     }
 
     // Select agent based on capabilities and performance
-    const scoredAgents = availableAgents.map(agent => ({
+    const scoredAgents = availableAgents.map((agent) => ({
       agent,
       score: this.calculateAgentScore(agent, taskDefinition),
     }));
@@ -834,8 +832,8 @@ export class ClaudeCodeInterface extends EventEmitter {
 
     // Capability match
     const requiredCapabilities = taskDefinition.requirements.capabilities;
-    const matchingCapabilities = agent.capabilities.filter(cap => 
-      requiredCapabilities.includes(cap)
+    const matchingCapabilities = agent.capabilities.filter((cap) =>
+      requiredCapabilities.includes(cap),
     );
     score += (matchingCapabilities.length / requiredCapabilities.length) * 100;
 
@@ -844,7 +842,7 @@ export class ClaudeCodeInterface extends EventEmitter {
     score += Math.max(0, 50 - agent.metrics.averageResponseTime / 1000) * 10; // Prefer faster agents
 
     // Load balancing - prefer agents with fewer completed tasks
-    const maxTasks = Math.max(...this.processPool.idle.map(a => a.totalTasks), 1);
+    const maxTasks = Math.max(...this.processPool.idle.map((a) => a.totalTasks), 1);
     score += (1 - agent.totalTasks / maxTasks) * 20;
 
     return score;
@@ -853,7 +851,7 @@ export class ClaudeCodeInterface extends EventEmitter {
   private async executeTaskWithAgent(
     agent: ClaudeAgent,
     taskDefinition: TaskDefinition,
-    options: Partial<ClaudeExecutionOptions>
+    options: Partial<ClaudeExecutionOptions>,
   ): Promise<ExecutionResult> {
     const startTime = performance.now();
 
@@ -881,32 +879,27 @@ export class ClaudeCodeInterface extends EventEmitter {
       };
 
       // Execute using task executor
-      const result = await this.taskExecutor.executeClaudeTask(
-        taskDefinition,
-        context.agent,
-        {
-          model: options.model || this.config.defaultModel,
-          maxTokens: options.maxTokens || this.config.maxTokens,
-          temperature: options.temperature || this.config.temperature,
-          timeout: options.timeout || this.config.timeout,
-          claudePath: this.config.claudeExecutablePath,
-          ...options,
-        }
-      );
+      const result = await this.taskExecutor.executeClaudeTask(taskDefinition, context.agent, {
+        model: options.model || this.config.defaultModel,
+        maxTokens: options.maxTokens || this.config.maxTokens,
+        temperature: options.temperature || this.config.temperature,
+        timeout: options.timeout || this.config.timeout,
+        claudePath: this.config.claudeExecutablePath,
+        ...options,
+      });
 
       const duration = performance.now() - startTime;
-      
+
       // Update agent activity
       agent.lastActivity = new Date();
       agent.totalTasks++;
       agent.totalDuration += duration;
 
       return result;
-
     } catch (error) {
       const duration = performance.now() - startTime;
       agent.totalDuration += duration;
-      
+
       throw error;
     }
   }
@@ -941,12 +934,14 @@ export class ClaudeCodeInterface extends EventEmitter {
         lastActivity: agent.lastActivity,
         responseTime: agent.metrics.averageResponseTime,
       },
-      currentTask: agent.currentTask ? {
-        id: agent.currentTask,
-        swarmId: 'claude-interface',
-        sequence: 0,
-        priority: 1,
-      } : undefined,
+      currentTask: agent.currentTask
+        ? {
+            id: agent.currentTask,
+            swarmId: 'claude-interface',
+            sequence: 0,
+            priority: 1,
+          }
+        : undefined,
       workload: agent.status === 'busy' ? 1 : 0,
       health: agent.status === 'error' ? 0 : 1,
       config: {
@@ -996,10 +991,12 @@ export class ClaudeCodeInterface extends EventEmitter {
       apiIntegration: capabilities.includes('apiIntegration'),
       fileSystem: capabilities.includes('fileSystem'),
       terminalAccess: capabilities.includes('terminal'),
-      languages: capabilities.filter(c => ['javascript', 'typescript', 'python', 'java'].includes(c)),
-      frameworks: capabilities.filter(c => ['react', 'node', 'express'].includes(c)),
-      domains: capabilities.filter(c => ['web', 'api', 'database'].includes(c)),
-      tools: capabilities.filter(c => ['bash', 'git', 'npm'].includes(c)),
+      languages: capabilities.filter((c) =>
+        ['javascript', 'typescript', 'python', 'java'].includes(c),
+      ),
+      frameworks: capabilities.filter((c) => ['react', 'node', 'express'].includes(c)),
+      domains: capabilities.filter((c) => ['web', 'api', 'database'].includes(c)),
+      tools: capabilities.filter((c) => ['bash', 'git', 'npm'].includes(c)),
       maxConcurrentTasks: 1,
       maxMemoryUsage: 512 * 1024 * 1024,
       maxExecutionTime: this.config.timeout,
@@ -1013,10 +1010,10 @@ export class ClaudeCodeInterface extends EventEmitter {
     if (agent.process && !agent.process.killed) {
       // Send interrupt signal
       agent.process.kill('SIGINT');
-      
+
       // Wait briefly for graceful shutdown
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Force kill if still running
       if (!agent.process.killed) {
         agent.process.kill('SIGKILL');
@@ -1035,10 +1032,10 @@ export class ClaudeCodeInterface extends EventEmitter {
 
     // Send termination signal
     process.kill('SIGTERM');
-    
+
     // Wait for graceful shutdown
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // Force kill if still running
     if (!process.killed && process.exitCode === null) {
       process.kill('SIGKILL');
@@ -1046,9 +1043,10 @@ export class ClaudeCodeInterface extends EventEmitter {
   }
 
   private async terminateAllAgents(): Promise<void> {
-    const terminationPromises = Array.from(this.agents.keys())
-      .map(agentId => this.terminateAgent(agentId, 'Interface shutdown'));
-    
+    const terminationPromises = Array.from(this.agents.keys()).map((agentId) =>
+      this.terminateAgent(agentId, 'Interface shutdown'),
+    );
+
     await Promise.allSettled(terminationPromises);
   }
 
@@ -1097,19 +1095,18 @@ export class ClaudeCodeInterface extends EventEmitter {
 
   private updateAgentMetrics(agent: ClaudeAgent, execution: ClaudeTaskExecution): void {
     const metrics = agent.metrics;
-    
+
     // Update averages
     const totalTasks = metrics.tasksCompleted + metrics.tasksFailed;
     if (execution.duration) {
-      metrics.averageResponseTime = totalTasks > 0 
-        ? ((metrics.averageResponseTime * (totalTasks - 1)) + execution.duration) / totalTasks
-        : execution.duration;
+      metrics.averageResponseTime =
+        totalTasks > 0
+          ? (metrics.averageResponseTime * (totalTasks - 1) + execution.duration) / totalTasks
+          : execution.duration;
     }
 
     // Update success rate
-    metrics.successRate = totalTasks > 0 
-      ? metrics.tasksCompleted / totalTasks 
-      : 0;
+    metrics.successRate = totalTasks > 0 ? metrics.tasksCompleted / totalTasks : 0;
 
     // Update error rate
     metrics.errorRate = 1 - metrics.successRate;
@@ -1128,14 +1125,14 @@ export class ClaudeCodeInterface extends EventEmitter {
     const agents = Array.from(this.agents.values());
     const totalTasks = agents.reduce((sum, a) => sum + a.totalTasks, 0);
     const totalTime = agents.reduce((sum, a) => sum + a.totalDuration, 0);
-    
+
     return totalTime > 0 ? (totalTasks / totalTime) * 60000 : 0; // tasks per minute
   }
 
   private calculatePoolUtilization(): number {
     const total = this.getTotalActiveAgents();
     const busy = this.processPool.busy.length;
-    
+
     return total > 0 ? busy / total : 0;
   }
 
@@ -1147,11 +1144,11 @@ export class ClaudeCodeInterface extends EventEmitter {
 
   private performHealthCheck(): void {
     const now = Date.now();
-    
+
     for (const agent of this.agents.values()) {
       // Check for stalled agents
       const inactiveTime = now - agent.lastActivity.getTime();
-      
+
       if (agent.status === 'busy' && inactiveTime > this.config.timeout * 2) {
         this.logger.warn('Agent appears stalled', {
           agentId: agent.id,
@@ -1170,7 +1167,7 @@ export class ClaudeCodeInterface extends EventEmitter {
             agentId: agent.id,
             exitCode: agent.process.exitCode,
           });
-          
+
           agent.status = 'error';
           this.moveAgentToFailedPool(agent);
         }
@@ -1183,19 +1180,18 @@ export class ClaudeCodeInterface extends EventEmitter {
       if (agent.currentTask) {
         await this.cancelExecution(agent.currentTask, 'Agent recovery');
       }
-      
+
       this.returnAgentToIdlePool(agent);
-      
+
       this.logger.info('Agent recovered from stalled state', {
         agentId: agent.id,
       });
-
     } catch (error) {
       this.logger.error('Failed to recover stalled agent', {
         agentId: agent.id,
         error: error instanceof Error ? error.message : String(error),
       });
-      
+
       // Terminate the problematic agent
       await this.terminateAgent(agent.id, 'Recovery failed');
     }

@@ -44,7 +44,7 @@ export class ChromeMCP {
       screenshotQuality: config.screenshotQuality || 90,
       enableNetworkMonitoring: config.enableNetworkMonitoring ?? true,
       enablePerformanceMetrics: config.enablePerformanceMetrics ?? true,
-      ...config
+      ...config,
     };
   }
 
@@ -116,7 +116,7 @@ export class ChromeMCP {
       fullPage: options.fullPage || false,
       element: options.element || null,
       annotations: options.annotations || false,
-      ...options
+      ...options,
     };
 
     try {
@@ -155,7 +155,7 @@ export class ChromeMCP {
         // Take failure screenshot
         await this.takeScreenshot({
           filename: `failure-${step.action}-${Date.now()}.png`,
-          annotations: true
+          annotations: true,
         });
 
         throw error;
@@ -174,7 +174,7 @@ export class ChromeMCP {
     await this.executeMcpCommand('browser_network_monitoring', {
       enable: true,
       captureResponses: true,
-      captureTimings: true
+      captureTimings: true,
     });
   }
 
@@ -185,7 +185,7 @@ export class ChromeMCP {
 
     const result = await this.executeMcpCommand('browser_network_monitoring', {
       enable: false,
-      getResults: true
+      getResults: true,
     });
 
     this.networkRequests = result.requests || [];
@@ -203,15 +203,15 @@ export class ChromeMCP {
     const analysis = {
       totalRequests: this.networkRequests.length,
       totalSize: this.networkRequests.reduce((sum, req) => sum + req.size, 0),
-      averageResponseTime: this.networkRequests.reduce((sum, req) => sum + req.responseTime, 0) / this.networkRequests.length,
+      averageResponseTime:
+        this.networkRequests.reduce((sum, req) => sum + req.responseTime, 0) /
+        this.networkRequests.length,
       slowestRequests: this.networkRequests
         .sort((a, b) => b.responseTime - a.responseTime)
         .slice(0, 5),
-      largestRequests: this.networkRequests
-        .sort((a, b) => b.size - a.size)
-        .slice(0, 5),
-      failedRequests: this.networkRequests.filter(req => req.status >= 400),
-      requestsByDomain: this.groupRequestsByDomain()
+      largestRequests: this.networkRequests.sort((a, b) => b.size - a.size).slice(0, 5),
+      failedRequests: this.networkRequests.filter((req) => req.status >= 400),
+      requestsByDomain: this.groupRequestsByDomain(),
     };
 
     return analysis;
@@ -225,7 +225,7 @@ export class ChromeMCP {
 
     const currentScreenshot = await this.takeScreenshot({
       fullPage: options.fullPage || true,
-      quality: 100
+      quality: 100,
     });
 
     const comparisonResult = await this.executeMcpCommand('visual_compare', {
@@ -233,14 +233,14 @@ export class ChromeMCP {
       current: currentScreenshot,
       threshold: options.threshold || 0.1,
       ignoreRegions: options.ignoreRegions || [],
-      highlightDifferences: true
+      highlightDifferences: true,
     });
 
     return {
-      passed: comparisonResult.similarity > (1 - (options.threshold || 0.1)),
+      passed: comparisonResult.similarity > 1 - (options.threshold || 0.1),
       similarity: comparisonResult.similarity,
       differences: comparisonResult.differences,
-      diffImage: comparisonResult.diffImage
+      diffImage: comparisonResult.diffImage,
     };
   }
 
@@ -254,7 +254,7 @@ export class ChromeMCP {
       includeAll: options.includeAll || false,
       wcagLevel: options.wcagLevel || 'AA',
       tags: options.tags || ['wcag2a', 'wcag2aa'],
-      selector: options.selector || null
+      selector: options.selector || null,
     });
 
     return {
@@ -262,7 +262,7 @@ export class ChromeMCP {
       passes: accessibilityResult.passes || [],
       incomplete: accessibilityResult.incomplete || [],
       score: this.calculateAccessibilityScore(accessibilityResult),
-      report: accessibilityResult.report
+      report: accessibilityResult.report,
     };
   }
 
@@ -275,7 +275,7 @@ export class ChromeMCP {
     const performanceData = await this.executeMcpCommand('performance_test', {
       includeWebVitals: true,
       includeResourceTiming: true,
-      includeNavigationTiming: true
+      includeNavigationTiming: true,
     });
 
     this.performanceMetrics = {
@@ -284,7 +284,7 @@ export class ChromeMCP {
       firstContentfulPaint: performanceData.firstContentfulPaint,
       largestContentfulPaint: performanceData.largestContentfulPaint,
       cumulativeLayoutShift: performanceData.cumulativeLayoutShift,
-      firstInputDelay: performanceData.firstInputDelay
+      firstInputDelay: performanceData.firstInputDelay,
     };
 
     return this.performanceMetrics;
@@ -325,7 +325,7 @@ export class ChromeMCP {
       headless: true,
       viewport: { width: 1280, height: 720 },
       deviceScaleFactor: 1,
-      args: ['--no-sandbox', '--disable-dev-shm-usage']
+      args: ['--no-sandbox', '--disable-dev-shm-usage'],
     });
   }
 
@@ -349,7 +349,7 @@ export class ChromeMCP {
 
   private async waitForNetworkIdle(timeout: number = 5000): Promise<void> {
     // Wait for network requests to settle
-    await new Promise(resolve => setTimeout(resolve, timeout));
+    await new Promise((resolve) => setTimeout(resolve, timeout));
   }
 
   private async collectPerformanceMetrics(): Promise<PerformanceMetrics> {
@@ -362,26 +362,26 @@ export class ChromeMCP {
       case 'click':
         await this.executeMcpCommand('browser_click', {
           element: step.target,
-          ref: step.ref
+          ref: step.ref,
         });
         break;
       case 'type':
         await this.executeMcpCommand('browser_type', {
           element: step.target,
           ref: step.ref,
-          text: step.text
+          text: step.text,
         });
         break;
       case 'hover':
         await this.executeMcpCommand('browser_hover', {
           element: step.target,
-          ref: step.ref
+          ref: step.ref,
         });
         break;
       case 'scroll':
         await this.executeMcpCommand('browser_scroll', {
           x: step.x || 0,
-          y: step.y || 0
+          y: step.y || 0,
         });
         break;
       default:
@@ -397,12 +397,12 @@ export class ChromeMCP {
       `Load Time: ${this.performanceMetrics.loadTime}ms`,
       `FCP: ${this.performanceMetrics.firstContentfulPaint}ms`,
       `LCP: ${this.performanceMetrics.largestContentfulPaint}ms`,
-      `CLS: ${this.performanceMetrics.cumulativeLayoutShift}`
+      `CLS: ${this.performanceMetrics.cumulativeLayoutShift}`,
     ];
 
     await this.executeMcpCommand('annotate_screenshot', {
       filename,
-      annotations
+      annotations,
     });
   }
 

@@ -4,9 +4,9 @@
  */
 
 export enum UserTier {
-  NOVICE = 'novice',      // 5 essential commands
+  NOVICE = 'novice', // 5 essential commands
   INTERMEDIATE = 'intermediate', // +10 commands (15 total)
-  EXPERT = 'expert'       // Full 112-tool access
+  EXPERT = 'expert', // Full 112-tool access
 }
 
 export interface TierConfig {
@@ -45,8 +45,8 @@ export class TierManager {
       examples: [
         'claude-flow init',
         'claude-flow init react',
-        'claude-flow init "build a todo app"'
-      ]
+        'claude-flow init "build a todo app"',
+      ],
     },
     {
       name: 'build',
@@ -58,8 +58,8 @@ export class TierManager {
       examples: [
         'claude-flow build "add user authentication"',
         'claude-flow build "create REST API"',
-        'claude-flow build'
-      ]
+        'claude-flow build',
+      ],
     },
     {
       name: 'status',
@@ -68,10 +68,7 @@ export class TierManager {
       complexity: 1,
       usage: 'claude-flow status [--detailed]',
       description: 'Check project status, agents, and recent activity',
-      examples: [
-        'claude-flow status',
-        'claude-flow status --detailed'
-      ]
+      examples: ['claude-flow status', 'claude-flow status --detailed'],
     },
     {
       name: 'help',
@@ -80,11 +77,7 @@ export class TierManager {
       complexity: 1,
       usage: 'claude-flow help [command]',
       description: 'Get contextual help and learn new commands',
-      examples: [
-        'claude-flow help',
-        'claude-flow help build',
-        'claude-flow help --interactive'
-      ]
+      examples: ['claude-flow help', 'claude-flow help build', 'claude-flow help --interactive'],
     },
     {
       name: 'learn',
@@ -96,9 +89,9 @@ export class TierManager {
       examples: [
         'claude-flow learn',
         'claude-flow learn agents',
-        'claude-flow learn "testing strategies"'
-      ]
-    }
+        'claude-flow learn "testing strategies"',
+      ],
+    },
   ];
 
   // Tier 2 (Intermediate): Additional 10 commands
@@ -113,8 +106,8 @@ export class TierManager {
       examples: [
         'claude-flow agents list',
         'claude-flow agents spawn coder',
-        'claude-flow agents metrics'
-      ]
+        'claude-flow agents metrics',
+      ],
     },
     {
       name: 'test',
@@ -126,8 +119,8 @@ export class TierManager {
       examples: [
         'claude-flow test',
         'claude-flow test unit',
-        'claude-flow test "integration tests for API"'
-      ]
+        'claude-flow test "integration tests for API"',
+      ],
     },
     {
       name: 'deploy',
@@ -136,10 +129,7 @@ export class TierManager {
       complexity: 4,
       usage: 'claude-flow deploy [environment]',
       description: 'Deploy with intelligent CI/CD setup',
-      examples: [
-        'claude-flow deploy staging',
-        'claude-flow deploy production --auto-setup'
-      ]
+      examples: ['claude-flow deploy staging', 'claude-flow deploy production --auto-setup'],
     },
     {
       name: 'optimize',
@@ -151,8 +141,8 @@ export class TierManager {
       examples: [
         'claude-flow optimize',
         'claude-flow optimize bundle-size',
-        'claude-flow optimize database'
-      ]
+        'claude-flow optimize database',
+      ],
     },
     {
       name: 'review',
@@ -164,9 +154,9 @@ export class TierManager {
       examples: [
         'claude-flow review',
         'claude-flow review security',
-        'claude-flow review performance'
-      ]
-    }
+        'claude-flow review performance',
+      ],
+    },
   ];
 
   constructor() {
@@ -191,7 +181,7 @@ export class TierManager {
   }
 
   isCommandAvailable(commandName: string): boolean {
-    return this.getAvailableCommands().some(cmd => cmd.name === commandName);
+    return this.getAvailableCommands().some((cmd) => cmd.name === commandName);
   }
 
   recordCommandUsage(commandName: string): void {
@@ -276,22 +266,22 @@ export class TierManager {
         maxCommands: 5,
         allowedFeatures: ['basic-agents', 'simple-workflows'],
         helpLevel: 'basic',
-        autoUpgrade: true
+        autoUpgrade: true,
       },
       [UserTier.INTERMEDIATE]: {
         tier: UserTier.INTERMEDIATE,
         maxCommands: 15,
         allowedFeatures: ['direct-agents', 'custom-workflows', 'testing'],
         helpLevel: 'detailed',
-        autoUpgrade: true
+        autoUpgrade: true,
       },
       [UserTier.EXPERT]: {
         tier: UserTier.EXPERT,
         maxCommands: 112,
         allowedFeatures: ['all'],
         helpLevel: 'comprehensive',
-        autoUpgrade: false
-      }
+        autoUpgrade: false,
+      },
     };
 
     return configs[this.currentTier];
@@ -320,7 +310,7 @@ export class TierManager {
       commandsUsed: totalCommands,
       uniqueCommands,
       nextTierRequirements,
-      availableCommands: this.getAvailableCommands().length
+      availableCommands: this.getAvailableCommands().length,
     };
   }
 }

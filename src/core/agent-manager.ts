@@ -18,7 +18,7 @@ export class AgentManager {
       type,
       task,
       status: 'pending',
-      created: new Date()
+      created: new Date(),
     };
 
     this.agents.set(id, agent);
@@ -81,8 +81,9 @@ export class AgentManager {
    * Run all pending agents
    */
   async runAll(): Promise<void> {
-    const pendingAgents = Array.from(this.agents.values())
-      .filter(agent => agent.status === 'pending');
+    const pendingAgents = Array.from(this.agents.values()).filter(
+      (agent) => agent.status === 'pending',
+    );
 
     if (pendingAgents.length === 0) {
       console.log('No pending agents to run');

@@ -8,7 +8,7 @@ import {
   resolveLegacyAgentType,
   getAvailableAgentTypes,
   searchAgents,
-  getAgent
+  getAgent,
 } from './agent-loader.js';
 
 export interface AgentValidationResult {
@@ -25,26 +25,30 @@ export interface AgentCapabilityMap {
 
 // Expected capabilities for common invalid agent types
 const CAPABILITY_EXPECTATIONS: AgentCapabilityMap = {
-  'analyst': ['code-analysis', 'debugging', 'pattern-detection'],
-  'consensus-builder': ['consensus-algorithms', 'distributed-decision-making', 'agreement-protocols'],
-  'monitor': ['monitoring', 'metrics', 'performance-tracking'],
-  'coordinator': ['task-orchestration', 'coordination', 'workflow-management'],
-  'optimizer': ['performance-optimization', 'bottleneck-analysis', 'efficiency'],
-  'documenter': ['documentation', 'api-docs', 'technical-writing'],
-  'specialist': ['domain-expertise', 'specialized-knowledge', 'advanced-analysis'],
-  'architect': ['system-design', 'architecture', 'high-level-design']
+  analyst: ['code-analysis', 'debugging', 'pattern-detection'],
+  'consensus-builder': [
+    'consensus-algorithms',
+    'distributed-decision-making',
+    'agreement-protocols',
+  ],
+  monitor: ['monitoring', 'metrics', 'performance-tracking'],
+  coordinator: ['task-orchestration', 'coordination', 'workflow-management'],
+  optimizer: ['performance-optimization', 'bottleneck-analysis', 'efficiency'],
+  documenter: ['documentation', 'api-docs', 'technical-writing'],
+  specialist: ['domain-expertise', 'specialized-knowledge', 'advanced-analysis'],
+  architect: ['system-design', 'architecture', 'high-level-design'],
 };
 
 // Primary fallback mapping for common invalid types
 const FALLBACK_MAPPING: { [key: string]: string } = {
-  'analyst': 'code-analyzer',
+  analyst: 'code-analyzer',
   'consensus-builder': 'byzantine-coordinator',
-  'monitor': 'performance-benchmarker',
-  'coordinator': 'hierarchical-coordinator',
-  'optimizer': 'perf-analyzer',
-  'documenter': 'api-docs',
-  'specialist': 'system-architect',
-  'architect': 'system-architect'
+  monitor: 'performance-benchmarker',
+  coordinator: 'hierarchical-coordinator',
+  optimizer: 'perf-analyzer',
+  documenter: 'api-docs',
+  specialist: 'system-architect',
+  architect: 'system-architect',
 };
 
 /**
@@ -90,7 +94,7 @@ export class AgentValidator {
         resolvedType: type,
         originalType,
         fallbackUsed: false,
-        warnings: []
+        warnings: [],
       };
     }
 
@@ -105,7 +109,7 @@ export class AgentValidator {
           resolvedType: legacyResolved,
           originalType,
           fallbackUsed: true,
-          warnings
+          warnings,
         };
       }
     }
@@ -121,7 +125,7 @@ export class AgentValidator {
           resolvedType: directFallback,
           originalType,
           fallbackUsed: true,
-          warnings
+          warnings,
         };
       }
     }
@@ -129,13 +133,15 @@ export class AgentValidator {
     // Step 4: Capability-based matching
     const capabilityFallback = await this.findCapabilityBasedFallback(type);
     if (capabilityFallback) {
-      warnings.push(`Agent type '${type}' not found. Using '${capabilityFallback}' based on capability matching.`);
+      warnings.push(
+        `Agent type '${type}' not found. Using '${capabilityFallback}' based on capability matching.`,
+      );
       return {
         isValid: true,
         resolvedType: capabilityFallback,
         originalType,
         fallbackUsed: true,
-        warnings
+        warnings,
       };
     }
 
@@ -148,7 +154,7 @@ export class AgentValidator {
         resolvedType: fuzzyFallback,
         originalType,
         fallbackUsed: true,
-        warnings
+        warnings,
       };
     }
 
@@ -159,7 +165,7 @@ export class AgentValidator {
       resolvedType: 'researcher',
       originalType,
       fallbackUsed: true,
-      warnings
+      warnings,
     };
   }
 
@@ -214,7 +220,9 @@ export class AgentValidator {
    * Calculate string similarity using Levenshtein distance
    */
   private calculateSimilarity(str1: string, str2: string): number {
-    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+    const matrix = Array(str2.length + 1)
+      .fill(null)
+      .map(() => Array(str1.length + 1).fill(null));
 
     for (let i = 0; i <= str1.length; i++) {
       matrix[0][i] = i;
@@ -229,7 +237,7 @@ export class AgentValidator {
         matrix[j][i] = Math.min(
           matrix[j][i - 1] + 1, // insertion
           matrix[j - 1][i] + 1, // deletion
-          matrix[j - 1][i - 1] + substitutionCost // substitution
+          matrix[j - 1][i - 1] + substitutionCost, // substitution
         );
       }
     }
@@ -241,7 +249,7 @@ export class AgentValidator {
   /**
    * Get detailed information about available agent types
    */
-  async getAgentTypeInfo(): Promise<{ available: string[], legacy: string[], missing: string[] }> {
+  async getAgentTypeInfo(): Promise<{ available: string[]; legacy: string[]; missing: string[] }> {
     const availableTypes = await getAvailableAgentTypes();
     const legacyTypes = Object.keys(FALLBACK_MAPPING);
     const missingTypes: string[] = [];
@@ -258,7 +266,7 @@ export class AgentValidator {
     return {
       available: availableTypes,
       legacy: legacyTypes,
-      missing: missingTypes
+      missing: missingTypes,
     };
   }
 

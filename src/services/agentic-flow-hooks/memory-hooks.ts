@@ -1,6 +1,6 @@
 /**
  * Memory persistence hooks for agentic-flow
- * 
+ *
  * Provides cross-provider memory state management with
  * synchronization and persistence capabilities.
  */
@@ -21,12 +21,12 @@ export const preMemoryStoreHook = {
   priority: 100,
   handler: async (
     payload: MemoryHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { namespace, key, value, ttl, provider } = payload;
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Validate memory constraints
     const validation = await validateMemoryStore(namespace, key, value, context);
     if (!validation.valid) {
@@ -45,7 +45,7 @@ export const preMemoryStoreHook = {
         ],
       };
     }
-    
+
     // Compress large values
     let processedValue = value;
     if (shouldCompress(value)) {
@@ -56,7 +56,7 @@ export const preMemoryStoreHook = {
         data: { name: 'memory.compressions' },
       });
     }
-    
+
     // Add metadata
     const enrichedValue = {
       data: processedValue,
@@ -68,7 +68,7 @@ export const preMemoryStoreHook = {
         size: getValueSize(processedValue),
       },
     };
-    
+
     // Track memory usage
     sideEffects.push({
       type: 'metric',
@@ -78,7 +78,7 @@ export const preMemoryStoreHook = {
         value: getValueSize(enrichedValue),
       },
     });
-    
+
     return {
       continue: true,
       modified: true,
@@ -99,12 +99,12 @@ export const postMemoryStoreHook = {
   priority: 100,
   handler: async (
     payload: MemoryHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { namespace, key, value, crossProvider, syncTargets } = payload;
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Cross-provider sync if enabled
     if (crossProvider && syncTargets && syncTargets.length > 0) {
       for (const target of syncTargets) {
@@ -121,10 +121,10 @@ export const postMemoryStoreHook = {
         });
       }
     }
-    
+
     // Update memory index for search
     await updateMemoryIndex(namespace, key, value, context);
-    
+
     // Neural pattern detection
     const patterns = await detectMemoryPatterns(namespace, key, value, context);
     if (patterns.length > 0) {
@@ -137,7 +137,7 @@ export const postMemoryStoreHook = {
         },
       });
     }
-    
+
     // Emit memory change event
     sideEffects.push({
       type: 'notification',
@@ -147,7 +147,7 @@ export const postMemoryStoreHook = {
         data: { namespace, key, size: getValueSize(value) },
       },
     });
-    
+
     return {
       continue: true,
       sideEffects,
@@ -163,10 +163,10 @@ export const preMemoryRetrieveHook = {
   priority: 100,
   handler: async (
     payload: MemoryHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { namespace, key } = payload;
-    
+
     // Check local cache first
     const cached = await checkLocalCache(namespace, key!, context);
     if (cached) {
@@ -186,14 +186,14 @@ export const preMemoryRetrieveHook = {
         ],
       };
     }
-    
+
     // Pre-fetch related keys
     const relatedKeys = await findRelatedKeys(namespace, key!, context);
     if (relatedKeys.length > 0) {
       // Trigger background fetch
       prefetchKeys(namespace, relatedKeys, context);
     }
-    
+
     return {
       continue: true,
       sideEffects: [
@@ -215,16 +215,16 @@ export const postMemoryRetrieveHook = {
   priority: 100,
   handler: async (
     payload: MemoryHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { namespace, key, value } = payload;
-    
+
     if (!value) {
       return { continue: true };
     }
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Decompress if needed
     let processedValue = value;
     if (value.metadata?.compressed) {
@@ -235,13 +235,13 @@ export const postMemoryRetrieveHook = {
         data: { name: 'memory.decompressions' },
       });
     }
-    
+
     // Update access patterns
     await updateAccessPattern(namespace, key!, context);
-    
+
     // Cache locally for fast access
     await cacheLocally(namespace, key!, processedValue, context);
-    
+
     // Track retrieval latency
     const latency = Date.now() - context.timestamp;
     sideEffects.push({
@@ -252,7 +252,7 @@ export const postMemoryRetrieveHook = {
         value: latency,
       },
     });
-    
+
     return {
       continue: true,
       modified: true,
@@ -273,17 +273,17 @@ export const memorySyncHook = {
   priority: 100,
   handler: async (
     payload: MemoryHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { operation, namespace, provider, syncTargets } = payload;
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     switch (operation) {
       case 'sync':
         // Bidirectional sync
         const changes = await detectMemoryChanges(namespace, provider, context);
-        
+
         if (changes.length > 0) {
           sideEffects.push({
             type: 'log',
@@ -294,12 +294,12 @@ export const memorySyncHook = {
               data: { namespace, provider, targets: syncTargets },
             },
           });
-          
+
           // Apply changes
           for (const change of changes) {
             await applyMemoryChange(change, syncTargets || [], context);
           }
-          
+
           sideEffects.push({
             type: 'metric',
             action: 'update',
@@ -310,11 +310,11 @@ export const memorySyncHook = {
           });
         }
         break;
-        
+
       case 'persist':
         // Persist to long-term storage
         const snapshot = await createMemorySnapshot(namespace, context);
-        
+
         sideEffects.push({
           type: 'memory',
           action: 'store',
@@ -324,7 +324,7 @@ export const memorySyncHook = {
             ttl: 0, // No expiration
           },
         });
-        
+
         sideEffects.push({
           type: 'notification',
           action: 'emit',
@@ -334,16 +334,16 @@ export const memorySyncHook = {
           },
         });
         break;
-        
+
       case 'expire':
         // Clean up expired entries
         const expired = await findExpiredEntries(namespace, context);
-        
+
         if (expired.length > 0) {
           for (const key of expired) {
             await removeMemoryEntry(namespace, key, context);
           }
-          
+
           sideEffects.push({
             type: 'metric',
             action: 'update',
@@ -355,7 +355,7 @@ export const memorySyncHook = {
         }
         break;
     }
-    
+
     return {
       continue: true,
       sideEffects,
@@ -371,13 +371,13 @@ export const memoryPersistHook = {
   priority: 90,
   handler: async (
     payload: MemoryHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { namespace } = payload;
-    
+
     // Create full memory backup
     const backup = await createFullBackup(namespace, context);
-    
+
     // Store backup with metadata
     const backupData = {
       timestamp: Date.now(),
@@ -387,7 +387,7 @@ export const memoryPersistHook = {
       size: backup.size,
       checksum: calculateChecksum(backup),
     };
-    
+
     return {
       continue: true,
       sideEffects: [
@@ -423,30 +423,30 @@ async function validateMemoryStore(
   namespace: string,
   key: string | undefined,
   value: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<{ valid: boolean; reason?: string }> {
   // Check size limits
   const size = getValueSize(value);
   const maxSize = 10 * 1024 * 1024; // 10MB
-  
+
   if (size > maxSize) {
     return {
       valid: false,
       reason: `Value size ${size} exceeds limit ${maxSize}`,
     };
   }
-  
+
   // Check namespace quota
   const quota = await getNamespaceQuota(namespace, context);
   const usage = await getNamespaceUsage(namespace, context);
-  
+
   if (usage + size > quota) {
     return {
       valid: false,
       reason: `Namespace quota exceeded: ${usage + size} > ${quota}`,
     };
   }
-  
+
   // Validate key format
   if (key && !isValidKey(key)) {
     return {
@@ -454,7 +454,7 @@ async function validateMemoryStore(
       reason: `Invalid key format: ${key}`,
     };
   }
-  
+
   return { valid: true };
 }
 
@@ -488,7 +488,7 @@ async function updateMemoryIndex(
   namespace: string,
   key: string,
   value: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<void> {
   // Update search index (placeholder)
   // In real implementation, update inverted index for search
@@ -498,11 +498,11 @@ async function detectMemoryPatterns(
   namespace: string,
   key: string,
   value: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any[]> {
   // Detect patterns in memory usage
   const patterns = [];
-  
+
   // Check for sequential access pattern
   const accessHistory = await getAccessHistory(namespace, context);
   if (isSequentialPattern(accessHistory)) {
@@ -512,7 +512,7 @@ async function detectMemoryPatterns(
       suggestion: 'prefetch-next',
     });
   }
-  
+
   // Check for temporal patterns
   if (isTemporalPattern(accessHistory)) {
     patterns.push({
@@ -521,14 +521,14 @@ async function detectMemoryPatterns(
       suggestion: 'cache-duration',
     });
   }
-  
+
   return patterns;
 }
 
 async function checkLocalCache(
   namespace: string,
   key: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any | null> {
   const cacheKey = `${namespace}:${key}`;
   return context.memory.cache.get(cacheKey);
@@ -537,7 +537,7 @@ async function checkLocalCache(
 async function findRelatedKeys(
   namespace: string,
   key: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<string[]> {
   // Find related keys based on patterns
   // Placeholder implementation
@@ -547,7 +547,7 @@ async function findRelatedKeys(
 async function prefetchKeys(
   namespace: string,
   keys: string[],
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<void> {
   // Trigger background prefetch
   // Placeholder implementation
@@ -556,23 +556,23 @@ async function prefetchKeys(
 async function updateAccessPattern(
   namespace: string,
   key: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<void> {
   // Track access patterns for optimization
   const patternKey = `pattern:${namespace}:${key}`;
-  const pattern = await context.memory.cache.get(patternKey) || {
+  const pattern = (await context.memory.cache.get(patternKey)) || {
     accesses: [],
     lastAccess: 0,
   };
-  
+
   pattern.accesses.push(Date.now());
   pattern.lastAccess = Date.now();
-  
+
   // Keep last 100 accesses
   if (pattern.accesses.length > 100) {
     pattern.accesses = pattern.accesses.slice(-100);
   }
-  
+
   await context.memory.cache.set(patternKey, pattern);
 }
 
@@ -580,7 +580,7 @@ async function cacheLocally(
   namespace: string,
   key: string,
   value: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<void> {
   const cacheKey = `${namespace}:${key}`;
   context.memory.cache.set(cacheKey, value);
@@ -589,7 +589,7 @@ async function cacheLocally(
 async function detectMemoryChanges(
   namespace: string,
   provider: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any[]> {
   // Detect changes for sync
   // Placeholder implementation
@@ -599,16 +599,13 @@ async function detectMemoryChanges(
 async function applyMemoryChange(
   change: any,
   targets: string[],
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<void> {
   // Apply memory change to targets
   // Placeholder implementation
 }
 
-async function createMemorySnapshot(
-  namespace: string,
-  context: AgenticHookContext
-): Promise<any> {
+async function createMemorySnapshot(namespace: string, context: AgenticHookContext): Promise<any> {
   // Create snapshot of namespace
   // Placeholder implementation
   return {
@@ -621,7 +618,7 @@ async function createMemorySnapshot(
 
 async function findExpiredEntries(
   namespace: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<string[]> {
   // Find expired entries
   // Placeholder implementation
@@ -631,16 +628,13 @@ async function findExpiredEntries(
 async function removeMemoryEntry(
   namespace: string,
   key: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<void> {
   // Remove memory entry
   // Placeholder implementation
 }
 
-async function createFullBackup(
-  namespace: string,
-  context: AgenticHookContext
-): Promise<any> {
+async function createFullBackup(namespace: string, context: AgenticHookContext): Promise<any> {
   // Create full backup
   // Placeholder implementation
   return {
@@ -655,18 +649,12 @@ function calculateChecksum(data: any): string {
   return 'checksum';
 }
 
-async function getNamespaceQuota(
-  namespace: string,
-  context: AgenticHookContext
-): Promise<number> {
+async function getNamespaceQuota(namespace: string, context: AgenticHookContext): Promise<number> {
   // Get namespace quota
   return 100 * 1024 * 1024; // 100MB default
 }
 
-async function getNamespaceUsage(
-  namespace: string,
-  context: AgenticHookContext
-): Promise<number> {
+async function getNamespaceUsage(namespace: string, context: AgenticHookContext): Promise<number> {
   // Get current usage
   // Placeholder implementation
   return 0;
@@ -677,10 +665,7 @@ function isValidKey(key: string): boolean {
   return /^[a-zA-Z0-9:_\-./]+$/.test(key);
 }
 
-async function getAccessHistory(
-  namespace: string,
-  context: AgenticHookContext
-): Promise<any[]> {
+async function getAccessHistory(namespace: string, context: AgenticHookContext): Promise<any[]> {
   // Get access history
   // Placeholder implementation
   return [];

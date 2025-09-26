@@ -30,7 +30,7 @@ export class AnalyticsTestRunner {
       { name: 'CLI Commands', fn: this.testCLICommands },
       { name: 'Monitoring Integration', fn: this.testMonitoringIntegration },
       { name: 'Report Export', fn: this.testReportExport },
-      { name: 'System Status', fn: this.testSystemStatus }
+      { name: 'System Status', fn: this.testSystemStatus },
     ];
 
     for (const test of tests) {
@@ -65,12 +65,11 @@ export class AnalyticsTestRunner {
           name: testName,
           status: 'PASSED',
           duration: duration,
-          details: result.details || 'Test completed successfully'
+          details: result.details || 'Test completed successfully',
         });
       } else {
         throw new Error(result.error || 'Test returned failure');
       }
-
     } catch (error) {
       this.failedTests++;
       console.log(chalk.red(`❌ ${testName} - FAILED`));
@@ -80,7 +79,7 @@ export class AnalyticsTestRunner {
         name: testName,
         status: 'FAILED',
         error: error.message,
-        details: error.stack
+        details: error.stack,
       });
     }
   }
@@ -95,9 +94,9 @@ export class AnalyticsTestRunner {
 
     return {
       success: true,
-      details: initResult.success ?
-        'Database connections established successfully' :
-        'Database connections failed (expected if no databases exist)'
+      details: initResult.success
+        ? 'Database connections established successfully'
+        : 'Database connections failed (expected if no databases exist)',
     };
   }
 
@@ -117,7 +116,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: true,
-      details: `Loaded ${systemMetrics.length} system metrics, ${taskMetrics.length} task metrics, ${Object.keys(performanceMetrics).length} performance keys`
+      details: `Loaded ${systemMetrics.length} system metrics, ${taskMetrics.length} task metrics, ${Object.keys(performanceMetrics).length} performance keys`,
     };
   }
 
@@ -135,7 +134,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: hasComponents,
-      details: `Generated report with ${Object.keys(report.components).length} components`
+      details: `Generated report with ${Object.keys(report.components).length} components`,
     };
   }
 
@@ -151,7 +150,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: optimizations.total !== undefined,
-      details: `Generated ${optimizations.total} optimization suggestions`
+      details: `Generated ${optimizations.total} optimization suggestions`,
     };
   }
 
@@ -167,7 +166,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: suggestions.timestamp !== undefined,
-      details: `Generated personalized suggestions for user profile`
+      details: `Generated personalized suggestions for user profile`,
     };
   }
 
@@ -183,7 +182,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: dashboardData.timestamp !== undefined,
-      details: `Generated dashboard data with status: ${dashboardData.status}`
+      details: `Generated dashboard data with status: ${dashboardData.status}`,
     };
   }
 
@@ -200,7 +199,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: cliComponents.analyzer !== undefined,
-      details: 'CLI components initialized successfully'
+      details: 'CLI components initialized successfully',
     };
   }
 
@@ -218,7 +217,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: startResult.success && stopResult.success,
-      details: 'Monitoring integration started and stopped successfully'
+      details: 'Monitoring integration started and stopped successfully',
     };
   }
 
@@ -238,7 +237,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: hasRequiredFields,
-      details: 'Report export structure validated'
+      details: 'Report export structure validated',
     };
   }
 
@@ -254,7 +253,7 @@ export class AnalyticsTestRunner {
 
     return {
       success: status.timestamp !== undefined,
-      details: `System status: ${status.analytics.databases_connected ? 'Connected' : 'Disconnected'}`
+      details: `System status: ${status.analytics.databases_connected ? 'Connected' : 'Disconnected'}`,
     };
   }
 
@@ -267,13 +266,15 @@ export class AnalyticsTestRunner {
     console.log(`Total Tests: ${chalk.cyan(this.totalTests)}`);
     console.log(`Passed: ${chalk.green(this.passedTests)}`);
     console.log(`Failed: ${chalk.red(this.failedTests)}`);
-    console.log(`Success Rate: ${chalk.yellow((this.passedTests / this.totalTests * 100).toFixed(1))}%`);
+    console.log(
+      `Success Rate: ${chalk.yellow(((this.passedTests / this.totalTests) * 100).toFixed(1))}%`,
+    );
 
     if (this.failedTests > 0) {
       console.log(chalk.red.bold('\n❌ Failed Tests:'));
       this.testResults
-        .filter(result => result.status === 'FAILED')
-        .forEach(result => {
+        .filter((result) => result.status === 'FAILED')
+        .forEach((result) => {
           console.log(chalk.red(`  • ${result.name}: ${result.error}`));
         });
     }
@@ -289,8 +290,8 @@ export class AnalyticsTestRunner {
       total: this.totalTests,
       passed: this.passedTests,
       failed: this.failedTests,
-      successRate: (this.passedTests / this.totalTests * 100),
-      results: this.testResults
+      successRate: (this.passedTests / this.totalTests) * 100,
+      results: this.testResults,
     };
   }
 
@@ -307,7 +308,7 @@ export class AnalyticsTestRunner {
       { name: 'Report Generation', fn: () => analytics.generateReport() },
       { name: 'Optimization Suggestions', fn: () => analytics.getOptimizations() },
       { name: 'System Status', fn: () => analytics.getSystemStatus() },
-      { name: 'Dashboard Data', fn: () => analytics.dashboard.generateDashboardData() }
+      { name: 'Dashboard Data', fn: () => analytics.dashboard.generateDashboardData() },
     ];
 
     const results = [];
@@ -330,10 +331,9 @@ export class AnalyticsTestRunner {
         }
       }
 
-      const validTimes = times.filter(t => t !== null);
-      const avgTime = validTimes.length > 0
-        ? validTimes.reduce((sum, t) => sum + t, 0) / validTimes.length
-        : 0;
+      const validTimes = times.filter((t) => t !== null);
+      const avgTime =
+        validTimes.length > 0 ? validTimes.reduce((sum, t) => sum + t, 0) / validTimes.length : 0;
 
       results.push({
         name: benchmark.name,
@@ -341,16 +341,20 @@ export class AnalyticsTestRunner {
         avgTime: Math.round(avgTime),
         minTime: Math.min(...validTimes),
         maxTime: Math.max(...validTimes),
-        successRate: (validTimes.length / iterations) * 100
+        successRate: (validTimes.length / iterations) * 100,
       });
 
-      console.log(chalk.green(`  ✅ ${benchmark.name}: ${avgTime.toFixed(0)}ms avg (${validTimes.length}/${iterations} successful)`));
+      console.log(
+        chalk.green(
+          `  ✅ ${benchmark.name}: ${avgTime.toFixed(0)}ms avg (${validTimes.length}/${iterations} successful)`,
+        ),
+      );
     }
 
     await analytics.shutdown();
 
     console.log(chalk.blue.bold('\n📈 Benchmark Results:'));
-    results.forEach(result => {
+    results.forEach((result) => {
       console.log(`  ${result.name}:`);
       console.log(`    Average: ${chalk.cyan(result.avgTime)}ms`);
       console.log(`    Range: ${chalk.gray(result.minTime)}ms - ${chalk.gray(result.maxTime)}ms`);
@@ -374,29 +378,29 @@ export class AnalyticsTestRunner {
     try {
       // Test 1: System metrics validation
       const systemMetrics = await analytics.analyzer.loadSystemMetrics();
-      const hasValidSystemData = systemMetrics.length > 0 &&
-        systemMetrics.every(metric =>
-          metric.timestamp &&
-          metric.memoryUsagePercent !== undefined &&
-          metric.cpuLoad !== undefined
+      const hasValidSystemData =
+        systemMetrics.length > 0 &&
+        systemMetrics.every(
+          (metric) =>
+            metric.timestamp &&
+            metric.memoryUsagePercent !== undefined &&
+            metric.cpuLoad !== undefined,
         );
 
       validationResults.push({
         test: 'System Metrics Validation',
         passed: hasValidSystemData,
-        details: `${systemMetrics.length} system metrics entries validated`
+        details: `${systemMetrics.length} system metrics entries validated`,
       });
 
       // Test 2: Task metrics validation
       const taskMetrics = await analytics.analyzer.loadTaskMetrics();
-      const hasValidTaskData = taskMetrics.every(metric =>
-        metric.id && metric.timestamp
-      );
+      const hasValidTaskData = taskMetrics.every((metric) => metric.id && metric.timestamp);
 
       validationResults.push({
         test: 'Task Metrics Validation',
         passed: hasValidTaskData,
-        details: `${taskMetrics.length} task metrics entries validated`
+        details: `${taskMetrics.length} task metrics entries validated`,
       });
 
       // Test 3: Performance metrics validation
@@ -406,41 +410,41 @@ export class AnalyticsTestRunner {
       validationResults.push({
         test: 'Performance Metrics Validation',
         passed: hasValidPerfData,
-        details: `Performance metrics structure validated`
+        details: `Performance metrics structure validated`,
       });
 
       // Test 4: Report structure validation
       const report = await analytics.generateReport();
-      const hasValidReportStructure = report.timestamp &&
-        report.components &&
-        typeof report.components === 'object';
+      const hasValidReportStructure =
+        report.timestamp && report.components && typeof report.components === 'object';
 
       validationResults.push({
         test: 'Report Structure Validation',
         passed: hasValidReportStructure,
-        details: 'Report contains required fields and structure'
+        details: 'Report contains required fields and structure',
       });
-
     } catch (error) {
       validationResults.push({
         test: 'Data Validation Error',
         passed: false,
-        details: error.message
+        details: error.message,
       });
     }
 
     await analytics.shutdown();
 
     // Print results
-    validationResults.forEach(result => {
+    validationResults.forEach((result) => {
       const status = result.passed ? chalk.green('✅ PASSED') : chalk.red('❌ FAILED');
       console.log(`${status} ${result.test}: ${result.details}`);
     });
 
-    const passedValidation = validationResults.filter(r => r.passed).length;
+    const passedValidation = validationResults.filter((r) => r.passed).length;
     const totalValidation = validationResults.length;
 
-    console.log(chalk.blue.bold(`\nValidation Results: ${passedValidation}/${totalValidation} passed\n`));
+    console.log(
+      chalk.blue.bold(`\nValidation Results: ${passedValidation}/${totalValidation} passed\n`),
+    );
 
     return validationResults;
   }
@@ -460,7 +464,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
       // Run data validation
       await testRunner.runDataValidationTests();
-
     } catch (error) {
       console.error(chalk.red('Test execution failed:'), error.message);
     }

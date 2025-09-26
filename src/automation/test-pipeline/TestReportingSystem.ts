@@ -108,13 +108,13 @@ export class TestReportingSystem {
         failed: executionResults.failed,
         skipped: executionResults.skipped || 0,
         flaky: 0,
-        duration: executionResults.endTime.getTime() - executionResults.startTime.getTime()
+        duration: executionResults.endTime.getTime() - executionResults.startTime.getTime(),
       },
       results: [],
       swarmMetrics: executionResults.swarmMetrics,
       performanceMetrics: executionResults.performanceMetrics,
       trends: {},
-      recommendations: []
+      recommendations: [],
     };
 
     // Process individual test results
@@ -131,7 +131,7 @@ export class TestReportingSystem {
         priority: result.priority || 'medium',
         timestamp: result.timestamp || new Date(),
         agentId: result.agentId,
-        retryCount: result.retryCount || 0
+        retryCount: result.retryCount || 0,
       };
 
       report.results.push(testResult);
@@ -161,7 +161,9 @@ export class TestReportingSystem {
       await this.sendNotifications(report);
     }
 
-    console.log(`✅ Test report generated: ${report.summary.passed}/${report.summary.total} tests passed`);
+    console.log(
+      `✅ Test report generated: ${report.summary.passed}/${report.summary.total} tests passed`,
+    );
     return report;
   }
 
@@ -204,12 +206,12 @@ export class TestReportingSystem {
 
     return {
       currentStatus: this.getCurrentTestStatus(),
-      recentResults: recentReports.map(r => r.summary),
+      recentResults: recentReports.map((r) => r.summary),
       failurePatterns: Array.from(this.failurePatterns.values())
         .sort((a, b) => b.frequency - a.frequency)
         .slice(0, 5),
       trends: this.getLatestTrends(),
-      alerts: this.getActiveAlerts()
+      alerts: this.getActiveAlerts(),
     };
   }
 
@@ -217,7 +219,7 @@ export class TestReportingSystem {
    * Analyze test failure patterns across multiple executions
    */
   async analyzeFailurePatterns(report: TestReport): Promise<void> {
-    const failedTests = report.results.filter(r => r.status === 'failed');
+    const failedTests = report.results.filter((r) => r.status === 'failed');
 
     for (const test of failedTests) {
       if (!test.error) continue;
@@ -236,7 +238,7 @@ export class TestReportingSystem {
           count: 1,
           frequency: 1,
           affectedTests: [test.testId],
-          recommendation: this.generatePatternRecommendation(pattern)
+          recommendation: this.generatePatternRecommendation(pattern),
         });
       }
     }
@@ -247,7 +249,7 @@ export class TestReportingSystem {
    */
   async generateTrendAnalysis(report: TestReport): Promise<any> {
     const historicalReports = Array.from(this.reports.values())
-      .filter(r => r.timestamp.getTime() < report.timestamp.getTime())
+      .filter((r) => r.timestamp.getTime() < report.timestamp.getTime())
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, 30); // Last 30 reports
 
@@ -257,20 +259,20 @@ export class TestReportingSystem {
 
     const trends = {
       passRate: this.analyzeTrend(
-        historicalReports.map(r => (r.summary.passed / r.summary.total) * 100),
-        (report.summary.passed / report.summary.total) * 100
+        historicalReports.map((r) => (r.summary.passed / r.summary.total) * 100),
+        (report.summary.passed / report.summary.total) * 100,
       ),
       executionTime: this.analyzeTrend(
-        historicalReports.map(r => r.summary.duration),
-        report.summary.duration
+        historicalReports.map((r) => r.summary.duration),
+        report.summary.duration,
       ),
       flakyTests: this.analyzeTrend(
-        historicalReports.map(r => r.summary.flaky),
-        report.summary.flaky
+        historicalReports.map((r) => r.summary.flaky),
+        report.summary.flaky,
       ),
       failurePatterns: this.analyzeFailurePatternTrends(historicalReports, report),
       regressions: this.identifyRegressions(historicalReports, report),
-      improvements: this.identifyImprovements(historicalReports, report)
+      improvements: this.identifyImprovements(historicalReports, report),
     };
 
     return trends;
@@ -290,18 +292,24 @@ export class TestReportingSystem {
 
     // Flaky test recommendations
     if (report.summary.flaky > 0) {
-      recommendations.push(`${report.summary.flaky} flaky tests detected - consider stabilizing or quarantining`);
+      recommendations.push(
+        `${report.summary.flaky} flaky tests detected - consider stabilizing or quarantining`,
+      );
     }
 
     // Performance recommendations
     const avgDuration = report.summary.duration / report.summary.total;
-    if (avgDuration > 30000) { // 30 seconds average
-      recommendations.push(`Average test duration is ${(avgDuration / 1000).toFixed(1)}s - consider optimization`);
+    if (avgDuration > 30000) {
+      // 30 seconds average
+      recommendations.push(
+        `Average test duration is ${(avgDuration / 1000).toFixed(1)}s - consider optimization`,
+      );
     }
 
     // Failure pattern recommendations
-    const topFailurePattern = Array.from(this.failurePatterns.values())
-      .sort((a, b) => b.frequency - a.frequency)[0];
+    const topFailurePattern = Array.from(this.failurePatterns.values()).sort(
+      (a, b) => b.frequency - a.frequency,
+    )[0];
 
     if (topFailurePattern && topFailurePattern.frequency > 0.2) {
       recommendations.push(`Common failure pattern: ${topFailurePattern.recommendation}`);
@@ -312,12 +320,14 @@ export class TestReportingSystem {
     recommendations.push(...categoryAnalysis);
 
     // Priority-based recommendations
-    const criticalFailures = report.results.filter(r =>
-      r.status === 'failed' && (r.priority === 'high' || r.priority === 'critical')
+    const criticalFailures = report.results.filter(
+      (r) => r.status === 'failed' && (r.priority === 'high' || r.priority === 'critical'),
     );
 
     if (criticalFailures.length > 0) {
-      recommendations.push(`${criticalFailures.length} critical/high priority tests failed - immediate attention required`);
+      recommendations.push(
+        `${criticalFailures.length} critical/high priority tests failed - immediate attention required`,
+      );
     }
 
     return recommendations;
@@ -337,7 +347,7 @@ export class TestReportingSystem {
       notifications.push({
         type: 'critical',
         message: `Critical: Test pass rate dropped to ${passRate.toFixed(1)}%`,
-        report: report.id
+        report: report.id,
       });
     }
 
@@ -348,7 +358,7 @@ export class TestReportingSystem {
         type: 'warning',
         message: `${newFailures.length} new test failures detected`,
         report: report.id,
-        details: newFailures
+        details: newFailures,
       });
     }
 
@@ -357,7 +367,7 @@ export class TestReportingSystem {
       notifications.push({
         type: 'info',
         message: `Test execution time increased by ${report.trends.executionTime.change}%`,
-        report: report.id
+        report: report.id,
       });
     }
 
@@ -398,14 +408,15 @@ export class TestReportingSystem {
       status: 'idle',
       runningTests: 0,
       queuedTests: 0,
-      lastExecution: new Date()
+      lastExecution: new Date(),
     };
   }
 
   private getLatestTrends(): any {
     // Get latest trend data for dashboard
-    const latestReport = Array.from(this.reports.values())
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+    const latestReport = Array.from(this.reports.values()).sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+    )[0];
 
     return latestReport?.trends || {};
   }
@@ -437,11 +448,11 @@ export class TestReportingSystem {
 
   private generatePatternRecommendation(pattern: string): string {
     const recommendations = {
-      'timeout': 'Consider increasing timeout values or optimizing performance',
+      timeout: 'Consider increasing timeout values or optimizing performance',
       'element-missing': 'Review element selectors and page load conditions',
       'network-error': 'Check network connectivity and retry mechanisms',
       'assertion-failure': 'Review test assertions and expected values',
-      'permission-error': 'Verify test environment permissions and access rights'
+      'permission-error': 'Verify test environment permissions and access rights',
     };
 
     return recommendations[pattern] || 'Review error details and test implementation';
@@ -450,7 +461,9 @@ export class TestReportingSystem {
   private analyzeTrend(historicalValues: number[], currentValue: number): any {
     if (historicalValues.length === 0) return { change: 0, trend: 'stable' };
 
-    const recentAverage = historicalValues.slice(0, 5).reduce((sum, val) => sum + val, 0) / Math.min(5, historicalValues.length);
+    const recentAverage =
+      historicalValues.slice(0, 5).reduce((sum, val) => sum + val, 0) /
+      Math.min(5, historicalValues.length);
     const change = ((currentValue - recentAverage) / recentAverage) * 100;
 
     let trend = 'stable';
@@ -463,16 +476,19 @@ export class TestReportingSystem {
       average: recentAverage,
       change: Math.round(change * 100) / 100,
       trend,
-      regression: change > 15 // Flag as regression if increase > 15%
+      regression: change > 15, // Flag as regression if increase > 15%
     };
   }
 
-  private analyzeFailurePatternTrends(historicalReports: TestReport[], currentReport: TestReport): any {
+  private analyzeFailurePatternTrends(
+    historicalReports: TestReport[],
+    currentReport: TestReport,
+  ): any {
     // Analyze trends in failure patterns
     return {
       emerging: [], // New failure patterns
       declining: [], // Decreasing failure patterns
-      persistent: [] // Consistent failure patterns
+      persistent: [], // Consistent failure patterns
     };
   }
 
@@ -481,15 +497,18 @@ export class TestReportingSystem {
     const regressions = [];
 
     // Pass rate regression
-    const historicalPassRates = historicalReports.map(r => (r.summary.passed / r.summary.total) * 100);
+    const historicalPassRates = historicalReports.map(
+      (r) => (r.summary.passed / r.summary.total) * 100,
+    );
     const currentPassRate = (currentReport.summary.passed / currentReport.summary.total) * 100;
-    const avgHistoricalPassRate = historicalPassRates.reduce((sum, rate) => sum + rate, 0) / historicalPassRates.length;
+    const avgHistoricalPassRate =
+      historicalPassRates.reduce((sum, rate) => sum + rate, 0) / historicalPassRates.length;
 
     if (currentPassRate < avgHistoricalPassRate - 5) {
       regressions.push({
         type: 'pass-rate',
         severity: currentPassRate < avgHistoricalPassRate - 10 ? 'high' : 'medium',
-        description: `Pass rate dropped from ${avgHistoricalPassRate.toFixed(1)}% to ${currentPassRate.toFixed(1)}%`
+        description: `Pass rate dropped from ${avgHistoricalPassRate.toFixed(1)}% to ${currentPassRate.toFixed(1)}%`,
       });
     }
 
@@ -501,14 +520,17 @@ export class TestReportingSystem {
     const improvements = [];
 
     // Pass rate improvement
-    const historicalPassRates = historicalReports.map(r => (r.summary.passed / r.summary.total) * 100);
+    const historicalPassRates = historicalReports.map(
+      (r) => (r.summary.passed / r.summary.total) * 100,
+    );
     const currentPassRate = (currentReport.summary.passed / currentReport.summary.total) * 100;
-    const avgHistoricalPassRate = historicalPassRates.reduce((sum, rate) => sum + rate, 0) / historicalPassRates.length;
+    const avgHistoricalPassRate =
+      historicalPassRates.reduce((sum, rate) => sum + rate, 0) / historicalPassRates.length;
 
     if (currentPassRate > avgHistoricalPassRate + 5) {
       improvements.push({
         type: 'pass-rate',
-        description: `Pass rate improved from ${avgHistoricalPassRate.toFixed(1)}% to ${currentPassRate.toFixed(1)}%`
+        description: `Pass rate improved from ${avgHistoricalPassRate.toFixed(1)}% to ${currentPassRate.toFixed(1)}%`,
       });
     }
 
@@ -541,8 +563,11 @@ export class TestReportingSystem {
         recommendations.push(`${category} tests have low pass rate (${passRate.toFixed(1)}%)`);
       }
 
-      if (avgDuration > 60000) { // 1 minute
-        recommendations.push(`${category} tests are slow (avg: ${(avgDuration / 1000).toFixed(1)}s)`);
+      if (avgDuration > 60000) {
+        // 1 minute
+        recommendations.push(
+          `${category} tests are slow (avg: ${(avgDuration / 1000).toFixed(1)}s)`,
+        );
       }
     }
 
@@ -552,31 +577,33 @@ export class TestReportingSystem {
   private async identifyNewFailures(report: TestReport): Promise<any[]> {
     // Compare with previous reports to identify new failures
     const previousReports = Array.from(this.reports.values())
-      .filter(r => r.timestamp.getTime() < report.timestamp.getTime())
+      .filter((r) => r.timestamp.getTime() < report.timestamp.getTime())
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, 5);
 
     if (previousReports.length === 0) return [];
 
-    const currentFailures = new Set(report.results
-      .filter(r => r.status === 'failed')
-      .map(r => r.testId));
+    const currentFailures = new Set(
+      report.results.filter((r) => r.status === 'failed').map((r) => r.testId),
+    );
 
     const historicalFailures = new Set();
     for (const prevReport of previousReports) {
       prevReport.results
-        .filter(r => r.status === 'failed')
-        .forEach(r => historicalFailures.add(r.testId));
+        .filter((r) => r.status === 'failed')
+        .forEach((r) => historicalFailures.add(r.testId));
     }
 
-    const newFailures = Array.from(currentFailures).filter(testId => !historicalFailures.has(testId));
+    const newFailures = Array.from(currentFailures).filter(
+      (testId) => !historicalFailures.has(testId),
+    );
 
-    return newFailures.map(testId => {
-      const testResult = report.results.find(r => r.testId === testId);
+    return newFailures.map((testId) => {
+      const testResult = report.results.find((r) => r.testId === testId);
       return {
         testId,
         name: testResult?.name,
-        error: testResult?.error
+        error: testResult?.error,
       };
     });
   }
@@ -627,12 +654,14 @@ export class TestReportingSystem {
     <div class="recommendations">
         <h2>Recommendations</h2>
         <ul>
-            ${report.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+            ${report.recommendations.map((rec) => `<li>${rec}</li>`).join('')}
         </ul>
     </div>
 
     <h2>Test Results</h2>
-    ${report.results.map(result => `
+    ${report.results
+      .map(
+        (result) => `
         <div class="test-result ${result.status}">
             <h3>${result.name}</h3>
             <p><strong>Status:</strong> ${result.status}</p>
@@ -640,7 +669,9 @@ export class TestReportingSystem {
             <p><strong>Category:</strong> ${result.category}</p>
             ${result.error ? `<p><strong>Error:</strong> <pre>${result.error}</pre></p>` : ''}
         </div>
-    `).join('')}
+    `,
+      )
+      .join('')}
 </body>
 </html>`;
   }
@@ -662,7 +693,7 @@ export class TestReportingSystem {
 
     for (const [suiteName, tests] of testSuites) {
       const suiteTests = tests.length;
-      const suiteFailures = tests.filter(t => t.status === 'failed').length;
+      const suiteFailures = tests.filter((t) => t.status === 'failed').length;
       const suiteDuration = tests.reduce((sum, t) => sum + t.duration, 0);
 
       xml += `  <testsuite name="${suiteName}" tests="${suiteTests}" failures="${suiteFailures}" time="${(suiteDuration / 1000).toFixed(3)}">\n`;

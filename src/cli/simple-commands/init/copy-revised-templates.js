@@ -18,7 +18,7 @@ export async function copyRevisedTemplates(targetDir, options = {}) {
     success: true,
     copiedFiles: [],
     skippedFiles: [],
-    errors: []
+    errors: [],
   };
 
   const targetCommandsDir = path.join(targetDir, '.claude/commands');
@@ -33,7 +33,7 @@ export async function copyRevisedTemplates(targetDir, options = {}) {
     // Copy additional .claude files if they exist
     const additionalFiles = [
       { source: '../config.json', target: '.claude/config.json' },
-      { source: '../settings.json', target: '.claude/settings.json' }
+      { source: '../settings.json', target: '.claude/settings.json' },
     ];
 
     for (const file of additionalFiles) {
@@ -44,7 +44,7 @@ export async function copyRevisedTemplates(targetDir, options = {}) {
         try {
           const targetDirPath = path.dirname(targetPath);
           await fs.promises.mkdir(targetDirPath, { recursive: true });
-          
+
           if (!fs.existsSync(targetPath) || options.force) {
             await fs.promises.copyFile(sourcePath, targetPath);
             results.copiedFiles.push(file.target);
@@ -124,7 +124,7 @@ export async function copyRevisedTemplatesByCategory(targetDir, categories, opti
     success: true,
     copiedFiles: [],
     skippedFiles: [],
-    errors: []
+    errors: [],
   };
 
   for (const category of categories) {
@@ -150,7 +150,7 @@ export function validateTemplatesExist() {
   if (!fs.existsSync(REPO_TEMPLATES_DIR)) {
     return {
       valid: false,
-      error: `Template directory not found: ${REPO_TEMPLATES_DIR}`
+      error: `Template directory not found: ${REPO_TEMPLATES_DIR}`,
     };
   }
 
@@ -167,7 +167,7 @@ export function validateTemplatesExist() {
   if (missingCategories.length > 0) {
     return {
       valid: false,
-      error: `Missing required template categories: ${missingCategories.join(', ')}`
+      error: `Missing required template categories: ${missingCategories.join(', ')}`,
     };
   }
 

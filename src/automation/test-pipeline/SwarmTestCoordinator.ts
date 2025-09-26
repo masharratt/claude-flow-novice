@@ -73,12 +73,14 @@ export class SwarmTestCoordinator extends EventEmitter {
    */
   private async initializeSwarmTopology(): Promise<void> {
     // This would integrate with the MCP swarm initialization
-    console.log(`📊 Setting up ${this.config.swarm.topology} topology with ${this.config.swarm.maxAgents} max agents`);
+    console.log(
+      `📊 Setting up ${this.config.swarm.topology} topology with ${this.config.swarm.maxAgents} max agents`,
+    );
 
     // Store topology configuration for agent coordination
     this.emit('topology-initialized', {
       topology: this.config.swarm.topology,
-      maxAgents: this.config.swarm.maxAgents
+      maxAgents: this.config.swarm.maxAgents,
     });
   }
 
@@ -87,11 +89,26 @@ export class SwarmTestCoordinator extends EventEmitter {
    */
   private async spawnSpecializedAgents(): Promise<void> {
     const agentSpecs = [
-      { type: 'e2e-architect', capabilities: ['playwright-integration', 'chrome-mcp', 'test-generation'] },
-      { type: 'cicd-specialist', capabilities: ['github-actions', 'deployment-automation', 'pipeline-management'] },
-      { type: 'regression-manager', capabilities: ['test-selection', 'failure-analysis', 'reporting'] },
-      { type: 'performance-monitor', capabilities: ['metrics-collection', 'optimization', 'alerting'] },
-      { type: 'data-manager', capabilities: ['fixture-management', 'cleanup', 'environment-setup'] }
+      {
+        type: 'e2e-architect',
+        capabilities: ['playwright-integration', 'chrome-mcp', 'test-generation'],
+      },
+      {
+        type: 'cicd-specialist',
+        capabilities: ['github-actions', 'deployment-automation', 'pipeline-management'],
+      },
+      {
+        type: 'regression-manager',
+        capabilities: ['test-selection', 'failure-analysis', 'reporting'],
+      },
+      {
+        type: 'performance-monitor',
+        capabilities: ['metrics-collection', 'optimization', 'alerting'],
+      },
+      {
+        type: 'data-manager',
+        capabilities: ['fixture-management', 'cleanup', 'environment-setup'],
+      },
     ];
 
     for (const spec of agentSpecs) {
@@ -100,11 +117,13 @@ export class SwarmTestCoordinator extends EventEmitter {
         type: spec.type,
         name: `${spec.type}-${agent.id}`,
         capabilities: spec.capabilities,
-        status: 'idle'
+        status: 'idle',
       };
 
       this.agents.set(agent.id, agent);
-      console.log(`🤖 Spawned agent: ${agent.name} with capabilities: ${spec.capabilities.join(', ')}`);
+      console.log(
+        `🤖 Spawned agent: ${agent.name} with capabilities: ${spec.capabilities.join(', ')}`,
+      );
     }
   }
 
@@ -143,11 +162,13 @@ export class SwarmTestCoordinator extends EventEmitter {
   async orchestrateE2ETestGeneration(features: string[]): Promise<string[]> {
     console.log(`🔬 Orchestrating E2E test generation for ${features.length} features`);
 
-    const tasks = features.map(feature => this.createTestTask({
-      type: 'e2e-generation',
-      priority: 'high',
-      metadata: { feature, testTypes: this.config.e2eGeneration.testTypes }
-    }));
+    const tasks = features.map((feature) =>
+      this.createTestTask({
+        type: 'e2e-generation',
+        priority: 'high',
+        metadata: { feature, testTypes: this.config.e2eGeneration.testTypes },
+      }),
+    );
 
     // Assign tasks to appropriate agents
     for (const task of tasks) {
@@ -157,7 +178,7 @@ export class SwarmTestCoordinator extends EventEmitter {
       }
     }
 
-    return tasks.map(task => task.id);
+    return tasks.map((task) => task.id);
   }
 
   /**
@@ -171,11 +192,13 @@ export class SwarmTestCoordinator extends EventEmitter {
       const impactedTests = await this.analyzeTestImpact(changedFiles);
 
       // Create regression test tasks
-      const regressionTasks = impactedTests.map(test => this.createTestTask({
-        type: 'regression',
-        priority: 'medium',
-        metadata: { test, changedFiles }
-      }));
+      const regressionTasks = impactedTests.map((test) =>
+        this.createTestTask({
+          type: 'regression',
+          priority: 'medium',
+          metadata: { test, changedFiles },
+        }),
+      );
 
       // Distribute tasks across available agents
       await this.distributeTasksWithLoadBalancing(regressionTasks);
@@ -195,8 +218,8 @@ export class SwarmTestCoordinator extends EventEmitter {
       priority: 'low',
       metadata: {
         metrics: this.config.performance.monitoring.metrics,
-        thresholds: this.config.performance.monitoring.thresholds
-      }
+        thresholds: this.config.performance.monitoring.thresholds,
+      },
     });
 
     const agent = this.findAvailableAgent(['metrics-collection', 'optimization']);
@@ -217,8 +240,8 @@ export class SwarmTestCoordinator extends EventEmitter {
         priority: 'low',
         metadata: {
           fixtures: this.config.dataManagement.fixtures,
-          environments: this.config.dataManagement.environments
-        }
+          environments: this.config.dataManagement.environments,
+        },
       });
 
       const agent = this.findAvailableAgent(['fixture-management', 'cleanup']);
@@ -239,7 +262,7 @@ export class SwarmTestCoordinator extends EventEmitter {
       on: {
         push: { branches: ['main', 'develop'] },
         pull_request: { branches: ['main'] },
-        schedule: [{ cron: '0 2 * * *' }]
+        schedule: [{ cron: '0 2 * * *' }],
       },
       jobs: {
         'swarm-test-coordination': {
@@ -247,8 +270,8 @@ export class SwarmTestCoordinator extends EventEmitter {
           strategy: {
             matrix: {
               'test-type': ['e2e', 'regression', 'performance'],
-              'agent-count': [2, 4, 8]
-            }
+              'agent-count': [2, 4, 8],
+            },
           },
           steps: [
             { uses: 'actions/checkout@v4' },
@@ -257,23 +280,23 @@ export class SwarmTestCoordinator extends EventEmitter {
             { run: 'npx playwright install' },
             {
               name: 'Initialize Swarm Test Coordination',
-              run: 'npm run test:swarm:init -- --type ${{ matrix.test-type }} --agents ${{ matrix.agent-count }}'
+              run: 'npm run test:swarm:init -- --type ${{ matrix.test-type }} --agents ${{ matrix.agent-count }}',
             },
             {
               name: 'Execute Swarm Test Pipeline',
-              run: 'npm run test:swarm:execute'
+              run: 'npm run test:swarm:execute',
             },
             {
               name: 'Upload Test Results',
               uses: 'actions/upload-artifact@v4',
               with: {
                 name: 'swarm-test-results-${{ matrix.test-type }}-${{ matrix.agent-count }}',
-                path: 'test-results/'
-              }
-            }
-          ]
-        }
-      }
+                path: 'test-results/',
+              },
+            },
+          ],
+        },
+      },
     };
 
     return JSON.stringify(workflow, null, 2);
@@ -288,7 +311,7 @@ export class SwarmTestCoordinator extends EventEmitter {
       status: 'pending',
       metadata: params.metadata || {},
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     this.tasks.set(task.id, task);
@@ -297,8 +320,10 @@ export class SwarmTestCoordinator extends EventEmitter {
 
   private findAvailableAgent(requiredCapabilities: string[]): Agent | null {
     for (const agent of this.agents.values()) {
-      if (agent.status === 'idle' &&
-          requiredCapabilities.every(cap => agent.capabilities.includes(cap))) {
+      if (
+        agent.status === 'idle' &&
+        requiredCapabilities.every((cap) => agent.capabilities.includes(cap))
+      ) {
         return agent;
       }
     }
@@ -319,13 +344,14 @@ export class SwarmTestCoordinator extends EventEmitter {
 
   private processTaskQueue(): void {
     const pendingTasks = Array.from(this.tasks.values())
-      .filter(task => task.status === 'pending')
+      .filter((task) => task.status === 'pending')
       .sort((a, b) => {
         const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
         return priorityOrder[b.priority] - priorityOrder[a.priority];
       });
 
-    for (const task of pendingTasks.slice(0, 5)) { // Process top 5 priority tasks
+    for (const task of pendingTasks.slice(0, 5)) {
+      // Process top 5 priority tasks
       const requiredCapabilities = this.getRequiredCapabilities(task.type);
       const agent = this.findAvailableAgent(requiredCapabilities);
 
@@ -338,26 +364,27 @@ export class SwarmTestCoordinator extends EventEmitter {
   private getRequiredCapabilities(taskType: string): string[] {
     const capabilityMap = {
       'e2e-generation': ['playwright-integration', 'test-generation'],
-      'regression': ['test-selection', 'failure-analysis'],
-      'performance': ['metrics-collection', 'optimization'],
-      'data-cleanup': ['fixture-management', 'cleanup']
+      regression: ['test-selection', 'failure-analysis'],
+      performance: ['metrics-collection', 'optimization'],
+      'data-cleanup': ['fixture-management', 'cleanup'],
     };
     return capabilityMap[taskType] || [];
   }
 
   private async analyzeTestImpact(changedFiles: string[]): Promise<string[]> {
     // Simplified impact analysis - in reality this would be more sophisticated
-    return changedFiles.filter(file =>
-      file.endsWith('.ts') ||
-      file.endsWith('.js') ||
-      file.endsWith('.tsx') ||
-      file.endsWith('.jsx')
+    return changedFiles.filter(
+      (file) =>
+        file.endsWith('.ts') ||
+        file.endsWith('.js') ||
+        file.endsWith('.tsx') ||
+        file.endsWith('.jsx'),
     );
   }
 
   private async distributeTasksWithLoadBalancing(tasks: TestTask[]): Promise<void> {
     // Simple round-robin distribution
-    const availableAgents = Array.from(this.agents.values()).filter(a => a.status === 'idle');
+    const availableAgents = Array.from(this.agents.values()).filter((a) => a.status === 'idle');
 
     for (let i = 0; i < tasks.length; i++) {
       const agent = availableAgents[i % availableAgents.length];
@@ -412,11 +439,12 @@ export class SwarmTestCoordinator extends EventEmitter {
       tasks: Array.from(this.tasks.values()),
       statistics: {
         totalAgents: this.agents.size,
-        activeAgents: Array.from(this.agents.values()).filter(a => a.status === 'busy').length,
-        pendingTasks: Array.from(this.tasks.values()).filter(t => t.status === 'pending').length,
-        runningTasks: Array.from(this.tasks.values()).filter(t => t.status === 'running').length,
-        completedTasks: Array.from(this.tasks.values()).filter(t => t.status === 'completed').length
-      }
+        activeAgents: Array.from(this.agents.values()).filter((a) => a.status === 'busy').length,
+        pendingTasks: Array.from(this.tasks.values()).filter((t) => t.status === 'pending').length,
+        runningTasks: Array.from(this.tasks.values()).filter((t) => t.status === 'running').length,
+        completedTasks: Array.from(this.tasks.values()).filter((t) => t.status === 'completed')
+          .length,
+      },
     };
   }
 
@@ -425,7 +453,7 @@ export class SwarmTestCoordinator extends EventEmitter {
     this.isActive = false;
 
     // Complete all running tasks
-    const runningTasks = Array.from(this.tasks.values()).filter(t => t.status === 'running');
+    const runningTasks = Array.from(this.tasks.values()).filter((t) => t.status === 'running');
     for (const task of runningTasks) {
       task.status = 'completed';
     }

@@ -19,374 +19,381 @@ import addFormats from 'ajv-formats';
  * Defines the structure and validation rules for custom frameworks
  */
 export const CustomFrameworkSchema = {
-  $schema: "http://json-schema.org/draft-07/schema#",
-  $id: "custom-framework-schema",
-  title: "Custom Validation Framework Definition",
-  description: "Schema for user-defined completion validation frameworks",
-  type: "object",
-  required: ["id", "name", "version", "validation_config"],
+  $schema: 'http://json-schema.org/draft-07/schema#',
+  $id: 'custom-framework-schema',
+  title: 'Custom Validation Framework Definition',
+  description: 'Schema for user-defined completion validation frameworks',
+  type: 'object',
+  required: ['id', 'name', 'version', 'validation_config'],
   additionalProperties: false,
   properties: {
     // Framework Identity
     id: {
-      type: "string",
-      pattern: "^[a-z0-9-_]+$",
+      type: 'string',
+      pattern: '^[a-z0-9-_]+$',
       minLength: 3,
       maxLength: 50,
-      description: "Unique framework identifier (lowercase letters, numbers, hyphens, underscores only)"
+      description:
+        'Unique framework identifier (lowercase letters, numbers, hyphens, underscores only)',
     },
     name: {
-      type: "string",
+      type: 'string',
       minLength: 3,
       maxLength: 100,
-      pattern: "^[a-zA-Z0-9\\s\\-_.()]+$",
-      description: "Human-readable framework name"
+      pattern: '^[a-zA-Z0-9\\s\\-_.()]+$',
+      description: 'Human-readable framework name',
     },
     version: {
-      type: "string",
-      pattern: "^\\d+\\.\\d+\\.\\d+(-[a-z0-9]+)?$",
-      description: "Semantic version (e.g., 1.0.0, 2.1.0-beta)"
+      type: 'string',
+      pattern: '^\\d+\\.\\d+\\.\\d+(-[a-z0-9]+)?$',
+      description: 'Semantic version (e.g., 1.0.0, 2.1.0-beta)',
     },
     description: {
-      type: "string",
+      type: 'string',
       maxLength: 1000,
-      description: "Framework description and purpose"
+      description: 'Framework description and purpose',
     },
 
     // Core Configuration
     validation_config: {
-      type: "object",
-      required: ["truth_threshold"],
+      type: 'object',
+      required: ['truth_threshold'],
       additionalProperties: false,
       properties: {
         truth_threshold: {
-          type: "number",
+          type: 'number',
           minimum: 0.01,
           maximum: 0.99,
-          description: "Minimum truth score required for validation pass (0.01-0.99)"
+          description: 'Minimum truth score required for validation pass (0.01-0.99)',
         },
         truth_component_weights: {
-          type: "object",
+          type: 'object',
           additionalProperties: false,
           properties: {
-            agent_reliability: { type: "number", minimum: 0, maximum: 1 },
-            cross_validation: { type: "number", minimum: 0, maximum: 1 },
-            external_verification: { type: "number", minimum: 0, maximum: 1 },
-            factual_consistency: { type: "number", minimum: 0, maximum: 1 },
-            logical_coherence: { type: "number", minimum: 0, maximum: 1 }
+            agent_reliability: { type: 'number', minimum: 0, maximum: 1 },
+            cross_validation: { type: 'number', minimum: 0, maximum: 1 },
+            external_verification: { type: 'number', minimum: 0, maximum: 1 },
+            factual_consistency: { type: 'number', minimum: 0, maximum: 1 },
+            logical_coherence: { type: 'number', minimum: 0, maximum: 1 },
           },
-          description: "Custom weights for truth scoring components (must sum to ~1.0)"
+          description: 'Custom weights for truth scoring components (must sum to ~1.0)',
         },
         byzantine_validation_required: {
-          type: "boolean",
+          type: 'boolean',
           default: true,
-          description: "Whether Byzantine consensus validation is required"
+          description: 'Whether Byzantine consensus validation is required',
         },
         consensus_threshold: {
-          type: "number",
+          type: 'number',
           minimum: 0.51,
           maximum: 1.0,
           default: 0.67,
-          description: "Minimum consensus ratio for Byzantine validation"
+          description: 'Minimum consensus ratio for Byzantine validation',
         },
         security_level: {
-          type: "string",
-          enum: ["basic", "standard", "strict", "critical"],
-          default: "standard",
-          description: "Security validation level"
-        }
-      }
+          type: 'string',
+          enum: ['basic', 'standard', 'strict', 'critical'],
+          default: 'standard',
+          description: 'Security validation level',
+        },
+      },
     },
 
     // Validation Rules
     validation_rules: {
-      type: "array",
+      type: 'array',
       maxItems: 50,
-      description: "Framework-specific validation rules",
+      description: 'Framework-specific validation rules',
       items: {
         oneOf: [
           {
-            type: "string",
+            type: 'string',
             minLength: 1,
             maxLength: 500,
-            description: "Simple validation rule as string"
+            description: 'Simple validation rule as string',
           },
           {
-            type: "object",
-            required: ["name", "validator"],
+            type: 'object',
+            required: ['name', 'validator'],
             additionalProperties: false,
             properties: {
               name: {
-                type: "string",
-                pattern: "^[a-zA-Z0-9_-]+$",
+                type: 'string',
+                pattern: '^[a-zA-Z0-9_-]+$',
                 minLength: 1,
                 maxLength: 50,
-                description: "Rule identifier"
+                description: 'Rule identifier',
               },
               description: {
-                type: "string",
+                type: 'string',
                 maxLength: 200,
-                description: "Rule description"
+                description: 'Rule description',
               },
               validator: {
                 oneOf: [
                   {
-                    type: "string",
+                    type: 'string',
                     minLength: 1,
                     maxLength: 1000,
-                    description: "Validation logic as safe expression"
+                    description: 'Validation logic as safe expression',
                   },
                   {
-                    type: "object",
-                    required: ["type"],
+                    type: 'object',
+                    required: ['type'],
                     properties: {
                       type: {
-                        type: "string",
-                        enum: ["threshold", "regex", "range", "exists", "custom_safe"],
-                        description: "Validator type"
+                        type: 'string',
+                        enum: ['threshold', 'regex', 'range', 'exists', 'custom_safe'],
+                        description: 'Validator type',
                       },
                       config: {
-                        type: "object",
-                        description: "Type-specific configuration"
-                      }
-                    }
-                  }
-                ]
+                        type: 'object',
+                        description: 'Type-specific configuration',
+                      },
+                    },
+                  },
+                ],
               },
               weight: {
-                type: "number",
+                type: 'number',
                 minimum: 0,
                 maximum: 1,
                 default: 1,
-                description: "Rule importance weight"
+                description: 'Rule importance weight',
               },
               required: {
-                type: "boolean",
+                type: 'boolean',
                 default: true,
-                description: "Whether rule failure blocks validation"
+                description: 'Whether rule failure blocks validation',
               },
               timeout_ms: {
-                type: "integer",
+                type: 'integer',
                 minimum: 100,
                 maximum: 30000,
                 default: 5000,
-                description: "Rule execution timeout in milliseconds"
-              }
-            }
-          }
-        ]
-      }
+                description: 'Rule execution timeout in milliseconds',
+              },
+            },
+          },
+        ],
+      },
     },
 
     // Quality Gates
     quality_gates: {
-      type: "array",
+      type: 'array',
       maxItems: 20,
-      description: "Quality thresholds that must be met",
+      description: 'Quality thresholds that must be met',
       items: {
-        type: "object",
-        required: ["name", "metric", "threshold"],
+        type: 'object',
+        required: ['name', 'metric', 'threshold'],
         additionalProperties: false,
         properties: {
           name: {
-            type: "string",
+            type: 'string',
             minLength: 1,
             maxLength: 50,
-            description: "Quality gate name"
+            description: 'Quality gate name',
           },
           description: {
-            type: "string",
+            type: 'string',
             maxLength: 200,
-            description: "Quality gate description"
+            description: 'Quality gate description',
           },
           metric: {
-            type: "string",
+            type: 'string',
             enum: [
-              "truth_score", "execution_time", "memory_usage", "error_rate",
-              "test_coverage", "code_quality", "security_score", "performance_score"
+              'truth_score',
+              'execution_time',
+              'memory_usage',
+              'error_rate',
+              'test_coverage',
+              'code_quality',
+              'security_score',
+              'performance_score',
             ],
-            description: "Metric to evaluate"
+            description: 'Metric to evaluate',
           },
           threshold: {
-            type: "number",
-            description: "Threshold value for the metric"
+            type: 'number',
+            description: 'Threshold value for the metric',
           },
           operator: {
-            type: "string",
-            enum: [">=", "<=", "==", ">", "<"],
-            default: ">=",
-            description: "Comparison operator"
+            type: 'string',
+            enum: ['>=', '<=', '==', '>', '<'],
+            default: '>=',
+            description: 'Comparison operator',
           },
           required: {
-            type: "boolean",
+            type: 'boolean',
             default: true,
-            description: "Whether failing this gate blocks validation"
-          }
-        }
-      }
+            description: 'Whether failing this gate blocks validation',
+          },
+        },
+      },
     },
 
     // Framework Relationships
     extends: {
-      type: "string",
-      pattern: "^[a-z0-9-_]+$",
-      description: "Parent framework ID for inheritance"
+      type: 'string',
+      pattern: '^[a-z0-9-_]+$',
+      description: 'Parent framework ID for inheritance',
     },
     composes: {
-      type: "array",
+      type: 'array',
       maxItems: 10,
       items: {
-        type: "string",
-        pattern: "^[a-z0-9-_]+$"
+        type: 'string',
+        pattern: '^[a-z0-9-_]+$',
       },
-      description: "Component framework IDs for composition"
+      description: 'Component framework IDs for composition',
     },
     overrides: {
-      type: "array",
+      type: 'array',
       maxItems: 5,
       items: {
-        type: "string",
-        pattern: "^[a-z0-9-_]+$"
+        type: 'string',
+        pattern: '^[a-z0-9-_]+$',
       },
-      description: "Framework IDs this framework overrides"
+      description: 'Framework IDs this framework overrides',
     },
 
     // Framework Permissions
     inheritable: {
-      type: "boolean",
+      type: 'boolean',
       default: true,
-      description: "Whether this framework can be extended by others"
+      description: 'Whether this framework can be extended by others',
     },
     composable: {
-      type: "boolean",
+      type: 'boolean',
       default: true,
-      description: "Whether this framework can be used in composition"
+      description: 'Whether this framework can be used in composition',
     },
     allows_override: {
-      type: "boolean",
+      type: 'boolean',
       default: false,
-      description: "Whether this framework can be overridden"
+      description: 'Whether this framework can be overridden',
     },
 
     // Advanced Configuration
     inheritance_rules: {
-      type: "object",
+      type: 'object',
       additionalProperties: false,
       properties: {
         allow_override: {
-          type: "array",
-          items: { type: "string" },
-          description: "Fields that can be overridden by child frameworks"
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Fields that can be overridden by child frameworks',
         },
         preserve: {
-          type: "array",
-          items: { type: "string" },
-          description: "Fields that must be preserved from parent"
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Fields that must be preserved from parent',
         },
         require_extension: {
-          type: "array",
-          items: { type: "string" },
-          description: "Fields that must be extended by child frameworks"
-        }
-      }
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Fields that must be extended by child frameworks',
+        },
+      },
     },
     composition_rules: {
-      type: "object",
+      type: 'object',
       additionalProperties: false,
       properties: {
         conflict_resolution: {
-          type: "string",
-          enum: ["merge", "base_priority", "component_priority", "error"],
-          default: "merge",
-          description: "How to resolve conflicts between components"
+          type: 'string',
+          enum: ['merge', 'base_priority', 'component_priority', 'error'],
+          default: 'merge',
+          description: 'How to resolve conflicts between components',
         },
         require_all_components: {
-          type: "boolean",
+          type: 'boolean',
           default: true,
-          description: "Whether all components must be valid"
-        }
-      }
+          description: 'Whether all components must be valid',
+        },
+      },
     },
 
     // Metadata
     metadata: {
-      type: "object",
+      type: 'object',
       additionalProperties: false,
       properties: {
         author: {
-          type: "string",
+          type: 'string',
           maxLength: 100,
-          description: "Framework author"
+          description: 'Framework author',
         },
         license: {
-          type: "string",
+          type: 'string',
           maxLength: 50,
-          description: "Framework license"
+          description: 'Framework license',
         },
         homepage: {
-          type: "string",
-          format: "uri",
-          description: "Framework homepage URL"
+          type: 'string',
+          format: 'uri',
+          description: 'Framework homepage URL',
         },
         repository: {
-          type: "string",
-          format: "uri",
-          description: "Framework repository URL"
+          type: 'string',
+          format: 'uri',
+          description: 'Framework repository URL',
         },
         keywords: {
-          type: "array",
+          type: 'array',
           maxItems: 10,
           items: {
-            type: "string",
-            maxLength: 20
+            type: 'string',
+            maxLength: 20,
           },
-          description: "Framework keywords for discovery"
+          description: 'Framework keywords for discovery',
         },
         created_at: {
-          type: "string",
-          format: "date-time",
-          description: "Framework creation timestamp"
+          type: 'string',
+          format: 'date-time',
+          description: 'Framework creation timestamp',
         },
         updated_at: {
-          type: "string",
-          format: "date-time",
-          description: "Framework last update timestamp"
-        }
-      }
+          type: 'string',
+          format: 'date-time',
+          description: 'Framework last update timestamp',
+        },
+      },
     },
 
     // Security Configuration
     security_config: {
-      type: "object",
+      type: 'object',
       additionalProperties: false,
       properties: {
         sandbox_execution: {
-          type: "boolean",
+          type: 'boolean',
           default: true,
-          description: "Execute validation rules in sandbox"
+          description: 'Execute validation rules in sandbox',
         },
         allow_external_calls: {
-          type: "boolean",
+          type: 'boolean',
           default: false,
-          description: "Allow validation rules to make external calls"
+          description: 'Allow validation rules to make external calls',
         },
         max_execution_time: {
-          type: "integer",
+          type: 'integer',
           minimum: 1000,
           maximum: 300000,
           default: 30000,
-          description: "Maximum execution time for all validations (ms)"
+          description: 'Maximum execution time for all validations (ms)',
         },
         memory_limit: {
-          type: "integer",
+          type: 'integer',
           minimum: 1048576,
           maximum: 134217728,
           default: 33554432,
-          description: "Memory limit for validation execution (bytes)"
-        }
-      }
-    }
-  }
+          description: 'Memory limit for validation execution (bytes)',
+        },
+      },
+    },
+  },
 };
 
 /**
@@ -401,7 +408,7 @@ export const SecurityPatterns = {
     /new\s+Function/gi,
     /constructor\s*\(/gi,
     /\$\{.*?\}/g,
-    /`[^`]*\$\{[^}]*\}[^`]*`/g
+    /`[^`]*\$\{[^}]*\}[^`]*`/g,
   ],
 
   // System access patterns
@@ -413,7 +420,7 @@ export const SecurityPatterns = {
     /require\s*\(/gi,
     /import\s*\(/gi,
     /module\./gi,
-    /exports\./gi
+    /exports\./gi,
   ],
 
   // File system patterns
@@ -426,7 +433,7 @@ export const SecurityPatterns = {
     /mkdir/gi,
     /\.\.\/\.\.\//g,
     /\/etc\//gi,
-    /\/root\//gi
+    /\/root\//gi,
   ],
 
   // Network access patterns
@@ -437,7 +444,7 @@ export const SecurityPatterns = {
     /XMLHttpRequest/gi,
     /WebSocket/gi,
     /net\./gi,
-    /socket\./gi
+    /socket\./gi,
   ],
 
   // System command patterns
@@ -449,7 +456,7 @@ export const SecurityPatterns = {
     /sudo/gi,
     /chmod/gi,
     /chown/gi,
-    /kill\s+-9/gi
+    /kill\s+-9/gi,
   ],
 
   // Suspicious keywords
@@ -460,8 +467,8 @@ export const SecurityPatterns = {
     /hack/gi,
     /bypass/gi,
     /override.*security/gi,
-    /disable.*validation/gi
-  ]
+    /disable.*validation/gi,
+  ],
 };
 
 /**
@@ -475,7 +482,7 @@ export class CustomFrameworkValidator {
       securityChecks: options.securityChecks !== false,
       allowUnsafePatterns: options.allowUnsafePatterns === true,
       maxFrameworkSize: options.maxFrameworkSize || 1048576, // 1MB
-      ...options
+      ...options,
     };
 
     // Initialize AJV validator
@@ -483,7 +490,7 @@ export class CustomFrameworkValidator {
       allErrors: true,
       verbose: true,
       strict: this.options.strictValidation,
-      allowUnionTypes: true
+      allowUnionTypes: true,
     });
 
     addFormats(this.ajv);
@@ -504,8 +511,8 @@ export class CustomFrameworkValidator {
       metadata: {
         validatedAt: new Date().toISOString(),
         validator: 'CustomFrameworkValidator',
-        version: '1.0.0'
-      }
+        version: '1.0.0',
+      },
     };
 
     try {
@@ -530,14 +537,16 @@ export class CustomFrameworkValidator {
           validation.securityIssues.push(...securityValidation.issues);
 
           // Critical security issues make validation invalid
-          const criticalIssues = securityValidation.issues.filter(i => i.severity === 'critical');
+          const criticalIssues = securityValidation.issues.filter((i) => i.severity === 'critical');
           if (criticalIssues.length > 0) {
             validation.valid = false;
-            validation.errors.push(...criticalIssues.map(i => ({
-              type: 'security_critical',
-              message: `Critical security issue: ${i.message}`,
-              path: i.location
-            })));
+            validation.errors.push(
+              ...criticalIssues.map((i) => ({
+                type: 'security_critical',
+                message: `Critical security issue: ${i.message}`,
+                path: i.location,
+              })),
+            );
           }
         }
       }
@@ -561,13 +570,12 @@ export class CustomFrameworkValidator {
         validation.valid = false;
         validation.errors.push(...gatesValidation.errors);
       }
-
     } catch (error) {
       validation.valid = false;
       validation.errors.push({
         type: 'validation_error',
         message: `Framework validation failed: ${error.message}`,
-        path: 'root'
+        path: 'root',
       });
     }
 
@@ -588,7 +596,7 @@ export class CustomFrameworkValidator {
           message: `${error.instancePath || 'root'}: ${error.message}`,
           path: error.instancePath,
           keyword: error.keyword,
-          data: error.data
+          data: error.data,
         });
       }
     }
@@ -606,11 +614,13 @@ export class CustomFrameworkValidator {
     if (size > this.options.maxFrameworkSize) {
       return {
         valid: false,
-        errors: [{
-          type: 'size_limit_exceeded',
-          message: `Framework size (${size} bytes) exceeds maximum allowed size (${this.options.maxFrameworkSize} bytes)`,
-          path: 'root'
-        }]
+        errors: [
+          {
+            type: 'size_limit_exceeded',
+            message: `Framework size (${size} bytes) exceeds maximum allowed size (${this.options.maxFrameworkSize} bytes)`,
+            path: 'root',
+          },
+        ],
       };
     }
 
@@ -638,7 +648,7 @@ export class CustomFrameworkValidator {
             pattern: pattern.toString(),
             matches: matches.slice(0, 3), // Limit matches shown
             message: `Potentially dangerous ${category.replace(/([A-Z])/g, ' $1').toLowerCase()} pattern detected`,
-            location: this.findPatternLocation(framework, pattern)
+            location: this.findPatternLocation(framework, pattern),
           });
         }
       }
@@ -661,7 +671,7 @@ export class CustomFrameworkValidator {
 
     if (framework.validation_config?.truth_component_weights) {
       const weights = framework.validation_config.truth_component_weights;
-      const weightValues = Object.values(weights).filter(w => typeof w === 'number');
+      const weightValues = Object.values(weights).filter((w) => typeof w === 'number');
 
       if (weightValues.length > 0) {
         const sum = weightValues.reduce((a, b) => a + b, 0);
@@ -673,7 +683,7 @@ export class CustomFrameworkValidator {
             message: `Truth component weights sum to ${sum.toFixed(3)} instead of 1.0. Consider adjusting weights for optimal scoring.`,
             path: 'validation_config.truth_component_weights',
             currentSum: sum,
-            recommendedAdjustment: this.calculateWeightAdjustment(weights)
+            recommendedAdjustment: this.calculateWeightAdjustment(weights),
           });
         }
       }
@@ -681,7 +691,7 @@ export class CustomFrameworkValidator {
 
     return {
       valid: true, // Weights issues are warnings, not errors
-      warnings
+      warnings,
     };
   }
 
@@ -703,7 +713,7 @@ export class CustomFrameworkValidator {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -725,7 +735,7 @@ export class CustomFrameworkValidator {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -738,7 +748,7 @@ export class CustomFrameworkValidator {
       systemAccess: 'high',
       fileSystem: 'high',
       networkAccess: 'medium',
-      suspiciousKeywords: 'low'
+      suspiciousKeywords: 'low',
     };
     return severityMap[category] || 'medium';
   }
@@ -769,7 +779,7 @@ export class CustomFrameworkValidator {
           type: 'dangerous_rule',
           severity: 'critical',
           message: `Validation rule ${i} contains dangerous code execution patterns`,
-          location: `validation_rules[${i}]`
+          location: `validation_rules[${i}]`,
         });
       }
 
@@ -778,7 +788,7 @@ export class CustomFrameworkValidator {
           type: 'module_access_attempt',
           severity: 'high',
           message: `Validation rule ${i} attempts to require external modules`,
-          location: `validation_rules[${i}]`
+          location: `validation_rules[${i}]`,
         });
       }
     }
@@ -792,7 +802,7 @@ export class CustomFrameworkValidator {
 
     const adjusted = {};
     for (const [key, value] of Object.entries(weights)) {
-      adjusted[key] = Math.round((value * factor) * 1000) / 1000;
+      adjusted[key] = Math.round(value * factor * 1000) / 1000;
     }
 
     return adjusted;
@@ -807,7 +817,7 @@ export class CustomFrameworkValidator {
         errors.push({
           type: 'invalid_rule_name',
           message: `Validation rule ${index} must have a valid name`,
-          path: `validation_rules[${index}].name`
+          path: `validation_rules[${index}].name`,
         });
       }
 
@@ -815,7 +825,7 @@ export class CustomFrameworkValidator {
         errors.push({
           type: 'missing_validator',
           message: `Validation rule ${index} must have a validator`,
-          path: `validation_rules[${index}].validator`
+          path: `validation_rules[${index}].validator`,
         });
       }
 
@@ -824,7 +834,7 @@ export class CustomFrameworkValidator {
         errors.push({
           type: 'invalid_timeout',
           message: `Validation rule ${index} timeout must be between 100ms and 30000ms`,
-          path: `validation_rules[${index}].timeout_ms`
+          path: `validation_rules[${index}].timeout_ms`,
         });
       }
     }
@@ -844,7 +854,7 @@ export class CustomFrameworkValidator {
       test_coverage: { min: 0, max: 1 },
       code_quality: { min: 0, max: 10 },
       security_score: { min: 0, max: 1 },
-      performance_score: { min: 0, max: 1 }
+      performance_score: { min: 0, max: 1 },
     };
 
     const range = metricRanges[gate.metric];
@@ -852,7 +862,7 @@ export class CustomFrameworkValidator {
       errors.push({
         type: 'invalid_threshold',
         message: `Quality gate ${index} threshold ${gate.threshold} is out of range for metric ${gate.metric} (${range.min}-${range.max})`,
-        path: `quality_gates[${index}].threshold`
+        path: `quality_gates[${index}].threshold`,
       });
     }
 
@@ -867,5 +877,5 @@ export default {
   CustomFrameworkSchema,
   SecurityPatterns,
   CustomFrameworkValidator,
-  defaultFrameworkValidator
+  defaultFrameworkValidator,
 };

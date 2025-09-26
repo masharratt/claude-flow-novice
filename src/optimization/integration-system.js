@@ -26,7 +26,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       optimizationFrequency: 'adaptive', // 'realtime', 'periodic', 'adaptive'
       reportingLevel: 'comprehensive', // 'minimal', 'standard', 'comprehensive'
       autoImplementLowRiskOptimizations: false,
-      ...options
+      ...options,
     };
 
     // Initialize core components
@@ -44,8 +44,8 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       systemHealth: {
         overall: 'unknown',
         components: {},
-        lastCheck: null
-      }
+        lastCheck: null,
+      },
     };
 
     // Performance tracking
@@ -53,7 +53,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       optimizationTimes: [],
       componentLatencies: {},
       errorRates: {},
-      successRates: {}
+      successRates: {},
     };
 
     // Integration hooks
@@ -62,7 +62,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       postOptimization: [],
       onRecommendation: [],
       onImplementation: [],
-      onError: []
+      onError: [],
     };
 
     console.log('🔧 Optimization Integration System created');
@@ -83,7 +83,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
         this.resourceCoordinator.initialize(),
         this.setupSystemMonitoring(),
         this.loadSystemConfiguration(),
-        this.setupIntegrationHooks()
+        this.setupIntegrationHooks(),
       ]);
 
       // Check for initialization failures
@@ -114,16 +114,15 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       this.emit('systemInitialized', {
         initTime,
         failures: failures.length,
-        systemState: this.systemState
+        systemState: this.systemState,
       });
 
       return {
         success: true,
         initTime,
         failures: failures.length,
-        components: initResults.map(r => r.status)
+        components: initResults.map((r) => r.status),
       };
-
     } catch (error) {
       console.error('❌ Failed to initialize Optimization Integration System:', error);
       this.emit('systemError', { error: error.message, phase: 'initialization' });
@@ -152,7 +151,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       const optimizationResult = await this.workflowOptimizer.analyzeWorkflow({
         ...context,
         analysisId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Enhanced analysis with integration insights
@@ -161,7 +160,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       // Generate unified recommendations
       const unifiedRecommendations = await this.generateUnifiedRecommendations(
         optimizationResult,
-        integrationAnalysis
+        integrationAnalysis,
       );
 
       // Create comprehensive report
@@ -170,7 +169,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
         optimizationResult,
         integrationAnalysis,
         recommendations: unifiedRecommendations,
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       });
 
       // Update system state
@@ -191,7 +190,6 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       this.emit('optimizationCompleted', report);
 
       return report;
-
     } catch (error) {
       const duration = performance.now() - startTime;
       console.error(`❌ Optimization analysis failed (${analysisId}):`, error);
@@ -199,7 +197,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       this.emit('optimizationError', {
         analysisId,
         error: error.message,
-        duration
+        duration,
       });
 
       throw error;
@@ -217,7 +215,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
         componentSynergy: await this.analyzeComponentSynergy(optimizationResult),
         crossSystemOptimizations: await this.identifyCrossSystemOptimizations(optimizationResult),
         integrationRisks: await this.assessIntegrationRisks(optimizationResult),
-        systemCompatibility: await this.checkSystemCompatibility(optimizationResult)
+        systemCompatibility: await this.checkSystemCompatibility(optimizationResult),
       };
 
       // Analyze component interactions
@@ -226,16 +224,15 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       // Identify system-wide optimization opportunities
       const systemWideOptimizations = this.identifySystemWideOptimizations(
         optimizationResult,
-        componentInteractions
+        componentInteractions,
       );
 
       return {
         insights: integrationInsights,
         componentInteractions,
         systemWideOptimizations,
-        confidence: this.calculateIntegrationConfidence(integrationInsights)
+        confidence: this.calculateIntegrationConfidence(integrationInsights),
       };
-
     } catch (error) {
       console.warn('⚠️ Integration analysis failed:', error.message);
       return {
@@ -243,7 +240,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
         componentInteractions: {},
         systemWideOptimizations: [],
         confidence: 0.1,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -257,15 +254,15 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     // Combine recommendations from all sources
     const allRecommendations = [
       ...optimizationResult.recommendations.all,
-      ...integrationAnalysis.systemWideOptimizations
+      ...integrationAnalysis.systemWideOptimizations,
     ];
 
     // Apply integration-specific scoring
-    const scoredRecommendations = allRecommendations.map(rec => ({
+    const scoredRecommendations = allRecommendations.map((rec) => ({
       ...rec,
       integrationScore: this.calculateIntegrationScore(rec, integrationAnalysis),
       systemImpact: this.calculateSystemImpact(rec),
-      implementationComplexity: this.calculateImplementationComplexity(rec)
+      implementationComplexity: this.calculateImplementationComplexity(rec),
     }));
 
     // Re-prioritize based on integration insights
@@ -284,7 +281,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       byCategory: this.categorizeUnifiedRecommendations(scoredRecommendations),
       implementationPhases,
       riskAssessment: this.assessImplementationRisks(scoredRecommendations),
-      estimatedBenefits: this.estimateOverallBenefits(scoredRecommendations)
+      estimatedBenefits: this.estimateOverallBenefits(scoredRecommendations),
     };
   }
 
@@ -292,13 +289,8 @@ export class OptimizationIntegrationSystem extends EventEmitter {
    * Generate comprehensive optimization report
    */
   async generateOptimizationReport(reportData) {
-    const {
-      analysisId,
-      optimizationResult,
-      integrationAnalysis,
-      recommendations,
-      duration
-    } = reportData;
+    const { analysisId, optimizationResult, integrationAnalysis, recommendations, duration } =
+      reportData;
 
     const report = {
       id: analysisId,
@@ -309,11 +301,11 @@ export class OptimizationIntegrationSystem extends EventEmitter {
         highPriorityRecommendations: recommendations.topPriority.length,
         estimatedImprovementScore: this.calculateOverallImprovementScore(recommendations),
         implementationComplexity: this.calculateOverallComplexity(recommendations),
-        confidenceScore: optimizationResult.confidenceScores
+        confidenceScore: optimizationResult.confidenceScores,
       },
       analysis: {
         workflow: optimizationResult,
-        integration: integrationAnalysis
+        integration: integrationAnalysis,
       },
       recommendations,
       systemHealth: await this.getCurrentSystemHealth(),
@@ -321,8 +313,8 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       performance: {
         analysisTime: duration,
         componentLatencies: this.getComponentLatencies(),
-        systemLoad: await this.getCurrentSystemLoad()
-      }
+        systemLoad: await this.getCurrentSystemLoad(),
+      },
     };
 
     // Save report to file system
@@ -355,7 +347,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
         recommendation,
         implementedAt: new Date().toISOString(),
         result,
-        options
+        options,
       });
 
       console.log(`✅ Successfully implemented recommendation: ${recommendationId}`);
@@ -363,18 +355,17 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       this.emit('recommendationImplemented', {
         recommendationId,
         recommendation,
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       console.error(`❌ Failed to implement recommendation ${recommendationId}:`, error);
 
       this.emit('implementationError', {
         recommendationId,
         recommendation,
-        error: error.message
+        error: error.message,
       });
 
       throw error;
@@ -398,8 +389,8 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       recommendations: {
         total: this.systemState.activeRecommendations.length,
         byPriority: this.groupRecommendationsByPriority(),
-        implementationProgress: this.calculateImplementationProgress()
-      }
+        implementationProgress: this.calculateImplementationProgress(),
+      },
     };
   }
 
@@ -459,7 +450,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     return {
       languageResourceSynergy: 0.8,
       guidancePerformanceSynergy: 0.7,
-      overallSynergyScore: 0.75
+      overallSynergyScore: 0.75,
     };
   }
 
@@ -473,7 +464,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     return {
       low: [],
       medium: [],
-      high: []
+      high: [],
     };
   }
 
@@ -482,7 +473,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     return {
       compatible: true,
       issues: [],
-      warnings: []
+      warnings: [],
     };
   }
 
@@ -491,7 +482,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     return {
       workflowToResource: 'high',
       languageToWorkflow: 'medium',
-      guidanceToAll: 'medium'
+      guidanceToAll: 'medium',
     };
   }
 
@@ -520,13 +511,13 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     return {
       phase1: recommendations.slice(0, 3),
       phase2: recommendations.slice(3, 8),
-      phase3: recommendations.slice(8)
+      phase3: recommendations.slice(8),
     };
   }
 
   categorizeUnifiedRecommendations(recommendations) {
     const categories = {};
-    recommendations.forEach(rec => {
+    recommendations.forEach((rec) => {
       const category = rec.type || 'other';
       if (!categories[category]) categories[category] = [];
       categories[category].push(rec);
@@ -542,7 +533,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     return {
       performanceImprovement: '15-25%',
       productivityGain: '10-20%',
-      errorReduction: '30-40%'
+      errorReduction: '30-40%',
     };
   }
 
@@ -550,7 +541,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
 
   async executeHooks(hookType, data) {
     const hooks = this.hooks[hookType] || [];
-    await Promise.allSettled(hooks.map(hook => hook(data)));
+    await Promise.allSettled(hooks.map((hook) => hook(data)));
   }
 
   async performSystemHealthCheck() {
@@ -560,9 +551,9 @@ export class OptimizationIntegrationSystem extends EventEmitter {
         workflow: 'healthy',
         resource: 'healthy',
         language: 'healthy',
-        integration: 'healthy'
+        integration: 'healthy',
       },
-      lastCheck: new Date().toISOString()
+      lastCheck: new Date().toISOString(),
     };
 
     this.systemState.systemHealth = health;
@@ -587,7 +578,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
   }
 
   findRecommendationById(id) {
-    return this.systemState.activeRecommendations.find(r => r.id === id);
+    return this.systemState.activeRecommendations.find((r) => r.id === id);
   }
 
   async performImplementation(recommendation, options) {
@@ -596,8 +587,8 @@ export class OptimizationIntegrationSystem extends EventEmitter {
   }
 
   async autoImplementSafeOptimizations(recommendations) {
-    const safeOptimizations = recommendations.all.filter(r =>
-      r.implementationComplexity < 0.3 && r.systemImpact > 0.7
+    const safeOptimizations = recommendations.all.filter(
+      (r) => r.implementationComplexity < 0.3 && r.systemImpact > 0.7,
     );
 
     for (const optimization of safeOptimizations.slice(0, 3)) {
@@ -618,10 +609,10 @@ export class OptimizationIntegrationSystem extends EventEmitter {
   }
 
   generateNextActions(recommendations) {
-    return recommendations.topPriority.slice(0, 3).map(r => ({
+    return recommendations.topPriority.slice(0, 3).map((r) => ({
       action: r.title,
       priority: r.priority,
-      estimatedTime: r.estimatedTimeMinutes || 60
+      estimatedTime: r.estimatedTimeMinutes || 60,
     }));
   }
 
@@ -631,7 +622,7 @@ export class OptimizationIntegrationSystem extends EventEmitter {
       '.claude-flow-novice',
       'optimization',
       'reports',
-      `optimization-report-${report.id}.json`
+      `optimization-report-${report.id}.json`,
     );
 
     await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
@@ -651,9 +642,9 @@ export class OptimizationIntegrationSystem extends EventEmitter {
 
   groupRecommendationsByPriority() {
     return {
-      high: this.systemState.activeRecommendations.filter(r => r.priority === 'high').length,
-      medium: this.systemState.activeRecommendations.filter(r => r.priority === 'medium').length,
-      low: this.systemState.activeRecommendations.filter(r => r.priority === 'low').length
+      high: this.systemState.activeRecommendations.filter((r) => r.priority === 'high').length,
+      medium: this.systemState.activeRecommendations.filter((r) => r.priority === 'medium').length,
+      low: this.systemState.activeRecommendations.filter((r) => r.priority === 'low').length,
     };
   }
 
@@ -671,7 +662,8 @@ export class OptimizationIntegrationSystem extends EventEmitter {
     this.performanceTracker.optimizationTimes.push(report.duration);
     // Keep only last 100 entries
     if (this.performanceTracker.optimizationTimes.length > 100) {
-      this.performanceTracker.optimizationTimes = this.performanceTracker.optimizationTimes.slice(-100);
+      this.performanceTracker.optimizationTimes =
+        this.performanceTracker.optimizationTimes.slice(-100);
     }
   }
 
@@ -682,9 +674,10 @@ export class OptimizationIntegrationSystem extends EventEmitter {
   getPerformanceMetrics() {
     const times = this.performanceTracker.optimizationTimes;
     return {
-      averageOptimizationTime: times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0,
+      averageOptimizationTime:
+        times.length > 0 ? times.reduce((a, b) => a + b, 0) / times.length : 0,
       totalOptimizations: times.length,
-      componentLatencies: this.performanceTracker.componentLatencies
+      componentLatencies: this.performanceTracker.componentLatencies,
     };
   }
 }

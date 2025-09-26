@@ -312,7 +312,10 @@ class SecureCredentialStore {
       if (process.platform === 'darwin') {
         // macOS Keychain
         const { execSync } = require('child_process');
-        execSync(`security add-generic-password -a "${key}" -s "${this.serviceName}" -w "${value}" -U`, { stdio: 'ignore' });
+        execSync(
+          `security add-generic-password -a "${key}" -s "${this.serviceName}" -w "${value}" -U`,
+          { stdio: 'ignore' },
+        );
       } else if (process.platform === 'win32') {
         // Windows Credential Manager
         const keytar = await this.loadKeytar();
@@ -336,7 +339,10 @@ class SecureCredentialStore {
     try {
       if (process.platform === 'darwin') {
         const { execSync } = require('child_process');
-        const result = execSync(`security find-generic-password -a "${key}" -s "${this.serviceName}" -w`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+        const result = execSync(
+          `security find-generic-password -a "${key}" -s "${this.serviceName}" -w`,
+          { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+        );
         return result.trim();
       } else if (process.platform === 'win32') {
         const keytar = await this.loadKeytar();
@@ -433,7 +439,8 @@ class PerformanceCache extends EventEmitter {
   private currentSize = 0;
   private ttl: number;
 
-  constructor(maxSize = 50 * 1024 * 1024, ttl = 300000) { // 50MB, 5min TTL
+  constructor(maxSize = 50 * 1024 * 1024, ttl = 300000) {
+    // 50MB, 5min TTL
     super();
     this.maxSize = maxSize;
     this.ttl = ttl;
@@ -454,7 +461,7 @@ class PerformanceCache extends EventEmitter {
     this.cache.set(key, {
       value,
       timestamp: Date.now(),
-      size
+      size,
     });
     this.currentSize += size;
     this.emit('set', key, size);
@@ -1124,7 +1131,7 @@ export class ConfigManager extends EventEmitter {
       'ruvSwarm',
       'claude',
       'performance',
-      'featureFlags'
+      'featureFlags',
     ];
 
     for (const path of commonPaths) {
@@ -1180,7 +1187,7 @@ export class ConfigManager extends EventEmitter {
       maxSize: cache.maxSize,
       hitRate: Math.round(hitRate * 100) / 100,
       entryCount: cache.cache.size,
-      memoryUsage: `${Math.round(cache.currentSize / 1024 / 1024 * 100) / 100} MB`
+      memoryUsage: `${Math.round((cache.currentSize / 1024 / 1024) * 100) / 100} MB`,
     };
   }
 
@@ -1298,7 +1305,9 @@ export class ConfigManager extends EventEmitter {
         confidence = 0.8;
 
         try {
-          const packageJson = JSON.parse(await fs.readFile(path.join(projectRoot, 'package.json'), 'utf8'));
+          const packageJson = JSON.parse(
+            await fs.readFile(path.join(projectRoot, 'package.json'), 'utf8'),
+          );
 
           // Detect framework
           const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
@@ -1350,13 +1359,13 @@ export class ConfigManager extends EventEmitter {
       }
 
       // Python Detection
-      else if (requirementsTxtExists || files.some(f => f.endsWith('.py'))) {
+      else if (requirementsTxtExists || files.some((f) => f.endsWith('.py'))) {
         language = 'python';
         projectType = 'script';
         confidence = 0.8;
 
         // Check for common Python web frameworks
-        const pythonFiles = files.filter(f => f.endsWith('.py'));
+        const pythonFiles = files.filter((f) => f.endsWith('.py'));
         if (pythonFiles.length > 0) {
           try {
             const firstPyFile = await fs.readFile(path.join(projectRoot, pythonFiles[0]), 'utf8');
@@ -1386,12 +1395,18 @@ export class ConfigManager extends EventEmitter {
 
       // Final recommendations based on project analysis
       if (complexity === 'complex') {
-        recommendations.push('Complex project detected - advanced monitoring and team features available');
-        recommendations.push('Consider upgrading to intermediate experience level for more control');
+        recommendations.push(
+          'Complex project detected - advanced monitoring and team features available',
+        );
+        recommendations.push(
+          'Consider upgrading to intermediate experience level for more control',
+        );
       }
 
       if (projectType === 'web-app') {
-        recommendations.push('Web application detected - Git integration and deployment tools configured');
+        recommendations.push(
+          'Web application detected - Git integration and deployment tools configured',
+        );
       }
 
       return {

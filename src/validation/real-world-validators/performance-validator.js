@@ -25,17 +25,17 @@ export class PerformanceValidator {
       loadTestConfig: options.loadTestConfig || {
         concurrent_users: [1, 5, 10, 25, 50],
         duration_seconds: 60,
-        ramp_up_time: 30
+        ramp_up_time: 30,
       },
       performanceThresholds: options.performanceThresholds || {
         response_time_95th: 1000, // 1 second
         memory_usage_max: 512 * 1024 * 1024, // 512MB
         cpu_usage_avg: 70, // 70%
         throughput_min: 100, // requests per second
-        error_rate_max: 0.01 // 1%
+        error_rate_max: 0.01, // 1%
       },
       regressionThreshold: options.regressionThreshold || 0.1, // 10% performance degradation
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -66,7 +66,7 @@ export class PerformanceValidator {
       // Run application performance tests
       const applicationBenchmarks = await this.runApplicationBenchmarks(
         projectPath,
-        performanceConfig
+        performanceConfig,
       );
 
       // Run load testing
@@ -76,13 +76,13 @@ export class PerformanceValidator {
       const performanceAnalysis = this.analyzePerformanceMetrics({
         systemBenchmarks,
         applicationBenchmarks,
-        loadTestResults
+        loadTestResults,
       });
 
       // Check for performance regressions
       const regressionAnalysis = await this.analyzePerformanceRegressions(
         validationId,
-        performanceAnalysis
+        performanceAnalysis,
       );
 
       // Byzantine consensus validation of performance results
@@ -93,7 +93,7 @@ export class PerformanceValidator {
         loadTestResults,
         performanceAnalysis,
         regressionAnalysis,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof
@@ -102,7 +102,7 @@ export class PerformanceValidator {
         performanceAnalysis,
         loadTestResults,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -113,54 +113,55 @@ export class PerformanceValidator {
         toolSetup,
         systemBenchmarks: {
           completed: systemBenchmarks.length,
-          successful: systemBenchmarks.filter(b => b.success).length,
-          results: systemBenchmarks
+          successful: systemBenchmarks.filter((b) => b.success).length,
+          results: systemBenchmarks,
         },
         applicationBenchmarks: {
           completed: applicationBenchmarks.length,
-          successful: applicationBenchmarks.filter(b => b.success).length,
-          results: applicationBenchmarks
+          successful: applicationBenchmarks.filter((b) => b.success).length,
+          results: applicationBenchmarks,
         },
         loadTesting: {
           scenarios: loadTestResults.length,
-          successful: loadTestResults.filter(r => r.success).length,
-          maxConcurrentUsers: Math.max(...loadTestResults.map(r => r.concurrentUsers || 0)),
-          results: loadTestResults
+          successful: loadTestResults.filter((r) => r.success).length,
+          maxConcurrentUsers: Math.max(...loadTestResults.map((r) => r.concurrentUsers || 0)),
+          results: loadTestResults,
         },
         performance: {
           overallScore: performanceAnalysis.overallScore,
           responseTime: performanceAnalysis.responseTime,
           throughput: performanceAnalysis.throughput,
           resourceUsage: performanceAnalysis.resourceUsage,
-          meetsThresholds: this.evaluatePerformanceThresholds(performanceAnalysis)
+          meetsThresholds: this.evaluatePerformanceThresholds(performanceAnalysis),
         },
         regression: {
           detected: regressionAnalysis.detected,
           severity: regressionAnalysis.severity,
           degradedMetrics: regressionAnalysis.degradedMetrics,
-          details: regressionAnalysis.details
+          details: regressionAnalysis.details,
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         executionTime: performance.now() - startTime,
         errors: this.extractPerformanceErrors([
           ...systemBenchmarks,
           ...applicationBenchmarks,
-          ...loadTestResults
-        ])
+          ...loadTestResults,
+        ]),
       };
 
       // Store performance history for regression analysis
       this.performanceHistory.set(validationId, result);
 
-      console.log(`✅ Performance validation completed [${validationId}]: Score ${(result.performance.overallScore * 100).toFixed(1)}%`);
+      console.log(
+        `✅ Performance validation completed [${validationId}]: Score ${(result.performance.overallScore * 100).toFixed(1)}%`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -168,7 +169,7 @@ export class PerformanceValidator {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.performanceHistory.set(validationId, errorResult);
@@ -185,7 +186,7 @@ export class PerformanceValidator {
       errors: [],
       testingFrameworks: [],
       configFiles: [],
-      performanceScripts: []
+      performanceScripts: [],
     };
 
     const performanceIndicators = {
@@ -194,7 +195,7 @@ export class PerformanceValidator {
       jmeter: ['*.jmx'],
       wrk: ['wrk-script.lua'],
       lighthouse: ['lighthouse.config.js'],
-      webpack_bundle_analyzer: ['webpack-bundle-analyzer.json']
+      webpack_bundle_analyzer: ['webpack-bundle-analyzer.json'],
     };
 
     // Detect performance testing tools
@@ -207,7 +208,7 @@ export class PerformanceValidator {
           if (files.length > 0) {
             setup.testingFrameworks.push({
               framework,
-              configFiles: files.map(file => path.relative(projectPath, file))
+              configFiles: files.map((file) => path.relative(projectPath, file)),
             });
             setup.configFiles.push(...files);
             break;
@@ -223,7 +224,7 @@ export class PerformanceValidator {
       'performance/**/*.js',
       'perf/**/*.js',
       'load-test/**/*.js',
-      'benchmark/**/*.js'
+      'benchmark/**/*.js',
     ];
 
     for (const pattern of scriptPatterns) {
@@ -246,14 +247,14 @@ export class PerformanceValidator {
     const toolSetup = {
       installedTools: [],
       availableTools: [],
-      missingTools: []
+      missingTools: [],
     };
 
     const requiredTools = [
       { name: 'curl', command: 'curl --version', package: 'curl' },
       { name: 'wget', command: 'wget --version', package: 'wget' },
       { name: 'node', command: 'node --version', package: 'nodejs' },
-      { name: 'npm', command: 'npm --version', package: 'npm' }
+      { name: 'npm', command: 'npm --version', package: 'npm' },
     ];
 
     // Optional performance tools
@@ -261,7 +262,7 @@ export class PerformanceValidator {
       { name: 'k6', command: 'k6 version', package: 'k6' },
       { name: 'artillery', command: 'artillery --version', package: 'artillery-io' },
       { name: 'ab', command: 'ab -V', package: 'apache2-utils' },
-      { name: 'wrk', command: 'wrk --version', package: 'wrk' }
+      { name: 'wrk', command: 'wrk --version', package: 'wrk' },
     ];
 
     // Check required tools
@@ -379,8 +380,8 @@ export class PerformanceValidator {
             primesCalculated: primes.length,
             cpuCores,
             performanceScore: limit / cpuTime, // Higher is better
-            threadsUsed: 1
-          }
+            threadsUsed: 1,
+          },
         });
       });
     });
@@ -429,15 +430,14 @@ export class PerformanceValidator {
             memoryAllocated: peakMemory.heapUsed - initialMemory.heapUsed,
             accessTime,
             accessSpeed: (numArrays * 1000) / accessTime, // accesses per ms
-            arraysAllocated: numArrays
-          }
+            arraysAllocated: numArrays,
+          },
         });
-
       } catch (error) {
         resolve({
           success: false,
           duration: performance.now() - startTime,
-          error: error.message
+          error: error.message,
         });
       }
     });
@@ -460,68 +460,65 @@ export class PerformanceValidator {
 
         const writePromises = [];
         for (let i = 0; i < writeIterations; i++) {
-          writePromises.push(
-            fs.writeFile(`${testFile}-${i}`, writeData)
-          );
+          writePromises.push(fs.writeFile(`${testFile}-${i}`, writeData));
         }
 
-        Promise.all(writePromises).then(() => {
-          const writeTime = performance.now() - writeStart;
+        Promise.all(writePromises)
+          .then(() => {
+            const writeTime = performance.now() - writeStart;
 
-          // Read test
-          const readStart = performance.now();
+            // Read test
+            const readStart = performance.now();
 
-          const readPromises = [];
-          for (let i = 0; i < writeIterations; i++) {
-            readPromises.push(
-              fs.readFile(`${testFile}-${i}`)
-            );
-          }
-
-          Promise.all(readPromises).then(() => {
-            const readTime = performance.now() - readStart;
-            const duration = performance.now() - startTime;
-
-            // Cleanup
+            const readPromises = [];
             for (let i = 0; i < writeIterations; i++) {
-              fs.unlink(`${testFile}-${i}`).catch(() => {});
+              readPromises.push(fs.readFile(`${testFile}-${i}`));
             }
 
-            resolve({
-              success: true,
-              duration,
-              metrics: {
-                writeTime,
-                readTime,
-                writeSpeed: (writeData.length * writeIterations) / writeTime, // bytes per ms
-                readSpeed: (writeData.length * writeIterations) / readTime, // bytes per ms
-                filesWritten: writeIterations,
-                filesRead: writeIterations,
-                totalDataSize: writeData.length * writeIterations
-              }
-            });
+            Promise.all(readPromises)
+              .then(() => {
+                const readTime = performance.now() - readStart;
+                const duration = performance.now() - startTime;
 
-          }).catch(error => {
+                // Cleanup
+                for (let i = 0; i < writeIterations; i++) {
+                  fs.unlink(`${testFile}-${i}`).catch(() => {});
+                }
+
+                resolve({
+                  success: true,
+                  duration,
+                  metrics: {
+                    writeTime,
+                    readTime,
+                    writeSpeed: (writeData.length * writeIterations) / writeTime, // bytes per ms
+                    readSpeed: (writeData.length * writeIterations) / readTime, // bytes per ms
+                    filesWritten: writeIterations,
+                    filesRead: writeIterations,
+                    totalDataSize: writeData.length * writeIterations,
+                  },
+                });
+              })
+              .catch((error) => {
+                resolve({
+                  success: false,
+                  duration: performance.now() - startTime,
+                  error: `Read test failed: ${error.message}`,
+                });
+              });
+          })
+          .catch((error) => {
             resolve({
               success: false,
               duration: performance.now() - startTime,
-              error: `Read test failed: ${error.message}`
+              error: `Write test failed: ${error.message}`,
             });
           });
-
-        }).catch(error => {
-          resolve({
-            success: false,
-            duration: performance.now() - startTime,
-            error: `Write test failed: ${error.message}`
-          });
-        });
-
       } catch (error) {
         resolve({
           success: false,
           duration: performance.now() - startTime,
-          error: error.message
+          error: error.message,
         });
       }
     });
@@ -535,41 +532,40 @@ export class PerformanceValidator {
 
     return new Promise((resolve) => {
       // Test network connectivity and response times
-      const testUrls = [
-        'https://httpbin.org/get',
-        'https://www.google.com',
-        'https://github.com'
-      ];
+      const testUrls = ['https://httpbin.org/get', 'https://www.google.com', 'https://github.com'];
 
-      const networkTests = testUrls.map(url => this.testNetworkLatency(url));
+      const networkTests = testUrls.map((url) => this.testNetworkLatency(url));
 
-      Promise.all(networkTests).then(results => {
-        const duration = performance.now() - startTime;
-        const successfulTests = results.filter(r => r.success);
+      Promise.all(networkTests)
+        .then((results) => {
+          const duration = performance.now() - startTime;
+          const successfulTests = results.filter((r) => r.success);
 
-        const avgLatency = successfulTests.length > 0 ?
-          successfulTests.reduce((sum, r) => sum + r.latency, 0) / successfulTests.length : 0;
+          const avgLatency =
+            successfulTests.length > 0
+              ? successfulTests.reduce((sum, r) => sum + r.latency, 0) / successfulTests.length
+              : 0;
 
-        resolve({
-          success: successfulTests.length > 0,
-          duration,
-          metrics: {
-            testsPerformed: testUrls.length,
-            successfulTests: successfulTests.length,
-            averageLatency: avgLatency,
-            minLatency: Math.min(...successfulTests.map(r => r.latency)),
-            maxLatency: Math.max(...successfulTests.map(r => r.latency)),
-            results
-          }
+          resolve({
+            success: successfulTests.length > 0,
+            duration,
+            metrics: {
+              testsPerformed: testUrls.length,
+              successfulTests: successfulTests.length,
+              averageLatency: avgLatency,
+              minLatency: Math.min(...successfulTests.map((r) => r.latency)),
+              maxLatency: Math.max(...successfulTests.map((r) => r.latency)),
+              results,
+            },
+          });
+        })
+        .catch((error) => {
+          resolve({
+            success: false,
+            duration: performance.now() - startTime,
+            error: error.message,
+          });
         });
-
-      }).catch(error => {
-        resolve({
-          success: false,
-          duration: performance.now() - startTime,
-          error: error.message
-        });
-      });
     });
   }
 
@@ -580,21 +576,25 @@ export class PerformanceValidator {
     const startTime = performance.now();
 
     return new Promise((resolve) => {
-      exec(`curl -w "%{time_total}" -o /dev/null -s "${url}"`, { timeout: 10000 }, (error, stdout) => {
-        const latency = performance.now() - startTime;
+      exec(
+        `curl -w "%{time_total}" -o /dev/null -s "${url}"`,
+        { timeout: 10000 },
+        (error, stdout) => {
+          const latency = performance.now() - startTime;
 
-        if (error) {
-          resolve({ url, success: false, latency, error: error.message });
-        } else {
-          const curlTime = parseFloat(stdout.trim()) * 1000; // Convert to ms
-          resolve({
-            url,
-            success: true,
-            latency: curlTime || latency,
-            responseTime: curlTime || latency
-          });
-        }
-      });
+          if (error) {
+            resolve({ url, success: false, latency, error: error.message });
+          } else {
+            const curlTime = parseFloat(stdout.trim()) * 1000; // Convert to ms
+            resolve({
+              url,
+              success: true,
+              latency: curlTime || latency,
+              responseTime: curlTime || latency,
+            });
+          }
+        },
+      );
     });
   }
 
@@ -669,7 +669,7 @@ export class PerformanceValidator {
           file: path.relative(projectPath, file),
           size: stats.size,
           type: path.extname(file),
-          gzipSize: await this.estimateGzipSize(file)
+          gzipSize: await this.estimateGzipSize(file),
         };
 
         bundleAnalysis.push(analysis);
@@ -685,18 +685,17 @@ export class PerformanceValidator {
           totalFiles: bundleFiles.length,
           totalSize,
           averageFileSize: totalSize / bundleFiles.length,
-          largestFile: Math.max(...bundleAnalysis.map(f => f.size)),
-          smallestFile: Math.min(...bundleAnalysis.map(f => f.size)),
+          largestFile: Math.max(...bundleAnalysis.map((f) => f.size)),
+          smallestFile: Math.min(...bundleAnalysis.map((f) => f.size)),
           fileTypes: this.groupFilesByType(bundleAnalysis),
-          files: bundleAnalysis
-        }
+          files: bundleAnalysis,
+        },
       };
-
     } catch (error) {
       return {
         success: false,
         duration: performance.now() - startTime,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -740,8 +739,8 @@ export class PerformanceValidator {
 
     try {
       // Determine startup command
-      const startupCommand = performanceConfig.startupCommand ||
-                            await this.detectStartupCommand(projectPath);
+      const startupCommand =
+        performanceConfig.startupCommand || (await this.detectStartupCommand(projectPath));
 
       if (!startupCommand) {
         throw new Error('No startup command found or configured');
@@ -753,14 +752,13 @@ export class PerformanceValidator {
       return {
         success: true,
         duration,
-        metrics: startupMetrics
+        metrics: startupMetrics,
       };
-
     } catch (error) {
       return {
         success: false,
         duration: performance.now() - startTime,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -800,17 +798,19 @@ export class PerformanceValidator {
       await this.sleep(2000);
     }
 
-    const successfulMeasurements = measurements.filter(m => m.success);
-    const startupTimes = successfulMeasurements.map(m => m.startupTime);
+    const successfulMeasurements = measurements.filter((m) => m.success);
+    const startupTimes = successfulMeasurements.map((m) => m.startupTime);
 
     return {
       measurements: measurements.length,
       successful: successfulMeasurements.length,
-      averageStartupTime: startupTimes.length > 0 ?
-        startupTimes.reduce((sum, time) => sum + time, 0) / startupTimes.length : 0,
+      averageStartupTime:
+        startupTimes.length > 0
+          ? startupTimes.reduce((sum, time) => sum + time, 0) / startupTimes.length
+          : 0,
       minStartupTime: Math.min(...startupTimes),
       maxStartupTime: Math.max(...startupTimes),
-      details: measurements
+      details: measurements,
     };
   }
 
@@ -821,20 +821,24 @@ export class PerformanceValidator {
     const startTime = performance.now();
 
     return new Promise((resolve) => {
-      const childProcess = exec(startupCommand, {
-        cwd: projectPath,
-        timeout: 30000 // 30 second timeout
-      }, (error, stdout, stderr) => {
-        const duration = performance.now() - startTime;
+      const childProcess = exec(
+        startupCommand,
+        {
+          cwd: projectPath,
+          timeout: 30000, // 30 second timeout
+        },
+        (error, stdout, stderr) => {
+          const duration = performance.now() - startTime;
 
-        resolve({
-          success: !error,
-          startupTime: duration,
-          error: error?.message,
-          stdout: stdout.slice(0, 1000), // First 1KB of output
-          stderr: stderr.slice(0, 1000)
-        });
-      });
+          resolve({
+            success: !error,
+            startupTime: duration,
+            error: error?.message,
+            stdout: stdout.slice(0, 1000), // First 1KB of output
+            stderr: stderr.slice(0, 1000),
+          });
+        },
+      );
 
       // Kill process after measurement (we just want startup time)
       setTimeout(() => {
@@ -860,10 +864,13 @@ export class PerformanceValidator {
       }
 
       const duration = performance.now() - startTime;
-      const successfulTests = endpointTests.filter(t => t.success);
+      const successfulTests = endpointTests.filter((t) => t.success);
 
-      const avgResponseTime = successfulTests.length > 0 ?
-        successfulTests.reduce((sum, t) => sum + t.averageResponseTime, 0) / successfulTests.length : 0;
+      const avgResponseTime =
+        successfulTests.length > 0
+          ? successfulTests.reduce((sum, t) => sum + t.averageResponseTime, 0) /
+            successfulTests.length
+          : 0;
 
       return {
         success: successfulTests.length > 0,
@@ -873,15 +880,14 @@ export class PerformanceValidator {
           successfulTests: successfulTests.length,
           averageResponseTime: avgResponseTime,
           totalRequests: successfulTests.reduce((sum, t) => sum + t.requests, 0),
-          results: endpointTests
-        }
+          results: endpointTests,
+        },
       };
-
     } catch (error) {
       return {
         success: false,
         duration: performance.now() - startTime,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -901,19 +907,21 @@ export class PerformanceValidator {
       await this.sleep(100);
     }
 
-    const successfulRequests = measurements.filter(m => m.success);
-    const responseTimes = successfulRequests.map(m => m.responseTime);
+    const successfulRequests = measurements.filter((m) => m.success);
+    const responseTimes = successfulRequests.map((m) => m.responseTime);
 
     return {
       endpoint: endpoint.url || endpoint,
       success: successfulRequests.length > 0,
       requests: measurements.length,
       successfulRequests: successfulRequests.length,
-      averageResponseTime: responseTimes.length > 0 ?
-        responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length : 0,
+      averageResponseTime:
+        responseTimes.length > 0
+          ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
+          : 0,
       minResponseTime: Math.min(...responseTimes),
       maxResponseTime: Math.max(...responseTimes),
-      measurements
+      measurements,
     };
   }
 
@@ -934,7 +942,7 @@ export class PerformanceValidator {
           resolve({
             success: false,
             responseTime,
-            error: error.message
+            error: error.message,
           });
         } else {
           const [statusCode, curlTime] = stdout.split(':');
@@ -944,7 +952,7 @@ export class PerformanceValidator {
             success: parseInt(statusCode) < 400,
             responseTime: actualResponseTime || responseTime,
             statusCode: parseInt(statusCode),
-            curlTime: parseFloat(curlTime)
+            curlTime: parseFloat(curlTime),
           });
         }
       });
@@ -959,11 +967,13 @@ export class PerformanceValidator {
 
     if (!performanceConfig.baseUrl) {
       console.warn('No base URL provided for load testing, skipping...');
-      return [{
-        success: false,
-        error: 'No base URL configured for load testing',
-        concurrentUsers: 0
-      }];
+      return [
+        {
+          success: false,
+          error: 'No base URL configured for load testing',
+          concurrentUsers: 0,
+        },
+      ];
     }
 
     console.log('🚀 Running load tests...');
@@ -973,19 +983,18 @@ export class PerformanceValidator {
         const loadTestResult = await this.runSingleLoadTest(
           performanceConfig.baseUrl,
           concurrentUsers,
-          this.options.loadTestConfig.duration_seconds
+          this.options.loadTestConfig.duration_seconds,
         );
 
         loadTestResults.push({
           concurrentUsers,
-          ...loadTestResult
+          ...loadTestResult,
         });
-
       } catch (error) {
         loadTestResults.push({
           concurrentUsers,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
 
@@ -1019,7 +1028,7 @@ export class PerformanceValidator {
             success: true,
             duration,
             tool: 'apache-bench',
-            metrics
+            metrics,
           });
         }
       });
@@ -1031,12 +1040,12 @@ export class PerformanceValidator {
    */
   async runCustomLoadTest(baseUrl, concurrentUsers, durationSeconds) {
     const startTime = performance.now();
-    const endTime = startTime + (durationSeconds * 1000);
+    const endTime = startTime + durationSeconds * 1000;
     const results = {
       totalRequests: 0,
       successfulRequests: 0,
       failedRequests: 0,
-      responseTimes: []
+      responseTimes: [],
     };
 
     try {
@@ -1050,8 +1059,11 @@ export class PerformanceValidator {
       await Promise.all(promises);
 
       const duration = performance.now() - startTime;
-      const avgResponseTime = results.responseTimes.length > 0 ?
-        results.responseTimes.reduce((sum, time) => sum + time, 0) / results.responseTimes.length : 0;
+      const avgResponseTime =
+        results.responseTimes.length > 0
+          ? results.responseTimes.reduce((sum, time) => sum + time, 0) /
+            results.responseTimes.length
+          : 0;
 
       return {
         success: true,
@@ -1064,15 +1076,14 @@ export class PerformanceValidator {
           requestsPerSecond: results.totalRequests / (duration / 1000),
           averageResponseTime: avgResponseTime,
           minResponseTime: Math.min(...results.responseTimes),
-          maxResponseTime: Math.max(...results.responseTimes)
-        }
+          maxResponseTime: Math.max(...results.responseTimes),
+        },
       };
-
     } catch (error) {
       return {
         success: false,
         duration: performance.now() - startTime,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -1095,7 +1106,6 @@ export class PerformanceValidator {
         } else {
           results.failedRequests++;
         }
-
       } catch (error) {
         results.totalRequests++;
         results.failedRequests++;
@@ -1118,7 +1128,7 @@ export class PerformanceValidator {
       failedRequests: /Failed requests:\s*(\d+)/,
       requestsPerSecond: /Requests per second:\s*([\d.]+)/,
       meanTime: /Time per request:\s*([\d.]+)\s*\[ms\]/,
-      transferRate: /Transfer rate:\s*([\d.]+)/
+      transferRate: /Transfer rate:\s*([\d.]+)/,
     };
 
     for (const [key, pattern] of Object.entries(patterns)) {
@@ -1130,8 +1140,8 @@ export class PerformanceValidator {
 
     // Calculate additional metrics
     metrics.successfulRequests = (metrics.totalRequests || 0) - (metrics.failedRequests || 0);
-    metrics.errorRate = metrics.totalRequests > 0 ?
-      (metrics.failedRequests || 0) / metrics.totalRequests : 0;
+    metrics.errorRate =
+      metrics.totalRequests > 0 ? (metrics.failedRequests || 0) / metrics.totalRequests : 0;
 
     return metrics;
   }
@@ -1145,20 +1155,20 @@ export class PerformanceValidator {
       responseTime: {},
       throughput: {},
       resourceUsage: {},
-      scalability: {}
+      scalability: {},
     };
 
     // System performance analysis
-    const cpuBenchmark = systemBenchmarks.find(b => b.type === 'cpu' && b.success);
-    const memoryBenchmark = systemBenchmarks.find(b => b.type === 'memory' && b.success);
-    const diskBenchmark = systemBenchmarks.find(b => b.type === 'disk' && b.success);
-    const networkBenchmark = systemBenchmarks.find(b => b.type === 'network' && b.success);
+    const cpuBenchmark = systemBenchmarks.find((b) => b.type === 'cpu' && b.success);
+    const memoryBenchmark = systemBenchmarks.find((b) => b.type === 'memory' && b.success);
+    const diskBenchmark = systemBenchmarks.find((b) => b.type === 'disk' && b.success);
+    const networkBenchmark = systemBenchmarks.find((b) => b.type === 'network' && b.success);
 
     // Resource usage analysis
     if (cpuBenchmark) {
       analysis.resourceUsage.cpu = {
         performanceScore: cpuBenchmark.metrics.performanceScore,
-        cores: cpuBenchmark.metrics.cpuCores
+        cores: cpuBenchmark.metrics.cpuCores,
       };
     }
 
@@ -1166,14 +1176,14 @@ export class PerformanceValidator {
       analysis.resourceUsage.memory = {
         peakUsage: memoryBenchmark.metrics.peakMemory,
         allocationSpeed: memoryBenchmark.metrics.memoryAllocated / memoryBenchmark.duration,
-        accessSpeed: memoryBenchmark.metrics.accessSpeed
+        accessSpeed: memoryBenchmark.metrics.accessSpeed,
       };
     }
 
     if (diskBenchmark) {
       analysis.resourceUsage.disk = {
         writeSpeed: diskBenchmark.metrics.writeSpeed,
-        readSpeed: diskBenchmark.metrics.readSpeed
+        readSpeed: diskBenchmark.metrics.readSpeed,
       };
     }
 
@@ -1181,20 +1191,24 @@ export class PerformanceValidator {
       analysis.resourceUsage.network = {
         averageLatency: networkBenchmark.metrics.averageLatency,
         minLatency: networkBenchmark.metrics.minLatency,
-        maxLatency: networkBenchmark.metrics.maxLatency
+        maxLatency: networkBenchmark.metrics.maxLatency,
       };
     }
 
     // Application performance analysis
-    const startupBenchmark = applicationBenchmarks.find(b => b.type === 'startup_time' && b.success);
-    const apiBenchmark = applicationBenchmarks.find(b => b.type === 'api_response' && b.success);
-    const bundleBenchmark = applicationBenchmarks.find(b => b.type === 'bundle_size' && b.success);
+    const startupBenchmark = applicationBenchmarks.find(
+      (b) => b.type === 'startup_time' && b.success,
+    );
+    const apiBenchmark = applicationBenchmarks.find((b) => b.type === 'api_response' && b.success);
+    const bundleBenchmark = applicationBenchmarks.find(
+      (b) => b.type === 'bundle_size' && b.success,
+    );
 
     if (startupBenchmark) {
       analysis.responseTime.startup = {
         average: startupBenchmark.metrics.averageStartupTime,
         min: startupBenchmark.metrics.minStartupTime,
-        max: startupBenchmark.metrics.maxStartupTime
+        max: startupBenchmark.metrics.maxStartupTime,
       };
     }
 
@@ -1202,7 +1216,7 @@ export class PerformanceValidator {
       analysis.responseTime.api = {
         average: apiBenchmark.metrics.averageResponseTime,
         endpoints: apiBenchmark.metrics.endpointsTested,
-        totalRequests: apiBenchmark.metrics.totalRequests
+        totalRequests: apiBenchmark.metrics.totalRequests,
       };
     }
 
@@ -1210,26 +1224,28 @@ export class PerformanceValidator {
       analysis.resourceUsage.bundle = {
         totalSize: bundleBenchmark.metrics.totalSize,
         fileCount: bundleBenchmark.metrics.totalFiles,
-        averageFileSize: bundleBenchmark.metrics.averageFileSize
+        averageFileSize: bundleBenchmark.metrics.averageFileSize,
       };
     }
 
     // Load testing analysis
-    const successfulLoadTests = loadTestResults.filter(r => r.success);
+    const successfulLoadTests = loadTestResults.filter((r) => r.success);
     if (successfulLoadTests.length > 0) {
-      const maxConcurrentUsers = Math.max(...successfulLoadTests.map(r => r.concurrentUsers));
-      const bestThroughput = Math.max(...successfulLoadTests.map(r => r.metrics?.requestsPerSecond || 0));
+      const maxConcurrentUsers = Math.max(...successfulLoadTests.map((r) => r.concurrentUsers));
+      const bestThroughput = Math.max(
+        ...successfulLoadTests.map((r) => r.metrics?.requestsPerSecond || 0),
+      );
 
       analysis.scalability = {
         maxConcurrentUsers,
         bestThroughput,
-        loadTestScenarios: successfulLoadTests.length
+        loadTestScenarios: successfulLoadTests.length,
       };
 
       analysis.throughput = {
         requestsPerSecond: bestThroughput,
         maxConcurrentUsers,
-        scalabilityFactor: maxConcurrentUsers / (successfulLoadTests.length > 0 ? 1 : 1)
+        scalabilityFactor: maxConcurrentUsers / (successfulLoadTests.length > 0 ? 1 : 1),
       };
     }
 
@@ -1237,7 +1253,7 @@ export class PerformanceValidator {
     let scoreComponents = [];
 
     if (analysis.responseTime.api?.average) {
-      const responseScore = Math.max(0, 1 - (analysis.responseTime.api.average / 1000)); // 1s baseline
+      const responseScore = Math.max(0, 1 - analysis.responseTime.api.average / 1000); // 1s baseline
       scoreComponents.push(responseScore);
     }
 
@@ -1247,12 +1263,17 @@ export class PerformanceValidator {
     }
 
     if (analysis.resourceUsage.memory?.peakUsage) {
-      const memoryScore = Math.max(0, 1 - (analysis.resourceUsage.memory.peakUsage / (512 * 1024 * 1024))); // 512MB baseline
+      const memoryScore = Math.max(
+        0,
+        1 - analysis.resourceUsage.memory.peakUsage / (512 * 1024 * 1024),
+      ); // 512MB baseline
       scoreComponents.push(memoryScore);
     }
 
-    analysis.overallScore = scoreComponents.length > 0 ?
-      scoreComponents.reduce((sum, score) => sum + score, 0) / scoreComponents.length : 0;
+    analysis.overallScore =
+      scoreComponents.length > 0
+        ? scoreComponents.reduce((sum, score) => sum + score, 0) / scoreComponents.length
+        : 0;
 
     return analysis;
   }
@@ -1265,7 +1286,7 @@ export class PerformanceValidator {
       detected: false,
       severity: 'none',
       degradedMetrics: [],
-      details: []
+      details: [],
     };
 
     // Get historical performance data
@@ -1287,22 +1308,22 @@ export class PerformanceValidator {
         current: performanceAnalysis.responseTime.api?.average,
         baseline: baseline.responseTime?.api?.average,
         threshold: this.options.regressionThreshold,
-        higherIsBetter: false
+        higherIsBetter: false,
       },
       {
         metric: 'throughput.requestsPerSecond',
         current: performanceAnalysis.throughput.requestsPerSecond,
         baseline: baseline.throughput?.requestsPerSecond,
         threshold: this.options.regressionThreshold,
-        higherIsBetter: true
+        higherIsBetter: true,
       },
       {
         metric: 'resourceUsage.memory.peakUsage',
         current: performanceAnalysis.resourceUsage.memory?.peakUsage,
         baseline: baseline.resourceUsage?.memory?.peakUsage,
         threshold: this.options.regressionThreshold,
-        higherIsBetter: false
-      }
+        higherIsBetter: false,
+      },
     ];
 
     for (const check of regressionChecks) {
@@ -1314,9 +1335,11 @@ export class PerformanceValidator {
           regressionAnalysis.details.push(regressionCheck);
 
           // Determine severity
-          if (regressionCheck.regressionPercent > 0.25) { // 25%
+          if (regressionCheck.regressionPercent > 0.25) {
+            // 25%
             regressionAnalysis.severity = 'critical';
-          } else if (regressionCheck.regressionPercent > 0.15) { // 15%
+          } else if (regressionCheck.regressionPercent > 0.15) {
+            // 15%
             regressionAnalysis.severity = 'major';
           } else if (regressionAnalysis.severity === 'none') {
             regressionAnalysis.severity = 'minor';
@@ -1333,7 +1356,7 @@ export class PerformanceValidator {
    */
   getHistoricalPerformanceData(excludeValidationId) {
     return Array.from(this.performanceHistory.values())
-      .filter(data => data.validationId !== excludeValidationId && data.performance)
+      .filter((data) => data.validationId !== excludeValidationId && data.performance)
       .sort((a, b) => a.timestamp - b.timestamp);
   }
 
@@ -1347,38 +1370,39 @@ export class PerformanceValidator {
 
     // Average response times
     const responseTimes = historicalData
-      .map(d => d.performance?.responseTime?.api?.average)
-      .filter(v => v !== undefined);
+      .map((d) => d.performance?.responseTime?.api?.average)
+      .filter((v) => v !== undefined);
 
     if (responseTimes.length > 0) {
       baseline.responseTime = {
         api: {
-          average: responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
-        }
+          average: responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length,
+        },
       };
     }
 
     // Average throughput
     const throughputs = historicalData
-      .map(d => d.performance?.throughput?.requestsPerSecond)
-      .filter(v => v !== undefined);
+      .map((d) => d.performance?.throughput?.requestsPerSecond)
+      .filter((v) => v !== undefined);
 
     if (throughputs.length > 0) {
       baseline.throughput = {
-        requestsPerSecond: throughputs.reduce((sum, throughput) => sum + throughput, 0) / throughputs.length
+        requestsPerSecond:
+          throughputs.reduce((sum, throughput) => sum + throughput, 0) / throughputs.length,
       };
     }
 
     // Average memory usage
     const memoryUsages = historicalData
-      .map(d => d.performance?.resourceUsage?.memory?.peakUsage)
-      .filter(v => v !== undefined);
+      .map((d) => d.performance?.resourceUsage?.memory?.peakUsage)
+      .filter((v) => v !== undefined);
 
     if (memoryUsages.length > 0) {
       baseline.resourceUsage = {
         memory: {
-          peakUsage: memoryUsages.reduce((sum, usage) => sum + usage, 0) / memoryUsages.length
-        }
+          peakUsage: memoryUsages.reduce((sum, usage) => sum + usage, 0) / memoryUsages.length,
+        },
       };
     }
 
@@ -1389,9 +1413,9 @@ export class PerformanceValidator {
    * Check for performance regression in specific metric
    */
   checkForRegression({ metric, current, baseline, threshold, higherIsBetter }) {
-    const regressionPercent = higherIsBetter ?
-      (baseline - current) / baseline : // For throughput, lower is worse
-      (current - baseline) / baseline;   // For response time, higher is worse
+    const regressionPercent = higherIsBetter
+      ? (baseline - current) / baseline // For throughput, lower is worse
+      : (current - baseline) / baseline; // For response time, higher is worse
 
     const detected = regressionPercent > threshold;
 
@@ -1402,7 +1426,7 @@ export class PerformanceValidator {
       baseline,
       regressionPercent,
       regressionDirection: higherIsBetter ? 'decrease' : 'increase',
-      threshold
+      threshold,
     };
   }
 
@@ -1415,17 +1439,20 @@ export class PerformanceValidator {
 
     // Response time threshold
     if (performanceAnalysis.responseTime.api?.average !== undefined) {
-      evaluation.responseTime = performanceAnalysis.responseTime.api.average <= thresholds.response_time_95th;
+      evaluation.responseTime =
+        performanceAnalysis.responseTime.api.average <= thresholds.response_time_95th;
     }
 
     // Memory usage threshold
     if (performanceAnalysis.resourceUsage.memory?.peakUsage !== undefined) {
-      evaluation.memoryUsage = performanceAnalysis.resourceUsage.memory.peakUsage <= thresholds.memory_usage_max;
+      evaluation.memoryUsage =
+        performanceAnalysis.resourceUsage.memory.peakUsage <= thresholds.memory_usage_max;
     }
 
     // Throughput threshold
     if (performanceAnalysis.throughput.requestsPerSecond !== undefined) {
-      evaluation.throughput = performanceAnalysis.throughput.requestsPerSecond >= thresholds.throughput_min;
+      evaluation.throughput =
+        performanceAnalysis.throughput.requestsPerSecond >= thresholds.throughput_min;
     }
 
     // Overall evaluation
@@ -1456,19 +1483,19 @@ export class PerformanceValidator {
           overallScore: validationData.performanceAnalysis.overallScore,
           responseTime: validationData.performanceAnalysis.responseTime.api?.average,
           throughput: validationData.performanceAnalysis.throughput.requestsPerSecond,
-          memoryUsage: validationData.performanceAnalysis.resourceUsage.memory?.peakUsage
+          memoryUsage: validationData.performanceAnalysis.resourceUsage.memory?.peakUsage,
         },
         benchmarks: {
-          system: validationData.systemBenchmarks.filter(b => b.success).length,
-          application: validationData.applicationBenchmarks.filter(b => b.success).length,
-          loadTest: validationData.loadTestResults.filter(r => r.success).length
+          system: validationData.systemBenchmarks.filter((b) => b.success).length,
+          application: validationData.applicationBenchmarks.filter((b) => b.success).length,
+          loadTest: validationData.loadTestResults.filter((r) => r.success).length,
         },
         regression: {
           detected: validationData.regressionAnalysis.detected,
-          severity: validationData.regressionAnalysis.severity
+          severity: validationData.regressionAnalysis.severity,
         },
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -1480,15 +1507,14 @@ export class PerformanceValidator {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -1504,9 +1530,18 @@ export class PerformanceValidator {
 
     return Array.from({ length: validatorCount }, (_, i) => ({
       id: `performance-validator-${i}`,
-      specialization: ['system_benchmarking', 'load_testing', 'regression_analysis', 'resource_monitoring', 'response_time_validation', 'throughput_verification', 'memory_analysis', 'scalability_testing'][i % 8],
-      reputation: 0.85 + (Math.random() * 0.15),
-      riskTolerance: validationData.performanceAnalysis.overallScore >= 0.8 ? 'medium' : 'low'
+      specialization: [
+        'system_benchmarking',
+        'load_testing',
+        'regression_analysis',
+        'resource_monitoring',
+        'response_time_validation',
+        'throughput_verification',
+        'memory_analysis',
+        'scalability_testing',
+      ][i % 8],
+      reputation: 0.85 + Math.random() * 0.15,
+      riskTolerance: validationData.performanceAnalysis.overallScore >= 0.8 ? 'medium' : 'low',
     }));
   }
 
@@ -1518,14 +1553,14 @@ export class PerformanceValidator {
 
   generateExecutionHash(validationData) {
     const hashData = JSON.stringify({
-      systemBenchmarks: validationData.systemBenchmarks.map(b => ({
+      systemBenchmarks: validationData.systemBenchmarks.map((b) => ({
         type: b.type,
         success: b.success,
-        duration: b.duration
+        duration: b.duration,
       })),
       performanceScore: validationData.performanceAnalysis.overallScore,
       regressionDetected: validationData.regressionAnalysis.detected,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -1536,7 +1571,7 @@ export class PerformanceValidator {
       validationId: data.validationId,
       performanceAnalysis: data.performanceAnalysis,
       loadTestResults: data.loadTestResults,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -1547,7 +1582,7 @@ export class PerformanceValidator {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'performance-validator',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -1559,7 +1594,7 @@ export class PerformanceValidator {
         errors.push({
           type: result.type || result.platform || 'unknown',
           error: result.error || 'Performance test failed',
-          details: result.stderr || result.reason
+          details: result.stderr || result.reason,
         });
       }
     }
@@ -1568,9 +1603,8 @@ export class PerformanceValidator {
   }
 
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -1580,12 +1614,12 @@ export class PerformanceValidator {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -1607,15 +1641,16 @@ export class PerformanceValidator {
 
     if (totalValidations === 0) return { rate: 0, sample: 0 };
 
-    const falseCompletions = validations.filter(validation =>
-      validation.performance?.overallScore >= 0.8 && // Claims good performance
-      (!validation.performance?.meetsThresholds?.overall || validation.regression?.detected) // But fails thresholds or has regressions
+    const falseCompletions = validations.filter(
+      (validation) =>
+        validation.performance?.overallScore >= 0.8 && // Claims good performance
+        (!validation.performance?.meetsThresholds?.overall || validation.regression?.detected), // But fails thresholds or has regressions
     );
 
     return {
       rate: falseCompletions.length / totalValidations,
       sample: totalValidations,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

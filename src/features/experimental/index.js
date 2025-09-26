@@ -31,7 +31,11 @@ export class ExperimentalFeaturesManager {
 
     // Initialize components
     this.config = new ExperimentalConfig(configManager);
-    this.progressiveEnablement = new ProgressiveEnablement(configManager, userManager, notificationService);
+    this.progressiveEnablement = new ProgressiveEnablement(
+      configManager,
+      userManager,
+      notificationService,
+    );
     this.consentManager = new ConsentManager();
     this.performanceMonitor = new PerformanceMonitor();
     this.visibilityManager = new AgentVisibilityManager(configManager, userManager);
@@ -61,7 +65,6 @@ export class ExperimentalFeaturesManager {
 
       this.initialized = true;
       this.logger.info('[ExperimentalFeaturesManager] System initialized successfully');
-
     } catch (error) {
       this.logger.error('[ExperimentalFeaturesManager] Initialization failed:', error);
       throw error;
@@ -77,7 +80,7 @@ export class ExperimentalFeaturesManager {
       if (alert.severity === 'critical') {
         await this.gracefulDegradation.handleFeatureUnavailable(
           alert.feature,
-          'performance-critical'
+          'performance-critical',
         );
       }
     });
@@ -90,7 +93,7 @@ export class ExperimentalFeaturesManager {
         for (const feature of affectedFeatures) {
           await this.gracefulDegradation.handleFeatureUnavailable(
             feature,
-            `feature-flag-disabled-${flagName}`
+            `feature-flag-disabled-${flagName}`,
           );
         }
       }
@@ -120,9 +123,10 @@ export class ExperimentalFeaturesManager {
       // Enable through progressive enablement system
       const result = await this.progressiveEnablement.enableFeature(featureName, userId, options);
 
-      this.logger.info(`[ExperimentalFeaturesManager] Enabled feature ${featureName} for user ${userId}`);
+      this.logger.info(
+        `[ExperimentalFeaturesManager] Enabled feature ${featureName} for user ${userId}`,
+      );
       return result;
-
     } catch (error) {
       this.logger.error(`[ExperimentalFeaturesManager] Failed to enable ${featureName}:`, error);
       throw error;
@@ -140,9 +144,10 @@ export class ExperimentalFeaturesManager {
     try {
       const result = await this.progressiveEnablement.disableFeature(featureName, userId, options);
 
-      this.logger.info(`[ExperimentalFeaturesManager] Disabled feature ${featureName} for user ${userId}`);
+      this.logger.info(
+        `[ExperimentalFeaturesManager] Disabled feature ${featureName} for user ${userId}`,
+      );
       return result;
-
     } catch (error) {
       this.logger.error(`[ExperimentalFeaturesManager] Failed to disable ${featureName}:`, error);
       throw error;
@@ -179,7 +184,7 @@ export class ExperimentalFeaturesManager {
       message: `Your experience level has been updated to ${level}`,
       newLevel: level,
       availableFeatures: availableFeatures.agents.length,
-      experimentalFeatures: availableFeatures.agents.filter(a => a.isExperimental).length
+      experimentalFeatures: availableFeatures.agents.filter((a) => a.isExperimental).length,
     });
 
     return { success: true, newLevel: level };
@@ -199,7 +204,7 @@ export class ExperimentalFeaturesManager {
       performance: this.performanceMonitor.getSystemHealthScore(),
       degradation: this.gracefulDegradation.getDegradationStatus(),
       visibility: await this.visibilityManager.getVisibilityStatistics(),
-      enablement: this.progressiveEnablement.getStatus()
+      enablement: this.progressiveEnablement.getStatus(),
     };
   }
 
@@ -221,20 +226,20 @@ export class ExperimentalFeaturesManager {
           try {
             await this.disableFeature(feature, user.id, {
               reason: `emergency-shutdown-${reason}`,
-              skipConfirmation: true
+              skipConfirmation: true,
             });
 
             shutdownResults.push({
               userId: user.id,
               feature,
-              success: true
+              success: true,
             });
           } catch (error) {
             shutdownResults.push({
               userId: user.id,
               feature,
               success: false,
-              error: error.message
+              error: error.message,
             });
           }
         }
@@ -246,9 +251,11 @@ export class ExperimentalFeaturesManager {
         await this.gracefulDegradation.handleFeatureUnavailable(feature, `emergency-${reason}`);
       }
 
-      this.logger.info(`[ExperimentalFeaturesManager] Emergency shutdown completed. Results:`, shutdownResults);
+      this.logger.info(
+        `[ExperimentalFeaturesManager] Emergency shutdown completed. Results:`,
+        shutdownResults,
+      );
       return { success: true, shutdownResults };
-
     } catch (error) {
       this.logger.error('[ExperimentalFeaturesManager] Emergency shutdown failed:', error);
       throw error;
@@ -276,14 +283,17 @@ export class ExperimentalFeaturesManager {
         type: 'experience-upgrade',
         priority: 'medium',
         title: 'Consider Upgrading to Intermediate Level',
-        message: 'You\'re using several features successfully. Intermediate level unlocks beta features with safety warnings.',
-        action: 'upgrade-to-intermediate'
+        message:
+          "You're using several features successfully. Intermediate level unlocks beta features with safety warnings.",
+        action: 'upgrade-to-intermediate',
       });
     }
 
     // Feature recommendations based on usage patterns
-    const stableFeatures = visibleAgents.agents.filter(a => !a.isExperimental || a.stability === 'stable');
-    const unusedStableFeatures = stableFeatures.filter(f => !enabledFeatures.includes(f.name));
+    const stableFeatures = visibleAgents.agents.filter(
+      (a) => !a.isExperimental || a.stability === 'stable',
+    );
+    const unusedStableFeatures = stableFeatures.filter((f) => !enabledFeatures.includes(f.name));
 
     if (unusedStableFeatures.length > 0) {
       recommendations.push({
@@ -291,7 +301,7 @@ export class ExperimentalFeaturesManager {
         priority: 'low',
         title: 'Discover New Stable Features',
         message: `${unusedStableFeatures.length} stable features are available for your experience level`,
-        features: unusedStableFeatures.slice(0, 3).map(f => f.name)
+        features: unusedStableFeatures.slice(0, 3).map((f) => f.name),
       });
     }
 
@@ -304,7 +314,7 @@ export class ExperimentalFeaturesManager {
         title: 'System Performance Optimization',
         message: 'Consider disabling some experimental features to improve performance',
         currentScore: performanceScore.score,
-        enabledExperimental: enabledFeatures.length
+        enabledExperimental: enabledFeatures.length,
       });
     }
 
@@ -330,7 +340,7 @@ export class ExperimentalFeaturesManager {
       userLevel: user.experienceLevel,
       enabledFeatures,
       configuration: userConfig,
-      consentRecords: this.consentManager.getUserConsents(userId)
+      consentRecords: this.consentManager.getUserConsents(userId),
     };
   }
 
@@ -363,17 +373,19 @@ export class ExperimentalFeaturesManager {
           try {
             await this.enableFeature(feature, userId, {
               skipConsent: false, // Always require fresh consent
-              importMode: true
+              importMode: true,
             });
           } catch (error) {
-            this.logger.warn(`[ExperimentalFeaturesManager] Failed to import feature ${feature}:`, error.message);
+            this.logger.warn(
+              `[ExperimentalFeaturesManager] Failed to import feature ${feature}:`,
+              error.message,
+            );
           }
         }
       }
 
       this.logger.info(`[ExperimentalFeaturesManager] Imported configuration for user ${userId}`);
       return { success: true };
-
     } catch (error) {
       this.logger.error('[ExperimentalFeaturesManager] Configuration import failed:', error);
       throw error;

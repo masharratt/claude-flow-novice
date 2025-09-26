@@ -27,7 +27,7 @@ export class PlaywrightIntegration {
       screenshotsOnFailure: options.screenshotsOnFailure !== false,
       videoRecording: options.videoRecording || false,
       outputFormat: options.outputFormat || 'json',
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -63,7 +63,10 @@ export class PlaywrightIntegration {
 
       // Extract real performance and accessibility metrics
       const performanceMetrics = await this.extractPerformanceMetrics(projectPath, testExecution);
-      const accessibilityResults = await this.extractAccessibilityResults(projectPath, testExecution);
+      const accessibilityResults = await this.extractAccessibilityResults(
+        projectPath,
+        testExecution,
+      );
 
       // Process screenshots and videos from failed tests
       const mediaArtifacts = await this.processTestArtifacts(projectPath, parsedResults);
@@ -76,7 +79,7 @@ export class PlaywrightIntegration {
         performanceMetrics,
         accessibilityResults,
         mediaArtifacts,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof
@@ -85,7 +88,7 @@ export class PlaywrightIntegration {
         parsedResults,
         performanceMetrics,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -99,44 +102,45 @@ export class PlaywrightIntegration {
           failedTests: parsedResults.failed || 0,
           skippedTests: parsedResults.skipped || 0,
           duration: parsedResults.duration || 0,
-          success: parsedResults.success || false
+          success: parsedResults.success || false,
         },
         performance: {
           averageLoadTime: performanceMetrics.averageLoadTime || 0,
           averageResponseTime: performanceMetrics.averageResponseTime || 0,
           largestContentfulPaint: performanceMetrics.largestContentfulPaint || 0,
           cumulativeLayoutShift: performanceMetrics.cumulativeLayoutShift || 0,
-          meetsPerformanceThresholds: this.evaluatePerformanceThresholds(performanceMetrics)
+          meetsPerformanceThresholds: this.evaluatePerformanceThresholds(performanceMetrics),
         },
         accessibility: {
           violations: accessibilityResults.violations || 0,
           passes: accessibilityResults.passes || 0,
           wcagLevel: accessibilityResults.wcagLevel || 'unknown',
-          accessibilityScore: accessibilityResults.score || 0
+          accessibilityScore: accessibilityResults.score || 0,
         },
         artifacts: {
           screenshots: mediaArtifacts.screenshots || [],
           videos: mediaArtifacts.videos || [],
-          traces: mediaArtifacts.traces || []
+          traces: mediaArtifacts.traces || [],
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         executionTime: performance.now() - startTime,
         rawOutput: testExecution.stdout,
-        errors: testExecution.stderr ? [testExecution.stderr] : []
+        errors: testExecution.stderr ? [testExecution.stderr] : [],
       };
 
       // Store execution history
       this.executionHistory.set(executionId, result);
 
-      console.log(`✅ Playwright execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`);
+      console.log(
+        `✅ Playwright execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         executionId,
@@ -144,7 +148,7 @@ export class PlaywrightIntegration {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.executionHistory.set(executionId, errorResult);
@@ -166,14 +170,14 @@ export class PlaywrightIntegration {
       const packageJsonContent = await fs.readFile(packageJsonPath, 'utf8');
       packageJson = JSON.parse(packageJsonContent);
 
-      const hasPlaywright = packageJson.devDependencies?.['@playwright/test'] ||
-                           packageJson.dependencies?.['@playwright/test'] ||
-                           packageJson.scripts?.e2e?.includes('playwright');
+      const hasPlaywright =
+        packageJson.devDependencies?.['@playwright/test'] ||
+        packageJson.dependencies?.['@playwright/test'] ||
+        packageJson.scripts?.e2e?.includes('playwright');
 
       if (!hasPlaywright) {
         errors.push('Playwright not found in package.json dependencies or scripts');
       }
-
     } catch (error) {
       errors.push(`Cannot read package.json: ${error.message}`);
     }
@@ -183,7 +187,7 @@ export class PlaywrightIntegration {
       const configPaths = [
         path.join(projectPath, 'playwright.config.ts'),
         path.join(projectPath, 'playwright.config.js'),
-        path.join(projectPath, 'playwright.config.json')
+        path.join(projectPath, 'playwright.config.json'),
       ];
 
       for (const configPath of configPaths) {
@@ -199,7 +203,6 @@ export class PlaywrightIntegration {
       if (!playwrightConfig) {
         console.warn('No Playwright configuration found, using defaults');
       }
-
     } catch (error) {
       errors.push(`Playwright configuration check failed: ${error.message}`);
     }
@@ -212,7 +215,7 @@ export class PlaywrightIntegration {
         path.join(projectPath, 'e2e/**/*.spec.js'),
         path.join(projectPath, 'e2e/**/*.spec.ts'),
         path.join(projectPath, '**/*.e2e.js'),
-        path.join(projectPath, '**/*.e2e.ts')
+        path.join(projectPath, '**/*.e2e.ts'),
       ];
 
       let testsFound = false;
@@ -232,7 +235,6 @@ export class PlaywrightIntegration {
       if (!testsFound) {
         errors.push('No Playwright test files found');
       }
-
     } catch (error) {
       errors.push(`Test file detection failed: ${error.message}`);
     }
@@ -241,7 +243,7 @@ export class PlaywrightIntegration {
       valid: errors.length === 0,
       errors,
       packageJson,
-      playwrightConfig
+      playwrightConfig,
     };
   }
 
@@ -259,7 +261,6 @@ export class PlaywrightIntegration {
         }
 
         this.browserInstallations.set(browser, installResult);
-
       } catch (error) {
         console.error(`Failed to ensure ${browser} installation:`, error.message);
         throw error;
@@ -279,7 +280,7 @@ export class PlaywrightIntegration {
           installed: !error,
           browser,
           version: this.extractBrowserVersion(stdout),
-          error: error?.message
+          error: error?.message,
         });
       });
     });
@@ -312,26 +313,30 @@ export class PlaywrightIntegration {
 
       console.log(`🚀 Running Playwright command: ${command}`);
 
-      exec(command, {
-        timeout: this.options.timeout,
-        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs with media
-        env: {
-          ...process.env,
-          CI: 'true',
-          PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '0'
-        }
-      }, (error, stdout, stderr) => {
-        const result = {
-          success: !error || error.code === 0,
-          exitCode: error?.code || 0,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          command,
-          executedAt: new Date().toISOString()
-        };
+      exec(
+        command,
+        {
+          timeout: this.options.timeout,
+          maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs with media
+          env: {
+            ...process.env,
+            CI: 'true',
+            PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH || '0',
+          },
+        },
+        (error, stdout, stderr) => {
+          const result = {
+            success: !error || error.code === 0,
+            exitCode: error?.code || 0,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            command,
+            executedAt: new Date().toISOString(),
+          };
 
-        resolve(result);
-      });
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -351,7 +356,6 @@ export class PlaywrightIntegration {
         // Fallback to stdout parsing
         return this.parsePlaywrightStdout(execution.stdout, execution.exitCode);
       }
-
     } catch (error) {
       console.error('Error parsing Playwright results:', error);
       throw new Error(`Failed to parse Playwright results: ${error.message}`);
@@ -373,7 +377,7 @@ export class PlaywrightIntegration {
       duration: jsonResult.duration || 0,
       success: stats.failed === 0,
       suites: jsonResult.suites || [],
-      config: jsonResult.config || {}
+      config: jsonResult.config || {},
     };
   }
 
@@ -419,7 +423,7 @@ export class PlaywrightIntegration {
       skipped,
       duration,
       success: failed === 0,
-      rawOutput: stdout
+      rawOutput: stdout,
     };
   }
 
@@ -439,14 +443,13 @@ export class PlaywrightIntegration {
         // Extract basic performance data from stdout
         return this.extractBasicPerformanceMetrics(execution.stdout);
       }
-
     } catch (error) {
       console.warn('Could not extract performance metrics:', error.message);
       return {
         averageLoadTime: 0,
         averageResponseTime: 0,
         largestContentfulPaint: 0,
-        cumulativeLayoutShift: 0
+        cumulativeLayoutShift: 0,
       };
     }
   }
@@ -459,13 +462,13 @@ export class PlaywrightIntegration {
       averageLoadTime: 0,
       averageResponseTime: 0,
       largestContentfulPaint: 0,
-      cumulativeLayoutShift: 0
+      cumulativeLayoutShift: 0,
     };
 
     // Look for timing information in output
     const loadTimeMatch = stdout.match(/Load time: ([\d.]+)ms/g);
     if (loadTimeMatch) {
-      const loadTimes = loadTimeMatch.map(match => parseFloat(match.match(/([\d.]+)/)[1]));
+      const loadTimes = loadTimeMatch.map((match) => parseFloat(match.match(/([\d.]+)/)[1]));
       metrics.averageLoadTime = loadTimes.reduce((sum, time) => sum + time, 0) / loadTimes.length;
     }
 
@@ -487,7 +490,6 @@ export class PlaywrightIntegration {
       } catch (fileError) {
         return { violations: 0, passes: 0, wcagLevel: 'unknown', score: 0 };
       }
-
     } catch (error) {
       console.warn('Could not extract accessibility results:', error.message);
       return { violations: 0, passes: 0, wcagLevel: 'unknown', score: 0 };
@@ -502,7 +504,7 @@ export class PlaywrightIntegration {
       violations: a11yResult.violations?.length || 0,
       passes: a11yResult.passes?.length || 0,
       wcagLevel: a11yResult.testEnvironment?.wcagLevel || 'AA',
-      score: this.calculateAccessibilityScore(a11yResult)
+      score: this.calculateAccessibilityScore(a11yResult),
     };
   }
 
@@ -524,7 +526,7 @@ export class PlaywrightIntegration {
     const artifacts = {
       screenshots: [],
       videos: [],
-      traces: []
+      traces: [],
     };
 
     try {
@@ -544,25 +546,24 @@ export class PlaywrightIntegration {
             path: filePath,
             filename: file,
             size: stats.size,
-            timestamp: stats.mtime
+            timestamp: stats.mtime,
           });
         } else if (file.endsWith('.webm') || file.endsWith('.mp4')) {
           artifacts.videos.push({
             path: filePath,
             filename: file,
             size: stats.size,
-            timestamp: stats.mtime
+            timestamp: stats.mtime,
           });
         } else if (file.endsWith('.zip') && file.includes('trace')) {
           artifacts.traces.push({
             path: filePath,
             filename: file,
             size: stats.size,
-            timestamp: stats.mtime
+            timestamp: stats.mtime,
           });
         }
       }
-
     } catch (error) {
       console.warn('Could not process test artifacts:', error.message);
     }
@@ -588,7 +589,7 @@ export class PlaywrightIntegration {
           total: validationData.parsedResults.total,
           passed: validationData.parsedResults.passed,
           failed: validationData.parsedResults.failed,
-          success: validationData.parsedResults.success
+          success: validationData.parsedResults.success,
         },
         performance: validationData.performanceMetrics,
         accessibility: validationData.accessibilityResults,
@@ -596,10 +597,10 @@ export class PlaywrightIntegration {
         artifactCount: {
           screenshots: validationData.mediaArtifacts.screenshots.length,
           videos: validationData.mediaArtifacts.videos.length,
-          traces: validationData.mediaArtifacts.traces.length
+          traces: validationData.mediaArtifacts.traces.length,
         },
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -611,15 +612,14 @@ export class PlaywrightIntegration {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -635,10 +635,16 @@ export class PlaywrightIntegration {
 
     return Array.from({ length: validatorCount }, (_, i) => ({
       id: `playwright-validator-${i}`,
-      specialization: ['browser_automation', 'performance_validation', 'accessibility_validation', 'artifact_verification', 'e2e_integrity'][i % 5],
-      reputation: 0.85 + (Math.random() * 0.15),
+      specialization: [
+        'browser_automation',
+        'performance_validation',
+        'accessibility_validation',
+        'artifact_verification',
+        'e2e_integrity',
+      ][i % 5],
+      reputation: 0.85 + Math.random() * 0.15,
       riskTolerance: validationData.parsedResults.success ? 'medium' : 'low',
-      browserSpecialization: this.options.browsers[i % this.options.browsers.length]
+      browserSpecialization: this.options.browsers[i % this.options.browsers.length],
     }));
   }
 
@@ -654,7 +660,7 @@ export class PlaywrightIntegration {
       stderr: validationData.testExecution.stderr,
       exitCode: validationData.testExecution.exitCode,
       browsers: this.options.browsers,
-      artifactSizes: validationData.mediaArtifacts.screenshots.map(s => s.size)
+      artifactSizes: validationData.mediaArtifacts.screenshots.map((s) => s.size),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -665,7 +671,7 @@ export class PlaywrightIntegration {
       executionId: data.executionId,
       testResults: data.parsedResults,
       performanceMetrics: data.performanceMetrics,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -676,7 +682,7 @@ export class PlaywrightIntegration {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'playwright-integration',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -736,17 +742,20 @@ export class PlaywrightIntegration {
     const unit = match[2];
 
     switch (unit) {
-      case 'ms': return value;
-      case 's': return value * 1000;
-      case 'm': return value * 60 * 1000;
-      default: return value;
+      case 'ms':
+        return value;
+      case 's':
+        return value * 1000;
+      case 'm':
+        return value * 60 * 1000;
+      default:
+        return value;
     }
   }
 
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -756,7 +765,7 @@ export class PlaywrightIntegration {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -779,16 +788,16 @@ export class PlaywrightIntegration {
 
     if (totalExecutions === 0) return { rate: 0, sample: 0 };
 
-    const falseCompletions = executions.filter(exec =>
-      exec.testResults?.success &&
-      (!exec.performance?.meetsPerformanceThresholds ||
-       exec.accessibility?.violations > 0)
+    const falseCompletions = executions.filter(
+      (exec) =>
+        exec.testResults?.success &&
+        (!exec.performance?.meetsPerformanceThresholds || exec.accessibility?.violations > 0),
     );
 
     return {
       rate: falseCompletions.length / totalExecutions,
       sample: totalExecutions,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

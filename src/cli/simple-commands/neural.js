@@ -9,7 +9,7 @@ import chalk from 'chalk';
 
 export async function neuralCommand(args, flags) {
   const subcommand = args[0];
-  
+
   if (!subcommand) {
     console.log(chalk.cyan('🧠 Claude Flow Neural Module'));
     console.log('\nUsage: claude-flow neural <command> [options]');
@@ -20,7 +20,7 @@ export async function neuralCommand(args, flags) {
     console.log('  --target <dir> Target directory (default: .claude/agents/neural)');
     return;
   }
-  
+
   if (subcommand === 'init') {
     await initNeuralModule(flags);
   } else {
@@ -31,20 +31,20 @@ export async function neuralCommand(args, flags) {
 
 async function initNeuralModule(flags = {}) {
   const targetDir = path.resolve(process.cwd(), flags.target || '.claude/agents/neural');
-  
+
   console.log(chalk.cyan('🧠 Initializing Claude Flow Neural Module...'));
   console.log(chalk.gray(`  Target: ${targetDir}`));
-  
+
   try {
     // Check if exists
-    if (await exists(targetDir) && !flags.force) {
+    if ((await exists(targetDir)) && !flags.force) {
       console.log(chalk.yellow('⚠️  Neural module already exists. Use --force to overwrite.'));
       return;
     }
-    
+
     // Create directory
     await fs.mkdir(targetDir, { recursive: true });
-    
+
     // Create SAFLA neural agent content
     const saflaContent = `---
 name: safla-neural
@@ -120,15 +120,16 @@ mcp__claude-flow__memory_usage {
   ttl: 604800  // 7 days
 }
 \`\`\``;
-    
+
     await fs.writeFile(path.join(targetDir, 'safla-neural.md'), saflaContent);
     console.log(chalk.gray('  ✓ Created safla-neural.md'));
-    
+
     console.log(chalk.green('\n✅ Neural module initialized successfully!'));
     console.log(chalk.cyan('\n📚 Usage:'));
-    console.log(chalk.gray('  • In Claude Code: @agent-safla-neural "Create self-improving system"'));
+    console.log(
+      chalk.gray('  • In Claude Code: @agent-safla-neural "Create self-improving system"'),
+    );
     console.log(chalk.gray('  • View agent: cat .claude/agents/neural/safla-neural.md'));
-    
   } catch (error) {
     console.error(chalk.red('❌ Failed to initialize neural module:'), error.message);
     process.exit(1);

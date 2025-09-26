@@ -11,14 +11,11 @@ export {
   OptimizedHookSystem,
   OptimizedHookExecutor,
   OptimizedMemoryStore,
-  OptimizedHookCache
+  OptimizedHookCache,
 } from './optimized-hook-system.js';
 
 // Performance monitoring and analysis
-export {
-  HookPerformanceMonitor,
-  PERFORMANCE_THRESHOLDS
-} from './hook-performance-monitor.js';
+export { HookPerformanceMonitor, PERFORMANCE_THRESHOLDS } from './hook-performance-monitor.js';
 
 // Comprehensive testing suite
 export { PerformanceTestSuite } from './performance-test-suite.js';
@@ -27,7 +24,7 @@ export { PerformanceTestSuite } from './performance-test-suite.js';
 export {
   PerformanceIntegrationManager,
   createPerformanceIntegration,
-  replaceHookSystem
+  replaceHookSystem,
 } from './performance-integration.js';
 
 /**
@@ -42,7 +39,7 @@ export async function quickPerformanceUpgrade(existingMemoryStore, options = {})
     enableTesting: options.runTests || false,
     performanceTarget: options.targetTime || 100, // ms
     compatibilityTarget: options.compatibilityTarget || 0.95,
-    ...options
+    ...options,
   });
 }
 
@@ -60,12 +57,13 @@ export async function validatePerformanceUpgrade(manager) {
     success: results.success,
     performanceTargetMet: results.testResults.performanceMetrics.summary.targetMet,
     compatibilityAchieved: results.testResults.performanceMetrics.summary.compatibilityRate >= 0.95,
-    memoryPersistenceFixed: results.testResults.performanceMetrics.summary.memoryPersistenceFailures === 0,
+    memoryPersistenceFixed:
+      results.testResults.performanceMetrics.summary.memoryPersistenceFailures === 0,
     overallUpgradeSuccess:
       results.testResults.performanceMetrics.summary.targetMet &&
       results.testResults.performanceMetrics.summary.compatibilityRate >= 0.95 &&
       results.testResults.performanceMetrics.summary.memoryPersistenceFailures === 0,
-    report: results
+    report: results,
   };
 }
 
@@ -83,7 +81,7 @@ export const PHASE3_REMEDIATION_CONFIG = {
   batchSize: 50, // Optimize batch processing
   batchDelay: 10, // ms - Minimize batch delay
   connectionPooling: true,
-  parallelExecution: true
+  parallelExecution: true,
 };
 
 /**
@@ -93,16 +91,13 @@ export const VERSION = '1.0.0-phase3-remediation';
 export const REMEDIATION_TARGET = {
   description: 'Reduce hook execution time from 1,186ms to <100ms',
   improvementRequired: '91.6%',
-  secondaryTargets: [
-    'Fix memory persistence failures',
-    'Achieve 95% hook compatibility rate'
-  ],
+  secondaryTargets: ['Fix memory persistence failures', 'Achieve 95% hook compatibility rate'],
   optimizations: [
     'Connection pooling and statement reuse',
     'Memory-based caching layer',
     'Parallel execution where safe',
     'Reduced I/O operations',
     'Optimized serialization',
-    'Connection lifecycle management'
-  ]
+    'Connection lifecycle management',
+  ],
 };

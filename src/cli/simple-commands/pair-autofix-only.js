@@ -33,19 +33,19 @@ class AutoFixPairSession {
   async start() {
     await this.saveSession();
     this.showWelcome();
-    
+
     if (this.verify && this.autoFix) {
       console.log('\n🔄 Auto-Fix Mode Enabled');
       console.log('  • Will automatically fix issues until threshold is met');
       console.log(`  • Maximum iterations: ${this.maxIterations}`);
       console.log(`  • Target threshold: ${this.threshold}`);
-      
+
       // Start the recursive fix loop
       await this.recursiveFixLoop();
     } else if (this.verify) {
       await this.runVerification();
     }
-    
+
     await this.startInteractiveMode();
   }
 
@@ -55,45 +55,45 @@ class AutoFixPairSession {
   async recursiveFixLoop() {
     console.log('\n🚀 Starting Recursive Auto-Fix Loop...');
     console.log('━'.repeat(50));
-    
+
     let score = 0;
     this.currentIteration = 0;
-    
+
     while (score < this.threshold && this.currentIteration < this.maxIterations) {
       this.currentIteration++;
       console.log(`\n📍 Iteration ${this.currentIteration}/${this.maxIterations}`);
-      
+
       // Step 1: Run verification
       const verificationResult = await this.runVerification();
       score = verificationResult.score;
-      
+
       if (score >= this.threshold) {
         console.log(`\n✨ Threshold met! Score: ${score.toFixed(2)} >= ${this.threshold}`);
         break;
       }
-      
+
       // Step 2: Identify issues
       const issues = this.identifyIssues(verificationResult);
       console.log(`\n🔍 Issues found: ${issues.length}`);
-      issues.forEach(issue => console.log(`  • ${issue.type}: ${issue.description}`));
-      
+      issues.forEach((issue) => console.log(`  • ${issue.type}: ${issue.description}`));
+
       // Step 3: Create fix chain
       if (issues.length > 0) {
         console.log('\n🔗 Creating stream-chain to fix issues...');
         await this.createFixChain(issues);
       }
-      
+
       // Step 4: Wait a bit before next iteration
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-    
+
     if (score < this.threshold) {
       console.log(`\n⚠️ Max iterations reached. Final score: ${score.toFixed(2)}`);
       console.log('💡 Manual intervention may be required.');
     } else {
       console.log(`\n🎉 Success! All issues fixed. Final score: ${score.toFixed(2)}`);
     }
-    
+
     // Show fix history
     this.showFixHistory();
   }
@@ -103,10 +103,10 @@ class AutoFixPairSession {
    */
   async createFixChain(issues) {
     const chains = [];
-    
+
     for (const issue of issues) {
       let chainCommand = null;
-      
+
       switch (issue.type) {
         case 'lint':
           chainCommand = this.createLintFixChain();
@@ -121,23 +121,23 @@ class AutoFixPairSession {
           chainCommand = this.createTestFixChain();
           break;
       }
-      
+
       if (chainCommand) {
         chains.push(chainCommand);
       }
     }
-    
+
     // Execute fix chains
     for (const chain of chains) {
       console.log(`  🔧 Executing: ${chain.description}`);
       await this.executeChain(chain);
-      
+
       // Record fix attempt
       this.fixHistory.push({
         iteration: this.currentIteration,
         type: chain.type,
         command: chain.command,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
   }
@@ -151,7 +151,7 @@ class AutoFixPairSession {
       description: 'Auto-fix linting issues',
       command: async () => {
         console.log('    Running: npm run lint --fix');
-        
+
         // First, try auto-fix
         try {
           await execAsync('npm run lint -- --fix 2>&1 || true');
@@ -159,14 +159,14 @@ class AutoFixPairSession {
         } catch (error) {
           console.log('    ⚠️ Some linting issues require manual fixes');
         }
-        
+
         // If complex issues remain, use Claude stream chain
         const { stdout: lintOutput } = await execAsync('npm run lint 2>&1 || true');
         if (lintOutput.includes('error')) {
           console.log('    🤖 Using Claude to fix remaining issues...');
           await this.executeClaudeFixChain('lint', lintOutput);
         }
-      }
+      },
     };
   }
 
@@ -179,15 +179,15 @@ class AutoFixPairSession {
       description: 'Fix TypeScript errors',
       command: async () => {
         console.log('    Analyzing TypeScript errors...');
-        
+
         // Get type errors
         const { stdout: typeErrors } = await execAsync('npm run typecheck 2>&1 || true');
-        
+
         if (typeErrors.includes('error')) {
           console.log('    🤖 Using Claude to fix type errors...');
           await this.executeClaudeFixChain('typescript', typeErrors);
         }
-      }
+      },
     };
   }
 
@@ -200,14 +200,14 @@ class AutoFixPairSession {
       description: 'Fix build errors',
       command: async () => {
         console.log('    Analyzing build errors...');
-        
+
         const { stdout: buildErrors } = await execAsync('npm run build 2>&1 || true');
-        
+
         if (buildErrors.includes('error')) {
           console.log('    🤖 Using Claude to fix build errors...');
           await this.executeClaudeFixChain('build', buildErrors);
         }
-      }
+      },
     };
   }
 
@@ -220,14 +220,14 @@ class AutoFixPairSession {
       description: 'Fix failing tests',
       command: async () => {
         console.log('    Analyzing test failures...');
-        
+
         const { stdout: testOutput } = await execAsync('npm test 2>&1 || true');
-        
+
         if (testOutput.includes('fail')) {
           console.log('    🤖 Using Claude to fix test failures...');
           await this.executeClaudeFixChain('test', testOutput);
         }
-      }
+      },
     };
   }
 
@@ -239,19 +239,15 @@ class AutoFixPairSession {
       lint: `Fix these ESLint errors. Output only the corrected code:\n\n${errorOutput}`,
       typescript: `Fix these TypeScript errors. Output only the corrected code:\n\n${errorOutput}`,
       build: `Fix these build errors. Output only the corrected code:\n\n${errorOutput}`,
-      test: `Fix these test failures. Output only the corrected code:\n\n${errorOutput}`
+      test: `Fix these test failures. Output only the corrected code:\n\n${errorOutput}`,
     };
 
     return new Promise((resolve, reject) => {
       // Create stream chain using Claude
-      const claude = spawn('claude', [
-        '-p',
-        '--output-format', 'stream-json',
-        prompts[type]
-      ]);
+      const claude = spawn('claude', ['-p', '--output-format', 'stream-json', prompts[type]]);
 
       let output = '';
-      
+
       claude.stdout.on('data', (data) => {
         output += data.toString();
       });
@@ -280,16 +276,16 @@ class AutoFixPairSession {
     try {
       // Extract content from stream-json output
       const fixes = this.extractFixesFromStream(streamOutput);
-      
+
       if (fixes && fixes.length > 0) {
         console.log(`    📝 Applying ${fixes.length} fixes...`);
-        
+
         // Apply each fix (simplified - in production would need file mapping)
         for (const fix of fixes) {
           // This is simplified - real implementation would parse and apply fixes
           console.log(`      • Fixed: ${fix.file || type}`);
         }
-        
+
         console.log('    ✅ Fixes applied successfully');
       }
     } catch (error) {
@@ -302,12 +298,12 @@ class AutoFixPairSession {
    */
   extractFixesFromStream(streamOutput) {
     const fixes = [];
-    const lines = streamOutput.split('\n').filter(line => line.trim());
-    
+    const lines = streamOutput.split('\n').filter((line) => line.trim());
+
     for (const line of lines) {
       try {
         const json = JSON.parse(line);
-        
+
         // Look for code fixes in the stream
         if (json.type === 'message' && json.message && json.message.content) {
           for (const item of json.message.content) {
@@ -317,7 +313,7 @@ class AutoFixPairSession {
               if (codeMatch) {
                 fixes.push({
                   type: 'code',
-                  content: codeMatch[0].replace(/```[\w]*\n|```/g, '')
+                  content: codeMatch[0].replace(/```[\w]*\n|```/g, ''),
                 });
               }
             }
@@ -327,7 +323,7 @@ class AutoFixPairSession {
         // Skip non-JSON lines
       }
     }
-    
+
     return fixes;
   }
 
@@ -347,19 +343,19 @@ class AutoFixPairSession {
    */
   identifyIssues(verificationResult) {
     const issues = [];
-    
+
     if (verificationResult.results) {
       for (const check of verificationResult.results) {
         if (check.score < 0.8) {
           issues.push({
             type: check.name.toLowerCase().replace(' check', '').replace(' ', ''),
             description: `Score: ${check.score.toFixed(2)}`,
-            severity: check.score < 0.5 ? 'high' : 'medium'
+            severity: check.score < 0.5 ? 'high' : 'medium',
           });
         }
       }
     }
-    
+
     return issues;
   }
 
@@ -368,55 +364,55 @@ class AutoFixPairSession {
    */
   async runVerification() {
     console.log('\n🔍 Running verification check...');
-    
+
     const checks = [
-      { 
-        name: 'Type Check', 
+      {
+        name: 'Type Check',
         command: 'npm run typecheck 2>&1 || true',
-        weight: 0.4
+        weight: 0.4,
       },
-      { 
-        name: 'Linting', 
+      {
+        name: 'Linting',
         command: 'npm run lint 2>&1 || true',
-        weight: 0.3
+        weight: 0.3,
       },
-      { 
-        name: 'Build', 
+      {
+        name: 'Build',
         command: 'npm run build 2>&1 || true',
-        weight: 0.3
-      }
+        weight: 0.3,
+      },
     ];
-    
+
     const results = [];
     let totalScore = 0;
     let totalWeight = 0;
-    
+
     for (const check of checks) {
       try {
         const { stdout, stderr } = await execAsync(check.command);
         const output = stdout + stderr;
-        
+
         let score = 1.0;
         if (output.toLowerCase().includes('error')) {
           const errorCount = (output.match(/error/gi) || []).length;
-          score = Math.max(0.2, 1.0 - (errorCount * 0.1));
+          score = Math.max(0.2, 1.0 - errorCount * 0.1);
         } else if (output.toLowerCase().includes('warning')) {
           const warningCount = (output.match(/warning/gi) || []).length;
-          score = Math.max(0.7, 1.0 - (warningCount * 0.05));
+          score = Math.max(0.7, 1.0 - warningCount * 0.05);
         }
-        
+
         totalScore += score * check.weight;
         totalWeight += check.weight;
-        
+
         const icon = score >= 0.8 ? '✅' : score >= 0.5 ? '⚠️' : '❌';
         console.log(`  ${icon} ${check.name}: ${score.toFixed(2)}`);
-        
-        results.push({ 
-          name: check.name, 
-          score, 
+
+        results.push({
+          name: check.name,
+          score,
           output: output.slice(0, 200),
           errors: (output.match(/error/gi) || []).length,
-          warnings: (output.match(/warning/gi) || []).length
+          warnings: (output.match(/warning/gi) || []).length,
         });
       } catch (error) {
         console.log(`  ❌ ${check.name}: 0.00 (failed)`);
@@ -424,20 +420,20 @@ class AutoFixPairSession {
         totalWeight += check.weight;
       }
     }
-    
+
     const averageScore = totalWeight > 0 ? totalScore / totalWeight : 0;
-    
+
     console.log(`\n📊 Verification Score: ${averageScore.toFixed(2)}/${this.threshold}`);
-    
+
     const verificationResult = {
       score: averageScore,
       results,
       timestamp: new Date(),
-      iteration: this.currentIteration
+      iteration: this.currentIteration,
     };
-    
+
     this.verificationScores.push(verificationResult);
-    
+
     return verificationResult;
   }
 
@@ -448,11 +444,13 @@ class AutoFixPairSession {
     if (this.fixHistory.length > 0) {
       console.log('\n📋 Fix History:');
       console.log('━'.repeat(50));
-      
+
       for (const fix of this.fixHistory) {
-        console.log(`  Iteration ${fix.iteration}: Fixed ${fix.type} at ${fix.timestamp.toLocaleTimeString()}`);
+        console.log(
+          `  Iteration ${fix.iteration}: Fixed ${fix.type} at ${fix.timestamp.toLocaleTimeString()}`,
+        );
       }
-      
+
       console.log('━'.repeat(50));
       console.log(`  Total fixes applied: ${this.fixHistory.length}`);
       console.log(`  Final iterations: ${this.currentIteration}`);
@@ -467,14 +465,14 @@ class AutoFixPairSession {
     console.log(`Verification: ${this.verify ? '✅ Enabled' : '❌ Disabled'}`);
     console.log(`Auto-Fix: ${this.autoFix ? '✅ Enabled' : '❌ Disabled'}`);
     console.log(`Testing: ${this.test ? '✅ Enabled' : '❌ Disabled'}`);
-    
+
     if (this.autoFix) {
       console.log(`\n🔄 Recursive Auto-Fix Settings:`);
       console.log(`  • Target threshold: ${this.threshold}`);
       console.log(`  • Max iterations: ${this.maxIterations}`);
       console.log(`  • Stream chaining: Enabled`);
     }
-    
+
     console.log('━'.repeat(50));
   }
 
@@ -482,23 +480,23 @@ class AutoFixPairSession {
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: '\n💻 pair> '
+      prompt: '\n💻 pair> ',
     });
 
     console.log('\n💡 Interactive mode active. Type /help for commands.\n');
-    
+
     this.showCommands();
     this.rl.prompt();
 
     this.rl.on('line', async (line) => {
       const input = line.trim();
-      
+
       if (input.startsWith('/')) {
         await this.handleCommand(input);
       } else if (input) {
         console.log('🤖 AI: Processing your input...');
       }
-      
+
       this.rl.prompt();
     });
 
@@ -522,46 +520,46 @@ class AutoFixPairSession {
 
   async handleCommand(command) {
     const [cmd] = command.split(' ');
-    
+
     switch (cmd) {
       case '/help':
         this.showCommands();
         break;
-        
+
       case '/verify':
         await this.runVerification();
         break;
-        
+
       case '/autofix':
         await this.recursiveFixLoop();
         break;
-        
+
       case '/status':
         await this.showStatus();
         break;
-        
+
       case '/metrics':
         this.showMetrics();
         break;
-        
+
       case '/history':
         this.showFixHistory();
         break;
-        
+
       case '/test':
         await this.runTests();
         break;
-        
+
       case '/commit':
         await this.commitWithVerification();
         break;
-        
+
       case '/end':
       case '/exit':
         await this.end();
         process.exit(0);
         break;
-        
+
       default:
         console.log(`❌ Unknown command: ${cmd}`);
         console.log('💡 Type /help for available commands');
@@ -570,7 +568,7 @@ class AutoFixPairSession {
 
   async showStatus() {
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
-    
+
     console.log('\n📊 Session Status');
     console.log('━'.repeat(40));
     console.log(`Session ID: ${this.sessionId}`);
@@ -578,7 +576,7 @@ class AutoFixPairSession {
     console.log(`Auto-Fix: ${this.autoFix ? 'Enabled' : 'Disabled'}`);
     console.log(`Fix Iterations: ${this.currentIteration}`);
     console.log(`Fixes Applied: ${this.fixHistory.length}`);
-    
+
     if (this.verificationScores.length > 0) {
       const latest = this.verificationScores[this.verificationScores.length - 1];
       console.log(`Latest Score: ${latest.score.toFixed(2)}`);
@@ -588,14 +586,14 @@ class AutoFixPairSession {
   showMetrics() {
     console.log('\n📈 Quality Metrics');
     console.log('━'.repeat(40));
-    
+
     if (this.verificationScores.length > 0) {
       console.log('\nScore Progression:');
       this.verificationScores.forEach((v, i) => {
         const bar = '█'.repeat(Math.floor(v.score * 20));
         console.log(`  ${i + 1}. ${bar} ${v.score.toFixed(2)}`);
       });
-      
+
       // Show improvement
       if (this.verificationScores.length > 1) {
         const first = this.verificationScores[0].score;
@@ -621,7 +619,7 @@ class AutoFixPairSession {
 
   async commitWithVerification() {
     const result = await this.runVerification();
-    
+
     if (result.score >= this.threshold) {
       console.log('✅ Verification passed! Ready to commit.');
     } else {
@@ -632,31 +630,31 @@ class AutoFixPairSession {
 
   async end() {
     console.log('\n🛑 Ending pair programming session...');
-    
+
     if (this.rl) this.rl.close();
-    
+
     this.status = 'completed';
     await this.saveSession();
-    
+
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
     console.log('\n✨ Session Complete!');
     console.log('━'.repeat(40));
     console.log(`Duration: ${duration} minutes`);
     console.log(`Total Fixes: ${this.fixHistory.length}`);
     console.log(`Final Iterations: ${this.currentIteration}`);
-    
+
     if (this.verificationScores.length > 0) {
       const final = this.verificationScores[this.verificationScores.length - 1];
       console.log(`Final Score: ${final.score.toFixed(2)}`);
     }
-    
+
     console.log('\n👋 Thanks for pair programming!\n');
   }
 
   async saveSession() {
     const sessionPath = '.claude-flow/sessions/pair';
     await fs.mkdir(sessionPath, { recursive: true });
-    
+
     const sessionData = {
       id: this.sessionId,
       mode: this.mode,
@@ -667,12 +665,12 @@ class AutoFixPairSession {
       status: this.status,
       verificationScores: this.verificationScores,
       fixHistory: this.fixHistory,
-      iterations: this.currentIteration
+      iterations: this.currentIteration,
     };
-    
+
     await fs.writeFile(
       path.join(sessionPath, `${this.sessionId}.json`),
-      JSON.stringify(sessionData, null, 2)
+      JSON.stringify(sessionData, null, 2),
     );
   }
 }
@@ -693,9 +691,9 @@ async function pairCommand(args = [], flags = {}) {
       autoFix: flags.autofix || flags.fix || false,
       test: flags.test || false,
       threshold: parseFloat(flags.threshold) || 0.95,
-      maxIterations: parseInt(flags.iterations) || 5
+      maxIterations: parseInt(flags.iterations) || 5,
     });
-    
+
     return await session.start();
   }
 

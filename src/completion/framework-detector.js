@@ -28,7 +28,7 @@ export class FrameworkDetector {
           { pattern: '.babelrc*', weight: 0.05, optional: true },
           { pattern: '.eslintrc*', weight: 0.05, optional: true },
           { pattern: 'yarn.lock', weight: 0.07, optional: true },
-          { pattern: 'package-lock.json', weight: 0.1, optional: true }
+          { pattern: 'package-lock.json', weight: 0.1, optional: true },
         ],
         packageJsonKeys: [
           { key: 'main', weight: 0.1 },
@@ -36,14 +36,14 @@ export class FrameworkDetector {
           { key: 'dependencies', weight: 0.15 },
           { key: 'devDependencies.jest', weight: 0.2 },
           { key: 'devDependencies.mocha', weight: 0.15 },
-          { key: 'devDependencies.webpack', weight: 0.1 }
+          { key: 'devDependencies.webpack', weight: 0.1 },
         ],
         contentPatterns: [
           { pattern: /require\s*\(/g, weight: 0.1, fileType: 'js' },
           { pattern: /module\.exports/g, weight: 0.1, fileType: 'js' },
           { pattern: /import.*from/g, weight: 0.1, fileType: 'js' },
-          { pattern: /describe\s*\(/g, weight: 0.15, fileType: 'js', testFile: true }
-        ]
+          { pattern: /describe\s*\(/g, weight: 0.15, fileType: 'js', testFile: true },
+        ],
       },
 
       typescript: {
@@ -53,22 +53,22 @@ export class FrameworkDetector {
           { pattern: '*.tsx', weight: 0.15, multiple: true, optional: true },
           { pattern: 'package.json', weight: 0.15, required: true },
           { pattern: 'tslint.json', weight: 0.05, optional: true },
-          { pattern: '*.d.ts', weight: 0.1, multiple: true, optional: true }
+          { pattern: '*.d.ts', weight: 0.1, multiple: true, optional: true },
         ],
         packageJsonKeys: [
           { key: 'devDependencies.typescript', weight: 0.3 },
           { key: 'devDependencies.@types/node', weight: 0.2 },
           { key: 'devDependencies.ts-jest', weight: 0.2 },
           { key: 'devDependencies.@typescript-eslint/parser', weight: 0.1 },
-          { key: 'scripts.build', weight: 0.1 }
+          { key: 'scripts.build', weight: 0.1 },
         ],
         contentPatterns: [
           { pattern: /interface\s+\w+/g, weight: 0.15, fileType: 'ts' },
           { pattern: /type\s+\w+\s*=/g, weight: 0.15, fileType: 'ts' },
           { pattern: /:\s*\w+(\[\])?(\s*\||\s*&)/g, weight: 0.1, fileType: 'ts' },
           { pattern: /import\s+\{.*\}\s+from/g, weight: 0.1, fileType: 'ts' },
-          { pattern: /export\s+(interface|type|class)/g, weight: 0.1, fileType: 'ts' }
-        ]
+          { pattern: /export\s+(interface|type|class)/g, weight: 0.1, fileType: 'ts' },
+        ],
       },
 
       python: {
@@ -82,7 +82,7 @@ export class FrameworkDetector {
           { pattern: '__pycache__', weight: 0.1, directory: true, optional: true },
           { pattern: 'requirements-*.txt', weight: 0.1, optional: true },
           { pattern: 'environment.yml', weight: 0.08, optional: true },
-          { pattern: 'poetry.lock', weight: 0.12, optional: true }
+          { pattern: 'poetry.lock', weight: 0.12, optional: true },
         ],
         contentPatterns: [
           { pattern: /^import\s+\w+/gm, weight: 0.15, fileType: 'py' },
@@ -90,12 +90,12 @@ export class FrameworkDetector {
           { pattern: /def\s+\w+\s*\(/g, weight: 0.1, fileType: 'py' },
           { pattern: /class\s+\w+/g, weight: 0.1, fileType: 'py' },
           { pattern: /if\s+__name__\s*==\s*['"']__main__['"']/g, weight: 0.1, fileType: 'py' },
-          { pattern: /def\s+test_\w+/g, weight: 0.15, fileType: 'py', testFile: true }
+          { pattern: /def\s+test_\w+/g, weight: 0.15, fileType: 'py', testFile: true },
         ],
         setupPatterns: [
           { pattern: /install_requires\s*=/g, weight: 0.1, fileType: 'py' },
-          { pattern: /setup\s*\(/g, weight: 0.15, fileType: 'py' }
-        ]
+          { pattern: /setup\s*\(/g, weight: 0.15, fileType: 'py' },
+        ],
       },
 
       rust: {
@@ -107,7 +107,7 @@ export class FrameworkDetector {
           { pattern: 'src/lib.rs', weight: 0.1, optional: true },
           { pattern: 'tests/', weight: 0.05, directory: true, optional: true },
           { pattern: 'examples/', weight: 0.03, directory: true, optional: true },
-          { pattern: 'benches/', weight: 0.02, directory: true, optional: true }
+          { pattern: 'benches/', weight: 0.02, directory: true, optional: true },
         ],
         contentPatterns: [
           { pattern: /^use\s+\w+/gm, weight: 0.15, fileType: 'rs' },
@@ -118,15 +118,20 @@ export class FrameworkDetector {
           { pattern: /fn\s+main\s*\(\)/g, weight: 0.05, fileType: 'rs' },
           { pattern: /#\[test\]/g, weight: 0.15, fileType: 'rs', testFile: true },
           { pattern: /#\[cfg\(test\)\]/g, weight: 0.1, fileType: 'rs', testFile: true },
-          { pattern: /assert_eq!|assert!|assert_ne!/g, weight: 0.1, fileType: 'rs', testFile: true }
+          {
+            pattern: /assert_eq!|assert!|assert_ne!/g,
+            weight: 0.1,
+            fileType: 'rs',
+            testFile: true,
+          },
         ],
         cargoPatterns: [
           { pattern: /\[package\]/g, weight: 0.2, fileType: 'toml' },
           { pattern: /\[dependencies\]/g, weight: 0.15, fileType: 'toml' },
           { pattern: /\[dev-dependencies\]/g, weight: 0.1, fileType: 'toml' },
-          { pattern: /edition\s*=\s*["']\d{4}["']/g, weight: 0.1, fileType: 'toml' }
-        ]
-      }
+          { pattern: /edition\s*=\s*["']\d{4}["']/g, weight: 0.1, fileType: 'toml' },
+        ],
+      },
     };
 
     // Enhanced React/Vue/Angular detection
@@ -134,33 +139,38 @@ export class FrameworkDetector {
       react: {
         packageKeys: ['dependencies.react', 'devDependencies.react', 'dependencies.@types/react'],
         files: ['src/App.jsx', 'src/App.tsx', 'public/index.html'],
-        patterns: [/import\s+React/g, /from\s+['"]react['"]/g, /ReactDOM\.render/g, /JSX\.Element/g],
-        weight: 0.3
+        patterns: [
+          /import\s+React/g,
+          /from\s+['"]react['"]/g,
+          /ReactDOM\.render/g,
+          /JSX\.Element/g,
+        ],
+        weight: 0.3,
       },
       vue: {
         packageKeys: ['dependencies.vue', 'devDependencies.vue'],
         files: ['vue.config.js', 'src/App.vue', 'src/main.js'],
         patterns: [/\<template\>/g, /\<script\>/g, /Vue\.createApp/g, /export\s+default\s+{/g],
-        weight: 0.3
+        weight: 0.3,
       },
       angular: {
         packageKeys: ['dependencies.@angular/core', 'devDependencies.@angular/cli'],
         files: ['angular.json', 'src/main.ts', 'src/app/app.module.ts'],
         patterns: [/import.*@angular/g, /@Component/g, /@Injectable/g, /@NgModule/g],
-        weight: 0.3
+        weight: 0.3,
       },
       nextjs: {
         packageKeys: ['dependencies.next', 'devDependencies.next'],
         files: ['next.config.js', 'pages/_app.js', 'pages/index.js'],
         patterns: [/from\s+['"]next/g, /getStaticProps/g, /getServerSideProps/g],
-        weight: 0.25
+        weight: 0.25,
       },
       express: {
         packageKeys: ['dependencies.express', 'devDependencies.express'],
         files: ['server.js', 'app.js', 'index.js'],
         patterns: [/require\(['"]express['"]\)/g, /app\.listen/g, /app\.use/g, /app\.get/g],
-        weight: 0.25
-      }
+        weight: 0.25,
+      },
     };
 
     // Enhanced Python framework detection
@@ -169,20 +179,20 @@ export class FrameworkDetector {
         files: ['manage.py', 'settings.py', 'wsgi.py', 'requirements.txt'],
         patterns: [/from\s+django/g, /INSTALLED_APPS/g, /django\.setup/g, /models\.Model/g],
         packagePatterns: [/django[>=]/g, /Django[>=]/g],
-        weight: 0.3
+        weight: 0.3,
       },
       flask: {
         files: ['app.py', 'wsgi.py', 'requirements.txt'],
         patterns: [/from\s+flask/g, /Flask\(__name__\)/g, /@app\.route/g, /app\.run/g],
         packagePatterns: [/flask[>=]/g, /Flask[>=]/g],
-        weight: 0.3
+        weight: 0.3,
       },
       fastapi: {
         files: ['main.py', 'app.py', 'requirements.txt'],
         patterns: [/from\s+fastapi/g, /FastAPI\(/g, /@app\.(get|post|put|delete)/g],
         packagePatterns: [/fastapi[>=]/g, /uvicorn[>=]/g],
-        weight: 0.25
-      }
+        weight: 0.25,
+      },
     };
 
     // Testing framework patterns
@@ -190,24 +200,24 @@ export class FrameworkDetector {
       jest: {
         packageKeys: ['devDependencies.jest', 'dependencies.jest'],
         files: ['jest.config.js', 'jest.config.json', 'jest.config.ts'],
-        patterns: [/describe\s*\(/g, /test\s*\(/g, /it\s*\(/g, /expect\s*\(/g]
+        patterns: [/describe\s*\(/g, /test\s*\(/g, /it\s*\(/g, /expect\s*\(/g],
       },
       mocha: {
         packageKeys: ['devDependencies.mocha', 'dependencies.mocha'],
         files: ['mocha.opts', '.mocharc.*'],
-        patterns: [/describe\s*\(/g, /it\s*\(/g]
+        patterns: [/describe\s*\(/g, /it\s*\(/g],
       },
       pytest: {
         files: ['pytest.ini', 'pyproject.toml', 'setup.cfg'],
-        patterns: [/def\s+test_\w+/g, /import\s+pytest/g, /@pytest\./g]
+        patterns: [/def\s+test_\w+/g, /import\s+pytest/g, /@pytest\./g],
       },
       unittest: {
-        patterns: [/import\s+unittest/g, /class\s+\w+\(unittest\.TestCase\)/g, /def\s+test\w+/g]
+        patterns: [/import\s+unittest/g, /class\s+\w+\(unittest\.TestCase\)/g, /def\s+test\w+/g],
       },
       cargo_test: {
         files: ['Cargo.toml'],
-        patterns: [/#\[test\]/g, /#\[cfg\(test\)\]/g, /assert_eq!|assert!|assert_ne!/g]
-      }
+        patterns: [/#\[test\]/g, /#\[cfg\(test\)\]/g, /assert_eq!|assert!|assert_ne!/g],
+      },
     };
   }
 
@@ -234,19 +244,19 @@ export class FrameworkDetector {
         javascript: 0,
         typescript: 0,
         python: 0,
-        rust: 0
+        rust: 0,
       },
       evidence: {
         files: {},
         patterns: {},
         packageJson: {},
-        testingFrameworks: []
+        testingFrameworks: [],
       },
       metadata: {
         detectionTime: 0,
         filesAnalyzed: 0,
-        patternsMatched: 0
-      }
+        patternsMatched: 0,
+      },
     };
 
     try {
@@ -284,12 +294,11 @@ export class FrameworkDetector {
         namespace: 'framework-detection',
         metadata: {
           timestamp: new Date().toISOString(),
-          basePath: this.basePath
-        }
+          basePath: this.basePath,
+        },
       });
 
       return results;
-
     } catch (error) {
       console.warn('Framework detection error:', error.message);
       results.error = error.message;
@@ -306,7 +315,7 @@ export class FrameworkDetector {
       javascript: { js: 0, jsx: 0 },
       typescript: { ts: 0, tsx: 0, d: 0 },
       python: { py: 0, pyw: 0, pyi: 0 },
-      rust: { rs: 0 }
+      rust: { rs: 0 },
     };
 
     try {
@@ -350,9 +359,10 @@ export class FrameworkDetector {
         // Check specific files
         for (const [framework, patterns] of Object.entries(this.detectionPatterns)) {
           for (const pattern of patterns.files) {
-            if (this.matchesPattern(basename, pattern.pattern) ||
-                this.matchesPattern(file, pattern.pattern)) {
-
+            if (
+              this.matchesPattern(basename, pattern.pattern) ||
+              this.matchesPattern(file, pattern.pattern)
+            ) {
               results.evidence.files[pattern.pattern] = true;
 
               let weight = pattern.weight;
@@ -368,7 +378,8 @@ export class FrameworkDetector {
 
       // Apply file count bonuses
       const totalJSFiles = fileStats.javascript.js + fileStats.javascript.jsx;
-      const totalTSFiles = fileStats.typescript.ts + fileStats.typescript.tsx + fileStats.typescript.d;
+      const totalTSFiles =
+        fileStats.typescript.ts + fileStats.typescript.tsx + fileStats.typescript.d;
       const totalPYFiles = fileStats.python.py + fileStats.python.pyw + fileStats.python.pyi;
       const totalRSFiles = fileStats.rust.rs;
 
@@ -393,7 +404,6 @@ export class FrameworkDetector {
       }
 
       results.metadata.filesAnalyzed = files.length;
-
     } catch (error) {
       console.warn('File system analysis error:', error.message);
     }
@@ -469,17 +479,15 @@ export class FrameworkDetector {
                 results.evidence.patterns[framework].push({
                   pattern: pattern.pattern.toString(),
                   matches: matches.length,
-                  file: path.basename(file)
+                  file: path.basename(file),
                 });
               }
             }
           }
-
         } catch (fileError) {
           // Skip files that can't be read
         }
       }
-
     } catch (error) {
       console.warn('Content analysis error:', error.message);
     }
@@ -522,7 +530,8 @@ export class FrameworkDetector {
         // Check content patterns in test files
         if (!detected && patterns.patterns) {
           const testFiles = await this.getTestFiles();
-          for (const file of testFiles.slice(0, 5)) { // Limit to 5 files for performance
+          for (const file of testFiles.slice(0, 5)) {
+            // Limit to 5 files for performance
             try {
               const content = await fs.readFile(file, 'utf8');
               for (const pattern of patterns.patterns) {
@@ -541,7 +550,6 @@ export class FrameworkDetector {
         if (detected) {
           results.evidence.testingFrameworks.push(framework);
         }
-
       } catch (error) {
         console.warn(`Testing framework detection error for ${framework}:`, error.message);
       }
@@ -572,7 +580,7 @@ export class FrameworkDetector {
     // Find the framework with the highest score
     const maxScore = Math.max(...Object.values(results.scores));
     const detectedFramework = Object.keys(results.scores).find(
-      framework => results.scores[framework] === maxScore
+      (framework) => results.scores[framework] === maxScore,
     );
 
     results.detected = maxScore > 0.3 ? detectedFramework : 'unknown';
@@ -620,7 +628,10 @@ export class FrameworkDetector {
           const fullPath = path.join(currentDir, entry.name);
 
           // Skip node_modules, .git, and other common directories
-          if (entry.isDirectory() && ['node_modules', '.git', '__pycache__', '.pytest_cache'].includes(entry.name)) {
+          if (
+            entry.isDirectory() &&
+            ['node_modules', '.git', '__pycache__', '.pytest_cache'].includes(entry.name)
+          ) {
             continue;
           }
 
@@ -643,7 +654,7 @@ export class FrameworkDetector {
     const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 2 });
 
     // Filter to relevant file types and limit for performance
-    const relevantFiles = allFiles.filter(file => {
+    const relevantFiles = allFiles.filter((file) => {
       const ext = path.extname(file).toLowerCase();
       return ['.js', '.ts', '.jsx', '.tsx', '.py', '.rs', '.json', '.toml'].includes(ext);
     });
@@ -655,13 +666,15 @@ export class FrameworkDetector {
   async getTestFiles() {
     const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 3 });
 
-    return allFiles.filter(file => {
+    return allFiles.filter((file) => {
       const basename = path.basename(file).toLowerCase();
-      return basename.includes('test') ||
-             basename.includes('spec') ||
-             file.includes('/tests/') ||
-             file.includes('/__tests__/') ||
-             file.includes('/test/');
+      return (
+        basename.includes('test') ||
+        basename.includes('spec') ||
+        file.includes('/tests/') ||
+        file.includes('/__tests__/') ||
+        file.includes('/test/')
+      );
     });
   }
 
@@ -760,10 +773,9 @@ export class FrameworkDetector {
           }
           results.evidence.webFrameworks.push({
             name: framework,
-            confidence: Math.min(1.0, confidence)
+            confidence: Math.min(1.0, confidence),
           });
         }
-
       } catch (error) {
         console.warn(`Web framework detection error for ${framework}:`, error.message);
       }
@@ -831,10 +843,9 @@ export class FrameworkDetector {
           }
           results.evidence.pythonFrameworks.push({
             name: framework,
-            confidence: Math.min(1.0, confidence)
+            confidence: Math.min(1.0, confidence),
           });
         }
-
       } catch (error) {
         console.warn(`Python framework detection error for ${framework}:`, error.message);
       }
@@ -864,8 +875,8 @@ export class FrameworkDetector {
 
     // Web framework bonuses
     if (results.evidence.webFrameworks && results.evidence.webFrameworks.length > 0) {
-      const hasReact = results.evidence.webFrameworks.some(f => f.name === 'react');
-      const hasAngular = results.evidence.webFrameworks.some(f => f.name === 'angular');
+      const hasReact = results.evidence.webFrameworks.some((f) => f.name === 'react');
+      const hasAngular = results.evidence.webFrameworks.some((f) => f.name === 'angular');
 
       if (hasReact && tsFiles > 0) {
         results.scores.typescript += 0.1;
@@ -933,7 +944,7 @@ export class FrameworkDetector {
    */
   async getPythonFiles() {
     const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 3 });
-    return allFiles.filter(file => path.extname(file).toLowerCase() === '.py');
+    return allFiles.filter((file) => path.extname(file).toLowerCase() === '.py');
   }
 
   /**
@@ -941,7 +952,7 @@ export class FrameworkDetector {
    */
   async getRustFiles() {
     const allFiles = await this.getFileList(this.basePath, { recursive: true, maxDepth: 3 });
-    return allFiles.filter(file => path.extname(file).toLowerCase() === '.rs');
+    return allFiles.filter((file) => path.extname(file).toLowerCase() === '.rs');
   }
 
   /**
@@ -968,7 +979,7 @@ export class FrameworkDetector {
             results.evidence.patterns.rust.push({
               pattern: pattern.pattern.toString(),
               matches: matches.length,
-              file: 'Cargo.toml'
+              file: 'Cargo.toml',
             });
           }
         }
@@ -1002,7 +1013,6 @@ export class FrameworkDetector {
         results.evidence.files['Cargo.lock'] = true;
         results.scores.rust += 0.1;
       }
-
     } catch (error) {
       console.warn('Cargo.toml analysis error:', error.message);
     }
@@ -1033,7 +1043,7 @@ export class FrameworkDetector {
     if (evidence.webFrameworks && evidence.webFrameworks.length > 0) {
       strength += 0.15;
       // Bonus for high-confidence web framework detection
-      const highConfidenceFrameworks = evidence.webFrameworks.filter(f => f.confidence > 0.7);
+      const highConfidenceFrameworks = evidence.webFrameworks.filter((f) => f.confidence > 0.7);
       if (highConfidenceFrameworks.length > 0) {
         strength += 0.1;
       }
@@ -1055,7 +1065,12 @@ export class FrameworkDetector {
     }
 
     // Strong configuration files
-    if (evidence.files['tsconfig.json'] || evidence.files['pyproject.toml'] || evidence.files['angular.json'] || evidence.files['Cargo.toml']) {
+    if (
+      evidence.files['tsconfig.json'] ||
+      evidence.files['pyproject.toml'] ||
+      evidence.files['angular.json'] ||
+      evidence.files['Cargo.toml']
+    ) {
       strength += 0.1;
     }
 

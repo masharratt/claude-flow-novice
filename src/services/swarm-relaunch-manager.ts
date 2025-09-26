@@ -6,7 +6,12 @@
 import { EventEmitter } from 'events';
 
 export interface FailureScenario {
-  type: 'agent_unresponsive' | 'task_stalled' | 'quality_degradation' | 'byzantine_attack' | 'network_partition';
+  type:
+    | 'agent_unresponsive'
+    | 'task_stalled'
+    | 'quality_degradation'
+    | 'byzantine_attack'
+    | 'network_partition';
   affectedAgent?: string;
   duration?: number;
   trigger?: string;
@@ -98,7 +103,7 @@ export class SwarmRelaunchManager extends EventEmitter {
     return {
       healthy: issues.length === 0,
       detectedIssues: issues,
-      strategyEffectiveness: this.calculateStrategyEffectiveness()
+      strategyEffectiveness: this.calculateStrategyEffectiveness(),
     };
   }
 
@@ -114,7 +119,7 @@ export class SwarmRelaunchManager extends EventEmitter {
       return {
         success: false,
         relaunchCount: this.relaunchCount,
-        error: 'System in graceful degradation mode'
+        error: 'System in graceful degradation mode',
       };
     }
 
@@ -122,13 +127,13 @@ export class SwarmRelaunchManager extends EventEmitter {
       // Trigger graceful degradation
       await this.handleGracefulDegradation({
         reason: 'relaunch_limit_exceeded',
-        fallbackMode: 'manual_intervention_required'
+        fallbackMode: 'manual_intervention_required',
       });
 
       return {
         success: false,
         relaunchCount: this.relaunchCount,
-        error: 'Maximum relaunch attempts exceeded'
+        error: 'Maximum relaunch attempts exceeded',
       };
     }
 
@@ -138,7 +143,7 @@ export class SwarmRelaunchManager extends EventEmitter {
     // Apply exponential backoff
     const backoffDelay = this.calculateBackoffDelay();
     if (timeSinceLastRelaunch < backoffDelay) {
-      await new Promise(resolve => setTimeout(resolve, backoffDelay - timeSinceLastRelaunch));
+      await new Promise((resolve) => setTimeout(resolve, backoffDelay - timeSinceLastRelaunch));
     }
 
     try {
@@ -162,23 +167,19 @@ export class SwarmRelaunchManager extends EventEmitter {
         relaunchCount: this.relaunchCount,
         backoffDelay,
         appliedStrategy: strategy.name,
-        action: strategy.getLastAction()
+        action: strategy.getLastAction(),
       };
-
     } catch (error) {
       this.emit('relaunch:error', { reason: options.reason, error: error.message });
       return {
         success: false,
         relaunchCount: this.relaunchCount,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
-  async handleGracefulDegradation(options: {
-    reason: string;
-    fallbackMode: string;
-  }): Promise<{
+  async handleGracefulDegradation(options: { reason: string; fallbackMode: string }): Promise<{
     mode: string;
     fallbackActions: string[];
   }> {
@@ -189,7 +190,7 @@ export class SwarmRelaunchManager extends EventEmitter {
       'preserve_critical_data',
       'enable_manual_control',
       'disable_automatic_operations',
-      'activate_read_only_mode'
+      'activate_read_only_mode',
     ];
 
     // Execute fallback actions
@@ -198,12 +199,12 @@ export class SwarmRelaunchManager extends EventEmitter {
     this.emit('system:graceful_degradation', {
       reason: options.reason,
       actions: fallbackActions,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return {
       mode: 'graceful_degradation',
-      fallbackActions
+      fallbackActions,
     };
   }
 
@@ -222,7 +223,7 @@ export class SwarmRelaunchManager extends EventEmitter {
       case 'notify_human_operator':
         this.emit('operator:notification', {
           level: 'critical',
-          message: 'Manual intervention required - system in degraded mode'
+          message: 'Manual intervention required - system in degraded mode',
         });
         break;
       case 'preserve_critical_data':
@@ -266,7 +267,7 @@ export class SwarmRelaunchManager extends EventEmitter {
 
   private calculateStrategyEffectiveness(): number {
     // Mock calculation of strategy effectiveness
-    return Math.max(0.8, 1.0 - (this.relaunchCount * 0.1));
+    return Math.max(0.8, 1.0 - this.relaunchCount * 0.1);
   }
 
   private async checkAgentHealth(): Promise<{ healthy: boolean; issues: string[] }> {
@@ -280,7 +281,7 @@ export class SwarmRelaunchManager extends EventEmitter {
 
     return {
       healthy: issues.length === 0,
-      issues
+      issues,
     };
   }
 
@@ -295,7 +296,7 @@ export class SwarmRelaunchManager extends EventEmitter {
 
     return {
       healthy: issues.length === 0,
-      issues
+      issues,
     };
   }
 
@@ -321,9 +322,9 @@ export class SwarmRelaunchManager extends EventEmitter {
     return {
       totalRelaunches: this.relaunchCount,
       relaunchReasons: {
-        performance_degradation: this.relaunchCount
+        performance_degradation: this.relaunchCount,
       },
-      averageBackoffDelay: this.calculateBackoffDelay()
+      averageBackoffDelay: this.calculateBackoffDelay(),
     };
   }
 
@@ -356,7 +357,7 @@ class AgentRestartStrategy extends RelaunchStrategy {
     this.lastAction = 'individual_agent_restart';
 
     // Simulate agent restart
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return Math.random() > 0.2; // 80% success rate
   }
@@ -369,7 +370,7 @@ class FullRelaunchStrategy extends RelaunchStrategy {
     this.lastAction = 'complete_swarm_restart';
 
     // Simulate full system restart
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     return Math.random() > 0.1; // 90% success rate
   }
@@ -382,7 +383,7 @@ class TopologyReconfigurationStrategy extends RelaunchStrategy {
     this.lastAction = 'topology_optimization';
 
     // Simulate topology reconfiguration
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     return Math.random() > 0.15; // 85% success rate
   }
@@ -395,7 +396,7 @@ class AdaptiveRelaunchStrategy extends RelaunchStrategy {
     this.lastAction = 'performance_optimization';
 
     // Simulate adaptive optimization
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     return Math.random() > 0.25; // 75% success rate
   }
@@ -408,7 +409,7 @@ class ByzantineRecoveryStrategy extends RelaunchStrategy {
     this.lastAction = 'byzantine_agent_isolation';
 
     // Simulate Byzantine agent isolation and recovery
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    await new Promise((resolve) => setTimeout(resolve, 2500));
 
     return Math.random() > 0.3; // 70% success rate
   }
@@ -421,7 +422,7 @@ class NetworkPartitionRecoveryStrategy extends RelaunchStrategy {
     this.lastAction = 'network_topology_repair';
 
     // Simulate network partition recovery
-    await new Promise(resolve => setTimeout(resolve, 4000));
+    await new Promise((resolve) => setTimeout(resolve, 4000));
 
     return Math.random() > 0.2; // 80% success rate
   }
@@ -434,7 +435,7 @@ class ByzantineFailureDetector {
   async recordFailure(scenario: FailureScenario): Promise<void> {
     this.failureHistory.push({
       ...scenario,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     } as any);
 
     // Maintain history size
@@ -449,7 +450,9 @@ class ByzantineFailureDetector {
 
     // Check for rapid successive failures from same source
     if (scenario.affectedAgent) {
-      const agentFailures = recentFailures.filter(f => f.affectedAgent === scenario.affectedAgent);
+      const agentFailures = recentFailures.filter(
+        (f) => f.affectedAgent === scenario.affectedAgent,
+      );
       if (agentFailures.length > 3) {
         return true;
       }
@@ -458,9 +461,8 @@ class ByzantineFailureDetector {
     // Check for coordinated attacks
     const timeWindow = 60000; // 1 minute
     const currentTime = Date.now();
-    const recentCoordinated = recentFailures.filter(f =>
-      (f.timestamp || 0) > currentTime - timeWindow &&
-      f.type === scenario.type
+    const recentCoordinated = recentFailures.filter(
+      (f) => (f.timestamp || 0) > currentTime - timeWindow && f.type === scenario.type,
     );
 
     if (recentCoordinated.length > 5) {
@@ -476,12 +478,12 @@ class ByzantineFailureDetector {
     // Check for Byzantine attack patterns
     const byzantineIndicators = this.detectByzantineIndicators();
     if (byzantineIndicators.length > 0) {
-      issues.push(...byzantineIndicators.map(i => `Byzantine indicator: ${i}`));
+      issues.push(...byzantineIndicators.map((i) => `Byzantine indicator: ${i}`));
     }
 
     return {
       healthy: issues.length === 0,
-      issues
+      issues,
     };
   }
 
@@ -492,8 +494,8 @@ class ByzantineFailureDetector {
     const recentFailures = this.failureHistory.slice(-20);
 
     // Rapid failure rate indicator
-    const rapidFailures = recentFailures.filter(f =>
-      (f.timestamp || 0) > Date.now() - 300000 // Last 5 minutes
+    const rapidFailures = recentFailures.filter(
+      (f) => (f.timestamp || 0) > Date.now() - 300000, // Last 5 minutes
     );
 
     if (rapidFailures.length > 10) {
@@ -509,9 +511,12 @@ class ByzantineFailureDetector {
     return indicators;
   }
 
-  private analyzeTimingPatterns(failures: FailureScenario[]): { suspicious: boolean; pattern?: string } {
+  private analyzeTimingPatterns(failures: FailureScenario[]): {
+    suspicious: boolean;
+    pattern?: string;
+  } {
     // Simple timing pattern analysis
-    const timestamps = failures.map(f => f.timestamp || 0).filter(t => t > 0);
+    const timestamps = failures.map((f) => f.timestamp || 0).filter((t) => t > 0);
 
     if (timestamps.length < 3) {
       return { suspicious: false };
@@ -524,7 +529,9 @@ class ByzantineFailureDetector {
     }
 
     const avgInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length;
-    const variance = intervals.reduce((sum, interval) => sum + Math.pow(interval - avgInterval, 2), 0) / intervals.length;
+    const variance =
+      intervals.reduce((sum, interval) => sum + Math.pow(interval - avgInterval, 2), 0) /
+      intervals.length;
 
     // Low variance suggests coordinated timing
     if (variance < avgInterval * 0.1) {

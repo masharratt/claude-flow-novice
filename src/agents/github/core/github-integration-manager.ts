@@ -10,7 +10,7 @@ import {
   GitHubError,
   HookContext,
   AgentCapabilities,
-  MultiRepoOperation
+  MultiRepoOperation,
 } from '../types';
 import { GitHubClient, githubConnectionPool } from '../utils/github-client';
 
@@ -28,7 +28,7 @@ export class GitHubIntegrationManager {
       issues: false,
       workflows: true,
       releases: false,
-      multi_repo: true
+      multi_repo: true,
     };
   }
 
@@ -44,29 +44,22 @@ export class GitHubIntegrationManager {
       agent_id: this.agentId,
       operation: 'analyze_repository',
       repository,
-      metadata: { analysis_type: 'comprehensive' }
+      metadata: { analysis_type: 'comprehensive' },
     };
 
     await this.executePreHook(context);
 
     try {
-      const [
-        repoData,
-        languages,
-        topics,
-        branches,
-        contributors,
-        commits,
-        dependencies
-      ] = await Promise.all([
-        this.client.request(`/repos/${repository.owner}/${repository.repo}`),
-        this.client.request(`/repos/${repository.owner}/${repository.repo}/languages`),
-        this.client.request(`/repos/${repository.owner}/${repository.repo}/topics`),
-        this.client.request(`/repos/${repository.owner}/${repository.repo}/branches`),
-        this.client.request(`/repos/${repository.owner}/${repository.repo}/contributors`),
-        this.client.request(`/repos/${repository.owner}/${repository.repo}/commits?per_page=100`),
-        this.analyzeDependencies(repository)
-      ]);
+      const [repoData, languages, topics, branches, contributors, commits, dependencies] =
+        await Promise.all([
+          this.client.request(`/repos/${repository.owner}/${repository.repo}`),
+          this.client.request(`/repos/${repository.owner}/${repository.repo}/languages`),
+          this.client.request(`/repos/${repository.owner}/${repository.repo}/topics`),
+          this.client.request(`/repos/${repository.owner}/${repository.repo}/branches`),
+          this.client.request(`/repos/${repository.owner}/${repository.repo}/contributors`),
+          this.client.request(`/repos/${repository.owner}/${repository.repo}/commits?per_page=100`),
+          this.analyzeDependencies(repository),
+        ]);
 
       const analysis = {
         repository: repoData,
@@ -74,12 +67,12 @@ export class GitHubIntegrationManager {
           languages,
           primary_language: repoData.language,
           size: repoData.size,
-          structure: await this.analyzeStructure(repository)
+          structure: await this.analyzeStructure(repository),
         },
         collaboration: {
           contributors_count: contributors.length,
           recent_commits: commits.length,
-          active_branches: branches.length
+          active_branches: branches.length,
         },
         dependencies,
         topics: topics.names,
@@ -88,14 +81,14 @@ export class GitHubIntegrationManager {
           contributors: contributors.length,
           issues: repoData.open_issues_count,
           stars: repoData.stargazers_count,
-          forks: repoData.forks_count
+          forks: repoData.forks_count,
         }),
-        recommendations: this.generateRecommendations(repoData, languages)
+        recommendations: this.generateRecommendations(repoData, languages),
       };
 
       await this.executePostHook({
         ...context,
-        metadata: { ...context.metadata, analysis_results: analysis }
+        metadata: { ...context.metadata, analysis_results: analysis },
       });
 
       return analysis;
@@ -110,7 +103,7 @@ export class GitHubIntegrationManager {
   async getRepositoryStructure(repository: Repository, path: string = ''): Promise<any> {
     try {
       const response = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/contents/${path}`
+        `/repos/${repository.owner}/${repository.repo}/contents/${path}`,
       );
 
       if (Array.isArray(response)) {
@@ -119,7 +112,7 @@ export class GitHubIntegrationManager {
           if (item.type === 'dir') {
             structure.push({
               ...item,
-              children: await this.getRepositoryStructure(repository, item.path)
+              children: await this.getRepositoryStructure(repository, item.path),
             });
           } else {
             structure.push(item);
@@ -142,20 +135,17 @@ export class GitHubIntegrationManager {
       agent_id: this.agentId,
       operation: 'configure_repository',
       repository,
-      metadata: { config_changes: config }
+      metadata: { config_changes: config },
     };
 
     await this.executePreHook(context);
 
     try {
-      const updates = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify(config),
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      const updates = await this.client.request(`/repos/${repository.owner}/${repository.repo}`, {
+        method: 'PATCH',
+        body: JSON.stringify(config),
+        headers: { 'Content-Type': 'application/json' },
+      });
 
       await this.executePostHook(context);
       return updates;
@@ -174,7 +164,7 @@ export class GitHubIntegrationManager {
   async getWorkflows(repository: Repository): Promise<WorkflowRun[]> {
     try {
       const workflows = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/actions/workflows`
+        `/repos/${repository.owner}/${repository.repo}/actions/workflows`,
       );
 
       return workflows.workflows.map((workflow: any) => ({
@@ -184,7 +174,7 @@ export class GitHubIntegrationManager {
         state: workflow.state,
         created_at: workflow.created_at,
         updated_at: workflow.updated_at,
-        repository
+        repository,
       }));
     } catch (error) {
       throw this.handleError(error, 'get_workflows', repository);
@@ -198,13 +188,13 @@ export class GitHubIntegrationManager {
     repository: Repository,
     workflowId: number,
     ref: string = 'main',
-    inputs: any = {}
+    inputs: any = {},
   ): Promise<any> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'trigger_workflow',
       repository,
-      metadata: { workflow_id: workflowId, ref, inputs }
+      metadata: { workflow_id: workflowId, ref, inputs },
     };
 
     await this.executePreHook(context);
@@ -215,8 +205,8 @@ export class GitHubIntegrationManager {
         {
           method: 'POST',
           body: JSON.stringify({ ref, inputs }),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       await this.executePostHook(context);
@@ -232,7 +222,7 @@ export class GitHubIntegrationManager {
   async monitorWorkflows(repository: Repository, limit: number = 50): Promise<WorkflowRun[]> {
     try {
       const runs = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/actions/runs?per_page=${limit}`
+        `/repos/${repository.owner}/${repository.repo}/actions/runs?per_page=${limit}`,
       );
 
       return runs.workflow_runs.map((run: any) => ({
@@ -242,7 +232,7 @@ export class GitHubIntegrationManager {
         conclusion: run.conclusion,
         created_at: run.created_at,
         updated_at: run.updated_at,
-        repository
+        repository,
       }));
     } catch (error) {
       throw this.handleError(error, 'monitor_workflows', repository);
@@ -263,8 +253,8 @@ export class GitHubIntegrationManager {
       metadata: {
         operation_type: operation.operation,
         repository_count: operation.repositories.length,
-        parallel: operation.parallel
-      }
+        parallel: operation.parallel,
+      },
     };
 
     await this.executePreHook(context);
@@ -303,7 +293,7 @@ export class GitHubIntegrationManager {
 
       await this.executePostHook({
         ...context,
-        metadata: { ...context.metadata, results_count: results.length }
+        metadata: { ...context.metadata, results_count: results.length },
       });
 
       return results;
@@ -315,15 +305,12 @@ export class GitHubIntegrationManager {
   /**
    * Sync configurations across multiple repositories
    */
-  async syncRepositoryConfigurations(
-    repositories: Repository[],
-    template: any
-  ): Promise<any[]> {
+  async syncRepositoryConfigurations(repositories: Repository[], template: any): Promise<any[]> {
     const operation: MultiRepoOperation = {
       repositories,
       operation: 'sync_config',
       parallel: true,
-      continue_on_error: true
+      continue_on_error: true,
     };
 
     const results = [];
@@ -352,7 +339,7 @@ export class GitHubIntegrationManager {
         this.analyzeStructure(repository),
         this.analyzeDependencies(repository),
         this.getWorkflows(repository),
-        this.analyzeSecurityFeatures(repository)
+        this.analyzeSecurityFeatures(repository),
       ]);
 
       const architecture = {
@@ -360,16 +347,16 @@ export class GitHubIntegrationManager {
         dependencies,
         ci_cd: {
           workflows_count: workflows.length,
-          automated_testing: workflows.some(w => w.name.includes('test')),
-          automated_deployment: workflows.some(w => w.name.includes('deploy'))
+          automated_testing: workflows.some((w) => w.name.includes('test')),
+          automated_deployment: workflows.some((w) => w.name.includes('deploy')),
         },
         security,
         recommendations: this.generateArchitectureRecommendations({
           structure,
           dependencies,
           workflows,
-          security
-        })
+          security,
+        }),
       };
 
       return architecture;
@@ -385,24 +372,27 @@ export class GitHubIntegrationManager {
   private async analyzeStructure(repository: Repository): Promise<any> {
     try {
       const contents = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/contents`
+        `/repos/${repository.owner}/${repository.repo}/contents`,
       );
 
       const structure = {
-        has_readme: contents.some((item: any) =>
-          item.name.toLowerCase().startsWith('readme')),
-        has_license: contents.some((item: any) =>
-          item.name.toLowerCase().includes('license')),
+        has_readme: contents.some((item: any) => item.name.toLowerCase().startsWith('readme')),
+        has_license: contents.some((item: any) => item.name.toLowerCase().includes('license')),
         has_contributing: contents.some((item: any) =>
-          item.name.toLowerCase().includes('contributing')),
-        has_tests: contents.some((item: any) =>
-          item.name.toLowerCase().includes('test') || item.name === 'tests'),
-        has_docs: contents.some((item: any) =>
-          item.name.toLowerCase() === 'docs' || item.name.toLowerCase() === 'documentation'),
-        has_ci: contents.some((item: any) =>
-          item.name === '.github' || item.name === '.gitlab-ci.yml'),
+          item.name.toLowerCase().includes('contributing'),
+        ),
+        has_tests: contents.some(
+          (item: any) => item.name.toLowerCase().includes('test') || item.name === 'tests',
+        ),
+        has_docs: contents.some(
+          (item: any) =>
+            item.name.toLowerCase() === 'docs' || item.name.toLowerCase() === 'documentation',
+        ),
+        has_ci: contents.some(
+          (item: any) => item.name === '.github' || item.name === '.gitlab-ci.yml',
+        ),
         directories: contents.filter((item: any) => item.type === 'dir').length,
-        files: contents.filter((item: any) => item.type === 'file').length
+        files: contents.filter((item: any) => item.type === 'file').length,
       };
 
       return structure;
@@ -420,7 +410,7 @@ export class GitHubIntegrationManager {
         'pom.xml',
         'Cargo.toml',
         'go.mod',
-        'composer.json'
+        'composer.json',
       ];
 
       const dependencies: any = {};
@@ -428,7 +418,7 @@ export class GitHubIntegrationManager {
       for (const file of packageFiles) {
         try {
           const content = await this.client.request(
-            `/repos/${repository.owner}/${repository.repo}/contents/${file}`
+            `/repos/${repository.owner}/${repository.repo}/contents/${file}`,
           );
 
           if (content.content) {
@@ -449,19 +439,19 @@ export class GitHubIntegrationManager {
   private async analyzeSecurityFeatures(repository: Repository): Promise<any> {
     try {
       const [dependabot, security] = await Promise.all([
-        this.client.request(
-          `/repos/${repository.owner}/${repository.repo}/contents/.github/dependabot.yml`
-        ).catch(() => null),
-        this.client.request(
-          `/repos/${repository.owner}/${repository.repo}/vulnerability-alerts`
-        ).catch(() => null)
+        this.client
+          .request(`/repos/${repository.owner}/${repository.repo}/contents/.github/dependabot.yml`)
+          .catch(() => null),
+        this.client
+          .request(`/repos/${repository.owner}/${repository.repo}/vulnerability-alerts`)
+          .catch(() => null),
       ]);
 
       return {
         has_dependabot: !!dependabot,
         has_security_policy: false, // Would need to check for SECURITY.md
         vulnerability_alerts_enabled: !!security,
-        branch_protection: await this.checkBranchProtection(repository)
+        branch_protection: await this.checkBranchProtection(repository),
       };
     } catch (error) {
       return { error: 'Could not analyze security features' };
@@ -471,13 +461,13 @@ export class GitHubIntegrationManager {
   private async checkBranchProtection(repository: Repository): Promise<boolean> {
     try {
       await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/branches/main/protection`
+        `/repos/${repository.owner}/${repository.repo}/branches/main/protection`,
       );
       return true;
     } catch (error) {
       try {
         await this.client.request(
-          `/repos/${repository.owner}/${repository.repo}/branches/master/protection`
+          `/repos/${repository.owner}/${repository.repo}/branches/master/protection`,
         );
         return true;
       } catch (error) {
@@ -494,13 +484,14 @@ export class GitHubIntegrationManager {
           return {
             dependencies: Object.keys(pkg.dependencies || {}),
             devDependencies: Object.keys(pkg.devDependencies || {}),
-            scripts: Object.keys(pkg.scripts || {})
+            scripts: Object.keys(pkg.scripts || {}),
           };
         case 'requirements.txt':
           return {
-            dependencies: content.split('\n')
-              .filter(line => line.trim() && !line.startsWith('#'))
-              .map(line => line.split('==')[0].split('>=')[0].split('<=')[0].trim())
+            dependencies: content
+              .split('\n')
+              .filter((line) => line.trim() && !line.startsWith('#'))
+              .map((line) => line.split('==')[0].split('>=')[0].split('<=')[0].trim()),
           };
         default:
           return { raw: content.substring(0, 500) };
@@ -579,7 +570,10 @@ export class GitHubIntegrationManager {
     return recommendations;
   }
 
-  private async executeSingleRepoOperation(repository: Repository, operation: string): Promise<any> {
+  private async executeSingleRepoOperation(
+    repository: Repository,
+    operation: string,
+  ): Promise<any> {
     switch (operation) {
       case 'analyze':
         return this.analyzeRepository(repository);
@@ -616,7 +610,7 @@ export class GitHubIntegrationManager {
       message: `${operation} failed: ${error.message}`,
       status: error.status,
       repository: repository || undefined,
-      context: { operation, agent_id: this.agentId }
+      context: { operation, agent_id: this.agentId },
     };
 
     console.error(`[${this.agentId}] Error in ${operation}:`, gitHubError);
@@ -635,7 +629,7 @@ export class GitHubIntegrationManager {
     return {
       ...this.client.getMetrics(),
       agent_id: this.agentId,
-      capabilities: this.capabilities
+      capabilities: this.capabilities,
     };
   }
 }

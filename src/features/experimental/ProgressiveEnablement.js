@@ -50,28 +50,31 @@ export class ProgressiveEnablement {
 
     // Check user level permissions
     const stability = FeatureClassification.STABILITY_LEVELS[agentConfig.stability.toUpperCase()];
-    const canSeeFeature = FeatureClassification.canUserSeeStabilityLevel(userLevel, stability.visibility);
+    const canSeeFeature = FeatureClassification.canUserSeeStabilityLevel(
+      userLevel,
+      stability.visibility,
+    );
 
     if (!canSeeFeature) {
       return {
         canEnable: false,
         reason: `Feature requires ${stability.visibility} user level or higher`,
         requiredLevel: stability.visibility,
-        currentLevel: userLevel
+        currentLevel: userLevel,
       };
     }
 
     // Check dependencies
     if (agentConfig.dependencies && agentConfig.dependencies.length > 0) {
-      const missingDependencies = agentConfig.dependencies.filter(dep =>
-        !this.enabledFeatures.has(dep)
+      const missingDependencies = agentConfig.dependencies.filter(
+        (dep) => !this.enabledFeatures.has(dep),
       );
 
       if (missingDependencies.length > 0) {
         return {
           canEnable: false,
           reason: 'Missing required dependencies',
-          missingDependencies
+          missingDependencies,
         };
       }
     }
@@ -121,13 +124,16 @@ export class ProgressiveEnablement {
 
       // Update configuration
       await this.configManager.set(`features.experimental.${featureName}.enabled`, true);
-      await this.configManager.set(`features.experimental.${featureName}.enabledAt`, new Date().toISOString());
+      await this.configManager.set(
+        `features.experimental.${featureName}.enabledAt`,
+        new Date().toISOString(),
+      );
       await this.configManager.set(`features.experimental.${featureName}.enabledBy`, userId);
 
       // Start performance monitoring
       await this.performanceMonitor.startMonitoring(featureName, {
         stability: agentConfig.stability,
-        category: agentConfig.category
+        category: agentConfig.category,
       });
 
       // Send notification
@@ -136,7 +142,7 @@ export class ProgressiveEnablement {
         title: 'Experimental Feature Enabled',
         message: `${featureName} has been successfully enabled`,
         feature: featureName,
-        warnings: agentConfig.warnings || []
+        warnings: agentConfig.warnings || [],
       });
 
       // Log enablement
@@ -146,9 +152,8 @@ export class ProgressiveEnablement {
         success: true,
         feature: featureName,
         rollbackId: rollbackPoint.id,
-        warnings: agentConfig.warnings || []
+        warnings: agentConfig.warnings || [],
       };
-
     } catch (error) {
       // Rollback on failure
       await this.executeRollback(rollbackPoint);
@@ -191,7 +196,10 @@ export class ProgressiveEnablement {
 
       // Update configuration
       await this.configManager.set(`features.experimental.${featureName}.enabled`, false);
-      await this.configManager.set(`features.experimental.${featureName}.disabledAt`, new Date().toISOString());
+      await this.configManager.set(
+        `features.experimental.${featureName}.disabledAt`,
+        new Date().toISOString(),
+      );
       await this.configManager.set(`features.experimental.${featureName}.disabledBy`, userId);
 
       // Send notification
@@ -200,7 +208,7 @@ export class ProgressiveEnablement {
           type: 'feature.disabled',
           title: 'Experimental Feature Disabled',
           message: `${featureName} has been successfully disabled`,
-          feature: featureName
+          feature: featureName,
         });
       }
 
@@ -209,9 +217,8 @@ export class ProgressiveEnablement {
       return {
         success: true,
         feature: featureName,
-        cascadeDisabled: dependentFeatures
+        cascadeDisabled: dependentFeatures,
       };
-
     } catch (error) {
       throw new Error(`Failed to disable feature ${featureName}: ${error.message}`);
     }
@@ -232,7 +239,7 @@ export class ProgressiveEnablement {
       riskLevel: stability.riskLevel,
       warnings: agentConfig.warnings || [],
       dependencies: agentConfig.dependencies || [],
-      requiresAcknowledgment: true
+      requiresAcknowledgment: true,
     };
 
     return await this.consentManager.requestConsent(consentRequest);
@@ -248,8 +255,8 @@ export class ProgressiveEnablement {
       featureName,
       previousState: {
         enabledFeatures: new Set(this.enabledFeatures),
-        configuration: this.configManager.getSnapshot()
-      }
+        configuration: this.configManager.getSnapshot(),
+      },
     };
 
     this.rollbackStack.push(rollbackPoint);
@@ -268,14 +275,13 @@ export class ProgressiveEnablement {
       await this.configManager.restoreSnapshot(rollbackPoint.previousState.configuration);
 
       // Remove rollback point
-      const index = this.rollbackStack.findIndex(rp => rp.id === rollbackPoint.id);
+      const index = this.rollbackStack.findIndex((rp) => rp.id === rollbackPoint.id);
       if (index > -1) {
         this.rollbackStack.splice(index, 1);
       }
 
       console.log(`[ProgressiveEnablement] Executed rollback: ${rollbackPoint.id}`);
       return { success: true, rollbackId: rollbackPoint.id };
-
     } catch (error) {
       console.error(`[ProgressiveEnablement] Rollback failed: ${error.message}`);
       throw error;
@@ -328,7 +334,9 @@ export class ProgressiveEnablement {
       const affectedFeatures = this.getFeaturesByFlag(flagName);
       for (const featureName of affectedFeatures) {
         if (this.enabledFeatures.has(featureName)) {
-          console.warn(`[ProgressiveEnablement] Feature ${featureName} disabled due to flag ${flagName}`);
+          console.warn(
+            `[ProgressiveEnablement] Feature ${featureName} disabled due to flag ${flagName}`,
+          );
           this.enabledFeatures.delete(featureName);
         }
       }
@@ -343,12 +351,14 @@ export class ProgressiveEnablement {
 
     // Auto-disable features causing severe performance issues
     if (issue.severity === 'critical' && issue.feature) {
-      console.warn(`[ProgressiveEnablement] Auto-disabling feature due to critical performance issue: ${issue.feature}`);
+      console.warn(
+        `[ProgressiveEnablement] Auto-disabling feature due to critical performance issue: ${issue.feature}`,
+      );
 
       try {
         await this.disableFeature(issue.feature, 'system', {
           reason: 'Automatic disable due to critical performance issue',
-          cascadeDisable: true
+          cascadeDisable: true,
         });
       } catch (error) {
         console.error(`[ProgressiveEnablement] Failed to auto-disable feature: ${error.message}`);
@@ -379,7 +389,7 @@ export class ProgressiveEnablement {
       enabledFeatures: Array.from(this.enabledFeatures),
       totalExperimentalFeatures: Object.keys(FeatureClassification.EXPERIMENTAL_AGENTS).length,
       rollbackPointsAvailable: this.rollbackStack.length,
-      performanceMetrics: this.performanceMonitor.getMetrics()
+      performanceMetrics: this.performanceMonitor.getMetrics(),
     };
   }
 
@@ -403,6 +413,8 @@ export class ProgressiveEnablement {
       }
     }
 
-    console.log(`[ProgressiveEnablement] Loaded ${this.enabledFeatures.size} enabled experimental features`);
+    console.log(
+      `[ProgressiveEnablement] Loaded ${this.enabledFeatures.size} enabled experimental features`,
+    );
   }
 }

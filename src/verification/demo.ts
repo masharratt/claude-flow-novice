@@ -21,7 +21,7 @@ async function demonstrateCRDTVerification() {
     syncInterval: 2000,
     maxRetries: 3,
     enablePersistence: true,
-    memoryBackend: 'sqlite'
+    memoryBackend: 'sqlite',
   });
 
   const memoryManager = new CRDTMemoryManager('demo-coordinator', {
@@ -31,20 +31,20 @@ async function demonstrateCRDTVerification() {
       directory: './.demo-crdt-data',
       maxSize: 100,
       ttl: 3600,
-      compressionEnabled: false
+      compressionEnabled: false,
     },
     cleanup: {
       agentTimeout: 60,
       stateRetention: 3600,
       orphanCleanupInterval: 30,
-      memoryThreshold: 80
+      memoryThreshold: 80,
     },
     synchronization: {
       batchSize: 10,
       maxRetries: 3,
       backoffMultiplier: 2,
-      conflictBufferSize: 100
-    }
+      conflictBufferSize: 100,
+    },
   });
 
   const conflictResolver = new CRDTConflictResolver('demo-coordinator');
@@ -62,15 +62,15 @@ async function demonstrateCRDTVerification() {
       metrics: new Map([
         ['accuracy', 95],
         ['performance', 88],
-        ['consensus_rounds', 3]
+        ['consensus_rounds', 3],
       ]),
       conflicts: [],
       metadata: {
         algorithm: 'PBFT',
         environment: 'production',
         fault_tolerance: 'f=1',
-        network_size: 4
-      }
+        network_size: 4,
+      },
     },
     {
       id: 'consensus-report-2',
@@ -81,15 +81,15 @@ async function demonstrateCRDTVerification() {
       metrics: new Map([
         ['accuracy', 78],
         ['performance', 92],
-        ['consensus_rounds', 7]
+        ['consensus_rounds', 7],
       ]),
       conflicts: ['timing-disagreement', 'leader-election-timeout'],
       metadata: {
         algorithm: 'Raft',
         environment: 'staging',
         fault_tolerance: 'f=1',
-        network_size: 4
-      }
+        network_size: 4,
+      },
     },
     {
       id: 'consensus-report-3',
@@ -100,16 +100,16 @@ async function demonstrateCRDTVerification() {
       metrics: new Map([
         ['accuracy', 85],
         ['performance', 76],
-        ['consensus_rounds', 12]
+        ['consensus_rounds', 12],
       ]),
       conflicts: ['network-partition', 'message-delays'],
       metadata: {
         algorithm: 'Gossip',
         environment: 'production',
         fault_tolerance: 'eventual',
-        network_size: 6
-      }
-    }
+        network_size: 6,
+      },
+    },
   ];
 
   // 3. Process reports through coordinator
@@ -145,7 +145,9 @@ async function demonstrateCRDTVerification() {
   }
 
   const statsBefore = memoryManager.getStats();
-  console.log(`   Memory stats: ${statsBefore.totalStates} states, ${statsBefore.activeAgents} agents\n`);
+  console.log(
+    `   Memory stats: ${statsBefore.totalStates} states, ${statsBefore.activeAgents} agents\n`,
+  );
 
   // 6. Simulate agent termination and cleanup
   console.log('🔧 Testing resource cleanup after agent termination...');
@@ -154,7 +156,9 @@ async function demonstrateCRDTVerification() {
   console.log('   Terminated: byzantine-agent-1');
 
   const cleanupValidation = await memoryManager.validateCleanup();
-  console.log(`   Cleanup validation: ${cleanupValidation.cleanupSuccess ? '✅ Success' : '❌ Failed'}`);
+  console.log(
+    `   Cleanup validation: ${cleanupValidation.cleanupSuccess ? '✅ Success' : '❌ Failed'}`,
+  );
   console.log(`   Orphaned states: ${cleanupValidation.orphanedStates.length}`);
   console.log(`   Memory leaks: ${cleanupValidation.memoryLeaks.length}\n`);
 
@@ -171,65 +175,68 @@ async function demonstrateCRDTVerification() {
   console.log('⚡ Testing performance benchmark conflict resolution...');
 
   const benchmarkConflicts = new Map<string, BenchmarkResult[]>([
-    ['consensus-performance', [
-      {
-        benchmarkId: 'consensus-performance',
-        nodeId: 'consensus-1',
-        timestamp: Date.now(),
-        metrics: {
-          executionTime: 1200,
-          throughput: 950,
-          errorRate: 0.02,
-          memoryUsage: 512,
-          cpuUtilization: 75
+    [
+      'consensus-performance',
+      [
+        {
+          benchmarkId: 'consensus-performance',
+          nodeId: 'consensus-1',
+          timestamp: Date.now(),
+          metrics: {
+            executionTime: 1200,
+            throughput: 950,
+            errorRate: 0.02,
+            memoryUsage: 512,
+            cpuUtilization: 75,
+          },
+          metadata: {
+            testSuite: 'consensus-benchmarks',
+            environment: 'production',
+            version: '2.1.0',
+            configuration: { nodes: 4, faults: 1 },
+          },
+          conflicts: [],
         },
-        metadata: {
-          testSuite: 'consensus-benchmarks',
-          environment: 'production',
-          version: '2.1.0',
-          configuration: { nodes: 4, faults: 1 }
+        {
+          benchmarkId: 'consensus-performance',
+          nodeId: 'consensus-2',
+          timestamp: Date.now() + 500,
+          metrics: {
+            executionTime: 1450,
+            throughput: 820,
+            errorRate: 0.035,
+            memoryUsage: 640,
+            cpuUtilization: 82,
+          },
+          metadata: {
+            testSuite: 'consensus-benchmarks',
+            environment: 'staging',
+            version: '2.1.0',
+            configuration: { nodes: 4, faults: 1 },
+          },
+          conflicts: ['environment-variance'],
         },
-        conflicts: []
-      },
-      {
-        benchmarkId: 'consensus-performance',
-        nodeId: 'consensus-2',
-        timestamp: Date.now() + 500,
-        metrics: {
-          executionTime: 1450,
-          throughput: 820,
-          errorRate: 0.035,
-          memoryUsage: 640,
-          cpuUtilization: 82
+        {
+          benchmarkId: 'consensus-performance',
+          nodeId: 'consensus-3',
+          timestamp: Date.now() + 1000,
+          metrics: {
+            executionTime: 980,
+            throughput: 1100,
+            errorRate: 0.015,
+            memoryUsage: 480,
+            cpuUtilization: 68,
+          },
+          metadata: {
+            testSuite: 'consensus-benchmarks',
+            environment: 'production',
+            version: '2.0.9',
+            configuration: { nodes: 3, faults: 1 },
+          },
+          conflicts: ['version-mismatch', 'configuration-diff'],
         },
-        metadata: {
-          testSuite: 'consensus-benchmarks',
-          environment: 'staging',
-          version: '2.1.0',
-          configuration: { nodes: 4, faults: 1 }
-        },
-        conflicts: ['environment-variance']
-      },
-      {
-        benchmarkId: 'consensus-performance',
-        nodeId: 'consensus-3',
-        timestamp: Date.now() + 1000,
-        metrics: {
-          executionTime: 980,
-          throughput: 1100,
-          errorRate: 0.015,
-          memoryUsage: 480,
-          cpuUtilization: 68
-        },
-        metadata: {
-          testSuite: 'consensus-benchmarks',
-          environment: 'production',
-          version: '2.0.9',
-          configuration: { nodes: 3, faults: 1 }
-        },
-        conflicts: ['version-mismatch', 'configuration-diff']
-      }
-    ]]
+      ],
+    ],
   ]);
 
   const resolvedBenchmarks = await conflictResolver.resolveConflicts(benchmarkConflicts);
@@ -286,7 +293,7 @@ async function demonstrateCRDTVerification() {
 
 // Run demo if called directly
 if (require.main === module) {
-  demonstrateCRDTVerification().catch(error => {
+  demonstrateCRDTVerification().catch((error) => {
     console.error('Demo failed:', error);
     process.exit(1);
   });

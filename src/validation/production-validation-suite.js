@@ -41,7 +41,7 @@ export class ProductionValidationSuite extends EventEmitter {
       frameworks: options.frameworks || ['jest', 'pytest', 'playwright', 'sparc', 'rust'],
       realWorldValidators: options.realWorldValidators || ['build', 'deployment', 'performance'],
       cicdIntegration: options.cicdIntegration !== false,
-      ...options
+      ...options,
     };
 
     // Initialize Byzantine consensus
@@ -49,18 +49,34 @@ export class ProductionValidationSuite extends EventEmitter {
 
     // Initialize real test framework integrations
     this.testFrameworks = {
-      jest: new JestIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
-      pytest: new PytestIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
-      playwright: new PlaywrightIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
-      sparc: new SPARCIntegration({ enableByzantineValidation: this.options.enableByzantineValidation }),
-      rust: new RustIntegration({ enableByzantineValidation: this.options.enableByzantineValidation })
+      jest: new JestIntegration({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
+      pytest: new PytestIntegration({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
+      playwright: new PlaywrightIntegration({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
+      sparc: new SPARCIntegration({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
+      rust: new RustIntegration({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
     };
 
     // Initialize real-world validators
     this.realWorldValidators = {
-      build: new BuildValidator({ enableByzantineValidation: this.options.enableByzantineValidation }),
-      deployment: new DeploymentValidator({ enableByzantineValidation: this.options.enableByzantineValidation }),
-      performance: new PerformanceValidator({ enableByzantineValidation: this.options.enableByzantineValidation })
+      build: new BuildValidator({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
+      deployment: new DeploymentValidator({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
+      performance: new PerformanceValidator({
+        enableByzantineValidation: this.options.enableByzantineValidation,
+      }),
     };
 
     // Validation history and metrics
@@ -68,7 +84,7 @@ export class ProductionValidationSuite extends EventEmitter {
     this.falseCompletionTracker = {
       totalValidations: 0,
       falseCompletions: 0,
-      detectionAccuracy: []
+      detectionAccuracy: [],
     };
   }
 
@@ -90,26 +106,26 @@ export class ProductionValidationSuite extends EventEmitter {
       const testFrameworkResults = await this.executeTestFrameworkValidations(
         projectPath,
         projectSetup,
-        validationConfig
+        validationConfig,
       );
 
       // Phase 3: Execute real-world validation in parallel
       const realWorldResults = await this.executeRealWorldValidations(
         projectPath,
         projectSetup,
-        validationConfig
+        validationConfig,
       );
 
       // Phase 4: CI/CD pipeline validation (if enabled)
-      const cicdResults = this.options.cicdIntegration ?
-        await this.validateCICDPipelines(projectPath, validationConfig) :
-        { enabled: false, message: 'CI/CD validation disabled' };
+      const cicdResults = this.options.cicdIntegration
+        ? await this.validateCICDPipelines(projectPath, validationConfig)
+        : { enabled: false, message: 'CI/CD validation disabled' };
 
       // Phase 5: Aggregate and analyze all results
       const aggregatedResults = this.aggregateValidationResults({
         testFrameworkResults,
         realWorldResults,
-        cicdResults
+        cicdResults,
       });
 
       // Phase 6: Byzantine consensus validation of entire suite
@@ -117,13 +133,13 @@ export class ProductionValidationSuite extends EventEmitter {
         validationId,
         projectSetup,
         aggregatedResults,
-        projectPath
+        projectPath,
       });
 
       // Phase 7: Calculate false completion rate and accuracy
       const falseCompletionAnalysis = this.analyzeFalseCompletionRate(
         validationId,
-        aggregatedResults
+        aggregatedResults,
       );
 
       // Generate cryptographic proof of entire validation
@@ -132,7 +148,7 @@ export class ProductionValidationSuite extends EventEmitter {
         aggregatedResults,
         falseCompletionAnalysis,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -147,7 +163,7 @@ export class ProductionValidationSuite extends EventEmitter {
           executed: Object.keys(testFrameworkResults),
           successful: this.countSuccessfulValidations(testFrameworkResults),
           failed: this.countFailedValidations(testFrameworkResults),
-          results: testFrameworkResults
+          results: testFrameworkResults,
         },
 
         // Real-world validation results
@@ -155,7 +171,7 @@ export class ProductionValidationSuite extends EventEmitter {
           executed: Object.keys(realWorldResults),
           successful: this.countSuccessfulValidations(realWorldResults),
           failed: this.countFailedValidations(realWorldResults),
-          results: realWorldResults
+          results: realWorldResults,
         },
 
         // CI/CD integration results
@@ -167,16 +183,17 @@ export class ProductionValidationSuite extends EventEmitter {
           successfulValidations: aggregatedResults.successfulValidations,
           overallSuccess: aggregatedResults.overallSuccess,
           productionReady: this.determineProductionReadiness(aggregatedResults),
-          qualityScore: aggregatedResults.qualityScore
+          qualityScore: aggregatedResults.qualityScore,
         },
 
         // False completion rate analysis (Phase 3 key metric)
         falseCompletionRate: {
           currentRate: falseCompletionAnalysis.currentRate,
           targetRate: this.options.falseCompletionRateThreshold,
-          meetsTarget: falseCompletionAnalysis.currentRate <= this.options.falseCompletionRateThreshold,
+          meetsTarget:
+            falseCompletionAnalysis.currentRate <= this.options.falseCompletionRateThreshold,
           confidence: falseCompletionAnalysis.confidence,
-          sampleSize: falseCompletionAnalysis.sampleSize
+          sampleSize: falseCompletionAnalysis.sampleSize,
         },
 
         // Byzantine security validation
@@ -184,7 +201,7 @@ export class ProductionValidationSuite extends EventEmitter {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
 
         // Performance metrics
@@ -193,16 +210,12 @@ export class ProductionValidationSuite extends EventEmitter {
           parallelExecution: this.options.parallelValidation,
           realFrameworksUsed: [
             ...Object.keys(testFrameworkResults),
-            ...Object.keys(realWorldResults)
-          ]
+            ...Object.keys(realWorldResults),
+          ],
         },
 
         // Error aggregation
-        errors: this.aggregateAllErrors([
-          testFrameworkResults,
-          realWorldResults,
-          cicdResults
-        ])
+        errors: this.aggregateAllErrors([testFrameworkResults, realWorldResults, cicdResults]),
       };
 
       // Store in validation history
@@ -215,12 +228,13 @@ export class ProductionValidationSuite extends EventEmitter {
       this.emit('validationCompleted', result);
 
       console.log(`✅ Production Validation Suite completed [${validationId}]:`);
-      console.log(`   False Completion Rate: ${(result.falseCompletionRate.currentRate * 100).toFixed(2)}% (Target: <5%)`);
+      console.log(
+        `   False Completion Rate: ${(result.falseCompletionRate.currentRate * 100).toFixed(2)}% (Target: <5%)`,
+      );
       console.log(`   Production Ready: ${result.overall.productionReady}`);
       console.log(`   Real Frameworks: ${result.performance.realFrameworksUsed.join(', ')}`);
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -228,7 +242,7 @@ export class ProductionValidationSuite extends EventEmitter {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.validationHistory.set(validationId, errorResult);
@@ -245,11 +259,11 @@ export class ProductionValidationSuite extends EventEmitter {
         testFrameworks: [],
         buildSystems: [],
         deploymentPlatforms: [],
-        cicdPipelines: []
+        cicdPipelines: [],
       },
       packageManager: null,
       runtime: null,
-      projectType: null
+      projectType: null,
     };
 
     try {
@@ -260,13 +274,13 @@ export class ProductionValidationSuite extends EventEmitter {
         setup.projectType = 'javascript';
 
         const packageJson = JSON.parse(
-          await fs.readFile(path.join(projectPath, 'package.json'), 'utf8')
+          await fs.readFile(path.join(projectPath, 'package.json'), 'utf8'),
         );
 
         // Detect test frameworks from dependencies
         const allDeps = {
           ...packageJson.dependencies,
-          ...packageJson.devDependencies
+          ...packageJson.devDependencies,
         };
 
         if (allDeps.jest || packageJson.scripts?.test?.includes('jest')) {
@@ -279,9 +293,11 @@ export class ProductionValidationSuite extends EventEmitter {
       }
 
       // Detect Python projects
-      if (await this.fileExists(path.join(projectPath, 'requirements.txt')) ||
-          await this.fileExists(path.join(projectPath, 'setup.py')) ||
-          await this.fileExists(path.join(projectPath, 'pyproject.toml'))) {
+      if (
+        (await this.fileExists(path.join(projectPath, 'requirements.txt'))) ||
+        (await this.fileExists(path.join(projectPath, 'setup.py'))) ||
+        (await this.fileExists(path.join(projectPath, 'pyproject.toml')))
+      ) {
         setup.runtime = 'python';
         setup.projectType = 'python';
         setup.detected.testFrameworks.push('pytest');
@@ -301,8 +317,10 @@ export class ProductionValidationSuite extends EventEmitter {
       }
 
       // Detect SPARC usage
-      if (await this.fileExists(path.join(projectPath, 'ARCHITECTURE.md')) ||
-          await this.fileExists(path.join(projectPath, 'SPECIFICATION.md'))) {
+      if (
+        (await this.fileExists(path.join(projectPath, 'ARCHITECTURE.md'))) ||
+        (await this.fileExists(path.join(projectPath, 'SPECIFICATION.md')))
+      ) {
         setup.detected.testFrameworks.push('sparc');
       }
 
@@ -332,7 +350,6 @@ export class ProductionValidationSuite extends EventEmitter {
       if (await this.fileExists(path.join(projectPath, 'Jenkinsfile'))) {
         setup.detected.cicdPipelines.push('jenkins');
       }
-
     } catch (error) {
       console.warn('Project setup detection encountered errors:', error.message);
     }
@@ -348,8 +365,8 @@ export class ProductionValidationSuite extends EventEmitter {
     const frameworkPromises = [];
 
     // Only run frameworks that are detected and enabled
-    const availableFrameworks = this.options.frameworks.filter(framework =>
-      projectSetup.detected.testFrameworks.includes(framework)
+    const availableFrameworks = this.options.frameworks.filter((framework) =>
+      projectSetup.detected.testFrameworks.includes(framework),
     );
 
     if (availableFrameworks.length === 0) {
@@ -362,8 +379,8 @@ export class ProductionValidationSuite extends EventEmitter {
       for (const framework of availableFrameworks) {
         frameworkPromises.push(
           this.executeTestFramework(framework, projectPath, validationConfig)
-            .then(result => ({ framework, result }))
-            .catch(error => ({ framework, result: { success: false, error: error.message } }))
+            .then((result) => ({ framework, result }))
+            .catch((error) => ({ framework, result: { success: false, error: error.message } })),
         );
       }
 
@@ -372,12 +389,15 @@ export class ProductionValidationSuite extends EventEmitter {
       for (const { framework, result } of frameworkResults) {
         results[framework] = result;
       }
-
     } else {
       // Sequential execution
       for (const framework of availableFrameworks) {
         try {
-          results[framework] = await this.executeTestFramework(framework, projectPath, validationConfig);
+          results[framework] = await this.executeTestFramework(
+            framework,
+            projectPath,
+            validationConfig,
+          );
         } catch (error) {
           results[framework] = { success: false, error: error.message };
         }
@@ -410,7 +430,10 @@ export class ProductionValidationSuite extends EventEmitter {
           return await testFramework.executeTests(projectPath, validationConfig.playwright || {});
 
         case 'sparc':
-          return await testFramework.validateSPARCCompletion(projectPath, validationConfig.sparc || {});
+          return await testFramework.validateSPARCCompletion(
+            projectPath,
+            validationConfig.sparc || {},
+          );
 
         case 'rust':
           return await testFramework.executeTests(projectPath, validationConfig.rust || {});
@@ -418,7 +441,6 @@ export class ProductionValidationSuite extends EventEmitter {
         default:
           throw new Error(`Framework execution not implemented: ${framework}`);
       }
-
     } catch (error) {
       console.error(`❌ ${framework} validation failed:`, error.message);
       throw error;
@@ -437,8 +459,8 @@ export class ProductionValidationSuite extends EventEmitter {
       for (const validator of this.options.realWorldValidators) {
         validatorPromises.push(
           this.executeRealWorldValidator(validator, projectPath, validationConfig)
-            .then(result => ({ validator, result }))
-            .catch(error => ({ validator, result: { success: false, error: error.message } }))
+            .then((result) => ({ validator, result }))
+            .catch((error) => ({ validator, result: { success: false, error: error.message } })),
         );
       }
 
@@ -447,12 +469,15 @@ export class ProductionValidationSuite extends EventEmitter {
       for (const { validator, result } of validatorResults) {
         results[validator] = result;
       }
-
     } else {
       // Sequential execution
       for (const validator of this.options.realWorldValidators) {
         try {
-          results[validator] = await this.executeRealWorldValidator(validator, projectPath, validationConfig);
+          results[validator] = await this.executeRealWorldValidator(
+            validator,
+            projectPath,
+            validationConfig,
+          );
         } catch (error) {
           results[validator] = { success: false, error: error.message };
         }
@@ -479,15 +504,20 @@ export class ProductionValidationSuite extends EventEmitter {
           return await realWorldValidator.validateBuild(projectPath, validationConfig.build || {});
 
         case 'deployment':
-          return await realWorldValidator.validateDeployment(projectPath, validationConfig.deployment || {});
+          return await realWorldValidator.validateDeployment(
+            projectPath,
+            validationConfig.deployment || {},
+          );
 
         case 'performance':
-          return await realWorldValidator.validatePerformance(projectPath, validationConfig.performance || {});
+          return await realWorldValidator.validatePerformance(
+            projectPath,
+            validationConfig.performance || {},
+          );
 
         default:
           throw new Error(`Validator execution not implemented: ${validator}`);
       }
-
     } catch (error) {
       console.error(`❌ ${validator} validation failed:`, error.message);
       throw error;
@@ -501,7 +531,7 @@ export class ProductionValidationSuite extends EventEmitter {
     const results = {
       enabled: true,
       pipelines: [],
-      validationResults: []
+      validationResults: [],
     };
 
     try {
@@ -530,8 +560,7 @@ export class ProductionValidationSuite extends EventEmitter {
       }
 
       results.detected = results.pipelines.length;
-      results.successful = results.validationResults.filter(r => r.valid).length;
-
+      results.successful = results.validationResults.filter((r) => r.valid).length;
     } catch (error) {
       results.error = error.message;
     }
@@ -545,7 +574,9 @@ export class ProductionValidationSuite extends EventEmitter {
   async validateGitHubActions(workflowsPath) {
     try {
       const workflowFiles = await fs.readdir(workflowsPath);
-      const yamlFiles = workflowFiles.filter(file => file.endsWith('.yml') || file.endsWith('.yaml'));
+      const yamlFiles = workflowFiles.filter(
+        (file) => file.endsWith('.yml') || file.endsWith('.yaml'),
+      );
 
       const validations = [];
       for (const file of yamlFiles) {
@@ -558,7 +589,7 @@ export class ProductionValidationSuite extends EventEmitter {
           hasTestStep: content.includes('test') || content.includes('npm test'),
           hasBuildStep: content.includes('build') || content.includes('npm run build'),
           hasDeployStep: content.includes('deploy'),
-          triggers: this.extractGitHubTriggers(content)
+          triggers: this.extractGitHubTriggers(content),
         };
 
         validations.push(validation);
@@ -567,9 +598,8 @@ export class ProductionValidationSuite extends EventEmitter {
       return {
         valid: validations.length > 0,
         workflowCount: validations.length,
-        validations
+        validations,
       };
-
     } catch (error) {
       return { valid: false, error: error.message };
     }
@@ -588,9 +618,8 @@ export class ProductionValidationSuite extends EventEmitter {
         hasBuildStage: content.includes('build') || content.includes('Build'),
         hasDeployStage: content.includes('deploy') || content.includes('Deploy'),
         isPipeline: content.includes('pipeline'),
-        stageCount: (content.match(/stage\s*\(/g) || []).length
+        stageCount: (content.match(/stage\s*\(/g) || []).length,
       };
-
     } catch (error) {
       return { valid: false, error: error.message };
     }
@@ -608,9 +637,8 @@ export class ProductionValidationSuite extends EventEmitter {
         hasTestJob: content.includes('test:') || content.includes('- test'),
         hasBuildJob: content.includes('build:') || content.includes('- build'),
         hasDeployJob: content.includes('deploy:') || content.includes('- deploy'),
-        stages: this.extractGitLabStages(content)
+        stages: this.extractGitLabStages(content),
       };
-
     } catch (error) {
       return { valid: false, error: error.message };
     }
@@ -629,8 +657,8 @@ export class ProductionValidationSuite extends EventEmitter {
       categories: {
         testFrameworks: this.analyzeResultCategory(testFrameworkResults),
         realWorld: this.analyzeResultCategory(realWorldResults),
-        cicd: this.analyzeCICDResults(cicdResults)
-      }
+        cicd: this.analyzeCICDResults(cicdResults),
+      },
     };
 
     // Count total validations
@@ -645,23 +673,26 @@ export class ProductionValidationSuite extends EventEmitter {
       aggregation.categories.realWorld.successful +
       aggregation.categories.cicd.successful;
 
-    aggregation.failedValidations = aggregation.totalValidations - aggregation.successfulValidations;
+    aggregation.failedValidations =
+      aggregation.totalValidations - aggregation.successfulValidations;
 
     // Determine overall success (at least 80% success rate)
-    aggregation.overallSuccess = aggregation.totalValidations > 0 ?
-      (aggregation.successfulValidations / aggregation.totalValidations) >= 0.8 : false;
+    aggregation.overallSuccess =
+      aggregation.totalValidations > 0
+        ? aggregation.successfulValidations / aggregation.totalValidations >= 0.8
+        : false;
 
     // Calculate quality score (weighted)
     const weights = {
       testFrameworks: 0.4, // 40%
-      realWorld: 0.5,      // 50%
-      cicd: 0.1            // 10%
+      realWorld: 0.5, // 50%
+      cicd: 0.1, // 10%
     };
 
     aggregation.qualityScore =
-      (aggregation.categories.testFrameworks.qualityScore * weights.testFrameworks) +
-      (aggregation.categories.realWorld.qualityScore * weights.realWorld) +
-      (aggregation.categories.cicd.qualityScore * weights.cicd);
+      aggregation.categories.testFrameworks.qualityScore * weights.testFrameworks +
+      aggregation.categories.realWorld.qualityScore * weights.realWorld +
+      aggregation.categories.cicd.qualityScore * weights.cicd;
 
     return aggregation;
   }
@@ -674,7 +705,7 @@ export class ProductionValidationSuite extends EventEmitter {
       total: Object.keys(results).length,
       successful: 0,
       failed: 0,
-      qualityScore: 0
+      qualityScore: 0,
     };
 
     if (analysis.total === 0) {
@@ -702,7 +733,7 @@ export class ProductionValidationSuite extends EventEmitter {
       total: 0,
       successful: 0,
       failed: 0,
-      qualityScore: 0
+      qualityScore: 0,
     };
 
     if (!cicdResults.enabled || !cicdResults.validationResults) {
@@ -729,7 +760,7 @@ export class ProductionValidationSuite extends EventEmitter {
     const categories = [
       aggregatedResults.categories.testFrameworks,
       aggregatedResults.categories.realWorld,
-      aggregatedResults.categories.cicd
+      aggregatedResults.categories.cicd,
     ];
 
     for (const category of categories) {
@@ -750,7 +781,7 @@ export class ProductionValidationSuite extends EventEmitter {
       historicalRate,
       confidence: this.calculateConfidenceLevel(totalChecks),
       sampleSize: totalChecks,
-      improvement: historicalRate > 0 ? (historicalRate - currentRate) / historicalRate : 0
+      improvement: historicalRate > 0 ? (historicalRate - currentRate) / historicalRate : 0,
     };
   }
 
@@ -762,7 +793,9 @@ export class ProductionValidationSuite extends EventEmitter {
       return 0;
     }
 
-    return this.falseCompletionTracker.falseCompletions / this.falseCompletionTracker.totalValidations;
+    return (
+      this.falseCompletionTracker.falseCompletions / this.falseCompletionTracker.totalValidations
+    );
   }
 
   /**
@@ -771,10 +804,10 @@ export class ProductionValidationSuite extends EventEmitter {
   calculateConfidenceLevel(sampleSize) {
     // Simple confidence calculation based on sample size
     if (sampleSize >= 100) return 0.95;
-    if (sampleSize >= 50) return 0.90;
-    if (sampleSize >= 20) return 0.80;
-    if (sampleSize >= 10) return 0.70;
-    return 0.60;
+    if (sampleSize >= 50) return 0.9;
+    if (sampleSize >= 20) return 0.8;
+    if (sampleSize >= 10) return 0.7;
+    return 0.6;
   }
 
   /**
@@ -795,14 +828,14 @@ export class ProductionValidationSuite extends EventEmitter {
           totalValidations: validationData.aggregatedResults.totalValidations,
           successfulValidations: validationData.aggregatedResults.successfulValidations,
           overallSuccess: validationData.aggregatedResults.overallSuccess,
-          qualityScore: validationData.aggregatedResults.qualityScore
+          qualityScore: validationData.aggregatedResults.qualityScore,
         },
         realFrameworksUsed: [
           ...Object.keys(validationData.aggregatedResults.categories.testFrameworks || {}),
-          ...Object.keys(validationData.aggregatedResults.categories.realWorld || {})
+          ...Object.keys(validationData.aggregatedResults.categories.realWorld || {}),
         ],
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -814,15 +847,14 @@ export class ProductionValidationSuite extends EventEmitter {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -847,10 +879,10 @@ export class ProductionValidationSuite extends EventEmitter {
         'security_validation',
         'performance_verification',
         'deployment_validation',
-        'cicd_integration'
+        'cicd_integration',
       ][i % 9],
-      reputation: 0.85 + (Math.random() * 0.15),
-      riskTolerance: validationData.aggregatedResults.overallSuccess ? 'medium' : 'low'
+      reputation: 0.85 + Math.random() * 0.15,
+      riskTolerance: validationData.aggregatedResults.overallSuccess ? 'medium' : 'low',
     }));
   }
 
@@ -864,7 +896,7 @@ export class ProductionValidationSuite extends EventEmitter {
     const hashData = JSON.stringify({
       aggregatedResults: validationData.aggregatedResults,
       projectSetup: validationData.projectSetup,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -875,7 +907,7 @@ export class ProductionValidationSuite extends EventEmitter {
       validationId: data.validationId,
       aggregatedResults: data.aggregatedResults,
       falseCompletionAnalysis: data.falseCompletionAnalysis,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -886,7 +918,7 @@ export class ProductionValidationSuite extends EventEmitter {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'production-validation-suite',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -909,28 +941,32 @@ export class ProductionValidationSuite extends EventEmitter {
   }
 
   countSuccessfulValidations(results) {
-    return Object.values(results).filter(result => this.isValidationSuccessful(result)).length;
+    return Object.values(results).filter((result) => this.isValidationSuccessful(result)).length;
   }
 
   countFailedValidations(results) {
-    return Object.values(results).filter(result => !this.isValidationSuccessful(result)).length;
+    return Object.values(results).filter((result) => !this.isValidationSuccessful(result)).length;
   }
 
   isValidationSuccessful(result) {
     if (typeof result === 'object' && result !== null) {
-      return result.success !== false &&
-             !result.error &&
-             (result.realExecution === true || result.framework) && // Ensure real execution
-             (result.testResults?.success !== false) &&
-             (result.overallSuccess !== false);
+      return (
+        result.success !== false &&
+        !result.error &&
+        (result.realExecution === true || result.framework) && // Ensure real execution
+        result.testResults?.success !== false &&
+        result.overallSuccess !== false
+      );
     }
     return false;
   }
 
   determineProductionReadiness(aggregatedResults) {
-    return aggregatedResults.overallSuccess &&
-           aggregatedResults.qualityScore >= 0.8 &&
-           aggregatedResults.successfulValidations >= aggregatedResults.totalValidations * 0.8;
+    return (
+      aggregatedResults.overallSuccess &&
+      aggregatedResults.qualityScore >= 0.8 &&
+      aggregatedResults.successfulValidations >= aggregatedResults.totalValidations * 0.8
+    );
   }
 
   updateFalseCompletionTracking(result) {
@@ -945,7 +981,7 @@ export class ProductionValidationSuite extends EventEmitter {
     this.falseCompletionTracker.detectionAccuracy.push({
       timestamp: Date.now(),
       rate: result.falseCompletionRate.currentRate,
-      meetsTarget: result.falseCompletionRate.meetsTarget
+      meetsTarget: result.falseCompletionRate.meetsTarget,
     });
 
     // Keep only last 100 measurements
@@ -967,10 +1003,11 @@ export class ProductionValidationSuite extends EventEmitter {
   extractGitLabStages(content) {
     const stageMatch = content.match(/stages:\s*([\s\S]*?)(?=\n\w|$)/);
     if (stageMatch) {
-      return stageMatch[1].split('\n')
-        .map(line => line.trim())
-        .filter(line => line.startsWith('-'))
-        .map(line => line.replace(/^-\s*/, ''));
+      return stageMatch[1]
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith('-'))
+        .map((line) => line.replace(/^-\s*/, ''));
     }
     return [];
   }
@@ -985,7 +1022,7 @@ export class ProductionValidationSuite extends EventEmitter {
             errors.push({
               source: key,
               error: result.error,
-              type: result.framework || result.validator || 'unknown'
+              type: result.framework || result.validator || 'unknown',
             });
           }
         }
@@ -996,9 +1033,8 @@ export class ProductionValidationSuite extends EventEmitter {
   }
 
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -1008,7 +1044,7 @@ export class ProductionValidationSuite extends EventEmitter {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -1035,9 +1071,11 @@ export class ProductionValidationSuite extends EventEmitter {
       meetsTarget: currentRate <= this.options.falseCompletionRateThreshold,
       totalValidations: this.falseCompletionTracker.totalValidations,
       falseCompletions: this.falseCompletionTracker.falseCompletions,
-      recentTrend: recentAccuracy.map(a => a.meetsTarget),
-      improvement: recentAccuracy.length >= 2 ?
-        recentAccuracy[recentAccuracy.length - 1].rate - recentAccuracy[0].rate : 0
+      recentTrend: recentAccuracy.map((a) => a.meetsTarget),
+      improvement:
+        recentAccuracy.length >= 2
+          ? recentAccuracy[recentAccuracy.length - 1].rate - recentAccuracy[0].rate
+          : 0,
     };
   }
 }

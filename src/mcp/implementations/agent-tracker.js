@@ -17,7 +17,7 @@ class AgentTracker {
       createdAt: new Date().toISOString(),
       lastActive: new Date().toISOString(),
     });
-    
+
     // Update swarm agent count
     if (agentData.swarmId && this.swarms.has(agentData.swarmId)) {
       const swarm = this.swarms.get(agentData.swarmId);
@@ -46,7 +46,7 @@ class AgentTracker {
       createdAt: new Date().toISOString(),
       status: taskData.status || 'pending',
     });
-    
+
     // Update swarm task counts
     if (taskData.swarmId && this.swarms.has(taskData.swarmId)) {
       const swarm = this.swarms.get(taskData.swarmId);
@@ -67,7 +67,7 @@ class AgentTracker {
     }
     return agents;
   }
-  
+
   // Store task results
   storeTaskResult(taskId, result) {
     if (this.tasks.has(taskId)) {
@@ -86,7 +86,7 @@ class AgentTracker {
     });
     return true;
   }
-  
+
   // Get task results
   getTaskResult(taskId) {
     const task = this.tasks.get(taskId);
@@ -101,7 +101,7 @@ class AgentTracker {
       return {
         swarmId,
         agentCount: agents.length,
-        activeAgents: agents.filter(a => a.status === 'active').length,
+        activeAgents: agents.filter((a) => a.status === 'active').length,
         taskCount: 0,
         pendingTasks: 0,
         completedTasks: 0,
@@ -117,11 +117,11 @@ class AgentTracker {
       const oldStatus = task.status;
       task.status = status;
       task.lastUpdated = new Date().toISOString();
-      
+
       // Update swarm counts
       if (task.swarmId && this.swarms.has(task.swarmId)) {
         const swarm = this.swarms.get(task.swarmId);
-        
+
         if (oldStatus === 'pending' && status !== 'pending') {
           swarm.pendingTasks = Math.max(0, (swarm.pendingTasks || 0) - 1);
         }

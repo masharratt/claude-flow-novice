@@ -22,7 +22,7 @@ class ConsensusValidator extends EventEmitter {
       consensusThreshold: options.consensusThreshold || 0.66,
       maxValidationHistory: options.maxValidationHistory || 1000,
       heartbeatInterval: options.heartbeatInterval || 5000,
-      ...options
+      ...options,
     };
 
     // Setup gossip handlers
@@ -57,19 +57,23 @@ class ConsensusValidator extends EventEmitter {
       initiator: this.nodeId,
       timestamp,
       status: 'pending',
-      results: new Map()
+      results: new Map(),
     };
 
     this.lifecycleValidations.set(validationId, validation);
 
     // Spread validation task via gossip
-    await this.gossip.spreadVerificationTask(validationId, {
-      type: 'agent_spawning',
-      agentType,
-      agentConfig,
-      requirements,
-      validationId
-    }, requirements.priority || 'medium');
+    await this.gossip.spreadVerificationTask(
+      validationId,
+      {
+        type: 'agent_spawning',
+        agentType,
+        agentConfig,
+        requirements,
+        validationId,
+      },
+      requirements.priority || 'medium',
+    );
 
     console.log(`🚀 Started agent spawning validation: ${validationId} for ${agentType}`);
 
@@ -92,19 +96,23 @@ class ConsensusValidator extends EventEmitter {
       initiator: this.nodeId,
       timestamp,
       status: 'pending',
-      results: new Map()
+      results: new Map(),
     };
 
     this.lifecycleValidations.set(validationId, validation);
 
     // Spread validation task via gossip
-    await this.gossip.spreadVerificationTask(validationId, {
-      type: 'agent_termination',
-      agentId,
-      terminationReason,
-      requirements,
-      validationId
-    }, requirements.priority || 'medium');
+    await this.gossip.spreadVerificationTask(
+      validationId,
+      {
+        type: 'agent_termination',
+        agentId,
+        terminationReason,
+        requirements,
+        validationId,
+      },
+      requirements.priority || 'medium',
+    );
 
     console.log(`🛑 Started agent termination validation: ${validationId} for ${agentId}`);
 
@@ -127,24 +135,31 @@ class ConsensusValidator extends EventEmitter {
       }
 
       // Propagate validation result
-      await this.gossip.propagateVerificationResult(taskId, {
-        validationId: data.validationId,
-        nodeId: this.nodeId,
-        result,
-        type: data.type
-      }, 'completed');
+      await this.gossip.propagateVerificationResult(
+        taskId,
+        {
+          validationId: data.validationId,
+          nodeId: this.nodeId,
+          result,
+          type: data.type,
+        },
+        'completed',
+      );
 
       console.log(`✅ Completed ${data.type} validation for task ${taskId}`);
-
     } catch (error) {
       console.error(`❌ Failed ${data.type} validation for task ${taskId}:`, error.message);
 
-      await this.gossip.propagateVerificationResult(taskId, {
-        validationId: data.validationId,
-        nodeId: this.nodeId,
-        error: error.message,
-        type: data.type
-      }, 'failed');
+      await this.gossip.propagateVerificationResult(
+        taskId,
+        {
+          validationId: data.validationId,
+          nodeId: this.nodeId,
+          error: error.message,
+          type: data.type,
+        },
+        'failed',
+      );
     }
   }
 
@@ -160,11 +175,11 @@ class ConsensusValidator extends EventEmitter {
       this.validateAgentTypeSupport(agentType),
       this.validateSpawningConstraints(requirements),
       this.validateNetworkConnectivity(),
-      this.simulateAgentInitialization(agentType, agentConfig)
+      this.simulateAgentInitialization(agentType, agentConfig),
     ]);
 
-    const passed = validations.filter(v => v.status === 'fulfilled').length;
-    const failed = validations.filter(v => v.status === 'rejected').length;
+    const passed = validations.filter((v) => v.status === 'fulfilled').length;
+    const failed = validations.filter((v) => v.status === 'rejected').length;
 
     return {
       type: 'agent_spawning',
@@ -179,8 +194,8 @@ class ConsensusValidator extends EventEmitter {
       validations: validations.map((v, i) => ({
         check: ['resources', 'type_support', 'constraints', 'network', 'initialization'][i],
         status: v.status,
-        result: v.status === 'fulfilled' ? v.value : v.reason?.message
-      }))
+        result: v.status === 'fulfilled' ? v.value : v.reason?.message,
+      })),
     };
   }
 
@@ -196,11 +211,11 @@ class ConsensusValidator extends EventEmitter {
       this.validateResourceCleanup(agentId),
       this.validateStateConsistency(agentId),
       this.validateDependencyHandling(agentId),
-      this.simulateTerminationProcess(agentId, terminationReason)
+      this.simulateTerminationProcess(agentId, terminationReason),
     ]);
 
-    const passed = validations.filter(v => v.status === 'fulfilled').length;
-    const failed = validations.filter(v => v.status === 'rejected').length;
+    const passed = validations.filter((v) => v.status === 'fulfilled').length;
+    const failed = validations.filter((v) => v.status === 'rejected').length;
 
     return {
       type: 'agent_termination',
@@ -214,10 +229,16 @@ class ConsensusValidator extends EventEmitter {
       total: validations.length,
       success: failed === 0,
       validations: validations.map((v, i) => ({
-        check: ['graceful_shutdown', 'resource_cleanup', 'state_consistency', 'dependencies', 'termination'][i],
+        check: [
+          'graceful_shutdown',
+          'resource_cleanup',
+          'state_consistency',
+          'dependencies',
+          'termination',
+        ][i],
         status: v.status,
-        result: v.status === 'fulfilled' ? v.value : v.reason?.message
-      }))
+        result: v.status === 'fulfilled' ? v.value : v.reason?.message,
+      })),
     };
   }
 
@@ -241,14 +262,21 @@ class ConsensusValidator extends EventEmitter {
 
     return {
       memory: { available: availableMemory, required: requiredMemory, sufficient: hasMemory },
-      cpu: { available: availableCpu, required: requiredCpu, sufficient: hasCpu }
+      cpu: { available: availableCpu, required: requiredCpu, sufficient: hasCpu },
     };
   }
 
   async validateAgentTypeSupport(agentType) {
     const supportedTypes = [
-      'coordinator', 'researcher', 'coder', 'tester', 'reviewer',
-      'monitor', 'specialist', 'analyzer', 'optimizer'
+      'coordinator',
+      'researcher',
+      'coder',
+      'tester',
+      'reviewer',
+      'monitor',
+      'specialist',
+      'analyzer',
+      'optimizer',
     ];
 
     const isSupported = supportedTypes.includes(agentType);
@@ -272,12 +300,12 @@ class ConsensusValidator extends EventEmitter {
       current: currentAgents,
       maximum: maxAgents,
       canSpawn: true,
-      capacity: ((maxAgents - currentAgents) / maxAgents) * 100
+      capacity: ((maxAgents - currentAgents) / maxAgents) * 100,
     };
   }
 
   async validateNetworkConnectivity() {
-    const activePeers = Array.from(this.gossip.peers.values()).filter(p => p.isActive).length;
+    const activePeers = Array.from(this.gossip.peers.values()).filter((p) => p.isActive).length;
     const minConnectivity = 1;
 
     if (activePeers < minConnectivity) {
@@ -287,7 +315,7 @@ class ConsensusValidator extends EventEmitter {
     return {
       activePeers,
       minRequired: minConnectivity,
-      networkHealth: activePeers >= minConnectivity
+      networkHealth: activePeers >= minConnectivity,
     };
   }
 
@@ -296,7 +324,7 @@ class ConsensusValidator extends EventEmitter {
     const initTime = Math.random() * 1000 + 500; // 500-1500ms
     const success = Math.random() > 0.05; // 95% success rate
 
-    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate async work
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate async work
 
     if (!success) {
       throw new Error(`Agent initialization failed for type: ${agentType}`);
@@ -306,7 +334,7 @@ class ConsensusValidator extends EventEmitter {
       agentType,
       initializationTime: initTime,
       success,
-      features: ['basic', 'gossip', 'monitoring']
+      features: ['basic', 'gossip', 'monitoring'],
     };
   }
 
@@ -329,7 +357,7 @@ class ConsensusValidator extends EventEmitter {
       agentId,
       canShutdown,
       estimatedShutdownTime: shutdownTime,
-      pendingTasks: Math.floor(Math.random() * 3)
+      pendingTasks: Math.floor(Math.random() * 3),
     };
   }
 
@@ -346,7 +374,7 @@ class ConsensusValidator extends EventEmitter {
       agentId,
       memoryToFree,
       resourcesFreed: true,
-      cleanupTime: Math.random() * 500 + 100
+      cleanupTime: Math.random() * 500 + 100,
     };
   }
 
@@ -363,7 +391,7 @@ class ConsensusValidator extends EventEmitter {
       agentId,
       stateHash,
       consistent: true,
-      lastStateUpdate: Date.now() - Math.random() * 300000 // Last 5 minutes
+      lastStateUpdate: Date.now() - Math.random() * 300000, // Last 5 minutes
     };
   }
 
@@ -380,7 +408,7 @@ class ConsensusValidator extends EventEmitter {
       agentId,
       dependencies,
       canHandle: true,
-      dependencyTypes: ['peer', 'resource', 'service']
+      dependencyTypes: ['peer', 'resource', 'service'],
     };
   }
 
@@ -389,7 +417,7 @@ class ConsensusValidator extends EventEmitter {
     const terminationTime = Math.random() * 1500 + 500; // 500-2000ms
     const success = Math.random() > 0.03; // 97% success rate
 
-    await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async work
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Simulate async work
 
     if (!success) {
       throw new Error(`Termination process failed for agent: ${agentId}`);
@@ -400,7 +428,7 @@ class ConsensusValidator extends EventEmitter {
       reason,
       terminationTime,
       success,
-      cleanupSteps: ['save_state', 'close_connections', 'free_resources']
+      cleanupSteps: ['save_state', 'close_connections', 'free_resources'],
     };
   }
 
@@ -412,7 +440,7 @@ class ConsensusValidator extends EventEmitter {
       ...agentInfo,
       registeredAt: Date.now(),
       lastSeen: Date.now(),
-      status: 'active'
+      status: 'active',
     });
 
     console.log(`📋 Registered agent: ${agentId}`);
@@ -444,23 +472,25 @@ class ConsensusValidator extends EventEmitter {
    * Get validation status
    */
   getValidationStatus() {
-    const activeValidations = Array.from(this.lifecycleValidations.values())
-      .filter(v => v.status === 'pending');
+    const activeValidations = Array.from(this.lifecycleValidations.values()).filter(
+      (v) => v.status === 'pending',
+    );
 
-    const completedValidations = Array.from(this.lifecycleValidations.values())
-      .filter(v => v.status === 'completed');
+    const completedValidations = Array.from(this.lifecycleValidations.values()).filter(
+      (v) => v.status === 'completed',
+    );
 
     return {
       nodeId: this.nodeId,
       agents: {
         registered: this.agentRegistry.size,
-        active: Array.from(this.agentRegistry.values()).filter(a => a.status === 'active').length
+        active: Array.from(this.agentRegistry.values()).filter((a) => a.status === 'active').length,
       },
       validations: {
         active: activeValidations.length,
         completed: completedValidations.length,
-        total: this.lifecycleValidations.size
-      }
+        total: this.lifecycleValidations.size,
+      },
     };
   }
 
@@ -471,7 +501,7 @@ class ConsensusValidator extends EventEmitter {
     return Array.from(this.agentRegistry.entries()).map(([id, info]) => ({
       id,
       ...info,
-      uptime: Date.now() - info.registeredAt
+      uptime: Date.now() - info.registeredAt,
     }));
   }
 }

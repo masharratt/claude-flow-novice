@@ -8,8 +8,16 @@
 import { EventEmitter } from 'events';
 import { ProjectDetectionEngine, ProjectAnalysis } from '../ai/project-detection-engine.js';
 import { DecisionTreeGenerator, UserContext } from '../ai/decision-tree-generator.js';
-import { MultiTierStorageManager, StorageConfiguration, StorageTier } from '../storage/multi-tier-storage.js';
-import { ProgressiveDisclosureEngine, ProgressiveUIConfig, ConfigurationMode } from '../ui/progressive-disclosure-engine.js';
+import {
+  MultiTierStorageManager,
+  StorageConfiguration,
+  StorageTier,
+} from '../storage/multi-tier-storage.js';
+import {
+  ProgressiveDisclosureEngine,
+  ProgressiveUIConfig,
+  ConfigurationMode,
+} from '../ui/progressive-disclosure-engine.js';
 import { VersionMigrationEngine } from '../migration/version-migration-engine.js';
 
 export interface ConfigurationManagerOptions {
@@ -103,12 +111,12 @@ export class IntelligentConfigurationManager extends EventEmitter {
 
     // Initialize storage with default configuration
     this.storageManager = new MultiTierStorageManager(
-      this.options.storage || this.getDefaultStorageConfiguration()
+      this.options.storage || this.getDefaultStorageConfiguration(),
     );
 
     // Initialize UI engine
     this.uiEngine = new ProgressiveDisclosureEngine(
-      this.options.ui || this.getDefaultUIConfiguration()
+      this.options.ui || this.getDefaultUIConfiguration(),
     );
 
     // Set up event handlers
@@ -127,7 +135,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         this.initializeUserContext(),
         this.setupHooksIntegration(),
         this.loadExistingConfiguration(),
-        this.initializeAIServices()
+        this.initializeAIServices(),
       ]);
 
       // Check if auto-setup is needed
@@ -142,13 +150,12 @@ export class IntelligentConfigurationManager extends EventEmitter {
 
       this.emit('initializationCompleted', {
         hasConfiguration: !!this.currentConfiguration,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
-
     } catch (error) {
       this.emit('initializationFailed', {
         error: error.message,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
       throw error;
     }
@@ -162,27 +169,25 @@ export class IntelligentConfigurationManager extends EventEmitter {
 
     try {
       // Analyze the project
-      const projectAnalysis = await this.detectionEngine.analyzeProject(
-        this.context.projectPath
-      );
+      const projectAnalysis = await this.detectionEngine.analyzeProject(this.context.projectPath);
 
       this.emit('projectAnalysisCompleted', {
         projectType: projectAnalysis.type,
         confidence: projectAnalysis.confidence,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       // Generate decision tree
       const decisionTree = await this.decisionTreeGenerator.generateDecisionTree(
         projectAnalysis,
-        this.userContext
+        this.userContext,
       );
 
       // Execute decision tree to generate configuration
       const generatedConfig = await this.decisionTreeGenerator.executeDecisionTree(
         decisionTree,
         projectAnalysis,
-        this.userContext
+        this.userContext,
       );
 
       // Enhance with metadata
@@ -198,9 +203,9 @@ export class IntelligentConfigurationManager extends EventEmitter {
             language: projectAnalysis.language,
             framework: projectAnalysis.framework,
             complexity: projectAnalysis.complexity,
-            confidence: projectAnalysis.confidence
-          }
-        }
+            confidence: projectAnalysis.confidence,
+          },
+        },
       };
 
       // Save configuration
@@ -210,10 +215,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         this.currentConfiguration = configuration;
 
         // Generate recommendations
-        const recommendations = await this.generateRecommendations(
-          projectAnalysis,
-          configuration
-        );
+        const recommendations = await this.generateRecommendations(projectAnalysis, configuration);
 
         const result: ConfigurationSetupResult = {
           success: true,
@@ -222,24 +224,23 @@ export class IntelligentConfigurationManager extends EventEmitter {
           confidence: projectAnalysis.confidence,
           warnings: this.extractWarnings(saveResult),
           recommendations,
-          nextSteps: this.generateNextSteps(projectAnalysis, configuration)
+          nextSteps: this.generateNextSteps(projectAnalysis, configuration),
         };
 
         this.emit('autoSetupCompleted', {
           projectType: projectAnalysis.type,
           confidence: projectAnalysis.confidence,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
 
         return result;
       } else {
         throw new Error('Failed to save generated configuration');
       }
-
     } catch (error) {
       this.emit('autoSetupFailed', {
         error: error.message,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       return {
@@ -249,7 +250,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         confidence: 0,
         warnings: [error.message],
         recommendations: [],
-        nextSteps: ['Configure manually using the UI']
+        nextSteps: ['Configure manually using the UI'],
       };
     }
   }
@@ -257,10 +258,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
   /**
    * Get current configuration with progressive filtering
    */
-  async getConfiguration(
-    level?: ConfigurationMode,
-    tier: StorageTier = 'local'
-  ): Promise<any> {
+  async getConfiguration(level?: ConfigurationMode, tier: StorageTier = 'local'): Promise<any> {
     if (!this.currentConfiguration) {
       const loadResult = await this.storageManager.load(tier);
       this.currentConfiguration = loadResult.configuration;
@@ -278,11 +276,11 @@ export class IntelligentConfigurationManager extends EventEmitter {
    */
   async updateConfiguration(
     updates: any,
-    options: UpdateOptions = {}
+    options: UpdateOptions = {},
   ): Promise<ConfigurationUpdateResult> {
     this.emit('configurationUpdateStarted', {
       paths: Object.keys(updates),
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     try {
@@ -292,7 +290,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
       const updatedConfig = await this.mergeConfigurationIntelligently(
         currentConfig,
         updates,
-        options
+        options,
       );
 
       // Validate the updated configuration
@@ -303,9 +301,9 @@ export class IntelligentConfigurationManager extends EventEmitter {
           success: false,
           configuration: currentConfig,
           changes: [],
-          warnings: validationResult.warnings.map(w => w.message),
-          validationErrors: validationResult.errors.map(e => e.message),
-          migrationRequired: false
+          warnings: validationResult.warnings.map((w) => w.message),
+          validationErrors: validationResult.errors.map((e) => e.message),
+          migrationRequired: false,
         };
       }
 
@@ -313,10 +311,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
       const migrationRequired = this.checkMigrationRequired(currentConfig, updatedConfig);
 
       // Save updated configuration
-      const saveResult = await this.storageManager.save(
-        updatedConfig,
-        options.tiers || ['local']
-      );
+      const saveResult = await this.storageManager.save(updatedConfig, options.tiers || ['local']);
 
       if (saveResult.success) {
         // Detect changes
@@ -331,44 +326,40 @@ export class IntelligentConfigurationManager extends EventEmitter {
           lastModified: new Date().toISOString(),
           userModified: [
             ...(this.currentConfiguration.metadata.userModified || []),
-            ...Object.keys(updates)
-          ].filter((value, index, self) => self.indexOf(value) === index)
+            ...Object.keys(updates),
+          ].filter((value, index, self) => self.indexOf(value) === index),
         };
 
         // Provide AI-driven suggestions
-        const suggestions = await this.generateConfigurationSuggestions(
-          updatedConfig,
-          changes
-        );
+        const suggestions = await this.generateConfigurationSuggestions(updatedConfig, changes);
 
         const result: ConfigurationUpdateResult = {
           success: true,
           configuration: updatedConfig,
           changes,
           warnings: [
-            ...validationResult.warnings.map(w => w.message),
+            ...validationResult.warnings.map((w) => w.message),
             ...this.extractWarnings(saveResult),
-            ...suggestions
+            ...suggestions,
           ],
           validationErrors: [],
-          migrationRequired
+          migrationRequired,
         };
 
         this.emit('configurationUpdated', {
           changes: changes.length,
           migrationRequired,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
 
         return result;
       } else {
         throw new Error('Failed to save configuration updates');
       }
-
     } catch (error) {
       this.emit('configurationUpdateFailed', {
         error: error.message,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       return {
@@ -377,7 +368,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         changes: [],
         warnings: [error.message],
         validationErrors: [],
-        migrationRequired: false
+        migrationRequired: false,
       };
     }
   }
@@ -392,15 +383,12 @@ export class IntelligentConfigurationManager extends EventEmitter {
   /**
    * Change configuration level with smooth transition
    */
-  async setConfigurationLevel(
-    level: ConfigurationMode,
-    smooth: boolean = true
-  ): Promise<void> {
+  async setConfigurationLevel(level: ConfigurationMode, smooth: boolean = true): Promise<void> {
     await this.uiEngine.setConfigurationLevel(level, smooth);
 
     this.emit('levelChanged', {
       level,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -425,7 +413,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
    */
   async exportConfiguration(
     format: 'json' | 'yaml' | 'toml' = 'json',
-    includeMetadata: boolean = false
+    includeMetadata: boolean = false,
   ): Promise<string> {
     const config = includeMetadata
       ? this.currentConfiguration
@@ -449,7 +437,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
   async importConfiguration(
     configData: string,
     format: 'json' | 'yaml' | 'toml' = 'json',
-    merge: boolean = false
+    merge: boolean = false,
   ): Promise<ConfigurationUpdateResult> {
     try {
       let importedConfig: any;
@@ -478,22 +466,23 @@ export class IntelligentConfigurationManager extends EventEmitter {
           return {
             success: true,
             configuration: importedConfig,
-            changes: [{
-              path: '',
-              type: 'modified',
-              newValue: importedConfig,
-              reason: 'Configuration imported',
-              timestamp: new Date()
-            }],
+            changes: [
+              {
+                path: '',
+                type: 'modified',
+                newValue: importedConfig,
+                reason: 'Configuration imported',
+                timestamp: new Date(),
+              },
+            ],
             warnings: [],
             validationErrors: [],
-            migrationRequired: false
+            migrationRequired: false,
           };
         } else {
           throw new Error('Failed to save imported configuration');
         }
       }
-
     } catch (error) {
       return {
         success: false,
@@ -501,7 +490,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         changes: [],
         warnings: [error.message],
         validationErrors: [],
-        migrationRequired: false
+        migrationRequired: false,
       };
     }
   }
@@ -545,7 +534,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         autoSetup: true,
         confidenceThreshold: 0.7,
         learningEnabled: true,
-        ...options.ai
+        ...options.ai,
       },
       hooks: {
         enabled: true,
@@ -553,8 +542,8 @@ export class IntelligentConfigurationManager extends EventEmitter {
         postConfigSave: true,
         configMigration: true,
         configValidation: true,
-        ...options.hooks
-      }
+        ...options.hooks,
+      },
     };
   }
 
@@ -564,8 +553,8 @@ export class IntelligentConfigurationManager extends EventEmitter {
       userId: options.userId,
       organizationId: options.organizationId,
       sessionId: `session-${Date.now()}-${Math.random().toString(36).substring(2)}`,
-      environment: process.env.NODE_ENV as any || 'development',
-      timestamp: new Date()
+      environment: (process.env.NODE_ENV as any) || 'development',
+      timestamp: new Date(),
     };
   }
 
@@ -577,15 +566,17 @@ export class IntelligentConfigurationManager extends EventEmitter {
         preferredMode: 'auto',
         featurePreferences: {},
         toolPreferences: {},
-        complexityTolerance: 0.5
+        complexityTolerance: 0.5,
       },
       previousProjects: [], // Would be loaded from storage
-      teamContext: this.options.organizationId ? {
-        size: 1,
-        roles: ['developer'],
-        organizationPolicies: [],
-        sharedTemplates: []
-      } : undefined
+      teamContext: this.options.organizationId
+        ? {
+            size: 1,
+            roles: ['developer'],
+            organizationPolicies: [],
+            sharedTemplates: [],
+          }
+        : undefined,
     };
   }
 
@@ -613,7 +604,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
 
       this.emit('configurationLoaded', {
         tier: loadResult.tier,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     } catch (error) {
       // No existing configuration found, which is fine
@@ -641,21 +632,21 @@ export class IntelligentConfigurationManager extends EventEmitter {
     if (currentVersion !== latestVersion) {
       const validation = await this.migrationEngine.validateMigration(
         this.currentConfiguration,
-        latestVersion
+        latestVersion,
       );
 
       if (validation.valid) {
         this.emit('migrationRequired', {
           fromVersion: currentVersion,
           toVersion: latestVersion,
-          breaking: !validation.compatibility.compatible
+          breaking: !validation.compatibility.compatible,
         });
 
         // Auto-migrate if non-breaking
         if (validation.compatibility.compatible) {
           const migrationResult = await this.migrationEngine.migrate(
             this.currentConfiguration,
-            latestVersion
+            latestVersion,
           );
 
           if (migrationResult.success) {
@@ -673,7 +664,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         path: '~/.claude-flow/config.json',
         format: 'json',
         encryption: false,
-        backup: true
+        backup: true,
       },
       project: {
         enabled: true,
@@ -681,7 +672,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         format: 'json',
         versionControl: true,
         sharing: 'team',
-        gitignore: false
+        gitignore: false,
       },
       team: {
         enabled: false,
@@ -692,7 +683,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
         authentication: { method: 'token' },
         permissions: { read: [], write: [], admin: [], inherit: true },
         synchronization: 'manual',
-        conflictResolution: 'prompt'
+        conflictResolution: 'prompt',
       },
       cloud: {
         enabled: false,
@@ -700,18 +691,18 @@ export class IntelligentConfigurationManager extends EventEmitter {
         encryption: 'client-side',
         syncInterval: 3600,
         bandwidth: { maxUpload: 1048576, maxDownload: 1048576, throttle: false, compression: true },
-        offline: { enabled: true, cacheSize: 10, syncOnConnect: true, conflictHandling: 'prompt' }
+        offline: { enabled: true, cacheSize: 10, syncOnConnect: true, conflictHandling: 'prompt' },
       },
       encryption: {
         enabled: false,
         algorithm: 'AES-256-GCM',
-        keyDerivation: 'PBKDF2'
+        keyDerivation: 'PBKDF2',
       },
       backup: {
         enabled: true,
         maxBackups: 10,
         retention: 30,
-        compression: true
+        compression: true,
       },
       sync: {
         enabled: false,
@@ -719,8 +710,8 @@ export class IntelligentConfigurationManager extends EventEmitter {
         strategy: 'merge',
         conflictResolution: 'prompt',
         bandwidth: { maxUpload: 1048576, maxDownload: 1048576, throttle: false, compression: true },
-        retry: { maxAttempts: 3, backoffMultiplier: 2, maxDelay: 60000 }
-      }
+        retry: { maxAttempts: 3, backoffMultiplier: 2, maxDelay: 60000 },
+      },
     };
   }
 
@@ -737,10 +728,10 @@ export class IntelligentConfigurationManager extends EventEmitter {
         reducedMotion: false,
         highContrast: false,
         fontSize: 'medium',
-        tooltipDelay: 500
+        tooltipDelay: 500,
       },
       animations: true,
-      hints: true
+      hints: true,
     };
   }
 
@@ -771,7 +762,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
   private async mergeConfigurationIntelligently(
     current: any,
     updates: any,
-    options: UpdateOptions
+    options: UpdateOptions,
   ): Promise<any> {
     // Intelligent merging with conflict resolution
     return { ...current, ...updates };
@@ -794,16 +785,13 @@ export class IntelligentConfigurationManager extends EventEmitter {
 
   private async generateConfigurationSuggestions(
     config: any,
-    changes?: ConfigurationChange[]
+    changes?: ConfigurationChange[],
   ): Promise<string[]> {
     // AI-powered suggestions based on configuration and changes
     return [];
   }
 
-  private async generateRecommendations(
-    analysis: ProjectAnalysis,
-    config: any
-  ): Promise<string[]> {
+  private async generateRecommendations(analysis: ProjectAnalysis, config: any): Promise<string[]> {
     const recommendations: string[] = [];
 
     // Based on project type
@@ -834,14 +822,12 @@ export class IntelligentConfigurationManager extends EventEmitter {
       'Review and adjust agent configuration',
       'Explore available features and integrations',
       'Test the configuration with your project',
-      'Consider upgrading to intermediate mode when ready'
+      'Consider upgrading to intermediate mode when ready',
     ];
   }
 
   private extractWarnings(saveResult: any): string[] {
-    return saveResult.results
-      ?.filter((r: any) => !r.success)
-      ?.map((r: any) => r.error) || [];
+    return saveResult.results?.filter((r: any) => !r.success)?.map((r: any) => r.error) || [];
   }
 
   private stripMetadata(config: any): any {

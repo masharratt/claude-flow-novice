@@ -68,7 +68,11 @@ export class PersonalizationCLI {
    */
   async runSetupWizard(flags) {
     console.log(chalk.blue.bold('\n🧙‍♂️ Claude Flow Novice Personalization Setup Wizard'));
-    console.log(chalk.gray('This wizard will help you configure personalized settings for your development workflow.\n'));
+    console.log(
+      chalk.gray(
+        'This wizard will help you configure personalized settings for your development workflow.\n',
+      ),
+    );
 
     try {
       const spinner = ora('Initializing personalization systems...').start();
@@ -87,10 +91,19 @@ export class PersonalizationCLI {
           message: 'What is your experience level with AI development tools?',
           choices: [
             { name: '🌱 Beginner - New to AI tools and development workflows', value: 'beginner' },
-            { name: '📈 Intermediate - Familiar with development, learning AI tools', value: 'intermediate' },
-            { name: '🚀 Advanced - Experienced with AI tools and complex workflows', value: 'advanced' },
-            { name: '👑 Expert - Deep expertise in AI development and optimization', value: 'expert' }
-          ]
+            {
+              name: '📈 Intermediate - Familiar with development, learning AI tools',
+              value: 'intermediate',
+            },
+            {
+              name: '🚀 Advanced - Experienced with AI tools and complex workflows',
+              value: 'advanced',
+            },
+            {
+              name: '👑 Expert - Deep expertise in AI development and optimization',
+              value: 'expert',
+            },
+          ],
         },
         {
           type: 'list',
@@ -104,8 +117,8 @@ export class PersonalizationCLI {
             'Full-Stack Applications',
             'API & Microservices',
             'Mobile Development',
-            'Mixed/Other'
-          ]
+            'Mixed/Other',
+          ],
         },
         {
           type: 'list',
@@ -115,8 +128,8 @@ export class PersonalizationCLI {
             { name: '📝 Minimal - Just the essentials', value: 'minimal' },
             { name: '📋 Concise - Key points with brief explanations', value: 'concise' },
             { name: '📖 Detailed - Comprehensive explanations and context', value: 'detailed' },
-            { name: '🔍 Verbose - In-depth analysis and educational content', value: 'verbose' }
-          ]
+            { name: '🔍 Verbose - In-depth analysis and educational content', value: 'verbose' },
+          ],
         },
         {
           type: 'list',
@@ -126,8 +139,8 @@ export class PersonalizationCLI {
             { name: '🤖 Technical - Direct, precise, no fluff', value: 'technical' },
             { name: '👥 Friendly - Approachable with helpful guidance', value: 'friendly' },
             { name: '🎯 Professional - Balanced, clear, business-focused', value: 'professional' },
-            { name: '🎓 Educational - Teaching-focused with explanations', value: 'educational' }
-          ]
+            { name: '🎓 Educational - Teaching-focused with explanations', value: 'educational' },
+          ],
         },
         {
           type: 'checkbox',
@@ -139,8 +152,8 @@ export class PersonalizationCLI {
             { name: 'Content filtering and prioritization', value: 'contentFiltering' },
             { name: 'Performance analytics and insights', value: 'analytics' },
             { name: 'Workflow optimization suggestions', value: 'workflowOptimization' },
-            { name: 'Cross-session learning and adaptation', value: 'learning' }
-          ]
+            { name: 'Cross-session learning and adaptation', value: 'learning' },
+          ],
         },
         {
           type: 'number',
@@ -149,8 +162,8 @@ export class PersonalizationCLI {
           default: 4,
           validate: (input) => {
             const num = parseInt(input);
-            return num >= 1 && num <= 16 || 'Please enter a number between 1 and 16';
-          }
+            return (num >= 1 && num <= 16) || 'Please enter a number between 1 and 16';
+          },
         },
         {
           type: 'list',
@@ -160,15 +173,15 @@ export class PersonalizationCLI {
             { name: '🔄 Auto-retry with progressive backoff', value: 'autoRetry' },
             { name: '⚠️ Prompt for manual intervention', value: 'interactive' },
             { name: '📋 Log and continue with fallback', value: 'logAndContinue' },
-            { name: '⛔ Stop and require manual resolution', value: 'stopOnError' }
-          ]
+            { name: '⛔ Stop and require manual resolution', value: 'stopOnError' },
+          ],
         },
         {
           type: 'confirm',
           name: 'analyticsEnabled',
           message: 'Enable usage analytics to help improve your workflow?',
-          default: true
-        }
+          default: true,
+        },
       ];
 
       const answers = await inquirer.prompt(wizardQuestions);
@@ -177,11 +190,11 @@ export class PersonalizationCLI {
       const preferences = {
         experience: {
           level: answers.experience,
-          projectType: answers.projectType
+          projectType: answers.projectType,
         },
         communication: {
           verbosity: answers.verbosity,
-          style: answers.communicationStyle
+          style: answers.communicationStyle,
         },
         workflow: {
           maxAgents: answers.maxAgents,
@@ -189,18 +202,18 @@ export class PersonalizationCLI {
             acc[feature] = true;
             return acc;
           }, {}),
-          errorHandling: answers.errorHandling
+          errorHandling: answers.errorHandling,
         },
         analytics: {
           enabled: answers.analyticsEnabled,
           collectUsageData: answers.analyticsEnabled,
-          shareInsights: false // Privacy-first default
+          shareInsights: false, // Privacy-first default
         },
         personalization: {
           setupCompleted: true,
           setupDate: new Date().toISOString(),
-          version: '1.0.0'
-        }
+          version: '1.0.0',
+        },
       };
 
       // Apply all preferences
@@ -221,7 +234,9 @@ export class PersonalizationCLI {
       console.log(chalk.blue('📋 Summary of your settings:'));
       console.log(`  Experience Level: ${chalk.cyan(answers.experience)}`);
       console.log(`  Project Focus: ${chalk.cyan(answers.projectType)}`);
-      console.log(`  Communication: ${chalk.cyan(answers.verbosity)} ${chalk.cyan(answers.communicationStyle)}`);
+      console.log(
+        `  Communication: ${chalk.cyan(answers.verbosity)} ${chalk.cyan(answers.communicationStyle)}`,
+      );
       console.log(`  Max Agents: ${chalk.cyan(answers.maxAgents)}`);
       console.log(`  Features Enabled: ${chalk.cyan(answers.workflowFeatures.length)} features`);
 
@@ -234,7 +249,6 @@ export class PersonalizationCLI {
         console.log(chalk.blue('\n🎯 Running immediate optimization...'));
         await this.getOptimizationSuggestions({ immediate: true });
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Setup failed:'), error.message);
       throw error;
@@ -260,7 +274,9 @@ export class PersonalizationCLI {
 
       // Setup Status
       const isSetupComplete = preferences.personalization?.setupCompleted || false;
-      console.log(`\n${chalk.blue('Setup Status:')} ${isSetupComplete ? chalk.green('✅ Complete') : chalk.yellow('⚠️ Incomplete')}`);
+      console.log(
+        `\n${chalk.blue('Setup Status:')} ${isSetupComplete ? chalk.green('✅ Complete') : chalk.yellow('⚠️ Incomplete')}`,
+      );
 
       if (isSetupComplete) {
         const setupDate = preferences.personalization?.setupDate;
@@ -272,38 +288,58 @@ export class PersonalizationCLI {
       if (preferences.experience) {
         console.log(`\n${chalk.blue('User Profile:')}`);
         console.log(`  Experience Level: ${chalk.cyan(preferences.experience.level || 'Not set')}`);
-        console.log(`  Project Type: ${chalk.cyan(preferences.experience.projectType || 'Not set')}`);
-        console.log(`  Communication Style: ${chalk.cyan(preferences.communication?.style || 'Not set')}`);
-        console.log(`  Verbosity: ${chalk.cyan(preferences.communication?.verbosity || 'Not set')}`);
+        console.log(
+          `  Project Type: ${chalk.cyan(preferences.experience.projectType || 'Not set')}`,
+        );
+        console.log(
+          `  Communication Style: ${chalk.cyan(preferences.communication?.style || 'Not set')}`,
+        );
+        console.log(
+          `  Verbosity: ${chalk.cyan(preferences.communication?.verbosity || 'Not set')}`,
+        );
       }
 
       // Workflow Settings
       if (preferences.workflow) {
         console.log(`\n${chalk.blue('Workflow Configuration:')}`);
         console.log(`  Max Agents: ${chalk.cyan(preferences.workflow.maxAgents || 'Default')}`);
-        console.log(`  Error Handling: ${chalk.cyan(preferences.workflow.errorHandling || 'Default')}`);
+        console.log(
+          `  Error Handling: ${chalk.cyan(preferences.workflow.errorHandling || 'Default')}`,
+        );
 
         if (preferences.workflow.features) {
           const enabledFeatures = Object.entries(preferences.workflow.features)
             .filter(([_, enabled]) => enabled)
             .map(([feature, _]) => feature);
-          console.log(`  Enabled Features: ${chalk.cyan(enabledFeatures.length)} (${enabledFeatures.join(', ')})`);
+          console.log(
+            `  Enabled Features: ${chalk.cyan(enabledFeatures.length)} (${enabledFeatures.join(', ')})`,
+          );
         }
       }
 
       // System Status
       console.log(`\n${chalk.blue('System Status:')}`);
-      console.log(`  Resource Delegation: ${resourceStatus.active ? chalk.green('✅ Active') : chalk.red('❌ Inactive')}`);
-      console.log(`  Content Filtering: ${this.contentFilter.isActive() ? chalk.green('✅ Active') : chalk.red('❌ Inactive')}`);
-      console.log(`  Workflow Optimization: ${workflowStatus.active ? chalk.green('✅ Active') : chalk.red('❌ Inactive')}`);
-      console.log(`  Analytics: ${preferences.analytics?.enabled ? chalk.green('✅ Enabled') : chalk.red('❌ Disabled')}`);
+      console.log(
+        `  Resource Delegation: ${resourceStatus.active ? chalk.green('✅ Active') : chalk.red('❌ Inactive')}`,
+      );
+      console.log(
+        `  Content Filtering: ${this.contentFilter.isActive() ? chalk.green('✅ Active') : chalk.red('❌ Inactive')}`,
+      );
+      console.log(
+        `  Workflow Optimization: ${workflowStatus.active ? chalk.green('✅ Active') : chalk.red('❌ Inactive')}`,
+      );
+      console.log(
+        `  Analytics: ${preferences.analytics?.enabled ? chalk.green('✅ Enabled') : chalk.red('❌ Disabled')}`,
+      );
 
       // Recent Activity (if verbose)
       if (flags.verbose && analytics.recentActivity) {
         console.log(`\n${chalk.blue('Recent Activity:')}`);
         const activities = analytics.recentActivity.slice(0, 5);
-        activities.forEach(activity => {
-          console.log(`  ${chalk.gray(activity.timestamp)} - ${activity.type}: ${chalk.cyan(activity.description)}`);
+        activities.forEach((activity) => {
+          console.log(
+            `  ${chalk.gray(activity.timestamp)} - ${activity.type}: ${chalk.cyan(activity.description)}`,
+          );
         });
       }
 
@@ -316,9 +352,12 @@ export class PersonalizationCLI {
       }
 
       if (!isSetupComplete) {
-        console.log(chalk.yellow('\n💡 Run "claude-flow-novice personalize setup" to complete configuration.'));
+        console.log(
+          chalk.yellow(
+            '\n💡 Run "claude-flow-novice personalize setup" to complete configuration.',
+          ),
+        );
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Failed to get status:'), error.message);
       throw error;
@@ -348,9 +387,9 @@ export class PersonalizationCLI {
       }
 
       // Priority suggestions
-      const highPriority = suggestions.filter(s => s.priority === 'high');
-      const mediumPriority = suggestions.filter(s => s.priority === 'medium');
-      const lowPriority = suggestions.filter(s => s.priority === 'low');
+      const highPriority = suggestions.filter((s) => s.priority === 'high');
+      const mediumPriority = suggestions.filter((s) => s.priority === 'medium');
+      const lowPriority = suggestions.filter((s) => s.priority === 'low');
 
       if (highPriority.length > 0) {
         console.log(chalk.red.bold('\n🔴 High Priority Suggestions:'));
@@ -396,7 +435,7 @@ export class PersonalizationCLI {
       }
 
       // Quick wins
-      const quickWins = suggestions.filter(s => s.effort === 'low' && s.impact === 'high');
+      const quickWins = suggestions.filter((s) => s.effort === 'low' && s.impact === 'high');
       if (quickWins.length > 0) {
         console.log(chalk.green.bold('\n🚀 Quick Wins (High Impact, Low Effort):'));
         quickWins.forEach((win, i) => {
@@ -407,7 +446,7 @@ export class PersonalizationCLI {
 
       // Auto-apply option
       if (flags.autoApply && !flags.dryRun) {
-        const autoApplicable = suggestions.filter(s => s.autoApplyable);
+        const autoApplicable = suggestions.filter((s) => s.autoApplyable);
         if (autoApplicable.length > 0) {
           console.log(chalk.blue.bold('\n🤖 Auto-Applying Suggestions...'));
           for (const suggestion of autoApplicable) {
@@ -427,7 +466,6 @@ export class PersonalizationCLI {
       console.log('  • Apply high-priority suggestions first');
       console.log('  • Monitor impact with: claude-flow-novice personalize analytics');
       console.log('  • Re-run optimization: claude-flow-novice personalize optimize');
-
     } catch (error) {
       console.error(chalk.red('❌ Failed to get optimization suggestions:'), error.message);
       throw error;
@@ -454,17 +492,27 @@ export class PersonalizationCLI {
         console.log(chalk.blue.bold('\n📈 Usage Overview:'));
         console.log(`  Total Commands: ${chalk.cyan(analytics.usage.totalCommands || 0)}`);
         console.log(`  Active Days: ${chalk.cyan(analytics.usage.activeDays || 0)}`);
-        console.log(`  Average Session Length: ${chalk.cyan(analytics.usage.avgSessionLength || 0)} minutes`);
-        console.log(`  Most Used Features: ${chalk.cyan((analytics.usage.topFeatures || []).slice(0, 3).join(', '))}`);
+        console.log(
+          `  Average Session Length: ${chalk.cyan(analytics.usage.avgSessionLength || 0)} minutes`,
+        );
+        console.log(
+          `  Most Used Features: ${chalk.cyan((analytics.usage.topFeatures || []).slice(0, 3).join(', '))}`,
+        );
       }
 
       // Performance Metrics
       if (analytics.performance) {
         console.log(chalk.blue.bold('\n⚡ Performance Metrics:'));
-        console.log(`  Average Task Completion: ${chalk.cyan(analytics.performance.averageTaskTime || 0)}ms`);
+        console.log(
+          `  Average Task Completion: ${chalk.cyan(analytics.performance.averageTaskTime || 0)}ms`,
+        );
         console.log(`  Success Rate: ${chalk.green(analytics.performance.successRate || 0)}%`);
-        console.log(`  Error Rate: ${analytics.performance.errorRate > 5 ? chalk.red : chalk.green}(${analytics.performance.errorRate || 0}%)`);
-        console.log(`  Agent Utilization: ${chalk.cyan(analytics.performance.agentUtilization || 0)}%`);
+        console.log(
+          `  Error Rate: ${analytics.performance.errorRate > 5 ? chalk.red : chalk.green}(${analytics.performance.errorRate || 0}%)`,
+        );
+        console.log(
+          `  Agent Utilization: ${chalk.cyan(analytics.performance.agentUtilization || 0)}%`,
+        );
       }
 
       // Personalization Insights
@@ -517,8 +565,8 @@ export class PersonalizationCLI {
           insights,
           metadata: {
             version: '1.0.0',
-            timeRange: flags.timeRange || '30d'
-          }
+            timeRange: flags.timeRange || '30d',
+          },
         };
 
         await this.exportAnalytics(fullReport, exportPath);
@@ -529,7 +577,6 @@ export class PersonalizationCLI {
         console.log(chalk.blue('\n🎯 Opening dashboard...'));
         await this.showDashboard(flags);
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Failed to generate analytics:'), error.message);
       throw error;
@@ -568,7 +615,7 @@ export class PersonalizationCLI {
       await this.dashboard.display(dashboardData, {
         interactive: !flags.static,
         fullscreen: flags.fullscreen,
-        refreshRate: flags.refresh || 5000
+        refreshRate: flags.refresh || 5000,
       });
     } catch (error) {
       console.error(chalk.red('❌ Failed to show dashboard:'), error.message);
@@ -589,7 +636,7 @@ export class PersonalizationCLI {
         preferences: await this.preferenceManager.getPreferences(),
         analytics: await this.analyticsEngine.getAnalytics(),
         timestamp: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0.0',
       };
 
       const fs = await import('fs/promises');
@@ -597,7 +644,6 @@ export class PersonalizationCLI {
 
       spinner.succeed(`Settings exported to ${filename}`);
       console.log(chalk.green('✅ Export complete'));
-
     } catch (error) {
       console.error(chalk.red('❌ Export failed:'), error.message);
       throw error;
@@ -632,7 +678,6 @@ export class PersonalizationCLI {
         console.log(chalk.blue('\n🔍 Verifying imported settings...'));
         await this.showStatus({ verbose: false });
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Import failed:'), error.message);
       throw error;
@@ -644,12 +689,14 @@ export class PersonalizationCLI {
    */
   async resetSettings(flags) {
     if (!flags.force) {
-      const { confirm } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'confirm',
-        message: 'Are you sure you want to reset all personalization settings?',
-        default: false
-      }]);
+      const { confirm } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirm',
+          message: 'Are you sure you want to reset all personalization settings?',
+          default: false,
+        },
+      ]);
 
       if (!confirm) {
         console.log(chalk.yellow('Reset cancelled'));
@@ -666,7 +713,6 @@ export class PersonalizationCLI {
       spinner.succeed('Settings reset successfully');
       console.log(chalk.green('✅ All personalization settings have been reset'));
       console.log(chalk.yellow('💡 Run "claude-flow-novice personalize setup" to configure again'));
-
     } catch (error) {
       console.error(chalk.red('❌ Reset failed:'), error.message);
       throw error;
@@ -703,7 +749,9 @@ export class PersonalizationCLI {
     console.log(`  ${chalk.gray('claude-flow-novice personalize status --verbose')}`);
     console.log(`  ${chalk.gray('claude-flow-novice personalize optimize --auto-apply')}`);
     console.log(`  ${chalk.gray('claude-flow-novice personalize analytics --export report.json')}`);
-    console.log(`  ${chalk.gray('claude-flow-novice personalize resource assign coder --priority high')}`);
+    console.log(
+      `  ${chalk.gray('claude-flow-novice personalize resource assign coder --priority high')}`,
+    );
 
     console.log(chalk.yellow.bold('\nGLOBAL FLAGS:'));
     console.log(`  ${chalk.gray('--verbose      Show detailed information')}`);
@@ -730,13 +778,12 @@ export class PersonalizationCLI {
       const assignment = await this.resourceDelegation.assignAgent(agentType, {
         priority: flags.priority || 'medium',
         capabilities: flags.capabilities?.split(',') || [],
-        constraints: flags.constraints || {}
+        constraints: flags.constraints || {},
       });
 
       console.log(chalk.green(`✅ Assigned ${agentType} agent`));
       console.log(`  Agent ID: ${chalk.cyan(assignment.agentId)}`);
       console.log(`  Estimated Completion: ${chalk.cyan(assignment.estimatedTime)}`);
-
     } catch (error) {
       console.error(chalk.red('❌ Resource assignment failed:'), error.message);
     }
@@ -752,7 +799,6 @@ export class PersonalizationCLI {
       console.log(`  Efficiency Gain: ${chalk.cyan(optimization.efficiencyGain)}%`);
       console.log(`  Resource Savings: ${chalk.cyan(optimization.resourceSavings)}`);
       console.log(`  Recommendations: ${optimization.recommendations.length} items`);
-
     } catch (error) {
       console.error(chalk.red('❌ Resource optimization failed:'), error.message);
     }
@@ -770,11 +816,10 @@ export class PersonalizationCLI {
 
       if (flags.verbose && status.agentDetails) {
         console.log(chalk.blue.bold('\n🤖 Agent Details:'));
-        status.agentDetails.forEach(agent => {
+        status.agentDetails.forEach((agent) => {
           console.log(`  ${chalk.cyan(agent.type)}: ${agent.status} (${agent.load}% load)`);
         });
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Failed to get resource status:'), error.message);
     }
@@ -789,24 +834,25 @@ export class PersonalizationCLI {
       // Simple ASCII chart for key metrics
       const metrics = ['commands', 'success_rate', 'avg_time'];
 
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         const data = timeSeriesData[metric] || [];
         if (data.length > 0) {
           console.log(`\n  ${chalk.cyan(metric.replace('_', ' ').toUpperCase())}:`);
           // Simple sparkline representation
-          const max = Math.max(...data.map(d => d.value));
-          const min = Math.min(...data.map(d => d.value));
+          const max = Math.max(...data.map((d) => d.value));
+          const min = Math.min(...data.map((d) => d.value));
           const range = max - min;
 
-          const sparkline = data.map(d => {
-            const normalized = range > 0 ? (d.value - min) / range : 0;
-            return '▁▂▃▄▅▆▇█'[Math.floor(normalized * 7)] || '▁';
-          }).join('');
+          const sparkline = data
+            .map((d) => {
+              const normalized = range > 0 ? (d.value - min) / range : 0;
+              return '▁▂▃▄▅▆▇█'[Math.floor(normalized * 7)] || '▁';
+            })
+            .join('');
 
           console.log(`    ${sparkline} (${min} - ${max})`);
         }
       });
-
     } catch (error) {
       console.error(chalk.red('❌ Failed to generate time series:'), error.message);
     }

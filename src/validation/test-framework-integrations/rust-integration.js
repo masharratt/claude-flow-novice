@@ -19,7 +19,6 @@ import { ByzantineConsensus } from '../../core/byzantine-consensus.js';
 
 export class RustIntegration {
   constructor(options = {}) {
-
     this.options = {
       timeout: options.timeout || 900000, // 15 minutes for Rust builds
       enableByzantineValidation: options.enableByzantineValidation !== false,
@@ -30,7 +29,7 @@ export class RustIntegration {
       enableAudit: options.enableAudit !== false,
       testProfile: options.testProfile || 'test',
       buildProfile: options.buildProfile || 'release',
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -76,7 +75,7 @@ export class RustIntegration {
         checkResults,
         qualityResults,
         dependencyAnalysis,
-        artifactValidation
+        artifactValidation,
       });
 
       // Phase 9: Byzantine consensus validation
@@ -84,7 +83,7 @@ export class RustIntegration {
         validationId,
         projectSetup,
         aggregatedResults,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof
@@ -92,7 +91,7 @@ export class RustIntegration {
         validationId,
         aggregatedResults,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -110,7 +109,7 @@ export class RustIntegration {
           success: testResults.success,
           coverage: testResults.coverage,
           duration: testResults.duration,
-          details: testResults.testOutput
+          details: testResults.testOutput,
         },
 
         // Cargo build results
@@ -121,7 +120,7 @@ export class RustIntegration {
           artifacts: buildResults.artifacts,
           duration: buildResults.duration,
           binarySize: buildResults.binarySize,
-          dependencies: buildResults.dependencyCount
+          dependencies: buildResults.dependencyCount,
         },
 
         // Cargo check results
@@ -129,7 +128,7 @@ export class RustIntegration {
           success: checkResults.success,
           warnings: checkResults.warnings,
           errors: checkResults.errors,
-          duration: checkResults.duration
+          duration: checkResults.duration,
         },
 
         // Quality tool results
@@ -137,7 +136,7 @@ export class RustIntegration {
           clippy: qualityResults.clippy,
           fmt: qualityResults.fmt,
           audit: qualityResults.audit,
-          overallScore: qualityResults.overallScore
+          overallScore: qualityResults.overallScore,
         },
 
         // Dependency analysis
@@ -146,7 +145,7 @@ export class RustIntegration {
           vulnerabilities: dependencyAnalysis.vulnerabilities,
           outdated: dependencyAnalysis.outdatedCount,
           licenses: dependencyAnalysis.licenses,
-          securityScore: dependencyAnalysis.securityScore
+          securityScore: dependencyAnalysis.securityScore,
         },
 
         // Artifact validation
@@ -154,7 +153,7 @@ export class RustIntegration {
           validated: artifactValidation.validatedCount,
           total: artifactValidation.totalCount,
           integrity: artifactValidation.integrityPassed,
-          details: artifactValidation.details
+          details: artifactValidation.details,
         },
 
         // Overall results
@@ -163,7 +162,7 @@ export class RustIntegration {
           qualityScore: aggregatedResults.qualityScore,
           productionReady: aggregatedResults.productionReady,
           rustToolchain: projectSetup.rustVersion,
-          cargoVersion: projectSetup.cargoVersion
+          cargoVersion: projectSetup.cargoVersion,
         },
 
         // Byzantine security validation
@@ -171,7 +170,7 @@ export class RustIntegration {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
 
         // Performance metrics
@@ -179,16 +178,11 @@ export class RustIntegration {
           totalExecutionTime: performance.now() - startTime,
           testExecutionTime: testResults.duration,
           buildExecutionTime: buildResults.duration,
-          checkExecutionTime: checkResults.duration
+          checkExecutionTime: checkResults.duration,
         },
 
         // Error aggregation
-        errors: this.aggregateRustErrors([
-          testResults,
-          buildResults,
-          checkResults,
-          qualityResults
-        ])
+        errors: this.aggregateRustErrors([testResults, buildResults, checkResults, qualityResults]),
       };
 
       // Store test history
@@ -200,7 +194,6 @@ export class RustIntegration {
       console.log(`   Quality Score: ${(result.overall.qualityScore * 100).toFixed(1)}%`);
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -208,7 +201,7 @@ export class RustIntegration {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.testHistory.set(validationId, errorResult);
@@ -228,7 +221,7 @@ export class RustIntegration {
       workspaceMembers: [],
       edition: null,
       packageName: null,
-      projectType: 'binary' // binary, library, workspace
+      projectType: 'binary', // binary, library, workspace
     };
 
     // Check for Cargo.toml
@@ -254,17 +247,18 @@ export class RustIntegration {
         if (membersMatch) {
           setup.workspaceMembers = membersMatch[1]
             .split(',')
-            .map(member => member.trim().replace(/"/g, ''))
-            .filter(member => member);
+            .map((member) => member.trim().replace(/"/g, ''))
+            .filter((member) => member);
         }
       }
 
       // Check if it's a library
-      if (cargoTomlContent.includes('[lib]') ||
-          await this.fileExists(path.join(projectPath, 'src', 'lib.rs'))) {
+      if (
+        cargoTomlContent.includes('[lib]') ||
+        (await this.fileExists(path.join(projectPath, 'src', 'lib.rs')))
+      ) {
         setup.projectType = 'library';
       }
-
     } catch (error) {
       throw new Error(`Cargo.toml not found or invalid: ${error.message}`);
     }
@@ -297,12 +291,14 @@ export class RustIntegration {
     const testCommand = [
       'cargo',
       'test',
-      '--profile', this.options.testProfile,
+      '--profile',
+      this.options.testProfile,
       ...(rustConfig.features ? ['--features', rustConfig.features] : []),
       ...(rustConfig.allFeatures ? ['--all-features'] : []),
       ...(rustConfig.noDefaultFeatures ? ['--no-default-features'] : []),
       '--',
-      '--format', 'json'
+      '--format',
+      'json',
     ];
 
     const testStartTime = performance.now();
@@ -322,7 +318,7 @@ export class RustIntegration {
       coverage: testMetrics.coverage,
       testOutput: testResult.stdout,
       errors: testResult.stderr,
-      exitCode: testResult.exitCode
+      exitCode: testResult.exitCode,
     };
   }
 
@@ -335,11 +331,13 @@ export class RustIntegration {
     const buildCommand = [
       'cargo',
       'build',
-      '--profile', this.options.buildProfile,
+      '--profile',
+      this.options.buildProfile,
       ...(rustConfig.features ? ['--features', rustConfig.features] : []),
       ...(rustConfig.allFeatures ? ['--all-features'] : []),
       ...(rustConfig.target ? ['--target', rustConfig.target] : []),
-      '--message-format', 'json'
+      '--message-format',
+      'json',
     ];
 
     const buildStartTime = performance.now();
@@ -361,7 +359,7 @@ export class RustIntegration {
       warnings: buildMetrics.warnings,
       buildOutput: buildResult.stdout,
       errors: buildResult.stderr,
-      exitCode: buildResult.exitCode
+      exitCode: buildResult.exitCode,
     };
   }
 
@@ -376,7 +374,8 @@ export class RustIntegration {
       'check',
       ...(rustConfig.features ? ['--features', rustConfig.features] : []),
       ...(rustConfig.allFeatures ? ['--all-features'] : []),
-      '--message-format', 'json'
+      '--message-format',
+      'json',
     ];
 
     const checkStartTime = performance.now();
@@ -391,7 +390,7 @@ export class RustIntegration {
       warnings: checkMetrics.warnings,
       errors: checkMetrics.errors,
       checkOutput: checkResult.stdout,
-      exitCode: checkResult.exitCode
+      exitCode: checkResult.exitCode,
     };
   }
 
@@ -405,7 +404,7 @@ export class RustIntegration {
       clippy: null,
       fmt: null,
       audit: null,
-      overallScore: 0
+      overallScore: 0,
     };
 
     // Clippy (Rust linter)
@@ -452,8 +451,11 @@ export class RustIntegration {
       'cargo',
       'clippy',
       '--',
-      '-D', 'warnings', // Deny warnings
-      '--', '-W', 'clippy::all'
+      '-D',
+      'warnings', // Deny warnings
+      '--',
+      '-W',
+      'clippy::all',
     ];
 
     const clippyResult = await this.executeCommand(projectPath, clippyCommand.join(' '));
@@ -464,7 +466,7 @@ export class RustIntegration {
       warnings: clippyMetrics.warnings,
       errors: clippyMetrics.errors,
       suggestions: clippyMetrics.suggestions,
-      output: clippyResult.stdout
+      output: clippyResult.stdout,
     };
   }
 
@@ -478,7 +480,7 @@ export class RustIntegration {
     return {
       success: fmtResult.success,
       formatted: fmtResult.success,
-      output: fmtResult.stdout || fmtResult.stderr
+      output: fmtResult.stdout || fmtResult.stderr,
     };
   }
 
@@ -511,7 +513,7 @@ export class RustIntegration {
       vulnerabilities: auditMetrics.vulnerabilities,
       warnings: auditMetrics.warnings,
       securityScore: auditMetrics.securityScore,
-      output: auditResult.stdout
+      output: auditResult.stdout,
     };
   }
 
@@ -524,21 +526,25 @@ export class RustIntegration {
       vulnerabilities: 0,
       outdatedCount: 0,
       licenses: {},
-      securityScore: 1.0
+      securityScore: 1.0,
     };
 
     try {
       // Get dependency tree
       const depsResult = await this.executeCommand(projectPath, 'cargo tree --format "{p}"');
-      const dependencies = depsResult.stdout.split('\n')
-        .filter(line => line.trim())
-        .map(line => line.trim());
+      const dependencies = depsResult.stdout
+        .split('\n')
+        .filter((line) => line.trim())
+        .map((line) => line.trim());
 
       analysis.totalCount = dependencies.length;
 
       // Check for outdated dependencies
       try {
-        const outdatedResult = await this.executeCommand(projectPath, 'cargo outdated --format json');
+        const outdatedResult = await this.executeCommand(
+          projectPath,
+          'cargo outdated --format json',
+        );
         const outdatedJson = JSON.parse(outdatedResult.stdout);
         analysis.outdatedCount = outdatedJson.dependencies?.length || 0;
       } catch (error) {
@@ -547,14 +553,13 @@ export class RustIntegration {
 
       // Security score based on vulnerabilities and outdated packages
       if (analysis.vulnerabilities > 0) {
-        analysis.securityScore -= (analysis.vulnerabilities * 0.2);
+        analysis.securityScore -= analysis.vulnerabilities * 0.2;
       }
       if (analysis.outdatedCount > analysis.totalCount * 0.3) {
         analysis.securityScore -= 0.1;
       }
 
       analysis.securityScore = Math.max(0, analysis.securityScore);
-
     } catch (error) {
       console.warn('Dependency analysis failed:', error.message);
     }
@@ -570,7 +575,7 @@ export class RustIntegration {
       validatedCount: 0,
       totalCount: 0,
       integrityPassed: true,
-      details: []
+      details: [],
     };
 
     try {
@@ -597,7 +602,7 @@ export class RustIntegration {
       validation.integrityPassed = false;
       validation.details.push({
         error: error.message,
-        valid: false
+        valid: false,
       });
     }
 
@@ -635,7 +640,6 @@ export class RustIntegration {
           }
         }
       }
-
     } catch (error) {
       console.warn('Error finding Rust artifacts:', error.message);
     }
@@ -654,7 +658,7 @@ export class RustIntegration {
         valid: true,
         size: stats.size,
         type: path.extname(artifactPath) || 'executable',
-        checks: []
+        checks: [],
       };
 
       // Basic file validation
@@ -669,7 +673,12 @@ export class RustIntegration {
           const buffer = await fs.readFile(artifactPath, { start: 0, end: 16 });
 
           // Check for ELF signature (Linux/Unix executables)
-          if (buffer[0] === 0x7f && buffer[1] === 0x45 && buffer[2] === 0x4c && buffer[3] === 0x46) {
+          if (
+            buffer[0] === 0x7f &&
+            buffer[1] === 0x45 &&
+            buffer[2] === 0x4c &&
+            buffer[3] === 0x46
+          ) {
             validation.checks.push('valid_elf');
           }
           // Check for PE signature (Windows executables)
@@ -677,8 +686,13 @@ export class RustIntegration {
             validation.checks.push('valid_pe');
           }
           // Check for Mach-O signature (macOS executables)
-          else if ((buffer[0] === 0xfe && buffer[1] === 0xed && buffer[2] === 0xfa && buffer[3] === 0xce) ||
-                   (buffer[0] === 0xcf && buffer[1] === 0xfa && buffer[2] === 0xed && buffer[3] === 0xfe)) {
+          else if (
+            (buffer[0] === 0xfe &&
+              buffer[1] === 0xed &&
+              buffer[2] === 0xfa &&
+              buffer[3] === 0xce) ||
+            (buffer[0] === 0xcf && buffer[1] === 0xfa && buffer[2] === 0xed && buffer[3] === 0xfe)
+          ) {
             validation.checks.push('valid_macho');
           }
         } catch (error) {
@@ -690,13 +704,12 @@ export class RustIntegration {
       validation.checksum = await this.generateFileChecksum(artifactPath);
 
       return validation;
-
     } catch (error) {
       return {
         path: artifactPath,
         valid: false,
         error: error.message,
-        checks: ['access_failed']
+        checks: ['access_failed'],
       };
     }
   }
@@ -710,7 +723,7 @@ export class RustIntegration {
       testsPassed: 0,
       testsFailed: 0,
       testsIgnored: 0,
-      coverage: null
+      coverage: null,
     };
 
     // Try to parse JSON format first
@@ -737,7 +750,9 @@ export class RustIntegration {
 
     // Fallback to text parsing if JSON failed
     if (metrics.testsRun === 0) {
-      const testResultMatch = stdout.match(/test result: (\w+)\. (\d+) passed; (\d+) failed; (\d+) ignored/);
+      const testResultMatch = stdout.match(
+        /test result: (\w+)\. (\d+) passed; (\d+) failed; (\d+) ignored/,
+      );
       if (testResultMatch) {
         metrics.testsPassed = parseInt(testResultMatch[2]);
         metrics.testsFailed = parseInt(testResultMatch[3]);
@@ -755,7 +770,7 @@ export class RustIntegration {
   parseCargoBuildOutput(stdout, stderr) {
     const metrics = {
       dependencyCount: 0,
-      warnings: 0
+      warnings: 0,
     };
 
     // Count dependencies being compiled
@@ -779,7 +794,7 @@ export class RustIntegration {
   parseCargoCheckOutput(stdout, stderr) {
     const metrics = {
       warnings: 0,
-      errors: 0
+      errors: 0,
     };
 
     const output = stdout + stderr;
@@ -806,7 +821,7 @@ export class RustIntegration {
     const metrics = {
       warnings: 0,
       errors: 0,
-      suggestions: []
+      suggestions: [],
     };
 
     const output = stdout + stderr;
@@ -826,7 +841,7 @@ export class RustIntegration {
     // Extract suggestions
     const suggestionMatches = output.match(/help: .+/g);
     if (suggestionMatches) {
-      metrics.suggestions = suggestionMatches.map(s => s.replace('help: ', '').trim());
+      metrics.suggestions = suggestionMatches.map((s) => s.replace('help: ', '').trim());
     }
 
     return metrics;
@@ -839,7 +854,7 @@ export class RustIntegration {
     const metrics = {
       vulnerabilities: 0,
       warnings: 0,
-      securityScore: 1.0
+      securityScore: 1.0,
     };
 
     if (auditJson.vulnerabilities) {
@@ -847,11 +862,11 @@ export class RustIntegration {
 
       // Calculate security score based on severity
       if (auditJson.vulnerabilities.list) {
-        const severities = auditJson.vulnerabilities.list.map(v => v.advisory.severity || 'low');
-        const highSeverity = severities.filter(s => s === 'high' || s === 'critical').length;
-        const mediumSeverity = severities.filter(s => s === 'medium').length;
+        const severities = auditJson.vulnerabilities.list.map((v) => v.advisory.severity || 'low');
+        const highSeverity = severities.filter((s) => s === 'high' || s === 'critical').length;
+        const mediumSeverity = severities.filter((s) => s === 'medium').length;
 
-        metrics.securityScore = Math.max(0, 1.0 - (highSeverity * 0.3) - (mediumSeverity * 0.1));
+        metrics.securityScore = Math.max(0, 1.0 - highSeverity * 0.3 - mediumSeverity * 0.1);
       }
     }
 
@@ -869,7 +884,7 @@ export class RustIntegration {
     const metrics = {
       vulnerabilities: 0,
       warnings: 0,
-      securityScore: 1.0
+      securityScore: 1.0,
     };
 
     const output = stdout + stderr;
@@ -888,7 +903,7 @@ export class RustIntegration {
 
     // Basic security score calculation
     if (metrics.vulnerabilities > 0) {
-      metrics.securityScore = Math.max(0, 1.0 - (metrics.vulnerabilities * 0.2));
+      metrics.securityScore = Math.max(0, 1.0 - metrics.vulnerabilities * 0.2);
     }
 
     return metrics;
@@ -903,7 +918,10 @@ export class RustIntegration {
 
     // Clippy score (40% weight)
     if (qualityResults.clippy && qualityResults.clippy.success !== false) {
-      const clippyScore = Math.max(0, 1.0 - (qualityResults.clippy.errors * 0.2) - (qualityResults.clippy.warnings * 0.05));
+      const clippyScore = Math.max(
+        0,
+        1.0 - qualityResults.clippy.errors * 0.2 - qualityResults.clippy.warnings * 0.05,
+      );
       score += clippyScore * 0.4;
       factors++;
     }
@@ -927,7 +945,14 @@ export class RustIntegration {
   /**
    * Aggregate all Rust validation results
    */
-  aggregateRustResults({ testResults, buildResults, checkResults, qualityResults, dependencyAnalysis, artifactValidation }) {
+  aggregateRustResults({
+    testResults,
+    buildResults,
+    checkResults,
+    qualityResults,
+    dependencyAnalysis,
+    artifactValidation,
+  }) {
     const aggregation = {
       overallSuccess: false,
       qualityScore: 0,
@@ -938,18 +963,18 @@ export class RustIntegration {
         check: this.evaluateCheckResults(checkResults),
         quality: this.evaluateQualityResults(qualityResults),
         dependencies: this.evaluateDependencyResults(dependencyAnalysis),
-        artifacts: this.evaluateArtifactResults(artifactValidation)
-      }
+        artifacts: this.evaluateArtifactResults(artifactValidation),
+      },
     };
 
     // Calculate weighted quality score
     const weights = {
-      tests: 0.3,      // 30%
-      build: 0.25,     // 25%
-      check: 0.15,     // 15%
-      quality: 0.15,   // 15%
+      tests: 0.3, // 30%
+      build: 0.25, // 25%
+      check: 0.15, // 15%
+      quality: 0.15, // 15%
       dependencies: 0.1, // 10%
-      artifacts: 0.05  // 5%
+      artifacts: 0.05, // 5%
     };
 
     let totalScore = 0;
@@ -975,7 +1000,7 @@ export class RustIntegration {
     aggregation.productionReady =
       aggregation.overallSuccess &&
       aggregation.qualityScore >= 0.8 &&
-      (dependencyAnalysis.vulnerabilities === 0) &&
+      dependencyAnalysis.vulnerabilities === 0 &&
       artifactValidation.integrityPassed;
 
     return aggregation;
@@ -992,7 +1017,7 @@ export class RustIntegration {
     const passRate = testResults.testsRun > 0 ? testResults.testsPassed / testResults.testsRun : 1;
     return {
       score: passRate,
-      status: passRate >= 0.95 ? 'excellent' : passRate >= 0.8 ? 'good' : 'needs_improvement'
+      status: passRate >= 0.95 ? 'excellent' : passRate >= 0.8 ? 'good' : 'needs_improvement',
     };
   }
 
@@ -1011,7 +1036,7 @@ export class RustIntegration {
 
     return {
       score: Math.max(0, score),
-      status: score >= 0.9 ? 'excellent' : 'good'
+      status: score >= 0.9 ? 'excellent' : 'good',
     };
   }
 
@@ -1027,22 +1052,26 @@ export class RustIntegration {
 
     return {
       score: Math.max(0, score),
-      status: score >= 0.9 ? 'excellent' : score >= 0.7 ? 'good' : 'needs_improvement'
+      status: score >= 0.9 ? 'excellent' : score >= 0.7 ? 'good' : 'needs_improvement',
     };
   }
 
   evaluateQualityResults(qualityResults) {
     return {
       score: qualityResults.overallScore,
-      status: qualityResults.overallScore >= 0.9 ? 'excellent' :
-              qualityResults.overallScore >= 0.7 ? 'good' : 'needs_improvement'
+      status:
+        qualityResults.overallScore >= 0.9
+          ? 'excellent'
+          : qualityResults.overallScore >= 0.7
+            ? 'good'
+            : 'needs_improvement',
     };
   }
 
   evaluateDependencyResults(dependencyAnalysis) {
     return {
       score: dependencyAnalysis.securityScore,
-      status: dependencyAnalysis.vulnerabilities === 0 ? 'secure' : 'has_vulnerabilities'
+      status: dependencyAnalysis.vulnerabilities === 0 ? 'secure' : 'has_vulnerabilities',
     };
   }
 
@@ -1054,7 +1083,7 @@ export class RustIntegration {
     const validationRate = artifactValidation.validatedCount / artifactValidation.totalCount;
     return {
       score: validationRate,
-      status: validationRate === 1 ? 'valid' : 'some_invalid'
+      status: validationRate === 1 ? 'valid' : 'some_invalid',
     };
   }
 
@@ -1076,10 +1105,10 @@ export class RustIntegration {
           testsPassed: validationData.aggregatedResults.categories.tests.score,
           buildSuccess: validationData.aggregatedResults.categories.build.score,
           qualityScore: validationData.aggregatedResults.qualityScore,
-          overallSuccess: validationData.aggregatedResults.overallSuccess
+          overallSuccess: validationData.aggregatedResults.overallSuccess,
         },
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -1091,15 +1120,14 @@ export class RustIntegration {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -1122,10 +1150,10 @@ export class RustIntegration {
         'security_audit',
         'dependency_validation',
         'artifact_integrity',
-        'performance_analysis'
+        'performance_analysis',
       ][i % 7],
-      reputation: 0.85 + (Math.random() * 0.15),
-      riskTolerance: validationData.aggregatedResults.overallSuccess ? 'medium' : 'low'
+      reputation: 0.85 + Math.random() * 0.15,
+      riskTolerance: validationData.aggregatedResults.overallSuccess ? 'medium' : 'low',
     }));
   }
 
@@ -1133,18 +1161,22 @@ export class RustIntegration {
 
   async executeCommand(workingDir, command) {
     return new Promise((resolve) => {
-      exec(command, {
-        cwd: workingDir,
-        timeout: this.options.timeout,
-        maxBuffer: 50 * 1024 * 1024 // 50MB buffer
-      }, (error, stdout, stderr) => {
-        resolve({
-          success: !error || error.code === 0,
-          exitCode: error?.code || 0,
-          stdout: stdout.toString(),
-          stderr: stderr.toString()
-        });
-      });
+      exec(
+        command,
+        {
+          cwd: workingDir,
+          timeout: this.options.timeout,
+          maxBuffer: 50 * 1024 * 1024, // 50MB buffer
+        },
+        (error, stdout, stderr) => {
+          resolve({
+            success: !error || error.code === 0,
+            exitCode: error?.code || 0,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+          });
+        },
+      );
     });
   }
 
@@ -1194,7 +1226,7 @@ export class RustIntegration {
             artifacts.files.push({
               name: file.name,
               path: filePath,
-              size: stats.size
+              size: stats.size,
             });
             artifacts.totalSize += stats.size;
           }
@@ -1224,7 +1256,7 @@ export class RustIntegration {
     const hashData = JSON.stringify({
       aggregatedResults: validationData.aggregatedResults,
       projectSetup: validationData.projectSetup,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -1234,7 +1266,7 @@ export class RustIntegration {
     const proofString = JSON.stringify({
       validationId: data.validationId,
       aggregatedResults: data.aggregatedResults,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -1245,7 +1277,7 @@ export class RustIntegration {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'rust-integration',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -1256,13 +1288,13 @@ export class RustIntegration {
       if (result && result.errors) {
         errors.push({
           source: 'cargo',
-          errors: result.errors
+          errors: result.errors,
         });
       }
       if (result && !result.success && result.error) {
         errors.push({
           source: 'rust-validation',
-          error: result.error
+          error: result.error,
         });
       }
     }
@@ -1271,9 +1303,8 @@ export class RustIntegration {
   }
 
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -1283,7 +1314,7 @@ export class RustIntegration {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 

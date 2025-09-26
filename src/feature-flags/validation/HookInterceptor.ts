@@ -63,7 +63,7 @@ export class HookInterceptor extends EventEmitter {
       this.emit('hook_intercepted', {
         executionId,
         execution,
-        result
+        result,
       });
 
       return result;
@@ -71,7 +71,7 @@ export class HookInterceptor extends EventEmitter {
       this.emit('hook_error', {
         executionId,
         execution,
-        error: error.message
+        error: error.message,
       });
 
       return {
@@ -80,21 +80,21 @@ export class HookInterceptor extends EventEmitter {
         error: error.message,
         exitCode: 1,
         duration: 0,
-        relaunchAttempts: 0
+        relaunchAttempts: 0,
       };
     }
   }
 
   private async executeWithValidation(
     execution: HookExecution,
-    executionId: string
+    executionId: string,
   ): Promise<InterceptedResult> {
     const startTime = Date.now();
 
     try {
       const process = spawn(execution.command, execution.args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        shell: true
+        shell: true,
       });
 
       this.runningProcesses.set(executionId, process);
@@ -123,13 +123,13 @@ export class HookInterceptor extends EventEmitter {
           }
 
           resolve({
-            success: success && (validationResult?.isValid !== false),
+            success: success && validationResult?.isValid !== false,
             output: stdout,
             error: stderr,
             exitCode: code || 0,
             duration,
             validationResult,
-            relaunchAttempts: 0
+            relaunchAttempts: 0,
           });
         });
 
@@ -140,14 +140,13 @@ export class HookInterceptor extends EventEmitter {
             error: error.message,
             exitCode: 1,
             duration: Date.now() - startTime,
-            relaunchAttempts: 0
+            relaunchAttempts: 0,
           });
         });
       });
 
       this.runningProcesses.delete(executionId);
       return result;
-
     } catch (error) {
       this.runningProcesses.delete(executionId);
       throw error;
@@ -157,7 +156,7 @@ export class HookInterceptor extends EventEmitter {
   private async attemptAutoRelaunch(
     execution: HookExecution,
     executionId: string,
-    previousResult: InterceptedResult
+    previousResult: InterceptedResult,
   ): Promise<InterceptedResult> {
     const maxRelaunchAttempts = parseInt(process.env.MAX_RELAUNCH_ATTEMPTS || '3', 10);
     let attempts = 0;
@@ -169,7 +168,7 @@ export class HookInterceptor extends EventEmitter {
       this.emit('auto_relaunch_attempt', {
         executionId,
         attempt: attempts,
-        maxAttempts: maxRelaunchAttempts
+        maxAttempts: maxRelaunchAttempts,
       });
 
       // Modify execution slightly for relaunch
@@ -183,7 +182,7 @@ export class HookInterceptor extends EventEmitter {
         this.emit('auto_relaunch_success', {
           executionId,
           attempts,
-          result: lastResult
+          result: lastResult,
         });
         break;
       }
@@ -196,7 +195,7 @@ export class HookInterceptor extends EventEmitter {
       this.emit('auto_relaunch_failed', {
         executionId,
         attempts,
-        finalResult: lastResult
+        finalResult: lastResult,
       });
     }
 
@@ -232,7 +231,7 @@ export class HookInterceptor extends EventEmitter {
     return {
       ...execution,
       args: modifiedArgs,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -242,7 +241,7 @@ export class HookInterceptor extends EventEmitter {
     try {
       const process = spawn(execution.command, execution.args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        shell: true
+        shell: true,
       });
 
       const result = await new Promise<InterceptedResult>((resolve) => {
@@ -264,7 +263,7 @@ export class HookInterceptor extends EventEmitter {
             error: stderr,
             exitCode: code || 0,
             duration: Date.now() - startTime,
-            relaunchAttempts: 0
+            relaunchAttempts: 0,
           });
         });
 
@@ -275,7 +274,7 @@ export class HookInterceptor extends EventEmitter {
             error: error.message,
             exitCode: 1,
             duration: Date.now() - startTime,
-            relaunchAttempts: 0
+            relaunchAttempts: 0,
           });
         });
       });
@@ -288,7 +287,7 @@ export class HookInterceptor extends EventEmitter {
         error: error.message,
         exitCode: 1,
         duration: Date.now() - startTime,
-        relaunchAttempts: 0
+        relaunchAttempts: 0,
       };
     }
   }
@@ -300,7 +299,7 @@ export class HookInterceptor extends EventEmitter {
   private createTaskFromExecution(
     execution: HookExecution,
     stdout: string,
-    stderr: string
+    stderr: string,
   ): CompletionTask {
     return {
       id: `hook-${execution.hookType}-${Date.now()}`,
@@ -308,15 +307,15 @@ export class HookInterceptor extends EventEmitter {
       actualOutput: {
         stdout,
         stderr,
-        exitCode: stderr ? 1 : 0
+        exitCode: stderr ? 1 : 0,
       },
       context: {
         hookType: execution.hookType,
         timestamp: execution.timestamp,
         sessionId: execution.sessionId,
-        userId: execution.userId
+        userId: execution.userId,
       },
-      userId: execution.userId
+      userId: execution.userId,
     };
   }
 
@@ -329,7 +328,7 @@ export class HookInterceptor extends EventEmitter {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -356,7 +355,7 @@ export class HookInterceptor extends EventEmitter {
     } catch (error) {
       this.emit('kill_error', {
         executionId,
-        error: error.message
+        error: error.message,
       });
       return false;
     }
@@ -376,19 +375,21 @@ export class HookInterceptor extends EventEmitter {
     const allExecutions = Array.from(this.interceptedHooks.values()).flat();
     const runningProcessCount = this.runningProcesses.size;
 
-    const hookTypeCounts = allExecutions.reduce((acc, exec) => {
-      acc[exec.hookType] = (acc[exec.hookType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const hookTypeCounts = allExecutions.reduce(
+      (acc, exec) => {
+        acc[exec.hookType] = (acc[exec.hookType] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       totalExecutions: allExecutions.length,
       runningProcesses: runningProcessCount,
       hookTypeCounts,
       sessionsCount: this.interceptedHooks.size,
-      lastExecution: allExecutions.length > 0
-        ? allExecutions[allExecutions.length - 1].timestamp
-        : null
+      lastExecution:
+        allExecutions.length > 0 ? allExecutions[allExecutions.length - 1].timestamp : null,
     };
   }
 }

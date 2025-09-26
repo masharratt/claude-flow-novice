@@ -471,7 +471,12 @@ export class HiveMind extends EventEmitter {
       specialist: ['domain_expertise', 'custom_capabilities', 'problem_solving'],
       // Maestro specs-driven agent capabilities
       requirements_analyst: ['requirements_analysis', 'user_story_creation', 'acceptance_criteria'],
-      design_architect: ['system_design', 'architecture', 'technical_writing', 'specs_driven_design'],
+      design_architect: [
+        'system_design',
+        'architecture',
+        'technical_writing',
+        'specs_driven_design',
+      ],
       task_planner: ['task_management', 'workflow_orchestration', 'project_management'],
       implementation_coder: ['code_generation', 'implementation', 'debugging', 'refactoring'],
       quality_reviewer: ['code_review', 'quality_assurance', 'testing', 'standards_enforcement'],

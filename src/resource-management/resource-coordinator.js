@@ -44,8 +44,8 @@ export class ResourceCoordinator {
           resourceLimits: {
             cpu: 80, // percentage
             memory: 75, // percentage
-            network: 90 // percentage
-          }
+            network: 90, // percentage
+          },
         },
         commands: prefs.preferences?.resourceDelegation?.commands || {
           heavyCommands: [
@@ -64,15 +64,15 @@ export class ResourceCoordinator {
             'python -m pytest',
             'mvn test',
             'gradle build',
-            'docker build'
+            'docker build',
           ],
           delegationRules: {
-            'test': 'single-delegate',
-            'build': 'adaptive',
-            'compile': 'single-delegate',
-            'lint': 'distributed'
-          }
-        }
+            test: 'single-delegate',
+            build: 'adaptive',
+            compile: 'single-delegate',
+            lint: 'distributed',
+          },
+        },
       };
     } catch (error) {
       // Use defaults if preferences don't exist
@@ -90,23 +90,34 @@ export class ResourceCoordinator {
         resourceLimits: {
           cpu: 80,
           memory: 75,
-          network: 90
-        }
+          network: 90,
+        },
       },
       commands: {
         heavyCommands: [
-          'npm test', 'npm run test', 'jest', 'vitest',
-          'npm run build', 'tsc', 'webpack', 'vite build',
-          'cargo build', 'cargo test', 'go build', 'go test',
-          'python -m pytest', 'mvn test', 'gradle build'
+          'npm test',
+          'npm run test',
+          'jest',
+          'vitest',
+          'npm run build',
+          'tsc',
+          'webpack',
+          'vite build',
+          'cargo build',
+          'cargo test',
+          'go build',
+          'go test',
+          'python -m pytest',
+          'mvn test',
+          'gradle build',
         ],
         delegationRules: {
-          'test': 'single-delegate',
-          'build': 'adaptive',
-          'compile': 'single-delegate',
-          'lint': 'distributed'
-        }
-      }
+          test: 'single-delegate',
+          build: 'adaptive',
+          compile: 'single-delegate',
+          lint: 'distributed',
+        },
+      },
     };
   }
 
@@ -119,7 +130,7 @@ export class ResourceCoordinator {
       },
       shouldUse: (command, systemLoad) => {
         return systemLoad.cpu < 60 && systemLoad.memory < 60;
-      }
+      },
     });
 
     // Single delegate strategy - one agent executes, others wait
@@ -130,7 +141,7 @@ export class ResourceCoordinator {
       },
       shouldUse: (command, systemLoad) => {
         return systemLoad.cpu > 70 || systemLoad.memory > 70;
-      }
+      },
     });
 
     // Adaptive strategy - chooses based on current conditions
@@ -139,7 +150,7 @@ export class ResourceCoordinator {
       execute: async (command, agents) => {
         return await this.executeAdaptive(command, agents);
       },
-      shouldUse: () => true
+      shouldUse: () => true,
     });
   }
 
@@ -153,9 +164,9 @@ export class ResourceCoordinator {
       id: commandId,
       command,
       isHeavy: isHeavyCommand,
-      agents: agents.map(a => a.id),
+      agents: agents.map((a) => a.id),
       startTime: performance.now(),
-      systemLoad: currentLoad
+      systemLoad: currentLoad,
     };
 
     this.activeCommands.set(commandId, commandInfo);
@@ -180,7 +191,6 @@ export class ResourceCoordinator {
       this.activeCommands.delete(commandId);
 
       return result;
-
     } catch (error) {
       // Record failure
       commandInfo.endTime = performance.now();
@@ -236,7 +246,7 @@ export class ResourceCoordinator {
   async executeDistributed(command, agents) {
     // All agents execute the command
     const results = await Promise.allSettled(
-      agents.map(agent => this.executeOnAgent(command, agent))
+      agents.map((agent) => this.executeOnAgent(command, agent)),
     );
 
     return {
@@ -245,8 +255,8 @@ export class ResourceCoordinator {
         agent: agents[index].id,
         status: result.status,
         value: result.status === 'fulfilled' ? result.value : null,
-        error: result.status === 'rejected' ? result.reason : null
-      }))
+        error: result.status === 'rejected' ? result.reason : null,
+      })),
     };
   }
 
@@ -257,15 +267,17 @@ export class ResourceCoordinator {
       const result = await this.executeOnAgent(command, delegate);
 
       // Distribute results to other agents
-      await this.distributeResults(result, agents.filter(a => a.id !== delegate.id));
+      await this.distributeResults(
+        result,
+        agents.filter((a) => a.id !== delegate.id),
+      );
 
       return {
         strategy: 'single-delegate',
         delegate: delegate.id,
         result,
-        distributed: true
+        distributed: true,
       };
-
     } catch (error) {
       // Fallback to distributed execution if delegate fails
       console.warn(`Delegate ${delegate.id} failed, falling back to distributed execution`);
@@ -274,7 +286,11 @@ export class ResourceCoordinator {
   }
 
   async executeAdaptive(command, agents) {
-    const bestStrategy = this.chooseBestStrategy(command, await this.resourceMonitor.getCurrentLoad(), agents);
+    const bestStrategy = this.chooseBestStrategy(
+      command,
+      await this.resourceMonitor.getCurrentLoad(),
+      agents,
+    );
     return await bestStrategy.execute(command, agents);
   }
 
@@ -300,9 +316,9 @@ export class ResourceCoordinator {
 
         return {
           agent,
-          score: this.calculateDelegateScore(performance, load, agent)
+          score: this.calculateDelegateScore(performance, load, agent),
         };
-      })
+      }),
     );
 
     // Sort by score and return best candidate
@@ -351,7 +367,7 @@ export class ResourceCoordinator {
       command,
       output: `Command executed on agent ${agent.id}`,
       exitCode: 0,
-      duration: Math.random() * 2000 + 1000
+      duration: Math.random() * 2000 + 1000,
     };
   }
 
@@ -366,7 +382,7 @@ export class ResourceCoordinator {
     return {
       successRate: 0.85 + Math.random() * 0.15,
       averageExecutionTime: 2000 + Math.random() * 3000,
-      errorRate: Math.random() * 0.1
+      errorRate: Math.random() * 0.1,
     };
   }
 
@@ -375,16 +391,16 @@ export class ResourceCoordinator {
     return {
       cpu: Math.random() * 50,
       memory: Math.random() * 40,
-      network: Math.random() * 20
+      network: Math.random() * 20,
     };
   }
 
   isHeavyCommand(command) {
     const commandStr = command.toLowerCase().trim();
 
-    return this.preferences.commands.heavyCommands.some(heavy =>
-      commandStr.includes(heavy.toLowerCase()) ||
-      commandStr.startsWith(heavy.toLowerCase())
+    return this.preferences.commands.heavyCommands.some(
+      (heavy) =>
+        commandStr.includes(heavy.toLowerCase()) || commandStr.startsWith(heavy.toLowerCase()),
     );
   }
 
@@ -431,22 +447,24 @@ export class ResourceCoordinator {
 
   getStats() {
     const recentHistory = this.commandHistory.slice(-100);
-    const heavyCommands = recentHistory.filter(cmd => cmd.isHeavy);
+    const heavyCommands = recentHistory.filter((cmd) => cmd.isHeavy);
 
     return {
       totalCommands: recentHistory.length,
       heavyCommands: heavyCommands.length,
-      averageDuration: recentHistory.reduce((sum, cmd) => sum + cmd.duration, 0) / recentHistory.length,
-      successRate: recentHistory.filter(cmd => cmd.status === 'success').length / recentHistory.length,
+      averageDuration:
+        recentHistory.reduce((sum, cmd) => sum + cmd.duration, 0) / recentHistory.length,
+      successRate:
+        recentHistory.filter((cmd) => cmd.status === 'success').length / recentHistory.length,
       strategiesUsed: this.getStrategyDistribution(heavyCommands),
       currentLoad: this.resourceMonitor.getCurrentLoad(),
-      activeCommands: this.activeCommands.size
+      activeCommands: this.activeCommands.size,
     };
   }
 
   getStrategyDistribution(commands) {
     const distribution = {};
-    commands.forEach(cmd => {
+    commands.forEach((cmd) => {
       const strategy = cmd.result?.strategy || 'unknown';
       distribution[strategy] = (distribution[strategy] || 0) + 1;
     });
@@ -459,7 +477,7 @@ class ResourceMonitor {
     this.currentLoad = {
       cpu: 0,
       memory: 0,
-      network: 0
+      network: 0,
     };
   }
 
@@ -486,7 +504,7 @@ class ResourceMonitor {
       cpu: Math.random() * 100,
       memory: Math.random() * 100,
       network: Math.random() * 100,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }

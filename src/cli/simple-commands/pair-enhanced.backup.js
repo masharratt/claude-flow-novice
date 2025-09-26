@@ -21,7 +21,7 @@ const GUIDANCE_MODES = {
     explanations: 'detailed',
     examples: true,
     autoFix: true,
-    threshold: 0.90
+    threshold: 0.9,
   },
   intermediate: {
     name: 'Intermediate',
@@ -31,7 +31,7 @@ const GUIDANCE_MODES = {
     explanations: 'concise',
     examples: false,
     autoFix: true,
-    threshold: 0.95
+    threshold: 0.95,
   },
   expert: {
     name: 'Expert',
@@ -41,7 +41,7 @@ const GUIDANCE_MODES = {
     explanations: 'minimal',
     examples: false,
     autoFix: false,
-    threshold: 0.98
+    threshold: 0.98,
   },
   mentor: {
     name: 'Mentor',
@@ -51,7 +51,7 @@ const GUIDANCE_MODES = {
     explanations: 'teaching',
     examples: true,
     autoFix: false,
-    threshold: 0.95
+    threshold: 0.95,
   },
   strict: {
     name: 'Strict',
@@ -61,8 +61,8 @@ const GUIDANCE_MODES = {
     explanations: 'rules-based',
     examples: false,
     autoFix: true,
-    threshold: 0.98
-  }
+    threshold: 0.98,
+  },
 };
 
 // Suggestion categories
@@ -72,36 +72,36 @@ const SUGGESTIONS = {
     'Use lazy loading for better initial load times',
     'Implement virtualization for large lists',
     'Consider using Web Workers for CPU-intensive tasks',
-    'Optimize bundle size with code splitting'
+    'Optimize bundle size with code splitting',
   ],
   security: [
     'Sanitize user input to prevent XSS attacks',
     'Use parameterized queries to prevent SQL injection',
     'Implement proper authentication and authorization',
     'Store sensitive data in environment variables',
-    'Enable CORS only for trusted domains'
+    'Enable CORS only for trusted domains',
   ],
   testing: [
     'Add unit tests for critical business logic',
     'Include edge cases in your test suite',
     'Aim for at least 80% code coverage',
     'Write integration tests for API endpoints',
-    'Add E2E tests for critical user flows'
+    'Add E2E tests for critical user flows',
   ],
   architecture: [
     'Consider using dependency injection for better testability',
     'Implement the Repository pattern for data access',
     'Use event-driven architecture for loose coupling',
     'Apply SOLID principles to your class design',
-    'Consider microservices for independent scaling'
+    'Consider microservices for independent scaling',
   ],
   codeQuality: [
     'Extract complex logic into well-named functions',
     'Use descriptive variable names',
     'Add JSDoc comments for public APIs',
     'Reduce cyclomatic complexity',
-    'Follow consistent naming conventions'
-  ]
+    'Follow consistent naming conventions',
+  ],
 };
 
 class EnhancedPairSession {
@@ -129,22 +129,22 @@ class EnhancedPairSession {
   async start() {
     await this.saveSession();
     this.showWelcome();
-    
+
     // Show initial guidance based on mode
     this.showGuidance();
-    
+
     if (this.verify && this.autoFix) {
       console.log('\n🔄 Auto-Fix Mode Enabled');
       await this.recursiveFixLoop();
     } else if (this.verify) {
       await this.runVerification();
     }
-    
+
     // Start real-time monitoring if enabled
     if (this.realtime) {
       this.startRealtimeMonitoring();
     }
-    
+
     await this.startInteractiveMode();
   }
 
@@ -166,7 +166,7 @@ class EnhancedPairSession {
     console.log(`  • Verbosity: ${this.guidance.verbosity}`);
     console.log(`  • Suggestions: ${this.guidance.suggestions}`);
     console.log(`  • Explanations: ${this.guidance.explanations}`);
-    
+
     if (this.guidanceMode === 'beginner') {
       console.log('\n💡 Beginner Tips:');
       console.log('  • Use /explain for detailed explanations');
@@ -188,10 +188,10 @@ class EnhancedPairSession {
   async provideSuggestions(category = 'all') {
     console.log('\n💡 Intelligent Suggestions:');
     console.log('━'.repeat(40));
-    
+
     // Analyze current code context
     const context = await this.analyzeContext();
-    
+
     if (category === 'all' || category === 'immediate') {
       console.log('\n🎯 Immediate Actions:');
       const immediateSuggestions = await this.getImmediateSuggestions(context);
@@ -199,7 +199,7 @@ class EnhancedPairSession {
         console.log(`  ${i + 1}. ${s}`);
       });
     }
-    
+
     if (category === 'all' || category === 'improvements') {
       console.log('\n📈 Improvement Opportunities:');
       const improvements = this.getImprovementSuggestions(context);
@@ -207,7 +207,7 @@ class EnhancedPairSession {
         console.log(`  ${i + 1}. ${s}`);
       });
     }
-    
+
     if (category === 'all' || category === 'patterns') {
       console.log('\n🏗️ Pattern Suggestions:');
       const patterns = this.getPatternSuggestions(context);
@@ -215,12 +215,12 @@ class EnhancedPairSession {
         console.log(`  ${i + 1}. ${s}`);
       });
     }
-    
+
     // Record suggestions in history
     this.suggestionHistory.push({
       timestamp: new Date(),
       category,
-      count: context.suggestions?.length || 0
+      count: context.suggestions?.length || 0,
     });
   }
 
@@ -235,24 +235,23 @@ class EnhancedPairSession {
       hasTestFailures: false,
       coverage: 0,
       complexity: 0,
-      suggestions: []
+      suggestions: [],
     };
-    
+
     try {
       // Check for various issues
       const { stdout: typeCheck } = await execAsync('npm run typecheck 2>&1 || true');
       context.hasTypeErrors = typeCheck.toLowerCase().includes('error');
-      
+
       const { stdout: lintCheck } = await execAsync('npm run lint 2>&1 || true');
       context.hasLintErrors = lintCheck.toLowerCase().includes('error');
-      
+
       // Analyze complexity (simplified)
       context.complexity = this.estimateComplexity();
-      
     } catch (error) {
       console.log('  ⚠️ Context analysis partial:', error.message);
     }
-    
+
     return context;
   }
 
@@ -261,27 +260,27 @@ class EnhancedPairSession {
    */
   async getImmediateSuggestions(context) {
     const suggestions = [];
-    
+
     if (context.hasTypeErrors) {
       suggestions.push('Fix TypeScript errors - Run: npm run typecheck');
     }
-    
+
     if (context.hasLintErrors) {
       suggestions.push('Fix linting issues - Run: npm run lint --fix');
     }
-    
+
     if (context.coverage < 80) {
       suggestions.push('Increase test coverage - Add unit tests for uncovered code');
     }
-    
+
     if (context.complexity > 10) {
       suggestions.push('Reduce complexity - Extract functions and simplify logic');
     }
-    
+
     if (suggestions.length === 0) {
       suggestions.push('Code looks good! Consider adding documentation or tests');
     }
-    
+
     return suggestions;
   }
 
@@ -290,7 +289,7 @@ class EnhancedPairSession {
    */
   getImprovementSuggestions(context) {
     const suggestions = [];
-    
+
     // Based on guidance mode, provide different suggestions
     if (this.guidanceMode === 'beginner') {
       suggestions.push(...SUGGESTIONS.codeQuality.slice(0, 3));
@@ -305,7 +304,7 @@ class EnhancedPairSession {
       suggestions.push(SUGGESTIONS.performance[0]);
       suggestions.push(SUGGESTIONS.testing[0]);
     }
-    
+
     return suggestions;
   }
 
@@ -314,18 +313,18 @@ class EnhancedPairSession {
    */
   getPatternSuggestions(context) {
     const patterns = [];
-    
+
     if (context.complexity > 10) {
       patterns.push('Consider Strategy pattern for complex conditional logic');
       patterns.push('Use Factory pattern for object creation');
     }
-    
+
     if (context.hasTypeErrors) {
       patterns.push('Implement Builder pattern for complex object construction');
     }
-    
+
     patterns.push('Apply Dependency Injection for better testability');
-    
+
     return patterns.slice(0, 3);
   }
 
@@ -350,16 +349,16 @@ The auto-fix system uses recursive stream-chaining to:
 3. Apply fixes automatically using npm scripts and Claude AI
 4. Re-verify until the threshold is met
 5. Provide a complete audit trail of changes`,
-      
-      'verification': `
+
+      verification: `
 🔍 Verification Explanation:
 Verification runs three weighted checks:
 1. TypeScript (40%) - Type safety and compilation
 2. Linting (30%) - Code style and potential bugs
 3. Build (30%) - Production build success
 Scores are calculated based on error/warning counts.`,
-      
-      'patterns': `
+
+      patterns: `
 🏗️ Design Patterns Explanation:
 Design patterns are reusable solutions to common problems:
 • Strategy: Encapsulate algorithms
@@ -367,16 +366,16 @@ Design patterns are reusable solutions to common problems:
 • Observer: Event-driven communication
 • Repository: Abstract data access
 • Dependency Injection: Loose coupling`,
-      
-      'testing': `
+
+      testing: `
 🧪 Testing Best Practices:
 • Unit tests: Test individual functions
 • Integration tests: Test component interactions
 • E2E tests: Test complete user flows
 • Coverage: Aim for 80%+ code coverage
-• TDD: Write tests before implementation`
+• TDD: Write tests before implementation`,
     };
-    
+
     console.log(explanations[topic] || `\n📖 No explanation available for: ${topic}`);
   }
 
@@ -386,47 +385,47 @@ Design patterns are reusable solutions to common problems:
   showBestPractices(area = 'general') {
     console.log(`\n✨ Best Practices - ${area}:`);
     console.log('━'.repeat(40));
-    
+
     const practices = {
       general: [
         '• Follow SOLID principles',
         '• Write self-documenting code',
         '• Keep functions small and focused',
         '• Use meaningful variable names',
-        '• Handle errors gracefully'
+        '• Handle errors gracefully',
       ],
       typescript: [
         '• Use strict mode',
         '• Avoid any type',
         '• Define interfaces for contracts',
         '• Use generics for reusability',
-        '• Enable strict null checks'
+        '• Enable strict null checks',
       ],
       react: [
         '• Use functional components',
         '• Implement proper key props',
         '• Memoize expensive computations',
         '• Handle loading and error states',
-        '• Use custom hooks for logic'
+        '• Use custom hooks for logic',
       ],
       testing: [
         '• Test behavior, not implementation',
         '• Use descriptive test names',
         '• Follow AAA pattern (Arrange, Act, Assert)',
         '• Mock external dependencies',
-        '• Test edge cases'
+        '• Test edge cases',
       ],
       security: [
         '• Never trust user input',
         '• Use environment variables for secrets',
         '• Implement proper authentication',
         '• Enable HTTPS everywhere',
-        '• Regular dependency updates'
-      ]
+        '• Regular dependency updates',
+      ],
     };
-    
+
     const selectedPractices = practices[area] || practices.general;
-    selectedPractices.forEach(practice => console.log(practice));
+    selectedPractices.forEach((practice) => console.log(practice));
   }
 
   /**
@@ -434,12 +433,12 @@ Design patterns are reusable solutions to common problems:
    */
   async askQuestion(question) {
     console.log('\n❓ Question:', question);
-    
+
     // Simulate AI response based on guidance mode
     if (this.guidanceMode === 'beginner' || this.guidanceMode === 'mentor') {
       console.log('\n📚 Detailed Answer:');
       console.log('━'.repeat(40));
-      
+
       // Provide detailed, educational answer
       if (question.toLowerCase().includes('why')) {
         console.log('This is important because:');
@@ -465,7 +464,7 @@ Design patterns are reusable solutions to common problems:
     console.log('  • File changes will trigger suggestions');
     console.log('  • Continuous quality tracking');
     console.log('  • Automatic issue detection');
-    
+
     // In production, this would use file watchers
     // For demo, we'll simulate periodic checks
     this.monitoringInterval = setInterval(async () => {
@@ -484,23 +483,23 @@ Design patterns are reusable solutions to common problems:
   async recursiveFixLoop() {
     console.log('\n🚀 Starting Intelligent Auto-Fix Loop...');
     console.log('━'.repeat(50));
-    
+
     let score = 0;
     this.currentIteration = 0;
-    
+
     while (score < this.threshold && this.currentIteration < this.maxIterations) {
       this.currentIteration++;
       console.log(`\n📍 Iteration ${this.currentIteration}/${this.maxIterations}`);
-      
+
       // Provide guidance based on mode
       if (this.guidanceMode === 'beginner' || this.guidanceMode === 'mentor') {
         console.log('💡 Analyzing code quality and searching for improvements...');
       }
-      
+
       // Run verification
       const verificationResult = await this.runVerification();
       score = verificationResult.score;
-      
+
       if (score >= this.threshold) {
         console.log(`\n✨ Success! Target threshold achieved: ${score.toFixed(2)}`);
         if (this.guidanceMode === 'mentor') {
@@ -508,31 +507,34 @@ Design patterns are reusable solutions to common problems:
         }
         break;
       }
-      
+
       // Identify and fix issues
       const issues = this.identifyIssues(verificationResult);
-      
+
       if (this.guidanceMode === 'beginner') {
         console.log('\n📖 Understanding the issues:');
-        issues.forEach(issue => {
+        issues.forEach((issue) => {
           console.log(`  • ${issue.type}: ${this.explainIssueType(issue.type)}`);
         });
       }
-      
+
       if (issues.length > 0) {
         console.log('\n🔗 Creating intelligent fix chain...');
         await this.createFixChain(issues);
       }
-      
+
       // Provide encouragement based on progress
       if (this.currentIteration > 1 && score > verificationResult.previousScore) {
-        console.log('📈 Good progress! Score improved by ' + 
-          ((score - verificationResult.previousScore) * 100).toFixed(1) + '%');
+        console.log(
+          '📈 Good progress! Score improved by ' +
+            ((score - verificationResult.previousScore) * 100).toFixed(1) +
+            '%',
+        );
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-    
+
     this.showFixSummary();
   }
 
@@ -541,10 +543,10 @@ Design patterns are reusable solutions to common problems:
    */
   explainIssueType(type) {
     const explanations = {
-      'lint': 'Code style and potential bug issues',
-      'typecheck': 'Type safety and compilation errors',
-      'build': 'Production build configuration problems',
-      'test': 'Failing tests or insufficient coverage'
+      lint: 'Code style and potential bug issues',
+      typecheck: 'Type safety and compilation errors',
+      build: 'Production build configuration problems',
+      test: 'Failing tests or insufficient coverage',
     };
     return explanations[type] || 'General code quality issue';
   }
@@ -557,7 +559,7 @@ Design patterns are reusable solutions to common problems:
     console.log('━'.repeat(50));
     console.log(`  Total Iterations: ${this.currentIteration}`);
     console.log(`  Fixes Applied: ${this.fixHistory.length}`);
-    
+
     if (this.verificationScores.length > 1) {
       const initial = this.verificationScores[0].score;
       const final = this.verificationScores[this.verificationScores.length - 1].score;
@@ -565,7 +567,7 @@ Design patterns are reusable solutions to common problems:
       console.log(`  Final Score: ${final.toFixed(2)}`);
       console.log(`  Improvement: +${((final - initial) * 100).toFixed(1)}%`);
     }
-    
+
     if (this.guidanceMode === 'mentor' || this.guidanceMode === 'beginner') {
       console.log('\n📚 Key Learnings:');
       console.log('  • Automated tools can fix many common issues');
@@ -578,17 +580,17 @@ Design patterns are reusable solutions to common problems:
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: '\n💻 pair> '
+      prompt: '\n💻 pair> ',
     });
 
     console.log('\n💡 Interactive mode active. Type /help for commands.\n');
-    
+
     this.showCommands();
     this.rl.prompt();
 
     this.rl.on('line', async (line) => {
       const input = line.trim();
-      
+
       if (input.startsWith('/')) {
         await this.handleCommand(input);
       } else if (input.startsWith('?')) {
@@ -601,7 +603,7 @@ Design patterns are reusable solutions to common problems:
           console.log('💡 Tip: Use /help to see available commands');
         }
       }
-      
+
       this.rl.prompt();
     });
 
@@ -634,39 +636,39 @@ Design patterns are reusable solutions to common problems:
   async handleCommand(command) {
     const [cmd, ...args] = command.split(' ');
     const arg = args.join(' ');
-    
+
     switch (cmd) {
       case '/help':
         this.showCommands();
         break;
-        
+
       case '/verify':
         await this.runVerification();
         break;
-        
+
       case '/autofix':
         await this.recursiveFixLoop();
         break;
-        
+
       case '/suggest':
         await this.provideSuggestions(arg || 'all');
         break;
-        
+
       case '/explain':
         this.explainConcept(arg || 'auto-fix');
         break;
-        
+
       case '/best':
         this.showBestPractices(arg || 'general');
         break;
-        
+
       case '/pattern':
         const context = await this.analyzeContext();
         const patterns = this.getPatternSuggestions(context);
         console.log('\n🏗️ Pattern Recommendations:');
         patterns.forEach((p, i) => console.log(`  ${i + 1}. ${p}`));
         break;
-        
+
       case '/why':
         console.log('\n📖 Understanding the "Why":');
         console.log('Every suggestion is based on:');
@@ -675,33 +677,33 @@ Design patterns are reusable solutions to common problems:
         console.log('  • Team productivity');
         console.log('  • Bug prevention');
         break;
-        
+
       case '/guidance':
         await this.changeGuidanceMode(arg);
         break;
-        
+
       case '/status':
         await this.showStatus();
         break;
-        
+
       case '/metrics':
         this.showMetrics();
         break;
-        
+
       case '/test':
         await this.runTests();
         break;
-        
+
       case '/commit':
         await this.commitWithVerification();
         break;
-        
+
       case '/end':
       case '/exit':
         await this.end();
         process.exit(0);
         break;
-        
+
       default:
         console.log(`❌ Unknown command: ${cmd}`);
         console.log('💡 Type /help for available commands');
@@ -716,7 +718,7 @@ Design patterns are reusable solutions to common problems:
       });
       return;
     }
-    
+
     if (GUIDANCE_MODES[newMode]) {
       this.guidanceMode = newMode;
       this.guidance = GUIDANCE_MODES[newMode];
@@ -729,7 +731,7 @@ Design patterns are reusable solutions to common problems:
 
   async showStatus() {
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
-    
+
     console.log('\n📊 Session Status');
     console.log('━'.repeat(40));
     console.log(`Session ID: ${this.sessionId}`);
@@ -739,7 +741,7 @@ Design patterns are reusable solutions to common problems:
     console.log(`Iterations: ${this.currentIteration}`);
     console.log(`Fixes Applied: ${this.fixHistory.length}`);
     console.log(`Suggestions Given: ${this.suggestionHistory.length}`);
-    
+
     if (this.verificationScores.length > 0) {
       const latest = this.verificationScores[this.verificationScores.length - 1];
       console.log(`Latest Score: ${latest.score.toFixed(2)}`);
@@ -749,14 +751,14 @@ Design patterns are reusable solutions to common problems:
   showMetrics() {
     console.log('\n📈 Quality Metrics');
     console.log('━'.repeat(40));
-    
+
     if (this.verificationScores.length > 0) {
       console.log('\nScore Progression:');
       this.verificationScores.forEach((v, i) => {
         const bar = '█'.repeat(Math.floor(v.score * 20));
         console.log(`  ${i + 1}. ${bar} ${v.score.toFixed(2)}`);
       });
-      
+
       if (this.verificationScores.length > 1) {
         const first = this.verificationScores[0].score;
         const last = this.verificationScores[this.verificationScores.length - 1].score;
@@ -764,7 +766,7 @@ Design patterns are reusable solutions to common problems:
         console.log(`\n  Total Improvement: +${improvement}%`);
       }
     }
-    
+
     if (this.suggestionHistory.length > 0) {
       console.log(`\n📝 Suggestions Provided: ${this.suggestionHistory.length}`);
     }
@@ -773,53 +775,53 @@ Design patterns are reusable solutions to common problems:
   // Include all the auto-fix methods from the previous implementation
   async runVerification() {
     console.log('\n🔍 Running verification check...');
-    
+
     const checks = [
-      { 
-        name: 'Type Check', 
+      {
+        name: 'Type Check',
         command: 'npm run typecheck 2>&1 || true',
-        weight: 0.4
+        weight: 0.4,
       },
-      { 
-        name: 'Linting', 
+      {
+        name: 'Linting',
         command: 'npm run lint 2>&1 || true',
-        weight: 0.3
+        weight: 0.3,
       },
-      { 
-        name: 'Build', 
+      {
+        name: 'Build',
         command: 'npm run build 2>&1 || true',
-        weight: 0.3
-      }
+        weight: 0.3,
+      },
     ];
-    
+
     const results = [];
     let totalScore = 0;
     let totalWeight = 0;
-    
+
     for (const check of checks) {
       try {
         const { stdout, stderr } = await execAsync(check.command);
         const output = stdout + stderr;
-        
+
         let score = 1.0;
         if (output.toLowerCase().includes('error')) {
           const errorCount = (output.match(/error/gi) || []).length;
-          score = Math.max(0.2, 1.0 - (errorCount * 0.1));
+          score = Math.max(0.2, 1.0 - errorCount * 0.1);
         } else if (output.toLowerCase().includes('warning')) {
           const warningCount = (output.match(/warning/gi) || []).length;
-          score = Math.max(0.7, 1.0 - (warningCount * 0.05));
+          score = Math.max(0.7, 1.0 - warningCount * 0.05);
         }
-        
+
         totalScore += score * check.weight;
         totalWeight += check.weight;
-        
+
         const icon = score >= 0.8 ? '✅' : score >= 0.5 ? '⚠️' : '❌';
         console.log(`  ${icon} ${check.name}: ${score.toFixed(2)}`);
-        
-        results.push({ 
-          name: check.name, 
-          score, 
-          output: output.slice(0, 200)
+
+        results.push({
+          name: check.name,
+          score,
+          output: output.slice(0, 200),
         });
       } catch (error) {
         console.log(`  ❌ ${check.name}: 0.00 (failed)`);
@@ -827,51 +829,52 @@ Design patterns are reusable solutions to common problems:
         totalWeight += check.weight;
       }
     }
-    
+
     const averageScore = totalWeight > 0 ? totalScore / totalWeight : 0;
-    
+
     console.log(`\n📊 Verification Score: ${averageScore.toFixed(2)}/${this.threshold}`);
-    
+
     const verificationResult = {
       score: averageScore,
       results,
       timestamp: new Date(),
       iteration: this.currentIteration,
-      previousScore: this.verificationScores.length > 0 
-        ? this.verificationScores[this.verificationScores.length - 1].score 
-        : 0
+      previousScore:
+        this.verificationScores.length > 0
+          ? this.verificationScores[this.verificationScores.length - 1].score
+          : 0,
     };
-    
+
     this.verificationScores.push(verificationResult);
-    
+
     // Provide guidance based on score and mode
     if (averageScore < this.threshold) {
       if (this.guidanceMode === 'beginner') {
-        console.log('\n💡 Don\'t worry! Use /autofix to automatically improve the score');
+        console.log("\n💡 Don't worry! Use /autofix to automatically improve the score");
       } else if (this.guidanceMode === 'mentor') {
         console.log('\n📚 Learning opportunity: Each issue fixed improves code quality');
       }
     }
-    
+
     return verificationResult;
   }
 
   // Include other methods from previous implementation...
   identifyIssues(verificationResult) {
     const issues = [];
-    
+
     if (verificationResult.results) {
       for (const check of verificationResult.results) {
         if (check.score < 0.8) {
           issues.push({
             type: check.name.toLowerCase().replace(' check', '').replace(' ', ''),
             description: `Score: ${check.score.toFixed(2)}`,
-            severity: check.score < 0.5 ? 'high' : 'medium'
+            severity: check.score < 0.5 ? 'high' : 'medium',
           });
         }
       }
     }
-    
+
     return issues;
   }
 
@@ -887,11 +890,11 @@ Design patterns are reusable solutions to common problems:
       const { stdout } = await execAsync('npm test 2>&1 || true');
       const passed = stdout.includes('PASS');
       console.log(`  ${passed ? '✅' : '❌'} Tests ${passed ? 'passed' : 'failed'}`);
-      
+
       if (this.guidanceMode === 'beginner' && !passed) {
         console.log('  💡 Tip: Check test output for specific failures');
       }
-      
+
       return passed;
     } catch (error) {
       console.log('  ❌ Test execution failed:', error.message);
@@ -901,7 +904,7 @@ Design patterns are reusable solutions to common problems:
 
   async commitWithVerification() {
     const result = await this.runVerification();
-    
+
     if (result.score >= this.threshold) {
       console.log('✅ Verification passed! Ready to commit.');
       console.log('\n📝 Suggested commit message:');
@@ -918,13 +921,13 @@ Design patterns are reusable solutions to common problems:
 
   async end() {
     console.log('\n🛑 Ending enhanced pair programming session...');
-    
+
     if (this.rl) this.rl.close();
     if (this.monitoringInterval) clearInterval(this.monitoringInterval);
-    
+
     this.status = 'completed';
     await this.saveSession();
-    
+
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
     console.log('\n✨ Session Complete!');
     console.log('━'.repeat(40));
@@ -932,12 +935,12 @@ Design patterns are reusable solutions to common problems:
     console.log(`Guidance Mode: ${this.guidance.name}`);
     console.log(`Total Fixes: ${this.fixHistory.length}`);
     console.log(`Suggestions Given: ${this.suggestionHistory.length}`);
-    
+
     if (this.verificationScores.length > 0) {
       const final = this.verificationScores[this.verificationScores.length - 1];
       console.log(`Final Score: ${final.score.toFixed(2)}`);
     }
-    
+
     if (this.guidanceMode === 'mentor' || this.guidanceMode === 'beginner') {
       console.log('\n📚 Session Summary:');
       console.log('  • Key concepts covered');
@@ -945,14 +948,14 @@ Design patterns are reusable solutions to common problems:
       console.log('  • Improvements achieved');
       console.log('\n💡 Keep learning and improving!');
     }
-    
+
     console.log('\n👋 Thanks for using enhanced pair programming!\n');
   }
 
   async saveSession() {
     const sessionPath = '.claude-flow/sessions/pair';
     await fs.mkdir(sessionPath, { recursive: true });
-    
+
     const sessionData = {
       id: this.sessionId,
       guidanceMode: this.guidanceMode,
@@ -964,12 +967,12 @@ Design patterns are reusable solutions to common problems:
       verificationScores: this.verificationScores,
       fixHistory: this.fixHistory,
       suggestionHistory: this.suggestionHistory,
-      iterations: this.currentIteration
+      iterations: this.currentIteration,
     };
-    
+
     await fs.writeFile(
       path.join(sessionPath, `${this.sessionId}.json`),
-      JSON.stringify(sessionData, null, 2)
+      JSON.stringify(sessionData, null, 2),
     );
   }
 }
@@ -993,9 +996,9 @@ async function pairCommand(args = [], flags = {}) {
       suggestions: flags.suggestions !== false,
       patterns: flags.patterns !== false,
       bestPractices: flags.best !== false,
-      realtime: flags.realtime || false
+      realtime: flags.realtime || false,
     });
-    
+
     return await session.start();
   }
 

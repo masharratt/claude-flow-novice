@@ -8,7 +8,12 @@ import { EnhancedSwarmMessageRouter } from './enhanced-swarm-message-router.js';
 import { DynamicAgentSpawner } from './dynamic-agent-spawner.js';
 import { ChromeMCPAdapter } from '../adapters/chrome-mcp-adapter.js';
 import { ShadcnMCPAdapter } from '../adapters/shadcn-mcp-adapter.js';
-import { FeatureDevelopmentWorkflow, SwarmTeamComposition, FullStackAgentMessage, TestExecutionPlan } from '../types/index.js';
+import {
+  FeatureDevelopmentWorkflow,
+  SwarmTeamComposition,
+  FullStackAgentMessage,
+  TestExecutionPlan,
+} from '../types/index.js';
 import { ILogger } from '../../core/logger.js';
 
 export interface FullStackOrchestratorConfig {
@@ -97,7 +102,10 @@ export class FullStackOrchestrator extends EventEmitter {
   private workflowTemplates = new Map<string, FeatureDevelopmentWorkflow>();
   private performanceMetrics = new Map<string, any>();
 
-  constructor(config: Partial<FullStackOrchestratorConfig>, private logger: ILogger) {
+  constructor(
+    config: Partial<FullStackOrchestratorConfig>,
+    private logger: ILogger,
+  ) {
     super();
 
     this.config = {
@@ -107,21 +115,21 @@ export class FullStackOrchestrator extends EventEmitter {
       enableUIGeneration: true,
       chromeMCP: {
         enabled: true,
-        timeout: 30000
+        timeout: 30000,
       },
       shadcnMCP: {
         enabled: true,
-        defaultTheme: 'default'
+        defaultTheme: 'default',
       },
       agentSpawning: {
         maxAgentsPerSwarm: 20,
-        enableWarmPool: true
+        enableWarmPool: true,
       },
       monitoring: {
         enableRealTimeMetrics: true,
-        metricsInterval: 5000
+        metricsInterval: 5000,
       },
-      ...config
+      ...config,
     };
 
     this.initializeComponents();
@@ -139,7 +147,7 @@ export class FullStackOrchestrator extends EventEmitter {
       this.logger.info('Starting feature development', {
         featureId: request.id,
         featureName: request.name,
-        swarmId
+        swarmId,
       });
 
       // Check capacity
@@ -155,18 +163,18 @@ export class FullStackOrchestrator extends EventEmitter {
         progress: {
           currentPhase: 'Planning & Analysis',
           completedPhases: [],
-          overallProgress: 0
+          overallProgress: 0,
         },
         team: {} as SwarmTeamComposition,
         performance: {
           startTime: new Date().toISOString(),
-          estimatedCompletion: new Date(Date.now() + this.config.defaultTimeout).toISOString()
+          estimatedCompletion: new Date(Date.now() + this.config.defaultTimeout).toISOString(),
         },
         issues: {
           blocking: [],
           warnings: [],
-          resolved: []
-        }
+          resolved: [],
+        },
       };
 
       this.activeSwarms.set(swarmId, status);
@@ -195,7 +203,6 @@ export class FullStackOrchestrator extends EventEmitter {
       this.emit('feature-development-completed', { swarmId, status });
 
       return status;
-
     } catch (error) {
       this.logger.error('Feature development failed', { error, request: request.id });
       throw error;
@@ -219,11 +226,14 @@ export class FullStackOrchestrator extends EventEmitter {
   /**
    * Scale existing swarm
    */
-  async scaleSwarm(swarmId: string, scalingAction: {
-    action: 'scale-up' | 'scale-down' | 'rebalance';
-    targetSize?: number;
-    reason: string;
-  }): Promise<SwarmExecutionStatus> {
+  async scaleSwarm(
+    swarmId: string,
+    scalingAction: {
+      action: 'scale-up' | 'scale-down' | 'rebalance';
+      targetSize?: number;
+      reason: string;
+    },
+  ): Promise<SwarmExecutionStatus> {
     const status = this.activeSwarms.get(swarmId);
     if (!status) {
       throw new Error(`Swarm ${swarmId} not found`);
@@ -237,10 +247,13 @@ export class FullStackOrchestrator extends EventEmitter {
       // Update message router
       await this.updateSwarmInRouter(swarmId, updatedTeam);
 
-      this.emit('swarm-scaled', { swarmId, action: scalingAction, newTeamSize: updatedTeam.agents.length });
+      this.emit('swarm-scaled', {
+        swarmId,
+        action: scalingAction,
+        newTeamSize: updatedTeam.agents.length,
+      });
 
       return status;
-
     } catch (error) {
       this.logger.error('Swarm scaling failed', { error, swarmId, action: scalingAction });
       throw error;
@@ -266,7 +279,6 @@ export class FullStackOrchestrator extends EventEmitter {
       this.activeSwarms.delete(swarmId);
 
       this.emit('swarm-terminated', { swarmId, reason });
-
     } catch (error) {
       this.logger.error('Swarm termination failed', { error, swarmId });
       throw error;
@@ -292,17 +304,19 @@ export class FullStackOrchestrator extends EventEmitter {
       resourceUtilization: number;
     };
   } {
-    const totalAgents = Array.from(this.activeSwarms.values())
-      .reduce((sum, status) => sum + status.team.agents?.length || 0, 0);
+    const totalAgents = Array.from(this.activeSwarms.values()).reduce(
+      (sum, status) => sum + status.team.agents?.length || 0,
+      0,
+    );
 
     const systemHealth = {
       messageRouter: this.messageRouter !== null,
       agentSpawner: this.agentSpawner !== null,
       chromeMCP: this.chromeMCP?.getStatus().connected || false,
-      shadcnMCP: this.shadcnMCP?.getStatus().connected || false
+      shadcnMCP: this.shadcnMCP?.getStatus().connected || false,
     };
 
-    const healthyComponents = Object.values(systemHealth).filter(h => h).length;
+    const healthyComponents = Object.values(systemHealth).filter((h) => h).length;
     const totalComponents = Object.keys(systemHealth).length;
 
     let status: 'healthy' | 'degraded' | 'critical' = 'healthy';
@@ -317,8 +331,8 @@ export class FullStackOrchestrator extends EventEmitter {
       performance: {
         averageFeatureTime: this.calculateAverageFeatureTime(),
         successRate: this.calculateSuccessRate(),
-        resourceUtilization: this.calculateResourceUtilization()
-      }
+        resourceUtilization: this.calculateResourceUtilization(),
+      },
     };
   }
 
@@ -337,11 +351,10 @@ export class FullStackOrchestrator extends EventEmitter {
       status.progress.completedPhases.push('Planning & Analysis');
       status.progress.overallProgress = 20;
       status.performance.estimatedCompletion = new Date(
-        Date.now() + analysis.complexity.estimatedDuration * 24 * 60 * 60 * 1000
+        Date.now() + analysis.complexity.estimatedDuration * 24 * 60 * 60 * 1000,
       ).toISOString();
 
       this.emit('phase-completed', { swarmId: status.swarmId, phase: 'planning', analysis });
-
     } catch (error) {
       status.issues.blocking.push(`Planning phase failed: ${error.message}`);
       throw error;
@@ -359,7 +372,11 @@ export class FullStackOrchestrator extends EventEmitter {
       const analysis = await this.agentSpawner.analyzeFeatureAndPlanTeam(status.feature);
 
       // Spawn swarm team
-      const team = await this.agentSpawner.spawnSwarmTeam(status.swarmId, analysis.teamPlan, status.feature);
+      const team = await this.agentSpawner.spawnSwarmTeam(
+        status.swarmId,
+        analysis.teamPlan,
+        status.feature,
+      );
 
       // Initialize message routing for the team
       await this.initializeSwarmRouting(status.swarmId, team);
@@ -371,7 +388,6 @@ export class FullStackOrchestrator extends EventEmitter {
       status.progress.overallProgress = 40;
 
       this.emit('phase-completed', { swarmId: status.swarmId, phase: 'spawning', team });
-
     } catch (error) {
       status.issues.blocking.push(`Spawning phase failed: ${error.message}`);
       throw error;
@@ -402,7 +418,6 @@ export class FullStackOrchestrator extends EventEmitter {
       status.progress.overallProgress = 70;
 
       this.emit('phase-completed', { swarmId: status.swarmId, phase: 'development' });
-
     } catch (error) {
       status.issues.blocking.push(`Development phase failed: ${error.message}`);
       throw error;
@@ -430,7 +445,6 @@ export class FullStackOrchestrator extends EventEmitter {
       status.progress.overallProgress = 90;
 
       this.emit('phase-completed', { swarmId: status.swarmId, phase: 'testing' });
-
     } catch (error) {
       status.issues.blocking.push(`Testing phase failed: ${error.message}`);
       throw error;
@@ -453,7 +467,6 @@ export class FullStackOrchestrator extends EventEmitter {
       status.progress.overallProgress = 100;
 
       this.emit('phase-completed', { swarmId: status.swarmId, phase: 'deployment' });
-
     } catch (error) {
       status.issues.blocking.push(`Deployment phase failed: ${error.message}`);
       throw error;
@@ -468,14 +481,14 @@ export class FullStackOrchestrator extends EventEmitter {
       // Initialize Enhanced Message Router with explicit type annotation
       const routerConfig = {
         maxAgentsPerSwarm: this.config.agentSpawning.maxAgentsPerSwarm,
-        enableLegacyMode: true
+        enableLegacyMode: true,
       };
       this.messageRouter = new EnhancedSwarmMessageRouter(this.logger, routerConfig);
 
       // Initialize Dynamic Agent Spawner with explicit configuration
       const spawnerConfig = {
         maxWarmAgents: this.config.agentSpawning.enableWarmPool ? 50 : 0,
-        maxColdAgents: 100
+        maxColdAgents: 100,
       };
       this.agentSpawner = new DynamicAgentSpawner(spawnerConfig, this.logger);
 
@@ -485,7 +498,7 @@ export class FullStackOrchestrator extends EventEmitter {
           timeout: this.config.chromeMCP.timeout,
           retries: 3,
           version: '1.0.0',
-          capabilities: []
+          capabilities: [],
         };
         this.chromeMCP = new ChromeMCPAdapter(chromeMCPConfig, this.logger);
 
@@ -496,7 +509,7 @@ export class FullStackOrchestrator extends EventEmitter {
       if (this.config.shadcnMCP.enabled) {
         const shadcnMCPConfig = {
           timeout: 30000,
-          defaultTheme: this.config.shadcnMCP.defaultTheme
+          defaultTheme: this.config.shadcnMCP.defaultTheme,
         };
         this.shadcnMCP = new ShadcnMCPAdapter(shadcnMCPConfig, this.logger);
 
@@ -504,7 +517,6 @@ export class FullStackOrchestrator extends EventEmitter {
       }
 
       this.logger.info('Full-stack orchestrator initialized successfully');
-
     } catch (error) {
       this.logger.error('Failed to initialize components', { error });
       throw error;
@@ -585,11 +597,11 @@ export class FullStackOrchestrator extends EventEmitter {
     const uiFeature = await this.shadcnMCP.generateUIFeature({
       name: status.feature.name,
       description: status.feature.description,
-      components: status.feature.uiSpec.components.map(comp => ({ component: comp })),
+      components: status.feature.uiSpec.components.map((comp) => ({ component: comp })),
       layout: 'dashboard',
       responsive: status.feature.uiSpec.responsive,
       accessibility: status.feature.uiSpec.accessibility,
-      swarmId: status.swarmId
+      swarmId: status.swarmId,
     });
 
     if (uiFeature.success) {
@@ -606,7 +618,7 @@ export class FullStackOrchestrator extends EventEmitter {
       testFiles: ['**/*.test.ts'],
       browsers: ['chromium'],
       parallel: true,
-      reporter: 'json'
+      reporter: 'json',
     });
 
     if (testResult.success) {
@@ -637,7 +649,10 @@ export class FullStackOrchestrator extends EventEmitter {
     // Implementation would clean up agents, connections, etc.
   }
 
-  private updateSwarmStatusFromMessage(status: SwarmExecutionStatus, message: FullStackAgentMessage): void {
+  private updateSwarmStatusFromMessage(
+    status: SwarmExecutionStatus,
+    message: FullStackAgentMessage,
+  ): void {
     // Update status based on agent messages
     // Implementation would parse message and update appropriate status fields
   }
@@ -662,12 +677,18 @@ export class FullStackOrchestrator extends EventEmitter {
     // Implementation would handle deployment orchestration
   }
 
-  private handleTestResultMessage(message: FullStackAgentMessage, status: SwarmExecutionStatus): void {
+  private handleTestResultMessage(
+    message: FullStackAgentMessage,
+    status: SwarmExecutionStatus,
+  ): void {
     // Handle test result messages
     // Implementation would process test results
   }
 
-  private handleDesignReviewMessage(message: FullStackAgentMessage, status: SwarmExecutionStatus): void {
+  private handleDesignReviewMessage(
+    message: FullStackAgentMessage,
+    status: SwarmExecutionStatus,
+  ): void {
     // Handle design review messages
     // Implementation would process design feedback
   }
@@ -677,7 +698,7 @@ export class FullStackOrchestrator extends EventEmitter {
     const metrics = {
       timestamp: new Date().toISOString(),
       activeSwarms: this.activeSwarms.size,
-      systemHealth: this.getOrchestratorStatus()
+      systemHealth: this.getOrchestratorStatus(),
     };
 
     this.performanceMetrics.set(Date.now().toString(), metrics);

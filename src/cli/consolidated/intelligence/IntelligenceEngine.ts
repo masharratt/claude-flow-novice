@@ -50,35 +50,37 @@ export class IntelligenceEngine {
   // Domain classification patterns
   private readonly domainPatterns = {
     frontend: /\b(ui|frontend|react|vue|angular|component|styling|css|html|responsive|mobile)\b/i,
-    backend: /\b(api|server|backend|database|auth|endpoint|middleware|rest|graphql|microservice)\b/i,
+    backend:
+      /\b(api|server|backend|database|auth|endpoint|middleware|rest|graphql|microservice)\b/i,
     testing: /\b(test|testing|unit|integration|e2e|coverage|mock|spec|tdd|bdd)\b/i,
     deployment: /\b(deploy|deployment|ci|cd|docker|kubernetes|aws|azure|production|staging)\b/i,
-    security: /\b(security|auth|authentication|authorization|jwt|oauth|encryption|vulnerability)\b/i,
+    security:
+      /\b(security|auth|authentication|authorization|jwt|oauth|encryption|vulnerability)\b/i,
     performance: /\b(performance|optimization|speed|cache|lazy|bundle|memory|cpu)\b/i,
     database: /\b(database|db|sql|nosql|mongodb|postgres|mysql|migration|schema)\b/i,
-    documentation: /\b(docs|documentation|readme|guide|tutorial|example|comment)\b/i
+    documentation: /\b(docs|documentation|readme|guide|tutorial|example|comment)\b/i,
   };
 
   // Complexity indicators
   private readonly complexityIndicators = {
     simple: /\b(simple|basic|quick|easy|small|add|create|generate)\b/i,
     medium: /\b(implement|build|develop|integrate|configure|setup|refactor)\b/i,
-    complex: /\b(architect|design|optimize|scale|migrate|complex|advanced|enterprise)\b/i
+    complex: /\b(architect|design|optimize|scale|migrate|complex|advanced|enterprise)\b/i,
   };
 
   // Agent specializations mapped to capabilities
   private readonly agentCapabilities = {
-    'researcher': ['analysis', 'planning', 'requirements', 'documentation'],
-    'coder': ['implementation', 'coding', 'features', 'algorithms'],
-    'tester': ['testing', 'quality', 'validation', 'coverage'],
-    'reviewer': ['code-review', 'security', 'best-practices', 'standards'],
-    'architect': ['system-design', 'architecture', 'scalability', 'patterns'],
+    researcher: ['analysis', 'planning', 'requirements', 'documentation'],
+    coder: ['implementation', 'coding', 'features', 'algorithms'],
+    tester: ['testing', 'quality', 'validation', 'coverage'],
+    reviewer: ['code-review', 'security', 'best-practices', 'standards'],
+    architect: ['system-design', 'architecture', 'scalability', 'patterns'],
     'backend-dev': ['api', 'server', 'database', 'microservices'],
     'frontend-dev': ['ui', 'react', 'vue', 'angular', 'styling'],
-    'devops': ['deployment', 'ci-cd', 'infrastructure', 'monitoring'],
+    devops: ['deployment', 'ci-cd', 'infrastructure', 'monitoring'],
     'security-expert': ['security', 'authentication', 'encryption', 'audit'],
     'perf-optimizer': ['performance', 'optimization', 'benchmarking', 'profiling'],
-    'ml-developer': ['machine-learning', 'ai', 'data-science', 'models']
+    'ml-developer': ['machine-learning', 'ai', 'data-science', 'models'],
   };
 
   constructor(tierManager: TierManager) {
@@ -104,20 +106,20 @@ export class IntelligenceEngine {
       estimatedTime: this.estimateTime(complexity, agents.length),
       recommendedAgents: agents,
       workflow,
-      confidence: this.calculateConfidence(input, domain, agents)
+      confidence: this.calculateConfidence(input, domain, agents),
     };
   }
 
   private extractIntent(input: string): string {
     const intentPatterns = {
-      'create': /\b(create|make|build|generate|add|new)\b/i,
-      'modify': /\b(update|change|modify|edit|refactor|improve)\b/i,
-      'fix': /\b(fix|repair|debug|solve|resolve|correct)\b/i,
-      'test': /\b(test|verify|validate|check|ensure)\b/i,
-      'deploy': /\b(deploy|release|publish|launch)\b/i,
-      'optimize': /\b(optimize|improve|enhance|speed|performance)\b/i,
-      'analyze': /\b(analyze|review|audit|examine|investigate)\b/i,
-      'setup': /\b(setup|configure|install|initialize)\b/i
+      create: /\b(create|make|build|generate|add|new)\b/i,
+      modify: /\b(update|change|modify|edit|refactor|improve)\b/i,
+      fix: /\b(fix|repair|debug|solve|resolve|correct)\b/i,
+      test: /\b(test|verify|validate|check|ensure)\b/i,
+      deploy: /\b(deploy|release|publish|launch)\b/i,
+      optimize: /\b(optimize|improve|enhance|speed|performance)\b/i,
+      analyze: /\b(analyze|review|audit|examine|investigate)\b/i,
+      setup: /\b(setup|configure|install|initialize)\b/i,
     };
 
     for (const [intent, pattern] of Object.entries(intentPatterns)) {
@@ -151,12 +153,18 @@ export class IntelligenceEngine {
 
     // Base complexity on length and technical terms
     const wordCount = input.split(/\s+/).length;
-    const technicalTerms = (input.match(/\b(api|database|authentication|deployment|optimization|architecture)\b/gi) || []).length;
+    const technicalTerms = (
+      input.match(/\b(api|database|authentication|deployment|optimization|architecture)\b/gi) || []
+    ).length;
 
     return Math.min(5, Math.max(1, Math.floor(wordCount / 10) + technicalTerms));
   }
 
-  private recommendAgents(input: string, domain: string, complexity: number): AgentRecommendation[] {
+  private recommendAgents(
+    input: string,
+    domain: string,
+    complexity: number,
+  ): AgentRecommendation[] {
     const recommendations: AgentRecommendation[] = [];
     const currentTier = this.tierManager.getCurrentTier();
 
@@ -167,7 +175,7 @@ export class IntelligenceEngine {
         role: 'Requirements Analysis',
         priority: 1,
         reasoning: 'Complex task requires thorough analysis and planning',
-        estimatedDuration: '5-10 minutes'
+        estimatedDuration: '5-10 minutes',
       });
     }
 
@@ -179,7 +187,7 @@ export class IntelligenceEngine {
           role: 'Frontend Development',
           priority: 1,
           reasoning: 'Task involves UI/UX development',
-          estimatedDuration: this.getDurationByComplexity(complexity)
+          estimatedDuration: this.getDurationByComplexity(complexity),
         });
         break;
 
@@ -189,7 +197,7 @@ export class IntelligenceEngine {
           role: 'Backend Development',
           priority: 1,
           reasoning: 'Task involves server-side development',
-          estimatedDuration: this.getDurationByComplexity(complexity)
+          estimatedDuration: this.getDurationByComplexity(complexity),
         });
         break;
 
@@ -199,7 +207,7 @@ export class IntelligenceEngine {
           role: 'Quality Assurance',
           priority: 1,
           reasoning: 'Task focuses on testing and quality',
-          estimatedDuration: this.getDurationByComplexity(complexity)
+          estimatedDuration: this.getDurationByComplexity(complexity),
         });
         break;
 
@@ -210,7 +218,7 @@ export class IntelligenceEngine {
             role: 'DevOps Engineering',
             priority: 1,
             reasoning: 'Task involves deployment and infrastructure',
-            estimatedDuration: this.getDurationByComplexity(complexity)
+            estimatedDuration: this.getDurationByComplexity(complexity),
           });
         } else {
           recommendations.push({
@@ -218,7 +226,7 @@ export class IntelligenceEngine {
             role: 'Development & Deployment',
             priority: 1,
             reasoning: 'Simplified deployment through general development agent',
-            estimatedDuration: this.getDurationByComplexity(complexity)
+            estimatedDuration: this.getDurationByComplexity(complexity),
           });
         }
         break;
@@ -229,7 +237,7 @@ export class IntelligenceEngine {
           role: 'General Development',
           priority: 1,
           reasoning: 'General development task',
-          estimatedDuration: this.getDurationByComplexity(complexity)
+          estimatedDuration: this.getDurationByComplexity(complexity),
         });
     }
 
@@ -240,18 +248,22 @@ export class IntelligenceEngine {
         role: 'Code Review',
         priority: 2,
         reasoning: 'Complex implementation benefits from code review',
-        estimatedDuration: '5-15 minutes'
+        estimatedDuration: '5-15 minutes',
       });
     }
 
     return recommendations.slice(0, currentTier === UserTier.NOVICE ? 2 : 5);
   }
 
-  private generateWorkflow(agents: AgentRecommendation[], input: string, complexity: number): WorkflowStep[] {
+  private generateWorkflow(
+    agents: AgentRecommendation[],
+    input: string,
+    complexity: number,
+  ): WorkflowStep[] {
     const steps: WorkflowStep[] = [];
 
     // Step 1: Research/Analysis (if needed)
-    const hasResearcher = agents.some(a => a.type === 'researcher');
+    const hasResearcher = agents.some((a) => a.type === 'researcher');
     if (hasResearcher) {
       steps.push({
         id: 'analysis',
@@ -259,12 +271,14 @@ export class IntelligenceEngine {
         agent: 'researcher',
         dependencies: [],
         description: 'Research best practices and create implementation plan',
-        parallel: false
+        parallel: false,
       });
     }
 
     // Step 2: Implementation
-    const implementationAgents = agents.filter(a => a.type !== 'researcher' && a.type !== 'reviewer');
+    const implementationAgents = agents.filter(
+      (a) => a.type !== 'researcher' && a.type !== 'reviewer',
+    );
 
     if (implementationAgents.length === 1) {
       steps.push({
@@ -273,7 +287,7 @@ export class IntelligenceEngine {
         agent: implementationAgents[0].type,
         dependencies: hasResearcher ? ['analysis'] : [],
         description: input,
-        parallel: false
+        parallel: false,
       });
     } else {
       // Multiple implementation agents can work in parallel
@@ -284,17 +298,17 @@ export class IntelligenceEngine {
           agent: agent.type,
           dependencies: hasResearcher ? ['analysis'] : [],
           description: `${agent.role} implementation for: ${input}`,
-          parallel: implementationAgents.length > 1
+          parallel: implementationAgents.length > 1,
         });
       });
     }
 
     // Step 3: Review (if needed)
-    const hasReviewer = agents.some(a => a.type === 'reviewer');
+    const hasReviewer = agents.some((a) => a.type === 'reviewer');
     if (hasReviewer) {
       const implementationIds = steps
-        .filter(s => s.id.startsWith('implementation'))
-        .map(s => s.id);
+        .filter((s) => s.id.startsWith('implementation'))
+        .map((s) => s.id);
 
       steps.push({
         id: 'review',
@@ -302,7 +316,7 @@ export class IntelligenceEngine {
         agent: 'reviewer',
         dependencies: implementationIds,
         description: 'Code review and quality assurance',
-        parallel: false
+        parallel: false,
       });
     }
 
@@ -315,7 +329,7 @@ export class IntelligenceEngine {
       2: '5-10 minutes',
       3: '10-20 minutes',
       4: '20-40 minutes',
-      5: '40+ minutes'
+      5: '40+ minutes',
     };
     return durations[complexity as keyof typeof durations] || '10-20 minutes';
   }
@@ -334,7 +348,11 @@ export class IntelligenceEngine {
     }
   }
 
-  private calculateConfidence(input: string, domain: string, agents: AgentRecommendation[]): number {
+  private calculateConfidence(
+    input: string,
+    domain: string,
+    agents: AgentRecommendation[],
+  ): number {
     let confidence = 0.7; // Base confidence
 
     // Boost confidence for clear domain classification
@@ -350,7 +368,8 @@ export class IntelligenceEngine {
   }
 
   private hasSpecificKeywords(input: string): boolean {
-    const specificKeywords = /\b(react|vue|angular|express|fastapi|django|postgres|mongodb|jwt|docker|kubernetes|aws|azure)\b/i;
+    const specificKeywords =
+      /\b(react|vue|angular|express|fastapi|django|postgres|mongodb|jwt|docker|kubernetes|aws|azure)\b/i;
     return specificKeywords.test(input);
   }
 
@@ -382,7 +401,7 @@ export class IntelligenceEngine {
         hasCi: this.hasCiConfig(),
         packageManager: this.detectPackageManager(),
         gitInitialized: this.isGitInitialized(),
-        dependencies: Object.keys(dependencies)
+        dependencies: Object.keys(dependencies),
       };
     } catch (error) {
       return {
@@ -392,7 +411,7 @@ export class IntelligenceEngine {
         hasCi: false,
         packageManager: 'npm',
         gitInitialized: false,
-        dependencies: []
+        dependencies: [],
       };
     }
   }
@@ -443,8 +462,8 @@ export class IntelligenceEngine {
     try {
       const fs = require('fs');
       const files = fs.readdirSync(process.cwd());
-      return files.some((f: string) =>
-        f.includes('test') || f.includes('spec') || f === 'jest.config.js'
+      return files.some(
+        (f: string) => f.includes('test') || f.includes('spec') || f === 'jest.config.js',
       );
     } catch {
       return false;
@@ -455,8 +474,8 @@ export class IntelligenceEngine {
     try {
       const fs = require('fs');
       const files = fs.readdirSync(process.cwd());
-      return files.some((f: string) =>
-        f === '.github' || f === '.gitlab-ci.yml' || f === 'Jenkinsfile'
+      return files.some(
+        (f: string) => f === '.github' || f === '.gitlab-ci.yml' || f === 'Jenkinsfile',
       );
     } catch {
       return false;

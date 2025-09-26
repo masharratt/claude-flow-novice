@@ -3,8 +3,16 @@
  * Controlled rollout with environment variables and monitoring
  */
 
-export { FeatureFlagManager, FeatureFlagConfig, RolloutMetrics } from './core/FeatureFlagManager.js';
-export { TruthBasedValidator, ValidationResult, CompletionTask } from './validation/TruthBasedValidator.js';
+export {
+  FeatureFlagManager,
+  FeatureFlagConfig,
+  RolloutMetrics,
+} from './core/FeatureFlagManager.js';
+export {
+  TruthBasedValidator,
+  ValidationResult,
+  CompletionTask,
+} from './validation/TruthBasedValidator.js';
 export { HookInterceptor, HookExecution, InterceptedResult } from './validation/HookInterceptor.js';
 export { RolloutMonitor, DashboardData, Alert } from './monitoring/RolloutMonitor.js';
 export { RolloutController, RolloutPlan, RolloutStage } from './rollout/RolloutController.js';
@@ -12,7 +20,7 @@ export {
   Phase4Environment,
   Phase4EnvironmentConfig,
   DEFAULT_PHASE4_CONFIG,
-  PHASE4_PRESETS
+  PHASE4_PRESETS,
 } from './config/phase4-environment.js';
 
 import { FeatureFlagManager } from './core/FeatureFlagManager.js';
@@ -61,7 +69,7 @@ export class Phase4FeatureFlagSystem {
     const configValidation = this.environment.validateConfiguration();
     if (!configValidation.valid) {
       console.warn('⚠️  Configuration issues detected:');
-      configValidation.issues.forEach(issue => console.warn(`   - ${issue}`));
+      configValidation.issues.forEach((issue) => console.warn(`   - ${issue}`));
     }
 
     try {
@@ -84,7 +92,6 @@ export class Phase4FeatureFlagSystem {
 
       // Create initial rollout plans for Phase 4 flags
       await this.createInitialRolloutPlans();
-
     } catch (error) {
       console.error('❌ Failed to initialize Phase 4 system:', error);
       throw error;
@@ -100,8 +107,8 @@ export class Phase4FeatureFlagSystem {
     for (const flagName of phase4Flags) {
       try {
         const existingPlans = this.rolloutController.getRolloutHistory(flagName);
-        const hasActivePlan = existingPlans.some(plan =>
-          plan.status === 'active' || plan.status === 'pending'
+        const hasActivePlan = existingPlans.some(
+          (plan) => plan.status === 'active' || plan.status === 'pending',
         );
 
         if (!hasActivePlan) {
@@ -117,11 +124,7 @@ export class Phase4FeatureFlagSystem {
   /**
    * Quick feature flag check - main API for applications
    */
-  async isFeatureEnabled(
-    flagName: string,
-    userId?: string,
-    context?: any
-  ): Promise<boolean> {
+  async isFeatureEnabled(flagName: string, userId?: string, context?: any): Promise<boolean> {
     if (!this.initialized) {
       await this.initialize();
     }
@@ -160,7 +163,7 @@ export class Phase4FeatureFlagSystem {
     }
 
     const plans = this.rolloutController.getRolloutHistory(flagName);
-    let plan = plans.find(p => p.status === 'pending');
+    let plan = plans.find((p) => p.status === 'pending');
 
     if (!plan) {
       plan = await this.rolloutController.createPhase4RolloutPlan(flagName);
@@ -200,14 +203,14 @@ export class Phase4FeatureFlagSystem {
       systemHealth: dashboardData.systemHealth,
       alerts: dashboardData.alerts.slice(0, 10), // Top 10 alerts
       activeRollouts: activeRollouts.length,
-      rollouts: activeRollouts.map(r => ({
+      rollouts: activeRollouts.map((r) => ({
         id: r.id,
         flagName: r.flagName,
         currentStage: r.currentStage,
         totalStages: r.stages.length,
-        status: r.status
+        status: r.status,
       })),
-      configuration: configSummary
+      configuration: configSummary,
     };
   }
 
@@ -230,9 +233,9 @@ export class Phase4FeatureFlagSystem {
       deployment: {
         totalFlags: this.flagManager.getAllFlags().length,
         rolloutPlans: allPlans.length,
-        activeRollouts: allPlans.filter(p => p.status === 'active').length,
-        completedRollouts: allPlans.filter(p => p.status === 'completed').length,
-        failedRollouts: allPlans.filter(p => p.status === 'failed').length
+        activeRollouts: allPlans.filter((p) => p.status === 'active').length,
+        completedRollouts: allPlans.filter((p) => p.status === 'completed').length,
+        failedRollouts: allPlans.filter((p) => p.status === 'failed').length,
       },
       validation: validatorMetrics,
       interception: interceptorMetrics,
@@ -242,8 +245,8 @@ export class Phase4FeatureFlagSystem {
         rolloutErrorRateBelowThreshold: performanceReport.flags.avgErrorRate < 0.01,
         systemPerformanceImpactBelow5Percent: true, // Simulated
         monitoringCoverage: performanceReport.validation.totalValidations > 0,
-        rapidEnableDisableFunctional: true
-      }
+        rapidEnableDisableFunctional: true,
+      },
     };
   }
 
@@ -289,7 +292,7 @@ export function getPhase4System(env?: string): Phase4FeatureFlagSystem {
 export async function isPhase4FeatureEnabled(
   flagName: string,
   userId?: string,
-  context?: any
+  context?: any,
 ): Promise<boolean> {
   const system = getPhase4System();
   return system.isFeatureEnabled(flagName, userId, context);

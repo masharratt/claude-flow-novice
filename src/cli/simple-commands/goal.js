@@ -9,7 +9,7 @@ import chalk from 'chalk';
 
 export async function goalCommand(args, flags) {
   const subcommand = args[0];
-  
+
   if (!subcommand) {
     console.log(chalk.magenta('🎯 Claude Flow Goal Module'));
     console.log('\nUsage: claude-flow goal <command> [options]');
@@ -20,7 +20,7 @@ export async function goalCommand(args, flags) {
     console.log('  --target <dir> Target directory (default: .claude/agents/goal)');
     return;
   }
-  
+
   if (subcommand === 'init') {
     await initGoalModule(flags);
   } else {
@@ -31,20 +31,20 @@ export async function goalCommand(args, flags) {
 
 async function initGoalModule(flags = {}) {
   const targetDir = path.resolve(process.cwd(), flags.target || '.claude/agents/goal');
-  
+
   console.log(chalk.magenta('🎯 Initializing Claude Flow Goal Module...'));
   console.log(chalk.gray(`  Target: ${targetDir}`));
-  
+
   try {
     // Check if exists
-    if (await exists(targetDir) && !flags.force) {
+    if ((await exists(targetDir)) && !flags.force) {
       console.log(chalk.yellow('⚠️  Goal module already exists. Use --force to overwrite.'));
       return;
     }
-    
+
     // Create directory
     await fs.mkdir(targetDir, { recursive: true });
-    
+
     // Create goal-planner agent content (full content from memory)
     const plannerContent = `---
 name: goal-planner
@@ -119,15 +119,14 @@ mcp__claude-flow__memory_usage {
   value: JSON.stringify(successful_plan)
 }
 \`\`\``;
-    
+
     await fs.writeFile(path.join(targetDir, 'goal-planner.md'), plannerContent);
     console.log(chalk.gray('  ✓ Created goal-planner.md'));
-    
+
     console.log(chalk.green('\n✅ Goal module initialized successfully!'));
     console.log(chalk.magenta('\n📚 Usage:'));
     console.log(chalk.gray('  • In Claude Code: @agent-goal-planner "Create deployment plan"'));
     console.log(chalk.gray('  • View agent: cat .claude/agents/goal/goal-planner.md'));
-    
   } catch (error) {
     console.error(chalk.red('❌ Failed to initialize goal module:'), error.message);
     process.exit(1);

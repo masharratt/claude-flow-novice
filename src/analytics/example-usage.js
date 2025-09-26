@@ -14,7 +14,7 @@ async function demonstrateAnalyticsPipeline() {
     swarmDbPath: '.swarm/memory.db',
     metricsPath: '.claude-flow/metrics',
     enableMonitoring: true,
-    enableDashboard: true
+    enableDashboard: true,
   });
 
   try {
@@ -32,7 +32,7 @@ async function demonstrateAnalyticsPipeline() {
       memory_usage: `${status.metrics.memory_usage?.toFixed(1)}%`,
       cpu_load: status.metrics.cpu_load?.toFixed(2),
       alerts: status.alerts.length,
-      recommendations: status.recommendations.length
+      recommendations: status.recommendations.length,
     });
 
     // 3. Generate comprehensive report
@@ -42,7 +42,7 @@ async function demonstrateAnalyticsPipeline() {
       timestamp: report.timestamp,
       components: Object.keys(report.components),
       has_optimizations: !!report.components.optimizations,
-      has_personalized: !!report.components.personalized_suggestions
+      has_personalized: !!report.components.personalized_suggestions,
     });
 
     // 4. Get optimization suggestions
@@ -50,7 +50,7 @@ async function demonstrateAnalyticsPipeline() {
     const optimizations = await analytics.getOptimizations('high', 'performance');
     console.log('High-Priority Performance Optimizations:', {
       total: optimizations.total,
-      suggestions: optimizations.suggestions.slice(0, 2).map(s => s.title)
+      suggestions: optimizations.suggestions.slice(0, 2).map((s) => s.title),
     });
 
     // 5. Get personalized suggestions
@@ -60,7 +60,7 @@ async function demonstrateAnalyticsPipeline() {
       user_profile: personalized.user?.experience_level,
       immediate_actions: personalized.suggestions.immediate?.length || 0,
       short_term_goals: personalized.suggestions.shortTerm?.length || 0,
-      learning_opportunities: personalized.suggestions.learning?.length || 0
+      learning_opportunities: personalized.suggestions.learning?.length || 0,
     });
 
     // 6. Learn from patterns
@@ -69,7 +69,7 @@ async function demonstrateAnalyticsPipeline() {
     console.log('Pattern Learning:', {
       successful_configs: patterns.successful_configurations?.length || 0,
       learned_insights: patterns.learned_insights?.length || 0,
-      recommendations: patterns.recommendations?.length || 0
+      recommendations: patterns.recommendations?.length || 0,
     });
 
     // 7. Export report
@@ -83,7 +83,7 @@ async function demonstrateAnalyticsPipeline() {
     console.log('Dashboard Info:', {
       port: dashboard.port,
       path: dashboard.path,
-      data_available: !!dashboard.data
+      data_available: !!dashboard.data,
     });
 
     // 9. Show CLI capabilities
@@ -100,7 +100,6 @@ async function demonstrateAnalyticsPipeline() {
     console.log('Shutdown:', shutdownResult.message);
 
     console.log('\n✅ Demo completed successfully!');
-
   } catch (error) {
     console.error('❌ Demo failed:', error.message);
     if (error.stack) {
@@ -150,7 +149,6 @@ async function demonstrateTaskAnalysis() {
     // Show how to use CLI for task analysis
     console.log('CLI Task Analysis:');
     console.log('Use: analytics.cli.showTaskInsights("task-id")');
-
   } catch (error) {
     console.log('Note: Task analysis requires actual task data in the database');
     console.log('Error:', error.message);
@@ -166,7 +164,7 @@ async function demonstrateMonitoring() {
   console.log('\n📈 Monitoring Integration Examples\n');
 
   const analytics = new AnalyticsPipeline({
-    enableMonitoring: true
+    enableMonitoring: true,
   });
 
   await analytics.initialize();
@@ -179,20 +177,20 @@ async function demonstrateMonitoring() {
   analytics.monitoring.on('snapshot:captured', (snapshot) => {
     console.log('📸 Performance snapshot captured:', {
       timestamp: snapshot.timestamp,
-      alerts: snapshot.alerts?.length || 0
+      alerts: snapshot.alerts?.length || 0,
     });
   });
 
   analytics.monitoring.on('alerts:triggered', (alerts) => {
     console.log('🚨 Alerts triggered:', alerts.length);
-    alerts.forEach(alert => {
+    alerts.forEach((alert) => {
       console.log(`  - ${alert.severity.toUpperCase()}: ${alert.message}`);
     });
   });
 
   // Let monitoring run for a short time
   console.log('Monitoring will run for 10 seconds...');
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await new Promise((resolve) => setTimeout(resolve, 10000));
 
   await analytics.shutdown();
 }
@@ -217,5 +215,5 @@ export {
   demonstrateAnalyticsPipeline,
   demonstrateCLIUsage,
   demonstrateTaskAnalysis,
-  demonstrateMonitoring
+  demonstrateMonitoring,
 };

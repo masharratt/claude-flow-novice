@@ -13,11 +13,15 @@ export function setupValidationCommands(program) {
 
   // Add validation examples to main help
   const originalHelp = program.help;
-  program.help = function(options) {
+  program.help = function (options) {
     console.log('\n🔧 VALIDATION COMMANDS:');
-    console.log('  claude-flow-novice validate setup          Interactive completion validation setup');
+    console.log(
+      '  claude-flow-novice validate setup          Interactive completion validation setup',
+    );
     console.log('  claude-flow-novice validate show-config    Display current validation settings');
-    console.log('  claude-flow-novice validate test           Test framework detection and configuration');
+    console.log(
+      '  claude-flow-novice validate test           Test framework detection and configuration',
+    );
     console.log('');
 
     if (originalHelp) {

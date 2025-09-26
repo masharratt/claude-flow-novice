@@ -56,7 +56,7 @@
     {
       "id": "backend-implementation",
       "name": "Implement Backend API",
-      "type": "implementation", 
+      "type": "implementation",
       "description": "Build the REST API server and endpoints",
       "assignTo": "backend-dev",
       "depends": ["api-design"],

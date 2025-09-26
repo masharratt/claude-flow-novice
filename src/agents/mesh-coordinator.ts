@@ -16,13 +16,13 @@ import {
   removeAgentDependency,
   getAgentDependencyStatus,
   forceAgentCompletion,
-  type AgentLifecycleContext
+  type AgentLifecycleContext,
 } from './lifecycle-manager.js';
 import {
   DependencyType,
   getDependencyTracker,
   type DependencyTracker,
-  type CompletionBlockerInfo
+  type CompletionBlockerInfo,
 } from '../lifecycle/dependency-tracker.js';
 
 // ============================================================================
@@ -99,7 +99,7 @@ export class MeshCoordinator extends EventEmitter {
       completionTimeout: 300000, // 5 minutes
       rebalanceInterval: 30000, // 30 seconds
       memoryNamespace: 'mesh-coordinator',
-      ...config
+      ...config,
     };
 
     this.agents = new Map();
@@ -136,19 +136,23 @@ export class MeshCoordinator extends EventEmitter {
         lifecycle: {
           state_management: true,
           persistent_memory: true,
-          max_retries: 3
+          max_retries: 3,
         },
         hooks: {
           init: 'echo "Mesh coordinator initialized"',
           task_complete: 'echo "Coordination task completed"',
           on_rerun_request: this.handleRerunRequest.bind(this),
-          cleanup: 'echo "Mesh coordinator cleanup"'
-        }
+          cleanup: 'echo "Mesh coordinator cleanup"',
+        },
       },
-      generateId('mesh-task')
+      generateId('mesh-task'),
     );
 
-    await lifecycleManager.transitionState(this.coordinatorId, 'running', 'Mesh coordinator started');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'running',
+      'Mesh coordinator started',
+    );
 
     this.isRunning = true;
     this.startBackgroundTasks();
@@ -173,7 +177,7 @@ export class MeshCoordinator extends EventEmitter {
         this.logger.info('Coordinator has pending dependencies - deferring completion');
         this.emit('coordinator:completion_deferred', {
           coordinatorId: this.coordinatorId,
-          reason: 'Pending agent dependencies'
+          reason: 'Pending agent dependencies',
         });
         return; // Don't complete yet
       }
@@ -188,7 +192,11 @@ export class MeshCoordinator extends EventEmitter {
     await this.cleanupAgentDependencies();
 
     // Transition to stopped state
-    await lifecycleManager.transitionState(this.coordinatorId, 'stopped', 'Mesh coordinator shutdown');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'stopped',
+      'Mesh coordinator shutdown',
+    );
 
     // Shutdown dependency tracker
     if (this.config.enableDependencyTracking) {
@@ -205,7 +213,16 @@ export class MeshCoordinator extends EventEmitter {
 
   async registerAgent(
     agentId: string,
-    agentInfo: Omit<MeshAgentInfo, 'id' | 'connections' | 'workload' | 'lastActivity' | 'taskHistory' | 'completionDependencies' | 'dependentAgents'>
+    agentInfo: Omit<
+      MeshAgentInfo,
+      | 'id'
+      | 'connections'
+      | 'workload'
+      | 'lastActivity'
+      | 'taskHistory'
+      | 'completionDependencies'
+      | 'dependentAgents'
+    >,
   ): Promise<void> {
     if (this.agents.size >= this.config.maxAgents) {
       throw new Error('Maximum agent limit reached');
@@ -219,25 +236,20 @@ export class MeshCoordinator extends EventEmitter {
       taskHistory: [],
       completionDependencies: [],
       dependentAgents: [],
-      ...agentInfo
+      ...agentInfo,
     };
 
     this.agents.set(agentId, meshAgent);
 
     // Register dependency relationship - agents depend on coordinator for coordination
     if (this.config.enableDependencyTracking) {
-      await registerAgentDependency(
-        agentId,
-        this.coordinatorId,
-        DependencyType.COORDINATION,
-        {
-          timeout: this.config.completionTimeout,
-          metadata: {
-            coordinatorType: 'mesh',
-            relationship: 'coordination'
-          }
-        }
-      );
+      await registerAgentDependency(agentId, this.coordinatorId, DependencyType.COORDINATION, {
+        timeout: this.config.completionTimeout,
+        metadata: {
+          coordinatorType: 'mesh',
+          relationship: 'coordination',
+        },
+      });
     }
 
     // Establish mesh connections
@@ -293,8 +305,8 @@ export class MeshCoordinator extends EventEmitter {
       if (targetId === agentId || agent.connections.has(targetId)) continue;
 
       // Score based on capability overlap and load
-      const capabilityOverlap = agent.capabilities.filter(cap =>
-        target.capabilities.includes(cap)
+      const capabilityOverlap = agent.capabilities.filter((cap) =>
+        target.capabilities.includes(cap),
       ).length;
 
       const loadScore = 1 / (target.workload + 1);
@@ -303,9 +315,7 @@ export class MeshCoordinator extends EventEmitter {
       candidates.push({ id: targetId, score });
     }
 
-    return candidates
-      .sort((a, b) => b.score - a.score)
-      .map(c => c.id);
+    return candidates.sort((a, b) => b.score - a.score).map((c) => c.id);
   }
 
   private async establishConnection(agentId: string, targetId: string): Promise<void> {
@@ -348,7 +358,7 @@ export class MeshCoordinator extends EventEmitter {
       priority?: number;
       dependencies?: string[];
       timeout?: number;
-    } = {}
+    } = {},
   ): Promise<string> {
     const taskId = generateId('mesh-task');
 
@@ -361,7 +371,7 @@ export class MeshCoordinator extends EventEmitter {
       status: 'pending',
       priority: options.priority || 1,
       createdAt: new Date(),
-      coordinatorId: this.coordinatorId
+      coordinatorId: this.coordinatorId,
     };
 
     this.tasks.set(taskId, task);
@@ -369,7 +379,7 @@ export class MeshCoordinator extends EventEmitter {
     // Select agents for task based on capabilities and load
     const selectedAgents = this.selectAgentsForTask(
       options.requiredCapabilities || [],
-      options.priority || 1
+      options.priority || 1,
     );
 
     if (selectedAgents.length === 0) {
@@ -380,7 +390,7 @@ export class MeshCoordinator extends EventEmitter {
     }
 
     // Assign task to selected agents
-    task.assignedAgents = selectedAgents.map(a => a.id);
+    task.assignedAgents = selectedAgents.map((a) => a.id);
     task.status = 'active';
     task.startedAt = new Date();
 
@@ -405,15 +415,16 @@ export class MeshCoordinator extends EventEmitter {
       if (agent.status !== 'ready') continue;
 
       // Check capability match
-      const hasRequiredCaps = requiredCapabilities.every(cap =>
-        agent.capabilities.includes(cap)
-      );
+      const hasRequiredCaps = requiredCapabilities.every((cap) => agent.capabilities.includes(cap));
 
       if (!hasRequiredCaps && requiredCapabilities.length > 0) continue;
 
       // Calculate selection score
-      const capabilityScore = requiredCapabilities.length > 0 ?
-        requiredCapabilities.filter(cap => agent.capabilities.includes(cap)).length / requiredCapabilities.length : 1;
+      const capabilityScore =
+        requiredCapabilities.length > 0
+          ? requiredCapabilities.filter((cap) => agent.capabilities.includes(cap)).length /
+            requiredCapabilities.length
+          : 1;
 
       const loadScore = 1 / (agent.workload + 1);
       const connectivityScore = agent.connections.size / this.config.maxConnections;
@@ -427,7 +438,7 @@ export class MeshCoordinator extends EventEmitter {
     return suitableAgents
       .sort((a, b) => b.score - a.score)
       .slice(0, Math.min(5, suitableAgents.length)) // Limit to top 5
-      .map(a => a.agent);
+      .map((a) => a.agent);
   }
 
   private async createTaskDependencies(taskId: string, agents: MeshAgentInfo[]): Promise<void> {
@@ -435,16 +446,16 @@ export class MeshCoordinator extends EventEmitter {
     for (const agent of agents) {
       await registerAgentDependency(
         this.coordinatorId, // Coordinator depends on agents
-        agent.id,           // Agent provides completion
+        agent.id, // Agent provides completion
         DependencyType.COMPLETION,
         {
           timeout: this.config.completionTimeout,
           metadata: {
             taskId,
             coordinatorType: 'mesh',
-            relationship: 'task-completion'
-          }
-        }
+            relationship: 'task-completion',
+          },
+        },
       );
 
       // Update agent tracking
@@ -457,7 +468,10 @@ export class MeshCoordinator extends EventEmitter {
     }
   }
 
-  private async distributeTaskToAgents(task: MeshCoordinationTask, agents: MeshAgentInfo[]): Promise<void> {
+  private async distributeTaskToAgents(
+    task: MeshCoordinationTask,
+    agents: MeshAgentInfo[],
+  ): Promise<void> {
     // Simulate task distribution through mesh network
     for (const agent of agents) {
       agent.status = 'working';
@@ -489,7 +503,7 @@ export class MeshCoordinator extends EventEmitter {
     agent.lastActivity = new Date();
 
     // Check if all agents completed the task
-    const allCompleted = task.assignedAgents.every(aId => {
+    const allCompleted = task.assignedAgents.every((aId) => {
       const a = this.agents.get(aId);
       return a && a.status === 'ready';
     });
@@ -572,8 +586,8 @@ export class MeshCoordinator extends EventEmitter {
 
   private async checkCoordinatorCompletion(): Promise<void> {
     // Check if coordinator has any pending tasks or dependencies
-    const pendingTasks = Array.from(this.tasks.values()).filter(t =>
-      t.status === 'pending' || t.status === 'active'
+    const pendingTasks = Array.from(this.tasks.values()).filter(
+      (t) => t.status === 'pending' || t.status === 'active',
     );
 
     if (pendingTasks.length === 0) {
@@ -592,7 +606,11 @@ export class MeshCoordinator extends EventEmitter {
     await this.cleanupAgentDependencies();
 
     // Transition to completed state
-    await lifecycleManager.transitionState(this.coordinatorId, 'stopped', 'All coordination tasks completed');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'stopped',
+      'All coordination tasks completed',
+    );
 
     this.emit('coordinator:completed', { coordinatorId: this.coordinatorId });
   }
@@ -625,17 +643,28 @@ export class MeshCoordinator extends EventEmitter {
     this.on('agent:status_changed', this.handleAgentStatusChange.bind(this));
   }
 
-  private async handleTaskCompletionEvent(event: { taskId: string; result: unknown }): Promise<void> {
+  private async handleTaskCompletionEvent(event: {
+    taskId: string;
+    result: unknown;
+  }): Promise<void> {
     // Additional handling for task completion
     this.logger.debug(`Handling task completion event: ${event.taskId}`);
   }
 
-  private async handleTaskFailureEvent(event: { taskId: string; error: string; agentId: string }): Promise<void> {
+  private async handleTaskFailureEvent(event: {
+    taskId: string;
+    error: string;
+    agentId: string;
+  }): Promise<void> {
     // Additional handling for task failure
     this.logger.debug(`Handling task failure event: ${event.taskId}`);
   }
 
-  private async handleAgentStatusChange(event: { agentId: string; oldStatus: string; newStatus: string }): Promise<void> {
+  private async handleAgentStatusChange(event: {
+    agentId: string;
+    oldStatus: string;
+    newStatus: string;
+  }): Promise<void> {
     // Handle agent status changes
     const agent = this.agents.get(event.agentId);
     if (agent) {
@@ -647,7 +676,11 @@ export class MeshCoordinator extends EventEmitter {
     this.logger.info('Mesh coordinator rerun requested');
 
     // Reset coordinator state for rerun
-    await lifecycleManager.transitionState(this.coordinatorId, 'running', 'Coordinator rerun requested');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'running',
+      'Coordinator rerun requested',
+    );
 
     this.isRunning = true;
     this.startBackgroundTasks();
@@ -718,13 +751,11 @@ export class MeshCoordinator extends EventEmitter {
     canComplete: boolean;
     dependencies: string[];
   } {
-    const activeTasks = Array.from(this.tasks.values()).filter(t =>
-      t.status === 'active' || t.status === 'pending'
+    const activeTasks = Array.from(this.tasks.values()).filter(
+      (t) => t.status === 'active' || t.status === 'pending',
     );
 
-    const completedTasks = Array.from(this.tasks.values()).filter(t =>
-      t.status === 'completed'
-    );
+    const completedTasks = Array.from(this.tasks.values()).filter((t) => t.status === 'completed');
 
     const depStatus = getAgentDependencyStatus(this.coordinatorId);
 
@@ -735,7 +766,7 @@ export class MeshCoordinator extends EventEmitter {
       activeTaskCount: activeTasks.length,
       completedTaskCount: completedTasks.length,
       canComplete: depStatus.canComplete,
-      dependencies: depStatus.dependencies
+      dependencies: depStatus.dependencies,
     };
   }
 
@@ -744,11 +775,11 @@ export class MeshCoordinator extends EventEmitter {
     totalConnections: number;
     averageConnections: number;
   } {
-    const agents = Array.from(this.agents.values()).map(agent => ({
+    const agents = Array.from(this.agents.values()).map((agent) => ({
       id: agent.id,
       connections: Array.from(agent.connections),
       workload: agent.workload,
-      status: agent.status
+      status: agent.status,
     }));
 
     const totalConnections = agents.reduce((sum, agent) => sum + agent.connections.length, 0) / 2; // Bidirectional
@@ -757,7 +788,7 @@ export class MeshCoordinator extends EventEmitter {
     return {
       agents,
       totalConnections,
-      averageConnections
+      averageConnections,
     };
   }
 
@@ -780,20 +811,16 @@ export function createMeshCoordinator(config?: Partial<MeshCoordinatorConfig>): 
 
 export function createMeshCoordinatorWithDependencies(
   dependencyNamespace: string,
-  config?: Partial<MeshCoordinatorConfig>
+  config?: Partial<MeshCoordinatorConfig>,
 ): MeshCoordinator {
   const enhancedConfig = {
     ...config,
     enableDependencyTracking: true,
-    memoryNamespace: dependencyNamespace
+    memoryNamespace: dependencyNamespace,
   };
 
   return new MeshCoordinator(enhancedConfig);
 }
 
 // Export types for external use
-export type {
-  MeshAgentInfo,
-  MeshCoordinationTask,
-  MeshCoordinatorConfig
-};
+export type { MeshAgentInfo, MeshCoordinationTask, MeshCoordinatorConfig };

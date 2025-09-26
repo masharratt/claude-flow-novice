@@ -87,8 +87,8 @@ export class RegressionDetector {
     this.dataPoints.push(dataPoint);
 
     // Keep only recent data points (configurable retention period)
-    const retentionTime = Date.now() - (this.config.retentionDays * 24 * 60 * 60 * 1000);
-    this.dataPoints = this.dataPoints.filter(dp => dp.timestamp > retentionTime);
+    const retentionTime = Date.now() - this.config.retentionDays * 24 * 60 * 60 * 1000;
+    this.dataPoints = this.dataPoints.filter((dp) => dp.timestamp > retentionTime);
 
     // Save updated data
     await this.saveDataPoints();
@@ -142,8 +142,14 @@ export class RegressionDetector {
 
     // Analyze each metric
     const metrics = [
-      'throughput', 'avgLatency', 'p95Latency', 'p99Latency',
-      'successRate', 'memoryUsage', 'cpuUsage', 'errorRate'
+      'throughput',
+      'avgLatency',
+      'p95Latency',
+      'p99Latency',
+      'successRate',
+      'memoryUsage',
+      'cpuUsage',
+      'errorRate',
     ];
 
     for (const metric of metrics) {
@@ -151,7 +157,7 @@ export class RegressionDetector {
         metric,
         newDataPoint,
         recentPoints,
-        historicalPoints
+        historicalPoints,
       );
 
       if (alert) {
@@ -167,9 +173,8 @@ export class RegressionDetector {
     metric: string,
     newDataPoint: PerformanceDataPoint,
     recentPoints: PerformanceDataPoint[],
-    historicalPoints: PerformanceDataPoint[]
+    historicalPoints: PerformanceDataPoint[],
   ): RegressionAlert | null {
-
     const currentValue = this.getMetricValue(newDataPoint, metric);
     const recentAvg = this.calculateAverage(recentPoints, metric);
     const historicalAvg = this.calculateAverage(historicalPoints, metric);
@@ -215,12 +220,18 @@ export class RegressionDetector {
       expectedValue: historicalAvg,
       deviation: currentValue - historicalAvg,
       deviationPercent: deviationPercent,
-      confidence: Math.min(95, 50 + (zScore * 10)), // Rough confidence calculation
-      description: this.generateAlertDescription(alertType, metric, currentValue, historicalAvg, deviationPercent),
+      confidence: Math.min(95, 50 + zScore * 10), // Rough confidence calculation
+      description: this.generateAlertDescription(
+        alertType,
+        metric,
+        currentValue,
+        historicalAvg,
+        deviationPercent,
+      ),
       recommendation: this.generateRecommendation(alertType, metric, deviationPercent),
       timestamp: newDataPoint.timestamp,
       commit: newDataPoint.commit,
-      branch: newDataPoint.branch
+      branch: newDataPoint.branch,
     };
   }
 
@@ -260,7 +271,7 @@ export class RegressionDetector {
           recommendation: this.generateTrendRecommendation(analysis.metric, analysis.trend),
           timestamp: newDataPoint.timestamp,
           commit: newDataPoint.commit,
-          branch: newDataPoint.branch
+          branch: newDataPoint.branch,
         });
       }
     }
@@ -297,7 +308,7 @@ export class RegressionDetector {
           recommendation: `Investigate recent changes that might affect ${metric}`,
           timestamp: newDataPoint.timestamp,
           commit: newDataPoint.commit,
-          branch: newDataPoint.branch
+          branch: newDataPoint.branch,
         });
       }
     }
@@ -310,8 +321,14 @@ export class RegressionDetector {
     const analyses: TrendAnalysis[] = [];
 
     const metrics = [
-      'throughput', 'avgLatency', 'p95Latency', 'p99Latency',
-      'successRate', 'memoryUsage', 'cpuUsage', 'errorRate'
+      'throughput',
+      'avgLatency',
+      'p95Latency',
+      'p99Latency',
+      'successRate',
+      'memoryUsage',
+      'cpuUsage',
+      'errorRate',
     ];
 
     for (const metric of metrics) {
@@ -326,8 +343,8 @@ export class RegressionDetector {
 
   // Analyze trend for specific metric
   private analyzeTrendForMetric(metric: string): TrendAnalysis | null {
-    const values = this.dataPoints.map(dp => this.getMetricValue(dp, metric));
-    const timestamps = this.dataPoints.map(dp => dp.timestamp);
+    const values = this.dataPoints.map((dp) => this.getMetricValue(dp, metric));
+    const timestamps = this.dataPoints.map((dp) => dp.timestamp);
 
     if (values.length < this.config.trendAnalysis.minPoints) {
       return null;
@@ -354,8 +371,8 @@ export class RegressionDetector {
 
     // Generate predictions
     const now = Date.now();
-    const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
-    const nextMonth = now + (30 * 24 * 60 * 60 * 1000);
+    const nextWeek = now + 7 * 24 * 60 * 60 * 1000;
+    const nextMonth = now + 30 * 24 * 60 * 60 * 1000;
 
     return {
       metric: metric,
@@ -365,14 +382,17 @@ export class RegressionDetector {
       predictions: {
         nextWeek: regression.slope * nextWeek + regression.intercept,
         nextMonth: regression.slope * nextMonth + regression.intercept,
-        confidence: Math.max(0, Math.min(100, regression.r2 * 100))
+        confidence: Math.max(0, Math.min(100, regression.r2 * 100)),
       },
-      changePoints: changePoints
+      changePoints: changePoints,
     };
   }
 
   // Perform linear regression
-  private performLinearRegression(x: number[], y: number[]): { slope: number; intercept: number; r2: number } {
+  private performLinearRegression(
+    x: number[],
+    y: number[],
+  ): { slope: number; intercept: number; r2: number } {
     const n = x.length;
     const sumX = x.reduce((sum, val) => sum + val, 0);
     const sumY = y.reduce((sum, val) => sum + val, 0);
@@ -391,15 +411,17 @@ export class RegressionDetector {
       return sum + Math.pow(val - predicted, 2);
     }, 0);
 
-    const r2 = 1 - (ssResidual / ssTotal);
+    const r2 = 1 - ssResidual / ssTotal;
 
     return { slope, intercept, r2 };
   }
 
   // Detect change points in performance data
-  private detectChangePoints(metric: string): Array<{ timestamp: number; commit: string; changeMagnitude: number; description: string }> {
+  private detectChangePoints(
+    metric: string,
+  ): Array<{ timestamp: number; commit: string; changeMagnitude: number; description: string }> {
     const changePoints: Array<any> = [];
-    const values = this.dataPoints.map(dp => this.getMetricValue(dp, metric));
+    const values = this.dataPoints.map((dp) => this.getMetricValue(dp, metric));
 
     // Simple change point detection using moving averages
     const windowSize = Math.min(10, Math.floor(values.length / 4));
@@ -419,7 +441,7 @@ export class RegressionDetector {
           timestamp: dataPoint.timestamp,
           commit: dataPoint.commit,
           changeMagnitude: changeMagnitude,
-          description: `Significant change in ${metric}: ${beforeAvg.toFixed(2)} → ${afterAvg.toFixed(2)} (${changeMagnitude.toFixed(1)}% change)`
+          description: `Significant change in ${metric}: ${beforeAvg.toFixed(2)} → ${afterAvg.toFixed(2)} (${changeMagnitude.toFixed(1)}% change)`,
         });
       }
     }
@@ -430,13 +452,19 @@ export class RegressionDetector {
   // Update trend models for prediction
   private updateTrendModels(): void {
     const metrics = [
-      'throughput', 'avgLatency', 'p95Latency', 'p99Latency',
-      'successRate', 'memoryUsage', 'cpuUsage', 'errorRate'
+      'throughput',
+      'avgLatency',
+      'p95Latency',
+      'p99Latency',
+      'successRate',
+      'memoryUsage',
+      'cpuUsage',
+      'errorRate',
     ];
 
     for (const metric of metrics) {
-      const values = this.dataPoints.map(dp => this.getMetricValue(dp, metric));
-      const timestamps = this.dataPoints.map(dp => dp.timestamp);
+      const values = this.dataPoints.map((dp) => this.getMetricValue(dp, metric));
+      const timestamps = this.dataPoints.map((dp) => dp.timestamp);
 
       if (values.length >= this.config.trendAnalysis.minPoints) {
         const model = this.performLinearRegression(timestamps, values);
@@ -488,7 +516,8 @@ export class RegressionDetector {
 
       if (historicalStd > 0) {
         const zScore = Math.abs((currentValue - historicalMean) / historicalStd);
-        if (zScore > 3) { // 3 standard deviations
+        if (zScore > 3) {
+          // 3 standard deviations
           anomalousMetrics.push(metric);
         }
       }
@@ -503,12 +532,12 @@ export class RegressionDetector {
   }
 
   private calculateAverage(points: PerformanceDataPoint[], metric: string): number {
-    const values = points.map(p => this.getMetricValue(p, metric));
+    const values = points.map((p) => this.getMetricValue(p, metric));
     return values.reduce((sum, val) => sum + val, 0) / values.length;
   }
 
   private calculateStandardDeviation(points: PerformanceDataPoint[], metric: string): number {
-    const values = points.map(p => this.getMetricValue(p, metric));
+    const values = points.map((p) => this.getMetricValue(p, metric));
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
     return Math.sqrt(variance);
@@ -519,7 +548,14 @@ export class RegressionDetector {
   }
 
   private isWorseDirection(metric: string, currentValue: number, referenceValue: number): boolean {
-    const worseMetrics = ['avgLatency', 'p95Latency', 'p99Latency', 'memoryUsage', 'cpuUsage', 'errorRate'];
+    const worseMetrics = [
+      'avgLatency',
+      'p95Latency',
+      'p99Latency',
+      'memoryUsage',
+      'cpuUsage',
+      'errorRate',
+    ];
     const betterMetrics = ['throughput', 'successRate'];
 
     if (worseMetrics.includes(metric)) {
@@ -532,10 +568,16 @@ export class RegressionDetector {
   }
 
   private isBetterDirection(metric: string, currentValue: number, referenceValue: number): boolean {
-    return !this.isWorseDirection(metric, currentValue, referenceValue) && currentValue !== referenceValue;
+    return (
+      !this.isWorseDirection(metric, currentValue, referenceValue) &&
+      currentValue !== referenceValue
+    );
   }
 
-  private calculateSeverity(zScore: number, percentChange: number): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+  private calculateSeverity(
+    zScore: number,
+    percentChange: number,
+  ): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
     if (percentChange > 50 || zScore > 5) {
       return 'CRITICAL';
     } else if (percentChange > 25 || zScore > 3) {
@@ -547,7 +589,13 @@ export class RegressionDetector {
     }
   }
 
-  private generateAlertDescription(type: string, metric: string, currentValue: number, expectedValue: number, deviationPercent: number): string {
+  private generateAlertDescription(
+    type: string,
+    metric: string,
+    currentValue: number,
+    expectedValue: number,
+    deviationPercent: number,
+  ): string {
     const direction = deviationPercent > 0 ? 'increased' : 'decreased';
     return `${type}: ${metric} ${direction} by ${Math.abs(deviationPercent).toFixed(1)}% (${currentValue.toFixed(2)} vs expected ${expectedValue.toFixed(2)})`;
   }
@@ -591,18 +639,25 @@ export class RegressionDetector {
     try {
       const dataPath = path.resolve(this.config.dataPath);
       await fs.mkdir(path.dirname(dataPath), { recursive: true });
-      await fs.writeFile(dataPath, JSON.stringify({
-        dataPoints: this.dataPoints,
-        lastUpdated: Date.now()
-      }, null, 2));
+      await fs.writeFile(
+        dataPath,
+        JSON.stringify(
+          {
+            dataPoints: this.dataPoints,
+            lastUpdated: Date.now(),
+          },
+          null,
+          2,
+        ),
+      );
     } catch (error) {
       console.error(`Failed to save data points: ${error.message}`);
     }
   }
 
   private cleanupOldAlerts(): void {
-    const cutoffTime = Date.now() - (this.config.alertRetentionDays * 24 * 60 * 60 * 1000);
-    this.alertHistory = this.alertHistory.filter(alert => alert.timestamp > cutoffTime);
+    const cutoffTime = Date.now() - this.config.alertRetentionDays * 24 * 60 * 60 * 1000;
+    this.alertHistory = this.alertHistory.filter((alert) => alert.timestamp > cutoffTime);
   }
 
   // Public API methods
@@ -653,18 +708,18 @@ export const defaultRegressionConfig: RegressionConfig = {
   windowSize: 20,
   thresholds: {
     zScore: 2.5,
-    percentChange: 5
+    percentChange: 5,
   },
   trendAnalysis: {
     minPoints: 15,
     slopeThreshold: 0.001,
-    deviationThreshold: 15
+    deviationThreshold: 15,
   },
   anomalyDetection: {
     minPoints: 20,
-    threshold: 3
+    threshold: 3,
   },
   changePointDetection: {
-    threshold: 20
-  }
+    threshold: 20,
+  },
 };

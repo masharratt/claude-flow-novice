@@ -27,7 +27,7 @@ export class GracefulDegradation {
         capabilities: ['basic-coordination', 'task-distribution'],
         limitations: ['No Byzantine fault tolerance', 'Limited to simple consensus'],
         degradationImpact: 'medium',
-        message: 'Using basic coordination instead of advanced consensus mechanisms'
+        message: 'Using basic coordination instead of advanced consensus mechanisms',
       },
 
       'byzantine-coordinator': {
@@ -36,7 +36,7 @@ export class GracefulDegradation {
         capabilities: ['simple-voting', 'basic-fault-tolerance'],
         limitations: ['No Byzantine fault tolerance', 'Assumes honest majority'],
         degradationImpact: 'high',
-        message: 'Byzantine fault tolerance disabled, using simple majority voting'
+        message: 'Byzantine fault tolerance disabled, using simple majority voting',
       },
 
       'raft-manager': {
@@ -45,7 +45,7 @@ export class GracefulDegradation {
         capabilities: ['basic-leader-election', 'simple-replication'],
         limitations: ['Less robust leader election', 'Basic replication only'],
         degradationImpact: 'medium',
-        message: 'Using basic leader election instead of Raft consensus'
+        message: 'Using basic leader election instead of Raft consensus',
       },
 
       'gossip-coordinator': {
@@ -54,7 +54,7 @@ export class GracefulDegradation {
         capabilities: ['simple-broadcast', 'basic-messaging'],
         limitations: ['No epidemic protocols', 'Higher network overhead'],
         degradationImpact: 'low',
-        message: 'Using broadcast communication instead of gossip protocol'
+        message: 'Using broadcast communication instead of gossip protocol',
       },
 
       'crdt-synchronizer': {
@@ -63,7 +63,7 @@ export class GracefulDegradation {
         capabilities: ['basic-synchronization', 'conflict-detection'],
         limitations: ['Data conflicts may occur', 'No automatic resolution'],
         degradationImpact: 'high',
-        message: 'Using last-write-wins instead of CRDT synchronization'
+        message: 'Using last-write-wins instead of CRDT synchronization',
       },
 
       'quorum-manager': {
@@ -72,7 +72,7 @@ export class GracefulDegradation {
         capabilities: ['majority-voting', 'basic-consensus'],
         limitations: ['Less flexible than quorum-based decisions', 'Fixed majority requirement'],
         degradationImpact: 'medium',
-        message: 'Using simple majority instead of configurable quorum'
+        message: 'Using simple majority instead of configurable quorum',
       },
 
       'security-manager': {
@@ -81,7 +81,7 @@ export class GracefulDegradation {
         capabilities: ['basic-authentication', 'simple-authorization'],
         limitations: ['Reduced security features', 'Basic access control only'],
         degradationImpact: 'high',
-        message: 'Using basic security instead of advanced security manager'
+        message: 'Using basic security instead of advanced security manager',
       },
 
       // Neural and AI Fallbacks
@@ -91,7 +91,7 @@ export class GracefulDegradation {
         capabilities: ['basic-task-scheduling', 'simple-optimization'],
         limitations: ['No temporal processing', 'Standard time-based scheduling only'],
         degradationImpact: 'high',
-        message: 'Using standard scheduling without temporal optimization'
+        message: 'Using standard scheduling without temporal optimization',
       },
 
       'consciousness-evolution': {
@@ -100,7 +100,7 @@ export class GracefulDegradation {
         capabilities: ['basic-pattern-recognition', 'simple-analysis'],
         limitations: ['No consciousness modeling', 'Basic pattern matching only'],
         degradationImpact: 'high',
-        message: 'Using basic pattern analysis instead of consciousness evolution'
+        message: 'Using basic pattern analysis instead of consciousness evolution',
       },
 
       'psycho-symbolic': {
@@ -109,7 +109,7 @@ export class GracefulDegradation {
         capabilities: ['symbolic-reasoning', 'basic-psychology'],
         limitations: ['No advanced psychological models', 'Basic symbolic processing'],
         degradationImpact: 'medium',
-        message: 'Using basic symbolic processing without psychological modeling'
+        message: 'Using basic symbolic processing without psychological modeling',
       },
 
       'safla-neural': {
@@ -118,7 +118,7 @@ export class GracefulDegradation {
         capabilities: ['basic-optimization', 'performance-tuning'],
         limitations: ['No self-aware feedback loops', 'Standard optimization only'],
         degradationImpact: 'high',
-        message: 'Using standard optimization without self-aware neural feedback'
+        message: 'Using standard optimization without self-aware neural feedback',
       },
 
       // Performance and Math Fallbacks
@@ -128,7 +128,7 @@ export class GracefulDegradation {
         capabilities: ['basic-calculations', 'standard-math'],
         limitations: ['No advanced phi calculations', 'Standard mathematical functions'],
         degradationImpact: 'medium',
-        message: 'Using standard mathematical functions instead of phi calculator'
+        message: 'Using standard mathematical functions instead of phi calculator',
       },
 
       'nanosecond-scheduler': {
@@ -137,7 +137,7 @@ export class GracefulDegradation {
         capabilities: ['millisecond-precision', 'standard-scheduling'],
         limitations: ['Reduced timing precision', 'Millisecond instead of nanosecond precision'],
         degradationImpact: 'medium',
-        message: 'Using millisecond precision instead of nanosecond scheduling'
+        message: 'Using millisecond precision instead of nanosecond scheduling',
       },
 
       'matrix-solver': {
@@ -146,17 +146,17 @@ export class GracefulDegradation {
         capabilities: ['basic-linear-algebra', 'simple-matrices'],
         limitations: ['Limited matrix operations', 'No advanced solving algorithms'],
         degradationImpact: 'medium',
-        message: 'Using basic linear algebra instead of advanced matrix solver'
+        message: 'Using basic linear algebra instead of advanced matrix solver',
       },
 
-      'pagerank': {
+      pagerank: {
         fallbackAgent: 'analyst',
         fallbackMethod: 'simple-ranking',
         capabilities: ['basic-sorting', 'simple-scoring'],
         limitations: ['No graph-based ranking', 'Simple scoring algorithms only'],
         degradationImpact: 'low',
-        message: 'Using simple ranking instead of PageRank algorithm'
-      }
+        message: 'Using simple ranking instead of PageRank algorithm',
+      },
     };
   }
 
@@ -186,7 +186,7 @@ export class GracefulDegradation {
       fallbackMethod: fallbackStrategy.fallbackMethod,
       implementedAt: new Date().toISOString(),
       reason,
-      degradationImpact: fallbackStrategy.degradationImpact
+      degradationImpact: fallbackStrategy.degradationImpact,
     });
 
     // Log the degradation
@@ -207,7 +207,7 @@ export class GracefulDegradation {
         fallbackMethod: fallbackStrategy.fallbackMethod,
         capabilities: fallbackStrategy.capabilities,
         limitations: fallbackStrategy.limitations,
-        message: fallbackStrategy.message
+        message: fallbackStrategy.message,
       };
 
       // Configure the fallback agent
@@ -219,7 +219,9 @@ export class GracefulDegradation {
       // Notify users about the degradation
       await this.notifyUserOfDegradation(featureName, fallbackStrategy);
 
-      this.logger.info(`[GracefulDegradation] Implemented fallback for ${featureName}: ${fallbackStrategy.fallbackAgent}`);
+      this.logger.info(
+        `[GracefulDegradation] Implemented fallback for ${featureName}: ${fallbackStrategy.fallbackAgent}`,
+      );
 
       return {
         success: true,
@@ -227,11 +229,13 @@ export class GracefulDegradation {
         fallbackAgent: fallbackStrategy.fallbackAgent,
         capabilities: fallbackStrategy.capabilities,
         limitations: fallbackStrategy.limitations,
-        degradationLevel: this.degradationLevel
+        degradationLevel: this.degradationLevel,
       };
-
     } catch (error) {
-      this.logger.error(`[GracefulDegradation] Failed to implement fallback for ${featureName}:`, error);
+      this.logger.error(
+        `[GracefulDegradation] Failed to implement fallback for ${featureName}:`,
+        error,
+      );
       return this.handleFallbackFailure(featureName, fallbackStrategy, error);
     }
   }
@@ -251,8 +255,8 @@ export class GracefulDegradation {
       metadata: {
         isFallback: true,
         degradationMode: true,
-        limitedCapabilities: true
-      }
+        limitedCapabilities: true,
+      },
     };
 
     // Store agent configuration
@@ -270,7 +274,7 @@ export class GracefulDegradation {
       target: fallbackConfig.fallbackAgent,
       method: fallbackConfig.fallbackMethod,
       mode: 'fallback',
-      originalFeature: featureName
+      originalFeature: featureName,
     });
 
     // Update feature flags
@@ -279,7 +283,7 @@ export class GracefulDegradation {
       fallbackAgent: fallbackConfig.fallbackAgent,
       implementedAt: new Date().toISOString(),
       capabilities: fallbackConfig.capabilities,
-      limitations: fallbackConfig.limitations
+      limitations: fallbackConfig.limitations,
     });
   }
 
@@ -297,22 +301,22 @@ export class GracefulDegradation {
         fallbackAgent: fallbackStrategy.fallbackAgent,
         capabilities: fallbackStrategy.capabilities,
         limitations: fallbackStrategy.limitations,
-        impact: fallbackStrategy.degradationImpact
+        impact: fallbackStrategy.degradationImpact,
       },
       actions: [
         {
           label: 'View Details',
           action: 'show-degradation-details',
-          feature: featureName
+          feature: featureName,
         },
         {
           label: 'Enable Feature',
           action: 'enable-experimental-feature',
           feature: featureName,
-          condition: 'user-has-permission'
-        }
+          condition: 'user-has-permission',
+        },
       ],
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // This would integrate with the notification system
@@ -340,7 +344,7 @@ export class GracefulDegradation {
       message: `${featureName} is currently unavailable and no fallback exists`,
       feature: featureName,
       reason,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     console.warn('[GracefulDegradation] Feature completely unavailable:', notification);
@@ -349,7 +353,7 @@ export class GracefulDegradation {
       success: false,
       feature: featureName,
       reason: 'no-fallback-available',
-      message: `${featureName} is unavailable with no fallback option`
+      message: `${featureName} is unavailable with no fallback option`,
     };
   }
 
@@ -357,7 +361,10 @@ export class GracefulDegradation {
    * Handle fallback implementation failure
    */
   async handleFallbackFailure(featureName, fallbackStrategy, error) {
-    this.logger.error(`[GracefulDegradation] Fallback implementation failed: ${featureName}`, error);
+    this.logger.error(
+      `[GracefulDegradation] Fallback implementation failed: ${featureName}`,
+      error,
+    );
 
     // Mark as failed fallback
     await this.configManager.set(`degradation.${featureName}.failed`, true);
@@ -371,7 +378,7 @@ export class GracefulDegradation {
       feature: featureName,
       reason: 'fallback-failed',
       error: error.message,
-      emergencyFallback
+      emergencyFallback,
     };
   }
 
@@ -386,7 +393,7 @@ export class GracefulDegradation {
       method: 'basic-operation',
       capabilities: ['basic-coordination'],
       limitations: ['Extremely limited functionality', 'Emergency mode only'],
-      message: `${featureName} is in emergency mode with minimal functionality`
+      message: `${featureName} is in emergency mode with minimal functionality`,
     };
 
     await this.configManager.set(`emergency.${featureName}`, emergencyConfig);
@@ -400,15 +407,18 @@ export class GracefulDegradation {
    * Update system degradation level
    */
   updateDegradationLevel(newImpact) {
-    const impactLevels = { 'low': 1, 'medium': 2, 'high': 3 };
-    const currentLevel = this.degradationLevel === 'none' ? 0 : impactLevels[this.degradationLevel] || 0;
+    const impactLevels = { low: 1, medium: 2, high: 3 };
+    const currentLevel =
+      this.degradationLevel === 'none' ? 0 : impactLevels[this.degradationLevel] || 0;
     const newLevel = impactLevels[newImpact] || 0;
 
     if (newLevel > currentLevel) {
       const levels = ['none', 'low', 'medium', 'high'];
       this.degradationLevel = levels[newLevel] || 'high';
 
-      this.logger.warn(`[GracefulDegradation] System degradation level increased to: ${this.degradationLevel}`);
+      this.logger.warn(
+        `[GracefulDegradation] System degradation level increased to: ${this.degradationLevel}`,
+      );
     }
   }
 
@@ -417,9 +427,9 @@ export class GracefulDegradation {
    */
   getDegradationSeverity(impact) {
     const severityMap = {
-      'low': 'info',
-      'medium': 'warning',
-      'high': 'error'
+      low: 'info',
+      medium: 'warning',
+      high: 'error',
     };
     return severityMap[impact] || 'warning';
   }
@@ -436,10 +446,10 @@ export class GracefulDegradation {
       fallback: {
         agent: fallbackStrategy.fallbackAgent,
         method: fallbackStrategy.fallbackMethod,
-        impact: fallbackStrategy.degradationImpact
+        impact: fallbackStrategy.degradationImpact,
       },
       systemDegradationLevel: this.degradationLevel,
-      totalDisabledFeatures: this.disabledFeatures.size
+      totalDisabledFeatures: this.disabledFeatures.size,
     };
 
     this.logger.warn('[GracefulDegradation] Degradation event:', logEntry);
@@ -475,16 +485,15 @@ export class GracefulDegradation {
         success: true,
         feature: featureName,
         restoredAt: new Date().toISOString(),
-        newDegradationLevel: this.degradationLevel
+        newDegradationLevel: this.degradationLevel,
       };
-
     } catch (error) {
       this.logger.error(`[GracefulDegradation] Failed to restore feature ${featureName}:`, error);
       return {
         success: false,
         feature: featureName,
         reason: 'restoration-failed',
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -499,7 +508,7 @@ export class GracefulDegradation {
     }
 
     let maxImpact = 0;
-    const impactLevels = { 'low': 1, 'medium': 2, 'high': 3 };
+    const impactLevels = { low: 1, medium: 2, high: 3 };
 
     for (const mapping of this.fallbackMappings.values()) {
       const impact = impactLevels[mapping.degradationImpact] || 0;
@@ -521,7 +530,7 @@ export class GracefulDegradation {
       disabledFeatures: Array.from(this.disabledFeatures),
       activeFallbacks: this.getActiveFallbacks(),
       impactAssessment: this.getImpactAssessment(),
-      recommendedActions: this.getRecommendedActions()
+      recommendedActions: this.getRecommendedActions(),
     };
   }
 
@@ -538,7 +547,7 @@ export class GracefulDegradation {
         fallbackMethod: mapping.fallbackMethod,
         implementedAt: mapping.implementedAt,
         reason: mapping.reason,
-        degradationImpact: mapping.degradationImpact
+        degradationImpact: mapping.degradationImpact,
       });
     }
 
@@ -554,7 +563,7 @@ export class GracefulDegradation {
       affectedCapabilities: [],
       performanceImpact: 'low',
       functionalityImpact: 'low',
-      userExperienceImpact: 'low'
+      userExperienceImpact: 'low',
     };
 
     // Analyze impact based on disabled features
@@ -586,7 +595,7 @@ export class GracefulDegradation {
         priority: 'high',
         action: 'restore-critical-features',
         message: 'System is in high degradation state. Restore critical experimental features.',
-        features: Array.from(this.disabledFeatures).slice(0, 3)
+        features: Array.from(this.disabledFeatures).slice(0, 3),
       });
     }
 
@@ -595,7 +604,7 @@ export class GracefulDegradation {
         priority: 'medium',
         action: 'review-feature-usage',
         message: 'Multiple features are degraded. Review which features are essential.',
-        count: this.disabledFeatures.size
+        count: this.disabledFeatures.size,
       });
     }
 
@@ -604,7 +613,7 @@ export class GracefulDegradation {
         priority: 'low',
         action: 'enable-experimental-features',
         message: 'Consider enabling experimental features for full functionality.',
-        affectedFeatures: Array.from(this.disabledFeatures)
+        affectedFeatures: Array.from(this.disabledFeatures),
       });
     }
 
@@ -628,14 +637,13 @@ export class GracefulDegradation {
         results[featureName] = {
           success: testResult.success,
           fallbackAgent: strategy.fallbackAgent,
-          tested: true
+          tested: true,
         };
-
       } catch (error) {
         results[featureName] = {
           success: false,
           error: error.message,
-          tested: true
+          tested: true,
         };
       }
     }

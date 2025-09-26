@@ -11,9 +11,9 @@ class ByzantineTeamSync extends EventEmitter {
   constructor(options = {}) {
     super();
     this.maxMembers = options.maxMembers || 100;
-    this.byzantineTolerance = options.byzantineTolerance || 2/3;
+    this.byzantineTolerance = options.byzantineTolerance || 2 / 3;
     this.sybilResistance = options.sybilResistance || true;
-    this.consensusThreshold = options.consensusThreshold || 2/3;
+    this.consensusThreshold = options.consensusThreshold || 2 / 3;
   }
 
   async synchronizePreferences(members) {
@@ -24,18 +24,21 @@ class ByzantineTeamSync extends EventEmitter {
       const authenticatedMembers = await this.validateMemberAuthenticity(members);
 
       // Detect and filter Sybil attacks
-      const filteredMembers = this.sybilResistance ?
-        await this.detectAndFilterSybilAttacks(authenticatedMembers) :
-        authenticatedMembers;
+      const filteredMembers = this.sybilResistance
+        ? await this.detectAndFilterSybilAttacks(authenticatedMembers)
+        : authenticatedMembers;
 
       // Detect Byzantine attacks from original member list
-      this.byzantineAttackDetected = this.byzantineAttackDetected || members.some(member =>
-        member.byzantineFlag === true ||
-        member.type === 'byzantine_attack' ||
-        member.id?.includes('byzantine_') ||
-        member.signature === 'malformed_signature' ||
-        member.reputation < 0
-      );
+      this.byzantineAttackDetected =
+        this.byzantineAttackDetected ||
+        members.some(
+          (member) =>
+            member.byzantineFlag === true ||
+            member.type === 'byzantine_attack' ||
+            member.id?.includes('byzantine_') ||
+            member.signature === 'malformed_signature' ||
+            member.reputation < 0,
+        );
 
       // Perform sublinear synchronization
       const syncResult = await this.performSublinearSync(filteredMembers);
@@ -67,13 +70,13 @@ class ByzantineTeamSync extends EventEmitter {
         byzantineFaultTolerance: true,
         poisoningDetected: this.detectPoisoning(filteredMembers),
         sanitizedPreferences: this.sanitizePreferences(filteredMembers),
-        securityViolations: this.detectSecurityViolations(filteredMembers)
+        securityViolations: this.detectSecurityViolations(filteredMembers),
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        byzantineValidation: false
+        byzantineValidation: false,
       };
     }
   }
@@ -97,7 +100,8 @@ class ByzantineTeamSync extends EventEmitter {
   validateSignature(member) {
     if (!member.signature) return false;
 
-    const expectedSignature = crypto.createHash('sha256')
+    const expectedSignature = crypto
+      .createHash('sha256')
       .update(member.id + 'secret')
       .digest('hex');
 
@@ -106,18 +110,19 @@ class ByzantineTeamSync extends EventEmitter {
 
   async detectAndFilterSybilAttacks(members) {
     const sybilIndicators = this.analyzeSybilIndicators(members);
-    const filteredMembers = members.filter(member => !sybilIndicators.includes(member.id));
+    const filteredMembers = members.filter((member) => !sybilIndicators.includes(member.id));
 
     this.sybilDetected = sybilIndicators.length > 0;
     this.sybilMembers = sybilIndicators;
 
     // Also detect Byzantine attacks
-    this.byzantineAttackDetected = members.some(member =>
-      member.byzantineFlag === true ||
-      member.type === 'byzantine_attack' ||
-      member.id?.includes('byzantine_') ||
-      member.signature === 'malformed_signature' ||
-      member.reputation < 0
+    this.byzantineAttackDetected = members.some(
+      (member) =>
+        member.byzantineFlag === true ||
+        member.type === 'byzantine_attack' ||
+        member.id?.includes('byzantine_') ||
+        member.signature === 'malformed_signature' ||
+        member.reputation < 0,
     );
 
     return filteredMembers;
@@ -129,7 +134,7 @@ class ByzantineTeamSync extends EventEmitter {
     const reputations = new Map();
 
     // Group by join date and reputation patterns
-    members.forEach(member => {
+    members.forEach((member) => {
       const joinDate = member.joinDate ? new Date(member.joinDate).getTime() : Date.now();
       const reputation = member.reputation || 0;
 
@@ -141,9 +146,10 @@ class ByzantineTeamSync extends EventEmitter {
 
     // Detect Sybil patterns: multiple accounts created simultaneously with low reputation
     joinDates.forEach((memberIds, joinDate) => {
-      if (memberIds.length > 5) { // Suspicious if more than 5 accounts joined at same time
-        const lowRepMembers = memberIds.filter(id =>
-          reputations.get(id) < 10 // Low reputation threshold
+      if (memberIds.length > 5) {
+        // Suspicious if more than 5 accounts joined at same time
+        const lowRepMembers = memberIds.filter(
+          (id) => reputations.get(id) < 10, // Low reputation threshold
         );
 
         if (lowRepMembers.length / memberIds.length > 0.8) {
@@ -154,7 +160,7 @@ class ByzantineTeamSync extends EventEmitter {
 
     // Additional Sybil detection: Check for ID patterns
     const idPattern = /sybil_/;
-    members.forEach(member => {
+    members.forEach((member) => {
       if (idPattern.test(member.id)) {
         sybilMembers.push(member.id);
       }
@@ -169,9 +175,7 @@ class ByzantineTeamSync extends EventEmitter {
 
     // Sublinear synchronization: process √n groups in parallel
     const groups = this.partitionMembersIntoGroups(members, sqrtN);
-    const groupResults = await Promise.all(
-      groups.map(group => this.syncGroup(group))
-    );
+    const groupResults = await Promise.all(groups.map((group) => this.syncGroup(group)));
 
     // Merge group results
     const mergedPreferences = this.mergeGroupResults(groupResults);
@@ -180,7 +184,7 @@ class ByzantineTeamSync extends EventEmitter {
       syncedPreferences: mergedPreferences,
       groupCount: groups.length,
       complexity: 'O(√n)',
-      processedMembers: members.length
+      processedMembers: members.length,
     };
   }
 
@@ -192,18 +196,18 @@ class ByzantineTeamSync extends EventEmitter {
       groups[groupIndex].push(member);
     });
 
-    return groups.filter(group => group.length > 0);
+    return groups.filter((group) => group.length > 0);
   }
 
   async syncGroup(group) {
     // Simulate group synchronization with Byzantine validation
-    const preferences = group.map(member => member.preferences);
+    const preferences = group.map((member) => member.preferences);
     const consensus = this.findPreferenceConsensus(preferences);
 
     return {
       groupSize: group.length,
       consensusPreferences: consensus,
-      memberIds: group.map(m => m.id)
+      memberIds: group.map((m) => m.id),
     };
   }
 
@@ -212,21 +216,21 @@ class ByzantineTeamSync extends EventEmitter {
 
     // For each preference type, find the most common value
     const preferenceKeys = new Set();
-    preferences.forEach(pref => {
-      Object.keys(pref).forEach(key => preferenceKeys.add(key));
+    preferences.forEach((pref) => {
+      Object.keys(pref).forEach((key) => preferenceKeys.add(key));
     });
 
-    preferenceKeys.forEach(key => {
-      const values = preferences.map(pref => pref[key]).filter(v => v !== undefined);
+    preferenceKeys.forEach((key) => {
+      const values = preferences.map((pref) => pref[key]).filter((v) => v !== undefined);
       const frequency = {};
 
-      values.forEach(value => {
+      values.forEach((value) => {
         const valueStr = JSON.stringify(value);
         frequency[valueStr] = (frequency[valueStr] || 0) + 1;
       });
 
       const mostCommon = Object.keys(frequency).reduce((a, b) =>
-        frequency[a] > frequency[b] ? a : b
+        frequency[a] > frequency[b] ? a : b,
       );
 
       consensus[key] = JSON.parse(mostCommon);
@@ -236,7 +240,7 @@ class ByzantineTeamSync extends EventEmitter {
   }
 
   mergeGroupResults(groupResults) {
-    const allPreferences = groupResults.map(result => result.consensusPreferences);
+    const allPreferences = groupResults.map((result) => result.consensusPreferences);
     return this.findPreferenceConsensus(allPreferences);
   }
 
@@ -244,7 +248,7 @@ class ByzantineTeamSync extends EventEmitter {
     const validators = this.selectValidators(members);
     const votes = await this.collectVotes(syncResult, validators);
 
-    const positiveVotes = votes.filter(vote => vote.approval).length;
+    const positiveVotes = votes.filter((vote) => vote.approval).length;
     const consensusRatio = positiveVotes / votes.length;
 
     const achieved = consensusRatio >= this.byzantineTolerance;
@@ -254,33 +258,34 @@ class ByzantineTeamSync extends EventEmitter {
       ratio: consensusRatio,
       byzantineProof: achieved ? this.generateByzantineProof(votes) : null,
       evidenceChain: this.generateConsensusEvidence(votes),
-      validatorCount: validators.length
+      validatorCount: validators.length,
     };
   }
 
   selectValidators(members) {
     // Select validators based on reputation and stake
     return members
-      .filter(member => member.reputation > 50)
+      .filter((member) => member.reputation > 50)
       .slice(0, Math.min(21, members.length)) // Max 21 validators
-      .map(member => ({
+      .map((member) => ({
         id: member.id,
         publicKey: member.publicKey,
-        reputation: member.reputation
+        reputation: member.reputation,
       }));
   }
 
   async collectVotes(syncResult, validators) {
-    return validators.map(validator => ({
+    return validators.map((validator) => ({
       validatorId: validator.id,
       approval: Math.random() > 0.1, // 90% approval rate for valid sync
       signature: this.signVote(validator.id, syncResult),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
   }
 
   signVote(validatorId, syncResult) {
-    return crypto.createHash('sha256')
+    return crypto
+      .createHash('sha256')
       .update(validatorId + JSON.stringify(syncResult) + 'vote_secret')
       .digest('hex');
   }
@@ -288,18 +293,18 @@ class ByzantineTeamSync extends EventEmitter {
   generateByzantineProof(votes) {
     return {
       merkleRoot: this.calculateMerkleRoot(votes),
-      consensusSignatures: votes.map(vote => vote.signature),
+      consensusSignatures: votes.map((vote) => vote.signature),
       validatorCount: votes.length,
       timestamp: Date.now(),
-      proofHash: crypto.createHash('sha256').update(JSON.stringify(votes)).digest('hex')
+      proofHash: crypto.createHash('sha256').update(JSON.stringify(votes)).digest('hex'),
     };
   }
 
   generateConsensusEvidence(votes) {
     return {
       voteHash: crypto.createHash('sha256').update(JSON.stringify(votes)).digest('hex'),
-      timestampChain: votes.map(vote => vote.timestamp),
-      signatureChain: votes.map(vote => vote.signature)
+      timestampChain: votes.map((vote) => vote.timestamp),
+      signatureChain: votes.map((vote) => vote.signature),
     };
   }
 
@@ -308,23 +313,27 @@ class ByzantineTeamSync extends EventEmitter {
       operation: 'sync_preference',
       memberId: member.id,
       timestamp: Date.now() + index,
-      hash: crypto.createHash('sha256').update(member.id + 'sync').digest('hex')
+      hash: crypto
+        .createHash('sha256')
+        .update(member.id + 'sync')
+        .digest('hex'),
     }));
 
     return {
       operations,
       merkleRoot: this.calculateMerkleRoot(operations),
-      consensusSignatures: operations.map(op => op.hash),
-      timestampChain: operations.map(op => op.timestamp)
+      consensusSignatures: operations.map((op) => op.hash),
+      timestampChain: operations.map((op) => op.timestamp),
     };
   }
 
   calculateMerkleRoot(items) {
     if (items.length === 0) return null;
-    if (items.length === 1) return crypto.createHash('sha256').update(JSON.stringify(items[0])).digest('hex');
+    if (items.length === 1)
+      return crypto.createHash('sha256').update(JSON.stringify(items[0])).digest('hex');
 
-    const hashes = items.map(item =>
-      crypto.createHash('sha256').update(JSON.stringify(item)).digest('hex')
+    const hashes = items.map((item) =>
+      crypto.createHash('sha256').update(JSON.stringify(item)).digest('hex'),
     );
 
     while (hashes.length > 1) {
@@ -332,7 +341,10 @@ class ByzantineTeamSync extends EventEmitter {
       for (let i = 0; i < hashes.length; i += 2) {
         const left = hashes[i];
         const right = hashes[i + 1] || left;
-        const combined = crypto.createHash('sha256').update(left + right).digest('hex');
+        const combined = crypto
+          .createHash('sha256')
+          .update(left + right)
+          .digest('hex');
         newHashes.push(combined);
       }
       hashes.length = 0;
@@ -348,41 +360,43 @@ class ByzantineTeamSync extends EventEmitter {
       detectedSybils: sybilCount,
       resistanceRatio: filteredMembers.length / originalMembers.length,
       detectionMethod: 'reputation_and_timing_analysis',
-      proofHash: crypto.createHash('sha256').update(
-        `sybil_resistance_${sybilCount}_${filteredMembers.length}`
-      ).digest('hex')
+      proofHash: crypto
+        .createHash('sha256')
+        .update(`sybil_resistance_${sybilCount}_${filteredMembers.length}`)
+        .digest('hex'),
     };
   }
 
   getAuthenticationFailures(originalMembers, authenticatedMembers) {
-    const authenticatedIds = new Set(authenticatedMembers.map(m => m.id));
+    const authenticatedIds = new Set(authenticatedMembers.map((m) => m.id));
     return originalMembers
-      .filter(member => !authenticatedIds.has(member.id))
-      .map(member => member.id);
+      .filter((member) => !authenticatedIds.has(member.id))
+      .map((member) => member.id);
   }
 
   detectPoisoning(members) {
-    return members.some(member => {
+    return members.some((member) => {
       const preferences = member.preferences || {};
-      return Object.keys(preferences).some(key =>
-        typeof preferences[key] === 'string' &&
-        (preferences[key].includes('system.exit') ||
-         preferences[key].includes('rm -rf') ||
-         preferences[key].includes('backdoor'))
+      return Object.keys(preferences).some(
+        (key) =>
+          typeof preferences[key] === 'string' &&
+          (preferences[key].includes('system.exit') ||
+            preferences[key].includes('rm -rf') ||
+            preferences[key].includes('backdoor')),
       );
     });
   }
 
   sanitizePreferences(members) {
-    return members.map(member => ({
+    return members.map((member) => ({
       ...member,
-      preferences: this.sanitizeObject(member.preferences || {})
+      preferences: this.sanitizeObject(member.preferences || {}),
     }));
   }
 
   sanitizeObject(obj) {
     const sanitized = {};
-    Object.keys(obj).forEach(key => {
+    Object.keys(obj).forEach((key) => {
       if (typeof obj[key] === 'string') {
         // Remove dangerous patterns
         sanitized[key] = obj[key]
@@ -401,9 +415,9 @@ class ByzantineTeamSync extends EventEmitter {
 
   detectSecurityViolations(members) {
     const violations = [];
-    members.forEach(member => {
+    members.forEach((member) => {
       const preferences = member.preferences || {};
-      Object.keys(preferences).forEach(key => {
+      Object.keys(preferences).forEach((key) => {
         if (typeof preferences[key] === 'string') {
           if (preferences[key].includes('maliciousPayload') || key.includes('maliciousPayload')) {
             violations.push('malicious_payload_detected');
@@ -431,13 +445,13 @@ class ByzantineTeamSync extends EventEmitter {
   // Performance method for testing
   async achieveConsensus(team, validators) {
     const votes = await this.collectVotes({ syncResult: 'test' }, validators);
-    const positiveVotes = votes.filter(vote => vote.approval).length;
+    const positiveVotes = votes.filter((vote) => vote.approval).length;
     const ratio = positiveVotes / votes.length;
 
     return {
       ratio,
       achieved: ratio >= this.byzantineTolerance,
-      byzantineProof: ratio >= this.byzantineTolerance ? this.generateByzantineProof(votes) : null
+      byzantineProof: ratio >= this.byzantineTolerance ? this.generateByzantineProof(votes) : null,
     };
   }
 }

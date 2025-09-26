@@ -22,11 +22,18 @@ export class DeploymentValidator {
       timeout: options.timeout || 900000, // 15 minutes
       enableByzantineValidation: options.enableByzantineValidation !== false,
       environments: options.environments || ['staging', 'production'],
-      deploymentPlatforms: options.deploymentPlatforms || ['docker', 'kubernetes', 'heroku', 'aws', 'azure', 'gcp'],
+      deploymentPlatforms: options.deploymentPlatforms || [
+        'docker',
+        'kubernetes',
+        'heroku',
+        'aws',
+        'azure',
+        'gcp',
+      ],
       healthCheckRetries: options.healthCheckRetries || 5,
       healthCheckInterval: options.healthCheckInterval || 30000, // 30 seconds
       smokeTestTimeout: options.smokeTestTimeout || 120000, // 2 minutes
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -54,14 +61,14 @@ export class DeploymentValidator {
       // Validate deployment environments
       const environmentValidation = await this.validateDeploymentEnvironments(
         projectPath,
-        deploymentConfig
+        deploymentConfig,
       );
 
       // Execute deployment process
       const deploymentResults = await this.executeDeploymentProcess(
         projectPath,
         deploymentSetup,
-        deploymentConfig
+        deploymentConfig,
       );
 
       // Run health checks and smoke tests
@@ -80,7 +87,7 @@ export class DeploymentValidator {
         healthCheckResults,
         smokeTestResults,
         rollbackValidation,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof
@@ -90,7 +97,7 @@ export class DeploymentValidator {
         healthCheckResults,
         smokeTestResults,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -101,57 +108,58 @@ export class DeploymentValidator {
         environments: {
           validated: environmentValidation.validatedEnvironments,
           available: environmentValidation.availableEnvironments,
-          accessible: environmentValidation.accessibleEnvironments
+          accessible: environmentValidation.accessibleEnvironments,
         },
         deployment: {
-          platforms: deploymentResults.map(r => r.platform),
-          successful: deploymentResults.filter(r => r.success).length,
-          failed: deploymentResults.filter(r => !r.success).length,
+          platforms: deploymentResults.map((r) => r.platform),
+          successful: deploymentResults.filter((r) => r.success).length,
+          failed: deploymentResults.filter((r) => !r.success).length,
           totalAttempts: deploymentResults.length,
-          overallSuccess: deploymentResults.some(r => r.success), // At least one successful
-          details: deploymentResults
+          overallSuccess: deploymentResults.some((r) => r.success), // At least one successful
+          details: deploymentResults,
         },
         healthChecks: {
-          passed: healthCheckResults.filter(h => h.healthy).length,
-          failed: healthCheckResults.filter(h => !h.healthy).length,
+          passed: healthCheckResults.filter((h) => h.healthy).length,
+          failed: healthCheckResults.filter((h) => !h.healthy).length,
           total: healthCheckResults.length,
-          overallHealthy: healthCheckResults.every(h => h.healthy),
-          details: healthCheckResults
+          overallHealthy: healthCheckResults.every((h) => h.healthy),
+          details: healthCheckResults,
         },
         smokeTests: {
-          passed: smokeTestResults.filter(t => t.success).length,
-          failed: smokeTestResults.filter(t => !t.success).length,
+          passed: smokeTestResults.filter((t) => t.success).length,
+          failed: smokeTestResults.filter((t) => !t.success).length,
           total: smokeTestResults.length,
-          overallSuccess: smokeTestResults.every(t => t.success),
-          details: smokeTestResults
+          overallSuccess: smokeTestResults.every((t) => t.success),
+          details: smokeTestResults,
         },
         rollback: {
           supported: rollbackValidation.supported,
           tested: rollbackValidation.tested,
           successful: rollbackValidation.successful,
-          details: rollbackValidation.details
+          details: rollbackValidation.details,
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         executionTime: performance.now() - startTime,
         errors: this.extractDeploymentErrors([
           ...deploymentResults,
           ...healthCheckResults,
-          ...smokeTestResults
-        ])
+          ...smokeTestResults,
+        ]),
       };
 
       // Store deployment history
       this.deploymentHistory.set(validationId, result);
 
-      console.log(`✅ Deployment validation completed [${validationId}]: ${result.deployment.successful}/${result.deployment.totalAttempts} successful deployments`);
+      console.log(
+        `✅ Deployment validation completed [${validationId}]: ${result.deployment.successful}/${result.deployment.totalAttempts} successful deployments`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -159,7 +167,7 @@ export class DeploymentValidator {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.deploymentHistory.set(validationId, errorResult);
@@ -176,7 +184,7 @@ export class DeploymentValidator {
       errors: [],
       platforms: [],
       configFiles: [],
-      secrets: []
+      secrets: [],
     };
 
     const deploymentIndicators = {
@@ -187,7 +195,7 @@ export class DeploymentValidator {
       azure: ['azure-pipelines.yml', '.azure/'],
       gcp: ['app.yaml', 'cloudbuild.yaml', '.gcp/'],
       vercel: ['vercel.json', '.vercel/'],
-      netlify: ['netlify.toml', '_redirects']
+      netlify: ['netlify.toml', '_redirects'],
     };
 
     // Detect deployment platforms
@@ -200,7 +208,7 @@ export class DeploymentValidator {
           if (files.length > 0) {
             const platformInfo = await this.analyzePlatformSetup(projectPath, platform, files);
             setup.platforms.push(platformInfo);
-            setup.configFiles.push(...files.map(file => path.relative(projectPath, file)));
+            setup.configFiles.push(...files.map((file) => path.relative(projectPath, file)));
             break;
           }
         } catch (error) {
@@ -226,11 +234,11 @@ export class DeploymentValidator {
   async analyzePlatformSetup(projectPath, platform, configFiles) {
     const platformInfo = {
       platform,
-      configFiles: configFiles.map(file => path.relative(projectPath, file)),
+      configFiles: configFiles.map((file) => path.relative(projectPath, file)),
       services: [],
       ports: [],
       environments: [],
-      requirements: []
+      requirements: [],
     };
 
     try {
@@ -248,7 +256,9 @@ export class DeploymentValidator {
           await this.analyzeAWSSetup(projectPath, platformInfo);
           break;
         default:
-          platformInfo.requirements.push(`${platform} platform detected but analysis not implemented`);
+          platformInfo.requirements.push(
+            `${platform} platform detected but analysis not implemented`,
+          );
       }
     } catch (error) {
       platformInfo.analysisError = error.message;
@@ -269,7 +279,7 @@ export class DeploymentValidator {
       // Extract exposed ports
       const portMatches = dockerfile.match(/EXPOSE\s+(\d+)/g);
       if (portMatches) {
-        platformInfo.ports = portMatches.map(match => parseInt(match.match(/\d+/)[0]));
+        platformInfo.ports = portMatches.map((match) => parseInt(match.match(/\d+/)[0]));
       }
 
       // Extract services from docker-compose if available
@@ -282,9 +292,9 @@ export class DeploymentValidator {
           // Basic YAML parsing for services
           const serviceMatches = composeContent.match(/^\s*(\w+):/gm);
           if (serviceMatches) {
-            platformInfo.services = serviceMatches.map(match =>
-              match.replace(/^\s*(\w+):/, '$1')
-            ).filter(service => service !== 'version' && service !== 'services');
+            platformInfo.services = serviceMatches
+              .map((match) => match.replace(/^\s*(\w+):/, '$1'))
+              .filter((service) => service !== 'version' && service !== 'services');
           }
         } catch (error) {
           // Compose file doesn't exist
@@ -292,7 +302,6 @@ export class DeploymentValidator {
       }
 
       platformInfo.requirements = ['docker', 'docker-compose (optional)'];
-
     } catch (error) {
       throw new Error(`Docker analysis failed: ${error.message}`);
     }
@@ -319,7 +328,7 @@ export class DeploymentValidator {
             if (kindMatch) {
               platformInfo.services.push({
                 type: kindMatch[1],
-                file: file
+                file: file,
               });
             }
           }
@@ -327,7 +336,6 @@ export class DeploymentValidator {
 
         platformInfo.requirements = ['kubectl', 'kubernetes cluster access'];
         break;
-
       } catch (error) {
         // K8s directory doesn't exist
       }
@@ -343,8 +351,8 @@ export class DeploymentValidator {
       const procfile = await fs.readFile(procfilePath, 'utf8');
 
       // Extract process types
-      const processes = procfile.split('\n').filter(line => line.trim());
-      platformInfo.services = processes.map(process => {
+      const processes = procfile.split('\n').filter((line) => line.trim());
+      platformInfo.services = processes.map((process) => {
         const [type, command] = process.split(':');
         return { type: type.trim(), command: command.trim() };
       });
@@ -362,7 +370,6 @@ export class DeploymentValidator {
       }
 
       platformInfo.requirements = ['heroku-cli'];
-
     } catch (error) {
       throw new Error(`Heroku analysis failed: ${error.message}`);
     }
@@ -395,7 +402,6 @@ export class DeploymentValidator {
 
         platformInfo.requirements = ['aws-cli', 'aws credentials'];
         break;
-
       } catch (error) {
         // File doesn't exist
       }
@@ -413,21 +419,21 @@ export class DeploymentValidator {
         const envPath = path.join(projectPath, envFile);
         const envContent = await fs.readFile(envPath, 'utf8');
 
-        const envVars = envContent.split('\n').filter(line =>
-          line.trim() && !line.startsWith('#') && line.includes('=')
-        );
+        const envVars = envContent
+          .split('\n')
+          .filter((line) => line.trim() && !line.startsWith('#') && line.includes('='));
 
         setup.secrets.push({
           file: envFile,
           variableCount: envVars.length,
-          hasSecrets: envVars.some(line =>
-            line.toLowerCase().includes('secret') ||
-            line.toLowerCase().includes('key') ||
-            line.toLowerCase().includes('password') ||
-            line.toLowerCase().includes('token')
-          )
+          hasSecrets: envVars.some(
+            (line) =>
+              line.toLowerCase().includes('secret') ||
+              line.toLowerCase().includes('key') ||
+              line.toLowerCase().includes('password') ||
+              line.toLowerCase().includes('token'),
+          ),
         });
-
       } catch (error) {
         // Env file doesn't exist
       }
@@ -441,7 +447,7 @@ export class DeploymentValidator {
     const validation = {
       availableEnvironments: [],
       accessibleEnvironments: [],
-      validatedEnvironments: 0
+      validatedEnvironments: 0,
     };
 
     for (const environment of this.options.environments) {
@@ -458,7 +464,6 @@ export class DeploymentValidator {
           validation.accessibleEnvironments.push(environment);
           validation.validatedEnvironments++;
         }
-
       } catch (error) {
         console.warn(`Environment validation failed for ${environment}:`, error.message);
       }
@@ -475,7 +480,7 @@ export class DeploymentValidator {
       environment,
       available: false,
       accessible: false,
-      details: {}
+      details: {},
     };
 
     try {
@@ -493,7 +498,6 @@ export class DeploymentValidator {
 
       validation.available = validation.details.exists !== false;
       validation.accessible = validation.details.accessible === true;
-
     } catch (error) {
       validation.details.error = error.message;
     }
@@ -509,9 +513,8 @@ export class DeploymentValidator {
 
     try {
       // Check for staging URL or configuration
-      const stagingUrl = deploymentConfig.stagingUrl ||
-                        process.env.STAGING_URL ||
-                        'https://staging.example.com';
+      const stagingUrl =
+        deploymentConfig.stagingUrl || process.env.STAGING_URL || 'https://staging.example.com';
 
       if (stagingUrl !== 'https://staging.example.com') {
         details.url = stagingUrl;
@@ -521,7 +524,6 @@ export class DeploymentValidator {
       }
 
       details.exists = true;
-
     } catch (error) {
       details.error = error.message;
       details.exists = false;
@@ -538,9 +540,8 @@ export class DeploymentValidator {
 
     try {
       // Check for production URL or configuration
-      const prodUrl = deploymentConfig.productionUrl ||
-                     process.env.PRODUCTION_URL ||
-                     process.env.PROD_URL;
+      const prodUrl =
+        deploymentConfig.productionUrl || process.env.PRODUCTION_URL || process.env.PROD_URL;
 
       if (prodUrl) {
         details.url = prodUrl;
@@ -550,7 +551,6 @@ export class DeploymentValidator {
       }
 
       details.exists = true;
-
     } catch (error) {
       details.error = error.message;
       details.exists = false;
@@ -567,7 +567,7 @@ export class DeploymentValidator {
       environment,
       exists: true,
       accessible: true,
-      note: 'Custom environment validation not implemented'
+      note: 'Custom environment validation not implemented',
     };
   }
 
@@ -609,20 +609,19 @@ export class DeploymentValidator {
         const deploymentResult = await this.executePlatformDeployment(
           projectPath,
           platformInfo,
-          deploymentConfig
+          deploymentConfig,
         );
 
         deploymentResults.push({
           platform: platformInfo.platform,
-          ...deploymentResult
+          ...deploymentResult,
         });
-
       } catch (error) {
         deploymentResults.push({
           platform: platformInfo.platform,
           success: false,
           error: error.message,
-          duration: 0
+          duration: 0,
         });
       }
     }
@@ -639,7 +638,7 @@ export class DeploymentValidator {
     // Get platform-specific deployment commands
     const deploymentCommands = this.getPlatformDeploymentCommands(
       platformInfo.platform,
-      deploymentConfig
+      deploymentConfig,
     );
 
     const result = {
@@ -647,7 +646,7 @@ export class DeploymentValidator {
       commands: deploymentCommands,
       outputs: [],
       services: [],
-      duration: 0
+      duration: 0,
     };
 
     try {
@@ -656,7 +655,7 @@ export class DeploymentValidator {
         const commandResult = await this.executeDeploymentCommand(
           projectPath,
           command,
-          deploymentConfig
+          deploymentConfig,
         );
 
         result.outputs.push(commandResult);
@@ -668,8 +667,7 @@ export class DeploymentValidator {
 
       // Extract deployed services/endpoints
       result.services = this.extractDeployedServices(result.outputs, platformInfo);
-      result.success = result.outputs.some(output => output.success);
-
+      result.success = result.outputs.some((output) => output.success);
     } catch (error) {
       result.error = error.message;
     }
@@ -684,23 +682,14 @@ export class DeploymentValidator {
    */
   getPlatformDeploymentCommands(platform, deploymentConfig) {
     const commandMap = {
-      docker: [
-        'docker build -t app .',
-        'docker run -d -p 3000:3000 --name app-container app'
-      ],
-      kubernetes: [
-        'kubectl apply -f k8s/',
-        'kubectl rollout status deployment/app'
-      ],
+      docker: ['docker build -t app .', 'docker run -d -p 3000:3000 --name app-container app'],
+      kubernetes: ['kubectl apply -f k8s/', 'kubectl rollout status deployment/app'],
       heroku: [
         'git add .',
         'git commit -m "Deploy to Heroku" --allow-empty',
-        'git push heroku main'
+        'git push heroku main',
       ],
-      aws: [
-        'serverless deploy',
-        'aws cloudformation describe-stacks'
-      ]
+      aws: ['serverless deploy', 'aws cloudformation describe-stacks'],
     };
 
     return commandMap[platform] || [`echo "Deployment for ${platform} not configured"`];
@@ -713,29 +702,33 @@ export class DeploymentValidator {
     const commandStartTime = performance.now();
 
     return new Promise((resolve) => {
-      exec(command, {
-        cwd: projectPath,
-        timeout: this.options.timeout,
-        maxBuffer: 10 * 1024 * 1024,
-        env: {
-          ...process.env,
-          ...(deploymentConfig.env || {})
-        }
-      }, (error, stdout, stderr) => {
-        const duration = performance.now() - commandStartTime;
-        const success = !error || error.code === 0;
+      exec(
+        command,
+        {
+          cwd: projectPath,
+          timeout: this.options.timeout,
+          maxBuffer: 10 * 1024 * 1024,
+          env: {
+            ...process.env,
+            ...(deploymentConfig.env || {}),
+          },
+        },
+        (error, stdout, stderr) => {
+          const duration = performance.now() - commandStartTime;
+          const success = !error || error.code === 0;
 
-        resolve({
-          command,
-          success,
-          exitCode: error?.code || 0,
-          duration,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          critical: this.isCriticalDeploymentCommand(command),
-          timestamp: Date.now()
-        });
-      });
+          resolve({
+            command,
+            success,
+            exitCode: error?.code || 0,
+            duration,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            critical: this.isCriticalDeploymentCommand(command),
+            timestamp: Date.now(),
+          });
+        },
+      );
     });
   }
 
@@ -748,10 +741,10 @@ export class DeploymentValidator {
       'kubectl apply',
       'docker run',
       'serverless deploy',
-      'git push'
+      'git push',
     ];
 
-    return criticalPatterns.some(pattern => command.includes(pattern));
+    return criticalPatterns.some((pattern) => command.includes(pattern));
   }
 
   /**
@@ -768,7 +761,7 @@ export class DeploymentValidator {
       // Extract URLs and endpoints
       const urlMatches = stdout.match(/https?:\/\/[^\s]+/g);
       if (urlMatches) {
-        services.push(...urlMatches.map(url => ({ type: 'url', value: url })));
+        services.push(...urlMatches.map((url) => ({ type: 'url', value: url })));
       }
 
       // Platform-specific service extraction
@@ -783,7 +776,7 @@ export class DeploymentValidator {
         case 'kubernetes':
           const podMatches = stdout.match(/pod\/([^\s]+)/g);
           if (podMatches) {
-            services.push(...podMatches.map(pod => ({ type: 'pod', value: pod })));
+            services.push(...podMatches.map((pod) => ({ type: 'pod', value: pod })));
           }
           break;
 
@@ -811,7 +804,7 @@ export class DeploymentValidator {
           platform: deployment.platform,
           healthy: false,
           reason: 'deployment_failed',
-          checks: []
+          checks: [],
         });
         continue;
       }
@@ -821,13 +814,12 @@ export class DeploymentValidator {
       try {
         const platformHealthChecks = await this.runPlatformHealthChecks(deployment);
         healthCheckResults.push(platformHealthChecks);
-
       } catch (error) {
         healthCheckResults.push({
           platform: deployment.platform,
           healthy: false,
           error: error.message,
-          checks: []
+          checks: [],
         });
       }
     }
@@ -842,7 +834,7 @@ export class DeploymentValidator {
     const healthCheck = {
       platform: deployment.platform,
       healthy: true,
-      checks: []
+      checks: [],
     };
 
     // Extract health check URLs from deployed services
@@ -912,7 +904,7 @@ export class DeploymentValidator {
       healthy: false,
       responseTime: 0,
       statusCode: null,
-      attempts: 0
+      attempts: 0,
     };
 
     const startTime = performance.now();
@@ -936,7 +928,6 @@ export class DeploymentValidator {
         if (attempt < this.options.healthCheckRetries) {
           await this.sleep(this.options.healthCheckInterval);
         }
-
       } catch (error) {
         healthCheck.error = error.message;
 
@@ -980,7 +971,7 @@ export class DeploymentValidator {
           platform: deployment.platform,
           success: false,
           reason: 'deployment_failed',
-          tests: []
+          tests: [],
         });
         continue;
       }
@@ -990,13 +981,12 @@ export class DeploymentValidator {
       try {
         const platformSmokeTests = await this.runPlatformSmokeTests(deployment, projectPath);
         smokeTestResults.push(platformSmokeTests);
-
       } catch (error) {
         smokeTestResults.push({
           platform: deployment.platform,
           success: false,
           error: error.message,
-          tests: []
+          tests: [],
         });
       }
     }
@@ -1011,7 +1001,7 @@ export class DeploymentValidator {
     const smokeTest = {
       platform: deployment.platform,
       success: true,
-      tests: []
+      tests: [],
     };
 
     // Get smoke test commands
@@ -1036,11 +1026,7 @@ export class DeploymentValidator {
     const commands = [];
 
     // Check for custom smoke test scripts
-    const smokeTestScripts = [
-      'smoke-test.sh',
-      'smoke-tests.sh',
-      'test-deployment.sh'
-    ];
+    const smokeTestScripts = ['smoke-test.sh', 'smoke-tests.sh', 'test-deployment.sh'];
 
     for (const script of smokeTestScripts) {
       try {
@@ -1077,24 +1063,28 @@ export class DeploymentValidator {
     const testStartTime = performance.now();
 
     return new Promise((resolve) => {
-      exec(command, {
-        cwd: projectPath,
-        timeout: this.options.smokeTestTimeout,
-        maxBuffer: 1024 * 1024 // 1MB buffer
-      }, (error, stdout, stderr) => {
-        const duration = performance.now() - testStartTime;
-        const success = !error || error.code === 0;
+      exec(
+        command,
+        {
+          cwd: projectPath,
+          timeout: this.options.smokeTestTimeout,
+          maxBuffer: 1024 * 1024, // 1MB buffer
+        },
+        (error, stdout, stderr) => {
+          const duration = performance.now() - testStartTime;
+          const success = !error || error.code === 0;
 
-        resolve({
-          command,
-          success,
-          exitCode: error?.code || 0,
-          duration,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          timestamp: Date.now()
-        });
-      });
+          resolve({
+            command,
+            success,
+            exitCode: error?.code || 0,
+            duration,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            timestamp: Date.now(),
+          });
+        },
+      );
     });
   }
 
@@ -1106,7 +1096,7 @@ export class DeploymentValidator {
       supported: false,
       tested: false,
       successful: false,
-      details: []
+      details: [],
     };
 
     for (const deployment of deploymentResults) {
@@ -1139,7 +1129,7 @@ export class DeploymentValidator {
       platform: deployment.platform,
       supported: false,
       tested: false,
-      successful: false
+      successful: false,
     };
 
     try {
@@ -1169,7 +1159,6 @@ export class DeploymentValidator {
           rollback.supported = false;
           rollback.note = `Rollback validation not implemented for ${deployment.platform}`;
       }
-
     } catch (error) {
       rollback.error = error.message;
     }
@@ -1190,7 +1179,7 @@ export class DeploymentValidator {
           executed: true,
           success: !error,
           output: stdout.toString(),
-          error: error?.message
+          error: error?.message,
         });
       });
     });
@@ -1211,24 +1200,24 @@ export class DeploymentValidator {
         type: 'deployment_validation',
         validationId: validationData.validationId,
         deployment: {
-          platforms: validationData.deploymentResults.map(r => r.platform),
-          successful: validationData.deploymentResults.filter(r => r.success).length,
-          total: validationData.deploymentResults.length
+          platforms: validationData.deploymentResults.map((r) => r.platform),
+          successful: validationData.deploymentResults.filter((r) => r.success).length,
+          total: validationData.deploymentResults.length,
         },
         healthChecks: {
-          healthy: validationData.healthCheckResults.filter(h => h.healthy).length,
-          total: validationData.healthCheckResults.length
+          healthy: validationData.healthCheckResults.filter((h) => h.healthy).length,
+          total: validationData.healthCheckResults.length,
         },
         smokeTests: {
-          passed: validationData.smokeTestResults.filter(t => t.success).length,
-          total: validationData.smokeTestResults.length
+          passed: validationData.smokeTestResults.filter((t) => t.success).length,
+          total: validationData.smokeTestResults.length,
         },
         rollback: {
           supported: validationData.rollbackValidation.supported,
-          tested: validationData.rollbackValidation.tested
+          tested: validationData.rollbackValidation.tested,
         },
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -1240,15 +1229,14 @@ export class DeploymentValidator {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -1258,15 +1246,23 @@ export class DeploymentValidator {
    */
   generateDeploymentValidators(validationData) {
     const baseValidatorCount = 7;
-    const failureMultiplier = validationData.deploymentResults.some(r => !r.success) ? 1.8 : 1;
+    const failureMultiplier = validationData.deploymentResults.some((r) => !r.success) ? 1.8 : 1;
 
     const validatorCount = Math.ceil(baseValidatorCount * failureMultiplier);
 
     return Array.from({ length: validatorCount }, (_, i) => ({
       id: `deployment-validator-${i}`,
-      specialization: ['deployment_execution', 'health_monitoring', 'smoke_testing', 'rollback_validation', 'environment_security', 'service_availability', 'performance_validation'][i % 7],
-      reputation: 0.85 + (Math.random() * 0.15),
-      riskTolerance: validationData.deploymentResults.every(r => r.success) ? 'medium' : 'low'
+      specialization: [
+        'deployment_execution',
+        'health_monitoring',
+        'smoke_testing',
+        'rollback_validation',
+        'environment_security',
+        'service_availability',
+        'performance_validation',
+      ][i % 7],
+      reputation: 0.85 + Math.random() * 0.15,
+      riskTolerance: validationData.deploymentResults.every((r) => r.success) ? 'medium' : 'low',
     }));
   }
 
@@ -1278,16 +1274,16 @@ export class DeploymentValidator {
 
   generateExecutionHash(validationData) {
     const hashData = JSON.stringify({
-      deploymentResults: validationData.deploymentResults.map(r => ({
+      deploymentResults: validationData.deploymentResults.map((r) => ({
         platform: r.platform,
         success: r.success,
-        serviceCount: r.services.length
+        serviceCount: r.services.length,
       })),
-      healthChecks: validationData.healthCheckResults.map(h => ({
+      healthChecks: validationData.healthCheckResults.map((h) => ({
         platform: h.platform,
-        healthy: h.healthy
+        healthy: h.healthy,
       })),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -1299,7 +1295,7 @@ export class DeploymentValidator {
       deploymentResults: data.deploymentResults,
       healthCheckResults: data.healthCheckResults,
       smokeTestResults: data.smokeTestResults,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -1310,7 +1306,7 @@ export class DeploymentValidator {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'deployment-validator',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -1322,7 +1318,7 @@ export class DeploymentValidator {
         errors.push({
           type: result.platform || result.command || 'unknown',
           error: result.error || 'Operation failed',
-          details: result.stderr || result.reason
+          details: result.stderr || result.reason,
         });
       }
     }
@@ -1331,9 +1327,8 @@ export class DeploymentValidator {
   }
 
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -1343,12 +1338,12 @@ export class DeploymentValidator {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -1370,15 +1365,16 @@ export class DeploymentValidator {
 
     if (totalDeployments === 0) return { rate: 0, sample: 0 };
 
-    const falseCompletions = deployments.filter(deploy =>
-      deploy.deployment?.overallSuccess &&
-      (!deploy.healthChecks?.overallHealthy || !deploy.smokeTests?.overallSuccess)
+    const falseCompletions = deployments.filter(
+      (deploy) =>
+        deploy.deployment?.overallSuccess &&
+        (!deploy.healthChecks?.overallHealthy || !deploy.smokeTests?.overallSuccess),
     );
 
     return {
       rate: falseCompletions.length / totalDeployments,
       sample: totalDeployments,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

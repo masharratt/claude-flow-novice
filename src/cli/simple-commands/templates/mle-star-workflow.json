@@ -22,7 +22,7 @@
       }
     },
     {
-      "id": "foundation_agent", 
+      "id": "foundation_agent",
       "type": "coder",
       "name": "Foundation Model Builder",
       "config": {
@@ -34,7 +34,7 @@
     {
       "id": "refinement_agent",
       "type": "optimizer",
-      "name": "Targeted Refinement Specialist", 
+      "name": "Targeted Refinement Specialist",
       "config": {
         "capabilities": ["feature_engineering", "model_optimization", "hyperparameter_tuning"],
         "optimization_methods": ["grid_search", "bayesian", "evolutionary"],
@@ -43,7 +43,7 @@
     },
     {
       "id": "ensemble_agent",
-      "type": "architect", 
+      "type": "architect",
       "name": "Ensemble & Meta-Learning Expert",
       "config": {
         "capabilities": ["model_stacking", "ensemble_methods", "meta_learning"],
@@ -92,7 +92,7 @@
       "retries": 2,
       "output": {
         "recommended_approaches": "array",
-        "model_cards": "array", 
+        "model_cards": "array",
         "benchmark_results": "object",
         "implementation_examples": "array"
       }
@@ -118,7 +118,7 @@
     {
       "id": "foundation_building",
       "name": "Foundation Model Creation",
-      "type": "implementation", 
+      "type": "implementation",
       "description": "Build initial ML pipeline based on web search findings and dataset analysis",
       "assignTo": "foundation_agent",
       "depends": ["web_search_phase", "dataset_analysis"],
@@ -140,14 +140,14 @@
       "name": "Component Impact Analysis",
       "type": "analysis",
       "description": "Systematically analyze which pipeline components have the highest performance impact",
-      "assignTo": "refinement_agent", 
+      "assignTo": "refinement_agent",
       "depends": ["foundation_building"],
       "input": {
         "foundation_pipeline": "${foundation_building.output}",
         "baseline_performance": "${foundation_building.output.initial_results}",
         "components_to_test": [
           "data_preprocessing",
-          "feature_engineering", 
+          "feature_engineering",
           "model_selection",
           "hyperparameters"
         ]
@@ -168,7 +168,7 @@
       "assignTo": "refinement_agent",
       "depends": ["ablation_analysis"],
       "input": {
-        "target_component": "${ablation_analysis.output.highest_impact_component}", 
+        "target_component": "${ablation_analysis.output.highest_impact_component}",
         "baseline_performance": "${ablation_analysis.output.impact_scores}",
         "improvement_strategies": "${ablation_analysis.output.improvement_opportunities}",
         "max_iterations": "${refinement_iterations}"
@@ -176,7 +176,7 @@
       "timeout": 2400,
       "output": {
         "optimized_components": "object",
-        "performance_improvements": "object", 
+        "performance_improvements": "object",
         "refinement_history": "array",
         "best_configuration": "object"
       }
@@ -287,7 +287,7 @@
     "expected_runtime": "2-4 hours",
     "resource_requirements": {
       "memory": "8GB+",
-      "storage": "10GB+", 
+      "storage": "10GB+",
       "compute": "4+ CPU cores recommended"
     }
   }

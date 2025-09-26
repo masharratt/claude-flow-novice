@@ -13,7 +13,7 @@ class ConflictAnalyzer {
       conflictType: this.identifyConflictType(conflict),
       severity: this.assessSeverity(conflict),
       complexity: this.evaluateComplexity(conflict),
-      resolutionStrategies: this.suggestStrategies(conflict)
+      resolutionStrategies: this.suggestStrategies(conflict),
     };
   }
 

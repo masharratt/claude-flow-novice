@@ -9,20 +9,20 @@ export const USAGE_EXAMPLES = {
   setup: {
     basic: 'claude-flow-novice validate setup',
     reset: 'claude-flow-novice validate setup --reset',
-    verbose: 'claude-flow-novice validate setup --verbose'
+    verbose: 'claude-flow-novice validate setup --verbose',
   },
 
   showConfig: {
     basic: 'claude-flow-novice validate show-config',
     json: 'claude-flow-novice validate show-config --json',
-    verbose: 'claude-flow-novice validate show-config --verbose'
+    verbose: 'claude-flow-novice validate show-config --verbose',
   },
 
   test: {
     basic: 'claude-flow-novice validate test',
     fix: 'claude-flow-novice validate test --fix',
-    verbose: 'claude-flow-novice validate test --verbose'
-  }
+    verbose: 'claude-flow-novice validate test --verbose',
+  },
 };
 
 export const HELP_TEXT = {
@@ -153,7 +153,7 @@ SPARC phases:
 • Architecture: System structure
 • Refinement: TDD implementation
 • Completion: Integration & deployment
-`
+`,
   },
 
   troubleshooting: `
@@ -282,18 +282,18 @@ $ claude-flow-novice validate show-config --json
     "testCoverage": 0.95
   }
 }
-`
+`,
 };
 
 export const ERROR_MESSAGES = {
   setupFailed: {
     title: '❌ Setup Failed',
     common: [
-      'Check that you\'re in the project root directory',
+      "Check that you're in the project root directory",
       'Ensure you have write permissions',
       'Verify internet connectivity for consensus features',
-      'Try running with --verbose for more details'
-    ]
+      'Try running with --verbose for more details',
+    ],
   },
 
   frameworkDetectionFailed: {
@@ -302,8 +302,8 @@ export const ERROR_MESSAGES = {
       'Add missing configuration files (package.json, tsconfig.json, requirements.txt)',
       'Ensure project files are present in current directory',
       'Consider manual framework selection',
-      'Check file permissions and accessibility'
-    ]
+      'Check file permissions and accessibility',
+    ],
   },
 
   configurationInvalid: {
@@ -312,8 +312,8 @@ export const ERROR_MESSAGES = {
       'Review quality gate thresholds (must be 0-100%)',
       'Check validation settings for correct values',
       'Verify framework selection is supported',
-      'Consider resetting to defaults'
-    ]
+      'Consider resetting to defaults',
+    ],
   },
 
   testFailed: {
@@ -322,9 +322,9 @@ export const ERROR_MESSAGES = {
       'Run setup wizard first: claude-flow-novice validate setup',
       'Check project structure and required files',
       'Verify network connectivity for Byzantine features',
-      'Review error details with --verbose flag'
-    ]
-  }
+      'Review error details with --verbose flag',
+    ],
+  },
 };
 
 export const SUCCESS_MESSAGES = {
@@ -362,7 +362,7 @@ Framework detected with high accuracy:
 • Configuration optimized for detected framework
 • Quality gates set to framework best practices
 • Ready for production validation
-`
+`,
 };
 
 /**
@@ -382,13 +382,20 @@ export function getHelpForContext(context, options = {}) {
       return 'Framework detected successfully. Proceeding with configuration...';
 
     case 'setup-error':
-      return ERROR_MESSAGES.setupFailed.title + '\n' +
-             ERROR_MESSAGES.setupFailed.common.map(msg => `  • ${msg}`).join('\n') +
-             '\n\n' + HELP_TEXT.troubleshooting;
+      return (
+        ERROR_MESSAGES.setupFailed.title +
+        '\n' +
+        ERROR_MESSAGES.setupFailed.common.map((msg) => `  • ${msg}`).join('\n') +
+        '\n\n' +
+        HELP_TEXT.troubleshooting
+      );
 
     case 'test-error':
-      return ERROR_MESSAGES.testFailed.title + '\n' +
-             ERROR_MESSAGES.testFailed.common.map(msg => `  • ${msg}`).join('\n');
+      return (
+        ERROR_MESSAGES.testFailed.title +
+        '\n' +
+        ERROR_MESSAGES.testFailed.common.map((msg) => `  • ${msg}`).join('\n')
+      );
 
     case 'examples':
       return HELP_TEXT.examples;
@@ -411,7 +418,7 @@ export function getErrorMessage(errorType, details = {}) {
   }
 
   let message = errorConfig.title + '\n\n';
-  message += errorConfig.common.map(msg => `  • ${msg}`).join('\n');
+  message += errorConfig.common.map((msg) => `  • ${msg}`).join('\n');
 
   if (details.verbose && details.error) {
     message += '\n\nDetailed Error:\n' + details.error;

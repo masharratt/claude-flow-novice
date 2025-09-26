@@ -28,9 +28,9 @@ export class CompletionTruthValidator {
 
     // Framework-specific thresholds
     this.frameworkThresholds = {
-      TDD: { truthScore: 0.90, coverage: 0.95 },
-      BDD: { truthScore: 0.85, scenarioCoverage: 0.90 },
-      SPARC: { truthScore: 0.80, phaseCompletion: 1.0 }
+      TDD: { truthScore: 0.9, coverage: 0.95 },
+      BDD: { truthScore: 0.85, scenarioCoverage: 0.9 },
+      SPARC: { truthScore: 0.8, phaseCompletion: 1.0 },
     };
 
     // Performance tracking
@@ -38,7 +38,7 @@ export class CompletionTruthValidator {
       validationCount: 0,
       averageValidationTime: 0,
       byzantineConsensusTime: 0,
-      accuracyRate: 0
+      accuracyRate: 0,
     };
 
     this.initialized = false;
@@ -62,7 +62,7 @@ export class CompletionTruthValidator {
         },
         stop: () => {
           // Mock stop functionality
-        }
+        },
       };
     }
 
@@ -90,7 +90,7 @@ export class CompletionTruthValidator {
       const byzantineResult = await this.validateWithByzantineConsensus({
         ...completion,
         truthResult,
-        pipelineResult
+        pipelineResult,
       });
 
       // Framework-specific validation
@@ -105,7 +105,7 @@ export class CompletionTruthValidator {
         evidence: {
           ...truthResult.evidence,
           pipelineValidated: pipelineResult.byzantineValidated,
-          frameworkCompliant: frameworkResult.passed
+          frameworkCompliant: frameworkResult.passed,
         },
         byzantineProof: byzantineResult.byzantineProof,
         consensusAchieved: byzantineResult.consensusAchieved,
@@ -113,7 +113,7 @@ export class CompletionTruthValidator {
         framework: completion.framework,
         frameworkThresholdMet: frameworkResult.passed,
         validationTime: performance.now() - startTime,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // Update performance metrics
@@ -128,12 +128,11 @@ export class CompletionTruthValidator {
           type: 'completion_validated',
           data: finalResult,
           source: 'completion-truth-validator',
-          confidence: truthResult.confidence
+          confidence: truthResult.confidence,
         });
       }
 
       return finalResult;
-
     } catch (error) {
       const errorResult = {
         id: completion.id,
@@ -141,7 +140,7 @@ export class CompletionTruthValidator {
         error: error.message,
         truthScore: 0,
         validationFailed: true,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       await this.storeValidationResult(errorResult);
@@ -189,12 +188,11 @@ export class CompletionTruthValidator {
         evidence: {
           ...evaluation.evidence,
           validated: evidenceValidation.validated,
-          aspectConfidences: confidenceMetrics.aspectConfidences
+          aspectConfidences: confidenceMetrics.aspectConfidences,
         },
         byzantineProof,
-        truthScorerIntegrated: true
+        truthScorerIntegrated: true,
       };
-
     } catch (error) {
       console.error('TruthScorer integration error:', error);
       return this.fallbackTruthScoring(completion);
@@ -220,7 +218,7 @@ export class CompletionTruthValidator {
       const validationResult = await this.verificationPipeline.processValidationSteps(completion, {
         byzantineConsensus: true,
         truthScorer: this.truthScorer,
-        completionValidator: this
+        completionValidator: this,
       });
 
       // Generate validation report using existing method
@@ -237,9 +235,8 @@ export class CompletionTruthValidator {
         ...validationResult,
         report,
         byzantineValidated: byzantineValidation.validated,
-        verificationPipelineIntegrated: true
+        verificationPipelineIntegrated: true,
       };
-
     } catch (error) {
       console.error('VerificationPipeline integration error:', error);
       return this.fallbackPipelineValidation(completion);
@@ -264,7 +261,7 @@ export class CompletionTruthValidator {
         truthScore: completion.truthResult?.truthScore || 0,
         evidence: completion.truthResult?.evidence || {},
         framework: completion.framework,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Achieve consensus using existing ByzantineConsensus
@@ -273,10 +270,10 @@ export class CompletionTruthValidator {
       // Generate cryptographic evidence
       const cryptographicEvidence = {
         consensusProof: consensusResult.byzantineProof,
-        validatorSignatures: consensusResult.votes.map(vote => vote.signature),
+        validatorSignatures: consensusResult.votes.map((vote) => vote.signature),
         consensusHash: this.generateConsensusHash(consensusResult),
         timestamp: Date.now(),
-        consensusTime: performance.now() - startTime
+        consensusTime: performance.now() - startTime,
       };
 
       return {
@@ -285,16 +282,16 @@ export class CompletionTruthValidator {
         byzantineProof: consensusResult.byzantineProof,
         cryptographicEvidence,
         validatorCount: validators.length,
-        faultTolerant: consensusResult.votes.filter(v => !v.vote).length <= Math.floor(validators.length / 3),
-        consensusTime: cryptographicEvidence.consensusTime
+        faultTolerant:
+          consensusResult.votes.filter((v) => !v.vote).length <= Math.floor(validators.length / 3),
+        consensusTime: cryptographicEvidence.consensusTime,
       };
-
     } catch (error) {
       console.error('Byzantine consensus error:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        consensusTime: performance.now() - startTime
+        consensusTime: performance.now() - startTime,
       };
     }
   }
@@ -313,7 +310,7 @@ export class CompletionTruthValidator {
       return {
         passed: true,
         framework: 'GENERAL',
-        reason: 'No specific threshold for framework'
+        reason: 'No specific threshold for framework',
       };
     }
 
@@ -325,7 +322,8 @@ export class CompletionTruthValidator {
     // Framework-specific validation
     switch (framework) {
       case 'TDD':
-        const testCoverage = completion.testCoverage || completion.implementation?.testCoverage || 0;
+        const testCoverage =
+          completion.testCoverage || completion.implementation?.testCoverage || 0;
         if (truthScore < threshold.truthScore) {
           violations.push('truth_score_below_threshold');
         }
@@ -335,7 +333,7 @@ export class CompletionTruthValidator {
         additionalValidation = {
           testCoverage,
           requiredCoverage: threshold.coverage,
-          redGreenRefactor: completion.implementation?.redGreenRefactor || false
+          redGreenRefactor: completion.implementation?.redGreenRefactor || false,
         };
         break;
 
@@ -350,7 +348,7 @@ export class CompletionTruthValidator {
         additionalValidation = {
           scenarioCoverage,
           requiredScenarioCoverage: threshold.scenarioCoverage,
-          gherkinCompliant: completion.gherkinCompliance?.givenWhenThen || false
+          gherkinCompliant: completion.gherkinCompliance?.givenWhenThen || false,
         };
         break;
 
@@ -365,7 +363,7 @@ export class CompletionTruthValidator {
         additionalValidation = {
           phaseCompletion,
           requiredPhaseCompletion: threshold.phaseCompletion,
-          allPhasesComplete: phaseCompletion === 1.0
+          allPhasesComplete: phaseCompletion === 1.0,
         };
         break;
     }
@@ -376,7 +374,7 @@ export class CompletionTruthValidator {
       truthScore,
       requiredTruthScore: threshold.truthScore,
       violations,
-      ...additionalValidation
+      ...additionalValidation,
     };
   }
 
@@ -387,10 +385,10 @@ export class CompletionTruthValidator {
     const startTime = performance.now();
 
     // Simplified validation path for performance testing
-    const truthScore = 0.80 + Math.random() * 0.20; // Simulate scoring
+    const truthScore = 0.8 + Math.random() * 0.2; // Simulate scoring
     const byzantineResult = await this.byzantineConsensus.achieveConsensus(
       { completionId: completion.id, truthScore },
-      this.generateValidators(completion, 3) // Fewer validators for speed
+      this.generateValidators(completion, 3), // Fewer validators for speed
     );
 
     const result = {
@@ -398,7 +396,7 @@ export class CompletionTruthValidator {
       truthScore,
       consensusAchieved: byzantineResult.achieved,
       optimized: true,
-      validationTime: performance.now() - startTime
+      validationTime: performance.now() - startTime,
     };
 
     await this.updatePerformanceMetrics(result);
@@ -411,7 +409,7 @@ export class CompletionTruthValidator {
   async validateWithTimedConsensus(completion, timeoutMs = 5 * 60 * 1000) {
     const validationPromise = this.validateCompletion(completion);
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Consensus timeout')), timeoutMs)
+      setTimeout(() => reject(new Error('Consensus timeout')), timeoutMs),
     );
 
     try {
@@ -425,7 +423,7 @@ export class CompletionTruthValidator {
           consensusAchieved: false,
           timedOut: true,
           consensusWithinTimeout: false,
-          timeoutMs
+          timeoutMs,
         };
       }
       throw error;
@@ -440,13 +438,19 @@ export class CompletionTruthValidator {
       claudeFlowCompatible: true,
       hookSystemWorking: true,
       memorySystemWorking: true,
-      breakingChanges: []
+      breakingChanges: [],
     };
 
     // Test memory system integration
     try {
-      await this.memoryStore.store('test-integration', { test: true }, { namespace: 'integration-test' });
-      const retrieved = await this.memoryStore.retrieve('test-integration', { namespace: 'integration-test' });
+      await this.memoryStore.store(
+        'test-integration',
+        { test: true },
+        { namespace: 'integration-test' },
+      );
+      const retrieved = await this.memoryStore.retrieve('test-integration', {
+        namespace: 'integration-test',
+      });
       integrationTests.memorySystemWorking = retrieved?.test === true;
     } catch (error) {
       integrationTests.memorySystemWorking = false;
@@ -462,7 +466,7 @@ export class CompletionTruthValidator {
     return Array.from({ length: count }, (_, i) => ({
       id: `validator-${i}`,
       specialization: ['TDD', 'BDD', 'SPARC', 'GENERAL'][i % 4],
-      reputation: 0.8 + Math.random() * 0.2
+      reputation: 0.8 + Math.random() * 0.2,
     }));
   }
 
@@ -471,13 +475,13 @@ export class CompletionTruthValidator {
     const hashData = JSON.stringify({
       votes: consensusResult.votes,
       consensusRatio: consensusResult.consensusRatio,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
     // Simple hash implementation without requiring crypto
     let hash = 0;
     for (let i = 0; i < hashData.length; i++) {
       const char = hashData.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return Math.abs(hash).toString(16);
@@ -485,8 +489,8 @@ export class CompletionTruthValidator {
 
   calculateSPARCPhaseCompletion(phases) {
     const phaseNames = ['specification', 'pseudocode', 'architecture', 'refinement', 'completion'];
-    const completedPhases = phaseNames.filter(phase =>
-      phases[phase]?.completed === true && phases[phase]?.completeness === 1.0
+    const completedPhases = phaseNames.filter(
+      (phase) => phases[phase]?.completed === true && phases[phase]?.completeness === 1.0,
     );
     return completedPhases.length / phaseNames.length;
   }
@@ -494,10 +498,11 @@ export class CompletionTruthValidator {
   async updatePerformanceMetrics(result) {
     this.performanceMetrics.validationCount++;
 
-    const newAvgTime = (
-      (this.performanceMetrics.averageValidationTime * (this.performanceMetrics.validationCount - 1)) +
-      result.validationTime
-    ) / this.performanceMetrics.validationCount;
+    const newAvgTime =
+      (this.performanceMetrics.averageValidationTime *
+        (this.performanceMetrics.validationCount - 1) +
+        result.validationTime) /
+      this.performanceMetrics.validationCount;
 
     this.performanceMetrics.averageValidationTime = newAvgTime;
 
@@ -506,11 +511,9 @@ export class CompletionTruthValidator {
     }
 
     // Store metrics in memory
-    await this.memoryStore.store(
-      `performance-metrics-${Date.now()}`,
-      this.performanceMetrics,
-      { namespace: 'completion-validation-performance' }
-    );
+    await this.memoryStore.store(`performance-metrics-${Date.now()}`, this.performanceMetrics, {
+      namespace: 'completion-validation-performance',
+    });
   }
 
   async storeValidationResult(result) {
@@ -520,8 +523,8 @@ export class CompletionTruthValidator {
       metadata: {
         framework: result.framework,
         truthScore: result.truthScore,
-        consensusAchieved: result.consensusAchieved
-      }
+        consensusAchieved: result.consensusAchieved,
+      },
     });
   }
 
@@ -540,22 +543,22 @@ export class CompletionTruthValidator {
       evidence: {
         fallbackScoring: true,
         claimLength,
-        evidenceCount: Object.keys(completion.evidence || {}).length
+        evidenceCount: Object.keys(completion.evidence || {}).length,
       },
-      truthScorerIntegrated: false
+      truthScorerIntegrated: false,
     };
   }
 
   fallbackPipelineValidation(completion) {
     return {
       steps: [
-        { name: 'syntax_check', passed: true, score: 0.90 },
+        { name: 'syntax_check', passed: true, score: 0.9 },
         { name: 'logic_validation', passed: true, score: 0.85 },
-        { name: 'fallback_validation', passed: true, score: 0.80 }
+        { name: 'fallback_validation', passed: true, score: 0.8 },
       ],
       overallScore: 0.85,
       byzantineValidated: false,
-      verificationPipelineIntegrated: false
+      verificationPipelineIntegrated: false,
     };
   }
 

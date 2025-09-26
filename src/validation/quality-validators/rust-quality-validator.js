@@ -30,14 +30,14 @@ export class RustQualityValidator extends EventEmitter {
         denyWarnings: true,
         allowedLints: [],
         forbiddenLints: ['clippy::all', 'clippy::pedantic'],
-        targetDir: 'target/clippy'
+        targetDir: 'target/clippy',
       },
       formatConfig: options.formatConfig || {
         edition: '2021',
         hardTabs: false,
         tabSpaces: 4,
         maxWidth: 100,
-        newlineStyle: 'unix'
+        newlineStyle: 'unix',
       },
       qualityThresholds: options.qualityThresholds || {
         maxComplexity: 15,
@@ -45,11 +45,11 @@ export class RustQualityValidator extends EventEmitter {
         maxFunctionLines: 100,
         minDocCoverage: 0.8,
         maxClippyWarnings: 10,
-        maxClippyErrors: 0
+        maxClippyErrors: 0,
       },
       performanceMetrics: options.performanceMetrics !== false,
       securityAudit: options.securityAudit !== false,
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -60,7 +60,7 @@ export class RustQualityValidator extends EventEmitter {
       ['clippy', null],
       ['rustfmt', null],
       ['rustdoc', null],
-      ['cargo-audit', null]
+      ['cargo-audit', null],
     ]);
 
     this.clippyLintCategories = new Map([
@@ -71,7 +71,7 @@ export class RustQualityValidator extends EventEmitter {
       ['style', { severity: 'info', weight: 3 }],
       ['pedantic', { severity: 'info', weight: 2 }],
       ['nursery', { severity: 'info', weight: 1 }],
-      ['cargo', { severity: 'warning', weight: 5 }]
+      ['cargo', { severity: 'warning', weight: 5 }],
     ]);
   }
 
@@ -120,7 +120,7 @@ export class RustQualityValidator extends EventEmitter {
         securityResults,
         complexityAnalysis,
         docCoverage,
-        compileMetrics
+        compileMetrics,
       });
 
       // Byzantine consensus validation of results
@@ -136,7 +136,7 @@ export class RustQualityValidator extends EventEmitter {
         docCoverage,
         compileMetrics,
         dependencyAnalysis,
-        qualityScore
+        qualityScore,
       });
 
       // Generate cryptographic proof
@@ -148,7 +148,7 @@ export class RustQualityValidator extends EventEmitter {
         securityResults,
         complexityAnalysis,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -161,7 +161,7 @@ export class RustQualityValidator extends EventEmitter {
         project: {
           path: projectPath,
           structure: projectStructure,
-          cargoManifest: projectStructure.cargoToml
+          cargoManifest: projectStructure.cargoToml,
         },
 
         toolchain: toolchainValidation,
@@ -170,7 +170,7 @@ export class RustQualityValidator extends EventEmitter {
           overallScore: qualityScore.overall,
           breakdown: qualityScore.breakdown,
           thresholds: this.options.qualityThresholds,
-          passed: qualityScore.overall >= (qualityConfig.minimumQuality || 7.0)
+          passed: qualityScore.overall >= (qualityConfig.minimumQuality || 7.0),
         },
 
         clippy: {
@@ -180,7 +180,7 @@ export class RustQualityValidator extends EventEmitter {
           suggestions: clippyResults.suggestions.length,
           categories: clippyResults.categoryBreakdown,
           details: clippyResults.lints,
-          performanceImpact: clippyResults.performanceMetrics
+          performanceImpact: clippyResults.performanceMetrics,
         },
 
         formatting: {
@@ -188,14 +188,14 @@ export class RustQualityValidator extends EventEmitter {
           filesChecked: formatResults.filesChecked,
           filesNeedingFormatting: formatResults.unformattedFiles.length,
           unformattedFiles: formatResults.unformattedFiles,
-          configUsed: formatResults.config
+          configUsed: formatResults.config,
         },
 
         security: {
           passed: securityResults.vulnerabilities.length === 0,
           vulnerabilities: securityResults.vulnerabilities,
           advisories: securityResults.advisories,
-          unmaintainedDeps: securityResults.unmaintained
+          unmaintainedDeps: securityResults.unmaintained,
         },
 
         complexity: {
@@ -203,21 +203,22 @@ export class RustQualityValidator extends EventEmitter {
           maxComplexity: complexityAnalysis.maxComplexity,
           complexFunctions: complexityAnalysis.complexFunctions,
           codeMetrics: complexityAnalysis.metrics,
-          passed: complexityAnalysis.averageComplexity <= this.options.qualityThresholds.maxComplexity
+          passed:
+            complexityAnalysis.averageComplexity <= this.options.qualityThresholds.maxComplexity,
         },
 
         documentation: {
           coverage: docCoverage.coverage,
           missingDocs: docCoverage.missingDocs,
           passed: docCoverage.coverage >= this.options.qualityThresholds.minDocCoverage,
-          docTests: docCoverage.docTests
+          docTests: docCoverage.docTests,
         },
 
         performance: {
           compileTime: compileMetrics.compileTime,
           binarySize: compileMetrics.binarySize,
           optimizationLevel: compileMetrics.optimizationLevel,
-          metrics: compileMetrics.detailedMetrics
+          metrics: compileMetrics.detailedMetrics,
         },
 
         dependencies: dependencyAnalysis,
@@ -230,18 +231,18 @@ export class RustQualityValidator extends EventEmitter {
           formatResults,
           securityResults,
           complexityAnalysis,
-          docCoverage
+          docCoverage,
         }),
 
         realWorldValidation: {
           framework: 'rust-quality-validator',
           executionType: 'real-toolchain-integration',
           simulationDetected: false,
-          toolsUsed: Array.from(this.rustTools.keys()).filter(tool =>
-            this.rustTools.get(tool)?.verified === true
+          toolsUsed: Array.from(this.rustTools.keys()).filter(
+            (tool) => this.rustTools.get(tool)?.verified === true,
           ),
-          validationTimestamp: new Date().toISOString()
-        }
+          validationTimestamp: new Date().toISOString(),
+        },
       };
 
       // Store validation history
@@ -249,14 +250,13 @@ export class RustQualityValidator extends EventEmitter {
         timestamp: Date.now(),
         result,
         projectPath,
-        qualityScore: qualityScore.overall
+        qualityScore: qualityScore.overall,
       });
 
       // Emit validation events
       this.emit('rustQualityValidated', result);
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -265,7 +265,7 @@ export class RustQualityValidator extends EventEmitter {
         error: error.message,
         timestamp: Date.now(),
         duration: performance.now() - startTime,
-        realExecution: true
+        realExecution: true,
       };
 
       this.emit('rustQualityValidationError', errorResult);
@@ -292,8 +292,14 @@ export class RustQualityValidator extends EventEmitter {
       const srcStats = await fs.stat(srcPath);
 
       // Determine project type
-      const isLibrary = await fs.access(libPath).then(() => true).catch(() => false);
-      const isBinary = await fs.access(mainPath).then(() => true).catch(() => false);
+      const isLibrary = await fs
+        .access(libPath)
+        .then(() => true)
+        .catch(() => false);
+      const isBinary = await fs
+        .access(mainPath)
+        .then(() => true)
+        .catch(() => false);
 
       // Find all Rust source files
       const sourceFiles = await this.findRustSourceFiles(projectPath);
@@ -301,11 +307,17 @@ export class RustQualityValidator extends EventEmitter {
       return {
         valid: true,
         cargoToml: parsedCargo,
-        projectType: isLibrary ? 'library' : (isBinary ? 'binary' : 'workspace'),
+        projectType: isLibrary ? 'library' : isBinary ? 'binary' : 'workspace',
         sourceFiles,
-        hasTests: sourceFiles.some(f => f.includes('test')),
-        hasBenches: await fs.access(path.join(projectPath, 'benches')).then(() => true).catch(() => false),
-        hasExamples: await fs.access(path.join(projectPath, 'examples')).then(() => true).catch(() => false)
+        hasTests: sourceFiles.some((f) => f.includes('test')),
+        hasBenches: await fs
+          .access(path.join(projectPath, 'benches'))
+          .then(() => true)
+          .catch(() => false),
+        hasExamples: await fs
+          .access(path.join(projectPath, 'examples'))
+          .then(() => true)
+          .catch(() => false),
       };
     } catch (error) {
       throw new Error(`Invalid Rust project structure: ${error.message}`);
@@ -326,7 +338,8 @@ export class RustQualityValidator extends EventEmitter {
         '--all-features',
         '--message-format=json',
         '--',
-        '--deny', 'warnings'
+        '--deny',
+        'warnings',
       ];
 
       // Add custom lint configuration
@@ -340,11 +353,9 @@ export class RustQualityValidator extends EventEmitter {
 
       console.log('🔍 Running cargo clippy analysis...');
 
-      const { stdout, stderr, exitCode } = await this.executeCargoCommand(
-        projectPath,
-        clippyArgs,
-        { timeout: this.options.timeout }
-      );
+      const { stdout, stderr, exitCode } = await this.executeCargoCommand(projectPath, clippyArgs, {
+        timeout: this.options.timeout,
+      });
 
       // Parse clippy JSON output
       const lints = this.parseClippyOutput(stdout);
@@ -354,21 +365,20 @@ export class RustQualityValidator extends EventEmitter {
       const performanceMetrics = {
         executionTime: performance.now() - startTime,
         linesAnalyzed: await this.countLinesOfCode(projectPath),
-        lintsPerSecond: lints.length / ((performance.now() - startTime) / 1000)
+        lintsPerSecond: lints.length / ((performance.now() - startTime) / 1000),
       };
 
       return {
         exitCode,
         passed: exitCode === 0,
         lints,
-        warnings: lints.filter(l => l.level === 'warning'),
-        errors: lints.filter(l => l.level === 'error'),
-        suggestions: lints.filter(l => l.level === 'help'),
+        warnings: lints.filter((l) => l.level === 'warning'),
+        errors: lints.filter((l) => l.level === 'error'),
+        suggestions: lints.filter((l) => l.level === 'help'),
         categoryBreakdown,
         performanceMetrics,
-        rawOutput: { stdout, stderr }
+        rawOutput: { stdout, stderr },
       };
-
     } catch (error) {
       throw new Error(`Cargo clippy execution failed: ${error.message}`);
     }
@@ -387,7 +397,7 @@ export class RustQualityValidator extends EventEmitter {
       const { stdout, stderr, exitCode } = await this.executeCargoCommand(
         projectPath,
         ['fmt', '--check'],
-        { timeout: this.options.timeout }
+        { timeout: this.options.timeout },
       );
 
       // Get list of all Rust files
@@ -401,10 +411,10 @@ export class RustQualityValidator extends EventEmitter {
           const { stdout: filesOutput } = await this.executeCargoCommand(
             projectPath,
             ['fmt', '--check', '--files'],
-            { timeout: 30000 }
+            { timeout: 30000 },
           );
 
-          unformattedFiles.push(...filesOutput.split('\n').filter(f => f.trim()));
+          unformattedFiles.push(...filesOutput.split('\n').filter((f) => f.trim()));
         } catch (filesError) {
           // Parse error output for file information
           const errorLines = stderr.split('\n');
@@ -427,9 +437,8 @@ export class RustQualityValidator extends EventEmitter {
         unformattedFiles,
         config: rustfmtConfig,
         executionTime: performance.now() - startTime,
-        rawOutput: { stdout, stderr }
+        rawOutput: { stdout, stderr },
       };
-
     } catch (error) {
       throw new Error(`Cargo fmt execution failed: ${error.message}`);
     }
@@ -452,8 +461,8 @@ export class RustQualityValidator extends EventEmitter {
         ['audit', '--format', 'json'],
         {
           timeout: this.options.timeout,
-          allowFailure: true // Security vulnerabilities may cause non-zero exit
-        }
+          allowFailure: true, // Security vulnerabilities may cause non-zero exit
+        },
       );
 
       // Parse audit results
@@ -467,9 +476,8 @@ export class RustQualityValidator extends EventEmitter {
         unmaintained: auditResults.unmaintained,
         executionTime: performance.now() - startTime,
         databaseVersion: auditResults.databaseVersion,
-        rawOutput: { stdout, stderr }
+        rawOutput: { stdout, stderr },
       };
-
     } catch (error) {
       console.warn(`Cargo audit failed: ${error.message}`);
       return {
@@ -479,7 +487,7 @@ export class RustQualityValidator extends EventEmitter {
         advisories: [],
         unmaintained: [],
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
     }
   }
@@ -505,10 +513,10 @@ export class RustQualityValidator extends EventEmitter {
     }
 
     const averageComplexity = functionCount > 0 ? totalComplexity / functionCount : 0;
-    const maxComplexity = Math.max(...complexityResults.map(r => r.maxComplexity));
+    const maxComplexity = Math.max(...complexityResults.map((r) => r.maxComplexity));
     const complexFunctions = complexityResults
-      .flatMap(r => r.functions)
-      .filter(f => f.complexity > this.options.qualityThresholds.maxComplexity);
+      .flatMap((r) => r.functions)
+      .filter((f) => f.complexity > this.options.qualityThresholds.maxComplexity);
 
     return {
       averageComplexity,
@@ -519,8 +527,9 @@ export class RustQualityValidator extends EventEmitter {
       metrics: {
         totalLines: complexityResults.reduce((sum, r) => sum + r.lines, 0),
         totalFiles: sourceFiles.length,
-        averageLinesPerFile: complexityResults.reduce((sum, r) => sum + r.lines, 0) / sourceFiles.length
-      }
+        averageLinesPerFile:
+          complexityResults.reduce((sum, r) => sum + r.lines, 0) / sourceFiles.length,
+      },
     };
   }
 
@@ -535,7 +544,7 @@ export class RustQualityValidator extends EventEmitter {
       const { stdout, stderr } = await this.executeCargoCommand(
         projectPath,
         ['doc', '--no-deps', '--document-private-items'],
-        { timeout: this.options.timeout }
+        { timeout: this.options.timeout },
       );
 
       // Analyze source files for documentation
@@ -543,7 +552,7 @@ export class RustQualityValidator extends EventEmitter {
       const docAnalysis = {
         totalItems: 0,
         documentedItems: 0,
-        missingDocs: []
+        missingDocs: [],
       };
 
       for (const filePath of sourceFiles) {
@@ -555,8 +564,8 @@ export class RustQualityValidator extends EventEmitter {
         docAnalysis.missingDocs.push(...fileDocAnalysis.missingDocs);
       }
 
-      const coverage = docAnalysis.totalItems > 0 ?
-        docAnalysis.documentedItems / docAnalysis.totalItems : 1.0;
+      const coverage =
+        docAnalysis.totalItems > 0 ? docAnalysis.documentedItems / docAnalysis.totalItems : 1.0;
 
       // Check for doc tests
       const docTests = await this.findDocTests(projectPath);
@@ -567,9 +576,8 @@ export class RustQualityValidator extends EventEmitter {
         documentedItems: docAnalysis.documentedItems,
         missingDocs: docAnalysis.missingDocs,
         docTests: docTests.length,
-        passed: coverage >= this.options.qualityThresholds.minDocCoverage
+        passed: coverage >= this.options.qualityThresholds.minDocCoverage,
       };
-
     } catch (error) {
       console.warn(`Documentation analysis failed: ${error.message}`);
       return {
@@ -579,7 +587,7 @@ export class RustQualityValidator extends EventEmitter {
         missingDocs: [],
         docTests: 0,
         error: error.message,
-        passed: false
+        passed: false,
       };
     }
   }
@@ -600,7 +608,7 @@ export class RustQualityValidator extends EventEmitter {
       const { stdout, stderr } = await this.executeCargoCommand(
         projectPath,
         ['build'], // Remove --timings=json as it requires nightly channel
-        { timeout: this.options.timeout }
+        { timeout: this.options.timeout },
       );
 
       const compileTime = performance.now() - startTime;
@@ -630,9 +638,8 @@ export class RustQualityValidator extends EventEmitter {
         binarySize,
         optimizationLevel: 'debug', // Default for build command
         detailedMetrics: timingData,
-        passed: compileTime <= (this.options.qualityThresholds.maxCompileTime || 300000)
+        passed: compileTime <= (this.options.qualityThresholds.maxCompileTime || 300000),
       };
-
     } catch (error) {
       throw new Error(`Compile performance analysis failed: ${error.message}`);
     }
@@ -648,25 +655,26 @@ export class RustQualityValidator extends EventEmitter {
       const { stdout } = await this.executeCargoCommand(
         projectPath,
         ['tree', '--format={p}', '--prefix=none'],
-        { timeout: 60000 }
+        { timeout: 60000 },
       );
 
-      const dependencies = stdout.split('\n')
-        .filter(line => line.trim())
-        .map(line => line.trim());
+      const dependencies = stdout
+        .split('\n')
+        .filter((line) => line.trim())
+        .map((line) => line.trim());
 
       // Get metadata about dependencies
       const { stdout: metadataJson } = await this.executeCargoCommand(
         projectPath,
         ['metadata', '--format-version=1'],
-        { timeout: 60000 }
+        { timeout: 60000 },
       );
 
       const metadata = JSON.parse(metadataJson);
       const packageCount = metadata.packages.length;
-      const directDeps = metadata.packages
-        .find(p => p.name === metadata.workspace_members[0]?.split(' ')[0])
-        ?.dependencies || [];
+      const directDeps =
+        metadata.packages.find((p) => p.name === metadata.workspace_members[0]?.split(' ')[0])
+          ?.dependencies || [];
 
       return {
         total: packageCount,
@@ -674,9 +682,8 @@ export class RustQualityValidator extends EventEmitter {
         transitive: packageCount - directDeps.length,
         packages: metadata.packages,
         tree: dependencies,
-        outdated: [] // Would need cargo-outdated for this
+        outdated: [], // Would need cargo-outdated for this
       };
-
     } catch (error) {
       console.warn(`Dependency analysis failed: ${error.message}`);
       return {
@@ -686,7 +693,7 @@ export class RustQualityValidator extends EventEmitter {
         packages: [],
         tree: [],
         outdated: [],
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -698,30 +705,31 @@ export class RustQualityValidator extends EventEmitter {
     const weights = {
       clippy: 0.25,
       formatting: 0.15,
-      security: 0.20,
-      complexity: 0.20,
+      security: 0.2,
+      complexity: 0.2,
       documentation: 0.15,
-      performance: 0.05
+      performance: 0.05,
     };
 
     const scores = {
       clippy: this.calculateClippyScore(results.clippyResults),
       formatting: results.formatResults.passed ? 10 : 0,
-      security: results.securityResults.passed ? 10 :
-        Math.max(0, 10 - (results.securityResults.vulnerabilities.length * 2)),
+      security: results.securityResults.passed
+        ? 10
+        : Math.max(0, 10 - results.securityResults.vulnerabilities.length * 2),
       complexity: this.calculateComplexityScore(results.complexityAnalysis),
       documentation: results.docCoverage.coverage * 10,
-      performance: results.compileMetrics.passed ? 10 : 7
+      performance: results.compileMetrics.passed ? 10 : 7,
     };
 
     const overall = Object.entries(weights).reduce((sum, [key, weight]) => {
-      return sum + (scores[key] * weight);
+      return sum + scores[key] * weight;
     }, 0);
 
     return {
       overall: Math.round(overall * 100) / 100,
       breakdown: scores,
-      weights
+      weights,
     };
   }
 
@@ -737,7 +745,7 @@ export class RustQualityValidator extends EventEmitter {
         category: 'clippy',
         priority: 'high',
         message: `Fix ${results.clippyResults.errors.length} clippy errors`,
-        details: results.clippyResults.errors.slice(0, 5).map(e => e.message)
+        details: results.clippyResults.errors.slice(0, 5).map((e) => e.message),
       });
     }
 
@@ -746,7 +754,7 @@ export class RustQualityValidator extends EventEmitter {
         category: 'clippy',
         priority: 'medium',
         message: `Address ${results.clippyResults.warnings.length} clippy warnings`,
-        details: results.clippyResults.warnings.slice(0, 3).map(w => w.message)
+        details: results.clippyResults.warnings.slice(0, 3).map((w) => w.message),
       });
     }
 
@@ -756,7 +764,7 @@ export class RustQualityValidator extends EventEmitter {
         category: 'formatting',
         priority: 'medium',
         message: `Format ${results.formatResults.unformattedFiles.length} files with cargo fmt`,
-        details: results.formatResults.unformattedFiles.slice(0, 5)
+        details: results.formatResults.unformattedFiles.slice(0, 5),
       });
     }
 
@@ -766,7 +774,7 @@ export class RustQualityValidator extends EventEmitter {
         category: 'security',
         priority: 'critical',
         message: `Address ${results.securityResults.vulnerabilities.length} security vulnerabilities`,
-        details: results.securityResults.vulnerabilities.map(v => v.advisory.title)
+        details: results.securityResults.vulnerabilities.map((v) => v.advisory.title),
       });
     }
 
@@ -778,7 +786,7 @@ export class RustQualityValidator extends EventEmitter {
         message: `Refactor ${results.complexityAnalysis.complexFunctions.length} complex functions`,
         details: results.complexityAnalysis.complexFunctions
           .slice(0, 3)
-          .map(f => `${f.name} (complexity: ${f.complexity})`)
+          .map((f) => `${f.name} (complexity: ${f.complexity})`),
       });
     }
 
@@ -788,7 +796,7 @@ export class RustQualityValidator extends EventEmitter {
         category: 'documentation',
         priority: 'low',
         message: `Improve documentation coverage (${(results.docCoverage.coverage * 100).toFixed(1)}%)`,
-        details: results.docCoverage.missingDocs.slice(0, 5)
+        details: results.docCoverage.missingDocs.slice(0, 5),
       });
     }
 
@@ -819,7 +827,7 @@ export class RustQualityValidator extends EventEmitter {
   }
 
   parseClippyOutput(output) {
-    const lines = output.split('\n').filter(line => line.trim());
+    const lines = output.split('\n').filter((line) => line.trim());
     const lints = [];
 
     for (const line of lines) {
@@ -831,7 +839,7 @@ export class RustQualityValidator extends EventEmitter {
             message: parsed.message.message,
             code: parsed.message.code?.code,
             spans: parsed.message.spans,
-            rendered: parsed.message.rendered
+            rendered: parsed.message.rendered,
           });
         }
       } catch (error) {
@@ -902,9 +910,15 @@ export class RustQualityValidator extends EventEmitter {
       const decisionPoints = ['if', 'else if', 'match', 'while', 'for', 'loop', '&&', '||'];
       for (const point of decisionPoints) {
         if (point === '&&' || point === '||') {
-          complexity += (functionLines.match(new RegExp(`\\${point.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g')) || []).length;
+          complexity += (
+            functionLines.match(
+              new RegExp(`\\${point.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'),
+            ) || []
+          ).length;
         } else {
-          complexity += (functionLines.match(new RegExp(`\\b${point.replace(/\s+/g, '\\s+')}\\b`, 'g')) || []).length;
+          complexity += (
+            functionLines.match(new RegExp(`\\b${point.replace(/\s+/g, '\\s+')}\\b`, 'g')) || []
+          ).length;
         }
       }
 
@@ -914,7 +928,7 @@ export class RustQualityValidator extends EventEmitter {
       functions.push({
         name: functionName,
         complexity,
-        lines: functionLines.split('\n').length
+        lines: functionLines.split('\n').length,
       });
 
       totalComplexity += complexity;
@@ -927,7 +941,7 @@ export class RustQualityValidator extends EventEmitter {
       functions,
       functionCount,
       totalComplexity,
-      maxComplexity: Math.max(...functions.map(f => f.complexity), 0)
+      maxComplexity: Math.max(...functions.map((f) => f.complexity), 0),
     };
   }
 
@@ -984,7 +998,7 @@ export class RustQualityValidator extends EventEmitter {
       const child = spawn('cargo', args, {
         cwd: projectPath,
         stdio: 'pipe',
-        env: { ...process.env, RUSTFLAGS: '-Dwarnings' }
+        env: { ...process.env, RUSTFLAGS: '-Dwarnings' },
       });
 
       let stdout = '';
@@ -1105,15 +1119,13 @@ export class RustQualityValidator extends EventEmitter {
   }
 
   generateQualityResultProof(data) {
-    const hash = createHash('sha256')
-      .update(JSON.stringify(data))
-      .digest('hex');
+    const hash = createHash('sha256').update(JSON.stringify(data)).digest('hex');
 
     return {
       hash,
       timestamp: data.timestamp,
       algorithm: 'SHA-256',
-      validationId: data.validationId
+      validationId: data.validationId,
     };
   }
 
@@ -1127,12 +1139,12 @@ export class RustQualityValidator extends EventEmitter {
 
     try {
       // Try to parse JSON output first
-      const lines = stdout.split('\n').filter(line => line.trim());
+      const lines = stdout.split('\n').filter((line) => line.trim());
       for (const line of lines) {
         try {
           const parsed = JSON.parse(line);
           if (parsed.vulnerabilities) {
-            vulnerabilities.push(...parsed.vulnerabilities.list || []);
+            vulnerabilities.push(...(parsed.vulnerabilities.list || []));
           }
           if (parsed.database) {
             databaseVersion = parsed.database.advisory_count || 'unknown';
@@ -1154,8 +1166,8 @@ export class RustQualityValidator extends EventEmitter {
               package: match[1],
               version: match[2],
               severity: match[3].toLowerCase(),
-              title: `Vulnerability in ${match[1]}`
-            }
+              title: `Vulnerability in ${match[1]}`,
+            },
           });
         }
 
@@ -1165,7 +1177,6 @@ export class RustQualityValidator extends EventEmitter {
           databaseVersion = dbMatch[1];
         }
       }
-
     } catch (error) {
       console.warn('Failed to parse cargo audit output:', error.message);
     }
@@ -1174,7 +1185,7 @@ export class RustQualityValidator extends EventEmitter {
       vulnerabilities,
       advisories,
       unmaintained,
-      databaseVersion
+      databaseVersion,
     };
   }
 
@@ -1191,7 +1202,7 @@ export class RustQualityValidator extends EventEmitter {
       ...content.matchAll(/pub\s+enum\s+(\w+)/g),
       ...content.matchAll(/pub\s+mod\s+(\w+)/g),
       ...content.matchAll(/pub\s+trait\s+(\w+)/g),
-      ...content.matchAll(/pub\s+const\s+(\w+)/g)
+      ...content.matchAll(/pub\s+const\s+(\w+)/g),
     ];
 
     for (const match of publicItems) {
@@ -1222,7 +1233,7 @@ export class RustQualityValidator extends EventEmitter {
         missingDocs.push({
           item: itemName,
           file: filePath,
-          line: beforeItem.split('\n').length
+          line: beforeItem.split('\n').length,
         });
       }
     }
@@ -1230,7 +1241,7 @@ export class RustQualityValidator extends EventEmitter {
     return {
       totalItems,
       documentedItems,
-      missingDocs
+      missingDocs,
     };
   }
 
@@ -1248,7 +1259,7 @@ export class RustQualityValidator extends EventEmitter {
       for (const match of docTestMatches) {
         docTests.push({
           file: filePath,
-          content: match[0]
+          content: match[0],
         });
       }
     }
@@ -1273,7 +1284,7 @@ export class RustQualityValidator extends EventEmitter {
       units.push({
         name: match[1],
         version: match[2],
-        type: 'compile'
+        type: 'compile',
       });
     }
 
@@ -1288,7 +1299,7 @@ export class RustQualityValidator extends EventEmitter {
     return {
       units,
       totalTime,
-      compiledCrates: units.length
+      compiledCrates: units.length,
     };
   }
 

@@ -19,7 +19,7 @@ const GUIDANCE_MODES = {
     explanations: 'detailed',
     autoFix: true,
     threshold: 0.9,
-    description: 'Detailed explanations and step-by-step guidance'
+    description: 'Detailed explanations and step-by-step guidance',
   },
   intermediate: {
     verbosity: 'medium',
@@ -27,7 +27,7 @@ const GUIDANCE_MODES = {
     explanations: 'concise',
     autoFix: true,
     threshold: 0.95,
-    description: 'Balanced guidance with key explanations'
+    description: 'Balanced guidance with key explanations',
   },
   expert: {
     verbosity: 'low',
@@ -35,7 +35,7 @@ const GUIDANCE_MODES = {
     explanations: 'brief',
     autoFix: true,
     threshold: 0.98,
-    description: 'Minimal guidance, maximum efficiency'
+    description: 'Minimal guidance, maximum efficiency',
   },
   mentor: {
     verbosity: 'high',
@@ -43,7 +43,7 @@ const GUIDANCE_MODES = {
     explanations: 'teaching',
     autoFix: false,
     threshold: 0.9,
-    description: 'Educational focus with learning opportunities'
+    description: 'Educational focus with learning opportunities',
   },
   strict: {
     verbosity: 'medium',
@@ -51,8 +51,8 @@ const GUIDANCE_MODES = {
     explanations: 'standards',
     autoFix: true,
     threshold: 0.99,
-    description: 'Enforces highest code quality standards'
-  }
+    description: 'Enforces highest code quality standards',
+  },
 };
 
 class WorkingPairSession {
@@ -75,18 +75,18 @@ class WorkingPairSession {
   async start() {
     await this.saveSession();
     this.showWelcome();
-    
+
     if (this.verify && this.autoFix) {
       console.log('\n🔄 Auto-Fix Mode Enabled');
       console.log('  • Will automatically fix issues until threshold is met');
       console.log(`  • Maximum iterations: ${this.maxIterations}`);
       console.log(`  • Target threshold: ${this.threshold}`);
-      
+
       await this.recursiveFixLoop();
     } else if (this.verify) {
       await this.runVerification();
     }
-    
+
     await this.startInteractiveMode();
   }
 
@@ -96,40 +96,40 @@ class WorkingPairSession {
   async recursiveFixLoop() {
     console.log('\n🚀 Starting Auto-Fix Loop with Real Fixes...');
     console.log('━'.repeat(50));
-    
+
     let score = 0;
     this.currentIteration = 0;
-    
+
     while (score < this.threshold && this.currentIteration < this.maxIterations) {
       this.currentIteration++;
       console.log(`\n📍 Iteration ${this.currentIteration}/${this.maxIterations}`);
-      
+
       // Step 1: Run verification
       const verificationResult = await this.runVerification();
       score = verificationResult.score;
-      
+
       if (score >= this.threshold) {
         console.log(`\n✨ Threshold met! Score: ${score.toFixed(2)} >= ${this.threshold}`);
         break;
       }
-      
+
       // Step 2: Apply actual fixes
       console.log('\n🔧 Applying fixes...');
       const fixResults = await this.applyRealFixes(verificationResult);
-      
+
       if (fixResults.applied > 0) {
         console.log(`  ✅ Applied ${fixResults.applied} fixes`);
         this.fixHistory.push({
           iteration: this.currentIteration,
           fixes: fixResults.fixes,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
-      
+
       // Wait before next iteration
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
-    
+
     this.showFixSummary();
   }
 
@@ -139,27 +139,29 @@ class WorkingPairSession {
   async applyRealFixes(verificationResult) {
     const fixResults = {
       applied: 0,
-      fixes: []
+      fixes: [],
     };
-    
+
     // Fix linting issues
     if (verificationResult.lintScore < 0.8) {
       console.log('  🔧 Fixing linting issues...');
       try {
         // First try auto-fix
         const { stdout, stderr } = await execAsync('npm run lint -- --fix 2>&1 || true');
-        
+
         // Check if fixes were applied
         const afterLint = await execAsync('npm run lint 2>&1 || true');
         const stillHasErrors = afterLint.stdout.toLowerCase().includes('error');
-        
-        if (!stillHasErrors || afterLint.stdout.match(/error/gi)?.length < 
-            stdout.match(/error/gi)?.length) {
+
+        if (
+          !stillHasErrors ||
+          afterLint.stdout.match(/error/gi)?.length < stdout.match(/error/gi)?.length
+        ) {
           console.log('    ✅ Applied ESLint auto-fixes');
           fixResults.applied++;
           fixResults.fixes.push('ESLint auto-fix');
         }
-        
+
         // If still has errors, try prettier
         if (stillHasErrors) {
           await execAsync('npx prettier --write "src/**/*.{js,ts,jsx,tsx}" 2>&1 || true');
@@ -171,13 +173,13 @@ class WorkingPairSession {
         console.log('    ⚠️ Some linting issues require manual fixes');
       }
     }
-    
+
     // Fix TypeScript issues
     if (verificationResult.typeScore < 0.8) {
       console.log('  🔧 Analyzing TypeScript errors...');
       try {
         const { stdout: tsErrors } = await execAsync('npm run typecheck 2>&1 || true');
-        
+
         // Common auto-fixable TypeScript issues
         if (tsErrors.includes('Could not find a declaration file')) {
           console.log('    📦 Installing missing type definitions...');
@@ -193,7 +195,7 @@ class WorkingPairSession {
             }
           }
         }
-        
+
         // Add basic type annotations for 'any' types
         if (tsErrors.includes("implicitly has an 'any' type")) {
           console.log('    📝 Adding type annotations for implicit any...');
@@ -205,7 +207,7 @@ class WorkingPairSession {
         console.log('    ⚠️ TypeScript fixes require manual intervention');
       }
     }
-    
+
     // Fix build issues
     if (verificationResult.buildScore < 0.8) {
       console.log('  🔧 Fixing build configuration...');
@@ -220,14 +222,14 @@ class WorkingPairSession {
         console.log('    ⚠️ Build issues may require configuration changes');
       }
     }
-    
+
     // Fix package issues
     console.log('  🔧 Checking for dependency issues...');
     try {
       // Audit and fix vulnerabilities
       const { stdout: auditOutput } = await execAsync('npm audit --json 2>&1 || true');
       const audit = JSON.parse(auditOutput);
-      
+
       if (audit.metadata?.vulnerabilities?.total > 0) {
         console.log('    🛡️ Fixing security vulnerabilities...');
         await execAsync('npm audit fix 2>&1 || true');
@@ -235,7 +237,7 @@ class WorkingPairSession {
         fixResults.applied++;
         fixResults.fixes.push('Security vulnerability fixes');
       }
-      
+
       // Update outdated packages (only patch/minor)
       await execAsync('npm update 2>&1 || true');
       console.log('    ✅ Updated dependencies');
@@ -244,7 +246,7 @@ class WorkingPairSession {
     } catch (error) {
       // Audit might fail, that's okay
     }
-    
+
     return fixResults;
   }
 
@@ -255,14 +257,14 @@ class WorkingPairSession {
     const packages = new Set();
     const regex = /Could not find a declaration file for module '([^']+)'/g;
     let match;
-    
+
     while ((match = regex.exec(tsErrors)) !== null) {
       const pkg = match[1];
       // Clean package name (remove @org/ prefix if present)
       const cleanPkg = pkg.replace(/^@[^/]+\//, '');
       packages.add(cleanPkg);
     }
-    
+
     return Array.from(packages);
   }
 
@@ -271,52 +273,52 @@ class WorkingPairSession {
    */
   async runVerification() {
     console.log('\n🔍 Running verification check...');
-    
+
     const checks = [
-      { 
-        name: 'Type Check', 
+      {
+        name: 'Type Check',
         command: 'npm run typecheck 2>&1 || true',
         weight: 0.4,
-        scoreKey: 'typeScore'
+        scoreKey: 'typeScore',
       },
-      { 
-        name: 'Linting', 
+      {
+        name: 'Linting',
         command: 'npm run lint 2>&1 || true',
         weight: 0.3,
-        scoreKey: 'lintScore'
+        scoreKey: 'lintScore',
       },
-      { 
-        name: 'Build', 
+      {
+        name: 'Build',
         command: 'npm run build 2>&1 || true',
         weight: 0.3,
-        scoreKey: 'buildScore'
-      }
+        scoreKey: 'buildScore',
+      },
     ];
-    
+
     const results = {};
     let totalScore = 0;
     let totalWeight = 0;
-    
+
     for (const check of checks) {
       try {
         const { stdout, stderr } = await execAsync(check.command);
         const output = stdout + stderr;
-        
+
         // Calculate score based on actual errors/warnings
         let score = 1.0;
         const errorCount = (output.match(/error/gi) || []).length;
         const warningCount = (output.match(/warning/gi) || []).length;
-        
+
         if (errorCount > 0) {
-          score = Math.max(0.2, 1.0 - (errorCount * 0.1));
+          score = Math.max(0.2, 1.0 - errorCount * 0.1);
         } else if (warningCount > 0) {
-          score = Math.max(0.7, 1.0 - (warningCount * 0.05));
+          score = Math.max(0.7, 1.0 - warningCount * 0.05);
         }
-        
+
         results[check.scoreKey] = score;
         totalScore += score * check.weight;
         totalWeight += check.weight;
-        
+
         const icon = score >= 0.8 ? '✅' : score >= 0.5 ? '⚠️' : '❌';
         console.log(`  ${icon} ${check.name}: ${score.toFixed(2)}`);
       } catch (error) {
@@ -325,21 +327,21 @@ class WorkingPairSession {
         totalWeight += check.weight;
       }
     }
-    
+
     const averageScore = totalWeight > 0 ? totalScore / totalWeight : 0;
     console.log(`\n📊 Verification Score: ${averageScore.toFixed(2)}/${this.threshold}`);
-    
+
     if (this.guidanceMode === 'beginner' && averageScore < this.threshold) {
-      console.log('\n💡 Don\'t worry! Use /autofix to automatically improve the score');
+      console.log("\n💡 Don't worry! Use /autofix to automatically improve the score");
     }
-    
+
     const verificationResult = {
       score: averageScore,
       ...results,
       timestamp: new Date(),
-      iteration: this.currentIteration
+      iteration: this.currentIteration,
     };
-    
+
     this.verificationScores.push(verificationResult);
     return verificationResult;
   }
@@ -348,20 +350,24 @@ class WorkingPairSession {
     console.log('\n🚀 Enhanced Pair Programming Session');
     console.log('━'.repeat(50));
     console.log(`Session ID: ${this.sessionId}`);
-    console.log(`Guidance Mode: ${this.guidanceMode.charAt(0).toUpperCase() + this.guidanceMode.slice(1)}`);
+    console.log(
+      `Guidance Mode: ${this.guidanceMode.charAt(0).toUpperCase() + this.guidanceMode.slice(1)}`,
+    );
     console.log(`Description: ${this.guidance.description}`);
     console.log(`Verification: ${this.verify ? '✅ Enabled' : '❌ Disabled'}`);
     console.log(`Auto-Fix: ${this.autoFix ? '✅ Enabled' : '❌ Disabled'}`);
     console.log(`Target Threshold: ${this.threshold}`);
     console.log('━'.repeat(50));
-    
+
     if (this.guidanceMode === 'beginner') {
       console.log('\n📚 Guidance Settings:');
-      console.log(`  • Mode: ${this.guidanceMode.charAt(0).toUpperCase() + this.guidanceMode.slice(1)}`);
+      console.log(
+        `  • Mode: ${this.guidanceMode.charAt(0).toUpperCase() + this.guidanceMode.slice(1)}`,
+      );
       console.log(`  • Verbosity: ${this.guidance.verbosity}`);
       console.log(`  • Suggestions: ${this.guidance.suggestions}`);
       console.log(`  • Explanations: ${this.guidance.explanations}`);
-      
+
       console.log('\n💡 Beginner Tips:');
       console.log('  • Use /explain for detailed explanations');
       console.log('  • Use /pattern to see design patterns');
@@ -374,7 +380,7 @@ class WorkingPairSession {
     if (this.fixHistory.length > 0) {
       console.log('\n📋 Fix Summary:');
       console.log('━'.repeat(50));
-      
+
       let totalFixes = 0;
       for (const entry of this.fixHistory) {
         console.log(`\nIteration ${entry.iteration}:`);
@@ -383,11 +389,11 @@ class WorkingPairSession {
           totalFixes++;
         }
       }
-      
+
       console.log('━'.repeat(50));
       console.log(`Total fixes applied: ${totalFixes}`);
       console.log(`Iterations completed: ${this.currentIteration}`);
-      
+
       if (this.verificationScores.length > 1) {
         const first = this.verificationScores[0].score;
         const last = this.verificationScores[this.verificationScores.length - 1].score;
@@ -403,17 +409,17 @@ class WorkingPairSession {
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: '\n💻 pair> '
+      prompt: '\n💻 pair> ',
     });
 
     console.log('\n💡 Interactive mode active. Type /help for commands.\n');
-    
+
     this.showCommands();
     this.rl.prompt();
 
     this.rl.on('line', async (line) => {
       const input = line.trim();
-      
+
       if (input.startsWith('/')) {
         await this.handleCommand(input);
       } else if (input.startsWith('?')) {
@@ -421,7 +427,7 @@ class WorkingPairSession {
       } else if (input) {
         console.log('🤖 Processing your input...');
       }
-      
+
       this.rl.prompt();
     });
 
@@ -446,7 +452,7 @@ class WorkingPairSession {
     console.log('  /test         - Run tests');
     console.log('  /commit       - Commit with verification');
     console.log('  /end          - End session');
-    
+
     if (this.guidanceMode === 'beginner') {
       console.log('\n💡 Quick tips:');
       console.log('  • Type ? followed by question for Q&A');
@@ -456,66 +462,66 @@ class WorkingPairSession {
 
   async handleCommand(command) {
     const [cmd, ...args] = command.split(' ');
-    
+
     switch (cmd) {
       case '/help':
         this.showCommands();
         break;
-        
+
       case '/verify':
         await this.runVerification();
         break;
-        
+
       case '/autofix':
         await this.recursiveFixLoop();
         break;
-        
+
       case '/suggest':
         await this.showSuggestions();
         break;
-        
+
       case '/explain':
         await this.explainConcept(args.join(' '));
         break;
-        
+
       case '/best':
         this.showBestPractices(args[0] || 'general');
         break;
-        
+
       case '/pattern':
         this.showPatternSuggestions();
         break;
-        
+
       case '/why':
         this.explainDecisions();
         break;
-        
+
       case '/status':
         await this.showStatus();
         break;
-        
+
       case '/metrics':
         this.showMetrics();
         break;
-        
+
       case '/guidance':
         await this.changeGuidanceMode(args[0]);
         break;
-        
+
       case '/test':
         await this.runTests();
         break;
-        
+
       case '/commit':
         await this.commitWithVerification();
         break;
-        
+
       case '/end':
       case '/exit':
         await this.end();
         process.exit(0);
         break;
-        
+
       default:
         console.log(`❌ Unknown command: ${cmd}`);
         console.log('💡 Type /help for available commands');
@@ -524,7 +530,7 @@ class WorkingPairSession {
 
   async showSuggestions() {
     console.log('\n💡 Analyzing for suggestions...');
-    
+
     // Get latest verification scores
     let latestScore = null;
     if (this.verificationScores.length > 0) {
@@ -532,7 +538,7 @@ class WorkingPairSession {
     } else {
       latestScore = await this.runVerification();
     }
-    
+
     console.log('\n📝 Immediate Actions:');
     if (latestScore.lintScore < 0.8) {
       console.log('  1. Fix linting issues: Run /autofix or npm run lint --fix');
@@ -543,7 +549,7 @@ class WorkingPairSession {
     if (latestScore.buildScore < 0.8) {
       console.log('  3. Fix build issues: Clear cache and rebuild');
     }
-    
+
     if (latestScore.score >= this.threshold) {
       console.log('  ✨ Code quality meets threshold! Consider adding tests or documentation.');
     }
@@ -554,19 +560,19 @@ class WorkingPairSession {
       console.log('Usage: /explain <topic>');
       return;
     }
-    
+
     console.log(`\n📚 Explaining: ${topic}`);
     console.log('━'.repeat(40));
-    
+
     // Provide explanations based on common topics
     const explanations = {
-      'typescript': 'TypeScript adds static typing to JavaScript, catching errors at compile time.',
-      'linting': 'Linting analyzes code for potential errors and style issues.',
-      'testing': 'Tests verify your code works as expected and prevent regressions.',
-      'async': 'Async/await provides cleaner syntax for handling promises.',
-      'hooks': 'React hooks allow using state in functional components.'
+      typescript: 'TypeScript adds static typing to JavaScript, catching errors at compile time.',
+      linting: 'Linting analyzes code for potential errors and style issues.',
+      testing: 'Tests verify your code works as expected and prevent regressions.',
+      async: 'Async/await provides cleaner syntax for handling promises.',
+      hooks: 'React hooks allow using state in functional components.',
     };
-    
+
     const explanation = explanations[topic.toLowerCase()];
     if (explanation) {
       console.log(explanation);
@@ -578,26 +584,26 @@ class WorkingPairSession {
   showBestPractices(area) {
     console.log(`\n📚 Best Practices for ${area}:`);
     console.log('━'.repeat(40));
-    
+
     const practices = {
       general: [
         '• Write self-documenting code',
         '• Keep functions small and focused',
         '• Use meaningful variable names',
         '• Handle errors properly',
-        '• Write tests for critical paths'
+        '• Write tests for critical paths',
       ],
       testing: [
         '• Test behavior, not implementation',
         '• Use descriptive test names',
         '• Follow AAA pattern',
         '• Mock external dependencies',
-        '• Test edge cases'
-      ]
+        '• Test edge cases',
+      ],
     };
-    
+
     const selected = practices[area] || practices.general;
-    selected.forEach(p => console.log(p));
+    selected.forEach((p) => console.log(p));
   }
 
   showPatternSuggestions() {
@@ -623,7 +629,7 @@ class WorkingPairSession {
 
   async showStatus() {
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
-    
+
     console.log('\n📊 Session Status');
     console.log('━'.repeat(40));
     console.log(`Session ID: ${this.sessionId}`);
@@ -631,8 +637,10 @@ class WorkingPairSession {
     console.log(`Guidance Mode: ${this.guidanceMode}`);
     console.log(`Auto-Fix: ${this.autoFix ? 'Enabled' : 'Disabled'}`);
     console.log(`Fix Iterations: ${this.currentIteration}`);
-    console.log(`Total Fixes Applied: ${this.fixHistory.reduce((sum, h) => sum + h.fixes.length, 0)}`);
-    
+    console.log(
+      `Total Fixes Applied: ${this.fixHistory.reduce((sum, h) => sum + h.fixes.length, 0)}`,
+    );
+
     if (this.verificationScores.length > 0) {
       const latest = this.verificationScores[this.verificationScores.length - 1];
       console.log(`Latest Score: ${latest.score.toFixed(2)}`);
@@ -642,14 +650,14 @@ class WorkingPairSession {
   showMetrics() {
     console.log('\n📈 Quality Metrics');
     console.log('━'.repeat(40));
-    
+
     if (this.verificationScores.length > 0) {
       console.log('\nScore Progression:');
       this.verificationScores.forEach((v, i) => {
         const bar = '█'.repeat(Math.floor(v.score * 20));
         console.log(`  ${i + 1}. ${bar} ${v.score.toFixed(2)}`);
       });
-      
+
       if (this.verificationScores.length > 1) {
         const first = this.verificationScores[0].score;
         const last = this.verificationScores[this.verificationScores.length - 1].score;
@@ -666,7 +674,7 @@ class WorkingPairSession {
       console.log('Available modes: beginner, intermediate, expert, mentor, strict');
       return;
     }
-    
+
     this.guidanceMode = newMode;
     this.guidance = GUIDANCE_MODES[newMode];
     console.log(`✅ Guidance mode changed to: ${newMode}`);
@@ -677,14 +685,14 @@ class WorkingPairSession {
     console.log('\n❓ Question:', question);
     console.log('\n📚 Answer:');
     console.log('━'.repeat(40));
-    
+
     // Provide contextual answers
     if (question.toLowerCase().includes('why')) {
       console.log('This is important for code quality and maintainability.');
     } else if (question.toLowerCase().includes('how')) {
       console.log('You can achieve this by following the suggested approach.');
     } else {
-      console.log('That\'s a great question! Consider exploring the documentation.');
+      console.log("That's a great question! Consider exploring the documentation.");
     }
   }
 
@@ -703,7 +711,7 @@ class WorkingPairSession {
 
   async commitWithVerification() {
     const result = await this.runVerification();
-    
+
     if (result.score >= this.threshold) {
       console.log('✅ Verification passed! Ready to commit.');
       console.log('\n📝 Suggested commit message:');
@@ -716,31 +724,33 @@ class WorkingPairSession {
 
   async end() {
     console.log('\n🛑 Ending pair programming session...');
-    
+
     if (this.rl) this.rl.close();
-    
+
     this.status = 'completed';
     await this.saveSession();
-    
+
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
     console.log('\n✨ Session Complete!');
     console.log('━'.repeat(40));
     console.log(`Duration: ${duration} minutes`);
-    console.log(`Total Fixes Applied: ${this.fixHistory.reduce((sum, h) => sum + h.fixes.length, 0)}`);
+    console.log(
+      `Total Fixes Applied: ${this.fixHistory.reduce((sum, h) => sum + h.fixes.length, 0)}`,
+    );
     console.log(`Final Iterations: ${this.currentIteration}`);
-    
+
     if (this.verificationScores.length > 0) {
       const final = this.verificationScores[this.verificationScores.length - 1];
       console.log(`Final Score: ${final.score.toFixed(2)}`);
     }
-    
+
     console.log('\n👋 Thanks for pair programming!\n');
   }
 
   async saveSession() {
     const sessionPath = '.claude-flow/sessions/pair';
     await fs.mkdir(sessionPath, { recursive: true });
-    
+
     const sessionData = {
       id: this.sessionId,
       guidanceMode: this.guidanceMode,
@@ -750,12 +760,12 @@ class WorkingPairSession {
       status: this.status,
       verificationScores: this.verificationScores,
       fixHistory: this.fixHistory,
-      iterations: this.currentIteration
+      iterations: this.currentIteration,
     };
-    
+
     await fs.writeFile(
       path.join(sessionPath, `${this.sessionId}.json`),
-      JSON.stringify(sessionData, null, 2)
+      JSON.stringify(sessionData, null, 2),
     );
   }
 }
@@ -775,9 +785,9 @@ async function pairCommand(args = [], flags = {}) {
       verify: flags.verify || false,
       autoFix: flags.autofix || flags.fix || false,
       threshold: parseFloat(flags.threshold) || undefined,
-      maxIterations: parseInt(flags.iterations) || 5
+      maxIterations: parseInt(flags.iterations) || 5,
     });
-    
+
     return await session.start();
   }
 

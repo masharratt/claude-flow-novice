@@ -605,7 +605,7 @@ export class AgentManager extends EventEmitter {
       startupScript: './scripts/start-developer.ts',
     });
 
-    // System Architect Agent Template  
+    // System Architect Agent Template
     this.templates.set('system-architect', {
       name: 'System Architect Agent',
       type: 'system-architect',

@@ -38,7 +38,7 @@ export class WorkflowOptimizer extends EventEmitter {
       optimizationFrequency: 'adaptive', // 'realtime', 'periodic', 'adaptive'
       learningRate: 0.1,
       confidenceThreshold: 0.7,
-      ...options
+      ...options,
     };
 
     // Initialize components
@@ -54,7 +54,7 @@ export class WorkflowOptimizer extends EventEmitter {
       projectContext: null,
       performanceBaseline: null,
       currentRecommendations: [],
-      learningModels: new Map()
+      learningModels: new Map(),
     };
 
     // Database connection
@@ -67,7 +67,7 @@ export class WorkflowOptimizer extends EventEmitter {
       performance: new Map(),
       resource: new Map(),
       language: new Map(),
-      user: new Map()
+      user: new Map(),
     };
 
     console.log('🎯 Workflow Optimizer initialized');
@@ -124,13 +124,13 @@ export class WorkflowOptimizer extends EventEmitter {
         resourceAnalysis,
         userBehaviorAnalysis,
         performanceAnalysis,
-        projectStructureAnalysis
+        projectStructureAnalysis,
       ] = await Promise.all([
         this.analyzeLanguageOptimizations(),
         this.analyzeResourceOptimizations(),
         this.analyzeUserBehaviorPatterns(),
         this.analyzePerformancePatterns(),
-        this.analyzeProjectStructure()
+        this.analyzeProjectStructure(),
       ]);
 
       // Synthesize insights
@@ -140,7 +140,7 @@ export class WorkflowOptimizer extends EventEmitter {
         userBehavior: userBehaviorAnalysis,
         performance: performanceAnalysis,
         projectStructure: projectStructureAnalysis,
-        context
+        context,
       });
 
       // Generate prioritized recommendations
@@ -163,10 +163,10 @@ export class WorkflowOptimizer extends EventEmitter {
             language: languageAnalysis.confidence,
             resource: resourceAnalysis.confidence,
             userBehavior: userBehaviorAnalysis.confidence,
-            performance: performanceAnalysis.confidence
+            performance: performanceAnalysis.confidence,
           },
-          context
-        }
+          context,
+        },
       };
 
       // Store analysis results
@@ -187,7 +187,6 @@ export class WorkflowOptimizer extends EventEmitter {
       this.emit('analysisCompleted', analysisResult);
 
       return analysisResult;
-
     } catch (error) {
       console.error(`❌ Workflow analysis failed (${analysisId}):`, error);
       this.emit('analysisError', { analysisId, error: error.message });
@@ -211,7 +210,7 @@ export class WorkflowOptimizer extends EventEmitter {
         buildProcess: [],
         testing: [],
         linting: [],
-        dependencies: []
+        dependencies: [],
       };
 
       // Analyze detected languages and frameworks
@@ -230,10 +229,10 @@ export class WorkflowOptimizer extends EventEmitter {
             'Install TypeScript and types',
             'Rename .js files to .ts',
             'Add type annotations gradually',
-            'Configure tsconfig.json'
+            'Configure tsconfig.json',
           ],
           benefits: ['Better error catching', 'Improved IDE support', 'Enhanced maintainability'],
-          estimatedTimeMinutes: 240
+          estimatedTimeMinutes: 240,
         });
       }
 
@@ -250,16 +249,16 @@ export class WorkflowOptimizer extends EventEmitter {
             'Install Vite and React plugin',
             'Update package.json scripts',
             'Move index.html to root',
-            'Update import paths'
+            'Update import paths',
           ],
           benefits: ['Faster development server', 'Lightning-fast HMR', 'Better production builds'],
-          estimatedTimeMinutes: 60
+          estimatedTimeMinutes: 60,
         });
       }
 
       // Testing framework optimization
-      const hasTestFramework = Object.keys(dependencies).some(dep =>
-        ['jest', 'vitest', 'mocha', 'jasmine'].includes(dep.toLowerCase())
+      const hasTestFramework = Object.keys(dependencies).some((dep) =>
+        ['jest', 'vitest', 'mocha', 'jasmine'].includes(dep.toLowerCase()),
       );
 
       if (!hasTestFramework && (languages.javascript || languages.typescript)) {
@@ -275,10 +274,10 @@ export class WorkflowOptimizer extends EventEmitter {
             'Install testing framework and utilities',
             'Configure test runner',
             'Create example tests',
-            'Add test scripts to package.json'
+            'Add test scripts to package.json',
           ],
           benefits: ['Prevent regression bugs', 'Improve code quality', 'Enable CI/CD'],
-          estimatedTimeMinutes: 180
+          estimatedTimeMinutes: 180,
         });
       }
 
@@ -295,10 +294,10 @@ export class WorkflowOptimizer extends EventEmitter {
             'Install ESLint and Prettier',
             'Configure rules for your project',
             'Add pre-commit hooks',
-            'Format existing code'
+            'Format existing code',
           ],
           benefits: ['Consistent code style', 'Catch common errors', 'Better team collaboration'],
-          estimatedTimeMinutes: 45
+          estimatedTimeMinutes: 45,
         });
       }
 
@@ -315,10 +314,10 @@ export class WorkflowOptimizer extends EventEmitter {
             'Enable Image Optimization',
             'Implement proper caching strategies',
             'Add Bundle Analyzer',
-            'Optimize dynamic imports'
+            'Optimize dynamic imports',
           ],
           benefits: ['Faster page loads', 'Better SEO', 'Improved user experience'],
-          estimatedTimeMinutes: 120
+          estimatedTimeMinutes: 120,
         });
       }
 
@@ -327,16 +326,15 @@ export class WorkflowOptimizer extends EventEmitter {
         optimizations,
         detectionResults,
         integrationAnalysis,
-        recommendations: this.prioritizeLanguageOptimizations(optimizations)
+        recommendations: this.prioritizeLanguageOptimizations(optimizations),
       };
-
     } catch (error) {
       console.warn('⚠️ Language analysis failed:', error.message);
       return {
         confidence: 0.1,
         optimizations: {},
         error: error.message,
-        recommendations: []
+        recommendations: [],
       };
     }
   }
@@ -355,7 +353,7 @@ export class WorkflowOptimizer extends EventEmitter {
         delegation: [],
         parallelization: [],
         caching: [],
-        resourceAllocation: []
+        resourceAllocation: [],
       };
 
       // Analyze command execution patterns
@@ -376,16 +374,21 @@ export class WorkflowOptimizer extends EventEmitter {
               'Analyze current delegation patterns',
               'Switch to optimized strategy',
               'Monitor performance improvements',
-              'Fine-tune thresholds'
+              'Fine-tune thresholds',
             ],
-            benefits: ['Faster command execution', 'Better resource utilization', 'Reduced system load'],
-            estimatedImprovementPercent: Math.round((0.8 - delegationEfficiency) * 100)
+            benefits: [
+              'Faster command execution',
+              'Better resource utilization',
+              'Reduced system load',
+            ],
+            estimatedImprovementPercent: Math.round((0.8 - delegationEfficiency) * 100),
           });
         }
       }
 
       // Parallel execution opportunities
-      const parallelizationOpportunities = this.identifyParallelizationOpportunities(heavyCommandPatterns);
+      const parallelizationOpportunities =
+        this.identifyParallelizationOpportunities(heavyCommandPatterns);
       optimizations.parallelization = parallelizationOpportunities;
 
       // Caching opportunities
@@ -399,16 +402,15 @@ export class WorkflowOptimizer extends EventEmitter {
         optimizations,
         resourceStats,
         heavyCommandPatterns,
-        recommendations: this.prioritizeResourceOptimizations(optimizations)
+        recommendations: this.prioritizeResourceOptimizations(optimizations),
       };
-
     } catch (error) {
       console.warn('⚠️ Resource analysis failed:', error.message);
       return {
         confidence: 0.1,
         optimizations: {},
         error: error.message,
-        recommendations: []
+        recommendations: [],
       };
     }
   }
@@ -427,7 +429,7 @@ export class WorkflowOptimizer extends EventEmitter {
         workflowPatterns: this.extractWorkflowPatterns(userPatterns),
         preferencePatterns: this.extractPreferencePatterns(guidancePreferences),
         performancePatterns: this.extractPerformancePatterns(userPatterns),
-        learningPatterns: this.extractLearningPatterns(userPatterns)
+        learningPatterns: this.extractLearningPatterns(userPatterns),
       };
 
       const recommendations = [];
@@ -443,7 +445,7 @@ export class WorkflowOptimizer extends EventEmitter {
           effort: 'low',
           commands: insights.workflowPatterns.repeatCommands.slice(0, 5),
           benefits: ['Save time on repeated tasks', 'Reduce manual errors', 'Improve consistency'],
-          estimatedTimeSavingsMinutes: insights.workflowPatterns.repeatCommands.length * 2
+          estimatedTimeSavingsMinutes: insights.workflowPatterns.repeatCommands.length * 2,
         });
       }
 
@@ -457,14 +459,19 @@ export class WorkflowOptimizer extends EventEmitter {
           impact: 'high',
           effort: 'medium',
           strugglingAreas: insights.learningPatterns.strugglingAreas,
-          suggestedResources: this.getSuggestedLearningResources(insights.learningPatterns.strugglingAreas),
-          benefits: ['Improve success rate', 'Build confidence', 'Reduce frustration']
+          suggestedResources: this.getSuggestedLearningResources(
+            insights.learningPatterns.strugglingAreas,
+          ),
+          benefits: ['Improve success rate', 'Build confidence', 'Reduce frustration'],
         });
       }
 
       // Adaptive guidance optimization
       if (guidancePreferences) {
-        const guidanceOptimization = this.analyzeGuidanceOptimization(guidancePreferences, insights);
+        const guidanceOptimization = this.analyzeGuidanceOptimization(
+          guidancePreferences,
+          insights,
+        );
         if (guidanceOptimization) {
           recommendations.push(guidanceOptimization);
         }
@@ -474,16 +481,15 @@ export class WorkflowOptimizer extends EventEmitter {
         confidence: Math.min(userPatterns.length / 100, 1.0),
         insights,
         userPatterns,
-        recommendations
+        recommendations,
       };
-
     } catch (error) {
       console.warn('⚠️ User behavior analysis failed:', error.message);
       return {
         confidence: 0.1,
         insights: {},
         error: error.message,
-        recommendations: []
+        recommendations: [],
       };
     }
   }
@@ -501,7 +507,7 @@ export class WorkflowOptimizer extends EventEmitter {
       const analysis = {
         trends: this.analyzePerformanceTrends(performanceData),
         bottlenecks: this.identifyPerformanceBottlenecks(performanceData),
-        improvements: this.identifyPerformanceImprovements(performanceData, currentBaseline)
+        improvements: this.identifyPerformanceImprovements(performanceData, currentBaseline),
       };
 
       const recommendations = [];
@@ -520,9 +526,13 @@ export class WorkflowOptimizer extends EventEmitter {
             'Review recent changes',
             'Check system resources',
             'Profile slow operations',
-            'Consider optimization strategies'
+            'Consider optimization strategies',
           ],
-          benefits: ['Restore optimal performance', 'Prevent user frustration', 'Maintain productivity']
+          benefits: [
+            'Restore optimal performance',
+            'Prevent user frustration',
+            'Maintain productivity',
+          ],
         });
       }
 
@@ -537,7 +547,11 @@ export class WorkflowOptimizer extends EventEmitter {
           effort: 'high',
           bottlenecks: analysis.bottlenecks.slice(0, 3),
           optimizationStrategies: this.getOptimizationStrategies(analysis.bottlenecks),
-          benefits: ['Faster execution times', 'Better resource utilization', 'Improved user experience']
+          benefits: [
+            'Faster execution times',
+            'Better resource utilization',
+            'Improved user experience',
+          ],
         });
       }
 
@@ -545,16 +559,15 @@ export class WorkflowOptimizer extends EventEmitter {
         confidence: Math.min(performanceData.length / 50, 1.0),
         analysis,
         performanceData,
-        recommendations
+        recommendations,
       };
-
     } catch (error) {
       console.warn('⚠️ Performance analysis failed:', error.message);
       return {
         confidence: 0.1,
         analysis: {},
         error: error.message,
-        recommendations: []
+        recommendations: [],
       };
     }
   }
@@ -583,7 +596,7 @@ export class WorkflowOptimizer extends EventEmitter {
           effort: 'medium',
           issues: organizationIssues,
           suggestedStructure: this.suggestBetterStructure(structure, filePatterns),
-          benefits: ['Easier navigation', 'Better maintainability', 'Clearer project structure']
+          benefits: ['Easier navigation', 'Better maintainability', 'Clearer project structure'],
         });
       }
 
@@ -598,7 +611,7 @@ export class WorkflowOptimizer extends EventEmitter {
           effort: 'high',
           largeFiles: organizationIssues.largeFiles.slice(0, 5),
           splittingStrategies: this.getSplittingStrategies(organizationIssues.largeFiles),
-          benefits: ['Better code organization', 'Easier testing', 'Improved collaboration']
+          benefits: ['Better code organization', 'Easier testing', 'Improved collaboration'],
         });
       }
 
@@ -607,16 +620,15 @@ export class WorkflowOptimizer extends EventEmitter {
         structure,
         filePatterns,
         organizationIssues,
-        recommendations
+        recommendations,
       };
-
     } catch (error) {
       console.warn('⚠️ Project structure analysis failed:', error.message);
       return {
         confidence: 0.1,
         structure: {},
         error: error.message,
-        recommendations: []
+        recommendations: [],
       };
     }
   }
@@ -632,7 +644,7 @@ export class WorkflowOptimizer extends EventEmitter {
       crossComponentPatterns: this.identifyCrossComponentPatterns(analysisComponents),
       synergisticOpportunities: this.identifySynergisticOpportunities(analysisComponents),
       riskAssessment: this.assessOptimizationRisks(analysisComponents),
-      priorityMatrix: this.createPriorityMatrix(analysisComponents)
+      priorityMatrix: this.createPriorityMatrix(analysisComponents),
     };
 
     // Add predictive insights if enabled
@@ -652,18 +664,18 @@ export class WorkflowOptimizer extends EventEmitter {
     // Collect all recommendations from analysis components
     const allRecommendations = [];
 
-    Object.values(insights).forEach(component => {
+    Object.values(insights).forEach((component) => {
       if (component.recommendations) {
         allRecommendations.push(...component.recommendations);
       }
     });
 
     // Score and prioritize recommendations
-    const scoredRecommendations = allRecommendations.map(rec => ({
+    const scoredRecommendations = allRecommendations.map((rec) => ({
       ...rec,
       overallScore: this.calculateRecommendationScore(rec, insights),
       feasibilityScore: this.calculateFeasibilityScore(rec),
-      impactScore: this.calculateImpactScore(rec)
+      impactScore: this.calculateImpactScore(rec),
     }));
 
     // Sort by overall score
@@ -680,7 +692,7 @@ export class WorkflowOptimizer extends EventEmitter {
       topPriority: scoredRecommendations.slice(0, 5),
       categorized: categorizedRecommendations,
       implementationPlan,
-      summary: this.generateRecommendationSummary(scoredRecommendations)
+      summary: this.generateRecommendationSummary(scoredRecommendations),
     };
   }
 
@@ -695,7 +707,7 @@ export class WorkflowOptimizer extends EventEmitter {
 
       this.db = await open({
         filename: this.dbPath,
-        driver: sqlite3.Database
+        driver: sqlite3.Database,
       });
 
       // Create tables
@@ -757,7 +769,7 @@ export class WorkflowOptimizer extends EventEmitter {
         pattern_data TEXT NOT NULL,
         confidence REAL NOT NULL,
         last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`
+      )`,
     ];
 
     for (const table of tables) {
@@ -769,7 +781,7 @@ export class WorkflowOptimizer extends EventEmitter {
       'CREATE INDEX IF NOT EXISTS idx_user_behavior_command ON user_behavior(command)',
       'CREATE INDEX IF NOT EXISTS idx_user_behavior_timestamp ON user_behavior(timestamp)',
       'CREATE INDEX IF NOT EXISTS idx_performance_metrics_operation ON performance_metrics(operation)',
-      'CREATE INDEX IF NOT EXISTS idx_recommendation_feedback_recommendation_id ON recommendation_feedback(recommendation_id)'
+      'CREATE INDEX IF NOT EXISTS idx_recommendation_feedback_recommendation_id ON recommendation_feedback(recommendation_id)',
     ];
 
     for (const index of indexes) {
@@ -781,10 +793,10 @@ export class WorkflowOptimizer extends EventEmitter {
 
   calculateLanguageConfidence(detectionResults) {
     return Math.min(
-      (Object.keys(detectionResults.languages).length * 0.3) +
-      (Object.keys(detectionResults.frameworks).length * 0.4) +
-      (detectionResults.confidence * 0.3),
-      1.0
+      Object.keys(detectionResults.languages).length * 0.3 +
+        Object.keys(detectionResults.frameworks).length * 0.4 +
+        detectionResults.confidence * 0.3,
+      1.0,
     );
   }
 
@@ -811,7 +823,7 @@ export class WorkflowOptimizer extends EventEmitter {
       path.join(this.projectPath, '.claude-flow-novice'),
       path.join(this.projectPath, '.claude-flow-novice', 'optimization'),
       path.join(this.projectPath, '.claude-flow-novice', 'optimization', 'patterns'),
-      path.join(this.projectPath, '.claude-flow-novice', 'optimization', 'reports')
+      path.join(this.projectPath, '.claude-flow-novice', 'optimization', 'reports'),
     ];
 
     for (const dir of dirs) {
@@ -837,44 +849,120 @@ export class WorkflowOptimizer extends EventEmitter {
   }
 
   // Placeholder methods that would be fully implemented
-  identifyParallelizationOpportunities() { return []; }
-  identifyCachingOpportunities() { return []; }
-  prioritizeLanguageOptimizations(optimizations) { return []; }
-  prioritizeResourceOptimizations(optimizations) { return []; }
-  getUserPatternsFromDatabase() { return Promise.resolve([]); }
-  getGuidancePreferences() { return Promise.resolve(null); }
-  extractWorkflowPatterns() { return {}; }
-  extractPreferencePatterns() { return {}; }
-  extractPerformancePatterns() { return {}; }
-  extractLearningPatterns() { return {}; }
-  getSuggestedLearningResources() { return []; }
-  analyzeGuidanceOptimization() { return null; }
-  getPerformanceDataFromDatabase() { return Promise.resolve([]); }
-  analyzePerformanceTrends() { return {}; }
-  identifyPerformanceBottlenecks() { return []; }
-  identifyPerformanceImprovements() { return []; }
-  getOptimizationStrategies() { return []; }
-  analyzeDirectoryStructure() { return Promise.resolve({}); }
-  analyzeFilePatterns() { return Promise.resolve({}); }
-  identifyOrganizationIssues() { return {}; }
-  suggestBetterStructure() { return {}; }
-  getSplittingStrategies() { return []; }
-  calculateOverallHealth() { return 0.8; }
-  identifyCrossComponentPatterns() { return []; }
-  identifySynergisticOpportunities() { return []; }
-  assessOptimizationRisks() { return {}; }
-  createPriorityMatrix() { return {}; }
-  generatePredictiveInsights() { return Promise.resolve({}); }
-  calculateRecommendationScore() { return 0.5; }
-  calculateFeasibilityScore() { return 0.7; }
-  calculateImpactScore() { return 0.6; }
-  categorizeRecommendations(recs) { return {}; }
-  createImplementationPlan(recs) { return {}; }
-  generateRecommendationSummary(recs) { return {}; }
-  calculateConfidenceScores() { return {}; }
-  storeAnalysisResults() { return Promise.resolve(); }
-  learnFromAnalysis() { return Promise.resolve(); }
-  analyzeHeavyCommandPatterns() { return Promise.resolve([]); }
+  identifyParallelizationOpportunities() {
+    return [];
+  }
+  identifyCachingOpportunities() {
+    return [];
+  }
+  prioritizeLanguageOptimizations(optimizations) {
+    return [];
+  }
+  prioritizeResourceOptimizations(optimizations) {
+    return [];
+  }
+  getUserPatternsFromDatabase() {
+    return Promise.resolve([]);
+  }
+  getGuidancePreferences() {
+    return Promise.resolve(null);
+  }
+  extractWorkflowPatterns() {
+    return {};
+  }
+  extractPreferencePatterns() {
+    return {};
+  }
+  extractPerformancePatterns() {
+    return {};
+  }
+  extractLearningPatterns() {
+    return {};
+  }
+  getSuggestedLearningResources() {
+    return [];
+  }
+  analyzeGuidanceOptimization() {
+    return null;
+  }
+  getPerformanceDataFromDatabase() {
+    return Promise.resolve([]);
+  }
+  analyzePerformanceTrends() {
+    return {};
+  }
+  identifyPerformanceBottlenecks() {
+    return [];
+  }
+  identifyPerformanceImprovements() {
+    return [];
+  }
+  getOptimizationStrategies() {
+    return [];
+  }
+  analyzeDirectoryStructure() {
+    return Promise.resolve({});
+  }
+  analyzeFilePatterns() {
+    return Promise.resolve({});
+  }
+  identifyOrganizationIssues() {
+    return {};
+  }
+  suggestBetterStructure() {
+    return {};
+  }
+  getSplittingStrategies() {
+    return [];
+  }
+  calculateOverallHealth() {
+    return 0.8;
+  }
+  identifyCrossComponentPatterns() {
+    return [];
+  }
+  identifySynergisticOpportunities() {
+    return [];
+  }
+  assessOptimizationRisks() {
+    return {};
+  }
+  createPriorityMatrix() {
+    return {};
+  }
+  generatePredictiveInsights() {
+    return Promise.resolve({});
+  }
+  calculateRecommendationScore() {
+    return 0.5;
+  }
+  calculateFeasibilityScore() {
+    return 0.7;
+  }
+  calculateImpactScore() {
+    return 0.6;
+  }
+  categorizeRecommendations(recs) {
+    return {};
+  }
+  createImplementationPlan(recs) {
+    return {};
+  }
+  generateRecommendationSummary(recs) {
+    return {};
+  }
+  calculateConfidenceScores() {
+    return {};
+  }
+  storeAnalysisResults() {
+    return Promise.resolve();
+  }
+  learnFromAnalysis() {
+    return Promise.resolve();
+  }
+  analyzeHeavyCommandPatterns() {
+    return Promise.resolve([]);
+  }
 }
 
 export default WorkflowOptimizer;

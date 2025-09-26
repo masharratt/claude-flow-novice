@@ -28,7 +28,7 @@ export class RecursiveValidationFramework extends EventEmitter {
       maxRecursionDepth: options.maxRecursionDepth || 5,
       enableTruthScoring: options.enableTruthScoring !== false,
       enableMetrics: options.enableMetrics !== false,
-      ...options
+      ...options,
     };
 
     // Core validation state
@@ -41,7 +41,7 @@ export class RecursiveValidationFramework extends EventEmitter {
       validationResults: new Map(),
       truthScores: new Map(),
       consensusReached: false,
-      overallScore: 0
+      overallScore: 0,
     };
 
     // Validation components
@@ -57,7 +57,7 @@ export class RecursiveValidationFramework extends EventEmitter {
       recursiveValidationsPerformed: 0,
       consensusAchieved: 0,
       averageValidationTime: 0,
-      lastValidation: null
+      lastValidation: null,
     };
 
     // Validation criteria
@@ -67,15 +67,15 @@ export class RecursiveValidationFramework extends EventEmitter {
       RELIABILITY: 'reliability',
       SECURITY: 'security',
       COMPLETENESS: 'completeness',
-      CORRECTNESS: 'correctness'
+      CORRECTNESS: 'correctness',
     };
 
     // Truth scoring thresholds
     this.TRUTH_THRESHOLDS = {
       CRITICAL: 0.95,
       HIGH: 0.85,
-      MEDIUM: 0.70,
-      LOW: 0.50
+      MEDIUM: 0.7,
+      LOW: 0.5,
     };
   }
 
@@ -93,14 +93,14 @@ export class RecursiveValidationFramework extends EventEmitter {
         enablePersistence: false,
         maxMemoryMB: 100,
         byzantineMode: true,
-        consensusThreshold: this.options.byzantineThreshold || 0.85
+        consensusThreshold: this.options.byzantineThreshold || 0.85,
       });
       await this.memory.initialize();
 
       // Initialize hook system for validation events
       this.hookSystem = createResilientHookSystem({
         enableByzantineConsensus: true,
-        consensusThreshold: this.options.byzantineThreshold
+        consensusThreshold: this.options.byzantineThreshold,
       });
       await this.hookSystem.initialize();
 
@@ -119,7 +119,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         duration,
         selfValidationEnabled: this.options.selfValidationEnabled,
         memoryMode: this.memory.getSystemInfo().mode,
-        hookSystemReady: true
+        hookSystemReady: true,
       });
 
       console.log(`✅ Recursive Validation Framework initialized (${duration.toFixed(2)}ms)`);
@@ -128,7 +128,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         success: true,
         selfValidationEnabled: this.options.selfValidationEnabled,
         byzantineEnabled: true,
-        duration
+        duration,
       };
     } catch (error) {
       this.emit('error', error);
@@ -155,7 +155,7 @@ export class RecursiveValidationFramework extends EventEmitter {
       // Store validation claim
       await this.memory.store(`claim:${validationId}`, claim, {
         namespace: 'validation',
-        metadata: { recursionDepth, timestamp: Date.now() }
+        metadata: { recursionDepth, timestamp: Date.now() },
       });
 
       // Execute validation hooks
@@ -163,7 +163,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         claim,
         validationId,
         recursionDepth,
-        isSelfValidation: options.isSelfValidation || false
+        isSelfValidation: options.isSelfValidation || false,
       });
 
       // Perform core validation
@@ -171,7 +171,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         ...options,
         validationId,
         recursionDepth,
-        hookResult
+        hookResult,
       });
 
       // Calculate truth score
@@ -187,18 +187,18 @@ export class RecursiveValidationFramework extends EventEmitter {
         duration: performance.now() - startTime,
         timestamp: Date.now(),
         consensusReached: truthScore >= this.options.byzantineThreshold,
-        isSelfValidation: options.isSelfValidation || false
+        isSelfValidation: options.isSelfValidation || false,
       };
 
       await this.memory.store(`result:${validationId}`, finalResult, {
-        namespace: 'validation'
+        namespace: 'validation',
       });
 
       // Record truth score for Byzantine consensus
       await this.memory.recordTruthScore(validationId, truthScore, {
         claim,
         result: validationResult,
-        recursionDepth
+        recursionDepth,
       });
 
       // Update metrics
@@ -248,18 +248,18 @@ export class RecursiveValidationFramework extends EventEmitter {
           byzantineConsensusEnabled: true,
           recursiveValidationCapable: true,
           truthScoringAccurate: true,
-          fallbackSystemsWorking: true
+          fallbackSystemsWorking: true,
         },
         evidence: await this.gatherSelfValidationEvidence(),
         timestamp: Date.now(),
-        selfValidation: true
+        selfValidation: true,
       };
 
       // Validate using our own validation process
       const validationResult = await this.validateCompletion(selfClaim, {
         isSelfValidation: true,
         recursionDepth: 0,
-        enableFullValidation: true
+        enableFullValidation: true,
       });
 
       // Additional self-validation checks
@@ -271,7 +271,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         additionalChecks,
         overallSuccess: validationResult.consensusReached && additionalChecks.allPassed,
         frameworkReady: validationResult.consensusReached && additionalChecks.allPassed,
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
 
       this.validationState.selfValidating = false;
@@ -282,7 +282,9 @@ export class RecursiveValidationFramework extends EventEmitter {
 
       this.emit('selfValidationCompleted', finalSelfValidation);
 
-      console.log(`✅ Self-validation completed: ${finalSelfValidation.overallSuccess ? 'PASSED' : 'FAILED'} (score: ${(validationResult.truthScore * 100).toFixed(1)}%)`);
+      console.log(
+        `✅ Self-validation completed: ${finalSelfValidation.overallSuccess ? 'PASSED' : 'FAILED'} (score: ${(validationResult.truthScore * 100).toFixed(1)}%)`,
+      );
 
       return finalSelfValidation;
     } catch (error) {
@@ -306,29 +308,29 @@ export class RecursiveValidationFramework extends EventEmitter {
           passed: result.passed,
           score: result.score,
           evidence: result.evidence,
-          message: result.message
+          message: result.message,
         };
       } catch (error) {
         validationResults[criterion] = {
           passed: false,
           score: 0,
           evidence: {},
-          message: `Validation error: ${error.message}`
+          message: `Validation error: ${error.message}`,
         };
       }
     }
 
     // Calculate overall validation score
-    const scores = Object.values(validationResults).map(r => r.score);
+    const scores = Object.values(validationResults).map((r) => r.score);
     const overallScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    const allPassed = Object.values(validationResults).every(r => r.passed);
+    const allPassed = Object.values(validationResults).every((r) => r.passed);
 
     return {
       criteria: validationResults,
       overallScore,
       allPassed,
-      passedCount: Object.values(validationResults).filter(r => r.passed).length,
-      totalCount: Object.keys(validationResults).length
+      passedCount: Object.values(validationResults).filter((r) => r.passed).length,
+      totalCount: Object.keys(validationResults).length,
     };
   }
 
@@ -340,7 +342,7 @@ export class RecursiveValidationFramework extends EventEmitter {
 
     // Adjust score based on recursion depth
     if (recursionDepth > 0) {
-      score *= (1 - (recursionDepth * 0.1)); // Slightly reduce confidence with depth
+      score *= 1 - recursionDepth * 0.1; // Slightly reduce confidence with depth
     }
 
     // Byzantine consensus factor
@@ -386,7 +388,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         evidence.memory = {
           initialized: memoryStats.system?.initialized || false,
           mode: memoryStats.system?.mode || 'unknown',
-          functional: memoryStats.database?.totalEntries >= 0
+          functional: memoryStats.database?.totalEntries >= 0,
         };
       }
 
@@ -396,21 +398,21 @@ export class RecursiveValidationFramework extends EventEmitter {
         evidence.hooks = {
           initialized: hookStats.system?.initialized || false,
           running: hookStats.system?.running || false,
-          hooksRegistered: hookStats.metrics?.hooksRegistered || 0
+          hooksRegistered: hookStats.metrics?.hooksRegistered || 0,
         };
       }
 
       // Validation rules evidence
       evidence.validationRules = {
         loaded: this.validationRules.size > 0,
-        count: this.validationRules.size
+        count: this.validationRules.size,
       };
 
       // Performance evidence
       evidence.performance = {
         validationsPerformed: this.metrics.validationsPerformed,
         averageValidationTime: this.metrics.averageValidationTime,
-        consensusAchieved: this.metrics.consensusAchieved
+        consensusAchieved: this.metrics.consensusAchieved,
       };
 
       return evidence;
@@ -429,7 +431,7 @@ export class RecursiveValidationFramework extends EventEmitter {
       hookExecution: false,
       truthScoring: false,
       recursiveCapability: false,
-      allPassed: false
+      allPassed: false,
     };
 
     try {
@@ -443,7 +445,7 @@ export class RecursiveValidationFramework extends EventEmitter {
       const testHookId = this.hookSystem.register({
         name: 'Self-Test Hook',
         type: 'self-test',
-        handler: async () => ({ selfTest: true })
+        handler: async () => ({ selfTest: true }),
       });
       const hookResult = await this.hookSystem.executeHooks('self-test', { test: true });
       checks.hookExecution = hookResult.results.length > 0 && hookResult.results[0].success;
@@ -456,13 +458,16 @@ export class RecursiveValidationFramework extends EventEmitter {
       // Test recursive capability (simple recursion test)
       if (this.validationState.recursionDepth < this.options.maxRecursionDepth - 1) {
         try {
-          const recursiveResult = await this.validateCompletion({
-            type: 'recursive-test',
-            simple: true
-          }, {
-            recursionDepth: this.validationState.recursionDepth + 1,
-            isSelfValidation: true
-          });
+          const recursiveResult = await this.validateCompletion(
+            {
+              type: 'recursive-test',
+              simple: true,
+            },
+            {
+              recursionDepth: this.validationState.recursionDepth + 1,
+              isSelfValidation: true,
+            },
+          );
           checks.recursiveCapability = recursiveResult.consensusReached;
         } catch (error) {
           checks.recursiveCapability = false;
@@ -471,8 +476,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         checks.recursiveCapability = true; // Assume it works if we can't test due to depth
       }
 
-      checks.allPassed = Object.values(checks).filter(v => v === true).length >= 3; // At least 3 of 4 checks must pass
-
+      checks.allPassed = Object.values(checks).filter((v) => v === true).length >= 3; // At least 3 of 4 checks must pass
     } catch (error) {
       console.warn('Self-check failed:', error.message);
     }
@@ -495,27 +499,28 @@ export class RecursiveValidationFramework extends EventEmitter {
         }
       }
 
-      const passedTests = functionalTests.filter(t => t.verified).length;
+      const passedTests = functionalTests.filter((t) => t.verified).length;
       const score = functionalTests.length > 0 ? passedTests / functionalTests.length : 1;
 
       return {
         passed: score >= 0.8,
         score,
         evidence: { functionalTests },
-        message: `${passedTests}/${functionalTests.length} functionality tests passed`
+        message: `${passedTests}/${functionalTests.length} functionality tests passed`,
       };
     });
 
     // Performance validation
     this.validationRules.set(this.VALIDATION_CRITERIA.PERFORMANCE, async (claim, options) => {
       const performanceMetrics = options.hookResult?.duration || 0;
-      const score = performanceMetrics < 5000 ? 1.0 : Math.max(0, 1 - ((performanceMetrics - 5000) / 10000));
+      const score =
+        performanceMetrics < 5000 ? 1.0 : Math.max(0, 1 - (performanceMetrics - 5000) / 10000);
 
       return {
         passed: score >= 0.7,
         score,
         evidence: { executionTime: performanceMetrics },
-        message: `Performance score: ${(score * 100).toFixed(1)}%`
+        message: `Performance score: ${(score * 100).toFixed(1)}%`,
       };
     });
 
@@ -527,7 +532,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         passed: reliability >= 0.85,
         score: reliability,
         evidence: { systemReliability: reliability },
-        message: `System reliability: ${(reliability * 100).toFixed(1)}%`
+        message: `System reliability: ${(reliability * 100).toFixed(1)}%`,
       };
     });
 
@@ -540,7 +545,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         passed: securityScore >= 0.8,
         score: securityScore,
         evidence: { securityPosture: securityScore },
-        message: `Security posture: ${(securityScore * 100).toFixed(1)}%`
+        message: `Security posture: ${(securityScore * 100).toFixed(1)}%`,
       };
     });
 
@@ -552,7 +557,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         passed: completeness >= 0.9,
         score: completeness,
         evidence: { completenessScore: completeness },
-        message: `Completeness: ${(completeness * 100).toFixed(1)}%`
+        message: `Completeness: ${(completeness * 100).toFixed(1)}%`,
       };
     });
 
@@ -564,7 +569,7 @@ export class RecursiveValidationFramework extends EventEmitter {
         passed: correctness >= 0.85,
         score: correctness,
         evidence: { correctnessScore: correctness },
-        message: `Correctness: ${(correctness * 100).toFixed(1)}%`
+        message: `Correctness: ${(correctness * 100).toFixed(1)}%`,
       };
     });
   }
@@ -588,7 +593,8 @@ export class RecursiveValidationFramework extends EventEmitter {
     // Validation success rate
     const validationHistory = this.validationHistory.slice(0, 10); // Last 10 validations
     if (validationHistory.length > 0) {
-      const successRate = validationHistory.filter(v => v.consensusReached).length / validationHistory.length;
+      const successRate =
+        validationHistory.filter((v) => v.consensusReached).length / validationHistory.length;
       factors.push(successRate);
     } else {
       factors.push(0.8); // Default assumption
@@ -708,9 +714,9 @@ export class RecursiveValidationFramework extends EventEmitter {
           validated: true,
           claimType: claim.type,
           component: claim.component,
-          validationId
+          validationId,
         };
-      }
+      },
     });
 
     // Post-validation hook
@@ -726,9 +732,9 @@ export class RecursiveValidationFramework extends EventEmitter {
           recorded: true,
           validationId,
           consensusReached: result?.consensusReached || false,
-          truthScore: result?.truthScore || 0
+          truthScore: result?.truthScore || 0,
         };
-      }
+      },
     });
   }
 
@@ -755,21 +761,21 @@ export class RecursiveValidationFramework extends EventEmitter {
         selfValidating: this.validationState.selfValidating,
         recursionDepth: this.validationState.recursionDepth,
         overallScore: this.validationState.overallScore,
-        consensusReached: this.validationState.consensusReached
+        consensusReached: this.validationState.consensusReached,
       },
       metrics: { ...this.metrics },
       validationRules: {
         count: this.validationRules.size,
-        criteria: Array.from(this.validationRules.keys())
+        criteria: Array.from(this.validationRules.keys()),
       },
       history: {
         totalValidations: this.validationHistory.length,
-        recentValidations: this.validationHistory.slice(0, 5)
+        recentValidations: this.validationHistory.slice(0, 5),
       },
       components: {
         memory: memoryStats,
-        hooks: hookStats
-      }
+        hooks: hookStats,
+      },
     };
   }
 
@@ -784,7 +790,7 @@ export class RecursiveValidationFramework extends EventEmitter {
 
       // Wait for any ongoing self-validation to complete
       while (this.validationState.selfValidating) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       // Shutdown components
@@ -831,7 +837,9 @@ export class RecursiveValidationFramework extends EventEmitter {
     }
 
     // Update average validation time
-    const totalTime = this.metrics.averageValidationTime * (this.metrics.validationsPerformed - 1) + result.duration;
+    const totalTime =
+      this.metrics.averageValidationTime * (this.metrics.validationsPerformed - 1) +
+      result.duration;
     this.metrics.averageValidationTime = totalTime / this.metrics.validationsPerformed;
 
     this.metrics.lastValidation = Date.now();
@@ -852,7 +860,7 @@ export async function testRecursiveValidation() {
   try {
     const framework = new RecursiveValidationFramework({
       selfValidationEnabled: true,
-      enableTruthScoring: true
+      enableTruthScoring: true,
     });
 
     await framework.initialize();
@@ -866,12 +874,12 @@ export async function testRecursiveValidation() {
       component: 'test-component',
       claims: {
         functional: true,
-        tested: true
+        tested: true,
       },
       evidence: {
         functional: { tested: true },
-        tested: { passed: true }
-      }
+        tested: { passed: true },
+      },
     };
 
     const regularValidation = await framework.validateCompletion(testClaim);
@@ -884,14 +892,14 @@ export async function testRecursiveValidation() {
       regularValidationPassed: regularValidation.consensusReached,
       truthScore: selfValidation.truthScore,
       memoryMode: selfValidation.additionalChecks?.memoryWriteRead || false,
-      error: null
+      error: null,
     };
   } catch (error) {
     return {
       recursive: false,
       selfValidationPassed: false,
       regularValidationPassed: false,
-      error: error.message
+      error: error.message,
     };
   }
 }

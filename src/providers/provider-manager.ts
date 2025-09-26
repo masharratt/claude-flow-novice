@@ -105,7 +105,10 @@ export class ProviderManager extends EventEmitter {
   /**
    * Create a provider instance
    */
-  private async createProvider(name: LLMProvider, config: LLMProviderConfig): Promise<ILLMProvider | null> {
+  private async createProvider(
+    name: LLMProvider,
+    config: LLMProviderConfig,
+  ): Promise<ILLMProvider | null> {
     const providerOptions = {
       logger: this.logger,
       config,
@@ -136,7 +139,7 @@ export class ProviderManager extends EventEmitter {
       }
 
       await provider.initialize();
-      
+
       // Set up event listeners
       provider.on('response', (data) => this.handleProviderResponse(name, data));
       provider.on('error', (error) => this.handleProviderError(name, error));
@@ -164,22 +167,22 @@ export class ProviderManager extends EventEmitter {
 
     // Select provider based on strategy
     const provider = await this.selectProvider(request);
-    
+
     try {
       const response = await provider.complete(request);
-      
+
       // Cache successful response
       if (this.config.caching?.enabled) {
         this.cacheResponse(request, response);
       }
-      
+
       // Update metrics
       this.updateProviderMetrics(provider.name, {
         success: true,
         latency: response.latency || 0,
         cost: response.cost?.totalCost || 0,
       });
-      
+
       return response;
     } catch (error) {
       // Handle error and potentially fallback
@@ -192,10 +195,10 @@ export class ProviderManager extends EventEmitter {
    */
   async *streamComplete(request: LLMRequest): AsyncIterable<LLMStreamEvent> {
     const provider = await this.selectProvider(request);
-    
+
     try {
       yield* provider.streamComplete(request);
-      
+
       // Update metrics
       this.updateProviderMetrics(provider.name, {
         success: true,
@@ -267,10 +270,12 @@ export class ProviderManager extends EventEmitter {
 
       try {
         const estimate = await provider.estimateCost(request);
-        
-        if (estimate.estimatedCost.total < bestCost &&
-            (!request.costConstraints?.maxCostPerRequest || 
-             estimate.estimatedCost.total <= request.costConstraints.maxCostPerRequest)) {
+
+        if (
+          estimate.estimatedCost.total < bestCost &&
+          (!request.costConstraints?.maxCostPerRequest ||
+            estimate.estimatedCost.total <= request.costConstraints.maxCostPerRequest)
+        ) {
           bestCost = estimate.estimatedCost.total;
           bestProvider = provider;
         }
@@ -286,8 +291,8 @@ export class ProviderManager extends EventEmitter {
    * Select provider using load balancing
    */
   private selectLoadBalancedProvider(): ILLMProvider {
-    const availableProviders = Array.from(this.providers.values()).filter(p => 
-      this.isProviderAvailable(p)
+    const availableProviders = Array.from(this.providers.values()).filter((p) =>
+      this.isProviderAvailable(p),
     );
 
     if (availableProviders.length === 0) {
@@ -297,16 +302,16 @@ export class ProviderManager extends EventEmitter {
     switch (this.config.loadBalancing?.strategy) {
       case 'round-robin':
         return this.roundRobinSelect(availableProviders);
-        
+
       case 'least-loaded':
         return this.leastLoadedSelect(availableProviders);
-        
+
       case 'latency-based':
         return this.latencyBasedSelect(availableProviders);
-        
+
       case 'cost-based':
         return this.costBasedSelect(availableProviders);
-        
+
       default:
         return availableProviders[0];
     }
@@ -395,10 +400,10 @@ export class ProviderManager extends EventEmitter {
   private async handleRequestError(
     error: unknown,
     request: LLMRequest,
-    failedProvider: ILLMProvider
+    failedProvider: ILLMProvider,
   ): Promise<LLMResponse> {
     this.logger.error(`Provider ${failedProvider.name} failed`, error);
-    
+
     // Update metrics
     this.updateProviderMetrics(failedProvider.name, {
       success: false,
@@ -421,15 +426,15 @@ export class ProviderManager extends EventEmitter {
    */
   private async getFallbackProvider(
     error: unknown,
-    failedProvider: ILLMProvider
+    failedProvider: ILLMProvider,
   ): Promise<ILLMProvider | null> {
     if (!this.config.fallbackStrategy?.enabled) {
       return null;
     }
 
     const errorCondition = this.getErrorCondition(error);
-    const fallbackRule = this.config.fallbackStrategy.rules.find(rule => 
-      rule.condition === errorCondition
+    const fallbackRule = this.config.fallbackStrategy.rules.find(
+      (rule) => rule.condition === errorCondition,
     );
 
     if (!fallbackRule) {
@@ -454,7 +459,7 @@ export class ProviderManager extends EventEmitter {
     if (isRateLimitError(error)) {
       return 'rate_limit';
     }
-    
+
     if (error instanceof LLMProviderError) {
       if (error.statusCode === 503) {
         return 'unavailable';
@@ -463,7 +468,7 @@ export class ProviderManager extends EventEmitter {
         return 'timeout';
       }
     }
-    
+
     return 'error';
   }
 
@@ -473,7 +478,7 @@ export class ProviderManager extends EventEmitter {
   private checkCache(request: LLMRequest): LLMResponse | null {
     const cacheKey = this.generateCacheKey(request);
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached) {
       const age = Date.now() - cached.timestamp.getTime();
       if (age < (this.config.caching?.ttl || 3600) * 1000) {
@@ -482,7 +487,7 @@ export class ProviderManager extends EventEmitter {
       // Remove expired entry
       this.cache.delete(cacheKey);
     }
-    
+
     return null;
   }
 
@@ -492,7 +497,7 @@ export class ProviderManager extends EventEmitter {
       response,
       timestamp: new Date(),
     });
-    
+
     // Cleanup old cache entries
     if (this.cache.size > 1000) {
       const oldestKey = this.cache.keys().next().value;
@@ -514,7 +519,7 @@ export class ProviderManager extends EventEmitter {
    */
   private updateProviderMetrics(
     provider: LLMProvider,
-    metrics: { success: boolean; latency: number; cost: number }
+    metrics: { success: boolean; latency: number; cost: number },
   ): void {
     const count = this.requestCount.get(provider) || 0;
     this.requestCount.set(provider, count + 1);
@@ -580,9 +585,10 @@ export class ProviderManager extends EventEmitter {
 
     for (const [provider, count] of this.requestCount.entries()) {
       const providerMetricsList = this.providerMetrics.get(provider) || [];
-      const avgLatency = providerMetricsList.length > 0
-        ? providerMetricsList.reduce((sum, m) => sum + m.latency, 0) / providerMetricsList.length
-        : 0;
+      const avgLatency =
+        providerMetricsList.length > 0
+          ? providerMetricsList.reduce((sum, m) => sum + m.latency, 0) / providerMetricsList.length
+          : 0;
       const totalCost = providerMetricsList.reduce((sum, m) => sum + m.cost, 0);
 
       metrics.providers[provider] = {
@@ -600,14 +606,14 @@ export class ProviderManager extends EventEmitter {
     if (metrics.totalRequests > 0) {
       let totalLatency = 0;
       let latencyCount = 0;
-      
+
       for (const providerMetricsList of this.providerMetrics.values()) {
         for (const metric of providerMetricsList) {
           totalLatency += metric.latency;
           latencyCount++;
         }
       }
-      
+
       metrics.averageLatency = latencyCount > 0 ? totalLatency / latencyCount : 0;
     }
 
@@ -618,7 +624,7 @@ export class ProviderManager extends EventEmitter {
    * Get available providers
    */
   getAvailableProviders(): LLMProvider[] {
-    return Array.from(this.providers.keys()).filter(name => {
+    return Array.from(this.providers.keys()).filter((name) => {
       const provider = this.providers.get(name);
       return provider && this.isProviderAvailable(provider);
     });
@@ -645,7 +651,7 @@ export class ProviderManager extends EventEmitter {
     for (const provider of this.providers.values()) {
       provider.destroy();
     }
-    
+
     this.providers.clear();
     this.cache.clear();
     this.providerMetrics.clear();

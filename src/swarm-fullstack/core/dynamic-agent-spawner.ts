@@ -4,7 +4,13 @@
  */
 
 import { EventEmitter } from 'events';
-import { FullStackAgentType, SwarmTeamComposition, FullStackAgent, ComplexityLevel, ResourceLimits } from '../types/index.js';
+import {
+  FullStackAgentType,
+  SwarmTeamComposition,
+  FullStackAgent,
+  ComplexityLevel,
+  ResourceLimits,
+} from '../types/index.js';
 import { ILogger } from '../../core/logger.js';
 
 export interface AgentSpawningConfig {
@@ -67,10 +73,18 @@ export class DynamicAgentSpawner extends EventEmitter {
   private coldPool = new Map<FullStackAgentType, number>();
   private activeSwarms = new Map<string, SwarmTeamComposition>();
   private performanceHistory = new Map<string, any[]>();
-  private spawningQueue: Array<{ swarmId: string; plan: TeamCompositionPlan; resolve: Function; reject: Function }> = [];
+  private spawningQueue: Array<{
+    swarmId: string;
+    plan: TeamCompositionPlan;
+    resolve: Function;
+    reject: Function;
+  }> = [];
   private isProcessingQueue = false;
 
-  constructor(config: Partial<AgentSpawningConfig>, private logger: ILogger) {
+  constructor(
+    config: Partial<AgentSpawningConfig>,
+    private logger: ILogger,
+  ) {
     super();
     this.config = {
       maxWarmAgents: 50,
@@ -80,15 +94,15 @@ export class DynamicAgentSpawner extends EventEmitter {
       performanceThresholds: {
         minSuccessRate: 0.85,
         maxAverageTime: 300000, // 5 minutes
-        minQualityScore: 0.8
+        minQualityScore: 0.8,
       },
       complexityWeights: {
         simple: 1.0,
         moderate: 1.5,
         complex: 2.0,
-        enterprise: 3.0
+        enterprise: 3.0,
       },
-      ...config
+      ...config,
     };
 
     this.initializeAgentPools();
@@ -122,7 +136,7 @@ export class DynamicAgentSpawner extends EventEmitter {
     try {
       this.logger.info('Analyzing feature complexity', {
         feature: featureSpec.name,
-        requirements: Object.keys(featureSpec.requirements)
+        requirements: Object.keys(featureSpec.requirements),
       });
 
       // Analyze complexity
@@ -135,11 +149,10 @@ export class DynamicAgentSpawner extends EventEmitter {
         feature: featureSpec.name,
         complexityScore: complexity.score,
         recommendedAgents: teamPlan.totalAgents,
-        estimatedDuration: complexity.estimatedDuration
+        estimatedDuration: complexity.estimatedDuration,
       });
 
       return { complexity, teamPlan };
-
     } catch (error) {
       this.logger.error('Feature analysis failed', { error, feature: featureSpec.name });
       throw error;
@@ -149,7 +162,11 @@ export class DynamicAgentSpawner extends EventEmitter {
   /**
    * Spawn complete swarm team based on composition plan
    */
-  async spawnSwarmTeam(swarmId: string, teamPlan: TeamCompositionPlan, featureSpec: any): Promise<SwarmTeamComposition> {
+  async spawnSwarmTeam(
+    swarmId: string,
+    teamPlan: TeamCompositionPlan,
+    featureSpec: any,
+  ): Promise<SwarmTeamComposition> {
     return new Promise((resolve, reject) => {
       // Add to spawning queue
       this.spawningQueue.push({ swarmId, plan: teamPlan, resolve, reject });
@@ -167,13 +184,16 @@ export class DynamicAgentSpawner extends EventEmitter {
   /**
    * Scale existing swarm team (add/remove agents)
    */
-  async scaleSwarmTeam(swarmId: string, scalingAction: {
-    action: 'scale-up' | 'scale-down' | 'rebalance';
-    targetSize?: number;
-    addAgentTypes?: FullStackAgentType[];
-    removeAgentIds?: string[];
-    reason: string;
-  }): Promise<SwarmTeamComposition> {
+  async scaleSwarmTeam(
+    swarmId: string,
+    scalingAction: {
+      action: 'scale-up' | 'scale-down' | 'rebalance';
+      targetSize?: number;
+      addAgentTypes?: FullStackAgentType[];
+      removeAgentIds?: string[];
+      reason: string;
+    },
+  ): Promise<SwarmTeamComposition> {
     const existingTeam = this.activeSwarms.get(swarmId);
     if (!existingTeam) {
       throw new Error(`Swarm ${swarmId} not found`);
@@ -184,7 +204,7 @@ export class DynamicAgentSpawner extends EventEmitter {
         swarmId,
         action: scalingAction.action,
         currentSize: existingTeam.agents.length,
-        targetSize: scalingAction.targetSize
+        targetSize: scalingAction.targetSize,
       });
 
       let updatedTeam = { ...existingTeam };
@@ -209,11 +229,10 @@ export class DynamicAgentSpawner extends EventEmitter {
         action: scalingAction.action,
         oldSize: existingTeam.agents.length,
         newSize: updatedTeam.agents.length,
-        reason: scalingAction.reason
+        reason: scalingAction.reason,
       });
 
       return updatedTeam;
-
     } catch (error) {
       this.logger.error('Swarm scaling failed', { error, swarmId, action: scalingAction.action });
       throw error;
@@ -230,7 +249,7 @@ export class DynamicAgentSpawner extends EventEmitter {
       let swarmId: string | null = null;
 
       for (const [sid, team] of Array.from(this.activeSwarms.entries())) {
-        const agent = team.agents.find(a => a.id === agentId);
+        const agent = team.agents.find((a) => a.id === agentId);
         if (agent) {
           foundAgent = agent;
           swarmId = sid;
@@ -246,12 +265,12 @@ export class DynamicAgentSpawner extends EventEmitter {
         agentId,
         agentType: foundAgent.type,
         reason,
-        performance: foundAgent.performance
+        performance: foundAgent.performance,
       });
 
       // Remove from active swarm
       const team = this.activeSwarms.get(swarmId)!;
-      team.agents = team.agents.filter(a => a.id !== agentId);
+      team.agents = team.agents.filter((a) => a.id !== agentId);
 
       // Return to warm pool (if performance is acceptable) or cold pool
       if (this.isAgentPerformanceAcceptable(foundAgent)) {
@@ -269,9 +288,8 @@ export class DynamicAgentSpawner extends EventEmitter {
         agentType: foundAgent.type,
         swarmId,
         reason,
-        returnedToWarmPool: this.isAgentPerformanceAcceptable(foundAgent)
+        returnedToWarmPool: this.isAgentPerformanceAcceptable(foundAgent),
       });
-
     } catch (error) {
       this.logger.error('Agent recycling failed', { error, agentId, reason });
       throw error;
@@ -306,13 +324,15 @@ export class DynamicAgentSpawner extends EventEmitter {
       coldCounts[type] = count;
     });
 
-    const totalActiveAgents = Array.from(this.activeSwarms.values())
-      .reduce((sum, team) => sum + team.agents.length, 0);
+    const totalActiveAgents = Array.from(this.activeSwarms.values()).reduce(
+      (sum, team) => sum + team.agents.length,
+      0,
+    );
 
     return {
       pools: {
         warm: warmCounts,
-        cold: coldCounts
+        cold: coldCounts,
       },
       activeSwarms: this.activeSwarms.size,
       totalActiveAgents,
@@ -320,8 +340,8 @@ export class DynamicAgentSpawner extends EventEmitter {
       performance: {
         averageSpawningTime: this.calculateAverageSpawningTime(),
         successRate: this.calculateSuccessRate(),
-        poolUtilization: this.calculatePoolUtilization()
-      }
+        poolUtilization: this.calculatePoolUtilization(),
+      },
     };
   }
 
@@ -335,10 +355,13 @@ export class DynamicAgentSpawner extends EventEmitter {
       dataComplexity: this.analyzeDataComplexity(featureSpec.requirements.database || []),
       integrationComplexity: this.analyzeIntegrationComplexity(featureSpec.integrations || []),
       securityRequirements: this.analyzeSecurityRequirements(featureSpec.securityLevel || 'basic'),
-      performanceRequirements: this.analyzePerformanceRequirements(featureSpec.constraints.quality || 'standard')
+      performanceRequirements: this.analyzePerformanceRequirements(
+        featureSpec.constraints.quality || 'standard',
+      ),
     };
 
-    const score = Object.values(factors).reduce((sum, value) => sum + value, 0) / Object.keys(factors).length;
+    const score =
+      Object.values(factors).reduce((sum, value) => sum + value, 0) / Object.keys(factors).length;
 
     const requiredSkills = this.extractRequiredSkills(featureSpec, factors);
     const estimatedDuration = this.estimateDuration(score, featureSpec.constraints.timeline);
@@ -349,14 +372,17 @@ export class DynamicAgentSpawner extends EventEmitter {
       factors,
       requiredSkills,
       estimatedDuration,
-      riskLevel
+      riskLevel,
     };
   }
 
   /**
    * Generate optimal team composition based on complexity analysis
    */
-  private generateTeamComposition(complexity: FeatureComplexityAnalysis, featureSpec: any): TeamCompositionPlan {
+  private generateTeamComposition(
+    complexity: FeatureComplexityAnalysis,
+    featureSpec: any,
+  ): TeamCompositionPlan {
     const baseAgentCount = Math.ceil(complexity.score * 2); // Base calculation
     const adjustedAgentCount = Math.max(2, Math.min(20, baseAgentCount)); // Enforce limits
 
@@ -369,7 +395,7 @@ export class DynamicAgentSpawner extends EventEmitter {
         type: 'project-coordinator',
         count: 1,
         priority: 10,
-        justification: 'Large team requires coordination'
+        justification: 'Large team requires coordination',
       });
       totalAgents += 1;
     }
@@ -381,7 +407,7 @@ export class DynamicAgentSpawner extends EventEmitter {
         type: 'frontend-developer',
         count: frontendCount,
         priority: 8,
-        justification: 'Frontend requirements detected'
+        justification: 'Frontend requirements detected',
       });
       totalAgents += frontendCount;
 
@@ -390,7 +416,7 @@ export class DynamicAgentSpawner extends EventEmitter {
           type: 'ui-designer',
           count: 1,
           priority: 6,
-          justification: 'High UI complexity requires design specialist'
+          justification: 'High UI complexity requires design specialist',
         });
         totalAgents += 1;
       }
@@ -403,7 +429,7 @@ export class DynamicAgentSpawner extends EventEmitter {
         type: 'backend-developer',
         count: backendCount,
         priority: 8,
-        justification: 'Backend requirements detected'
+        justification: 'Backend requirements detected',
       });
       totalAgents += backendCount;
     }
@@ -414,7 +440,7 @@ export class DynamicAgentSpawner extends EventEmitter {
         type: 'database-developer',
         count: 1,
         priority: 7,
-        justification: 'Database requirements detected'
+        justification: 'Database requirements detected',
       });
       totalAgents += 1;
     }
@@ -425,7 +451,7 @@ export class DynamicAgentSpawner extends EventEmitter {
       type: 'qa-engineer',
       count: qaCount,
       priority: 7,
-      justification: 'Quality assurance required'
+      justification: 'Quality assurance required',
     });
     totalAgents += qaCount;
 
@@ -435,7 +461,7 @@ export class DynamicAgentSpawner extends EventEmitter {
         type: 'devops-engineer',
         count: 1,
         priority: 6,
-        justification: 'Deployment automation required'
+        justification: 'Deployment automation required',
       });
       totalAgents += 1;
     }
@@ -446,7 +472,7 @@ export class DynamicAgentSpawner extends EventEmitter {
         type: 'security-tester',
         count: 1,
         priority: 8,
-        justification: 'High security requirements'
+        justification: 'High security requirements',
       });
       totalAgents += 1;
     }
@@ -458,14 +484,14 @@ export class DynamicAgentSpawner extends EventEmitter {
     const resourceEstimate = {
       cpu: totalAgents * 0.5, // 0.5 CPU per agent
       memory: totalAgents * 512, // 512MB per agent
-      duration: complexity.estimatedDuration
+      duration: complexity.estimatedDuration,
     };
 
     return {
       totalAgents,
       agentTypes,
       phases,
-      resourceEstimate
+      resourceEstimate,
     };
   }
 
@@ -498,7 +524,10 @@ export class DynamicAgentSpawner extends EventEmitter {
   /**
    * Spawn team from composition plan
    */
-  private async spawnTeamFromPlan(swarmId: string, plan: TeamCompositionPlan): Promise<SwarmTeamComposition> {
+  private async spawnTeamFromPlan(
+    swarmId: string,
+    plan: TeamCompositionPlan,
+  ): Promise<SwarmTeamComposition> {
     const agents: FullStackAgent[] = [];
 
     for (const agentSpec of plan.agentTypes) {
@@ -514,13 +543,13 @@ export class DynamicAgentSpawner extends EventEmitter {
       complexity: this.scoreToComplexity(plan.resourceEstimate.duration),
       agents,
       estimatedDuration: plan.resourceEstimate.duration,
-      requiredSkills: plan.agentTypes.flatMap(at => this.getSkillsForAgentType(at.type)),
+      requiredSkills: plan.agentTypes.flatMap((at) => this.getSkillsForAgentType(at.type)),
       resourceLimits: {
         maxAgents: plan.totalAgents,
         maxCpuPerAgent: 1.0,
         maxMemoryPerAgent: 1024,
-        timeoutMinutes: plan.resourceEstimate.duration
-      }
+        timeoutMinutes: plan.resourceEstimate.duration,
+      },
     };
 
     this.activeSwarms.set(swarmId, team);
@@ -528,8 +557,8 @@ export class DynamicAgentSpawner extends EventEmitter {
     this.emit('swarm-spawned', {
       swarmId,
       agentCount: agents.length,
-      agentTypes: plan.agentTypes.map(at => at.type),
-      estimatedDuration: plan.resourceEstimate.duration
+      agentTypes: plan.agentTypes.map((at) => at.type),
+      estimatedDuration: plan.resourceEstimate.duration,
     });
 
     return team;
@@ -564,19 +593,19 @@ export class DynamicAgentSpawner extends EventEmitter {
         tasksCompleted: 0,
         successRate: 1.0,
         averageTime: 0,
-        qualityScore: 1.0
+        qualityScore: 1.0,
       },
       resources: {
         cpuUsage: 0.1,
         memoryUsage: 128,
-        activeTasks: 0
-      }
+        activeTasks: 0,
+      },
     };
 
     this.logger.debug('Created new agent', {
       agentId: agent.id,
       agentType: agent.type,
-      capabilities: agent.capabilities
+      capabilities: agent.capabilities,
     });
 
     return agent;
@@ -591,10 +620,10 @@ export class DynamicAgentSpawner extends EventEmitter {
       'backend-developer',
       'qa-engineer',
       'devops-engineer',
-      'project-coordinator'
+      'project-coordinator',
     ];
 
-    commonTypes.forEach(type => {
+    commonTypes.forEach((type) => {
       this.warmPool.set(type, []);
       this.coldPool.set(type, 3); // 3 cold agents per common type
 
@@ -610,7 +639,7 @@ export class DynamicAgentSpawner extends EventEmitter {
     this.logger.info('Agent pools initialized', {
       warmTypes: commonTypes.length,
       warmAgentsPerType: 2,
-      coldAgentsPerType: 3
+      coldAgentsPerType: 3,
     });
   }
 
@@ -629,7 +658,8 @@ export class DynamicAgentSpawner extends EventEmitter {
   private maintainPools(): void {
     // Remove idle agents from warm pool if over capacity
     this.warmPool.forEach((agents, type) => {
-      if (agents.length > this.config.maxWarmAgents / 10) { // 10 agent types max
+      if (agents.length > this.config.maxWarmAgents / 10) {
+        // 10 agent types max
         const excess = agents.length - Math.floor(this.config.maxWarmAgents / 10);
         agents.splice(0, excess);
       }
@@ -637,7 +667,7 @@ export class DynamicAgentSpawner extends EventEmitter {
 
     // Clean up underperforming agents
     this.activeSwarms.forEach((team, swarmId) => {
-      team.agents.forEach(agent => {
+      team.agents.forEach((agent) => {
         if (!this.isAgentPerformanceAcceptable(agent)) {
           this.recycleAgent(agent.id, 'poor performance detected');
         }
@@ -651,11 +681,17 @@ export class DynamicAgentSpawner extends EventEmitter {
   }
 
   private analyzeBackendComplexity(requirements: string[]): number {
-    return Math.min(5, requirements.length * 0.4 + (requirements.includes('microservices') ? 2 : 0));
+    return Math.min(
+      5,
+      requirements.length * 0.4 + (requirements.includes('microservices') ? 2 : 0),
+    );
   }
 
   private analyzeDataComplexity(requirements: string[]): number {
-    return Math.min(5, requirements.length * 0.6 + (requirements.includes('complex-queries') ? 1.5 : 0));
+    return Math.min(
+      5,
+      requirements.length * 0.6 + (requirements.includes('complex-queries') ? 1.5 : 0),
+    );
   }
 
   private analyzeIntegrationComplexity(integrations: string[]): number {
@@ -664,19 +700,19 @@ export class DynamicAgentSpawner extends EventEmitter {
 
   private analyzeSecurityRequirements(level: string): number {
     const levels: Record<string, number> = {
-      'basic': 1,
-      'standard': 2,
-      'high': 4,
-      'enterprise': 5
+      basic: 1,
+      standard: 2,
+      high: 4,
+      enterprise: 5,
     };
     return levels[level] || 1;
   }
 
   private analyzePerformanceRequirements(quality: string): number {
     const qualities: Record<string, number> = {
-      'standard': 2,
-      'high': 3,
-      'enterprise': 5
+      standard: 2,
+      high: 3,
+      enterprise: 5,
     };
     return qualities[quality] || 2;
   }
@@ -704,32 +740,35 @@ export class DynamicAgentSpawner extends EventEmitter {
     return 'low';
   }
 
-  private generateDevelopmentPhases(agentTypes: any[], complexity: FeatureComplexityAnalysis): any[] {
+  private generateDevelopmentPhases(
+    agentTypes: any[],
+    complexity: FeatureComplexityAnalysis,
+  ): any[] {
     return [
       {
         name: 'Planning & Architecture',
         agents: ['project-coordinator'],
         duration: Math.ceil(complexity.estimatedDuration * 0.1),
-        dependencies: []
+        dependencies: [],
       },
       {
         name: 'Development',
-        agents: agentTypes.filter(at => at.type.includes('developer')).map(at => at.type),
+        agents: agentTypes.filter((at) => at.type.includes('developer')).map((at) => at.type),
         duration: Math.ceil(complexity.estimatedDuration * 0.6),
-        dependencies: ['Planning & Architecture']
+        dependencies: ['Planning & Architecture'],
       },
       {
         name: 'Testing & QA',
         agents: ['qa-engineer', 'security-tester'],
         duration: Math.ceil(complexity.estimatedDuration * 0.2),
-        dependencies: ['Development']
+        dependencies: ['Development'],
       },
       {
         name: 'Deployment',
         agents: ['devops-engineer'],
         duration: Math.ceil(complexity.estimatedDuration * 0.1),
-        dependencies: ['Testing & QA']
-      }
+        dependencies: ['Testing & QA'],
+      },
     ];
   }
 
@@ -750,7 +789,7 @@ export class DynamicAgentSpawner extends EventEmitter {
       'ui-designer': ['design', 'ux', 'accessibility'],
       'database-developer': ['sql', 'optimization', 'migration'],
       'security-tester': ['security', 'penetration-testing'],
-      'performance-tester': ['performance', 'load-testing']
+      'performance-tester': ['performance', 'load-testing'],
     };
 
     return skillMap[agentType] || ['general'];
@@ -764,9 +803,11 @@ export class DynamicAgentSpawner extends EventEmitter {
   }
 
   private isAgentPerformanceAcceptable(agent: FullStackAgent): boolean {
-    return agent.performance.successRate >= this.config.performanceThresholds.minSuccessRate &&
-           agent.performance.averageTime <= this.config.performanceThresholds.maxAverageTime &&
-           agent.performance.qualityScore >= this.config.performanceThresholds.minQualityScore;
+    return (
+      agent.performance.successRate >= this.config.performanceThresholds.minSuccessRate &&
+      agent.performance.averageTime <= this.config.performanceThresholds.maxAverageTime &&
+      agent.performance.qualityScore >= this.config.performanceThresholds.minQualityScore
+    );
   }
 
   private async scaleUp(team: SwarmTeamComposition, action: any): Promise<SwarmTeamComposition> {
@@ -781,23 +822,26 @@ export class DynamicAgentSpawner extends EventEmitter {
 
     return {
       ...team,
-      agents: [...team.agents, ...newAgents]
+      agents: [...team.agents, ...newAgents],
     };
   }
 
   private async scaleDown(team: SwarmTeamComposition, action: any): Promise<SwarmTeamComposition> {
     if (action.removeAgentIds) {
-      const remainingAgents = team.agents.filter(a => !action.removeAgentIds.includes(a.id));
+      const remainingAgents = team.agents.filter((a) => !action.removeAgentIds.includes(a.id));
       return {
         ...team,
-        agents: remainingAgents
+        agents: remainingAgents,
       };
     }
 
     return team;
   }
 
-  private async rebalanceTeam(team: SwarmTeamComposition, action: any): Promise<SwarmTeamComposition> {
+  private async rebalanceTeam(
+    team: SwarmTeamComposition,
+    action: any,
+  ): Promise<SwarmTeamComposition> {
     // Rebalancing logic would go here
     return team;
   }
@@ -813,7 +857,10 @@ export class DynamicAgentSpawner extends EventEmitter {
   }
 
   private calculatePoolUtilization(): number {
-    const totalWarmAgents = Array.from(this.warmPool.values()).reduce((sum, agents) => sum + agents.length, 0);
+    const totalWarmAgents = Array.from(this.warmPool.values()).reduce(
+      (sum, agents) => sum + agents.length,
+      0,
+    );
     const maxWarmAgents = this.config.maxWarmAgents;
     return totalWarmAgents / maxWarmAgents;
   }

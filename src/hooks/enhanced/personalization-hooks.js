@@ -14,9 +14,9 @@ class PersonalizationHooks {
       workflowPreferences: {
         autoFormat: true,
         showHints: true,
-        detailedLogs: true
+        detailedLogs: true,
       },
-      ...userPreferences
+      ...userPreferences,
     };
   }
 
@@ -28,7 +28,7 @@ class PersonalizationHooks {
       verbosity: this.userPreferences.verbosity,
       experienceLevel: this.userPreferences.experienceLevel,
       languages: this.userPreferences.preferredLanguages,
-      workflow: this.userPreferences.workflowPreferences
+      workflow: this.userPreferences.workflowPreferences,
     };
   }
 
@@ -42,7 +42,7 @@ class PersonalizationHooks {
       ...config,
       contextual: true,
       adapted: true,
-      context
+      context,
     };
   }
 
@@ -57,7 +57,7 @@ class PersonalizationHooks {
       task,
       user,
       personalized: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     switch (level) {
@@ -69,7 +69,7 @@ class PersonalizationHooks {
           showSteps: true,
           examples: ['Example 1', 'Example 2'],
           tips: ['Tip 1', 'Tip 2'],
-          warnings: ['Warning 1']
+          warnings: ['Warning 1'],
         };
 
       case 'expert':
@@ -77,7 +77,7 @@ class PersonalizationHooks {
           ...baseResponse,
           content: `Task: ${task}`,
           verbosity: 'minimal',
-          format: 'summary'
+          format: 'summary',
         };
 
       case 'intermediate':
@@ -86,7 +86,7 @@ class PersonalizationHooks {
           ...baseResponse,
           content: `Task: ${task}. Here are some useful tips to help you succeed.`,
           verbosity: 'balanced',
-          tips: ['Contextual tip']
+          tips: ['Contextual tip'],
         };
     }
   }
@@ -97,7 +97,7 @@ class PersonalizationHooks {
   updatePreferences(newPreferences) {
     this.userPreferences = {
       ...this.userPreferences,
-      ...newPreferences
+      ...newPreferences,
     };
   }
 
@@ -109,7 +109,8 @@ class PersonalizationHooks {
       experienceLevel: this.userPreferences.experienceLevel,
       verbosity: this.userPreferences.verbosity,
       languageCount: this.userPreferences.preferredLanguages.length,
-      workflowEnabled: Object.values(this.userPreferences.workflowPreferences).filter(Boolean).length
+      workflowEnabled: Object.values(this.userPreferences.workflowPreferences).filter(Boolean)
+        .length,
     };
   }
 }

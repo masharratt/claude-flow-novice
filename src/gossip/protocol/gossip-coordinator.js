@@ -22,14 +22,14 @@ class GossipCoordinator extends EventEmitter {
       rumorLifetime: options.rumorLifetime || 30000,
       antiEntropyInterval: options.antiEntropyInterval || 5000,
       maxRetransmissions: options.maxRetransmissions || 3,
-      ...options.config
+      ...options.config,
     };
 
     this.isRunning = false;
     this.intervals = {
       gossip: null,
       antiEntropy: null,
-      cleanup: null
+      cleanup: null,
     };
 
     // Initialize vector clock for this node
@@ -73,7 +73,7 @@ class GossipCoordinator extends EventEmitter {
 
     this.isRunning = false;
 
-    Object.values(this.intervals).forEach(interval => {
+    Object.values(this.intervals).forEach((interval) => {
       if (interval) clearInterval(interval);
     });
 
@@ -94,7 +94,7 @@ class GossipCoordinator extends EventEmitter {
       endpoint,
       lastSeen: Date.now(),
       failureCount: 0,
-      isActive: true
+      isActive: true,
     });
 
     // Initialize vector clock entry for new peer
@@ -132,7 +132,7 @@ class GossipCoordinator extends EventEmitter {
       sourceNode: this.nodeId,
       timestamp,
       vectorClock: new Map(this.vectorClock),
-      ttl: this.config.maxRetransmissions
+      ttl: this.config.maxRetransmissions,
     };
 
     // Store as rumor for tracking
@@ -140,7 +140,7 @@ class GossipCoordinator extends EventEmitter {
       message,
       created: Date.now(),
       spread: new Set([this.nodeId]),
-      retransmissions: 0
+      retransmissions: 0,
     });
 
     // Immediately push to selected peers
@@ -158,7 +158,7 @@ class GossipCoordinator extends EventEmitter {
   async performGossipRound() {
     if (this.peers.size === 0) return;
 
-    const activePeers = Array.from(this.peers.values()).filter(p => p.isActive);
+    const activePeers = Array.from(this.peers.values()).filter((p) => p.isActive);
     if (activePeers.length === 0) return;
 
     // Select random peers for gossip (fanout)
@@ -174,7 +174,7 @@ class GossipCoordinator extends EventEmitter {
             type: 'push_gossip',
             rumors: recentRumors,
             vectorClock: new Map(this.vectorClock),
-            sourceNode: this.nodeId
+            sourceNode: this.nodeId,
           });
         } catch (error) {
           this.handlePeerFailure(peer.nodeId, error);
@@ -189,7 +189,7 @@ class GossipCoordinator extends EventEmitter {
   async performAntiEntropy() {
     if (this.peers.size === 0) return;
 
-    const activePeers = Array.from(this.peers.values()).filter(p => p.isActive);
+    const activePeers = Array.from(this.peers.values()).filter((p) => p.isActive);
     if (activePeers.length === 0) return;
 
     // Select a random peer for anti-entropy
@@ -200,7 +200,7 @@ class GossipCoordinator extends EventEmitter {
         type: 'anti_entropy_request',
         vectorClock: new Map(this.vectorClock),
         stateDigest: this.computeStateDigest(),
-        sourceNode: this.nodeId
+        sourceNode: this.nodeId,
       });
     } catch (error) {
       this.handlePeerFailure(peer.nodeId, error);
@@ -244,7 +244,7 @@ class GossipCoordinator extends EventEmitter {
           message: rumor,
           created: Date.now(),
           spread: new Set([fromPeer]),
-          retransmissions: 0
+          retransmissions: 0,
         });
 
         newRumors.push(rumor);
@@ -256,7 +256,7 @@ class GossipCoordinator extends EventEmitter {
             taskId: rumor.taskId,
             data: rumor.data,
             priority: rumor.priority,
-            source: rumor.sourceNode
+            source: rumor.sourceNode,
           });
         }
       }
@@ -289,7 +289,7 @@ class GossipCoordinator extends EventEmitter {
    * Push gossip to selected peers
    */
   async pushGossip(message) {
-    const activePeers = Array.from(this.peers.values()).filter(p => p.isActive);
+    const activePeers = Array.from(this.peers.values()).filter((p) => p.isActive);
     const selectedPeers = this.selectRandomPeers(activePeers, this.config.fanout);
 
     for (const peer of selectedPeers) {
@@ -298,7 +298,7 @@ class GossipCoordinator extends EventEmitter {
           type: 'push_gossip',
           rumors: [message],
           vectorClock: new Map(this.vectorClock),
-          sourceNode: this.nodeId
+          sourceNode: this.nodeId,
         });
 
         // Track spread
@@ -327,7 +327,7 @@ class GossipCoordinator extends EventEmitter {
       status,
       sourceNode: this.nodeId,
       timestamp,
-      vectorClock: new Map(this.vectorClock)
+      vectorClock: new Map(this.vectorClock),
     };
 
     await this.pushGossip(message);
@@ -446,7 +446,8 @@ class GossipCoordinator extends EventEmitter {
     // In practice, this would use HTTP, TCP, or other protocols
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (Math.random() < 0.95) { // 95% success rate
+        if (Math.random() < 0.95) {
+          // 95% success rate
           resolve();
         } else {
           reject(new Error('Network failure'));
@@ -463,10 +464,10 @@ class GossipCoordinator extends EventEmitter {
       nodeId: this.nodeId,
       isRunning: this.isRunning,
       peers: this.peers.size,
-      activePeers: Array.from(this.peers.values()).filter(p => p.isActive).length,
+      activePeers: Array.from(this.peers.values()).filter((p) => p.isActive).length,
       rumors: this.rumor.size,
       vectorClock: Object.fromEntries(this.vectorClock),
-      config: this.config
+      config: this.config,
     };
   }
 
@@ -475,14 +476,14 @@ class GossipCoordinator extends EventEmitter {
    */
   getConvergenceMetrics() {
     const totalPeers = this.peers.size;
-    const activePeers = Array.from(this.peers.values()).filter(p => p.isActive).length;
+    const activePeers = Array.from(this.peers.values()).filter((p) => p.isActive).length;
     const rumorCoverage = new Map();
 
     for (const [id, rumorInfo] of this.rumor) {
       rumorCoverage.set(id, {
         spread: rumorInfo.spread.size,
         coverage: totalPeers > 0 ? rumorInfo.spread.size / totalPeers : 0,
-        age: Date.now() - rumorInfo.created
+        age: Date.now() - rumorInfo.created,
       });
     }
 
@@ -491,7 +492,7 @@ class GossipCoordinator extends EventEmitter {
       activeNodes: activePeers,
       convergenceRatio: totalPeers > 0 ? activePeers / totalPeers : 0,
       rumorCoverage: Object.fromEntries(rumorCoverage),
-      averageDeliveryTime: this.calculateAverageDeliveryTime()
+      averageDeliveryTime: this.calculateAverageDeliveryTime(),
     };
   }
 

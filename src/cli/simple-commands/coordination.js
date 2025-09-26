@@ -56,7 +56,7 @@ async function swarmInitCommand(subArgs, flags) {
 
   // Check if ruv-swarm is available
   const isAvailable = await checkRuvSwarmAvailable();
-  
+
   if (isAvailable) {
     try {
       console.log(`\n🔄 Initializing real swarm with ruv-swarm...`);
@@ -89,7 +89,7 @@ async function swarmInitCommand(subArgs, flags) {
       isAvailable = false; // Trigger fallback
     }
   }
-  
+
   if (!isAvailable) {
     // Fallback: Initialize coordination without ruv-swarm
     console.log(`\n🔄 Initializing local swarm coordination...`);
@@ -124,7 +124,19 @@ async function agentSpawnCommand(subArgs, flags) {
   const capabilities = options.capabilities || null;
 
   // Validate agent type
-  const validTypes = ['coordinator', 'coder', 'developer', 'researcher', 'analyst', 'analyzer', 'tester', 'architect', 'reviewer', 'optimizer', 'general'];
+  const validTypes = [
+    'coordinator',
+    'coder',
+    'developer',
+    'researcher',
+    'analyst',
+    'analyzer',
+    'tester',
+    'architect',
+    'reviewer',
+    'optimizer',
+    'general',
+  ];
   if (!validTypes.includes(agentType)) {
     printWarning(`⚠️  Unknown agent type '${agentType}'. Using 'general' instead.`);
     agentType = 'general'; // Actually change the type to general

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "skipLibCheck": true,
     "noEmit": false,
-    "outDir": "./dist",
+    "outDir": "../../dist",
     "isolatedModules": false,
     "strict": false,
     "noImplicitAny": false,
@@ -12,10 +12,10 @@
     "allowSyntheticDefaultImports": true
   },
   "include": [
-    "src/cli/simple-cli.ts",
-    "src/cli/simple-cli.js",
-    "src/cli/index.ts",
-    "src/cli/index-remote.ts"
+    "../../src/cli/simple-cli.ts",
+    "../../src/cli/simple-cli.js",
+    "../../src/cli/index.ts",
+    "../../src/cli/index-remote.ts"
   ],
   "exclude": [
     "node_modules",

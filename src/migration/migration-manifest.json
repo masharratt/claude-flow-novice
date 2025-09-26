@@ -145,10 +145,7 @@
       ".claude/BATCHTOOLS_GUIDE.md"
     ],
     "requiredCommands": ["sparc", "claude-flow-help", "claude-flow-memory"],
-    "optionalFiles": [
-      ".claude/PERFORMANCE_BENCHMARKS.md",
-      ".claude/MIGRATION_GUIDE.md"
-    ]
+    "optionalFiles": [".claude/PERFORMANCE_BENCHMARKS.md", ".claude/MIGRATION_GUIDE.md"]
   },
   "rollback": {
     "supportedVersions": ["1.0.0"],

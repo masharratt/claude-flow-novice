@@ -21,7 +21,7 @@ export class ProjectManager {
       name,
       description,
       agents: [],
-      created: new Date()
+      created: new Date(),
     };
 
     this.saveConfig(config);
@@ -71,10 +71,13 @@ export class ProjectManager {
 
     if (config.agents.length > 0) {
       console.log('\\n🤖 Agent Summary:');
-      const statusCounts = config.agents.reduce((acc, agent) => {
-        acc[agent.status] = (acc[agent.status] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const statusCounts = config.agents.reduce(
+        (acc, agent) => {
+          acc[agent.status] = (acc[agent.status] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
 
       Object.entries(statusCounts).forEach(([status, count]) => {
         const emoji = this.getStatusEmoji(status);
@@ -85,11 +88,16 @@ export class ProjectManager {
 
   private getStatusEmoji(status: string): string {
     switch (status) {
-      case 'pending': return '⏳';
-      case 'running': return '🔄';
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      default: return '❓';
+      case 'pending':
+        return '⏳';
+      case 'running':
+        return '🔄';
+      case 'completed':
+        return '✅';
+      case 'failed':
+        return '❌';
+      default:
+        return '❓';
     }
   }
 }

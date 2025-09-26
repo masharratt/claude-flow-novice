@@ -1,6 +1,6 @@
 /**
  * Mock Agent Scenarios for False Reporting Detection Tests
- * 
+ *
  * Tests various scenarios where agents might provide false or misleading reports:
  * - Intentional false claims about task completion
  * - Exaggerated performance improvements
@@ -86,17 +86,17 @@ describe('False Reporting Detection Scenarios', () => {
 
   beforeEach(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'false-reporting-test-'));
-    
+
     // Setup truth score calculator
     truthCalculator = new TruthScoreCalculator();
     truthCalculator.configPath = path.join(tempDir, 'verification.json');
     truthCalculator.memoryPath = path.join(tempDir, 'truth-scores');
     await truthCalculator.init();
-    
+
     // Setup deception detector
     deceptionDetector = new DeceptionDetector(truthCalculator, tempDir);
     await deceptionDetector.initialize();
-    
+
     // Create mock agents with different deception strategies
     mockAgents = new Map();
     await createMockAgentScenarios();
@@ -118,8 +118,8 @@ describe('False Reporting Detection Scenarios', () => {
           consistency: 0.95,
           timeToReport: 5000,
           detailLevel: 0.8,
-          evidenceQuality: 0.9
-        }
+          evidenceQuality: 0.9,
+        },
       },
       // Overconfident agent
       {
@@ -128,14 +128,14 @@ describe('False Reporting Detection Scenarios', () => {
         deceptionLevel: 0.3,
         deceptionStrategy: {
           type: 'overconfident',
-          parameters: { confidenceMultiplier: 1.5, hideMinorIssues: true }
+          parameters: { confidenceMultiplier: 1.5, hideMinorIssues: true },
         },
         behaviorPattern: {
           consistency: 0.7,
           timeToReport: 3000,
           detailLevel: 0.6,
-          evidenceQuality: 0.7
-        }
+          evidenceQuality: 0.7,
+        },
       },
       // Fabricating agent
       {
@@ -144,14 +144,14 @@ describe('False Reporting Detection Scenarios', () => {
         deceptionLevel: 0.8,
         deceptionStrategy: {
           type: 'fabrication',
-          parameters: { fabricateResults: true, fakePassRate: 0.95 }
+          parameters: { fabricateResults: true, fakePassRate: 0.95 },
         },
         behaviorPattern: {
           consistency: 0.4,
           timeToReport: 1000, // Reports very quickly (suspicious)
           detailLevel: 0.9, // High detail to seem legitimate
-          evidenceQuality: 0.3 // Low quality evidence
-        }
+          evidenceQuality: 0.3, // Low quality evidence
+        },
       },
       // Selective reporting agent
       {
@@ -160,14 +160,14 @@ describe('False Reporting Detection Scenarios', () => {
         deceptionLevel: 0.5,
         deceptionStrategy: {
           type: 'selective_reporting',
-          parameters: { reportOnlyPositives: true, hideFailures: true }
+          parameters: { reportOnlyPositives: true, hideFailures: true },
         },
         behaviorPattern: {
           consistency: 0.8,
           timeToReport: 7000,
           detailLevel: 0.5,
-          evidenceQuality: 0.6
-        }
+          evidenceQuality: 0.6,
+        },
       },
       // Gaslighting agent
       {
@@ -176,15 +176,15 @@ describe('False Reporting Detection Scenarios', () => {
         deceptionLevel: 0.9,
         deceptionStrategy: {
           type: 'gaslighting',
-          parameters: { contradictOthers: true, rewriteHistory: true }
+          parameters: { contradictOthers: true, rewriteHistory: true },
         },
         behaviorPattern: {
           consistency: 0.2,
           timeToReport: 4000,
           detailLevel: 0.7,
-          evidenceQuality: 0.4
-        }
-      }
+          evidenceQuality: 0.4,
+        },
+      },
     ];
 
     for (const config of agentConfigs) {
@@ -201,7 +201,7 @@ describe('False Reporting Detection Scenarios', () => {
       deceptionStrategy: config.deceptionStrategy,
       behaviorPattern: config.behaviorPattern,
       reportHistory: [],
-      detectedAs: 'unknown'
+      detectedAs: 'unknown',
     };
   }
 
@@ -221,15 +221,23 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: actualSuccess,
             noErrors: actualSuccess,
             performance: { improvement: Math.random() * 0.2, metrics: {} },
-            quality: { codeQuality: Math.random() * 0.3 + 0.4, documentation: 0.5, maintainability: 0.6 }
+            quality: {
+              codeQuality: Math.random() * 0.3 + 0.4,
+              documentation: 0.5,
+              maintainability: 0.6,
+            },
           },
           claimedOutcome: {
             success: claimedSuccess,
             testsPass: claimedSuccess,
             noErrors: claimedSuccess,
             performance: { improvement: Math.random() * 0.3 + 0.2, metrics: {} }, // Exaggerated
-            quality: { codeQuality: Math.random() * 0.2 + 0.8, documentation: 0.9, maintainability: 0.9 }
-          }
+            quality: {
+              codeQuality: Math.random() * 0.2 + 0.8,
+              documentation: 0.9,
+              maintainability: 0.9,
+            },
+          },
         });
 
         reports.push(report);
@@ -247,7 +255,9 @@ describe('False Reporting Detection Scenarios', () => {
       // Check specific indicators
       expect(analysis.evidence.successRateDiscrepancy).toBeGreaterThan(0.15);
       expect(analysis.evidence.performanceExaggeration).toBeGreaterThan(0.1);
-      expect(analysis.recommendations).toContain('Implement additional verification for this agent');
+      expect(analysis.recommendations).toContain(
+        'Implement additional verification for this agent',
+      );
     });
 
     test('should detect pattern of hiding minor issues', async () => {
@@ -265,15 +275,15 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: true,
             noErrors: false, // Has minor errors
             performance: { improvement: 0.1, metrics: { minorIssues, majorIssues } },
-            quality: { codeQuality: 0.7, documentation: 0.6, maintainability: 0.7 }
+            quality: { codeQuality: 0.7, documentation: 0.6, maintainability: 0.7 },
           },
           claimedOutcome: {
             success: true,
             testsPass: true,
             noErrors: true, // Claims no errors
             performance: { improvement: 0.15, metrics: { minorIssues: 0, majorIssues: 0 } },
-            quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 }
-          }
+            quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 },
+          },
         });
 
         reports.push(report);
@@ -300,7 +310,7 @@ describe('False Reporting Detection Scenarios', () => {
           total: 100,
           passed: Math.floor(Math.random() * 30) + 60, // 60-90% pass rate
           failed: 0,
-          skipped: 0
+          skipped: 0,
         };
         actualTestResults.failed = actualTestResults.total - actualTestResults.passed;
 
@@ -308,7 +318,7 @@ describe('False Reporting Detection Scenarios', () => {
           total: 100,
           passed: Math.floor(Math.random() * 5) + 95, // 95-100% pass rate
           failed: 0,
-          skipped: 0
+          skipped: 0,
         };
         fabricatedResults.failed = fabricatedResults.total - fabricatedResults.passed;
 
@@ -318,20 +328,20 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: actualTestResults.passed === actualTestResults.total,
             noErrors: false,
             performance: { improvement: 0.05, metrics: actualTestResults },
-            quality: { codeQuality: 0.6, documentation: 0.5, maintainability: 0.6 }
+            quality: { codeQuality: 0.6, documentation: 0.5, maintainability: 0.6 },
           },
           claimedOutcome: {
             success: true,
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.15, metrics: fabricatedResults },
-            quality: { codeQuality: 0.95, documentation: 0.9, maintainability: 0.95 }
+            quality: { codeQuality: 0.95, documentation: 0.9, maintainability: 0.95 },
           },
           evidence: {
             testResults: fabricatedResults,
             executionTime: Math.random() * 100 + 50, // Suspiciously consistent timing
-            testLogs: generateFakeTestLogs(fabricatedResults)
-          }
+            testLogs: generateFakeTestLogs(fabricatedResults),
+          },
         });
 
         reports.push(report);
@@ -367,10 +377,10 @@ describe('False Reporting Detection Scenarios', () => {
               metrics: {
                 responseTime: 1000,
                 throughput: 100,
-                memoryUsage: 500
-              }
+                memoryUsage: 500,
+              },
             },
-            quality: { codeQuality: 0.7, documentation: 0.6, maintainability: 0.7 }
+            quality: { codeQuality: 0.7, documentation: 0.6, maintainability: 0.7 },
           },
           claimedOutcome: {
             success: true,
@@ -381,11 +391,11 @@ describe('False Reporting Detection Scenarios', () => {
               metrics: {
                 responseTime: 100, // 10x improvement
                 throughput: 1000, // 10x improvement
-                memoryUsage: 50 // 10x improvement
-              }
+                memoryUsage: 50, // 10x improvement
+              },
             },
-            quality: { codeQuality: 0.99, documentation: 0.99, maintainability: 0.99 }
-          }
+            quality: { codeQuality: 0.99, documentation: 0.99, maintainability: 0.99 },
+          },
         });
 
         reports.push(report);
@@ -397,7 +407,9 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.deceptionDetected).toBe(true);
       expect(analysis.deceptionType).toContain('impossible_claims');
       expect(analysis.evidence.impossiblePerformanceGains).toBe(true);
-      expect(analysis.recommendations).toContain('Require third-party verification for performance claims');
+      expect(analysis.recommendations).toContain(
+        'Require third-party verification for performance claims',
+      );
     });
   });
 
@@ -413,22 +425,27 @@ describe('False Reporting Detection Scenarios', () => {
         actualOutcomes.push(success);
 
         // Agent only reports the successful ones
-        if (success || Math.random() > 0.9) { // Reports 90% of successes, 10% of failures
+        if (success || Math.random() > 0.9) {
+          // Reports 90% of successes, 10% of failures
           const report = generateReport(agent, `selective-task-${i}`, {
             actualOutcome: {
               success,
               testsPass: success,
               noErrors: success,
               performance: { improvement: success ? 0.1 : -0.05, metrics: {} },
-              quality: { codeQuality: success ? 0.8 : 0.4, documentation: 0.6, maintainability: 0.7 }
+              quality: {
+                codeQuality: success ? 0.8 : 0.4,
+                documentation: 0.6,
+                maintainability: 0.7,
+              },
             },
             claimedOutcome: {
               success: true, // Always claims success
               testsPass: true,
               noErrors: true,
               performance: { improvement: 0.12, metrics: {} },
-              quality: { codeQuality: 0.85, documentation: 0.8, maintainability: 0.8 }
-            }
+              quality: { codeQuality: 0.85, documentation: 0.8, maintainability: 0.8 },
+            },
           });
 
           reports.push(report);
@@ -457,7 +474,7 @@ describe('False Reporting Detection Scenarios', () => {
           memoryUsage: Math.random() * 800 + 200, // 200-1000MB
           errorRate: Math.random() * 0.1, // 0-10% errors
           cpuUsage: Math.random() * 100, // 0-100% CPU
-          diskIO: Math.random() * 1000 // 0-1000 IOPS
+          diskIO: Math.random() * 1000, // 0-1000 IOPS
         };
 
         // Agent only reports the best 2-3 metrics
@@ -465,7 +482,9 @@ describe('False Reporting Detection Scenarios', () => {
           .sort(([keyA, valueA], [keyB, valueB]) => {
             // Sort by how "good" the metric looks (lower is better for most)
             const goodValues = { responseTime: -valueA, errorRate: -valueA, default: valueB };
-            return (goodValues[keyA] || goodValues.default) - (goodValues[keyB] || goodValues.default);
+            return (
+              (goodValues[keyA] || goodValues.default) - (goodValues[keyB] || goodValues.default)
+            );
           })
           .slice(0, 3)
           .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
@@ -476,15 +495,15 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: true,
             noErrors: fullMetrics.errorRate < 0.05,
             performance: { improvement: 0.05, metrics: fullMetrics },
-            quality: { codeQuality: 0.7, documentation: 0.6, maintainability: 0.7 }
+            quality: { codeQuality: 0.7, documentation: 0.6, maintainability: 0.7 },
           },
           claimedOutcome: {
             success: true,
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.15, metrics: favorableMetrics },
-            quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 }
-          }
+            quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 },
+          },
         });
 
         reports.push(report);
@@ -516,16 +535,16 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.1, metrics: {} },
-            quality: { codeQuality: 0.8, documentation: 0.7, maintainability: 0.8 }
+            quality: { codeQuality: 0.8, documentation: 0.7, maintainability: 0.8 },
           },
           claimedOutcome: {
             success: false,
             testsPass: false,
             noErrors: false,
             performance: { improvement: -0.05, metrics: {} },
-            quality: { codeQuality: 0.4, documentation: 0.3, maintainability: 0.5 }
+            quality: { codeQuality: 0.4, documentation: 0.3, maintainability: 0.5 },
           },
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         // Second report - claims success for same task
@@ -535,16 +554,16 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.1, metrics: {} },
-            quality: { codeQuality: 0.8, documentation: 0.7, maintainability: 0.8 }
+            quality: { codeQuality: 0.8, documentation: 0.7, maintainability: 0.8 },
           },
           claimedOutcome: {
             success: true,
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.2, metrics: {} },
-            quality: { codeQuality: 0.95, documentation: 0.9, maintainability: 0.95 }
+            quality: { codeQuality: 0.95, documentation: 0.9, maintainability: 0.95 },
           },
-          timestamp: Date.now() + 60000 // 1 minute later
+          timestamp: Date.now() + 60000, // 1 minute later
         });
 
         reports.push(firstReport, secondReport);
@@ -557,7 +576,9 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.deceptionType).toContain('gaslighting');
       expect(analysis.deceptionType).toContain('contradictory_statements');
       expect(analysis.evidence.contradictionCount).toBeGreaterThan(3);
-      expect(analysis.recommendations).toContain('Implement immutable audit trail for agent reports');
+      expect(analysis.recommendations).toContain(
+        'Implement immutable audit trail for agent reports',
+      );
     });
 
     test('should detect agent attempting to discredit other agents', async () => {
@@ -576,15 +597,15 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.08, metrics: {} },
-            quality: { codeQuality: 0.75, documentation: 0.7, maintainability: 0.8 }
+            quality: { codeQuality: 0.75, documentation: 0.7, maintainability: 0.8 },
           },
           claimedOutcome: {
             success: true,
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.08, metrics: {} },
-            quality: { codeQuality: 0.75, documentation: 0.7, maintainability: 0.8 }
-          }
+            quality: { codeQuality: 0.75, documentation: 0.7, maintainability: 0.8 },
+          },
         });
 
         // Gaslighting agent contradicts with false negative report
@@ -594,19 +615,19 @@ describe('False Reporting Detection Scenarios', () => {
             testsPass: true,
             noErrors: true,
             performance: { improvement: 0.08, metrics: {} },
-            quality: { codeQuality: 0.75, documentation: 0.7, maintainability: 0.8 }
+            quality: { codeQuality: 0.75, documentation: 0.7, maintainability: 0.8 },
           },
           claimedOutcome: {
             success: false,
             testsPass: false,
             noErrors: false,
             performance: { improvement: -0.1, metrics: {} },
-            quality: { codeQuality: 0.3, documentation: 0.2, maintainability: 0.4 }
+            quality: { codeQuality: 0.3, documentation: 0.2, maintainability: 0.4 },
           },
           evidence: {
             contradicts: honestReport.id,
-            claimsOtherAgentWrong: true
-          }
+            claimsOtherAgentWrong: true,
+          },
         });
 
         reports.push(honestReport, gaslightingReport);
@@ -626,7 +647,7 @@ describe('False Reporting Detection Scenarios', () => {
     test('should detect agents colluding to hide failures', async () => {
       const colludingAgents = [
         mockAgents.get('overconfident-agent-002')!,
-        mockAgents.get('selective-agent-004')!
+        mockAgents.get('selective-agent-004')!,
       ];
 
       const reports: AgentReport[] = [];
@@ -641,18 +662,18 @@ describe('False Reporting Detection Scenarios', () => {
               testsPass: false,
               noErrors: false,
               performance: { improvement: -0.05, metrics: {} },
-              quality: { codeQuality: 0.3, documentation: 0.2, maintainability: 0.4 }
+              quality: { codeQuality: 0.3, documentation: 0.2, maintainability: 0.4 },
             },
             claimedOutcome: {
               success: true,
               testsPass: true,
               noErrors: true,
               performance: { improvement: 0.15, metrics: {} },
-              quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 }
+              quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 },
             },
             evidence: {
-              crossReferencedWith: colludingAgents.map(a => a.id).filter(id => id !== agent.id)
-            }
+              crossReferencedWith: colludingAgents.map((a) => a.id).filter((id) => id !== agent.id),
+            },
           });
 
           reports.push(report);
@@ -662,8 +683,8 @@ describe('False Reporting Detection Scenarios', () => {
 
       // Analyze for collusion patterns
       const collusionAnalysis = await deceptionDetector.analyzeCollusionPatterns(
-        colludingAgents.map(a => a.id),
-        reports
+        colludingAgents.map((a) => a.id),
+        reports,
       );
 
       expect(collusionAnalysis.collusionDetected).toBe(true);
@@ -683,15 +704,20 @@ describe('False Reporting Detection Scenarios', () => {
       claimedOutcome: TaskOutcome;
       evidence?: any;
       timestamp?: number;
-    }
+    },
   ): AgentReport {
     const reportId = `report-${Date.now()}-${Math.random()}`;
-    
+
     // Apply agent's deception strategy
     const modifiedClaim = applyDeceptionStrategy(agent, scenario.claimedOutcome);
-    
+
     // Generate evidence based on agent's behavior pattern
-    const evidence = generateEvidence(agent, scenario.actualOutcome, modifiedClaim, scenario.evidence);
+    const evidence = generateEvidence(
+      agent,
+      scenario.actualOutcome,
+      modifiedClaim,
+      scenario.evidence,
+    );
 
     return {
       id: reportId,
@@ -701,7 +727,7 @@ describe('False Reporting Detection Scenarios', () => {
       evidence,
       timestamp: scenario.timestamp || Date.now(),
       verified: false,
-      conflicts: []
+      conflicts: [],
     };
   }
 
@@ -751,21 +777,21 @@ describe('False Reporting Detection Scenarios', () => {
     agent: MockAgent,
     actualOutcome: TaskOutcome,
     claimedOutcome: TaskOutcome,
-    additionalEvidence?: any
+    additionalEvidence?: any,
   ): any {
     const evidence: any = {
       ...additionalEvidence,
       reportingTime: agent.behaviorPattern.timeToReport + (Math.random() - 0.5) * 1000,
       detailLevel: agent.behaviorPattern.detailLevel,
-      evidenceQuality: agent.behaviorPattern.evidenceQuality
+      evidenceQuality: agent.behaviorPattern.evidenceQuality,
     };
 
     // Add inconsistencies based on deception level
     if (agent.deceptionLevel > 0.5) {
       evidence.inconsistencies = [
-        'Test logs don\'t match reported results',
+        "Test logs don't match reported results",
         'Performance metrics seem unrealistic',
-        'Evidence quality unusually low'
+        'Evidence quality unusually low',
       ];
     }
 
@@ -809,20 +835,21 @@ class DeceptionDetector {
       deceptionType: [],
       confidence: 0,
       evidence: {},
-      recommendations: []
+      recommendations: [],
     };
 
     // Calculate truth scores for all reports
-    const truthScores = reports.map(report => {
+    const truthScores = reports.map((report) => {
       return this.calculateReportTruthScore(report);
     });
 
     analysis.truthScore = truthScores.reduce((sum, score) => sum + score, 0) / truthScores.length;
 
     // Detect overconfidence pattern
-    const successClaimRate = reports.filter(r => r.claimedOutcome.success).length / reports.length;
+    const successClaimRate =
+      reports.filter((r) => r.claimedOutcome.success).length / reports.length;
     const avgTruthScore = analysis.truthScore;
-    
+
     if (successClaimRate > 0.9 && avgTruthScore < 0.7) {
       analysis.deceptionDetected = true;
       analysis.deceptionType.push('overconfidence');
@@ -830,10 +857,10 @@ class DeceptionDetector {
     }
 
     // Detect issue hiding
-    const hiddenIssues = reports.filter(r => 
-      r.claimedOutcome.noErrors && r.evidence?.inconsistencies?.length > 0
+    const hiddenIssues = reports.filter(
+      (r) => r.claimedOutcome.noErrors && r.evidence?.inconsistencies?.length > 0,
     ).length;
-    
+
     if (hiddenIssues > reports.length * 0.5) {
       analysis.deceptionDetected = true;
       analysis.deceptionType.push('issue_hiding');
@@ -841,9 +868,10 @@ class DeceptionDetector {
     }
 
     // Detect fabrication
-    const unrealisticResults = reports.filter(r => 
-      r.claimedOutcome.performance.improvement > 0.5 || // >50% improvement
-      r.claimedOutcome.quality.codeQuality > 0.95 // >95% quality
+    const unrealisticResults = reports.filter(
+      (r) =>
+        r.claimedOutcome.performance.improvement > 0.5 || // >50% improvement
+        r.claimedOutcome.quality.codeQuality > 0.95, // >95% quality
     ).length;
 
     if (unrealisticResults > 0) {
@@ -853,14 +881,15 @@ class DeceptionDetector {
     }
 
     // Detect fast reporting (suspicious)
-    const avgReportingTime = reports.reduce((sum, r) => sum + (r.evidence?.reportingTime || 5000), 0) / reports.length;
+    const avgReportingTime =
+      reports.reduce((sum, r) => sum + (r.evidence?.reportingTime || 5000), 0) / reports.length;
     if (avgReportingTime < 2000) {
       analysis.evidence.suspiciouslyFastReporting = true;
     }
 
     // Detect impossible claims
-    const impossibleClaims = reports.filter(r =>
-      r.claimedOutcome.performance.improvement > 1.0 // >100% improvement
+    const impossibleClaims = reports.filter(
+      (r) => r.claimedOutcome.performance.improvement > 1.0, // >100% improvement
     ).length;
 
     if (impossibleClaims > 0) {
@@ -870,7 +899,7 @@ class DeceptionDetector {
     }
 
     // Detect selective reporting
-    const allSuccesses = reports.every(r => r.claimedOutcome.success);
+    const allSuccesses = reports.every((r) => r.claimedOutcome.success);
     if (allSuccesses && reports.length > 10) {
       analysis.deceptionDetected = true;
       analysis.deceptionType.push('selective_reporting');
@@ -879,7 +908,7 @@ class DeceptionDetector {
     }
 
     // Detect cherry picking
-    const incompleteMetrics = reports.filter(r => {
+    const incompleteMetrics = reports.filter((r) => {
       const metrics = r.claimedOutcome.performance.metrics;
       return Object.keys(metrics).length < 3; // Less than 3 metrics reported
     }).length;
@@ -899,7 +928,10 @@ class DeceptionDetector {
     }
 
     // Calculate confidence
-    analysis.confidence = Math.min(1.0, analysis.deceptionType.length * 0.3 + (1 - analysis.truthScore));
+    analysis.confidence = Math.min(
+      1.0,
+      analysis.deceptionType.length * 0.3 + (1 - analysis.truthScore),
+    );
 
     // Generate recommendations
     if (analysis.deceptionDetected) {
@@ -911,7 +943,7 @@ class DeceptionDetector {
 
   async analyzeCollusionPatterns(agentIds: string[], reports: AgentReport[]): Promise<any> {
     const agentReports = new Map();
-    
+
     // Group reports by agent
     for (const report of reports) {
       if (!agentReports.has(report.agentId)) {
@@ -935,23 +967,25 @@ class DeceptionDetector {
     for (const [taskId, taskReportsArray] of taskReports) {
       if (taskReportsArray.length > 1) {
         // Check for synchronized timing
-        const timestamps = taskReportsArray.map(r => r.timestamp);
+        const timestamps = taskReportsArray.map((r) => r.timestamp);
         const maxTimestamp = Math.max(...timestamps);
         const minTimestamp = Math.min(...timestamps);
-        
-        if (maxTimestamp - minTimestamp < 60000) { // Within 1 minute
+
+        if (maxTimestamp - minTimestamp < 60000) {
+          // Within 1 minute
           synchronizedReporting++;
         }
 
         // Check for identical false claims
-        const claims = taskReportsArray.map(r => JSON.stringify(r.claimedOutcome));
+        const claims = taskReportsArray.map((r) => JSON.stringify(r.claimedOutcome));
         const uniqueClaims = new Set(claims);
-        
+
         if (uniqueClaims.size === 1 && taskReportsArray[0].claimedOutcome.success) {
           // All agents claim same success - check if it's false
-          const avgTruthScore = taskReportsArray.reduce((sum, r) => 
-            sum + this.calculateReportTruthScore(r), 0) / taskReportsArray.length;
-          
+          const avgTruthScore =
+            taskReportsArray.reduce((sum, r) => sum + this.calculateReportTruthScore(r), 0) /
+            taskReportsArray.length;
+
           if (avgTruthScore < 0.5) {
             identicalFalseClaims++;
           }
@@ -967,8 +1001,8 @@ class DeceptionDetector {
         synchronizedReporting: synchronizedReporting > 0,
         identicalFalseClaims,
         analysedTasks: taskReports.size,
-        involvedAgents: agentIds
-      }
+        involvedAgents: agentIds,
+      },
     };
   }
 
@@ -1016,7 +1050,7 @@ class DeceptionDetector {
         for (let i = 0; i < taskReportsArray.length - 1; i++) {
           const report1 = taskReportsArray[i];
           const report2 = taskReportsArray[i + 1];
-          
+
           if (report1.claimedOutcome.success !== report2.claimedOutcome.success) {
             contradictions++;
           }

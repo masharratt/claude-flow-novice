@@ -1,6 +1,6 @@
 /**
  * Verification CLI Integration
- * 
+ *
  * Provides command-line interface integration for the verification system.
  * Ensures compatibility with claude-flow CLI and provides verification commands.
  */
@@ -9,11 +9,14 @@ import { Logger } from '../core/logger.js';
 import { verificationHookManager } from './hooks.js';
 import type { VerificationConfig } from './hooks.js';
 
-const logger = new Logger({
-  level: 'info',
-  format: 'text',
-  destination: 'console'
-}, { prefix: 'VerificationCLI' });
+const logger = new Logger(
+  {
+    level: 'info',
+    format: 'text',
+    destination: 'console',
+  },
+  { prefix: 'VerificationCLI' },
+);
 
 // ===== CLI Command Types =====
 
@@ -50,7 +53,7 @@ export class VerificationCLICommands {
             system: 'Verification System',
             status: 'Active',
             metrics,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
 
           if (args.json) {
@@ -63,7 +66,9 @@ export class VerificationCLICommands {
             console.log(`Passed Checks: ${metrics.totalPassed || 0}`);
             console.log(`Failed Checks: ${metrics.totalFailed || 0}`);
             console.log(`Average Accuracy: ${(metrics.averageAccuracy * 100 || 0).toFixed(1)}%`);
-            console.log(`Average Confidence: ${(metrics.averageConfidence * 100 || 0).toFixed(1)}%`);
+            console.log(
+              `Average Confidence: ${(metrics.averageConfidence * 100 || 0).toFixed(1)}%`,
+            );
             console.log(`Timestamp: ${status.timestamp}`);
           }
 
@@ -78,9 +83,9 @@ export class VerificationCLICommands {
           name: 'json',
           description: 'Output in JSON format',
           type: 'boolean',
-          default: false
-        }
-      ]
+          default: false,
+        },
+      ],
     };
   }
 
@@ -94,7 +99,7 @@ export class VerificationCLICommands {
       async execute(args: any) {
         try {
           const { taskId, type = 'all' } = args;
-          
+
           if (!taskId) {
             throw new Error('Task ID is required for verification checks');
           }
@@ -113,10 +118,10 @@ export class VerificationCLICommands {
               failed: context.state.checksFailed,
               validations: context.state.validationResults,
               tests: context.state.testResults,
-              truth: context.state.truthResults
+              truth: context.state.truthResults,
             },
             metrics: context.metrics,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
 
           if (args.json) {
@@ -146,21 +151,21 @@ export class VerificationCLICommands {
           alias: 't',
           description: 'Task ID to check',
           type: 'string',
-          required: true
+          required: true,
         },
         {
           name: 'type',
           description: 'Type of checks to run (all, pre-task, post-task, integration, truth)',
           type: 'string',
-          default: 'all'
+          default: 'all',
         },
         {
           name: 'json',
           description: 'Output in JSON format',
           type: 'boolean',
-          default: false
-        }
-      ]
+          default: false,
+        },
+      ],
     };
   }
 
@@ -197,21 +202,21 @@ export class VerificationCLICommands {
               if (!key || value === undefined) {
                 throw new Error('Key and value are required for config set');
               }
-              
+
               const configUpdate: any = {};
               const keyPath = key.split('.');
               let current = configUpdate;
-              
+
               for (let i = 0; i < keyPath.length - 1; i++) {
                 current[keyPath[i]] = {};
                 current = current[keyPath[i]];
               }
-              
+
               current[keyPath[keyPath.length - 1]] = value;
-              
+
               verificationHookManager.updateConfig(configUpdate);
               console.log(`✅ Configuration updated: ${key} = ${value}`);
-              
+
               return { key, value, updated: true };
 
             default:
@@ -228,27 +233,27 @@ export class VerificationCLICommands {
           alias: 'a',
           description: 'Action to perform (show, set)',
           type: 'string',
-          default: 'show'
+          default: 'show',
         },
         {
           name: 'key',
           alias: 'k',
           description: 'Configuration key (for set action)',
-          type: 'string'
+          type: 'string',
         },
         {
           name: 'value',
           alias: 'v',
           description: 'Configuration value (for set action)',
-          type: 'string'
+          type: 'string',
         },
         {
           name: 'json',
           description: 'Output in JSON format',
           type: 'boolean',
-          default: false
-        }
-      ]
+          default: false,
+        },
+      ],
     };
   }
 
@@ -262,7 +267,7 @@ export class VerificationCLICommands {
       async execute(args: any) {
         try {
           const { taskId, force = false } = args;
-          
+
           if (!taskId) {
             throw new Error('Task ID is required for validation');
           }
@@ -273,14 +278,17 @@ export class VerificationCLICommands {
           }
 
           if (context.state.phase !== 'complete' && !force) {
-            throw new Error(`Task is not complete (phase: ${context.state.phase}). Use --force to validate anyway.`);
+            throw new Error(
+              `Task is not complete (phase: ${context.state.phase}). Use --force to validate anyway.`,
+            );
           }
 
           // Trigger validation manually
           const validationResults = context.state.validationResults;
-          const accuracy = validationResults.length > 0
-            ? validationResults.reduce((sum, r) => sum + r.accuracy, 0) / validationResults.length
-            : 0;
+          const accuracy =
+            validationResults.length > 0
+              ? validationResults.reduce((sum, r) => sum + r.accuracy, 0) / validationResults.length
+              : 0;
 
           const result = {
             taskId,
@@ -288,7 +296,7 @@ export class VerificationCLICommands {
             accuracy,
             validationResults,
             meetsThreshold: accuracy >= 0.8,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
 
           if (args.json) {
@@ -299,11 +307,13 @@ export class VerificationCLICommands {
             console.log(`Accuracy: ${(accuracy * 100).toFixed(1)}%`);
             console.log(`Meets Threshold: ${result.meetsThreshold ? 'Yes' : 'No'}`);
             console.log(`Validations Run: ${validationResults.length}`);
-            
+
             if (validationResults.length > 0) {
               console.log('\nValidation Details:');
               validationResults.forEach((validation, index) => {
-                console.log(`  ${index + 1}. ${validation.message} (${(validation.accuracy * 100).toFixed(1)}%)`);
+                console.log(
+                  `  ${index + 1}. ${validation.message} (${(validation.accuracy * 100).toFixed(1)}%)`,
+                );
               });
             }
           }
@@ -320,22 +330,22 @@ export class VerificationCLICommands {
           alias: 't',
           description: 'Task ID to validate',
           type: 'string',
-          required: true
+          required: true,
         },
         {
           name: 'force',
           alias: 'f',
           description: 'Force validation even if task is not complete',
           type: 'boolean',
-          default: false
+          default: false,
         },
         {
           name: 'json',
           description: 'Output in JSON format',
           type: 'boolean',
-          default: false
-        }
-      ]
+          default: false,
+        },
+      ],
     };
   }
 
@@ -349,7 +359,7 @@ export class VerificationCLICommands {
       async execute(args: any) {
         try {
           const { maxAge = 24 * 60 * 60 * 1000, force = false } = args; // Default 24 hours
-          
+
           if (!force) {
             console.log(`⚠️  This will cleanup verification data older than ${maxAge}ms`);
             console.log('Use --force to proceed');
@@ -365,8 +375,9 @@ export class VerificationCLICommands {
             maxAge,
             contextsBefore: beforeMetrics.activeContexts || 0,
             contextsAfter: afterMetrics.activeContexts || 0,
-            contextsRemoved: (beforeMetrics.activeContexts || 0) - (afterMetrics.activeContexts || 0),
-            timestamp: new Date().toISOString()
+            contextsRemoved:
+              (beforeMetrics.activeContexts || 0) - (afterMetrics.activeContexts || 0),
+            timestamp: new Date().toISOString(),
           };
 
           if (args.json) {
@@ -392,22 +403,22 @@ export class VerificationCLICommands {
           alias: 'm',
           description: 'Maximum age in milliseconds (default: 24 hours)',
           type: 'number',
-          default: 24 * 60 * 60 * 1000
+          default: 24 * 60 * 60 * 1000,
         },
         {
           name: 'force',
           alias: 'f',
           description: 'Force cleanup without confirmation',
           type: 'boolean',
-          default: false
+          default: false,
         },
         {
           name: 'json',
           description: 'Output in JSON format',
           type: 'boolean',
-          default: false
-        }
-      ]
+          default: false,
+        },
+      ],
     };
   }
 }
@@ -419,7 +430,7 @@ export class VerificationCLICommands {
  */
 export async function initializeVerificationCLI(): Promise<void> {
   logger.info('Initializing verification CLI integration...');
-  
+
   try {
     // Register verification commands with the CLI system
     const commands = [
@@ -427,12 +438,12 @@ export async function initializeVerificationCLI(): Promise<void> {
       VerificationCLICommands.check(),
       VerificationCLICommands.config(),
       VerificationCLICommands.validate(),
-      VerificationCLICommands.cleanup()
+      VerificationCLICommands.cleanup(),
     ];
 
     // Store commands for later registration with CLI framework
     (global as any).verificationCommands = commands;
-    
+
     logger.info(`Registered ${commands.length} verification CLI commands`);
   } catch (error) {
     logger.error('Failed to initialize verification CLI:', error);
@@ -445,11 +456,11 @@ export async function initializeVerificationCLI(): Promise<void> {
  */
 export function createVerificationCommand(commandName: string): VerificationCommand | null {
   const commands = {
-    'status': VerificationCLICommands.status(),
-    'check': VerificationCLICommands.check(),
-    'config': VerificationCLICommands.config(),
-    'validate': VerificationCLICommands.validate(),
-    'cleanup': VerificationCLICommands.cleanup()
+    status: VerificationCLICommands.status(),
+    check: VerificationCLICommands.check(),
+    config: VerificationCLICommands.config(),
+    validate: VerificationCLICommands.validate(),
+    cleanup: VerificationCLICommands.cleanup(),
   };
 
   return commands[commandName as keyof typeof commands] || null;
@@ -461,19 +472,19 @@ export function createVerificationCommand(commandName: string): VerificationComm
 export function integrateWithClaudeFlowCLI(): void {
   // Integration with existing CLI command structure
   // This will be called by the main CLI system
-  
+
   logger.info('Integrating verification commands with claude-flow CLI...');
-  
+
   const hookCommands = {
     'pre-task': async (args: any) => {
       logger.info('Running pre-task verification hook via CLI');
-      
+
       // Create a mock workflow payload for CLI execution
       const mockPayload = {
         workflowId: args.taskId || `cli-task-${Date.now()}`,
-        state: args.context || {}
+        state: args.context || {},
       };
-      
+
       const mockContext = {
         sessionId: args.sessionId || `cli-session-${Date.now()}`,
         timestamp: Date.now(),
@@ -482,46 +493,54 @@ export function integrateWithClaudeFlowCLI(): void {
         memory: {
           namespace: 'cli',
           provider: 'memory',
-          cache: new Map()
+          cache: new Map(),
         },
         neural: {
           modelId: 'default',
-          patterns: { add: () => {}, get: () => undefined, findSimilar: () => [], getByType: () => [], prune: () => {}, export: () => [], import: () => {} },
+          patterns: {
+            add: () => {},
+            get: () => undefined,
+            findSimilar: () => [],
+            getByType: () => [],
+            prune: () => {},
+            export: () => [],
+            import: () => {},
+          },
           training: {
             epoch: 0,
             loss: 0,
             accuracy: 0,
             learningRate: 0.001,
             optimizer: 'adam',
-            checkpoints: []
-          }
+            checkpoints: [],
+          },
         },
         performance: {
           metrics: new Map(),
           bottlenecks: [],
-          optimizations: []
-        }
+          optimizations: [],
+        },
       };
-      
+
       // Execute pre-task verification
       const preTaskHook = verificationHookManager['registerPreTaskHook'] || (() => {});
       return { executed: true, args, timestamp: Date.now() };
     },
-    
+
     'post-task': async (args: any) => {
       logger.info('Running post-task verification hook via CLI');
       return { executed: true, args, timestamp: Date.now() };
     },
-    
-    'validation': async (args: any) => {
+
+    validation: async (args: any) => {
       const command = VerificationCLICommands.validate();
       return await command.execute(args);
-    }
+    },
   };
 
   // Store hook commands for CLI access
   (global as any).verificationHookCommands = hookCommands;
-  
+
   logger.info('Verification CLI integration complete');
 }
 
@@ -530,14 +549,14 @@ export function integrateWithClaudeFlowCLI(): void {
  */
 export async function executeVerificationFromCLI(
   type: 'pre-task' | 'post-task' | 'integration' | 'truth' | 'rollback',
-  args: any
+  args: any,
 ): Promise<any> {
   try {
     logger.info(`Executing ${type} verification from CLI`);
-    
+
     const hookCommands = (global as any).verificationHookCommands || {};
     const command = hookCommands[type];
-    
+
     if (command) {
       return await command(args);
     } else {
@@ -547,7 +566,7 @@ export async function executeVerificationFromCLI(
         case 'post-task':
           const checkCommand = VerificationCLICommands.check();
           return await checkCommand.execute({ ...args, type });
-          
+
         default:
           throw new Error(`Unknown verification type: ${type}`);
       }

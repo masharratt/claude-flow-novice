@@ -9,7 +9,12 @@
  * - Performance optimized with caching
  */
 
-import { configManager, initZeroConfig, AutoDetectionResult, ExperienceLevel } from './config-manager.js';
+import {
+  configManager,
+  initZeroConfig,
+  AutoDetectionResult,
+  ExperienceLevel,
+} from './config-manager.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
@@ -41,7 +46,9 @@ export async function setupZeroConfig(options: ZeroConfigOptions = {}): Promise<
     // Step 1: Initialize with intelligent defaults
     const detection = await initZeroConfig(options.projectPath);
 
-    console.log(`✅ Project detected: ${detection.projectType} (${(detection.confidence * 100).toFixed(1)}% confidence)`);
+    console.log(
+      `✅ Project detected: ${detection.projectType} (${(detection.confidence * 100).toFixed(1)}% confidence)`,
+    );
 
     if (detection.framework) {
       console.log(`📦 Framework: ${detection.framework}`);
@@ -50,7 +57,7 @@ export async function setupZeroConfig(options: ZeroConfigOptions = {}): Promise<
     // Step 2: Display recommendations
     if (detection.recommendations.length > 0) {
       console.log('💡 Recommendations:');
-      detection.recommendations.forEach(rec => console.log(`   • ${rec}`));
+      detection.recommendations.forEach((rec) => console.log(`   • ${rec}`));
     }
 
     // Step 3: Set appropriate experience level if not specified
@@ -67,7 +74,9 @@ export async function setupZeroConfig(options: ZeroConfigOptions = {}): Promise<
 
     if (enabledFeatures.length > 0) {
       console.log('✨ Available features:');
-      enabledFeatures.forEach(feature => console.log(`   • ${feature.replace(/([A-Z])/g, ' $1').toLowerCase()}`));
+      enabledFeatures.forEach((feature) =>
+        console.log(`   • ${feature.replace(/([A-Z])/g, ' $1').toLowerCase()}`),
+      );
     }
 
     // Step 5: Generate next steps
@@ -90,7 +99,6 @@ export async function setupZeroConfig(options: ZeroConfigOptions = {}): Promise<
       recommendations: detection.recommendations,
       nextSteps,
     };
-
   } catch (error) {
     console.error('❌ Setup failed:', error.message);
 
@@ -141,7 +149,9 @@ export async function interactiveSetup(): Promise<SetupResult> {
     });
 
     // Ask about secure credential storage
-    const useSecureStorage = await askYesNo('\nWould you like to set up secure credential storage? (recommended)');
+    const useSecureStorage = await askYesNo(
+      '\nWould you like to set up secure credential storage? (recommended)',
+    );
     if (useSecureStorage) {
       await setupSecureCredentials();
     }
@@ -157,7 +167,6 @@ export async function interactiveSetup(): Promise<SetupResult> {
       recommendations: detection.recommendations,
       nextSteps,
     };
-
   } catch (error) {
     console.error('❌ Interactive setup failed:', error.message);
 
@@ -200,7 +209,6 @@ async function setupSecureCredentials(): Promise<void> {
     } else {
       console.log('✅ Claude API key already configured');
     }
-
   } catch (error) {
     console.warn('⚠️  Could not setup secure credentials:', error.message);
   }
@@ -209,7 +217,10 @@ async function setupSecureCredentials(): Promise<void> {
 /**
  * Generate contextual next steps based on project type and experience level
  */
-function generateNextSteps(detection: AutoDetectionResult, experienceLevel: ExperienceLevel): string[] {
+function generateNextSteps(
+  detection: AutoDetectionResult,
+  experienceLevel: ExperienceLevel,
+): string[] {
   const steps: string[] = [];
 
   // Universal first step
@@ -254,7 +265,9 @@ function generateNextSteps(detection: AutoDetectionResult, experienceLevel: Expe
 
   // Complexity-specific steps
   if (detection.complexity === 'complex') {
-    steps.push('Consider upgrading to intermediate level: "claude-flow config experience intermediate"');
+    steps.push(
+      'Consider upgrading to intermediate level: "claude-flow config experience intermediate"',
+    );
     steps.push('Enable team collaboration: "claude-flow team create <team-name>"');
   }
 
@@ -326,7 +339,6 @@ export async function validateSetup(): Promise<{ valid: boolean; issues: string[
       valid: issues.length === 0,
       issues,
     };
-
   } catch (error) {
     issues.push(`Setup validation failed: ${error.message}`);
     return {
@@ -354,7 +366,6 @@ export async function resetToZeroConfig(): Promise<boolean> {
 
     console.log('✅ Configuration reset to zero-config defaults');
     return true;
-
   } catch (error) {
     console.error('❌ Failed to reset configuration:', error.message);
     return false;
@@ -362,9 +373,4 @@ export async function resetToZeroConfig(): Promise<boolean> {
 }
 
 // Export main functions
-export {
-  setupZeroConfig as default,
-  interactiveSetup,
-  validateSetup,
-  resetToZeroConfig,
-};
+export { setupZeroConfig as default, interactiveSetup, validateSetup, resetToZeroConfig };

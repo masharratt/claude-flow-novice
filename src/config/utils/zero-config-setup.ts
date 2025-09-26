@@ -51,7 +51,9 @@ export class ZeroConfigSetup {
 
       // Step 1: Auto-detect project configuration (fast)
       const autoDetection = await this.configManager.autoInit(projectPath);
-      this.addStep(`Detected ${autoDetection.projectType} project (confidence: ${Math.round(autoDetection.confidence * 100)}%)`);
+      this.addStep(
+        `Detected ${autoDetection.projectType} project (confidence: ${Math.round(autoDetection.confidence * 100)}%)`,
+      );
 
       // Step 2: Set experience level (default to novice for zero-config)
       const experienceLevel = options.experienceLevel || 'novice';
@@ -76,7 +78,7 @@ export class ZeroConfigSetup {
       this.configManager['performanceCache'].set('setup-completed', {
         timestamp: Date.now(),
         projectType: autoDetection.projectType,
-        experienceLevel
+        experienceLevel,
       });
       this.addStep('Initialized performance optimizations');
 
@@ -92,7 +94,7 @@ export class ZeroConfigSetup {
         autoDetection,
         timeElapsed,
         setupSteps: this.setupSteps,
-        warnings: this.warnings
+        warnings: this.warnings,
       };
     } catch (error) {
       const timeElapsed = Date.now() - this.startTime;
@@ -104,11 +106,11 @@ export class ZeroConfigSetup {
           projectType: 'generic',
           complexity: 'simple',
           confidence: 0.5,
-          recommendations: ['Fallback configuration used due to setup error']
+          recommendations: ['Fallback configuration used due to setup error'],
         },
         timeElapsed,
         setupSteps: this.setupSteps,
-        warnings: [...this.warnings, error.message]
+        warnings: [...this.warnings, error.message],
       };
     }
   }
@@ -121,7 +123,7 @@ export class ZeroConfigSetup {
     const configFiles = [
       'claude-flow.config.json',
       '.claude-flow/config.json',
-      'claude-flow.config.js'
+      'claude-flow.config.js',
     ];
 
     for (const configFile of configFiles) {
@@ -143,11 +145,7 @@ export class ZeroConfigSetup {
     const root = projectPath || process.cwd();
 
     // Check for legacy config files
-    const legacyConfigs = [
-      '.claude/config.json',
-      'claude.config.json',
-      '.claude-config.json'
-    ];
+    const legacyConfigs = ['.claude/config.json', 'claude.config.json', '.claude-config.json'];
 
     for (const legacyConfig of legacyConfigs) {
       const legacyPath = path.join(root, legacyConfig);
@@ -245,16 +243,15 @@ export class ZeroConfigSetup {
       execSync('npx claude-flow@alpha hooks --help', {
         stdio: 'ignore',
         cwd: projectPath,
-        timeout: 5000
+        timeout: 5000,
       });
 
       // Initialize hooks for the project
       execSync('npx claude-flow@alpha hooks init --auto', {
         stdio: 'ignore',
         cwd: projectPath,
-        timeout: 5000
+        timeout: 5000,
       });
-
     } catch (error) {
       this.warnings.push('Hooks integration not available - continuing without hooks');
     }
@@ -274,7 +271,9 @@ export async function isSetupRequired(projectPath?: string): Promise<boolean> {
   return await setup.isSetupNeeded(projectPath);
 }
 
-export async function setupWithDefaults(experienceLevel: ExperienceLevel = 'novice'): Promise<SetupResult> {
+export async function setupWithDefaults(
+  experienceLevel: ExperienceLevel = 'novice',
+): Promise<SetupResult> {
   const setup = new ZeroConfigSetup();
   return await setup.setup({ experienceLevel, skipInteractive: true });
 }

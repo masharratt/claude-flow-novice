@@ -1,15 +1,15 @@
 /**
  * DEPRECATED: Use github-cli-safety-wrapper.js instead
  * This file is maintained for backward compatibility only
- * 
+ *
  * Safe GitHub CLI command execution utilities
  * Prevents shell injection and timeout issues with special characters
  */
 
-import { 
-  GitHubCliSafe, 
-  githubCli, 
-  safeGhCommand as newSafeGhCommand 
+import {
+  GitHubCliSafe,
+  githubCli,
+  safeGhCommand as newSafeGhCommand,
 } from './github-cli-safety-wrapper.js';
 
 /**
@@ -23,7 +23,7 @@ import {
  */
 export async function safeGhCommand(command, target, body, options = {}) {
   console.warn('safeGhCommand is deprecated. Use GitHubCliSafe from github-cli-safety-wrapper.js');
-  
+
   try {
     const result = await newSafeGhCommand(command, target, body, options);
     return result.stdout;
@@ -42,7 +42,7 @@ export async function safeGhCommand(command, target, body, options = {}) {
  */
 function executeWithTimeout(command, args, timeout) {
   console.warn('executeWithTimeout is deprecated. Use GitHubCliSafe.executeWithTimeout instead');
-  
+
   // Forward to new implementation via GitHubCliSafe
   const ghSafe = new GitHubCliSafe({ timeout });
   return ghSafe.executeWithTimeout(command.replace('gh ', ''), args.slice(1), { timeout });
@@ -65,7 +65,7 @@ export const gh = {
     const result = await githubCli.addIssueComment(issue, body, options);
     return result.stdout;
   },
-  
+
   /**
    * @deprecated Use githubCli.addPRComment instead
    * Create PR comment safely
@@ -78,7 +78,7 @@ export const gh = {
     const result = await githubCli.addPRComment(pr, body, options);
     return result.stdout;
   },
-  
+
   /**
    * @deprecated Use githubCli.createIssue instead
    * Create issue safely
@@ -89,7 +89,7 @@ export const gh = {
     const result = await githubCli.createIssue({ title, body, labels, assignees });
     return result.stdout;
   },
-  
+
   /**
    * @deprecated Use githubCli.createPR instead
    * Create PR safely
@@ -99,17 +99,17 @@ export const gh = {
     console.warn('gh.createPR is deprecated. Use githubCli.createPR instead');
     const result = await githubCli.createPR({ title, body, base, head, draft });
     return result.stdout;
-  }
+  },
 };
 
 /**
  * Example usage:
- * 
+ *
  * import { gh } from './github-cli-safe.js';
- * 
+ *
  * // Safe issue comment with special characters
  * await gh.issueComment(123, 'Code: `npm install` and $(echo test)');
- * 
+ *
  * // Safe PR creation with complex body
  * await gh.createPR({
  *   title: 'Fix: Handle special characters',

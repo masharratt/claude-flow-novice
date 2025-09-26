@@ -1,15 +1,12 @@
 /**
  * Verification Security Module - Entry Point
- * 
+ *
  * This module provides a comprehensive security enforcement system
  * for agent truth verification with enterprise-grade security features.
  */
 
 // Main security system
-export { 
-  SecurityEnforcementSystem as default,
-  SecurityEnforcementSystem 
-} from './security';
+export { SecurityEnforcementSystem as default, SecurityEnforcementSystem } from './security';
 
 // Individual security components
 export {
@@ -19,7 +16,7 @@ export {
   ByzantineFaultToleranceSystem,
   ThresholdSignatureSystem,
   ZeroKnowledgeProofSystem,
-  CryptographicCore
+  CryptographicCore,
 } from './security';
 
 // Types and interfaces
@@ -31,7 +28,7 @@ export type {
   VerificationRequest,
   VerificationResult,
   AuditEntry,
-  SecurityMetrics
+  SecurityMetrics,
 } from './security';
 
 // Utility functions and constants
@@ -43,7 +40,7 @@ export {
   AuthenticationError,
   ByzantineError,
   CryptographicError,
-  RateLimitError
+  RateLimitError,
 } from './types';
 
 /**
@@ -61,16 +58,16 @@ export function createSecuritySystem(config?: {
 }): SecurityEnforcementSystem {
   const totalNodes = config?.totalNodes || 5;
   const threshold = config?.threshold || Math.floor((totalNodes * 2) / 3) + 1;
-  
+
   const securitySystem = new SecurityEnforcementSystem(totalNodes, threshold);
-  
+
   // Configure rate limits if provided
   if (config?.rateLimits) {
     // This would be implemented as a method on SecurityEnforcementSystem
     // For now, it's a placeholder for future implementation
     console.log('Custom rate limits configured:', config.rateLimits);
   }
-  
+
   return securitySystem;
 }
 
@@ -85,8 +82,8 @@ export function createDevelopmentSecuritySystem(): SecurityEnforcementSystem {
       perSecond: 100,
       perMinute: 1000,
       perHour: 10000,
-      perDay: 100000
-    }
+      perDay: 100000,
+    },
   });
 }
 
@@ -101,8 +98,8 @@ export function createProductionSecuritySystem(): SecurityEnforcementSystem {
       perSecond: 10,
       perMinute: 100,
       perHour: 1000,
-      perDay: 10000
-    }
+      perDay: 10000,
+    },
   });
 }
 
@@ -117,7 +114,7 @@ export function createHighSecuritySystem(): SecurityEnforcementSystem {
       perSecond: 5,
       perMinute: 50,
       perHour: 500,
-      perDay: 5000
-    }
+      perDay: 5000,
+    },
   });
 }

@@ -10,7 +10,7 @@ import {
   PullRequest,
   Issue,
   WorkflowRun,
-  Release
+  Release,
 } from '../types';
 import { GitHubIntegrationManager } from '../core/github-integration-manager';
 import { GitHubCollaborationManager } from '../core/github-collaboration-manager';
@@ -18,7 +18,7 @@ import { GitHubReleaseCoordinator } from '../core/github-release-coordinator';
 import {
   getLegacyMapping,
   getLegacyMethodMapping,
-  getMigrationSuggestions
+  getMigrationSuggestions,
 } from './legacy-agent-mappings';
 
 export class LegacyGitHubAgentProxy {
@@ -32,8 +32,14 @@ export class LegacyGitHubAgentProxy {
     this.legacyType = legacyType;
 
     // Initialize consolidated agents
-    this.integrationManager = new GitHubIntegrationManager(config, `legacy-${legacyType}-integration`);
-    this.collaborationManager = new GitHubCollaborationManager(config, `legacy-${legacyType}-collaboration`);
+    this.integrationManager = new GitHubIntegrationManager(
+      config,
+      `legacy-${legacyType}-integration`,
+    );
+    this.collaborationManager = new GitHubCollaborationManager(
+      config,
+      `legacy-${legacyType}-collaboration`,
+    );
     this.releaseCoordinator = new GitHubReleaseCoordinator(config, `legacy-${legacyType}-release`);
 
     this.logMigrationNotice();
@@ -80,10 +86,17 @@ export class LegacyGitHubAgentProxy {
     head: string,
     base: string,
     body?: string,
-    draft?: boolean
+    draft?: boolean,
   ): Promise<PullRequest> {
     this.logDeprecationWarning('pr_create', 'GitHubCollaborationManager.createPullRequest');
-    return await this.collaborationManager.createPullRequest(repository, title, head, base, body, draft);
+    return await this.collaborationManager.createPullRequest(
+      repository,
+      title,
+      head,
+      base,
+      body,
+      draft,
+    );
   }
 
   /**
@@ -150,7 +163,7 @@ export class LegacyGitHubAgentProxy {
     title: string,
     body?: string,
     labels?: string[],
-    assignees?: string[]
+    assignees?: string[],
   ): Promise<Issue> {
     this.logDeprecationWarning('issue_create', 'GitHubCollaborationManager.createIssue');
     return await this.collaborationManager.createIssue(repository, title, body, labels, assignees);
@@ -187,7 +200,11 @@ export class LegacyGitHubAgentProxy {
   /**
    * @deprecated Use GitHubReleaseCoordinator.createRelease instead
    */
-  async release_create(repository: Repository, tagName: string, options: any = {}): Promise<Release> {
+  async release_create(
+    repository: Repository,
+    tagName: string,
+    options: any = {},
+  ): Promise<Release> {
     this.logDeprecationWarning('release_create', 'GitHubReleaseCoordinator.createRelease');
     return await this.releaseCoordinator.createRelease(repository, tagName, options);
   }
@@ -235,7 +252,7 @@ export class LegacyGitHubAgentProxy {
     repository: Repository,
     workflowId: number,
     ref?: string,
-    inputs?: any
+    inputs?: any,
   ): Promise<any> {
     this.logDeprecationWarning('workflow_trigger', 'GitHubIntegrationManager.triggerWorkflow');
     return await this.integrationManager.triggerWorkflow(repository, workflowId, ref, inputs);
@@ -281,14 +298,21 @@ export class LegacyGitHubAgentProxy {
    * @deprecated Use GitHubReleaseCoordinator.coordinateMultiRepoRelease instead
    */
   async multi_repo_release(coordination: any): Promise<any> {
-    this.logDeprecationWarning('multi_repo_release', 'GitHubReleaseCoordinator.coordinateMultiRepoRelease');
+    this.logDeprecationWarning(
+      'multi_repo_release',
+      'GitHubReleaseCoordinator.coordinateMultiRepoRelease',
+    );
     return await this.releaseCoordinator.coordinateMultiRepoRelease(coordination);
   }
 
   /**
    * @deprecated Use GitHubReleaseCoordinator.syncReleases instead
    */
-  async sync_releases(repositories: Repository[], targetVersion: string, options: any = {}): Promise<any[]> {
+  async sync_releases(
+    repositories: Repository[],
+    targetVersion: string,
+    options: any = {},
+  ): Promise<any[]> {
     this.logDeprecationWarning('sync_releases', 'GitHubReleaseCoordinator.syncReleases');
     return await this.releaseCoordinator.syncReleases(repositories, targetVersion, options);
   }
@@ -300,10 +324,15 @@ export class LegacyGitHubAgentProxy {
     repositories: Repository[],
     environment: string,
     version: string,
-    options: any = {}
+    options: any = {},
   ): Promise<any[]> {
     this.logDeprecationWarning('deploy_trigger', 'GitHubReleaseCoordinator.triggerDeployments');
-    return await this.releaseCoordinator.triggerDeployments(repositories, environment, version, options);
+    return await this.releaseCoordinator.triggerDeployments(
+      repositories,
+      environment,
+      version,
+      options,
+    );
   }
 
   /**
@@ -312,7 +341,7 @@ export class LegacyGitHubAgentProxy {
   async deploy_monitor(
     repositories: Repository[],
     environment: string,
-    timeoutMs?: number
+    timeoutMs?: number,
   ): Promise<any[]> {
     this.logDeprecationWarning('deploy_monitor', 'GitHubReleaseCoordinator.monitorDeployments');
     return await this.releaseCoordinator.monitorDeployments(repositories, environment, timeoutMs);
@@ -326,7 +355,10 @@ export class LegacyGitHubAgentProxy {
    * @deprecated Use GitHubIntegrationManager.executeMultiRepoOperation instead
    */
   async multi_repo_operation(operation: any): Promise<any[]> {
-    this.logDeprecationWarning('multi_repo_operation', 'GitHubIntegrationManager.executeMultiRepoOperation');
+    this.logDeprecationWarning(
+      'multi_repo_operation',
+      'GitHubIntegrationManager.executeMultiRepoOperation',
+    );
     return await this.integrationManager.executeMultiRepoOperation(operation);
   }
 
@@ -334,7 +366,10 @@ export class LegacyGitHubAgentProxy {
    * @deprecated Use GitHubIntegrationManager.syncRepositoryConfigurations instead
    */
   async sync_repo_configs(repositories: Repository[], template: any): Promise<any[]> {
-    this.logDeprecationWarning('sync_repo_configs', 'GitHubIntegrationManager.syncRepositoryConfigurations');
+    this.logDeprecationWarning(
+      'sync_repo_configs',
+      'GitHubIntegrationManager.syncRepositoryConfigurations',
+    );
     return await this.integrationManager.syncRepositoryConfigurations(repositories, template);
   }
 
@@ -346,7 +381,10 @@ export class LegacyGitHubAgentProxy {
    * @deprecated Use GitHubReleaseCoordinator.generateReleaseAnalytics instead
    */
   async analytics_generate(repositories: Repository[], timeframe: any): Promise<any> {
-    this.logDeprecationWarning('analytics_generate', 'GitHubReleaseCoordinator.generateReleaseAnalytics');
+    this.logDeprecationWarning(
+      'analytics_generate',
+      'GitHubReleaseCoordinator.generateReleaseAnalytics',
+    );
     return await this.releaseCoordinator.generateReleaseAnalytics(repositories, timeframe);
   }
 
@@ -361,7 +399,9 @@ export class LegacyGitHubAgentProxy {
     const mapping = getLegacyMethodMapping(methodName);
 
     if (!mapping) {
-      throw new Error(`Legacy method '${methodName}' is not supported. Please check the migration guide.`);
+      throw new Error(
+        `Legacy method '${methodName}' is not supported. Please check the migration guide.`,
+      );
     }
 
     this.logDeprecationWarning(methodName, `${mapping.consolidated_agent} agent method`);
@@ -388,7 +428,9 @@ export class LegacyGitHubAgentProxy {
     // Call the method
     const method = agent[mapping.method_name];
     if (typeof method !== 'function') {
-      throw new Error(`Method '${mapping.method_name}' not found on ${mapping.consolidated_agent} agent`);
+      throw new Error(
+        `Method '${mapping.method_name}' not found on ${mapping.consolidated_agent} agent`,
+      );
     }
 
     return await method.apply(agent, mappedArgs);
@@ -409,8 +451,9 @@ export class LegacyGitHubAgentProxy {
    * Check if a method is supported
    */
   isMethodSupported(methodName: string): boolean {
-    return typeof (this as any)[methodName] === 'function' ||
-           getLegacyMethodMapping(methodName) !== null;
+    return (
+      typeof (this as any)[methodName] === 'function' || getLegacyMethodMapping(methodName) !== null
+    );
   }
 
   /**
@@ -436,7 +479,7 @@ export class LegacyGitHubAgentProxy {
       legacy_agent: this.legacyType,
       integration_metrics: this.integrationManager.getMetrics(),
       collaboration_metrics: this.collaborationManager.getMetrics(),
-      release_metrics: this.releaseCoordinator.getMetrics()
+      release_metrics: this.releaseCoordinator.getMetrics(),
     };
   }
 
@@ -469,7 +512,7 @@ Get migration guide: agent.getMigrationGuide()
     if (this.deprecationWarningsEnabled) {
       console.warn(
         `⚠️  DEPRECATED: ${legacyMethod}() is deprecated. Use ${newMethod} instead. ` +
-        `Call setDeprecationWarnings(false) to disable these warnings.`
+          `Call setDeprecationWarnings(false) to disable these warnings.`,
       );
     }
   }

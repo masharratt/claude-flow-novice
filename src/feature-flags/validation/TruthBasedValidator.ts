@@ -66,14 +66,14 @@ export class TruthBasedValidator extends EventEmitter {
       this.emit('validation_completed', {
         taskId: task.id,
         result,
-        method: 'truth-based'
+        method: 'truth-based',
       });
 
       return result;
     } catch (error) {
       this.emit('validation_error', {
         taskId: task.id,
-        error: error.message
+        error: error.message,
       });
 
       // Fallback to basic validation on error
@@ -85,13 +85,15 @@ export class TruthBasedValidator extends EventEmitter {
     const validationMethods = await Promise.allSettled([
       this.cryptographicValidation(task),
       this.consensusValidation(task),
-      this.semanticValidation(task)
+      this.semanticValidation(task),
     ]);
 
     const results = validationMethods
-      .filter((result): result is PromiseFulfilledResult<ValidationResult> =>
-        result.status === 'fulfilled')
-      .map(result => result.value);
+      .filter(
+        (result): result is PromiseFulfilledResult<ValidationResult> =>
+          result.status === 'fulfilled',
+      )
+      .map((result) => result.value);
 
     if (results.length === 0) {
       throw new Error('All validation methods failed');
@@ -99,7 +101,7 @@ export class TruthBasedValidator extends EventEmitter {
 
     // Hybrid approach: combine results
     const avgTruthScore = results.reduce((sum, r) => sum + r.truthScore, 0) / results.length;
-    const consensusCount = results.filter(r => r.isValid).length;
+    const consensusCount = results.filter((r) => r.isValid).length;
     const isValid = consensusCount >= Math.ceil(results.length / 2);
 
     return {
@@ -111,19 +113,21 @@ export class TruthBasedValidator extends EventEmitter {
       metadata: {
         validator: 'TruthBasedValidator',
         method: 'hybrid',
-        confidence: avgTruthScore * (consensusCount / results.length)
-      }
+        confidence: avgTruthScore * (consensusCount / results.length),
+      },
     };
   }
 
   private async cryptographicValidation(task: CompletionTask): Promise<ValidationResult> {
     const taskHash = createHash('sha256')
-      .update(JSON.stringify({
-        id: task.id,
-        description: task.description,
-        expectedOutput: task.expectedOutput,
-        actualOutput: task.actualOutput
-      }))
+      .update(
+        JSON.stringify({
+          id: task.id,
+          description: task.description,
+          expectedOutput: task.expectedOutput,
+          actualOutput: task.actualOutput,
+        }),
+      )
       .digest('hex');
 
     const signature = this.generateSignature(task, 1.0);
@@ -141,21 +145,20 @@ export class TruthBasedValidator extends EventEmitter {
       metadata: {
         validator: 'CryptographicValidator',
         method: 'cryptographic',
-        confidence: truthScore
-      }
+        confidence: truthScore,
+      },
     };
   }
 
   private async consensusValidation(task: CompletionTask): Promise<ValidationResult> {
-    const validationPromises = Array.from(this.consensusNodes).map(nodeId =>
-      this.nodeValidation(task, nodeId)
+    const validationPromises = Array.from(this.consensusNodes).map((nodeId) =>
+      this.nodeValidation(task, nodeId),
     );
 
     const nodeResults = await Promise.allSettled(validationPromises);
     const successfulValidations = nodeResults
-      .filter((result): result is PromiseFulfilledResult<boolean> =>
-        result.status === 'fulfilled')
-      .map(result => result.value);
+      .filter((result): result is PromiseFulfilledResult<boolean> => result.status === 'fulfilled')
+      .map((result) => result.value);
 
     const consensusCount = successfulValidations.filter(Boolean).length;
     const totalNodes = successfulValidations.length;
@@ -173,8 +176,8 @@ export class TruthBasedValidator extends EventEmitter {
       metadata: {
         validator: 'ConsensusValidator',
         method: 'consensus',
-        confidence: consensusRatio
-      }
+        confidence: consensusRatio,
+      },
     };
   }
 
@@ -189,7 +192,8 @@ export class TruthBasedValidator extends EventEmitter {
 
     // Simulate validation logic
     const hasExpectedOutput = task.expectedOutput !== undefined;
-    const outputMatches = hasExpectedOutput &&
+    const outputMatches =
+      hasExpectedOutput &&
       JSON.stringify(task.actualOutput) === JSON.stringify(task.expectedOutput);
 
     const descriptionValid = task.description && task.description.length > 0;
@@ -216,8 +220,8 @@ export class TruthBasedValidator extends EventEmitter {
       metadata: {
         validator: 'SemanticValidator',
         method: 'consensus',
-        confidence: truthScore
-      }
+        confidence: truthScore,
+      },
     };
   }
 
@@ -281,7 +285,9 @@ export class TruthBasedValidator extends EventEmitter {
   }
 
   private levenshteinDistance(str1: string, str2: string): number {
-    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+    const matrix = Array(str2.length + 1)
+      .fill(null)
+      .map(() => Array(str1.length + 1).fill(null));
 
     for (let i = 0; i <= str1.length; i += 1) {
       matrix[0][i] = i;
@@ -297,7 +303,7 @@ export class TruthBasedValidator extends EventEmitter {
         matrix[j][i] = Math.min(
           matrix[j][i - 1] + 1,
           matrix[j - 1][i] + 1,
-          matrix[j - 1][i - 1] + indicator
+          matrix[j - 1][i - 1] + indicator,
         );
       }
     }
@@ -318,8 +324,8 @@ export class TruthBasedValidator extends EventEmitter {
       metadata: {
         validator: 'BasicValidator',
         method: 'cryptographic',
-        confidence: truthScore
-      }
+        confidence: truthScore,
+      },
     };
   }
 
@@ -345,24 +351,26 @@ export class TruthBasedValidator extends EventEmitter {
   }
 
   getSystemMetrics() {
-    const totalValidations = Array.from(this.validationHistory.values())
-      .reduce((sum, history) => sum + history.length, 0);
+    const totalValidations = Array.from(this.validationHistory.values()).reduce(
+      (sum, history) => sum + history.length,
+      0,
+    );
 
     const allResults = Array.from(this.validationHistory.values()).flat();
-    const avgTruthScore = allResults.length > 0
-      ? allResults.reduce((sum, r) => sum + r.truthScore, 0) / allResults.length
-      : 0;
+    const avgTruthScore =
+      allResults.length > 0
+        ? allResults.reduce((sum, r) => sum + r.truthScore, 0) / allResults.length
+        : 0;
 
-    const successRate = allResults.length > 0
-      ? allResults.filter(r => r.isValid).length / allResults.length
-      : 0;
+    const successRate =
+      allResults.length > 0 ? allResults.filter((r) => r.isValid).length / allResults.length : 0;
 
     return {
       totalValidations,
       avgTruthScore,
       successRate,
       consensusNodes: this.consensusNodes.size,
-      lastValidation: allResults.length > 0 ? allResults[allResults.length - 1].timestamp : null
+      lastValidation: allResults.length > 0 ? allResults[allResults.length - 1].timestamp : null,
     };
   }
 }

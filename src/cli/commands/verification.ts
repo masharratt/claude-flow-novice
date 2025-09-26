@@ -1,67 +1,70 @@
 /**
  * Verification Commands for Claude Flow CLI
- * 
+ *
  * Provides CLI commands for verification system management and execution.
  * Integrates with the existing claude-flow command structure.
  */
 
 import { Logger } from '../../core/logger.js';
-import { 
+import {
   verificationHookManager,
   VerificationCLICommands,
   createVerificationCommand,
-  executeVerificationFromCLI
+  executeVerificationFromCLI,
 } from '../../verification/index.js';
 
-const logger = new Logger({
-  level: 'info',
-  format: 'text',
-  destination: 'console'
-}, { prefix: 'VerificationCLI' });
+const logger = new Logger(
+  {
+    level: 'info',
+    format: 'text',
+    destination: 'console',
+  },
+  { prefix: 'VerificationCLI' },
+);
 
 /**
  * Main verification command that provides subcommands
  */
 export async function verificationCommand(args: any): Promise<any> {
   const { subcommand = 'status', ...subArgs } = args;
-  
+
   try {
     logger.debug(`Executing verification subcommand: ${subcommand}`);
-    
+
     switch (subcommand) {
       case 'status':
         return await executeStatusCommand(subArgs);
-        
+
       case 'check':
         return await executeCheckCommand(subArgs);
-        
+
       case 'config':
         return await executeConfigCommand(subArgs);
-        
+
       case 'validate':
         return await executeValidateCommand(subArgs);
-        
+
       case 'cleanup':
         return await executeCleanupCommand(subArgs);
-        
+
       case 'pre-task':
         return await executePreTaskCommand(subArgs);
-        
+
       case 'post-task':
         return await executePostTaskCommand(subArgs);
-        
+
       case 'integration':
         return await executeIntegrationCommand(subArgs);
-        
+
       case 'truth':
         return await executeTruthCommand(subArgs);
-        
+
       case 'rollback':
         return await executeRollbackCommand(subArgs);
-        
+
       case 'help':
         return showVerificationHelp();
-        
+
       default:
         throw new Error(`Unknown verification subcommand: ${subcommand}`);
     }
@@ -199,34 +202,34 @@ For more information about a specific subcommand:
  */
 export async function hookCommand(args: any): Promise<any> {
   const { type, ...hookArgs } = args;
-  
+
   try {
     logger.info(`Executing hook command: ${type}`);
-    
+
     switch (type) {
       case 'pre-task':
       case 'pre_task':
         return await executeVerificationFromCLI('pre-task', hookArgs);
-        
+
       case 'post-task':
       case 'post_task':
         return await executeVerificationFromCLI('post-task', hookArgs);
-        
+
       case 'validation':
         const validateCommand = VerificationCLICommands.validate();
         return await validateCommand.execute(hookArgs);
-        
+
       case 'integration':
       case 'integration-test':
         return await executeVerificationFromCLI('integration', hookArgs);
-        
+
       case 'truth':
       case 'truth-telemetry':
         return await executeVerificationFromCLI('truth', hookArgs);
-        
+
       case 'rollback':
         return await executeVerificationFromCLI('rollback', hookArgs);
-        
+
       default:
         throw new Error(`Unknown hook type: ${type}`);
     }
@@ -249,8 +252,8 @@ export const VERIFICATION_COMMANDS = {
         name: 'status',
         description: 'Show verification system status',
         options: {
-          json: { type: 'boolean', description: 'Output in JSON format' }
-        }
+          json: { type: 'boolean', description: 'Output in JSON format' },
+        },
       },
       check: {
         name: 'check',
@@ -258,8 +261,8 @@ export const VERIFICATION_COMMANDS = {
         options: {
           taskId: { type: 'string', required: true, description: 'Task ID to check' },
           type: { type: 'string', description: 'Type of checks to run' },
-          json: { type: 'boolean', description: 'Output in JSON format' }
-        }
+          json: { type: 'boolean', description: 'Output in JSON format' },
+        },
       },
       config: {
         name: 'config',
@@ -268,8 +271,8 @@ export const VERIFICATION_COMMANDS = {
           action: { type: 'string', description: 'Action to perform (show, set)' },
           key: { type: 'string', description: 'Configuration key' },
           value: { type: 'string', description: 'Configuration value' },
-          json: { type: 'boolean', description: 'Output in JSON format' }
-        }
+          json: { type: 'boolean', description: 'Output in JSON format' },
+        },
       },
       validate: {
         name: 'validate',
@@ -277,8 +280,8 @@ export const VERIFICATION_COMMANDS = {
         options: {
           taskId: { type: 'string', required: true, description: 'Task ID to validate' },
           force: { type: 'boolean', description: 'Force validation even if not complete' },
-          json: { type: 'boolean', description: 'Output in JSON format' }
-        }
+          json: { type: 'boolean', description: 'Output in JSON format' },
+        },
       },
       cleanup: {
         name: 'cleanup',
@@ -286,12 +289,12 @@ export const VERIFICATION_COMMANDS = {
         options: {
           maxAge: { type: 'number', description: 'Maximum age in milliseconds' },
           force: { type: 'boolean', description: 'Force cleanup without confirmation' },
-          json: { type: 'boolean', description: 'Output in JSON format' }
-        }
-      }
-    }
+          json: { type: 'boolean', description: 'Output in JSON format' },
+        },
+      },
+    },
   },
-  
+
   hook: {
     name: 'hook',
     description: 'Execute verification hooks directly',
@@ -300,9 +303,9 @@ export const VERIFICATION_COMMANDS = {
       type: { type: 'string', required: true, description: 'Hook type to execute' },
       taskId: { type: 'string', description: 'Task ID for context' },
       sessionId: { type: 'string', description: 'Session ID for context' },
-      json: { type: 'boolean', description: 'Output in JSON format' }
-    }
-  }
+      json: { type: 'boolean', description: 'Output in JSON format' },
+    },
+  },
 };
 
 /**
@@ -318,8 +321,8 @@ export function registerVerificationCommands(commandRegistry: any): void {
       examples: [
         'npx claude-flow verification status',
         'npx claude-flow verification check --taskId task-123',
-        'npx claude-flow verification validate --taskId task-123'
-      ]
+        'npx claude-flow verification validate --taskId task-123',
+      ],
     });
 
     // Register hook command for backward compatibility
@@ -329,8 +332,8 @@ export function registerVerificationCommands(commandRegistry: any): void {
       handler: hookCommand,
       examples: [
         'npx claude-flow hook --type pre-task --taskId task-123',
-        'npx claude-flow hook --type post-task --taskId task-123'
-      ]
+        'npx claude-flow hook --type post-task --taskId task-123',
+      ],
     });
 
     logger.info('Verification commands registered successfully');
@@ -348,6 +351,6 @@ export default {
   register: registerVerificationCommands,
   handlers: {
     verification: verificationCommand,
-    hook: hookCommand
-  }
+    hook: hookCommand,
+  },
 };

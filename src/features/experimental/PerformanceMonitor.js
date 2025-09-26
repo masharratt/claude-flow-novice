@@ -42,28 +42,28 @@ export class PerformanceMonitor {
       // CPU thresholds (percentage)
       cpu: {
         warning: 70,
-        critical: 85
+        critical: 85,
       },
       // Memory thresholds (percentage)
       memory: {
         warning: 75,
-        critical: 90
+        critical: 90,
       },
       // Response time thresholds (milliseconds)
       responseTime: {
         warning: 1000,
-        critical: 5000
+        critical: 5000,
       },
       // Error rate thresholds (percentage)
       errorRate: {
         warning: 5,
-        critical: 15
+        critical: 15,
       },
       // Task completion time thresholds (milliseconds)
       taskDuration: {
-        warning: 30000,  // 30 seconds
-        critical: 120000 // 2 minutes
-      }
+        warning: 30000, // 30 seconds
+        critical: 120000, // 2 minutes
+      },
     };
   }
 
@@ -81,10 +81,10 @@ export class PerformanceMonitor {
         memoryUsage: [],
         taskDurations: [],
         errorCounts: [],
-        responsesTimes: []
+        responsesTimes: [],
       },
       alerts: [],
-      status: 'active'
+      status: 'active',
     };
 
     this.monitoredFeatures.set(featureName, monitoringConfig);
@@ -148,7 +148,7 @@ export class PerformanceMonitor {
     for (const [metric, thresholds] of Object.entries(baseThresholds)) {
       featureThresholds[metric] = {
         warning: Math.round(thresholds.warning * adjustmentFactor),
-        critical: Math.round(thresholds.critical * adjustmentFactor)
+        critical: Math.round(thresholds.critical * adjustmentFactor),
       };
     }
 
@@ -168,7 +168,7 @@ export class PerformanceMonitor {
     const metric = {
       value,
       timestamp,
-      ...metadata
+      ...metadata,
     };
 
     // Store metric
@@ -222,7 +222,7 @@ export class PerformanceMonitor {
       value,
       severity,
       threshold: severity === 'critical' ? thresholds.critical : thresholds.warning,
-      message: `${metricType} for ${featureName} exceeded ${severity} threshold: ${value} (threshold: ${thresholds[severity]})`
+      message: `${metricType} for ${featureName} exceeded ${severity} threshold: ${value} (threshold: ${thresholds[severity]})`,
     };
 
     // Store alert
@@ -280,7 +280,6 @@ export class PerformanceMonitor {
         this.recordMetric(featureName, 'cpuUsage', cpuUsage);
         this.recordMetric(featureName, 'memoryUsage', memoryUsage);
       }
-
     } catch (error) {
       console.error('[PerformanceMonitor] Error collecting system metrics:', error);
     }
@@ -335,7 +334,6 @@ export class PerformanceMonitor {
         }
       });
       resourceObserver.observe({ entryTypes: ['resource'] });
-
     } catch (error) {
       console.warn('[PerformanceMonitor] Performance observers not available:', error.message);
     }
@@ -351,7 +349,7 @@ export class PerformanceMonitor {
     for (const featureName of this.monitoredFeatures.keys()) {
       this.recordMetric(featureName, 'responseTime', responseTime, {
         type: 'navigation',
-        name: entry.name
+        name: entry.name,
       });
     }
   }
@@ -366,7 +364,7 @@ export class PerformanceMonitor {
     for (const featureName of this.monitoredFeatures.keys()) {
       this.recordMetric(featureName, 'resourceLoadTime', loadTime, {
         type: 'resource',
-        name: entry.name
+        name: entry.name,
       });
     }
   }
@@ -388,7 +386,7 @@ export class PerformanceMonitor {
       status: config.status,
       summary: this.calculateMetricsSummary(config.metrics),
       alerts: config.alerts,
-      recommendations: this.generateRecommendations(config)
+      recommendations: this.generateRecommendations(config),
     };
 
     return report;
@@ -405,7 +403,7 @@ export class PerformanceMonitor {
         continue;
       }
 
-      const numericValues = values.map(m => m.value).filter(v => typeof v === 'number');
+      const numericValues = values.map((m) => m.value).filter((v) => typeof v === 'number');
 
       if (numericValues.length > 0) {
         summary[metricType] = {
@@ -413,7 +411,7 @@ export class PerformanceMonitor {
           min: Math.min(...numericValues),
           max: Math.max(...numericValues),
           average: numericValues.reduce((a, b) => a + b, 0) / numericValues.length,
-          latest: numericValues[numericValues.length - 1]
+          latest: numericValues[numericValues.length - 1],
         };
       }
     }
@@ -435,9 +433,10 @@ export class PerformanceMonitor {
         recommendations.push({
           type: 'performance',
           severity: 'warning',
-          message: 'High CPU usage detected. Consider optimizing algorithms or reducing feature complexity.',
+          message:
+            'High CPU usage detected. Consider optimizing algorithms or reducing feature complexity.',
           metric: 'cpu',
-          value: avgCpu
+          value: avgCpu,
         });
       }
     }
@@ -450,9 +449,10 @@ export class PerformanceMonitor {
         recommendations.push({
           type: 'memory',
           severity: 'warning',
-          message: 'High memory usage detected. Consider implementing memory cleanup or reducing data structures.',
+          message:
+            'High memory usage detected. Consider implementing memory cleanup or reducing data structures.',
           metric: 'memory',
-          value: avgMemory
+          value: avgMemory,
         });
       }
     }
@@ -462,9 +462,10 @@ export class PerformanceMonitor {
       recommendations.push({
         type: 'stability',
         severity: 'critical',
-        message: 'Multiple performance alerts detected. Consider disabling this experimental feature.',
+        message:
+          'Multiple performance alerts detected. Consider disabling this experimental feature.',
         metric: 'alerts',
-        value: config.alerts.length
+        value: config.alerts.length,
       });
     }
 
@@ -532,7 +533,7 @@ export class PerformanceMonitor {
       status,
       criticalIssues,
       warnings,
-      monitoredFeatures: features.length
+      monitoredFeatures: features.length,
     };
   }
 

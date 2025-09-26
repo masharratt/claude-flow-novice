@@ -24,7 +24,7 @@ class ContentAuditSystem {
       agentActivity: {},
       fileTypeStats: {},
       hourlyActivity: Array(24).fill(0),
-      dailyActivity: {}
+      dailyActivity: {},
     };
 
     this.sessionId = this.generateSessionId();
@@ -48,7 +48,7 @@ class ContentAuditSystem {
       details: this.sanitizeDetails(details),
       hash: this.generateContentHash(details.content || ''),
       size: this.calculateContentSize(details.content || ''),
-      context: this.extractContext(details)
+      context: this.extractContext(details),
     };
 
     this.auditLog.push(entry);
@@ -74,7 +74,7 @@ class ContentAuditSystem {
       suggestedPath: result.suggestedPath,
       modifications: result.modifications,
       originalLength: content?.length || 0,
-      processedLength: result.content?.length || 0
+      processedLength: result.content?.length || 0,
     });
   }
 
@@ -92,7 +92,7 @@ class ContentAuditSystem {
       context,
       originalLength: message?.length || 0,
       processedLength: processedMessage?.length || 0,
-      toneChanges: this.detectToneChanges(message, processedMessage)
+      toneChanges: this.detectToneChanges(message, processedMessage),
     });
   }
 
@@ -107,7 +107,7 @@ class ContentAuditSystem {
       modifiedItems: results.modified.length,
       errorItems: results.errors.length,
       processingTime: results.processingTime,
-      throughput: results.summary.total / (results.processingTime / 1000)
+      throughput: results.summary.total / (results.processingTime / 1000),
     });
   }
 
@@ -120,7 +120,7 @@ class ContentAuditSystem {
       changes: this.sanitizeConfigChanges(changes),
       user,
       previousConfig: this.getPreviousConfig(section),
-      impact: this.assessConfigImpact(section, changes)
+      impact: this.assessConfigImpact(section, changes),
     });
   }
 
@@ -132,7 +132,7 @@ class ContentAuditSystem {
       ...metrics,
       timestamp: new Date().toISOString(),
       memoryUsage: process.memoryUsage?.() || {},
-      cpuUsage: process.cpuUsage?.() || {}
+      cpuUsage: process.cpuUsage?.() || {},
     });
   }
 
@@ -141,8 +141,8 @@ class ContentAuditSystem {
    */
   generateAuditReport(timeframe = '24h') {
     const cutoffTime = this.getTimeframeCutoff(timeframe);
-    const relevantEntries = this.auditLog.filter(entry =>
-      new Date(entry.timestamp) >= cutoffTime
+    const relevantEntries = this.auditLog.filter(
+      (entry) => new Date(entry.timestamp) >= cutoffTime,
     );
 
     const report = {
@@ -155,7 +155,7 @@ class ContentAuditSystem {
       contentAnalysis: this.analyzeContentPatterns(relevantEntries),
       performanceAnalysis: this.analyzePerformance(relevantEntries),
       recommendations: this.generateRecommendations(relevantEntries),
-      trends: this.analyzeTrends(relevantEntries)
+      trends: this.analyzeTrends(relevantEntries),
     };
 
     this.saveReport(report, timeframe);
@@ -175,7 +175,7 @@ class ContentAuditSystem {
       timeBasedEffectiveness: this.analyzeTimeBasedEffectiveness(),
       contentTypeEffectiveness: this.analyzeContentTypeEffectiveness(),
       falsePositiveRate: this.estimateFalsePositiveRate(),
-      improvementSuggestions: this.generateImprovementSuggestions()
+      improvementSuggestions: this.generateImprovementSuggestions(),
     };
 
     this.logFilterAction('EFFECTIVENESS_ANALYSIS', analysis);
@@ -190,44 +190,34 @@ class ContentAuditSystem {
 
     // Apply filters
     if (query.action) {
-      results = results.filter(entry => entry.action === query.action);
+      results = results.filter((entry) => entry.action === query.action);
     }
 
     if (query.agentType) {
-      results = results.filter(entry =>
-        entry.details.agentType === query.agentType
-      );
+      results = results.filter((entry) => entry.details.agentType === query.agentType);
     }
 
     if (query.timeframe) {
       const cutoff = this.getTimeframeCutoff(query.timeframe);
-      results = results.filter(entry =>
-        new Date(entry.timestamp) >= cutoff
-      );
+      results = results.filter((entry) => new Date(entry.timestamp) >= cutoff);
     }
 
     if (query.blocked !== undefined) {
-      results = results.filter(entry =>
-        (entry.details.allowed === false) === query.blocked
-      );
+      results = results.filter((entry) => (entry.details.allowed === false) === query.blocked);
     }
 
     if (query.modified !== undefined) {
-      results = results.filter(entry =>
-        entry.details.modified === query.modified
-      );
+      results = results.filter((entry) => entry.details.modified === query.modified);
     }
 
     if (query.contentType) {
-      results = results.filter(entry =>
-        this.detectContentType(entry) === query.contentType
-      );
+      results = results.filter((entry) => this.detectContentType(entry) === query.contentType);
     }
 
     if (query.textSearch) {
       const searchTerm = query.textSearch.toLowerCase();
-      results = results.filter(entry =>
-        JSON.stringify(entry.details).toLowerCase().includes(searchTerm)
+      results = results.filter((entry) =>
+        JSON.stringify(entry.details).toLowerCase().includes(searchTerm),
       );
     }
 
@@ -256,7 +246,7 @@ class ContentAuditSystem {
       total: this.auditLog.length,
       filtered: results.length,
       results,
-      query
+      query,
     };
   }
 
@@ -269,7 +259,7 @@ class ContentAuditSystem {
       sessionId: this.sessionId,
       metrics: this.metrics,
       auditLog: options.includeFullLog ? this.auditLog : this.auditLog.slice(-1000),
-      summary: this.generateSummary(this.auditLog)
+      summary: this.generateSummary(this.auditLog),
     };
 
     switch (format) {
@@ -309,7 +299,6 @@ class ContentAuditSystem {
 
       this.flushToFile();
       return { imported: true, entries: this.auditLog.length };
-
     } catch (error) {
       throw new Error(`Import failed: ${error.message}`);
     }
@@ -325,26 +314,26 @@ class ContentAuditSystem {
     return {
       overview: {
         totalEntries: this.metrics.totalEntries,
-        filteredToday: last24h.filter(e => !e.details.allowed).length,
-        modifiedToday: last24h.filter(e => e.details.modified).length,
-        errorRate: this.calculateErrorRate(last24h)
+        filteredToday: last24h.filter((e) => !e.details.allowed).length,
+        modifiedToday: last24h.filter((e) => e.details.modified).length,
+        errorRate: this.calculateErrorRate(last24h),
       },
       trends: {
         hourlyActivity: this.metrics.hourlyActivity,
         dailyActivity: this.getDailyActivityTrend(7),
-        weeklyComparison: this.getWeeklyComparison()
+        weeklyComparison: this.getWeeklyComparison(),
       },
       topStats: {
         blockingReasons: this.getTopBlockingReasons(5),
         activeAgents: this.getTopActiveAgents(5),
-        contentTypes: this.getTopContentTypes(5)
+        contentTypes: this.getTopContentTypes(5),
       },
       performance: {
         avgProcessingTime: this.calculateAvgProcessingTime(last24h),
         throughput: this.calculateThroughput(last24h),
-        efficiency: this.calculateFilterEfficiency(last24h)
+        efficiency: this.calculateFilterEfficiency(last24h),
       },
-      alerts: this.generateAlerts()
+      alerts: this.generateAlerts(),
     };
   }
 
@@ -371,7 +360,7 @@ class ContentAuditSystem {
   flushToFile() {
     try {
       // Append new entries to JSONL file
-      const newEntries = this.auditLog.map(entry => JSON.stringify(entry)).join('\n') + '\n';
+      const newEntries = this.auditLog.map((entry) => JSON.stringify(entry)).join('\n') + '\n';
       appendFileSync(this.logFile, newEntries);
 
       // Update metrics file
@@ -379,7 +368,6 @@ class ContentAuditSystem {
 
       // Clear buffer
       this.auditLog = [];
-
     } catch (error) {
       console.error('Error flushing audit data:', error.message);
     }
@@ -450,7 +438,7 @@ class ContentAuditSystem {
     }
 
     // Remove potential secrets
-    ['password', 'token', 'key', 'secret'].forEach(field => {
+    ['password', 'token', 'key', 'secret'].forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '[REDACTED]';
       }
@@ -489,7 +477,7 @@ class ContentAuditSystem {
       projectType: details.projectType,
       taskType: details.taskType,
       fileExtension: this.extractFileType(details.filePath),
-      contentLength: details.content?.length || 0
+      contentLength: details.content?.length || 0,
     };
   }
 
@@ -524,12 +512,18 @@ class ContentAuditSystem {
 
   detectFormalityChange(original, processed) {
     const contractions = ["can't", "won't", "don't", "isn't", "let's"];
-    const expansions = ["cannot", "will not", "do not", "is not", "let us"];
+    const expansions = ['cannot', 'will not', 'do not', 'is not', 'let us'];
 
-    const originalContractions = contractions.reduce((count, word) =>
-      count + (original.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length, 0);
-    const processedContractions = contractions.reduce((count, word) =>
-      count + (processed.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length, 0);
+    const originalContractions = contractions.reduce(
+      (count, word) =>
+        count + (original.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length,
+      0,
+    );
+    const processedContractions = contractions.reduce(
+      (count, word) =>
+        count + (processed.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length,
+      0,
+    );
 
     if (originalContractions > processedContractions) {
       return 'formalization';
@@ -543,18 +537,23 @@ class ContentAuditSystem {
   getTimeframeCutoff(timeframe) {
     const now = new Date();
     switch (timeframe) {
-      case '1h': return new Date(now - 1 * 60 * 60 * 1000);
-      case '24h': return new Date(now - 24 * 60 * 60 * 1000);
-      case '7d': return new Date(now - 7 * 24 * 60 * 60 * 1000);
-      case '30d': return new Date(now - 30 * 24 * 60 * 60 * 1000);
-      default: return new Date(now - 24 * 60 * 60 * 1000);
+      case '1h':
+        return new Date(now - 1 * 60 * 60 * 1000);
+      case '24h':
+        return new Date(now - 24 * 60 * 60 * 1000);
+      case '7d':
+        return new Date(now - 7 * 24 * 60 * 60 * 1000);
+      case '30d':
+        return new Date(now - 30 * 24 * 60 * 60 * 1000);
+      default:
+        return new Date(now - 24 * 60 * 60 * 1000);
     }
   }
 
   generateSummary(entries) {
     const total = entries.length;
-    const blocked = entries.filter(e => !e.details.allowed).length;
-    const modified = entries.filter(e => e.details.modified).length;
+    const blocked = entries.filter((e) => !e.details.allowed).length;
+    const modified = entries.filter((e) => e.details.modified).length;
 
     return {
       total,
@@ -562,13 +561,13 @@ class ContentAuditSystem {
       modified,
       allowed: total - blocked,
       blockingRate: total > 0 ? (blocked / total) * 100 : 0,
-      modificationRate: total > 0 ? (modified / total) * 100 : 0
+      modificationRate: total > 0 ? (modified / total) * 100 : 0,
     };
   }
 
   getTopBlockingReasons(limit = 5) {
     return Object.entries(this.metrics.blockedReasons)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, limit)
       .map(([reason, count]) => ({ reason, count }));
   }
@@ -587,7 +586,7 @@ class ContentAuditSystem {
       agentActivity: {},
       fileTypeStats: {},
       hourlyActivity: Array(24).fill(0),
-      dailyActivity: {}
+      dailyActivity: {},
     };
   }
 
@@ -598,7 +597,7 @@ class ContentAuditSystem {
     const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
 
     // Clean up old daily activity data
-    Object.keys(this.metrics.dailyActivity).forEach(day => {
+    Object.keys(this.metrics.dailyActivity).forEach((day) => {
       if (new Date(day) < cutoff) {
         delete this.metrics.dailyActivity[day];
       }

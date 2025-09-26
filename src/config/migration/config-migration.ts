@@ -41,7 +41,7 @@ export class ConfigMigration {
       fromVersion: 'unknown',
       toVersion: ConfigMigration.CURRENT_VERSION,
       migratedSettings: [],
-      warnings: []
+      warnings: [],
     };
 
     try {
@@ -155,7 +155,9 @@ export class ConfigMigration {
   /**
    * Migration from v1.0.0 - Basic config structure
    */
-  private static async migrateFromV1(legacyConfig: any): Promise<{config: any, changes: string[], warnings: string[]}> {
+  private static async migrateFromV1(
+    legacyConfig: any,
+  ): Promise<{ config: any; changes: string[]; warnings: string[] }> {
     const changes: string[] = [];
     const warnings: string[] = [];
     const config = { ...legacyConfig };
@@ -207,7 +209,9 @@ export class ConfigMigration {
   /**
    * Migration from v1.1.0 - Added Claude API support
    */
-  private static async migrateFromV1_1(legacyConfig: any): Promise<{config: any, changes: string[], warnings: string[]}> {
+  private static async migrateFromV1_1(
+    legacyConfig: any,
+  ): Promise<{ config: any; changes: string[]; warnings: string[] }> {
     const changes: string[] = [];
     const warnings: string[] = [];
     const config = { ...legacyConfig };
@@ -237,7 +241,9 @@ export class ConfigMigration {
   /**
    * Migration from v1.5.0 - Added neural training and advanced features
    */
-  private static async migrateFromV1_5(legacyConfig: any): Promise<{config: any, changes: string[], warnings: string[]}> {
+  private static async migrateFromV1_5(
+    legacyConfig: any,
+  ): Promise<{ config: any; changes: string[]; warnings: string[] }> {
     const changes: string[] = [];
     const warnings: string[] = [];
     const config = { ...legacyConfig };

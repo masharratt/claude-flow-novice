@@ -45,7 +45,7 @@ export interface SteeringContext {
   examples?: string[];
 }
 
-export type WorkflowPhase = 
+export type WorkflowPhase =
   | 'Requirements Clarification'
   | 'Research & Design'
   | 'Implementation Planning'
@@ -58,7 +58,13 @@ export interface MaestroWorkflowState {
   currentTaskIndex: number;
   status: 'idle' | 'running' | 'paused' | 'completed' | 'failed';
   lastActivity: Date;
-  history: Array<{ phase: WorkflowPhase; status: 'completed' | 'failed' | 'in-progress' | 'approved'; timestamp: Date; output?: any; error?: string }>;
+  history: Array<{
+    phase: WorkflowPhase;
+    status: 'completed' | 'failed' | 'in-progress' | 'approved';
+    timestamp: Date;
+    output?: any;
+    error?: string;
+  }>;
   // Add more state as needed, e.g., for human-in-the-loop gates
 }
 
@@ -96,7 +102,13 @@ export interface AgentHookConfig {
 }
 
 export interface HookTrigger {
-  event: 'file-modified' | 'file-created' | 'file-deleted' | 'git-commit' | 'test-failed' | 'build-failed';
+  event:
+    | 'file-modified'
+    | 'file-created'
+    | 'file-deleted'
+    | 'git-commit'
+    | 'test-failed'
+    | 'build-failed';
   patterns: string[]; // File patterns or other patterns
   debounceMs: number; // Debounce multiple triggers
   batchingEnabled: boolean;

@@ -16,9 +16,11 @@ export class CompletionValidationCLIIntegration {
   constructor(options = {}) {
     this.configManager = options.configManager || new TruthConfigManager();
     this.frameworkDetector = options.frameworkDetector || new FrameworkDetector();
-    this.cliWizard = options.cliWizard || new CompletionValidationCLIWizard({
-      configManager: this.configManager
-    });
+    this.cliWizard =
+      options.cliWizard ||
+      new CompletionValidationCLIWizard({
+        configManager: this.configManager,
+      });
     this.validationFramework = null;
     this.initialized = false;
   }
@@ -46,7 +48,7 @@ export class CompletionValidationCLIIntegration {
       ...existingInfrastructure,
       cliConfiguration: config,
       frameworkDetector: this.frameworkDetector,
-      configManager: this.configManager
+      configManager: this.configManager,
     });
 
     await this.validationFramework.initialize();
@@ -79,16 +81,22 @@ export class CompletionValidationCLIIntegration {
           if (options.verbose) {
             console.log('\n🔧 Integration Details:');
             console.log(`  • Framework: ${setupResult.configuration.framework}`);
-            console.log(`  • Truth Score: ${Math.round(setupResult.configuration.qualityGates.truthScore * 100)}%`);
-            console.log(`  • Test Coverage: ${Math.round(setupResult.configuration.qualityGates.testCoverage * 100)}%`);
-            console.log(`  • Byzantine Consensus: ${setupResult.configuration.validationSettings.byzantineConsensusEnabled ? 'Enabled' : 'Disabled'}`);
+            console.log(
+              `  • Truth Score: ${Math.round(setupResult.configuration.qualityGates.truthScore * 100)}%`,
+            );
+            console.log(
+              `  • Test Coverage: ${Math.round(setupResult.configuration.qualityGates.testCoverage * 100)}%`,
+            );
+            console.log(
+              `  • Byzantine Consensus: ${setupResult.configuration.validationSettings.byzantineConsensusEnabled ? 'Enabled' : 'Disabled'}`,
+            );
           }
 
           return {
             success: true,
             configuration: setupResult.configuration,
             validationFramework: this.validationFramework,
-            integrationTest
+            integrationTest,
           };
         } else {
           throw new Error(`Integration test failed: ${integrationTest.error}`);
@@ -96,13 +104,14 @@ export class CompletionValidationCLIIntegration {
       } else {
         throw new Error(`Setup failed: ${setupResult.error}`);
       }
-
     } catch (error) {
-      console.error(getErrorMessage('setupFailed', { verbose: options.verbose, error: error.message }));
+      console.error(
+        getErrorMessage('setupFailed', { verbose: options.verbose, error: error.message }),
+      );
 
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -136,24 +145,23 @@ export class CompletionValidationCLIIntegration {
           frameworkDetection: {
             detected: detectionResult.detected,
             confidence: detectionResult.confidence,
-            success: detectionResult.confidence > 0.3
+            success: detectionResult.confidence > 0.3,
           },
           configurationLoading: {
             success: config && config.version === '2.0.0',
             framework: config?.framework,
-            qualityGatesConfigured: Object.keys(config?.qualityGates || {}).length > 0
+            qualityGatesConfigured: Object.keys(config?.qualityGates || {}).length > 0,
           },
           validationFramework: frameworkTest,
-          cliWizard: wizardTest
+          cliWizard: wizardTest,
         },
-        error: allTestsPassed ? null : 'Some integration tests failed'
+        error: allTestsPassed ? null : 'Some integration tests failed',
       };
-
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        details: {}
+        details: {},
       };
     }
   }
@@ -173,15 +181,21 @@ export class CompletionValidationCLIIntegration {
         content: 'Test completion content',
         metadata: {
           framework: config.framework,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       // This would normally validate against actual thresholds
       // For testing, we just verify the configuration is accessible
-      const frameworkConfig = this.configManager.getFrameworkConfig(config.framework || 'javascript');
+      const frameworkConfig = this.configManager.getFrameworkConfig(
+        config.framework || 'javascript',
+      );
 
-      if (!frameworkConfig.truthScore || frameworkConfig.truthScore < 0 || frameworkConfig.truthScore > 1) {
+      if (
+        !frameworkConfig.truthScore ||
+        frameworkConfig.truthScore < 0 ||
+        frameworkConfig.truthScore > 1
+      ) {
         throw new Error('Invalid truth score configuration');
       }
 
@@ -189,13 +203,12 @@ export class CompletionValidationCLIIntegration {
         success: true,
         configurationAccessible: true,
         thresholdsValid: true,
-        frameworkSpecificConfig: !!frameworkConfig
+        frameworkSpecificConfig: !!frameworkConfig,
       };
-
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -206,19 +219,19 @@ export class CompletionValidationCLIIntegration {
       const detectionTest = await this.frameworkDetector.detectFramework();
       const configTest = await this.configManager.testConfiguration();
 
-      const integrationWorking = detectionTest.detected !== 'error' && configTest.configurationValid;
+      const integrationWorking =
+        detectionTest.detected !== 'error' && configTest.configurationValid;
 
       return {
         success: integrationWorking,
         frameworkDetection: detectionTest.detected !== 'error',
         configurationValid: configTest.configurationValid,
-        componentsInitialized: this.initialized
+        componentsInitialized: this.initialized,
       };
-
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -303,11 +316,11 @@ export class CompletionValidationCLIIntegration {
         configManager: false,
         frameworkDetector: false,
         cliWizard: false,
-        validationFramework: false
+        validationFramework: false,
       },
       configuration: null,
       lastTest: null,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -329,7 +342,6 @@ export class CompletionValidationCLIIntegration {
 
       // Run integration test
       status.lastTest = await this.testIntegration();
-
     } catch (error) {
       status.errors.push(error.message);
     }

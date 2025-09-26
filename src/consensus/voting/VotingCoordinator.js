@@ -25,7 +25,7 @@ class VotingCoordinator extends EventEmitter {
       maxRetries: 3,
       signatureAlgorithm: 'sha256',
       byzantineFaultTolerance: true,
-      requireDigitalSignatures: true
+      requireDigitalSignatures: true,
     };
   }
 
@@ -54,7 +54,7 @@ class VotingCoordinator extends EventEmitter {
         participants,
         credentials,
         startTime: Date.now(),
-        status: 'INITIALIZED'
+        status: 'INITIALIZED',
       });
 
       // Notify participants
@@ -63,7 +63,6 @@ class VotingCoordinator extends EventEmitter {
       this.emit('votingInitialized', { votingId, participants: participants.length });
 
       return this.activeVotingSessions.get(votingId);
-
     } catch (error) {
       console.error(`Failed to initialize voting ${votingId}:`, error);
       throw error;
@@ -83,12 +82,12 @@ class VotingCoordinator extends EventEmitter {
         timeout: this.config.defaultTimeout,
         allowAbstention: false,
         requireUnanimity: false,
-        ...config
+        ...config,
       },
       votes: new Map(),
       results: null,
       byzantineNodes: new Set(),
-      validationRules: await this.createValidationRules(subject, config)
+      validationRules: await this.createValidationRules(subject, config),
     };
 
     return votingSession;
@@ -108,11 +107,11 @@ class VotingCoordinator extends EventEmitter {
     const minParticipants = Math.max(4, Math.ceil(reliableMembers.length * 0.8));
     const selectedParticipants = reliableMembers.slice(0, minParticipants);
 
-    return selectedParticipants.map(nodeId => ({
+    return selectedParticipants.map((nodeId) => ({
       nodeId,
       role: this.determineVotingRole(nodeId),
       weight: this.calculateVotingWeight(nodeId),
-      publicKey: this.generatePublicKey(nodeId)
+      publicKey: this.generatePublicKey(nodeId),
     }));
   }
 
@@ -132,8 +131,8 @@ class VotingCoordinator extends EventEmitter {
           canVote: true,
           canPropose: participant.role === 'PROPOSER',
           canValidate: participant.role === 'VALIDATOR',
-          weight: participant.weight
-        }
+          weight: participant.weight,
+        },
       };
 
       credentials.set(participant.nodeId, credential);
@@ -165,15 +164,14 @@ class VotingCoordinator extends EventEmitter {
       const byzantineAnalysis = await this.detectByzantineBehavior(validatedVotes, votingSession);
 
       // Filter out Byzantine votes
-      const legitimateVotes = validatedVotes.filter(vote =>
-        !byzantineAnalysis.byzantineNodes.has(vote.nodeId)
+      const legitimateVotes = validatedVotes.filter(
+        (vote) => !byzantineAnalysis.byzantineNodes.has(vote.nodeId),
       );
 
-      votingSession.votes = new Map(legitimateVotes.map(vote => [vote.nodeId, vote]));
+      votingSession.votes = new Map(legitimateVotes.map((vote) => [vote.nodeId, vote]));
       votingSession.byzantineNodes = byzantineAnalysis.byzantineNodes;
 
       return legitimateVotes;
-
     } catch (error) {
       console.error(`Failed to collect votes for ${votingProcess.id}:`, error);
       throw error;
@@ -186,18 +184,15 @@ class VotingCoordinator extends EventEmitter {
   async collectVotesWithTimeout(votingSession) {
     const votes = [];
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Vote collection timeout')), votingSession.config.timeout)
+      setTimeout(() => reject(new Error('Vote collection timeout')), votingSession.config.timeout),
     );
 
-    const votePromises = votingSession.participants.map(participant =>
-      this.collectVoteFromParticipant(participant, votingSession)
+    const votePromises = votingSession.participants.map((participant) =>
+      this.collectVoteFromParticipant(participant, votingSession),
     );
 
     try {
-      const results = await Promise.race([
-        Promise.allSettled(votePromises),
-        timeoutPromise
-      ]);
+      const results = await Promise.race([Promise.allSettled(votePromises), timeoutPromise]);
 
       // Process successful votes
       for (const result of results) {
@@ -207,7 +202,6 @@ class VotingCoordinator extends EventEmitter {
       }
 
       return votes;
-
     } catch (error) {
       console.warn('Vote collection completed with timeout, processing partial results');
       return votes;
@@ -224,7 +218,7 @@ class VotingCoordinator extends EventEmitter {
         votingId: votingSession.id,
         subject: votingSession.subject,
         participant: participant.nodeId,
-        deadline: Date.now() + votingSession.config.timeout
+        deadline: Date.now() + votingSession.config.timeout,
       };
 
       const vote = await this.requestVoteFromNode(voteRequest);
@@ -236,7 +230,6 @@ class VotingCoordinator extends EventEmitter {
         console.warn(`Invalid vote format from ${participant.nodeId}`);
         return null;
       }
-
     } catch (error) {
       console.error(`Failed to collect vote from ${participant.nodeId}:`, error);
       return null;
@@ -269,17 +262,16 @@ class VotingCoordinator extends EventEmitter {
           validatedVotes.push({
             ...vote,
             validationStatus: 'VALID',
-            validationTime: Date.now()
+            validationTime: Date.now(),
           });
         } else {
           console.warn(`Vote validation failed for ${vote.nodeId}:`, {
             signatureValid,
             contentValid,
             authorizationValid,
-            timingValid
+            timingValid,
           });
         }
-
       } catch (error) {
         console.error(`Vote validation error for ${vote.nodeId}:`, error);
       }
@@ -326,7 +318,7 @@ class VotingCoordinator extends EventEmitter {
       byzantineNodes,
       suspiciousPatterns,
       totalAnalyzedVotes: votes.length,
-      byzantineVoteCount: byzantineNodes.size
+      byzantineVoteCount: byzantineNodes.size,
     };
   }
 
@@ -347,20 +339,19 @@ class VotingCoordinator extends EventEmitter {
       const consensusReached = await this.checkConsensusThreshold(weightedResults, votingSession);
 
       // Select final decision
-      const finalDecision = consensusReached ?
-        this.selectMajorityDecision(weightedResults) :
-        null;
+      const finalDecision = consensusReached ? this.selectMajorityDecision(weightedResults) : null;
 
       const consensusResult = {
         votingId: votingProcess.id,
         consensusReached,
         decision: finalDecision,
         voteDistribution: weightedResults,
-        validVotes: votes.filter(vote => vote.validationStatus === 'VALID').length,
-        byzantineVotes: votes.length - votes.filter(vote => vote.validationStatus === 'VALID').length,
+        validVotes: votes.filter((vote) => vote.validationStatus === 'VALID').length,
+        byzantineVotes:
+          votes.length - votes.filter((vote) => vote.validationStatus === 'VALID').length,
         byzantineNodesDetected: Array.from(votingSession.byzantineNodes),
         consensusStrength: consensusReached ? this.calculateConsensusStrength(weightedResults) : 0,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Store result in session
@@ -370,7 +361,6 @@ class VotingCoordinator extends EventEmitter {
       this.emit('consensusDetermined', consensusResult);
 
       return consensusResult;
-
     } catch (error) {
       console.error(`Failed to determine consensus for ${votingProcess.id}:`, error);
       throw error;
@@ -392,7 +382,7 @@ class VotingCoordinator extends EventEmitter {
           decision,
           votes: [],
           totalWeight: 0,
-          nodeCount: 0
+          nodeCount: 0,
         });
       }
 
@@ -410,15 +400,17 @@ class VotingCoordinator extends EventEmitter {
    */
   async calculateWeightedResults(voteAggregation, votingSession) {
     const results = {};
-    const totalWeight = Array.from(voteAggregation.values())
-      .reduce((sum, group) => sum + group.totalWeight, 0);
+    const totalWeight = Array.from(voteAggregation.values()).reduce(
+      (sum, group) => sum + group.totalWeight,
+      0,
+    );
 
     for (const [decision, group] of voteAggregation) {
       results[decision] = {
         votes: group.nodeCount,
         weight: group.totalWeight,
         percentage: totalWeight > 0 ? (group.totalWeight / totalWeight) * 100 : 0,
-        nodes: group.votes.map(vote => vote.nodeId)
+        nodes: group.votes.map((vote) => vote.nodeId),
       };
     }
 
@@ -438,8 +430,8 @@ class VotingCoordinator extends EventEmitter {
       return decisions.length === 1 && weightedResults[decisions[0]].percentage === 100;
     } else {
       // Check for required majority
-      const maxPercentage = Math.max(...Object.values(weightedResults).map(r => r.percentage));
-      return maxPercentage >= (requiredMajority * 100);
+      const maxPercentage = Math.max(...Object.values(weightedResults).map((r) => r.percentage));
+      return maxPercentage >= requiredMajority * 100;
     }
   }
 
@@ -464,7 +456,7 @@ class VotingCoordinator extends EventEmitter {
    * Calculate consensus strength (confidence metric)
    */
   calculateConsensusStrength(weightedResults) {
-    const maxPercentage = Math.max(...Object.values(weightedResults).map(r => r.percentage));
+    const maxPercentage = Math.max(...Object.values(weightedResults).map((r) => r.percentage));
     const decisions = Object.keys(weightedResults);
 
     // Stronger consensus when:
@@ -480,7 +472,7 @@ class VotingCoordinator extends EventEmitter {
     } else if (decisions.length === 2) {
       const sorted = Object.values(weightedResults).sort((a, b) => b.percentage - a.percentage);
       const margin = sorted[0].percentage - sorted[1].percentage;
-      strength *= (1 + margin / 200); // Bonus for clear margin
+      strength *= 1 + margin / 200; // Bonus for clear margin
     } else {
       strength *= 0.9; // Penalty for many competing decisions
     }
@@ -503,18 +495,20 @@ class VotingCoordinator extends EventEmitter {
       reasoning: `Automated decision: ${randomDecision}`,
       timestamp: Date.now(),
       signature: this.generateVoteSignature(randomDecision, voteRequest.participant),
-      weight: 1
+      weight: 1,
     };
   }
 
   async validateVoteFormat(vote, participant, votingSession) {
     // Validate vote structure and required fields
-    return vote &&
-           vote.votingId === votingSession.id &&
-           vote.nodeId === participant.nodeId &&
-           vote.decision &&
-           vote.signature &&
-           vote.timestamp;
+    return (
+      vote &&
+      vote.votingId === votingSession.id &&
+      vote.nodeId === participant.nodeId &&
+      vote.decision &&
+      vote.signature &&
+      vote.timestamp
+    );
   }
 
   async verifyVoteSignature(vote, votingSession) {
@@ -531,7 +525,7 @@ class VotingCoordinator extends EventEmitter {
 
   async verifyParticipantAuthorization(vote, votingSession) {
     // Verify participant is authorized to vote
-    return votingSession.participants.some(p => p.nodeId === vote.nodeId);
+    return votingSession.participants.some((p) => p.nodeId === vote.nodeId);
   }
 
   async verifyVoteTiming(vote, votingSession) {
@@ -540,7 +534,7 @@ class VotingCoordinator extends EventEmitter {
     const sessionStart = votingSession.startTime;
     const timeout = votingSession.config.timeout;
 
-    return voteTime >= sessionStart && voteTime <= (sessionStart + timeout);
+    return voteTime >= sessionStart && voteTime <= sessionStart + timeout;
   }
 
   generateVotingToken(nodeId) {
@@ -587,7 +581,7 @@ class VotingCoordinator extends EventEmitter {
       requireSignature: config.requireDigitalSignatures !== false,
       allowedDecisions: ['APPROVE', 'REJECT', 'ABSTAIN'],
       maxVotingTime: config.timeout || this.config.defaultTimeout,
-      requiredFields: ['decision', 'timestamp', 'signature']
+      requiredFields: ['decision', 'timestamp', 'signature'],
     };
   }
 
@@ -611,7 +605,7 @@ class VotingCoordinator extends EventEmitter {
           type: 'DOUBLE_VOTING',
           nodeId,
           evidence: nodeVotes,
-          severity: 'HIGH'
+          severity: 'HIGH',
         });
       }
 
@@ -622,7 +616,7 @@ class VotingCoordinator extends EventEmitter {
             type: 'INVALID_SIGNATURE',
             nodeId,
             evidence: vote,
-            severity: 'HIGH'
+            severity: 'HIGH',
           });
         }
       }

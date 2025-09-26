@@ -94,8 +94,8 @@ export class CommandHandlers {
         nextSteps: [
           'Run `claude-flow status` to see your project overview',
           'Use `claude-flow build "your feature idea"` to start developing',
-          'Try `claude-flow help build` to learn about development commands'
-        ]
+          'Try `claude-flow help build` to learn about development commands',
+        ],
       };
     } catch (error) {
       return {
@@ -103,9 +103,9 @@ export class CommandHandlers {
         message: `❌ Initialization failed: ${error instanceof Error ? error.message : String(error)}`,
         suggestions: [
           'Check if you have necessary permissions',
-          'Ensure you\'re in an empty directory',
-          'Try with --skip-git if git is causing issues'
-        ]
+          "Ensure you're in an empty directory",
+          'Try with --skip-git if git is causing issues',
+        ],
       };
     }
   }
@@ -119,7 +119,7 @@ export class CommandHandlers {
 
       this.tierManager.recordCommandUsage('build');
 
-      const feature = options.feature || await this.promptForFeature();
+      const feature = options.feature || (await this.promptForFeature());
 
       if (!feature) {
         return {
@@ -128,8 +128,8 @@ export class CommandHandlers {
           suggestions: [
             'Try: claude-flow build "add user authentication"',
             'Try: claude-flow build "create REST API"',
-            'Use natural language to describe what you want to build'
-          ]
+            'Use natural language to describe what you want to build',
+          ],
         };
       }
 
@@ -143,7 +143,7 @@ export class CommandHandlers {
         return {
           success: true,
           message: '🔍 Dry run completed - showing planned execution',
-          data: analysis
+          data: analysis,
         };
       }
 
@@ -159,8 +159,8 @@ export class CommandHandlers {
         suggestions: [
           'Try describing your feature more clearly',
           'Use --dry-run to see the planned execution',
-          'Check `claude-flow status` for any blocking issues'
-        ]
+          'Check `claude-flow status` for any blocking issues',
+        ],
       };
     }
   }
@@ -180,7 +180,7 @@ export class CommandHandlers {
         return {
           success: true,
           message: 'Status retrieved successfully',
-          data: { projectContext, progress, systemStatus }
+          data: { projectContext, progress, systemStatus },
         };
       }
 
@@ -190,12 +190,12 @@ export class CommandHandlers {
       return {
         success: true,
         message: '📊 Status check completed',
-        nextSteps: this.getStatusNextSteps(progress, systemStatus)
+        nextSteps: this.getStatusNextSteps(progress, systemStatus),
       };
     } catch (error) {
       return {
         success: false,
-        message: `❌ Status check failed: ${error instanceof Error ? error.message : String(error)}`
+        message: `❌ Status check failed: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -224,7 +224,7 @@ export class CommandHandlers {
     } catch (error) {
       return {
         success: false,
-        message: `❌ Help system error: ${error instanceof Error ? error.message : String(error)}`
+        message: `❌ Help system error: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -252,7 +252,7 @@ export class CommandHandlers {
     } catch (error) {
       return {
         success: false,
-        message: `❌ Learning system error: ${error instanceof Error ? error.message : String(error)}`
+        message: `❌ Learning system error: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
   }
@@ -279,21 +279,21 @@ export class CommandHandlers {
 
   private normalizeProjectType(type: string): string {
     const typeMap: Record<string, string> = {
-      'react': 'web',
-      'vue': 'web',
-      'angular': 'web',
-      'frontend': 'web',
-      'backend': 'api',
-      'server': 'api',
-      'rest': 'api',
-      'graphql': 'api',
-      'mobile': 'mobile',
-      'app': 'mobile',
-      'desktop': 'desktop',
-      'electron': 'desktop',
-      'ml': 'ml',
-      'ai': 'ml',
-      'machine-learning': 'ml'
+      react: 'web',
+      vue: 'web',
+      angular: 'web',
+      frontend: 'web',
+      backend: 'api',
+      server: 'api',
+      rest: 'api',
+      graphql: 'api',
+      mobile: 'mobile',
+      app: 'mobile',
+      desktop: 'desktop',
+      electron: 'desktop',
+      ml: 'ml',
+      ai: 'ml',
+      'machine-learning': 'ml',
     };
 
     return typeMap[type.toLowerCase()] || type;
@@ -301,22 +301,8 @@ export class CommandHandlers {
 
   private async createProjectStructure(projectType: string, options: InitOptions): Promise<void> {
     const structures: Record<string, string[]> = {
-      web: [
-        'src/components',
-        'src/pages',
-        'src/styles',
-        'src/utils',
-        'public',
-        'tests'
-      ],
-      api: [
-        'src/routes',
-        'src/models',
-        'src/middleware',
-        'src/services',
-        'src/utils',
-        'tests'
-      ],
+      web: ['src/components', 'src/pages', 'src/styles', 'src/utils', 'public', 'tests'],
+      api: ['src/routes', 'src/models', 'src/middleware', 'src/services', 'src/utils', 'tests'],
       mobile: [
         'src/screens',
         'src/components',
@@ -324,24 +310,10 @@ export class CommandHandlers {
         'src/services',
         'src/utils',
         'assets',
-        'tests'
+        'tests',
       ],
-      desktop: [
-        'src/main',
-        'src/renderer',
-        'src/shared',
-        'assets',
-        'tests'
-      ],
-      ml: [
-        'src/models',
-        'src/data',
-        'src/features',
-        'src/utils',
-        'notebooks',
-        'data',
-        'tests'
-      ]
+      desktop: ['src/main', 'src/renderer', 'src/shared', 'assets', 'tests'],
+      ml: ['src/models', 'src/data', 'src/features', 'src/utils', 'notebooks', 'data', 'tests'],
     };
 
     const dirs = structures[projectType] || structures.web;
@@ -383,7 +355,7 @@ export class CommandHandlers {
       ml: async () => {
         await this.createRequirementsTxt();
         await this.createPyProjectToml();
-      }
+      },
     };
 
     if (configs[projectType]) {
@@ -405,7 +377,7 @@ export class CommandHandlers {
       api: async () => {
         await this.writeFile('src/server.ts', this.getApiStarterCode());
         await this.writeFile('src/routes/health.ts', this.getHealthRouteCode());
-      }
+      },
     };
 
     if (starters[projectType]) {
@@ -418,20 +390,22 @@ export class CommandHandlers {
       web: [
         'Add user authentication with "claude-flow build auth system"',
         'Create responsive design with "claude-flow build responsive layout"',
-        'Set up testing with "claude-flow build test suite"'
+        'Set up testing with "claude-flow build test suite"',
       ],
       api: [
         'Add database integration with "claude-flow build database layer"',
         'Implement JWT authentication with "claude-flow build jwt auth"',
-        'Add API documentation with "claude-flow build api docs"'
-      ]
+        'Add API documentation with "claude-flow build api docs"',
+      ],
     };
 
-    return suggestions[projectType] || [
-      'Start building features with natural language descriptions',
-      'Use "claude-flow status" to monitor your project',
-      'Learn new commands with "claude-flow learn"'
-    ];
+    return (
+      suggestions[projectType] || [
+        'Start building features with natural language descriptions',
+        'Use "claude-flow status" to monitor your project',
+        'Learn new commands with "claude-flow learn"',
+      ]
+    );
   }
 
   private async promptForFeature(): Promise<string> {
@@ -449,7 +423,7 @@ export class CommandHandlers {
     console.log(`   Confidence: ${Math.round(analysis.confidence * 100)}%`);
 
     console.log(`\n🤖 Recommended Agents:`);
-    analysis.recommendedAgents.forEach(agent => {
+    analysis.recommendedAgents.forEach((agent) => {
       console.log(`   • ${agent.type} (${agent.role}) - ${agent.estimatedDuration}`);
       console.log(`     ${agent.reasoning}`);
     });
@@ -461,7 +435,10 @@ export class CommandHandlers {
     });
   }
 
-  private async executeWorkflow(analysis: TaskAnalysis, options: BuildOptions): Promise<CommandResult> {
+  private async executeWorkflow(
+    analysis: TaskAnalysis,
+    options: BuildOptions,
+  ): Promise<CommandResult> {
     try {
       const results = [];
 
@@ -483,10 +460,10 @@ export class CommandHandlers {
         message: '✅ Build completed successfully!',
         data: { analysis, results },
         nextSteps: [
-          'Run tests with your framework\'s test command',
+          "Run tests with your framework's test command",
           'Check the results with `claude-flow status`',
-          'Deploy when ready with `claude-flow learn deployment`'
-        ]
+          'Deploy when ready with `claude-flow learn deployment`',
+        ],
       };
     } catch (error) {
       return {
@@ -495,21 +472,24 @@ export class CommandHandlers {
         suggestions: [
           'Check the logs for specific error details',
           'Try breaking down the task into smaller parts',
-          'Use `claude-flow help build` for guidance'
-        ]
+          'Use `claude-flow help build` for guidance',
+        ],
       };
     }
   }
 
-  private async executeStep(step: any, analysis: TaskAnalysis): Promise<{ success: boolean; message: string }> {
+  private async executeStep(
+    step: any,
+    analysis: TaskAnalysis,
+  ): Promise<{ success: boolean; message: string }> {
     // Placeholder for actual agent execution
     // This would integrate with the MCP system and spawn actual agents
 
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate work
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate work
 
     return {
       success: true,
-      message: `Step ${step.id} completed`
+      message: `Step ${step.id} completed`,
     };
   }
 
@@ -517,20 +497,25 @@ export class CommandHandlers {
     return {
       agents: {
         active: 0,
-        available: this.tierManager.getAvailableCommands().length
+        available: this.tierManager.getAvailableCommands().length,
       },
       memory: {
         usage: '12MB',
-        available: '100MB'
+        available: '100MB',
       },
       performance: {
         avgResponseTime: '1.2s',
-        uptime: '2h 30m'
-      }
+        uptime: '2h 30m',
+      },
     };
   }
 
-  private displayProjectStatus(projectContext: any, progress: any, systemStatus: any, detailed?: boolean): void {
+  private displayProjectStatus(
+    projectContext: any,
+    progress: any,
+    systemStatus: any,
+    detailed?: boolean,
+  ): void {
     console.log('📊 Project Status Dashboard\n');
 
     console.log(`🏗️  Project Type: ${projectContext?.type || 'Unknown'}`);
@@ -584,7 +569,7 @@ export class CommandHandlers {
 
     console.log('🆕 New Features Available\n');
 
-    availableCommands.slice(-3).forEach(cmd => {
+    availableCommands.slice(-3).forEach((cmd) => {
       console.log(`✨ ${cmd.name}`);
       console.log(`   ${cmd.description}`);
       console.log(`   Usage: ${cmd.usage}`);
@@ -597,14 +582,14 @@ export class CommandHandlers {
       nextSteps: [
         'Try the new commands to get familiar',
         'Use `claude-flow help <command>` for detailed help',
-        'Keep using commands to unlock more features'
-      ]
+        'Keep using commands to unlock more features',
+      ],
     };
   }
 
   private showCommandHelp(command: string, options: HelpOptions): CommandResult {
     const commands = this.tierManager.getAvailableCommands();
-    const cmd = commands.find(c => c.name === command);
+    const cmd = commands.find((c) => c.name === command);
 
     if (!cmd) {
       return {
@@ -612,8 +597,8 @@ export class CommandHandlers {
         message: `❌ Command '${command}' not found or not available in your current tier`,
         suggestions: [
           'Use `claude-flow help` to see available commands',
-          'Use `claude-flow learn` to unlock more commands'
-        ]
+          'Use `claude-flow learn` to unlock more commands',
+        ],
       };
     }
 
@@ -625,14 +610,14 @@ export class CommandHandlers {
 
     if (options.examples) {
       console.log(`\nExamples:`);
-      cmd.examples.forEach(example => {
+      cmd.examples.forEach((example) => {
         console.log(`   ${example}`);
       });
     }
 
     return {
       success: true,
-      message: 'Command help displayed'
+      message: 'Command help displayed',
     };
   }
 
@@ -641,7 +626,7 @@ export class CommandHandlers {
     // Implementation would provide interactive menu
     return {
       success: true,
-      message: 'Interactive help completed'
+      message: 'Interactive help completed',
     };
   }
 
@@ -650,10 +635,12 @@ export class CommandHandlers {
     const currentTier = this.tierManager.getCurrentTier();
 
     console.log('🎯 Claude Flow - AI-Powered Development CLI\n');
-    console.log(`Your current tier: ${currentTier.toUpperCase()} (${commands.length} commands available)\n`);
+    console.log(
+      `Your current tier: ${currentTier.toUpperCase()} (${commands.length} commands available)\n`,
+    );
 
     console.log('Available Commands:');
-    commands.forEach(cmd => {
+    commands.forEach((cmd) => {
       console.log(`  ${cmd.name.padEnd(12)} ${cmd.description}`);
     });
 
@@ -666,17 +653,17 @@ export class CommandHandlers {
       nextSteps: [
         'Try `claude-flow init` to start a new project',
         'Use `claude-flow build "your idea"` to develop features',
-        'Run `claude-flow learn` to unlock advanced features'
-      ]
+        'Run `claude-flow learn` to unlock advanced features',
+      ],
     };
   }
 
   private learnSpecificTopic(topic: string, options: LearnOptions): CommandResult {
     const topics: Record<string, () => CommandResult> = {
-      'agents': () => this.learnAgents(),
-      'testing': () => this.learnTesting(),
-      'deployment': () => this.learnDeployment(),
-      'optimization': () => this.learnOptimization()
+      agents: () => this.learnAgents(),
+      testing: () => this.learnTesting(),
+      deployment: () => this.learnDeployment(),
+      optimization: () => this.learnOptimization(),
     };
 
     const learner = topics[topic.toLowerCase()];
@@ -689,8 +676,8 @@ export class CommandHandlers {
       message: `❌ Topic '${topic}' not found`,
       suggestions: [
         'Available topics: agents, testing, deployment, optimization',
-        'Use `claude-flow learn` to see the learning dashboard'
-      ]
+        'Use `claude-flow learn` to see the learning dashboard',
+      ],
     };
   }
 
@@ -707,8 +694,8 @@ export class CommandHandlers {
       message: 'Agent concepts explained',
       nextSteps: [
         'Try `claude-flow build` to see agents in action',
-        'Use `claude-flow status` to monitor agent activity'
-      ]
+        'Use `claude-flow status` to monitor agent activity',
+      ],
     };
   }
 
@@ -721,7 +708,7 @@ export class CommandHandlers {
 
     return {
       success: true,
-      message: 'Testing concepts explained'
+      message: 'Testing concepts explained',
     };
   }
 
@@ -734,7 +721,7 @@ export class CommandHandlers {
 
     return {
       success: true,
-      message: 'Deployment concepts explained'
+      message: 'Deployment concepts explained',
     };
   }
 
@@ -748,7 +735,7 @@ export class CommandHandlers {
 
     return {
       success: true,
-      message: 'Optimization concepts explained'
+      message: 'Optimization concepts explained',
     };
   }
 
@@ -757,11 +744,15 @@ export class CommandHandlers {
     // Implementation would provide interactive learning modules
     return {
       success: true,
-      message: 'Interactive learning completed'
+      message: 'Interactive learning completed',
     };
   }
 
-  private showLearningDashboard(currentTier: UserTier, progress: any, options: LearnOptions): CommandResult {
+  private showLearningDashboard(
+    currentTier: UserTier,
+    progress: any,
+    options: LearnOptions,
+  ): CommandResult {
     console.log('🎓 Learning Dashboard\n');
     console.log(`Current Level: ${currentTier.toUpperCase()}`);
     console.log(`Progress: ${progress.commandsUsed} commands used`);
@@ -782,8 +773,8 @@ export class CommandHandlers {
       nextSteps: [
         'Pick a topic: `claude-flow learn agents`',
         'Try new commands to gain experience',
-        'Use `claude-flow help --interactive` for guided learning'
-      ]
+        'Use `claude-flow help --interactive` for guided learning',
+      ],
     };
   }
 
@@ -803,8 +794,8 @@ export class CommandHandlers {
       const childProcess = spawn(cmd, args);
 
       let output = '';
-      childProcess.stdout?.on('data', (data) => output += data);
-      childProcess.stderr?.on('data', (data) => output += data);
+      childProcess.stdout?.on('data', (data) => (output += data));
+      childProcess.stderr?.on('data', (data) => (output += data));
 
       childProcess.on('close', (code) => {
         if (code === 0) resolve(output);
@@ -836,17 +827,17 @@ build/
         scripts: {
           dev: 'vite',
           build: 'vite build',
-          test: 'jest'
+          test: 'jest',
         },
         dependencies: {
           react: '^18.0.0',
-          'react-dom': '^18.0.0'
+          'react-dom': '^18.0.0',
         },
         devDependencies: {
           vite: '^4.0.0',
           '@types/react': '^18.0.0',
-          typescript: '^5.0.0'
-        }
+          typescript: '^5.0.0',
+        },
       },
       api: {
         name: 'claude-flow-api-project',
@@ -854,17 +845,17 @@ build/
         scripts: {
           dev: 'nodemon src/server.ts',
           build: 'tsc',
-          test: 'jest'
+          test: 'jest',
         },
         dependencies: {
-          express: '^4.18.0'
+          express: '^4.18.0',
         },
         devDependencies: {
           '@types/express': '^4.17.0',
           nodemon: '^3.0.0',
-          typescript: '^5.0.0'
-        }
-      }
+          typescript: '^5.0.0',
+        },
+      },
     };
 
     const template = templates[projectType] || templates.web;
@@ -881,10 +872,10 @@ build/
         esModuleInterop: true,
         jsx: 'react-jsx',
         declaration: true,
-        outDir: 'dist'
+        outDir: 'dist',
       },
       include: ['src/**/*'],
-      exclude: ['node_modules', 'dist']
+      exclude: ['node_modules', 'dist'],
     };
 
     await this.writeFile('tsconfig.json', JSON.stringify(tsconfig, null, 2));

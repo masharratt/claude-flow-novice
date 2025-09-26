@@ -38,7 +38,7 @@ class WorkflowManager {
   workflow_execute(args) {
     const workflowId = args.workflowId || args.workflow_id;
     const workflow = this.workflows.get(workflowId);
-    
+
     if (!workflow) {
       return {
         success: false,
@@ -65,7 +65,7 @@ class WorkflowManager {
     setTimeout(() => {
       execution.status = 'completed';
       execution.endTime = new Date().toISOString();
-      execution.completedSteps = workflow.steps.map(s => s.name || s);
+      execution.completedSteps = workflow.steps.map((s) => s.name || s);
     }, 100);
 
     return {
@@ -81,7 +81,7 @@ class WorkflowManager {
   parallel_execute(args) {
     const tasks = args.tasks || [];
     const jobId = `parallel_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-    
+
     const job = {
       id: jobId,
       tasks: tasks.map((task, index) => ({
@@ -99,16 +99,19 @@ class WorkflowManager {
 
     // Simulate parallel execution
     job.tasks.forEach((task, index) => {
-      setTimeout(() => {
-        task.status = 'completed';
-        task.completedAt = new Date().toISOString();
-        job.completedTasks++;
-        
-        if (job.completedTasks === job.totalTasks) {
-          job.status = 'completed';
-          job.endTime = new Date().toISOString();
-        }
-      }, 50 * (index + 1));
+      setTimeout(
+        () => {
+          task.status = 'completed';
+          task.completedAt = new Date().toISOString();
+          job.completedTasks++;
+
+          if (job.completedTasks === job.totalTasks) {
+            job.status = 'completed';
+            job.endTime = new Date().toISOString();
+          }
+        },
+        50 * (index + 1),
+      );
     });
 
     return {
@@ -125,7 +128,7 @@ class WorkflowManager {
     const items = args.items || [];
     const operation = args.operation || 'process';
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-    
+
     const batch = {
       id: batchId,
       operation: operation,
@@ -145,20 +148,23 @@ class WorkflowManager {
 
     // Simulate batch processing
     batch.items.forEach((item, index) => {
-      setTimeout(() => {
-        item.status = 'processed';
-        item.processedAt = new Date().toISOString();
-        batch.processedItems++;
-        batch.results.push({
-          itemId: item.id,
-          result: `${operation} completed for ${item.data}`,
-        });
-        
-        if (batch.processedItems === batch.totalItems) {
-          batch.status = 'completed';
-          batch.endTime = new Date().toISOString();
-        }
-      }, 30 * (index + 1));
+      setTimeout(
+        () => {
+          item.status = 'processed';
+          item.processedAt = new Date().toISOString();
+          batch.processedItems++;
+          batch.results.push({
+            itemId: item.id,
+            result: `${operation} completed for ${item.data}`,
+          });
+
+          if (batch.processedItems === batch.totalItems) {
+            batch.status = 'completed';
+            batch.endTime = new Date().toISOString();
+          }
+        },
+        30 * (index + 1),
+      );
     });
 
     return {
@@ -176,7 +182,7 @@ class WorkflowManager {
     const workflowId = args.workflowId || args.workflow_id;
     const format = args.format || 'json';
     const workflow = this.workflows.get(workflowId);
-    
+
     if (!workflow) {
       return {
         success: false,
@@ -189,7 +195,7 @@ class WorkflowManager {
     switch (format) {
       case 'yaml':
         // Simplified YAML-like format
-        exportData = `name: ${workflow.name}\nsteps:\n${workflow.steps.map(s => `  - ${s}`).join('\n')}`;
+        exportData = `name: ${workflow.name}\nsteps:\n${workflow.steps.map((s) => `  - ${s}`).join('\n')}`;
         break;
       case 'json':
       default:
@@ -210,7 +216,7 @@ class WorkflowManager {
   workflow_template(args) {
     const action = args.action || 'list';
     const template = args.template || {};
-    
+
     switch (action) {
       case 'create':
         const templateId = `template_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
@@ -221,7 +227,7 @@ class WorkflowManager {
           template: template,
           timestamp: new Date().toISOString(),
         };
-        
+
       case 'list':
         return {
           success: true,
@@ -233,7 +239,7 @@ class WorkflowManager {
           ],
           timestamp: new Date().toISOString(),
         };
-        
+
       default:
         return {
           success: false,
@@ -255,11 +261,11 @@ class PerformanceMonitor {
   performance_report(args) {
     const timeframe = args.timeframe || '24h';
     const format = args.format || 'summary';
-    
+
     // Collect real system metrics
     const memUsage = process.memoryUsage();
     const uptime = process.uptime();
-    
+
     const report = {
       timeframe: timeframe,
       timestamp: new Date().toISOString(),
@@ -300,7 +306,7 @@ class PerformanceMonitor {
   bottleneck_analyze(args) {
     const component = args.component || 'system';
     const metrics = args.metrics || ['cpu', 'memory', 'io'];
-    
+
     const analysis = {
       component: component,
       timestamp: new Date().toISOString(),
@@ -343,7 +349,7 @@ class PerformanceMonitor {
   memory_analytics(args) {
     const timeframe = args.timeframe || '1h';
     const memUsage = process.memoryUsage();
-    
+
     return {
       success: true,
       timeframe: timeframe,
@@ -354,10 +360,11 @@ class PerformanceMonitor {
         external: Math.floor(memUsage.external / 1024 / 1024),
         arrayBuffers: Math.floor(memUsage.arrayBuffers / 1024 / 1024),
       },
-      usage_percentage: (memUsage.heapUsed / memUsage.heapTotal * 100).toFixed(2),
-      recommendations: memUsage.heapUsed / memUsage.heapTotal > 0.7 
-        ? ['Consider memory optimization', 'Review memory leaks']
-        : ['Memory usage is healthy'],
+      usage_percentage: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(2),
+      recommendations:
+        memUsage.heapUsed / memUsage.heapTotal > 0.7
+          ? ['Consider memory optimization', 'Review memory leaks']
+          : ['Memory usage is healthy'],
       timestamp: new Date().toISOString(),
     };
   }

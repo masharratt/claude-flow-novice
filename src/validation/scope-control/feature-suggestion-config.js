@@ -9,33 +9,33 @@
 export class FeatureSuggestionConfig {
   // Predefined suggestion modes
   static MODES = {
-    VALIDATION_ONLY: 'validation_only',        // No suggestions, core validation only
-    SUGGEST_MINOR: 'suggest_minor',           // Minor improvements only
-    SUGGEST_MAJOR: 'suggest_major',           // Major enhancements allowed
-    SUGGEST_ENTERPRISE: 'suggest_enterprise'   // Enterprise features allowed
+    VALIDATION_ONLY: 'validation_only', // No suggestions, core validation only
+    SUGGEST_MINOR: 'suggest_minor', // Minor improvements only
+    SUGGEST_MAJOR: 'suggest_major', // Major enhancements allowed
+    SUGGEST_ENTERPRISE: 'suggest_enterprise', // Enterprise features allowed
   };
 
   // Suggestion categories with complexity ratings
   static CATEGORIES = {
     // Low complexity suggestions (1-3)
-    'code_quality': { max_complexity: 3, requires_approval: false },
-    'documentation': { max_complexity: 2, requires_approval: false },
-    'testing_minor': { max_complexity: 3, requires_approval: false },
+    code_quality: { max_complexity: 3, requires_approval: false },
+    documentation: { max_complexity: 2, requires_approval: false },
+    testing_minor: { max_complexity: 3, requires_approval: false },
 
     // Medium complexity suggestions (4-6)
-    'performance_minor': { max_complexity: 4, requires_approval: false },
-    'testing_framework': { max_complexity: 6, requires_approval: true },
-    'build_optimization': { max_complexity: 5, requires_approval: true },
+    performance_minor: { max_complexity: 4, requires_approval: false },
+    testing_framework: { max_complexity: 6, requires_approval: true },
+    build_optimization: { max_complexity: 5, requires_approval: true },
 
     // High complexity suggestions (7-8)
-    'architecture': { max_complexity: 8, requires_approval: true },
-    'performance_major': { max_complexity: 7, requires_approval: true },
-    'security_enhancement': { max_complexity: 8, requires_approval: true },
+    architecture: { max_complexity: 8, requires_approval: true },
+    performance_major: { max_complexity: 7, requires_approval: true },
+    security_enhancement: { max_complexity: 8, requires_approval: true },
 
     // Enterprise complexity suggestions (9-10)
-    'scalability': { max_complexity: 10, requires_approval: true },
-    'enterprise_features': { max_complexity: 10, requires_approval: true },
-    'distributed_systems': { max_complexity: 10, requires_approval: true }
+    scalability: { max_complexity: 10, requires_approval: true },
+    enterprise_features: { max_complexity: 10, requires_approval: true },
+    distributed_systems: { max_complexity: 10, requires_approval: true },
   };
 
   constructor(mode = FeatureSuggestionConfig.MODES.VALIDATION_ONLY, customConfig = {}) {
@@ -54,7 +54,7 @@ export class FeatureSuggestionConfig {
       approved_suggestions: 0,
       rejected_suggestions: 0,
       by_category: {},
-      by_complexity: {}
+      by_complexity: {},
     };
   }
 
@@ -74,14 +74,19 @@ export class FeatureSuggestionConfig {
           require_user_request: true,
           block_implementation_suggestions: true,
           block_architecture_changes: true,
-          block_enterprise_features: true
-        }
+          block_enterprise_features: true,
+        },
       },
 
       [FeatureSuggestionConfig.MODES.SUGGEST_MINOR]: {
         allow_suggestions: true,
         max_suggestion_complexity: 3,
-        suggestion_categories: ['code_quality', 'documentation', 'testing_minor', 'performance_minor'],
+        suggestion_categories: [
+          'code_quality',
+          'documentation',
+          'testing_minor',
+          'performance_minor',
+        ],
         escalation_required: false,
         auto_approve_threshold: 2,
         max_suggestions_per_validation: 3,
@@ -90,16 +95,22 @@ export class FeatureSuggestionConfig {
           block_implementation_suggestions: true,
           block_architecture_changes: true,
           block_enterprise_features: true,
-          prefer_incremental_improvements: true
-        }
+          prefer_incremental_improvements: true,
+        },
       },
 
       [FeatureSuggestionConfig.MODES.SUGGEST_MAJOR]: {
         allow_suggestions: true,
         max_suggestion_complexity: 7,
         suggestion_categories: [
-          'code_quality', 'documentation', 'testing_minor', 'performance_minor',
-          'testing_framework', 'build_optimization', 'architecture', 'performance_major'
+          'code_quality',
+          'documentation',
+          'testing_minor',
+          'performance_minor',
+          'testing_framework',
+          'build_optimization',
+          'architecture',
+          'performance_major',
         ],
         escalation_required: true,
         auto_approve_threshold: 3,
@@ -109,8 +120,8 @@ export class FeatureSuggestionConfig {
           block_implementation_suggestions: false,
           block_architecture_changes: false,
           block_enterprise_features: true,
-          require_justification: true
-        }
+          require_justification: true,
+        },
       },
 
       [FeatureSuggestionConfig.MODES.SUGGEST_ENTERPRISE]: {
@@ -126,9 +137,9 @@ export class FeatureSuggestionConfig {
           block_architecture_changes: false,
           block_enterprise_features: false,
           require_business_justification: true,
-          require_impact_analysis: true
-        }
-      }
+          require_impact_analysis: true,
+        },
+      },
     };
 
     return configs[mode] || configs[FeatureSuggestionConfig.MODES.VALIDATION_ONLY];
@@ -144,7 +155,8 @@ export class FeatureSuggestionConfig {
     }
 
     // Complexity check
-    const suggestionComplexity = suggestion.complexity || this.estimateSuggestionComplexity(suggestion);
+    const suggestionComplexity =
+      suggestion.complexity || this.estimateSuggestionComplexity(suggestion);
     if (suggestionComplexity > this.config.max_suggestion_complexity) {
       return false;
     }
@@ -178,23 +190,35 @@ export class FeatureSuggestionConfig {
     // Implementation suggestion check
     if (filters.block_implementation_suggestions) {
       const implementationKeywords = ['implement', 'build', 'create', 'develop', 'add feature'];
-      if (implementationKeywords.some(keyword => description.includes(keyword))) {
+      if (implementationKeywords.some((keyword) => description.includes(keyword))) {
         return false;
       }
     }
 
     // Architecture change check
     if (filters.block_architecture_changes) {
-      const architectureKeywords = ['refactor', 'restructure', 'redesign', 'architecture', 'microservices'];
-      if (architectureKeywords.some(keyword => description.includes(keyword))) {
+      const architectureKeywords = [
+        'refactor',
+        'restructure',
+        'redesign',
+        'architecture',
+        'microservices',
+      ];
+      if (architectureKeywords.some((keyword) => description.includes(keyword))) {
         return false;
       }
     }
 
     // Enterprise feature check
     if (filters.block_enterprise_features) {
-      const enterpriseKeywords = ['enterprise', 'scalable', 'distributed', 'byzantine', 'consensus'];
-      if (enterpriseKeywords.some(keyword => description.includes(keyword))) {
+      const enterpriseKeywords = [
+        'enterprise',
+        'scalable',
+        'distributed',
+        'byzantine',
+        'consensus',
+      ];
+      if (enterpriseKeywords.some((keyword) => description.includes(keyword))) {
         return false;
       }
     }
@@ -207,7 +231,9 @@ export class FeatureSuggestionConfig {
     // Incremental improvement preference
     if (filters.prefer_incremental_improvements) {
       const incrementalKeywords = ['improve', 'enhance', 'optimize', 'better'];
-      const hasIncrementalIndicators = incrementalKeywords.some(keyword => description.includes(keyword));
+      const hasIncrementalIndicators = incrementalKeywords.some((keyword) =>
+        description.includes(keyword),
+      );
 
       if (!hasIncrementalIndicators && suggestion.complexity > 2) {
         return false;
@@ -227,34 +253,34 @@ export class FeatureSuggestionConfig {
     // Keyword-based complexity estimation
     const complexityKeywords = {
       // Low complexity (1-2)
-      'fix': 1,
-      'update': 1,
-      'improve': 1,
-      'optimize': 2,
-      'enhance': 2,
-      'document': 1,
+      fix: 1,
+      update: 1,
+      improve: 1,
+      optimize: 2,
+      enhance: 2,
+      document: 1,
 
       // Medium complexity (3-5)
-      'refactor': 4,
-      'test': 3,
-      'framework': 4,
-      'integration': 4,
-      'performance': 3,
-      'security': 4,
+      refactor: 4,
+      test: 3,
+      framework: 4,
+      integration: 4,
+      performance: 3,
+      security: 4,
 
       // High complexity (6-8)
-      'architecture': 7,
-      'design': 6,
-      'system': 6,
-      'scalable': 7,
-      'distributed': 8,
+      architecture: 7,
+      design: 6,
+      system: 6,
+      scalable: 7,
+      distributed: 8,
 
       // Enterprise complexity (9-10)
-      'enterprise': 9,
-      'byzantine': 10,
-      'consensus': 10,
-      'microservices': 9,
-      'fault-tolerant': 10
+      enterprise: 9,
+      byzantine: 10,
+      consensus: 10,
+      microservices: 9,
+      'fault-tolerant': 10,
     };
 
     for (const [keyword, weight] of Object.entries(complexityKeywords)) {
@@ -269,7 +295,7 @@ export class FeatureSuggestionConfig {
 
     // Adjust based on multiple technical terms
     const technicalTerms = ['algorithm', 'protocol', 'interface', 'api', 'database', 'cache'];
-    const technicalCount = technicalTerms.filter(term => description.includes(term)).length;
+    const technicalCount = technicalTerms.filter((term) => description.includes(term)).length;
     complexity += Math.min(2, technicalCount);
 
     return Math.min(10, complexity);
@@ -282,22 +308,22 @@ export class FeatureSuggestionConfig {
     const description = (suggestion.description || '').toLowerCase();
 
     const categoryKeywords = {
-      'code_quality': ['clean', 'readable', 'maintainable', 'refactor', 'lint'],
-      'documentation': ['document', 'comment', 'readme', 'guide', 'explain'],
-      'testing_minor': ['test', 'assert', 'coverage', 'spec'],
-      'testing_framework': ['testing framework', 'test suite', 'jest', 'mocha', 'junit'],
-      'performance_minor': ['faster', 'speed', 'efficient', 'optimize'],
-      'performance_major': ['performance', 'benchmark', 'profiling', 'memory'],
-      'build_optimization': ['build', 'compile', 'bundle', 'webpack', 'rollup'],
-      'architecture': ['architecture', 'design', 'pattern', 'structure'],
-      'security_enhancement': ['security', 'secure', 'encrypt', 'authentication'],
-      'scalability': ['scalable', 'scale', 'distributed', 'horizontal'],
-      'enterprise_features': ['enterprise', 'production', 'monitoring', 'logging'],
-      'distributed_systems': ['distributed', 'microservices', 'consensus', 'byzantine']
+      code_quality: ['clean', 'readable', 'maintainable', 'refactor', 'lint'],
+      documentation: ['document', 'comment', 'readme', 'guide', 'explain'],
+      testing_minor: ['test', 'assert', 'coverage', 'spec'],
+      testing_framework: ['testing framework', 'test suite', 'jest', 'mocha', 'junit'],
+      performance_minor: ['faster', 'speed', 'efficient', 'optimize'],
+      performance_major: ['performance', 'benchmark', 'profiling', 'memory'],
+      build_optimization: ['build', 'compile', 'bundle', 'webpack', 'rollup'],
+      architecture: ['architecture', 'design', 'pattern', 'structure'],
+      security_enhancement: ['security', 'secure', 'encrypt', 'authentication'],
+      scalability: ['scalable', 'scale', 'distributed', 'horizontal'],
+      enterprise_features: ['enterprise', 'production', 'monitoring', 'logging'],
+      distributed_systems: ['distributed', 'microservices', 'consensus', 'byzantine'],
     };
 
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
-      if (keywords.some(keyword => description.includes(keyword))) {
+      if (keywords.some((keyword) => description.includes(keyword))) {
         return category;
       }
     }
@@ -317,7 +343,7 @@ export class FeatureSuggestionConfig {
       requires_approval: false,
       auto_approvable: false,
       rejection_reason: null,
-      processing_timestamp: Date.now()
+      processing_timestamp: Date.now(),
     };
 
     // Check if suggestion is allowed
@@ -332,9 +358,10 @@ export class FeatureSuggestionConfig {
 
     // Check approval requirements
     const categoryConfig = FeatureSuggestionConfig.CATEGORIES[processed.category];
-    processed.requires_approval = categoryConfig?.requires_approval ||
-                                 processed.complexity > this.config.auto_approve_threshold ||
-                                 this.config.escalation_required;
+    processed.requires_approval =
+      categoryConfig?.requires_approval ||
+      processed.complexity > this.config.auto_approve_threshold ||
+      this.config.escalation_required;
 
     processed.auto_approvable = !processed.requires_approval;
 
@@ -383,7 +410,7 @@ export class FeatureSuggestionConfig {
       impact_level: this.assessImpactLevel(suggestion),
       dependencies: this.identifyDependencies(suggestion),
       risk_assessment: this.assessRisk(suggestion),
-      implementation_guidance: this.generateImplementationGuidance(suggestion)
+      implementation_guidance: this.generateImplementationGuidance(suggestion),
     };
   }
 
@@ -401,7 +428,7 @@ export class FeatureSuggestionConfig {
       7: '1-2 weeks',
       8: '2-3 weeks',
       9: '3-4 weeks',
-      10: '4+ weeks'
+      10: '4+ weeks',
     };
 
     return effortMap[suggestion.complexity] || 'Unknown';
@@ -425,12 +452,12 @@ export class FeatureSuggestionConfig {
     const dependencies = [];
 
     const dependencyIndicators = {
-      'database': ['database setup', 'schema changes'],
-      'api': ['api integration', 'service dependencies'],
-      'authentication': ['auth system', 'user management'],
-      'testing': ['test framework', 'test data'],
-      'build': ['build pipeline', 'deployment process'],
-      'security': ['security review', 'compliance check']
+      database: ['database setup', 'schema changes'],
+      api: ['api integration', 'service dependencies'],
+      authentication: ['auth system', 'user management'],
+      testing: ['test framework', 'test data'],
+      build: ['build pipeline', 'deployment process'],
+      security: ['security review', 'compliance check'],
     };
 
     for (const [indicator, deps] of Object.entries(dependencyIndicators)) {
@@ -449,14 +476,14 @@ export class FeatureSuggestionConfig {
     let riskScore = 0;
 
     const riskFactors = {
-      'breaking': 3,
-      'irreversible': 3,
-      'database': 2,
-      'security': 2,
-      'performance': 1,
-      'architecture': 2,
-      'distributed': 3,
-      'enterprise': 2
+      breaking: 3,
+      irreversible: 3,
+      database: 2,
+      security: 2,
+      performance: 1,
+      architecture: 2,
+      distributed: 3,
+      enterprise: 2,
     };
 
     const description = suggestion.description.toLowerCase();
@@ -479,28 +506,71 @@ export class FeatureSuggestionConfig {
     const complexity = suggestion.complexity;
 
     const guidanceTemplates = {
-      'code_quality': {
-        steps: ['Review current code', 'Identify improvement areas', 'Apply changes incrementally', 'Test thoroughly'],
-        considerations: ['Maintain backward compatibility', 'Follow coding standards', 'Update documentation']
+      code_quality: {
+        steps: [
+          'Review current code',
+          'Identify improvement areas',
+          'Apply changes incrementally',
+          'Test thoroughly',
+        ],
+        considerations: [
+          'Maintain backward compatibility',
+          'Follow coding standards',
+          'Update documentation',
+        ],
       },
-      'testing_framework': {
-        steps: ['Evaluate testing needs', 'Choose appropriate framework', 'Set up test environment', 'Create test suite'],
-        considerations: ['Integration with existing tools', 'Team training needs', 'CI/CD pipeline impact']
+      testing_framework: {
+        steps: [
+          'Evaluate testing needs',
+          'Choose appropriate framework',
+          'Set up test environment',
+          'Create test suite',
+        ],
+        considerations: [
+          'Integration with existing tools',
+          'Team training needs',
+          'CI/CD pipeline impact',
+        ],
       },
-      'performance_major': {
-        steps: ['Profile current performance', 'Identify bottlenecks', 'Design optimization strategy', 'Implement and measure'],
-        considerations: ['Performance benchmarks', 'Resource constraints', 'User impact during changes']
+      performance_major: {
+        steps: [
+          'Profile current performance',
+          'Identify bottlenecks',
+          'Design optimization strategy',
+          'Implement and measure',
+        ],
+        considerations: [
+          'Performance benchmarks',
+          'Resource constraints',
+          'User impact during changes',
+        ],
       },
-      'architecture': {
-        steps: ['Analyze current architecture', 'Design new structure', 'Plan migration strategy', 'Implement incrementally'],
-        considerations: ['System dependencies', 'Data migration', 'Service availability', 'Team coordination']
-      }
+      architecture: {
+        steps: [
+          'Analyze current architecture',
+          'Design new structure',
+          'Plan migration strategy',
+          'Implement incrementally',
+        ],
+        considerations: [
+          'System dependencies',
+          'Data migration',
+          'Service availability',
+          'Team coordination',
+        ],
+      },
     };
 
-    return guidanceTemplates[category] || {
-      steps: ['Analyze requirements', 'Design solution', 'Implement changes', 'Validate results'],
-      considerations: ['Impact on existing system', 'Resource requirements', 'Timeline constraints']
-    };
+    return (
+      guidanceTemplates[category] || {
+        steps: ['Analyze requirements', 'Design solution', 'Implement changes', 'Validate results'],
+        considerations: [
+          'Impact on existing system',
+          'Resource requirements',
+          'Timeline constraints',
+        ],
+      }
+    );
   }
 
   /**
@@ -546,15 +616,16 @@ export class FeatureSuggestionConfig {
   getSuggestionMetrics() {
     return {
       ...this.suggestionMetrics,
-      approval_rate: this.suggestionMetrics.total_suggestions > 0
-        ? this.suggestionMetrics.approved_suggestions / this.suggestionMetrics.total_suggestions
-        : 0,
+      approval_rate:
+        this.suggestionMetrics.total_suggestions > 0
+          ? this.suggestionMetrics.approved_suggestions / this.suggestionMetrics.total_suggestions
+          : 0,
       current_mode: this.mode,
       config_summary: {
         max_complexity: this.config.max_suggestion_complexity,
         categories_allowed: this.config.suggestion_categories.length,
-        escalation_required: this.config.escalation_required
-      }
+        escalation_required: this.config.escalation_required,
+      },
     };
   }
 
@@ -567,7 +638,7 @@ export class FeatureSuggestionConfig {
       approved_suggestions: 0,
       rejected_suggestions: 0,
       by_category: {},
-      by_complexity: {}
+      by_complexity: {},
     };
   }
 
@@ -584,7 +655,7 @@ export class FeatureSuggestionConfig {
       auto_approve_threshold: config.auto_approve_threshold || 2,
       max_suggestions_per_validation: config.max_suggestions_per_validation || 3,
       suggestion_filters: config.suggestion_filters || {},
-      custom: true
+      custom: true,
     };
   }
 
@@ -603,8 +674,8 @@ export class FeatureSuggestionConfig {
     }
 
     const validCategories = Object.keys(FeatureSuggestionConfig.CATEGORIES);
-    const invalidCategories = this.config.suggestion_categories.filter(cat =>
-      !validCategories.includes(cat)
+    const invalidCategories = this.config.suggestion_categories.filter(
+      (cat) => !validCategories.includes(cat),
     );
 
     if (invalidCategories.length > 0) {
@@ -617,7 +688,7 @@ export class FeatureSuggestionConfig {
 
     return {
       valid: errors.length === 0,
-      errors: errors
+      errors: errors,
     };
   }
 }

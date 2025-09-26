@@ -18,12 +18,14 @@ export class ValidationScopeGuard {
    */
   parseScope(scope) {
     return {
-      objectives: Array.isArray(scope.must_validate) ? scope.must_validate : [scope.primary_objective],
+      objectives: Array.isArray(scope.must_validate)
+        ? scope.must_validate
+        : [scope.primary_objective],
       constraints: Array.isArray(scope.must_not_validate) ? scope.must_not_validate : [],
       boundaries: scope.boundaries || this.inferBoundaries(scope),
       success_criteria: Array.isArray(scope.success_criteria) ? scope.success_criteria : [],
       excluded_areas: Array.isArray(scope.excluded_areas) ? scope.excluded_areas : [],
-      complexity_limits: scope.complexity_limits || { max_complexity: 5, max_scope_expansion: 0.2 }
+      complexity_limits: scope.complexity_limits || { max_complexity: 5, max_scope_expansion: 0.2 },
     };
   }
 
@@ -36,7 +38,7 @@ export class ValidationScopeGuard {
       max_complexity_per_action: 5,
       max_total_complexity: 25,
       allowed_categories: ['validation', 'verification', 'checking'],
-      forbidden_categories: ['implementation', 'development', 'architecture', 'enterprise']
+      forbidden_categories: ['implementation', 'development', 'architecture', 'enterprise'],
     };
   }
 
@@ -50,7 +52,7 @@ export class ValidationScopeGuard {
     return {
       violation_tolerance: Math.max(0, 3 - constraintStrictness),
       complexity_buffer: Math.min(2, objectiveComplexity * 0.5),
-      suggestion_threshold: this.allowSuggestions ? 3 : 0
+      suggestion_threshold: this.allowSuggestions ? 3 : 0,
     };
   }
 
@@ -65,7 +67,7 @@ export class ValidationScopeGuard {
       suggestions: [],
       approved_actions: [],
       rejected_actions: [],
-      scope_metrics: {}
+      scope_metrics: {},
     };
 
     // Validate each requested action
@@ -79,7 +81,7 @@ export class ValidationScopeGuard {
       } else if (this.isSuggestion(action, actionAnalysis) && this.allowSuggestions) {
         scopeCheck.suggestions.push({
           ...action,
-          suggestion_metadata: actionAnalysis
+          suggestion_metadata: actionAnalysis,
         });
       } else {
         const violation = this.createViolation(action, actionAnalysis);
@@ -115,7 +117,7 @@ export class ValidationScopeGuard {
       scope_alignment: this.calculateScopeAlignment(action),
       risk_level: this.assessRiskLevel(action),
       implementation_indicators: this.detectImplementationIndicators(action),
-      enterprise_indicators: this.detectEnterpriseIndicators(action)
+      enterprise_indicators: this.detectEnterpriseIndicators(action),
     };
   }
 
@@ -124,31 +126,36 @@ export class ValidationScopeGuard {
    */
   isWithinCoreScope(action, analysis) {
     // Must align with original objectives
-    const objectiveAlignment = this.originalScope.objectives.some(objective =>
-      this.actionMatchesObjective(action, objective)
+    const objectiveAlignment = this.originalScope.objectives.some((objective) =>
+      this.actionMatchesObjective(action, objective),
     );
 
     // Must not violate constraints
-    const constraintViolation = this.originalScope.constraints.some(constraint =>
-      this.actionViolatesConstraint(action, constraint)
+    const constraintViolation = this.originalScope.constraints.some((constraint) =>
+      this.actionViolatesConstraint(action, constraint),
     );
 
     // Must not enter excluded areas
-    const excludedAreaViolation = this.originalScope.excluded_areas.some(area =>
-      this.actionInExcludedArea(action, area)
+    const excludedAreaViolation = this.originalScope.excluded_areas.some((area) =>
+      this.actionInExcludedArea(action, area),
     );
 
     // Must be within complexity limits
-    const withinComplexityLimits = analysis.complexity <= this.originalScope.boundaries.max_complexity_per_action;
+    const withinComplexityLimits =
+      analysis.complexity <= this.originalScope.boundaries.max_complexity_per_action;
 
     // Must be validation-related category
-    const validationCategory = this.originalScope.boundaries.allowed_categories.includes(analysis.category);
+    const validationCategory = this.originalScope.boundaries.allowed_categories.includes(
+      analysis.category,
+    );
 
-    return objectiveAlignment &&
-           !constraintViolation &&
-           !excludedAreaViolation &&
-           withinComplexityLimits &&
-           validationCategory;
+    return (
+      objectiveAlignment &&
+      !constraintViolation &&
+      !excludedAreaViolation &&
+      withinComplexityLimits &&
+      validationCategory
+    );
   }
 
   /**
@@ -159,7 +166,8 @@ export class ValidationScopeGuard {
 
     // Suggestions can have higher complexity but must be clearly improvement-focused
     const isImprovement = this.isImprovementSuggestion(action);
-    const withinSuggestionLimits = analysis.complexity <= this.boundaryThresholds.suggestion_threshold + 5;
+    const withinSuggestionLimits =
+      analysis.complexity <= this.boundaryThresholds.suggestion_threshold + 5;
     const notImplementation = !analysis.implementation_indicators.is_implementation;
 
     return isImprovement && withinSuggestionLimits && notImplementation;
@@ -180,10 +188,10 @@ export class ValidationScopeGuard {
       scope_context: {
         original_objectives: this.originalScope.objectives,
         violated_constraints: this.getViolatedConstraints(action),
-        excluded_areas_entered: this.getEnteredExcludedAreas(action)
+        excluded_areas_entered: this.getEnteredExcludedAreas(action),
       },
       analysis: analysis,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -219,13 +227,13 @@ export class ValidationScopeGuard {
    */
   determineViolationSeverity(violationType, analysis) {
     const severityMap = {
-      'FEATURE_IMPLEMENTATION': 'CRITICAL',
-      'ENTERPRISE_OVERREACH': 'CRITICAL',
-      'ARCHITECTURE_EXPANSION': 'HIGH',
-      'COMPLEXITY_OVERREACH': analysis.complexity > 8 ? 'HIGH' : 'MEDIUM',
-      'CATEGORY_VIOLATION': 'MEDIUM',
-      'SCOPE_MISALIGNMENT': analysis.scope_alignment < 0.1 ? 'HIGH' : 'MEDIUM',
-      'GENERAL_BOUNDARY_VIOLATION': 'LOW'
+      FEATURE_IMPLEMENTATION: 'CRITICAL',
+      ENTERPRISE_OVERREACH: 'CRITICAL',
+      ARCHITECTURE_EXPANSION: 'HIGH',
+      COMPLEXITY_OVERREACH: analysis.complexity > 8 ? 'HIGH' : 'MEDIUM',
+      CATEGORY_VIOLATION: 'MEDIUM',
+      SCOPE_MISALIGNMENT: analysis.scope_alignment < 0.1 ? 'HIGH' : 'MEDIUM',
+      GENERAL_BOUNDARY_VIOLATION: 'LOW',
     };
 
     return severityMap[violationType] || 'MEDIUM';
@@ -243,26 +251,26 @@ export class ValidationScopeGuard {
 
     // Complexity keywords
     const complexityKeywords = {
-      'implement': 3,
-      'build': 3,
-      'create': 2,
-      'develop': 3,
-      'design': 2,
-      'architecture': 4,
-      'system': 2,
-      'framework': 4,
-      'enterprise': 5,
-      'scalable': 3,
-      'distributed': 4,
-      'microservices': 5,
-      'consensus': 5,
-      'byzantine': 5,
-      'cryptographic': 4,
-      'security': 2,
-      'validate': 1,
-      'check': 1,
-      'verify': 1,
-      'test': 1
+      implement: 3,
+      build: 3,
+      create: 2,
+      develop: 3,
+      design: 2,
+      architecture: 4,
+      system: 2,
+      framework: 4,
+      enterprise: 5,
+      scalable: 3,
+      distributed: 4,
+      microservices: 5,
+      consensus: 5,
+      byzantine: 5,
+      cryptographic: 4,
+      security: 2,
+      validate: 1,
+      check: 1,
+      verify: 1,
+      test: 1,
     };
 
     for (const [keyword, weight] of Object.entries(complexityKeywords)) {
@@ -286,18 +294,18 @@ export class ValidationScopeGuard {
     const description = (action.description || action.name || '').toLowerCase();
 
     const categoryKeywords = {
-      'validation': ['validate', 'check', 'verify', 'confirm', 'ensure'],
-      'testing': ['test', 'spec', 'assert', 'expect'],
-      'analysis': ['analyze', 'examine', 'inspect', 'review'],
-      'implementation': ['implement', 'build', 'create', 'develop', 'code'],
-      'architecture': ['design', 'architect', 'structure', 'pattern'],
-      'enterprise': ['enterprise', 'scalable', 'distributed', 'production'],
-      'security': ['secure', 'encrypt', 'authenticate', 'authorize'],
-      'performance': ['optimize', 'performance', 'speed', 'efficiency']
+      validation: ['validate', 'check', 'verify', 'confirm', 'ensure'],
+      testing: ['test', 'spec', 'assert', 'expect'],
+      analysis: ['analyze', 'examine', 'inspect', 'review'],
+      implementation: ['implement', 'build', 'create', 'develop', 'code'],
+      architecture: ['design', 'architect', 'structure', 'pattern'],
+      enterprise: ['enterprise', 'scalable', 'distributed', 'production'],
+      security: ['secure', 'encrypt', 'authenticate', 'authorize'],
+      performance: ['optimize', 'performance', 'speed', 'efficiency'],
     };
 
     for (const [category, keywords] of Object.entries(categoryKeywords)) {
-      if (keywords.some(keyword => description.includes(keyword))) {
+      if (keywords.some((keyword) => description.includes(keyword))) {
         return category;
       }
     }
@@ -315,24 +323,24 @@ export class ValidationScopeGuard {
     // Positive alignment with objectives
     for (const objective of this.originalScope.objectives) {
       const objectiveWords = objective.toLowerCase().split(/\s+/);
-      const matches = objectiveWords.filter(word =>
-        word.length > 3 && description.includes(word)
+      const matches = objectiveWords.filter(
+        (word) => word.length > 3 && description.includes(word),
       ).length;
-      alignment += matches / objectiveWords.length * 0.4;
+      alignment += (matches / objectiveWords.length) * 0.4;
     }
 
     // Negative alignment with constraints and excluded areas
     const allRestrictions = [
       ...this.originalScope.constraints,
-      ...this.originalScope.excluded_areas
+      ...this.originalScope.excluded_areas,
     ];
 
     for (const restriction of allRestrictions) {
       const restrictionWords = restriction.toLowerCase().split(/\s+/);
-      const matches = restrictionWords.filter(word =>
-        word.length > 3 && description.includes(word)
+      const matches = restrictionWords.filter(
+        (word) => word.length > 3 && description.includes(word),
       ).length;
-      alignment -= matches / restrictionWords.length * 0.6;
+      alignment -= (matches / restrictionWords.length) * 0.6;
     }
 
     return Math.max(0, Math.min(1, alignment));
@@ -345,8 +353,16 @@ export class ValidationScopeGuard {
     let risk = 0;
 
     const riskIndicators = [
-      'permanent', 'irreversible', 'breaking', 'major', 'critical',
-      'system-wide', 'global', 'infrastructure', 'database', 'schema'
+      'permanent',
+      'irreversible',
+      'breaking',
+      'major',
+      'critical',
+      'system-wide',
+      'global',
+      'infrastructure',
+      'database',
+      'schema',
     ];
 
     const description = (action.description || '').toLowerCase();
@@ -366,24 +382,34 @@ export class ValidationScopeGuard {
     const description = (action.description || '').toLowerCase();
 
     const implementationWords = [
-      'implement', 'build', 'create', 'develop', 'code', 'write',
-      'add', 'insert', 'modify', 'change', 'update', 'enhance'
+      'implement',
+      'build',
+      'create',
+      'develop',
+      'code',
+      'write',
+      'add',
+      'insert',
+      'modify',
+      'change',
+      'update',
+      'enhance',
     ];
 
-    const implementationCount = implementationWords.filter(word =>
-      description.includes(word)
+    const implementationCount = implementationWords.filter((word) =>
+      description.includes(word),
     ).length;
 
-    const isImplementation = implementationCount >= 2 ||
-                            implementationWords.some(word =>
-                              description.startsWith(word) ||
-                              description.includes(`${word} `)
-                            );
+    const isImplementation =
+      implementationCount >= 2 ||
+      implementationWords.some(
+        (word) => description.startsWith(word) || description.includes(`${word} `),
+      );
 
     return {
       is_implementation: isImplementation,
       implementation_word_count: implementationCount,
-      implementation_confidence: Math.min(1, implementationCount / 3)
+      implementation_confidence: Math.min(1, implementationCount / 3),
     };
   }
 
@@ -394,21 +420,28 @@ export class ValidationScopeGuard {
     const description = (action.description || '').toLowerCase();
 
     const enterpriseWords = [
-      'enterprise', 'scalable', 'distributed', 'microservices',
-      'byzantine', 'consensus', 'fault-tolerant', 'high-availability',
-      'load-balancing', 'clustering', 'sharding', 'replication'
+      'enterprise',
+      'scalable',
+      'distributed',
+      'microservices',
+      'byzantine',
+      'consensus',
+      'fault-tolerant',
+      'high-availability',
+      'load-balancing',
+      'clustering',
+      'sharding',
+      'replication',
     ];
 
-    const enterpriseCount = enterpriseWords.filter(word =>
-      description.includes(word)
-    ).length;
+    const enterpriseCount = enterpriseWords.filter((word) => description.includes(word)).length;
 
     const isEnterprise = enterpriseCount > 0;
 
     return {
       is_enterprise: isEnterprise,
       enterprise_word_count: enterpriseCount,
-      enterprise_features: enterpriseWords.filter(word => description.includes(word))
+      enterprise_features: enterpriseWords.filter((word) => description.includes(word)),
     };
   }
 
@@ -419,11 +452,20 @@ export class ValidationScopeGuard {
     const description = (action.description || '').toLowerCase();
 
     const improvementIndicators = [
-      'could', 'should', 'might', 'consider', 'suggest', 'recommend',
-      'improve', 'enhance', 'optimize', 'better', 'more efficient'
+      'could',
+      'should',
+      'might',
+      'consider',
+      'suggest',
+      'recommend',
+      'improve',
+      'enhance',
+      'optimize',
+      'better',
+      'more efficient',
     ];
 
-    return improvementIndicators.some(indicator => description.includes(indicator));
+    return improvementIndicators.some((indicator) => description.includes(indicator));
   }
 
   /**
@@ -431,9 +473,12 @@ export class ValidationScopeGuard {
    */
   actionMatchesObjective(action, objective) {
     const actionDesc = (action.description || '').toLowerCase();
-    const objectiveWords = objective.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+    const objectiveWords = objective
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((word) => word.length > 3);
 
-    const matchCount = objectiveWords.filter(word => actionDesc.includes(word)).length;
+    const matchCount = objectiveWords.filter((word) => actionDesc.includes(word)).length;
     return matchCount / objectiveWords.length >= 0.3; // At least 30% word match
   }
 
@@ -442,9 +487,12 @@ export class ValidationScopeGuard {
    */
   actionViolatesConstraint(action, constraint) {
     const actionDesc = (action.description || '').toLowerCase();
-    const constraintWords = constraint.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+    const constraintWords = constraint
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((word) => word.length > 3);
 
-    const violationCount = constraintWords.filter(word => actionDesc.includes(word)).length;
+    const violationCount = constraintWords.filter((word) => actionDesc.includes(word)).length;
     return violationCount / constraintWords.length >= 0.4; // More than 40% word match indicates violation
   }
 
@@ -453,8 +501,10 @@ export class ValidationScopeGuard {
    */
   actionInExcludedArea(action, excludedArea) {
     const actionCategory = this.categorizeAction(action);
-    return excludedArea.toLowerCase().includes(actionCategory) ||
-           actionCategory.includes(excludedArea.toLowerCase());
+    return (
+      excludedArea.toLowerCase().includes(actionCategory) ||
+      actionCategory.includes(excludedArea.toLowerCase())
+    );
   }
 
   /**
@@ -464,8 +514,9 @@ export class ValidationScopeGuard {
     const compliance = { compliant: true, violations: [] };
 
     // Check total complexity
-    const totalComplexity = scopeCheck.approved_actions.reduce((sum, action) =>
-      sum + this.estimateActionComplexity(action), 0
+    const totalComplexity = scopeCheck.approved_actions.reduce(
+      (sum, action) => sum + this.estimateActionComplexity(action),
+      0,
     );
 
     if (totalComplexity > this.originalScope.boundaries.max_total_complexity) {
@@ -473,7 +524,7 @@ export class ValidationScopeGuard {
       compliance.violations.push({
         violation_type: 'TOTAL_COMPLEXITY_EXCEEDED',
         severity: 'HIGH',
-        reason: `Total complexity ${totalComplexity} exceeds limit ${this.originalScope.boundaries.max_total_complexity}`
+        reason: `Total complexity ${totalComplexity} exceeds limit ${this.originalScope.boundaries.max_total_complexity}`,
       });
     }
 
@@ -484,7 +535,7 @@ export class ValidationScopeGuard {
       compliance.violations.push({
         violation_type: 'ACTION_COUNT_EXCEEDED',
         severity: 'MEDIUM',
-        reason: `Total actions ${totalActions} exceeds limit ${this.originalScope.boundaries.max_actions}`
+        reason: `Total actions ${totalActions} exceeds limit ${this.originalScope.boundaries.max_actions}`,
       });
     }
 
@@ -503,13 +554,16 @@ export class ValidationScopeGuard {
       violations_detected: scopeCheck.violations.length,
       approval_rate: scopeCheck.approved_actions.length / ((request.actions || []).length || 1),
       average_action_complexity: this.calculateAverageComplexity(scopeCheck.approved_actions),
-      scope_adherence_percentage: this.calculateScopeAdherence(scopeCheck)
+      scope_adherence_percentage: this.calculateScopeAdherence(scopeCheck),
     };
   }
 
   calculateAverageComplexity(actions) {
     if (actions.length === 0) return 0;
-    return actions.reduce((sum, action) => sum + this.estimateActionComplexity(action), 0) / actions.length;
+    return (
+      actions.reduce((sum, action) => sum + this.estimateActionComplexity(action), 0) /
+      actions.length
+    );
   }
 
   calculateScopeAdherence(scopeCheck) {
@@ -528,7 +582,7 @@ export class ValidationScopeGuard {
       warnings: scopeCheck.warnings,
       approved_actions: scopeCheck.approved_actions.length,
       rejected_actions: scopeCheck.rejected_actions.length,
-      scope_metrics: scopeCheck.scope_metrics
+      scope_metrics: scopeCheck.scope_metrics,
     });
 
     // Keep only recent history
@@ -541,26 +595,26 @@ export class ValidationScopeGuard {
 
   getViolationReason(action, analysis, violationType) {
     const reasonMap = {
-      'FEATURE_IMPLEMENTATION': `Action "${action.description}" appears to implement new features rather than validate existing ones`,
-      'ENTERPRISE_OVERREACH': `Action "${action.description}" introduces enterprise-level complexity beyond validation scope`,
-      'ARCHITECTURE_EXPANSION': `Action "${action.description}" expands into system architecture beyond original scope`,
-      'COMPLEXITY_OVERREACH': `Action complexity (${analysis.complexity}) exceeds maximum allowed (${this.originalScope.boundaries.max_complexity_per_action})`,
-      'CATEGORY_VIOLATION': `Action category "${analysis.category}" is not permitted in this validation scope`,
-      'SCOPE_MISALIGNMENT': `Action has low alignment (${Math.round(analysis.scope_alignment * 100)}%) with original objectives`
+      FEATURE_IMPLEMENTATION: `Action "${action.description}" appears to implement new features rather than validate existing ones`,
+      ENTERPRISE_OVERREACH: `Action "${action.description}" introduces enterprise-level complexity beyond validation scope`,
+      ARCHITECTURE_EXPANSION: `Action "${action.description}" expands into system architecture beyond original scope`,
+      COMPLEXITY_OVERREACH: `Action complexity (${analysis.complexity}) exceeds maximum allowed (${this.originalScope.boundaries.max_complexity_per_action})`,
+      CATEGORY_VIOLATION: `Action category "${analysis.category}" is not permitted in this validation scope`,
+      SCOPE_MISALIGNMENT: `Action has low alignment (${Math.round(analysis.scope_alignment * 100)}%) with original objectives`,
     };
 
     return reasonMap[violationType] || `Action violates scope boundaries: ${violationType}`;
   }
 
   getViolatedConstraints(action) {
-    return this.originalScope.constraints.filter(constraint =>
-      this.actionViolatesConstraint(action, constraint)
+    return this.originalScope.constraints.filter((constraint) =>
+      this.actionViolatesConstraint(action, constraint),
     );
   }
 
   getEnteredExcludedAreas(action) {
-    return this.originalScope.excluded_areas.filter(area =>
-      this.actionInExcludedArea(action, area)
+    return this.originalScope.excluded_areas.filter((area) =>
+      this.actionInExcludedArea(action, area),
     );
   }
 
@@ -578,7 +632,8 @@ export class ValidationScopeGuard {
 
     for (const record of recentViolations) {
       for (const violation of record.violations) {
-        violationTypes[violation.violation_type] = (violationTypes[violation.violation_type] || 0) + 1;
+        violationTypes[violation.violation_type] =
+          (violationTypes[violation.violation_type] || 0) + 1;
         severityCount[violation.severity] = (severityCount[violation.severity] || 0) + 1;
       }
     }
@@ -587,10 +642,14 @@ export class ValidationScopeGuard {
       total_violations: recentViolations.reduce((sum, record) => sum + record.violations.length, 0),
       violation_types: violationTypes,
       severity_breakdown: severityCount,
-      average_approval_rate: recentViolations.reduce((sum, record) =>
-        sum + (record.approved_actions / (record.approved_actions + record.rejected_actions)), 0
-      ) / recentViolations.length,
-      most_common_violation: Object.entries(violationTypes).sort((a, b) => b[1] - a[1])[0]?.[0] || 'none'
+      average_approval_rate:
+        recentViolations.reduce(
+          (sum, record) =>
+            sum + record.approved_actions / (record.approved_actions + record.rejected_actions),
+          0,
+        ) / recentViolations.length,
+      most_common_violation:
+        Object.entries(violationTypes).sort((a, b) => b[1] - a[1])[0]?.[0] || 'none',
     };
   }
 }

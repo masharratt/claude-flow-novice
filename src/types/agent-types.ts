@@ -6,7 +6,7 @@ export enum AgentType {
   RESEARCHER = 'researcher',
   CODER = 'coder',
   REVIEWER = 'reviewer',
-  PLANNER = 'planner'
+  PLANNER = 'planner',
 }
 
 export interface AgentConfig {

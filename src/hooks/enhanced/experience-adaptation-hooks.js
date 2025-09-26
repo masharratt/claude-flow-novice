@@ -29,7 +29,7 @@ class ExperienceAdaptationHooks {
       const corrections = this.userCorrections.get(userId);
       return {
         ...this.getBaseHooksForLevel(effectiveLevel),
-        ...corrections.userPreference
+        ...corrections.userPreference,
       };
     }
 
@@ -49,7 +49,7 @@ class ExperienceAdaptationHooks {
           explainCommands: true,
           showExamples: true,
           confirmActions: true,
-          experienceLevel: 'novice'
+          experienceLevel: 'novice',
         };
 
       case 'expert':
@@ -60,7 +60,7 @@ class ExperienceAdaptationHooks {
           explainCommands: false,
           showExamples: false,
           confirmActions: false,
-          experienceLevel: 'expert'
+          experienceLevel: 'expert',
         };
 
       case 'intermediate':
@@ -72,7 +72,7 @@ class ExperienceAdaptationHooks {
           explainCommands: false,
           showExamples: false,
           confirmActions: true,
-          experienceLevel: 'intermediate'
+          experienceLevel: 'intermediate',
         };
     }
   }
@@ -88,34 +88,24 @@ class ExperienceAdaptationHooks {
       case 'novice':
         return {
           content: `Starting task: ${task}. Here's a detailed explanation of the steps we'll follow, including step-by-step guidance and helpful examples to ensure your success.`,
-          examples: [
-            `Example for ${task}`,
-            'Code snippet example'
-          ],
-          tips: [
-            'Remember to test your changes',
-            'Use version control for safety'
-          ],
-          warnings: [
-            'Be careful with file operations'
-          ],
-          format: 'detailed'
+          examples: [`Example for ${task}`, 'Code snippet example'],
+          tips: ['Remember to test your changes', 'Use version control for safety'],
+          warnings: ['Be careful with file operations'],
+          format: 'detailed',
         };
 
       case 'expert':
         return {
           content: `Task: ${task}`,
-          format: 'summary'
+          format: 'summary',
         };
 
       case 'intermediate':
       default:
         return {
           content: `Task: ${task}. Here are some contextual tips to help you succeed efficiently with this implementation process.`,
-          tips: [
-            `Consider best practices for ${task}`
-          ],
-          format: 'balanced'
+          tips: [`Consider best practices for ${task}`],
+          format: 'balanced',
         };
     }
   }
@@ -133,27 +123,27 @@ class ExperienceAdaptationHooks {
             step: 1,
             description: `Plan your approach to ${task}`,
             example: 'Create a rough outline of what needs to be done',
-            tips: ['Break down complex tasks', 'Start with the simplest part']
+            tips: ['Break down complex tasks', 'Start with the simplest part'],
           },
           {
             step: 2,
             description: 'Implement the core functionality',
             example: 'Write the main logic for your feature',
-            tips: ['Test as you go', 'Keep functions small']
+            tips: ['Test as you go', 'Keep functions small'],
           },
           {
             step: 3,
             description: 'Add error handling',
             example: 'try/catch blocks for potential failures',
-            tips: ['Consider edge cases', 'Provide helpful error messages']
+            tips: ['Consider edge cases', 'Provide helpful error messages'],
           },
           {
             step: 4,
             description: 'Write tests',
             example: 'Unit tests for your new functionality',
-            tips: ['Test both success and failure cases']
-          }
-        ]
+            tips: ['Test both success and failure cases'],
+          },
+        ],
       };
     }
 
@@ -168,28 +158,28 @@ class ExperienceAdaptationHooks {
 
     // Critical operations always require confirmation
     const criticalActions = ['rm -rf', 'delete database', 'drop table'];
-    if (criticalActions.some(critical => action.includes(critical))) {
+    if (criticalActions.some((critical) => action.includes(critical))) {
       return {
         required: true,
         message: 'WARNING: This is a destructive operation that cannot be undone.',
-        severity: 'critical'
+        severity: 'critical',
       };
     }
 
     // High-risk operations for novices
     const highRiskActions = ['delete file', 'modify config', 'deploy'];
-    if (experienceLevel === 'novice' && highRiskActions.some(risk => action.includes(risk))) {
+    if (experienceLevel === 'novice' && highRiskActions.some((risk) => action.includes(risk))) {
       return {
         required: true,
         message: 'WARNING: This action will modify important files. Are you sure?',
-        severity: 'high'
+        severity: 'high',
       };
     }
 
     // Experts skip routine confirmations
     if (experienceLevel === 'expert') {
       const routineActions = ['create file', 'edit file', 'run test'];
-      if (routineActions.some(routine => action.includes(routine))) {
+      if (routineActions.some((routine) => action.includes(routine))) {
         return { required: false };
       }
     }
@@ -197,7 +187,7 @@ class ExperienceAdaptationHooks {
     // Default confirmation for intermediate and safety
     return {
       required: experienceLevel !== 'expert',
-      severity: 'medium'
+      severity: 'medium',
     };
   }
 
@@ -211,8 +201,10 @@ class ExperienceAdaptationHooks {
       return experienceLevel;
     }
 
-    const successRate = performanceHistory.filter(h => h.success).length / performanceHistory.length;
-    const avgAttempts = performanceHistory.reduce((sum, h) => sum + (h.attempts || 1), 0) / performanceHistory.length;
+    const successRate =
+      performanceHistory.filter((h) => h.success).length / performanceHistory.length;
+    const avgAttempts =
+      performanceHistory.reduce((sum, h) => sum + (h.attempts || 1), 0) / performanceHistory.length;
 
     // Promote if consistently successful
     if (successRate >= 0.8 && avgAttempts <= 1.5) {
@@ -239,7 +231,7 @@ class ExperienceAdaptationHooks {
       this.satisfactionData.set(userId, {
         ratings: [],
         feedback: [],
-        totalFeedback: 0
+        totalFeedback: 0,
       });
     }
 
@@ -260,15 +252,16 @@ class ExperienceAdaptationHooks {
     if (!userData || !userData.ratings.length) {
       return {
         averageRating: 4.0,
-        totalFeedback: 0
+        totalFeedback: 0,
       };
     }
 
-    const averageRating = userData.ratings.reduce((sum, rating) => sum + rating, 0) / userData.ratings.length;
+    const averageRating =
+      userData.ratings.reduce((sum, rating) => sum + rating, 0) / userData.ratings.length;
 
     return {
       averageRating,
-      totalFeedback: userData.totalFeedback
+      totalFeedback: userData.totalFeedback,
     };
   }
 
@@ -296,21 +289,21 @@ class ExperienceAdaptationHooks {
     const improvements = [];
 
     for (const [userId, userData] of this.satisfactionData) {
-      const lowRatingFeedback = userData.feedback.filter(f => f.rating <= 2);
+      const lowRatingFeedback = userData.feedback.filter((f) => f.rating <= 2);
 
       for (const feedback of lowRatingFeedback) {
         if (feedback.feedback.includes('verbose')) {
           improvements.push({
             area: 'verbosity-mismatch',
             priority: 'high',
-            description: 'Users finding output too verbose for their level'
+            description: 'Users finding output too verbose for their level',
           });
         }
         if (feedback.feedback.includes('not enough')) {
           improvements.push({
             area: 'insufficient-guidance',
             priority: 'high',
-            description: 'Users need more detailed explanations'
+            description: 'Users need more detailed explanations',
           });
         }
       }
@@ -328,7 +321,7 @@ class ExperienceAdaptationHooks {
     this.userCorrections.set(userId, {
       originalSuggestion,
       userPreference,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -341,12 +334,12 @@ class ExperienceAdaptationHooks {
     const contextualAdaptations = {
       mlSpecific: context.projectType === 'machine-learning',
       collaborationTips: context.teamSize === 'large',
-      complexityWarnings: context.complexity === 'high'
+      complexityWarnings: context.complexity === 'high',
     };
 
     return {
       ...baseHooks,
-      ...contextualAdaptations
+      ...contextualAdaptations,
     };
   }
 }

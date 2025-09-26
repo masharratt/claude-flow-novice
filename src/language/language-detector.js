@@ -17,7 +17,7 @@ export class LanguageDetector {
       dependencies: {},
       projectType: null,
       confidence: 0,
-      metadata: {}
+      metadata: {},
     };
 
     // Language patterns and scoring weights
@@ -26,38 +26,38 @@ export class LanguageDetector {
         extensions: ['.js', '.mjs', '.cjs'],
         files: ['package.json', '.eslintrc*', 'babel.config.*'],
         patterns: [/require\(/, /import\s+.*from/, /module\.exports/, /export\s+(default\s+)?/],
-        weight: 1.0
+        weight: 1.0,
       },
       typescript: {
         extensions: ['.ts', '.tsx'],
         files: ['tsconfig.json', 'tslint.json', '.tsconfig.json'],
         patterns: [/interface\s+\w+/, /type\s+\w+\s*=/, /:\s*\w+(\[\])?/, /import.*from.*\.ts/],
-        weight: 1.2
+        weight: 1.2,
       },
       python: {
         extensions: ['.py', '.pyx', '.pyw'],
         files: ['requirements.txt', 'setup.py', 'pyproject.toml', 'Pipfile', '__init__.py'],
         patterns: [/def\s+\w+\s*\(/, /import\s+\w+/, /from\s+\w+\s+import/, /class\s+\w+/],
-        weight: 1.0
+        weight: 1.0,
       },
       java: {
         extensions: ['.java'],
         files: ['pom.xml', 'build.gradle', '.gradle'],
         patterns: [/public\s+class/, /package\s+[\w.]+/, /import\s+[\w.]+/],
-        weight: 1.0
+        weight: 1.0,
       },
       go: {
         extensions: ['.go'],
         files: ['go.mod', 'go.sum'],
         patterns: [/package\s+main/, /func\s+\w+/, /import\s*\(/, /var\s+\w+\s+\w+/],
-        weight: 1.0
+        weight: 1.0,
       },
       rust: {
         extensions: ['.rs'],
         files: ['Cargo.toml', 'Cargo.lock'],
         patterns: [/fn\s+\w+/, /struct\s+\w+/, /impl\s+\w+/, /use\s+[\w:]+/],
-        weight: 1.0
-      }
+        weight: 1.0,
+      },
     };
 
     // Framework detection patterns
@@ -66,62 +66,62 @@ export class LanguageDetector {
         dependencies: ['react', '@types/react', 'react-dom'],
         patterns: [/import.*React/, /from\s+['"]react['"]/, /jsx?/, /\.tsx?$/],
         files: ['.babelrc', 'next.config.js'],
-        weight: 1.5
+        weight: 1.5,
       },
       nextjs: {
         dependencies: ['next'],
         patterns: [/from\s+['"]next\//, /export.*getServerSideProps/, /export.*getStaticProps/],
         files: ['next.config.js', 'pages/', 'app/'],
-        weight: 1.8
+        weight: 1.8,
       },
       vue: {
         dependencies: ['vue', '@vue/cli'],
         patterns: [/import.*Vue/, /<template>/, /<script>/, /\.vue$/],
         files: ['vue.config.js'],
-        weight: 1.5
+        weight: 1.5,
       },
       angular: {
         dependencies: ['@angular/core', '@angular/cli'],
         patterns: [/import.*@angular/, /@Component/, /@Injectable/, /\.component\.ts$/],
         files: ['angular.json', '.angular-cli.json'],
-        weight: 1.5
+        weight: 1.5,
       },
       express: {
         dependencies: ['express'],
         patterns: [/require\(['"]express['"]/, /app\.get/, /app\.post/, /app\.listen/],
         files: [],
-        weight: 1.3
+        weight: 1.3,
       },
       fastify: {
         dependencies: ['fastify'],
         patterns: [/require\(['"]fastify['"]/, /fastify\.register/, /fastify\.listen/],
         files: [],
-        weight: 1.3
+        weight: 1.3,
       },
       django: {
         dependencies: ['django'],
         patterns: [/from\s+django/, /django\./, /INSTALLED_APPS/, /urls\.py$/],
         files: ['manage.py', 'settings.py', 'wsgi.py'],
-        weight: 1.5
+        weight: 1.5,
       },
       flask: {
         dependencies: ['flask'],
         patterns: [/from\s+flask/, /Flask\(__name__\)/, /app\.route/, /@app\.route/],
         files: ['app.py', 'wsgi.py'],
-        weight: 1.3
+        weight: 1.3,
       },
       fastapi: {
         dependencies: ['fastapi'],
         patterns: [/from\s+fastapi/, /FastAPI\(\)/, /@app\.get/, /@app\.post/],
         files: ['main.py'],
-        weight: 1.4
+        weight: 1.4,
       },
       spring: {
         dependencies: ['spring-boot-starter'],
         patterns: [/@SpringBootApplication/, /@RestController/, /@Service/],
         files: ['application.properties', 'application.yml'],
-        weight: 1.5
-      }
+        weight: 1.5,
+      },
     };
   }
 
@@ -137,7 +137,7 @@ export class LanguageDetector {
         this.scanPackageFiles(),
         this.scanSourceFiles(),
         this.analyzeProjectStructure(),
-        this.detectBuildTools()
+        this.detectBuildTools(),
       ]);
 
       // Calculate confidence scores
@@ -146,9 +146,10 @@ export class LanguageDetector {
       // Determine primary project type
       this.determinePrimaryProjectType();
 
-      console.log(`✅ Detection complete. Found ${Object.keys(this.detectionResults.languages).length} languages`);
+      console.log(
+        `✅ Detection complete. Found ${Object.keys(this.detectionResults.languages).length} languages`,
+      );
       return this.detectionResults;
-
     } catch (error) {
       console.error(`❌ Detection failed: ${error.message}`);
       throw error;
@@ -167,7 +168,7 @@ export class LanguageDetector {
       'pom.xml',
       'build.gradle',
       'Cargo.toml',
-      'go.mod'
+      'go.mod',
     ];
 
     for (const file of packageFiles) {
@@ -215,7 +216,7 @@ export class LanguageDetector {
       const allDeps = {
         ...pkg.dependencies,
         ...pkg.devDependencies,
-        ...pkg.peerDependencies
+        ...pkg.peerDependencies,
       };
 
       // Detect JavaScript/TypeScript
@@ -227,10 +228,10 @@ export class LanguageDetector {
 
       // Detect frameworks
       for (const [framework, config] of Object.entries(this.frameworkPatterns)) {
-        const hasFramework = config.dependencies.some(dep =>
-          Object.keys(allDeps).some(installedDep =>
-            installedDep.includes(dep) || dep.includes(installedDep)
-          )
+        const hasFramework = config.dependencies.some((dep) =>
+          Object.keys(allDeps).some(
+            (installedDep) => installedDep.includes(dep) || dep.includes(installedDep),
+          ),
         );
 
         if (hasFramework) {
@@ -243,26 +244,28 @@ export class LanguageDetector {
       this.detectionResults.metadata.projectName = pkg.name;
       this.detectionResults.metadata.scripts = pkg.scripts || {};
       this.detectionResults.dependencies = { ...this.detectionResults.dependencies, ...allDeps };
-
     } catch (error) {
       console.warn(`Failed to parse package.json: ${error.message}`);
     }
   }
 
   async analyzeRequirementsTxt(content) {
-    const lines = content.split('\n').filter(line => line.trim() && !line.startsWith('#'));
+    const lines = content.split('\n').filter((line) => line.trim() && !line.startsWith('#'));
 
     this.incrementLanguageScore('python', 0.9);
     this.detectionResults.metadata.packageManager = 'pip';
 
     // Extract package names and detect frameworks
     for (const line of lines) {
-      const packageName = line.split(/[>=<~!]/)[0].toLowerCase().trim();
+      const packageName = line
+        .split(/[>=<~!]/)[0]
+        .toLowerCase()
+        .trim();
       this.detectionResults.dependencies[packageName] = line;
 
       // Check for Python frameworks
       for (const [framework, config] of Object.entries(this.frameworkPatterns)) {
-        if (config.dependencies.some(dep => packageName.includes(dep.toLowerCase()))) {
+        if (config.dependencies.some((dep) => packageName.includes(dep.toLowerCase()))) {
           this.incrementFrameworkScore(framework, config.weight);
         }
       }
@@ -279,7 +282,7 @@ export class LanguageDetector {
       const depSection = depMatches[1];
       const deps = depSection.match(/^(\w+)\s*=/gm);
       if (deps) {
-        deps.forEach(dep => {
+        deps.forEach((dep) => {
           const name = dep.split('=')[0].trim();
           this.detectionResults.dependencies[name] = dep;
         });
@@ -313,7 +316,7 @@ export class LanguageDetector {
   async scanSourceFiles() {
     const sourceFiles = await glob('**/*.{js,ts,tsx,jsx,py,java,go,rs,vue}', {
       cwd: this.projectPath,
-      ignore: ['node_modules/**', 'dist/**', 'build/**', '.git/**', 'vendor/**', 'target/**']
+      ignore: ['node_modules/**', 'dist/**', 'build/**', '.git/**', 'vendor/**', 'target/**'],
     });
 
     console.log(`📁 Found ${sourceFiles.length} source files to analyze`);
@@ -322,7 +325,7 @@ export class LanguageDetector {
     const batchSize = 50;
     for (let i = 0; i < sourceFiles.length; i += batchSize) {
       const batch = sourceFiles.slice(i, i + batchSize);
-      await Promise.all(batch.map(file => this.analyzeSourceFile(file)));
+      await Promise.all(batch.map((file) => this.analyzeSourceFile(file)));
     }
   }
 
@@ -342,7 +345,7 @@ export class LanguageDetector {
           this.incrementLanguageScore(lang, 0.5);
 
           // Check for language-specific patterns
-          config.patterns.forEach(pattern => {
+          config.patterns.forEach((pattern) => {
             if (pattern.test(content)) {
               this.incrementLanguageScore(lang, 0.3);
             }
@@ -352,13 +355,12 @@ export class LanguageDetector {
 
       // Check for framework patterns
       for (const [framework, config] of Object.entries(this.frameworkPatterns)) {
-        config.patterns.forEach(pattern => {
+        config.patterns.forEach((pattern) => {
           if (pattern.test(content) || pattern.test(relativePath)) {
             this.incrementFrameworkScore(framework, 0.4);
           }
         });
       }
-
     } catch (error) {
       console.warn(`Could not analyze ${relativePath}: ${error.message}`);
     }
@@ -368,14 +370,25 @@ export class LanguageDetector {
    * Analyze project structure for additional clues
    */
   async analyzeProjectStructure() {
-    const directories = ['src', 'lib', 'app', 'pages', 'components', 'views', 'models', 'controllers', 'routes'];
+    const directories = [
+      'src',
+      'lib',
+      'app',
+      'pages',
+      'components',
+      'views',
+      'models',
+      'controllers',
+      'routes',
+    ];
 
     for (const dir of directories) {
       const dirPath = path.join(this.projectPath, dir);
       try {
         const stat = await fs.stat(dirPath);
         if (stat.isDirectory()) {
-          this.detectionResults.metadata.directories = this.detectionResults.metadata.directories || [];
+          this.detectionResults.metadata.directories =
+            this.detectionResults.metadata.directories || [];
           this.detectionResults.metadata.directories.push(dir);
 
           // Specific directory patterns
@@ -403,9 +416,9 @@ export class LanguageDetector {
       'vite.config.js': { tool: 'vite', score: 0.5 },
       'rollup.config.js': { tool: 'rollup', score: 0.5 },
       'gulpfile.js': { tool: 'gulp', score: 0.5 },
-      'Makefile': { tool: 'make', score: 0.5 },
+      Makefile: { tool: 'make', score: 0.5 },
       'docker-compose.yml': { tool: 'docker', score: 0.7 },
-      'Dockerfile': { tool: 'docker', score: 0.7 }
+      Dockerfile: { tool: 'docker', score: 0.7 },
     };
 
     for (const [file, config] of Object.entries(buildFiles)) {
@@ -424,11 +437,13 @@ export class LanguageDetector {
    * Helper methods for scoring
    */
   incrementLanguageScore(language, score) {
-    this.detectionResults.languages[language] = (this.detectionResults.languages[language] || 0) + score;
+    this.detectionResults.languages[language] =
+      (this.detectionResults.languages[language] || 0) + score;
   }
 
   incrementFrameworkScore(framework, score) {
-    this.detectionResults.frameworks[framework] = (this.detectionResults.frameworks[framework] || 0) + score;
+    this.detectionResults.frameworks[framework] =
+      (this.detectionResults.frameworks[framework] || 0) + score;
   }
 
   /**
@@ -441,7 +456,7 @@ export class LanguageDetector {
       for (const lang in this.detectionResults.languages) {
         this.detectionResults.languages[lang] = Math.min(
           this.detectionResults.languages[lang] / maxLangScore,
-          1.0
+          1.0,
         );
       }
     }
@@ -451,14 +466,17 @@ export class LanguageDetector {
     for (const framework in this.detectionResults.frameworks) {
       this.detectionResults.frameworks[framework] = Math.min(
         this.detectionResults.frameworks[framework] / maxFrameworkScore,
-        1.0
+        1.0,
       );
     }
 
     // Calculate overall confidence
     const totalLanguages = Object.keys(this.detectionResults.languages).length;
     const totalFrameworks = Object.keys(this.detectionResults.frameworks).length;
-    this.detectionResults.confidence = Math.min((totalLanguages * 0.6 + totalFrameworks * 0.4) / 2, 1.0);
+    this.detectionResults.confidence = Math.min(
+      (totalLanguages * 0.6 + totalFrameworks * 0.4) / 2,
+      1.0,
+    );
   }
 
   /**
@@ -468,12 +486,14 @@ export class LanguageDetector {
     const languages = this.detectionResults.languages;
     const frameworks = this.detectionResults.frameworks;
 
-    const primaryLang = Object.keys(languages).reduce((a, b) =>
-      languages[a] > languages[b] ? a : b, Object.keys(languages)[0]
+    const primaryLang = Object.keys(languages).reduce(
+      (a, b) => (languages[a] > languages[b] ? a : b),
+      Object.keys(languages)[0],
     );
 
-    const primaryFramework = Object.keys(frameworks).reduce((a, b) =>
-      frameworks[a] > frameworks[b] ? a : b, Object.keys(frameworks)[0]
+    const primaryFramework = Object.keys(frameworks).reduce(
+      (a, b) => (frameworks[a] > frameworks[b] ? a : b),
+      Object.keys(frameworks)[0],
     );
 
     // Determine project type
@@ -511,7 +531,7 @@ export class LanguageDetector {
       linting: [],
       testing: [],
       building: [],
-      deployment: []
+      deployment: [],
     };
 
     const { languages, frameworks } = this.detectionResults;
@@ -552,7 +572,7 @@ export class LanguageDetector {
     return {
       ...this.detectionResults,
       timestamp: new Date().toISOString(),
-      recommendations: this.getRecommendations()
+      recommendations: this.getRecommendations(),
     };
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Integration Tests for Cross-Agent Communication Verification
- * 
+ *
  * Tests the verification of communication patterns between agents including:
  * - Message integrity verification
  * - Communication protocol validation
@@ -63,14 +63,14 @@ describe('Cross-Agent Communication Verification', () => {
   beforeEach(async () => {
     // Setup test environment
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cross-agent-test-'));
-    
+
     communicationBus = new EventEmitter();
     mockAgents = new Map();
     verificationSystem = new CrossAgentVerificationSystem(communicationBus, tempDir);
 
     // Create mock agents
     await createMockAgents();
-    
+
     // Initialize verification system
     await verificationSystem.initialize();
   });
@@ -85,13 +85,17 @@ describe('Cross-Agent Communication Verification', () => {
       { id: 'coder-001', type: 'coder', capabilities: ['implement', 'test', 'debug'] },
       { id: 'reviewer-001', type: 'reviewer', capabilities: ['review', 'verify', 'validate'] },
       { id: 'tester-001', type: 'tester', capabilities: ['test', 'benchmark', 'validate'] },
-      { id: 'coordinator-001', type: 'coordinator', capabilities: ['orchestrate', 'monitor', 'report'] }
+      {
+        id: 'coordinator-001',
+        type: 'coordinator',
+        capabilities: ['orchestrate', 'monitor', 'report'],
+      },
     ];
 
     for (const config of agentConfigs) {
       const agent = createMockAgent(config);
       mockAgents.set(config.id, agent);
-      
+
       // Register agent with communication bus
       communicationBus.on(`message:${config.id}`, (message: AgentMessage) => {
         agent.messageHistory.push(message);
@@ -102,7 +106,7 @@ describe('Cross-Agent Communication Verification', () => {
 
   function createMockAgent(config: any): MockAgent {
     const agent = new EventEmitter() as any;
-    
+
     Object.assign(agent, {
       id: config.id,
       type: config.type,
@@ -110,7 +114,7 @@ describe('Cross-Agent Communication Verification', () => {
       messageHistory: [],
       verificationResults: [],
       truthScore: 1.0,
-      
+
       sendMessage(to: string, type: string, content: any) {
         const message: AgentMessage = {
           id: `msg-${Date.now()}-${Math.random()}`,
@@ -119,14 +123,14 @@ describe('Cross-Agent Communication Verification', () => {
           type,
           content,
           timestamp: Date.now(),
-          hash: generateMessageHash(content)
+          hash: generateMessageHash(content),
         };
-        
+
         communicationBus.emit(`message:${to}`, message);
         communicationBus.emit('message:sent', message);
         return message;
       },
-      
+
       verifyMessage(message: AgentMessage, evidence: any): VerificationResult {
         const result: VerificationResult = {
           messageId: message.id,
@@ -134,15 +138,15 @@ describe('Cross-Agent Communication Verification', () => {
           truthScore: calculateTruthScore(message, evidence),
           evidence,
           timestamp: Date.now(),
-          conflicts: detectConflicts(message, evidence)
+          conflicts: detectConflicts(message, evidence),
         };
-        
+
         this.verificationResults.push(result);
         communicationBus.emit('verification:complete', result);
         return result;
-      }
+      },
     });
-    
+
     return agent;
   }
 
@@ -155,22 +159,24 @@ describe('Cross-Agent Communication Verification', () => {
     const baseScore = 0.8;
     const evidenceQuality = evidence?.quality || 0.5;
     const messageIntegrity = message.hash ? 0.2 : 0;
-    
+
     return Math.min(1.0, baseScore + evidenceQuality * 0.15 + messageIntegrity);
   }
 
   function detectConflicts(message: AgentMessage, evidence: any): string[] {
     const conflicts: string[] = [];
-    
+
     // Simulate conflict detection
     if (message.content?.claimed_success && evidence?.actual_success === false) {
       conflicts.push('Claimed success but evidence shows failure');
     }
-    
+
     if (message.content?.test_count && evidence?.actual_test_count !== message.content.test_count) {
-      conflicts.push(`Test count mismatch: claimed ${message.content.test_count}, actual ${evidence.actual_test_count}`);
+      conflicts.push(
+        `Test count mismatch: claimed ${message.content.test_count}, actual ${evidence.actual_test_count}`,
+      );
     }
-    
+
     return conflicts;
   }
 
@@ -185,11 +191,11 @@ describe('Cross-Agent Communication Verification', () => {
         status: 'completed',
         files_created: 5,
         tests_added: 12,
-        claimed_success: true
+        claimed_success: true,
       });
 
       // Wait for message to be delivered
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Verify message was received with correct hash
       expect(reviewer.messageHistory).toHaveLength(1);
@@ -203,7 +209,7 @@ describe('Cross-Agent Communication Verification', () => {
 
       const message = coder.sendMessage(reviewer.id, 'result', {
         task: 'implement-feature',
-        status: 'completed'
+        status: 'completed',
       });
 
       // Simulate message tampering
@@ -232,7 +238,7 @@ describe('Cross-Agent Communication Verification', () => {
       tester.on('message:received', (message) => {
         tester.sendMessage(message.from, 'acknowledgment', {
           messageId: message.id,
-          received: true
+          received: true,
         });
         acknowledgmentReceived = true;
       });
@@ -240,10 +246,10 @@ describe('Cross-Agent Communication Verification', () => {
       // Send message
       coordinator.sendMessage(tester.id, 'task', {
         task: 'run-performance-tests',
-        timeout: 300000
+        timeout: 300000,
       });
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise((resolve) => setTimeout(resolve, 20));
 
       expect(messageDelivered).toBe(true);
       expect(acknowledgmentReceived).toBe(true);
@@ -262,8 +268,8 @@ describe('Cross-Agent Communication Verification', () => {
         metadata: {
           files_changed: 3,
           lines_added: 150,
-          tests_added: 8
-        }
+          tests_added: 8,
+        },
       });
 
       // Validate message structure
@@ -282,18 +288,17 @@ describe('Cross-Agent Communication Verification', () => {
       // Test that each agent only performs actions within their capabilities
       for (const agent of agents) {
         if (agent.capabilities.includes('implement')) {
-          expect(() => agent.sendMessage('test', 'result', { code: 'implementation' }))
-            .not.toThrow();
+          expect(() =>
+            agent.sendMessage('test', 'result', { code: 'implementation' }),
+          ).not.toThrow();
         }
-        
+
         if (agent.capabilities.includes('review')) {
-          expect(() => agent.sendMessage('test', 'verification', { approved: true }))
-            .not.toThrow();
+          expect(() => agent.sendMessage('test', 'verification', { approved: true })).not.toThrow();
         }
-        
+
         if (agent.capabilities.includes('test')) {
-          expect(() => agent.sendMessage('test', 'result', { tests_passed: 10 }))
-            .not.toThrow();
+          expect(() => agent.sendMessage('test', 'result', { tests_passed: 10 })).not.toThrow();
         }
       }
     });
@@ -305,16 +310,16 @@ describe('Cross-Agent Communication Verification', () => {
 
       // Implementation results should go to reviewer first
       const implementationMessage = coder.sendMessage('reviewer-001', 'result', {
-        implementation: 'completed'
+        implementation: 'completed',
       });
 
       // Test results should go to coordinator
       const testMessage = tester.sendMessage(coordinator.id, 'result', {
         tests_passed: 15,
-        tests_failed: 2
+        tests_failed: 2,
       });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Verify routing
       const reviewer = mockAgents.get('reviewer-001')!;
@@ -337,7 +342,7 @@ describe('Cross-Agent Communication Verification', () => {
         status: 'completed',
         claimed_success: true,
         files_created: 4,
-        tests_added: 10
+        tests_added: 10,
       });
 
       // Reviewer verifies with evidence
@@ -347,7 +352,7 @@ describe('Cross-Agent Communication Verification', () => {
         tests_found: 10,
         quality: 0.9,
         lint_errors: 0,
-        test_coverage: 0.85
+        test_coverage: 0.85,
       };
 
       const verification = reviewer.verifyMessage(claimMessage, evidence);
@@ -367,7 +372,7 @@ describe('Cross-Agent Communication Verification', () => {
         status: 'completed',
         claimed_success: true,
         bugs_fixed: 5,
-        test_count: 20
+        test_count: 20,
       });
 
       // Evidence contradicts claims
@@ -376,7 +381,7 @@ describe('Cross-Agent Communication Verification', () => {
         bugs_remaining: 3,
         actual_test_count: 15,
         quality: 0.3,
-        build_success: false
+        build_success: false,
       };
 
       const verification = reviewer.verifyMessage(falseClaimMessage, evidence);
@@ -397,19 +402,19 @@ describe('Cross-Agent Communication Verification', () => {
         { claimed: true, actual: false, score: 0.2 },
         { claimed: true, actual: true, score: 0.9 },
         { claimed: false, actual: false, score: 1.0 },
-        { claimed: true, actual: true, score: 0.85 }
+        { claimed: true, actual: true, score: 0.85 },
       ];
 
       for (let i = 0; i < scenarios.length; i++) {
         const scenario = scenarios[i];
         const message = coder.sendMessage(reviewer.id, 'result', {
           task: `task-${i}`,
-          claimed_success: scenario.claimed
+          claimed_success: scenario.claimed,
         });
 
         const evidence = {
           actual_success: scenario.actual,
-          quality: scenario.score
+          quality: scenario.score,
         };
 
         reviewer.verifyMessage(message, evidence);
@@ -417,8 +422,9 @@ describe('Cross-Agent Communication Verification', () => {
 
       // Calculate reliability
       const verifications = reviewer.verificationResults;
-      const avgTruthScore = verifications.reduce((sum, v) => sum + v.truthScore, 0) / verifications.length;
-      
+      const avgTruthScore =
+        verifications.reduce((sum, v) => sum + v.truthScore, 0) / verifications.length;
+
       expect(verifications).toHaveLength(5);
       expect(avgTruthScore).toBeGreaterThan(0.6);
       expect(avgTruthScore).toBeLessThan(0.9);
@@ -435,26 +441,26 @@ describe('Cross-Agent Communication Verification', () => {
       const claimMessage = coder.sendMessage(reviewer.id, 'result', {
         task: 'implement-payment-flow',
         status: 'completed',
-        claimed_success: true
+        claimed_success: true,
       });
 
       // Send copy to tester for independent verification
       const testMessage = { ...claimMessage, to: tester.id };
       communicationBus.emit(`message:${tester.id}`, testMessage);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Both agents verify independently
       const reviewerEvidence = {
         actual_success: true,
         code_quality: 0.9,
-        standards_compliance: true
+        standards_compliance: true,
       };
 
       const testerEvidence = {
         actual_success: true,
         tests_pass: true,
-        performance_acceptable: true
+        performance_acceptable: true,
       };
 
       const reviewerVerification = reviewer.verifyMessage(claimMessage, reviewerEvidence);
@@ -463,8 +469,10 @@ describe('Cross-Agent Communication Verification', () => {
       // Compare verification results
       expect(reviewerVerification.truthScore).toBeGreaterThan(0.8);
       expect(testerVerification.truthScore).toBeGreaterThan(0.8);
-      
-      const scoreDifference = Math.abs(reviewerVerification.truthScore - testerVerification.truthScore);
+
+      const scoreDifference = Math.abs(
+        reviewerVerification.truthScore - testerVerification.truthScore,
+      );
       expect(scoreDifference).toBeLessThan(0.2); // Should be reasonably consistent
     });
 
@@ -476,33 +484,35 @@ describe('Cross-Agent Communication Verification', () => {
       const claimMessage = coder.sendMessage(reviewer.id, 'result', {
         task: 'optimize-performance',
         claimed_success: true,
-        performance_improvement: '50%'
+        performance_improvement: '50%',
       });
 
       // Send to tester
       const testMessage = { ...claimMessage, to: tester.id };
       communicationBus.emit(`message:${tester.id}`, testMessage);
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Conflicting evidence
       const reviewerEvidence = {
         actual_success: true,
         code_looks_good: true,
-        quality: 0.8
+        quality: 0.8,
       };
 
       const testerEvidence = {
         actual_success: false,
         performance_worse: true,
-        quality: 0.2
+        quality: 0.2,
       };
 
       const reviewerVerification = reviewer.verifyMessage(claimMessage, reviewerEvidence);
       const testerVerification = tester.verifyMessage(testMessage, testerEvidence);
 
       // Detect conflict
-      const scoreDifference = Math.abs(reviewerVerification.truthScore - testerVerification.truthScore);
+      const scoreDifference = Math.abs(
+        reviewerVerification.truthScore - testerVerification.truthScore,
+      );
       expect(scoreDifference).toBeGreaterThan(0.5); // Significant disagreement
 
       expect(reviewerVerification.conflicts).toHaveLength(0);
@@ -529,14 +539,14 @@ describe('Cross-Agent Communication Verification', () => {
       for (let i = 0; i < 10; i++) {
         const sender = agents[i % agents.length];
         const receiver = agents[(i + 1) % agents.length];
-        
+
         sender.sendMessage(receiver.id, 'status', {
           update: `Status update ${i}`,
-          timestamp: Date.now() + i * 1000
+          timestamp: Date.now() + i * 1000,
         });
       }
 
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Analyze patterns
       const patterns = await verificationSystem.analyzeCommunicationPatterns();
@@ -555,10 +565,12 @@ describe('Cross-Agent Communication Verification', () => {
       const spamPromises = [];
       for (let i = 0; i < 100; i++) {
         spamPromises.push(
-          Promise.resolve(coder.sendMessage(reviewer.id, 'status', {
-            spam: `Message ${i}`,
-            timestamp: Date.now()
-          }))
+          Promise.resolve(
+            coder.sendMessage(reviewer.id, 'status', {
+              spam: `Message ${i}`,
+              timestamp: Date.now(),
+            }),
+          ),
         );
       }
 
@@ -578,7 +590,7 @@ describe('Cross-Agent Communication Verification', () => {
   describe('Evidence Validation', () => {
     test('should validate evidence quality and completeness', async () => {
       const reviewer = mockAgents.get('reviewer-001')!;
-      
+
       const message: AgentMessage = {
         id: 'test-msg',
         from: 'coder-001',
@@ -586,7 +598,7 @@ describe('Cross-Agent Communication Verification', () => {
         type: 'result',
         content: { task: 'test', claimed_success: true },
         timestamp: Date.now(),
-        hash: 'test-hash'
+        hash: 'test-hash',
       };
 
       // Test with complete evidence
@@ -595,7 +607,7 @@ describe('Cross-Agent Communication Verification', () => {
         test_results: { passed: 10, failed: 0 },
         build_logs: 'SUCCESS',
         performance_metrics: { response_time: 150 },
-        quality: 0.9
+        quality: 0.9,
       };
 
       const completeVerification = reviewer.verifyMessage(message, completeEvidence);
@@ -604,7 +616,7 @@ describe('Cross-Agent Communication Verification', () => {
       // Test with incomplete evidence
       const incompleteEvidence = {
         actual_success: true,
-        quality: 0.5
+        quality: 0.5,
       };
 
       const incompleteVerification = reviewer.verifyMessage(message, incompleteEvidence);
@@ -613,19 +625,19 @@ describe('Cross-Agent Communication Verification', () => {
 
     test('should detect fabricated or inconsistent evidence', async () => {
       const reviewer = mockAgents.get('reviewer-001')!;
-      
+
       const message: AgentMessage = {
         id: 'test-msg-2',
         from: 'coder-001',
         to: reviewer.id,
         type: 'result',
-        content: { 
+        content: {
           task: 'optimize-database',
           claimed_success: true,
-          performance_improved: true
+          performance_improved: true,
         },
         timestamp: Date.now(),
-        hash: 'test-hash-2'
+        hash: 'test-hash-2',
       };
 
       // Inconsistent evidence
@@ -633,13 +645,13 @@ describe('Cross-Agent Communication Verification', () => {
         actual_success: true,
         performance_metrics: {
           before: { query_time: 100 },
-          after: { query_time: 200 } // Actually worse!
+          after: { query_time: 200 }, // Actually worse!
         },
-        quality: 0.9 // High quality score doesn't match actual results
+        quality: 0.9, // High quality score doesn't match actual results
       };
 
       const verification = reviewer.verifyMessage(message, inconsistentEvidence);
-      
+
       // Should detect inconsistency between claimed improvement and actual metrics
       expect(verification.conflicts.length).toBeGreaterThan(0);
       expect(verification.truthScore).toBeLessThan(0.6);
@@ -676,14 +688,19 @@ class CrossAgentVerificationSystem {
   async generateCrossVerificationReport(): Promise<CrossVerificationReport> {
     const totalMessages = this.messageHistory.length;
     const verifiedMessages = this.verificationHistory.length;
-    const conflictingClaims = this.verificationHistory.filter(v => v.conflicts.length > 0).length;
-    
-    const avgTruthScore = this.verificationHistory.length > 0
-      ? this.verificationHistory.reduce((sum, v) => sum + v.truthScore, 0) / this.verificationHistory.length
-      : 1.0;
+    const conflictingClaims = this.verificationHistory.filter((v) => v.conflicts.length > 0).length;
+
+    const avgTruthScore =
+      this.verificationHistory.length > 0
+        ? this.verificationHistory.reduce((sum, v) => sum + v.truthScore, 0) /
+          this.verificationHistory.length
+        : 1.0;
 
     const agentReliability = new Map<string, number>();
-    const communicationIntegrity = Math.max(0, 1 - (conflictingClaims / Math.max(1, verifiedMessages)));
+    const communicationIntegrity = Math.max(
+      0,
+      1 - conflictingClaims / Math.max(1, verifiedMessages),
+    );
 
     return {
       totalMessages,
@@ -691,29 +708,29 @@ class CrossAgentVerificationSystem {
       conflictingClaims,
       avgTruthScore,
       agentReliability,
-      communicationIntegrity
+      communicationIntegrity,
     };
   }
 
   async analyzeCommunicationPatterns() {
     const now = Date.now();
-    const recentMessages = this.messageHistory.filter(m => now - m.timestamp < 60000); // Last minute
+    const recentMessages = this.messageHistory.filter((m) => now - m.timestamp < 60000); // Last minute
 
     return {
       messageFrequency: recentMessages.length,
       averageResponseTime: 50, // Simplified
       communicationGraph: new Map(),
-      anomalies: []
+      anomalies: [],
     };
   }
 
   async detectAnomalies() {
     const now = Date.now();
-    const recentMessages = this.messageHistory.filter(m => now - m.timestamp < 5000); // Last 5 seconds
+    const recentMessages = this.messageHistory.filter((m) => now - m.timestamp < 5000); // Last 5 seconds
     const highVolumeThreshold = 50;
 
     const messageCounts = new Map<string, number>();
-    recentMessages.forEach(m => {
+    recentMessages.forEach((m) => {
       messageCounts.set(m.from, (messageCounts.get(m.from) || 0) + 1);
     });
 
@@ -724,7 +741,7 @@ class CrossAgentVerificationSystem {
     return {
       highVolumeDetected: suspiciousAgents.length > 0,
       suspiciousAgents,
-      totalRecentMessages: recentMessages.length
+      totalRecentMessages: recentMessages.length,
     };
   }
 }

@@ -57,7 +57,7 @@ async function runExample() {
 
     const generator = new ClaudeMdGenerator(projectPath, {
       backupExisting: true,
-      preserveCustomSections: true
+      preserveCustomSections: true,
     });
 
     console.log('🔄 Generating CLAUDE.md with detected languages and frameworks...');
@@ -69,7 +69,9 @@ async function runExample() {
     // Show first few lines of generated content
     const previewLines = claudeContent.split('\n').slice(0, 10);
     previewLines.forEach((line, index) => {
-      console.log(`  ${(index + 1).toString().padStart(2)}: ${line.substring(0, 80)}${line.length > 80 ? '...' : ''}`);
+      console.log(
+        `  ${(index + 1).toString().padStart(2)}: ${line.substring(0, 80)}${line.length > 80 ? '...' : ''}`,
+      );
     });
 
     // Example 3: Integration System
@@ -79,7 +81,7 @@ async function runExample() {
     const integration = new IntegrationSystem(projectPath, {
       autoDetect: true,
       autoGenerate: true,
-      backupExisting: true
+      backupExisting: true,
     });
 
     // Validate project
@@ -90,7 +92,7 @@ async function runExample() {
 
     if (validation.issues.length > 0) {
       console.log('❌ Issues:');
-      validation.issues.forEach(issue => {
+      validation.issues.forEach((issue) => {
         console.log(`  • ${issue.message}`);
         if (issue.suggestion) {
           console.log(`    💡 ${issue.suggestion}`);
@@ -100,7 +102,7 @@ async function runExample() {
 
     if (validation.suggestions.length > 0) {
       console.log('💡 Suggestions:');
-      validation.suggestions.forEach(suggestion => {
+      validation.suggestions.forEach((suggestion) => {
         console.log(`  • ${suggestion.message}`);
         if (suggestion.suggestion) {
           console.log(`    → ${suggestion.suggestion}`);
@@ -129,7 +131,7 @@ async function runExample() {
 
       if (updateResult.changes.newTechnologies.length > 0) {
         console.log('🆕 New technologies:');
-        updateResult.changes.newTechnologies.forEach(tech => {
+        updateResult.changes.newTechnologies.forEach((tech) => {
           console.log(`  • ${tech.name} (${tech.type})`);
         });
       }
@@ -144,15 +146,17 @@ async function runExample() {
     // Load current configuration
     const config = await integration.loadConfiguration();
     console.log('📋 Current configuration keys:');
-    Object.keys(config).forEach(key => {
-      console.log(`  • ${key}: ${typeof config[key]} ${Array.isArray(config[key]) ? '(array)' : ''}`);
+    Object.keys(config).forEach((key) => {
+      console.log(
+        `  • ${key}: ${typeof config[key]} ${Array.isArray(config[key]) ? '(array)' : ''}`,
+      );
     });
 
     // Update preferences
     const newPreferences = {
       ...config,
       includeAdvancedPatterns: true,
-      customTimestamp: new Date().toISOString()
+      customTimestamp: new Date().toISOString(),
     };
 
     await integration.updateConfiguration(newPreferences);
@@ -195,13 +199,15 @@ async function runExample() {
 
     // Test graceful fallbacks
     const emptyDirGenerator = new ClaudeMdGenerator('/tmp/empty-test-dir', {
-      backupExisting: false
+      backupExisting: false,
     });
 
     try {
       await fs.mkdir('/tmp/empty-test-dir', { recursive: true });
       const emptyContent = await emptyDirGenerator.generateClaudeMd();
-      console.log(`✅ Graceful fallback: Generated ${emptyContent.length} characters for empty project`);
+      console.log(
+        `✅ Graceful fallback: Generated ${emptyContent.length} characters for empty project`,
+      );
       await fs.rmdir('/tmp/empty-test-dir', { recursive: true });
     } catch (error) {
       console.log(`⚠️  Fallback test error (expected): ${error.message}`);
@@ -217,7 +223,6 @@ async function runExample() {
     console.log('  2. Use `node src/language/cli.js detect` for language detection');
     console.log('  3. Use `node src/language/cli.js generate` to create CLAUDE.md');
     console.log('  4. Use `node src/language/cli.js report` for comprehensive analysis');
-
   } catch (error) {
     console.error('❌ Demo failed:', error.message);
     console.error('📍 Stack trace:', error.stack);
@@ -233,47 +238,47 @@ function showUsageExamples() {
   const examples = [
     {
       command: 'node src/language/cli.js detect',
-      description: 'Detect languages in current directory'
+      description: 'Detect languages in current directory',
     },
     {
       command: 'node src/language/cli.js detect -p /path/to/project --json',
-      description: 'Detect languages in specific path, output as JSON'
+      description: 'Detect languages in specific path, output as JSON',
     },
     {
       command: 'node src/language/cli.js generate --force',
-      description: 'Force regenerate CLAUDE.md file'
+      description: 'Force regenerate CLAUDE.md file',
     },
     {
       command: 'node src/language/cli.js init --interactive',
-      description: 'Initialize with interactive setup'
+      description: 'Initialize with interactive setup',
     },
     {
       command: 'node src/language/cli.js update --check-only',
-      description: 'Check for changes without updating'
+      description: 'Check for changes without updating',
     },
     {
       command: 'node src/language/cli.js report -o report.json',
-      description: 'Generate report and save to file'
+      description: 'Generate report and save to file',
     },
     {
       command: 'node src/language/cli.js validate',
-      description: 'Validate project structure'
+      description: 'Validate project structure',
     },
     {
       command: 'node src/language/cli.js config show',
-      description: 'Show current configuration'
+      description: 'Show current configuration',
     },
     {
       command: 'node src/language/cli.js config set autoGenerate false',
-      description: 'Disable auto-generation'
+      description: 'Disable auto-generation',
     },
     {
       command: 'node src/language/cli.js cleanup --days 7',
-      description: 'Clean up files older than 7 days'
-    }
+      description: 'Clean up files older than 7 days',
+    },
   ];
 
-  examples.forEach(example => {
+  examples.forEach((example) => {
     console.log(`\n💻 ${example.command}`);
     console.log(`   ${example.description}`);
   });

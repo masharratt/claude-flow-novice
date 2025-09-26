@@ -726,21 +726,21 @@ export interface VerificationManager {
   createCheckpoint(description: string, scope: CheckpointScope): Promise<string>;
   listCheckpoints(filter?: CheckpointFilter): Promise<Checkpoint[]>;
   deleteCheckpoint(id: string): Promise<void>;
-  
+
   // Truth scoring
   calculateTruthScore(evidence: Evidence, claims: AgentClaims): Promise<TruthScore>;
   storeTruthScore(score: TruthScore): Promise<void>;
   getAgentReliability(agent_id: string): Promise<ReliabilityReport>;
-  
+
   // State management
   captureSystemState(scope: StateScope): Promise<StateSnapshot>;
   rollbackToCheckpoint(checkpoint_id: string, options: RollbackOptions): Promise<RollbackResult>;
   validateStateConsistency(): Promise<ConsistencyReport>;
-  
+
   // Integration testing
   runCrossAgentTests(suite?: string): Promise<TestResults>;
   validateAgentCommunication(): Promise<CommunicationLogs>;
-  
+
   // Reporting
   generateVerificationReport(format: 'json' | 'html' | 'markdown'): Promise<string>;
   exportMetrics(timeframe: string): Promise<MetricsExport>;
@@ -751,12 +751,12 @@ export interface AgentVerificationInterface {
   validateCapabilities(): Promise<CapabilityValidation>;
   reportTaskClaims(task_id: string, claims: TaskClaims): Promise<void>;
   provideEvidence(task_id: string): Promise<Evidence>;
-  
+
   // State management
   saveState(): Promise<AgentState>;
   restoreState(state: AgentState): Promise<void>;
   validateState(): Promise<StateValidation>;
-  
+
   // Communication verification
   validateMessage(message: AgentMessage): Promise<MessageValidation>;
   reportCommunicationMetrics(): Promise<CommunicationMetrics>;

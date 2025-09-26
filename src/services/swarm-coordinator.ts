@@ -144,7 +144,7 @@ export class SwarmCoordinator extends EventEmitter {
         phases: [],
         executionTimeline: [],
         totalDuration: 0,
-        byzantineVerified: false
+        byzantineVerified: false,
       };
 
       // Execute phases with Byzantine consensus validation
@@ -163,7 +163,8 @@ export class SwarmCoordinator extends EventEmitter {
       // Final Byzantine consensus verification
       const finalConsensus = await this.consensusEngine.finalizeConsensus(workflowId);
       result.byzantineVerified = finalConsensus.consensusReached;
-      result.success = finalConsensus.consensusReached && result.phases.every(p => p.status === 'completed');
+      result.success =
+        finalConsensus.consensusReached && result.phases.every((p) => p.status === 'completed');
       result.totalDuration = Date.now() - startTime;
 
       return result;
@@ -174,14 +175,17 @@ export class SwarmCoordinator extends EventEmitter {
     }
   }
 
-  private async executePhaseWithConsensus(phase: TaskPhase, consensusContext: any): Promise<PhaseResult> {
+  private async executePhaseWithConsensus(
+    phase: TaskPhase,
+    consensusContext: any,
+  ): Promise<PhaseResult> {
     const agent = this.agents.get(phase.assignedAgent);
     if (!agent) {
       throw new Error(`Agent ${phase.assignedAgent} not found`);
     }
 
     // Verify agent is still Byzantine-compliant
-    if (!await this.byzantineValidator.validateAgentState(agent)) {
+    if (!(await this.byzantineValidator.validateAgentState(agent))) {
       throw new Error(`Agent ${phase.assignedAgent} failed Byzantine validation`);
     }
 
@@ -194,7 +198,7 @@ export class SwarmCoordinator extends EventEmitter {
       phase.name,
       phaseResult,
       agent.id,
-      consensusContext
+      consensusContext,
     );
 
     phaseResult.qualityScore = consensusResult.truthScore;
@@ -209,12 +213,14 @@ export class SwarmCoordinator extends EventEmitter {
 
   private async simulatePhaseExecution(phase: TaskPhase, agent: Agent): Promise<PhaseResult> {
     // Simulate phase execution with realistic timing
-    await new Promise(resolve => setTimeout(resolve, Math.min(phase.estimatedDuration / 100, 2000)));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(phase.estimatedDuration / 100, 2000)),
+    );
 
     return {
       name: phase.name,
       status: 'completed',
-      deliverables: phase.deliverables.map(d => ({ name: d, completed: true })),
+      deliverables: phase.deliverables.map((d) => ({ name: d, completed: true })),
       qualityScore: Math.random() * 0.3 + 0.7, // 0.7 to 1.0
     };
   }
@@ -236,20 +242,20 @@ export class SwarmCoordinator extends EventEmitter {
       phases: [],
       executionTimeline: [],
       totalDuration: 0,
-      byzantineVerified: true
+      byzantineVerified: true,
     };
 
     const executionOrder = this.topologicalSort(task.subtasks);
     const startTime = Date.now();
 
     for (const subtaskId of executionOrder) {
-      const subtask = task.subtasks.find(s => s.id === subtaskId)!;
+      const subtask = task.subtasks.find((s) => s.id === subtaskId)!;
 
       result.executionTimeline.push({
         type: 'subtask_started',
         subtaskId,
         timestamp: Date.now(),
-        agentId: subtask.agent
+        agentId: subtask.agent,
       });
 
       // Execute subtask with consensus validation
@@ -259,7 +265,7 @@ export class SwarmCoordinator extends EventEmitter {
         type: 'subtask_completed',
         subtaskId,
         timestamp: Date.now(),
-        agentId: subtask.agent
+        agentId: subtask.agent,
       });
     }
 
@@ -274,14 +280,21 @@ export class SwarmCoordinator extends EventEmitter {
     }
 
     // Simulate subtask execution
-    await new Promise(resolve => setTimeout(resolve, Math.min(subtask.estimatedDuration / 100, 1000)));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.min(subtask.estimatedDuration / 100, 1000)),
+    );
 
     // Update agent performance
     agent.performance.tasksCompleted++;
-    agent.performance.averageTaskTime = (agent.performance.averageTaskTime + subtask.estimatedDuration) / 2;
+    agent.performance.averageTaskTime =
+      (agent.performance.averageTaskTime + subtask.estimatedDuration) / 2;
   }
 
-  async analyzeDependencies(task: Task): Promise<{ valid: boolean; circularDependencies: string[][]; resolutionSuggestions?: string[] }> {
+  async analyzeDependencies(task: Task): Promise<{
+    valid: boolean;
+    circularDependencies: string[][];
+    resolutionSuggestions?: string[];
+  }> {
     if (!task.subtasks) {
       return { valid: true, circularDependencies: [] };
     }
@@ -296,7 +309,8 @@ export class SwarmCoordinator extends EventEmitter {
     return {
       valid: cycles.length === 0,
       circularDependencies: cycles,
-      resolutionSuggestions: cycles.length > 0 ? ['Remove circular dependency', 'Add intermediate task'] : undefined
+      resolutionSuggestions:
+        cycles.length > 0 ? ['Remove circular dependency', 'Add intermediate task'] : undefined,
     };
   }
 
@@ -394,11 +408,11 @@ export class SwarmCoordinator extends EventEmitter {
       agentWorkloads: Object.fromEntries(
         Array.from(agentWorkloads.entries()).map(([agent, time]) => [
           agent.split('-')[0], // Extract agent type
-          { totalTime: time }
-        ])
+          { totalTime: time },
+        ]),
       ),
       parallelizationOpportunities: Math.max(0, tasks.length - 2),
-      estimatedSpeedup: Math.min(2.5, tasks.length / 2)
+      estimatedSpeedup: Math.min(2.5, tasks.length / 2),
     };
   }
 
@@ -416,7 +430,7 @@ export class SwarmCoordinator extends EventEmitter {
         iteration: i + 1,
         feedbackIncorporated: i > 0,
         qualityImprovement: improvement,
-        qualityScore: currentQuality
+        qualityScore: currentQuality,
       });
 
       // Check if criteria met
@@ -429,7 +443,7 @@ export class SwarmCoordinator extends EventEmitter {
       success: true,
       iterations: iterationHistory.length,
       iterationHistory,
-      finalQuality: currentQuality
+      finalQuality: currentQuality,
     };
   }
 
@@ -449,7 +463,7 @@ export class SwarmCoordinator extends EventEmitter {
         const conditionMet = this.evaluateCondition(subtask.condition, researchResult);
         routingDecisions.push({
           condition: subtask.condition,
-          result: conditionMet
+          result: conditionMet,
         });
 
         if (conditionMet) {
@@ -457,7 +471,7 @@ export class SwarmCoordinator extends EventEmitter {
             type: 'subtask_started',
             subtaskId: subtask.id,
             timestamp: Date.now(),
-            agentId: subtask.agent
+            agentId: subtask.agent,
           });
         }
       } else {
@@ -465,7 +479,7 @@ export class SwarmCoordinator extends EventEmitter {
           type: 'subtask_started',
           subtaskId: subtask.id,
           timestamp: Date.now(),
-          agentId: subtask.agent
+          agentId: subtask.agent,
         });
       }
     }
@@ -473,7 +487,7 @@ export class SwarmCoordinator extends EventEmitter {
     return {
       success: true,
       executionTimeline,
-      routingDecisions
+      routingDecisions,
     };
   }
 
@@ -511,7 +525,7 @@ class ByzantineValidator {
 
     return {
       trusted: trustScore >= 0.6,
-      trustScore
+      trustScore,
     };
   }
 
@@ -550,14 +564,19 @@ class ConsensusEngine {
       task,
       validators: new Set<string>(),
       evidence: new Map<string, any>(),
-      startTime: Date.now()
+      startTime: Date.now(),
     };
 
     this.activeContexts.set(workflowId, context);
     return context;
   }
 
-  async validatePhaseResult(phaseName: string, result: PhaseResult, agentId: string, context: any): Promise<{ verified: boolean; truthScore: number; conflicts?: string[] }> {
+  async validatePhaseResult(
+    phaseName: string,
+    result: PhaseResult,
+    agentId: string,
+    context: any,
+  ): Promise<{ verified: boolean; truthScore: number; conflicts?: string[] }> {
     // Simulate consensus validation
     const truthScore = Math.random() * 0.3 + 0.7;
     const conflicts: string[] = [];
@@ -566,7 +585,7 @@ class ConsensusEngine {
     context.evidence.set(`${phaseName}_${agentId}`, {
       result,
       truthScore,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     context.validators.add(agentId);
@@ -574,7 +593,7 @@ class ConsensusEngine {
     return {
       verified: truthScore >= 0.7 && conflicts.length === 0,
       truthScore,
-      conflicts: conflicts.length > 0 ? conflicts : undefined
+      conflicts: conflicts.length > 0 ? conflicts : undefined,
     };
   }
 
@@ -592,7 +611,7 @@ class ConsensusEngine {
       validators: Array.from(context.validators),
       evidence: context.evidence,
       truthScore: avgTruthScore,
-      consensusReached: avgTruthScore >= 0.8
+      consensusReached: avgTruthScore >= 0.8,
     };
 
     this.activeContexts.delete(workflowId);

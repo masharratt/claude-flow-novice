@@ -30,7 +30,7 @@ class PreferenceManager {
         this.userProfiles.set(name, {
           ...profile,
           lastUsed: profile.lastUsed || new Date(0).toISOString(),
-          usageCount: profile.usageCount || 0
+          usageCount: profile.usageCount || 0,
         });
       });
     }
@@ -46,7 +46,7 @@ class PreferenceManager {
    */
   createDefaultProfiles() {
     const defaultProfiles = {
-      'developer': {
+      developer: {
         name: 'Developer',
         description: 'Optimized for development workflows',
         contentFilters: {
@@ -58,21 +58,21 @@ class PreferenceManager {
             'COMPLETION_SUMMARY',
             'STATUS_UPDATE',
             '^TEMP_',
-            '^WORKING_'
-          ]
+            '^WORKING_',
+          ],
         },
         toneProcessors: {
           defaultPreset: 'concise',
           removeSelfCongratulatory: true,
           simplifyJargon: false,
-          focusOnActionable: true
+          focusOnActionable: true,
         },
         userPreferences: {
           preferredTone: 'concise',
           allowReports: false,
           consolidateDocuments: true,
-          strictMode: false
-        }
+          strictMode: false,
+        },
       },
 
       'documentation-writer': {
@@ -82,55 +82,46 @@ class PreferenceManager {
           maxMdFiles: 50,
           allowedDocTypes: ['GUIDE', 'TUTORIAL', 'SPEC', 'API', 'README'],
           rootDirectoryProtection: false,
-          blockedPatterns: [
-            'IMPLEMENTATION_REPORT',
-            'COMPLETION_SUMMARY',
-            '^TEMP_',
-            '^WORKING_'
-          ]
+          blockedPatterns: ['IMPLEMENTATION_REPORT', 'COMPLETION_SUMMARY', '^TEMP_', '^WORKING_'],
         },
         toneProcessors: {
           defaultPreset: 'friendly',
           removeSelfCongratulatory: true,
           simplifyJargon: true,
-          focusOnActionable: true
+          focusOnActionable: true,
         },
         userPreferences: {
           preferredTone: 'friendly',
           allowReports: true,
           consolidateDocuments: false,
-          maxDocumentLength: 10000
-        }
+          maxDocumentLength: 10000,
+        },
       },
 
-      'researcher': {
+      researcher: {
         name: 'Researcher',
         description: 'Optimized for research and analysis',
         contentFilters: {
           maxMdFiles: 30,
           allowedDocTypes: ['ANALYSIS', 'REPORT', 'SPEC', 'README', 'GUIDE'],
           rootDirectoryProtection: true,
-          blockedPatterns: [
-            'COMPLETION_SUMMARY',
-            '^TEMP_',
-            '^WORKING_'
-          ]
+          blockedPatterns: ['COMPLETION_SUMMARY', '^TEMP_', '^WORKING_'],
         },
         toneProcessors: {
           defaultPreset: 'technical',
           removeSelfCongratulatory: true,
           simplifyJargon: false,
-          focusOnActionable: false
+          focusOnActionable: false,
         },
         userPreferences: {
           preferredTone: 'technical',
           allowReports: true,
           consolidateDocuments: false,
-          strictMode: false
-        }
+          strictMode: false,
+        },
       },
 
-      'minimalist': {
+      minimalist: {
         name: 'Minimalist',
         description: 'Strict filtering for minimal documentation',
         contentFilters: {
@@ -147,23 +138,23 @@ class PreferenceManager {
             '^TEMP_',
             '^WORKING_',
             'GUIDE',
-            'TUTORIAL'
-          ]
+            'TUTORIAL',
+          ],
         },
         toneProcessors: {
           defaultPreset: 'concise',
           removeSelfCongratulatory: true,
           simplifyJargon: true,
-          focusOnActionable: true
+          focusOnActionable: true,
         },
         userPreferences: {
           preferredTone: 'concise',
           allowReports: false,
           consolidateDocuments: true,
           strictMode: true,
-          maxDocumentLength: 2000
-        }
-      }
+          maxDocumentLength: 2000,
+        },
+      },
     };
 
     Object.entries(defaultProfiles).forEach(([name, profile]) => {
@@ -180,7 +171,7 @@ class PreferenceManager {
       created: new Date().toISOString(),
       lastUsed: new Date().toISOString(),
       usageCount: 0,
-      isDefault: false
+      isDefault: false,
     };
 
     this.userProfiles.set(name, profile);
@@ -201,7 +192,7 @@ class PreferenceManager {
     const updatedProfile = {
       ...existingProfile,
       ...updates,
-      lastModified: new Date().toISOString()
+      lastModified: new Date().toISOString(),
     };
 
     this.userProfiles.set(name, updatedProfile);
@@ -289,7 +280,7 @@ class PreferenceManager {
       contentFilters: config.contentFilters,
       toneProcessors: config.toneProcessors,
       userPreferences: config.userPreferences,
-      hooks: config.hooks
+      hooks: config.hooks,
     };
 
     this.preferencesCache.set(this.activeProfile, preferences);
@@ -350,27 +341,27 @@ class PreferenceManager {
    */
   getAgentSpecificPreferences(agentType) {
     const agentPrefs = {
-      'researcher': {
+      researcher: {
         toneProcessors: { defaultPreset: 'technical' },
-        userPreferences: { allowReports: true }
+        userPreferences: { allowReports: true },
       },
-      'coder': {
+      coder: {
         toneProcessors: { defaultPreset: 'concise' },
-        contentFilters: { maxMdFiles: 10 }
+        contentFilters: { maxMdFiles: 10 },
       },
-      'reviewer': {
+      reviewer: {
         toneProcessors: { defaultPreset: 'professional' },
-        userPreferences: { strictMode: true }
+        userPreferences: { strictMode: true },
       },
-      'tester': {
+      tester: {
         toneProcessors: { defaultPreset: 'concise' },
-        contentFilters: { allowedDocTypes: ['TEST', 'SPEC', 'README'] }
+        contentFilters: { allowedDocTypes: ['TEST', 'SPEC', 'README'] },
       },
-      'documentation': {
+      documentation: {
         toneProcessors: { defaultPreset: 'friendly' },
         contentFilters: { maxMdFiles: 50 },
-        userPreferences: { allowReports: true }
-      }
+        userPreferences: { allowReports: true },
+      },
     };
 
     return agentPrefs[agentType] || {};
@@ -381,27 +372,27 @@ class PreferenceManager {
    */
   getProjectSpecificPreferences(projectType) {
     const projectPrefs = {
-      'library': {
+      library: {
         contentFilters: {
           allowedDocTypes: ['API', 'README', 'CHANGELOG'],
-          maxMdFiles: 8
+          maxMdFiles: 8,
         },
-        toneProcessors: { defaultPreset: 'technical' }
+        toneProcessors: { defaultPreset: 'technical' },
       },
       'web-app': {
         contentFilters: {
           allowedDocTypes: ['API', 'README', 'GUIDE'],
-          maxMdFiles: 15
+          maxMdFiles: 15,
         },
-        toneProcessors: { defaultPreset: 'professional' }
+        toneProcessors: { defaultPreset: 'professional' },
       },
-      'documentation': {
+      documentation: {
         contentFilters: {
           maxMdFiles: 100,
-          rootDirectoryProtection: false
+          rootDirectoryProtection: false,
         },
-        toneProcessors: { defaultPreset: 'friendly' }
-      }
+        toneProcessors: { defaultPreset: 'friendly' },
+      },
     };
 
     return projectPrefs[projectType] || {};
@@ -412,23 +403,23 @@ class PreferenceManager {
    */
   getTaskSpecificPreferences(taskType) {
     const taskPrefs = {
-      'debugging': {
+      debugging: {
         toneProcessors: { defaultPreset: 'concise' },
-        userPreferences: { allowReports: false, strictMode: true }
+        userPreferences: { allowReports: false, strictMode: true },
       },
       'feature-development': {
         toneProcessors: { defaultPreset: 'professional' },
-        contentFilters: { maxMdFiles: 20 }
+        contentFilters: { maxMdFiles: 20 },
       },
-      'documentation': {
+      documentation: {
         toneProcessors: { defaultPreset: 'friendly' },
         contentFilters: { maxMdFiles: 50 },
-        userPreferences: { allowReports: true }
+        userPreferences: { allowReports: true },
       },
-      'analysis': {
+      analysis: {
         toneProcessors: { defaultPreset: 'technical' },
-        userPreferences: { allowReports: true }
-      }
+        userPreferences: { allowReports: true },
+      },
     };
 
     return taskPrefs[taskType] || {};
@@ -451,7 +442,8 @@ class PreferenceManager {
       score += (profile.usageCount || 0) * 0.1;
 
       // Recent usage
-      const daysSinceLastUsed = (Date.now() - new Date(profile.lastUsed).getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceLastUsed =
+        (Date.now() - new Date(profile.lastUsed).getTime()) / (1000 * 60 * 60 * 24);
       score += Math.max(0, 10 - daysSinceLastUsed) * 0.05;
 
       // Context compatibility
@@ -470,7 +462,7 @@ class PreferenceManager {
       suggested: bestMatch,
       score: bestScore,
       reason: this.explainProfileSuggestion(bestMatch, context),
-      alternatives: this.getAlternativeProfiles(bestMatch, 2)
+      alternatives: this.getAlternativeProfiles(bestMatch, 2),
     };
   }
 
@@ -484,7 +476,7 @@ class PreferenceManager {
       averageDocLength: 3000,
       preferredTone: 'professional',
       blockedFilesCount: 15,
-      consolidationRate: 0.7
+      consolidationRate: 0.7,
     };
   }
 
@@ -516,13 +508,16 @@ class PreferenceManager {
 
     // Compare tone preferences
     if (profile1.toneProcessors?.defaultPreset && profile2.toneProcessors?.defaultPreset) {
-      similarity += profile1.toneProcessors.defaultPreset === profile2.toneProcessors.defaultPreset ? 1 : 0;
+      similarity +=
+        profile1.toneProcessors.defaultPreset === profile2.toneProcessors.defaultPreset ? 1 : 0;
       comparisons++;
     }
 
     // Compare document limits
     if (profile1.contentFilters?.maxMdFiles && profile2.contentFilters?.maxMdFiles) {
-      const diff = Math.abs(profile1.contentFilters.maxMdFiles - profile2.contentFilters.maxMdFiles);
+      const diff = Math.abs(
+        profile1.contentFilters.maxMdFiles - profile2.contentFilters.maxMdFiles,
+      );
       similarity += Math.max(0, 1 - diff / 50); // Normalize difference
       comparisons++;
     }
@@ -558,7 +553,7 @@ class PreferenceManager {
     return Array.from(this.userProfiles.entries()).map(([name, profile]) => ({
       name,
       ...profile,
-      isActive: name === this.activeProfile
+      isActive: name === this.activeProfile,
     }));
   }
 
@@ -570,7 +565,7 @@ class PreferenceManager {
       activeProfile: this.activeProfile,
       profiles: Object.fromEntries(this.userProfiles),
       currentPreferences: this.getActivePreferences(),
-      usageStats: this.getUsageStatistics()
+      usageStats: this.getUsageStatistics(),
     };
   }
 
@@ -604,7 +599,7 @@ class PreferenceManager {
       activeProfile: this.activeProfile,
       mostUsedProfile: null,
       totalUsage: 0,
-      profileUsage: {}
+      profileUsage: {},
     };
 
     let maxUsage = 0;
@@ -614,7 +609,7 @@ class PreferenceManager {
       stats.profileUsage[name] = {
         count: usage,
         lastUsed: profile.lastUsed,
-        percentage: 0 // Will be calculated below
+        percentage: 0, // Will be calculated below
       };
 
       if (usage > maxUsage) {
@@ -625,7 +620,7 @@ class PreferenceManager {
 
     // Calculate percentages
     if (stats.totalUsage > 0) {
-      Object.values(stats.profileUsage).forEach(usage => {
+      Object.values(stats.profileUsage).forEach((usage) => {
         usage.percentage = (usage.count / stats.totalUsage) * 100;
       });
     }
@@ -638,7 +633,7 @@ class PreferenceManager {
   deepMerge(target, source) {
     const result = { ...target };
 
-    Object.keys(source).forEach(key => {
+    Object.keys(source).forEach((key) => {
       if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         result[key] = this.deepMerge(result[key] || {}, source[key]);
       } else {
@@ -658,8 +653,10 @@ class PreferenceManager {
     }
 
     if (profile.userPreferences?.maxDocumentLength) {
-      const lengthDiff = Math.abs(profile.userPreferences.maxDocumentLength - patterns.averageDocLength);
-      score += Math.max(0, 0.3 - (lengthDiff / 10000));
+      const lengthDiff = Math.abs(
+        profile.userPreferences.maxDocumentLength - patterns.averageDocLength,
+      );
+      score += Math.max(0, 0.3 - lengthDiff / 10000);
     }
 
     return Math.min(1, score);
@@ -690,7 +687,7 @@ class PreferenceManager {
 
   getAlternativeProfiles(excludeProfile, count = 2) {
     return Array.from(this.userProfiles.keys())
-      .filter(name => name !== excludeProfile)
+      .filter((name) => name !== excludeProfile)
       .slice(0, count);
   }
 }

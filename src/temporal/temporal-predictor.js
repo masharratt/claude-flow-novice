@@ -94,7 +94,7 @@ class TemporalPredictor {
       type: 'ARIMA',
       parameters: await this._findOptimalARIMAParams(data),
       coefficients: null,
-      residuals: null
+      residuals: null,
     };
 
     // Find optimal p, d, q parameters using AIC criterion
@@ -126,28 +126,28 @@ class TemporalPredictor {
         tf.layers.lstm({
           units: 128,
           returnSequences: true,
-          inputShape: [this.windowSize, 1]
+          inputShape: [this.windowSize, 1],
         }),
         tf.layers.dropout({ rate: 0.2 }),
         tf.layers.lstm({
           units: 64,
-          returnSequences: true
+          returnSequences: true,
         }),
         tf.layers.dropout({ rate: 0.2 }),
         tf.layers.lstm({
           units: 32,
-          returnSequences: false
+          returnSequences: false,
         }),
         tf.layers.dropout({ rate: 0.1 }),
-        tf.layers.dense({ units: this.predictionHorizon, activation: 'linear' })
-      ]
+        tf.layers.dense({ units: this.predictionHorizon, activation: 'linear' }),
+      ],
     });
 
     // Compile with appropriate optimizer and loss function
     model.compile({
       optimizer: tf.train.adam(0.001),
       loss: 'meanSquaredError',
-      metrics: ['mae']
+      metrics: ['mae'],
     });
 
     // Prepare training data
@@ -160,15 +160,15 @@ class TemporalPredictor {
       validationSplit: 0.2,
       callbacks: [
         tf.callbacks.earlyStopping({ patience: 10, restoreBestWeights: true }),
-        tf.callbacks.reduceLROnPlateau({ patience: 5, factor: 0.5 })
+        tf.callbacks.reduceLROnPlateau({ patience: 5, factor: 0.5 }),
       ],
-      verbose: 0
+      verbose: 0,
     });
 
     this.trainingHistory.push({
       model: 'LSTM',
       loss: history.history.loss[history.history.loss.length - 1],
-      valLoss: history.history.val_loss[history.history.val_loss.length - 1]
+      valLoss: history.history.val_loss[history.history.val_loss.length - 1],
     });
 
     return model;
@@ -185,7 +185,7 @@ class TemporalPredictor {
     const lstmVariants = [
       { units: [128, 64, 32], dropouts: [0.2, 0.2, 0.1] },
       { units: [256, 128, 64], dropouts: [0.3, 0.2, 0.1] },
-      { units: [64, 32, 16], dropouts: [0.1, 0.1, 0.05] }
+      { units: [64, 32, 16], dropouts: [0.1, 0.1, 0.05] },
     ];
 
     for (const variant of lstmVariants) {
@@ -203,7 +203,7 @@ class TemporalPredictor {
 
     return {
       models: models,
-      weights: await this._calculateEnsembleWeights(models, data)
+      weights: await this._calculateEnsembleWeights(models, data),
     };
   }
 
@@ -279,7 +279,7 @@ class TemporalPredictor {
 
     // Calculate log likelihood
     const rss = residuals.reduce((sum, r) => sum + r * r, 0);
-    const logLikelihood = -n/2 * Math.log(2 * Math.PI * rss/n) - n/2;
+    const logLikelihood = (-n / 2) * Math.log((2 * Math.PI * rss) / n) - n / 2;
 
     // AIC = 2k - 2ln(L)
     return 2 * k - 2 * logLikelihood;
@@ -301,7 +301,7 @@ class TemporalPredictor {
       targets.push(target);
     }
 
-    const xs = tf.tensor3d(sequences.map(seq => seq.map(val => [val])));
+    const xs = tf.tensor3d(sequences.map((seq) => seq.map((val) => [val])));
     const ys = tf.tensor2d(targets);
 
     return { xs, ys };
@@ -361,11 +361,15 @@ class TemporalPredictor {
       // Revalidate
       await this._validateTraining(data);
 
-      console.log(`Retraining attempt ${attempts}: Accuracy = ${(this.lastAccuracy * 100).toFixed(1)}%`);
+      console.log(
+        `Retraining attempt ${attempts}: Accuracy = ${(this.lastAccuracy * 100).toFixed(1)}%`,
+      );
     }
 
     if (this.lastAccuracy < 0.89) {
-      throw new Error(`Unable to achieve required 89% accuracy. Best achieved: ${(this.lastAccuracy * 100).toFixed(1)}%`);
+      throw new Error(
+        `Unable to achieve required 89% accuracy. Best achieved: ${(this.lastAccuracy * 100).toFixed(1)}%`,
+      );
     }
   }
 
@@ -381,11 +385,11 @@ class TemporalPredictor {
   }
 
   _normalizeData(data, params) {
-    return data.map(val => (val - params.mean) / params.std);
+    return data.map((val) => (val - params.mean) / params.std);
   }
 
   _denormalizeData(data, params) {
-    return data.map(val => val * params.std + params.mean);
+    return data.map((val) => val * params.std + params.mean);
   }
 
   _differenceData(data, order) {
@@ -394,7 +398,7 @@ class TemporalPredictor {
     for (let d = 0; d < order; d++) {
       const diffResult = [];
       for (let i = 1; i < result.length; i++) {
-        diffResult.push(result[i] - result[i-1]);
+        diffResult.push(result[i] - result[i - 1]);
       }
       result = diffResult;
     }
@@ -447,7 +451,7 @@ class TemporalPredictor {
       for (let i = 0; i < n - lag; i++) {
         covariance += (data[i] - mean) * (data[i + lag] - mean);
       }
-      covariance /= (n - lag);
+      covariance /= n - lag;
       autocorr.push(covariance / variance);
     }
 
@@ -473,22 +477,54 @@ class TemporalPredictor {
   }
 
   // Placeholder methods for complete implementation
-  _createToeplitzMatrix(autocorr, size) { /* Implementation */ }
-  _solveLinearSystem(matrix, vector) { /* Implementation */ }
-  _calculateResiduals(data, arCoeffs, maCoeffs) { /* Implementation */ }
-  _calculateARResiduals(data, arCoeffs) { /* Implementation */ }
-  _calculateInnovations(residuals, maCoeffs) { /* Implementation */ }
-  _updateMACoefficients(innovations, currentCoeffs) { /* Implementation */ }
-  _trainAdvancedEnsemble(data) { /* Implementation */ }
-  _createLSTMVariant(data, variant) { /* Implementation */ }
-  _createTransformerModel(data) { /* Implementation */ }
-  _createGRUModel(data) { /* Implementation */ }
-  _calculateEnsembleWeights(models, data) { /* Implementation */ }
-  _getSingleModelPrediction(model, input) { /* Implementation */ }
-  _trainFoldModel(data) { /* Implementation */ }
-  _calculateFoldAccuracy(model, testData) { /* Implementation */ }
-  _predictWithLSTM(input) { /* Implementation */ }
-  _predictWithARIMA(input) { /* Implementation */ }
+  _createToeplitzMatrix(autocorr, size) {
+    /* Implementation */
+  }
+  _solveLinearSystem(matrix, vector) {
+    /* Implementation */
+  }
+  _calculateResiduals(data, arCoeffs, maCoeffs) {
+    /* Implementation */
+  }
+  _calculateARResiduals(data, arCoeffs) {
+    /* Implementation */
+  }
+  _calculateInnovations(residuals, maCoeffs) {
+    /* Implementation */
+  }
+  _updateMACoefficients(innovations, currentCoeffs) {
+    /* Implementation */
+  }
+  _trainAdvancedEnsemble(data) {
+    /* Implementation */
+  }
+  _createLSTMVariant(data, variant) {
+    /* Implementation */
+  }
+  _createTransformerModel(data) {
+    /* Implementation */
+  }
+  _createGRUModel(data) {
+    /* Implementation */
+  }
+  _calculateEnsembleWeights(models, data) {
+    /* Implementation */
+  }
+  _getSingleModelPrediction(model, input) {
+    /* Implementation */
+  }
+  _trainFoldModel(data) {
+    /* Implementation */
+  }
+  _calculateFoldAccuracy(model, testData) {
+    /* Implementation */
+  }
+  _predictWithLSTM(input) {
+    /* Implementation */
+  }
+  _predictWithARIMA(input) {
+    /* Implementation */
+  }
 }
 
 module.exports = { TemporalPredictor };

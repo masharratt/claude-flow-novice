@@ -423,10 +423,12 @@ async function executeClaude(enhancedTask, toolsList, instanceId, memoryNamespac
     try {
       const checkResult = await new Promise((resolve) => {
         const child = spawn('which', ['claude'], {
-          stdio: ['pipe', 'pipe', 'pipe']
+          stdio: ['pipe', 'pipe', 'pipe'],
         });
         let stdout = '';
-        child.stdout?.on('data', (data) => { stdout += data; });
+        child.stdout?.on('data', (data) => {
+          stdout += data;
+        });
         child.on('close', (code) => {
           resolve({ success: code === 0, stdout: Buffer.from(stdout) });
         });
@@ -449,7 +451,7 @@ async function executeClaude(enhancedTask, toolsList, instanceId, memoryNamespac
     const child = spawn('claude', claudeArgs, {
       cwd: cwd(),
       env: env,
-      stdio: 'inherit'
+      stdio: 'inherit',
     });
     const status = await new Promise((resolve) => {
       child.on('close', (code) => {

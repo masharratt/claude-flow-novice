@@ -73,17 +73,13 @@ export class IntelligentDefaults {
   /**
    * Get intelligent defaults for a new project
    */
-  getProjectDefaults(
-    projectType: string,
-    framework?: string,
-    userInput?: string
-  ): DefaultsProfile {
+  getProjectDefaults(projectType: string, framework?: string, userInput?: string): DefaultsProfile {
     const baseDefaults = this.getBaseDefaults(projectType);
     const frameworkDefaults = framework ? this.getFrameworkDefaults(framework) : null;
     const intelligentEnhancements = this.applyIntelligentEnhancements(
       projectType,
       framework,
-      userInput
+      userInput,
     );
 
     return this.mergeDefaults(baseDefaults, frameworkDefaults, intelligentEnhancements);
@@ -95,7 +91,7 @@ export class IntelligentDefaults {
   getBuildDefaults(
     taskDescription: string,
     projectContext: ProjectContext | null,
-    userTier: UserTier
+    userTier: UserTier,
   ): {
     agents: string[];
     workflow: string;
@@ -112,18 +108,14 @@ export class IntelligentDefaults {
       workflow: this.selectDefaultWorkflow(taskAnalysis, userTier),
       parallel: this.shouldUseParallel(taskAnalysis, userTier),
       estimatedTime: this.estimateDefaultTime(taskAnalysis),
-      complexity: taskAnalysis.complexity
+      complexity: taskAnalysis.complexity,
     };
   }
 
   /**
    * Get intelligent agent selection defaults
    */
-  getAgentDefaults(
-    domain: string,
-    complexity: number,
-    userTier: UserTier
-  ): AgentDefaults {
+  getAgentDefaults(domain: string, complexity: number, userTier: UserTier): AgentDefaults {
     const baseAgents = this.getBaseAgentSelection(domain, userTier);
     const complexityAdjusted = this.adjustForComplexity(baseAgents, complexity);
     const tierOptimized = this.optimizeForTier(complexityAdjusted, userTier);
@@ -175,7 +167,10 @@ export class IntelligentDefaults {
     }
 
     // Framework-specific suggestions
-    if (projectContext.framework === 'react' && !projectContext.dependencies.includes('react-router')) {
+    if (
+      projectContext.framework === 'react' &&
+      !projectContext.dependencies.includes('react-router')
+    ) {
       suggestions.push('Add routing: claude-flow build "setup React Router navigation"');
     }
 
@@ -203,13 +198,13 @@ export class IntelligentDefaults {
           'vite@^4.0.0',
           '@types/react@^18.0.0',
           '@types/react-dom@^18.0.0',
-          '@vitejs/plugin-react@^4.0.0'
+          '@vitejs/plugin-react@^4.0.0',
         ],
         scripts: {
           dev: 'vite',
           build: 'vite build',
           preview: 'vite preview',
-          test: 'vitest'
+          test: 'vitest',
         },
         structure: [
           'src/components',
@@ -217,35 +212,31 @@ export class IntelligentDefaults {
           'src/hooks',
           'src/utils',
           'src/styles',
-          'public'
+          'public',
         ],
         configFiles: [
           {
             path: 'vite.config.ts',
-            content: this.getViteConfig('react')
+            content: this.getViteConfig('react'),
           },
           {
             path: 'src/App.tsx',
-            content: this.getReactAppTemplate()
+            content: this.getReactAppTemplate(),
           },
           {
             path: 'src/main.tsx',
-            content: this.getReactMainTemplate()
-          }
-        ]
+            content: this.getReactMainTemplate(),
+          },
+        ],
       },
 
       vue: {
         dependencies: ['vue@^3.3.0'],
-        devDependencies: [
-          'vite@^4.0.0',
-          '@vitejs/plugin-vue@^4.0.0',
-          'vue-tsc@^1.0.0'
-        ],
+        devDependencies: ['vite@^4.0.0', '@vitejs/plugin-vue@^4.0.0', 'vue-tsc@^1.0.0'],
         scripts: {
           dev: 'vite',
           build: 'vue-tsc && vite build',
-          preview: 'vite preview'
+          preview: 'vite preview',
         },
         structure: [
           'src/components',
@@ -253,34 +244,29 @@ export class IntelligentDefaults {
           'src/composables',
           'src/utils',
           'src/assets',
-          'public'
+          'public',
         ],
         configFiles: [
           {
             path: 'vite.config.ts',
-            content: this.getViteConfig('vue')
-          }
-        ]
+            content: this.getViteConfig('vue'),
+          },
+        ],
       },
 
       express: {
-        dependencies: [
-          'express@^4.18.0',
-          'cors@^2.8.5',
-          'helmet@^7.0.0',
-          'dotenv@^16.0.0'
-        ],
+        dependencies: ['express@^4.18.0', 'cors@^2.8.5', 'helmet@^7.0.0', 'dotenv@^16.0.0'],
         devDependencies: [
           '@types/express@^4.17.0',
           '@types/cors@^2.8.0',
           'nodemon@^3.0.0',
-          'tsx@^3.0.0'
+          'tsx@^3.0.0',
         ],
         scripts: {
           dev: 'nodemon --exec tsx src/server.ts',
           build: 'tsc',
           start: 'node dist/server.js',
-          test: 'jest'
+          test: 'jest',
         },
         structure: [
           'src/routes',
@@ -288,47 +274,33 @@ export class IntelligentDefaults {
           'src/models',
           'src/services',
           'src/utils',
-          'src/types'
+          'src/types',
         ],
         configFiles: [
           {
             path: 'src/server.ts',
-            content: this.getExpressServerTemplate()
-          }
-        ]
+            content: this.getExpressServerTemplate(),
+          },
+        ],
       },
 
       fastapi: {
-        dependencies: [
-          'fastapi[all]>=0.104.0',
-          'uvicorn[standard]>=0.24.0',
-          'pydantic>=2.4.0'
-        ],
-        devDependencies: [
-          'pytest>=7.4.0',
-          'black>=23.9.0',
-          'isort>=5.12.0'
-        ],
+        dependencies: ['fastapi[all]>=0.104.0', 'uvicorn[standard]>=0.24.0', 'pydantic>=2.4.0'],
+        devDependencies: ['pytest>=7.4.0', 'black>=23.9.0', 'isort>=5.12.0'],
         scripts: {
           dev: 'uvicorn main:app --reload',
           start: 'uvicorn main:app',
           test: 'pytest',
-          format: 'black . && isort .'
+          format: 'black . && isort .',
         },
-        structure: [
-          'app/routers',
-          'app/models',
-          'app/services',
-          'app/core',
-          'tests'
-        ],
+        structure: ['app/routers', 'app/models', 'app/services', 'app/core', 'tests'],
         configFiles: [
           {
             path: 'main.py',
-            content: this.getFastAPIMainTemplate()
-          }
-        ]
-      }
+            content: this.getFastAPIMainTemplate(),
+          },
+        ],
+      },
     };
   }
 
@@ -342,7 +314,7 @@ export class IntelligentDefaults {
       bundler: 'vite',
       typescript: true,
       gitHooks: true,
-      ci: 'github'
+      ci: 'github',
     };
 
     // Try to load saved preferences
@@ -374,8 +346,8 @@ export class IntelligentDefaults {
           secondary: ['reviewer'],
           workflow: 'iterative',
           parallel: false,
-          maxAgents: 2
-        }
+          maxAgents: 2,
+        },
       },
 
       api: {
@@ -389,8 +361,8 @@ export class IntelligentDefaults {
           secondary: ['tester', 'reviewer'],
           workflow: 'tdd',
           parallel: true,
-          maxAgents: 3
-        }
+          maxAgents: 3,
+        },
       },
 
       mobile: {
@@ -404,9 +376,9 @@ export class IntelligentDefaults {
           secondary: ['tester'],
           workflow: 'iterative',
           parallel: false,
-          maxAgents: 2
-        }
-      }
+          maxAgents: 2,
+        },
+      },
     };
 
     return profiles[projectType] || profiles.web;
@@ -419,7 +391,7 @@ export class IntelligentDefaults {
   private applyIntelligentEnhancements(
     projectType: string,
     framework?: string,
-    userInput?: string
+    userInput?: string,
   ): Partial<DefaultsProfile> {
     const enhancements: Partial<DefaultsProfile> = {};
 
@@ -432,7 +404,7 @@ export class IntelligentDefaults {
       if (userInput.toLowerCase().includes('testing')) {
         enhancements.preferences = {
           ...this.userPreferences,
-          testing: 'jest'
+          testing: 'jest',
         };
       }
 
@@ -442,7 +414,7 @@ export class IntelligentDefaults {
           secondary: ['tester', 'reviewer'],
           workflow: 'tdd',
           parallel: true,
-          maxAgents: 3
+          maxAgents: 3,
         };
       }
     }
@@ -453,19 +425,19 @@ export class IntelligentDefaults {
   private mergeDefaults(
     base: DefaultsProfile,
     framework: any,
-    enhancements: Partial<DefaultsProfile>
+    enhancements: Partial<DefaultsProfile>,
   ): DefaultsProfile {
     return {
       ...base,
       ...enhancements,
       preferences: {
         ...base.preferences,
-        ...enhancements.preferences
+        ...enhancements.preferences,
       },
       agentDefaults: {
         ...base.agentDefaults,
-        ...enhancements.agentDefaults
-      }
+        ...enhancements.agentDefaults,
+      },
     };
   }
 
@@ -479,21 +451,27 @@ export class IntelligentDefaults {
 
     // Determine domain
     let domain = 'general';
-    if (text.includes('api') || text.includes('backend') || text.includes('server')) domain = 'backend';
-    if (text.includes('ui') || text.includes('frontend') || text.includes('react')) domain = 'frontend';
+    if (text.includes('api') || text.includes('backend') || text.includes('server'))
+      domain = 'backend';
+    if (text.includes('ui') || text.includes('frontend') || text.includes('react'))
+      domain = 'frontend';
     if (text.includes('test') || text.includes('testing')) domain = 'testing';
     if (text.includes('deploy') || text.includes('ci')) domain = 'deployment';
 
     // Assess complexity
     let complexity = 2;
     if (text.includes('simple') || text.includes('basic')) complexity = 1;
-    if (text.includes('advanced') || text.includes('complex') || text.includes('enterprise')) complexity = 4;
-    if (text.includes('architecture') || text.includes('system') || text.includes('scale')) complexity = 5;
+    if (text.includes('advanced') || text.includes('complex') || text.includes('enterprise'))
+      complexity = 4;
+    if (text.includes('architecture') || text.includes('system') || text.includes('scale'))
+      complexity = 5;
 
     // Extract keywords
-    const keywords = text.split(/\s+/).filter(word =>
-      ['auth', 'database', 'api', 'react', 'vue', 'testing', 'deploy'].includes(word)
-    );
+    const keywords = text
+      .split(/\s+/)
+      .filter((word) =>
+        ['auth', 'database', 'api', 'react', 'vue', 'testing', 'deploy'].includes(word),
+      );
 
     // Determine intent
     let intent = 'implement';
@@ -509,13 +487,13 @@ export class IntelligentDefaults {
     if (!projectContext) {
       return {
         agents: ['coder'],
-        parallel: false
+        parallel: false,
       };
     }
 
     const defaults: any = {
       agents: ['coder'],
-      parallel: false
+      parallel: false,
     };
 
     // Adapt based on project type
@@ -545,30 +523,34 @@ export class IntelligentDefaults {
         return {
           maxAgents: 1,
           parallel: false,
-          workflow: 'simple'
+          workflow: 'simple',
         };
       case UserTier.INTERMEDIATE:
         return {
           maxAgents: 3,
           parallel: true,
-          workflow: 'standard'
+          workflow: 'standard',
         };
       case UserTier.EXPERT:
         return {
           maxAgents: 5,
           parallel: true,
-          workflow: 'advanced'
+          workflow: 'advanced',
         };
       default:
         return {
           maxAgents: 1,
           parallel: false,
-          workflow: 'simple'
+          workflow: 'simple',
         };
     }
   }
 
-  private selectDefaultAgents(taskAnalysis: any, contextDefaults: any, tierDefaults: any): string[] {
+  private selectDefaultAgents(
+    taskAnalysis: any,
+    contextDefaults: any,
+    tierDefaults: any,
+  ): string[] {
     const agents = [...contextDefaults.agents];
 
     // Add domain-specific agents based on tier
@@ -618,22 +600,22 @@ export class IntelligentDefaults {
         secondary: userTier === UserTier.NOVICE ? [] : ['reviewer'],
         workflow: 'iterative',
         parallel: userTier !== UserTier.NOVICE,
-        maxAgents: userTier === UserTier.NOVICE ? 1 : 3
+        maxAgents: userTier === UserTier.NOVICE ? 1 : 3,
       },
       backend: {
         primary: userTier === UserTier.NOVICE ? 'coder' : 'backend-dev',
         secondary: userTier === UserTier.NOVICE ? [] : ['tester', 'reviewer'],
         workflow: 'tdd',
         parallel: userTier !== UserTier.NOVICE,
-        maxAgents: userTier === UserTier.NOVICE ? 1 : 3
+        maxAgents: userTier === UserTier.NOVICE ? 1 : 3,
       },
       testing: {
         primary: 'tester',
         secondary: userTier === UserTier.NOVICE ? [] : ['coder'],
         workflow: 'tdd',
         parallel: false,
-        maxAgents: userTier === UserTier.NOVICE ? 1 : 2
-      }
+        maxAgents: userTier === UserTier.NOVICE ? 1 : 2,
+      },
     };
 
     return selections[domain] || selections.frontend;

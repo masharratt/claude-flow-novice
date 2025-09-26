@@ -22,7 +22,7 @@ export {
   AutoDetectionResult,
   SecureCredentials,
   ConfigError,
-  configManager
+  configManager,
 } from './config-manager.js';
 
 // Backward compatibility exports
@@ -37,7 +37,7 @@ export {
   getAvailableFeatures,
   isFeatureAvailable,
   secureStoreCredential,
-  getSecureCredential
+  getSecureCredential,
 } from './config-manager.js';
 
 // Zero-config setup utilities
@@ -47,7 +47,7 @@ export {
   SetupResult,
   quickSetup,
   isSetupRequired,
-  setupWithDefaults
+  setupWithDefaults,
 } from './utils/zero-config-setup.js';
 
 // Migration utilities
@@ -56,7 +56,7 @@ export {
   MigrationResult,
   LegacyConfig,
   migrateConfig,
-  needsMigration
+  needsMigration,
 } from './migration/config-migration.js';
 
 // Validation system
@@ -68,7 +68,7 @@ export {
   validateConfig,
   isConfigValid,
   getConfigSuggestions,
-  getPerformanceScore
+  getPerformanceScore,
 } from './validation/config-validator.js';
 
 // Export/Import system
@@ -79,7 +79,7 @@ export {
   ExportResult,
   ImportResult,
   exportConfig,
-  importConfig
+  importConfig,
 } from './utils/config-export-import.js';
 
 /**
@@ -155,7 +155,7 @@ export async function quickStart(options?: {
   return {
     manager,
     detection,
-    setupTime: Date.now() - start
+    setupTime: Date.now() - start,
   };
 }
 
@@ -185,11 +185,11 @@ export async function getSystemStatus(): Promise<{
     features: config.featureFlags,
     performance: {
       cacheEnabled: config.performance.enableCaching,
-      score: validation.performanceScore
+      score: validation.performanceScore,
     },
     security: {
       credentialsSecured: await manager.isClaudeAPISecurelyConfigured(),
-      keychainAvailable: process.platform === 'darwin' || process.platform === 'win32'
-    }
+      keychainAvailable: process.platform === 'darwin' || process.platform === 'win32',
+    },
   };
 }

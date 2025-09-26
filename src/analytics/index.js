@@ -21,21 +21,29 @@ export class AnalyticsPipeline {
       metricsPath: '.claude-flow/metrics',
       enableMonitoring: true,
       enableDashboard: true,
-      ...options
+      ...options,
     };
 
     // Initialize components
     this.analyzer = new SQLiteAnalyzer({
       hiveDbPath: this.options.hiveDbPath,
       swarmDbPath: this.options.swarmDbPath,
-      metricsPath: this.options.metricsPath
+      metricsPath: this.options.metricsPath,
     });
 
     this.optimizationEngine = new OptimizationEngine(this.analyzer);
     this.suggestionGenerator = new SuggestionGenerator(this.analyzer, this.optimizationEngine);
-    this.dashboard = new AnalyticsDashboard(this.analyzer, this.optimizationEngine, this.suggestionGenerator);
+    this.dashboard = new AnalyticsDashboard(
+      this.analyzer,
+      this.optimizationEngine,
+      this.suggestionGenerator,
+    );
     this.cli = new AnalyticsCLI(this.analyzer, this.optimizationEngine, this.suggestionGenerator);
-    this.monitoring = new MonitoringIntegration(this.analyzer, this.optimizationEngine, this.suggestionGenerator);
+    this.monitoring = new MonitoringIntegration(
+      this.analyzer,
+      this.optimizationEngine,
+      this.suggestionGenerator,
+    );
   }
 
   /**
@@ -66,7 +74,6 @@ export class AnalyticsPipeline {
 
       console.log('✅ Analytics pipeline initialized successfully');
       return { success: true, message: 'Analytics pipeline ready' };
-
     } catch (error) {
       console.error('❌ Failed to initialize analytics pipeline:', error.message);
       return { success: false, error: error.message };
@@ -83,20 +90,23 @@ export class AnalyticsPipeline {
       const report = {
         timestamp: new Date().toISOString(),
         version: '1.0.0',
-        components: {}
+        components: {},
       };
 
       // Database analysis
       report.components.database_analysis = await this.analyzer.generateComprehensiveReport();
 
       // Optimization suggestions
-      report.components.optimizations = await this.optimizationEngine.generateOptimizationSuggestions();
+      report.components.optimizations =
+        await this.optimizationEngine.generateOptimizationSuggestions();
 
       // Personalized suggestions
-      report.components.personalized_suggestions = await this.suggestionGenerator.generatePersonalizedSuggestions();
+      report.components.personalized_suggestions =
+        await this.suggestionGenerator.generatePersonalizedSuggestions();
 
       // Success pattern analysis
-      report.components.success_patterns = await this.suggestionGenerator.learnFromSuccessfulPatterns();
+      report.components.success_patterns =
+        await this.suggestionGenerator.learnFromSuccessfulPatterns();
 
       // Dashboard data
       if (this.options.enableDashboard) {
@@ -105,7 +115,6 @@ export class AnalyticsPipeline {
 
       console.log('✅ Comprehensive report generated');
       return report;
-
     } catch (error) {
       console.error('❌ Error generating report:', error.message);
       throw error;
@@ -137,11 +146,11 @@ export class AnalyticsPipeline {
         analytics: {
           databases_connected: false,
           monitoring_active: this.monitoring.isMonitoring,
-          dashboard_ready: this.options.enableDashboard
+          dashboard_ready: this.options.enableDashboard,
         },
         metrics: {},
         alerts: [],
-        recommendations: []
+        recommendations: [],
       };
 
       // Check database connectivity
@@ -158,15 +167,15 @@ export class AnalyticsPipeline {
             memory_usage: perf.resourceAnalysis?.memory?.average || 0,
             cpu_load: perf.resourceAnalysis?.cpu?.average || 0,
             memory_efficiency: perf.resourceAnalysis?.efficiency?.average || 0,
-            bottlenecks: perf.bottlenecks?.length || 0
+            bottlenecks: perf.bottlenecks?.length || 0,
           };
 
           // Extract alerts from bottlenecks
           if (perf.bottlenecks) {
-            status.alerts = perf.bottlenecks.map(bottleneck => ({
+            status.alerts = perf.bottlenecks.map((bottleneck) => ({
               type: bottleneck.type,
               severity: bottleneck.severity,
-              description: bottleneck.description
+              description: bottleneck.description,
             }));
           }
         }
@@ -174,22 +183,21 @@ export class AnalyticsPipeline {
         // Get quick recommendations
         if (quickReport.analysis.taskPatterns) {
           const optimizations = await this.optimizationEngine.generateOptimizationSuggestions();
-          status.recommendations = optimizations.priority.high.slice(0, 3).map(opt => ({
+          status.recommendations = optimizations.priority.high.slice(0, 3).map((opt) => ({
             title: opt.title,
             description: opt.description,
-            impact: opt.impact
+            impact: opt.impact,
           }));
         }
       }
 
       return status;
-
     } catch (error) {
       console.error('❌ Error getting system status:', error.message);
       return {
         timestamp: new Date().toISOString(),
         error: error.message,
-        analytics: { databases_connected: false, monitoring_active: false }
+        analytics: { databases_connected: false, monitoring_active: false },
       };
     }
   }
@@ -215,7 +223,7 @@ export class AnalyticsPipeline {
       analyzer: this.analyzer,
       cli: this.cli,
       optimizationEngine: this.optimizationEngine,
-      suggestionGenerator: this.suggestionGenerator
+      suggestionGenerator: this.suggestionGenerator,
     };
   }
 
@@ -239,7 +247,7 @@ export class AnalyticsPipeline {
     return {
       port: port,
       path: '.claude-flow/dashboard/',
-      data: dashboardData
+      data: dashboardData,
     };
   }
 
@@ -262,14 +270,14 @@ export class AnalyticsPipeline {
       filtered = [
         ...optimizations.priority.high,
         ...optimizations.priority.medium,
-        ...optimizations.priority.low
+        ...optimizations.priority.low,
       ];
     } else {
       filtered = optimizations.priority[priority] || [];
     }
 
     if (category !== 'all') {
-      filtered = filtered.filter(opt => opt.category === category);
+      filtered = filtered.filter((opt) => opt.category === category);
     }
 
     return {
@@ -280,8 +288,8 @@ export class AnalyticsPipeline {
       summary: {
         high: optimizations.priority.high.length,
         medium: optimizations.priority.medium.length,
-        low: optimizations.priority.low.length
-      }
+        low: optimizations.priority.low.length,
+      },
     };
   }
 
@@ -330,7 +338,6 @@ export class AnalyticsPipeline {
 
       console.log('✅ Analytics pipeline shut down successfully');
       return { success: true, message: 'Pipeline shut down cleanly' };
-
     } catch (error) {
       console.error('❌ Error during shutdown:', error.message);
       return { success: false, error: error.message };
@@ -345,7 +352,7 @@ export {
   SuggestionGenerator,
   AnalyticsDashboard,
   AnalyticsCLI,
-  MonitoringIntegration
+  MonitoringIntegration,
 };
 
 // Export default pipeline

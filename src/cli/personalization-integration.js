@@ -17,11 +17,11 @@ export class PersonalizationIntegration {
         () => import('../personalization/resource-delegation.js'),
         () => import('../personalization/content-filter.js'),
         () => import('../personalization/workflow-optimizer.js'),
-        () => import('../personalization/analytics-engine.js')
+        () => import('../personalization/analytics-engine.js'),
       ];
 
       // Load modules with graceful fallback
-      const loadedModules = await Promise.allSettled(modules.map(loader => loader()));
+      const loadedModules = await Promise.allSettled(modules.map((loader) => loader()));
 
       const failedModules = loadedModules
         .map((result, index) => ({ result, index }))
@@ -104,7 +104,7 @@ export class PersonalizationIntegration {
           'resource-delegation.js',
           'content-filter.js',
           'workflow-optimizer.js',
-          'analytics-engine.js'
+          'analytics-engine.js',
         ];
 
         console.log('🔍 Module availability check:');
@@ -141,9 +141,19 @@ export class PersonalizationIntegration {
    */
   static validateCommand(args, flags) {
     const validCommands = [
-      'setup', 'status', 'optimize', 'analytics', 'resource',
-      'preferences', 'content', 'workflow', 'dashboard',
-      'export', 'import', 'reset', 'help'
+      'setup',
+      'status',
+      'optimize',
+      'analytics',
+      'resource',
+      'preferences',
+      'content',
+      'workflow',
+      'dashboard',
+      'export',
+      'import',
+      'reset',
+      'help',
     ];
 
     const subcommand = args[0];
@@ -158,7 +168,7 @@ export class PersonalizationIntegration {
       return {
         valid: false,
         command: subcommand,
-        suggestions: suggestions.slice(0, 3)
+        suggestions: suggestions.slice(0, 3),
       };
     }
 
@@ -170,7 +180,9 @@ export class PersonalizationIntegration {
    */
   static findSimilarCommands(input, validCommands) {
     const calculateDistance = (a, b) => {
-      const matrix = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(null));
+      const matrix = Array(a.length + 1)
+        .fill(null)
+        .map(() => Array(b.length + 1).fill(null));
 
       for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
       for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
@@ -181,7 +193,7 @@ export class PersonalizationIntegration {
           matrix[i][j] = Math.min(
             matrix[i - 1][j] + 1,
             matrix[i][j - 1] + 1,
-            matrix[i - 1][j - 1] + cost
+            matrix[i - 1][j - 1] + cost,
           );
         }
       }
@@ -190,7 +202,7 @@ export class PersonalizationIntegration {
     };
 
     return validCommands
-      .map(cmd => ({ cmd, distance: calculateDistance(input.toLowerCase(), cmd.toLowerCase()) }))
+      .map((cmd) => ({ cmd, distance: calculateDistance(input.toLowerCase(), cmd.toLowerCase()) }))
       .filter(({ distance }) => distance <= 3)
       .sort((a, b) => a.distance - b.distance)
       .map(({ cmd }) => cmd);
@@ -228,7 +240,9 @@ export class PersonalizationIntegration {
       console.log('   • Check that all dependencies are installed: npm install');
       console.log('   • Verify personalization modules are present and accessible');
       console.log('   • Try running: claude-flow-novice personalize status');
-      console.log('   • Reset personalization settings: claude-flow-novice personalize reset --force');
+      console.log(
+        '   • Reset personalization settings: claude-flow-novice personalize reset --force',
+      );
 
       throw error;
     }
@@ -264,9 +278,9 @@ export class PersonalizationIntegration {
           'resource-delegation',
           'content-filter',
           'workflow-optimizer',
-          'analytics-engine'
-        ]
-      }
+          'analytics-engine',
+        ],
+      },
     });
 
     return enhancedHandler;
@@ -281,7 +295,9 @@ export class PersonalizationIntegration {
 
       if (!isAvailable) {
         console.log('\n💡 Personalization Tips:');
-        console.log('   • Install personalization modules to unlock AI-powered workflow optimization');
+        console.log(
+          '   • Install personalization modules to unlock AI-powered workflow optimization',
+        );
         console.log('   • Run "npm install" to ensure all dependencies are available');
         console.log('   • Check the documentation for setup instructions');
         return;
@@ -297,7 +313,9 @@ export class PersonalizationIntegration {
 
         if (!prefs.personalization?.setupCompleted) {
           console.log('\n💡 Get Started:');
-          console.log('   • Run "claude-flow-novice personalize setup" to configure your personalized workflow');
+          console.log(
+            '   • Run "claude-flow-novice personalize setup" to configure your personalized workflow',
+          );
           console.log('   • Enable AI-powered optimization and intelligent agent coordination');
         }
       } catch {

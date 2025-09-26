@@ -20,183 +20,181 @@ export class GitHubActionsTemplates {
    */
   static getProductionDeploymentWorkflow(): WorkflowTemplate {
     return {
-      name: "Production Deployment Pipeline",
-      description: "Complete CI/CD pipeline with security scanning, testing, and multi-environment deployment",
-      triggers: ["push:main", "push:tags", "pull_request"],
-      secrets: ["CLAUDE_API_KEY", "DOCKER_REGISTRY_TOKEN", "KUBE_CONFIG"],
+      name: 'Production Deployment Pipeline',
+      description:
+        'Complete CI/CD pipeline with security scanning, testing, and multi-environment deployment',
+      triggers: ['push:main', 'push:tags', 'pull_request'],
+      secrets: ['CLAUDE_API_KEY', 'DOCKER_REGISTRY_TOKEN', 'KUBE_CONFIG'],
       jobs: {
         test: {
-          "runs-on": "ubuntu-latest",
+          'runs-on': 'ubuntu-latest',
           strategy: {
             matrix: {
-              "node-version": [18, 20, 22],
-              os: ["ubuntu-latest", "macos-latest", "windows-latest"]
-            }
+              'node-version': [18, 20, 22],
+              os: ['ubuntu-latest', 'macos-latest', 'windows-latest'],
+            },
           },
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Setup Node.js",
-              uses: "actions/setup-node@v4",
+              name: 'Setup Node.js',
+              uses: 'actions/setup-node@v4',
               with: {
-                "node-version": "${{ matrix.node-version }}",
-                cache: "npm"
-              }
+                'node-version': '${{ matrix.node-version }}',
+                cache: 'npm',
+              },
             },
-            { run: "npm ci" },
-            { run: "npm run lint" },
-            { run: "npm run typecheck" },
-            { run: "npm run test:ci" },
-            { run: "npm run test:e2e" },
+            { run: 'npm ci' },
+            { run: 'npm run lint' },
+            { run: 'npm run typecheck' },
+            { run: 'npm run test:ci' },
+            { run: 'npm run test:e2e' },
             {
-              name: "Upload coverage",
-              uses: "codecov/codecov-action@v3",
+              name: 'Upload coverage',
+              uses: 'codecov/codecov-action@v3',
               with: {
-                file: "./coverage/lcov.info"
-              }
-            }
-          ]
+                file: './coverage/lcov.info',
+              },
+            },
+          ],
         },
 
-        "security-scan": {
-          "runs-on": "ubuntu-latest",
+        'security-scan': {
+          'runs-on': 'ubuntu-latest',
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Run Trivy vulnerability scanner",
-              uses: "aquasecurity/trivy-action@master",
+              name: 'Run Trivy vulnerability scanner',
+              uses: 'aquasecurity/trivy-action@master',
               with: {
-                "scan-type": "fs",
-                format: "sarif",
-                output: "trivy-results.sarif"
-              }
+                'scan-type': 'fs',
+                format: 'sarif',
+                output: 'trivy-results.sarif',
+              },
             },
             {
-              name: "Run npm audit",
-              run: "npm audit --audit-level high"
+              name: 'Run npm audit',
+              run: 'npm audit --audit-level high',
             },
             {
-              name: "Run Snyk security scan",
-              uses: "snyk/actions/node@master",
+              name: 'Run Snyk security scan',
+              uses: 'snyk/actions/node@master',
               env: {
-                SNYK_TOKEN: "${{ secrets.SNYK_TOKEN }}"
-              }
-            }
-          ]
+                SNYK_TOKEN: '${{ secrets.SNYK_TOKEN }}',
+              },
+            },
+          ],
         },
 
-        "build-and-push": {
-          needs: ["test", "security-scan"],
-          "runs-on": "ubuntu-latest",
+        'build-and-push': {
+          needs: ['test', 'security-scan'],
+          'runs-on': 'ubuntu-latest',
           outputs: {
-            "image-digest": "${{ steps.build.outputs.digest }}",
-            "image-tag": "${{ steps.meta.outputs.tags }}"
+            'image-digest': '${{ steps.build.outputs.digest }}',
+            'image-tag': '${{ steps.meta.outputs.tags }}',
           },
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Set up Docker Buildx",
-              uses: "docker/setup-buildx-action@v3"
+              name: 'Set up Docker Buildx',
+              uses: 'docker/setup-buildx-action@v3',
             },
             {
-              name: "Login to Container Registry",
-              uses: "docker/login-action@v3",
+              name: 'Login to Container Registry',
+              uses: 'docker/login-action@v3',
               with: {
-                registry: "${{ env.REGISTRY }}",
-                username: "${{ github.actor }}",
-                password: "${{ secrets.GITHUB_TOKEN }}"
-              }
+                registry: '${{ env.REGISTRY }}',
+                username: '${{ github.actor }}',
+                password: '${{ secrets.GITHUB_TOKEN }}',
+              },
             },
             {
-              name: "Extract metadata",
-              id: "meta",
-              uses: "docker/metadata-action@v5",
+              name: 'Extract metadata',
+              id: 'meta',
+              uses: 'docker/metadata-action@v5',
               with: {
-                images: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}",
+                images: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}',
                 tags: [
-                  "type=ref,event=branch",
-                  "type=ref,event=pr",
-                  "type=semver,pattern={{version}}",
-                  "type=semver,pattern={{major}}.{{minor}}",
-                  "type=sha,prefix={{branch}}-"
-                ]
-              }
+                  'type=ref,event=branch',
+                  'type=ref,event=pr',
+                  'type=semver,pattern={{version}}',
+                  'type=semver,pattern={{major}}.{{minor}}',
+                  'type=sha,prefix={{branch}}-',
+                ],
+              },
             },
             {
-              name: "Build and push Docker image",
-              id: "build",
-              uses: "docker/build-push-action@v5",
+              name: 'Build and push Docker image',
+              id: 'build',
+              uses: 'docker/build-push-action@v5',
               with: {
-                context: ".",
-                platforms: "linux/amd64,linux/arm64",
+                context: '.',
+                platforms: 'linux/amd64,linux/arm64',
                 push: true,
-                tags: "${{ steps.meta.outputs.tags }}",
-                labels: "${{ steps.meta.outputs.labels }}",
-                "cache-from": "type=gha",
-                "cache-to": "type=gha,mode=max",
-                "build-args": [
-                  "NODE_ENV=production",
-                  "BUILD_VERSION=${{ github.sha }}"
-                ]
-              }
-            }
-          ]
+                tags: '${{ steps.meta.outputs.tags }}',
+                labels: '${{ steps.meta.outputs.labels }}',
+                'cache-from': 'type=gha',
+                'cache-to': 'type=gha,mode=max',
+                'build-args': ['NODE_ENV=production', 'BUILD_VERSION=${{ github.sha }}'],
+              },
+            },
+          ],
         },
 
-        "deploy-staging": {
-          needs: "build-and-push",
-          "runs-on": "ubuntu-latest",
-          environment: "staging",
+        'deploy-staging': {
+          needs: 'build-and-push',
+          'runs-on': 'ubuntu-latest',
+          environment: 'staging',
           if: "github.ref == 'refs/heads/main'",
           steps: [
             {
-              name: "Deploy to staging",
+              name: 'Deploy to staging',
               run: `
                 kubectl config use-context staging
                 kubectl set image deployment/claude-flow-novice \\
                   claude-flow-novice=\${{ needs.build-and-push.outputs.image-tag }} \\
                   --namespace=staging
                 kubectl rollout status deployment/claude-flow-novice --namespace=staging
-              `
+              `,
             },
             {
-              name: "Run smoke tests",
-              run: "npm run test:smoke -- --environment=staging"
-            }
-          ]
+              name: 'Run smoke tests',
+              run: 'npm run test:smoke -- --environment=staging',
+            },
+          ],
         },
 
-        "deploy-production": {
-          needs: ["build-and-push", "deploy-staging"],
-          "runs-on": "ubuntu-latest",
-          environment: "production",
+        'deploy-production': {
+          needs: ['build-and-push', 'deploy-staging'],
+          'runs-on': 'ubuntu-latest',
+          environment: 'production',
           if: "startsWith(github.ref, 'refs/tags/v')",
           steps: [
             {
-              name: "Deploy to production",
+              name: 'Deploy to production',
               run: `
                 kubectl config use-context production
                 kubectl set image deployment/claude-flow-novice \\
                   claude-flow-novice=\${{ needs.build-and-push.outputs.image-tag }} \\
                   --namespace=production
                 kubectl rollout status deployment/claude-flow-novice --namespace=production
-              `
+              `,
             },
             {
-              name: "Run production health checks",
-              run: "npm run test:health -- --environment=production"
+              name: 'Run production health checks',
+              run: 'npm run test:health -- --environment=production',
             },
             {
-              name: "Send deployment notification",
-              uses: "8398a7/action-slack@v3",
+              name: 'Send deployment notification',
+              uses: '8398a7/action-slack@v3',
               with: {
-                status: "${{ job.status }}",
-                text: "Production deployment completed successfully"
-              }
-            }
-          ]
-        }
-      }
+                status: '${{ job.status }}',
+                text: 'Production deployment completed successfully',
+              },
+            },
+          ],
+        },
+      },
     };
   }
 
@@ -205,80 +203,80 @@ export class GitHubActionsTemplates {
    */
   static getPerformanceTestingWorkflow(): WorkflowTemplate {
     return {
-      name: "Performance Testing",
-      description: "Comprehensive performance testing with load testing and monitoring",
-      triggers: ["pull_request", "schedule:daily"],
+      name: 'Performance Testing',
+      description: 'Comprehensive performance testing with load testing and monitoring',
+      triggers: ['pull_request', 'schedule:daily'],
       jobs: {
-        "performance-test": {
-          "runs-on": "ubuntu-latest",
+        'performance-test': {
+          'runs-on': 'ubuntu-latest',
           strategy: {
             matrix: {
-              "test-type": ["load", "stress", "endurance", "spike"]
-            }
+              'test-type': ['load', 'stress', 'endurance', 'spike'],
+            },
           },
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Setup Node.js",
-              uses: "actions/setup-node@v4",
+              name: 'Setup Node.js',
+              uses: 'actions/setup-node@v4',
               with: {
-                "node-version": "20",
-                cache: "npm"
-              }
+                'node-version': '20',
+                cache: 'npm',
+              },
             },
-            { run: "npm ci" },
-            { run: "npm run build" },
+            { run: 'npm ci' },
+            { run: 'npm run build' },
             {
-              name: "Start application",
-              run: "npm start &",
+              name: 'Start application',
+              run: 'npm start &',
               env: {
-                NODE_ENV: "test",
-                PORT: 3000
-              }
+                NODE_ENV: 'test',
+                PORT: 3000,
+              },
             },
             {
-              name: "Wait for application",
-              run: "npx wait-on http://localhost:3000/health"
+              name: 'Wait for application',
+              run: 'npx wait-on http://localhost:3000/health',
             },
             {
-              name: "Run performance tests",
-              run: "npm run test:performance:${{ matrix.test-type }}",
-              timeout: 30
+              name: 'Run performance tests',
+              run: 'npm run test:performance:${{ matrix.test-type }}',
+              timeout: 30,
             },
             {
-              name: "Upload performance reports",
-              uses: "actions/upload-artifact@v3",
+              name: 'Upload performance reports',
+              uses: 'actions/upload-artifact@v3',
               with: {
-                name: "performance-reports-${{ matrix.test-type }}",
-                path: "reports/performance/"
-              }
-            }
-          ]
+                name: 'performance-reports-${{ matrix.test-type }}',
+                path: 'reports/performance/',
+              },
+            },
+          ],
         },
 
-        "performance-analysis": {
-          needs: "performance-test",
-          "runs-on": "ubuntu-latest",
+        'performance-analysis': {
+          needs: 'performance-test',
+          'runs-on': 'ubuntu-latest',
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Download performance reports",
-              uses: "actions/download-artifact@v3",
+              name: 'Download performance reports',
+              uses: 'actions/download-artifact@v3',
               with: {
-                path: "reports/"
-              }
+                path: 'reports/',
+              },
             },
             {
-              name: "Analyze performance trends",
-              run: "npm run performance:analyze"
+              name: 'Analyze performance trends',
+              run: 'npm run performance:analyze',
             },
             {
-              name: "Generate performance report",
-              run: "npm run performance:report"
+              name: 'Generate performance report',
+              run: 'npm run performance:report',
             },
             {
-              name: "Comment performance results",
-              uses: "actions/github-script@v6",
+              name: 'Comment performance results',
+              uses: 'actions/github-script@v6',
               with: {
                 script: `
                   const fs = require('fs');
@@ -289,12 +287,12 @@ export class GitHubActionsTemplates {
                     repo: context.repo.repo,
                     body: \`## Performance Test Results\\n\\n\${report}\`
                   });
-                `
-              }
-            }
-          ]
-        }
-      }
+                `,
+              },
+            },
+          ],
+        },
+      },
     };
   }
 
@@ -303,92 +301,97 @@ export class GitHubActionsTemplates {
    */
   static getMultiCloudDeploymentWorkflow(): WorkflowTemplate {
     return {
-      name: "Multi-Cloud Deployment",
-      description: "Deploy to AWS, GCP, and Azure simultaneously",
-      triggers: ["workflow_dispatch", "push:release/*"],
-      secrets: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "GCP_SERVICE_ACCOUNT", "AZURE_CREDENTIALS"],
+      name: 'Multi-Cloud Deployment',
+      description: 'Deploy to AWS, GCP, and Azure simultaneously',
+      triggers: ['workflow_dispatch', 'push:release/*'],
+      secrets: [
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'GCP_SERVICE_ACCOUNT',
+        'AZURE_CREDENTIALS',
+      ],
       jobs: {
-        "deploy-aws": {
-          "runs-on": "ubuntu-latest",
-          environment: "aws-production",
+        'deploy-aws': {
+          'runs-on': 'ubuntu-latest',
+          environment: 'aws-production',
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Configure AWS credentials",
-              uses: "aws-actions/configure-aws-credentials@v4",
+              name: 'Configure AWS credentials',
+              uses: 'aws-actions/configure-aws-credentials@v4',
               with: {
-                "aws-access-key-id": "${{ secrets.AWS_ACCESS_KEY_ID }}",
-                "aws-secret-access-key": "${{ secrets.AWS_SECRET_ACCESS_KEY }}",
-                "aws-region": "us-west-2"
-              }
+                'aws-access-key-id': '${{ secrets.AWS_ACCESS_KEY_ID }}',
+                'aws-secret-access-key': '${{ secrets.AWS_SECRET_ACCESS_KEY }}',
+                'aws-region': 'us-west-2',
+              },
             },
             {
-              name: "Deploy to AWS EKS",
+              name: 'Deploy to AWS EKS',
               run: `
                 aws eks update-kubeconfig --name claude-flow-cluster --region us-west-2
                 kubectl apply -f k8s/aws/
                 kubectl set image deployment/claude-flow-novice claude-flow-novice=\${{ env.IMAGE_TAG }}
                 kubectl rollout status deployment/claude-flow-novice
-              `
-            }
-          ]
+              `,
+            },
+          ],
         },
 
-        "deploy-gcp": {
-          "runs-on": "ubuntu-latest",
-          environment: "gcp-production",
+        'deploy-gcp': {
+          'runs-on': 'ubuntu-latest',
+          environment: 'gcp-production',
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Setup GCP",
-              uses: "google-github-actions/setup-gcloud@v1",
+              name: 'Setup GCP',
+              uses: 'google-github-actions/setup-gcloud@v1',
               with: {
-                "service_account_key": "${{ secrets.GCP_SERVICE_ACCOUNT }}",
-                "project_id": "${{ env.GCP_PROJECT_ID }}"
-              }
+                service_account_key: '${{ secrets.GCP_SERVICE_ACCOUNT }}',
+                project_id: '${{ env.GCP_PROJECT_ID }}',
+              },
             },
             {
-              name: "Deploy to GKE",
+              name: 'Deploy to GKE',
               run: `
                 gcloud container clusters get-credentials claude-flow-cluster --zone us-central1-a
                 kubectl apply -f k8s/gcp/
                 kubectl set image deployment/claude-flow-novice claude-flow-novice=\${{ env.IMAGE_TAG }}
                 kubectl rollout status deployment/claude-flow-novice
-              `
-            }
-          ]
+              `,
+            },
+          ],
         },
 
-        "deploy-azure": {
-          "runs-on": "ubuntu-latest",
-          environment: "azure-production",
+        'deploy-azure': {
+          'runs-on': 'ubuntu-latest',
+          environment: 'azure-production',
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Azure Login",
-              uses: "azure/login@v1",
+              name: 'Azure Login',
+              uses: 'azure/login@v1',
               with: {
-                creds: "${{ secrets.AZURE_CREDENTIALS }}"
-              }
+                creds: '${{ secrets.AZURE_CREDENTIALS }}',
+              },
             },
             {
-              name: "Deploy to AKS",
+              name: 'Deploy to AKS',
               run: `
                 az aks get-credentials --resource-group claude-flow-rg --name claude-flow-aks
                 kubectl apply -f k8s/azure/
                 kubectl set image deployment/claude-flow-novice claude-flow-novice=\${{ env.IMAGE_TAG }}
                 kubectl rollout status deployment/claude-flow-novice
-              `
-            }
-          ]
+              `,
+            },
+          ],
         },
 
-        "verify-deployment": {
-          needs: ["deploy-aws", "deploy-gcp", "deploy-azure"],
-          "runs-on": "ubuntu-latest",
+        'verify-deployment': {
+          needs: ['deploy-aws', 'deploy-gcp', 'deploy-azure'],
+          'runs-on': 'ubuntu-latest',
           steps: [
             {
-              name: "Verify all deployments",
+              name: 'Verify all deployments',
               run: `
                 # Check AWS deployment
                 curl -f https://aws.claude-flow.example.com/health
@@ -398,11 +401,11 @@ export class GitHubActionsTemplates {
 
                 # Check Azure deployment
                 curl -f https://azure.claude-flow.example.com/health
-              `
-            }
-          ]
-        }
-      }
+              `,
+            },
+          ],
+        },
+      },
     };
   }
 
@@ -411,69 +414,69 @@ export class GitHubActionsTemplates {
    */
   static getSecurityComplianceWorkflow(): WorkflowTemplate {
     return {
-      name: "Security & Compliance Scan",
-      description: "Comprehensive security scanning for SOC2/ISO27001 compliance",
-      triggers: ["push", "pull_request", "schedule:weekly"],
+      name: 'Security & Compliance Scan',
+      description: 'Comprehensive security scanning for SOC2/ISO27001 compliance',
+      triggers: ['push', 'pull_request', 'schedule:weekly'],
       jobs: {
-        "dependency-scan": {
-          "runs-on": "ubuntu-latest",
+        'dependency-scan': {
+          'runs-on': 'ubuntu-latest',
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Run npm audit",
+              name: 'Run npm audit',
               run: `
                 npm audit --audit-level high --json > audit-results.json
                 npm audit --audit-level high
-              `
+              `,
             },
             {
-              name: "Snyk vulnerability scan",
-              uses: "snyk/actions/node@master",
+              name: 'Snyk vulnerability scan',
+              uses: 'snyk/actions/node@master',
               env: {
-                SNYK_TOKEN: "${{ secrets.SNYK_TOKEN }}"
+                SNYK_TOKEN: '${{ secrets.SNYK_TOKEN }}',
               },
               with: {
-                args: "--severity-threshold=high --json-file-output=snyk-results.json"
-              }
+                args: '--severity-threshold=high --json-file-output=snyk-results.json',
+              },
             },
             {
-              name: "OWASP Dependency Check",
-              uses: "dependency-check/Dependency-Check_Action@main",
+              name: 'OWASP Dependency Check',
+              uses: 'dependency-check/Dependency-Check_Action@main',
               with: {
-                project: "claude-flow-novice",
-                path: ".",
-                format: "JSON"
-              }
-            }
-          ]
+                project: 'claude-flow-novice',
+                path: '.',
+                format: 'JSON',
+              },
+            },
+          ],
         },
 
-        "container-security": {
-          "runs-on": "ubuntu-latest",
+        'container-security': {
+          'runs-on': 'ubuntu-latest',
           steps: [
-            { uses: "actions/checkout@v4" },
+            { uses: 'actions/checkout@v4' },
             {
-              name: "Build image for scanning",
-              run: "docker build -t claude-flow-novice:security-scan ."
+              name: 'Build image for scanning',
+              run: 'docker build -t claude-flow-novice:security-scan .',
             },
             {
-              name: "Trivy container scan",
-              uses: "aquasecurity/trivy-action@master",
+              name: 'Trivy container scan',
+              uses: 'aquasecurity/trivy-action@master',
               with: {
-                "image-ref": "claude-flow-novice:security-scan",
-                format: "sarif",
-                output: "trivy-results.sarif"
-              }
+                'image-ref': 'claude-flow-novice:security-scan',
+                format: 'sarif',
+                output: 'trivy-results.sarif',
+              },
             },
             {
-              name: "Hadolint Dockerfile scan",
-              uses: "hadolint/hadolint-action@v3.1.0",
+              name: 'Hadolint Dockerfile scan',
+              uses: 'hadolint/hadolint-action@v3.1.0',
               with: {
-                dockerfile: "Dockerfile"
-              }
+                dockerfile: 'Dockerfile',
+              },
             },
             {
-              name: "Docker Bench Security",
+              name: 'Docker Bench Security',
               run: `
                 docker run --rm --net host --pid host --userns host --cap-add audit_control \\
                   -e DOCKER_CONTENT_TRUST=$DOCKER_CONTENT_TRUST \\
@@ -484,46 +487,46 @@ export class GitHubActionsTemplates {
                   -v /var/lib:/var/lib:ro \\
                   -v /var/run/docker.sock:/var/run/docker.sock:ro \\
                   docker/docker-bench-security
-              `
-            }
-          ]
+              `,
+            },
+          ],
         },
 
-        "secrets-scan": {
-          "runs-on": "ubuntu-latest",
+        'secrets-scan': {
+          'runs-on': 'ubuntu-latest',
           steps: [
             {
-              uses: "actions/checkout@v4",
+              uses: 'actions/checkout@v4',
               with: {
-                "fetch-depth": 0
-              }
+                'fetch-depth': 0,
+              },
             },
             {
-              name: "TruffleHog secrets scan",
-              uses: "trufflesecurity/trufflehog@main",
+              name: 'TruffleHog secrets scan',
+              uses: 'trufflesecurity/trufflehog@main',
               with: {
-                path: "./",
-                base: "main",
-                head: "HEAD",
-                extra_args: "--debug --only-verified"
-              }
+                path: './',
+                base: 'main',
+                head: 'HEAD',
+                extra_args: '--debug --only-verified',
+              },
             },
             {
-              name: "GitLeaks scan",
-              uses: "gitleaks/gitleaks-action@v2",
+              name: 'GitLeaks scan',
+              uses: 'gitleaks/gitleaks-action@v2',
               env: {
-                GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-              }
-            }
-          ]
+                GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}',
+              },
+            },
+          ],
         },
 
-        "compliance-report": {
-          needs: ["dependency-scan", "container-security", "secrets-scan"],
-          "runs-on": "ubuntu-latest",
+        'compliance-report': {
+          needs: ['dependency-scan', 'container-security', 'secrets-scan'],
+          'runs-on': 'ubuntu-latest',
           steps: [
             {
-              name: "Generate compliance report",
+              name: 'Generate compliance report',
               run: `
                 echo "# Security Compliance Report" > compliance-report.md
                 echo "Generated: $(date)" >> compliance-report.md
@@ -540,19 +543,19 @@ export class GitHubActionsTemplates {
                 echo "## Secrets Detection" >> compliance-report.md
                 echo "- TruffleHog: ✅ No secrets found" >> compliance-report.md
                 echo "- GitLeaks: ✅ No leaks detected" >> compliance-report.md
-              `
+              `,
             },
             {
-              name: "Upload compliance report",
-              uses: "actions/upload-artifact@v3",
+              name: 'Upload compliance report',
+              uses: 'actions/upload-artifact@v3',
               with: {
-                name: "compliance-report",
-                path: "compliance-report.md"
-              }
-            }
-          ]
-        }
-      }
+                name: 'compliance-report',
+                path: 'compliance-report.md',
+              },
+            },
+          ],
+        },
+      },
     };
   }
 
@@ -564,10 +567,10 @@ export class GitHubActionsTemplates {
       name: template.name,
       on: this.parseTriggersToGitHubFormat(template.triggers),
       env: {
-        REGISTRY: "ghcr.io",
-        IMAGE_NAME: "claude-flow-novice"
+        REGISTRY: 'ghcr.io',
+        IMAGE_NAME: 'claude-flow-novice',
       },
-      jobs: template.jobs
+      jobs: template.jobs,
     };
 
     return `# ${template.description}
@@ -581,22 +584,22 @@ ${this.yamlStringify(workflow)}`;
   private static parseTriggersToGitHubFormat(triggers: string[]): any {
     const parsedTriggers: any = {};
 
-    triggers.forEach(trigger => {
-      if (trigger.startsWith("push:")) {
-        const branch = trigger.split(":")[1];
+    triggers.forEach((trigger) => {
+      if (trigger.startsWith('push:')) {
+        const branch = trigger.split(':')[1];
         if (!parsedTriggers.push) parsedTriggers.push = { branches: [] };
         parsedTriggers.push.branches.push(branch);
-      } else if (trigger.startsWith("schedule:")) {
-        const schedule = trigger.split(":")[1];
+      } else if (trigger.startsWith('schedule:')) {
+        const schedule = trigger.split(':')[1];
         const cronMap: Record<string, string> = {
-          daily: "0 2 * * *",
-          weekly: "0 2 * * 0",
-          monthly: "0 2 1 * *"
+          daily: '0 2 * * *',
+          weekly: '0 2 * * 0',
+          monthly: '0 2 1 * *',
         };
         parsedTriggers.schedule = [{ cron: cronMap[schedule] || schedule }];
-      } else if (trigger === "pull_request") {
-        parsedTriggers.pull_request = { branches: ["main"] };
-      } else if (trigger === "workflow_dispatch") {
+      } else if (trigger === 'pull_request') {
+        parsedTriggers.pull_request = { branches: ['main'] };
+      } else if (trigger === 'workflow_dispatch') {
         parsedTriggers.workflow_dispatch = {};
       }
     });
@@ -608,19 +611,19 @@ ${this.yamlStringify(workflow)}`;
    * Convert object to YAML string (simplified)
    */
   private static yamlStringify(obj: any, indent = 0): string {
-    const spaces = "  ".repeat(indent);
-    let result = "";
+    const spaces = '  '.repeat(indent);
+    let result = '';
 
     for (const [key, value] of Object.entries(obj)) {
       if (value === null || value === undefined) continue;
 
-      if (typeof value === "object" && !Array.isArray(value)) {
+      if (typeof value === 'object' && !Array.isArray(value)) {
         result += `${spaces}${key}:\n`;
         result += this.yamlStringify(value, indent + 1);
       } else if (Array.isArray(value)) {
         result += `${spaces}${key}:\n`;
-        value.forEach(item => {
-          if (typeof item === "object") {
+        value.forEach((item) => {
+          if (typeof item === 'object') {
             result += `${spaces}  -\n`;
             result += this.yamlStringify(item, indent + 2);
           } else {
@@ -628,7 +631,7 @@ ${this.yamlStringify(workflow)}`;
           }
         });
       } else {
-        const quotedValue = typeof value === "string" && value.includes("$") ? `"${value}"` : value;
+        const quotedValue = typeof value === 'string' && value.includes('$') ? `"${value}"` : value;
         result += `${spaces}${key}: ${quotedValue}\n`;
       }
     }
@@ -645,11 +648,11 @@ export class DeploymentConfigurations {
     return {
       replicas: 1,
       resources: {
-        requests: { memory: "512Mi", cpu: "250m" },
-        limits: { memory: "1Gi", cpu: "500m" }
+        requests: { memory: '512Mi', cpu: '250m' },
+        limits: { memory: '1Gi', cpu: '500m' },
       },
       autoscaling: false,
-      monitoring: "basic"
+      monitoring: 'basic',
     };
   }
 
@@ -657,13 +660,13 @@ export class DeploymentConfigurations {
     return {
       replicas: 2,
       resources: {
-        requests: { memory: "1Gi", cpu: "500m" },
-        limits: { memory: "2Gi", cpu: "1000m" }
+        requests: { memory: '1Gi', cpu: '500m' },
+        limits: { memory: '2Gi', cpu: '1000m' },
       },
       autoscaling: true,
       minReplicas: 2,
       maxReplicas: 5,
-      monitoring: "enhanced"
+      monitoring: 'enhanced',
     };
   }
 
@@ -671,16 +674,16 @@ export class DeploymentConfigurations {
     return {
       replicas: 3,
       resources: {
-        requests: { memory: "2Gi", cpu: "1000m" },
-        limits: { memory: "4Gi", cpu: "2000m" }
+        requests: { memory: '2Gi', cpu: '1000m' },
+        limits: { memory: '4Gi', cpu: '2000m' },
       },
       autoscaling: true,
       minReplicas: 3,
       maxReplicas: 50,
-      monitoring: "comprehensive",
+      monitoring: 'comprehensive',
       securityPolicies: true,
       networkPolicies: true,
-      podDisruptionBudget: true
+      podDisruptionBudget: true,
     };
   }
 }
@@ -695,107 +698,111 @@ export class CICDUtils {
   static generateKubernetesManifests(environment: string, config: any): Record<string, any> {
     return {
       deployment: {
-        apiVersion: "apps/v1",
-        kind: "Deployment",
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
         metadata: {
-          name: "claude-flow-novice",
+          name: 'claude-flow-novice',
           namespace: environment,
           labels: {
-            app: "claude-flow-novice",
-            environment: environment
-          }
+            app: 'claude-flow-novice',
+            environment: environment,
+          },
         },
         spec: {
           replicas: config.replicas,
           selector: {
             matchLabels: {
-              app: "claude-flow-novice"
-            }
+              app: 'claude-flow-novice',
+            },
           },
           template: {
             metadata: {
               labels: {
-                app: "claude-flow-novice",
-                environment: environment
-              }
+                app: 'claude-flow-novice',
+                environment: environment,
+              },
             },
             spec: {
-              containers: [{
-                name: "claude-flow-novice",
-                image: "claude-flow-novice:latest",
-                ports: [{ containerPort: 3000 }],
-                resources: config.resources,
-                env: [
-                  { name: "NODE_ENV", value: environment },
-                  { name: "PORT", value: "3000" }
-                ],
-                livenessProbe: {
-                  httpGet: { path: "/health", port: 3000 },
-                  initialDelaySeconds: 30,
-                  periodSeconds: 10
+              containers: [
+                {
+                  name: 'claude-flow-novice',
+                  image: 'claude-flow-novice:latest',
+                  ports: [{ containerPort: 3000 }],
+                  resources: config.resources,
+                  env: [
+                    { name: 'NODE_ENV', value: environment },
+                    { name: 'PORT', value: '3000' },
+                  ],
+                  livenessProbe: {
+                    httpGet: { path: '/health', port: 3000 },
+                    initialDelaySeconds: 30,
+                    periodSeconds: 10,
+                  },
+                  readinessProbe: {
+                    httpGet: { path: '/ready', port: 3000 },
+                    initialDelaySeconds: 5,
+                    periodSeconds: 5,
+                  },
                 },
-                readinessProbe: {
-                  httpGet: { path: "/ready", port: 3000 },
-                  initialDelaySeconds: 5,
-                  periodSeconds: 5
-                }
-              }]
-            }
-          }
-        }
+              ],
+            },
+          },
+        },
       },
 
       service: {
-        apiVersion: "v1",
-        kind: "Service",
+        apiVersion: 'v1',
+        kind: 'Service',
         metadata: {
-          name: "claude-flow-novice-service",
-          namespace: environment
+          name: 'claude-flow-novice-service',
+          namespace: environment,
         },
         spec: {
           selector: {
-            app: "claude-flow-novice"
+            app: 'claude-flow-novice',
           },
-          ports: [{
-            port: 80,
-            targetPort: 3000,
-            protocol: "TCP"
-          }],
-          type: "ClusterIP"
-        }
+          ports: [
+            {
+              port: 80,
+              targetPort: 3000,
+              protocol: 'TCP',
+            },
+          ],
+          type: 'ClusterIP',
+        },
       },
 
       ...(config.autoscaling && {
         hpa: {
-          apiVersion: "autoscaling/v2",
-          kind: "HorizontalPodAutoscaler",
+          apiVersion: 'autoscaling/v2',
+          kind: 'HorizontalPodAutoscaler',
           metadata: {
-            name: "claude-flow-novice-hpa",
-            namespace: environment
+            name: 'claude-flow-novice-hpa',
+            namespace: environment,
           },
           spec: {
             scaleTargetRef: {
-              apiVersion: "apps/v1",
-              kind: "Deployment",
-              name: "claude-flow-novice"
+              apiVersion: 'apps/v1',
+              kind: 'Deployment',
+              name: 'claude-flow-novice',
             },
             minReplicas: config.minReplicas,
             maxReplicas: config.maxReplicas,
             metrics: [
               {
-                type: "Resource",
+                type: 'Resource',
                 resource: {
-                  name: "cpu",
+                  name: 'cpu',
                   target: {
-                    type: "Utilization",
-                    averageUtilization: 70
-                  }
-                }
-              }
-            ]
-          }
-        }
-      })
+                    type: 'Utilization',
+                    averageUtilization: 70,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      }),
     };
   }
 
@@ -883,9 +890,9 @@ resource "azurerm_kubernetes_cluster" "claude_flow" {
     type = "SystemAssigned"
   }
 }
-      `
+      `,
     };
 
-    return configs[provider as keyof typeof configs] || "";
+    return configs[provider as keyof typeof configs] || '';
   }
 }

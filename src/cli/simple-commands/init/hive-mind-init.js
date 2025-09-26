@@ -28,28 +28,17 @@ export const DEFAULT_HIVE_CONFIG = {
       'consensus-building',
       'resource-allocation',
       'quality-assessment',
-      'conflict-resolution'
+      'conflict-resolution',
     ],
     decisionThreshold: 0.75,
     adaptiveLearning: true,
   },
   workers: {
     maxWorkers: 8,
-    defaultCapabilities: [
-      'code-analysis',
-      'implementation',
-      'testing',
-      'documentation'
-    ],
+    defaultCapabilities: ['code-analysis', 'implementation', 'testing', 'documentation'],
     autoScale: true,
     scaleThreshold: 0.8,
-    specializedRoles: [
-      'architect',
-      'researcher',
-      'implementer',
-      'tester',
-      'reviewer'
-    ],
+    specializedRoles: ['architect', 'researcher', 'implementer', 'tester', 'reviewer'],
   },
   consensus: {
     algorithm: 'weighted-majority',
@@ -80,7 +69,7 @@ export const DEFAULT_HIVE_CONFIG = {
       'knowledge-sharing',
       'consensus-voting',
       'error-reporting',
-      'performance-metrics'
+      'performance-metrics',
     ],
   },
   integration: {
@@ -312,7 +301,7 @@ export async function initializeCollectiveMemoryDatabase(workingDir, dryRun = fa
 
     const hivePath = path.join(workingDir, '.hive-mind', 'hive.db');
     const hiveDb = new Database(hivePath);
-    
+
     // Enable WAL mode for better concurrency
     hiveDb.pragma('journal_mode = WAL');
     hiveDb.pragma('synchronous = NORMAL');
@@ -353,9 +342,27 @@ export async function initializeCollectiveMemoryDatabase(workingDir, dryRun = fa
     `);
 
     const initialKnowledge = [
-      ['init-1', 'system', 'Hive Mind System Initialization', 'Hive mind system successfully initialized with full database schema and configuration.', 1.0],
-      ['init-2', 'capabilities', 'Default Agent Capabilities', JSON.stringify(DEFAULT_HIVE_CONFIG.workers.defaultCapabilities), 0.9],
-      ['init-3', 'consensus', 'Consensus Algorithms', JSON.stringify(DEFAULT_HIVE_CONFIG.consensus), 1.0],
+      [
+        'init-1',
+        'system',
+        'Hive Mind System Initialization',
+        'Hive mind system successfully initialized with full database schema and configuration.',
+        1.0,
+      ],
+      [
+        'init-2',
+        'capabilities',
+        'Default Agent Capabilities',
+        JSON.stringify(DEFAULT_HIVE_CONFIG.workers.defaultCapabilities),
+        0.9,
+      ],
+      [
+        'init-3',
+        'consensus',
+        'Consensus Algorithms',
+        JSON.stringify(DEFAULT_HIVE_CONFIG.consensus),
+        1.0,
+      ],
       ['init-4', 'queen', 'Queen Configuration', JSON.stringify(DEFAULT_HIVE_CONFIG.queen), 1.0],
     ];
 
@@ -365,7 +372,6 @@ export async function initializeCollectiveMemoryDatabase(workingDir, dryRun = fa
 
     hiveDb.close();
     console.log('  ✅ Collective memory database initialized with full schema');
-
   } catch (err) {
     console.log(`    ⚠️  Could not initialize hive database: ${err.message}`);
     return await createFallbackMemoryDatabase(workingDir);
@@ -377,12 +383,12 @@ export async function initializeCollectiveMemoryDatabase(workingDir, dryRun = fa
  */
 async function createFallbackMemoryDatabase(workingDir) {
   console.log('    📄 Creating fallback JSON memory database...');
-  
+
   const fallbackDb = {
     metadata: {
       type: 'fallback',
       initialized: new Date().toISOString(),
-      warning: 'Using JSON fallback - install better-sqlite3 for full database features'
+      warning: 'Using JSON fallback - install better-sqlite3 for full database features',
     },
     swarms: [],
     agents: [],
@@ -394,18 +400,19 @@ async function createFallbackMemoryDatabase(workingDir) {
         id: 'init-1',
         category: 'system',
         title: 'Fallback Memory System',
-        content: 'Using JSON-based fallback memory system. Install better-sqlite3 for full database features.',
+        content:
+          'Using JSON-based fallback memory system. Install better-sqlite3 for full database features.',
         confidence: 1.0,
-        created_at: new Date().toISOString()
-      }
+        created_at: new Date().toISOString(),
+      },
     ],
     performance_metrics: [],
-    sessions: []
+    sessions: [],
   };
 
   const fallbackPath = path.join(workingDir, '.hive-mind', 'memory.json');
   await fs.writeFile(fallbackPath, JSON.stringify(fallbackDb, null, 2), 'utf8');
-  
+
   console.log('  ✅ Fallback memory database created');
   return true;
 }
@@ -435,12 +442,12 @@ export async function createDefaultConfigurations(workingDir, dryRun = false) {
         'resource-optimization',
         'risk-assessment',
         'quality-oversight',
-        'team-coordination'
+        'team-coordination',
       ],
       decisionStyle: 'analytical',
       planningHorizon: 'long-term',
       adaptability: 0.7,
-      specialties: ['architecture', 'planning', 'coordination']
+      specialties: ['architecture', 'planning', 'coordination'],
     },
     tactical: {
       name: 'Tactical Queen',
@@ -450,12 +457,12 @@ export async function createDefaultConfigurations(workingDir, dryRun = false) {
         'rapid-response',
         'resource-allocation',
         'performance-monitoring',
-        'conflict-resolution'
+        'conflict-resolution',
       ],
       decisionStyle: 'pragmatic',
       planningHorizon: 'short-term',
       adaptability: 0.9,
-      specialties: ['execution', 'optimization', 'troubleshooting']
+      specialties: ['execution', 'optimization', 'troubleshooting'],
     },
     adaptive: {
       name: 'Adaptive Queen',
@@ -465,13 +472,13 @@ export async function createDefaultConfigurations(workingDir, dryRun = false) {
         'adaptive-learning',
         'context-switching',
         'feedback-integration',
-        'dynamic-planning'
+        'dynamic-planning',
       ],
       decisionStyle: 'flexible',
       planningHorizon: 'adaptive',
       adaptability: 1.0,
-      specialties: ['learning', 'adaptation', 'context-awareness']
-    }
+      specialties: ['learning', 'adaptation', 'context-awareness'],
+    },
   };
 
   // Worker role templates
@@ -484,11 +491,11 @@ export async function createDefaultConfigurations(workingDir, dryRun = false) {
         'architecture-patterns',
         'scalability-planning',
         'technology-selection',
-        'documentation'
+        'documentation',
       ],
       complexity: 0.9,
       autonomy: 0.8,
-      collaboration: 0.7
+      collaboration: 0.7,
     },
     researcher: {
       name: 'Research Specialist',
@@ -498,39 +505,27 @@ export async function createDefaultConfigurations(workingDir, dryRun = false) {
         'analysis',
         'trend-identification',
         'competitive-research',
-        'reporting'
+        'reporting',
       ],
       complexity: 0.7,
       autonomy: 0.9,
-      collaboration: 0.6
+      collaboration: 0.6,
     },
     implementer: {
       name: 'Implementation Specialist',
       description: 'Translates designs into working code and solutions',
-      capabilities: [
-        'coding',
-        'debugging',
-        'integration',
-        'optimization',
-        'deployment'
-      ],
+      capabilities: ['coding', 'debugging', 'integration', 'optimization', 'deployment'],
       complexity: 0.8,
       autonomy: 0.7,
-      collaboration: 0.8
+      collaboration: 0.8,
     },
     tester: {
       name: 'Quality Assurance Specialist',
       description: 'Ensures quality through testing and validation',
-      capabilities: [
-        'testing',
-        'validation',
-        'quality-assurance',
-        'automation',
-        'reporting'
-      ],
+      capabilities: ['testing', 'validation', 'quality-assurance', 'automation', 'reporting'],
       complexity: 0.6,
       autonomy: 0.8,
-      collaboration: 0.7
+      collaboration: 0.7,
     },
     reviewer: {
       name: 'Code Review Specialist',
@@ -540,25 +535,25 @@ export async function createDefaultConfigurations(workingDir, dryRun = false) {
         'quality-assessment',
         'best-practices',
         'mentoring',
-        'documentation-review'
+        'documentation-review',
       ],
       complexity: 0.8,
       autonomy: 0.8,
-      collaboration: 0.9
-    }
+      collaboration: 0.9,
+    },
   };
 
   // Save configurations
   await fs.writeFile(
     path.join(configDir, 'queens.json'),
     JSON.stringify(queenConfigs, null, 2),
-    'utf8'
+    'utf8',
   );
 
   await fs.writeFile(
     path.join(configDir, 'workers.json'),
     JSON.stringify(workerTemplates, null, 2),
-    'utf8'
+    'utf8',
   );
 
   console.log('  ✅ Default configurations created');
@@ -577,10 +572,10 @@ export async function createHiveMindConfig(workingDir, customConfig = {}, dryRun
 
   // Merge custom config with defaults
   const config = mergeDeep(DEFAULT_HIVE_CONFIG, customConfig);
-  
+
   const configPath = path.join(workingDir, '.hive-mind', 'config.json');
   await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
-  
+
   console.log('  ✅ Hive-mind configuration created');
   return config;
 }
@@ -641,11 +636,7 @@ Edit \`.hive-mind/config.json\` to customize:
 For more information, see the [Hive Mind Documentation](https://github.com/ruvnet/claude-flow/docs/hive-mind.md).
 `;
 
-  await fs.writeFile(
-    path.join(workingDir, '.hive-mind', 'README.md'),
-    readmeContent,
-    'utf8'
-  );
+  await fs.writeFile(path.join(workingDir, '.hive-mind', 'README.md'), readmeContent, 'utf8');
 
   console.log('  ✅ Hive-mind documentation created');
 }
@@ -686,16 +677,15 @@ export async function initializeHiveMind(workingDir, options = {}, dryRun = fals
         'Consensus mechanisms',
         'Performance monitoring',
         'Session management',
-        'Knowledge base'
-      ]
+        'Knowledge base',
+      ],
     };
-
   } catch (error) {
     printError(`Failed to initialize Hive Mind System: ${error.message}`);
     return {
       success: false,
       error: error.message,
-      rollbackRequired: true
+      rollbackRequired: true,
     };
   }
 }
@@ -722,7 +712,7 @@ export function getHiveMindStatus(workingDir) {
  */
 export async function rollbackHiveMindInit(workingDir) {
   console.log('🔄 Rolling back hive-mind initialization...');
-  
+
   try {
     const hiveMindDir = path.join(workingDir, '.hive-mind');
     if (existsSync(hiveMindDir)) {
@@ -742,12 +732,10 @@ export async function rollbackHiveMindInit(workingDir) {
 function mergeDeep(target, source) {
   const output = Object.assign({}, target);
   if (isObject(target) && isObject(source)) {
-    Object.keys(source).forEach(key => {
+    Object.keys(source).forEach((key) => {
       if (isObject(source[key])) {
-        if (!(key in target))
-          Object.assign(output, { [key]: source[key] });
-        else
-          output[key] = mergeDeep(target[key], source[key]);
+        if (!(key in target)) Object.assign(output, { [key]: source[key] });
+        else output[key] = mergeDeep(target[key], source[key]);
       } else {
         Object.assign(output, { [key]: source[key] });
       }
@@ -757,5 +745,5 @@ function mergeDeep(target, source) {
 }
 
 function isObject(item) {
-  return (item && typeof item === 'object' && !Array.isArray(item));
+  return item && typeof item === 'object' && !Array.isArray(item);
 }

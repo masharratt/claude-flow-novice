@@ -20,11 +20,11 @@ class ResourceMonitor extends EventEmitter {
         cpu: options.cpuThreshold || 75,
         network: options.networkThreshold || 90,
         agents: options.agentThreshold || 50,
-        ...options.alertThresholds
+        ...options.alertThresholds,
       },
       historySize: options.historySize || 100,
       alertCooldown: options.alertCooldown || 30000,
-      ...options
+      ...options,
     };
 
     // State tracking
@@ -33,13 +33,13 @@ class ResourceMonitor extends EventEmitter {
       cpu: [],
       network: [],
       agents: [],
-      custom: new Map()
+      custom: new Map(),
     };
 
     this.alerts = {
       active: new Map(), // alertId -> AlertInfo
       history: [],
-      lastAlert: new Map() // metric -> timestamp
+      lastAlert: new Map(), // metric -> timestamp
     };
 
     this.isMonitoring = false;
@@ -106,16 +106,15 @@ class ResourceMonitor extends EventEmitter {
         cpu: cpuMetric,
         network: networkMetric,
         agents: agentMetric,
-        timestamp
+        timestamp,
       });
 
       // Emit metrics update
       this.emit('metricsCollected', {
         nodeId: this.nodeId,
         timestamp,
-        metrics: { memoryMetric, cpuMetric, networkMetric, agentMetric }
+        metrics: { memoryMetric, cpuMetric, networkMetric, agentMetric },
       });
-
     } catch (error) {
       console.error(`❌ Error collecting metrics on node ${this.nodeId}:`, error.message);
       this.emit('metricsError', { nodeId: this.nodeId, error: error.message });
@@ -136,7 +135,7 @@ class ResourceMonitor extends EventEmitter {
       free: freeMem,
       used: usedMem,
       usage: Math.round(usage * 100) / 100,
-      unit: 'bytes'
+      unit: 'bytes',
     };
   }
 
@@ -151,8 +150,8 @@ class ResourceMonitor extends EventEmitter {
     let totalIdle = 0;
     let totalTick = 0;
 
-    cpus.forEach(cpu => {
-      Object.values(cpu.times).forEach(time => totalTick += time);
+    cpus.forEach((cpu) => {
+      Object.values(cpu.times).forEach((time) => (totalTick += time));
       totalIdle += cpu.times.idle;
     });
 
@@ -162,7 +161,7 @@ class ResourceMonitor extends EventEmitter {
       cores: cpus.length,
       loadAverage: loads,
       usage: Math.round(usage * 100) / 100,
-      model: cpus[0]?.model || 'Unknown'
+      model: cpus[0]?.model || 'Unknown',
     };
   }
 
@@ -173,7 +172,7 @@ class ResourceMonitor extends EventEmitter {
     const networkInterfaces = os.networkInterfaces();
     const activeInterfaces = Object.values(networkInterfaces)
       .flat()
-      .filter(iface => !iface.internal && iface.family === 'IPv4');
+      .filter((iface) => !iface.internal && iface.family === 'IPv4');
 
     // Simulate network usage (in a real system, this would track bytes sent/received)
     const usage = Math.random() * 100;
@@ -183,7 +182,7 @@ class ResourceMonitor extends EventEmitter {
       interfaces: activeInterfaces.length,
       usage: Math.round(usage * 100) / 100,
       latency: Math.round(latency * 100) / 100,
-      connections: Math.floor(Math.random() * 20) + 1
+      connections: Math.floor(Math.random() * 20) + 1,
     };
   }
 
@@ -206,7 +205,7 @@ class ResourceMonitor extends EventEmitter {
       load: Math.round(agentLoad * 100) / 100,
       maxCapacity: maxAgents,
       currentAgents,
-      utilization: Math.round((currentAgents / maxAgents) * 100 * 100) / 100
+      utilization: Math.round((currentAgents / maxAgents) * 100 * 100) / 100,
     };
   }
 
@@ -255,7 +254,7 @@ class ResourceMonitor extends EventEmitter {
 
     // Check alert cooldown
     const lastAlert = this.alerts.lastAlert.get(metricType);
-    if (lastAlert && (timestamp - lastAlert) < this.config.alertCooldown) {
+    if (lastAlert && timestamp - lastAlert < this.config.alertCooldown) {
       return; // Skip alert due to cooldown
     }
 
@@ -268,7 +267,7 @@ class ResourceMonitor extends EventEmitter {
       timestamp,
       severity: this.calculateSeverity(value, threshold),
       details: metricDetails,
-      status: 'active'
+      status: 'active',
     };
 
     // Store alert locally
@@ -277,14 +276,20 @@ class ResourceMonitor extends EventEmitter {
     this.alerts.lastAlert.set(metricType, timestamp);
 
     // Propagate alert via gossip
-    await this.gossip.spreadVerificationTask(alertId, {
-      type: 'resource_alert',
-      alert,
-      nodeId: this.nodeId
-    }, alert.severity);
+    await this.gossip.spreadVerificationTask(
+      alertId,
+      {
+        type: 'resource_alert',
+        alert,
+        nodeId: this.nodeId,
+      },
+      alert.severity,
+    );
 
     this.emit('alertGenerated', alert);
-    console.warn(`🚨 Alert generated on node ${this.nodeId}: ${metricType} at ${value.toFixed(2)}% (threshold: ${threshold}%)`);
+    console.warn(
+      `🚨 Alert generated on node ${this.nodeId}: ${metricType} at ${value.toFixed(2)}% (threshold: ${threshold}%)`,
+    );
   }
 
   /**
@@ -304,7 +309,9 @@ class ResourceMonitor extends EventEmitter {
    * Handle incoming resource alerts from other nodes
    */
   handleResourceAlert(alert, fromNode) {
-    console.log(`📢 Received alert from node ${fromNode}: ${alert.type} at ${alert.value.toFixed(2)}%`);
+    console.log(
+      `📢 Received alert from node ${fromNode}: ${alert.type} at ${alert.value.toFixed(2)}%`,
+    );
 
     this.emit('alertReceived', { alert, fromNode });
 
@@ -313,7 +320,7 @@ class ResourceMonitor extends EventEmitter {
       ...alert,
       received: true,
       receivedAt: Date.now(),
-      fromNode
+      fromNode,
     });
   }
 
@@ -355,11 +362,9 @@ class ResourceMonitor extends EventEmitter {
       alerts: {
         active: this.alerts.active.size,
         total: this.alerts.history.length,
-        lastHour: this.alerts.history.filter(
-          a => Date.now() - a.timestamp < 3600000
-        ).length
+        lastHour: this.alerts.history.filter((a) => Date.now() - a.timestamp < 3600000).length,
       },
-      thresholds: this.config.alertThresholds
+      thresholds: this.config.alertThresholds,
     };
   }
 
@@ -369,13 +374,11 @@ class ResourceMonitor extends EventEmitter {
   getMetricHistory(type, limit = 50) {
     if (!this.metrics[type]) return [];
 
-    return this.metrics[type]
-      .slice(-limit)
-      .map(metric => ({
-        timestamp: metric.timestamp,
-        value: metric.usage !== undefined ? metric.usage : metric.utilization,
-        details: metric
-      }));
+    return this.metrics[type].slice(-limit).map((metric) => ({
+      timestamp: metric.timestamp,
+      value: metric.usage !== undefined ? metric.usage : metric.utilization,
+      details: metric,
+    }));
   }
 
   /**
@@ -389,9 +392,7 @@ class ResourceMonitor extends EventEmitter {
    * Get alert history
    */
   getAlertHistory(limit = 100) {
-    return this.alerts.history
-      .slice(-limit)
-      .sort((a, b) => b.timestamp - a.timestamp);
+    return this.alerts.history.slice(-limit).sort((a, b) => b.timestamp - a.timestamp);
   }
 
   /**
@@ -427,16 +428,19 @@ class ResourceMonitor extends EventEmitter {
    * Get monitoring statistics
    */
   getMonitoringStats() {
-    const totalMetrics = Object.values(this.metrics)
-      .reduce((sum, history) => sum + history.length, 0);
+    const totalMetrics = Object.values(this.metrics).reduce(
+      (sum, history) => sum + history.length,
+      0,
+    );
 
     const avgMetricsPerType = {};
     for (const [type, history] of Object.entries(this.metrics)) {
       if (history.length > 0) {
-        const values = history.map(m => m.usage || m.utilization || m.value).filter(v => v !== undefined);
-        avgMetricsPerType[type] = values.length > 0
-          ? values.reduce((sum, v) => sum + v, 0) / values.length
-          : 0;
+        const values = history
+          .map((m) => m.usage || m.utilization || m.value)
+          .filter((v) => v !== undefined);
+        avgMetricsPerType[type] =
+          values.length > 0 ? values.reduce((sum, v) => sum + v, 0) / values.length : 0;
       }
     }
 
@@ -448,9 +452,9 @@ class ResourceMonitor extends EventEmitter {
       alertStats: {
         totalAlerts: this.alerts.history.length,
         activeAlerts: this.alerts.active.size,
-        alertTypes: this.getAlertTypeStats()
+        alertTypes: this.getAlertTypeStats(),
       },
-      uptime: Date.now() - (this.startTime || Date.now())
+      uptime: Date.now() - (this.startTime || Date.now()),
     };
   }
 

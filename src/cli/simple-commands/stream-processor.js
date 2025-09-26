@@ -63,13 +63,13 @@ export class StreamJsonProcessor extends Transform {
 
   processEvent(event) {
     this.eventCount++;
-    
+
     // If we have a concurrent display, update it instead of console logging
     if (this.display) {
       this.updateDisplay(event);
       return;
     }
-    
+
     // Handle quiet mode - show important actions and commands
     if (this.options.verbose === false && this.options.logLevel === 'quiet') {
       switch (event.type) {
@@ -89,7 +89,10 @@ export class StreamJsonProcessor extends Transform {
               } else {
                 console.log(`  🔧 ${command}`);
               }
-            } else if (content.type === 'tool_use' && ['WebSearch', 'Read', 'Write'].includes(content.name)) {
+            } else if (
+              content.type === 'tool_use' &&
+              ['WebSearch', 'Read', 'Write'].includes(content.name)
+            ) {
               const toolName = content.name.replace(/([A-Z])/g, ' $1').trim();
               if (content.input) {
                 const firstKey = Object.keys(content.input)[0];
@@ -105,7 +108,9 @@ export class StreamJsonProcessor extends Transform {
           break;
         case 'result':
           if (event.subtype === 'success') {
-            console.log(`✅ ${this.agentName} - Completed (${this.formatDuration(event.duration_ms)})`);
+            console.log(
+              `✅ ${this.agentName} - Completed (${this.formatDuration(event.duration_ms)})`,
+            );
           } else if (event.is_error) {
             console.log(`❌ ${this.agentName} - Failed: ${event.error || 'Unknown error'}`);
           }
@@ -113,21 +118,23 @@ export class StreamJsonProcessor extends Transform {
       }
       return;
     }
-    
+
     // Use clean, concise formatting for non-interactive mode
     switch (event.type) {
       case 'system':
         if (event.subtype === 'init') {
-          console.log(`\n🤖 ${this.agentName} - Started (Session: ${event.session_id?.substring(0, 8) || 'unknown'})`);
+          console.log(
+            `\n🤖 ${this.agentName} - Started (Session: ${event.session_id?.substring(0, 8) || 'unknown'})`,
+          );
         }
         break;
-        
+
       case 'assistant':
         if (event.message?.content?.length > 0) {
           const content = event.message.content[0];
           if (content.type === 'text') {
             // Show only the first meaningful line, skip verbose details
-            const lines = content.text.split('\n').filter(line => line.trim());
+            const lines = content.text.split('\n').filter((line) => line.trim());
             if (lines.length > 0) {
               const firstLine = lines[0].trim();
               if (firstLine.length > 100) {
@@ -139,7 +146,7 @@ export class StreamJsonProcessor extends Transform {
           } else if (content.type === 'tool_use') {
             // Show tool use with actual command/input when available
             const toolName = content.name.replace(/([A-Z])/g, ' $1').trim();
-            
+
             // For Bash tool, show the actual command
             if (content.name === 'Bash' && content.input?.command) {
               const command = content.input.command;
@@ -153,7 +160,7 @@ export class StreamJsonProcessor extends Transform {
             else if (content.input && Object.keys(content.input).length > 0) {
               const firstKey = Object.keys(content.input)[0];
               const firstValue = content.input[firstKey];
-              
+
               if (typeof firstValue === 'string' && firstValue.length < 60) {
                 console.log(`🔧 ${toolName}: ${firstValue}`);
               } else if (typeof firstValue === 'string') {
@@ -167,7 +174,7 @@ export class StreamJsonProcessor extends Transform {
           }
         }
         break;
-        
+
       case 'user':
         // Tool results - show only success/failure
         if (event.message?.content?.[0]?.type === 'tool_result') {
@@ -179,10 +186,12 @@ export class StreamJsonProcessor extends Transform {
           }
         }
         break;
-        
+
       case 'result':
         if (event.subtype === 'success') {
-          console.log(`\n✅ ${this.agentName} - Completed (${this.formatDuration(event.duration_ms)})`);
+          console.log(
+            `\n✅ ${this.agentName} - Completed (${this.formatDuration(event.duration_ms)})`,
+          );
           if (event.total_cost_usd) {
             console.log(`   💰 Cost: $${event.total_cost_usd.toFixed(4)}`);
           }
@@ -190,15 +199,17 @@ export class StreamJsonProcessor extends Transform {
           console.log(`\n❌ ${this.agentName} - Failed: ${event.error || 'Unknown error'}`);
         }
         break;
-        
+
       default:
         // Only show important events in verbose mode
         if (this.options.verbose && ['tool_call', 'error', 'warning'].includes(event.type)) {
-          console.log(`ℹ️  [${event.type}] ${event.message || JSON.stringify(event).substring(0, 80)}...`);
+          console.log(
+            `ℹ️  [${event.type}] ${event.message || JSON.stringify(event).substring(0, 80)}...`,
+          );
         }
     }
   }
-  
+
   /**
    * Update the concurrent display instead of console
    */
@@ -210,7 +221,7 @@ export class StreamJsonProcessor extends Transform {
           this.display.addActivity(this.agentId, 'Initialized');
         }
         break;
-        
+
       case 'assistant':
         if (event.message?.content?.length > 0) {
           const content = event.message.content[0];
@@ -222,7 +233,7 @@ export class StreamJsonProcessor extends Transform {
           }
         }
         break;
-        
+
       case 'user':
         // Tool results
         if (event.message?.content?.[0]?.type === 'tool_result') {
@@ -232,17 +243,17 @@ export class StreamJsonProcessor extends Transform {
           }
         }
         break;
-        
+
       case 'result':
         if (event.subtype === 'success') {
-          this.display.updateAgent(this.agentId, { 
+          this.display.updateAgent(this.agentId, {
             status: 'completed',
-            progress: 100
+            progress: 100,
           });
           this.display.addActivity(this.agentId, 'Task completed successfully');
         } else if (event.is_error) {
-          this.display.updateAgent(this.agentId, { 
-            status: 'failed'
+          this.display.updateAgent(this.agentId, {
+            status: 'failed',
           });
           this.display.addActivity(this.agentId, `Failed: ${event.error || 'Unknown error'}`);
         }
@@ -286,7 +297,7 @@ export class StreamJsonProcessor extends Transform {
     if (!input || typeof input !== 'object' || Object.keys(input).length === 0) {
       return '';
     }
-    
+
     // Format key parameters for display
     const keys = Object.keys(input);
     if (keys.length === 1) {
@@ -298,19 +309,21 @@ export class StreamJsonProcessor extends Transform {
         return `(${key}: ${value})`;
       }
     } else if (keys.length <= 3) {
-      const params = keys.map(key => {
-        const value = input[key];
-        if (typeof value === 'string' && value.length < 20) {
-          return `${key}: "${value}"`;
-        } else if (typeof value === 'number' || typeof value === 'boolean') {
-          return `${key}: ${value}`;
-        } else {
-          return `${key}: ...`;
-        }
-      }).join(', ');
+      const params = keys
+        .map((key) => {
+          const value = input[key];
+          if (typeof value === 'string' && value.length < 20) {
+            return `${key}: "${value}"`;
+          } else if (typeof value === 'number' || typeof value === 'boolean') {
+            return `${key}: ${value}`;
+          } else {
+            return `${key}: ...`;
+          }
+        })
+        .join(', ');
       return `(${params})`;
     }
-    
+
     return '(...)';
   }
 }
@@ -322,6 +335,6 @@ export function createStreamProcessor(agentName, agentIcon, options = {}) {
   return new StreamJsonProcessor({
     agentName,
     agentIcon,
-    ...options
+    ...options,
   });
 }

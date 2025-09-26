@@ -1,6 +1,6 @@
 /**
  * Security Bypass Prevention Test
- * 
+ *
  * Comprehensive test to verify that NO agent can bypass the verification system
  * Tests all possible attack vectors and bypass attempts
  */
@@ -21,7 +21,7 @@ export class SecurityBypassPreventionTest {
     this.penetrationTester = new PenetrationTestingSuite(this.security);
     this.validator = new SecurityValidationSuite(this.security);
     this.middleware = new SecurityMiddlewareManager();
-    
+
     this.setupAdvancedSecurity();
   }
 
@@ -29,17 +29,17 @@ export class SecurityBypassPreventionTest {
     // Add threat intelligence middleware
     const threatIntel = new ThreatIntelligenceMiddleware();
     this.middleware.registerMiddleware(threatIntel);
-    
+
     // Enhance security system with middleware
     this.integrateMiddleware();
   }
 
   private integrateMiddleware(): void {
     const originalProcess = this.security.processVerificationRequest.bind(this.security);
-    
+
     this.security.processVerificationRequest = async (request: VerificationRequest) => {
       await this.middleware.executeBeforeVerification(request);
-      
+
       try {
         const result = await originalProcess(request);
         await this.middleware.executeAfterVerification(result);
@@ -65,9 +65,15 @@ export class SecurityBypassPreventionTest {
     console.log('================================================');
 
     await this.security.initialize([
-      'test-node-1', 'test-node-2', 'test-node-3', 
-      'test-node-4', 'test-node-5', 'test-node-6', 
-      'test-node-7', 'test-node-8', 'test-node-9'
+      'test-node-1',
+      'test-node-2',
+      'test-node-3',
+      'test-node-4',
+      'test-node-5',
+      'test-node-6',
+      'test-node-7',
+      'test-node-8',
+      'test-node-9',
     ]);
 
     let testsPassed = 0;
@@ -176,7 +182,7 @@ export class SecurityBypassPreventionTest {
 
     // Calculate security score
     const securityScore = Math.round((testsPassed / (testsPassed + testsFailed)) * 100);
-    
+
     // Determine security assessment
     let securityAssessment: 'SECURE' | 'VULNERABLE' | 'CRITICAL';
     if (successfulBypasses === 0) {
@@ -197,7 +203,7 @@ export class SecurityBypassPreventionTest {
     console.log(`🚨 Successful Bypasses: ${successfulBypasses}`);
     console.log(`📊 Security Score: ${securityScore}%`);
     console.log(`🔍 Security Assessment: ${securityAssessment}`);
-    
+
     if (vulnerabilities.length > 0) {
       console.log('\n⚠️  VULNERABILITIES DETECTED:');
       vulnerabilities.forEach((vuln, index) => {
@@ -214,27 +220,30 @@ export class SecurityBypassPreventionTest {
       successfulBypasses,
       securityScore,
       vulnerabilities,
-      securityAssessment
+      securityAssessment,
     };
   }
 
   // Test authentication bypass prevention
-  private async testAuthenticationBypassPrevention(): Promise<{ prevented: boolean; attempts: number }> {
+  private async testAuthenticationBypassPrevention(): Promise<{
+    prevented: boolean;
+    attempts: number;
+  }> {
     const attempts = [
       // Attempt 1: No agent registration
       () => this.attemptVerificationWithoutRegistration(),
-      
+
       // Attempt 2: Invalid signature
       () => this.attemptVerificationWithInvalidSignature(),
-      
+
       // Attempt 3: Expired credentials
       () => this.attemptVerificationWithExpiredCredentials(),
-      
+
       // Attempt 4: Impersonation attack
       () => this.attemptAgentImpersonation(),
-      
+
       // Attempt 5: Credential stuffing
-      () => this.attemptCredentialStuffing()
+      () => this.attemptCredentialStuffing(),
     ];
 
     let preventedCount = 0;
@@ -250,12 +259,15 @@ export class SecurityBypassPreventionTest {
 
     return {
       prevented: preventedCount === attempts.length,
-      attempts: attempts.length
+      attempts: attempts.length,
     };
   }
 
   // Test rate limiting bypass prevention
-  private async testRateLimitingBypassPrevention(): Promise<{ prevented: boolean; attempts: number }> {
+  private async testRateLimitingBypassPrevention(): Promise<{
+    prevented: boolean;
+    attempts: number;
+  }> {
     try {
       // Register test agent
       await this.security.registerAgent('rate-limit-test', ['verify'], 'MEDIUM');
@@ -270,7 +282,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: `Test claim ${i}` },
       timestamp: new Date(),
       nonce: `nonce-${i}`,
-      signature: 'test-signature'
+      signature: 'test-signature',
     }));
 
     let rateLimitTriggered = false;
@@ -290,12 +302,15 @@ export class SecurityBypassPreventionTest {
 
     return {
       prevented: rateLimitTriggered,
-      attempts: 1
+      attempts: 1,
     };
   }
 
   // Test cryptographic bypass prevention
-  private async testCryptographicBypassPrevention(): Promise<{ prevented: boolean; attempts: number }> {
+  private async testCryptographicBypassPrevention(): Promise<{
+    prevented: boolean;
+    attempts: number;
+  }> {
     try {
       await this.security.registerAgent('crypto-test', ['verify'], 'HIGH');
     } catch (error) {
@@ -305,12 +320,12 @@ export class SecurityBypassPreventionTest {
     const attempts = [
       // Attempt 1: Tampered signature
       () => this.attemptVerificationWithTamperedSignature(),
-      
+
       // Attempt 2: Replay attack
       () => this.attemptReplayAttack(),
-      
+
       // Attempt 3: Signature substitution
-      () => this.attemptSignatureSubstitution()
+      () => this.attemptSignatureSubstitution(),
     ];
 
     let preventedCount = 0;
@@ -324,7 +339,7 @@ export class SecurityBypassPreventionTest {
 
     return {
       prevented: preventedCount === attempts.length,
-      attempts: attempts.length
+      attempts: attempts.length,
     };
   }
 
@@ -339,12 +354,12 @@ export class SecurityBypassPreventionTest {
     const attempts = [
       // Attempt 1: Contradictory messages
       () => this.attemptContradictoryMessages(),
-      
+
       // Attempt 2: Coordinated attack
       () => this.attemptCoordinatedAttack(),
-      
+
       // Attempt 3: Timing attack
-      () => this.attemptTimingAttack()
+      () => this.attemptTimingAttack(),
     ];
 
     let preventedCount = 0;
@@ -360,12 +375,15 @@ export class SecurityBypassPreventionTest {
 
     return {
       prevented: preventedCount >= 1, // At least one Byzantine attack should be detected
-      attempts: attempts.length
+      attempts: attempts.length,
     };
   }
 
   // Test audit trail bypass prevention
-  private async testAuditTrailBypassPrevention(): Promise<{ prevented: boolean; attempts: number }> {
+  private async testAuditTrailBypassPrevention(): Promise<{
+    prevented: boolean;
+    attempts: number;
+  }> {
     const initialStatus = this.security.getSecurityStatus();
     const initialAuditEntries = initialStatus.auditSummary.totalEntries;
 
@@ -378,19 +396,22 @@ export class SecurityBypassPreventionTest {
 
     const finalStatus = this.security.getSecurityStatus();
     const finalAuditEntries = finalStatus.auditSummary.totalEntries;
-    
+
     // Check if audit trail is being maintained
-    const auditTrailWorking = finalAuditEntries >= initialAuditEntries && 
-                             finalStatus.auditSummary.integrityValid;
+    const auditTrailWorking =
+      finalAuditEntries >= initialAuditEntries && finalStatus.auditSummary.integrityValid;
 
     return {
       prevented: auditTrailWorking,
-      attempts: 1
+      attempts: 1,
     };
   }
 
   // Test privilege escalation prevention
-  private async testPrivilegeEscalationPrevention(): Promise<{ prevented: boolean; attempts: number }> {
+  private async testPrivilegeEscalationPrevention(): Promise<{
+    prevented: boolean;
+    attempts: number;
+  }> {
     try {
       await this.security.registerAgent('low-priv-test', ['verify'], 'LOW');
     } catch (error) {
@@ -400,9 +421,9 @@ export class SecurityBypassPreventionTest {
     const attempts = [
       // Attempt 1: Try to perform high-privilege operation
       () => this.attemptHighPrivilegeOperation(),
-      
+
       // Attempt 2: Try to escalate capabilities
-      () => this.attemptCapabilityEscalation()
+      () => this.attemptCapabilityEscalation(),
     ];
 
     let preventedCount = 0;
@@ -416,21 +437,24 @@ export class SecurityBypassPreventionTest {
 
     return {
       prevented: preventedCount === attempts.length,
-      attempts: attempts.length
+      attempts: attempts.length,
     };
   }
 
   // Test complete system bypass prevention
-  private async testCompleteSystemBypassPrevention(): Promise<{ prevented: boolean; attempts: number }> {
+  private async testCompleteSystemBypassPrevention(): Promise<{
+    prevented: boolean;
+    attempts: number;
+  }> {
     const attempts = [
       // Attempt 1: Direct access without security
       () => this.attemptDirectSystemAccess(),
-      
+
       // Attempt 2: Try to disable security system
       () => this.attemptSecurityDisabling(),
-      
+
       // Attempt 3: Try to corrupt security state
-      () => this.attemptSecurityStateCorruption()
+      () => this.attemptSecurityStateCorruption(),
     ];
 
     let preventedCount = 0;
@@ -444,7 +468,7 @@ export class SecurityBypassPreventionTest {
 
     return {
       prevented: preventedCount === attempts.length,
-      attempts: attempts.length
+      attempts: attempts.length,
     };
   }
 
@@ -456,7 +480,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'Test claim' },
       timestamp: new Date(),
       nonce: 'test-nonce',
-      signature: 'test-signature'
+      signature: 'test-signature',
     };
 
     await this.security.processVerificationRequest(request);
@@ -464,14 +488,14 @@ export class SecurityBypassPreventionTest {
 
   private async attemptVerificationWithInvalidSignature(): Promise<void> {
     await this.security.registerAgent('invalid-sig-test', ['verify'], 'MEDIUM');
-    
+
     const request: VerificationRequest = {
       requestId: 'invalid-sig-test',
       agentId: 'invalid-sig-test',
       truthClaim: { statement: 'Test claim' },
       timestamp: new Date(),
       nonce: 'test-nonce',
-      signature: 'completely-invalid-signature'
+      signature: 'completely-invalid-signature',
     };
 
     await this.security.processVerificationRequest(request);
@@ -484,7 +508,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'Test claim' },
       timestamp: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
       nonce: 'test-nonce',
-      signature: 'test-signature'
+      signature: 'test-signature',
     };
 
     await this.security.processVerificationRequest(request);
@@ -498,7 +522,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'Admin override' },
       timestamp: new Date(),
       nonce: 'test-nonce',
-      signature: 'fake-admin-signature'
+      signature: 'fake-admin-signature',
     };
 
     await this.security.processVerificationRequest(request);
@@ -507,7 +531,7 @@ export class SecurityBypassPreventionTest {
   private async attemptCredentialStuffing(): Promise<void> {
     // Try multiple credential combinations rapidly
     const credentials = ['admin', 'root', 'system', 'verifier', 'operator'];
-    
+
     for (const cred of credentials) {
       const request: VerificationRequest = {
         requestId: `cred-stuff-${cred}`,
@@ -515,7 +539,7 @@ export class SecurityBypassPreventionTest {
         truthClaim: { statement: 'Credential stuffing attempt' },
         timestamp: new Date(),
         nonce: 'test-nonce',
-        signature: `fake-${cred}-signature`
+        signature: `fake-${cred}-signature`,
       };
 
       await this.security.processVerificationRequest(request);
@@ -529,7 +553,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'Original claim' },
       timestamp: new Date(),
       nonce: 'test-nonce',
-      signature: 'tampered-signature'
+      signature: 'tampered-signature',
     };
 
     // Tamper with the truth claim after signing
@@ -545,7 +569,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'Original request' },
       timestamp: new Date(),
       nonce: 'original-nonce',
-      signature: 'original-signature'
+      signature: 'original-signature',
     };
 
     // Try to replay the same request multiple times
@@ -560,7 +584,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'Test claim' },
       timestamp: new Date(),
       nonce: 'test-nonce',
-      signature: 'substituted-signature-from-different-request'
+      signature: 'substituted-signature-from-different-request',
     };
 
     await this.security.processVerificationRequest(request);
@@ -573,7 +597,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'The sky is blue', confidence: 1.0 },
       timestamp: new Date(),
       nonce: 'nonce-1',
-      signature: 'signature-1'
+      signature: 'signature-1',
     };
 
     const request2: VerificationRequest = {
@@ -582,7 +606,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'The sky is red', confidence: 1.0 },
       timestamp: new Date(Date.now() + 1000),
       nonce: 'nonce-2',
-      signature: 'signature-2'
+      signature: 'signature-2',
     };
 
     await this.security.processVerificationRequest(request1);
@@ -592,7 +616,7 @@ export class SecurityBypassPreventionTest {
   private async attemptCoordinatedAttack(): Promise<void> {
     // Simulate coordinated attack from multiple agents
     const agents = ['coord-1', 'coord-2', 'coord-3'];
-    
+
     for (const agent of agents) {
       try {
         await this.security.registerAgent(agent, ['verify'], 'MEDIUM');
@@ -608,7 +632,7 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: 'Coordinated malicious claim', type: 'attack' },
       timestamp: new Date(),
       nonce: `coord-nonce-${index}`,
-      signature: `coord-signature-${index}`
+      signature: `coord-signature-${index}`,
     }));
 
     for (const request of maliciousRequests) {
@@ -624,12 +648,12 @@ export class SecurityBypassPreventionTest {
       truthClaim: { statement: `Timing attack ${i}` },
       timestamp: new Date(Date.now() + i * 100), // Exactly 100ms apart
       nonce: `timing-nonce-${i}`,
-      signature: `timing-signature-${i}`
+      signature: `timing-signature-${i}`,
     }));
 
     for (const request of requests) {
       await this.security.processVerificationRequest(request);
-      await new Promise(resolve => setTimeout(resolve, 100)); // Maintain timing
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Maintain timing
     }
   }
 
@@ -638,14 +662,14 @@ export class SecurityBypassPreventionTest {
     const request: VerificationRequest = {
       requestId: 'high-priv-test',
       agentId: 'low-priv-test',
-      truthClaim: { 
+      truthClaim: {
         statement: 'System configuration change',
         type: 'admin-operation',
-        privilegeLevel: 'CRITICAL'
+        privilegeLevel: 'CRITICAL',
       },
       timestamp: new Date(),
       nonce: 'high-priv-nonce',
-      signature: 'high-priv-signature'
+      signature: 'high-priv-signature',
     };
 
     await this.security.processVerificationRequest(request);
@@ -656,13 +680,13 @@ export class SecurityBypassPreventionTest {
     const request: VerificationRequest = {
       requestId: 'capability-escalation',
       agentId: 'low-priv-test',
-      truthClaim: { 
+      truthClaim: {
         statement: 'Attempting admin capabilities',
-        requestedCapabilities: ['admin', 'system', 'root']
+        requestedCapabilities: ['admin', 'system', 'root'],
       },
       timestamp: new Date(),
       nonce: 'escalation-nonce',
-      signature: 'escalation-signature'
+      signature: 'escalation-signature',
     };
 
     await this.security.processVerificationRequest(request);
@@ -673,14 +697,14 @@ export class SecurityBypassPreventionTest {
     try {
       // This simulates trying to access internal methods directly
       (this.security as any)._directAccess = true;
-      
+
       const request: VerificationRequest = {
         requestId: 'direct-access',
         agentId: 'direct-agent',
         truthClaim: { statement: 'Direct system access' },
         timestamp: new Date(),
         nonce: 'direct-nonce',
-        signature: 'direct-signature'
+        signature: 'direct-signature',
       };
 
       // Try to call internal methods directly
@@ -697,14 +721,14 @@ export class SecurityBypassPreventionTest {
     try {
       (this.security as any).isInitialized = false;
       (this.security as any).disabled = true;
-      
+
       const request: VerificationRequest = {
         requestId: 'disable-security',
         agentId: 'hacker-agent',
         truthClaim: { statement: 'Security disabled' },
         timestamp: new Date(),
         nonce: 'disable-nonce',
-        signature: 'disable-signature'
+        signature: 'disable-signature',
       };
 
       await this.security.processVerificationRequest(request);
@@ -719,7 +743,7 @@ export class SecurityBypassPreventionTest {
       if ((this.security as any).auth) {
         (this.security as any).auth.agentRegistry = new Map();
       }
-      
+
       if ((this.security as any).byzantine) {
         (this.security as any).byzantine.nodeStates = new Map();
       }
@@ -730,7 +754,7 @@ export class SecurityBypassPreventionTest {
         truthClaim: { statement: 'State corrupted' },
         timestamp: new Date(),
         nonce: 'corrupt-nonce',
-        signature: 'corrupt-signature'
+        signature: 'corrupt-signature',
       };
 
       await this.security.processVerificationRequest(request);

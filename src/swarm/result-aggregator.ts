@@ -1,6 +1,6 @@
 /**
  * Advanced Result Aggregation and Reporting System
- * 
+ *
  * This module provides comprehensive result aggregation, analysis, and reporting
  * capabilities for swarm operations. It collects outputs from multiple agents,
  * performs quality analysis, generates insights, and creates detailed reports.
@@ -51,23 +51,23 @@ export interface AggregatedResult {
   id: string;
   swarmId: string;
   timestamp: Date;
-  
+
   // Raw data
   taskResults: Map<string, TaskResult>;
   agentOutputs: Map<string, any[]>;
   intermediateResults: any[];
-  
+
   // Processed data
   consolidatedOutput: any;
   keyFindings: string[];
   insights: Insight[];
   recommendations: Recommendation[];
-  
+
   // Quality assessment
   qualityMetrics: QualityMetrics;
   confidenceScore: number;
   reliabilityScore: number;
-  
+
   // Metadata
   processingTime: number;
   dataPoints: number;
@@ -171,12 +171,9 @@ export class SwarmResultAggregator extends EventEmitter {
   private resultCache: Map<string, AggregatedResult> = new Map();
   private processingQueue: ProcessingQueue;
 
-  constructor(
-    config: Partial<AggregationConfig> = {},
-    memoryManager: MemoryManager
-  ) {
+  constructor(config: Partial<AggregationConfig> = {}, memoryManager: MemoryManager) {
     super();
-    
+
     this.logger = new Logger('SwarmResultAggregator');
     this.config = this.createDefaultConfig(config);
     this.memoryManager = memoryManager;
@@ -196,7 +193,6 @@ export class SwarmResultAggregator extends EventEmitter {
 
       this.logger.info('Swarm result aggregator initialized successfully');
       this.emit('initialized');
-
     } catch (error) {
       this.logger.error('Failed to initialize result aggregator', error);
       throw error;
@@ -211,16 +207,16 @@ export class SwarmResultAggregator extends EventEmitter {
 
     try {
       // Complete active aggregations
-      const completionPromises = Array.from(this.activeAggregations.values())
-        .map(session => session.finalize());
-      
+      const completionPromises = Array.from(this.activeAggregations.values()).map((session) =>
+        session.finalize(),
+      );
+
       await Promise.allSettled(completionPromises);
 
       await this.processingQueue.stop();
-      
+
       this.logger.info('Swarm result aggregator shut down successfully');
       this.emit('shutdown');
-
     } catch (error) {
       this.logger.error('Error during result aggregator shutdown', error);
       throw error;
@@ -232,7 +228,7 @@ export class SwarmResultAggregator extends EventEmitter {
    */
   async startAggregation(context: SwarmExecutionContext): Promise<string> {
     const aggregationId = generateId('aggregation');
-    
+
     this.logger.info('Starting result aggregation', {
       aggregationId,
       swarmId: context.swarmId.id,
@@ -245,7 +241,7 @@ export class SwarmResultAggregator extends EventEmitter {
       context,
       this.config,
       this.logger,
-      this.memoryManager
+      this.memoryManager,
     );
 
     this.activeAggregations.set(aggregationId, session);
@@ -266,11 +262,7 @@ export class SwarmResultAggregator extends EventEmitter {
   /**
    * Add task result to aggregation
    */
-  async addTaskResult(
-    aggregationId: string,
-    taskId: string,
-    result: TaskResult
-  ): Promise<void> {
+  async addTaskResult(aggregationId: string, taskId: string, result: TaskResult): Promise<void> {
     const session = this.activeAggregations.get(aggregationId);
     if (!session) {
       throw new Error(`Aggregation session not found: ${aggregationId}`);
@@ -288,11 +280,7 @@ export class SwarmResultAggregator extends EventEmitter {
   /**
    * Add agent output to aggregation
    */
-  async addAgentOutput(
-    aggregationId: string,
-    agentId: string,
-    output: any
-  ): Promise<void> {
+  async addAgentOutput(aggregationId: string, agentId: string, output: any): Promise<void> {
     const session = this.activeAggregations.get(aggregationId);
     if (!session) {
       throw new Error(`Aggregation session not found: ${aggregationId}`);
@@ -309,9 +297,7 @@ export class SwarmResultAggregator extends EventEmitter {
   /**
    * Finalize aggregation and generate comprehensive results
    */
-  async finalizeAggregation(
-    aggregationId: string
-  ): Promise<AggregatedResult> {
+  async finalizeAggregation(aggregationId: string): Promise<AggregatedResult> {
     const session = this.activeAggregations.get(aggregationId);
     if (!session) {
       throw new Error(`Aggregation session not found: ${aggregationId}`);
@@ -321,7 +307,7 @@ export class SwarmResultAggregator extends EventEmitter {
 
     try {
       const result = await session.finalize();
-      
+
       // Cache result
       this.resultCache.set(aggregationId, result);
 
@@ -342,7 +328,6 @@ export class SwarmResultAggregator extends EventEmitter {
       });
 
       return result;
-
     } finally {
       // Clean up session
       this.activeAggregations.delete(aggregationId);
@@ -354,7 +339,7 @@ export class SwarmResultAggregator extends EventEmitter {
    */
   async generateReport(
     aggregationId: string,
-    format: 'json' | 'markdown' | 'html' | 'pdf' = 'json'
+    format: 'json' | 'markdown' | 'html' | 'pdf' = 'json',
   ): Promise<ResultReport> {
     const result = this.resultCache.get(aggregationId);
     if (!result) {
@@ -387,7 +372,7 @@ export class SwarmResultAggregator extends EventEmitter {
     results?: Partial<AggregatedResult>;
   } {
     const session = this.activeAggregations.get(aggregationId);
-    
+
     if (session) {
       return {
         status: 'active',
@@ -420,7 +405,7 @@ export class SwarmResultAggregator extends EventEmitter {
     processingThroughput: number;
   } {
     const completedResults = Array.from(this.resultCache.values());
-    
+
     return {
       activeAggregations: this.activeAggregations.size,
       completedAggregations: this.resultCache.size,
@@ -433,10 +418,7 @@ export class SwarmResultAggregator extends EventEmitter {
 
   // Private methods
 
-  private async createReport(
-    result: AggregatedResult,
-    format: string
-  ): Promise<ResultReport> {
+  private async createReport(result: AggregatedResult, format: string): Promise<ResultReport> {
     const reportId = generateId('report');
     const startTime = performance.now();
 
@@ -446,9 +428,7 @@ export class SwarmResultAggregator extends EventEmitter {
       type: 'swarm-definition',
     });
 
-    const context = contextData.length > 0 
-      ? JSON.parse(contextData[0].content) 
-      : {};
+    const context = contextData.length > 0 ? JSON.parse(contextData[0].content) : {};
 
     // Generate report sections
     const executionSummary = this.generateExecutionSummary(result, context);
@@ -482,19 +462,14 @@ export class SwarmResultAggregator extends EventEmitter {
     return report;
   }
 
-  private generateExecutionSummary(
-    result: AggregatedResult,
-    context: any
-  ): ExecutionSummary {
+  private generateExecutionSummary(result: AggregatedResult, context: any): ExecutionSummary {
     return {
       objective: context.description || 'Unknown objective',
       strategy: context.strategy || 'auto',
       duration: result.processingTime,
       tasksTotal: result.taskResults.size,
-      tasksCompleted: Array.from(result.taskResults.values())
-        .filter(r => r.validated).length,
-      tasksFailed: Array.from(result.taskResults.values())
-        .filter(r => !r.validated).length,
+      tasksCompleted: Array.from(result.taskResults.values()).filter((r) => r.validated).length,
+      tasksFailed: Array.from(result.taskResults.values()).filter((r) => !r.validated).length,
       agentsUsed: result.agentOutputs.size,
       resourcesConsumed: {},
       successRate: this.calculateSuccessRate(result),
@@ -505,19 +480,22 @@ export class SwarmResultAggregator extends EventEmitter {
     const qualityGates = [
       {
         name: 'Accuracy',
-        status: result.qualityMetrics.accuracy >= this.config.qualityThreshold ? 'passed' : 'failed',
+        status:
+          result.qualityMetrics.accuracy >= this.config.qualityThreshold ? 'passed' : 'failed',
         score: result.qualityMetrics.accuracy,
         threshold: this.config.qualityThreshold,
       },
       {
         name: 'Completeness',
-        status: result.qualityMetrics.completeness >= this.config.qualityThreshold ? 'passed' : 'failed',
+        status:
+          result.qualityMetrics.completeness >= this.config.qualityThreshold ? 'passed' : 'failed',
         score: result.qualityMetrics.completeness,
         threshold: this.config.qualityThreshold,
       },
       {
         name: 'Consistency',
-        status: result.qualityMetrics.consistency >= this.config.qualityThreshold ? 'passed' : 'failed',
+        status:
+          result.qualityMetrics.consistency >= this.config.qualityThreshold ? 'passed' : 'failed',
         score: result.qualityMetrics.consistency,
         threshold: this.config.qualityThreshold,
       },
@@ -600,9 +578,8 @@ export class SwarmResultAggregator extends EventEmitter {
 
   private calculateSuccessRate(result: AggregatedResult): number {
     const total = result.taskResults.size;
-    const successful = Array.from(result.taskResults.values())
-      .filter(r => r.validated).length;
-    
+    const successful = Array.from(result.taskResults.values()).filter((r) => r.validated).length;
+
     return total > 0 ? successful / total : 0;
   }
 
@@ -649,11 +626,7 @@ export class SwarmResultAggregator extends EventEmitter {
 
   private identifyBottlenecks(result: AggregatedResult): string[] {
     // Placeholder analysis
-    return [
-      'Agent coordination overhead',
-      'Task dependency chains',
-      'Resource contention',
-    ];
+    return ['Agent coordination overhead', 'Task dependency chains', 'Resource contention'];
   }
 
   private identifyOptimizationOpportunities(result: AggregatedResult): string[] {
@@ -668,14 +641,14 @@ export class SwarmResultAggregator extends EventEmitter {
 
   private calculateAverageQuality(results: AggregatedResult[]): number {
     if (results.length === 0) return 0;
-    
+
     const total = results.reduce((sum, r) => sum + r.qualityMetrics.overall, 0);
     return total / results.length;
   }
 
   private calculateAverageConfidence(results: AggregatedResult[]): number {
     if (results.length === 0) return 0;
-    
+
     const total = results.reduce((sum, r) => sum + r.confidenceScore, 0);
     return total / results.length;
   }
@@ -742,7 +715,7 @@ class AggregationSession {
     context: SwarmExecutionContext,
     config: AggregationConfig,
     logger: Logger,
-    memoryManager: MemoryManager
+    memoryManager: MemoryManager,
   ) {
     this.id = id;
     this.context = context;
@@ -754,7 +727,7 @@ class AggregationSession {
 
   async addTaskResult(taskId: string, result: TaskResult): Promise<void> {
     this.taskResults.set(taskId, result);
-    
+
     this.logger.debug('Task result added to aggregation', {
       aggregationId: this.id,
       taskId,
@@ -766,9 +739,9 @@ class AggregationSession {
     if (!this.agentOutputs.has(agentId)) {
       this.agentOutputs.set(agentId, []);
     }
-    
+
     this.agentOutputs.get(agentId)!.push(output);
-    
+
     this.logger.debug('Agent output added to aggregation', {
       aggregationId: this.id,
       agentId,
@@ -783,7 +756,7 @@ class AggregationSession {
   getProgress(): number {
     const totalExpected = this.context.tasks.size;
     const completed = this.taskResults.size;
-    
+
     return totalExpected > 0 ? (completed / totalExpected) * 100 : 0;
   }
 
@@ -814,28 +787,26 @@ class AggregationSession {
 
     // Consolidate outputs
     const consolidatedOutput = this.consolidateOutputs();
-    
+
     // Extract key findings
     const keyFindings = this.extractKeyFindings();
-    
+
     // Generate insights
-    const insights = this.config.enableInsightGeneration 
-      ? await this.generateInsights() 
-      : [];
-    
+    const insights = this.config.enableInsightGeneration ? await this.generateInsights() : [];
+
     // Generate recommendations
-    const recommendations = this.config.enableRecommendations 
-      ? await this.generateRecommendations() 
+    const recommendations = this.config.enableRecommendations
+      ? await this.generateRecommendations()
       : [];
-    
+
     // Calculate quality metrics
-    const qualityMetrics = this.config.enableQualityAnalysis 
-      ? this.calculateQualityMetrics() 
+    const qualityMetrics = this.config.enableQualityAnalysis
+      ? this.calculateQualityMetrics()
       : this.getDefaultQualityMetrics();
-    
+
     // Calculate confidence score
     const confidenceScore = this.calculateConfidenceScore();
-    
+
     const processingTime = performance.now() - processingStartTime;
 
     const result: AggregatedResult = {
@@ -865,19 +836,19 @@ class AggregationSession {
   private consolidateOutputs(): any {
     // Placeholder implementation
     const outputs: any[] = [];
-    
+
     // Add task results
     for (const result of this.taskResults.values()) {
       if (result.output) {
         outputs.push(result.output);
       }
     }
-    
+
     // Add agent outputs
     for (const agentOutputList of this.agentOutputs.values()) {
       outputs.push(...agentOutputList);
     }
-    
+
     return {
       summary: 'Consolidated output from all agents and tasks',
       data: outputs,
@@ -963,12 +934,11 @@ class AggregationSession {
 
   private calculateQualityMetrics(): QualityMetrics {
     // Placeholder implementation with realistic calculations
-    const successfulTasks = Array.from(this.taskResults.values())
-      .filter(r => r.validated).length;
+    const successfulTasks = Array.from(this.taskResults.values()).filter((r) => r.validated).length;
     const totalTasks = this.taskResults.size;
-    
+
     const baseAccuracy = totalTasks > 0 ? successfulTasks / totalTasks : 1;
-    
+
     return {
       accuracy: baseAccuracy,
       completeness: Math.min(baseAccuracy + 0.1, 1),
@@ -997,9 +967,10 @@ class AggregationSession {
   private calculateConfidenceScore(): number {
     // Base confidence on data availability and quality
     const dataAvailability = this.taskResults.size / Math.max(this.context.tasks.size, 1);
-    const resultQuality = Array.from(this.taskResults.values())
-      .reduce((sum, r) => sum + (r.validated ? 1 : 0), 0) / Math.max(this.taskResults.size, 1);
-    
+    const resultQuality =
+      Array.from(this.taskResults.values()).reduce((sum, r) => sum + (r.validated ? 1 : 0), 0) /
+      Math.max(this.taskResults.size, 1);
+
     return Math.min((dataAvailability + resultQuality) / 2, 1);
   }
 

@@ -13,7 +13,7 @@ export class GitHubClient {
     rate_limit_remaining: 5000,
     cache_hits: 0,
     errors: 0,
-    response_time_avg: 0
+    response_time_avg: 0,
   };
 
   constructor(config: GitHubConfig) {
@@ -21,7 +21,7 @@ export class GitHubClient {
       baseUrl: 'https://api.github.com',
       timeout: 30000,
       retries: 3,
-      ...config
+      ...config,
     };
   }
 
@@ -45,13 +45,13 @@ export class GitHubClient {
       const requestOptions = {
         method: 'GET',
         headers: {
-          'Authorization': `token ${this.config.token}`,
-          'Accept': 'application/vnd.github.v3+json',
+          Authorization: `token ${this.config.token}`,
+          Accept: 'application/vnd.github.v3+json',
           'User-Agent': 'claude-flow-github-agent',
-          ...options.headers
+          ...options.headers,
         },
         timeout: this.config.timeout,
-        ...options
+        ...options,
       };
 
       const response = await fetch(url, requestOptions);
@@ -75,8 +75,7 @@ export class GitHubClient {
 
       // Update metrics
       const responseTime = Date.now() - startTime;
-      this.metrics.response_time_avg =
-        (this.metrics.response_time_avg + responseTime) / 2;
+      this.metrics.response_time_avg = (this.metrics.response_time_avg + responseTime) / 2;
 
       return data;
     } catch (error) {
@@ -106,7 +105,7 @@ export class GitHubClient {
       key,
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
 
     // Cleanup old entries
@@ -129,7 +128,7 @@ export class GitHubClient {
       code: `GITHUB_API_${response.status}`,
       message: `GitHub API request failed: ${response.statusText}`,
       status: response.status,
-      context: { endpoint }
+      context: { endpoint },
     };
   }
 
@@ -142,9 +141,9 @@ export class GitHubClient {
   }
 
   // Batch request utility for multiple operations
-  async batchRequest(requests: Array<{endpoint: string, options?: any}>): Promise<any[]> {
-    const promises = requests.map(req =>
-      this.request(req.endpoint, req.options).catch(error => ({ error }))
+  async batchRequest(requests: Array<{ endpoint: string; options?: any }>): Promise<any[]> {
+    const promises = requests.map((req) =>
+      this.request(req.endpoint, req.options).catch((error) => ({ error })),
     );
 
     return Promise.all(promises);

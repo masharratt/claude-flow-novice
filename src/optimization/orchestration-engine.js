@@ -43,7 +43,7 @@ export class OrchestrationEngine extends EventEmitter {
       enableRealTimeMetrics: true,
       exportMetricsToDatabase: true,
 
-      ...options
+      ...options,
     };
 
     // Initialize core systems
@@ -63,8 +63,8 @@ export class OrchestrationEngine extends EventEmitter {
         totalRecommendations: 0,
         implementedOptimizations: 0,
         averageOptimizationTime: 0,
-        successRate: 1.0
-      }
+        successRate: 1.0,
+      },
     };
 
     // Event-driven triggers
@@ -73,7 +73,7 @@ export class OrchestrationEngine extends EventEmitter {
       ['packageUpdate', { enabled: true, debounce: 10000, lastTriggered: 0 }],
       ['gitCommit', { enabled: true, debounce: 0, lastTriggered: 0 }],
       ['configChange', { enabled: true, debounce: 1000, lastTriggered: 0 }],
-      ['performanceAlert', { enabled: true, debounce: 0, lastTriggered: 0 }]
+      ['performanceAlert', { enabled: true, debounce: 0, lastTriggered: 0 }],
     ]);
 
     // Scheduled optimizations
@@ -104,7 +104,7 @@ export class OrchestrationEngine extends EventEmitter {
         this.setupScheduledOptimizations(),
         this.setupContinuousOptimization(),
         this.setupFileSystemWatchers(),
-        this.loadOrchestrationConfig()
+        this.loadOrchestrationConfig(),
       ]);
 
       // Perform initial optimization if configured
@@ -121,22 +121,21 @@ export class OrchestrationEngine extends EventEmitter {
       this.emit('engineInitialized', {
         initTime,
         state: this.orchestrationState,
-        options: this.options
+        options: this.options,
       });
 
       return {
         success: true,
         initTime,
-        state: this.orchestrationState
+        state: this.orchestrationState,
       };
-
     } catch (error) {
       this.orchestrationState.status = 'error';
       console.error('❌ Failed to initialize Orchestration Engine:', error);
 
       this.emit('engineError', {
         error: error.message,
-        phase: 'initialization'
+        phase: 'initialization',
       });
 
       throw error;
@@ -162,7 +161,7 @@ export class OrchestrationEngine extends EventEmitter {
         id: operationId,
         type: 'manual-optimization',
         startTime,
-        context
+        context,
       };
 
       // Pre-optimization hooks and validation
@@ -172,7 +171,7 @@ export class OrchestrationEngine extends EventEmitter {
       const result = await this.integrationSystem.runOptimizationAnalysis({
         ...context,
         operationId,
-        orchestratedBy: 'main-engine'
+        orchestratedBy: 'main-engine',
       });
 
       // Post-optimization processing
@@ -186,7 +185,7 @@ export class OrchestrationEngine extends EventEmitter {
         id: operationId,
         result: processedResult,
         completedAt: new Date().toISOString(),
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
       this.orchestrationState.currentOperation = null;
 
@@ -195,11 +194,10 @@ export class OrchestrationEngine extends EventEmitter {
       this.emit('optimizationCompleted', {
         operationId,
         result: processedResult,
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       });
 
       return processedResult;
-
     } catch (error) {
       this.orchestrationState.currentOperation = null;
       console.error(`❌ Optimization failed (${operationId}):`, error);
@@ -207,7 +205,7 @@ export class OrchestrationEngine extends EventEmitter {
       this.emit('optimizationError', {
         operationId,
         error: error.message,
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       });
 
       throw error;
@@ -223,7 +221,7 @@ export class OrchestrationEngine extends EventEmitter {
       type: 'queued-optimization',
       context,
       priority,
-      queuedAt: new Date().toISOString()
+      queuedAt: new Date().toISOString(),
     };
 
     // Insert based on priority
@@ -233,7 +231,9 @@ export class OrchestrationEngine extends EventEmitter {
       this.orchestrationState.operationQueue.push(operation);
     }
 
-    console.log(`📋 Optimization queued (${operation.id}) - Queue length: ${this.orchestrationState.operationQueue.length}`);
+    console.log(
+      `📋 Optimization queued (${operation.id}) - Queue length: ${this.orchestrationState.operationQueue.length}`,
+    );
 
     this.emit('optimizationQueued', operation);
 
@@ -249,21 +249,21 @@ export class OrchestrationEngine extends EventEmitter {
    * Process the operation queue
    */
   async processOperationQueue() {
-    while (this.orchestrationState.operationQueue.length > 0 &&
-           this.orchestrationState.status === 'active') {
-
+    while (
+      this.orchestrationState.operationQueue.length > 0 &&
+      this.orchestrationState.status === 'active'
+    ) {
       const operation = this.orchestrationState.operationQueue.shift();
 
       try {
         console.log(`⚡ Processing queued optimization (${operation.id})...`);
         await this.optimize(operation.context);
-
       } catch (error) {
         console.error(`❌ Queued optimization failed (${operation.id}):`, error);
 
         this.emit('queuedOptimizationError', {
           operationId: operation.id,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -296,12 +296,14 @@ export class OrchestrationEngine extends EventEmitter {
     const intervalId = setInterval(async () => {
       try {
         console.log(`⏰ Running scheduled optimization (${scheduleId})...`);
-        await this.queueOptimization({
-          ...context,
-          scheduledBy: scheduleId,
-          scheduledAt: new Date().toISOString()
-        }, 'normal');
-
+        await this.queueOptimization(
+          {
+            ...context,
+            scheduledBy: scheduleId,
+            scheduledAt: new Date().toISOString(),
+          },
+          'normal',
+        );
       } catch (error) {
         console.error(`❌ Scheduled optimization failed (${scheduleId}):`, error);
       }
@@ -312,7 +314,7 @@ export class OrchestrationEngine extends EventEmitter {
       pattern: cronPattern,
       context,
       intervalId,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
 
     console.log(`📅 Optimization scheduled (${scheduleId}): ${cronPattern}`);
@@ -342,15 +344,19 @@ export class OrchestrationEngine extends EventEmitter {
         const needsOptimization = await this.assessOptimizationNeed();
 
         if (needsOptimization.score > threshold) {
-          console.log(`🔄 Continuous optimization triggered (score: ${needsOptimization.score.toFixed(3)})`);
+          console.log(
+            `🔄 Continuous optimization triggered (score: ${needsOptimization.score.toFixed(3)})`,
+          );
 
-          await this.queueOptimization({
-            triggeredBy: 'continuous-monitoring',
-            trigger: needsOptimization.trigger,
-            score: needsOptimization.score
-          }, 'low');
+          await this.queueOptimization(
+            {
+              triggeredBy: 'continuous-monitoring',
+              trigger: needsOptimization.trigger,
+              score: needsOptimization.score,
+            },
+            'low',
+          );
         }
-
       } catch (error) {
         console.warn('⚠️ Continuous optimization check failed:', error.message);
       }
@@ -392,12 +398,12 @@ export class OrchestrationEngine extends EventEmitter {
       performance: {
         statistics: this.orchestrationState.statistics,
         recentOperations: this.getRecentOperations(10),
-        systemHealth: integrationStatus.health
+        systemHealth: integrationStatus.health,
       },
       configuration: {
         options: this.options,
-        projectPath: this.projectPath
-      }
+        projectPath: this.projectPath,
+      },
     };
   }
 
@@ -479,7 +485,7 @@ export class OrchestrationEngine extends EventEmitter {
       if (this.options.dailyOptimization !== false) {
         this.scheduleOptimization('@daily', {
           type: 'scheduled-daily',
-          depth: 'comprehensive'
+          depth: 'comprehensive',
         });
       }
     }
@@ -489,7 +495,7 @@ export class OrchestrationEngine extends EventEmitter {
     if (this.options.enableContinuousOptimization) {
       await this.startContinuousOptimization({
         interval: this.options.continuousOptimizationInterval || 300000,
-        threshold: this.options.continuousOptimizationThreshold || 0.1
+        threshold: this.options.continuousOptimizationThreshold || 0.1,
       });
     }
   }
@@ -504,7 +510,11 @@ export class OrchestrationEngine extends EventEmitter {
 
   async loadOrchestrationConfig() {
     try {
-      const configPath = path.join(this.projectPath, '.claude-flow-novice', 'orchestration-config.json');
+      const configPath = path.join(
+        this.projectPath,
+        '.claude-flow-novice',
+        'orchestration-config.json',
+      );
       const configData = await fs.readFile(configPath, 'utf8');
       const config = JSON.parse(configData);
 
@@ -523,7 +533,7 @@ export class OrchestrationEngine extends EventEmitter {
     try {
       await this.optimize({
         type: 'initial-optimization',
-        depth: 'quick'
+        depth: 'quick',
       });
     } catch (error) {
       console.warn('⚠️ Initial optimization failed:', error.message);
@@ -544,8 +554,8 @@ export class OrchestrationEngine extends EventEmitter {
       orchestration: {
         operationId,
         processedAt: new Date().toISOString(),
-        orchestratedBy: 'main-engine'
-      }
+        orchestratedBy: 'main-engine',
+      },
     };
   }
 
@@ -556,7 +566,7 @@ export class OrchestrationEngine extends EventEmitter {
     stats.totalRecommendations += result.recommendations?.all?.length || 0;
 
     // Update average duration
-    const totalTime = (stats.averageOptimizationTime * (stats.totalOptimizations - 1)) + duration;
+    const totalTime = stats.averageOptimizationTime * (stats.totalOptimizations - 1) + duration;
     stats.averageOptimizationTime = totalTime / stats.totalOptimizations;
 
     // Update success rate (simplified)
@@ -572,7 +582,7 @@ export class OrchestrationEngine extends EventEmitter {
       timeSinceLastOptimization: 0.1,
       systemPerformanceChange: 0.05,
       newRecommendationsAvailable: 0.0,
-      userActivityLevel: 0.02
+      userActivityLevel: 0.02,
     };
 
     const totalScore = Object.values(factors).reduce((sum, score) => sum + score, 0);
@@ -580,7 +590,7 @@ export class OrchestrationEngine extends EventEmitter {
     return {
       score: totalScore,
       trigger: 'continuous-monitoring',
-      factors
+      factors,
     };
   }
 

@@ -14,7 +14,7 @@ import { generateId } from '../utils/helpers.js';
 import type {
   AgentLifecycleState,
   AgentLifecycleManager,
-  LifecycleMemoryManager
+  LifecycleMemoryManager,
 } from '../types/agent-lifecycle-types.js';
 
 // ============================================================================
@@ -23,8 +23,8 @@ import type {
 
 export interface AgentDependency {
   id: string;
-  dependentAgentId: string;    // Agent that depends on another
-  providerAgentId: string;     // Agent that provides the dependency
+  dependentAgentId: string; // Agent that depends on another
+  providerAgentId: string; // Agent that provides the dependency
   dependencyType: DependencyType;
   dependencyData?: DependencyData;
   status: DependencyStatus;
@@ -44,7 +44,7 @@ export enum DependencyType {
   /** Agent B coordinates Agent A's lifecycle */
   COORDINATION = 'coordination',
   /** Custom dependency with specific rules */
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
 }
 
 export enum DependencyStatus {
@@ -53,7 +53,7 @@ export enum DependencyStatus {
   RESOLVED = 'resolved',
   FAILED = 'failed',
   TIMEOUT = 'timeout',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export interface DependencyData {
@@ -135,7 +135,7 @@ export class DependencyTracker extends EventEmitter {
         ttlMinutes: 120, // Dependencies persist for 2 hours
       },
       eventBus,
-      this.logger
+      this.logger,
     );
 
     this.setupEventHandlers();
@@ -204,7 +204,7 @@ export class DependencyTracker extends EventEmitter {
       dependencyData?: DependencyData;
       timeout?: number;
       metadata?: Record<string, unknown>;
-    } = {}
+    } = {},
   ): Promise<string> {
     if (!this.isInitialized) {
       throw new Error('DependencyTracker not initialized');
@@ -224,7 +224,7 @@ export class DependencyTracker extends EventEmitter {
       status: DependencyStatus.PENDING,
       createdAt: new Date(),
       timeout: options.timeout,
-      metadata: options.metadata
+      metadata: options.metadata,
     };
 
     // Check for cycles before adding
@@ -238,8 +238,8 @@ export class DependencyTracker extends EventEmitter {
         resolutionHints: [
           'Remove conflicting dependencies',
           'Restructure agent coordination flow',
-          'Use event-based communication instead'
-        ]
+          'Use event-based communication instead',
+        ],
       };
 
       this.emit('dependency:violation', violation);
@@ -267,7 +267,7 @@ export class DependencyTracker extends EventEmitter {
     await this.updateCompletionBlockers(dependentAgentId);
 
     this.logger.info(
-      `Registered ${type} dependency: ${dependentAgentId} depends on ${providerAgentId} (${dependencyId})`
+      `Registered ${type} dependency: ${dependentAgentId} depends on ${providerAgentId} (${dependencyId})`,
     );
 
     this.emit('dependency:registered', dependency);
@@ -314,17 +314,17 @@ export class DependencyTracker extends EventEmitter {
   /**
    * Resolve a dependency (mark as completed)
    */
-  async resolveDependency(
-    dependencyId: string,
-    resolutionData?: unknown
-  ): Promise<boolean> {
+  async resolveDependency(dependencyId: string, resolutionData?: unknown): Promise<boolean> {
     const dependency = this.dependencies.get(dependencyId);
     if (!dependency) {
       this.logger.warn(`Cannot resolve non-existent dependency: ${dependencyId}`);
       return false;
     }
 
-    if (dependency.status !== DependencyStatus.PENDING && dependency.status !== DependencyStatus.ACTIVE) {
+    if (
+      dependency.status !== DependencyStatus.PENDING &&
+      dependency.status !== DependencyStatus.ACTIVE
+    ) {
       this.logger.warn(`Cannot resolve dependency in state: ${dependency.status}`);
       return false;
     }
@@ -359,7 +359,7 @@ export class DependencyTracker extends EventEmitter {
     if (finalData !== undefined) {
       dependency.dependencyData = {
         ...dependency.dependencyData,
-        content: finalData
+        content: finalData,
       };
     }
 
@@ -427,7 +427,7 @@ export class DependencyTracker extends EventEmitter {
       blocking,
       canComplete,
       reason,
-      dependencyChains
+      dependencyChains,
     };
 
     this.completionBlocks.set(agentId, blockerInfo);
@@ -541,7 +541,7 @@ export class DependencyTracker extends EventEmitter {
           path: [...path, agentId],
           length: path.length + 1,
           hasCycle: true,
-          cycleNodes
+          cycleNodes,
         });
         return;
       }
@@ -557,7 +557,7 @@ export class DependencyTracker extends EventEmitter {
           endAgent: agentId,
           path: newPath,
           length: newPath.length,
-          hasCycle: false
+          hasCycle: false,
         });
         return;
       }
@@ -598,7 +598,7 @@ export class DependencyTracker extends EventEmitter {
             path: [...cyclePath, agentId, depAgent],
             length: cyclePath.length + 2,
             hasCycle: true,
-            cycleNodes: cyclePath
+            cycleNodes: cyclePath,
           });
         }
       }
@@ -631,8 +631,8 @@ export class DependencyTracker extends EventEmitter {
         dependentAgent: dependency.dependentAgentId,
         providerAgent: dependency.providerAgentId,
         type: dependency.dependencyType,
-        status: dependency.status
-      }
+        status: dependency.status,
+      },
     });
   }
 
@@ -646,7 +646,7 @@ export class DependencyTracker extends EventEmitter {
       content: JSON.stringify({ dependencyId, deletedAt: new Date() }),
       namespace: this.memoryNamespace,
       timestamp: new Date(),
-      metadata: { action: 'delete', dependencyId }
+      metadata: { action: 'delete', dependencyId },
     });
   }
 
@@ -654,12 +654,21 @@ export class DependencyTracker extends EventEmitter {
     // Save current state snapshot
     const state = {
       dependencies: Array.from(this.dependencies.entries()),
-      agentDependencies: Array.from(this.agentDependencies.entries()).map(([k, v]) => [k, Array.from(v)]),
-      providerDependencies: Array.from(this.providerDependencies.entries()).map(([k, v]) => [k, Array.from(v)]),
+      agentDependencies: Array.from(this.agentDependencies.entries()).map(([k, v]) => [
+        k,
+        Array.from(v),
+      ]),
+      providerDependencies: Array.from(this.providerDependencies.entries()).map(([k, v]) => [
+        k,
+        Array.from(v),
+      ]),
       pendingCompletions: Array.from(this.pendingCompletions),
       completionBlocks: Array.from(this.completionBlocks.entries()),
-      cyclicDependencyGraph: Array.from(this.cyclicDependencyGraph.entries()).map(([k, v]) => [k, Array.from(v)]),
-      timestamp: new Date()
+      cyclicDependencyGraph: Array.from(this.cyclicDependencyGraph.entries()).map(([k, v]) => [
+        k,
+        Array.from(v),
+      ]),
+      timestamp: new Date(),
     };
 
     await this.memoryManager.store({
@@ -672,8 +681,8 @@ export class DependencyTracker extends EventEmitter {
       metadata: {
         dependencyCount: this.dependencies.size,
         agentCount: this.agentDependencies.size,
-        pendingCompletions: this.pendingCompletions.size
-      }
+        pendingCompletions: this.pendingCompletions.size,
+      },
     });
   }
 
@@ -686,7 +695,11 @@ export class DependencyTracker extends EventEmitter {
           try {
             const dependency = JSON.parse(record.content) as AgentDependency;
             this.dependencies.set(dependency.id, dependency);
-            this.updateAgentDependencyMappings(dependency.id, dependency.dependentAgentId, dependency.providerAgentId);
+            this.updateAgentDependencyMappings(
+              dependency.id,
+              dependency.dependentAgentId,
+              dependency.providerAgentId,
+            );
             this.updateDependencyGraph(dependency.dependentAgentId, dependency.providerAgentId);
 
             // Restore timeout if still valid
@@ -720,7 +733,7 @@ export class DependencyTracker extends EventEmitter {
   private updateAgentDependencyMappings(
     dependencyId: string,
     dependentAgentId: string,
-    providerAgentId: string
+    providerAgentId: string,
   ): void {
     // Update dependent agent mapping
     if (!this.agentDependencies.has(dependentAgentId)) {
@@ -735,7 +748,10 @@ export class DependencyTracker extends EventEmitter {
     this.providerDependencies.get(providerAgentId)!.add(dependencyId);
   }
 
-  private removeFromAgentDependencyMappings(dependencyId: string, dependency: AgentDependency): void {
+  private removeFromAgentDependencyMappings(
+    dependencyId: string,
+    dependency: AgentDependency,
+  ): void {
     // Remove from dependent agent mapping
     const agentDeps = this.agentDependencies.get(dependency.dependentAgentId);
     if (agentDeps) {
@@ -812,7 +828,10 @@ export class DependencyTracker extends EventEmitter {
   // Event Handlers
   // ============================================================================
 
-  private async onDependencyResolved(event: { dependency: AgentDependency; resolutionData?: unknown }): Promise<void> {
+  private async onDependencyResolved(event: {
+    dependency: AgentDependency;
+    resolutionData?: unknown;
+  }): Promise<void> {
     // Check if any pending completions can now proceed
     for (const agentId of this.pendingCompletions) {
       await this.updateCompletionBlockers(agentId);
@@ -839,9 +858,17 @@ export class DependencyTracker extends EventEmitter {
     }
   }
 
-  private async onAgentStateChanged(event: { agentId: string; newState: AgentLifecycleState; oldState: AgentLifecycleState }): Promise<void> {
+  private async onAgentStateChanged(event: {
+    agentId: string;
+    newState: AgentLifecycleState;
+    oldState: AgentLifecycleState;
+  }): Promise<void> {
     // Handle state changes that might affect dependencies
-    if (event.newState === 'stopped' || event.newState === 'error' || event.newState === 'cleanup') {
+    if (
+      event.newState === 'stopped' ||
+      event.newState === 'error' ||
+      event.newState === 'cleanup'
+    ) {
       // Agent is no longer providing dependencies
       const providerDeps = this.providerDependencies.get(event.agentId) || new Set();
       for (const depId of providerDeps) {
@@ -865,8 +892,8 @@ export class DependencyTracker extends EventEmitter {
   getAgentDependencies(agentId: string): AgentDependency[] {
     const depIds = this.agentDependencies.get(agentId) || new Set();
     return Array.from(depIds)
-      .map(id => this.dependencies.get(id))
-      .filter(dep => dep !== undefined) as AgentDependency[];
+      .map((id) => this.dependencies.get(id))
+      .filter((dep) => dep !== undefined) as AgentDependency[];
   }
 
   /**
@@ -904,13 +931,14 @@ export class DependencyTracker extends EventEmitter {
 
     return {
       totalDependencies: dependencies.length,
-      pendingDependencies: dependencies.filter(d => d.status === DependencyStatus.PENDING).length,
-      resolvedDependencies: dependencies.filter(d => d.status === DependencyStatus.RESOLVED).length,
-      failedDependencies: dependencies.filter(d => d.status === DependencyStatus.FAILED).length,
+      pendingDependencies: dependencies.filter((d) => d.status === DependencyStatus.PENDING).length,
+      resolvedDependencies: dependencies.filter((d) => d.status === DependencyStatus.RESOLVED)
+        .length,
+      failedDependencies: dependencies.filter((d) => d.status === DependencyStatus.FAILED).length,
       agentsWithDependencies: this.agentDependencies.size,
       providingAgents: this.providerDependencies.size,
       pendingCompletions: this.pendingCompletions.size,
-      cyclesDetected: cycles.length
+      cyclesDetected: cycles.length,
     };
   }
 
@@ -936,7 +964,7 @@ export class DependencyTracker extends EventEmitter {
         affectedAgents: cycle.cycleNodes || [],
         dependencyIds: [],
         severity: 'high',
-        resolutionHints: ['Break the cycle by removing one dependency', 'Restructure agent flow']
+        resolutionHints: ['Break the cycle by removing one dependency', 'Restructure agent flow'],
       });
     }
 
@@ -945,14 +973,19 @@ export class DependencyTracker extends EventEmitter {
     for (const [id, dep] of this.dependencies) {
       if (dep.status === DependencyStatus.PENDING && dep.timeout) {
         const elapsed = now - dep.createdAt.getTime();
-        if (elapsed > dep.timeout * 0.9) { // 90% of timeout
+        if (elapsed > dep.timeout * 0.9) {
+          // 90% of timeout
           violations.push({
             type: 'timeout',
             message: `Dependency ${id} approaching timeout`,
             affectedAgents: [dep.dependentAgentId, dep.providerAgentId],
             dependencyIds: [id],
             severity: elapsed > dep.timeout ? 'critical' : 'medium',
-            resolutionHints: ['Check provider agent status', 'Extend timeout', 'Provide fallback resolution']
+            resolutionHints: [
+              'Check provider agent status',
+              'Extend timeout',
+              'Provide fallback resolution',
+            ],
           });
         }
       }
@@ -985,10 +1018,7 @@ export type {
   DependencyData,
   DependencyChain,
   DependencyViolation,
-  CompletionBlockerInfo
+  CompletionBlockerInfo,
 };
 
-export {
-  DependencyType,
-  DependencyStatus
-};
+export { DependencyType, DependencyStatus };

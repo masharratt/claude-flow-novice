@@ -130,11 +130,13 @@ export class RealTimeFeedbackSystem extends EventEmitter {
   private metricsRetention = 24 * 60 * 60 * 1000; // 24 hours
   private collectionInterval: NodeJS.Timeout | null = null;
 
-  constructor(private config: {
-    port?: number;
-    retention?: number;
-    collectionInterval?: number;
-  } = {}) {
+  constructor(
+    private config: {
+      port?: number;
+      retention?: number;
+      collectionInterval?: number;
+    } = {},
+  ) {
     super();
 
     this.systemHealth = {
@@ -142,7 +144,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
       components: [],
       lastUpdate: new Date(),
       uptime: 0,
-      version: '1.0.0'
+      version: '1.0.0',
     };
 
     this.initializeDefaultMetrics();
@@ -157,20 +159,20 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         name: 'http_requests_total',
         type: 'counter',
         description: 'Total HTTP requests',
-        labels: ['method', 'status', 'endpoint']
+        labels: ['method', 'status', 'endpoint'],
       },
       {
         name: 'http_request_duration',
         type: 'histogram',
         description: 'HTTP request duration in milliseconds',
         labels: ['method', 'endpoint'],
-        unit: 'ms'
+        unit: 'ms',
       },
       {
         name: 'test_execution_count',
         type: 'counter',
         description: 'Number of tests executed',
-        labels: ['suite', 'status']
+        labels: ['suite', 'status'],
       },
       {
         name: 'test_coverage_percentage',
@@ -180,15 +182,15 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         unit: '%',
         threshold: {
           warning: 80,
-          critical: 70
-        }
+          critical: 70,
+        },
       },
       {
         name: 'deployment_duration',
         type: 'histogram',
         description: 'Deployment duration in seconds',
         labels: ['stage', 'strategy'],
-        unit: 's'
+        unit: 's',
       },
       {
         name: 'error_rate',
@@ -198,8 +200,8 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         unit: '%',
         threshold: {
           warning: 1.0,
-          critical: 5.0
-        }
+          critical: 5.0,
+        },
       },
       {
         name: 'memory_usage',
@@ -209,8 +211,8 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         unit: '%',
         threshold: {
           warning: 80,
-          critical: 95
-        }
+          critical: 95,
+        },
       },
       {
         name: 'cpu_usage',
@@ -220,9 +222,9 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         unit: '%',
         threshold: {
           warning: 70,
-          critical: 90
-        }
-      }
+          critical: 90,
+        },
+      },
     ];
 
     for (const metric of defaultMetrics) {
@@ -240,27 +242,27 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         trigger: {
           type: 'threshold',
           condition: 'error_rate > 5.0',
-          duration: 300 // 5 minutes
+          duration: 300, // 5 minutes
         },
         actions: [
           {
             type: 'alert',
             config: {
               severity: 'critical',
-              message: 'High error rate detected, initiating rollback'
-            }
+              message: 'High error rate detected, initiating rollback',
+            },
           },
           {
             type: 'rollback',
             config: {
               strategy: 'immediate',
-              reason: 'High error rate threshold exceeded'
+              reason: 'High error rate threshold exceeded',
             },
-            delay: 60000 // 1 minute delay
-          }
+            delay: 60000, // 1 minute delay
+          },
         ],
         enabled: true,
-        triggerCount: 0
+        triggerCount: 0,
       },
       {
         id: 'performance-degradation-scale',
@@ -269,26 +271,26 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         trigger: {
           type: 'correlation',
           condition: 'cpu_usage > 80 AND response_time > 500',
-          duration: 120
+          duration: 120,
         },
         actions: [
           {
             type: 'auto-scale',
             config: {
               direction: 'up',
-              instances: 2
-            }
+              instances: 2,
+            },
           },
           {
             type: 'notification',
             config: {
               channels: ['slack', 'email'],
-              message: 'Auto-scaling triggered due to performance degradation'
-            }
-          }
+              message: 'Auto-scaling triggered due to performance degradation',
+            },
+          },
         ],
         enabled: true,
-        triggerCount: 0
+        triggerCount: 0,
       },
       {
         id: 'test-failure-notification',
@@ -296,26 +298,26 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         source: 'metrics',
         trigger: {
           type: 'pattern',
-          condition: 'test_execution_count{status="failed"} > 0'
+          condition: 'test_execution_count{status="failed"} > 0',
         },
         actions: [
           {
             type: 'notification',
             config: {
               channels: ['slack'],
-              message: 'Test failures detected in CI/CD pipeline'
-            }
+              message: 'Test failures detected in CI/CD pipeline',
+            },
           },
           {
             type: 'workflow',
             config: {
-              workflowId: 'investigate-test-failures'
-            }
-          }
+              workflowId: 'investigate-test-failures',
+            },
+          },
         ],
         enabled: true,
-        triggerCount: 0
-      }
+        triggerCount: 0,
+      },
     ];
 
     for (const loop of defaultLoops) {
@@ -331,7 +333,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
       refreshInterval: 30000,
       timeRange: {
         from: 'now-1h',
-        to: 'now'
+        to: 'now',
       },
       panels: [
         {
@@ -344,8 +346,8 @@ export class RealTimeFeedbackSystem extends EventEmitter {
             legend: true,
             tooltip: true,
             yAxisMax: 10,
-            unit: '%'
-          }
+            unit: '%',
+          },
         },
         {
           id: 'response-time-panel',
@@ -356,8 +358,8 @@ export class RealTimeFeedbackSystem extends EventEmitter {
           options: {
             legend: true,
             tooltip: true,
-            unit: 'ms'
-          }
+            unit: 'ms',
+          },
         },
         {
           id: 'resource-usage-panel',
@@ -369,10 +371,10 @@ export class RealTimeFeedbackSystem extends EventEmitter {
             legend: true,
             tooltip: true,
             yAxisMax: 100,
-            unit: '%'
-          }
-        }
-      ]
+            unit: '%',
+          },
+        },
+      ],
     };
 
     const testingDashboard: Dashboard = {
@@ -382,7 +384,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
       refreshInterval: 60000,
       timeRange: {
         from: 'now-24h',
-        to: 'now'
+        to: 'now',
       },
       panels: [
         {
@@ -392,8 +394,8 @@ export class RealTimeFeedbackSystem extends EventEmitter {
           metrics: ['test_coverage_percentage'],
           position: { x: 0, y: 0, width: 4, height: 3 },
           options: {
-            unit: '%'
-          }
+            unit: '%',
+          },
         },
         {
           id: 'test-execution-panel',
@@ -403,10 +405,10 @@ export class RealTimeFeedbackSystem extends EventEmitter {
           position: { x: 4, y: 0, width: 8, height: 6 },
           options: {
             legend: true,
-            tooltip: true
-          }
-        }
-      ]
+            tooltip: true,
+          },
+        },
+      ],
     };
 
     this.dashboards.set('system-overview', systemOverviewDashboard);
@@ -424,7 +426,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
       name,
       value,
       labels,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     const existingMetrics = this.metrics.get(name) || [];
@@ -432,7 +434,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
 
     // Remove old metrics based on retention policy
     const cutoffTime = Date.now() - this.metricsRetention;
-    const filteredMetrics = existingMetrics.filter(m => m.timestamp.getTime() > cutoffTime);
+    const filteredMetrics = existingMetrics.filter((m) => m.timestamp.getTime() > cutoffTime);
 
     this.metrics.set(name, filteredMetrics);
 
@@ -471,7 +473,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         threshold,
         timestamp: new Date(),
         resolved: false,
-        acknowledgments: []
+        acknowledgments: [],
       };
 
       this.alerts.set(alertId, alert);
@@ -482,7 +484,11 @@ export class RealTimeFeedbackSystem extends EventEmitter {
     }
   }
 
-  private evaluateFeedbackLoops(metricName: string, value: number, labels: Record<string, string>): void {
+  private evaluateFeedbackLoops(
+    metricName: string,
+    value: number,
+    labels: Record<string, string>,
+  ): void {
     for (const loop of this.feedbackLoops.values()) {
       if (!loop.enabled) continue;
 
@@ -496,7 +502,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
     loop: FeedbackLoop,
     metricName: string,
     value: number,
-    labels: Record<string, string>
+    labels: Record<string, string>,
   ): boolean {
     // Simplified condition evaluation
     // In a real implementation, this would be more sophisticated
@@ -504,7 +510,9 @@ export class RealTimeFeedbackSystem extends EventEmitter {
 
     if (condition.includes(metricName)) {
       // Extract threshold from condition (simplified parsing)
-      const thresholdMatch = condition.match(new RegExp(`${metricName}\\s*[><]=?\\s*(\\d+(?:\\.\\d+)?)`));
+      const thresholdMatch = condition.match(
+        new RegExp(`${metricName}\\s*[><]=?\\s*(\\d+(?:\\.\\d+)?)`),
+      );
       if (thresholdMatch) {
         const threshold = parseFloat(thresholdMatch[1]);
         if (condition.includes('>')) {
@@ -571,7 +579,10 @@ export class RealTimeFeedbackSystem extends EventEmitter {
     // Simulate system metrics collection
     this.recordMetric('cpu_usage', Math.random() * 40 + 30, { service: 'api', pod: 'api-1' });
     this.recordMetric('memory_usage', Math.random() * 30 + 60, { service: 'api', pod: 'api-1' });
-    this.recordMetric('error_rate', Math.random() * 2, { service: 'api', environment: 'production' });
+    this.recordMetric('error_rate', Math.random() * 2, {
+      service: 'api',
+      environment: 'production',
+    });
 
     // Update system health
     this.updateSystemHealth();
@@ -585,7 +596,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         metrics: {
           response_time: 150,
           error_rate: 0.5,
-          throughput: 1000
+          throughput: 1000,
         },
         checks: [
           {
@@ -593,10 +604,10 @@ export class RealTimeFeedbackSystem extends EventEmitter {
             status: 'pass',
             message: 'OK',
             duration: 50,
-            timestamp: new Date()
-          }
+            timestamp: new Date(),
+          },
         ],
-        dependencies: ['Database', 'Cache']
+        dependencies: ['Database', 'Cache'],
       },
       {
         name: 'Database',
@@ -604,7 +615,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
         metrics: {
           connections: 45,
           query_time: 20,
-          disk_usage: 75
+          disk_usage: 75,
         },
         checks: [
           {
@@ -612,16 +623,16 @@ export class RealTimeFeedbackSystem extends EventEmitter {
             status: 'pass',
             message: 'Connected',
             duration: 10,
-            timestamp: new Date()
-          }
+            timestamp: new Date(),
+          },
         ],
-        dependencies: []
-      }
+        dependencies: [],
+      },
     ];
 
-    const overallStatus = components.every(c => c.status === 'healthy')
+    const overallStatus = components.every((c) => c.status === 'healthy')
       ? 'healthy'
-      : components.some(c => c.status === 'critical')
+      : components.some((c) => c.status === 'critical')
         ? 'critical'
         : 'degraded';
 
@@ -630,7 +641,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
       components,
       lastUpdate: new Date(),
       uptime: process.uptime(),
-      version: '1.0.0'
+      version: '1.0.0',
     };
 
     this.emit('health:updated', this.systemHealth);
@@ -657,10 +668,12 @@ export class RealTimeFeedbackSystem extends EventEmitter {
       });
 
       // Send initial health status
-      ws.send(JSON.stringify({
-        type: 'health',
-        data: this.systemHealth
-      }));
+      ws.send(
+        JSON.stringify({
+          type: 'health',
+          data: this.systemHealth,
+        }),
+      );
     });
 
     this.emit('websocket:server-started', { port });
@@ -674,10 +687,12 @@ export class RealTimeFeedbackSystem extends EventEmitter {
       case 'dashboard':
         const dashboard = this.dashboards.get(message.dashboardId);
         if (dashboard) {
-          ws.send(JSON.stringify({
-            type: 'dashboard',
-            data: dashboard
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'dashboard',
+              data: dashboard,
+            }),
+          );
         }
         break;
     }
@@ -688,7 +703,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
 
     const message = JSON.stringify({
       type: 'metric',
-      data: metric
+      data: metric,
     });
 
     for (const client of this.clients) {
@@ -701,20 +716,20 @@ export class RealTimeFeedbackSystem extends EventEmitter {
   public getMetrics(
     name: string,
     timeRange?: { from: Date; to: Date },
-    labels?: Record<string, string>
+    labels?: Record<string, string>,
   ): MetricValue[] {
     const allMetrics = this.metrics.get(name) || [];
 
     let filteredMetrics = allMetrics;
 
     if (timeRange) {
-      filteredMetrics = filteredMetrics.filter(m =>
-        m.timestamp >= timeRange.from && m.timestamp <= timeRange.to
+      filteredMetrics = filteredMetrics.filter(
+        (m) => m.timestamp >= timeRange.from && m.timestamp <= timeRange.to,
       );
     }
 
     if (labels) {
-      filteredMetrics = filteredMetrics.filter(m => {
+      filteredMetrics = filteredMetrics.filter((m) => {
         return Object.entries(labels).every(([key, value]) => m.labels[key] === value);
       });
     }
@@ -726,7 +741,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
     const allAlerts = Array.from(this.alerts.values());
 
     if (resolved !== undefined) {
-      return allAlerts.filter(alert => alert.resolved === resolved);
+      return allAlerts.filter((alert) => alert.resolved === resolved);
     }
 
     return allAlerts;
@@ -739,7 +754,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
     const acknowledgment: Acknowledgment = {
       userId,
       timestamp: new Date(),
-      comment
+      comment,
     };
 
     alert.acknowledgments.push(acknowledgment);
@@ -773,7 +788,7 @@ export class RealTimeFeedbackSystem extends EventEmitter {
   public createFeedbackLoop(loop: Omit<FeedbackLoop, 'triggerCount'>): void {
     const newLoop: FeedbackLoop = {
       ...loop,
-      triggerCount: 0
+      triggerCount: 0,
     };
 
     this.feedbackLoops.set(loop.id, newLoop);

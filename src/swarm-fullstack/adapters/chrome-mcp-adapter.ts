@@ -51,7 +51,10 @@ export class ChromeMCPAdapter extends EventEmitter {
   private commandQueue: ChromeMCPCommand[] = [];
   private processingQueue = false;
 
-  constructor(config: ChromeMCPConfig, private logger: ILogger) {
+  constructor(
+    config: ChromeMCPConfig,
+    private logger: ILogger,
+  ) {
     super();
     this.config = {
       serverUrl: 'chrome-devtools://devtools/bundled/inspector.html',
@@ -59,7 +62,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       retries: 3,
       version: '1.0.0',
       capabilities: [],
-      ...config
+      ...config,
     };
   }
 
@@ -70,7 +73,7 @@ export class ChromeMCPAdapter extends EventEmitter {
     try {
       this.logger.info('Connecting to Chrome MCP Server', {
         version: this.config.version,
-        serverUrl: this.config.serverUrl
+        serverUrl: this.config.serverUrl,
       });
 
       // Detect Chrome MCP version and capabilities
@@ -82,7 +85,6 @@ export class ChromeMCPAdapter extends EventEmitter {
 
       // Start processing queued commands
       this.processCommandQueue();
-
     } catch (error) {
       this.logger.error('Failed to connect to Chrome MCP Server', { error });
       throw new Error(`Chrome MCP connection failed: ${error.message}`);
@@ -92,16 +94,19 @@ export class ChromeMCPAdapter extends EventEmitter {
   /**
    * Navigate to URL with swarm-aware error handling
    */
-  async navigate(url: string, options: {
-    viewport?: { width: number; height: number };
-    waitUntil?: 'load' | 'networkidle' | 'domcontentloaded';
-    timeout?: number;
-  } = {}): Promise<ChromeMCPResponse> {
+  async navigate(
+    url: string,
+    options: {
+      viewport?: { width: number; height: number };
+      waitUntil?: 'load' | 'networkidle' | 'domcontentloaded';
+      timeout?: number;
+    } = {},
+  ): Promise<ChromeMCPResponse> {
     const command: ChromeMCPCommand = {
       action: 'navigate',
       params: { url, ...options },
       timeout: options.timeout || this.config.timeout,
-      retries: this.config.retries
+      retries: this.config.retries,
     };
 
     return this.executeCommand(command);
@@ -110,16 +115,18 @@ export class ChromeMCPAdapter extends EventEmitter {
   /**
    * Take screenshot with optimization for swarm testing
    */
-  async screenshot(options: {
-    selector?: string;
-    fullPage?: boolean;
-    quality?: number;
-    format?: 'png' | 'jpeg';
-  } = {}): Promise<ChromeMCPResponse> {
+  async screenshot(
+    options: {
+      selector?: string;
+      fullPage?: boolean;
+      quality?: number;
+      format?: 'png' | 'jpeg';
+    } = {},
+  ): Promise<ChromeMCPResponse> {
     const command: ChromeMCPCommand = {
       action: 'screenshot',
       params: options,
-      timeout: this.config.timeout
+      timeout: this.config.timeout,
     };
 
     return this.executeCommand(command);
@@ -132,7 +139,7 @@ export class ChromeMCPAdapter extends EventEmitter {
     const command: ChromeMCPCommand = {
       action: 'execute_script',
       params: { script, args },
-      timeout: this.config.timeout
+      timeout: this.config.timeout,
     };
 
     return this.executeCommand(command);
@@ -154,7 +161,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       const testResult = await this.executeCommand({
         action: 'run_tests',
         params: testConfig,
-        timeout: 300000 // 5 minutes for test execution
+        timeout: 300000, // 5 minutes for test execution
       });
 
       // Collect performance metrics
@@ -172,17 +179,21 @@ export class ChromeMCPAdapter extends EventEmitter {
         performance: performanceMetrics,
         accessibility: accessibilityResult,
         errors: testResult.data?.errors || [],
-        coverage: testResult.data?.coverage
+        coverage: testResult.data?.coverage,
       };
-
     } catch (error) {
       this.logger.error('E2E test execution failed', { error });
       return {
         success: false,
         screenshots: [],
-        performance: { loadTime: 0, firstContentfulPaint: 0, largestContentfulPaint: 0, cumulativeLayoutShift: 0 },
+        performance: {
+          loadTime: 0,
+          firstContentfulPaint: 0,
+          largestContentfulPaint: 0,
+          cumulativeLayoutShift: 0,
+        },
         accessibility: { score: 0, violations: [] },
-        errors: [error.message]
+        errors: [error.message],
       };
     }
   }
@@ -200,7 +211,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       const result = await this.executeCommand({
         action: 'visual_regression',
         params: config,
-        timeout: this.config.timeout * 2
+        timeout: this.config.timeout * 2,
       });
 
       return {
@@ -209,9 +220,8 @@ export class ChromeMCPAdapter extends EventEmitter {
         baseline: result.data.baseline,
         current: result.data.current,
         diff: result.data.diff,
-        threshold: config.threshold
+        threshold: config.threshold,
       };
-
     } catch (error) {
       this.logger.error('Visual regression test failed', { error });
       return {
@@ -219,7 +229,7 @@ export class ChromeMCPAdapter extends EventEmitter {
         differences: 100,
         baseline: '',
         current: '',
-        threshold: config.threshold
+        threshold: config.threshold,
       };
     }
   }
@@ -232,23 +242,22 @@ export class ChromeMCPAdapter extends EventEmitter {
       const metrics = await this.executeCommand({
         action: 'collect_performance',
         params: {},
-        timeout: this.config.timeout
+        timeout: this.config.timeout,
       });
 
       return {
         loadTime: metrics.data.loadTime || 0,
         firstContentfulPaint: metrics.data.fcp || 0,
         largestContentfulPaint: metrics.data.lcp || 0,
-        cumulativeLayoutShift: metrics.data.cls || 0
+        cumulativeLayoutShift: metrics.data.cls || 0,
       };
-
     } catch (error) {
       this.logger.warn('Performance metrics collection failed', { error });
       return {
         loadTime: 0,
         firstContentfulPaint: 0,
         largestContentfulPaint: 0,
-        cumulativeLayoutShift: 0
+        cumulativeLayoutShift: 0,
       };
     }
   }
@@ -261,19 +270,18 @@ export class ChromeMCPAdapter extends EventEmitter {
       const audit = await this.executeCommand({
         action: 'accessibility_audit',
         params: {},
-        timeout: this.config.timeout
+        timeout: this.config.timeout,
       });
 
       return {
         score: audit.data.score || 0,
-        violations: audit.data.violations || []
+        violations: audit.data.violations || [],
       };
-
     } catch (error) {
       this.logger.warn('Accessibility audit failed', { error });
       return {
         score: 0,
-        violations: []
+        violations: [],
       };
     }
   }
@@ -286,11 +294,10 @@ export class ChromeMCPAdapter extends EventEmitter {
       const screenshots = await this.executeCommand({
         action: 'capture_screenshots',
         params: { format: 'png', quality: 90 },
-        timeout: this.config.timeout
+        timeout: this.config.timeout,
       });
 
       return screenshots.data.screenshots || [];
-
     } catch (error) {
       this.logger.warn('Screenshot capture failed', { error });
       return [];
@@ -321,21 +328,20 @@ export class ChromeMCPAdapter extends EventEmitter {
         this.logger.debug('Chrome MCP command executed', {
           action: command.action,
           duration,
-          attempt: attempt + 1
+          attempt: attempt + 1,
         });
 
         return {
           success: true,
           data: result,
           timestamp: new Date().toISOString(),
-          duration
+          duration,
         };
-
       } catch (error) {
         lastError = error;
         this.logger.warn(`Chrome MCP command failed (attempt ${attempt + 1})`, {
           action: command.action,
-          error: error.message
+          error: error.message,
         });
 
         if (attempt < (command.retries || this.config.retries) - 1) {
@@ -349,7 +355,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       success: false,
       error: lastError?.message || 'Command execution failed',
       timestamp: new Date().toISOString(),
-      duration
+      duration,
     };
   }
 
@@ -366,7 +372,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       if (command.action === 'navigate' && command.params.waitUntil) {
         adapted.params = {
           ...command.params,
-          wait_until: command.params.waitUntil // Convert camelCase to snake_case
+          wait_until: command.params.waitUntil, // Convert camelCase to snake_case
         };
         delete adapted.params.waitUntil;
       }
@@ -379,8 +385,8 @@ export class ChromeMCPAdapter extends EventEmitter {
           ...command.params,
           options: {
             viewport: command.params.viewport,
-            waitUntil: command.params.waitUntil
-          }
+            waitUntil: command.params.waitUntil,
+          },
         };
       }
     }
@@ -402,7 +408,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       case 'screenshot':
         return {
           success: true,
-          screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANS...'
+          screenshot: 'data:image/png;base64,iVBORw0KGgoAAAANS...',
         };
 
       case 'execute_script':
@@ -412,7 +418,7 @@ export class ChromeMCPAdapter extends EventEmitter {
         return {
           success: true,
           results: { passed: 5, failed: 0, skipped: 1 },
-          coverage: { lines: 85.5, functions: 90.2, branches: 78.3 }
+          coverage: { lines: 85.5, functions: 90.2, branches: 78.3 },
         };
 
       case 'visual_regression':
@@ -420,7 +426,7 @@ export class ChromeMCPAdapter extends EventEmitter {
           passed: true,
           differences: 0,
           baseline: '/path/to/baseline.png',
-          current: '/path/to/current.png'
+          current: '/path/to/current.png',
         };
 
       default:
@@ -440,7 +446,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       'run_tests',
       'visual_regression',
       'collect_performance',
-      'accessibility_audit'
+      'accessibility_audit',
     ];
   }
 
@@ -469,7 +475,7 @@ export class ChromeMCPAdapter extends EventEmitter {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -494,7 +500,7 @@ export class ChromeMCPAdapter extends EventEmitter {
       connected: this.connected,
       version: this.config.version,
       capabilities: this.config.capabilities,
-      queuedCommands: this.commandQueue.length
+      queuedCommands: this.commandQueue.length,
     };
   }
 }

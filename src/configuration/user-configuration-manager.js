@@ -36,13 +36,14 @@ export class UserConfigurationManager extends EventEmitter {
     super();
 
     this.options = {
-      preferencesPath: options.preferencesPath || path.join(process.cwd(), '.claude-flow-novice', 'preferences'),
+      preferencesPath:
+        options.preferencesPath || path.join(process.cwd(), '.claude-flow-novice', 'preferences'),
       enableByzantineValidation: options.enableByzantineValidation !== false,
       consensusThreshold: options.consensusThreshold || 0.85,
       enablePhase1Integration: options.enablePhase1Integration !== false,
       enableAnalyticsIntegration: options.enableAnalyticsIntegration !== false,
       maxRecursiveDepth: options.maxRecursiveDepth || 3,
-      ...options
+      ...options,
     };
 
     // Core components
@@ -58,7 +59,7 @@ export class UserConfigurationManager extends EventEmitter {
       customFrameworks: new Map(),
       qualityGates: new Map(),
       userConfigurations: new Map(),
-      validationHistory: []
+      validationHistory: [],
     };
 
     // Integration flags
@@ -67,7 +68,7 @@ export class UserConfigurationManager extends EventEmitter {
       phase1Integrated: false,
       analyticsIntegrated: false,
       teamSyncIntegrated: false,
-      byzantineEnabled: false
+      byzantineEnabled: false,
     };
 
     // Performance metrics
@@ -76,7 +77,7 @@ export class UserConfigurationManager extends EventEmitter {
       byzantineValidations: 0,
       averageValidationTime: 0,
       successfulIntegrations: 0,
-      performanceDegradation: 0
+      performanceDegradation: 0,
     };
   }
 
@@ -119,7 +120,7 @@ export class UserConfigurationManager extends EventEmitter {
       this.emit('initialized', {
         userConfigurationManagerReady: true,
         integrations: this.integrationStatus,
-        duration
+        duration,
       });
 
       console.log(`✅ User Configuration Manager initialized (${duration.toFixed(2)}ms)`);
@@ -128,9 +129,8 @@ export class UserConfigurationManager extends EventEmitter {
         success: true,
         initialized: true,
         integrations: this.integrationStatus,
-        duration
+        duration,
       };
-
     } catch (error) {
       this.emit('error', error);
       throw new Error(`Failed to initialize User Configuration Manager: ${error.message}`);
@@ -162,7 +162,7 @@ export class UserConfigurationManager extends EventEmitter {
       // Verify Phase 1 completion validation is functional
       const phase1Status = await validatePhase1Completion({
         enableFullValidation: false,
-        quickCheck: true
+        quickCheck: true,
       });
 
       this.integrationStatus.phase1Integrated = phase1Status.success;
@@ -172,7 +172,6 @@ export class UserConfigurationManager extends EventEmitter {
       } else {
         console.warn('⚠️ Phase 1 completion validation not fully ready');
       }
-
     } catch (error) {
       console.warn('⚠️ Phase 1 integration failed:', error.message);
       this.integrationStatus.phase1Integrated = false;
@@ -189,7 +188,7 @@ export class UserConfigurationManager extends EventEmitter {
       if (!this.analyticsStore) {
         this.analyticsStore = new SqliteMemoryStore({
           path: path.join(this.options.preferencesPath, 'analytics.db'),
-          enableAnalytics: true
+          enableAnalytics: true,
         });
       }
 
@@ -200,7 +199,6 @@ export class UserConfigurationManager extends EventEmitter {
 
       this.integrationStatus.analyticsIntegrated = true;
       console.log('✅ Analytics integration initialized');
-
     } catch (error) {
       console.warn('⚠️ Analytics integration failed:', error.message);
       this.integrationStatus.analyticsIntegrated = false;
@@ -217,7 +215,6 @@ export class UserConfigurationManager extends EventEmitter {
       // Byzantine consensus should already be initialized
       this.integrationStatus.byzantineEnabled = true;
       console.log('✅ Byzantine consensus enabled');
-
     } catch (error) {
       console.warn('⚠️ Byzantine consensus initialization failed:', error.message);
       this.integrationStatus.byzantineEnabled = false;
@@ -240,7 +237,6 @@ export class UserConfigurationManager extends EventEmitter {
         this.integrationStatus.teamSyncIntegrated = false;
         console.log('ℹ️ Team sync integration not available (optional)');
       }
-
     } catch (error) {
       this.integrationStatus.teamSyncIntegrated = false;
     }
@@ -263,7 +259,6 @@ export class UserConfigurationManager extends EventEmitter {
         this.state.preferences.set('global', mergedPrefs);
 
         console.log('✅ Existing preferences loaded and merged');
-
       } catch (error) {
         // Create default preferences if none exist
         await this.createDefaultPreferences();
@@ -272,7 +267,6 @@ export class UserConfigurationManager extends EventEmitter {
       // Load any existing custom frameworks and quality gates
       await this.loadCustomFrameworks();
       await this.loadQualityGates();
-
     } catch (error) {
       console.warn('⚠️ Failed to load existing configurations:', error.message);
     }
@@ -285,44 +279,50 @@ export class UserConfigurationManager extends EventEmitter {
     const completionValidationPrefs = {
       completion_validation: {
         frameworks: {
-          'tdd': {
-            truth_threshold: 0.90,
+          tdd: {
+            truth_threshold: 0.9,
             test_coverage_requirement: 0.95,
             validation_rules: ['test_first', 'red_green_refactor'],
-            quality_gates: ['requirements_analysis', 'test_design', 'implementation_validation']
+            quality_gates: ['requirements_analysis', 'test_design', 'implementation_validation'],
           },
-          'bdd': {
+          bdd: {
             truth_threshold: 0.85,
-            scenario_coverage_requirement: 0.90,
+            scenario_coverage_requirement: 0.9,
             validation_rules: ['given_when_then', 'acceptance_criteria'],
-            quality_gates: ['scenario_definition', 'stakeholder_review', 'acceptance_validation']
+            quality_gates: ['scenario_definition', 'stakeholder_review', 'acceptance_validation'],
           },
-          'sparc': {
-            truth_threshold: 0.80,
+          sparc: {
+            truth_threshold: 0.8,
             phase_completion_requirement: 1.0,
             validation_rules: ['all_phases_complete', 'phase_validation'],
-            quality_gates: ['specification', 'pseudocode', 'architecture', 'refinement', 'completion']
-          }
+            quality_gates: [
+              'specification',
+              'pseudocode',
+              'architecture',
+              'refinement',
+              'completion',
+            ],
+          },
         },
         quality_gates: {
           default_enforcement_level: 'moderate',
           allow_user_customization: true,
           require_byzantine_consensus: true,
-          analytics_tracking: true
+          analytics_tracking: true,
         },
         user_customization: {
-          truth_threshold_range: { min: 0.70, max: 0.95 },
+          truth_threshold_range: { min: 0.7, max: 0.95 },
           allow_custom_frameworks: true,
           require_team_approval: false,
-          enable_recursive_validation: true
+          enable_recursive_validation: true,
         },
         analytics: {
           track_configuration_changes: true,
           measure_validation_performance: true,
           enable_optimization_suggestions: true,
-          team_collaboration_metrics: true
-        }
-      }
+          team_collaboration_metrics: true,
+        },
+      },
     };
 
     // Deep merge existing preferences with completion validation preferences
@@ -330,8 +330,8 @@ export class UserConfigurationManager extends EventEmitter {
       ...existingPrefs,
       preferences: {
         ...existingPrefs.preferences,
-        ...completionValidationPrefs
-      }
+        ...completionValidationPrefs,
+      },
     };
 
     return merged;
@@ -351,10 +351,10 @@ export class UserConfigurationManager extends EventEmitter {
           user_customization: {
             enabled: true,
             require_justification: true,
-            enable_byzantine_validation: true
-          }
-        }
-      }
+            enable_byzantine_validation: true,
+          },
+        },
+      },
     };
 
     const mergedPrefs = await this.mergeWithCompletionValidationPreferences(defaultPrefs);
@@ -387,7 +387,7 @@ export class UserConfigurationManager extends EventEmitter {
           success: false,
           updateId,
           validationErrors: validation.errors,
-          configurationApplied: false
+          configurationApplied: false,
         };
       }
 
@@ -403,7 +403,7 @@ export class UserConfigurationManager extends EventEmitter {
             consensusReached: false,
             byzantineRejection: true,
             securityViolations: consensusResult.securityViolations || [],
-            configurationApplied: false
+            configurationApplied: false,
           };
         }
       }
@@ -426,7 +426,7 @@ export class UserConfigurationManager extends EventEmitter {
           consensusResult,
           phase1ValidationResult,
           applicationResult,
-          duration: performance.now() - startTime
+          duration: performance.now() - startTime,
         });
       }
 
@@ -437,7 +437,7 @@ export class UserConfigurationManager extends EventEmitter {
         consensusReached: consensusResult?.consensusReached || false,
         cryptographicSignature: consensusResult?.cryptographicSignature || null,
         phase1ValidationPassed: phase1ValidationResult?.success || false,
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
 
       // Update metrics
@@ -446,7 +446,6 @@ export class UserConfigurationManager extends EventEmitter {
       this.emit('configurationUpdated', result);
 
       return result;
-
     } catch (error) {
       console.error('❌ Configuration update failed:', error.message);
 
@@ -455,7 +454,7 @@ export class UserConfigurationManager extends EventEmitter {
         updateId,
         error: error.message,
         configurationApplied: false,
-        duration: performance.now() - startTime
+        duration: performance.now() - startTime,
       };
     }
   }
@@ -492,13 +491,14 @@ export class UserConfigurationManager extends EventEmitter {
         valid: errors.length === 0,
         errors,
         warnings,
-        securityPassed: options.securityValidation ? errors.filter(e => e.type === 'security').length === 0 : true
+        securityPassed: options.securityValidation
+          ? errors.filter((e) => e.type === 'security').length === 0
+          : true,
       };
-
     } catch (error) {
       return {
         valid: false,
-        errors: [{ type: 'validation_error', message: error.message }]
+        errors: [{ type: 'validation_error', message: error.message }],
       };
     }
   }
@@ -521,7 +521,7 @@ export class UserConfigurationManager extends EventEmitter {
       /exec\s*\(/,
       /spawn\s*\(/,
       /rm\s+-rf/,
-      /\.\.\/\.\.\//
+      /\.\.\/\.\.\//,
     ];
 
     for (const pattern of dangerousPatterns) {
@@ -530,7 +530,7 @@ export class UserConfigurationManager extends EventEmitter {
           type: 'security',
           severity: 'high',
           message: 'Code injection detected',
-          pattern: pattern.toString()
+          pattern: pattern.toString(),
         });
       }
     }
@@ -547,7 +547,7 @@ export class UserConfigurationManager extends EventEmitter {
               severity: 'medium',
               message: 'Invalid truth threshold range',
               framework: frameworkId,
-              value: framework.truth_threshold
+              value: framework.truth_threshold,
             });
           }
 
@@ -557,18 +557,22 @@ export class UserConfigurationManager extends EventEmitter {
               severity: 'high',
               message: 'Truth threshold too low - security risk',
               framework: frameworkId,
-              value: framework.truth_threshold
+              value: framework.truth_threshold,
             });
           }
         }
 
         // Check for bypass attempts
-        if (framework.bypass_validation || framework.disable_security || framework.skip_byzantine_consensus) {
+        if (
+          framework.bypass_validation ||
+          framework.disable_security ||
+          framework.skip_byzantine_consensus
+        ) {
           violations.push({
             type: 'security',
             severity: 'critical',
             message: 'Security bypass attempt detected',
-            framework: frameworkId
+            framework: frameworkId,
           });
         }
       }
@@ -576,7 +580,7 @@ export class UserConfigurationManager extends EventEmitter {
 
     return {
       secure: violations.length === 0,
-      violations
+      violations,
     };
   }
 
@@ -598,7 +602,7 @@ export class UserConfigurationManager extends EventEmitter {
               errors.push({
                 type: 'schema',
                 message: 'Framework must be an object',
-                framework: frameworkId
+                framework: frameworkId,
               });
               continue;
             }
@@ -608,7 +612,7 @@ export class UserConfigurationManager extends EventEmitter {
               errors.push({
                 type: 'schema',
                 message: 'Framework name is required',
-                framework: frameworkId
+                framework: frameworkId,
               });
             }
 
@@ -616,7 +620,7 @@ export class UserConfigurationManager extends EventEmitter {
               errors.push({
                 type: 'schema',
                 message: 'Validation rules must be an array',
-                framework: frameworkId
+                framework: frameworkId,
               });
             }
           }
@@ -625,13 +629,12 @@ export class UserConfigurationManager extends EventEmitter {
 
       return {
         valid: errors.length === 0,
-        errors
+        errors,
       };
-
     } catch (error) {
       return {
         valid: false,
-        errors: [{ type: 'schema', message: `Schema validation error: ${error.message}` }]
+        errors: [{ type: 'schema', message: `Schema validation error: ${error.message}` }],
       };
     }
   }
@@ -656,7 +659,7 @@ export class UserConfigurationManager extends EventEmitter {
               warnings.push({
                 type: 'consistency',
                 message: 'Framework already exists - will be overwritten',
-                framework: frameworkId
+                framework: frameworkId,
               });
             }
           }
@@ -665,13 +668,12 @@ export class UserConfigurationManager extends EventEmitter {
 
       return {
         consistent: warnings.length === 0,
-        warnings
+        warnings,
       };
-
     } catch (error) {
       return {
         consistent: false,
-        warnings: [{ type: 'consistency', message: error.message }]
+        warnings: [{ type: 'consistency', message: error.message }],
       };
     }
   }
@@ -687,7 +689,7 @@ export class UserConfigurationManager extends EventEmitter {
         type: 'configuration_update',
         configuration: configUpdate,
         timestamp: Date.now(),
-        validator: 'user-configuration-manager'
+        validator: 'user-configuration-manager',
       };
 
       // Generate validators (in production, these would be real validator nodes)
@@ -700,7 +702,7 @@ export class UserConfigurationManager extends EventEmitter {
       const signature = this.generateCryptographicSignature({
         proposal,
         consensus: consensusResult,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return {
@@ -710,14 +712,13 @@ export class UserConfigurationManager extends EventEmitter {
         cryptographicSignature: signature,
         byzantineProof: consensusResult.byzantineProof,
         securityViolations: this.extractSecurityViolations(consensusResult),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-
     } catch (error) {
       return {
         consensusReached: false,
         error: error.message,
-        securityViolations: ['consensus_failure']
+        securityViolations: ['consensus_failure'],
       };
     }
   }
@@ -740,22 +741,22 @@ export class UserConfigurationManager extends EventEmitter {
           securityValidated: true,
           byzantineApproved: true,
           integrationTested: true,
-          backwardCompatible: true
+          backwardCompatible: true,
         },
         evidence: {
           configurationData: configUpdate,
           securityValidation: { passed: true },
           schemaValidation: { passed: true },
-          consistencyCheck: { passed: true }
+          consistencyCheck: { passed: true },
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Use Phase 1 validation framework
       const phase1Result = await validatePhase1Completion({
         enableFullValidation: false,
         validateSpecificClaim: completionClaim,
-        recursiveValidation: true
+        recursiveValidation: true,
       });
 
       return {
@@ -763,14 +764,13 @@ export class UserConfigurationManager extends EventEmitter {
         phase1Complete: phase1Result.phase1Complete,
         recursiveValidationSuccess: phase1Result.recursiveValidationComplete,
         truthScore: phase1Result.overallScore,
-        byzantineConsensus: phase1Result.byzantineConsensusReached
+        byzantineConsensus: phase1Result.byzantineConsensusReached,
       };
-
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        phase1ValidationFailed: true
+        phase1ValidationFailed: true,
       };
     }
   }
@@ -785,7 +785,7 @@ export class UserConfigurationManager extends EventEmitter {
 
       // Deep merge configuration update
       const updatedPrefs = this.deepMerge(currentPrefs, {
-        preferences: configUpdate
+        preferences: configUpdate,
       });
 
       // Update in-memory state
@@ -805,7 +805,7 @@ export class UserConfigurationManager extends EventEmitter {
               ...framework,
               id: frameworkId,
               updateId,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
           }
         }
@@ -816,7 +816,7 @@ export class UserConfigurationManager extends EventEmitter {
               ...gate,
               id: gateId,
               updateId,
-              timestamp: Date.now()
+              timestamp: Date.now(),
             });
           }
         }
@@ -828,10 +828,13 @@ export class UserConfigurationManager extends EventEmitter {
         success: true,
         updatedPreferences: true,
         savedToFile: true,
-        frameworksUpdated: configUpdate.completion_validation?.frameworks ? Object.keys(configUpdate.completion_validation.frameworks).length : 0,
-        qualityGatesUpdated: configUpdate.completion_validation?.quality_gates ? Object.keys(configUpdate.completion_validation.quality_gates).length : 0
+        frameworksUpdated: configUpdate.completion_validation?.frameworks
+          ? Object.keys(configUpdate.completion_validation.frameworks).length
+          : 0,
+        qualityGatesUpdated: configUpdate.completion_validation?.quality_gates
+          ? Object.keys(configUpdate.completion_validation.quality_gates).length
+          : 0,
       };
-
     } catch (error) {
       throw new Error(`Failed to apply configuration update: ${error.message}`);
     }
@@ -849,7 +852,7 @@ export class UserConfigurationManager extends EventEmitter {
       const analytics = await this.getPreferenceAnalytics();
       return {
         ...preferences,
-        analytics
+        analytics,
       };
     }
 
@@ -863,30 +866,25 @@ export class UserConfigurationManager extends EventEmitter {
     this.ensureInitialized();
 
     return {
-      commands: [
-        'completion-validation',
-        'framework',
-        'quality-gates',
-        'config'
-      ],
+      commands: ['completion-validation', 'framework', 'quality-gates', 'config'],
       commandDefinitions: {
         'completion-validation': {
           description: 'Manage completion validation settings',
-          subcommands: ['add-framework', 'set-threshold', 'validate', 'list-frameworks']
+          subcommands: ['add-framework', 'set-threshold', 'validate', 'list-frameworks'],
         },
-        'framework': {
+        framework: {
           description: 'Custom framework management',
-          subcommands: ['add', 'list', 'validate', 'remove']
+          subcommands: ['add', 'list', 'validate', 'remove'],
         },
         'quality-gates': {
           description: 'Quality gates configuration',
-          subcommands: ['configure', 'execute', 'monitor', 'report']
+          subcommands: ['configure', 'execute', 'monitor', 'report'],
         },
-        'config': {
+        config: {
           description: 'Configuration management',
-          subcommands: ['get', 'set', 'validate', 'export']
-        }
-      }
+          subcommands: ['get', 'set', 'validate', 'export'],
+        },
+      },
     };
   }
 
@@ -905,13 +903,12 @@ export class UserConfigurationManager extends EventEmitter {
         mergedPreferences: mergedPrefs,
         backwardCompatible: compatibility.compatible,
         preservedSettings: compatibility.preservedSettings,
-        newSettings: compatibility.newSettings
+        newSettings: compatibility.newSettings,
       };
-
     } catch (error) {
       return {
         compatible: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -932,7 +929,7 @@ export class UserConfigurationManager extends EventEmitter {
         return {
           frameworkAdded: false,
           validationErrors: validation.errors,
-          securityViolations: validation.securityViolations
+          securityViolations: validation.securityViolations,
         };
       }
 
@@ -946,7 +943,7 @@ export class UserConfigurationManager extends EventEmitter {
             frameworkAdded: false,
             byzantineValidated: false,
             byzantineRejected: true,
-            securityViolations: consensusResult.securityViolations
+            securityViolations: consensusResult.securityViolations,
           };
         }
       }
@@ -957,7 +954,7 @@ export class UserConfigurationManager extends EventEmitter {
         id: frameworkId,
         timestamp: Date.now(),
         byzantineValidated: consensusResult?.consensusReached || false,
-        cryptographicSignature: consensusResult?.cryptographicSignature
+        cryptographicSignature: consensusResult?.cryptographicSignature,
       };
 
       this.state.customFrameworks.set(frameworkId, frameworkData);
@@ -966,9 +963,9 @@ export class UserConfigurationManager extends EventEmitter {
       const configUpdate = {
         completion_validation: {
           frameworks: {
-            [frameworkId]: frameworkData
-          }
-        }
+            [frameworkId]: frameworkData,
+          },
+        },
       };
 
       await this.updateConfiguration(configUpdate, { skipValidation: true });
@@ -979,13 +976,12 @@ export class UserConfigurationManager extends EventEmitter {
         byzantineValidated: consensusResult?.consensusReached || false,
         cryptographicSignature: consensusResult?.cryptographicSignature,
         validationRulesVerified: validation.rulesVerified,
-        noConflictWithExisting: validation.noConflicts
+        noConflictWithExisting: validation.noConflicts,
       };
-
     } catch (error) {
       return {
         frameworkAdded: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -999,7 +995,7 @@ export class UserConfigurationManager extends EventEmitter {
       memorySystemWorking: true,
       cliCommandsWorking: true,
       agentSystemWorking: true,
-      breakingChanges: []
+      breakingChanges: [],
     };
 
     try {
@@ -1018,7 +1014,6 @@ export class UserConfigurationManager extends EventEmitter {
       // Additional compatibility tests can be added here
 
       return compatibility;
-
     } catch (error) {
       compatibility.hookSystemWorking = false;
       compatibility.breakingChanges.push(`Compatibility test failed: ${error.message}`);
@@ -1039,14 +1034,17 @@ export class UserConfigurationManager extends EventEmitter {
   }
 
   generateFrameworkId(name) {
-    return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-');
   }
 
   generateValidators(configUpdate) {
     return Array.from({ length: 7 }, (_, i) => ({
       id: `config-validator-${i}`,
       specialization: ['security', 'schema', 'compatibility', 'performance'][i % 4],
-      reputation: 0.8 + Math.random() * 0.2
+      reputation: 0.8 + Math.random() * 0.2,
     }));
   }
 
@@ -1056,13 +1054,13 @@ export class UserConfigurationManager extends EventEmitter {
     let hash = 0;
     for (let i = 0; i < signatureData.length; i++) {
       const char = signatureData.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return {
       signature: Math.abs(hash).toString(16),
       algorithm: 'test-hash',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -1070,9 +1068,9 @@ export class UserConfigurationManager extends EventEmitter {
     if (!consensusResult.votes) return [];
 
     return consensusResult.votes
-      .filter(vote => !vote.vote && vote.reason?.includes('security'))
-      .map(vote => vote.reason)
-      .filter(reason => reason);
+      .filter((vote) => !vote.vote && vote.reason?.includes('security'))
+      .map((vote) => vote.reason)
+      .filter((reason) => reason);
   }
 
   deepMerge(target, source) {
@@ -1093,7 +1091,7 @@ export class UserConfigurationManager extends EventEmitter {
     const compatibility = {
       compatible: true,
       preservedSettings: [],
-      newSettings: []
+      newSettings: [],
     };
 
     // Check that existing settings are preserved
@@ -1129,7 +1127,9 @@ export class UserConfigurationManager extends EventEmitter {
 
     // Security validation
     if (options.securityValidation !== false) {
-      const securityCheck = await this.performSecurityValidation({ frameworks: { [framework.id]: framework } });
+      const securityCheck = await this.performSecurityValidation({
+        frameworks: { [framework.id]: framework },
+      });
       securityViolations.push(...securityCheck.violations);
     }
 
@@ -1138,7 +1138,7 @@ export class UserConfigurationManager extends EventEmitter {
       errors,
       securityViolations,
       rulesVerified: true,
-      noConflicts: true
+      noConflicts: true,
     };
   }
 
@@ -1146,7 +1146,7 @@ export class UserConfigurationManager extends EventEmitter {
     const proposal = {
       type: 'custom_framework',
       framework,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     const validators = this.generateValidators({ frameworks: { [framework.id]: framework } });
@@ -1154,8 +1154,11 @@ export class UserConfigurationManager extends EventEmitter {
 
     return {
       consensusReached: consensusResult.achieved,
-      cryptographicSignature: this.generateCryptographicSignature({ proposal, consensus: consensusResult }),
-      securityViolations: this.extractSecurityViolations(consensusResult)
+      cryptographicSignature: this.generateCryptographicSignature({
+        proposal,
+        consensus: consensusResult,
+      }),
+      securityViolations: this.extractSecurityViolations(consensusResult),
     };
   }
 
@@ -1193,7 +1196,7 @@ export class UserConfigurationManager extends EventEmitter {
         average_truth_score REAL,
         last_used INTEGER,
         user_id TEXT
-      )`
+      )`,
     ];
 
     for (const tableSQL of tables) {
@@ -1216,15 +1219,15 @@ export class UserConfigurationManager extends EventEmitter {
       metadata: JSON.stringify({
         validation: data.validation,
         consensus: data.consensusResult,
-        phase1: data.phase1ValidationResult
-      })
+        phase1: data.phase1ValidationResult,
+      }),
     };
 
     await this.analyticsStore.query(
       `INSERT INTO user_configuration_analytics
        (id, update_id, configuration_type, timestamp, validation_duration, byzantine_validation, success, user_id, metadata)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      Object.values(analyticsRecord)
+      Object.values(analyticsRecord),
     );
   }
 
@@ -1240,10 +1243,10 @@ export class UserConfigurationManager extends EventEmitter {
     }
 
     // Update average validation time
-    const newAvgTime = (
-      (this.metrics.averageValidationTime * (this.metrics.configurationChanges - 1)) +
-      result.duration
-    ) / this.metrics.configurationChanges;
+    const newAvgTime =
+      (this.metrics.averageValidationTime * (this.metrics.configurationChanges - 1) +
+        result.duration) /
+      this.metrics.configurationChanges;
 
     this.metrics.averageValidationTime = newAvgTime;
   }
@@ -1266,8 +1269,10 @@ export class UserConfigurationManager extends EventEmitter {
       configurationChanges: this.metrics.configurationChanges,
       byzantineValidations: this.metrics.byzantineValidations,
       averageValidationTime: this.metrics.averageValidationTime,
-      successRate: this.metrics.configurationChanges > 0 ?
-        this.metrics.successfulIntegrations / this.metrics.configurationChanges : 0
+      successRate:
+        this.metrics.configurationChanges > 0
+          ? this.metrics.successfulIntegrations / this.metrics.configurationChanges
+          : 0,
     };
   }
 
@@ -1286,7 +1291,6 @@ export class UserConfigurationManager extends EventEmitter {
       this.emit('shutdown');
 
       console.log('✅ User Configuration Manager shut down');
-
     } catch (error) {
       this.emit('error', error);
       throw error;

@@ -124,7 +124,7 @@ export class GCounter implements CRDTState {
       timestamp: this.timestamp,
       vectorClock: Array.from(this.vectorClock.entries()),
       payload: Array.from(this.payload.entries()),
-      replicationGroup: Array.from(this.replicationGroup)
+      replicationGroup: Array.from(this.replicationGroup),
     };
   }
 
@@ -289,7 +289,7 @@ export class ORSet<T> implements CRDTState {
       vectorClock: Array.from(this.vectorClock.entries()),
       elements: Array.from(this.elements.entries()).map(([key, value]) => [key, Array.from(value)]),
       tombstones: Array.from(this.tombstones),
-      tagCounter: this.tagCounter
+      tagCounter: this.tagCounter,
     };
   }
 
@@ -338,8 +338,10 @@ export class LWWRegister<T> implements CRDTState {
   set(newValue: T, timestamp?: number): void {
     const writeTime = timestamp || Date.now();
 
-    if (writeTime > this.lastWriteTime ||
-        (writeTime === this.lastWriteTime && this.nodeId > this.lastWriter)) {
+    if (
+      writeTime > this.lastWriteTime ||
+      (writeTime === this.lastWriteTime && this.nodeId > this.lastWriter)
+    ) {
       this.value = newValue;
       this.lastWriteTime = writeTime;
       this.lastWriter = this.nodeId;
@@ -358,9 +360,10 @@ export class LWWRegister<T> implements CRDTState {
    * Merge with another LWW-Register
    */
   merge(other: LWWRegister<T>): boolean {
-    if (other.lastWriteTime > this.lastWriteTime ||
-        (other.lastWriteTime === this.lastWriteTime && other.lastWriter > this.lastWriter)) {
-
+    if (
+      other.lastWriteTime > this.lastWriteTime ||
+      (other.lastWriteTime === this.lastWriteTime && other.lastWriter > this.lastWriter)
+    ) {
       this.value = other.value;
       this.lastWriteTime = other.lastWriteTime;
       this.lastWriter = other.lastWriter;
@@ -386,7 +389,7 @@ export class LWWRegister<T> implements CRDTState {
       vectorClock: Array.from(this.vectorClock.entries()),
       value: this.value,
       lastWriteTime: this.lastWriteTime,
-      lastWriter: this.lastWriter
+      lastWriter: this.lastWriter,
     };
   }
 
@@ -549,7 +552,7 @@ export class VerificationCRDT implements CRDTState {
       status: this.status.get() || 'partial',
       metrics: metricsMap,
       conflicts: Array.from(this.conflicts.values()),
-      metadata: metadataObj
+      metadata: metadataObj,
     };
   }
 
@@ -561,7 +564,7 @@ export class VerificationCRDT implements CRDTState {
       status: this.status.serialize(),
       metrics: Array.from(this.metrics.entries()).map(([key, value]) => [key, value.serialize()]),
       conflicts: this.conflicts.serialize(),
-      metadata: Array.from(this.metadata.entries()).map(([key, value]) => [key, value.serialize()])
+      metadata: Array.from(this.metadata.entries()).map(([key, value]) => [key, value.serialize()]),
     };
   }
 

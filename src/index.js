@@ -35,7 +35,7 @@ class FilteringSystem {
       enableConcurrency: true,
       enableAudit: true,
       enableHooksIntegration: true,
-      ...options
+      ...options,
     };
 
     this.initialized = false;
@@ -130,14 +130,14 @@ class FilteringSystem {
     const toneResult = this.toneProcessors.processMessage(
       filterResult.content,
       preferences.userPreferences.tonePreset,
-      preferences.userPreferences
+      preferences.userPreferences,
     );
 
     return {
       ...filterResult,
       content: toneResult.processed,
       toneChanges: toneResult.changes,
-      processed: toneResult.processed !== content
+      processed: toneResult.processed !== content,
     };
   }
 
@@ -172,7 +172,7 @@ class FilteringSystem {
     const status = {
       initialized: this.initialized,
       uptime: Date.now() - this.startTime,
-      components: {}
+      components: {},
     };
 
     if (this.contentFilters) {
@@ -215,7 +215,7 @@ class FilteringSystem {
       auditReport: this.auditSystem?.generateAuditReport(timeframe),
       preferences: this.preferenceManager?.exportPreferences(),
       configuration: this.filterConfig?.exportConfig(),
-      recommendations: this.generateRecommendations()
+      recommendations: this.generateRecommendations(),
     };
 
     return report;
@@ -234,8 +234,9 @@ class FilteringSystem {
         recommendations.push({
           type: 'performance',
           priority: 'high',
-          message: 'High filtering activity detected. Consider adjusting filter rules to reduce false positives.',
-          action: 'review_filter_rules'
+          message:
+            'High filtering activity detected. Consider adjusting filter rules to reduce false positives.',
+          action: 'review_filter_rules',
         });
       }
 
@@ -244,7 +245,7 @@ class FilteringSystem {
           type: 'reliability',
           priority: 'medium',
           message: 'Error rate is elevated. Check system logs for recurring issues.',
-          action: 'check_error_logs'
+          action: 'check_error_logs',
         });
       }
     }
@@ -257,7 +258,7 @@ class FilteringSystem {
           type: 'scalability',
           priority: 'medium',
           message: 'High worker utilization. Consider scaling up worker pool.',
-          action: 'scale_workers'
+          action: 'scale_workers',
         });
       }
     }
@@ -316,7 +317,7 @@ class FilteringSystem {
       // Flush any pending audit data
       this.auditSystem.logFilterAction('SYSTEM_SHUTDOWN', {
         timestamp: new Date().toISOString(),
-        uptime: Date.now() - this.startTime
+        uptime: Date.now() - this.startTime,
       });
     }
 
@@ -379,6 +380,6 @@ export function createCliCommands(system) {
 
     async shutdown() {
       return system.shutdown();
-    }
+    },
   };
 }

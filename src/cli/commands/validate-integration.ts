@@ -20,13 +20,13 @@ export function setupValidationCommands(cli: CLI): void {
             name: 'verbose',
             short: 'v',
             description: 'Enable verbose output',
-            type: 'boolean'
+            type: 'boolean',
           },
           {
             name: 'reset',
             description: 'Reset to default configuration',
-            type: 'boolean'
-          }
+            type: 'boolean',
+          },
         ],
         action: async (ctx: CommandContext) => {
           try {
@@ -36,7 +36,7 @@ export function setupValidationCommands(cli: CLI): void {
 
             const result = await setupCommand({
               verbose: ctx.flags.verbose as boolean,
-              reset: ctx.flags.reset as boolean
+              reset: ctx.flags.reset as boolean,
             });
 
             if (result.success) {
@@ -49,15 +49,16 @@ export function setupValidationCommands(cli: CLI): void {
               console.error(`❌ Setup failed: ${result.error}`);
               process.exit(1);
             }
-
           } catch (error) {
-            console.error(`❌ Setup error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error(
+              `❌ Setup error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
             if (ctx.flags.verbose) {
               console.error(error);
             }
             process.exit(1);
           }
-        }
+        },
       },
       {
         name: 'show-config',
@@ -67,13 +68,13 @@ export function setupValidationCommands(cli: CLI): void {
             name: 'verbose',
             short: 'v',
             description: 'Enable verbose output',
-            type: 'boolean'
+            type: 'boolean',
           },
           {
             name: 'json',
             description: 'Output as JSON',
-            type: 'boolean'
-          }
+            type: 'boolean',
+          },
         ],
         action: async (ctx: CommandContext) => {
           try {
@@ -81,17 +82,18 @@ export function setupValidationCommands(cli: CLI): void {
 
             await showConfigCommand({
               verbose: ctx.flags.verbose as boolean,
-              json: ctx.flags.json as boolean
+              json: ctx.flags.json as boolean,
             });
-
           } catch (error) {
-            console.error(`❌ Configuration error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error(
+              `❌ Configuration error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
             if (ctx.flags.verbose) {
               console.error(error);
             }
             process.exit(1);
           }
-        }
+        },
       },
       {
         name: 'test',
@@ -101,13 +103,13 @@ export function setupValidationCommands(cli: CLI): void {
             name: 'verbose',
             short: 'v',
             description: 'Enable verbose output',
-            type: 'boolean'
+            type: 'boolean',
           },
           {
             name: 'fix',
             description: 'Attempt to fix detected issues',
-            type: 'boolean'
-          }
+            type: 'boolean',
+          },
         ],
         action: async (ctx: CommandContext) => {
           try {
@@ -115,18 +117,19 @@ export function setupValidationCommands(cli: CLI): void {
 
             await testConfigCommand({
               verbose: ctx.flags.verbose as boolean,
-              fix: ctx.flags.fix as boolean
+              fix: ctx.flags.fix as boolean,
             });
-
           } catch (error) {
-            console.error(`❌ Test error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error(
+              `❌ Test error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            );
             if (ctx.flags.verbose) {
               console.error(error);
             }
             process.exit(1);
           }
-        }
-      }
-    ]
+        },
+      },
+    ],
   });
 }

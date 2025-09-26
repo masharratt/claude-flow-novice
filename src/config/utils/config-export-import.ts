@@ -56,7 +56,7 @@ export class ConfigExportImport {
       outputPath: '',
       format: options.format,
       size: 0,
-      warnings: []
+      warnings: [],
     };
 
     try {
@@ -89,8 +89,7 @@ export class ConfigExportImport {
 
       // Determine output path
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const outputPath = options.outputPath ||
-        `claude-flow-config-export-${timestamp}${extension}`;
+      const outputPath = options.outputPath || `claude-flow-config-export-${timestamp}${extension}`;
 
       // Write to file
       await fs.writeFile(outputPath, content, 'utf8');
@@ -117,7 +116,7 @@ export class ConfigExportImport {
     const result: ImportResult = {
       success: false,
       importedSettings: [],
-      warnings: []
+      warnings: [],
     };
 
     try {
@@ -129,9 +128,8 @@ export class ConfigExportImport {
 
       // Read and parse file
       const content = await fs.readFile(filePath, 'utf8');
-      const format = options.format === 'auto' ?
-        this.detectFormat(filePath, content) :
-        options.format || 'json';
+      const format =
+        options.format === 'auto' ? this.detectFormat(filePath, content) : options.format || 'json';
 
       let importedConfig: Partial<Config>;
 
@@ -157,7 +155,7 @@ export class ConfigExportImport {
         const validation = await this.validateImportedConfig(importedConfig);
         if (!validation.isValid) {
           result.warnings.push(...validation.errors);
-          if (validation.errors.some(e => e.severity === 'critical')) {
+          if (validation.errors.some((e) => e.severity === 'critical')) {
             throw new Error('Critical validation errors in imported configuration');
           }
         }
@@ -295,9 +293,7 @@ export class ConfigExportImport {
   private parseYAML(content: string): any {
     // In production, use a proper YAML parser like 'yaml' package
     // This is a simplified implementation
-    const lines = content.split('\n').filter(line =>
-      line.trim() && !line.trim().startsWith('#')
-    );
+    const lines = content.split('\n').filter((line) => line.trim() && !line.trim().startsWith('#'));
 
     const result: any = {};
     let currentSection = result;
@@ -345,9 +341,7 @@ export class ConfigExportImport {
     const result: any = {};
     let currentSection = result;
 
-    const lines = content.split('\n').filter(line =>
-      line.trim() && !line.trim().startsWith('#')
-    );
+    const lines = content.split('\n').filter((line) => line.trim() && !line.trim().startsWith('#'));
 
     for (const line of lines) {
       const trimmed = line.trim();
@@ -378,9 +372,7 @@ export class ConfigExportImport {
    */
   private parseEnv(content: string): any {
     const result: any = {};
-    const lines = content.split('\n').filter(line =>
-      line.trim() && !line.trim().startsWith('#')
-    );
+    const lines = content.split('\n').filter((line) => line.trim() && !line.trim().startsWith('#'));
 
     for (const line of lines) {
       if (line.includes('=')) {
@@ -415,11 +407,15 @@ export class ConfigExportImport {
     const extension = path.extname(filePath).toLowerCase();
 
     switch (extension) {
-      case '.json': return 'json';
+      case '.json':
+        return 'json';
       case '.yaml':
-      case '.yml': return 'yaml';
-      case '.toml': return 'toml';
-      case '.env': return 'env';
+      case '.yml':
+        return 'yaml';
+      case '.toml':
+        return 'toml';
+      case '.env':
+        return 'env';
       default:
         // Try to detect from content
         try {
@@ -517,21 +513,29 @@ export class ConfigExportImport {
     return commented.join('\n');
   }
 
-  private async validateImportedConfig(config: any): Promise<{isValid: boolean, errors: any[]}> {
+  private async validateImportedConfig(config: any): Promise<{ isValid: boolean; errors: any[] }> {
     // Basic validation - in production, use the full ConfigValidator
     const errors: any[] = [];
 
     if (!config.orchestrator) {
-      errors.push({ field: 'orchestrator', severity: 'critical', message: 'Missing orchestrator configuration' });
+      errors.push({
+        field: 'orchestrator',
+        severity: 'critical',
+        message: 'Missing orchestrator configuration',
+      });
     }
 
     if (!config.experienceLevel) {
-      errors.push({ field: 'experienceLevel', severity: 'high', message: 'Missing experience level' });
+      errors.push({
+        field: 'experienceLevel',
+        severity: 'high',
+        message: 'Missing experience level',
+      });
     }
 
     return {
-      isValid: errors.filter(e => e.severity === 'critical').length === 0,
-      errors
+      isValid: errors.filter((e) => e.severity === 'critical').length === 0,
+      errors,
     };
   }
 
@@ -545,7 +549,10 @@ export class ConfigExportImport {
     await this.configManager.save();
   }
 
-  private async replaceConfig(importedConfig: Partial<Config>, result: ImportResult): Promise<void> {
+  private async replaceConfig(
+    importedConfig: Partial<Config>,
+    result: ImportResult,
+  ): Promise<void> {
     // Replace current config with imported config
     const currentConfig = this.configManager.show();
     const mergedConfig = { ...currentConfig, ...importedConfig };
@@ -578,7 +585,10 @@ export async function exportConfig(options: ExportOptions): Promise<ExportResult
   return await exporter.export(options);
 }
 
-export async function importConfig(filePath: string, options?: ImportOptions): Promise<ImportResult> {
+export async function importConfig(
+  filePath: string,
+  options?: ImportOptions,
+): Promise<ImportResult> {
   const importer = new ConfigExportImport();
   return await importer.import(filePath, options);
 }

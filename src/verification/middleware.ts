@@ -1,6 +1,6 @@
 /**
  * Security Middleware System
- * 
+ *
  * Extensible middleware framework for security enforcement,
  * threat intelligence integration, and dynamic security policies.
  */
@@ -23,12 +23,14 @@ export class SecurityMiddlewareManager {
   registerMiddleware(middleware: SecurityMiddleware): void {
     this.middlewares.push(middleware);
     this.middlewares.sort((a, b) => a.priority - b.priority);
-    console.log(`Registered security middleware: ${middleware.name} (priority: ${middleware.priority})`);
+    console.log(
+      `Registered security middleware: ${middleware.name} (priority: ${middleware.priority})`,
+    );
   }
 
   // Unregister middleware
   unregisterMiddleware(name: string): boolean {
-    const index = this.middlewares.findIndex(m => m.name === name);
+    const index = this.middlewares.findIndex((m) => m.name === name);
     if (index >= 0) {
       this.middlewares.splice(index, 1);
       console.log(`Unregistered security middleware: ${name}`);
@@ -80,7 +82,7 @@ export class SecurityMiddlewareManager {
 
   // Get registered middleware info
   getMiddlewareInfo(): Array<{ name: string; priority: number }> {
-    return this.middlewares.map(m => ({ name: m.name, priority: m.priority }));
+    return this.middlewares.map((m) => ({ name: m.name, priority: m.priority }));
   }
 }
 
@@ -113,7 +115,7 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
       indicators: ['high_frequency', 'same_agent', 'similar_payload'],
       severity: 'MEDIUM',
       mitigation: ['rate_limiting', 'temporary_ban'],
-      frequency: 0
+      frequency: 0,
     });
 
     this.attackPatterns.set('credential_stuffing', {
@@ -123,17 +125,17 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
       indicators: ['multiple_failed_auth', 'different_credentials', 'same_source'],
       severity: 'HIGH',
       mitigation: ['account_lockout', 'ip_blocking', 'captcha'],
-      frequency: 0
+      frequency: 0,
     });
   }
 
   async beforeVerification(request: VerificationRequest): Promise<void> {
     // Check for threat indicators in request
     await this.analyzeThreatIndicators(request);
-    
+
     // Check for known attack patterns
     await this.checkAttackPatterns(request);
-    
+
     // Update threat intelligence
     await this.updateThreatIntelligence(request);
   }
@@ -173,27 +175,27 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
 
   private async analyzeThreatIndicators(request: VerificationRequest): Promise<void> {
     const requestContent = JSON.stringify(request).toLowerCase();
-    
+
     for (const indicator of this.threatIndicators) {
       if (requestContent.includes(indicator)) {
         console.warn(`Threat indicator detected: ${indicator} in request from ${request.agentId}`);
-        
+
         // Update threat level for agent
         const currentThreat = this.threatDatabase.get(request.agentId) || {
           level: 'LOW',
           score: 0,
           indicators: [],
-          mitigationActions: []
+          mitigationActions: [],
         };
 
         currentThreat.indicators.push(indicator);
         currentThreat.score += 10;
-        
+
         if (currentThreat.score >= 50) currentThreat.level = 'HIGH';
         else if (currentThreat.score >= 25) currentThreat.level = 'MEDIUM';
 
         this.threatDatabase.set(request.agentId, currentThreat);
-        
+
         // Throw error for high-threat indicators
         if (currentThreat.level === 'HIGH') {
           throw new Error(`High threat level detected for agent ${request.agentId}: ${indicator}`);
@@ -206,10 +208,11 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
     // Check for rapid request pattern
     const now = Date.now();
     const requestKey = `${request.agentId}_requests`;
-    
+
     // In a real implementation, this would use persistent storage
     // For now, we'll simulate pattern detection
-    if (request.timestamp.getTime() > now - 5000) { // Within last 5 seconds
+    if (request.timestamp.getTime() > now - 5000) {
+      // Within last 5 seconds
       const pattern = this.attackPatterns.get('rapid_requests');
       if (pattern) {
         pattern.frequency++;
@@ -221,7 +224,7 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
   private async updateThreatIntelligence(request: VerificationRequest): Promise<void> {
     // Update threat intelligence based on request patterns
     // This would typically involve external threat intelligence feeds
-    
+
     // For demonstration, we'll just log the update
     console.debug(`Threat intelligence updated for agent: ${request.agentId}`);
   }
@@ -229,14 +232,16 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
   private async analyzeVerificationResults(result: VerificationResult): Promise<void> {
     // Analyze verification results for threat patterns
     if (result.confidence < 0.5) {
-      console.warn(`Low confidence verification result: ${result.confidence} for agent ${result.agentId}`);
-      
+      console.warn(
+        `Low confidence verification result: ${result.confidence} for agent ${result.agentId}`,
+      );
+
       // Update threat level
       const currentThreat = this.threatDatabase.get(result.agentId) || {
         level: 'LOW',
         score: 0,
         indicators: [],
-        mitigationActions: []
+        mitigationActions: [],
       };
 
       currentThreat.indicators.push('low_confidence_result');
@@ -254,10 +259,12 @@ export class ThreatIntelligenceMiddleware implements SecurityMiddleware {
     return {
       threatIndicators: Array.from(this.threatIndicators),
       attackPatterns: Array.from(this.attackPatterns.values()),
-      agentThreatLevels: Array.from(this.threatDatabase.entries()).map(([agentId, threatLevel]) => ({
-        agentId,
-        threatLevel
-      }))
+      agentThreatLevels: Array.from(this.threatDatabase.entries()).map(
+        ([agentId, threatLevel]) => ({
+          agentId,
+          threatLevel,
+        }),
+      ),
     };
   }
 }
@@ -282,7 +289,7 @@ export class IPFilterMiddleware implements SecurityMiddleware {
     // In a real implementation, we would extract IP from request context
     // For demonstration, we'll simulate IP checking
     const simulatedIP = this.extractIPFromRequest(request);
-    
+
     if (simulatedIP) {
       await this.checkIPRestrictions(simulatedIP, request.agentId);
     }
@@ -357,8 +364,8 @@ export class SecurityLoggingMiddleware implements SecurityMiddleware {
       data: {
         requestId: request.requestId,
         truthClaimType: typeof request.truthClaim,
-        hasSignature: !!request.signature
-      }
+        hasSignature: !!request.signature,
+      },
     });
 
     // Flush log buffer if it gets too large
@@ -376,8 +383,8 @@ export class SecurityLoggingMiddleware implements SecurityMiddleware {
         resultId: result.resultId,
         verified: result.verified,
         confidence: result.confidence,
-        evidenceCount: result.evidence.length
-      }
+        evidenceCount: result.evidence.length,
+      },
     });
   }
 
@@ -388,8 +395,8 @@ export class SecurityLoggingMiddleware implements SecurityMiddleware {
       agentId: 'system',
       data: {
         errorMessage: error.message,
-        errorType: error.constructor.name
-      }
+        errorType: error.constructor.name,
+      },
     });
   }
 
@@ -397,7 +404,7 @@ export class SecurityLoggingMiddleware implements SecurityMiddleware {
   private async flushLogs(): Promise<void> {
     // In a real implementation, this would write to a database or log aggregation service
     console.log(`Flushing ${this.logBuffer.length} security log entries`);
-    
+
     // For demonstration, we'll just clear the buffer
     this.logBuffer.length = 0;
   }
@@ -415,20 +422,22 @@ export class SecurityLoggingMiddleware implements SecurityMiddleware {
     errorCount: number;
     timespan: { start: Date | null; end: Date | null };
   } {
-    const requestCount = this.logBuffer.filter(log => log.type === 'REQUEST').length;
-    const resultCount = this.logBuffer.filter(log => log.type === 'RESULT').length;
-    const errorCount = this.logBuffer.filter(log => log.type === 'ERROR').length;
-    
-    const timestamps = this.logBuffer.map(log => log.timestamp);
-    const start = timestamps.length > 0 ? new Date(Math.min(...timestamps.map(t => t.getTime()))) : null;
-    const end = timestamps.length > 0 ? new Date(Math.max(...timestamps.map(t => t.getTime()))) : null;
+    const requestCount = this.logBuffer.filter((log) => log.type === 'REQUEST').length;
+    const resultCount = this.logBuffer.filter((log) => log.type === 'RESULT').length;
+    const errorCount = this.logBuffer.filter((log) => log.type === 'ERROR').length;
+
+    const timestamps = this.logBuffer.map((log) => log.timestamp);
+    const start =
+      timestamps.length > 0 ? new Date(Math.min(...timestamps.map((t) => t.getTime()))) : null;
+    const end =
+      timestamps.length > 0 ? new Date(Math.max(...timestamps.map((t) => t.getTime()))) : null;
 
     return {
       totalEntries: this.logBuffer.length,
       requestCount,
       resultCount,
       errorCount,
-      timespan: { start, end }
+      timespan: { start, end },
     };
   }
 }
@@ -439,14 +448,17 @@ export class PerformanceMonitoringMiddleware implements SecurityMiddleware {
   name = 'PerformanceMonitoring';
   priority = 20;
 
-  private performanceMetrics = new Map<string, {
-    requestCount: number;
-    totalResponseTime: number;
-    averageResponseTime: number;
-    maxResponseTime: number;
-    minResponseTime: number;
-    errorCount: number;
-  }>();
+  private performanceMetrics = new Map<
+    string,
+    {
+      requestCount: number;
+      totalResponseTime: number;
+      averageResponseTime: number;
+      maxResponseTime: number;
+      minResponseTime: number;
+      errorCount: number;
+    }
+  >();
 
   private requestStartTimes = new Map<string, number>();
 
@@ -471,7 +483,7 @@ export class PerformanceMonitoringMiddleware implements SecurityMiddleware {
 
   private updateMetrics(agentId: string, responseTime: number, isError: boolean): void {
     let metrics = this.performanceMetrics.get(agentId);
-    
+
     if (!metrics) {
       metrics = {
         requestCount: 0,
@@ -479,17 +491,18 @@ export class PerformanceMonitoringMiddleware implements SecurityMiddleware {
         averageResponseTime: 0,
         maxResponseTime: 0,
         minResponseTime: Infinity,
-        errorCount: 0
+        errorCount: 0,
       };
     }
 
     metrics.requestCount++;
-    
+
     if (isError) {
       metrics.errorCount++;
     } else {
       metrics.totalResponseTime += responseTime;
-      metrics.averageResponseTime = metrics.totalResponseTime / (metrics.requestCount - metrics.errorCount);
+      metrics.averageResponseTime =
+        metrics.totalResponseTime / (metrics.requestCount - metrics.errorCount);
       metrics.maxResponseTime = Math.max(metrics.maxResponseTime, responseTime);
       metrics.minResponseTime = Math.min(metrics.minResponseTime, responseTime);
     }
@@ -512,21 +525,28 @@ export class PerformanceMonitoringMiddleware implements SecurityMiddleware {
     fastestAgent: string | null;
   } {
     const agents = Array.from(this.performanceMetrics.entries());
-    
+
     const totalRequests = agents.reduce((sum, [_, metrics]) => sum + metrics.requestCount, 0);
     const totalErrors = agents.reduce((sum, [_, metrics]) => sum + metrics.errorCount, 0);
-    
+
     const validAgents = agents.filter(([_, metrics]) => metrics.requestCount > metrics.errorCount);
-    const totalResponseTime = validAgents.reduce((sum, [_, metrics]) => sum + metrics.totalResponseTime, 0);
-    const totalSuccessfulRequests = validAgents.reduce((sum, [_, metrics]) => sum + (metrics.requestCount - metrics.errorCount), 0);
-    
-    const averageSystemResponseTime = totalSuccessfulRequests > 0 ? totalResponseTime / totalSuccessfulRequests : 0;
-    
+    const totalResponseTime = validAgents.reduce(
+      (sum, [_, metrics]) => sum + metrics.totalResponseTime,
+      0,
+    );
+    const totalSuccessfulRequests = validAgents.reduce(
+      (sum, [_, metrics]) => sum + (metrics.requestCount - metrics.errorCount),
+      0,
+    );
+
+    const averageSystemResponseTime =
+      totalSuccessfulRequests > 0 ? totalResponseTime / totalSuccessfulRequests : 0;
+
     let slowestAgent: string | null = null;
     let fastestAgent: string | null = null;
     let maxAvgTime = 0;
     let minAvgTime = Infinity;
-    
+
     for (const [agentId, metrics] of validAgents) {
       if (metrics.averageResponseTime > maxAvgTime) {
         maxAvgTime = metrics.averageResponseTime;
@@ -544,7 +564,7 @@ export class PerformanceMonitoringMiddleware implements SecurityMiddleware {
       averageSystemResponseTime,
       agentCount: agents.length,
       slowestAgent,
-      fastestAgent
+      fastestAgent,
     };
   }
 
@@ -582,7 +602,7 @@ export class ComplianceMonitoringMiddleware implements SecurityMiddleware {
     this.complianceRules.set('timestamp_recent', (request) => {
       const now = Date.now();
       const requestTime = request.timestamp.getTime();
-      return (now - requestTime) < 60000; // Within 1 minute
+      return now - requestTime < 60000; // Within 1 minute
     });
     this.complianceRules.set('nonce_present', (request) => !!request.nonce);
   }
@@ -598,7 +618,7 @@ export class ComplianceMonitoringMiddleware implements SecurityMiddleware {
       eventType: 'VERIFICATION_COMPLETED',
       agentId: result.agentId,
       complianceLevel: 'PASS',
-      details: { resultId: result.resultId, verified: result.verified }
+      details: { resultId: result.resultId, verified: result.verified },
     });
   }
 
@@ -609,23 +629,23 @@ export class ComplianceMonitoringMiddleware implements SecurityMiddleware {
       eventType: 'COMPLIANCE_ERROR',
       agentId: 'unknown',
       complianceLevel: 'FAIL',
-      details: { error: error.message }
+      details: { error: error.message },
     });
   }
 
   private async checkCompliance(request: VerificationRequest): Promise<void> {
     for (const [ruleName, ruleFunc] of this.complianceRules) {
       const isCompliant = ruleFunc(request);
-      
+
       if (!isCompliant) {
         this.complianceEvents.push({
           timestamp: new Date(),
           eventType: 'COMPLIANCE_VIOLATION',
           agentId: request.agentId,
           complianceLevel: 'FAIL',
-          details: { rule: ruleName, requestId: request.requestId }
+          details: { rule: ruleName, requestId: request.requestId },
         });
-        
+
         throw new Error(`Compliance violation: ${ruleName} for agent ${request.agentId}`);
       }
     }
@@ -636,7 +656,7 @@ export class ComplianceMonitoringMiddleware implements SecurityMiddleware {
       eventType: 'COMPLIANCE_CHECK',
       agentId: request.agentId,
       complianceLevel: 'PASS',
-      details: { requestId: request.requestId }
+      details: { requestId: request.requestId },
     });
   }
 
@@ -656,24 +676,24 @@ export class ComplianceMonitoringMiddleware implements SecurityMiddleware {
     violations: Array<{ rule: string; agentId: string; timestamp: Date }>;
   } {
     let events = this.complianceEvents;
-    
+
     if (timeframe) {
-      events = events.filter(event => 
-        event.timestamp >= timeframe.start && event.timestamp <= timeframe.end
+      events = events.filter(
+        (event) => event.timestamp >= timeframe.start && event.timestamp <= timeframe.end,
       );
     }
 
-    const passCount = events.filter(e => e.complianceLevel === 'PASS').length;
-    const warnCount = events.filter(e => e.complianceLevel === 'WARN').length;
-    const failCount = events.filter(e => e.complianceLevel === 'FAIL').length;
+    const passCount = events.filter((e) => e.complianceLevel === 'PASS').length;
+    const warnCount = events.filter((e) => e.complianceLevel === 'WARN').length;
+    const failCount = events.filter((e) => e.complianceLevel === 'FAIL').length;
     const complianceRate = events.length > 0 ? (passCount / events.length) * 100 : 100;
 
     const violations = events
-      .filter(e => e.eventType === 'COMPLIANCE_VIOLATION')
-      .map(e => ({
+      .filter((e) => e.eventType === 'COMPLIANCE_VIOLATION')
+      .map((e) => ({
         rule: e.details.rule,
         agentId: e.agentId,
-        timestamp: e.timestamp
+        timestamp: e.timestamp,
       }));
 
     return {
@@ -682,7 +702,7 @@ export class ComplianceMonitoringMiddleware implements SecurityMiddleware {
       warnCount,
       failCount,
       complianceRate,
-      violations
+      violations,
     };
   }
 }
@@ -694,5 +714,5 @@ export {
   IPFilterMiddleware,
   SecurityLoggingMiddleware,
   PerformanceMonitoringMiddleware,
-  ComplianceMonitoringMiddleware
+  ComplianceMonitoringMiddleware,
 };

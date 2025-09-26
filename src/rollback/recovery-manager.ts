@@ -99,7 +99,14 @@ export interface RollbackExecution {
   recoveryPointId: string;
   startTime: Date;
   endTime?: Date;
-  status: 'pending' | 'preparing' | 'executing' | 'verifying' | 'completed' | 'failed' | 'cancelled';
+  status:
+    | 'pending'
+    | 'preparing'
+    | 'executing'
+    | 'verifying'
+    | 'completed'
+    | 'failed'
+    | 'cancelled';
   strategy: RollbackStrategy;
   phases: RollbackPhase[];
   impactAssessment: ImpactAssessment;
@@ -200,13 +207,13 @@ export class RecoveryManager extends EventEmitter {
         errorRate: 5.0, // 5% error rate
         responseTime: 5000, // 5 seconds
         healthCheckFailures: 3,
-        performanceDrop: 50 // 50% performance drop
+        performanceDrop: 50, // 50% performance drop
       },
       recoveryWindow: 300000, // 5 minutes
       maxAutoRecoveries: 3,
       requireApprovalFor: ['high', 'critical'],
       verificationTimeout: 600000, // 10 minutes
-      ...config
+      ...config,
     };
 
     this.initializeDefaultStrategies();
@@ -224,8 +231,8 @@ export class RecoveryManager extends EventEmitter {
             type: 'data-validation',
             timeout: 30000,
             retries: 2,
-            required: true
-          }
+            required: true,
+          },
         ],
         postRollback: [
           {
@@ -233,23 +240,23 @@ export class RecoveryManager extends EventEmitter {
             type: 'health-check',
             timeout: 60000,
             retries: 3,
-            required: true
+            required: true,
           },
           {
             name: 'smoke-tests',
             type: 'smoke-test',
             timeout: 120000,
             retries: 1,
-            required: true
-          }
+            required: true,
+          },
         ],
         continuousMonitoring: true,
-        failureTolerance: 5
+        failureTolerance: 5,
       },
       timeoutMinutes: 15,
       autoVerification: true,
       rollbackOnFailure: true,
-      parallelize: false
+      parallelize: false,
     });
 
     // Rolling rollback strategy
@@ -262,8 +269,8 @@ export class RecoveryManager extends EventEmitter {
             type: 'health-check',
             timeout: 30000,
             retries: 2,
-            required: true
-          }
+            required: true,
+          },
         ],
         postRollback: [
           {
@@ -271,16 +278,16 @@ export class RecoveryManager extends EventEmitter {
             type: 'integration-test',
             timeout: 180000,
             retries: 2,
-            required: true
-          }
+            required: true,
+          },
         ],
         continuousMonitoring: true,
-        failureTolerance: 10
+        failureTolerance: 10,
       },
       timeoutMinutes: 30,
       autoVerification: true,
       rollbackOnFailure: true,
-      parallelize: true
+      parallelize: true,
     });
 
     // Immediate rollback strategy
@@ -294,16 +301,16 @@ export class RecoveryManager extends EventEmitter {
             type: 'health-check',
             timeout: 30000,
             retries: 1,
-            required: true
-          }
+            required: true,
+          },
         ],
         continuousMonitoring: true,
-        failureTolerance: 0
+        failureTolerance: 0,
       },
       timeoutMinutes: 5,
       autoVerification: true,
       rollbackOnFailure: false,
-      parallelize: false
+      parallelize: false,
     });
   }
 
@@ -324,7 +331,7 @@ export class RecoveryManager extends EventEmitter {
       if (metrics.errorRate > this.autoRecoveryConfig.triggerThresholds.errorRate) {
         await this.triggerAutoRecovery('error-spike', {
           currentValue: metrics.errorRate,
-          threshold: this.autoRecoveryConfig.triggerThresholds.errorRate
+          threshold: this.autoRecoveryConfig.triggerThresholds.errorRate,
         });
       }
 
@@ -332,18 +339,20 @@ export class RecoveryManager extends EventEmitter {
       if (metrics.avgResponseTime > this.autoRecoveryConfig.triggerThresholds.responseTime) {
         await this.triggerAutoRecovery('performance-drop', {
           currentValue: metrics.avgResponseTime,
-          threshold: this.autoRecoveryConfig.triggerThresholds.responseTime
+          threshold: this.autoRecoveryConfig.triggerThresholds.responseTime,
         });
       }
 
       // Check health check failures
-      if (metrics.consecutiveHealthCheckFailures >= this.autoRecoveryConfig.triggerThresholds.healthCheckFailures) {
+      if (
+        metrics.consecutiveHealthCheckFailures >=
+        this.autoRecoveryConfig.triggerThresholds.healthCheckFailures
+      ) {
         await this.triggerAutoRecovery('health-check-failure', {
           currentValue: metrics.consecutiveHealthCheckFailures,
-          threshold: this.autoRecoveryConfig.triggerThresholds.healthCheckFailures
+          threshold: this.autoRecoveryConfig.triggerThresholds.healthCheckFailures,
         });
       }
-
     } catch (error) {
       this.emit('monitoring:error', error);
     }
@@ -356,7 +365,7 @@ export class RecoveryManager extends EventEmitter {
       errorRate: Math.random() * 10, // 0-10%
       avgResponseTime: Math.random() * 3000 + 200, // 200-3200ms
       consecutiveHealthCheckFailures: Math.floor(Math.random() * 5),
-      performanceScore: Math.random() * 40 + 60 // 60-100%
+      performanceScore: Math.random() * 40 + 60, // 60-100%
     };
   }
 
@@ -364,7 +373,7 @@ export class RecoveryManager extends EventEmitter {
     type: RecoveryPoint['type'],
     trigger: RecoveryPoint['trigger'],
     metadata: Partial<RecoveryMetadata> = {},
-    description?: string
+    description?: string,
   ): Promise<string> {
     const recoveryPointId = `recovery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -384,7 +393,7 @@ export class RecoveryManager extends EventEmitter {
         environmentVariables: await this.getEnvironmentVariables(),
         description,
         tags: [],
-        ...metadata
+        ...metadata,
       };
 
       // Run verification checks
@@ -398,7 +407,7 @@ export class RecoveryManager extends EventEmitter {
         metadata: recoveryMetadata,
         state: systemState,
         verification,
-        ttl: this.calculateTTL(type, trigger)
+        ttl: this.calculateTTL(type, trigger),
       };
 
       this.recoveryPoints.set(recoveryPointId, recoveryPoint);
@@ -411,7 +420,6 @@ export class RecoveryManager extends EventEmitter {
       this.emit('recovery-point:created', recoveryPoint);
 
       return recoveryPointId;
-
     } catch (error) {
       this.emit('recovery-point:creation-failed', { id: recoveryPointId, error });
       throw error;
@@ -419,26 +427,21 @@ export class RecoveryManager extends EventEmitter {
   }
 
   private async captureSystemState(): Promise<SystemState> {
-    const [
-      applicationState,
-      databaseState,
-      infrastructureState,
-      dependencies,
-      configuration
-    ] = await Promise.all([
-      this.captureApplicationState(),
-      this.captureDatabaseState(),
-      this.captureInfrastructureState(),
-      this.captureDependencies(),
-      this.captureConfiguration()
-    ]);
+    const [applicationState, databaseState, infrastructureState, dependencies, configuration] =
+      await Promise.all([
+        this.captureApplicationState(),
+        this.captureDatabaseState(),
+        this.captureInfrastructureState(),
+        this.captureDependencies(),
+        this.captureConfiguration(),
+      ]);
 
     return {
       application: applicationState,
       database: databaseState,
       infrastructure: infrastructureState,
       dependencies,
-      configuration
+      configuration,
     };
   }
 
@@ -449,7 +452,7 @@ export class RecoveryManager extends EventEmitter {
       buildArtifacts: await this.getBuildArtifacts(),
       runningServices: await this.getRunningServices(),
       healthChecks: await this.getHealthCheckStatuses(),
-      performanceBaseline: await this.getPerformanceBaseline()
+      performanceBaseline: await this.getPerformanceBaseline(),
     };
   }
 
@@ -463,7 +466,7 @@ export class RecoveryManager extends EventEmitter {
       dataChecksum: await this.calculateDataChecksum(),
       indexStatistics: await this.getIndexStatistics(),
       backupLocation: await this.createDatabaseBackup(),
-      replicationStatus: await this.getReplicationStatus()
+      replicationStatus: await this.getReplicationStatus(),
     };
   }
 
@@ -474,7 +477,7 @@ export class RecoveryManager extends EventEmitter {
       networkConfiguration: await this.getNetworkConfiguration(),
       volumeMounts: await this.getVolumeMounts(),
       resourceAllocation: await this.getResourceAllocation(),
-      loadBalancerConfig: await this.getLoadBalancerConfig()
+      loadBalancerConfig: await this.getLoadBalancerConfig(),
     };
   }
 
@@ -491,7 +494,7 @@ export class RecoveryManager extends EventEmitter {
         version: await this.getDependencyVersion(service),
         type: this.getDependencyType(service),
         status: await this.getDependencyStatus(service),
-        configuration: await this.getDependencyConfiguration(service)
+        configuration: await this.getDependencyConfiguration(service),
       });
     }
 
@@ -503,7 +506,7 @@ export class RecoveryManager extends EventEmitter {
       applicationConfig: await this.getApplicationConfig(),
       environmentConfig: await this.getEnvironmentConfig(),
       secretsVersion: await this.getSecretsVersion(),
-      featureFlagsVersion: await this.getFeatureFlagsVersion()
+      featureFlagsVersion: await this.getFeatureFlagsVersion(),
     };
   }
 
@@ -532,13 +535,15 @@ export class RecoveryManager extends EventEmitter {
     totalScore += dataIntegrityCheck.score;
 
     const overallScore = totalScore / checks.length;
-    const passed = overallScore >= 70 && checks.every(check => check.status !== 'failed');
+    const passed = overallScore >= 70 && checks.every((check) => check.status !== 'failed');
 
     const recommendations: string[] = [];
     if (overallScore < 80) {
-      recommendations.push('Consider running additional validation before using this recovery point');
+      recommendations.push(
+        'Consider running additional validation before using this recovery point',
+      );
     }
-    if (checks.some(check => check.status === 'warning')) {
+    if (checks.some((check) => check.status === 'warning')) {
       recommendations.push('Address warning conditions before critical operations');
     }
 
@@ -547,7 +552,7 @@ export class RecoveryManager extends EventEmitter {
       timestamp: new Date(),
       checks,
       overallScore,
-      recommendations
+      recommendations,
     };
   }
 
@@ -557,7 +562,7 @@ export class RecoveryManager extends EventEmitter {
     try {
       // Run functional tests against the current state
       const healthyServices = state.application.runningServices.filter(
-        service => service.status === 'healthy'
+        (service) => service.status === 'healthy',
       ).length;
       const totalServices = state.application.runningServices.length;
 
@@ -574,10 +579,11 @@ export class RecoveryManager extends EventEmitter {
         details: {
           healthyServices,
           totalServices,
-          unhealthyServices: state.application.runningServices.filter(s => s.status !== 'healthy')
-        }
+          unhealthyServices: state.application.runningServices.filter(
+            (s) => s.status !== 'healthy',
+          ),
+        },
       };
-
     } catch (error) {
       return {
         name: 'functional-verification',
@@ -585,7 +591,7 @@ export class RecoveryManager extends EventEmitter {
         status: 'failed',
         score: 0,
         message: `Functional verification failed: ${error instanceof Error ? error.message : String(error)}`,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -597,7 +603,11 @@ export class RecoveryManager extends EventEmitter {
       const baseline = state.application.performanceBaseline;
       const current = await this.getCurrentPerformanceMetrics();
 
-      const responseTimeScore = Math.max(0, 100 - ((current.avgResponseTime - baseline.avgResponseTime) / baseline.avgResponseTime * 100));
+      const responseTimeScore = Math.max(
+        0,
+        100 -
+          ((current.avgResponseTime - baseline.avgResponseTime) / baseline.avgResponseTime) * 100,
+      );
       const throughputScore = Math.min(100, (current.throughput / baseline.throughput) * 100);
 
       const score = (responseTimeScore + throughputScore) / 2;
@@ -614,10 +624,9 @@ export class RecoveryManager extends EventEmitter {
           responseTimeScore,
           throughputScore,
           current,
-          baseline
-        }
+          baseline,
+        },
       };
-
     } catch (error) {
       return {
         name: 'performance-verification',
@@ -625,7 +634,7 @@ export class RecoveryManager extends EventEmitter {
         status: 'failed',
         score: 0,
         message: `Performance verification failed: ${error instanceof Error ? error.message : String(error)}`,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -644,9 +653,8 @@ export class RecoveryManager extends EventEmitter {
         status,
         score: securityScore,
         message: `Security verification ${status}`,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
-
     } catch (error) {
       return {
         name: 'security-verification',
@@ -654,7 +662,7 @@ export class RecoveryManager extends EventEmitter {
         status: 'failed',
         score: 0,
         message: `Security verification failed: ${error instanceof Error ? error.message : String(error)}`,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -680,10 +688,9 @@ export class RecoveryManager extends EventEmitter {
         details: {
           currentChecksum,
           storedChecksum,
-          match: currentChecksum === storedChecksum
-        }
+          match: currentChecksum === storedChecksum,
+        },
       };
-
     } catch (error) {
       return {
         name: 'data-integrity-verification',
@@ -691,7 +698,7 @@ export class RecoveryManager extends EventEmitter {
         status: 'failed',
         score: 0,
         message: `Data integrity verification failed: ${error instanceof Error ? error.message : String(error)}`,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -703,7 +710,7 @@ export class RecoveryManager extends EventEmitter {
       approvals?: Approval[];
       skipVerification?: boolean;
       forceRollback?: boolean;
-    } = {}
+    } = {},
   ): Promise<string> {
     const recoveryPoint = this.recoveryPoints.get(recoveryPointId);
     if (!recoveryPoint) {
@@ -732,18 +739,24 @@ export class RecoveryManager extends EventEmitter {
       phases: [],
       impactAssessment,
       approvals: options.approvals || requiredApprovals,
-      logs: []
+      logs: [],
     };
 
     this.rollbackExecutions.set(rollbackId, rollbackExecution);
 
-    this.addRollbackLog(rollbackId, 'info', 'initialization',
-      `Rollback initiated for recovery point ${recoveryPointId}`);
+    this.addRollbackLog(
+      rollbackId,
+      'info',
+      'initialization',
+      `Rollback initiated for recovery point ${recoveryPointId}`,
+    );
 
     this.emit('rollback:initiated', { rollbackId, recoveryPointId, impactAssessment });
 
     // Check if approvals are required and not provided
-    const pendingApprovals = rollbackExecution.approvals.filter(approval => approval.status === 'pending');
+    const pendingApprovals = rollbackExecution.approvals.filter(
+      (approval) => approval.status === 'pending',
+    );
     if (pendingApprovals.length > 0 && !options.forceRollback) {
       this.emit('rollback:approval-required', { rollbackId, pendingApprovals });
       return rollbackId;
@@ -782,7 +795,7 @@ export class RecoveryManager extends EventEmitter {
       estimatedDowntime: this.estimateDowntime(severity, recoveryPoint.metadata),
       dataLossRisk: this.assessDataLossRisk(recoveryPoint),
       dependencies: await this.getAffectedDependencies(recoveryPoint),
-      businessImpact: this.assessBusinessImpact(severity)
+      businessImpact: this.assessBusinessImpact(severity),
     };
   }
 
@@ -794,13 +807,13 @@ export class RecoveryManager extends EventEmitter {
         case 'critical':
           approvals.push(
             { requiredRole: 'cto', status: 'pending' },
-            { requiredRole: 'ops-manager', status: 'pending' }
+            { requiredRole: 'ops-manager', status: 'pending' },
           );
           break;
         case 'high':
           approvals.push(
             { requiredRole: 'ops-manager', status: 'pending' },
-            { requiredRole: 'tech-lead', status: 'pending' }
+            { requiredRole: 'tech-lead', status: 'pending' },
           );
           break;
         case 'medium':
@@ -856,19 +869,22 @@ export class RecoveryManager extends EventEmitter {
         execution.status = 'failed';
         this.emit('rollback:verification-failed', { rollbackId, verificationResult });
       }
-
     } catch (error) {
       execution.status = 'failed';
       execution.endTime = new Date();
-      this.addRollbackLog(rollbackId, 'error', 'execution',
-        `Rollback failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.addRollbackLog(
+        rollbackId,
+        'error',
+        'execution',
+        `Rollback failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
       this.emit('rollback:failed', { rollbackId, error });
     }
   }
 
   private async createRollbackPhases(
     execution: RollbackExecution,
-    recoveryPoint: RecoveryPoint
+    recoveryPoint: RecoveryPoint,
   ): Promise<RollbackPhase[]> {
     const phases: RollbackPhase[] = [];
 
@@ -880,7 +896,7 @@ export class RecoveryManager extends EventEmitter {
       status: 'pending',
       duration: 0,
       steps: await this.createValidationSteps(execution.strategy.validation.preRollback),
-      dependencies: []
+      dependencies: [],
     });
 
     // Phase 2: Database rollback (if needed)
@@ -892,7 +908,7 @@ export class RecoveryManager extends EventEmitter {
         status: 'pending',
         duration: 0,
         steps: await this.createDatabaseRollbackSteps(recoveryPoint),
-        dependencies: ['pre-validation']
+        dependencies: ['pre-validation'],
       });
     }
 
@@ -904,7 +920,9 @@ export class RecoveryManager extends EventEmitter {
       status: 'pending',
       duration: 0,
       steps: await this.createApplicationRollbackSteps(execution, recoveryPoint),
-      dependencies: this.requiresDatabaseRollback(recoveryPoint) ? ['database-rollback'] : ['pre-validation']
+      dependencies: this.requiresDatabaseRollback(recoveryPoint)
+        ? ['database-rollback']
+        : ['pre-validation'],
     });
 
     // Phase 4: Configuration rollback
@@ -915,7 +933,7 @@ export class RecoveryManager extends EventEmitter {
       status: 'pending',
       duration: 0,
       steps: await this.createConfigurationRollbackSteps(recoveryPoint),
-      dependencies: ['application-rollback']
+      dependencies: ['application-rollback'],
     });
 
     // Phase 5: Post-rollback validation
@@ -926,7 +944,7 @@ export class RecoveryManager extends EventEmitter {
       status: 'pending',
       duration: 0,
       steps: await this.createValidationSteps(execution.strategy.validation.postRollback),
-      dependencies: ['configuration-rollback']
+      dependencies: ['configuration-rollback'],
     });
 
     return phases;
@@ -950,20 +968,27 @@ export class RecoveryManager extends EventEmitter {
         await this.executeStepsInSequence(rollbackId, phase);
       }
 
-      const failedSteps = phase.steps.filter(step => step.status === 'failed');
+      const failedSteps = phase.steps.filter((step) => step.status === 'failed');
       if (failedSteps.length > 0) {
         phase.status = 'failed';
-        this.addRollbackLog(rollbackId, 'error', phase.name,
-          `Phase failed with ${failedSteps.length} failed steps`);
+        this.addRollbackLog(
+          rollbackId,
+          'error',
+          phase.name,
+          `Phase failed with ${failedSteps.length} failed steps`,
+        );
       } else {
         phase.status = 'completed';
         this.addRollbackLog(rollbackId, 'info', phase.name, 'Phase completed successfully');
       }
-
     } catch (error) {
       phase.status = 'failed';
-      this.addRollbackLog(rollbackId, 'error', phase.name,
-        `Phase failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.addRollbackLog(
+        rollbackId,
+        'error',
+        phase.name,
+        `Phase failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     } finally {
       phase.endTime = new Date();
       phase.duration = phase.endTime.getTime() - (phase.startTime?.getTime() || 0);
@@ -983,8 +1008,8 @@ export class RecoveryManager extends EventEmitter {
   }
 
   private async executeStepsInParallel(rollbackId: string, phase: RollbackPhase): Promise<void> {
-    const stepPromises = phase.steps.map(step =>
-      this.executeRollbackStep(rollbackId, phase, step)
+    const stepPromises = phase.steps.map((step) =>
+      this.executeRollbackStep(rollbackId, phase, step),
     );
 
     await Promise.allSettled(stepPromises);
@@ -993,7 +1018,7 @@ export class RecoveryManager extends EventEmitter {
   private async executeRollbackStep(
     rollbackId: string,
     phase: RollbackPhase,
-    step: RollbackStep
+    step: RollbackStep,
   ): Promise<void> {
     step.status = 'running';
     step.startTime = new Date();
@@ -1023,12 +1048,15 @@ export class RecoveryManager extends EventEmitter {
 
       step.status = 'completed';
       this.addRollbackLog(rollbackId, 'info', phase.name, `Step completed: ${step.name}`);
-
     } catch (error) {
       step.status = 'failed';
       step.error = error instanceof Error ? error.message : String(error);
-      this.addRollbackLog(rollbackId, 'error', phase.name,
-        `Step failed: ${step.name} - ${step.error}`);
+      this.addRollbackLog(
+        rollbackId,
+        'error',
+        phase.name,
+        `Step failed: ${step.name} - ${step.error}`,
+      );
     } finally {
       step.endTime = new Date();
       step.duration = step.endTime.getTime() - (step.startTime?.getTime() || 0);
@@ -1060,7 +1088,7 @@ export class RecoveryManager extends EventEmitter {
     const baseTTL = {
       automatic: 7 * 24 * 60 * 60 * 1000, // 7 days
       manual: 30 * 24 * 60 * 60 * 1000, // 30 days
-      scheduled: 90 * 24 * 60 * 60 * 1000 // 90 days
+      scheduled: 90 * 24 * 60 * 60 * 1000, // 90 days
     };
 
     return baseTTL[type];
@@ -1083,12 +1111,14 @@ export class RecoveryManager extends EventEmitter {
     rollbackId: string,
     userId: string,
     role: Approval['requiredRole'],
-    comment?: string
+    comment?: string,
   ): Promise<boolean> {
     const execution = this.rollbackExecutions.get(rollbackId);
     if (!execution) return false;
 
-    const approval = execution.approvals.find(a => a.requiredRole === role && a.status === 'pending');
+    const approval = execution.approvals.find(
+      (a) => a.requiredRole === role && a.status === 'pending',
+    );
     if (!approval) return false;
 
     approval.userId = userId;
@@ -1099,7 +1129,7 @@ export class RecoveryManager extends EventEmitter {
     this.emit('rollback:approved', { rollbackId, approval });
 
     // Check if all approvals are complete
-    const pendingApprovals = execution.approvals.filter(a => a.status === 'pending');
+    const pendingApprovals = execution.approvals.filter((a) => a.status === 'pending');
     if (pendingApprovals.length === 0) {
       await this.executeRollback(rollbackId);
     }
@@ -1112,7 +1142,7 @@ export class RecoveryManager extends EventEmitter {
     level: RollbackLog['level'],
     phase: string,
     message: string,
-    data?: any
+    data?: any,
   ): void {
     const execution = this.rollbackExecutions.get(rollbackId);
     if (!execution) return;
@@ -1122,7 +1152,7 @@ export class RecoveryManager extends EventEmitter {
       level,
       phase,
       message,
-      data
+      data,
     };
 
     execution.logs.push(log);
@@ -1140,7 +1170,8 @@ export class RecoveryManager extends EventEmitter {
 
     // Check if we've exceeded max auto recoveries
     const recentRecoveries = Array.from(this.rollbackExecutions.values()).filter(
-      execution => execution.startTime.getTime() > Date.now() - this.autoRecoveryConfig.recoveryWindow
+      (execution) =>
+        execution.startTime.getTime() > Date.now() - this.autoRecoveryConfig.recoveryWindow,
     );
 
     if (recentRecoveries.length >= this.autoRecoveryConfig.maxAutoRecoveries) {
@@ -1150,7 +1181,7 @@ export class RecoveryManager extends EventEmitter {
 
     // Find the most recent suitable recovery point
     const suitableRecoveryPoints = Array.from(this.recoveryPoints.values())
-      .filter(rp => rp.verification.passed && rp.verification.overallScore >= 80)
+      .filter((rp) => rp.verification.passed && rp.verification.overallScore >= 80)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     if (suitableRecoveryPoints.length === 0) {
@@ -1163,11 +1194,10 @@ export class RecoveryManager extends EventEmitter {
     try {
       const rollbackId = await this.initiateRollback(recoveryPoint.id, 'immediate', {
         forceRollback: true,
-        skipVerification: false
+        skipVerification: false,
       });
 
       this.emit('auto-recovery:triggered', { trigger, context, rollbackId, recoveryPoint });
-
     } catch (error) {
       this.emit('auto-recovery:failed', { trigger, context, error });
     }
@@ -1187,51 +1217,155 @@ export class RecoveryManager extends EventEmitter {
   }
 
   // Placeholder methods that would be implemented with actual integrations
-  private async getFeatureFlags(): Promise<Record<string, boolean>> { return {}; }
-  private async getConfigVersions(): Promise<Record<string, string>> { return {}; }
-  private async getDatabaseVersion(): Promise<string> { return '1.0.0'; }
-  private async getEnvironmentVariables(): Promise<Record<string, string>> { return {}; }
-  private async getBuildArtifacts(): Promise<BuildArtifact[]> { return []; }
-  private async getRunningServices(): Promise<ServiceStatus[]> { return []; }
-  private async getHealthCheckStatuses(): Promise<HealthCheckStatus[]> { return []; }
-  private async getPerformanceBaseline(): Promise<PerformanceBaseline> { return { avgResponseTime: 200, throughput: 1000, errorRate: 0.1 }; }
-  private async createSchemaSnapshot(): Promise<SchemaSnapshot> { return { version: '1.0.0', checksum: 'abc123' }; }
-  private async getCurrentMigrationLevel(): Promise<string> { return '001'; }
-  private async calculateDataChecksum(): Promise<string> { return 'checksum123'; }
-  private async getIndexStatistics(): Promise<IndexStats[]> { return []; }
-  private async createDatabaseBackup(): Promise<string> { return '/backups/db_backup.sql'; }
-  private async getReplicationStatus(): Promise<ReplicationStatus> { return { status: 'healthy', lag: 0 }; }
-  private async getContainerImages(): Promise<ContainerImage[]> { return []; }
-  private async getNetworkConfiguration(): Promise<NetworkConfig> { return { subnets: [], routes: [] }; }
-  private async getVolumeMounts(): Promise<VolumeMount[]> { return []; }
-  private async getResourceAllocation(): Promise<ResourceAllocation> { return { cpu: '1000m', memory: '1Gi' }; }
-  private async getLoadBalancerConfig(): Promise<LoadBalancerConfig> { return { algorithm: 'round-robin', healthCheck: true }; }
-  private async getDependencyVersion(service: string): Promise<string> { return '1.0.0'; }
-  private getDependencyType(service: string): DependencyState['type'] { return 'service'; }
-  private async getDependencyStatus(service: string): Promise<DependencyState['status']> { return 'healthy'; }
-  private async getDependencyConfiguration(service: string): Promise<any> { return {}; }
-  private async getApplicationConfig(): Promise<any> { return {}; }
-  private async getEnvironmentConfig(): Promise<any> { return {}; }
-  private async getSecretsVersion(): Promise<string> { return '1.0.0'; }
-  private async getFeatureFlagsVersion(): Promise<string> { return '1.0.0'; }
-  private async getCurrentPerformanceMetrics(): Promise<any> { return { avgResponseTime: 250, throughput: 950 }; }
-  private async compareVersions(current: string, target: string): Promise<any> { return { majorChanges: 0, minorChanges: 1 }; }
-  private estimateAffectedUsers(severity: string): number { return severity === 'critical' ? 10000 : 1000; }
-  private estimateDowntime(severity: string, metadata: RecoveryMetadata): number { return severity === 'critical' ? 30 : 5; }
-  private assessDataLossRisk(recoveryPoint: RecoveryPoint): ImpactAssessment['dataLossRisk'] { return 'minimal'; }
-  private async getAffectedDependencies(recoveryPoint: RecoveryPoint): Promise<string[]> { return []; }
-  private assessBusinessImpact(severity: string): string { return severity === 'critical' ? 'High revenue impact' : 'Low impact'; }
-  private requiresDatabaseRollback(recoveryPoint: RecoveryPoint): boolean { return true; }
-  private async createValidationSteps(validationSteps: ValidationStep[]): Promise<RollbackStep[]> { return []; }
-  private async createDatabaseRollbackSteps(recoveryPoint: RecoveryPoint): Promise<RollbackStep[]> { return []; }
-  private async createApplicationRollbackSteps(execution: RollbackExecution, recoveryPoint: RecoveryPoint): Promise<RollbackStep[]> { return []; }
-  private async createConfigurationRollbackSteps(recoveryPoint: RecoveryPoint): Promise<RollbackStep[]> { return []; }
-  private async runPostRollbackVerification(execution: RollbackExecution, recoveryPoint: RecoveryPoint): Promise<VerificationResult> { return { passed: true, timestamp: new Date(), checks: [], overallScore: 90, recommendations: [] }; }
-  private async executeDatabaseStep(step: RollbackStep): Promise<void> { await new Promise(resolve => setTimeout(resolve, 1000)); }
-  private async executeApplicationStep(step: RollbackStep): Promise<void> { await new Promise(resolve => setTimeout(resolve, 1000)); }
-  private async executeConfigurationStep(step: RollbackStep): Promise<void> { await new Promise(resolve => setTimeout(resolve, 1000)); }
-  private async executeInfrastructureStep(step: RollbackStep): Promise<void> { await new Promise(resolve => setTimeout(resolve, 1000)); }
-  private async executeVerificationStep(step: RollbackStep): Promise<void> { await new Promise(resolve => setTimeout(resolve, 1000)); }
+  private async getFeatureFlags(): Promise<Record<string, boolean>> {
+    return {};
+  }
+  private async getConfigVersions(): Promise<Record<string, string>> {
+    return {};
+  }
+  private async getDatabaseVersion(): Promise<string> {
+    return '1.0.0';
+  }
+  private async getEnvironmentVariables(): Promise<Record<string, string>> {
+    return {};
+  }
+  private async getBuildArtifacts(): Promise<BuildArtifact[]> {
+    return [];
+  }
+  private async getRunningServices(): Promise<ServiceStatus[]> {
+    return [];
+  }
+  private async getHealthCheckStatuses(): Promise<HealthCheckStatus[]> {
+    return [];
+  }
+  private async getPerformanceBaseline(): Promise<PerformanceBaseline> {
+    return { avgResponseTime: 200, throughput: 1000, errorRate: 0.1 };
+  }
+  private async createSchemaSnapshot(): Promise<SchemaSnapshot> {
+    return { version: '1.0.0', checksum: 'abc123' };
+  }
+  private async getCurrentMigrationLevel(): Promise<string> {
+    return '001';
+  }
+  private async calculateDataChecksum(): Promise<string> {
+    return 'checksum123';
+  }
+  private async getIndexStatistics(): Promise<IndexStats[]> {
+    return [];
+  }
+  private async createDatabaseBackup(): Promise<string> {
+    return '/backups/db_backup.sql';
+  }
+  private async getReplicationStatus(): Promise<ReplicationStatus> {
+    return { status: 'healthy', lag: 0 };
+  }
+  private async getContainerImages(): Promise<ContainerImage[]> {
+    return [];
+  }
+  private async getNetworkConfiguration(): Promise<NetworkConfig> {
+    return { subnets: [], routes: [] };
+  }
+  private async getVolumeMounts(): Promise<VolumeMount[]> {
+    return [];
+  }
+  private async getResourceAllocation(): Promise<ResourceAllocation> {
+    return { cpu: '1000m', memory: '1Gi' };
+  }
+  private async getLoadBalancerConfig(): Promise<LoadBalancerConfig> {
+    return { algorithm: 'round-robin', healthCheck: true };
+  }
+  private async getDependencyVersion(service: string): Promise<string> {
+    return '1.0.0';
+  }
+  private getDependencyType(service: string): DependencyState['type'] {
+    return 'service';
+  }
+  private async getDependencyStatus(service: string): Promise<DependencyState['status']> {
+    return 'healthy';
+  }
+  private async getDependencyConfiguration(service: string): Promise<any> {
+    return {};
+  }
+  private async getApplicationConfig(): Promise<any> {
+    return {};
+  }
+  private async getEnvironmentConfig(): Promise<any> {
+    return {};
+  }
+  private async getSecretsVersion(): Promise<string> {
+    return '1.0.0';
+  }
+  private async getFeatureFlagsVersion(): Promise<string> {
+    return '1.0.0';
+  }
+  private async getCurrentPerformanceMetrics(): Promise<any> {
+    return { avgResponseTime: 250, throughput: 950 };
+  }
+  private async compareVersions(current: string, target: string): Promise<any> {
+    return { majorChanges: 0, minorChanges: 1 };
+  }
+  private estimateAffectedUsers(severity: string): number {
+    return severity === 'critical' ? 10000 : 1000;
+  }
+  private estimateDowntime(severity: string, metadata: RecoveryMetadata): number {
+    return severity === 'critical' ? 30 : 5;
+  }
+  private assessDataLossRisk(recoveryPoint: RecoveryPoint): ImpactAssessment['dataLossRisk'] {
+    return 'minimal';
+  }
+  private async getAffectedDependencies(recoveryPoint: RecoveryPoint): Promise<string[]> {
+    return [];
+  }
+  private assessBusinessImpact(severity: string): string {
+    return severity === 'critical' ? 'High revenue impact' : 'Low impact';
+  }
+  private requiresDatabaseRollback(recoveryPoint: RecoveryPoint): boolean {
+    return true;
+  }
+  private async createValidationSteps(validationSteps: ValidationStep[]): Promise<RollbackStep[]> {
+    return [];
+  }
+  private async createDatabaseRollbackSteps(recoveryPoint: RecoveryPoint): Promise<RollbackStep[]> {
+    return [];
+  }
+  private async createApplicationRollbackSteps(
+    execution: RollbackExecution,
+    recoveryPoint: RecoveryPoint,
+  ): Promise<RollbackStep[]> {
+    return [];
+  }
+  private async createConfigurationRollbackSteps(
+    recoveryPoint: RecoveryPoint,
+  ): Promise<RollbackStep[]> {
+    return [];
+  }
+  private async runPostRollbackVerification(
+    execution: RollbackExecution,
+    recoveryPoint: RecoveryPoint,
+  ): Promise<VerificationResult> {
+    return {
+      passed: true,
+      timestamp: new Date(),
+      checks: [],
+      overallScore: 90,
+      recommendations: [],
+    };
+  }
+  private async executeDatabaseStep(step: RollbackStep): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  private async executeApplicationStep(step: RollbackStep): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  private async executeConfigurationStep(step: RollbackStep): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  private async executeInfrastructureStep(step: RollbackStep): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  private async executeVerificationStep(step: RollbackStep): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
 }
 
 // Additional interfaces for type safety

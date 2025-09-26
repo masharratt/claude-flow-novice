@@ -72,7 +72,11 @@ export class ClaudeRateLimitError extends ClaudeAPIError {
  * Error for network timeouts
  */
 export class ClaudeTimeoutError extends ClaudeAPIError {
-  constructor(message: string, public readonly timeout: number, details?: unknown) {
+  constructor(
+    message: string,
+    public readonly timeout: number,
+    details?: unknown,
+  ) {
     super(
       message || `Request timed out after ${timeout}ms. The API may be slow or unreachable.`,
       undefined,
@@ -157,14 +161,14 @@ export const ERROR_MESSAGES = {
     message: 'Claude API is temporarily unavailable or undergoing maintenance.',
     suggestions: [
       'Try again in 5-10 minutes',
-      'Check if there\'s scheduled maintenance',
+      "Check if there's scheduled maintenance",
       'Use cached responses if available',
       'Consider implementing a queue for requests',
     ],
   },
   RATE_LIMIT: {
     title: 'Rate Limit Exceeded',
-    message: 'You\'ve made too many requests to the Claude API.',
+    message: "You've made too many requests to the Claude API.",
     suggestions: [
       'Implement request throttling',
       'Batch multiple requests together',
@@ -224,7 +228,7 @@ export function getUserFriendlyError(error: ClaudeAPIError): {
   retryable: boolean;
 } {
   let errorInfo = ERROR_MESSAGES.INTERNAL_SERVER_ERROR; // Default
-  
+
   if (error instanceof ClaudeInternalServerError) {
     errorInfo = ERROR_MESSAGES.INTERNAL_SERVER_ERROR;
   } else if (error instanceof ClaudeServiceUnavailableError) {

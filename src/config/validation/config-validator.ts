@@ -37,7 +37,7 @@ export class ConfigValidator {
     memory: 20,
     networking: 15,
     storage: 10,
-    misc: 10
+    misc: 10,
   };
 
   /**
@@ -49,7 +49,7 @@ export class ConfigValidator {
       errors: [],
       warnings: [],
       suggestions: [],
-      performanceScore: 0
+      performanceScore: 0,
     };
 
     // Basic structure validation
@@ -83,15 +83,23 @@ export class ConfigValidator {
     ConfigValidator.generateSuggestions(config, result);
 
     // Set overall validity
-    result.isValid = result.errors.filter(e => e.severity === 'critical' || e.severity === 'high').length === 0;
+    result.isValid =
+      result.errors.filter((e) => e.severity === 'critical' || e.severity === 'high').length === 0;
 
     return result;
   }
 
   private static validateStructure(config: Config, result: ValidationResult): void {
     const requiredFields = [
-      'orchestrator', 'terminal', 'memory', 'coordination',
-      'mcp', 'logging', 'ruvSwarm', 'experienceLevel', 'featureFlags'
+      'orchestrator',
+      'terminal',
+      'memory',
+      'coordination',
+      'mcp',
+      'logging',
+      'ruvSwarm',
+      'experienceLevel',
+      'featureFlags',
     ];
 
     for (const field of requiredFields) {
@@ -100,13 +108,16 @@ export class ConfigValidator {
           field,
           value: undefined,
           message: `Required field '${field}' is missing`,
-          severity: 'critical'
+          severity: 'critical',
         });
       }
     }
   }
 
-  private static validateOrchestrator(orchestrator: Config['orchestrator'], result: ValidationResult): void {
+  private static validateOrchestrator(
+    orchestrator: Config['orchestrator'],
+    result: ValidationResult,
+  ): void {
     if (!orchestrator) return;
 
     if (orchestrator.maxConcurrentAgents < 1 || orchestrator.maxConcurrentAgents > 100) {
@@ -115,7 +126,7 @@ export class ConfigValidator {
         value: orchestrator.maxConcurrentAgents,
         message: 'Must be between 1 and 100',
         severity: 'high',
-        suggestion: 'Use 8-16 for most projects, up to 32 for complex systems'
+        suggestion: 'Use 8-16 for most projects, up to 32 for complex systems',
       });
     }
 
@@ -123,13 +134,13 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'orchestrator.taskQueueSize',
         message: 'Very small queue size may cause bottlenecks',
-        impact: 'performance'
+        impact: 'performance',
       });
     } else if (orchestrator.taskQueueSize > 5000) {
       result.warnings.push({
         field: 'orchestrator.taskQueueSize',
         message: 'Large queue size may consume excessive memory',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
 
@@ -137,7 +148,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'orchestrator.healthCheckInterval',
         message: 'Very frequent health checks may impact performance',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
   }
@@ -151,7 +162,7 @@ export class ConfigValidator {
         field: 'terminal.type',
         value: terminal.type,
         message: `Must be one of: ${validTypes.join(', ')}`,
-        severity: 'high'
+        severity: 'high',
       });
     }
 
@@ -159,7 +170,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'terminal.poolSize',
         message: 'Large terminal pool may consume system resources',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
 
@@ -167,7 +178,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'terminal.commandTimeout',
         message: 'Short timeout may interrupt long-running operations',
-        impact: 'usability'
+        impact: 'usability',
       });
     }
   }
@@ -181,7 +192,7 @@ export class ConfigValidator {
         field: 'memory.backend',
         value: memory.backend,
         message: `Must be one of: ${validBackends.join(', ')}`,
-        severity: 'high'
+        severity: 'high',
       });
     }
 
@@ -189,7 +200,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'memory.cacheSizeMB',
         message: 'Large cache size may consume system memory',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
 
@@ -197,19 +208,22 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'memory.syncInterval',
         message: 'Very frequent sync may impact performance',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
   }
 
-  private static validateCoordination(coordination: Config['coordination'], result: ValidationResult): void {
+  private static validateCoordination(
+    coordination: Config['coordination'],
+    result: ValidationResult,
+  ): void {
     if (!coordination) return;
 
     if (coordination.maxRetries > 10) {
       result.warnings.push({
         field: 'coordination.maxRetries',
         message: 'High retry count may cause long delays',
-        impact: 'usability'
+        impact: 'usability',
       });
     }
 
@@ -217,7 +231,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'coordination.retryDelay',
         message: 'Long retry delay may slow error recovery',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
   }
@@ -231,7 +245,7 @@ export class ConfigValidator {
         field: 'mcp.transport',
         value: mcp.transport,
         message: `Must be one of: ${validTransports.join(', ')}`,
-        severity: 'high'
+        severity: 'high',
       });
     }
 
@@ -239,7 +253,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'mcp.port',
         message: 'Port below 1024 requires elevated privileges',
-        impact: 'security'
+        impact: 'security',
       });
     }
 
@@ -247,7 +261,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'mcp.tlsEnabled',
         message: 'HTTP transport without TLS is insecure',
-        impact: 'security'
+        impact: 'security',
       });
     }
   }
@@ -261,7 +275,7 @@ export class ConfigValidator {
         field: 'logging.level',
         value: logging.level,
         message: `Must be one of: ${validLevels.join(', ')}`,
-        severity: 'medium'
+        severity: 'medium',
       });
     }
 
@@ -269,7 +283,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'logging.level',
         message: 'Debug logging may impact performance and expose sensitive data',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
   }
@@ -283,7 +297,7 @@ export class ConfigValidator {
         field: 'ruvSwarm.defaultTopology',
         value: ruvSwarm.defaultTopology,
         message: `Must be one of: ${validTopologies.join(', ')}`,
-        severity: 'high'
+        severity: 'high',
       });
     }
 
@@ -291,7 +305,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'ruvSwarm.maxAgents',
         message: 'High agent count may overwhelm system resources',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
   }
@@ -304,7 +318,7 @@ export class ConfigValidator {
         field: 'claude.temperature',
         value: claude.temperature,
         message: 'Must be between 0 and 1',
-        severity: 'medium'
+        severity: 'medium',
       });
     }
 
@@ -312,7 +326,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'claude.maxTokens',
         message: 'Very high token limit may be expensive',
-        impact: 'usability'
+        impact: 'usability',
       });
     }
 
@@ -320,12 +334,15 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'claude.timeout',
         message: 'Short timeout may interrupt complex requests',
-        impact: 'usability'
+        impact: 'usability',
       });
     }
   }
 
-  private static validatePerformance(performance: Config['performance'], result: ValidationResult): void {
+  private static validatePerformance(
+    performance: Config['performance'],
+    result: ValidationResult,
+  ): void {
     if (!performance) return;
 
     if (!performance.enableCaching) {
@@ -336,19 +353,22 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'performance.cacheSize',
         message: 'Large cache size may consume excessive memory',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
   }
 
-  private static validateAutoDetection(autoDetection: Config['autoDetection'], result: ValidationResult): void {
+  private static validateAutoDetection(
+    autoDetection: Config['autoDetection'],
+    result: ValidationResult,
+  ): void {
     if (!autoDetection) return;
 
     if (autoDetection.confidenceThreshold > 0.9) {
       result.warnings.push({
         field: 'autoDetection.confidenceThreshold',
         message: 'High confidence threshold may reject valid detections',
-        impact: 'usability'
+        impact: 'usability',
       });
     }
   }
@@ -360,7 +380,7 @@ export class ConfigValidator {
         field: 'experienceLevel',
         value: config.experienceLevel,
         message: `Must be one of: ${validLevels.join(', ')}`,
-        severity: 'high'
+        severity: 'high',
       });
     }
 
@@ -369,7 +389,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'featureFlags.neuralNetworks',
         message: 'Neural networks enabled for novice user - may be overwhelming',
-        impact: 'usability'
+        impact: 'usability',
       });
     }
   }
@@ -380,7 +400,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'memory.cacheSizeMB',
         message: 'Cache enabled but cache size very small',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
 
@@ -391,7 +411,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'orchestrator.maxConcurrentAgents',
         message: 'Orchestrator agents exceed ruv-swarm capacity significantly',
-        impact: 'performance'
+        impact: 'performance',
       });
     }
   }
@@ -402,7 +422,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'mcp',
         message: 'Insecure MCP transport configuration',
-        impact: 'security'
+        impact: 'security',
       });
     }
 
@@ -410,7 +430,7 @@ export class ConfigValidator {
       result.warnings.push({
         field: 'logging.level',
         message: 'Debug logging may expose sensitive information',
-        impact: 'security'
+        impact: 'security',
       });
     }
   }
@@ -446,7 +466,9 @@ export class ConfigValidator {
     }
 
     if (config.experienceLevel === 'novice' && result.performanceScore > 80) {
-      result.suggestions.push('Your configuration is optimized - consider upgrading to intermediate level');
+      result.suggestions.push(
+        'Your configuration is optimized - consider upgrading to intermediate level',
+      );
     }
 
     if (config.ruvSwarm?.maxAgents < 8 && config.orchestrator?.maxConcurrentAgents > 8) {
@@ -478,7 +500,7 @@ export class ConfigValidator {
             field: fieldPath,
             value,
             message: 'Must be a number between 1 and 100',
-            severity: 'high'
+            severity: 'high',
           });
         }
         break;
@@ -489,7 +511,7 @@ export class ConfigValidator {
             field: fieldPath,
             value,
             message: 'Must be one of: novice, intermediate, advanced, enterprise',
-            severity: 'high'
+            severity: 'high',
           });
         }
         break;

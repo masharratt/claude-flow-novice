@@ -36,7 +36,7 @@ import {
 } from './simple-commands/fix-hook-variables.js';
 import {
   initializePerformanceTracking,
-  trackCommandExecution
+  trackCommandExecution,
 } from './simple-commands/performance-hooks.js';
 import { preferencesCommand } from './preferences.js';
 import { personalizationCommand } from './personalization-cli.js';
@@ -689,7 +689,9 @@ Pair programming features:
   commandRegistry.set('verify-train', {
     handler: async (args, flags) => {
       try {
-        const { verificationTrainingCommand } = await import('./simple-commands/verification-training-integration.js');
+        const { verificationTrainingCommand } = await import(
+          './simple-commands/verification-training-integration.js'
+        );
         return await verificationTrainingCommand(args, flags);
       } catch (error) {
         console.error('❌ Error loading verification-training module:', error.message);
@@ -1137,7 +1139,7 @@ EXAMPLES:
       'validate framework wizard                       # Interactive framework creation',
       'validate framework test my-custom-framework     # Test framework',
       'validate framework list                         # List all frameworks',
-      'validate framework validate completion.json my-framework # Validate completion'
+      'validate framework validate completion.json my-framework # Validate completion',
     ],
     details: `
 Custom Framework Validation System:
@@ -1169,7 +1171,7 @@ Custom Framework Validation System:
   • Auto-generation of common validation patterns
   • Export and import framework definitions
 
-Use 'claude-flow-novice validate framework --help' for detailed command information.`
+Use 'claude-flow-novice validate framework --help' for detailed command information.`,
   });
 }
 
@@ -1318,7 +1320,7 @@ export function showAllCommands() {
 registerCoreCommands();
 
 // Initialize performance tracking
-initializePerformanceTracking().catch(err => {
+initializePerformanceTracking().catch((err) => {
   // Performance tracking is optional, don't fail if it errors
   console.error('Failed to initialize performance tracking:', err.message);
 });

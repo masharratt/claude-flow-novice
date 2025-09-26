@@ -66,10 +66,25 @@ export interface UIComponent {
 }
 
 export type ComponentType =
-  | 'toggle' | 'slider' | 'dropdown' | 'multiselect' | 'text' | 'number'
-  | 'textarea' | 'code' | 'file' | 'color' | 'date' | 'range'
-  | 'checkbox-group' | 'radio-group' | 'tag-input' | 'key-value'
-  | 'json-editor' | 'yaml-editor' | 'template-selector';
+  | 'toggle'
+  | 'slider'
+  | 'dropdown'
+  | 'multiselect'
+  | 'text'
+  | 'number'
+  | 'textarea'
+  | 'code'
+  | 'file'
+  | 'color'
+  | 'date'
+  | 'range'
+  | 'checkbox-group'
+  | 'radio-group'
+  | 'tag-input'
+  | 'key-value'
+  | 'json-editor'
+  | 'yaml-editor'
+  | 'template-selector';
 
 export interface ComponentOption {
   value: any;
@@ -166,9 +181,9 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
    */
   getCurrentUI(): UIStructure {
     const visibleSections = Array.from(this.sections.values())
-      .filter(section => this.shouldShowSection(section))
+      .filter((section) => this.shouldShowSection(section))
       .sort((a, b) => a.priority - b.priority)
-      .map(section => this.filterSectionForLevel(section));
+      .map((section) => this.filterSectionForLevel(section));
 
     return {
       mode: this.state.currentLevel,
@@ -177,23 +192,20 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       hints: this.getActiveHints(),
       animations: this.getActiveAnimations(),
       theme: this.config.preferences.theme,
-      accessibility: this.getAccessibilitySettings()
+      accessibility: this.getAccessibilitySettings(),
     };
   }
 
   /**
    * Update configuration level and regenerate UI
    */
-  async setConfigurationLevel(
-    level: ConfigurationMode,
-    smooth: boolean = true
-  ): Promise<void> {
+  async setConfigurationLevel(level: ConfigurationMode, smooth: boolean = true): Promise<void> {
     const previousLevel = this.state.currentLevel;
 
     if (previousLevel === level) return;
 
     // Validate level transition
-    if (!await this.canTransitionToLevel(level)) {
+    if (!(await this.canTransitionToLevel(level))) {
       throw new Error(`Cannot transition to ${level} level`);
     }
 
@@ -210,7 +222,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
     this.emit('levelChanged', {
       from: previousLevel,
       to: level,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     // Update user progress
@@ -223,10 +235,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
   /**
    * Toggle section expansion
    */
-  async toggleSection(
-    sectionId: string,
-    expand?: boolean
-  ): Promise<void> {
+  async toggleSection(sectionId: string, expand?: boolean): Promise<void> {
     const section = this.sections.get(sectionId);
     if (!section || !section.visible) return;
 
@@ -250,7 +259,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
     this.emit('sectionToggled', {
       sectionId,
       expanded: shouldExpand,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 
@@ -260,7 +269,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
   async updateComponent(
     componentId: string,
     value: any,
-    triggerValidation: boolean = true
+    triggerValidation: boolean = true,
   ): Promise<ValidationResult> {
     const component = this.findComponent(componentId);
     if (!component) {
@@ -293,7 +302,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       componentId,
       value,
       valid: validationResult.valid,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     return validationResult;
@@ -311,10 +320,10 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       return {
         type: 'level-upgrade',
         title: 'Ready for Advanced Features',
-        description: 'You\'ve mastered the basics! Unlock more powerful features.',
+        description: "You've mastered the basics! Unlock more powerful features.",
         action: 'upgrade-level',
         priority: 'high',
-        benefits: this.getUpgradeBenefits()
+        benefits: this.getUpgradeBenefits(),
       };
     }
 
@@ -327,7 +336,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
         description: section.description,
         action: 'focus-section',
         target: section.id,
-        priority: 'high'
+        priority: 'high',
       };
     }
 
@@ -340,7 +349,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
         description: `${section.description} (Optional)`,
         action: 'suggest-section',
         target: section.id,
-        priority: 'medium'
+        priority: 'medium',
       };
     }
 
@@ -350,7 +359,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       title: 'Configuration Complete',
       description: 'Your configuration is ready to use!',
       action: 'finalize',
-      priority: 'low'
+      priority: 'low',
     };
   }
 
@@ -365,7 +374,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       currentSection: this.getCurrentSectionHelp(context),
       troubleshooting: this.getTroubleshootingHelp(context),
       examples: this.getExamples(context),
-      resources: this.getResourceLinks(context)
+      resources: this.getResourceLinks(context),
     };
   }
 
@@ -390,18 +399,23 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           description: 'What type of project are you working on?',
           level: ['novice', 'intermediate', 'advanced', 'enterprise'],
           options: [
-            { value: 'web-app', label: 'Web Application', description: 'Frontend web applications' },
+            {
+              value: 'web-app',
+              label: 'Web Application',
+              description: 'Frontend web applications',
+            },
             { value: 'api', label: 'API Service', description: 'Backend API services' },
             { value: 'cli', label: 'Command Line Tool', description: 'Terminal applications' },
             { value: 'library', label: 'Library/Package', description: 'Reusable code libraries' },
             { value: 'mobile', label: 'Mobile App', description: 'Mobile applications' },
             { value: 'ml', label: 'Machine Learning', description: 'ML and AI projects' },
-            { value: 'data', label: 'Data Pipeline', description: 'Data processing and analysis' }
+            { value: 'data', label: 'Data Pipeline', description: 'Data processing and analysis' },
           ],
           visible: true,
           disabled: false,
           required: true,
-          helpText: 'Choose the type that best matches your project. This will optimize the configuration for your needs.'
+          helpText:
+            'Choose the type that best matches your project. This will optimize the configuration for your needs.',
         },
         {
           id: 'project-language',
@@ -419,16 +433,16 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
             { value: 'rust', label: 'Rust' },
             { value: 'csharp', label: 'C#' },
             { value: 'php', label: 'PHP' },
-            { value: 'ruby', label: 'Ruby' }
+            { value: 'ruby', label: 'Ruby' },
           ],
           visible: true,
           disabled: false,
-          required: true
-        }
+          required: true,
+        },
       ],
       visible: true,
       expanded: true,
-      required: true
+      required: true,
     });
 
     // Agent configuration section
@@ -451,7 +465,8 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'When enabled, the system will automatically choose and create the best agents for your project type.'
+          helpText:
+            'When enabled, the system will automatically choose and create the best agents for your project type.',
         },
         {
           id: 'agent-max-count',
@@ -462,13 +477,14 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           level: ['novice', 'intermediate', 'advanced', 'enterprise'],
           validation: [
             { type: 'min', value: 1, message: 'At least 1 agent is required' },
-            { type: 'max', value: 20, message: 'Maximum 20 agents allowed' }
+            { type: 'max', value: 20, message: 'Maximum 20 agents allowed' },
           ],
           defaultValue: 3,
           visible: true,
           disabled: false,
           required: true,
-          helpText: 'More agents can work faster but use more resources. Start with 3-5 for most projects.'
+          helpText:
+            'More agents can work faster but use more resources. Start with 3-5 for most projects.',
         },
         {
           id: 'agent-topology',
@@ -478,21 +494,37 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           description: 'How agents coordinate with each other',
           level: ['intermediate', 'advanced', 'enterprise'],
           options: [
-            { value: 'mesh', label: 'Mesh Network', description: 'All agents communicate directly' },
-            { value: 'hierarchical', label: 'Hierarchical', description: 'Organized in layers with managers' },
-            { value: 'ring', label: 'Ring Network', description: 'Agents form a communication ring' },
-            { value: 'star', label: 'Star Network', description: 'Central coordinator manages all agents' }
+            {
+              value: 'mesh',
+              label: 'Mesh Network',
+              description: 'All agents communicate directly',
+            },
+            {
+              value: 'hierarchical',
+              label: 'Hierarchical',
+              description: 'Organized in layers with managers',
+            },
+            {
+              value: 'ring',
+              label: 'Ring Network',
+              description: 'Agents form a communication ring',
+            },
+            {
+              value: 'star',
+              label: 'Star Network',
+              description: 'Central coordinator manages all agents',
+            },
           ],
           defaultValue: 'mesh',
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'Mesh is best for most projects. Use hierarchical for large teams.'
-        }
+          helpText: 'Mesh is best for most projects. Use hierarchical for large teams.',
+        },
       ],
       visible: true,
       expanded: false,
-      required: true
+      required: true,
     });
 
     // Features section
@@ -515,7 +547,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'Enables agents to remember what they learned in previous sessions.'
+          helpText: 'Enables agents to remember what they learned in previous sessions.',
         },
         {
           id: 'monitoring-enabled',
@@ -528,7 +560,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'Monitor system performance and get optimization suggestions.'
+          helpText: 'Monitor system performance and get optimization suggestions.',
         },
         {
           id: 'neural-enabled',
@@ -541,12 +573,13 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'Enables advanced AI capabilities that learn from your patterns. Requires more resources.'
-        }
+          helpText:
+            'Enables advanced AI capabilities that learn from your patterns. Requires more resources.',
+        },
       ],
       visible: false,
       expanded: false,
-      required: false
+      required: false,
     });
 
     // Add more sections for advanced/enterprise levels
@@ -574,7 +607,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'Encrypts all stored configuration data for security compliance.'
+          helpText: 'Encrypts all stored configuration data for security compliance.',
         },
         {
           id: 'auth-enabled',
@@ -586,12 +619,12 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           defaultValue: false,
           visible: true,
           disabled: false,
-          required: false
-        }
+          required: false,
+        },
       ],
       visible: false,
       expanded: false,
-      required: false
+      required: false,
     });
 
     // Team collaboration section
@@ -614,7 +647,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'Enables sharing configuration templates and settings with your team.'
+          helpText: 'Enables sharing configuration templates and settings with your team.',
         },
         {
           id: 'cloud-sync',
@@ -627,12 +660,12 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
           visible: true,
           disabled: false,
           required: false,
-          helpText: 'Synchronize your configuration across all your devices.'
-        }
+          helpText: 'Synchronize your configuration across all your devices.',
+        },
       ],
       visible: false,
       expanded: false,
-      required: false
+      required: false,
     });
   }
 
@@ -644,66 +677,71 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
     this.hints.set('welcome', {
       id: 'welcome',
       targetElement: '.configuration-container',
-      content: 'Welcome! Let\'s set up your project in just a few steps. We\'ll start with the basics and you can add more features later.',
+      content:
+        "Welcome! Let's set up your project in just a few steps. We'll start with the basics and you can add more features later.",
       type: 'modal',
       trigger: 'auto',
       position: 'auto',
       delay: 1000,
       conditions: [{ type: 'first-time' }],
       shown: false,
-      dismissed: false
+      dismissed: false,
     });
 
     this.hints.set('project-type-help', {
       id: 'project-type-help',
       targetElement: '#project-type',
-      content: 'Choose your project type carefully - it determines which agents and features are recommended for you.',
+      content:
+        'Choose your project type carefully - it determines which agents and features are recommended for you.',
       type: 'tooltip',
       trigger: 'hover',
       position: 'right',
       delay: 500,
       shown: false,
-      dismissed: false
+      dismissed: false,
     });
 
     this.hints.set('agent-count-guidance', {
       id: 'agent-count-guidance',
       targetElement: '#agent-max-count',
-      content: 'Start with 3 agents for most projects. You can always adjust this later as you learn what works best.',
+      content:
+        'Start with 3 agents for most projects. You can always adjust this later as you learn what works best.',
       type: 'popover',
       trigger: 'focus',
       position: 'top',
       delay: 0,
       conditions: [{ type: 'first-time' }],
       shown: false,
-      dismissed: false
+      dismissed: false,
     });
 
     // Level transition hints
     this.hints.set('intermediate-unlock', {
       id: 'intermediate-unlock',
       targetElement: '.level-indicator',
-      content: 'Great progress! You can now access intermediate features like monitoring and advanced agent coordination.',
+      content:
+        'Great progress! You can now access intermediate features like monitoring and advanced agent coordination.',
       type: 'modal',
       trigger: 'auto',
       position: 'auto',
       delay: 500,
       shown: false,
-      dismissed: false
+      dismissed: false,
     });
 
     // Error recovery hints
     this.hints.set('validation-error-help', {
       id: 'validation-error-help',
       targetElement: '.error-field',
-      content: 'Don\'t worry about errors - they help ensure your configuration will work correctly. Check the help text for guidance.',
+      content:
+        "Don't worry about errors - they help ensure your configuration will work correctly. Check the help text for guidance.",
       type: 'inline',
       trigger: 'auto',
       position: 'bottom',
       delay: 0,
       conditions: [{ type: 'error-state' }],
       shown: false,
-      dismissed: false
+      dismissed: false,
     });
   }
 
@@ -718,7 +756,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       delay: 0,
       easing: 'ease-out',
       element: '.section-content',
-      trigger: 'show'
+      trigger: 'show',
     });
 
     this.animations.set('section-collapse', {
@@ -727,7 +765,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       delay: 0,
       easing: 'ease-in',
       element: '.section-content',
-      trigger: 'hide'
+      trigger: 'hide',
     });
 
     // Level transitions
@@ -737,7 +775,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       delay: 100,
       easing: 'ease-out',
       element: '.new-features',
-      trigger: 'show'
+      trigger: 'show',
     });
 
     // Value changes
@@ -747,7 +785,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       delay: 0,
       easing: 'ease-out',
       element: '.field-success',
-      trigger: 'success'
+      trigger: 'success',
     });
 
     this.animations.set('value-error', {
@@ -756,7 +794,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       delay: 0,
       easing: 'ease-out',
       element: '.field-error',
-      trigger: 'error'
+      trigger: 'error',
     });
   }
 
@@ -769,23 +807,24 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       completedSections: new Set(),
       userProgress: 0,
       showAdvanced: false,
-      expertMode: false
+      expertMode: false,
     };
   }
 
   private shouldShowSection(section: UISection): boolean {
-    return section.level.includes(this.state.currentLevel) &&
-           this.state.visibleSections.has(section.id);
+    return (
+      section.level.includes(this.state.currentLevel) && this.state.visibleSections.has(section.id)
+    );
   }
 
   private filterSectionForLevel(section: UISection): UISection {
     const filteredComponents = section.components
-      .filter(component => component.level.includes(this.state.currentLevel))
-      .map(component => ({ ...component }));
+      .filter((component) => component.level.includes(this.state.currentLevel))
+      .map((component) => ({ ...component }));
 
     return {
       ...section,
-      components: filteredComponents
+      components: filteredComponents,
     };
   }
 
@@ -809,8 +848,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
   }
 
   private calculateProgress(): ProgressIndicator {
-    const visibleSections = Array.from(this.sections.values())
-      .filter(section => section.visible);
+    const visibleSections = Array.from(this.sections.values()).filter((section) => section.visible);
 
     const totalSteps = visibleSections.length;
     const completedSteps = this.state.completedSections.size;
@@ -823,9 +861,9 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
       percentage: Math.round(percentage),
       sectionsComplete: Array.from(this.state.completedSections),
       sectionsRemaining: visibleSections
-        .filter(section => !this.state.completedSections.has(section.id))
-        .map(section => section.id),
-      estimatedTimeRemaining: this.estimateTimeRemaining(totalSteps - completedSteps)
+        .filter((section) => !this.state.completedSections.has(section.id))
+        .map((section) => section.id),
+      estimatedTimeRemaining: this.estimateTimeRemaining(totalSteps - completedSteps),
     };
   }
 
@@ -837,7 +875,7 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
   private async canTransitionToLevel(level: ConfigurationMode): Promise<boolean> {
     // Check if user has completed required prerequisites
     const requiredSections = this.getRequiredSectionsForLevel(level);
-    return requiredSections.every(sectionId => this.state.completedSections.has(sectionId));
+    return requiredSections.every((sectionId) => this.state.completedSections.has(sectionId));
   }
 
   private getRequiredSectionsForLevel(level: ConfigurationMode): string[] {
@@ -897,13 +935,13 @@ export class ProgressiveDisclosureEngine extends EventEmitter {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   private findComponent(componentId: string): UIComponent | null {
     for (const section of this.sections.values()) {
-      const component = section.components.find(c => c.id === componentId);
+      const component = section.components.find((c) => c.id === componentId);
       if (component) return component;
     }
     return null;
@@ -925,7 +963,7 @@ class UIContextAnalyzer {
       currentLevel: state.currentLevel,
       completionRate: state.userProgress,
       commonErrors: [],
-      suggestedNextSteps: []
+      suggestedNextSteps: [],
     };
   }
 }

@@ -156,7 +156,12 @@ export interface RetryConfig {
 
 export type SyncStrategy = 'merge' | 'overwrite' | 'prompt' | 'three-way';
 
-export type ConflictResolutionStrategy = 'local-wins' | 'remote-wins' | 'prompt' | 'merge' | 'timestamp';
+export type ConflictResolutionStrategy =
+  | 'local-wins'
+  | 'remote-wins'
+  | 'prompt'
+  | 'merge'
+  | 'timestamp';
 
 /**
  * Multi-tier configuration storage manager
@@ -183,35 +188,30 @@ export class MultiTierStorageManager {
    */
   private initializeProviders(): void {
     // Local storage provider
-    this.providers.set('local', new LocalStorageProvider(
-      this.config.local,
-      this.encryptionService,
-      this.backupManager
-    ));
+    this.providers.set(
+      'local',
+      new LocalStorageProvider(this.config.local, this.encryptionService, this.backupManager),
+    );
 
     // Project storage provider
     if (this.config.project.enabled) {
-      this.providers.set('project', new ProjectStorageProvider(
-        this.config.project,
-        this.backupManager
-      ));
+      this.providers.set(
+        'project',
+        new ProjectStorageProvider(this.config.project, this.backupManager),
+      );
     }
 
     // Team storage provider
     if (this.config.team.enabled) {
-      this.providers.set('team', new TeamStorageProvider(
-        this.config.team,
-        this.syncManager
-      ));
+      this.providers.set('team', new TeamStorageProvider(this.config.team, this.syncManager));
     }
 
     // Cloud storage provider
     if (this.config.cloud.enabled) {
-      this.providers.set('cloud', new CloudStorageProvider(
-        this.config.cloud,
-        this.encryptionService,
-        this.syncManager
-      ));
+      this.providers.set(
+        'cloud',
+        new CloudStorageProvider(this.config.cloud, this.encryptionService, this.syncManager),
+      );
     }
   }
 
@@ -220,7 +220,7 @@ export class MultiTierStorageManager {
    */
   async save(
     configuration: any,
-    tiers: StorageTier | StorageTier[] = ['local']
+    tiers: StorageTier | StorageTier[] = ['local'],
   ): Promise<SaveResult> {
     const targetTiers = Array.isArray(tiers) ? tiers : [tiers];
     const results: TierSaveResult[] = [];
@@ -231,7 +231,7 @@ export class MultiTierStorageManager {
         results.push({
           tier,
           success: false,
-          error: `Provider not available for tier: ${tier}`
+          error: `Provider not available for tier: ${tier}`,
         });
         continue;
       }
@@ -242,7 +242,7 @@ export class MultiTierStorageManager {
 
         // Create backup if enabled
         let backupId: string | undefined;
-        if (provider.backup && await provider.exists()) {
+        if (provider.backup && (await provider.exists())) {
           backupId = await provider.backup();
         }
 
@@ -256,32 +256,31 @@ export class MultiTierStorageManager {
             tier,
             success: true,
             backupId,
-            syncResult
+            syncResult,
           });
         } else {
           results.push({
             tier,
             success: true,
-            backupId
+            backupId,
           });
         }
 
         // Notify hooks
         await this.notifyConfigurationSaved(tier, configuration, backupId);
-
       } catch (error) {
         results.push({
           tier,
           success: false,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
 
     return {
-      success: results.every(r => r.success),
+      success: results.every((r) => r.success),
       results,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -290,7 +289,7 @@ export class MultiTierStorageManager {
    */
   async load(
     primaryTier: StorageTier = 'local',
-    fallbackTiers: StorageTier[] = []
+    fallbackTiers: StorageTier[] = [],
   ): Promise<LoadResult> {
     const tiers = [primaryTier, ...fallbackTiers];
 
@@ -312,9 +311,8 @@ export class MultiTierStorageManager {
           success: true,
           configuration,
           tier,
-          timestamp: new Date()
+          timestamp: new Date(),
         };
-
       } catch (error) {
         console.warn(`Failed to load from ${tier}:`, error);
         continue;
@@ -348,13 +346,12 @@ export class MultiTierStorageManager {
         if (syncResult.conflicts.length > 0) {
           await this.handleConflicts(tier, syncResult.conflicts, primaryConfig.configuration);
         }
-
       } catch (error) {
         results.push({
           success: false,
           conflicts: [],
           changes: [],
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
     }
@@ -365,10 +362,7 @@ export class MultiTierStorageManager {
   /**
    * Create backup of configuration
    */
-  async backup(
-    tier: StorageTier = 'local',
-    description?: string
-  ): Promise<string> {
+  async backup(tier: StorageTier = 'local', description?: string): Promise<string> {
     const provider = this.providers.get(tier);
     if (!provider?.backup) {
       throw new Error(`Backup not supported for tier: ${tier}`);
@@ -382,7 +376,7 @@ export class MultiTierStorageManager {
       tier,
       description,
       timestamp: new Date(),
-      size: await this.getConfigurationSize(tier)
+      size: await this.getConfigurationSize(tier),
     });
 
     return backupId;
@@ -391,10 +385,7 @@ export class MultiTierStorageManager {
   /**
    * Restore configuration from backup
    */
-  async restore(
-    backupId: string,
-    tier: StorageTier = 'local'
-  ): Promise<void> {
+  async restore(backupId: string, tier: StorageTier = 'local'): Promise<void> {
     const provider = this.providers.get(tier);
     if (!provider?.restore) {
       throw new Error(`Restore not supported for tier: ${tier}`);
@@ -417,7 +408,7 @@ export class MultiTierStorageManager {
   async migrate(
     fromTier: StorageTier,
     toTier: StorageTier,
-    options: MigrationOptions = {}
+    options: MigrationOptions = {},
   ): Promise<MigrationResult> {
     // Load configuration from source tier
     const sourceConfig = await this.load(fromTier);
@@ -444,7 +435,7 @@ export class MultiTierStorageManager {
       toTier,
       backupId: saveResult.results[0]?.backupId,
       transformations: options.transformations?.length || 0,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -459,7 +450,7 @@ export class MultiTierStorageManager {
 
     // Create backup before removal
     let backupId: string | undefined;
-    if (provider.backup && await provider.exists()) {
+    if (provider.backup && (await provider.exists())) {
       backupId = await provider.backup();
     }
 
@@ -489,7 +480,7 @@ export class MultiTierStorageManager {
           size,
           lastModified,
           syncEnabled: !!provider.sync,
-          backupEnabled: !!provider.backup
+          backupEnabled: !!provider.backup,
         });
       } catch (error) {
         stats.push({
@@ -499,7 +490,7 @@ export class MultiTierStorageManager {
           lastModified: null,
           syncEnabled: false,
           backupEnabled: false,
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
       }
     }
@@ -511,15 +502,12 @@ export class MultiTierStorageManager {
       backups,
       totalSize: stats.reduce((sum, stat) => sum + stat.size, 0),
       lastSync: await this.syncManager.getLastSyncTime(),
-      syncInProgress: this.syncManager.isSyncInProgress()
+      syncInProgress: this.syncManager.isSyncInProgress(),
     };
   }
 
   // Private helper methods
-  private async serialize(
-    configuration: any,
-    tier: StorageTier
-  ): Promise<string> {
+  private async serialize(configuration: any, tier: StorageTier): Promise<string> {
     const format = this.getSerializationFormat(tier);
 
     switch (format) {
@@ -536,10 +524,7 @@ export class MultiTierStorageManager {
     }
   }
 
-  private async deserialize(
-    data: string,
-    tier: StorageTier
-  ): Promise<any> {
+  private async deserialize(data: string, tier: StorageTier): Promise<any> {
     const format = this.getSerializationFormat(tier);
 
     try {
@@ -592,7 +577,7 @@ export class MultiTierStorageManager {
   private async handleConflicts(
     tier: StorageTier,
     conflicts: ConflictInfo[],
-    localConfig: any
+    localConfig: any,
   ): Promise<void> {
     const strategy = this.getConflictResolutionStrategy(tier);
 
@@ -637,7 +622,7 @@ export class MultiTierStorageManager {
 
   private async applyTransformation(
     configuration: any,
-    transformation: ConfigurationTransformation
+    transformation: ConfigurationTransformation,
   ): Promise<any> {
     // Apply configuration transformations during migration
     return configuration; // Placeholder implementation
@@ -647,22 +632,16 @@ export class MultiTierStorageManager {
   private async notifyConfigurationSaved(
     tier: StorageTier,
     configuration: any,
-    backupId?: string
+    backupId?: string,
   ): Promise<void> {
     // Integration with hook system
   }
 
-  private async notifyConfigurationRestored(
-    tier: StorageTier,
-    backupId: string
-  ): Promise<void> {
+  private async notifyConfigurationRestored(tier: StorageTier, backupId: string): Promise<void> {
     // Integration with hook system
   }
 
-  private async notifyConfigurationRemoved(
-    tier: StorageTier,
-    backupId?: string
-  ): Promise<void> {
+  private async notifyConfigurationRemoved(tier: StorageTier, backupId?: string): Promise<void> {
     // Integration with hook system
   }
 
@@ -684,7 +663,7 @@ class LocalStorageProvider implements StorageProvider {
   constructor(
     private config: LocalStorageConfig,
     private encryptionService: EncryptionService,
-    private backupManager: BackupManager
+    private backupManager: BackupManager,
   ) {}
 
   async read(): Promise<string> {
@@ -725,17 +704,11 @@ class LocalStorageProvider implements StorageProvider {
       throw new Error('Backup not enabled for local storage');
     }
 
-    return await this.backupManager.createBackup(
-      this.resolveConfigPath(),
-      'local'
-    );
+    return await this.backupManager.createBackup(this.resolveConfigPath(), 'local');
   }
 
   async restore(backupId: string): Promise<void> {
-    await this.backupManager.restoreBackup(
-      backupId,
-      this.resolveConfigPath()
-    );
+    await this.backupManager.restoreBackup(backupId, this.resolveConfigPath());
   }
 
   private resolveConfigPath(): string {
@@ -748,7 +721,7 @@ class ProjectStorageProvider implements StorageProvider {
 
   constructor(
     private config: ProjectStorageConfig,
-    private backupManager: BackupManager
+    private backupManager: BackupManager,
   ) {}
 
   async read(): Promise<string> {
@@ -770,17 +743,11 @@ class ProjectStorageProvider implements StorageProvider {
   }
 
   async backup(): Promise<string> {
-    return await this.backupManager.createBackup(
-      this.config.path,
-      'project'
-    );
+    return await this.backupManager.createBackup(this.config.path, 'project');
   }
 
   async restore(backupId: string): Promise<void> {
-    await this.backupManager.restoreBackup(
-      backupId,
-      this.config.path
-    );
+    await this.backupManager.restoreBackup(backupId, this.config.path);
   }
 }
 
@@ -789,7 +756,7 @@ class TeamStorageProvider implements StorageProvider {
 
   constructor(
     private config: TeamStorageConfig,
-    private syncManager: SynchronizationManager
+    private syncManager: SynchronizationManager,
   ) {}
 
   async read(): Promise<string> {
@@ -818,7 +785,7 @@ class CloudStorageProvider implements StorageProvider {
   constructor(
     private config: CloudStorageConfig,
     private encryptionService: EncryptionService,
-    private syncManager: SynchronizationManager
+    private syncManager: SynchronizationManager,
   ) {}
 
   async read(): Promise<string> {
@@ -867,7 +834,7 @@ class SynchronizationManager {
       success: true,
       conflicts: [],
       changes: [],
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -877,7 +844,7 @@ class SynchronizationManager {
       success: true,
       conflicts: [],
       changes: [],
-      timestamp: new Date()
+      timestamp: new Date(),
     };
   }
 
@@ -921,7 +888,7 @@ class BackupManager {
       totalBackups: 0,
       totalSize: 0,
       oldestBackup: null,
-      newestBackup: null
+      newestBackup: null,
     };
   }
 

@@ -5,7 +5,16 @@
  * Provides CLI commands for completion validation setup and testing
  */
 
-import { setupCommand, showConfigCommand, testConfigCommand, enableHooksCommand, disableHooksCommand, addFrameworkCommand, configureGatesCommand, checkCommand } from '../../completion/cli-wizard.js';
+import {
+  setupCommand,
+  showConfigCommand,
+  testConfigCommand,
+  enableHooksCommand,
+  disableHooksCommand,
+  addFrameworkCommand,
+  configureGatesCommand,
+  checkCommand,
+} from '../../completion/cli-wizard.js';
 import chalk from 'chalk';
 
 export function registerValidationCommands(program) {
@@ -29,13 +38,16 @@ export function registerValidationCommands(program) {
           console.log(chalk.green('\n🎉 Setup completed successfully!'));
           console.log(chalk.gray('You can now use completion validation in your project.'));
           console.log(chalk.gray('\nNext steps:'));
-          console.log(chalk.gray('  • claude-flow-novice validate test    # Test your configuration'));
-          console.log(chalk.gray('  • claude-flow-novice validate show-config   # View current settings'));
+          console.log(
+            chalk.gray('  • claude-flow-novice validate test    # Test your configuration'),
+          );
+          console.log(
+            chalk.gray('  • claude-flow-novice validate show-config   # View current settings'),
+          );
         } else {
           console.error(chalk.red(`\n❌ Setup failed: ${result.error}`));
           process.exit(1);
         }
-
       } catch (error) {
         console.error(chalk.red(`\n❌ Setup error: ${error.message}`));
         if (options.verbose) {

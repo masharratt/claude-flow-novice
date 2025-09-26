@@ -33,7 +33,9 @@ describe('Personalization CLI Integration', () => {
       const fallbackHandler = integration.constructor.getFallbackHandler();
 
       await fallbackHandler(['help'], {});
-      expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Personalization System Overview'));
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        expect.stringContaining('Personalization System Overview'),
+      );
     });
   });
 
@@ -46,7 +48,9 @@ describe('Personalization CLI Integration', () => {
 
     test('should handle help command', async () => {
       await cli.handleCommand(['help'], {});
-      expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Claude Flow Novice Personalization CLI'));
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        expect.stringContaining('Claude Flow Novice Personalization CLI'),
+      );
     });
 
     test('should handle status command gracefully', async () => {
@@ -62,7 +66,9 @@ describe('Personalization CLI Integration', () => {
 
     test('should handle unknown command', async () => {
       await cli.handleCommand(['unknown'], {});
-      expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Claude Flow Novice Personalization CLI'));
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        expect.stringContaining('Claude Flow Novice Personalization CLI'),
+      );
     });
   });
 
@@ -113,7 +119,10 @@ describe('Personalization CLI Integration', () => {
         expect(error.message).toBe('Test error');
       }
 
-      expect(mockConsoleError).toHaveBeenCalledWith('❌ Personalization command failed:', 'Test error');
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        '❌ Personalization command failed:',
+        'Test error',
+      );
     });
   });
 
@@ -122,7 +131,7 @@ describe('Personalization CLI Integration', () => {
       // Test that the personalization command follows the same patterns as other commands
       const commands = ['init', 'status', 'config', 'personalize'];
 
-      commands.forEach(command => {
+      commands.forEach((command) => {
         expect(hasCommand(command)).toBe(true);
       });
     });
@@ -145,7 +154,7 @@ describe('Personalization CLI Integration', () => {
     test('should provide command-specific help', () => {
       const commands = ['setup', 'status', 'optimize', 'analytics', 'resource', 'dashboard'];
 
-      commands.forEach(command => {
+      commands.forEach((command) => {
         expect(() => {
           PersonalizationIntegration.showHelp(command);
         }).not.toThrow();
@@ -157,7 +166,9 @@ describe('Personalization CLI Integration', () => {
         PersonalizationIntegration.showHelp();
       }).not.toThrow();
 
-      expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Claude Flow Novice Personalization System'));
+      expect(mockConsoleLog).toHaveBeenCalledWith(
+        expect.stringContaining('Claude Flow Novice Personalization System'),
+      );
     });
   });
 
@@ -183,15 +194,25 @@ describe('Personalization CLI Integration', () => {
 
     test('should provide consistent command structure', () => {
       const expectedSubcommands = [
-        'setup', 'status', 'optimize', 'analytics', 'resource',
-        'preferences', 'content', 'workflow', 'dashboard',
-        'export', 'import', 'reset', 'help'
+        'setup',
+        'status',
+        'optimize',
+        'analytics',
+        'resource',
+        'preferences',
+        'content',
+        'workflow',
+        'dashboard',
+        'export',
+        'import',
+        'reset',
+        'help',
       ];
 
       const validation = PersonalizationIntegration.validateCommand(['help'], {});
       expect(validation.valid).toBe(true);
 
-      expectedSubcommands.forEach(cmd => {
+      expectedSubcommands.forEach((cmd) => {
         const cmdValidation = PersonalizationIntegration.validateCommand([cmd], {});
         expect(cmdValidation.valid).toBe(true);
       });
@@ -245,7 +266,7 @@ describe('Personalization CLI Usage Patterns', () => {
     // Typical first-time user workflow
     const firstTimeFlow = [
       ['help', {}],
-      ['status', {}]
+      ['status', {}],
     ];
 
     for (const [command, flags] of firstTimeFlow) {
@@ -263,10 +284,10 @@ describe('Personalization CLI Usage Patterns', () => {
     const cli = new PersonalizationCLI();
 
     const edgeCases = [
-      [[], {}],  // No arguments
-      [[''], {}],  // Empty string argument
-      [['help', 'extra', 'args'], {}],  // Extra arguments
-      [['valid-command'], { invalidFlag: true }]  // Invalid flags
+      [[], {}], // No arguments
+      [[''], {}], // Empty string argument
+      [['help', 'extra', 'args'], {}], // Extra arguments
+      [['valid-command'], { invalidFlag: true }], // Invalid flags
     ];
 
     for (const [args, flags] of edgeCases) {

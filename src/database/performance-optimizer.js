@@ -12,13 +12,13 @@ class DatabaseOptimizer {
     this.connectionPool = options.connectionPool || {
       min: 5,
       max: 20,
-      idle: 10000
+      idle: 10000,
     };
 
     this.queryOptimization = options.queryOptimization || {
       enableIndexHints: true,
       enableQueryPlan: true,
-      enableStatisticsUpdate: true
+      enableStatisticsUpdate: true,
     };
 
     // Performance tracking
@@ -38,7 +38,7 @@ class DatabaseOptimizer {
       queriesOptimized: 0,
       indexesCreated: 0,
       averageImprovement: 0,
-      totalOptimizationTime: 0
+      totalOptimizationTime: 0,
     };
   }
 
@@ -67,7 +67,7 @@ class DatabaseOptimizer {
           params,
           executionTime,
           timestamp: Date.now(),
-          result: result
+          result: result,
         });
 
         return result;
@@ -83,7 +83,7 @@ class DatabaseOptimizer {
         return {
           insertedCount: data.length,
           executionTime: end - start,
-          result
+          result,
         };
       },
 
@@ -98,7 +98,7 @@ class DatabaseOptimizer {
         return {
           insertedCount: data.length,
           executionTime: end - start,
-          result
+          result,
         };
       },
 
@@ -119,7 +119,7 @@ class DatabaseOptimizer {
         const complexity = this._analyzeQueryComplexity(sql);
         const delay = this._calculateQueryDelay(complexity, false);
 
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
 
         // Return mock result based on query type
         if (sql.toLowerCase().includes('select count')) {
@@ -135,14 +135,14 @@ class DatabaseOptimizer {
       async _simulateBatchInsert(table, data) {
         // Simulate unoptimized batch insert
         const baseDelay = data.length * 0.1; // 0.1ms per record (slow)
-        await new Promise(resolve => setTimeout(resolve, baseDelay));
+        await new Promise((resolve) => setTimeout(resolve, baseDelay));
         return { success: true, insertedRows: data.length };
       },
 
       async _simulateOptimizedBatchInsert(table, data) {
         // Simulate optimized batch insert
         const optimizedDelay = data.length * 0.03; // 0.03ms per record (3x faster)
-        await new Promise(resolve => setTimeout(resolve, optimizedDelay));
+        await new Promise((resolve) => setTimeout(resolve, optimizedDelay));
         return { success: true, insertedRows: data.length };
       },
 
@@ -154,17 +154,18 @@ class DatabaseOptimizer {
           aggregations: (sqlLower.match(/(count|sum|avg|max|min)/g) || []).length,
           orderBy: sqlLower.includes('order by'),
           groupBy: sqlLower.includes('group by'),
-          estimatedRows: 1000
+          estimatedRows: 1000,
         };
 
         // Estimate complexity score
-        complexity.score = complexity.joins * 2 +
-                          complexity.subqueries * 3 +
-                          complexity.aggregations * 2 +
-                          (complexity.orderBy ? 2 : 0) +
-                          (complexity.groupBy ? 3 : 0);
+        complexity.score =
+          complexity.joins * 2 +
+          complexity.subqueries * 3 +
+          complexity.aggregations * 2 +
+          (complexity.orderBy ? 2 : 0) +
+          (complexity.groupBy ? 3 : 0);
 
-        complexity.estimatedRows *= (1 + complexity.score * 0.5);
+        complexity.estimatedRows *= 1 + complexity.score * 0.5;
 
         return complexity;
       },
@@ -187,7 +188,7 @@ class DatabaseOptimizer {
           cost: complexity.score * 100,
           operations: this._generatePlanOperations(sql, complexity),
           estimatedRows: complexity.estimatedRows,
-          estimatedTime: this._calculateQueryDelay(complexity)
+          estimatedTime: this._calculateQueryDelay(complexity),
         };
       },
 
@@ -205,7 +206,7 @@ class DatabaseOptimizer {
         }
 
         return operations;
-      }
+      },
     };
 
     // Initialize test tables with data
@@ -222,11 +223,7 @@ class DatabaseOptimizer {
    * @param {Object} options - Optimization options
    */
   async optimizeQuery(sql, options = {}) {
-    const {
-      addIndexes = true,
-      rewriteQuery = true,
-      useQueryPlan = true
-    } = options;
+    const { addIndexes = true, rewriteQuery = true, useQueryPlan = true } = options;
 
     const startTime = performance.now();
 
@@ -256,15 +253,14 @@ class DatabaseOptimizer {
       const endTime = performance.now();
 
       this.stats.queriesOptimized++;
-      this.stats.totalOptimizationTime += (endTime - startTime);
+      this.stats.totalOptimizationTime += endTime - startTime;
 
       return {
         sql: optimizedSql,
         originalSql: sql,
         optimizations: optimizations,
-        optimizationTime: endTime - startTime
+        optimizationTime: endTime - startTime,
       };
-
     } catch (error) {
       throw new Error(`Query optimization failed: ${error.message}`);
     }
@@ -293,7 +289,7 @@ class DatabaseOptimizer {
     return {
       sql: optimizedSql,
       params: params,
-      optimizations: ['indexed_where_clause', 'batched_updates']
+      optimizations: ['indexed_where_clause', 'batched_updates'],
     };
   }
 
@@ -306,7 +302,7 @@ class DatabaseOptimizer {
     const {
       analyzeQueryPlans = true,
       considerCompositeIndexes = true,
-      optimizeForReadWrite = 'read'
+      optimizeForReadWrite = 'read',
     } = options;
 
     const recommendations = [];
@@ -319,7 +315,7 @@ class DatabaseOptimizer {
         recommendedIndexes: analysis.indexes,
         reasoning: analysis.reasoning,
         expectedImprovement: analysis.expectedImprovement,
-        created: true // Simulate index creation
+        created: true, // Simulate index creation
       };
 
       recommendations.push(indexRecommendation);
@@ -348,7 +344,7 @@ class DatabaseOptimizer {
         indexName: `idx_${table}_${columns.join('_')}`,
         created: true,
         creationTime: Math.random() * 100 + 50, // 50-150ms
-        estimatedImprovement: 0.3 + Math.random() * 0.4 // 30-70% improvement
+        estimatedImprovement: 0.3 + Math.random() * 0.4, // 30-70% improvement
       };
 
       results.push(indexResult);
@@ -364,17 +360,17 @@ class DatabaseOptimizer {
   async configureConnectionPool(poolConfig) {
     this.connectionPool = {
       ...this.connectionPool,
-      ...poolConfig
+      ...poolConfig,
     };
 
     // Simulate connection pool reconfiguration
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     return {
       configured: true,
       activeConnections: poolConfig.min,
       maxConnections: poolConfig.max,
-      configuration: this.connectionPool
+      configuration: this.connectionPool,
     };
   }
 
@@ -387,7 +383,7 @@ class DatabaseOptimizer {
     const {
       forceIndexUsage = true,
       optimizeJoinOrder = true,
-      enablePushdownOptimizations = true
+      enablePushdownOptimizations = true,
     } = options;
 
     let optimizedSql = sql;
@@ -411,7 +407,7 @@ class DatabaseOptimizer {
     return {
       sql: optimizedSql,
       originalSql: sql,
-      optimizations: planOptimizations
+      optimizations: planOptimizations,
     };
   }
 
@@ -429,14 +425,14 @@ class DatabaseOptimizer {
       strategy: strategy,
       hits: 0,
       misses: 0,
-      enabled: true
+      enabled: true,
     };
 
     this.cacheEnabled = true;
 
     return {
       enabled: true,
-      configuration: cacheConfig
+      configuration: cacheConfig,
     };
   }
 
@@ -450,21 +446,21 @@ class DatabaseOptimizer {
       enableBulkInsert = true,
       disableIndexesDuringInsert = true,
       useTransaction = true,
-      batchSize = 1000
+      batchSize = 1000,
     } = options;
 
     // Simulate table optimization for inserts
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     return {
       table: tableName,
       optimizationsApplied: [
         enableBulkInsert && 'bulk_insert',
         disableIndexesDuringInsert && 'index_disable',
-        useTransaction && 'transaction_batching'
+        useTransaction && 'transaction_batching',
       ].filter(Boolean),
       batchSize: batchSize,
-      optimized: true
+      optimized: true,
     };
   }
 
@@ -477,12 +473,12 @@ class DatabaseOptimizer {
       indexOptimization = true,
       queryOptimization = true,
       connectionPoolOptimization = true,
-      cacheOptimization = true
+      cacheOptimization = true,
     } = options;
 
     const results = {
       applied: [],
-      performance: {}
+      performance: {},
     };
 
     if (indexOptimization) {
@@ -499,7 +495,7 @@ class DatabaseOptimizer {
       await this.configureConnectionPool({
         min: 10,
         max: 50,
-        acquireTimeout: 5000
+        acquireTimeout: 5000,
       });
       results.applied.push('connection_pool_optimization');
     }
@@ -508,7 +504,7 @@ class DatabaseOptimizer {
       await this.enableQueryCache({
         maxSize: 1000,
         ttl: 300000,
-        strategy: 'lru'
+        strategy: 'lru',
       });
       results.applied.push('cache_optimization');
     }
@@ -551,7 +547,7 @@ class DatabaseOptimizer {
 
     // Add index hints to appropriate table references
     let optimized = sql;
-    hints.forEach(hint => {
+    hints.forEach((hint) => {
       optimized = optimized.replace(/FROM\s+(\w+)/, `FROM $1 ${hint}`);
     });
 
@@ -574,7 +570,7 @@ class DatabaseOptimizer {
     const analysis = {
       indexes: [],
       reasoning: [],
-      expectedImprovement: 0
+      expectedImprovement: 0,
     };
 
     // Analyze WHERE clauses
@@ -611,12 +607,12 @@ class DatabaseOptimizer {
   }
 
   async _applyIndexOptimizations() {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     this.stats.indexesCreated += 5; // Simulate creating 5 indexes
   }
 
   async _applyQueryOptimizations() {
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     this.stats.queriesOptimized += 10; // Simulate optimizing 10 queries
   }
 
@@ -633,7 +629,7 @@ class DatabaseOptimizer {
       id: i + 1,
       name: `${tableName}_${i}`,
       created_at: new Date(),
-      status: i % 2 === 0 ? 'active' : 'inactive'
+      status: i % 2 === 0 ? 'active' : 'inactive',
     }));
 
     testDB.tables.set(tableName, tableData);

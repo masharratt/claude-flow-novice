@@ -33,17 +33,19 @@ async function demonstratePreferenceSystem() {
     console.log(chalk.green(`✅ Preferences valid: ${validation.valid}`));
     if (validation.errors.length > 0) {
       console.log(chalk.red('❌ Validation errors:'));
-      validation.errors.forEach(error => console.log(chalk.red(`  • ${error}`)));
+      validation.errors.forEach((error) => console.log(chalk.red(`  • ${error}`)));
     }
 
     // Demo 4: Contextual Preferences
     console.log(chalk.yellow('\n🎯 Demo 4: Contextual Preference Adaptation'));
     const contextualPrefs = await manager.getContextualPreferences({
       taskComplexity: 'simple',
-      systemResources: 'limited'
+      systemResources: 'limited',
     });
     console.log(chalk.green('✅ Contextual preferences adapted:'));
-    console.log(chalk.gray(`  • Documentation verbosity: ${contextualPrefs.documentation.verbosity}`));
+    console.log(
+      chalk.gray(`  • Documentation verbosity: ${contextualPrefs.documentation.verbosity}`),
+    );
     console.log(chalk.gray(`  • Workflow concurrency: ${contextualPrefs.workflow.concurrency}`));
 
     // Demo 5: Preference Suggestions
@@ -51,7 +53,9 @@ async function demonstratePreferenceSystem() {
     const suggestions = await manager.generateSuggestions();
     console.log(chalk.green(`✅ Generated ${suggestions.length} suggestions:`));
     suggestions.slice(0, 3).forEach((suggestion, index) => {
-      console.log(chalk.blue(`  ${index + 1}. ${suggestion.key}: ${JSON.stringify(suggestion.value)}`));
+      console.log(
+        chalk.blue(`  ${index + 1}. ${suggestion.key}: ${JSON.stringify(suggestion.value)}`),
+      );
       console.log(chalk.gray(`     Reason: ${suggestion.reason}`));
     });
 
@@ -75,14 +79,13 @@ async function demonstratePreferenceSystem() {
     const schema = manager.schema.getValidationSchema();
     const keyCount = Object.keys(schema).length;
     console.log(chalk.green(`✅ Schema contains ${keyCount} main categories:`));
-    Object.keys(schema).forEach(key => {
+    Object.keys(schema).forEach((key) => {
       console.log(chalk.gray(`  • ${key}.*`));
     });
 
     console.log(chalk.green.bold('\n🎉 All preference system demos completed successfully!'));
     console.log(chalk.blue('\nTo try the interactive wizard, run:'));
     console.log(chalk.white('  claude-flow-novice preferences setup'));
-
   } catch (error) {
     console.error(chalk.red('❌ Demo failed:'), error.message);
     if (process.env.DEBUG) {
@@ -94,7 +97,7 @@ async function demonstratePreferenceSystem() {
 
 // Run demo if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  demonstratePreferenceSystem().catch(error => {
+  demonstratePreferenceSystem().catch((error) => {
     console.error(chalk.red('Fatal error:'), error);
     process.exit(1);
   });

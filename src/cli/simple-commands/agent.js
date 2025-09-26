@@ -55,7 +55,7 @@ async function spawnAgent(subArgs, flags) {
   console.log('   Capabilities: Research, Analysis, Code Generation');
   console.log('   Status: Ready');
   console.log('\n📋 Note: Full agent spawning requires orchestrator to be running');
-  
+
   // Track agent spawn for performance metrics
   await onAgentSpawn(agentId, agentType, { name: agentName });
 }

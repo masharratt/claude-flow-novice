@@ -21,7 +21,7 @@ import { logger } from '../../core/logger.js';
 const EXPERIENCE_LEVELS = {
   NOVICE: 'novice',
   INTERMEDIATE: 'intermediate',
-  EXPERT: 'expert'
+  EXPERT: 'expert',
 };
 
 const FRAMEWORK_MAPPING = {
@@ -29,7 +29,7 @@ const FRAMEWORK_MAPPING = {
   typescript: { name: 'TypeScript', config: 'TDD' },
   python: { name: 'Python', config: 'BDD' },
   rust: { name: 'Rust', config: 'TDD' },
-  unknown: { name: 'Custom Framework', config: 'CUSTOM' }
+  unknown: { name: 'Custom Framework', config: 'CUSTOM' },
 };
 
 export class InteractiveSetupWizard {
@@ -38,7 +38,7 @@ export class InteractiveSetupWizard {
     this.logger = logger.child({ component: 'InteractiveSetupWizard' });
     this.frameworkDetector = new FrameworkDetector({ basePath: this.basePath });
     this.configManager = new TruthConfigManager({
-      configDir: path.join(this.basePath, '.swarm', 'configs')
+      configDir: path.join(this.basePath, '.swarm', 'configs'),
     });
 
     this.setupStartTime = null;
@@ -79,7 +79,11 @@ export class InteractiveSetupWizard {
       console.log(chalk.gray(`⏱️  Setup completed in ${setupTime.toFixed(1)} seconds`));
 
       if (setupTime > 300) {
-        console.log(chalk.yellow('⚠️  Setup took longer than 5 minutes. Consider pre-configuring for next time.'));
+        console.log(
+          chalk.yellow(
+            '⚠️  Setup took longer than 5 minutes. Consider pre-configuring for next time.',
+          ),
+        );
       }
 
       this.displayQuickStart();
@@ -88,9 +92,8 @@ export class InteractiveSetupWizard {
         success: true,
         setupTime: setupTime,
         configuration: this.userPreferences,
-        framework: this.detectedFramework
+        framework: this.detectedFramework,
       };
-
     } catch (error) {
       this.logger.error('Setup wizard failed', error);
       console.log(chalk.red(`\n❌ Setup failed: ${error.message}`));
@@ -98,7 +101,7 @@ export class InteractiveSetupWizard {
       return {
         success: false,
         error: error.message,
-        setupTime: (Date.now() - this.setupStartTime) / 1000
+        setupTime: (Date.now() - this.setupStartTime) / 1000,
       };
     }
   }
@@ -124,7 +127,6 @@ export class InteractiveSetupWizard {
 
       // Show detection results
       this.displayDetectionResults();
-
     } catch (error) {
       spinner.fail('Project analysis failed');
       throw error;
@@ -139,24 +141,24 @@ export class InteractiveSetupWizard {
 
     // Experience level detection
     const experienceLevel = await prompts.select({
-      message: 'What\'s your experience level with automated testing?',
+      message: "What's your experience level with automated testing?",
       choices: [
         {
-          name: 'Novice - I\'m new to testing and want guided setup',
+          name: "Novice - I'm new to testing and want guided setup",
           value: EXPERIENCE_LEVELS.NOVICE,
-          description: 'Recommended settings with explanations'
+          description: 'Recommended settings with explanations',
         },
         {
           name: 'Intermediate - I know the basics and want some control',
           value: EXPERIENCE_LEVELS.INTERMEDIATE,
-          description: 'Balanced automation with customization options'
+          description: 'Balanced automation with customization options',
         },
         {
           name: 'Expert - I want full control over configuration',
           value: EXPERIENCE_LEVELS.EXPERT,
-          description: 'Advanced options and minimal hand-holding'
-        }
-      ]
+          description: 'Advanced options and minimal hand-holding',
+        },
+      ],
     });
 
     this.userPreferences.experienceLevel = experienceLevel;
@@ -179,7 +181,8 @@ export class InteractiveSetupWizard {
     this.userPreferences.strictMode = false;
     this.userPreferences.verbose = true;
 
-    const framework = FRAMEWORK_MAPPING[this.detectedFramework?.detected] || FRAMEWORK_MAPPING.unknown;
+    const framework =
+      FRAMEWORK_MAPPING[this.detectedFramework?.detected] || FRAMEWORK_MAPPING.unknown;
 
     console.log(chalk.green(`✅ Using recommended settings for ${framework.name}:`));
     console.log(chalk.gray('  • Automatic completion hooks enabled'));
@@ -189,7 +192,7 @@ export class InteractiveSetupWizard {
 
     const confirmDefaults = await prompts.confirm({
       message: 'Use these recommended settings?',
-      default: true
+      default: true,
     });
 
     if (!confirmDefaults) {
@@ -208,11 +211,11 @@ export class InteractiveSetupWizard {
         { name: 'Strict validation mode', value: 'strictMode', checked: false },
         { name: 'Verbose feedback', value: 'verbose', checked: true },
         { name: 'GitHub integration', value: 'githubIntegration', checked: false },
-        { name: 'Custom quality gates', value: 'customGates', checked: false }
-      ]
+        { name: 'Custom quality gates', value: 'customGates', checked: false },
+      ],
     });
 
-    preferences.forEach(pref => {
+    preferences.forEach((pref) => {
       this.userPreferences[pref] = true;
     });
   }
@@ -225,7 +228,7 @@ export class InteractiveSetupWizard {
 
     const customConfig = await prompts.confirm({
       message: 'Create custom truth scoring configuration?',
-      default: false
+      default: false,
     });
 
     if (customConfig) {
@@ -240,11 +243,11 @@ export class InteractiveSetupWizard {
         { name: 'Neural pattern learning', value: 'neuralLearning', checked: false },
         { name: 'Distributed validation', value: 'distributedMode', checked: false },
         { name: 'Custom validation hooks', value: 'customHooks', checked: false },
-        { name: 'Performance optimization', value: 'performanceMode', checked: true }
-      ]
+        { name: 'Performance optimization', value: 'performanceMode', checked: true },
+      ],
     });
 
-    advancedOptions.forEach(option => {
+    advancedOptions.forEach((option) => {
       this.userPreferences[option] = true;
     });
   }
@@ -255,14 +258,19 @@ export class InteractiveSetupWizard {
   async configureFramework() {
     console.log(chalk.blue('\n🔧 Framework Configuration'));
 
-    const frameworkInfo = FRAMEWORK_MAPPING[this.detectedFramework?.detected] || FRAMEWORK_MAPPING.unknown;
+    const frameworkInfo =
+      FRAMEWORK_MAPPING[this.detectedFramework?.detected] || FRAMEWORK_MAPPING.unknown;
 
     if (this.detectedFramework?.confidence > 0.8) {
-      console.log(chalk.green(`✅ Detected: ${frameworkInfo.name} (${(this.detectedFramework.confidence * 100).toFixed(1)}% confidence)`));
+      console.log(
+        chalk.green(
+          `✅ Detected: ${frameworkInfo.name} (${(this.detectedFramework.confidence * 100).toFixed(1)}% confidence)`,
+        ),
+      );
 
       const useDetected = await prompts.confirm({
         message: `Configure for ${frameworkInfo.name}?`,
-        default: true
+        default: true,
       });
 
       if (useDetected) {
@@ -280,8 +288,8 @@ export class InteractiveSetupWizard {
         { name: 'Python with pytest', value: 'BDD' },
         { name: 'Rust with cargo test', value: 'TDD' },
         { name: 'SPARC Methodology', value: 'SPARC' },
-        { name: 'Custom Framework', value: 'CUSTOM' }
-      ]
+        { name: 'Custom Framework', value: 'CUSTOM' },
+      ],
     });
 
     await this.applyFrameworkConfig(selectedFramework);
@@ -298,7 +306,7 @@ export class InteractiveSetupWizard {
       const config = await this.configManager.createFromFramework(frameworkType, {
         name: `${frameworkType} Configuration - ${new Date().toLocaleDateString()}`,
         description: `Auto-generated configuration for ${frameworkType} framework`,
-        tags: [frameworkType.toLowerCase(), 'auto-generated']
+        tags: [frameworkType.toLowerCase(), 'auto-generated'],
       });
 
       // Apply user preferences
@@ -314,7 +322,6 @@ export class InteractiveSetupWizard {
       this.userPreferences.truthConfig = config;
 
       spinner.succeed(`${frameworkType} framework configured`);
-
     } catch (error) {
       spinner.fail('Framework configuration failed');
       throw error;
@@ -333,14 +340,14 @@ export class InteractiveSetupWizard {
         truthScore: 0.75,
         testCoverage: 80,
         codeQuality: 'B',
-        documentationCoverage: 60
+        documentationCoverage: 60,
       };
       return;
     }
 
     const customizeGates = await prompts.confirm({
       message: 'Customize quality gate thresholds?',
-      default: false
+      default: false,
     });
 
     if (!customizeGates) {
@@ -352,20 +359,20 @@ export class InteractiveSetupWizard {
     const truthThreshold = await prompts.number({
       message: 'Truth score threshold (0.0-1.0):',
       default: 0.85,
-      validate: (value) => value >= 0 && value <= 1 || 'Must be between 0.0 and 1.0'
+      validate: (value) => (value >= 0 && value <= 1) || 'Must be between 0.0 and 1.0',
     });
 
     const coverageThreshold = await prompts.number({
       message: 'Test coverage threshold (%):',
       default: 90,
-      validate: (value) => value >= 0 && value <= 100 || 'Must be between 0 and 100'
+      validate: (value) => (value >= 0 && value <= 100) || 'Must be between 0 and 100',
     });
 
     this.userPreferences.qualityGates = {
       truthScore: truthThreshold,
       testCoverage: coverageThreshold,
       codeQuality: 'A',
-      documentationCoverage: 80
+      documentationCoverage: 80,
     };
   }
 
@@ -380,10 +387,7 @@ export class InteractiveSetupWizard {
     try {
       // Save configuration
       const configName = `setup_${new Date().toISOString().slice(0, 10)}`;
-      await this.configManager.saveConfiguration(
-        this.userPreferences.truthConfig,
-        configName
-      );
+      await this.configManager.saveConfiguration(this.userPreferences.truthConfig, configName);
 
       // Create user preferences file
       await this.saveUserPreferences();
@@ -397,7 +401,6 @@ export class InteractiveSetupWizard {
       } else {
         spinner.warn(`Configuration saved with warnings: ${testResult.warnings?.join(', ')}`);
       }
-
     } catch (error) {
       spinner.fail('Configuration finalization failed');
       throw error;
@@ -423,13 +426,19 @@ export class InteractiveSetupWizard {
         console.log(chalk.gray('  📦 package.json detected'));
       }
       if (this.detectedFramework.evidence.files.tsFiles) {
-        console.log(chalk.gray(`  📄 ${this.detectedFramework.evidence.files.tsFiles} TypeScript files`));
+        console.log(
+          chalk.gray(`  📄 ${this.detectedFramework.evidence.files.tsFiles} TypeScript files`),
+        );
       }
       if (this.detectedFramework.evidence.files.jsFiles) {
-        console.log(chalk.gray(`  📄 ${this.detectedFramework.evidence.files.jsFiles} JavaScript files`));
+        console.log(
+          chalk.gray(`  📄 ${this.detectedFramework.evidence.files.jsFiles} JavaScript files`),
+        );
       }
       if (this.detectedFramework.evidence.files.pyFiles) {
-        console.log(chalk.gray(`  📄 ${this.detectedFramework.evidence.files.pyFiles} Python files`));
+        console.log(
+          chalk.gray(`  📄 ${this.detectedFramework.evidence.files.pyFiles} Python files`),
+        );
       }
       if (this.detectedFramework.evidence.files.rsFiles) {
         console.log(chalk.gray(`  📄 ${this.detectedFramework.evidence.files.rsFiles} Rust files`));
@@ -437,12 +446,15 @@ export class InteractiveSetupWizard {
 
       // Show testing frameworks
       if (this.detectedFramework.evidence.testingFrameworks.length > 0) {
-        console.log(chalk.gray(`  🧪 Testing: ${this.detectedFramework.evidence.testingFrameworks.join(', ')}`));
+        console.log(
+          chalk.gray(
+            `  🧪 Testing: ${this.detectedFramework.evidence.testingFrameworks.join(', ')}`,
+          ),
+        );
       }
-
     } else {
       console.log(chalk.yellow('⚠️  Could not detect framework automatically'));
-      console.log(chalk.gray('  We\'ll guide you through manual configuration'));
+      console.log(chalk.gray("  We'll guide you through manual configuration"));
     }
   }
 
@@ -457,11 +469,15 @@ export class InteractiveSetupWizard {
 
       // Check for other config files
       const configFiles = [
-        'jest.config.js', 'jest.config.json',
-        'pytest.ini', 'pyproject.toml',
-        '.eslintrc.js', '.eslintrc.json',
+        'jest.config.js',
+        'jest.config.json',
+        'pytest.ini',
+        'pyproject.toml',
+        '.eslintrc.js',
+        '.eslintrc.json',
         'tsconfig.json',
-        'Cargo.toml', 'Cargo.lock'
+        'Cargo.toml',
+        'Cargo.lock',
       ];
 
       const existingConfigs = [];
@@ -474,9 +490,8 @@ export class InteractiveSetupWizard {
       return {
         hasSwarmConfig: swarmExists,
         existingConfigs: existingConfigs,
-        canMigrate: swarmExists || existingConfigs.length > 0
+        canMigrate: swarmExists || existingConfigs.length > 0,
       };
-
     } catch (error) {
       return { hasSwarmConfig: false, existingConfigs: [], canMigrate: false };
     }
@@ -490,17 +505,17 @@ export class InteractiveSetupWizard {
 
     const threshold = await prompts.number({
       message: 'Truth score threshold (0.0-1.0):',
-      default: 0.80,
-      validate: (value) => value >= 0 && value <= 1 || 'Must be between 0.0 and 1.0'
+      default: 0.8,
+      validate: (value) => (value >= 0 && value <= 1) || 'Must be between 0.0 and 1.0',
     });
 
     const weights = {};
     const weightComponents = [
-      { key: 'agentReliability', name: 'Agent Reliability', default: 0.30 },
+      { key: 'agentReliability', name: 'Agent Reliability', default: 0.3 },
       { key: 'crossValidation', name: 'Cross Validation', default: 0.25 },
-      { key: 'externalVerification', name: 'External Verification', default: 0.20 },
+      { key: 'externalVerification', name: 'External Verification', default: 0.2 },
       { key: 'factualConsistency', name: 'Factual Consistency', default: 0.15 },
-      { key: 'logicalCoherence', name: 'Logical Coherence', default: 0.10 }
+      { key: 'logicalCoherence', name: 'Logical Coherence', default: 0.1 },
     ];
 
     console.log(chalk.yellow('Configure truth scoring weights (must sum to 1.0):'));
@@ -509,7 +524,7 @@ export class InteractiveSetupWizard {
       const weight = await prompts.number({
         message: `${component.name} weight:`,
         default: component.default,
-        validate: (value) => value >= 0 && value <= 1 || 'Must be between 0.0 and 1.0'
+        validate: (value) => (value >= 0 && value <= 1) || 'Must be between 0.0 and 1.0',
       });
       weights[component.key] = weight;
     }
@@ -518,14 +533,14 @@ export class InteractiveSetupWizard {
     const weightSum = Object.values(weights).reduce((sum, w) => sum + w, 0);
     if (Math.abs(weightSum - 1.0) > 0.001) {
       console.log(chalk.yellow(`Normalizing weights (sum was ${weightSum.toFixed(3)})`));
-      Object.keys(weights).forEach(key => {
+      Object.keys(weights).forEach((key) => {
         weights[key] = weights[key] / weightSum;
       });
     }
 
     this.userPreferences.customTruthConfig = {
       threshold,
-      weights
+      weights,
     };
   }
 
@@ -539,7 +554,7 @@ export class InteractiveSetupWizard {
       ...this.userPreferences,
       setupDate: new Date().toISOString(),
       version: '2.0.0',
-      framework: this.detectedFramework
+      framework: this.detectedFramework,
     };
 
     await fs.mkdir(path.dirname(configPath), { recursive: true });
@@ -555,8 +570,8 @@ export class InteractiveSetupWizard {
       const frameworkTest = this.detectedFramework?.confidence > 0.3;
 
       // Test truth configuration
-      const truthConfigTest = this.userPreferences.truthConfig &&
-                             this.userPreferences.truthConfig.threshold > 0;
+      const truthConfigTest =
+        this.userPreferences.truthConfig && this.userPreferences.truthConfig.threshold > 0;
 
       // Test file permissions
       const permissionsTest = await this.testFilePermissions();
@@ -567,13 +582,12 @@ export class InteractiveSetupWizard {
 
       return {
         success: frameworkTest && truthConfigTest && permissionsTest,
-        warnings: warnings
+        warnings: warnings,
       };
-
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -601,11 +615,21 @@ export class InteractiveSetupWizard {
     const framework = this.detectedFramework?.detected || 'unknown';
 
     const defaults = {
-      javascript: { truthScore: 0.85, testCoverage: 90, codeQuality: 'A', documentationCoverage: 80 },
-      typescript: { truthScore: 0.90, testCoverage: 95, codeQuality: 'A', documentationCoverage: 85 },
-      python: { truthScore: 0.80, testCoverage: 85, codeQuality: 'B', documentationCoverage: 75 },
+      javascript: {
+        truthScore: 0.85,
+        testCoverage: 90,
+        codeQuality: 'A',
+        documentationCoverage: 80,
+      },
+      typescript: {
+        truthScore: 0.9,
+        testCoverage: 95,
+        codeQuality: 'A',
+        documentationCoverage: 85,
+      },
+      python: { truthScore: 0.8, testCoverage: 85, codeQuality: 'B', documentationCoverage: 75 },
       rust: { truthScore: 0.88, testCoverage: 92, codeQuality: 'A', documentationCoverage: 82 },
-      unknown: { truthScore: 0.75, testCoverage: 80, codeQuality: 'B', documentationCoverage: 70 }
+      unknown: { truthScore: 0.75, testCoverage: 80, codeQuality: 'B', documentationCoverage: 70 },
     };
 
     return defaults[framework] || defaults.unknown;
@@ -616,7 +640,9 @@ export class InteractiveSetupWizard {
    */
   displayQuickStart() {
     console.log(chalk.blue('\n🚀 Quick Start Guide'));
-    console.log(chalk.gray('Your completion validation is now configured. Here\'s what you can do:'));
+    console.log(
+      chalk.gray("Your completion validation is now configured. Here's what you can do:"),
+    );
     console.log('');
 
     console.log(chalk.yellow('📝 Test Your Setup:'));
@@ -635,7 +661,9 @@ export class InteractiveSetupWizard {
     console.log(chalk.gray('  claude-flow-novice validate add-framework'));
     console.log('');
 
-    console.log(chalk.green('💡 Your project is now protected by intelligent completion validation!'));
+    console.log(
+      chalk.green('💡 Your project is now protected by intelligent completion validation!'),
+    );
     console.log(chalk.gray('All future completions will be validated against your quality gates.'));
   }
 

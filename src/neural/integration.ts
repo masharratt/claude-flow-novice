@@ -1,16 +1,22 @@
 /**
  * Neural Domain Mapper Integration Module
- * 
+ *
  * Provides integration between NeuralDomainMapper and the existing
  * Claude Flow neural hooks system, enabling seamless domain analysis
  * and optimization within the broader orchestration framework.
- * 
+ *
  * @author Claude Flow Neural Team
  * @version 2.0.0
  */
 
 import { EventEmitter } from 'events';
-import { NeuralDomainMapper, type DomainGraph, type CohesionAnalysis, type DependencyAnalysis, type BoundaryOptimization } from './NeuralDomainMapper.js';
+import {
+  NeuralDomainMapper,
+  type DomainGraph,
+  type CohesionAnalysis,
+  type DependencyAnalysis,
+  type BoundaryOptimization,
+} from './NeuralDomainMapper.js';
 import type {
   AgenticHookContext,
   NeuralHookPayload,
@@ -68,7 +74,7 @@ export interface DomainAnalysisResult {
 
 /**
  * Neural Domain Mapper Integration Class
- * 
+ *
  * This class provides seamless integration between the NeuralDomainMapper
  * and the existing Claude Flow neural hooks system. It automatically
  * analyzes domain structures, generates optimization suggestions, and
@@ -84,7 +90,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
   constructor(
     domainMapper?: NeuralDomainMapper,
-    config: Partial<DomainMapperIntegrationConfig> = {}
+    config: Partial<DomainMapperIntegrationConfig> = {},
   ) {
     super();
 
@@ -99,7 +105,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
     };
 
     this.domainMapper = domainMapper || new NeuralDomainMapper();
-    
+
     // Set up event listeners
     this.setupEventListeners();
   }
@@ -129,10 +135,10 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
    */
   public async analyzeDomains(
     domains: DomainGraph,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<DomainAnalysisResult> {
     const correlationId = context.correlationId;
-    
+
     // Check if analysis is already in progress for this correlation ID
     if (this.activeAnalysis.has(correlationId)) {
       return await this.activeAnalysis.get(correlationId)!;
@@ -143,10 +149,10 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
     try {
       const result = await analysisPromise;
-      
+
       // Store analysis history
       this.analysisHistory.push(result);
-      
+
       // Keep only last 100 analyses
       if (this.analysisHistory.length > 100) {
         this.analysisHistory.shift();
@@ -162,7 +168,6 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
       this.emit('domain-analysis-completed', result);
       return result;
-
     } finally {
       this.activeAnalysis.delete(correlationId);
     }
@@ -173,7 +178,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
    */
   public async trainOnPatterns(
     patterns: Pattern[],
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<{
     trainingAccuracy: number;
     patternsProcessed: number;
@@ -181,7 +186,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
   }> {
     // Convert patterns to training data
     const trainingData = this.convertPatternsToTrainingData(patterns);
-    
+
     if (trainingData.inputs.length === 0) {
       return {
         trainingAccuracy: 0,
@@ -192,7 +197,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
     // Train the domain mapper
     const trainingResult = await this.domainMapper.train(trainingData);
-    
+
     // Analyze what was learned
     const newInsights = this.extractTrainingInsights(trainingResult, patterns);
 
@@ -212,9 +217,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
   /**
    * Get optimization suggestions based on current domain state
    */
-  public async getOptimizationSuggestions(
-    context: AgenticHookContext
-  ): Promise<{
+  public async getOptimizationSuggestions(context: AgenticHookContext): Promise<{
     suggestions: BoundaryOptimization;
     applicability: number;
     prioritizedActions: Array<{
@@ -226,10 +229,10 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
   }> {
     // Get current optimization suggestions
     const optimization = await this.domainMapper.provideBoundaryOptimization();
-    
+
     // Calculate applicability based on context
     const applicability = this.calculateOptimizationApplicability(optimization, context);
-    
+
     // Generate prioritized actions
     const prioritizedActions = this.generatePrioritizedActions(optimization);
 
@@ -253,7 +256,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
       newRelationships?: Array<{ source: string; target: string; type: string }>;
       removedRelationships?: Array<{ source: string; target: string }>;
     },
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<{
     predictions: Prediction[];
     riskAssessment: {
@@ -268,10 +271,10 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
   }> {
     // Create prediction input from proposed changes
     const predictionInput = this.createPredictionInput(proposedChanges);
-    
+
     // Make predictions
     const predictions = await Promise.all(
-      predictionInput.map(input => this.domainMapper.predict(input))
+      predictionInput.map((input) => this.domainMapper.predict(input)),
     );
 
     // Assess risks
@@ -281,7 +284,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
     const recommendations = this.generateChangeRecommendations(
       proposedChanges,
       predictions,
-      riskAssessment
+      riskAssessment,
     );
 
     const result = {
@@ -306,17 +309,17 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
     lastAnalysis: number;
   } {
     const totalAnalyses = this.analysisHistory.length;
-    const avgTime = totalAnalyses > 0 
-      ? this.analysisHistory.reduce((sum, a) => sum + a.metrics.analysisTime, 0) / totalAnalyses 
-      : 0;
-    
+    const avgTime =
+      totalAnalyses > 0
+        ? this.analysisHistory.reduce((sum, a) => sum + a.metrics.analysisTime, 0) / totalAnalyses
+        : 0;
+
     const optimizationsSuggested = this.analysisHistory.reduce(
-      (sum, a) => sum + a.optimization.proposals.length, 0
+      (sum, a) => sum + a.optimization.proposals.length,
+      0,
     );
 
-    const accuracyTrend = this.analysisHistory
-      .slice(-10)
-      .map(a => a.cohesion.overallScore);
+    const accuracyTrend = this.analysisHistory.slice(-10).map((a) => a.cohesion.overallScore);
 
     return {
       analysesPerformed: totalAnalyses,
@@ -364,9 +367,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
         }
 
         // Check if patterns are domain-related
-        const domainPatterns = payload.patterns.filter(p => 
-          this.isDomainRelatedPattern(p)
-        );
+        const domainPatterns = payload.patterns.filter((p) => this.isDomainRelatedPattern(p));
 
         if (domainPatterns.length === 0) {
           return { continue: true };
@@ -379,7 +380,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
           const domainGraph = await this.extractDomainGraphFromPatterns(domainPatterns);
           if (domainGraph) {
             const analysisResult = await this.analyzeDomains(domainGraph, context);
-            
+
             // Generate suggestions if confidence is high enough
             if (analysisResult.optimization.optimizationScore >= this.config.confidenceThreshold) {
               sideEffects.push({
@@ -439,31 +440,35 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
             // Retrain domain mapper with new data
             try {
               await this.domainMapper.train(domainTrainingData);
-              
+
               return {
                 continue: true,
-                sideEffects: [{
-                  type: 'log',
-                  action: 'write',
-                  data: {
-                    level: 'info',
-                    message: 'Domain mapper updated with new training data',
-                    dataSize: domainTrainingData.inputs.length,
+                sideEffects: [
+                  {
+                    type: 'log',
+                    action: 'write',
+                    data: {
+                      level: 'info',
+                      message: 'Domain mapper updated with new training data',
+                      dataSize: domainTrainingData.inputs.length,
+                    },
                   },
-                }],
+                ],
               };
             } catch (error) {
               return {
                 continue: true,
-                sideEffects: [{
-                  type: 'log',
-                  action: 'write',
-                  data: {
-                    level: 'warning',
-                    message: 'Failed to update domain mapper',
-                    error: error.message,
+                sideEffects: [
+                  {
+                    type: 'log',
+                    action: 'write',
+                    data: {
+                      level: 'warning',
+                      message: 'Failed to update domain mapper',
+                      error: error.message,
+                    },
                   },
-                }],
+                ],
               };
             }
           }
@@ -478,8 +483,11 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
     setInterval(async () => {
       try {
         // Check if there are recent patterns to analyze
-        const recentPatterns = context.neural.patterns.getByType('behavior')
-          .filter(p => Date.now() - (p.context.timestamp || 0) < this.config.analysisInterval * 2);
+        const recentPatterns = context.neural.patterns
+          .getByType('behavior')
+          .filter(
+            (p) => Date.now() - (p.context.timestamp || 0) < this.config.analysisInterval * 2,
+          );
 
         if (recentPatterns.length > 0) {
           const mockContext: AgenticHookContext = {
@@ -515,7 +523,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
   private async performDomainAnalysis(
     domains: DomainGraph,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<DomainAnalysisResult> {
     const startTime = Date.now();
 
@@ -546,7 +554,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
   private async generateHookSideEffects(
     result: DomainAnalysisResult,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<void> {
     const sideEffects: SideEffect[] = [];
 
@@ -606,11 +614,11 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
   private async learnFromAnalysis(
     result: DomainAnalysisResult,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<void> {
     // Convert analysis results to training data
     const learningData = this.convertAnalysisToTrainingData(result);
-    
+
     if (learningData.inputs.length > 0) {
       try {
         await this.domainMapper.train(learningData);
@@ -635,7 +643,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
         const features = this.extractFeaturesFromPattern(pattern);
         if (features.length > 0) {
           inputs.push({ features });
-          
+
           // Create target based on pattern type and confidence
           const target = this.createTargetFromPattern(pattern);
           outputs.push(target);
@@ -660,20 +668,20 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
       pattern.context.domainId ||
       pattern.context.relationship ||
       pattern.context.boundary ||
-      pattern.type === 'behavior' && pattern.context.component
+      (pattern.type === 'behavior' && pattern.context.component)
     );
   }
 
   private extractFeaturesFromPattern(pattern: Pattern): number[] {
     const features: number[] = [];
-    
+
     // Pattern type encoding
     const types = ['success', 'failure', 'optimization', 'behavior'];
-    features.push(...types.map(t => t === pattern.type ? 1 : 0));
-    
+    features.push(...types.map((t) => (t === pattern.type ? 1 : 0)));
+
     // Confidence and occurrence features
     features.push(pattern.confidence, Math.log(pattern.occurrences + 1) / 10);
-    
+
     // Context features (simplified)
     features.push(
       pattern.context.complexity || 0.5,
@@ -714,15 +722,16 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
 
     // Analyze pattern types
     const patternTypes = new Map<string, number>();
-    patterns.forEach(p => {
+    patterns.forEach((p) => {
       patternTypes.set(p.type, (patternTypes.get(p.type) || 0) + 1);
     });
 
-    const dominantType = Array.from(patternTypes.entries())
-      .sort((a, b) => b[1] - a[1])[0];
+    const dominantType = Array.from(patternTypes.entries()).sort((a, b) => b[1] - a[1])[0];
 
     if (dominantType) {
-      insights.push(`Primary learning focus: ${dominantType[0]} patterns (${dominantType[1]} samples)`);
+      insights.push(
+        `Primary learning focus: ${dominantType[0]} patterns (${dominantType[1]} samples)`,
+      );
     }
 
     return insights;
@@ -765,7 +774,10 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
     };
   }
 
-  private calculateOptimizationApplicability(optimization: BoundaryOptimization, context: AgenticHookContext): number {
+  private calculateOptimizationApplicability(
+    optimization: BoundaryOptimization,
+    context: AgenticHookContext,
+  ): number {
     return optimization.optimizationScore;
   }
 
@@ -775,7 +787,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
     impact: number;
     effort: number;
   }> {
-    return optimization.proposals.map(p => ({
+    return optimization.proposals.map((p) => ({
       action: `${p.type} domains: ${p.domains.join(', ')}`,
       priority: p.confidence > 0.8 ? 'high' : p.confidence > 0.6 ? 'medium' : 'low',
       impact: p.metrics.cohesionImprovement + p.metrics.couplingReduction,
@@ -787,7 +799,10 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
     return [];
   }
 
-  private assessChangeRisks(proposedChanges: any, predictions: Prediction[]): {
+  private assessChangeRisks(
+    proposedChanges: any,
+    predictions: Prediction[],
+  ): {
     overallRisk: number;
     riskFactors: Array<{ factor: string; risk: number; mitigation: string }>;
   } {
@@ -800,7 +815,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
   private generateChangeRecommendations(
     proposedChanges: any,
     predictions: Prediction[],
-    riskAssessment: any
+    riskAssessment: any,
   ): string[] {
     return ['Consider gradual implementation', 'Monitor domain cohesion metrics'];
   }
@@ -810,7 +825,7 @@ export class NeuralDomainMapperIntegration extends EventEmitter {
  * Factory function to create and initialize a domain mapper integration
  */
 export async function createDomainMapperIntegration(
-  config: Partial<DomainMapperIntegrationConfig> = {}
+  config: Partial<DomainMapperIntegrationConfig> = {},
 ): Promise<NeuralDomainMapperIntegration> {
   const integration = new NeuralDomainMapperIntegration(undefined, config);
   await integration.initialize();
@@ -820,7 +835,4 @@ export async function createDomainMapperIntegration(
 /**
  * Export types for external use
  */
-export type {
-  DomainMapperIntegrationConfig,
-  DomainAnalysisResult,
-};
+export type { DomainMapperIntegrationConfig, DomainAnalysisResult };

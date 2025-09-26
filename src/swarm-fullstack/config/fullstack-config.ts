@@ -372,7 +372,10 @@ export class FullStackConfigManager {
     this.saveConfig(mergedConfig);
   }
 
-  private mergeConfig(base: FullStackSwarmConfig, updates: Partial<FullStackSwarmConfig>): FullStackSwarmConfig {
+  private mergeConfig(
+    base: FullStackSwarmConfig,
+    updates: Partial<FullStackSwarmConfig>,
+  ): FullStackSwarmConfig {
     const result = { ...base };
 
     for (const key in updates) {
@@ -399,7 +402,9 @@ export class FullStackConfigManager {
     }
   }
 
-  public getConfigForEnvironment(env: 'development' | 'staging' | 'production'): FullStackSwarmConfig {
+  public getConfigForEnvironment(
+    env: 'development' | 'staging' | 'production',
+  ): FullStackSwarmConfig {
     const config = this.getConfig();
 
     // Environment-specific overrides
@@ -414,7 +419,10 @@ export class FullStackConfigManager {
       },
       staging: {
         deployment: { ...config.deployment, automatedDeployment: true },
-        monitoring: { ...config.monitoring, alerting: { ...config.monitoring.alerting, enabled: true } },
+        monitoring: {
+          ...config.monitoring,
+          alerting: { ...config.monitoring.alerting, enabled: true },
+        },
       },
       production: {
         adapters: {

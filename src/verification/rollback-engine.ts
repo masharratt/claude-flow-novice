@@ -3,10 +3,10 @@
  * Handles state restoration and rollback operations with safety checks
  */
 
-import { 
-  StateSnapshot, 
-  RollbackResult, 
-  RollbackOptions, 
+import {
+  StateSnapshot,
+  RollbackResult,
+  RollbackOptions,
   RollbackMode,
   VerificationDetails,
   AgentState,
@@ -16,7 +16,7 @@ import {
   FileSystemState,
   DatabaseState,
   ConsistencyReport,
-  Inconsistency
+  Inconsistency,
 } from './interfaces.js';
 import { CheckpointManager } from './checkpoint-manager.js';
 import { promises as fs } from 'fs';
@@ -37,7 +37,7 @@ export class RollbackEngine {
    */
   async rollbackToCheckpoint(
     checkpointId: string,
-    options: Partial<RollbackOptions> = {}
+    options: Partial<RollbackOptions> = {},
   ): Promise<RollbackResult> {
     const rollbackStart = Date.now();
     const defaultOptions: RollbackOptions = {
@@ -46,12 +46,14 @@ export class RollbackEngine {
       verify_after_rollback: true,
       create_backup_before: true,
       components_to_rollback: ['agents', 'tasks', 'memory', 'filesystem', 'database'],
-      exclude_components: []
+      exclude_components: [],
     };
 
     const rollbackOptions = { ...defaultOptions, ...options };
-    
-    console.log(`🔄 Starting rollback to checkpoint ${checkpointId} with mode: ${rollbackOptions.mode}`);
+
+    console.log(
+      `🔄 Starting rollback to checkpoint ${checkpointId} with mode: ${rollbackOptions.mode}`,
+    );
 
     try {
       // 1. Get the target checkpoint
@@ -65,25 +67,30 @@ export class RollbackEngine {
       if (rollbackOptions.create_backup_before) {
         backupCheckpointId = await this.checkpointManager.createCheckpoint(
           `Backup before rollback to ${checkpointId}`,
-          'global'
+          'global',
         );
         console.log(`💾 Created backup checkpoint: ${backupCheckpointId}`);
       }
 
       // 3. Verify rollback is safe (if requested)
       if (rollbackOptions.verify_before_rollback) {
-        const safetyCheck = await this.verifyRollbackSafety(checkpoint.state_snapshot, rollbackOptions);
+        const safetyCheck = await this.verifyRollbackSafety(
+          checkpoint.state_snapshot,
+          rollbackOptions,
+        );
         if (!safetyCheck.safe && rollbackOptions.mode === 'strict') {
           throw new Error(`Unsafe rollback detected: ${safetyCheck.reasons.join(', ')}`);
         } else if (!safetyCheck.safe && rollbackOptions.mode === 'partial') {
-          console.warn(`⚠️ Safety concerns detected but proceeding in partial mode: ${safetyCheck.reasons.join(', ')}`);
+          console.warn(
+            `⚠️ Safety concerns detected but proceeding in partial mode: ${safetyCheck.reasons.join(', ')}`,
+          );
         }
       }
 
       // 4. Execute rollback
       const affectedComponents = await this.executeRollback(
-        checkpoint.state_snapshot, 
-        rollbackOptions
+        checkpoint.state_snapshot,
+        rollbackOptions,
       );
 
       // 5. Verify rollback success (if requested)
@@ -91,13 +98,13 @@ export class RollbackEngine {
         verified: true,
         checks_performed: [],
         failed_checks: [],
-        verification_time_ms: 0
+        verification_time_ms: 0,
       };
 
       if (rollbackOptions.verify_after_rollback) {
         verificationDetails = await this.verifyRollbackSuccess(
           checkpoint.state_snapshot,
-          rollbackOptions
+          rollbackOptions,
         );
       }
 
@@ -108,7 +115,7 @@ export class RollbackEngine {
         rollback_time_ms: Date.now() - rollbackStart,
         verification_details: verificationDetails,
         affected_components: affectedComponents,
-        error_message: verificationDetails.verified ? undefined : 'Rollback verification failed'
+        error_message: verificationDetails.verified ? undefined : 'Rollback verification failed',
       };
 
       // 7. Store rollback history
@@ -121,7 +128,6 @@ export class RollbackEngine {
       }
 
       return rollbackResult;
-
     } catch (error: any) {
       const rollbackResult: RollbackResult = {
         success: false,
@@ -131,14 +137,14 @@ export class RollbackEngine {
           verified: false,
           checks_performed: [],
           failed_checks: ['rollback_execution'],
-          verification_time_ms: 0
+          verification_time_ms: 0,
         },
         affected_components: [],
-        error_message: error.message
+        error_message: error.message,
       };
 
       this.addToRollbackHistory(rollbackResult);
-      
+
       // Attempt emergency recovery if in strict mode
       if (rollbackOptions.mode === 'strict') {
         await this.attemptEmergencyRecovery(error);
@@ -153,7 +159,7 @@ export class RollbackEngine {
    */
   private async verifyRollbackSafety(
     targetSnapshot: StateSnapshot,
-    options: RollbackOptions
+    options: RollbackOptions,
   ): Promise<{ safe: boolean; reasons: string[] }> {
     const reasons: string[] = [];
     let safe = true;
@@ -208,7 +214,7 @@ export class RollbackEngine {
    */
   private async executeRollback(
     targetSnapshot: StateSnapshot,
-    options: RollbackOptions
+    options: RollbackOptions,
   ): Promise<string[]> {
     const affectedComponents: string[] = [];
 
@@ -268,7 +274,6 @@ export class RollbackEngine {
       if (this.shouldRollbackComponent('agents', options)) {
         await this.resumeAllAgents();
       }
-
     } catch (error) {
       // If rollback fails partway through, we need to handle this carefully
       console.error(`❌ Rollback execution failed:`, error);
@@ -283,7 +288,7 @@ export class RollbackEngine {
    */
   private async verifyRollbackSuccess(
     targetSnapshot: StateSnapshot,
-    options: RollbackOptions
+    options: RollbackOptions,
   ): Promise<VerificationDetails> {
     const verificationStart = Date.now();
     const checksPerformed: string[] = [];
@@ -300,11 +305,7 @@ export class RollbackEngine {
 
       checksPerformed.push(`verify_${component}_state`);
 
-      const verified = await this.verifyComponentState(
-        component,
-        targetSnapshot,
-        currentSnapshot
-      );
+      const verified = await this.verifyComponentState(component, targetSnapshot, currentSnapshot);
 
       if (!verified) {
         failedChecks.push(`verify_${component}_state`);
@@ -329,7 +330,7 @@ export class RollbackEngine {
       verified: failedChecks.length === 0,
       checks_performed: checksPerformed,
       failed_checks: failedChecks,
-      verification_time_ms: Date.now() - verificationStart
+      verification_time_ms: Date.now() - verificationStart,
     };
 
     return verificationDetails;
@@ -338,7 +339,7 @@ export class RollbackEngine {
   // Component restoration methods
   private async restoreAgentStates(agentStates: Map<string, AgentState>): Promise<void> {
     console.log(`🤖 Restoring agent states...`);
-    
+
     for (const [agentId, agentState] of agentStates) {
       try {
         // This would integrate with the actual agent manager
@@ -353,17 +354,17 @@ export class RollbackEngine {
 
   private async restoreSystemState(systemState: SystemState): Promise<void> {
     console.log(`⚙️ Restoring system state...`);
-    
+
     // Restore system configuration
     await this.applySystemConfiguration(systemState.configuration);
-    
+
     // Update system metrics (some may be read-only)
     console.log(`✅ System state restored`);
   }
 
   private async restoreTaskStates(taskStates: Map<string, TaskState>): Promise<void> {
     console.log(`📋 Restoring task states...`);
-    
+
     for (const [taskId, taskState] of taskStates) {
       try {
         await this.restoreIndividualTaskState(taskId, taskState);
@@ -377,7 +378,7 @@ export class RollbackEngine {
 
   private async restoreMemoryState(memoryState: MemoryState): Promise<void> {
     console.log(`🧠 Restoring memory state...`);
-    
+
     // This would integrate with the memory manager
     // For now, we'll just log the operation
     console.log(`✅ Memory state restored`);
@@ -385,7 +386,7 @@ export class RollbackEngine {
 
   private async restoreFileSystemState(fileSystemState: FileSystemState): Promise<void> {
     console.log(`📁 Restoring filesystem state...`);
-    
+
     // Verify checksums and restore files if needed
     for (const [filePath, expectedChecksum] of Object.entries(fileSystemState.checksums)) {
       try {
@@ -398,13 +399,13 @@ export class RollbackEngine {
         console.warn(`⚠️ Could not verify checksum for ${filePath}:`, error);
       }
     }
-    
+
     console.log(`✅ Filesystem state restored`);
   }
 
   private async restoreDatabaseState(databaseState: DatabaseState): Promise<void> {
     console.log(`🗄️ Restoring database state...`);
-    
+
     // This would integrate with database management
     // For now, we'll just verify the connection status
     if (databaseState.connection_status === 'connected') {
@@ -417,8 +418,10 @@ export class RollbackEngine {
 
   // Helper methods
   private shouldRollbackComponent(component: string, options: RollbackOptions): boolean {
-    return options.components_to_rollback.includes(component) && 
-           !options.exclude_components.includes(component);
+    return (
+      options.components_to_rollback.includes(component) &&
+      !options.exclude_components.includes(component)
+    );
   }
 
   private async suspendAllAgents(): Promise<void> {
@@ -436,7 +439,10 @@ export class RollbackEngine {
     // This would integrate with the task manager
   }
 
-  private async restoreIndividualAgentState(agentId: string, agentState: AgentState): Promise<void> {
+  private async restoreIndividualAgentState(
+    agentId: string,
+    agentState: AgentState,
+  ): Promise<void> {
     // This would integrate with the actual agent system
     console.log(`Restoring agent ${agentId} to state: ${agentState.status}`);
   }
@@ -452,7 +458,9 @@ export class RollbackEngine {
   }
 
   // Verification methods
-  private async verifySnapshotIntegrity(snapshot: StateSnapshot): Promise<{ valid: boolean; error?: string }> {
+  private async verifySnapshotIntegrity(
+    snapshot: StateSnapshot,
+  ): Promise<{ valid: boolean; error?: string }> {
     try {
       // Verify checksum
       const calculatedChecksum = this.calculateSnapshotChecksum(snapshot);
@@ -497,24 +505,27 @@ export class RollbackEngine {
         description: 'Current state snapshot',
         tags: ['current'],
         size_bytes: 0,
-        compression_ratio: 1.0
-      }
+        compression_ratio: 1.0,
+      },
     };
   }
 
-  private async detectCriticalChanges(current: StateSnapshot, target: StateSnapshot): Promise<string[]> {
+  private async detectCriticalChanges(
+    current: StateSnapshot,
+    target: StateSnapshot,
+  ): Promise<string[]> {
     const changes: string[] = [];
-    
+
     // Compare critical system parameters
     if (current.system_state.version !== target.system_state.version) {
       changes.push('system_version_change');
     }
-    
+
     // Compare agent configurations
     if (current.agent_states.size !== target.agent_states.size) {
       changes.push('agent_count_change');
     }
-    
+
     return changes;
   }
 
@@ -536,7 +547,7 @@ export class RollbackEngine {
   private async verifyComponentState(
     component: string,
     target: StateSnapshot,
-    current: StateSnapshot
+    current: StateSnapshot,
   ): Promise<boolean> {
     // This would verify that the component was restored correctly
     console.log(`Verifying ${component} state...`);
@@ -550,7 +561,7 @@ export class RollbackEngine {
       inconsistencies: [],
       checked_at: new Date().toISOString(),
       repair_suggestions: [],
-      overall_health_score: 1.0
+      overall_health_score: 1.0,
     };
   }
 
@@ -570,13 +581,13 @@ export class RollbackEngine {
 
   private async attemptEmergencyRecovery(error: any): Promise<void> {
     console.error(`🚨 Attempting emergency recovery due to: ${error.message}`);
-    
+
     // Emergency recovery procedures would go here
     // This might include:
     // - Restoring from the most recent known good state
     // - Restarting critical services
     // - Alerting administrators
-    
+
     console.log(`🩹 Emergency recovery completed`);
   }
 
@@ -597,7 +608,10 @@ export class RollbackEngine {
   /**
    * Simulate a rollback without actually executing it
    */
-  async simulateRollback(checkpointId: string, options: Partial<RollbackOptions> = {}): Promise<{
+  async simulateRollback(
+    checkpointId: string,
+    options: Partial<RollbackOptions> = {},
+  ): Promise<{
     safe: boolean;
     estimatedTime: number;
     affectedComponents: string[];
@@ -609,18 +623,18 @@ export class RollbackEngine {
       throw new Error(`Checkpoint ${checkpointId} not found`);
     }
 
-    const rollbackOptions = { 
-      mode: 'simulation' as RollbackMode, 
+    const rollbackOptions = {
+      mode: 'simulation' as RollbackMode,
       verify_before_rollback: true,
       verify_after_rollback: false,
       create_backup_before: false,
       components_to_rollback: ['agents', 'tasks', 'memory'],
       exclude_components: [],
-      ...options 
+      ...options,
     };
 
     const safetyCheck = await this.verifyRollbackSafety(checkpoint.state_snapshot, rollbackOptions);
-    
+
     return {
       safe: safetyCheck.safe,
       estimatedTime: 5000, // Mock: 5 seconds
@@ -629,8 +643,8 @@ export class RollbackEngine {
       recommendations: [
         'Create backup before rollback',
         'Verify system consistency after rollback',
-        'Monitor agent performance post-rollback'
-      ]
+        'Monitor agent performance post-rollback',
+      ],
     };
   }
 }

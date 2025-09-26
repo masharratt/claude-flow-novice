@@ -10,7 +10,7 @@ class DAAManager {
     this.communications = new Map();
     this.consensus = new Map();
     this.capabilities = new Map();
-    
+
     // Metrics tracking
     this.metrics = {
       totalAgents: 0,
@@ -43,7 +43,7 @@ class DAAManager {
 
     // Initialize agent
     this.initializeAgent(agent);
-    
+
     // Track in global agent tracker if available
     if (global.agentTracker) {
       global.agentTracker.trackAgent(agentId, agent);
@@ -64,9 +64,10 @@ class DAAManager {
     const matches = [];
 
     // If specific agents provided, use those; otherwise use all DAA agents
-    const agentsToCheck = availableAgents.length > 0 
-      ? availableAgents.map(id => this.agents.get(id)).filter(Boolean)
-      : Array.from(this.agents.values());
+    const agentsToCheck =
+      availableAgents.length > 0
+        ? availableAgents.map((id) => this.agents.get(id)).filter(Boolean)
+        : Array.from(this.agents.values());
 
     for (const agent of agentsToCheck) {
       if (agent.status !== 'active' && agent.status !== 'initializing') continue;
@@ -78,8 +79,8 @@ class DAAManager {
           agentType: agent.type,
           score: score,
           capabilities: agent.capabilities,
-          matchedRequirements: agent.capabilities.filter(cap =>
-            requirements.some(req => this.matchCapability(cap, req))
+          matchedRequirements: agent.capabilities.filter((cap) =>
+            requirements.some((req) => this.matchCapability(cap, req)),
           ),
         });
       }
@@ -101,7 +102,7 @@ class DAAManager {
   daa_resource_alloc(args) {
     const resources = args.resources || {};
     const agents = args.agents || [];
-    
+
     const allocationId = `alloc_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const allocation = {
       id: allocationId,
@@ -114,7 +115,7 @@ class DAAManager {
     // Simple allocation strategy: divide resources equally among agents
     const agentCount = agents.length || 1;
     const allocatedPerAgent = {};
-    
+
     for (const [resourceType, amount] of Object.entries(resources)) {
       allocatedPerAgent[resourceType] = Math.floor(amount / agentCount);
     }
@@ -122,7 +123,7 @@ class DAAManager {
     // Assign resources to each agent
     for (const agentId of agents) {
       allocation.allocated[agentId] = allocatedPerAgent;
-      
+
       // Update agent resources
       const agent = this.agents.get(agentId);
       if (agent) {
@@ -147,7 +148,7 @@ class DAAManager {
   daa_lifecycle_manage(args) {
     const agentId = args.agentId || args.agent_id;
     const action = args.action;
-    
+
     const agent = this.agents.get(agentId);
     if (!agent) {
       return {
@@ -206,7 +207,7 @@ class DAAManager {
     const from = args.from;
     const to = args.to;
     const message = args.message;
-    
+
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const communication = {
       id: messageId,
@@ -239,11 +240,11 @@ class DAAManager {
 
     // Store communication
     this.communications.set(messageId, communication);
-    
+
     // Simulate delivery
     communication.delivered = true;
     communication.deliveredAt = new Date().toISOString();
-    
+
     // Update agent activity
     sender.lastActivity = new Date().toISOString();
     receiver.lastActivity = new Date().toISOString();
@@ -262,10 +263,10 @@ class DAAManager {
   daa_consensus(args) {
     const agents = args.agents || [];
     const proposal = args.proposal || {};
-    
+
     const consensusId = `consensus_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const votes = new Map();
-    
+
     // Simulate voting - each agent votes based on simple criteria
     for (const agentId of agents) {
       const agent = this.agents.get(agentId);
@@ -277,7 +278,7 @@ class DAAManager {
     }
 
     const totalVotes = votes.size;
-    const approvals = Array.from(votes.values()).filter(v => v).length;
+    const approvals = Array.from(votes.values()).filter((v) => v).length;
     const approved = approvals > totalVotes / 2;
 
     const consensus = {
@@ -303,7 +304,7 @@ class DAAManager {
         total: totalVotes,
         approvals: approvals,
         rejections: totalVotes - approvals,
-        approvalRate: totalVotes > 0 ? (approvals / totalVotes) : 0,
+        approvalRate: totalVotes > 0 ? approvals / totalVotes : 0,
       },
       timestamp: new Date().toISOString(),
     };
@@ -319,27 +320,29 @@ class DAAManager {
 
   calculateCapabilityScore(agentCaps, requirements) {
     if (!agentCaps || !requirements) return 0;
-    
+
     let matches = 0;
     for (const req of requirements) {
-      if (agentCaps.some(cap => this.matchCapability(cap, req))) {
+      if (agentCaps.some((cap) => this.matchCapability(cap, req))) {
         matches++;
       }
     }
-    
-    return requirements.length > 0 ? (matches / requirements.length) : 0;
+
+    return requirements.length > 0 ? matches / requirements.length : 0;
   }
 
   matchCapability(capability, requirement) {
     // Simple string matching for now
-    return capability.toLowerCase().includes(requirement.toLowerCase()) ||
-           requirement.toLowerCase().includes(capability.toLowerCase());
+    return (
+      capability.toLowerCase().includes(requirement.toLowerCase()) ||
+      requirement.toLowerCase().includes(capability.toLowerCase())
+    );
   }
 
   calculateResourceUtilization() {
     let totalAllocated = 0;
     let totalCapacity = 0;
-    
+
     for (const allocation of this.resources.values()) {
       for (const amount of Object.values(allocation.resources)) {
         totalCapacity += amount;
@@ -350,8 +353,8 @@ class DAAManager {
         }
       }
     }
-    
-    return totalCapacity > 0 ? (totalAllocated / totalCapacity) : 0;
+
+    return totalCapacity > 0 ? totalAllocated / totalCapacity : 0;
   }
 }
 

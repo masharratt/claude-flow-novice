@@ -158,7 +158,9 @@ export class DatabaseService {
   }
 
   // Swarm operations
-  async createSwarm(swarm: Omit<SwarmRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<SwarmRecord> {
+  async createSwarm(
+    swarm: Omit<SwarmRecord, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<SwarmRecord> {
     const id = `swarm_${Date.now()}_${nanoid(10)}`;
     const now = new Date();
 
@@ -197,7 +199,7 @@ export class DatabaseService {
     try {
       const query = 'SELECT * FROM swarms WHERE id = ?';
       const rows = await this.query(query, [id]);
-      
+
       if (rows.length === 0) {
         return null;
       }
@@ -211,10 +213,10 @@ export class DatabaseService {
   async updateSwarm(id: string, updates: Partial<SwarmRecord>): Promise<void> {
     try {
       const setClause = Object.keys(updates)
-        .filter(key => key !== 'id' && key !== 'createdAt')
-        .map(key => `${this.camelToSnake(key)} = ?`)
+        .filter((key) => key !== 'id' && key !== 'createdAt')
+        .map((key) => `${this.camelToSnake(key)} = ?`)
         .join(', ');
-      
+
       const values = Object.entries(updates)
         .filter(([key]) => key !== 'id' && key !== 'createdAt')
         .map(([key, value]) => {
@@ -223,7 +225,7 @@ export class DatabaseService {
           }
           return value;
         });
-      
+
       values.push(new Date()); // updated_at
       values.push(id);
 
@@ -255,15 +257,17 @@ export class DatabaseService {
 
       query += ' ORDER BY created_at DESC';
       const rows = await this.query(query, values);
-      
-      return rows.map(row => this.mapSwarmRow(row));
+
+      return rows.map((row) => this.mapSwarmRow(row));
     } catch (error) {
       throw new DatabaseError('Failed to list swarms', { error });
     }
   }
 
   // Agent operations
-  async createAgent(agent: Omit<AgentRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<AgentRecord> {
+  async createAgent(
+    agent: Omit<AgentRecord, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<AgentRecord> {
     const id = `agent_${Date.now()}_${nanoid(10)}`;
     const now = new Date();
 
@@ -303,8 +307,8 @@ export class DatabaseService {
     try {
       const query = 'SELECT * FROM agents WHERE swarm_id = ? AND status != ? ORDER BY created_at';
       const rows = await this.query(query, [swarmId, 'terminated']);
-      
-      return rows.map(row => this.mapAgentRow(row));
+
+      return rows.map((row) => this.mapAgentRow(row));
     } catch (error) {
       throw new DatabaseError('Failed to get agents by swarm', { error, swarmId });
     }
@@ -313,10 +317,10 @@ export class DatabaseService {
   async updateAgent(id: string, updates: Partial<AgentRecord>): Promise<void> {
     try {
       const setClause = Object.keys(updates)
-        .filter(key => key !== 'id' && key !== 'createdAt')
-        .map(key => `${this.camelToSnake(key)} = ?`)
+        .filter((key) => key !== 'id' && key !== 'createdAt')
+        .map((key) => `${this.camelToSnake(key)} = ?`)
         .join(', ');
-      
+
       const values = Object.entries(updates)
         .filter(([key]) => key !== 'id' && key !== 'createdAt')
         .map(([key, value]) => {
@@ -325,7 +329,7 @@ export class DatabaseService {
           }
           return value;
         });
-      
+
       values.push(new Date()); // updated_at
       values.push(id);
 
@@ -378,8 +382,8 @@ export class DatabaseService {
     try {
       const query = 'SELECT * FROM tasks WHERE swarm_id = ? ORDER BY created_at DESC';
       const rows = await this.query(query, [swarmId]);
-      
-      return rows.map(row => this.mapTaskRow(row));
+
+      return rows.map((row) => this.mapTaskRow(row));
     } catch (error) {
       throw new DatabaseError('Failed to get tasks by swarm', { error, swarmId });
     }
@@ -388,10 +392,10 @@ export class DatabaseService {
   async updateTask(id: string, updates: Partial<TaskRecord>): Promise<void> {
     try {
       const setClause = Object.keys(updates)
-        .filter(key => key !== 'id' && key !== 'createdAt')
-        .map(key => `${this.camelToSnake(key)} = ?`)
+        .filter((key) => key !== 'id' && key !== 'createdAt')
+        .map((key) => `${this.camelToSnake(key)} = ?`)
         .join(', ');
-      
+
       const values = Object.entries(updates)
         .filter(([key]) => key !== 'id' && key !== 'createdAt')
         .map(([key, value]) => {
@@ -400,7 +404,7 @@ export class DatabaseService {
           }
           return value;
         });
-      
+
       values.push(new Date()); // updated_at
       values.push(id);
 
@@ -477,14 +481,14 @@ export class DatabaseService {
       }
 
       query += ' ORDER BY timestamp DESC';
-      
+
       if (filter.limit) {
         query += ' LIMIT ?';
         values.push(filter.limit);
       }
 
       const rows = await this.query(query, values);
-      return rows.map(row => this.mapMetricRow(row));
+      return rows.map((row) => this.mapMetricRow(row));
     } catch (error) {
       throw new DatabaseError('Failed to get metrics', { error });
     }
@@ -531,11 +535,20 @@ export class DatabaseService {
     try {
       const query = 'SELECT 1 as test';
       await this.query(query);
-      
+
       // Get basic metrics
-      const swarmCount = await this.query('SELECT COUNT(*) as count FROM swarms WHERE status != ?', ['destroyed']);
-      const agentCount = await this.query('SELECT COUNT(*) as count FROM agents WHERE status != ?', ['terminated']);
-      const activeTaskCount = await this.query('SELECT COUNT(*) as count FROM tasks WHERE status IN (?, ?, ?)', ['pending', 'assigned', 'running']);
+      const swarmCount = await this.query(
+        'SELECT COUNT(*) as count FROM swarms WHERE status != ?',
+        ['destroyed'],
+      );
+      const agentCount = await this.query(
+        'SELECT COUNT(*) as count FROM agents WHERE status != ?',
+        ['terminated'],
+      );
+      const activeTaskCount = await this.query(
+        'SELECT COUNT(*) as count FROM tasks WHERE status IN (?, ?, ?)',
+        ['pending', 'assigned', 'running'],
+      );
 
       return {
         healthy: true,
@@ -559,7 +572,7 @@ export class DatabaseService {
       // Import better-sqlite3 dynamically
       const Database = (await import('better-sqlite3')).default;
       this.db = new Database(this.config.database);
-      
+
       // Enable WAL mode for better concurrency
       this.db.pragma('journal_mode = WAL');
       this.db.pragma('synchronous = NORMAL');
@@ -583,12 +596,13 @@ export class DatabaseService {
   private async runMigrations(): Promise<void> {
     try {
       // Check if migrations table exists
-      const migrationQuery = this.config.type === 'sqlite'
-        ? "SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'"
-        : "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'migrations'";
-      
+      const migrationQuery =
+        this.config.type === 'sqlite'
+          ? "SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'"
+          : "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'migrations'";
+
       const migrationTable = await this.query(migrationQuery);
-      
+
       if (migrationTable.length === 0) {
         // Create migrations table and run initial schema
         await this.execute(`
@@ -598,14 +612,13 @@ export class DatabaseService {
             executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
-        
+
         // Run schema creation (simplified for demo)
         await this.createTables();
-        
-        await this.execute(
-          "INSERT INTO migrations (filename) VALUES (?)",
-          ['001_initial_schema.sql']
-        );
+
+        await this.execute('INSERT INTO migrations (filename) VALUES (?)', [
+          '001_initial_schema.sql',
+        ]);
       }
     } catch (error) {
       throw new DatabaseError('Failed to run migrations', { error });
@@ -627,7 +640,7 @@ export class DatabaseService {
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
         destroyed_at TEXT
       )`,
-      
+
       // Agents table
       `CREATE TABLE IF NOT EXISTS agents (
         id TEXT PRIMARY KEY,
@@ -643,7 +656,7 @@ export class DatabaseService {
         terminated_at TEXT,
         FOREIGN KEY (swarm_id) REFERENCES swarms(id)
       )`,
-      
+
       // Tasks table
       `CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY,
@@ -664,7 +677,7 @@ export class DatabaseService {
         completed_at TEXT,
         FOREIGN KEY (swarm_id) REFERENCES swarms(id)
       )`,
-      
+
       // Performance metrics table
       `CREATE TABLE IF NOT EXISTS performance_metrics (
         id TEXT PRIMARY KEY,
@@ -677,7 +690,7 @@ export class DatabaseService {
         timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
         metadata TEXT
       )`,
-      
+
       // Events table
       `CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY,
@@ -701,7 +714,7 @@ export class DatabaseService {
       const stmt = this.db.prepare(sql);
       return stmt.all(...params);
     }
-    
+
     // Other database types would be handled here
     throw new DatabaseError('Unsupported database operation');
   }
@@ -711,13 +724,13 @@ export class DatabaseService {
       const stmt = this.db.prepare(sql);
       return stmt.run(...params);
     }
-    
+
     // Other database types would be handled here
     throw new DatabaseError('Unsupported database operation');
   }
 
   private camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 
   private mapSwarmRow(row: any): SwarmRecord {

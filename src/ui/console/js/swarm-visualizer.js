@@ -13,16 +13,16 @@ export class SwarmVisualizer {
     this.topology = 'mesh';
     this.updateInterval = null;
     this.isActive = false;
-    
+
     // Canvas for topology visualization
     this.canvas = null;
     this.ctx = null;
     this.canvasSize = { width: 800, height: 600 };
-    
+
     // Animation state
     this.animationFrame = null;
     this.particles = [];
-    
+
     this.init();
   }
 
@@ -42,7 +42,7 @@ export class SwarmVisualizer {
     // Main container
     const mainPanel = this.components.createToolPanel({
       title: 'Swarm Visualizer',
-      description: 'Real-time swarm topology and agent monitoring'
+      description: 'Real-time swarm topology and agent monitoring',
     });
 
     // Control panel
@@ -67,7 +67,7 @@ export class SwarmVisualizer {
       controlPanel,
       statsPanel,
       canvasContainer,
-      agentPanel
+      agentPanel,
     };
   }
 
@@ -83,14 +83,14 @@ export class SwarmVisualizer {
       type: 'primary',
       text: 'Start Monitoring',
       icon: '▶️',
-      onclick: () => this.startMonitoring()
+      onclick: () => this.startMonitoring(),
     });
 
     const stopBtn = this.components.createActionButton({
       type: 'secondary',
       text: 'Stop',
       icon: '⏹️',
-      onclick: () => this.stopMonitoring()
+      onclick: () => this.stopMonitoring(),
     });
 
     // Topology selector
@@ -126,7 +126,7 @@ export class SwarmVisualizer {
       startBtn,
       stopBtn,
       topologySelect,
-      refreshSelect
+      refreshSelect,
     };
 
     return panel;
@@ -146,36 +146,36 @@ export class SwarmVisualizer {
       totalAgents: this.components.createStatsCard({
         icon: '🤖',
         value: '0',
-        label: 'Total Agents'
+        label: 'Total Agents',
       }),
       activeAgents: this.components.createStatsCard({
         icon: '✅',
         value: '0',
-        label: 'Active'
+        label: 'Active',
       }),
       busyAgents: this.components.createStatsCard({
         icon: '⚙️',
         value: '0',
-        label: 'Busy'
+        label: 'Busy',
       }),
       idleAgents: this.components.createStatsCard({
         icon: '💤',
         value: '0',
-        label: 'Idle'
+        label: 'Idle',
       }),
       errorAgents: this.components.createStatsCard({
         icon: '❌',
         value: '0',
-        label: 'Errors'
+        label: 'Errors',
       }),
       throughput: this.components.createStatsCard({
         icon: '📊',
         value: '0/min',
-        label: 'Task Throughput'
-      })
+        label: 'Task Throughput',
+      }),
     };
 
-    Object.values(this.statsCards).forEach(card => {
+    Object.values(this.statsCards).forEach((card) => {
       panel.appendChild(card.element);
     });
 
@@ -263,7 +263,7 @@ export class SwarmVisualizer {
 
     // Initial data fetch
     await this.updateSwarmData();
-    
+
     console.log('🔄 Swarm monitoring started');
   }
 
@@ -331,8 +331,8 @@ export class SwarmVisualizer {
         completedTasks: Math.floor(Math.random() * 80),
         failedTasks: Math.floor(Math.random() * 5),
         averageResponseTime: Math.random() * 1000 + 500,
-        throughput: Math.floor(Math.random() * 20) + 5
-      }
+        throughput: Math.floor(Math.random() * 20) + 5,
+      },
     };
 
     // Generate agents
@@ -347,9 +347,9 @@ export class SwarmVisualizer {
           tasksCompleted: Math.floor(Math.random() * 50),
           successRate: Math.random() * 100,
           averageTime: Math.random() * 2000 + 200,
-          memoryUsage: Math.random() * 100
+          memoryUsage: Math.random() * 100,
         },
-        position: this.calculateAgentPosition(i, agentCount)
+        position: this.calculateAgentPosition(i, agentCount),
       };
       this.swarmData.agents.push(agent);
     }
@@ -372,7 +372,7 @@ export class SwarmVisualizer {
         const angle = (index * 2 * Math.PI) / total;
         return {
           x: centerX + radius * Math.cos(angle),
-          y: centerY + radius * Math.sin(angle)
+          y: centerY + radius * Math.sin(angle),
         };
 
       case 'hierarchical':
@@ -381,8 +381,10 @@ export class SwarmVisualizer {
         const positionInLevel = index - (Math.pow(2, level) - 1);
         const levelWidth = Math.pow(2, level);
         return {
-          x: centerX + (positionInLevel - levelWidth/2 + 0.5) * (this.canvasSize.width / (levelWidth + 1)),
-          y: 100 + level * (this.canvasSize.height - 200) / (levels - 1)
+          x:
+            centerX +
+            (positionInLevel - levelWidth / 2 + 0.5) * (this.canvasSize.width / (levelWidth + 1)),
+          y: 100 + (level * (this.canvasSize.height - 200)) / (levels - 1),
         };
 
       case 'star':
@@ -392,14 +394,14 @@ export class SwarmVisualizer {
           const starAngle = ((index - 1) * 2 * Math.PI) / (total - 1);
           return {
             x: centerX + radius * Math.cos(starAngle),
-            y: centerY + radius * Math.sin(starAngle)
+            y: centerY + radius * Math.sin(starAngle),
           };
         }
 
       default:
         return {
           x: Math.random() * (this.canvasSize.width - 100) + 50,
-          y: Math.random() * (this.canvasSize.height - 100) + 50
+          y: Math.random() * (this.canvasSize.height - 100) + 50,
         };
     }
   }
@@ -422,7 +424,7 @@ export class SwarmVisualizer {
               from: agents[i].id,
               to: agents[j].id,
               strength: Math.random(),
-              latency: Math.random() * 100 + 10
+              latency: Math.random() * 100 + 10,
             });
           }
         }
@@ -436,7 +438,7 @@ export class SwarmVisualizer {
             from: agents[i].id,
             to: agents[next].id,
             strength: Math.random(),
-            latency: Math.random() * 50 + 5
+            latency: Math.random() * 50 + 5,
           });
         }
         break;
@@ -449,7 +451,7 @@ export class SwarmVisualizer {
               from: agents[0].id,
               to: agents[i].id,
               strength: Math.random(),
-              latency: Math.random() * 30 + 5
+              latency: Math.random() * 30 + 5,
             });
           }
         }
@@ -463,7 +465,7 @@ export class SwarmVisualizer {
             from: agents[parent].id,
             to: agents[i].id,
             strength: Math.random(),
-            latency: Math.random() * 40 + 5
+            latency: Math.random() * 40 + 5,
           });
         }
         break;
@@ -478,13 +480,13 @@ export class SwarmVisualizer {
 
     // Update agents map
     this.agents.clear();
-    this.swarmData.agents?.forEach(agent => {
+    this.swarmData.agents?.forEach((agent) => {
       this.agents.set(agent.id, agent);
     });
 
     // Update connections map
     this.connections.clear();
-    this.swarmData.connections?.forEach(conn => {
+    this.swarmData.connections?.forEach((conn) => {
       this.connections.set(`${conn.from}-${conn.to}`, conn);
     });
   }
@@ -506,7 +508,7 @@ export class SwarmVisualizer {
     this.statsCards.busyAgents.setValue((statusCounts.busy || 0).toString());
     this.statsCards.idleAgents.setValue((statusCounts.idle || 0).toString());
     this.statsCards.errorAgents.setValue((statusCounts.error || 0).toString());
-    
+
     if (this.swarmData.metrics) {
       this.statsCards.throughput.setValue(`${this.swarmData.metrics.throughput || 0}/min`);
     }
@@ -582,7 +584,7 @@ export class SwarmVisualizer {
         // Draw latency indicator
         const midX = (fromAgent.position.x + toAgent.position.x) / 2;
         const midY = (fromAgent.position.y + toAgent.position.y) / 2;
-        
+
         this.ctx.fillStyle = '#666';
         this.ctx.font = '10px monospace';
         this.ctx.fillText(`${Math.round(conn.latency)}ms`, midX + 5, midY - 5);
@@ -594,7 +596,7 @@ export class SwarmVisualizer {
    * Draw agent nodes
    */
   drawAgents() {
-    this.agents.forEach(agent => {
+    this.agents.forEach((agent) => {
       if (!agent.position) return;
 
       const { x, y } = agent.position;
@@ -605,7 +607,7 @@ export class SwarmVisualizer {
         active: '#22c55e',
         busy: '#f59e0b',
         idle: '#6b7280',
-        error: '#ef4444'
+        error: '#ef4444',
       };
 
       // Draw agent circle
@@ -651,7 +653,7 @@ export class SwarmVisualizer {
       reviewer: '✅',
       tester: '🧪',
       coordinator: '🎯',
-      optimizer: '⚡'
+      optimizer: '⚡',
     };
     return icons[type] || '🤖';
   }
@@ -661,7 +663,7 @@ export class SwarmVisualizer {
    */
   updateParticles() {
     // Remove old particles
-    this.particles = this.particles.filter(p => p.life > 0);
+    this.particles = this.particles.filter((p) => p.life > 0);
 
     // Add new particles for active connections
     if (Math.random() < 0.3) {
@@ -678,14 +680,14 @@ export class SwarmVisualizer {
             progress: 0,
             life: 1,
             speed: 0.02,
-            color: conn.strength > 0.7 ? '#00d4ff' : '#888'
+            color: conn.strength > 0.7 ? '#00d4ff' : '#888',
           });
         }
       });
     }
 
     // Update and draw particles
-    this.particles.forEach(particle => {
+    this.particles.forEach((particle) => {
       particle.progress += particle.speed;
       particle.life -= 0.01;
 
@@ -710,10 +712,10 @@ export class SwarmVisualizer {
     const y = event.clientY - rect.top;
 
     // Find clicked agent
-    const clickedAgent = Array.from(this.agents.values()).find(agent => {
+    const clickedAgent = Array.from(this.agents.values()).find((agent) => {
       if (!agent.position) return false;
       const distance = Math.sqrt(
-        Math.pow(x - agent.position.x, 2) + Math.pow(y - agent.position.y, 2)
+        Math.pow(x - agent.position.x, 2) + Math.pow(y - agent.position.y, 2),
       );
       return distance <= 25;
     });
@@ -732,10 +734,10 @@ export class SwarmVisualizer {
     const y = event.clientY - rect.top;
 
     // Check if hovering over agent
-    const hoveredAgent = Array.from(this.agents.values()).find(agent => {
+    const hoveredAgent = Array.from(this.agents.values()).find((agent) => {
       if (!agent.position) return false;
       const distance = Math.sqrt(
-        Math.pow(x - agent.position.x, 2) + Math.pow(y - agent.position.y, 2)
+        Math.pow(x - agent.position.x, 2) + Math.pow(y - agent.position.y, 2),
       );
       return distance <= 25;
     });
@@ -847,7 +849,7 @@ export class SwarmVisualizer {
       topology: this.topology,
       agentCount: this.agents.size,
       connectionCount: this.connections.size,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     try {
@@ -857,8 +859,8 @@ export class SwarmVisualizer {
         body: JSON.stringify({
           namespace: 'swarm_1756475726467_c9ey1p9vm',
           key: 'frontend/swarm_visualizer',
-          value: JSON.stringify(progress)
-        })
+          value: JSON.stringify(progress),
+        }),
       });
     } catch (error) {
       console.warn('Failed to store progress:', error);

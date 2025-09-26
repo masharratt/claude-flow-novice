@@ -9,7 +9,7 @@ import { EventEmitter } from 'events';
 class ByzantineGOAPResolver extends EventEmitter {
   constructor(options = {}) {
     super();
-    this.consensusThreshold = options.consensusThreshold || 2/3;
+    this.consensusThreshold = options.consensusThreshold || 2 / 3;
     this.resolutionTimeout = options.resolutionTimeout || 30000;
     this.byzantineDetection = options.byzantineDetection || true;
   }
@@ -48,7 +48,7 @@ class ByzantineGOAPResolver extends EventEmitter {
           sanitizedConflict: resolution.sanitizedConflict,
           consensusRatio: resolution.consensusRatio || 0.9,
           validatorSignatures: resolution.validatorSignatures || [],
-          byzantineFaultTolerant: resolution.byzantineValidated
+          byzantineFaultTolerant: resolution.byzantineValidated,
         };
 
         results.push(result);
@@ -57,7 +57,7 @@ class ByzantineGOAPResolver extends EventEmitter {
           conflictId: conflict.id,
           resolutionType: 'failed',
           error: error.message,
-          byzantineValidated: false
+          byzantineValidated: false,
         });
       }
     }
@@ -67,11 +67,11 @@ class ByzantineGOAPResolver extends EventEmitter {
     return Object.assign(results, {
       totalProcessingTime: endTime - startTime,
       byzantineAttacksDetected: byzantineAttacks.length,
-      validResolutions: results.filter(r => r.resolutionType === 'automatic').length,
+      validResolutions: results.filter((r) => r.resolutionType === 'automatic').length,
       consensusProof: this.generateConsensusProof(results),
       maliciousActorBlacklist,
       coordinatedAttackDetected: this.detectCoordinatedAttack(conflicts),
-      attackMitigationProof: this.generateAttackMitigationProof(byzantineAttacks)
+      attackMitigationProof: this.generateAttackMitigationProof(byzantineAttacks),
     });
   }
 
@@ -102,7 +102,9 @@ class ByzantineGOAPResolver extends EventEmitter {
   async resolveIndividualConflict(conflict) {
     // Sanitize conflict data
     const sanitizedConflict = this.sanitizeConflict(conflict);
-    const manipulationDetected = sanitizedConflict._wasModified || JSON.stringify(sanitizedConflict) !== JSON.stringify(conflict);
+    const manipulationDetected =
+      sanitizedConflict._wasModified ||
+      JSON.stringify(sanitizedConflict) !== JSON.stringify(conflict);
 
     // Apply GOAP planning
     const goapPlan = await this.generateGOAPPlan(sanitizedConflict);
@@ -124,7 +126,7 @@ class ByzantineGOAPResolver extends EventEmitter {
       sanitizedConflict,
       consensusRatio: consensusResult.ratio,
       validatorSignatures: consensusResult.signatures,
-      goapPlan
+      goapPlan,
     };
   }
 
@@ -134,7 +136,7 @@ class ByzantineGOAPResolver extends EventEmitter {
 
     // Remove malicious injections
     if (sanitized.preferences) {
-      Object.keys(sanitized.preferences).forEach(key => {
+      Object.keys(sanitized.preferences).forEach((key) => {
         if (typeof sanitized.preferences[key] === 'string') {
           const original = sanitized.preferences[key];
           sanitized.preferences[key] = sanitized.preferences[key]
@@ -169,7 +171,7 @@ class ByzantineGOAPResolver extends EventEmitter {
       goal,
       actions: plan,
       estimatedTime: plan.length * 1000, // 1 second per action
-      confidence: 0.9
+      confidence: 0.9,
     };
   }
 
@@ -180,17 +182,37 @@ class ByzantineGOAPResolver extends EventEmitter {
       successCriteria: {
         partiesSatisfied: true,
         fairnessScore: 0.8,
-        sustainableSolution: true
-      }
+        sustainableSolution: true,
+      },
     };
   }
 
   defineAvailableActions(conflict) {
     const baseActions = [
-      { name: 'analyze_preferences', cost: 1, preconditions: [], effects: ['preferences_analyzed'] },
-      { name: 'find_common_ground', cost: 2, preconditions: ['preferences_analyzed'], effects: ['common_ground_found'] },
-      { name: 'propose_compromise', cost: 3, preconditions: ['common_ground_found'], effects: ['compromise_proposed'] },
-      { name: 'validate_solution', cost: 1, preconditions: ['compromise_proposed'], effects: ['solution_validated'] }
+      {
+        name: 'analyze_preferences',
+        cost: 1,
+        preconditions: [],
+        effects: ['preferences_analyzed'],
+      },
+      {
+        name: 'find_common_ground',
+        cost: 2,
+        preconditions: ['preferences_analyzed'],
+        effects: ['common_ground_found'],
+      },
+      {
+        name: 'propose_compromise',
+        cost: 3,
+        preconditions: ['common_ground_found'],
+        effects: ['compromise_proposed'],
+      },
+      {
+        name: 'validate_solution',
+        cost: 1,
+        preconditions: ['compromise_proposed'],
+        effects: ['solution_validated'],
+      },
     ];
 
     // Add conflict-specific actions
@@ -199,7 +221,7 @@ class ByzantineGOAPResolver extends EventEmitter {
         name: 'optimize_resource_distribution',
         cost: 2,
         preconditions: ['preferences_analyzed'],
-        effects: ['resources_optimized']
+        effects: ['resources_optimized'],
       });
     }
 
@@ -225,7 +247,7 @@ class ByzantineGOAPResolver extends EventEmitter {
     const execution = {
       planSteps: goapPlan.actions,
       executionResults: [],
-      finalOutcome: null
+      finalOutcome: null,
     };
 
     // Execute each step
@@ -257,14 +279,14 @@ class ByzantineGOAPResolver extends EventEmitter {
 
   analyzeConflictPreferences(conflict) {
     const parties = conflict.parties || [];
-    const preferences = parties.map(party => party.preference || party.demand);
+    const preferences = parties.map((party) => party.preference || party.demand);
 
     return {
       action: 'analyze_preferences',
       success: true,
       preferences,
       conflicts: this.identifyConflictingPreferences(preferences),
-      compatibility: this.assessCompatibility(preferences)
+      compatibility: this.assessCompatibility(preferences),
     };
   }
 
@@ -273,7 +295,7 @@ class ByzantineGOAPResolver extends EventEmitter {
       action: 'find_common_ground',
       success: true,
       commonValues: ['collaboration', 'efficiency', 'fairness'],
-      sharedGoals: ['project_success', 'team_harmony']
+      sharedGoals: ['project_success', 'team_harmony'],
     };
   }
 
@@ -283,7 +305,7 @@ class ByzantineGOAPResolver extends EventEmitter {
       success: true,
       compromise: this.generateCompromise(conflict),
       fairnessScore: 0.85,
-      satisfactionPrediction: 0.8
+      satisfactionPrediction: 0.8,
     };
   }
 
@@ -293,7 +315,7 @@ class ByzantineGOAPResolver extends EventEmitter {
       success: true,
       validationScore: 0.9,
       sustainabilityScore: 0.85,
-      consensusLikelihood: 0.88
+      consensusLikelihood: 0.88,
     };
   }
 
@@ -305,7 +327,7 @@ class ByzantineGOAPResolver extends EventEmitter {
           conflicts.push({
             preference1: preferences[i],
             preference2: preferences[j],
-            conflictSeverity: 0.7
+            conflictSeverity: 0.7,
           });
         }
       }
@@ -324,26 +346,26 @@ class ByzantineGOAPResolver extends EventEmitter {
         type: 'time_sharing',
         allocation: 'round_robin',
         fairnessWeight: 0.6,
-        efficiencyWeight: 0.4
+        efficiencyWeight: 0.4,
       };
     }
 
     return {
       type: 'hybrid_approach',
       elements: ['async_communication', 'scheduled_meetings'],
-      balanceRatio: 0.7
+      balanceRatio: 0.7,
     };
   }
 
   determineFinalOutcome(executionResults, conflict) {
-    const successfulSteps = executionResults.filter(result => result.success).length;
+    const successfulSteps = executionResults.filter((result) => result.success).length;
     const totalSteps = executionResults.length;
 
     return {
       resolutionType: successfulSteps === totalSteps ? 'complete_resolution' : 'partial_resolution',
       successRate: successfulSteps / totalSteps,
       resolutionDetails: executionResults,
-      recommendedActions: this.generateRecommendations(conflict, executionResults)
+      recommendedActions: this.generateRecommendations(conflict, executionResults),
     };
   }
 
@@ -352,7 +374,7 @@ class ByzantineGOAPResolver extends EventEmitter {
       'Monitor implementation progress',
       'Schedule follow-up review',
       'Collect satisfaction feedback',
-      'Adjust if needed'
+      'Adjust if needed',
     ];
   }
 
@@ -361,40 +383,45 @@ class ByzantineGOAPResolver extends EventEmitter {
     const validators = this.generateValidators();
 
     // Collect votes
-    const votes = validators.map(validator => ({
+    const votes = validators.map((validator) => ({
       validatorId: validator.id,
       approval: Math.random() > 0.1, // 90% approval rate
-      signature: this.signValidation(validator.id, outcome)
+      signature: this.signValidation(validator.id, outcome),
     }));
 
-    const positiveVotes = votes.filter(vote => vote.approval).length;
+    const positiveVotes = votes.filter((vote) => vote.approval).length;
     const ratio = positiveVotes / votes.length;
 
     return {
       validated: ratio >= this.consensusThreshold,
       achieved: ratio >= this.consensusThreshold,
       ratio,
-      signatures: votes.map(vote => vote.signature)
+      signatures: votes.map((vote) => vote.signature),
     };
   }
 
   generateValidators() {
     return Array.from({ length: 15 }, (_, i) => ({
       id: `validator_${i}`,
-      reputation: Math.random() * 100
+      reputation: Math.random() * 100,
     }));
   }
 
   signValidation(validatorId, outcome) {
-    return crypto.createHash('sha256')
+    return crypto
+      .createHash('sha256')
       .update(validatorId + JSON.stringify(outcome) + 'validation_secret')
       .digest('hex');
   }
 
   assessResolutionQuality(outcome, conflict) {
     const baseQuality = 0.8;
-    const fairnessBonus = outcome.finalOutcome?.fairnessScore ? outcome.finalOutcome.fairnessScore * 0.1 : 0;
-    const efficiencyBonus = outcome.finalOutcome?.successRate ? outcome.finalOutcome.successRate * 0.1 : 0;
+    const fairnessBonus = outcome.finalOutcome?.fairnessScore
+      ? outcome.finalOutcome.fairnessScore * 0.1
+      : 0;
+    const efficiencyBonus = outcome.finalOutcome?.successRate
+      ? outcome.finalOutcome.successRate * 0.1
+      : 0;
 
     return Math.min(1.0, baseQuality + fairnessBonus + efficiencyBonus);
   }
@@ -404,16 +431,28 @@ class ByzantineGOAPResolver extends EventEmitter {
       conflictHash: crypto.createHash('sha256').update(JSON.stringify(conflict)).digest('hex'),
       outcomeHash: crypto.createHash('sha256').update(JSON.stringify(outcome)).digest('hex'),
       timestamp: Date.now(),
-      evidenceChain: this.buildEvidenceChain(conflict, outcome)
+      evidenceChain: this.buildEvidenceChain(conflict, outcome),
     };
   }
 
   buildEvidenceChain(conflict, outcome) {
     return [
-      { step: 'conflict_received', hash: crypto.createHash('sha256').update(conflict.id).digest('hex') },
-      { step: 'analysis_complete', hash: crypto.createHash('sha256').update('analysis').digest('hex') },
-      { step: 'resolution_proposed', hash: crypto.createHash('sha256').update('resolution').digest('hex') },
-      { step: 'consensus_achieved', hash: crypto.createHash('sha256').update('consensus').digest('hex') }
+      {
+        step: 'conflict_received',
+        hash: crypto.createHash('sha256').update(conflict.id).digest('hex'),
+      },
+      {
+        step: 'analysis_complete',
+        hash: crypto.createHash('sha256').update('analysis').digest('hex'),
+      },
+      {
+        step: 'resolution_proposed',
+        hash: crypto.createHash('sha256').update('resolution').digest('hex'),
+      },
+      {
+        step: 'consensus_achieved',
+        hash: crypto.createHash('sha256').update('consensus').digest('hex'),
+      },
     ];
   }
 
@@ -421,27 +460,36 @@ class ByzantineGOAPResolver extends EventEmitter {
     const resolutionData = {
       conflictId: conflict.id,
       resolution: resolution.outcome,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     return {
-      decisionHash: crypto.createHash('sha256').update(JSON.stringify(resolutionData)).digest('hex'),
+      decisionHash: crypto
+        .createHash('sha256')
+        .update(JSON.stringify(resolutionData))
+        .digest('hex'),
       consensusSignatures: resolution.validatorSignatures || [],
       timestampChain: [Date.now()],
       merkleProof: this.generateMerkleProof(resolutionData),
-      resolutionHash: crypto.createHash('sha256').update(JSON.stringify(resolution.outcome)).digest('hex')
+      resolutionHash: crypto
+        .createHash('sha256')
+        .update(JSON.stringify(resolution.outcome))
+        .digest('hex'),
     };
   }
 
   generateMerkleProof(data) {
-    return crypto.createHash('sha256').update(JSON.stringify(data) + 'merkle').digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(JSON.stringify(data) + 'merkle')
+      .digest('hex');
   }
 
   detectSecurityViolations(conflict) {
     const violations = [];
 
     if (conflict.preferences) {
-      Object.keys(conflict.preferences).forEach(key => {
+      Object.keys(conflict.preferences).forEach((key) => {
         if (key.includes('malicious') || conflict.preferences[key]?.includes?.('malicious')) {
           violations.push('malicious_injection');
         }
@@ -456,32 +504,36 @@ class ByzantineGOAPResolver extends EventEmitter {
 
   detectCoordinatedAttack(conflicts) {
     const coordinationIds = conflicts
-      .map(c => c.coordinationId || c.coordinationFlag)
-      .filter(id => id);
+      .map((c) => c.coordinationId || c.coordinationFlag)
+      .filter((id) => id);
 
     const coordinationCounts = {};
-    coordinationIds.forEach(id => {
+    coordinationIds.forEach((id) => {
       coordinationCounts[id] = (coordinationCounts[id] || 0) + 1;
     });
 
-    return Object.values(coordinationCounts).some(count => count > 1);
+    return Object.values(coordinationCounts).some((count) => count > 1);
   }
 
   generateConsensusProof(results) {
-    const validResults = results.filter(r => r.resolutionType === 'automatic');
+    const validResults = results.filter((r) => r.resolutionType === 'automatic');
     return {
       totalResolutions: results.length,
       successfulResolutions: validResults.length,
       consensusRatio: validResults.length / results.length,
-      proofHash: crypto.createHash('sha256').update(JSON.stringify(validResults)).digest('hex')
+      proofHash: crypto.createHash('sha256').update(JSON.stringify(validResults)).digest('hex'),
     };
   }
 
   generateAttackMitigationProof(attacks) {
     return {
       mitigatedAttacks: attacks.length,
-      mitigationStrategies: ['signature_validation', 'behavioral_analysis', 'coordination_detection'],
-      proofHash: crypto.createHash('sha256').update(JSON.stringify(attacks)).digest('hex')
+      mitigationStrategies: [
+        'signature_validation',
+        'behavioral_analysis',
+        'coordination_detection',
+      ],
+      proofHash: crypto.createHash('sha256').update(JSON.stringify(attacks)).digest('hex'),
     };
   }
 
@@ -496,7 +548,7 @@ class ByzantineGOAPResolver extends EventEmitter {
       goapPlan,
       satisfactionScore: this.calculateSatisfactionScore(resolution, multiPartyConflict),
       fairnessMetric: this.calculateFairnessMetric(resolution, multiPartyConflict),
-      consensusValidated: consensus.validated
+      consensusValidated: consensus.validated,
     };
   }
 
@@ -507,9 +559,9 @@ class ByzantineGOAPResolver extends EventEmitter {
         'analyze_priorities',
         'calculate_optimal_distribution',
         'apply_fairness_weights',
-        'validate_solution'
+        'validate_solution',
       ],
-      complexity: 'high'
+      complexity: 'high',
     };
   }
 
@@ -522,17 +574,17 @@ class ByzantineGOAPResolver extends EventEmitter {
       finalOutcome: {
         allocationType: 'optimized_distribution',
         allocations: allocation,
-        satisfactionScores: allocation.map(() => 0.8 + Math.random() * 0.2)
-      }
+        satisfactionScores: allocation.map(() => 0.8 + Math.random() * 0.2),
+      },
     };
   }
 
   optimizeResourceAllocation(parties, constraints) {
     // Simple allocation based on priority and fairness
-    return parties.map(party => ({
+    return parties.map((party) => ({
       partyId: party.id,
       allocation: Math.random() * constraints.maxResourceAllocation,
-      priority: party.priority || 5
+      priority: party.priority || 5,
     }));
   }
 
@@ -550,7 +602,8 @@ class ByzantineGOAPResolver extends EventEmitter {
     }
 
     // Check if resolution has been tampered with
-    const currentHash = crypto.createHash('sha256')
+    const currentHash = crypto
+      .createHash('sha256')
       .update(JSON.stringify(result.resolution))
       .digest('hex');
 
@@ -559,28 +612,28 @@ class ByzantineGOAPResolver extends EventEmitter {
 
   // Support method for testing consensus validation
   async consensusValidation(patterns, validators) {
-    const votes = validators.map(validator => ({
+    const votes = validators.map((validator) => ({
       validatorId: validator.id,
       approval: Math.random() > 0.2, // 80% approval rate
-      signature: this.signValidation(validator.id, patterns)
+      signature: this.signValidation(validator.id, patterns),
     }));
 
-    const positiveVotes = votes.filter(vote => vote.approval).length;
+    const positiveVotes = votes.filter((vote) => vote.approval).length;
     const ratio = positiveVotes / votes.length;
 
     return {
       consensusAchieved: ratio >= this.consensusThreshold,
       consensusRatio: ratio,
       acceptedPatterns: patterns.filter(() => Math.random() > 0.2),
-      byzantineProof: this.generateByzantineProof(votes)
+      byzantineProof: this.generateByzantineProof(votes),
     };
   }
 
   generateByzantineProof(votes) {
     return {
       voteCount: votes.length,
-      approvalRatio: votes.filter(v => v.approval).length / votes.length,
-      proofHash: crypto.createHash('sha256').update(JSON.stringify(votes)).digest('hex')
+      approvalRatio: votes.filter((v) => v.approval).length / votes.length,
+      proofHash: crypto.createHash('sha256').update(JSON.stringify(votes)).digest('hex'),
     };
   }
 }

@@ -11,11 +11,11 @@ export class ConcurrentDisplay {
       updateInterval: 100,
       showTools: true,
       showTimers: true,
-      ...options
+      ...options,
     };
-    
+
     // Initialize agent states
-    agents.forEach(agent => {
+    agents.forEach((agent) => {
       this.agents.set(agent.id, {
         ...agent,
         status: 'pending',
@@ -23,10 +23,10 @@ export class ConcurrentDisplay {
         lastActivity: '',
         startTime: null,
         events: 0,
-        progress: 0
+        progress: 0,
       });
     });
-    
+
     this.displayBuffer = [];
     this.lastRender = Date.now();
     this.spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -39,17 +39,17 @@ export class ConcurrentDisplay {
   start() {
     // Clear screen and hide cursor
     process.stdout.write('\x1B[2J\x1B[H\x1B[?25l');
-    
+
     this.interval = setInterval(() => {
       this.render();
     }, this.options.updateInterval);
-    
+
     // Restore cursor on exit
     process.on('exit', () => {
       process.stdout.write('\x1B[?25h'); // Show cursor
       this.stop();
     });
-    
+
     // Handle SIGINT/SIGTERM
     process.on('SIGINT', () => {
       this.stop();
@@ -90,7 +90,7 @@ export class ConcurrentDisplay {
       agent.lastActivity = activity.substring(0, 50) + (activity.length > 50 ? '...' : '');
       agent.currentTool = tool;
       agent.events++;
-      
+
       // Update progress based on activity
       if (activity.includes('completed') || activity.includes('finished')) {
         agent.progress = 100;
@@ -107,19 +107,19 @@ export class ConcurrentDisplay {
     const now = Date.now();
     this.spinnerIndex = (this.spinnerIndex + 1) % this.spinnerFrames.length;
     const spinner = this.spinnerFrames[this.spinnerIndex];
-    
+
     // Clear screen completely and move cursor to home position
     process.stdout.write('\x1B[2J\x1B[H');
-    
+
     // Header
     this.renderHeader();
-    
+
     // Agent panels
     this.renderAgentPanels(spinner);
-    
+
     // Summary footer
     this.renderFooter();
-    
+
     this.lastRender = now;
   }
 
@@ -140,13 +140,13 @@ export class ConcurrentDisplay {
     const agentArray = Array.from(this.agents.values());
     const columns = Math.min(2, agentArray.length); // Max 2 columns for narrower display
     const columnWidth = Math.floor((this.options.maxWidth - 4) / columns) - 2;
-    
+
     // Group agents by rows
     const rows = Math.ceil(agentArray.length / columns);
-    
+
     for (let row = 0; row < rows; row++) {
       let line = '║ ';
-      
+
       for (let col = 0; col < columns; col++) {
         const agentIndex = row * columns + col;
         if (agentIndex < agentArray.length) {
@@ -158,10 +158,10 @@ export class ConcurrentDisplay {
           if (col < columns - 1) line += ' │ ';
         }
       }
-      
+
       line += ' ║';
       process.stdout.write(line + '\n');
-      
+
       // Add separator between rows
       if (row < rows - 1) {
         let separator = '║ ';
@@ -180,19 +180,19 @@ export class ConcurrentDisplay {
    */
   renderAgentPanel(agent, width, spinner) {
     const lines = [];
-    
+
     // Agent header with icon and name
     const icon = this.getAgentIcon(agent.type);
     const statusIcon = this.getStatusIcon(agent.status, spinner);
     const shortName = agent.name.length > 20 ? agent.name.substring(0, 17) + '...' : agent.name;
     const header = `${icon} ${shortName}`;
     lines.push(this.truncate(`${statusIcon} ${header}`, width));
-    
+
     // Status line with timer
     const status = this.getStatusText(agent.status);
     const elapsed = agent.startTime ? this.formatDuration(Date.now() - agent.startTime) : '--:--';
     lines.push(this.truncate(`${status} │ ${elapsed}`, width));
-    
+
     // Progress bar (compact)
     if (agent.status === 'active') {
       const compactBar = this.renderCompactProgressBar(agent.progress, width - 10);
@@ -200,24 +200,31 @@ export class ConcurrentDisplay {
     } else {
       lines.push(' '.repeat(width));
     }
-    
+
     // Current activity (shorter)
     if (agent.lastActivity) {
-      const shortActivity = agent.lastActivity.length > 25 ? agent.lastActivity.substring(0, 22) + '...' : agent.lastActivity;
+      const shortActivity =
+        agent.lastActivity.length > 25
+          ? agent.lastActivity.substring(0, 22) + '...'
+          : agent.lastActivity;
       lines.push(this.truncate(`→ ${shortActivity}`, width));
     } else {
       lines.push(this.truncate('→ Waiting...', width));
     }
-    
+
     // Stats only
     lines.push(this.truncate(`Events: ${agent.events}`, width));
-    
+
     // Pad to consistent height (reduced from 6 to 5)
     while (lines.length < 5) {
       lines.push(' '.repeat(width));
     }
-    
-    return lines.join('\n║ ').split('\n').map(l => l.substring(2)).join('\n║ ');
+
+    return lines
+      .join('\n║ ')
+      .split('\n')
+      .map((l) => l.substring(2))
+      .join('\n║ ');
   }
 
   /**
@@ -226,17 +233,17 @@ export class ConcurrentDisplay {
   renderFooter() {
     const width = this.options.maxWidth;
     const agents = Array.from(this.agents.values());
-    const active = agents.filter(a => a.status === 'active').length;
-    const completed = agents.filter(a => a.status === 'completed').length;
-    const failed = agents.filter(a => a.status === 'failed').length;
+    const active = agents.filter((a) => a.status === 'active').length;
+    const completed = agents.filter((a) => a.status === 'completed').length;
+    const failed = agents.filter((a) => a.status === 'failed').length;
     const total = agents.length;
-    
+
     process.stdout.write('╠' + '═'.repeat(width - 2) + '╣\n');
-    
-    const progress = total > 0 ? Math.floor((completed + failed) / total * 100) : 0;
+
+    const progress = total > 0 ? Math.floor(((completed + failed) / total) * 100) : 0;
     const summary = `📊 ${progress}% │ ⚡${active} │ ✅${completed} │ ❌${failed}`;
     process.stdout.write('║' + this.center(summary, width - 2) + '║\n');
-    
+
     process.stdout.write('╚' + '═'.repeat(width - 2) + '╝\n');
   }
 
@@ -245,51 +252,61 @@ export class ConcurrentDisplay {
    */
   getAgentIcon(type) {
     const icons = {
-      'search': '🔍',
-      'foundation': '🏗️',
-      'refinement': '🔧',
-      'ensemble': '🎯',
-      'validation': '✅',
-      'coordinator': '🎮',
-      'researcher': '🔬',
-      'coder': '💻',
-      'optimizer': '⚡',
-      'architect': '🏛️',
-      'tester': '🧪'
+      search: '🔍',
+      foundation: '🏗️',
+      refinement: '🔧',
+      ensemble: '🎯',
+      validation: '✅',
+      coordinator: '🎮',
+      researcher: '🔬',
+      coder: '💻',
+      optimizer: '⚡',
+      architect: '🏛️',
+      tester: '🧪',
     };
     return icons[type] || '🤖';
   }
 
   getStatusIcon(status, spinner) {
     switch (status) {
-      case 'active': return spinner;
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      case 'pending': return '⏳';
-      default: return '•';
+      case 'active':
+        return spinner;
+      case 'completed':
+        return '✅';
+      case 'failed':
+        return '❌';
+      case 'pending':
+        return '⏳';
+      default:
+        return '•';
     }
   }
 
   getStatusText(status) {
     switch (status) {
-      case 'active': return 'Running';
-      case 'completed': return 'Complete';
-      case 'failed': return 'Failed';
-      case 'pending': return 'Waiting';
-      default: return status;
+      case 'active':
+        return 'Running';
+      case 'completed':
+        return 'Complete';
+      case 'failed':
+        return 'Failed';
+      case 'pending':
+        return 'Waiting';
+      default:
+        return status;
     }
   }
 
   renderProgressBar(progress, width) {
     const barWidth = Math.min(20, width - 10);
-    const filled = Math.floor(progress / 100 * barWidth);
+    const filled = Math.floor((progress / 100) * barWidth);
     const empty = barWidth - filled;
     return `[${'\u2588'.repeat(filled)}${'░'.repeat(empty)}] ${progress}%`;
   }
 
   renderCompactProgressBar(progress, maxWidth) {
     const barWidth = Math.min(10, maxWidth);
-    const filled = Math.floor(progress / 100 * barWidth);
+    const filled = Math.floor((progress / 100) * barWidth);
     const empty = barWidth - filled;
     return '\u2588'.repeat(filled) + '░'.repeat(empty);
   }
@@ -312,7 +329,7 @@ export class ConcurrentDisplay {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m`;
     } else if (minutes > 0) {

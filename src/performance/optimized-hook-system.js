@@ -63,7 +63,7 @@ class OptimizedHookCache {
       maxSize: this.maxSize,
       hits: this.hits,
       misses: this.misses,
-      hitRate: total > 0 ? (this.hits / total) : 0
+      hitRate: total > 0 ? this.hits / total : 0,
     };
   }
 }
@@ -168,9 +168,9 @@ class OptimizedMemoryStore {
 
   async _processBatch(batch) {
     const promises = batch.map(([cacheKey, data]) =>
-      this.baseStore.store(data.key, data.value, data.options).catch(error => {
+      this.baseStore.store(data.key, data.value, data.options).catch((error) => {
         console.error(`Failed to store ${data.key}:`, error);
-      })
+      }),
     );
 
     await Promise.all(promises);
@@ -199,7 +199,7 @@ class OptimizedHookExecutor {
       totalTime: 0,
       slowExecutions: 0,
       averageTime: 0,
-      cacheHitRate: 0
+      cacheHitRate: 0,
     };
   }
 
@@ -262,7 +262,7 @@ class OptimizedHookExecutor {
         this.executionCache.set(cacheKey, {
           result,
           timestamp: Date.now(),
-          hookTime
+          hookTime,
         });
       }
 
@@ -272,7 +272,6 @@ class OptimizedHookExecutor {
       this._recordExecution(executionStart, false);
 
       return result;
-
     } catch (error) {
       const totalTime = performance.now() - executionStart;
       this._recordExecution(executionStart, false);
@@ -288,26 +287,24 @@ class OptimizedHookExecutor {
     // Parallel execution of independent operations
     const [taskData, memoryStore] = await Promise.all([
       this._prepareTaskData(context),
-      this._ensureMemoryStore()
+      this._ensureMemoryStore(),
     ]);
 
     // Fast storage without waiting for completion
-    const storePromise = this.memoryStore.store(
-      `task:${taskData.taskId}`,
-      taskData,
-      { namespace: 'hooks:pre-task' }
-    );
+    const storePromise = this.memoryStore.store(`task:${taskData.taskId}`, taskData, {
+      namespace: 'hooks:pre-task',
+    });
 
     // Don't wait for storage to complete - continue execution
     const result = {
       success: true,
       taskId: taskData.taskId,
       executionTime: performance.now() - start,
-      optimized: true
+      optimized: true,
     };
 
     // Store promise completion in background
-    storePromise.catch(error => {
+    storePromise.catch((error) => {
       console.error('Background storage failed:', error);
     });
 
@@ -321,20 +318,20 @@ class OptimizedHookExecutor {
     const taskData = {
       status: 'completed',
       completedAt: new Date().toISOString(),
-      executionTime: performance.now() - start
+      executionTime: performance.now() - start,
     };
 
     // Fast background storage
-    this.memoryStore.store(
-      `task:${context.taskId || 'unknown'}:completed`,
-      taskData,
-      { namespace: 'hooks:post-task' }
-    ).catch(console.error);
+    this.memoryStore
+      .store(`task:${context.taskId || 'unknown'}:completed`, taskData, {
+        namespace: 'hooks:post-task',
+      })
+      .catch(console.error);
 
     return {
       success: true,
       executionTime: performance.now() - start,
-      optimized: true
+      optimized: true,
     };
   }
 
@@ -346,21 +343,19 @@ class OptimizedHookExecutor {
       file: context.file,
       timestamp: new Date().toISOString(),
       editId: `edit-${Date.now()}`,
-      optimized: true
+      optimized: true,
     };
 
     // Background storage
-    this.memoryStore.store(
-      `edit:${editData.editId}:pre`,
-      editData,
-      { namespace: 'hooks:pre-edit' }
-    ).catch(console.error);
+    this.memoryStore
+      .store(`edit:${editData.editId}:pre`, editData, { namespace: 'hooks:pre-edit' })
+      .catch(console.error);
 
     return {
       success: true,
       editId: editData.editId,
       executionTime: performance.now() - start,
-      optimized: true
+      optimized: true,
     };
   }
 
@@ -371,20 +366,20 @@ class OptimizedHookExecutor {
     const editData = {
       file: context.file,
       completedAt: new Date().toISOString(),
-      optimized: true
+      optimized: true,
     };
 
     // Background storage
-    this.memoryStore.store(
-      `edit:${context.editId || Date.now()}:post`,
-      editData,
-      { namespace: 'hooks:post-edit' }
-    ).catch(console.error);
+    this.memoryStore
+      .store(`edit:${context.editId || Date.now()}:post`, editData, {
+        namespace: 'hooks:post-edit',
+      })
+      .catch(console.error);
 
     return {
       success: true,
       executionTime: performance.now() - start,
-      optimized: true
+      optimized: true,
     };
   }
 
@@ -395,19 +390,19 @@ class OptimizedHookExecutor {
     const sessionData = {
       endedAt: new Date().toISOString(),
       optimized: true,
-      fastCompletion: true
+      fastCompletion: true,
     };
 
     // Background storage and cleanup
     Promise.all([
       this.memoryStore.store(`session:${Date.now()}`, sessionData, { namespace: 'sessions' }),
-      this._performBackgroundCleanup()
+      this._performBackgroundCleanup(),
     ]).catch(console.error);
 
     return {
       success: true,
       executionTime: performance.now() - start,
-      optimized: true
+      optimized: true,
     };
   }
 
@@ -418,21 +413,19 @@ class OptimizedHookExecutor {
     const hookData = {
       hookType,
       executedAt: new Date().toISOString(),
-      optimized: true
+      optimized: true,
     };
 
     // Background storage
-    this.memoryStore.store(
-      `hook:${hookType}:${Date.now()}`,
-      hookData,
-      { namespace: 'hooks:generic' }
-    ).catch(console.error);
+    this.memoryStore
+      .store(`hook:${hookType}:${Date.now()}`, hookData, { namespace: 'hooks:generic' })
+      .catch(console.error);
 
     return {
       success: true,
       hookType,
       executionTime: performance.now() - start,
-      optimized: true
+      optimized: true,
     };
   }
 
@@ -442,7 +435,7 @@ class OptimizedHookExecutor {
       taskId: context.taskId || `task-${Date.now()}`,
       description: context.description || 'Optimized task',
       startedAt: new Date().toISOString(),
-      optimized: true
+      optimized: true,
     };
   }
 
@@ -469,14 +462,14 @@ class OptimizedHookExecutor {
     const contextStr = JSON.stringify({
       file: context.file,
       taskId: context.taskId,
-      command: context.command
+      command: context.command,
     });
     return crypto.createHash('md5').update(`${hookType}:${contextStr}`).digest('hex');
   }
 
   _isCacheValid(cached) {
     // Cache entries valid for 30 seconds
-    return (Date.now() - cached.timestamp) < 30000;
+    return Date.now() - cached.timestamp < 30000;
   }
 
   _recordExecution(startTime, fromCache) {
@@ -498,9 +491,13 @@ class OptimizedHookExecutor {
 
     // Performance warnings
     if (executionTime > 100) {
-      console.error(`❌ PERFORMANCE FAILURE: Hook execution ${executionTime.toFixed(2)}ms exceeds 100ms target`);
+      console.error(
+        `❌ PERFORMANCE FAILURE: Hook execution ${executionTime.toFixed(2)}ms exceeds 100ms target`,
+      );
     } else if (executionTime > 50) {
-      console.warn(`⚠️  PERFORMANCE WARNING: Hook execution ${executionTime.toFixed(2)}ms approaching 100ms limit`);
+      console.warn(
+        `⚠️  PERFORMANCE WARNING: Hook execution ${executionTime.toFixed(2)}ms approaching 100ms limit`,
+      );
     }
   }
 
@@ -512,11 +509,14 @@ class OptimizedHookExecutor {
       ...this.performanceMetrics,
       performanceTarget: 100, // ms
       targetMet: this.performanceMetrics.averageTime < 100,
-      compatibilityRate: this.performanceMetrics.totalExecutions > 0 ?
-        (this.performanceMetrics.totalExecutions - this.performanceMetrics.slowExecutions) / this.performanceMetrics.totalExecutions : 1,
+      compatibilityRate:
+        this.performanceMetrics.totalExecutions > 0
+          ? (this.performanceMetrics.totalExecutions - this.performanceMetrics.slowExecutions) /
+            this.performanceMetrics.totalExecutions
+          : 1,
       cachePerformance: cacheStats,
       memoryPerformance: memoryStats,
-      optimizationLevel: 'aggressive'
+      optimizationLevel: 'aggressive',
     };
   }
 
@@ -564,7 +564,7 @@ class OptimizedHookSystem {
     return {
       ...metrics,
       status: metrics.averageTime < 100 ? 'TARGET_MET' : 'NEEDS_OPTIMIZATION',
-      recommendations: this._generateRecommendations(metrics)
+      recommendations: this._generateRecommendations(metrics),
     };
   }
 
@@ -572,7 +572,9 @@ class OptimizedHookSystem {
     const recommendations = [];
 
     if (metrics.averageTime > 100) {
-      recommendations.push('Average execution time exceeds 100ms target - investigate slow operations');
+      recommendations.push(
+        'Average execution time exceeds 100ms target - investigate slow operations',
+      );
     }
 
     if (metrics.cacheHitRate < 0.8) {
@@ -592,9 +594,4 @@ class OptimizedHookSystem {
   }
 }
 
-export {
-  OptimizedHookSystem,
-  OptimizedHookExecutor,
-  OptimizedMemoryStore,
-  OptimizedHookCache
-};
+export { OptimizedHookSystem, OptimizedHookExecutor, OptimizedMemoryStore, OptimizedHookCache };

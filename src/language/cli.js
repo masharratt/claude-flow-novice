@@ -61,7 +61,9 @@ program
         if (Object.keys(results.dependencies).length > 0 && options.verbose) {
           console.log('\n📦 Dependencies:');
           const deps = Object.keys(results.dependencies).slice(0, 10);
-          console.log(`  ${deps.join(', ')}${Object.keys(results.dependencies).length > 10 ? '...' : ''}`);
+          console.log(
+            `  ${deps.join(', ')}${Object.keys(results.dependencies).length > 10 ? '...' : ''}`,
+          );
         }
 
         const recommendations = detector.getRecommendations();
@@ -74,7 +76,6 @@ program
           }
         }
       }
-
     } catch (error) {
       console.error('❌ Detection failed:', error.message);
       if (options.verbose) {
@@ -99,14 +100,13 @@ program
       const generator = new ClaudeMdGenerator(options.path, {
         backupExisting: options.backup,
         templatePath: options.template,
-        forceRegenerate: options.force
+        forceRegenerate: options.force,
       });
 
       const content = await generator.generateClaudeMd();
 
       console.log(`✅ CLAUDE.md generated successfully (${content.length} characters)`);
       console.log(`📄 File location: ${path.join(options.path, 'CLAUDE.md')}`);
-
     } catch (error) {
       console.error('❌ Generation failed:', error.message);
       process.exit(1);
@@ -137,7 +137,7 @@ program
 
         if (validation.issues.length > 0) {
           console.log('⚠️  Validation issues found:');
-          validation.issues.forEach(issue => {
+          validation.issues.forEach((issue) => {
             console.log(`  • ${issue.message}`);
             if (issue.suggestion) {
               console.log(`    💡 ${issue.suggestion}`);
@@ -147,7 +147,7 @@ program
 
         if (validation.suggestions.length > 0) {
           console.log('💡 Suggestions:');
-          validation.suggestions.forEach(suggestion => {
+          validation.suggestions.forEach((suggestion) => {
             console.log(`  • ${suggestion.message}`);
             if (suggestion.suggestion) {
               console.log(`    → ${suggestion.suggestion}`);
@@ -167,7 +167,6 @@ program
           console.log('📄 CLAUDE.md file generated');
         }
       }
-
     } catch (error) {
       console.error('❌ Initialization failed:', error.message);
       process.exit(1);
@@ -179,7 +178,7 @@ program
   .command('update')
   .description('Update CLAUDE.md when new languages/frameworks are detected')
   .option('-p, --path <path>', 'Project path', process.cwd())
-  .option('-c, --check-only', 'Only check for changes, don\'t update')
+  .option('-c, --check-only', "Only check for changes, don't update")
   .action(async (options) => {
     try {
       console.log('🔄 Checking for project changes...');
@@ -192,7 +191,7 @@ program
 
         if (result.changes.newTechnologies.length > 0) {
           console.log('🆕 New technologies:');
-          result.changes.newTechnologies.forEach(tech => {
+          result.changes.newTechnologies.forEach((tech) => {
             console.log(`  • ${tech.name} (${tech.type})`);
           });
         }
@@ -205,7 +204,6 @@ program
       } else {
         console.log('✨ No changes detected');
       }
-
     } catch (error) {
       console.error('❌ Update failed:', error.message);
       process.exit(1);
@@ -246,16 +244,20 @@ program
 
         if (report.validation.issues.length > 0) {
           console.log(`\n⚠️  Issues Found:`);
-          report.validation.issues.forEach(issue => {
+          report.validation.issues.forEach((issue) => {
             console.log(`  • ${issue.message}`);
           });
         }
 
         if (report.suggestions.length > 0) {
           console.log(`\n💡 Recommendations:`);
-          report.suggestions.forEach(suggestion => {
-            const priority = suggestion.priority === 'high' ? '🔴' :
-                           suggestion.priority === 'medium' ? '🟡' : '🟢';
+          report.suggestions.forEach((suggestion) => {
+            const priority =
+              suggestion.priority === 'high'
+                ? '🔴'
+                : suggestion.priority === 'medium'
+                  ? '🟡'
+                  : '🟢';
             console.log(`  ${priority} ${suggestion.message}`);
           });
         }
@@ -267,7 +269,6 @@ program
           });
         }
       }
-
     } catch (error) {
       console.error('❌ Report generation failed:', error.message);
       process.exit(1);
@@ -301,7 +302,7 @@ program
 
         if (validation.issues.length > 0) {
           console.log(`\n❌ Issues (${validation.issues.length}):`);
-          validation.issues.forEach(issue => {
+          validation.issues.forEach((issue) => {
             console.log(`  • ${issue.message}`);
             if (issue.suggestion) {
               console.log(`    💡 ${issue.suggestion}`);
@@ -311,7 +312,7 @@ program
 
         if (validation.suggestions.length > 0) {
           console.log(`\n💡 Suggestions (${validation.suggestions.length}):`);
-          validation.suggestions.forEach(suggestion => {
+          validation.suggestions.forEach((suggestion) => {
             console.log(`  • ${suggestion.message}`);
             if (suggestion.suggestion) {
               console.log(`    → ${suggestion.suggestion}`);
@@ -324,7 +325,6 @@ program
       if (!validation.valid) {
         process.exit(1);
       }
-
     } catch (error) {
       console.error('❌ Validation failed:', error.message);
       process.exit(1);
@@ -332,9 +332,7 @@ program
   });
 
 // Configuration commands
-const configCommand = program
-  .command('config')
-  .description('Manage configuration and preferences');
+const configCommand = program.command('config').description('Manage configuration and preferences');
 
 configCommand
   .command('show')
@@ -347,7 +345,6 @@ configCommand
 
       console.log('⚙️  Current Configuration:');
       console.log(JSON.stringify(config, null, 2));
-
     } catch (error) {
       console.error('❌ Failed to load configuration:', error.message);
       process.exit(1);
@@ -382,7 +379,6 @@ configCommand
 
       await integration.updateConfiguration(config);
       console.log(`✅ Configuration updated: ${key} = ${value}`);
-
     } catch (error) {
       console.error('❌ Failed to update configuration:', error.message);
       process.exit(1);
@@ -403,7 +399,6 @@ program
       const result = await integration.cleanup(parseInt(options.days));
 
       console.log(`✅ Cleanup completed: ${result.cleanedCount} files removed`);
-
     } catch (error) {
       console.error('❌ Cleanup failed:', error.message);
       process.exit(1);

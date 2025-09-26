@@ -2,7 +2,7 @@
 /**
  * GitHub API Integration Module
  * Provides authentication, rate limiting, and API wrappers for GitHub workflow commands
- * 
+ *
  * Enhanced with GitHub CLI Safety Wrapper for secure command execution
  */
 
@@ -22,13 +22,13 @@ class GitHubAPIClient {
     this.lastRequestTime = 0;
     this.requestQueue = [];
     this.isProcessingQueue = false;
-    
+
     // Initialize GitHub CLI safety wrapper
     this.cliSafe = new GitHubCliSafe({
-      timeout: 60000,           // 1 minute timeout for CLI operations
+      timeout: 60000, // 1 minute timeout for CLI operations
       maxRetries: 3,
       enableRateLimit: true,
-      enableLogging: false      // Can be enabled for debugging
+      enableLogging: false, // Can be enabled for debugging
     });
   }
 
@@ -486,9 +486,9 @@ class GitHubAPIClient {
         title: issueData.title,
         body: issueData.body,
         labels: issueData.labels || [],
-        assignees: issueData.assignees || []
+        assignees: issueData.assignees || [],
       });
-      
+
       printSuccess(`Issue created via CLI: ${issueData.title}`);
       return { success: true, data: result };
     } catch (error) {
@@ -509,9 +509,9 @@ class GitHubAPIClient {
         body: prData.body,
         base: prData.base || 'main',
         head: prData.head,
-        draft: prData.draft || false
+        draft: prData.draft || false,
       });
-      
+
       printSuccess(`PR created via CLI: ${prData.title}`);
       return { success: true, data: result };
     } catch (error) {
@@ -566,9 +566,9 @@ class GitHubAPIClient {
         title: releaseData.name,
         body: releaseData.body,
         prerelease: releaseData.prerelease || false,
-        draft: releaseData.draft || false
+        draft: releaseData.draft || false,
       });
-      
+
       printSuccess(`Release created via CLI: ${releaseData.tag_name}`);
       return { success: true, data: result };
     } catch (error) {

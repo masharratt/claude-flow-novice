@@ -47,7 +47,13 @@ export interface AgentStatus {
 
 export interface QualityGate {
   name: string;
-  type: 'unit-tests' | 'integration-tests' | 'e2e-tests' | 'code-review' | 'security-scan' | 'performance-test';
+  type:
+    | 'unit-tests'
+    | 'integration-tests'
+    | 'e2e-tests'
+    | 'code-review'
+    | 'security-scan'
+    | 'performance-test';
   threshold: number;
   currentValue: number;
   status: 'pending' | 'passed' | 'failed' | 'skipped';
@@ -81,61 +87,61 @@ export class FeatureLifecycleManager extends EventEmitter {
           duration: '2-4h',
           requiredAgents: ['researcher', 'architect'],
           qualityGates: [],
-          autoProgress: false
+          autoProgress: false,
         },
         development: {
           duration: '1-3d',
           requiredAgents: ['coder', 'backend-dev'],
           qualityGates: ['unit-tests', 'code-review'],
           autoProgress: true,
-          parallelTesting: true
+          parallelTesting: true,
         },
         testing: {
           duration: '4-8h',
           requiredAgents: ['tester', 'continuous-testing-agent'],
           qualityGates: ['integration-tests', 'e2e-tests', 'performance-test'],
-          autoProgress: true
+          autoProgress: true,
         },
         review: {
           duration: '2-4h',
           requiredAgents: ['reviewer', 'quality-gate-agent'],
           qualityGates: ['code-review', 'security-scan'],
-          autoProgress: false
+          autoProgress: false,
         },
         staging: {
           duration: '1-2h',
           requiredAgents: ['deployment-agent'],
           qualityGates: ['smoke-tests', 'integration-validation'],
-          autoProgress: true
+          autoProgress: true,
         },
         production: {
           duration: 'continuous',
           requiredAgents: ['monitor', 'alerting'],
           qualityGates: ['health-check', 'performance-monitoring'],
-          autoProgress: false
-        }
+          autoProgress: false,
+        },
       },
       rolloutStrategy: {
         type: 'progressive',
         stages: [
           { name: 'canary', percentage: 5, duration: '30m' },
           { name: 'blue-green', percentage: 50, duration: '2h' },
-          { name: 'full', percentage: 100, duration: 'unlimited' }
-        ]
+          { name: 'full', percentage: 100, duration: 'unlimited' },
+        ],
       },
       qualityThresholds: {
         testCoverage: 85,
         performanceScore: 80,
         securityScore: 95,
-        codeQuality: 8.0
-      }
+        codeQuality: 8.0,
+      },
     };
   }
 
   public async createFeature(
     name: string,
     dependencies: string[] = [],
-    agents: string[] = []
+    agents: string[] = [],
   ): Promise<FeatureLifecycleState> {
     const featureId = `feature_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -150,17 +156,45 @@ export class FeatureLifecycleManager extends EventEmitter {
         testsPassing: 0,
         coverage: 0,
         qualityScore: 0,
-        performanceScore: 0
+        performanceScore: 0,
       },
       startTime: new Date(),
       lastUpdate: new Date(),
       rollbackPoints: [],
       coordination: {
-        frontend: { agentId: '', status: 'idle', currentTask: '', progress: 0, lastUpdate: new Date(), dependencies: [] },
-        backend: { agentId: '', status: 'idle', currentTask: '', progress: 0, lastUpdate: new Date(), dependencies: [] },
-        testing: { agentId: '', status: 'idle', currentTask: '', progress: 0, lastUpdate: new Date(), dependencies: [] },
-        review: { agentId: '', status: 'idle', currentTask: '', progress: 0, lastUpdate: new Date(), dependencies: [] }
-      }
+        frontend: {
+          agentId: '',
+          status: 'idle',
+          currentTask: '',
+          progress: 0,
+          lastUpdate: new Date(),
+          dependencies: [],
+        },
+        backend: {
+          agentId: '',
+          status: 'idle',
+          currentTask: '',
+          progress: 0,
+          lastUpdate: new Date(),
+          dependencies: [],
+        },
+        testing: {
+          agentId: '',
+          status: 'idle',
+          currentTask: '',
+          progress: 0,
+          lastUpdate: new Date(),
+          dependencies: [],
+        },
+        review: {
+          agentId: '',
+          status: 'idle',
+          currentTask: '',
+          progress: 0,
+          lastUpdate: new Date(),
+          dependencies: [],
+        },
+      },
     };
 
     this.features.set(featureId, feature);
@@ -174,7 +208,7 @@ export class FeatureLifecycleManager extends EventEmitter {
 
   public async progressFeature(
     featureId: string,
-    qualityGateResults?: QualityGate[]
+    qualityGateResults?: QualityGate[],
   ): Promise<boolean> {
     const feature = this.features.get(featureId);
     if (!feature) {
@@ -185,8 +219,8 @@ export class FeatureLifecycleManager extends EventEmitter {
 
     // Check quality gates
     if (qualityGateResults) {
-      const failedGates = qualityGateResults.filter(gate =>
-        gate.blocksProgression && gate.status === 'failed'
+      const failedGates = qualityGateResults.filter(
+        (gate) => gate.blocksProgression && gate.status === 'failed',
       );
 
       if (failedGates.length > 0) {
@@ -197,7 +231,12 @@ export class FeatureLifecycleManager extends EventEmitter {
 
     // Progress to next phase
     const phases: FeatureLifecycleState['phase'][] = [
-      'planning', 'development', 'testing', 'review', 'staging', 'production'
+      'planning',
+      'development',
+      'testing',
+      'review',
+      'staging',
+      'production',
     ];
 
     const currentIndex = phases.indexOf(feature.phase);
@@ -210,7 +249,10 @@ export class FeatureLifecycleManager extends EventEmitter {
       feature.agents = this.workflowConfig.phases[feature.phase].requiredAgents;
 
       // Create rollback point
-      await this.createRollbackPoint(featureId, `Progressed from ${previousPhase} to ${feature.phase}`);
+      await this.createRollbackPoint(
+        featureId,
+        `Progressed from ${previousPhase} to ${feature.phase}`,
+      );
 
       this.emit('feature:phase-changed', { feature, previousPhase, newPhase: feature.phase });
 
@@ -228,7 +270,7 @@ export class FeatureLifecycleManager extends EventEmitter {
   public async updateAgentStatus(
     featureId: string,
     agentType: keyof FeatureLifecycleState['coordination'],
-    status: Partial<AgentStatus>
+    status: Partial<AgentStatus>,
   ): Promise<void> {
     const feature = this.features.get(featureId);
     if (!feature) {
@@ -239,7 +281,7 @@ export class FeatureLifecycleManager extends EventEmitter {
     feature.coordination[agentType] = {
       ...currentStatus,
       ...status,
-      lastUpdate: new Date()
+      lastUpdate: new Date(),
     };
 
     feature.lastUpdate = new Date();
@@ -255,8 +297,8 @@ export class FeatureLifecycleManager extends EventEmitter {
     if (!feature) return;
 
     const relevantAgents = this.getRelevantAgentsForPhase(feature.phase);
-    const allCompleted = relevantAgents.every(agentType =>
-      feature.coordination[agentType].status === 'completed'
+    const allCompleted = relevantAgents.every(
+      (agentType) => feature.coordination[agentType].status === 'completed',
     );
 
     if (allCompleted) {
@@ -271,7 +313,7 @@ export class FeatureLifecycleManager extends EventEmitter {
   }
 
   private getRelevantAgentsForPhase(
-    phase: FeatureLifecycleState['phase']
+    phase: FeatureLifecycleState['phase'],
   ): Array<keyof FeatureLifecycleState['coordination']> {
     switch (phase) {
       case 'planning':
@@ -290,10 +332,7 @@ export class FeatureLifecycleManager extends EventEmitter {
     }
   }
 
-  public async createRollbackPoint(
-    featureId: string,
-    description: string
-  ): Promise<RollbackPoint> {
+  public async createRollbackPoint(featureId: string, description: string): Promise<RollbackPoint> {
     const feature = this.features.get(featureId);
     if (!feature) {
       throw new Error(`Feature ${featureId} not found`);
@@ -305,7 +344,7 @@ export class FeatureLifecycleManager extends EventEmitter {
       phase: feature.phase,
       commitHash: await this.getCurrentCommitHash(),
       configSnapshot: { ...this.workflowConfig },
-      healthMetrics: { ...feature.progressMetrics }
+      healthMetrics: { ...feature.progressMetrics },
     };
 
     feature.rollbackPoints.push(rollbackPoint);
@@ -335,7 +374,7 @@ export class FeatureLifecycleManager extends EventEmitter {
       await this.updateAgentStatus(featureId, agentType, {
         status: 'working',
         currentTask: `Phase: ${feature.phase}`,
-        progress: 0
+        progress: 0,
       });
     }
 
@@ -351,12 +390,12 @@ export class FeatureLifecycleManager extends EventEmitter {
   }
 
   public getFeaturesByPhase(phase: FeatureLifecycleState['phase']): FeatureLifecycleState[] {
-    return this.getAllFeatures().filter(feature => feature.phase === phase);
+    return this.getAllFeatures().filter((feature) => feature.phase === phase);
   }
 
   public async updateProgressMetrics(
     featureId: string,
-    metrics: Partial<FeatureLifecycleState['progressMetrics']>
+    metrics: Partial<FeatureLifecycleState['progressMetrics']>,
   ): Promise<void> {
     const feature = this.features.get(featureId);
     if (!feature) {
@@ -370,7 +409,7 @@ export class FeatureLifecycleManager extends EventEmitter {
     const history = this.metricsHistory.get(featureId) || [];
     history.push({
       timestamp: new Date(),
-      metrics: { ...feature.progressMetrics }
+      metrics: { ...feature.progressMetrics },
     });
     this.metricsHistory.set(featureId, history);
 

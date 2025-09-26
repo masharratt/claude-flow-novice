@@ -49,8 +49,17 @@ export interface ClassificationResult {
 }
 
 export type ProjectType =
-  | 'web-app' | 'api' | 'cli' | 'library' | 'mobile'
-  | 'ml' | 'data' | 'game' | 'desktop' | 'iot' | 'mixed';
+  | 'web-app'
+  | 'api'
+  | 'cli'
+  | 'library'
+  | 'mobile'
+  | 'ml'
+  | 'data'
+  | 'game'
+  | 'desktop'
+  | 'iot'
+  | 'mixed';
 
 export type ProjectComplexity = 'small' | 'medium' | 'large' | 'enterprise';
 
@@ -115,9 +124,19 @@ export interface DocumentationInfo {
 }
 
 export type ProjectPattern =
-  | 'microservices' | 'monolith' | 'serverless' | 'jamstack'
-  | 'spa' | 'ssr' | 'static' | 'mobile-app' | 'cross-platform'
-  | 'ml-pipeline' | 'data-pipeline' | 'real-time' | 'batch-processing';
+  | 'microservices'
+  | 'monolith'
+  | 'serverless'
+  | 'jamstack'
+  | 'spa'
+  | 'ssr'
+  | 'static'
+  | 'mobile-app'
+  | 'cross-platform'
+  | 'ml-pipeline'
+  | 'data-pipeline'
+  | 'real-time'
+  | 'batch-processing';
 
 /**
  * Advanced project detection engine using multi-modal analysis
@@ -146,7 +165,7 @@ export class ProjectDetectionEngine {
       complexity: await this.assessComplexity(features),
       teamSize: await this.estimateTeamSize(features),
       patterns: await this.identifyPatterns(features),
-      confidence: classification.confidence
+      confidence: classification.confidence,
     };
   }
 
@@ -164,7 +183,7 @@ export class ProjectDetectionEngine {
       configFiles,
       buildTools,
       gitMetadata,
-      documentation
+      documentation,
     ] = await Promise.all([
       this.analyzeFileTypes(projectPath),
       this.analyzeStructure(projectPath),
@@ -175,7 +194,7 @@ export class ProjectDetectionEngine {
       this.findConfigFiles(projectPath),
       this.detectBuildTools(projectPath),
       this.analyzeGitHistory(projectPath),
-      this.analyzeDocumentation(projectPath)
+      this.analyzeDocumentation(projectPath),
     ]);
 
     return {
@@ -188,7 +207,7 @@ export class ProjectDetectionEngine {
       configFiles,
       buildTools,
       gitMetadata,
-      documentation
+      documentation,
     };
   }
 
@@ -201,7 +220,8 @@ export class ProjectDetectionEngine {
     // Apply each classification pattern
     for (const [type, pattern] of this.classificationPatterns) {
       const result = await this.applyClassificationPattern(features, type, pattern);
-      if (result.confidence > 0.1) { // Only include meaningful results
+      if (result.confidence > 0.1) {
+        // Only include meaningful results
         results.push(result);
       }
     }
@@ -222,7 +242,7 @@ export class ProjectDetectionEngine {
       primary,
       secondary,
       confidence: overallConfidence,
-      reasoning
+      reasoning,
     };
   }
 
@@ -254,13 +274,38 @@ export class ProjectDetectionEngine {
   private async analyzeStructure(projectPath: string): Promise<StructurePattern[]> {
     const patterns: StructurePattern[] = [];
     const importantDirs = [
-      'src', 'lib', 'app', 'components', 'pages', 'routes', 'controllers',
-      'models', 'views', 'services', 'utils', 'helpers', 'config',
-      'tests', 'test', '__tests__', 'spec', 'e2e',
-      'public', 'static', 'assets', 'resources',
-      'docs', 'documentation', 'wiki',
-      'scripts', 'bin', 'tools', 'build',
-      'migrations', 'seeds', 'fixtures'
+      'src',
+      'lib',
+      'app',
+      'components',
+      'pages',
+      'routes',
+      'controllers',
+      'models',
+      'views',
+      'services',
+      'utils',
+      'helpers',
+      'config',
+      'tests',
+      'test',
+      '__tests__',
+      'spec',
+      'e2e',
+      'public',
+      'static',
+      'assets',
+      'resources',
+      'docs',
+      'documentation',
+      'wiki',
+      'scripts',
+      'bin',
+      'tools',
+      'build',
+      'migrations',
+      'seeds',
+      'fixtures',
     ];
 
     try {
@@ -272,7 +317,7 @@ export class ProjectDetectionEngine {
             path: entry.name,
             type: 'directory',
             importance: this.calculateDirectoryImportance(entry.name),
-            pattern: this.getDirectoryPattern(entry.name)
+            pattern: this.getDirectoryPattern(entry.name),
           });
         }
       }
@@ -300,7 +345,7 @@ export class ProjectDetectionEngine {
       { name: 'go.mod', manager: 'go' },
       { name: 'pom.xml', manager: 'maven' },
       { name: 'build.gradle', manager: 'gradle' },
-      { name: 'composer.json', manager: 'composer' }
+      { name: 'composer.json', manager: 'composer' },
     ];
 
     for (const { name, manager } of pmFiles) {
@@ -344,14 +389,15 @@ export class ProjectDetectionEngine {
       /const\s+.*?=\s+require\(['"`]([^'"`]+)['"`]\)/g, // CommonJS
       /from\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+import/g, // Python
       /use\s+([^;]+);/g, // Rust
-      /import\s+([a-zA-Z_][a-zA-Z0-9_.]*)/g // Java
+      /import\s+([a-zA-Z_][a-zA-Z0-9_.]*)/g, // Java
     ];
 
     try {
       const sourceFiles = await this.getSourceFiles(projectPath);
       const importCounts = new Map<string, number>();
 
-      for (const file of sourceFiles.slice(0, 100)) { // Limit to first 100 files
+      for (const file of sourceFiles.slice(0, 100)) {
+        // Limit to first 100 files
         const content = await fs.readFile(file, 'utf-8');
 
         for (const regex of importRegexes) {
@@ -368,7 +414,7 @@ export class ProjectDetectionEngine {
         patterns.push({
           pattern,
           count,
-          category: this.categorizeImport(pattern)
+          category: this.categorizeImport(pattern),
         });
       }
     } catch (error) {
@@ -398,7 +444,6 @@ export class ProjectDetectionEngine {
       // Look for WebSocket patterns
       const wsPattern = await this.detectWebSocketPatterns(sourceFiles);
       if (wsPattern) patterns.push(wsPattern);
-
     } catch (error) {
       console.warn('Error detecting API patterns:', error);
     }
@@ -419,7 +464,7 @@ export class ProjectDetectionEngine {
       { pattern: /^\.(eslintrc|prettierrc|babelrc)/, importance: 0.6 },
       { pattern: /^(docker|docker-compose)\.(yml|yaml)$/, importance: 0.8 },
       { pattern: /^Dockerfile/, importance: 0.8 },
-      { pattern: /^(tsconfig|jsconfig)\.json$/, importance: 0.7 }
+      { pattern: /^(tsconfig|jsconfig)\.json$/, importance: 0.7 },
     ];
 
     try {
@@ -434,7 +479,7 @@ export class ProjectDetectionEngine {
               name: fileName,
               path: file,
               type: this.getConfigType(fileName),
-              importance
+              importance,
             });
             break;
           }
@@ -457,33 +502,33 @@ export class ProjectDetectionEngine {
       {
         name: 'webpack',
         indicators: ['webpack.config.js', 'webpack.config.ts', 'webpack'],
-        confidence: 0.9
+        confidence: 0.9,
       },
       {
         name: 'vite',
         indicators: ['vite.config.js', 'vite.config.ts', 'vite'],
-        confidence: 0.9
+        confidence: 0.9,
       },
       {
         name: 'rollup',
         indicators: ['rollup.config.js', 'rollup.config.ts', 'rollup'],
-        confidence: 0.8
+        confidence: 0.8,
       },
       {
         name: 'parcel',
         indicators: ['.parcelrc', 'parcel'],
-        confidence: 0.8
+        confidence: 0.8,
       },
       {
         name: 'gulp',
         indicators: ['gulpfile.js', 'gulpfile.ts', 'gulp'],
-        confidence: 0.7
+        confidence: 0.7,
       },
       {
         name: 'grunt',
         indicators: ['Gruntfile.js', 'grunt'],
-        confidence: 0.7
-      }
+        confidence: 0.7,
+      },
     ];
 
     // Check package.json dependencies
@@ -519,7 +564,7 @@ export class ProjectDetectionEngine {
         buildTools.push({
           name: tool.name,
           confidence,
-          configFile
+          configFile,
         });
       }
     }
@@ -538,7 +583,7 @@ export class ProjectDetectionEngine {
       const [branchInfo, commitInfo, languageInfo] = await Promise.all([
         this.getGitBranchInfo(projectPath),
         this.getGitCommitInfo(projectPath),
-        this.getGitLanguageInfo(projectPath)
+        this.getGitLanguageInfo(projectPath),
       ]);
 
       return {
@@ -546,7 +591,7 @@ export class ProjectDetectionEngine {
         commitCount: commitInfo.commitCount,
         contributorCount: commitInfo.contributorCount,
         lastActivity: commitInfo.lastActivity,
-        languages: languageInfo
+        languages: languageInfo,
       };
     } catch {
       return null; // Not a Git repository or access error
@@ -563,21 +608,21 @@ export class ProjectDetectionEngine {
       { pattern: /^readme\.(md|txt|rst)$/i, type: 'readme' as const },
       { pattern: /^(docs?|documentation)\//i, type: 'docs' as const },
       { pattern: /\.wiki\//i, type: 'wiki' as const },
-      { pattern: /api-docs?\//i, type: 'api-docs' as const }
+      { pattern: /api-docs?\//i, type: 'api-docs' as const },
     ];
 
     try {
       const files = await this.getAllFiles(projectPath, 200);
 
       for (const { pattern, type } of docPatterns) {
-        const matchingFiles = files.filter(file => pattern.test(file));
+        const matchingFiles = files.filter((file) => pattern.test(file));
 
         if (matchingFiles.length > 0) {
           const quality = await this.assessDocumentationQuality(matchingFiles);
           documentation.push({
             type,
             quality,
-            coverage: this.calculateDocumentationCoverage(matchingFiles, files.length)
+            coverage: this.calculateDocumentationCoverage(matchingFiles, files.length),
           });
         }
       }
@@ -594,7 +639,7 @@ export class ProjectDetectionEngine {
   private async applyClassificationPattern(
     features: ProjectFeatures,
     type: ProjectType,
-    pattern: ClassificationPattern
+    pattern: ClassificationPattern,
   ): Promise<ClassificationResult> {
     let score = 0;
     const evidence: string[] = [];
@@ -614,7 +659,7 @@ export class ProjectDetectionEngine {
     return {
       type,
       confidence,
-      evidence
+      evidence,
     };
   }
 
@@ -640,7 +685,7 @@ export class ProjectDetectionEngine {
       ['.swift', 'swift'],
       ['.dart', 'dart'],
       ['.scala', 'scala'],
-      ['.clj', 'clojure']
+      ['.clj', 'clojure'],
     ]);
 
     let maxCount = 0;
@@ -673,13 +718,13 @@ export class ProjectDetectionEngine {
       ['fastapi', ['fastapi', 'uvicorn']],
       ['spring', ['spring-boot', 'springframework']],
       ['rails', ['rails', 'ruby-on-rails']],
-      ['laravel', ['laravel', 'illuminate']]
+      ['laravel', ['laravel', 'illuminate']],
     ]);
 
-    const dependencyNames = new Set(features.dependencies.map(dep => dep.name.toLowerCase()));
+    const dependencyNames = new Set(features.dependencies.map((dep) => dep.name.toLowerCase()));
 
     for (const [framework, indicators] of frameworkIndicators) {
-      if (indicators.some(indicator => dependencyNames.has(indicator.toLowerCase()))) {
+      if (indicators.some((indicator) => dependencyNames.has(indicator.toLowerCase()))) {
         return framework;
       }
     }
@@ -694,7 +739,10 @@ export class ProjectDetectionEngine {
     let complexityScore = 0;
 
     // File count
-    const totalFiles = Array.from(features.fileTypes.values()).reduce((sum, count) => sum + count, 0);
+    const totalFiles = Array.from(features.fileTypes.values()).reduce(
+      (sum, count) => sum + count,
+      0,
+    );
     if (totalFiles > 1000) complexityScore += 3;
     else if (totalFiles > 100) complexityScore += 2;
     else if (totalFiles > 20) complexityScore += 1;
@@ -741,21 +789,21 @@ export class ProjectDetectionEngine {
           type: 'dependency',
           values: ['react', 'vue', 'angular', 'svelte', 'next.js', 'nuxt.js'],
           weight: 0.8,
-          description: 'Frontend framework dependency'
+          description: 'Frontend framework dependency',
         },
         {
           type: 'directory',
           values: ['components', 'pages', 'views', 'public', 'static'],
           weight: 0.6,
-          description: 'Web application directory structure'
+          description: 'Web application directory structure',
         },
         {
           type: 'file_extension',
           values: ['.jsx', '.tsx', '.vue', '.html', '.css', '.scss'],
           weight: 0.4,
-          description: 'Web development file types'
-        }
-      ]
+          description: 'Web development file types',
+        },
+      ],
     });
 
     // API patterns
@@ -765,21 +813,21 @@ export class ProjectDetectionEngine {
           type: 'dependency',
           values: ['express', 'fastify', 'koa', 'django', 'flask', 'fastapi'],
           weight: 0.9,
-          description: 'API framework dependency'
+          description: 'API framework dependency',
         },
         {
           type: 'directory',
           values: ['routes', 'controllers', 'endpoints', 'api', 'handlers'],
           weight: 0.7,
-          description: 'API directory structure'
+          description: 'API directory structure',
         },
         {
           type: 'file_pattern',
           values: ['router', 'controller', 'handler', 'endpoint'],
           weight: 0.5,
-          description: 'API file naming patterns'
-        }
-      ]
+          description: 'API file naming patterns',
+        },
+      ],
     });
 
     // CLI patterns
@@ -789,21 +837,21 @@ export class ProjectDetectionEngine {
           type: 'dependency',
           values: ['commander', 'yargs', 'inquirer', 'chalk', 'ora'],
           weight: 0.8,
-          description: 'CLI framework dependency'
+          description: 'CLI framework dependency',
         },
         {
           type: 'file_name',
           values: ['cli.js', 'bin.js', 'index.js'],
           weight: 0.6,
-          description: 'CLI entry point files'
+          description: 'CLI entry point files',
         },
         {
           type: 'directory',
           values: ['bin', 'cli', 'commands'],
           weight: 0.5,
-          description: 'CLI directory structure'
-        }
-      ]
+          description: 'CLI directory structure',
+        },
+      ],
     });
 
     // Add more patterns for other project types...
@@ -844,9 +892,22 @@ export class ProjectDetectionEngine {
 
   private shouldSkipDirectory(name: string): boolean {
     const skipDirs = new Set([
-      'node_modules', '.git', '.svn', '.hg', 'dist', 'build',
-      '.next', '.nuxt', 'coverage', '.nyc_output', '__pycache__',
-      'venv', '.env', '.venv', 'target', 'vendor'
+      'node_modules',
+      '.git',
+      '.svn',
+      '.hg',
+      'dist',
+      'build',
+      '.next',
+      '.nuxt',
+      'coverage',
+      '.nyc_output',
+      '__pycache__',
+      'venv',
+      '.env',
+      '.venv',
+      'target',
+      'vendor',
     ]);
 
     return skipDirs.has(name) || name.startsWith('.');
@@ -855,11 +916,21 @@ export class ProjectDetectionEngine {
   // Additional helper methods would be implemented here...
   private calculateDirectoryImportance(name: string): number {
     const importance = new Map([
-      ['src', 1.0], ['lib', 0.9], ['app', 0.9],
-      ['components', 0.8], ['pages', 0.8], ['views', 0.8],
-      ['routes', 0.8], ['controllers', 0.8], ['models', 0.8],
-      ['services', 0.7], ['utils', 0.6], ['helpers', 0.6],
-      ['config', 0.7], ['tests', 0.6], ['docs', 0.5]
+      ['src', 1.0],
+      ['lib', 0.9],
+      ['app', 0.9],
+      ['components', 0.8],
+      ['pages', 0.8],
+      ['views', 0.8],
+      ['routes', 0.8],
+      ['controllers', 0.8],
+      ['models', 0.8],
+      ['services', 0.7],
+      ['utils', 0.6],
+      ['helpers', 0.6],
+      ['config', 0.7],
+      ['tests', 0.6],
+      ['docs', 0.5],
     ]);
 
     return importance.get(name) || 0.3;
@@ -867,24 +938,47 @@ export class ProjectDetectionEngine {
 
   private getDirectoryPattern(name: string): string {
     const patterns = new Map([
-      ['src', 'source-code'], ['lib', 'library'], ['app', 'application'],
-      ['components', 'ui-components'], ['pages', 'routing'], ['views', 'templates'],
-      ['routes', 'api-routing'], ['controllers', 'business-logic'], ['models', 'data-models'],
-      ['services', 'business-services'], ['utils', 'utilities'], ['config', 'configuration'],
-      ['tests', 'testing'], ['docs', 'documentation']
+      ['src', 'source-code'],
+      ['lib', 'library'],
+      ['app', 'application'],
+      ['components', 'ui-components'],
+      ['pages', 'routing'],
+      ['views', 'templates'],
+      ['routes', 'api-routing'],
+      ['controllers', 'business-logic'],
+      ['models', 'data-models'],
+      ['services', 'business-services'],
+      ['utils', 'utilities'],
+      ['config', 'configuration'],
+      ['tests', 'testing'],
+      ['docs', 'documentation'],
     ]);
 
     return patterns.get(name) || 'unknown';
   }
 
-  private categorizeImport(importPath: string): 'framework' | 'utility' | 'ui' | 'data' | 'testing' {
-    if (importPath.includes('react') || importPath.includes('vue') || importPath.includes('angular')) {
+  private categorizeImport(
+    importPath: string,
+  ): 'framework' | 'utility' | 'ui' | 'data' | 'testing' {
+    if (
+      importPath.includes('react') ||
+      importPath.includes('vue') ||
+      importPath.includes('angular')
+    ) {
       return 'framework';
     }
-    if (importPath.includes('test') || importPath.includes('jest') || importPath.includes('mocha')) {
+    if (
+      importPath.includes('test') ||
+      importPath.includes('jest') ||
+      importPath.includes('mocha')
+    ) {
       return 'testing';
     }
-    if (importPath.includes('ui') || importPath.includes('component') || importPath.includes('style')) {
+    if (
+      importPath.includes('ui') ||
+      importPath.includes('component') ||
+      importPath.includes('style')
+    ) {
       return 'ui';
     }
     if (importPath.includes('data') || importPath.includes('api') || importPath.includes('http')) {

@@ -23,7 +23,7 @@ class PerformanceIntegrationManager {
       enableTesting: options.testing || false,
       performanceTarget: 100, // ms
       compatibilityTarget: 0.95, // 95%
-      ...options
+      ...options,
     };
 
     this.memoryStore = null;
@@ -35,7 +35,7 @@ class PerformanceIntegrationManager {
       initializationTime: 0,
       memoryPersistenceFixed: false,
       performanceTargetMet: false,
-      compatibilityRate: 0
+      compatibilityRate: 0,
     };
   }
 
@@ -77,14 +77,15 @@ class PerformanceIntegrationManager {
         success: true,
         message: 'Performance-optimized hook system initialized successfully',
         metrics: this.integrationMetrics,
-        initializationTime: this.integrationMetrics.initializationTime
+        initializationTime: this.integrationMetrics.initializationTime,
       };
 
       console.log('✅ Performance-optimized hook system ready');
-      console.log(`📊 Initialization time: ${this.integrationMetrics.initializationTime.toFixed(2)}ms`);
+      console.log(
+        `📊 Initialization time: ${this.integrationMetrics.initializationTime.toFixed(2)}ms`,
+      );
 
       return result;
-
     } catch (error) {
       const initTime = performance.now() - initStart;
       console.error('❌ Failed to initialize performance-optimized hook system:', error);
@@ -93,7 +94,7 @@ class PerformanceIntegrationManager {
         success: false,
         error: error.message,
         initializationTime: initTime,
-        metrics: this.integrationMetrics
+        metrics: this.integrationMetrics,
       };
     }
   }
@@ -117,16 +118,15 @@ class PerformanceIntegrationManager {
         const executionTime = performance.now() - executionStart;
         this.performanceMonitor.recordExecution(hookType, executionTime, true, {
           optimized: true,
-          context: context
+          context: context,
         });
       }
 
       return {
         ...result,
         optimized: true,
-        executionTime: performance.now() - executionStart
+        executionTime: performance.now() - executionStart,
       };
-
     } catch (error) {
       // Record failed execution
       if (this.performanceMonitor) {
@@ -134,7 +134,7 @@ class PerformanceIntegrationManager {
         this.performanceMonitor.recordExecution(hookType, executionTime, false, {
           optimized: true,
           error: error.message,
-          context: context
+          context: context,
         });
       }
 
@@ -156,8 +156,10 @@ class PerformanceIntegrationManager {
       const testResults = await this.testSuite.runCompleteTestSuite();
 
       // Update integration metrics based on test results
-      this.integrationMetrics.performanceTargetMet = testResults.performanceMetrics.summary.targetMet;
-      this.integrationMetrics.compatibilityRate = testResults.performanceMetrics.summary.compatibilityRate;
+      this.integrationMetrics.performanceTargetMet =
+        testResults.performanceMetrics.summary.targetMet;
+      this.integrationMetrics.compatibilityRate =
+        testResults.performanceMetrics.summary.compatibilityRate;
       this.integrationMetrics.memoryPersistenceFixed =
         testResults.performanceMetrics.summary.memoryPersistenceFailures === 0;
 
@@ -165,9 +167,8 @@ class PerformanceIntegrationManager {
         success: true,
         testResults,
         metrics: this.integrationMetrics,
-        recommendations: testResults.recommendations
+        recommendations: testResults.recommendations,
       };
-
     } catch (error) {
       console.error('❌ Performance validation failed:', error);
       throw error;
@@ -181,12 +182,14 @@ class PerformanceIntegrationManager {
     if (!this.isInitialized) {
       return {
         initialized: false,
-        message: 'Performance integration not initialized'
+        message: 'Performance integration not initialized',
       };
     }
 
     const hookSystemMetrics = this.optimizedHookSystem.getPerformanceReport();
-    const monitorStatus = this.performanceMonitor ? this.performanceMonitor.getCurrentStatus() : null;
+    const monitorStatus = this.performanceMonitor
+      ? this.performanceMonitor.getCurrentStatus()
+      : null;
 
     return {
       initialized: true,
@@ -195,13 +198,14 @@ class PerformanceIntegrationManager {
       monitoringStatus: monitorStatus,
       compliance: {
         executionTimeCompliance: this.integrationMetrics.performanceTargetMet,
-        compatibilityCompliance: this.integrationMetrics.compatibilityRate >= this.options.compatibilityTarget,
+        compatibilityCompliance:
+          this.integrationMetrics.compatibilityRate >= this.options.compatibilityTarget,
         memoryPersistenceCompliance: this.integrationMetrics.memoryPersistenceFixed,
         overallCompliance:
           this.integrationMetrics.performanceTargetMet &&
           this.integrationMetrics.compatibilityRate >= this.options.compatibilityTarget &&
-          this.integrationMetrics.memoryPersistenceFixed
-      }
+          this.integrationMetrics.memoryPersistenceFixed,
+      },
     };
   }
 
@@ -217,27 +221,28 @@ class PerformanceIntegrationManager {
         target: 'Reduce hook execution time from 1,186ms to <100ms (91.6% improvement)',
         status: status.compliance.executionTimeCompliance ? 'ACHIEVED' : 'IN_PROGRESS',
         currentPerformance: status.hookSystemPerformance?.averageTime || 'unknown',
-        improvementAchieved: status.hookSystemPerformance?.averageTime ?
-          `${((1186 - status.hookSystemPerformance.averageTime) / 1186 * 100).toFixed(1)}%` : 'unknown'
+        improvementAchieved: status.hookSystemPerformance?.averageTime
+          ? `${(((1186 - status.hookSystemPerformance.averageTime) / 1186) * 100).toFixed(1)}%`
+          : 'unknown',
       },
       memoryPersistence: {
         target: 'Fix memory persistence failures',
         status: status.compliance.memoryPersistenceCompliance ? 'FIXED' : 'IN_PROGRESS',
-        failuresDetected: status.hookSystemPerformance?.memoryPersistenceFailures || 0
+        failuresDetected: status.hookSystemPerformance?.memoryPersistenceFailures || 0,
       },
       compatibility: {
         target: 'Achieve 95% hook compatibility rate',
         status: status.compliance.compatibilityCompliance ? 'ACHIEVED' : 'IN_PROGRESS',
-        currentRate: `${(status.integrationMetrics.compatibilityRate * 100).toFixed(1)}%`
+        currentRate: `${(status.integrationMetrics.compatibilityRate * 100).toFixed(1)}%`,
       },
       optimizations: {
         cachingImplemented: true,
         parallelExecutionEnabled: true,
         memoryStoreOptimized: true,
         timeoutHandlingAdded: true,
-        performanceMonitoringActive: status.monitoringStatus?.isMonitoring || false
+        performanceMonitoringActive: status.monitoringStatus?.isMonitoring || false,
       },
-      recommendations: this._generateRecommendations(status)
+      recommendations: this._generateRecommendations(status),
     };
   }
 
@@ -274,7 +279,7 @@ class PerformanceIntegrationManager {
 
     this.memoryStore = new SqliteMemoryStore({
       dbName: 'performance-optimized.db',
-      directory: '.swarm'
+      directory: '.swarm',
     });
 
     await this.memoryStore.initialize();
@@ -298,11 +303,15 @@ class PerformanceIntegrationManager {
 
     // Set up event handlers
     this.performanceMonitor.on('target_missed', (data) => {
-      console.warn(`⚠️  Performance target missed: ${data.hookType} took ${data.executionTime.toFixed(2)}ms`);
+      console.warn(
+        `⚠️  Performance target missed: ${data.hookType} took ${data.executionTime.toFixed(2)}ms`,
+      );
     });
 
     this.performanceMonitor.on('critical_performance', (data) => {
-      console.error(`❌ Critical performance issue: ${data.hookType} took ${data.executionTime.toFixed(2)}ms`);
+      console.error(
+        `❌ Critical performance issue: ${data.hookType} took ${data.executionTime.toFixed(2)}ms`,
+      );
     });
 
     console.log('✅ Performance monitoring active');
@@ -324,7 +333,7 @@ class PerformanceIntegrationManager {
     const testStart = performance.now();
     const result = await this.optimizedHookSystem.executeHook('pre-task', {
       description: 'Integration validation test',
-      taskId: 'validation-test'
+      taskId: 'validation-test',
     });
 
     const testTime = performance.now() - testStart;
@@ -350,7 +359,6 @@ class PerformanceIntegrationManager {
 
       this.integrationMetrics.memoryPersistenceFixed = true;
       console.log('✅ Memory persistence validation passed');
-
     } catch (error) {
       console.error('❌ Memory persistence validation failed:', error);
       this.integrationMetrics.memoryPersistenceFixed = false;
@@ -370,8 +378,8 @@ class PerformanceIntegrationManager {
           'Profile slow hooks using performance monitor',
           'Increase cache sizes and optimize cache keys',
           'Reduce database I/O operations',
-          'Consider asynchronous processing for non-critical operations'
-        ]
+          'Consider asynchronous processing for non-critical operations',
+        ],
       });
     }
 
@@ -383,8 +391,8 @@ class PerformanceIntegrationManager {
           'Review failed hook executions in performance monitor',
           'Improve error handling for edge cases',
           'Add fallback mechanisms for critical hooks',
-          'Validate hook context parameters'
-        ]
+          'Validate hook context parameters',
+        ],
       });
     }
 
@@ -396,8 +404,8 @@ class PerformanceIntegrationManager {
           'Check database connection stability',
           'Implement retry logic for failed operations',
           'Validate database schema and permissions',
-          'Monitor disk space and database locks'
-        ]
+          'Monitor disk space and database locks',
+        ],
       });
     }
 
@@ -409,8 +417,8 @@ class PerformanceIntegrationManager {
           'Continue monitoring performance trends',
           'Consider further optimizations for edge cases',
           'Document successful optimization patterns',
-          'Share performance improvements with team'
-        ]
+          'Share performance improvements with team',
+        ],
       });
     }
 
@@ -441,7 +449,7 @@ async function replaceHookSystem(existingHookSystem, options = {}) {
   // Create new optimized system
   const optimizedManager = await createPerformanceIntegration({
     ...options,
-    enableMonitoring: true
+    enableMonitoring: true,
   });
 
   // Clean up existing system if possible
@@ -453,8 +461,4 @@ async function replaceHookSystem(existingHookSystem, options = {}) {
   return optimizedManager;
 }
 
-export {
-  PerformanceIntegrationManager,
-  createPerformanceIntegration,
-  replaceHookSystem
-};
+export { PerformanceIntegrationManager, createPerformanceIntegration, replaceHookSystem };

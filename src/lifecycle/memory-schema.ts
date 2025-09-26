@@ -13,7 +13,7 @@ import type {
   LifecycleMetrics,
   LifecycleMemoryManager,
   AgentLifecycleState,
-  LifecycleSystemConfig
+  LifecycleSystemConfig,
 } from '../types/agent-lifecycle-types.js';
 import type { ILogger } from '../utils/types.js';
 
@@ -244,11 +244,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
   private cache: Map<string, { data: AgentLifecycleRecord; timestamp: number }>;
   private cacheTimeout: number = 300000; // 5 minutes
 
-  constructor(
-    database: Database,
-    logger: ILogger,
-    config: LifecycleSystemConfig['memory']
-  ) {
+  constructor(database: Database, logger: ILogger, config: LifecycleSystemConfig['memory']) {
     this.db = database;
     this.logger = logger;
     this.config = config;
@@ -276,11 +272,14 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
    */
   private setupCleanupSchedule(): void {
     if (this.config.retentionDays > 0) {
-      setInterval(() => {
-        this.cleanup(this.config.retentionDays).catch(error => {
-          this.logger.error('Automatic cleanup failed', error);
-        });
-      }, 24 * 60 * 60 * 1000); // Daily cleanup
+      setInterval(
+        () => {
+          this.cleanup(this.config.retentionDays).catch((error) => {
+            this.logger.error('Automatic cleanup failed', error);
+          });
+        },
+        24 * 60 * 60 * 1000,
+      ); // Daily cleanup
     }
   }
 
@@ -308,13 +307,13 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
         JSON.stringify(record.metadata),
         JSON.stringify(record.configuration),
         JSON.stringify(record.resources),
-        JSON.stringify(record.performance)
+        JSON.stringify(record.performance),
       );
 
       // Update cache
       this.cache.set(record.agentId, {
         data: record,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       this.logger.debug(`Stored lifecycle record for agent ${record.agentId}`);
@@ -363,7 +362,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
         configuration: JSON.parse(row.configuration_json),
         resources: JSON.parse(row.resources_json),
         performance: JSON.parse(row.performance_json),
-        stateHistory: historyRows.map(historyRow => ({
+        stateHistory: historyRows.map((historyRow) => ({
           id: historyRow.id,
           fromState: historyRow.from_state,
           toState: historyRow.to_state,
@@ -377,14 +376,14 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
           hooksExecuted: JSON.parse(historyRow.hooks_executed_json || '[]'),
           hookResults: JSON.parse(historyRow.hook_results_json || '[]'),
           conditions: JSON.parse(historyRow.conditions_json || '[]'),
-          actions: JSON.parse(historyRow.actions_json || '[]')
-        }))
+          actions: JSON.parse(historyRow.actions_json || '[]'),
+        })),
       };
 
       // Update cache
       this.cache.set(agentId, {
         data: record,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return record;
@@ -400,7 +399,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
   async updateState(
     agentId: string,
     newState: AgentLifecycleState,
-    transition: AgentStateHistoryEntry
+    transition: AgentStateHistoryEntry,
   ): Promise<void> {
     const transaction = this.db.transaction(() => {
       // Update main record
@@ -415,12 +414,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
         throw new Error(`Agent lifecycle record not found: ${agentId}`);
       }
 
-      updateStmt.run(
-        newState,
-        record.currentState,
-        new Date().toISOString(),
-        agentId
-      );
+      updateStmt.run(newState, record.currentState, new Date().toISOString(), agentId);
 
       // Insert history entry
       const historyStmt = this.db.prepare(`
@@ -447,7 +441,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
         JSON.stringify(transition.hooksExecuted),
         JSON.stringify(transition.hookResults),
         JSON.stringify(transition.conditions),
-        JSON.stringify(transition.actions)
+        JSON.stringify(transition.actions),
       );
     });
 
@@ -457,7 +451,9 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
       // Invalidate cache
       this.cache.delete(agentId);
 
-      this.logger.debug(`Updated state for agent ${agentId}: ${transition.fromState} -> ${newState}`);
+      this.logger.debug(
+        `Updated state for agent ${agentId}: ${transition.fromState} -> ${newState}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to update state for agent ${agentId}`, error);
       throw error;
@@ -489,7 +485,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
         metrics.metrics.messageCount,
         metrics.metrics.errorCount,
         JSON.stringify(metrics.metrics.customMetrics || {}),
-        JSON.stringify(metrics.tags || {})
+        JSON.stringify(metrics.tags || {}),
       );
     } catch (error) {
       this.logger.error(`Failed to store metrics for agent ${metrics.agentId}`, error);
@@ -502,7 +498,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
    */
   async queryMetrics(
     agentId: string,
-    timeRange: { start: Date; end: Date }
+    timeRange: { start: Date; end: Date },
   ): Promise<LifecycleMetrics[]> {
     const stmt = this.db.prepare(`
       SELECT * FROM lifecycle_metrics
@@ -514,10 +510,10 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
       const rows = stmt.all(
         agentId,
         timeRange.start.toISOString(),
-        timeRange.end.toISOString()
+        timeRange.end.toISOString(),
       ) as any[];
 
-      return rows.map(row => ({
+      return rows.map((row) => ({
         agentId: row.agent_id,
         timestamp: new Date(row.timestamp),
         state: row.state,
@@ -529,9 +525,9 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
           taskCount: row.task_count,
           messageCount: row.message_count,
           errorCount: row.error_count,
-          customMetrics: JSON.parse(row.custom_metrics_json || '{}')
+          customMetrics: JSON.parse(row.custom_metrics_json || '{}'),
         },
-        tags: JSON.parse(row.tags_json || '{}')
+        tags: JSON.parse(row.tags_json || '{}'),
       }));
     } catch (error) {
       this.logger.error(`Failed to query metrics for agent ${agentId}`, error);
@@ -564,7 +560,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
           JSON.stringify(record.metadata),
           JSON.stringify(record.configuration),
           JSON.stringify(record.resources),
-          JSON.stringify(record.performance)
+          JSON.stringify(record.performance),
         );
       }
     });
@@ -684,7 +680,7 @@ export class SQLiteLifecycleMemoryManager implements LifecycleMemoryManager {
       configuration: JSON.parse(row.configuration_json),
       resources: JSON.parse(row.resources_json),
       performance: JSON.parse(row.performance_json),
-      stateHistory: [] // Don't load history for sync operations
+      stateHistory: [], // Don't load history for sync operations
     };
   }
 }
@@ -763,7 +759,7 @@ export class LifecycleSchemaManager {
         'hook_execution_log',
         'resource_usage_log',
         'configuration_changes_log',
-        'event_correlation'
+        'event_correlation',
       ];
 
       const stmt = this.db.prepare(`

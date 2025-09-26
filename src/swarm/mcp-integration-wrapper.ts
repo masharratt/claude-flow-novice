@@ -1,6 +1,6 @@
 /**
  * MCP Integration Wrapper for Swarm System
- * 
+ *
  * This module provides a comprehensive wrapper around MCP tools to enable
  * seamless integration with the swarm orchestration system. It handles
  * tool discovery, execution, error handling, and result aggregation.
@@ -80,7 +80,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
   constructor(config: Partial<MCPIntegrationConfig> = {}) {
     super();
-    
+
     this.logger = new Logger('MCPIntegrationWrapper');
     this.config = this.createDefaultConfig(config);
     this.toolRegistry = this.initializeToolRegistry();
@@ -121,7 +121,6 @@ export class MCPIntegrationWrapper extends EventEmitter {
         toolCount: this.toolRegistry.tools.size,
         config: this.config,
       });
-
     } catch (error) {
       this.logger.error('Failed to initialize MCP integration wrapper', error);
       throw error;
@@ -147,7 +146,6 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
       this.logger.info('MCP integration wrapper shut down successfully');
       this.emit('shutdown');
-
     } catch (error) {
       this.logger.error('Error during MCP wrapper shutdown', error);
       throw error;
@@ -160,7 +158,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
   async executeTool(
     toolName: string,
     input: any,
-    context: MCPExecutionContext
+    context: MCPExecutionContext,
   ): Promise<MCPToolExecutionResult> {
     const executionId = generateId('mcp-execution');
     const startTime = performance.now();
@@ -205,7 +203,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
           input,
           context,
           executionId,
-          abortController.signal
+          abortController.signal,
         );
 
         clearTimeout(timeoutHandle);
@@ -241,12 +239,10 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
         this.emit('tool:executed', executionResult);
         return executionResult;
-
       } finally {
         clearTimeout(timeoutHandle);
         this.activeExecutions.delete(executionId);
       }
-
     } catch (error) {
       const duration = performance.now() - startTime;
       const executionResult: MCPToolExecutionResult = {
@@ -285,7 +281,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
       toolName: string;
       input: any;
       context: MCPExecutionContext;
-    }>
+    }>,
   ): Promise<MCPToolExecutionResult[]> {
     if (!this.config.parallelExecution) {
       // Execute sequentially if parallel execution is disabled
@@ -294,7 +290,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
         const result = await this.executeTool(
           execution.toolName,
           execution.input,
-          execution.context
+          execution.context,
         );
         results.push(result);
       }
@@ -308,22 +304,18 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
     // Limit concurrent executions
     const semaphore = new Semaphore(this.config.maxConcurrentTools);
-    
+
     const promises = toolExecutions.map(async (execution) => {
       await semaphore.acquire();
       try {
-        return await this.executeTool(
-          execution.toolName,
-          execution.input,
-          execution.context
-        );
+        return await this.executeTool(execution.toolName, execution.input, execution.context);
       } finally {
         semaphore.release();
       }
     });
 
     const results = await Promise.allSettled(promises);
-    
+
     return results.map((result, index) => {
       if (result.status === 'fulfilled') {
         return result.value;
@@ -349,28 +341,30 @@ export class MCPIntegrationWrapper extends EventEmitter {
   /**
    * Get available tools with filtering options
    */
-  getAvailableTools(options: {
-    category?: string;
-    capability?: string;
-    agent?: SwarmAgent;
-  } = {}): MCPTool[] {
+  getAvailableTools(
+    options: {
+      category?: string;
+      capability?: string;
+      agent?: SwarmAgent;
+    } = {},
+  ): MCPTool[] {
     let tools = Array.from(this.toolRegistry.tools.values());
 
     // Filter by category
     if (options.category) {
       const categoryTools = this.toolRegistry.categories.get(options.category) || [];
-      tools = tools.filter(tool => categoryTools.includes(tool.name));
+      tools = tools.filter((tool) => categoryTools.includes(tool.name));
     }
 
     // Filter by capability
     if (options.capability) {
       const capabilityTools = this.toolRegistry.capabilities.get(options.capability) || [];
-      tools = tools.filter(tool => capabilityTools.includes(tool.name));
+      tools = tools.filter((tool) => capabilityTools.includes(tool.name));
     }
 
     // Filter by agent permissions
     if (options.agent) {
-      tools = tools.filter(tool => this.hasPermission(tool, options.agent!));
+      tools = tools.filter((tool) => this.hasPermission(tool, options.agent!));
     }
 
     return tools;
@@ -402,7 +396,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
     orchestrator: AdvancedSwarmOrchestrator,
     agent: SwarmAgent,
     swarmId: string,
-    task?: SwarmTask
+    task?: SwarmTask,
   ): MCPExecutionContext {
     return {
       sessionId: generateId('mcp-session'),
@@ -420,19 +414,19 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
   private async registerClaudeFlowTools(): Promise<void> {
     this.logger.info('Registering Claude Flow tools...');
-    
+
     const claudeFlowTools = createClaudeFlowTools(this.logger);
-    
+
     for (const tool of claudeFlowTools) {
       this.toolRegistry.tools.set(tool.name, tool);
-      
+
       // Categorize tool
       const category = this.categorizeClaudeFlowTool(tool.name);
       if (!this.toolRegistry.categories.has(category)) {
         this.toolRegistry.categories.set(category, []);
       }
       this.toolRegistry.categories.get(category)!.push(tool.name);
-      
+
       // Add capabilities
       const capabilities = this.extractCapabilities(tool);
       for (const capability of capabilities) {
@@ -448,19 +442,19 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
   private async registerRuvSwarmTools(): Promise<void> {
     this.logger.info('Registering ruv-swarm tools...');
-    
+
     const ruvSwarmTools = createRuvSwarmTools(this.logger);
-    
+
     for (const tool of ruvSwarmTools) {
       this.toolRegistry.tools.set(tool.name, tool);
-      
+
       // Categorize tool
       const category = this.categorizeRuvSwarmTool(tool.name);
       if (!this.toolRegistry.categories.has(category)) {
         this.toolRegistry.categories.set(category, []);
       }
       this.toolRegistry.categories.get(category)!.push(tool.name);
-      
+
       // Add capabilities
       const capabilities = this.extractCapabilities(tool);
       for (const capability of capabilities) {
@@ -479,7 +473,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
     input: any,
     context: MCPExecutionContext,
     executionId: string,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<any> {
     let lastError: Error | null = null;
     const maxRetries = context.maxRetries || this.config.maxRetries;
@@ -499,7 +493,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
         });
 
         const result = await tool.handler(input, context);
-        
+
         if (attempt > 1) {
           this.logger.info('Tool execution succeeded after retry', {
             toolName: tool.name,
@@ -509,10 +503,9 @@ export class MCPIntegrationWrapper extends EventEmitter {
         }
 
         return result;
-
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         this.logger.warn('Tool execution attempt failed', {
           toolName: tool.name,
           executionId,
@@ -529,7 +522,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
         // Wait before retry (exponential backoff)
         if (attempt < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
@@ -546,17 +539,17 @@ export class MCPIntegrationWrapper extends EventEmitter {
       /forbidden/i,
     ];
 
-    return nonRetryablePatterns.some(pattern => pattern.test(error.message));
+    return nonRetryablePatterns.some((pattern) => pattern.test(error.message));
   }
 
   private async getCachedResult(
     toolName: string,
     input: any,
-    context: MCPExecutionContext
+    context: MCPExecutionContext,
   ): Promise<MCPToolExecutionResult | null> {
     const cacheKey = this.generateCacheKey(toolName, input, context);
     const cached = this.executionCache.get(cacheKey);
-    
+
     if (cached) {
       const age = Date.now() - cached.metadata.timestamp.getTime();
       if (age < this.config.cacheTimeout) {
@@ -576,24 +569,20 @@ export class MCPIntegrationWrapper extends EventEmitter {
     toolName: string,
     input: any,
     context: MCPExecutionContext,
-    result: MCPToolExecutionResult
+    result: MCPToolExecutionResult,
   ): Promise<void> {
     const cacheKey = this.generateCacheKey(toolName, input, context);
     this.executionCache.set(cacheKey, result);
   }
 
-  private generateCacheKey(
-    toolName: string,
-    input: any,
-    context: MCPExecutionContext
-  ): string {
+  private generateCacheKey(toolName: string, input: any, context: MCPExecutionContext): string {
     const inputHash = this.hashObject(input);
     const contextHash = this.hashObject({
       agentId: context.agent.id,
       swarmId: context.swarmId,
       taskId: context.task?.id,
     });
-    
+
     return `${toolName}:${inputHash}:${contextHash}`;
   }
 
@@ -603,7 +592,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return hash.toString(36);
@@ -612,16 +601,14 @@ export class MCPIntegrationWrapper extends EventEmitter {
   private hasPermission(tool: MCPTool, agent: SwarmAgent): boolean {
     // Check if agent has permission to use this tool
     const toolPermissions = this.toolRegistry.permissions.get(tool.name) || [];
-    
+
     // If no specific permissions defined, allow all
     if (toolPermissions.length === 0) {
       return true;
     }
 
     // Check agent capabilities against tool permissions
-    return agent.capabilities.some(capability => 
-      toolPermissions.includes(capability)
-    );
+    return agent.capabilities.some((capability) => toolPermissions.includes(capability));
   }
 
   private categorizeClaudeFlowTool(toolName: string): string {
@@ -647,15 +634,30 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
   private extractCapabilities(tool: MCPTool): string[] {
     const capabilities: string[] = [];
-    
+
     // Extract capabilities from tool name and description
     const text = `${tool.name} ${tool.description}`.toLowerCase();
-    
+
     const capabilityPatterns = [
-      'agent', 'task', 'memory', 'system', 'config', 'workflow',
-      'terminal', 'swarm', 'neural', 'benchmark', 'monitoring',
-      'orchestration', 'coordination', 'analysis', 'research',
-      'development', 'testing', 'documentation', 'optimization',
+      'agent',
+      'task',
+      'memory',
+      'system',
+      'config',
+      'workflow',
+      'terminal',
+      'swarm',
+      'neural',
+      'benchmark',
+      'monitoring',
+      'orchestration',
+      'coordination',
+      'analysis',
+      'research',
+      'development',
+      'testing',
+      'documentation',
+      'optimization',
     ];
 
     for (const pattern of capabilityPatterns) {
@@ -669,7 +671,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
 
   private updateMetrics(result: MCPToolExecutionResult): void {
     this.metrics.totalExecutions++;
-    
+
     if (result.success) {
       this.metrics.successfulExecutions++;
     } else {
@@ -691,7 +693,7 @@ export class MCPIntegrationWrapper extends EventEmitter {
     const toolStats = this.metrics.toolExecutions.get(result.toolName)!;
     toolStats.count++;
     toolStats.totalTime += result.duration;
-    
+
     if (result.success) {
       toolStats.successCount++;
     } else {
@@ -705,14 +707,14 @@ export class MCPIntegrationWrapper extends EventEmitter {
   }
 
   private calculateAverageExecutionTime(): number {
-    return this.metrics.totalExecutions > 0 
-      ? this.metrics.totalExecutionTime / this.metrics.totalExecutions 
+    return this.metrics.totalExecutions > 0
+      ? this.metrics.totalExecutionTime / this.metrics.totalExecutions
       : 0;
   }
 
   private calculateToolUsageDistribution(): Record<string, number> {
     const distribution: Record<string, number> = {};
-    
+
     for (const [toolName, stats] of this.metrics.toolExecutions) {
       distribution[toolName] = stats.count;
     }
@@ -733,11 +735,11 @@ export class MCPIntegrationWrapper extends EventEmitter {
         }
       }
 
-      expired.forEach(key => this.executionCache.delete(key));
-      
+      expired.forEach((key) => this.executionCache.delete(key));
+
       if (expired.length > 0) {
-        this.logger.debug('Cleaned up expired cache entries', { 
-          count: expired.length 
+        this.logger.debug('Cleaned up expired cache entries', {
+          count: expired.length,
         });
       }
     }, 300000); // 5 minutes
@@ -817,12 +819,15 @@ interface MCPIntegrationMetrics {
   totalExecutionTime: number;
   cacheHits: number;
   cacheMisses: number;
-  toolExecutions: Map<string, {
-    count: number;
-    totalTime: number;
-    successCount: number;
-    failureCount: number;
-  }>;
+  toolExecutions: Map<
+    string,
+    {
+      count: number;
+      totalTime: number;
+      successCount: number;
+      failureCount: number;
+    }
+  >;
   cacheHitRate: number;
   averageExecutionTime: number;
   toolUsageDistribution: Record<string, number>;

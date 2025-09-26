@@ -43,7 +43,7 @@ export class ConsolidatedCLI {
       enableBackwardCompatibility: true,
       debugMode: false,
       maxResponseTime: 2000, // 2 seconds
-      ...config
+      ...config,
     };
 
     this.initialize();
@@ -69,8 +69,8 @@ export class ConsolidatedCLI {
         enableBackwardCompatibility: this.config.enableBackwardCompatibility,
         showDeprecationWarnings: true,
         autoUpgradeCommands: true,
-        legacyMode: false
-      }
+        legacyMode: false,
+      },
     );
 
     // Initialize performance optimizer
@@ -94,7 +94,7 @@ export class ConsolidatedCLI {
         return await this.performanceOptimizer.optimizeExecution(
           `${command}-${JSON.stringify({ args, options })}`,
           async () => await this.executeInternal(command, args, options),
-          { cacheable: this.isCacheable(command) }
+          { cacheable: this.isCacheable(command) },
         );
       } else {
         return await this.executeInternal(command, args, options);
@@ -104,7 +104,9 @@ export class ConsolidatedCLI {
     } finally {
       const executionTime = performance.now() - startTime;
       if (executionTime > this.config.maxResponseTime) {
-        console.warn(`⚠️ Command took ${Math.round(executionTime)}ms (target: ${this.config.maxResponseTime}ms)`);
+        console.warn(
+          `⚠️ Command took ${Math.round(executionTime)}ms (target: ${this.config.maxResponseTime}ms)`,
+        );
       }
     }
   }
@@ -132,12 +134,16 @@ export class ConsolidatedCLI {
   /**
    * Handle natural language input
    */
-  private async handleNaturalLanguage(command: string, args: string[], options: any): Promise<CLIResult> {
+  private async handleNaturalLanguage(
+    command: string,
+    args: string[],
+    options: any,
+  ): Promise<CLIResult> {
     if (!this.config.enableNaturalLanguage) {
       return {
         success: false,
         message: '❌ Natural language processing is disabled',
-        suggestions: ['Use specific commands like: claude-flow help']
+        suggestions: ['Use specific commands like: claude-flow help'],
       };
     }
 
@@ -154,12 +160,14 @@ export class ConsolidatedCLI {
           suggestions: [
             'Try using specific commands: init, build, status, help, learn',
             'Example: claude-flow build "add user authentication"',
-            'Use: claude-flow help for available commands'
-          ]
+            'Use: claude-flow help for available commands',
+          ],
         };
       }
 
-      console.log(`🎯 Interpreted as: ${interpretation.command} (confidence: ${Math.round(interpretation.confidence * 100)}%)`);
+      console.log(
+        `🎯 Interpreted as: ${interpretation.command} (confidence: ${Math.round(interpretation.confidence * 100)}%)`,
+      );
 
       // Execute the interpreted command
       return await this.router.route(interpretation.command, interpretation.args, options);
@@ -167,7 +175,7 @@ export class ConsolidatedCLI {
       return {
         success: false,
         message: `❌ Natural language processing failed: ${error instanceof Error ? error.message : String(error)}`,
-        suggestions: ['Try using specific commands instead']
+        suggestions: ['Try using specific commands instead'],
       };
     }
   }
@@ -186,12 +194,13 @@ export class ConsolidatedCLI {
     return {
       tier: progress.currentTier,
       availableCommands: progress.availableCommands,
-      performance: this.config.enablePerformanceOptimization ?
-        this.performanceOptimizer.getMetrics() : null,
+      performance: this.config.enablePerformanceOptimization
+        ? this.performanceOptimizer.getMetrics()
+        : null,
       system: {
         memoryUsage: process.memoryUsage(),
-        uptime: process.uptime()
-      }
+        uptime: process.uptime(),
+      },
     };
   }
 
@@ -230,7 +239,9 @@ export class ConsolidatedCLI {
     const availableCommands = this.router.getAvailableCommands();
 
     console.log('🎯 Claude Flow - AI-Powered Development CLI\n');
-    console.log(`Current Tier: ${currentTier.toUpperCase()} (${availableCommands.length} commands available)\n`);
+    console.log(
+      `Current Tier: ${currentTier.toUpperCase()} (${availableCommands.length} commands available)\n`,
+    );
 
     console.log('🔥 Core Commands (Always Available):');
     console.log('  init     Initialize new project with AI guidance');
@@ -241,11 +252,11 @@ export class ConsolidatedCLI {
 
     if (currentTier !== UserTier.NOVICE) {
       console.log('\n⚡ Advanced Commands (Your Tier):');
-      const advancedCommands = availableCommands.filter(cmd =>
-        !['init', 'build', 'status', 'help', 'learn'].includes(cmd.command)
+      const advancedCommands = availableCommands.filter(
+        (cmd) => !['init', 'build', 'status', 'help', 'learn'].includes(cmd.command),
       );
 
-      advancedCommands.forEach(cmd => {
+      advancedCommands.forEach((cmd) => {
         console.log(`  ${cmd.command.padEnd(8)} ${cmd.description || 'Advanced command'}`);
       });
     }
@@ -297,18 +308,19 @@ export class ConsolidatedCLI {
   private handleVersion(): CLIResult {
     return {
       success: true,
-      message: 'Claude Flow Consolidated CLI v2.0.0\n' +
-               'Progressive 3-tier command system with AI intelligence\n' +
-               'Built for novice to expert developers',
+      message:
+        'Claude Flow Consolidated CLI v2.0.0\n' +
+        'Progressive 3-tier command system with AI intelligence\n' +
+        'Built for novice to expert developers',
       data: {
         version: '2.0.0',
         tier: this.tierManager.getCurrentTier(),
         features: {
           progressiveDisclosure: this.config.enableProgressiveDisclosure,
           naturalLanguage: this.config.enableNaturalLanguage,
-          performanceOptimization: this.config.enablePerformanceOptimization
-        }
-      }
+          performanceOptimization: this.config.enablePerformanceOptimization,
+        },
+      },
     };
   }
 
@@ -322,13 +334,27 @@ export class ConsolidatedCLI {
     // Check for natural language indicators
     const fullInput = [command, ...args].join(' ');
     const naturalLanguageIndicators = [
-      'create', 'build', 'make', 'add', 'implement', 'setup', 'configure',
-      'with', 'using', 'for', 'that', 'which', 'should', 'would', 'can'
+      'create',
+      'build',
+      'make',
+      'add',
+      'implement',
+      'setup',
+      'configure',
+      'with',
+      'using',
+      'for',
+      'that',
+      'which',
+      'should',
+      'would',
+      'can',
     ];
 
-    return naturalLanguageIndicators.some(indicator =>
-      fullInput.toLowerCase().includes(indicator)
-    ) || fullInput.length > 10;
+    return (
+      naturalLanguageIndicators.some((indicator) => fullInput.toLowerCase().includes(indicator)) ||
+      fullInput.length > 10
+    );
   }
 
   private enhanceResult(result: CLIResult, command: string, args: string[]): CLIResult {
@@ -355,7 +381,7 @@ export class ConsolidatedCLI {
         command,
         args,
         tier: this.tierManager.getCurrentTier(),
-        executionTime: enhanced.metrics?.totalResponseTime
+        executionTime: enhanced.metrics?.totalResponseTime,
       };
     }
 
@@ -382,8 +408,8 @@ export class ConsolidatedCLI {
         'Check your command syntax',
         'Use `claude-flow help` for available commands',
         'Try `claude-flow status` to check system health',
-        'Report persistent issues to the development team'
-      ]
+        'Report persistent issues to the development team',
+      ],
     };
   }
 }
@@ -412,11 +438,11 @@ export async function main(argv: string[]): Promise<void> {
   try {
     const cli = await createConsolidatedCLI({
       debugMode: args.includes('--debug'),
-      enableNaturalLanguage: !args.includes('--no-nl')
+      enableNaturalLanguage: !args.includes('--no-nl'),
     });
 
     // Filter out CLI-specific flags
-    const cleanArgs = args.filter(arg => !arg.startsWith('--debug') && !arg.startsWith('--no-'));
+    const cleanArgs = args.filter((arg) => !arg.startsWith('--debug') && !arg.startsWith('--no-'));
 
     const result = await cli.execute(command, cleanArgs);
 
@@ -425,19 +451,19 @@ export async function main(argv: string[]): Promise<void> {
 
       if (result.nextSteps && result.nextSteps.length > 0) {
         console.log('\n📋 Next Steps:');
-        result.nextSteps.forEach(step => console.log(`   ${step}`));
+        result.nextSteps.forEach((step) => console.log(`   ${step}`));
       }
 
       if (result.suggestions && result.suggestions.length > 0) {
         console.log('\n💡 Suggestions:');
-        result.suggestions.forEach(suggestion => console.log(`   ${suggestion}`));
+        result.suggestions.forEach((suggestion) => console.log(`   ${suggestion}`));
       }
     } else {
       console.error(result.message);
 
       if (result.suggestions && result.suggestions.length > 0) {
         console.log('\n💡 Try these instead:');
-        result.suggestions.forEach(suggestion => console.log(`   ${suggestion}`));
+        result.suggestions.forEach((suggestion) => console.log(`   ${suggestion}`));
       }
 
       process.exit(1);

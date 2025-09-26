@@ -3,13 +3,7 @@
  * Main entry point for creating and managing GitHub agents
  */
 
-import {
-  GitHubConfig,
-  LegacyAgentType,
-  AgentCapabilities,
-  Repository,
-  GitHubError
-} from './types';
+import { GitHubConfig, LegacyAgentType, AgentCapabilities, Repository, GitHubError } from './types';
 
 import { GitHubIntegrationManager } from './core/github-integration-manager';
 import { GitHubCollaborationManager } from './core/github-collaboration-manager';
@@ -55,7 +49,7 @@ export class GitHubAgentFactory {
       consolidated_agents: 0,
       by_type: {},
       memory_usage: 0,
-      performance_metrics: {}
+      performance_metrics: {},
     };
 
     this.setupFactory();
@@ -71,7 +65,7 @@ export class GitHubAgentFactory {
   createConsolidatedAgent(
     type: ConsolidatedAgentType,
     config?: Partial<GitHubConfig>,
-    customId?: string
+    customId?: string,
   ): string {
     const agentConfig = { ...this.defaultConfig, ...config };
     const agentId = customId || this.generateAgentId(type);
@@ -106,7 +100,7 @@ export class GitHubAgentFactory {
       capabilities,
       created_at: new Date().toISOString(),
       config: agentConfig,
-      legacy: false
+      legacy: false,
     };
 
     this.agents.set(agentId, instance);
@@ -122,7 +116,7 @@ export class GitHubAgentFactory {
   createLegacyAgent(
     type: LegacyAgentType,
     config?: Partial<GitHubConfig>,
-    customId?: string
+    customId?: string,
   ): string {
     const agentConfig = { ...this.defaultConfig, ...config };
     const agentId = customId || this.generateAgentId(type);
@@ -137,13 +131,15 @@ export class GitHubAgentFactory {
       capabilities,
       created_at: new Date().toISOString(),
       config: agentConfig,
-      legacy: true
+      legacy: true,
     };
 
     this.agents.set(agentId, instance);
     this.updateRegistryStats();
 
-    console.warn(`[GitHubAgentFactory] Created legacy agent: ${agentId} (${type}) - Consider migrating to consolidated agents`);
+    console.warn(
+      `[GitHubAgentFactory] Created legacy agent: ${agentId} (${type}) - Consider migrating to consolidated agents`,
+    );
     return agentId;
   }
 
@@ -162,21 +158,21 @@ export class GitHubAgentFactory {
    * Get all agents of a specific type
    */
   getAgentsByType(type: ConsolidatedAgentType | LegacyAgentType): AgentInstance[] {
-    return Array.from(this.agents.values()).filter(instance => instance.type === type);
+    return Array.from(this.agents.values()).filter((instance) => instance.type === type);
   }
 
   /**
    * Get all consolidated agents
    */
   getConsolidatedAgents(): AgentInstance[] {
-    return Array.from(this.agents.values()).filter(instance => !instance.legacy);
+    return Array.from(this.agents.values()).filter((instance) => !instance.legacy);
   }
 
   /**
    * Get all legacy agents
    */
   getLegacyAgents(): AgentInstance[] {
-    return Array.from(this.agents.values()).filter(instance => instance.legacy);
+    return Array.from(this.agents.values()).filter((instance) => instance.legacy);
   }
 
   /**
@@ -215,13 +211,13 @@ export class GitHubAgentFactory {
     context?: {
       repository?: Repository;
       priority?: 'speed' | 'features' | 'compatibility';
-    }
+    },
   ): AgentInstance | null {
     const availableAgents = Array.from(this.agents.values());
 
     // Filter agents that can handle the operation
-    const capableAgents = availableAgents.filter(instance =>
-      this.canHandleOperation(instance, operation)
+    const capableAgents = availableAgents.filter((instance) =>
+      this.canHandleOperation(instance, operation),
     );
 
     if (capableAgents.length === 0) {
@@ -234,17 +230,17 @@ export class GitHubAgentFactory {
     switch (priority) {
       case 'speed':
         // Prefer consolidated agents for performance
-        return capableAgents.find(a => !a.legacy) || capableAgents[0];
+        return capableAgents.find((a) => !a.legacy) || capableAgents[0];
 
       case 'features':
         // Prefer agents with most capabilities
-        return capableAgents.sort((a, b) =>
-          this.countCapabilities(b.capabilities) - this.countCapabilities(a.capabilities)
+        return capableAgents.sort(
+          (a, b) => this.countCapabilities(b.capabilities) - this.countCapabilities(a.capabilities),
         )[0];
 
       case 'compatibility':
         // Prefer legacy agents if available for maximum compatibility
-        return capableAgents.find(a => a.legacy) || capableAgents[0];
+        return capableAgents.find((a) => a.legacy) || capableAgents[0];
 
       default:
         return capableAgents[0];
@@ -254,10 +250,7 @@ export class GitHubAgentFactory {
   /**
    * Auto-create agent based on operation requirements
    */
-  createAgentForOperation(
-    operation: string,
-    config?: Partial<GitHubConfig>
-  ): string {
+  createAgentForOperation(operation: string, config?: Partial<GitHubConfig>): string {
     const requiredType = this.determineAgentTypeForOperation(operation);
 
     if (this.isConsolidatedType(requiredType)) {
@@ -281,10 +274,10 @@ export class GitHubAgentFactory {
       agents?: string[];
       parallel?: boolean;
       failFast?: boolean;
-    } = {}
+    } = {},
   ): Promise<any[]> {
     const targetAgents = options.agents
-      ? options.agents.map(id => this.getAgent(id)).filter(Boolean) as AgentInstance[]
+      ? (options.agents.map((id) => this.getAgent(id)).filter(Boolean) as AgentInstance[])
       : this.getCapableAgents(operation);
 
     if (targetAgents.length === 0) {
@@ -306,7 +299,7 @@ export class GitHubAgentFactory {
           operation,
           instance.id,
           data.repository,
-          { multi_agent: true }
+          { multi_agent: true },
         );
 
         if (options.failFast) {
@@ -343,7 +336,7 @@ export class GitHubAgentFactory {
       data: any;
       agents?: string[];
       dependencies?: string[];
-    }>
+    }>,
   ): Promise<any> {
     const results: Record<string, any> = {};
     const completedSteps = new Set<string>();
@@ -353,18 +346,18 @@ export class GitHubAgentFactory {
 
       // Wait for dependencies
       if (step.dependencies) {
-        const missingDeps = step.dependencies.filter(dep => !completedSteps.has(dep));
+        const missingDeps = step.dependencies.filter((dep) => !completedSteps.has(dep));
         if (missingDeps.length > 0) {
           throw new Error(`Step ${stepId} has missing dependencies: ${missingDeps.join(', ')}`);
         }
       }
 
       try {
-        const result = await this.executeMultiAgentOperation(
-          step.operation,
-          step.data,
-          { agents: step.agents, parallel: true, failFast: true }
-        );
+        const result = await this.executeMultiAgentOperation(step.operation, step.data, {
+          agents: step.agents,
+          parallel: true,
+          failFast: true,
+        });
 
         results[stepId] = result;
         completedSteps.add(stepId);
@@ -397,14 +390,14 @@ export class GitHubAgentFactory {
   exportRegistry(): any {
     return {
       timestamp: new Date().toISOString(),
-      agents: Array.from(this.agents.values()).map(instance => ({
+      agents: Array.from(this.agents.values()).map((instance) => ({
         id: instance.id,
         type: instance.type,
         capabilities: instance.capabilities,
         created_at: instance.created_at,
-        legacy: instance.legacy
+        legacy: instance.legacy,
       })),
-      stats: this.getRegistryStats()
+      stats: this.getRegistryStats(),
     };
   }
 
@@ -469,37 +462,130 @@ export class GitHubAgentFactory {
   private getLegacyCapabilities(type: LegacyAgentType): AgentCapabilities {
     // Define capabilities for legacy agents based on their type
     const capabilityMap: Record<LegacyAgentType, AgentCapabilities> = {
-      'github-modes': { repositories: true, pull_requests: false, issues: false, workflows: true, releases: false, multi_repo: true },
-      'pr-manager': { repositories: false, pull_requests: true, issues: false, workflows: false, releases: false, multi_repo: false },
-      'code-review-swarm': { repositories: false, pull_requests: true, issues: false, workflows: false, releases: false, multi_repo: false },
-      'issue-tracker': { repositories: false, pull_requests: false, issues: true, workflows: false, releases: false, multi_repo: false },
-      'release-manager': { repositories: false, pull_requests: false, issues: false, workflows: false, releases: true, multi_repo: false },
-      'workflow-automation': { repositories: false, pull_requests: false, issues: false, workflows: true, releases: false, multi_repo: false },
-      'project-board-sync': { repositories: false, pull_requests: true, issues: true, workflows: false, releases: false, multi_repo: false },
-      'repo-architect': { repositories: true, pull_requests: false, issues: false, workflows: false, releases: false, multi_repo: false },
-      'multi-repo-swarm': { repositories: true, pull_requests: false, issues: false, workflows: false, releases: true, multi_repo: true },
-      'github-integration': { repositories: true, pull_requests: false, issues: false, workflows: true, releases: false, multi_repo: true },
-      'github-analytics': { repositories: true, pull_requests: true, issues: true, workflows: true, releases: true, multi_repo: true },
-      'github-security': { repositories: true, pull_requests: true, issues: true, workflows: false, releases: false, multi_repo: false }
+      'github-modes': {
+        repositories: true,
+        pull_requests: false,
+        issues: false,
+        workflows: true,
+        releases: false,
+        multi_repo: true,
+      },
+      'pr-manager': {
+        repositories: false,
+        pull_requests: true,
+        issues: false,
+        workflows: false,
+        releases: false,
+        multi_repo: false,
+      },
+      'code-review-swarm': {
+        repositories: false,
+        pull_requests: true,
+        issues: false,
+        workflows: false,
+        releases: false,
+        multi_repo: false,
+      },
+      'issue-tracker': {
+        repositories: false,
+        pull_requests: false,
+        issues: true,
+        workflows: false,
+        releases: false,
+        multi_repo: false,
+      },
+      'release-manager': {
+        repositories: false,
+        pull_requests: false,
+        issues: false,
+        workflows: false,
+        releases: true,
+        multi_repo: false,
+      },
+      'workflow-automation': {
+        repositories: false,
+        pull_requests: false,
+        issues: false,
+        workflows: true,
+        releases: false,
+        multi_repo: false,
+      },
+      'project-board-sync': {
+        repositories: false,
+        pull_requests: true,
+        issues: true,
+        workflows: false,
+        releases: false,
+        multi_repo: false,
+      },
+      'repo-architect': {
+        repositories: true,
+        pull_requests: false,
+        issues: false,
+        workflows: false,
+        releases: false,
+        multi_repo: false,
+      },
+      'multi-repo-swarm': {
+        repositories: true,
+        pull_requests: false,
+        issues: false,
+        workflows: false,
+        releases: true,
+        multi_repo: true,
+      },
+      'github-integration': {
+        repositories: true,
+        pull_requests: false,
+        issues: false,
+        workflows: true,
+        releases: false,
+        multi_repo: true,
+      },
+      'github-analytics': {
+        repositories: true,
+        pull_requests: true,
+        issues: true,
+        workflows: true,
+        releases: true,
+        multi_repo: true,
+      },
+      'github-security': {
+        repositories: true,
+        pull_requests: true,
+        issues: true,
+        workflows: false,
+        releases: false,
+        multi_repo: false,
+      },
     };
 
-    return capabilityMap[type] || { repositories: false, pull_requests: false, issues: false, workflows: false, releases: false, multi_repo: false };
+    return (
+      capabilityMap[type] || {
+        repositories: false,
+        pull_requests: false,
+        issues: false,
+        workflows: false,
+        releases: false,
+        multi_repo: false,
+      }
+    );
   }
 
   private canHandleOperation(instance: AgentInstance, operation: string): boolean {
     // Check if agent has the required capabilities for the operation
     const operationCapabilityMap: Record<string, keyof AgentCapabilities> = {
-      'analyzeRepository': 'repositories',
-      'getRepositoryStructure': 'repositories',
-      'createPullRequest': 'pull_requests',
-      'getPullRequests': 'pull_requests',
-      'createIssue': 'issues',
-      'getIssues': 'issues',
-      'getWorkflows': 'workflows',
-      'triggerWorkflow': 'workflows',
-      'createRelease': 'releases',
-      'getReleases': 'releases',
-      'coordinateMultiRepoRelease': 'multi_repo'
+      analyzeRepository: 'repositories',
+      getRepositoryStructure: 'repositories',
+      createPullRequest: 'pull_requests',
+      getPullRequests: 'pull_requests',
+      createIssue: 'issues',
+      getIssues: 'issues',
+      getWorkflows: 'workflows',
+      triggerWorkflow: 'workflows',
+      createRelease: 'releases',
+      getReleases: 'releases',
+      coordinateMultiRepoRelease: 'multi_repo',
     };
 
     const requiredCapability = operationCapabilityMap[operation];
@@ -515,38 +601,40 @@ export class GitHubAgentFactory {
     return Object.values(capabilities).filter(Boolean).length;
   }
 
-  private determineAgentTypeForOperation(operation: string): ConsolidatedAgentType | LegacyAgentType {
+  private determineAgentTypeForOperation(
+    operation: string,
+  ): ConsolidatedAgentType | LegacyAgentType {
     // Map operations to preferred agent types
     const operationAgentMap: Record<string, ConsolidatedAgentType> = {
-      'analyzeRepository': 'integration',
-      'getRepositoryStructure': 'integration',
-      'configureRepository': 'integration',
-      'getWorkflows': 'integration',
-      'triggerWorkflow': 'integration',
-      'monitorWorkflows': 'integration',
-      'executeMultiRepoOperation': 'integration',
-      'analyzeArchitecture': 'integration',
+      analyzeRepository: 'integration',
+      getRepositoryStructure: 'integration',
+      configureRepository: 'integration',
+      getWorkflows: 'integration',
+      triggerWorkflow: 'integration',
+      monitorWorkflows: 'integration',
+      executeMultiRepoOperation: 'integration',
+      analyzeArchitecture: 'integration',
 
-      'createPullRequest': 'collaboration',
-      'getPullRequests': 'collaboration',
-      'updatePullRequest': 'collaboration',
-      'mergePullRequest': 'collaboration',
-      'createCodeReview': 'collaboration',
-      'createIssue': 'collaboration',
-      'getIssues': 'collaboration',
-      'updateIssue': 'collaboration',
-      'triageIssues': 'collaboration',
-      'syncWithProjectBoards': 'collaboration',
+      createPullRequest: 'collaboration',
+      getPullRequests: 'collaboration',
+      updatePullRequest: 'collaboration',
+      mergePullRequest: 'collaboration',
+      createCodeReview: 'collaboration',
+      createIssue: 'collaboration',
+      getIssues: 'collaboration',
+      updateIssue: 'collaboration',
+      triageIssues: 'collaboration',
+      syncWithProjectBoards: 'collaboration',
 
-      'createRelease': 'release',
-      'getReleases': 'release',
-      'updateRelease': 'release',
-      'deleteRelease': 'release',
-      'coordinateMultiRepoRelease': 'release',
-      'syncReleases': 'release',
-      'triggerDeployments': 'release',
-      'monitorDeployments': 'release',
-      'generateReleaseAnalytics': 'release'
+      createRelease: 'release',
+      getReleases: 'release',
+      updateRelease: 'release',
+      deleteRelease: 'release',
+      coordinateMultiRepoRelease: 'release',
+      syncReleases: 'release',
+      triggerDeployments: 'release',
+      monitorDeployments: 'release',
+      generateReleaseAnalytics: 'release',
     };
 
     return operationAgentMap[operation] || 'integration';
@@ -557,8 +645,8 @@ export class GitHubAgentFactory {
   }
 
   private getCapableAgents(operation: string): AgentInstance[] {
-    return Array.from(this.agents.values()).filter(instance =>
-      this.canHandleOperation(instance, operation)
+    return Array.from(this.agents.values()).filter((instance) =>
+      this.canHandleOperation(instance, operation),
     );
   }
 
@@ -568,17 +656,16 @@ export class GitHubAgentFactory {
     this.registryStats = {
       total_agents: agents.length,
       active_agents: agents.length, // All registered agents are considered active
-      legacy_agents: agents.filter(a => a.legacy).length,
-      consolidated_agents: agents.filter(a => !a.legacy).length,
+      legacy_agents: agents.filter((a) => a.legacy).length,
+      consolidated_agents: agents.filter((a) => !a.legacy).length,
       by_type: {},
       memory_usage: this.estimateMemoryUsage(),
-      performance_metrics: githubPerformanceOptimizer.getMetrics()
+      performance_metrics: githubPerformanceOptimizer.getMetrics(),
     };
 
     // Count by type
     for (const agent of agents) {
-      this.registryStats.by_type[agent.type] =
-        (this.registryStats.by_type[agent.type] || 0) + 1;
+      this.registryStats.by_type[agent.type] = (this.registryStats.by_type[agent.type] || 0) + 1;
     }
   }
 
@@ -603,7 +690,7 @@ export function getGitHubAgentFactory(config?: GitHubConfig): GitHubAgentFactory
 
 export function createGitHubAgent(
   type: ConsolidatedAgentType | LegacyAgentType,
-  config?: Partial<GitHubConfig>
+  config?: Partial<GitHubConfig>,
 ): string {
   const factory = getGitHubAgentFactory();
 

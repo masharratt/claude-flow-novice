@@ -15,13 +15,13 @@ import {
   removeAgentDependency,
   getAgentDependencyStatus,
   forceAgentCompletion,
-  type AgentLifecycleContext
+  type AgentLifecycleContext,
 } from './lifecycle-manager.js';
 import {
   DependencyType,
   getDependencyTracker,
   type DependencyTracker,
-  type CompletionBlockerInfo
+  type CompletionBlockerInfo,
 } from '../lifecycle/dependency-tracker.js';
 
 // ============================================================================
@@ -106,7 +106,7 @@ export class HierarchicalCoordinator extends EventEmitter {
       hierarchyRebalanceInterval: 45000, // 45 seconds
       memoryNamespace: 'hierarchical-coordinator',
       autoPromoteCapable: true,
-      ...config
+      ...config,
     };
 
     this.agentHierarchy = new Map();
@@ -140,23 +140,32 @@ export class HierarchicalCoordinator extends EventEmitter {
       {
         name: 'hierarchical-coordinator',
         type: 'coordinator',
-        capabilities: ['coordination', 'hierarchical-topology', 'dependency-tracking', 'task-delegation'],
+        capabilities: [
+          'coordination',
+          'hierarchical-topology',
+          'dependency-tracking',
+          'task-delegation',
+        ],
         lifecycle: {
           state_management: true,
           persistent_memory: true,
-          max_retries: 3
+          max_retries: 3,
         },
         hooks: {
           init: 'echo "Hierarchical coordinator initialized"',
           task_complete: 'echo "Hierarchical coordination task completed"',
           on_rerun_request: this.handleRerunRequest.bind(this),
-          cleanup: 'echo "Hierarchical coordinator cleanup"'
-        }
+          cleanup: 'echo "Hierarchical coordinator cleanup"',
+        },
       },
-      generateId('hier-task')
+      generateId('hier-task'),
     );
 
-    await lifecycleManager.transitionState(this.coordinatorId, 'running', 'Hierarchical coordinator started');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'running',
+      'Hierarchical coordinator started',
+    );
 
     this.isRunning = true;
     this.startBackgroundTasks();
@@ -181,7 +190,7 @@ export class HierarchicalCoordinator extends EventEmitter {
         this.logger.info('Coordinator has pending hierarchy dependencies - deferring completion');
         this.emit('coordinator:completion_deferred', {
           coordinatorId: this.coordinatorId,
-          reason: 'Pending agent hierarchy dependencies'
+          reason: 'Pending agent hierarchy dependencies',
         });
         return; // Don't complete yet
       }
@@ -196,7 +205,11 @@ export class HierarchicalCoordinator extends EventEmitter {
     await this.cleanupHierarchyDependencies();
 
     // Transition to stopped state
-    await lifecycleManager.transitionState(this.coordinatorId, 'stopped', 'Hierarchical coordinator shutdown');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'stopped',
+      'Hierarchical coordinator shutdown',
+    );
 
     // Shutdown dependency tracker
     if (this.config.enableDependencyTracking) {
@@ -213,8 +226,17 @@ export class HierarchicalCoordinator extends EventEmitter {
 
   async registerAgent(
     agentId: string,
-    agentInfo: Omit<HierarchicalAgentNode, 'id' | 'childIds' | 'workload' | 'lastActivity' | 'assignedTasks' | 'completionDependencies' | 'hierarchyPath'>,
-    parentId?: string
+    agentInfo: Omit<
+      HierarchicalAgentNode,
+      | 'id'
+      | 'childIds'
+      | 'workload'
+      | 'lastActivity'
+      | 'assignedTasks'
+      | 'completionDependencies'
+      | 'hierarchyPath'
+    >,
+    parentId?: string,
   ): Promise<void> {
     // Validate hierarchy constraints
     if (parentId) {
@@ -245,7 +267,7 @@ export class HierarchicalCoordinator extends EventEmitter {
       hierarchyPath,
       level: hierarchyPath.length,
       parentId,
-      ...agentInfo
+      ...agentInfo,
     };
 
     // Register in hierarchy
@@ -259,17 +281,17 @@ export class HierarchicalCoordinator extends EventEmitter {
       // Register parent-child dependency
       if (this.config.enableDependencyTracking) {
         await registerAgentDependency(
-          parentId,    // Parent depends on child completion
-          agentId,     // Child provides completion
+          parentId, // Parent depends on child completion
+          agentId, // Child provides completion
           DependencyType.COMPLETION,
           {
             timeout: this.config.completionTimeout,
             metadata: {
               coordinatorType: 'hierarchical',
               relationship: 'parent-child',
-              hierarchyLevel: hierarchicalAgent.level
-            }
-          }
+              hierarchyLevel: hierarchicalAgent.level,
+            },
+          },
         );
 
         parent.completionDependencies.push(agentId);
@@ -283,20 +305,22 @@ export class HierarchicalCoordinator extends EventEmitter {
     if (this.config.enableDependencyTracking) {
       await registerAgentDependency(
         this.coordinatorId, // Coordinator depends on all agents
-        agentId,           // Agent provides coordination completion
+        agentId, // Agent provides coordination completion
         DependencyType.COORDINATION,
         {
           timeout: this.config.completionTimeout,
           metadata: {
             coordinatorType: 'hierarchical',
             relationship: 'coordination',
-            hierarchyLevel: hierarchicalAgent.level
-          }
-        }
+            hierarchyLevel: hierarchicalAgent.level,
+          },
+        },
       );
     }
 
-    this.logger.info(`Registered agent ${agentId} at level ${hierarchicalAgent.level} in hierarchy`);
+    this.logger.info(
+      `Registered agent ${agentId} at level ${hierarchicalAgent.level} in hierarchy`,
+    );
     this.emit('agent:registered', { agentId, parentId, level: hierarchicalAgent.level });
   }
 
@@ -408,7 +432,10 @@ export class HierarchicalCoordinator extends EventEmitter {
     const depStatus = getAgentDependencyStatus(agentId);
     for (const depId of depStatus.dependencies) {
       const dep = this.dependencyTracker.getDependencyDetails(depId);
-      if (dep?.dependencyType === DependencyType.COMPLETION && dep.metadata?.relationship === 'parent-child') {
+      if (
+        dep?.dependencyType === DependencyType.COMPLETION &&
+        dep.metadata?.relationship === 'parent-child'
+      ) {
         await removeAgentDependency(depId);
       }
     }
@@ -416,17 +443,17 @@ export class HierarchicalCoordinator extends EventEmitter {
     // Add new parent dependency
     if (newParentId) {
       await registerAgentDependency(
-        newParentId,  // New parent depends on this agent
-        agentId,      // This agent provides completion
+        newParentId, // New parent depends on this agent
+        agentId, // This agent provides completion
         DependencyType.COMPLETION,
         {
           timeout: this.config.completionTimeout,
           metadata: {
             coordinatorType: 'hierarchical',
             relationship: 'parent-child',
-            hierarchyLevel: this.agentHierarchy.get(agentId)?.level
-          }
-        }
+            hierarchyLevel: this.agentHierarchy.get(agentId)?.level,
+          },
+        },
       );
     }
   }
@@ -443,7 +470,7 @@ export class HierarchicalCoordinator extends EventEmitter {
       priority?: number;
       parentTaskId?: string;
       timeout?: number;
-    } = {}
+    } = {},
   ): Promise<string> {
     const taskId = generateId('hier-task');
 
@@ -451,7 +478,7 @@ export class HierarchicalCoordinator extends EventEmitter {
     const selectedAgent = this.selectAgentForTask(
       options.targetLevel || 0,
       options.requiredCapabilities || [],
-      options.priority || 1
+      options.priority || 1,
     );
 
     if (!selectedAgent) {
@@ -471,7 +498,7 @@ export class HierarchicalCoordinator extends EventEmitter {
       priority: options.priority || 1,
       level: selectedAgent.level,
       createdAt: new Date(),
-      coordinatorId: this.coordinatorId
+      coordinatorId: this.coordinatorId,
     };
 
     this.tasks.set(taskId, task);
@@ -492,7 +519,9 @@ export class HierarchicalCoordinator extends EventEmitter {
     // Delegate task to agent
     await this.delegateTaskToAgent(task, selectedAgent);
 
-    this.logger.info(`Delegated task ${taskId} to agent ${selectedAgent.id} at level ${selectedAgent.level}`);
+    this.logger.info(
+      `Delegated task ${taskId} to agent ${selectedAgent.id} at level ${selectedAgent.level}`,
+    );
     this.emit('task:delegated', { taskId, agentId: selectedAgent.id, level: selectedAgent.level });
 
     return taskId;
@@ -501,7 +530,7 @@ export class HierarchicalCoordinator extends EventEmitter {
   private selectAgentForTask(
     targetLevel: number,
     requiredCapabilities: string[],
-    priority: number
+    priority: number,
   ): HierarchicalAgentNode | null {
     const candidates: Array<{ agent: HierarchicalAgentNode; score: number }> = [];
 
@@ -509,23 +538,26 @@ export class HierarchicalCoordinator extends EventEmitter {
       if (agent.status !== 'ready') continue;
 
       // Check level preference
-      const levelScore = targetLevel === agent.level ? 2 : Math.max(0, 2 - Math.abs(targetLevel - agent.level));
+      const levelScore =
+        targetLevel === agent.level ? 2 : Math.max(0, 2 - Math.abs(targetLevel - agent.level));
 
       // Check capability match
-      const hasRequiredCaps = requiredCapabilities.every(cap =>
-        agent.capabilities.includes(cap)
-      );
+      const hasRequiredCaps = requiredCapabilities.every((cap) => agent.capabilities.includes(cap));
 
       if (!hasRequiredCaps && requiredCapabilities.length > 0) continue;
 
-      const capabilityScore = requiredCapabilities.length > 0 ?
-        requiredCapabilities.filter(cap => agent.capabilities.includes(cap)).length / requiredCapabilities.length : 1;
+      const capabilityScore =
+        requiredCapabilities.length > 0
+          ? requiredCapabilities.filter((cap) => agent.capabilities.includes(cap)).length /
+            requiredCapabilities.length
+          : 1;
 
       // Consider workload and hierarchy position
       const loadScore = 1 / (agent.workload + 1);
       const hierarchyScore = 1 / (agent.level + 1); // Prefer higher levels for coordination
 
-      const score = levelScore * 0.4 + capabilityScore * 0.3 + loadScore * 0.2 + hierarchyScore * 0.1;
+      const score =
+        levelScore * 0.4 + capabilityScore * 0.3 + loadScore * 0.2 + hierarchyScore * 0.1;
 
       candidates.push({ agent, score });
     }
@@ -535,11 +567,14 @@ export class HierarchicalCoordinator extends EventEmitter {
     return candidates.sort((a, b) => b.score - a.score)[0].agent;
   }
 
-  private async createTaskHierarchyDependencies(taskId: string, agent: HierarchicalAgentNode): Promise<void> {
+  private async createTaskHierarchyDependencies(
+    taskId: string,
+    agent: HierarchicalAgentNode,
+  ): Promise<void> {
     // Create completion dependency: coordinator depends on task completion by agent
     await registerAgentDependency(
       this.coordinatorId, // Coordinator depends on agent
-      agent.id,          // Agent provides task completion
+      agent.id, // Agent provides task completion
       DependencyType.COMPLETION,
       {
         timeout: this.config.completionTimeout,
@@ -547,16 +582,16 @@ export class HierarchicalCoordinator extends EventEmitter {
           taskId,
           coordinatorType: 'hierarchical',
           relationship: 'task-completion',
-          hierarchyLevel: agent.level
-        }
-      }
+          hierarchyLevel: agent.level,
+        },
+      },
     );
 
     // If agent has children, create dependencies on children completing subtasks
     for (const childId of agent.childIds) {
       await registerAgentDependency(
-        agent.id,  // Parent agent depends on child
-        childId,   // Child provides completion
+        agent.id, // Parent agent depends on child
+        childId, // Child provides completion
         DependencyType.COMPLETION,
         {
           timeout: this.config.completionTimeout,
@@ -564,16 +599,19 @@ export class HierarchicalCoordinator extends EventEmitter {
             taskId,
             coordinatorType: 'hierarchical',
             relationship: 'subtask-completion',
-            hierarchyLevel: agent.level + 1
-          }
-        }
+            hierarchyLevel: agent.level + 1,
+          },
+        },
       );
 
       agent.completionDependencies.push(childId);
     }
   }
 
-  private async delegateTaskToAgent(task: HierarchicalTask, agent: HierarchicalAgentNode): Promise<void> {
+  private async delegateTaskToAgent(
+    task: HierarchicalTask,
+    agent: HierarchicalAgentNode,
+  ): Promise<void> {
     // Update agent status
     agent.status = 'working';
     agent.workload += 1;
@@ -598,13 +636,14 @@ export class HierarchicalCoordinator extends EventEmitter {
   private shouldSubdelegate(task: HierarchicalTask, agent: HierarchicalAgentNode): boolean {
     // Determine if task should be further subdivided
     return (
-      task.level < this.config.maxDepth - 1 &&
-      agent.childIds.length > 0 &&
-      task.priority >= 2 // Only high-priority tasks get subdivided
+      task.level < this.config.maxDepth - 1 && agent.childIds.length > 0 && task.priority >= 2 // Only high-priority tasks get subdivided
     );
   }
 
-  private async createSubtasks(parentTask: HierarchicalTask, parentAgent: HierarchicalAgentNode): Promise<void> {
+  private async createSubtasks(
+    parentTask: HierarchicalTask,
+    parentAgent: HierarchicalAgentNode,
+  ): Promise<void> {
     // Create subtasks for each child agent
     const subtaskCount = Math.min(parentAgent.childIds.length, 3); // Max 3 subtasks
 
@@ -620,8 +659,8 @@ export class HierarchicalCoordinator extends EventEmitter {
             requiredCapabilities: child.capabilities.slice(0, 2), // Use some capabilities
             priority: parentTask.priority,
             parentTaskId: parentTask.id,
-            timeout: this.config.completionTimeout
-          }
+            timeout: this.config.completionTimeout,
+          },
         );
 
         parentTask.subTaskIds.push(subtaskId);
@@ -728,29 +767,33 @@ export class HierarchicalCoordinator extends EventEmitter {
     if (!parentTask) return;
 
     // Check if all subtasks are completed
-    const allSubtasksCompleted = parentTask.subTaskIds.every(subTaskId => {
+    const allSubtasksCompleted = parentTask.subTaskIds.every((subTaskId) => {
       const subTask = this.tasks.get(subTaskId);
       return subTask && (subTask.status === 'completed' || subTask.status === 'failed');
     });
 
     if (allSubtasksCompleted) {
-      const hasFailedSubtasks = parentTask.subTaskIds.some(subTaskId => {
+      const hasFailedSubtasks = parentTask.subTaskIds.some((subTaskId) => {
         const subTask = this.tasks.get(subTaskId);
         return subTask && subTask.status === 'failed';
       });
 
       if (hasFailedSubtasks) {
-        await this.handleTaskFailure(parentTaskId, parentTask.assignedAgentId, 'One or more subtasks failed');
+        await this.handleTaskFailure(
+          parentTaskId,
+          parentTask.assignedAgentId,
+          'One or more subtasks failed',
+        );
       } else {
         // Aggregate subtask results
-        const subtaskResults = parentTask.subTaskIds.map(subTaskId => {
+        const subtaskResults = parentTask.subTaskIds.map((subTaskId) => {
           const subTask = this.tasks.get(subTaskId);
           return subTask?.result;
         });
 
         await this.handleTaskCompletion(parentTaskId, parentTask.assignedAgentId, {
           subtaskResults,
-          aggregatedResult: `Completed with ${subtaskResults.length} subtasks`
+          aggregatedResult: `Completed with ${subtaskResults.length} subtasks`,
         });
       }
     }
@@ -765,20 +808,24 @@ export class HierarchicalCoordinator extends EventEmitter {
     for (const [agentId, agent] of this.agentHierarchy) {
       const blockerInfo = await this.dependencyTracker.canAgentComplete(agentId);
       if (!blockerInfo.canComplete) {
-        this.logger.debug(`Agent ${agentId} at level ${agent.level} cannot complete: ${blockerInfo.reason}`);
+        this.logger.debug(
+          `Agent ${agentId} at level ${agent.level} cannot complete: ${blockerInfo.reason}`,
+        );
         return false;
       }
     }
 
     // Check coordinator dependencies
-    const coordinatorBlockerInfo = await this.dependencyTracker.canAgentComplete(this.coordinatorId);
+    const coordinatorBlockerInfo = await this.dependencyTracker.canAgentComplete(
+      this.coordinatorId,
+    );
     return coordinatorBlockerInfo.canComplete;
   }
 
   private async checkCoordinatorCompletion(): Promise<void> {
     // Check if all tasks are completed
-    const pendingTasks = Array.from(this.tasks.values()).filter(t =>
-      t.status === 'pending' || t.status === 'active' || t.status === 'delegated'
+    const pendingTasks = Array.from(this.tasks.values()).filter(
+      (t) => t.status === 'pending' || t.status === 'active' || t.status === 'delegated',
     );
 
     if (pendingTasks.length === 0) {
@@ -797,7 +844,11 @@ export class HierarchicalCoordinator extends EventEmitter {
     await this.cleanupHierarchyDependencies();
 
     // Transition to completed state
-    await lifecycleManager.transitionState(this.coordinatorId, 'stopped', 'All hierarchical coordination tasks completed');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'stopped',
+      'All hierarchical coordination tasks completed',
+    );
 
     this.emit('coordinator:completed', { coordinatorId: this.coordinatorId });
   }
@@ -830,21 +881,37 @@ export class HierarchicalCoordinator extends EventEmitter {
     this.on('agent:status_changed', this.handleAgentStatusChange.bind(this));
   }
 
-  private async handleTaskCompletionEvent(event: { taskId: string; agentId: string; result: unknown }): Promise<void> {
+  private async handleTaskCompletionEvent(event: {
+    taskId: string;
+    agentId: string;
+    result: unknown;
+  }): Promise<void> {
     this.logger.debug(`Handling hierarchical task completion event: ${event.taskId}`);
   }
 
-  private async handleTaskFailureEvent(event: { taskId: string; error: string; agentId: string }): Promise<void> {
+  private async handleTaskFailureEvent(event: {
+    taskId: string;
+    error: string;
+    agentId: string;
+  }): Promise<void> {
     this.logger.debug(`Handling hierarchical task failure event: ${event.taskId}`);
   }
 
-  private async handleAgentStatusChange(event: { agentId: string; oldStatus: string; newStatus: string }): Promise<void> {
+  private async handleAgentStatusChange(event: {
+    agentId: string;
+    oldStatus: string;
+    newStatus: string;
+  }): Promise<void> {
     const agent = this.agentHierarchy.get(event.agentId);
     if (agent) {
       agent.lastActivity = new Date();
 
       // Auto-promote capable agents if enabled
-      if (this.config.autoPromoteCapable && event.newStatus === 'ready' && agent.capabilities.includes('coordination')) {
+      if (
+        this.config.autoPromoteCapable &&
+        event.newStatus === 'ready' &&
+        agent.capabilities.includes('coordination')
+      ) {
         await this.considerAgentPromotion(event.agentId);
       }
     }
@@ -860,7 +927,10 @@ export class HierarchicalCoordinator extends EventEmitter {
 
     if (performanceScore + capabilityScore >= 2.5) {
       this.logger.info(`Considering promotion for capable agent ${agentId}`);
-      this.emit('agent:promotion_considered', { agentId, score: performanceScore + capabilityScore });
+      this.emit('agent:promotion_considered', {
+        agentId,
+        score: performanceScore + capabilityScore,
+      });
     }
   }
 
@@ -868,7 +938,11 @@ export class HierarchicalCoordinator extends EventEmitter {
     this.logger.info('Hierarchical coordinator rerun requested');
 
     // Reset coordinator state for rerun
-    await lifecycleManager.transitionState(this.coordinatorId, 'running', 'Hierarchical coordinator rerun requested');
+    await lifecycleManager.transitionState(
+      this.coordinatorId,
+      'running',
+      'Hierarchical coordinator rerun requested',
+    );
 
     this.isRunning = true;
     this.startBackgroundTasks();
@@ -910,7 +984,7 @@ export class HierarchicalCoordinator extends EventEmitter {
       // Check if agent should be promoted or demoted
       if (agent.workload === 0 && agent.childIds.length > this.config.maxChildrenPerNode / 2) {
         // Consider promoting some children
-        const capableChildren = agent.childIds.filter(childId => {
+        const capableChildren = agent.childIds.filter((childId) => {
           const child = this.agentHierarchy.get(childId);
           return child && child.capabilities.includes('coordination');
         });
@@ -947,19 +1021,18 @@ export class HierarchicalCoordinator extends EventEmitter {
     canComplete: boolean;
     dependencies: string[];
   } {
-    const activeTasks = Array.from(this.tasks.values()).filter(t =>
-      t.status === 'active' || t.status === 'pending' || t.status === 'delegated'
+    const activeTasks = Array.from(this.tasks.values()).filter(
+      (t) => t.status === 'active' || t.status === 'pending' || t.status === 'delegated',
     );
 
-    const completedTasks = Array.from(this.tasks.values()).filter(t =>
-      t.status === 'completed'
-    );
+    const completedTasks = Array.from(this.tasks.values()).filter((t) => t.status === 'completed');
 
     const depStatus = getAgentDependencyStatus(this.coordinatorId);
 
-    const maxDepth = this.agentHierarchy.size > 0
-      ? Math.max(...Array.from(this.agentHierarchy.values()).map(a => a.level))
-      : 0;
+    const maxDepth =
+      this.agentHierarchy.size > 0
+        ? Math.max(...Array.from(this.agentHierarchy.values()).map((a) => a.level))
+        : 0;
 
     return {
       coordinatorId: this.coordinatorId,
@@ -970,7 +1043,7 @@ export class HierarchicalCoordinator extends EventEmitter {
       activeTaskCount: activeTasks.length,
       completedTaskCount: completedTasks.length,
       canComplete: depStatus.canComplete,
-      dependencies: depStatus.dependencies
+      dependencies: depStatus.dependencies,
     };
   }
 
@@ -987,22 +1060,22 @@ export class HierarchicalCoordinator extends EventEmitter {
     depth: number;
     rootCount: number;
   } {
-    const agents = Array.from(this.agentHierarchy.values()).map(agent => ({
+    const agents = Array.from(this.agentHierarchy.values()).map((agent) => ({
       id: agent.id,
       name: agent.name,
       level: agent.level,
       parentId: agent.parentId,
       childIds: [...agent.childIds],
       workload: agent.workload,
-      status: agent.status
+      status: agent.status,
     }));
 
-    const depth = agents.length > 0 ? Math.max(...agents.map(a => a.level)) + 1 : 0;
+    const depth = agents.length > 0 ? Math.max(...agents.map((a) => a.level)) + 1 : 0;
 
     return {
       agents,
       depth,
-      rootCount: this.rootAgentIds.size
+      rootCount: this.rootAgentIds.size,
     };
   }
 
@@ -1023,26 +1096,24 @@ export class HierarchicalCoordinator extends EventEmitter {
 // Factory and Utility Functions
 // ============================================================================
 
-export function createHierarchicalCoordinator(config?: Partial<HierarchicalCoordinatorConfig>): HierarchicalCoordinator {
+export function createHierarchicalCoordinator(
+  config?: Partial<HierarchicalCoordinatorConfig>,
+): HierarchicalCoordinator {
   return new HierarchicalCoordinator(config);
 }
 
 export function createHierarchicalCoordinatorWithDependencies(
   dependencyNamespace: string,
-  config?: Partial<HierarchicalCoordinatorConfig>
+  config?: Partial<HierarchicalCoordinatorConfig>,
 ): HierarchicalCoordinator {
   const enhancedConfig = {
     ...config,
     enableDependencyTracking: true,
-    memoryNamespace: dependencyNamespace
+    memoryNamespace: dependencyNamespace,
   };
 
   return new HierarchicalCoordinator(enhancedConfig);
 }
 
 // Export types for external use
-export type {
-  HierarchicalAgentNode,
-  HierarchicalTask,
-  HierarchicalCoordinatorConfig
-};
+export type { HierarchicalAgentNode, HierarchicalTask, HierarchicalCoordinatorConfig };

@@ -16,11 +16,11 @@ import EventEmitter from 'events';
  */
 const PERFORMANCE_THRESHOLDS = {
   TARGET_EXECUTION_TIME: 100, // ms - main requirement
-  WARNING_THRESHOLD: 50,       // ms - warning level
-  CRITICAL_THRESHOLD: 150,     // ms - critical level
-  MEMORY_OPERATION_LIMIT: 20,  // ms - memory operation limit
-  INITIALIZATION_LIMIT: 50,    // ms - initialization limit
-  BATCH_PROCESSING_LIMIT: 30   // ms - batch processing limit
+  WARNING_THRESHOLD: 50, // ms - warning level
+  CRITICAL_THRESHOLD: 150, // ms - critical level
+  MEMORY_OPERATION_LIMIT: 20, // ms - memory operation limit
+  INITIALIZATION_LIMIT: 50, // ms - initialization limit
+  BATCH_PROCESSING_LIMIT: 30, // ms - batch processing limit
 };
 
 /**
@@ -39,7 +39,7 @@ class HookPerformanceMonitor extends EventEmitter {
       failureRate: 0,
       memoryPersistenceFailures: 0,
       compatibilityRate: 1.0,
-      lastExecutionTime: null
+      lastExecutionTime: null,
     };
     this.performanceHistory = [];
     this.bottlenecks = new Map();
@@ -93,7 +93,7 @@ class HookPerformanceMonitor extends EventEmitter {
       executionTime,
       success,
       timestamp: Date.now(),
-      metadata
+      metadata,
     };
 
     // Store in metrics map
@@ -106,7 +106,7 @@ class HookPerformanceMonitor extends EventEmitter {
         maxTime: 0,
         failures: 0,
         memoryFailures: 0,
-        executions: []
+        executions: [],
       });
     }
 
@@ -148,7 +148,7 @@ class HookPerformanceMonitor extends EventEmitter {
    */
   recordMemoryOperation(operation, executionTime, success = true) {
     this.recordExecution(`memory:${operation}`, executionTime, success, {
-      isMemoryOperation: true
+      isMemoryOperation: true,
     });
 
     // Track memory-specific metrics
@@ -158,7 +158,7 @@ class HookPerformanceMonitor extends EventEmitter {
         operation,
         averageTime: executionTime,
         frequency: (this.bottlenecks.get(`memory:${operation}`)?.frequency || 0) + 1,
-        lastOccurrence: Date.now()
+        lastOccurrence: Date.now(),
       });
     }
   }
@@ -168,11 +168,13 @@ class HookPerformanceMonitor extends EventEmitter {
    */
   recordInitialization(component, executionTime, success = true) {
     this.recordExecution(`init:${component}`, executionTime, success, {
-      isInitialization: true
+      isInitialization: true,
     });
 
     if (executionTime > PERFORMANCE_THRESHOLDS.INITIALIZATION_LIMIT) {
-      console.warn(`⚠️  Slow initialization: ${component} took ${executionTime.toFixed(2)}ms (limit: ${PERFORMANCE_THRESHOLDS.INITIALIZATION_LIMIT}ms)`);
+      console.warn(
+        `⚠️  Slow initialization: ${component} took ${executionTime.toFixed(2)}ms (limit: ${PERFORMANCE_THRESHOLDS.INITIALIZATION_LIMIT}ms)`,
+      );
     }
   }
 
@@ -189,7 +191,7 @@ class HookPerformanceMonitor extends EventEmitter {
       realTimeMetrics: { ...this.realTimeMetrics },
       performanceStatus: this._getPerformanceStatus(),
       bottleneckCount: this.bottlenecks.size,
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
     };
   }
 
@@ -205,16 +207,16 @@ class HookPerformanceMonitor extends EventEmitter {
         targetMet: this.realTimeMetrics.averageTime < PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME,
         compatibilityRate: this.realTimeMetrics.compatibilityRate,
         memoryPersistenceFailures: this.realTimeMetrics.memoryPersistenceFailures,
-        performanceStatus: this._getPerformanceStatus()
+        performanceStatus: this._getPerformanceStatus(),
       },
       hookMetrics: {},
       bottlenecks: Array.from(this.bottlenecks.entries()).map(([key, data]) => ({
         identifier: key,
-        ...data
+        ...data,
       })),
       recommendations: this._generateRecommendations(),
       performanceTrend: this._calculatePerformanceTrend(),
-      compliance: this._checkCompliance()
+      compliance: this._checkCompliance(),
     };
 
     // Add individual hook metrics
@@ -225,8 +227,9 @@ class HookPerformanceMonitor extends EventEmitter {
         minTime: metrics.minTime === Infinity ? 0 : metrics.minTime,
         maxTime: metrics.maxTime,
         failureRate: metrics.totalExecutions > 0 ? metrics.failures / metrics.totalExecutions : 0,
-        memoryFailureRate: metrics.totalExecutions > 0 ? metrics.memoryFailures / metrics.totalExecutions : 0,
-        performanceGrade: this._calculatePerformanceGrade(metrics.averageTime)
+        memoryFailureRate:
+          metrics.totalExecutions > 0 ? metrics.memoryFailures / metrics.totalExecutions : 0,
+        performanceGrade: this._calculatePerformanceGrade(metrics.averageTime),
       };
     }
 
@@ -241,7 +244,7 @@ class HookPerformanceMonitor extends EventEmitter {
       .map(([key, data]) => ({
         identifier: key,
         ...data,
-        severity: this._calculateBottleneckSeverity(data)
+        severity: this._calculateBottleneckSeverity(data),
       }))
       .sort((a, b) => b.severity - a.severity);
   }
@@ -260,7 +263,8 @@ class HookPerformanceMonitor extends EventEmitter {
     this.realTimeMetrics.lastExecutionTime = executionTime;
 
     // Update running average
-    const totalTime = (this.realTimeMetrics.averageTime * (this.realTimeMetrics.totalExecutions - 1)) + executionTime;
+    const totalTime =
+      this.realTimeMetrics.averageTime * (this.realTimeMetrics.totalExecutions - 1) + executionTime;
     this.realTimeMetrics.averageTime = totalTime / this.realTimeMetrics.totalExecutions;
 
     // Update min/max
@@ -277,23 +281,32 @@ class HookPerformanceMonitor extends EventEmitter {
     }
 
     // Update compatibility rate (based on meeting performance targets)
-    const compatibleExecutions = this.realTimeMetrics.totalExecutions * this.realTimeMetrics.compatibilityRate;
+    const compatibleExecutions =
+      this.realTimeMetrics.totalExecutions * this.realTimeMetrics.compatibilityRate;
     if (executionTime < PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME && success) {
-      this.realTimeMetrics.compatibilityRate = (compatibleExecutions + 1) / this.realTimeMetrics.totalExecutions;
+      this.realTimeMetrics.compatibilityRate =
+        (compatibleExecutions + 1) / this.realTimeMetrics.totalExecutions;
     } else {
-      this.realTimeMetrics.compatibilityRate = compatibleExecutions / this.realTimeMetrics.totalExecutions;
+      this.realTimeMetrics.compatibilityRate =
+        compatibleExecutions / this.realTimeMetrics.totalExecutions;
     }
   }
 
   _checkPerformanceThresholds(hookType, executionTime) {
     if (executionTime > PERFORMANCE_THRESHOLDS.CRITICAL_THRESHOLD) {
-      console.error(`❌ CRITICAL: Hook ${hookType} took ${executionTime.toFixed(2)}ms (critical threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_THRESHOLD}ms)`);
+      console.error(
+        `❌ CRITICAL: Hook ${hookType} took ${executionTime.toFixed(2)}ms (critical threshold: ${PERFORMANCE_THRESHOLDS.CRITICAL_THRESHOLD}ms)`,
+      );
       this.emit('critical_performance', { hookType, executionTime });
     } else if (executionTime > PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME) {
-      console.error(`❌ FAILED: Hook ${hookType} took ${executionTime.toFixed(2)}ms (target: ${PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME}ms)`);
+      console.error(
+        `❌ FAILED: Hook ${hookType} took ${executionTime.toFixed(2)}ms (target: ${PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME}ms)`,
+      );
       this.emit('target_missed', { hookType, executionTime });
     } else if (executionTime > PERFORMANCE_THRESHOLDS.WARNING_THRESHOLD) {
-      console.warn(`⚠️  WARNING: Hook ${hookType} took ${executionTime.toFixed(2)}ms (approaching ${PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME}ms limit)`);
+      console.warn(
+        `⚠️  WARNING: Hook ${hookType} took ${executionTime.toFixed(2)}ms (approaching ${PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME}ms limit)`,
+      );
       this.emit('performance_warning', { hookType, executionTime });
     }
   }
@@ -306,7 +319,7 @@ class HookPerformanceMonitor extends EventEmitter {
       timestamp: Date.now(),
       metrics: this.realTimeMetrics,
       memoryUsage,
-      bottleneckCount: this.bottlenecks.size
+      bottleneckCount: this.bottlenecks.size,
     });
   }
 
@@ -319,7 +332,7 @@ class HookPerformanceMonitor extends EventEmitter {
           hookType,
           averageTime: metrics.averageTime,
           frequency: metrics.totalExecutions,
-          lastOccurrence: Date.now()
+          lastOccurrence: Date.now(),
         });
       }
     }
@@ -327,7 +340,8 @@ class HookPerformanceMonitor extends EventEmitter {
     // Clean up old bottlenecks
     const now = Date.now();
     for (const [key, bottleneck] of this.bottlenecks) {
-      if (now - bottleneck.lastOccurrence > 60000) { // 1 minute
+      if (now - bottleneck.lastOccurrence > 60000) {
+        // 1 minute
         this.bottlenecks.delete(key);
       }
     }
@@ -393,7 +407,7 @@ class HookPerformanceMonitor extends EventEmitter {
       recommendations.push({
         type: 'CRITICAL',
         message: `Average execution time (${this.realTimeMetrics.averageTime.toFixed(2)}ms) exceeds target (${PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME}ms)`,
-        action: 'Implement caching, reduce I/O operations, optimize memory usage'
+        action: 'Implement caching, reduce I/O operations, optimize memory usage',
       });
     }
 
@@ -402,7 +416,7 @@ class HookPerformanceMonitor extends EventEmitter {
       recommendations.push({
         type: 'HIGH',
         message: `Memory persistence failures detected (${this.realTimeMetrics.memoryPersistenceFailures})`,
-        action: 'Check database connections, implement retry logic, optimize storage operations'
+        action: 'Check database connections, implement retry logic, optimize storage operations',
       });
     }
 
@@ -411,19 +425,20 @@ class HookPerformanceMonitor extends EventEmitter {
       recommendations.push({
         type: 'HIGH',
         message: `Hook compatibility rate (${(this.realTimeMetrics.compatibilityRate * 100).toFixed(1)}%) below target (95%)`,
-        action: 'Improve error handling, add fallback mechanisms, optimize slow hooks'
+        action: 'Improve error handling, add fallback mechanisms, optimize slow hooks',
       });
     }
 
     // Check bottlenecks
-    const criticalBottlenecks = Array.from(this.bottlenecks.values())
-      .filter(b => b.averageTime > PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME);
+    const criticalBottlenecks = Array.from(this.bottlenecks.values()).filter(
+      (b) => b.averageTime > PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME,
+    );
 
     if (criticalBottlenecks.length > 0) {
       recommendations.push({
         type: 'HIGH',
         message: `${criticalBottlenecks.length} critical performance bottlenecks detected`,
-        action: 'Profile and optimize slow operations, consider parallel execution'
+        action: 'Profile and optimize slow operations, consider parallel execution',
       });
     }
 
@@ -432,12 +447,14 @@ class HookPerformanceMonitor extends EventEmitter {
 
   _checkCompliance() {
     return {
-      executionTimeCompliance: this.realTimeMetrics.averageTime < PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME,
+      executionTimeCompliance:
+        this.realTimeMetrics.averageTime < PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME,
       compatibilityCompliance: this.realTimeMetrics.compatibilityRate >= 0.95,
       memoryPersistenceCompliance: this.realTimeMetrics.memoryPersistenceFailures === 0,
-      overallCompliance: this.realTimeMetrics.averageTime < PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME &&
-                         this.realTimeMetrics.compatibilityRate >= 0.95 &&
-                         this.realTimeMetrics.memoryPersistenceFailures === 0
+      overallCompliance:
+        this.realTimeMetrics.averageTime < PERFORMANCE_THRESHOLDS.TARGET_EXECUTION_TIME &&
+        this.realTimeMetrics.compatibilityRate >= 0.95 &&
+        this.realTimeMetrics.memoryPersistenceFailures === 0,
     };
   }
 }

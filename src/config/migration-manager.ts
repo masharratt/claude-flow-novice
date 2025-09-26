@@ -106,28 +106,33 @@ export class MigrationManager extends EventEmitter {
   /**
    * Check if migration is needed
    */
-  async needsMigration(configPath: string): Promise<{ needed: boolean; currentVersion: string; targetVersion: string }> {
+  async needsMigration(
+    configPath: string,
+  ): Promise<{ needed: boolean; currentVersion: string; targetVersion: string }> {
     const currentVersion = await this.detectConfigVersion(configPath);
     const needed = this.compareVersions(currentVersion, this.CURRENT_VERSION) < 0;
 
     return {
       needed,
       currentVersion,
-      targetVersion: this.CURRENT_VERSION
+      targetVersion: this.CURRENT_VERSION,
     };
   }
 
   /**
    * Create migration plan
    */
-  async createMigrationPlan(fromVersion: string, toVersion: string = this.CURRENT_VERSION): Promise<MigrationPlan> {
+  async createMigrationPlan(
+    fromVersion: string,
+    toVersion: string = this.CURRENT_VERSION,
+  ): Promise<MigrationPlan> {
     const scripts = this.getMigrationScripts(fromVersion, toVersion);
-    const requiresBackup = scripts.some(script => script.backupRequired || script.critical);
+    const requiresBackup = scripts.some((script) => script.backupRequired || script.critical);
 
     let riskLevel: 'low' | 'medium' | 'high' = 'low';
-    if (scripts.some(s => s.critical)) {
+    if (scripts.some((s) => s.critical)) {
       riskLevel = 'high';
-    } else if (scripts.length > 3 || scripts.some(s => s.backupRequired)) {
+    } else if (scripts.length > 3 || scripts.some((s) => s.backupRequired)) {
       riskLevel = 'medium';
     }
 
@@ -137,7 +142,7 @@ export class MigrationManager extends EventEmitter {
       scripts,
       requiresBackup,
       estimatedDuration: this.estimateMigrationDuration(scripts),
-      riskLevel
+      riskLevel,
     };
   }
 
@@ -173,11 +178,14 @@ export class MigrationManager extends EventEmitter {
           timestamp: new Date(),
           success: false,
           backupPath,
-          rollbackAvailable: true
+          rollbackAvailable: true,
         };
 
         try {
-          this.emit('migrationScriptStarted', { script: script.description, timestamp: new Date() });
+          this.emit('migrationScriptStarted', {
+            script: script.description,
+            timestamp: new Date(),
+          });
 
           // Execute migration
           config = await script.migrate(config);
@@ -189,8 +197,10 @@ export class MigrationManager extends EventEmitter {
           }
 
           record.success = true;
-          this.emit('migrationScriptCompleted', { script: script.description, timestamp: new Date() });
-
+          this.emit('migrationScriptCompleted', {
+            script: script.description,
+            timestamp: new Date(),
+          });
         } catch (error) {
           record.success = false;
           record.error = (error as Error).message;
@@ -199,10 +209,12 @@ export class MigrationManager extends EventEmitter {
           this.emit('migrationScriptFailed', {
             script: script.description,
             error: record.error,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
 
-          throw new Error(`Migration failed at step: ${script.description}. Error: ${record.error}`);
+          throw new Error(
+            `Migration failed at step: ${script.description}. Error: ${record.error}`,
+          );
         }
 
         records.push(record);
@@ -223,16 +235,15 @@ export class MigrationManager extends EventEmitter {
         fromVersion: plan.currentVersion,
         toVersion: plan.targetVersion,
         stepsCompleted: records.length,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       return records;
-
     } catch (error) {
       this.emit('migrationFailed', {
         error: (error as Error).message,
         backupPath,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       throw error;
@@ -246,11 +257,11 @@ export class MigrationManager extends EventEmitter {
     let targetRecord: MigrationRecord | undefined;
 
     if (migrationId) {
-      targetRecord = this.migrationHistory.find(record => record.id === migrationId);
+      targetRecord = this.migrationHistory.find((record) => record.id === migrationId);
     } else {
       // Find the last successful migration
       targetRecord = this.migrationHistory
-        .filter(record => record.success)
+        .filter((record) => record.success)
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
     }
 
@@ -273,14 +284,13 @@ export class MigrationManager extends EventEmitter {
       this.emit('rollbackCompleted', {
         migrationId: targetRecord.id,
         restoredFrom: targetRecord.backupPath,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
-
     } catch (error) {
       this.emit('rollbackFailed', {
         migrationId: targetRecord.id,
         error: (error as Error).message,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       throw error;
@@ -318,14 +328,13 @@ export class MigrationManager extends EventEmitter {
 
       // Check for deprecated fields
       const deprecatedFields = this.findDeprecatedFields(config);
-      warnings.push(...deprecatedFields.map(field => `Deprecated field found: ${field}`));
+      warnings.push(...deprecatedFields.map((field) => `Deprecated field found: ${field}`));
 
       return {
         isValid: errors.length === 0,
         errors,
-        warnings
+        warnings,
       };
-
     } catch (error) {
       errors.push(`Failed to validate configuration: ${(error as Error).message}`);
       return { isValid: false, errors, warnings };
@@ -342,12 +351,14 @@ export class MigrationManager extends EventEmitter {
   /**
    * Get available backups
    */
-  async getAvailableBackups(): Promise<Array<{
-    path: string;
-    timestamp: Date;
-    size: string;
-    version?: string;
-  }>> {
+  async getAvailableBackups(): Promise<
+    Array<{
+      path: string;
+      timestamp: Date;
+      size: string;
+      version?: string;
+    }>
+  > {
     try {
       const files = await fs.readdir(this.backupDirectory);
       const backups = [];
@@ -360,13 +371,12 @@ export class MigrationManager extends EventEmitter {
           backups.push({
             path: filePath,
             timestamp: stats.mtime,
-            size: `${Math.round(stats.size / 1024 * 100) / 100} KB`
+            size: `${Math.round((stats.size / 1024) * 100) / 100} KB`,
           });
         }
       }
 
       return backups.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
     } catch (error) {
       return [];
     }
@@ -392,7 +402,6 @@ export class MigrationManager extends EventEmitter {
 
       this.emit('backupsCleanedUp', { count: cleanedCount, timestamp: new Date() });
       return cleanedCount;
-
     } catch (error) {
       this.emit('backupCleanupFailed', { error: (error as Error).message, timestamp: new Date() });
       throw error;
@@ -467,40 +476,40 @@ export class MigrationManager extends EventEmitter {
               maxConcurrentAgents: config.maxAgents || 8,
               taskQueueSize: 100,
               healthCheckInterval: 30000,
-              shutdownTimeout: 30000
+              shutdownTimeout: 30000,
             },
             terminal: {
               type: config.terminalType || 'auto',
               poolSize: 5,
               recycleAfter: 10,
               healthCheckInterval: 60000,
-              commandTimeout: 300000
+              commandTimeout: 300000,
             },
             memory: {
               backend: config.memoryBackend || 'hybrid',
               cacheSizeMB: config.cacheSize || 100,
               syncInterval: 5000,
               conflictResolution: 'crdt',
-              retentionDays: 30
+              retentionDays: 30,
             },
             coordination: {
               maxRetries: 3,
               retryDelay: 1000,
               deadlockDetection: true,
               resourceTimeout: 60000,
-              messageTimeout: 30000
+              messageTimeout: 30000,
             },
             mcp: {
               transport: 'stdio',
               port: 3000,
-              tlsEnabled: false
+              tlsEnabled: false,
             },
             logging: {
               level: config.logLevel || 'info',
               format: 'text',
-              destination: 'console'
+              destination: 'console',
             },
-            ...config // Preserve any other fields
+            ...config, // Preserve any other fields
           };
         },
         rollback: async (config) => {
@@ -510,14 +519,14 @@ export class MigrationManager extends EventEmitter {
             terminalType: config.terminal?.type,
             memoryBackend: config.memory?.backend,
             cacheSize: config.memory?.cacheSizeMB,
-            logLevel: config.logging?.level
+            logLevel: config.logging?.level,
           };
         },
         validate: async (config) => {
           return !!(config.orchestrator && config.terminal && config.memory);
         },
         critical: true,
-        backupRequired: true
+        backupRequired: true,
       });
     }
 
@@ -539,7 +548,7 @@ export class MigrationManager extends EventEmitter {
               multiTierStorage: true,
               teamCollaboration: true,
               customWorkflows: true,
-              performanceAnalytics: true
+              performanceAnalytics: true,
             },
             autoSetup: false, // Existing users don't want auto-setup
             performance: {
@@ -547,14 +556,14 @@ export class MigrationManager extends EventEmitter {
               cacheSize: 50,
               lazyLoading: true,
               optimizeMemory: true,
-              ...config.performance
+              ...config.performance,
             },
             autoDetection: {
               enabled: false, // Don't auto-detect for existing configurations
               confidenceThreshold: 0.7,
               analysisDepth: 'shallow',
-              useAI: false
-            }
+              useAI: false,
+            },
           };
         },
         rollback: async (config) => {
@@ -566,15 +575,23 @@ export class MigrationManager extends EventEmitter {
           return !!(config.experienceLevel && config.featureFlags);
         },
         critical: false,
-        backupRequired: true
+        backupRequired: true,
       });
     }
 
     return scripts;
   }
 
-  private versionInRange(currentVersion: string, targetVersion: string, minVersion: string, maxVersion: string): boolean {
-    return this.compareVersions(currentVersion, minVersion) >= 0 && this.compareVersions(targetVersion, maxVersion) >= 0;
+  private versionInRange(
+    currentVersion: string,
+    targetVersion: string,
+    minVersion: string,
+    maxVersion: string,
+  ): boolean {
+    return (
+      this.compareVersions(currentVersion, minVersion) >= 0 &&
+      this.compareVersions(targetVersion, maxVersion) >= 0
+    );
   }
 
   private estimateMigrationDuration(scripts: MigrationScript[]): string {
@@ -582,8 +599,8 @@ export class MigrationManager extends EventEmitter {
     const timePerScript = 10; // seconds per script
     const criticalPenalty = 20; // extra seconds for critical scripts
 
-    let totalTime = baseTime + (scripts.length * timePerScript);
-    totalTime += scripts.filter(s => s.critical).length * criticalPenalty;
+    let totalTime = baseTime + scripts.length * timePerScript;
+    totalTime += scripts.filter((s) => s.critical).length * criticalPenalty;
 
     if (totalTime < 60) {
       return `${totalTime} seconds`;
@@ -601,7 +618,7 @@ export class MigrationManager extends EventEmitter {
       'terminalType', // Use terminal.type
       'memoryBackend', // Use memory.backend
       'cacheSize', // Use memory.cacheSizeMB
-      'logLevel' // Use logging.level
+      'logLevel', // Use logging.level
     ];
 
     for (const [key, value] of Object.entries(config)) {
@@ -634,7 +651,7 @@ export class MigrationManager extends EventEmitter {
 
     this.migrationHistory = (parsed.records || []).map((record: any) => ({
       ...record,
-      timestamp: new Date(record.timestamp)
+      timestamp: new Date(record.timestamp),
     }));
   }
 
@@ -644,7 +661,7 @@ export class MigrationManager extends EventEmitter {
     const data = {
       version: '1.0.0',
       records: this.migrationHistory,
-      lastModified: new Date()
+      lastModified: new Date(),
     };
 
     await fs.writeFile(this.migrationHistoryPath, JSON.stringify(data, null, 2), 'utf8');

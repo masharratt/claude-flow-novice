@@ -30,12 +30,7 @@
       "Bash(pwd)",
       "Bash(ls *)"
     ],
-    "deny": [
-      "Bash(rm -rf /)",
-      "Bash(curl * | bash)",
-      "Bash(wget * | sh)",
-      "Bash(eval *)"
-    ]
+    "deny": ["Bash(rm -rf /)", "Bash(curl * | bash)", "Bash(wget * | sh)", "Bash(eval *)"]
   },
   "hooks": {
     "PreToolUse": [

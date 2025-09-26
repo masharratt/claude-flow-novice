@@ -32,24 +32,24 @@ export class MonitoringIntegration extends EventEmitter {
     return {
       memory: {
         warning: 75,
-        critical: 90
+        critical: 90,
       },
       cpu: {
         warning: 2.0,
-        critical: 4.0
+        critical: 4.0,
       },
       taskFailureRate: {
         warning: 20,
-        critical: 40
+        critical: 40,
       },
       agentPerformance: {
         warning: 0.6,
-        critical: 0.4
+        critical: 0.4,
       },
       consensusScore: {
         warning: 0.5,
-        critical: 0.3
-      }
+        critical: 0.3,
+      },
     };
   }
 
@@ -175,7 +175,7 @@ export class MonitoringIntegration extends EventEmitter {
         tasks: this.extractTaskBaseline(report.analysis.taskPatterns),
         agents: this.extractAgentBaseline(report.analysis.taskPatterns),
         coordination: this.extractCoordinationBaseline(report.analysis.coordinationPatterns),
-        memory: this.extractMemoryBaseline(report.analysis.memoryPatterns)
+        memory: this.extractMemoryBaseline(report.analysis.memoryPatterns),
       };
 
       await fs.writeJson(path.join(this.metricsPath, 'baseline.json'), baseline, { spaces: 2 });
@@ -194,13 +194,10 @@ export class MonitoringIntegration extends EventEmitter {
       timestamp: new Date().toISOString(),
       metrics: await this.collectCurrentMetrics(),
       trends: await this.calculateTrends(),
-      alerts: await this.generateCurrentAlerts()
+      alerts: await this.generateCurrentAlerts(),
     };
 
-    const snapshotPath = path.join(
-      this.metricsPath,
-      `snapshot-${Date.now()}.json`
-    );
+    const snapshotPath = path.join(this.metricsPath, `snapshot-${Date.now()}.json`);
 
     await fs.writeJson(snapshotPath, snapshot, { spaces: 2 });
 
@@ -221,18 +218,18 @@ export class MonitoringIntegration extends EventEmitter {
         system: {
           memory: this.extractCurrentMemoryMetrics(report.analysis.performance),
           cpu: this.extractCurrentCPUMetrics(report.analysis.performance),
-          efficiency: this.extractCurrentEfficiencyMetrics(report.analysis.performance)
+          efficiency: this.extractCurrentEfficiencyMetrics(report.analysis.performance),
         },
         tasks: {
           total: this.extractCurrentTaskCount(report.analysis.taskPatterns),
           successRate: this.extractCurrentSuccessRate(report.analysis.taskPatterns),
-          avgDuration: this.extractCurrentAvgDuration(report.analysis.taskPatterns)
+          avgDuration: this.extractCurrentAvgDuration(report.analysis.taskPatterns),
         },
         agents: {
           total: this.extractCurrentAgentCount(report.analysis.taskPatterns),
           active: this.extractCurrentActiveAgents(report.analysis.taskPatterns),
-          avgPerformance: this.extractCurrentAvgPerformance(report.analysis.taskPatterns)
-        }
+          avgPerformance: this.extractCurrentAvgPerformance(report.analysis.taskPatterns),
+        },
       };
     } catch (error) {
       console.warn('Failed to collect current metrics:', error.message);
@@ -256,14 +253,14 @@ export class MonitoringIntegration extends EventEmitter {
         memory: this.calculateMetricTrend(snapshots, 'metrics.system.memory.usage'),
         cpu: this.calculateMetricTrend(snapshots, 'metrics.system.cpu.load'),
         successRate: this.calculateMetricTrend(snapshots, 'metrics.tasks.successRate'),
-        agentPerformance: this.calculateMetricTrend(snapshots, 'metrics.agents.avgPerformance')
+        agentPerformance: this.calculateMetricTrend(snapshots, 'metrics.agents.avgPerformance'),
       };
 
       // Store trends
       await fs.writeJson(
         path.join(this.metricsPath, 'trends.json'),
         { timestamp: new Date().toISOString(), trends },
-        { spaces: 2 }
+        { spaces: 2 },
       );
 
       // Emit trends event
@@ -293,7 +290,7 @@ export class MonitoringIntegration extends EventEmitter {
           message: `Critical memory usage: ${memUsage.toFixed(1)}%`,
           threshold: this.alertThresholds.memory.critical,
           value: memUsage,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } else if (memUsage >= this.alertThresholds.memory.warning) {
         alerts.push({
@@ -302,7 +299,7 @@ export class MonitoringIntegration extends EventEmitter {
           message: `High memory usage: ${memUsage.toFixed(1)}%`,
           threshold: this.alertThresholds.memory.warning,
           value: memUsage,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
@@ -317,7 +314,7 @@ export class MonitoringIntegration extends EventEmitter {
           message: `Critical CPU load: ${cpuLoad.toFixed(2)}`,
           threshold: this.alertThresholds.cpu.critical,
           value: cpuLoad,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } else if (cpuLoad >= this.alertThresholds.cpu.warning) {
         alerts.push({
@@ -326,7 +323,7 @@ export class MonitoringIntegration extends EventEmitter {
           message: `High CPU load: ${cpuLoad.toFixed(2)}`,
           threshold: this.alertThresholds.cpu.warning,
           value: cpuLoad,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
@@ -341,7 +338,7 @@ export class MonitoringIntegration extends EventEmitter {
           message: `Critical task failure rate: ${failureRate.toFixed(1)}%`,
           threshold: this.alertThresholds.taskFailureRate.critical,
           value: failureRate,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       } else if (failureRate >= this.alertThresholds.taskFailureRate.warning) {
         alerts.push({
@@ -350,7 +347,7 @@ export class MonitoringIntegration extends EventEmitter {
           message: `High task failure rate: ${failureRate.toFixed(1)}%`,
           threshold: this.alertThresholds.taskFailureRate.warning,
           value: failureRate,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
@@ -402,7 +399,7 @@ export class MonitoringIntegration extends EventEmitter {
   calculateImprovements(current, baseline) {
     const improvements = {
       timestamp: new Date().toISOString(),
-      metrics: {}
+      metrics: {},
     };
 
     // System improvements
@@ -410,13 +407,13 @@ export class MonitoringIntegration extends EventEmitter {
       improvements.metrics.memory_efficiency = this.calculateMetricImprovement(
         current.system.memory?.efficiency,
         baseline.system.memory?.efficiency,
-        'higher_better'
+        'higher_better',
       );
 
       improvements.metrics.cpu_efficiency = this.calculateMetricImprovement(
         current.system.cpu?.load,
         baseline.system.cpu?.load,
-        'lower_better'
+        'lower_better',
       );
     }
 
@@ -425,13 +422,13 @@ export class MonitoringIntegration extends EventEmitter {
       improvements.metrics.success_rate = this.calculateMetricImprovement(
         current.tasks.successRate,
         baseline.tasks.successRate,
-        'higher_better'
+        'higher_better',
       );
 
       improvements.metrics.avg_duration = this.calculateMetricImprovement(
         current.tasks.avgDuration,
         baseline.tasks.avgDuration,
-        'lower_better'
+        'lower_better',
       );
     }
 
@@ -440,17 +437,20 @@ export class MonitoringIntegration extends EventEmitter {
       improvements.metrics.agent_performance = this.calculateMetricImprovement(
         current.agents.avgPerformance,
         baseline.agents.avgPerformance,
-        'higher_better'
+        'higher_better',
       );
     }
 
     // Calculate overall improvement score
-    const validImprovements = Object.values(improvements.metrics)
-      .filter(imp => imp.improvement_percentage !== null);
+    const validImprovements = Object.values(improvements.metrics).filter(
+      (imp) => imp.improvement_percentage !== null,
+    );
 
-    improvements.overall_score = validImprovements.length > 0
-      ? validImprovements.reduce((sum, imp) => sum + imp.improvement_percentage, 0) / validImprovements.length
-      : 0;
+    improvements.overall_score =
+      validImprovements.length > 0
+        ? validImprovements.reduce((sum, imp) => sum + imp.improvement_percentage, 0) /
+          validImprovements.length
+        : 0;
 
     return improvements;
   }
@@ -464,16 +464,15 @@ export class MonitoringIntegration extends EventEmitter {
         current: null,
         baseline: null,
         improvement_percentage: null,
-        direction: direction
+        direction: direction,
       };
     }
 
     const change = currentValue - baselineValue;
     const percentageChange = baselineValue !== 0 ? (change / Math.abs(baselineValue)) * 100 : 0;
 
-    const improvementPercentage = direction === 'higher_better'
-      ? percentageChange
-      : -percentageChange;
+    const improvementPercentage =
+      direction === 'higher_better' ? percentageChange : -percentageChange;
 
     return {
       current: currentValue,
@@ -481,7 +480,7 @@ export class MonitoringIntegration extends EventEmitter {
       change: change,
       improvement_percentage: improvementPercentage,
       direction: direction,
-      is_improvement: improvementPercentage > 0
+      is_improvement: improvementPercentage > 0,
     };
   }
 
@@ -497,14 +496,12 @@ export class MonitoringIntegration extends EventEmitter {
         period: '30 data points',
         summary: this.summarizeImprovements(improvements),
         trends: this.analyzeImprovementTrends(improvements),
-        recommendations: await this.generateImprovementRecommendations(improvements)
+        recommendations: await this.generateImprovementRecommendations(improvements),
       };
 
-      await fs.writeJson(
-        path.join(this.improvementPath, `report-${Date.now()}.json`),
-        report,
-        { spaces: 2 }
-      );
+      await fs.writeJson(path.join(this.improvementPath, `report-${Date.now()}.json`), report, {
+        spaces: 2,
+      });
 
       this.emit('improvement:report_generated', report);
 
@@ -521,8 +518,8 @@ export class MonitoringIntegration extends EventEmitter {
   async processAlerts() {
     try {
       const recentAlerts = await this.loadRecentAlerts(100);
-      const activeAlerts = recentAlerts.filter(alert =>
-        new Date(alert.timestamp) > new Date(Date.now() - 3600000) // Last hour
+      const activeAlerts = recentAlerts.filter(
+        (alert) => new Date(alert.timestamp) > new Date(Date.now() - 3600000), // Last hour
       );
 
       if (activeAlerts.length === 0) {
@@ -552,8 +549,8 @@ export class MonitoringIntegration extends EventEmitter {
       const optimizations = await this.optimizationEngine.generateOptimizationSuggestions();
 
       // Filter high-impact, low-effort optimizations for automation
-      const automationCandidates = optimizations.priority.high.filter(opt =>
-        opt.impact === 'high' && opt.effort === 'low'
+      const automationCandidates = optimizations.priority.high.filter(
+        (opt) => opt.impact === 'high' && opt.effort === 'low',
       );
 
       if (automationCandidates.length > 0) {
@@ -612,7 +609,7 @@ export class MonitoringIntegration extends EventEmitter {
     try {
       const files = await fs.readdir(this.metricsPath);
       const snapshotFiles = files
-        .filter(file => file.startsWith('snapshot-'))
+        .filter((file) => file.startsWith('snapshot-'))
         .sort()
         .slice(-count);
 
@@ -644,12 +641,15 @@ export class MonitoringIntegration extends EventEmitter {
   }
 
   calculateMetricTrend(snapshots, metricPath) {
-    const values = snapshots.map(snapshot => this.getNestedValue(snapshot, metricPath)).filter(v => v !== undefined);
+    const values = snapshots
+      .map((snapshot) => this.getNestedValue(snapshot, metricPath))
+      .filter((v) => v !== undefined);
 
     if (values.length < 2) return { trend: 'insufficient_data' };
 
     const recent = values.slice(-3).reduce((sum, v) => sum + v, 0) / Math.min(3, values.length);
-    const older = values.slice(0, -3).reduce((sum, v) => sum + v, 0) / Math.max(1, values.length - 3);
+    const older =
+      values.slice(0, -3).reduce((sum, v) => sum + v, 0) / Math.max(1, values.length - 3);
 
     const change = recent - older;
     const percentChange = older !== 0 ? (change / Math.abs(older)) * 100 : 0;
@@ -659,7 +659,7 @@ export class MonitoringIntegration extends EventEmitter {
       change: change,
       percent_change: percentChange,
       current: recent,
-      previous: older
+      previous: older,
     };
   }
 
@@ -674,11 +674,11 @@ export class MonitoringIntegration extends EventEmitter {
     return {
       memory: {
         usage: performance.resourceAnalysis.memory?.average || 0,
-        efficiency: performance.resourceAnalysis.efficiency?.average || 0
+        efficiency: performance.resourceAnalysis.efficiency?.average || 0,
       },
       cpu: {
-        load: performance.resourceAnalysis.cpu?.average || 0
-      }
+        load: performance.resourceAnalysis.cpu?.average || 0,
+      },
     };
   }
 
@@ -686,12 +686,13 @@ export class MonitoringIntegration extends EventEmitter {
     if (!taskPatterns?.statusAnalysis) return {};
 
     const total = taskPatterns.statusAnalysis.reduce((sum, s) => sum + s.count, 0);
-    const completed = taskPatterns.statusAnalysis.find(s => s.status === 'completed')?.count || 0;
+    const completed = taskPatterns.statusAnalysis.find((s) => s.status === 'completed')?.count || 0;
 
     return {
       total: total,
       successRate: total > 0 ? (completed / total) * 100 : 0,
-      avgDuration: taskPatterns.statusAnalysis.find(s => s.status === 'completed')?.avg_duration || 0
+      avgDuration:
+        taskPatterns.statusAnalysis.find((s) => s.status === 'completed')?.avg_duration || 0,
     };
   }
 
@@ -700,7 +701,9 @@ export class MonitoringIntegration extends EventEmitter {
 
     return {
       total: taskPatterns.agentPerformance.length,
-      avgPerformance: taskPatterns.agentPerformance.reduce((sum, a) => sum + a.performance_score, 0) / taskPatterns.agentPerformance.length
+      avgPerformance:
+        taskPatterns.agentPerformance.reduce((sum, a) => sum + a.performance_score, 0) /
+        taskPatterns.agentPerformance.length,
     };
   }
 
@@ -708,7 +711,9 @@ export class MonitoringIntegration extends EventEmitter {
     if (!coordinationPatterns?.consensusAnalysis) return {};
 
     return {
-      consensusScore: coordinationPatterns.consensusAnalysis.reduce((sum, c) => sum + c.avg_vote, 0) / coordinationPatterns.consensusAnalysis.length
+      consensusScore:
+        coordinationPatterns.consensusAnalysis.reduce((sum, c) => sum + c.avg_vote, 0) /
+        coordinationPatterns.consensusAnalysis.length,
     };
   }
 
@@ -717,7 +722,7 @@ export class MonitoringIntegration extends EventEmitter {
 
     return {
       totalEntries: memoryPatterns.efficiencyAnalysis.reduce((sum, e) => sum + e.entry_count, 0),
-      totalSize: memoryPatterns.efficiencyAnalysis.reduce((sum, e) => sum + e.total_size, 0)
+      totalSize: memoryPatterns.efficiencyAnalysis.reduce((sum, e) => sum + e.total_size, 0),
     };
   }
 
@@ -745,13 +750,13 @@ export class MonitoringIntegration extends EventEmitter {
   extractCurrentSuccessRate(taskPatterns) {
     if (!taskPatterns?.statusAnalysis) return 0;
     const total = taskPatterns.statusAnalysis.reduce((sum, s) => sum + s.count, 0);
-    const completed = taskPatterns.statusAnalysis.find(s => s.status === 'completed')?.count || 0;
+    const completed = taskPatterns.statusAnalysis.find((s) => s.status === 'completed')?.count || 0;
     return total > 0 ? (completed / total) * 100 : 0;
   }
 
   extractCurrentAvgDuration(taskPatterns) {
     if (!taskPatterns?.statusAnalysis) return 0;
-    return taskPatterns.statusAnalysis.find(s => s.status === 'completed')?.avg_duration || 0;
+    return taskPatterns.statusAnalysis.find((s) => s.status === 'completed')?.avg_duration || 0;
   }
 
   extractCurrentAgentCount(taskPatterns) {
@@ -760,12 +765,15 @@ export class MonitoringIntegration extends EventEmitter {
 
   extractCurrentActiveAgents(taskPatterns) {
     if (!taskPatterns?.agentPerformance) return 0;
-    return taskPatterns.agentPerformance.filter(a => a.recent_tasks > 0).length;
+    return taskPatterns.agentPerformance.filter((a) => a.recent_tasks > 0).length;
   }
 
   extractCurrentAvgPerformance(taskPatterns) {
     if (!taskPatterns?.agentPerformance) return 0;
-    return taskPatterns.agentPerformance.reduce((sum, a) => sum + a.performance_score, 0) / taskPatterns.agentPerformance.length;
+    return (
+      taskPatterns.agentPerformance.reduce((sum, a) => sum + a.performance_score, 0) /
+      taskPatterns.agentPerformance.length
+    );
   }
 
   // Additional helper methods would be implemented here...

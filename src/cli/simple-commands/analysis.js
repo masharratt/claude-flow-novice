@@ -13,7 +13,7 @@ import {
   initializeMetrics,
   getPerformanceReport,
   getBottleneckAnalysis,
-  exportMetrics
+  exportMetrics,
 } from './performance-metrics.js';
 import {
   getRealTokenUsage,
@@ -21,7 +21,7 @@ import {
   generateOptimizationSuggestions,
   generateTokenUsageReport,
   getAgentIcon,
-  trackTokens
+  trackTokens,
 } from './token-tracker.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,34 +30,36 @@ const __dirname = dirname(__filename);
 async function setupTelemetry() {
   console.log(`\n🔧 TELEMETRY SETUP FOR TOKEN TRACKING\n`);
   console.log(`${'═'.repeat(60)}\n`);
-  
+
   // Check current status
   const currentValue = process.env.CLAUDE_CODE_ENABLE_TELEMETRY;
   const isEnabled = currentValue === '1';
-  
+
   console.log(`📊 Current Status: ${isEnabled ? '✅ ENABLED' : '❌ DISABLED'}`);
-  console.log(`   Environment Variable: CLAUDE_CODE_ENABLE_TELEMETRY=${currentValue || 'not set'}\n`);
-  
+  console.log(
+    `   Environment Variable: CLAUDE_CODE_ENABLE_TELEMETRY=${currentValue || 'not set'}\n`,
+  );
+
   if (!isEnabled) {
     // Set the environment variable for current session
     process.env.CLAUDE_CODE_ENABLE_TELEMETRY = '1';
-    
+
     console.log(`✅ Telemetry ENABLED for this session!\n`);
-    
+
     // Create or update .env file
     const envPath = path.join(process.cwd(), '.env');
     let envContent = '';
-    
+
     try {
       envContent = await fs.readFile(envPath, 'utf-8');
     } catch (err) {
       // .env doesn't exist yet
     }
-    
+
     // Check if telemetry is already in .env
     if (!envContent.includes('CLAUDE_CODE_ENABLE_TELEMETRY')) {
       envContent += `\n# Enable token tracking for Claude API calls\nCLAUDE_CODE_ENABLE_TELEMETRY=1\n`;
-      
+
       try {
         await fs.writeFile(envPath, envContent);
         console.log(`📝 Updated .env file with telemetry setting`);
@@ -65,14 +67,14 @@ async function setupTelemetry() {
         console.log(`⚠️  Could not update .env file: ${err.message}`);
       }
     }
-    
+
     // Also add to shell profile for persistence
     console.log(`\n📌 To make this permanent, add to your shell profile:`);
     console.log(`   ${'-'.repeat(50)}`);
     console.log(`   echo 'export CLAUDE_CODE_ENABLE_TELEMETRY=1' >> ~/.bashrc`);
     console.log(`   ${'-'.repeat(50)}\n`);
   }
-  
+
   // Initialize token tracking directory
   const metricsDir = path.join(process.cwd(), '.claude-flow', 'metrics');
   try {
@@ -81,7 +83,7 @@ async function setupTelemetry() {
   } catch (err) {
     // Directory already exists
   }
-  
+
   // Check for existing token data
   const tokenFile = path.join(metricsDir, 'token-usage.json');
   try {
@@ -93,12 +95,12 @@ async function setupTelemetry() {
   } catch (err) {
     console.log(`\n📊 No existing token data (will be created on first use)`);
   }
-  
+
   console.log(`\n🚀 NEXT STEPS:`);
   console.log(`   1. Run Claude commands with --claude flag`);
   console.log(`   2. Example: ./claude-flow swarm "analyze code" --claude`);
   console.log(`   3. Check usage: ./claude-flow analysis token-usage --breakdown`);
-  
+
   console.log(`\n${'═'.repeat(60)}`);
   printSuccess(`Telemetry setup complete!`);
 }
@@ -156,28 +158,24 @@ async function bottleneckDetectCommand(subArgs, flags) {
   try {
     // Initialize metrics system without starting monitoring
     await initializeMetrics(false);
-    
+
     // Get real bottleneck analysis
     const analysis = await getBottleneckAnalysis(scope, target);
-    
+
     printSuccess(`✅ Bottleneck analysis completed`);
 
     console.log(`\n📊 BOTTLENECK ANALYSIS RESULTS:`);
-    
+
     analysis.bottlenecks.forEach((bottleneck) => {
       const icon =
-        bottleneck.severity === 'critical'
-          ? '🔴'
-          : bottleneck.severity === 'warning'
-            ? '🟡'
-            : '🟢';
+        bottleneck.severity === 'critical' ? '🔴' : bottleneck.severity === 'warning' ? '🟡' : '🟢';
       console.log(
         `  ${icon} ${bottleneck.severity.toUpperCase()}: ${bottleneck.component} (${bottleneck.metric})`,
       );
-      
+
       // Show details if available
       if (bottleneck.details) {
-        bottleneck.details.forEach(detail => {
+        bottleneck.details.forEach((detail) => {
           console.log(`      - ${detail.type || detail.id}: ${detail.duration}s`);
         });
       }
@@ -196,16 +194,19 @@ async function bottleneckDetectCommand(subArgs, flags) {
     console.log(`  • Issues detected: ${analysis.issuesDetected}`);
 
     // Save detailed report
-    const reportPath = path.join(process.cwd(), 'analysis-reports', `bottleneck-${Date.now()}.json`);
+    const reportPath = path.join(
+      process.cwd(),
+      'analysis-reports',
+      `bottleneck-${Date.now()}.json`,
+    );
     await fs.mkdir(path.dirname(reportPath), { recursive: true });
     await fs.writeFile(reportPath, JSON.stringify(analysis, null, 2));
-    
+
     console.log(`\n📄 Detailed report saved to: ${reportPath}`);
-    
   } catch (err) {
     printError(`Bottleneck analysis failed: ${err.message}`);
     console.log('\nFalling back to simulated analysis...');
-    
+
     // Fallback to simulated data
     console.log(`\n📊 BOTTLENECK ANALYSIS RESULTS (SIMULATED):`);
     console.log(`  🔴 CRITICAL: Memory usage in agent spawn process (85% utilization)`);
@@ -227,10 +228,10 @@ async function performanceReportCommand(subArgs, flags) {
   try {
     // Initialize metrics system without starting monitoring
     await initializeMetrics(false);
-    
+
     // Get real performance data
     const report = await getPerformanceReport(timeframe);
-    
+
     printSuccess(`✅ Performance report generated`);
 
     console.log(`\n📊 PERFORMANCE SUMMARY (${timeframe}):`);
@@ -246,15 +247,21 @@ async function performanceReportCommand(subArgs, flags) {
       console.log(`\n📈 TRENDS:`);
       if (report.trends.successRateChange !== 0) {
         const trend = report.trends.successRateChange > 0 ? 'improved' : 'decreased';
-        console.log(`  • Task success rate ${trend} ${Math.abs(report.trends.successRateChange).toFixed(1)}% vs previous period`);
+        console.log(
+          `  • Task success rate ${trend} ${Math.abs(report.trends.successRateChange).toFixed(1)}% vs previous period`,
+        );
       }
       if (report.trends.durationChange !== 0) {
         const trend = report.trends.durationChange < 0 ? 'reduced' : 'increased';
-        console.log(`  • Average execution time ${trend} by ${Math.abs(report.trends.durationChange / 1000).toFixed(1)}s`);
+        console.log(
+          `  • Average execution time ${trend} by ${Math.abs(report.trends.durationChange / 1000).toFixed(1)}s`,
+        );
       }
       if (report.trends.taskVolumeChange !== 0) {
         const trend = report.trends.taskVolumeChange > 0 ? 'increased' : 'decreased';
-        const percent = Math.abs((report.trends.taskVolumeChange / report.summary.totalTasks) * 100).toFixed(0);
+        const percent = Math.abs(
+          (report.trends.taskVolumeChange / report.summary.totalTasks) * 100,
+        ).toFixed(0);
         console.log(`  • Task volume ${trend} ${percent}%`);
       }
     }
@@ -263,18 +270,19 @@ async function performanceReportCommand(subArgs, flags) {
       console.log(`\n📊 DETAILED METRICS:`);
       console.log(`  Agent Performance:`);
       Object.entries(report.agentMetrics).forEach(([type, metrics]) => {
-        console.log(`    - ${type} agents: ${metrics.successRate.toFixed(0)}% success, ${(metrics.avgDuration / 1000).toFixed(1)}s avg`);
+        console.log(
+          `    - ${type} agents: ${metrics.successRate.toFixed(0)}% success, ${(metrics.avgDuration / 1000).toFixed(1)}s avg`,
+        );
       });
     }
 
     // Export full report
     const reportPath = await exportMetrics(format === 'json' ? 'json' : 'html');
     console.log(`\n📄 Full report: ${reportPath}`);
-    
   } catch (err) {
     printError(`Failed to generate performance report: ${err.message}`);
     printWarning('Showing simulated data as fallback...');
-    
+
     // Fallback to simulated data
     console.log(`\n📊 PERFORMANCE SUMMARY (${timeframe}) - SIMULATED:`);
     console.log(`  🚀 Total tasks executed: 127`);
@@ -300,14 +308,14 @@ async function tokenUsageCommand(subArgs, flags) {
   try {
     // Get real token usage from Claude Code metrics
     const tokenData = await getRealTokenUsage(agent);
-    
+
     printSuccess(`✅ Token usage analysis completed`);
 
     // Check if we have any data
     if (tokenData.total === 0) {
       // Show instructions when no data available
       await showSimulatedTokenUsage(breakdown, costAnalysis);
-      
+
       // Still generate empty report for consistency
       const reportPath = await generateTokenUsageReport(tokenData, agent);
       console.log(`\n📄 Detailed usage log: ${reportPath}`);
@@ -315,9 +323,13 @@ async function tokenUsageCommand(subArgs, flags) {
       // Display real token usage
       console.log(`\n🔢 TOKEN USAGE SUMMARY:`);
       console.log(`  📝 Total tokens consumed: ${tokenData.total.toLocaleString()}`);
-      console.log(`  📥 Input tokens: ${tokenData.input.toLocaleString()} (${((tokenData.input / tokenData.total) * 100).toFixed(1)}%)`);
-      console.log(`  📤 Output tokens: ${tokenData.output.toLocaleString()} (${((tokenData.output / tokenData.total) * 100).toFixed(1)}%)`);
-      
+      console.log(
+        `  📥 Input tokens: ${tokenData.input.toLocaleString()} (${((tokenData.input / tokenData.total) * 100).toFixed(1)}%)`,
+      );
+      console.log(
+        `  📤 Output tokens: ${tokenData.output.toLocaleString()} (${((tokenData.output / tokenData.total) * 100).toFixed(1)}%)`,
+      );
+
       if (costAnalysis) {
         const cost = calculateCost(tokenData);
         console.log(`  💰 Estimated cost: $${cost.total.toFixed(2)}`);
@@ -335,7 +347,7 @@ async function tokenUsageCommand(subArgs, flags) {
 
         console.log(`\n💡 OPTIMIZATION OPPORTUNITIES:`);
         const opportunities = generateOptimizationSuggestions(tokenData);
-        opportunities.forEach(suggestion => {
+        opportunities.forEach((suggestion) => {
           console.log(`  • ${suggestion}`);
         });
       }
@@ -344,11 +356,10 @@ async function tokenUsageCommand(subArgs, flags) {
       const reportPath = await generateTokenUsageReport(tokenData, agent);
       console.log(`\n📄 Detailed usage log: ${reportPath}`);
     }
-    
   } catch (err) {
     printError(`Failed to get real token usage: ${err.message}`);
     printWarning('Falling back to help instructions...');
-    
+
     // Fallback to instructions
     await showSimulatedTokenUsage(breakdown, costAnalysis);
   }
@@ -455,25 +466,25 @@ EXAMPLES:
 async function claudeMonitorCommand(subArgs, flags) {
   const sessionId = subArgs[1] || 'current';
   const interval = flags.interval || 5000;
-  
+
   console.log(`📊 Starting Claude session monitor...`);
   console.log(`   Session ID: ${sessionId}`);
   console.log(`   Update interval: ${interval / 1000}s`);
   console.log(`   Press Ctrl+C to stop monitoring\n`);
-  
+
   try {
     // Import the telemetry module
     const { monitorClaudeSession } = await import('./claude-telemetry.js');
-    
+
     // Start monitoring
     const stopMonitor = await monitorClaudeSession(sessionId, interval);
-    
+
     // Handle graceful shutdown
     process.on('SIGINT', () => {
       stopMonitor();
       process.exit(0);
     });
-    
+
     // Keep process running
     await new Promise(() => {});
   } catch (error) {
@@ -484,29 +495,28 @@ async function claudeMonitorCommand(subArgs, flags) {
 
 async function claudeCostCommand(subArgs, flags) {
   console.log(`💰 Retrieving Claude session cost information...`);
-  
+
   try {
     // Import the telemetry module
     const { extractCostCommand } = await import('./claude-telemetry.js');
-    
+
     // Get cost data
     const costData = await extractCostCommand();
-    
+
     console.log('\n📊 Current Session Usage:');
     console.log(`   Input Tokens:  ${costData.tokens.input || 0}`);
     console.log(`   Output Tokens: ${costData.tokens.output || 0}`);
     console.log(`   Total Tokens:  ${costData.tokens.total || 0}`);
-    
+
     if (costData.costs.length > 0) {
       console.log(`   Estimated Cost: $${costData.costs[0]}`);
     }
-    
+
     // Also show pricing info
     console.log('\n💰 Claude 3 Pricing:');
     console.log('   • Opus:   $15/1M input, $75/1M output');
     console.log('   • Sonnet: $3/1M input, $15/1M output');
     console.log('   • Haiku:  $0.25/1M input, $1.25/1M output');
-    
   } catch (error) {
     printError(`Failed to retrieve cost data: ${error.message}`);
     console.log('\n💡 TIP: Run this while Claude is active or immediately after');
@@ -517,28 +527,28 @@ async function showSimulatedTokenUsage(breakdown, costAnalysis) {
   // Show honest message about no data instead of fake numbers
   console.log(`\n🔢 TOKEN USAGE ANALYSIS:`);
   console.log(`  ℹ️ No token usage data available yet.`);
-  
+
   console.log(`\n📋 QUICK SETUP - Choose one option:`);
   console.log(`\n  Option 1: Enable Telemetry (Recommended)`);
   console.log(`  ┌────────────────────────────────────────────────────────┐`);
   console.log(`  │ ./claude-flow analysis setup-telemetry                │`);
   console.log(`  └────────────────────────────────────────────────────────┘`);
-  
+
   console.log(`\n  Option 2: Manual Environment Variable`);
   console.log(`  ┌────────────────────────────────────────────────────────┐`);
   console.log(`  │ export CLAUDE_CODE_ENABLE_TELEMETRY=1                 │`);
   console.log(`  └────────────────────────────────────────────────────────┘`);
-  
+
   console.log(`\n  Option 3: Use --enable-telemetry Flag`);
   console.log(`  ┌────────────────────────────────────────────────────────┐`);
   console.log(`  │ ./claude-flow analysis token-usage --enable-telemetry │`);
   console.log(`  └────────────────────────────────────────────────────────┘`);
-  
+
   console.log(`\n✅ AFTER SETUP:`);
   console.log(`  1. Run Claude commands: ./claude-flow swarm "task" --claude`);
   console.log(`  2. Token usage will be automatically tracked`);
   console.log(`  3. Return here to see real metrics`);
-  
+
   if (costAnalysis) {
     console.log(`\n💰 COST TRACKING:`);
     console.log(`  • Claude 3 Opus: $15/1M input, $75/1M output tokens`);

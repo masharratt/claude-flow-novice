@@ -61,14 +61,17 @@ export class TaskAgentIntegration {
       finalType: validation.resolvedType,
       spawnCommand,
       warnings,
-      success: true
+      success: true,
     };
   }
 
   /**
    * Generate the proper Task tool command with validated agent type
    */
-  private generateTaskCommand(request: TaskAgentSpawnRequest, validation: AgentValidationResult): string {
+  private generateTaskCommand(
+    request: TaskAgentSpawnRequest,
+    validation: AgentValidationResult,
+  ): string {
     const enhancedPrompt = this.enhancePrompt(request, validation);
 
     // Return the command format that Claude Code's Task tool expects
@@ -112,12 +115,12 @@ export class TaskAgentIntegration {
             resolvedType: 'researcher', // fallback
             originalType: request.type,
             fallbackUsed: true,
-            warnings: [`Error validating agent type: ${error}`]
+            warnings: [`Error validating agent type: ${error}`],
           },
           finalType: 'researcher',
           spawnCommand: `Task("${request.description}", "${request.prompt}", "researcher")`,
           warnings: [`Failed to validate ${request.type}, using researcher as fallback`],
-          success: false
+          success: false,
         });
       }
     }
@@ -139,10 +142,10 @@ export class TaskAgentIntegration {
       const agentKeywords = agentType.toLowerCase().split(/[-_]/);
 
       // Check for keyword overlap
-      const overlap = keywords.some(keyword =>
-        agentKeywords.some(agentKeyword =>
-          agentKeyword.includes(keyword) || keyword.includes(agentKeyword)
-        )
+      const overlap = keywords.some((keyword) =>
+        agentKeywords.some(
+          (agentKeyword) => agentKeyword.includes(keyword) || keyword.includes(agentKeyword),
+        ),
       );
 
       if (overlap) {
@@ -161,25 +164,25 @@ export class TaskAgentIntegration {
   /**
    * Validate agent type synchronously (cached results only)
    */
-  validateAgentTypeSync(type: string): { isValid: boolean, resolvedType: string } {
+  validateAgentTypeSync(type: string): { isValid: boolean; resolvedType: string } {
     // This would check cache or provide immediate feedback
     // For now, return basic legacy mapping
     const legacyMapping: { [key: string]: string } = {
-      'analyst': 'code-analyzer',
+      analyst: 'code-analyzer',
       'consensus-builder': 'consensus-builder',
-      'monitor': 'performance-benchmarker',
-      'coordinator': 'hierarchical-coordinator',
-      'optimizer': 'perf-analyzer',
-      'documenter': 'api-docs',
-      'specialist': 'system-architect',
-      'architect': 'system-architect'
+      monitor: 'performance-benchmarker',
+      coordinator: 'hierarchical-coordinator',
+      optimizer: 'perf-analyzer',
+      documenter: 'api-docs',
+      specialist: 'system-architect',
+      architect: 'system-architect',
     };
 
     const resolvedType = legacyMapping[type.toLowerCase()] || type;
 
     return {
       isValid: true, // Optimistic validation
-      resolvedType
+      resolvedType,
     };
   }
 
@@ -201,7 +204,7 @@ export class TaskAgentIntegration {
       analysis: [],
       coordination: [],
       testing: [],
-      specialized: []
+      specialized: [],
     };
 
     for (const type of availableTypes) {
@@ -224,23 +227,23 @@ export class TaskAgentIntegration {
       available: availableTypes,
       categories,
       legacy: {
-        'analyst': 'code-analyzer',
+        analyst: 'code-analyzer',
         'consensus-builder': 'consensus-builder',
-        'monitor': 'performance-benchmarker',
-        'coordinator': 'hierarchical-coordinator',
-        'optimizer': 'perf-analyzer',
-        'documenter': 'api-docs',
-        'specialist': 'system-architect',
-        'architect': 'system-architect'
+        monitor: 'performance-benchmarker',
+        coordinator: 'hierarchical-coordinator',
+        optimizer: 'perf-analyzer',
+        documenter: 'api-docs',
+        specialist: 'system-architect',
+        architect: 'system-architect',
       },
       suggestions: {
-        'code': ['coder', 'reviewer', 'code-analyzer'],
-        'test': ['tester', 'production-validator'],
-        'design': ['system-architect', 'base-template-generator'],
-        'analysis': ['code-analyzer', 'perf-analyzer'],
-        'documentation': ['api-docs'],
-        'coordination': ['task-orchestrator', 'hierarchical-coordinator']
-      }
+        code: ['coder', 'reviewer', 'code-analyzer'],
+        test: ['tester', 'production-validator'],
+        design: ['system-architect', 'base-template-generator'],
+        analysis: ['code-analyzer', 'perf-analyzer'],
+        documentation: ['api-docs'],
+        coordination: ['task-orchestrator', 'hierarchical-coordinator'],
+      },
     };
   }
 }
@@ -261,14 +264,17 @@ export const suggestAgentTypes = (taskDescription: string) =>
 export const validateAgentTypeSync = (type: string) =>
   taskAgentIntegration.validateAgentTypeSync(type);
 
-export const getAgentInfo = () =>
-  taskAgentIntegration.getAgentInfo();
+export const getAgentInfo = () => taskAgentIntegration.getAgentInfo();
 
 /**
  * Hook for Claude Code to validate agent types before spawning
  * This can be called by Claude Code's Task tool implementation
  */
-export async function claudeCodeTaskHook(subagentType: string, description: string, prompt: string): Promise<{
+export async function claudeCodeTaskHook(
+  subagentType: string,
+  description: string,
+  prompt: string,
+): Promise<{
   validatedType: string;
   enhancedPrompt: string;
   warnings: string[];
@@ -276,7 +282,7 @@ export async function claudeCodeTaskHook(subagentType: string, description: stri
   const request: TaskAgentSpawnRequest = {
     type: subagentType,
     description,
-    prompt
+    prompt,
   };
 
   const result = await prepareAgentSpawn(request);
@@ -284,6 +290,6 @@ export async function claudeCodeTaskHook(subagentType: string, description: stri
   return {
     validatedType: result.finalType,
     enhancedPrompt: result.originalRequest.prompt, // Keep original prompt for now
-    warnings: result.warnings
+    warnings: result.warnings,
   };
 }

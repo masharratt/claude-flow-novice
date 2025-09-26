@@ -151,7 +151,12 @@ export interface RateLimitConfig {
 
 export interface CoordinationEvent {
   id: string;
-  type: 'task-started' | 'task-completed' | 'dependency-ready' | 'conflict-detected' | 'sync-required';
+  type:
+    | 'task-started'
+    | 'task-completed'
+    | 'dependency-ready'
+    | 'conflict-detected'
+    | 'sync-required';
   sourceAgent: string;
   targetAgents: string[];
   payload: any;
@@ -189,14 +194,14 @@ export class FullStackCoordinationManager extends EventEmitter {
       config: {
         secret: process.env.JWT_SECRET || 'development-secret',
         expiresIn: '24h',
-        algorithm: 'HS256'
-      }
+        algorithm: 'HS256',
+      },
     };
 
     const defaultRateLimit: RateLimitConfig = {
       requests: 100,
       window: 3600, // 1 hour
-      strategy: 'sliding-window'
+      strategy: 'sliding-window',
     };
 
     // Create default API contract template
@@ -206,7 +211,7 @@ export class FullStackCoordinationManager extends EventEmitter {
       endpoints: [],
       schemas: {},
       authentication: defaultAuthConfig,
-      rateLimit: defaultRateLimit
+      rateLimit: defaultRateLimit,
     };
 
     this.apiContracts.set('default', defaultContract);
@@ -214,7 +219,7 @@ export class FullStackCoordinationManager extends EventEmitter {
 
   public async createTeam(
     name: string,
-    config: Partial<FullStackTeam> = {}
+    config: Partial<FullStackTeam> = {},
   ): Promise<FullStackTeam> {
     const teamId = `team_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -227,10 +232,10 @@ export class FullStackCoordinationManager extends EventEmitter {
         keyPrefix: 'coordination:',
         ttl: 3600000, // 1 hour
         encryption: false,
-        compression: true
+        compression: true,
       },
       apiContracts: [this.apiContracts.get('default')!],
-      testingStrategy: 'parallel'
+      testingStrategy: 'parallel',
     };
 
     const team: FullStackTeam = {
@@ -242,7 +247,7 @@ export class FullStackCoordinationManager extends EventEmitter {
       testing: this.createTestingAgent(teamId),
       devops: this.createDevOpsAgent(teamId),
       coordination: { ...defaultCoordination, ...config.coordination },
-      ...config
+      ...config,
     };
 
     this.teams.set(teamId, team);
@@ -269,7 +274,7 @@ export class FullStackCoordinationManager extends EventEmitter {
       uiLibrary: 'shadcn',
       componentLibrary: [],
       stateManagement: 'zustand',
-      buildTool: 'vite'
+      buildTool: 'vite',
     };
   }
 
@@ -288,7 +293,7 @@ export class FullStackCoordinationManager extends EventEmitter {
       framework: 'express',
       database: 'postgresql',
       apis: [],
-      middleware: ['cors', 'helmet', 'compression', 'morgan']
+      middleware: ['cors', 'helmet', 'compression', 'morgan'],
     };
   }
 
@@ -307,7 +312,7 @@ export class FullStackCoordinationManager extends EventEmitter {
       engine: 'postgresql',
       schemas: [],
       migrations: [],
-      indexing: []
+      indexing: [],
     };
   }
 
@@ -328,9 +333,9 @@ export class FullStackCoordinationManager extends EventEmitter {
         lines: 0,
         functions: 0,
         branches: 0,
-        statements: 0
+        statements: 0,
       },
-      testSuites: []
+      testSuites: [],
     };
   }
 
@@ -352,8 +357,8 @@ export class FullStackCoordinationManager extends EventEmitter {
       infrastructure: {
         cloud: 'aws',
         regions: ['us-east-1'],
-        environments: ['development', 'staging', 'production']
-      }
+        environments: ['development', 'staging', 'production'],
+      },
     };
   }
 
@@ -386,8 +391,8 @@ export class FullStackCoordinationManager extends EventEmitter {
         backend: 'idle',
         database: 'idle',
         testing: 'idle',
-        devops: 'idle'
-      }
+        devops: 'idle',
+      },
     });
 
     // Initialize API contract registry
@@ -397,7 +402,7 @@ export class FullStackCoordinationManager extends EventEmitter {
     this.setSharedMemory(teamId, `${namespace}:dependencies`, {
       graph: {},
       resolved: [],
-      pending: []
+      pending: [],
     });
   }
 
@@ -424,7 +429,6 @@ export class FullStackCoordinationManager extends EventEmitter {
       await this.syncApiContracts(teamId);
 
       this.emit('coordination:sync-completed', { teamId });
-
     } catch (error) {
       this.emit('coordination:sync-failed', { teamId, error });
     }
@@ -438,7 +442,7 @@ export class FullStackCoordinationManager extends EventEmitter {
     const statusUpdate: any = {
       teamId,
       lastUpdate: new Date(),
-      agents: {}
+      agents: {},
     };
 
     for (const agent of agents) {
@@ -447,7 +451,7 @@ export class FullStackCoordinationManager extends EventEmitter {
         currentTask: agent.currentTask,
         progress: agent.progress,
         lastUpdate: agent.lastUpdate,
-        workQueueLength: agent.workQueue.length
+        workQueueLength: agent.workQueue.length,
       };
     }
 
@@ -463,7 +467,7 @@ export class FullStackCoordinationManager extends EventEmitter {
     const dependencies = this.getSharedMemory(teamId, `${namespace}:dependencies`) || {
       graph: {},
       resolved: [],
-      pending: []
+      pending: [],
     };
 
     const agents = [team.frontend, team.backend, team.database, team.testing, team.devops];
@@ -486,8 +490,8 @@ export class FullStackCoordinationManager extends EventEmitter {
     // Check for ready-to-start work
     for (const agent of agents) {
       if (agent.status === 'blocked') {
-        const allDependenciesResolved = agent.dependencies.every(dep =>
-          dependencies.resolved.includes(dep)
+        const allDependenciesResolved = agent.dependencies.every((dep) =>
+          dependencies.resolved.includes(dep),
         );
 
         if (allDependenciesResolved) {
@@ -520,15 +524,12 @@ export class FullStackCoordinationManager extends EventEmitter {
     const team = this.teams.get(teamId);
     if (!team) return;
 
-    const frontendApis = team.frontend.capabilities.filter(cap => cap.includes('api'));
+    const frontendApis = team.frontend.capabilities.filter((cap) => cap.includes('api'));
     const backendApis = team.backend.apis;
 
     // Check for mismatched API expectations
     for (const api of backendApis) {
-      const frontendExpectation = this.getSharedMemory(
-        teamId,
-        `api-expectation:${api.path}`
-      );
+      const frontendExpectation = this.getSharedMemory(teamId, `api-expectation:${api.path}`);
 
       if (frontendExpectation && this.hasApiMismatch(api, frontendExpectation)) {
         const conflict: ConflictResolution = {
@@ -536,7 +537,8 @@ export class FullStackCoordinationManager extends EventEmitter {
           type: 'api',
           conflictingAgents: [team.frontend.id, team.backend.id],
           description: `API contract mismatch for ${api.path}`,
-          resolution: team.coordination.conflictResolution === 'auto-merge' ? 'automated' : 'manual'
+          resolution:
+            team.coordination.conflictResolution === 'auto-merge' ? 'automated' : 'manual',
         };
 
         this.conflicts.set(conflict.id, conflict);
@@ -559,7 +561,7 @@ export class FullStackCoordinationManager extends EventEmitter {
 
   private async autoResolveApiConflict(
     teamId: string,
-    conflict: ConflictResolution
+    conflict: ConflictResolution,
   ): Promise<void> {
     // Implement automatic API conflict resolution
     conflict.resolvedBy = 'system';
@@ -614,23 +616,25 @@ export class FullStackCoordinationManager extends EventEmitter {
   }
 
   private calculateWorkloadBalance(agents: AgentBase[]): any {
-    const workloads = agents.map(agent => ({
+    const workloads = agents.map((agent) => ({
       agentId: agent.id,
       workload: agent.workQueue.length,
-      status: agent.status
+      status: agent.status,
     }));
 
     const averageWorkload = workloads.reduce((sum, w) => sum + w.workload, 0) / workloads.length;
     const threshold = averageWorkload * 1.5; // 50% above average
 
-    const overloaded = workloads.filter(w => w.workload > threshold);
-    const underutilized = workloads.filter(w => w.workload < averageWorkload * 0.5 && w.status === 'idle');
+    const overloaded = workloads.filter((w) => w.workload > threshold);
+    const underutilized = workloads.filter(
+      (w) => w.workload < averageWorkload * 0.5 && w.status === 'idle',
+    );
 
     return {
       imbalanced: overloaded.length > 0 && underutilized.length > 0,
       overloaded,
       underutilized,
-      average: averageWorkload
+      average: averageWorkload,
     };
   }
 
@@ -647,7 +651,7 @@ export class FullStackCoordinationManager extends EventEmitter {
   private async transferWork(
     teamId: string,
     fromAgentId: string,
-    toAgentId: string
+    toAgentId: string,
   ): Promise<void> {
     const team = this.teams.get(teamId);
     if (!team) return;
@@ -657,13 +661,13 @@ export class FullStackCoordinationManager extends EventEmitter {
 
     if (fromAgent && toAgent && fromAgent.workQueue.length > 0) {
       // Transfer compatible work items
-      const transferableWork = fromAgent.workQueue.filter(work =>
-        this.isWorkCompatible(work, toAgent)
+      const transferableWork = fromAgent.workQueue.filter((work) =>
+        this.isWorkCompatible(work, toAgent),
       );
 
       if (transferableWork.length > 0) {
         const workItem = transferableWork[0];
-        fromAgent.workQueue = fromAgent.workQueue.filter(w => w.id !== workItem.id);
+        fromAgent.workQueue = fromAgent.workQueue.filter((w) => w.id !== workItem.id);
         toAgent.workQueue.push(workItem);
         workItem.assignedAgent = toAgentId;
 
@@ -671,7 +675,7 @@ export class FullStackCoordinationManager extends EventEmitter {
           teamId,
           workItem,
           fromAgent: fromAgentId,
-          toAgent: toAgentId
+          toAgent: toAgentId,
         });
       }
     }
@@ -679,13 +683,13 @@ export class FullStackCoordinationManager extends EventEmitter {
 
   private findAgent(team: FullStackTeam, agentId: string): AgentBase | undefined {
     const agents = [team.frontend, team.backend, team.database, team.testing, team.devops];
-    return agents.find(agent => agent.id === agentId);
+    return agents.find((agent) => agent.id === agentId);
   }
 
   private isWorkCompatible(workItem: WorkItem, agent: AgentBase): boolean {
     // Check if work item is compatible with agent's capabilities
     const workRequirements = this.getWorkRequirements(workItem);
-    return workRequirements.some(req => agent.capabilities.includes(req));
+    return workRequirements.some((req) => agent.capabilities.includes(req));
   }
 
   private getWorkRequirements(workItem: WorkItem): string[] {
@@ -727,7 +731,7 @@ export class FullStackCoordinationManager extends EventEmitter {
           assignedAgent: testingAgent.id,
           status: 'todo',
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
       }
     }
@@ -751,7 +755,7 @@ export class FullStackCoordinationManager extends EventEmitter {
           parameters: api.parameters,
           response: api.responseSchema,
           lastUpdated: new Date(),
-          updatedBy: team.backend.id
+          updatedBy: team.backend.id,
         });
       }
     }
@@ -839,7 +843,7 @@ export class FullStackCoordinationManager extends EventEmitter {
         workItem.updatedAt = new Date();
 
         // Remove from work queue
-        agent.workQueue = agent.workQueue.filter(w => w.id !== workItem.id);
+        agent.workQueue = agent.workQueue.filter((w) => w.id !== workItem.id);
 
         this.emit('work:completed', { teamId, agentId, workItem });
 
@@ -877,7 +881,7 @@ export class FullStackCoordinationManager extends EventEmitter {
     this.sharedMemory.set(fullKey, {
       value,
       timestamp: new Date(),
-      ttl: config.ttl
+      ttl: config.ttl,
     });
 
     // Set TTL cleanup
@@ -910,11 +914,13 @@ export class FullStackCoordinationManager extends EventEmitter {
     return Array.from(this.teams.values());
   }
 
-  public async sendCoordinationEvent(event: Omit<CoordinationEvent, 'id' | 'timestamp'>): Promise<void> {
+  public async sendCoordinationEvent(
+    event: Omit<CoordinationEvent, 'id' | 'timestamp'>,
+  ): Promise<void> {
     const coordinationEvent: CoordinationEvent = {
       ...event,
       id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.coordinationEvents.push(coordinationEvent);
@@ -979,8 +985,8 @@ export class FullStackCoordinationManager extends EventEmitter {
     const allConflicts = Array.from(this.conflicts.values());
 
     if (teamId) {
-      return allConflicts.filter(conflict =>
-        conflict.conflictingAgents.some(agentId => agentId.includes(teamId))
+      return allConflicts.filter((conflict) =>
+        conflict.conflictingAgents.some((agentId) => agentId.includes(teamId)),
       );
     }
 
@@ -990,7 +996,7 @@ export class FullStackCoordinationManager extends EventEmitter {
   public async resolveConflict(
     conflictId: string,
     resolution: 'ours' | 'theirs' | 'merge' | 'custom',
-    resolvedBy: string
+    resolvedBy: string,
   ): Promise<boolean> {
     const conflict = this.conflicts.get(conflictId);
     if (!conflict) return false;

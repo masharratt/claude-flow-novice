@@ -36,7 +36,7 @@ export class FrameworkValidationCLI {
       interactive: options.interactive !== false,
       verbose: options.verbose === true,
       autoFix: options.autoFix === true,
-      ...options
+      ...options,
     };
 
     this.validator = null;
@@ -54,13 +54,12 @@ export class FrameworkValidationCLI {
     try {
       this.validator = new EnhancedCustomFrameworkValidator({
         enableByzantineValidation: true,
-        enableSecuritySandbox: true
+        enableSecuritySandbox: true,
       });
 
       await this.validator.initialize();
 
       this.spinner.succeed(chalk.green('Framework validation system initialized'));
-
     } catch (error) {
       this.spinner.fail(chalk.red(`Failed to initialize: ${error.message}`));
       throw error;
@@ -103,7 +102,9 @@ export class FrameworkValidationCLI {
 
     if (!frameworkFile) {
       console.error(chalk.red('❌ Error: Framework file path is required'));
-      console.log(chalk.yellow('💡 Usage: claude-flow-novice validate framework add <framework-file>'));
+      console.log(
+        chalk.yellow('💡 Usage: claude-flow-novice validate framework add <framework-file>'),
+      );
       return { success: false, error: 'Missing framework file path' };
     }
 
@@ -129,12 +130,14 @@ export class FrameworkValidationCLI {
 
       // Ask for confirmation if interactive
       if (this.options.interactive) {
-        const { confirm } = await inquirer.prompt([{
-          type: 'confirm',
-          name: 'confirm',
-          message: 'Add this custom framework?',
-          default: true
-        }]);
+        const { confirm } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'confirm',
+            message: 'Add this custom framework?',
+            default: true,
+          },
+        ]);
 
         if (!confirm) {
           console.log(chalk.yellow('📋 Framework addition cancelled'));
@@ -162,7 +165,6 @@ export class FrameworkValidationCLI {
 
         // Show framework usage instructions
         this.showUsageInstructions(frameworkDefinition.id);
-
       } else {
         spinner.fail(chalk.red('❌ Framework validation failed'));
 
@@ -174,7 +176,6 @@ export class FrameworkValidationCLI {
       }
 
       return validationResult;
-
     } catch (error) {
       if (error.code === 'ENOENT') {
         console.error(chalk.red(`❌ Error: Framework file not found: ${frameworkFile}`));
@@ -195,7 +196,9 @@ export class FrameworkValidationCLI {
 
     if (!frameworkId) {
       console.error(chalk.red('❌ Error: Framework ID is required'));
-      console.log(chalk.yellow('💡 Usage: claude-flow-novice validate framework test <framework-id>'));
+      console.log(
+        chalk.yellow('💡 Usage: claude-flow-novice validate framework test <framework-id>'),
+      );
       return { success: false, error: 'Missing framework ID' };
     }
 
@@ -208,7 +211,7 @@ export class FrameworkValidationCLI {
       // Test framework validation
       const testResult = await this.validator.validateCompletionWithCustomFramework(
         mockCompletion,
-        frameworkId
+        frameworkId,
       );
 
       if (testResult.success) {
@@ -216,7 +219,6 @@ export class FrameworkValidationCLI {
 
         // Display test results
         this.displayTestResults(testResult);
-
       } else {
         spinner.fail(chalk.red(`❌ Framework test failed: ${frameworkId}`));
 
@@ -225,7 +227,6 @@ export class FrameworkValidationCLI {
       }
 
       return testResult;
-
     } catch (error) {
       spinner.fail(chalk.red(`Framework test error: ${error.message}`));
       console.error(chalk.gray(`   ${error.stack}`));
@@ -247,7 +248,9 @@ export class FrameworkValidationCLI {
 
       if (frameworks.length === 0) {
         console.log(chalk.yellow('📝 No custom frameworks found'));
-        console.log(chalk.gray('   Use "claude-flow-novice validate framework add" to add frameworks'));
+        console.log(
+          chalk.gray('   Use "claude-flow-novice validate framework add" to add frameworks'),
+        );
         return { success: true, frameworks: [] };
       }
 
@@ -255,7 +258,6 @@ export class FrameworkValidationCLI {
       this.displayFrameworksTable(frameworks);
 
       return { success: true, frameworks };
-
     } catch (error) {
       spinner.fail(chalk.red(`Failed to load frameworks: ${error.message}`));
       return { success: false, error: error.message };
@@ -270,7 +272,9 @@ export class FrameworkValidationCLI {
 
     if (!frameworkId) {
       console.error(chalk.red('❌ Error: Framework ID is required'));
-      console.log(chalk.yellow('💡 Usage: claude-flow-novice validate framework remove <framework-id>'));
+      console.log(
+        chalk.yellow('💡 Usage: claude-flow-novice validate framework remove <framework-id>'),
+      );
       return { success: false, error: 'Missing framework ID' };
     }
 
@@ -288,12 +292,14 @@ export class FrameworkValidationCLI {
       this.displayFrameworkInfo(framework);
 
       // Ask for confirmation
-      const { confirm } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'confirm',
-        message: chalk.red('Are you sure you want to remove this framework?'),
-        default: false
-      }]);
+      const { confirm } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirm',
+          message: chalk.red('Are you sure you want to remove this framework?'),
+          default: false,
+        },
+      ]);
 
       if (!confirm) {
         console.log(chalk.yellow('📋 Framework removal cancelled'));
@@ -308,7 +314,6 @@ export class FrameworkValidationCLI {
       spinner.succeed(chalk.green(`✅ Framework removed: ${frameworkId}`));
 
       return { success: true, removed: frameworkId };
-
     } catch (error) {
       console.error(chalk.red(`❌ Error: ${error.message}`));
       return { success: false, error: error.message };
@@ -323,7 +328,11 @@ export class FrameworkValidationCLI {
 
     if (!frameworkId) {
       console.error(chalk.red('❌ Error: Framework ID is required'));
-      console.log(chalk.yellow('💡 Usage: claude-flow-novice validate framework export <framework-id> [output-file]'));
+      console.log(
+        chalk.yellow(
+          '💡 Usage: claude-flow-novice validate framework export <framework-id> [output-file]',
+        ),
+      );
       return { success: false, error: 'Missing framework ID' };
     }
 
@@ -347,10 +356,11 @@ export class FrameworkValidationCLI {
       spinner.succeed(chalk.green(`✅ Framework exported: ${exportPath}`));
 
       console.log(chalk.gray(`   Framework: ${framework.name} v${framework.version}`));
-      console.log(chalk.gray(`   File size: ${this.formatFileSize(JSON.stringify(framework).length)}`));
+      console.log(
+        chalk.gray(`   File size: ${this.formatFileSize(JSON.stringify(framework).length)}`),
+      );
 
       return { success: true, exported: exportPath, framework };
-
     } catch (error) {
       console.error(chalk.red(`❌ Error: ${error.message}`));
       return { success: false, error: error.message };
@@ -362,7 +372,7 @@ export class FrameworkValidationCLI {
    */
   async handleWizard(args) {
     console.log(chalk.cyan('🧙 Custom Framework Creation Wizard'));
-    console.log(chalk.gray('Let\'s create a custom validation framework step by step\n'));
+    console.log(chalk.gray("Let's create a custom validation framework step by step\n"));
 
     try {
       // Step 1: Basic Information
@@ -390,8 +400,8 @@ export class FrameworkValidationCLI {
         metadata: {
           created_at: new Date().toISOString(),
           author: 'wizard',
-          generator: 'claude-flow-novice-wizard'
-        }
+          generator: 'claude-flow-novice-wizard',
+        },
       };
 
       // Display preview
@@ -399,12 +409,14 @@ export class FrameworkValidationCLI {
       this.displayFrameworkInfo(frameworkDefinition);
 
       // Ask for confirmation
-      const { confirm } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'confirm',
-        message: 'Create this framework?',
-        default: true
-      }]);
+      const { confirm } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'confirm',
+          message: 'Create this framework?',
+          default: true,
+        },
+      ]);
 
       if (!confirm) {
         console.log(chalk.yellow('📋 Framework creation cancelled'));
@@ -412,12 +424,14 @@ export class FrameworkValidationCLI {
       }
 
       // Save framework
-      const { saveToFile } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'saveToFile',
-        message: 'Save framework definition to file?',
-        default: true
-      }]);
+      const { saveToFile } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'saveToFile',
+          message: 'Save framework definition to file?',
+          default: true,
+        },
+      ]);
 
       if (saveToFile) {
         const frameworkFile = `${frameworkDefinition.id}-framework.json`;
@@ -437,7 +451,6 @@ export class FrameworkValidationCLI {
       }
 
       return validationResult;
-
     } catch (error) {
       console.error(chalk.red(`❌ Wizard error: ${error.message}`));
       return { success: false, error: error.message };
@@ -452,7 +465,11 @@ export class FrameworkValidationCLI {
 
     if (!completionFile || !frameworkId) {
       console.error(chalk.red('❌ Error: Both completion file and framework ID are required'));
-      console.log(chalk.yellow('💡 Usage: claude-flow-novice validate framework validate <completion-file> <framework-id>'));
+      console.log(
+        chalk.yellow(
+          '💡 Usage: claude-flow-novice validate framework validate <completion-file> <framework-id>',
+        ),
+      );
       return { success: false, error: 'Missing required arguments' };
     }
 
@@ -467,7 +484,7 @@ export class FrameworkValidationCLI {
       // Validate completion
       const validationResult = await this.validator.validateCompletionWithCustomFramework(
         completion,
-        frameworkId
+        frameworkId,
       );
 
       if (validationResult.success) {
@@ -475,7 +492,6 @@ export class FrameworkValidationCLI {
 
         // Display validation details
         this.displayValidationDetails(validationResult);
-
       } else {
         spinner.fail(chalk.red('❌ Completion validation failed'));
 
@@ -484,7 +500,6 @@ export class FrameworkValidationCLI {
       }
 
       return validationResult;
-
     } catch (error) {
       console.error(chalk.red(`❌ Error: ${error.message}`));
       return { success: false, error: error.message };
@@ -504,7 +519,9 @@ export class FrameworkValidationCLI {
     }
 
     if (framework.validation_config) {
-      console.log(`   ${chalk.bold('Truth Threshold:')} ${framework.validation_config.truth_threshold}`);
+      console.log(
+        `   ${chalk.bold('Truth Threshold:')} ${framework.validation_config.truth_threshold}`,
+      );
     }
 
     if (framework.validation_rules) {
@@ -529,12 +546,20 @@ export class FrameworkValidationCLI {
   displayValidationSuccess(result) {
     console.log(chalk.green('\n🎉 Validation Results:'));
     console.log(`   ${chalk.bold('Framework ID:')} ${result.frameworkId}`);
-    console.log(`   ${chalk.bold('Validation Time:')} ${(result.performance?.totalTime || 0).toFixed(2)}ms`);
+    console.log(
+      `   ${chalk.bold('Validation Time:')} ${(result.performance?.totalTime || 0).toFixed(2)}ms`,
+    );
 
     if (result.validationResults) {
-      console.log(`   ${chalk.bold('Schema Valid:')} ${result.validationResults.schema?.valid ? '✅' : '❌'}`);
-      console.log(`   ${chalk.bold('Security Check:')} ${result.validationResults.security?.secure ? '✅' : '❌'}`);
-      console.log(`   ${chalk.bold('Byzantine Approved:')} ${result.validationResults.byzantine?.approved ? '✅' : '❌'}`);
+      console.log(
+        `   ${chalk.bold('Schema Valid:')} ${result.validationResults.schema?.valid ? '✅' : '❌'}`,
+      );
+      console.log(
+        `   ${chalk.bold('Security Check:')} ${result.validationResults.security?.secure ? '✅' : '❌'}`,
+      );
+      console.log(
+        `   ${chalk.bold('Byzantine Approved:')} ${result.validationResults.byzantine?.approved ? '✅' : '❌'}`,
+      );
     }
 
     console.log();
@@ -572,11 +597,13 @@ export class FrameworkValidationCLI {
     console.log(chalk.yellow('💡 Fixing Suggestions:'));
 
     if (result.errors) {
-      result.errors.forEach(error => {
+      result.errors.forEach((error) => {
         if (error.type === 'missing_required_field') {
           console.log(`   • Add the required field: ${error.field}`);
         } else if (error.type === 'invalid_id_format') {
-          console.log(`   • Framework ID must contain only lowercase letters, numbers, hyphens, and underscores`);
+          console.log(
+            `   • Framework ID must contain only lowercase letters, numbers, hyphens, and underscores`,
+          );
         } else if (error.type === 'truth_threshold_out_of_range') {
           console.log(`   • Set truth_threshold between 0.01 and 0.99`);
         }
@@ -597,7 +624,11 @@ export class FrameworkValidationCLI {
     console.log(`   Test framework:`);
     console.log(chalk.gray(`     claude-flow-novice validate framework test ${frameworkId}`));
     console.log(`   Validate completion:`);
-    console.log(chalk.gray(`     claude-flow-novice validate framework validate completion.json ${frameworkId}`));
+    console.log(
+      chalk.gray(
+        `     claude-flow-novice validate framework validate completion.json ${frameworkId}`,
+      ),
+    );
     console.log(`   Export framework:`);
     console.log(chalk.gray(`     claude-flow-novice validate framework export ${frameworkId}`));
     console.log();
@@ -605,16 +636,24 @@ export class FrameworkValidationCLI {
 
   displayTestResults(result) {
     console.log(chalk.green('\n📊 Test Results:'));
-    console.log(`   ${chalk.bold('Framework:')} ${result.frameworkUsed} v${result.frameworkVersion || '?'}`);
+    console.log(
+      `   ${chalk.bold('Framework:')} ${result.frameworkUsed} v${result.frameworkVersion || '?'}`,
+    );
     console.log(`   ${chalk.bold('Truth Score:')} ${(result.truthScore * 100).toFixed(1)}%`);
-    console.log(`   ${chalk.bold('Threshold:')} ${(result.frameworkTruthThreshold * 100).toFixed(1)}%`);
+    console.log(
+      `   ${chalk.bold('Threshold:')} ${(result.frameworkTruthThreshold * 100).toFixed(1)}%`,
+    );
 
     if (result.frameworkValidation) {
-      console.log(`   ${chalk.bold('Rules Passed:')} ${result.frameworkValidation.rulesPassed}/${result.frameworkValidation.rulesExecuted}`);
+      console.log(
+        `   ${chalk.bold('Rules Passed:')} ${result.frameworkValidation.rulesPassed}/${result.frameworkValidation.rulesExecuted}`,
+      );
     }
 
     if (result.qualityGates) {
-      console.log(`   ${chalk.bold('Quality Gates:')} ${result.qualityGates.gatesPassed}/${result.qualityGates.gatesApplied}`);
+      console.log(
+        `   ${chalk.bold('Quality Gates:')} ${result.qualityGates.gatesPassed}/${result.qualityGates.gatesApplied}`,
+      );
     }
 
     console.log();
@@ -629,7 +668,9 @@ export class FrameworkValidationCLI {
     }
 
     if (result.truthScore !== undefined) {
-      console.log(`   ${chalk.bold('Truth Score:')} ${(result.truthScore * 100).toFixed(1)}% (Required: ${(result.frameworkTruthThreshold * 100).toFixed(1)}%)`);
+      console.log(
+        `   ${chalk.bold('Truth Score:')} ${(result.truthScore * 100).toFixed(1)}% (Required: ${(result.frameworkTruthThreshold * 100).toFixed(1)}%)`,
+      );
     }
 
     console.log();
@@ -638,11 +679,9 @@ export class FrameworkValidationCLI {
   displayFrameworksTable(frameworks) {
     console.log(chalk.cyan('\n📚 Custom Frameworks:\n'));
 
-    const tableData = [
-      ['ID', 'Name', 'Version', 'Rules', 'Gates', 'Threshold', 'Status']
-    ];
+    const tableData = [['ID', 'Name', 'Version', 'Rules', 'Gates', 'Threshold', 'Status']];
 
-    frameworks.forEach(framework => {
+    frameworks.forEach((framework) => {
       tableData.push([
         framework.id,
         framework.name || 'N/A',
@@ -650,29 +689,31 @@ export class FrameworkValidationCLI {
         framework.validation_rules?.length || 0,
         framework.quality_gates?.length || 0,
         `${((framework.validation_config?.truth_threshold || 0) * 100).toFixed(0)}%`,
-        framework.metadata?.validated ? '✅' : '❓'
+        framework.metadata?.validated ? '✅' : '❓',
       ]);
     });
 
-    console.log(table(tableData, {
-      border: {
-        topBody: `─`,
-        topJoin: `┬`,
-        topLeft: `┌`,
-        topRight: `┐`,
-        bottomBody: `─`,
-        bottomJoin: `┴`,
-        bottomLeft: `└`,
-        bottomRight: `┘`,
-        bodyLeft: `│`,
-        bodyRight: `│`,
-        bodyJoin: `│`,
-        joinBody: `─`,
-        joinLeft: `├`,
-        joinRight: `┤`,
-        joinJoin: `┼`
-      }
-    }));
+    console.log(
+      table(tableData, {
+        border: {
+          topBody: `─`,
+          topJoin: `┬`,
+          topLeft: `┌`,
+          topRight: `┐`,
+          bottomBody: `─`,
+          bottomJoin: `┴`,
+          bottomLeft: `└`,
+          bottomRight: `┘`,
+          bodyLeft: `│`,
+          bodyRight: `│`,
+          bodyJoin: `│`,
+          joinBody: `─`,
+          joinLeft: `├`,
+          joinRight: `┤`,
+          joinJoin: `┼`,
+        },
+      }),
+    );
   }
 
   displayValidationDetails(result) {
@@ -697,7 +738,9 @@ export class FrameworkValidationCLI {
 
     if (result.truthScore !== undefined) {
       console.log(`   ${chalk.bold('Truth Score:')} ${(result.truthScore * 100).toFixed(1)}%`);
-      console.log(`   ${chalk.bold('Required:')} ${(result.frameworkTruthThreshold * 100).toFixed(1)}%`);
+      console.log(
+        `   ${chalk.bold('Required:')} ${(result.frameworkTruthThreshold * 100).toFixed(1)}%`,
+      );
     }
 
     if (result.error) {
@@ -717,13 +760,13 @@ export class FrameworkValidationCLI {
           if (!input) return 'Framework ID is required';
           if (!/^[a-z0-9-_]+$/.test(input)) return 'Invalid ID format';
           return true;
-        }
+        },
       },
       {
         type: 'input',
         name: 'name',
         message: 'Framework name:',
-        validate: (input) => input ? true : 'Framework name is required'
+        validate: (input) => (input ? true : 'Framework name is required'),
       },
       {
         type: 'input',
@@ -733,13 +776,13 @@ export class FrameworkValidationCLI {
         validate: (input) => {
           if (!/^\d+\.\d+\.\d+/.test(input)) return 'Use semantic versioning (e.g., 1.0.0)';
           return true;
-        }
+        },
       },
       {
         type: 'input',
         name: 'description',
-        message: 'Framework description (optional):'
-      }
+        message: 'Framework description (optional):',
+      },
     ]);
   }
 
@@ -753,14 +796,14 @@ export class FrameworkValidationCLI {
         validate: (input) => {
           if (input < 0.01 || input > 0.99) return 'Threshold must be between 0.01 and 0.99';
           return true;
-        }
+        },
       },
       {
         type: 'confirm',
         name: 'customize_weights',
         message: 'Customize truth component weights?',
-        default: false
-      }
+        default: false,
+      },
     ]);
 
     const config = { truth_threshold: answers.truth_threshold };
@@ -772,32 +815,32 @@ export class FrameworkValidationCLI {
           name: 'agent_reliability',
           message: 'Agent reliability weight (0-1):',
           default: 0.3,
-          validate: (input) => input >= 0 && input <= 1 ? true : 'Weight must be between 0 and 1'
+          validate: (input) => (input >= 0 && input <= 1 ? true : 'Weight must be between 0 and 1'),
         },
         {
           type: 'number',
           name: 'cross_validation',
           message: 'Cross validation weight (0-1):',
-          default: 0.25
+          default: 0.25,
         },
         {
           type: 'number',
           name: 'external_verification',
           message: 'External verification weight (0-1):',
-          default: 0.2
+          default: 0.2,
         },
         {
           type: 'number',
           name: 'factual_consistency',
           message: 'Factual consistency weight (0-1):',
-          default: 0.15
+          default: 0.15,
         },
         {
           type: 'number',
           name: 'logical_coherence',
           message: 'Logical coherence weight (0-1):',
-          default: 0.1
-        }
+          default: 0.1,
+        },
       ]);
 
       config.truth_component_weights = weights;
@@ -816,7 +859,7 @@ export class FrameworkValidationCLI {
           type: 'input',
           name: 'name',
           message: `Validation rule ${rules.length + 1} name:`,
-          validate: (input) => input ? true : 'Rule name is required'
+          validate: (input) => (input ? true : 'Rule name is required'),
         },
         {
           type: 'list',
@@ -826,9 +869,9 @@ export class FrameworkValidationCLI {
             { name: 'Threshold check', value: 'threshold' },
             { name: 'Value exists', value: 'exists' },
             { name: 'Range check', value: 'range' },
-            { name: 'Custom expression', value: 'custom' }
-          ]
-        }
+            { name: 'Custom expression', value: 'custom' },
+          ],
+        },
       ]);
 
       // Collect type-specific configuration
@@ -838,17 +881,19 @@ export class FrameworkValidationCLI {
         name: rule.name,
         validator: {
           type: rule.type,
-          config: typeConfig
-        }
+          config: typeConfig,
+        },
       });
 
       if (rules.length < 10) {
-        const { continueAdding } = await inquirer.prompt([{
-          type: 'confirm',
-          name: 'continueAdding',
-          message: 'Add another validation rule?',
-          default: false
-        }]);
+        const { continueAdding } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'continueAdding',
+            message: 'Add another validation rule?',
+            default: false,
+          },
+        ]);
         addMore = continueAdding;
       }
     }
@@ -864,21 +909,21 @@ export class FrameworkValidationCLI {
             type: 'input',
             name: 'field',
             message: 'Field to check (e.g., completion.accuracy):',
-            validate: (input) => input ? true : 'Field is required'
+            validate: (input) => (input ? true : 'Field is required'),
           },
           {
             type: 'number',
             name: 'threshold',
             message: 'Threshold value:',
-            validate: (input) => typeof input === 'number' ? true : 'Must be a number'
+            validate: (input) => (typeof input === 'number' ? true : 'Must be a number'),
           },
           {
             type: 'list',
             name: 'operator',
             message: 'Comparison operator:',
             choices: ['>=', '>', '<=', '<', '=='],
-            default: '>='
-          }
+            default: '>=',
+          },
         ]);
 
       case 'exists':
@@ -887,8 +932,8 @@ export class FrameworkValidationCLI {
             type: 'input',
             name: 'field',
             message: 'Field that must exist:',
-            validate: (input) => input ? true : 'Field is required'
-          }
+            validate: (input) => (input ? true : 'Field is required'),
+          },
         ]);
 
       case 'range':
@@ -897,18 +942,18 @@ export class FrameworkValidationCLI {
             type: 'input',
             name: 'field',
             message: 'Field to check:',
-            validate: (input) => input ? true : 'Field is required'
+            validate: (input) => (input ? true : 'Field is required'),
           },
           {
             type: 'number',
             name: 'min',
-            message: 'Minimum value:'
+            message: 'Minimum value:',
           },
           {
             type: 'number',
             name: 'max',
-            message: 'Maximum value:'
-          }
+            message: 'Maximum value:',
+          },
         ]);
 
       case 'custom':
@@ -923,8 +968,8 @@ export class FrameworkValidationCLI {
                 return 'Unsafe expressions not allowed';
               }
               return true;
-            }
-          }
+            },
+          },
         ]);
 
       default:
@@ -942,7 +987,7 @@ export class FrameworkValidationCLI {
           type: 'input',
           name: 'name',
           message: `Quality gate ${gates.length + 1} name:`,
-          validate: (input) => input ? true : 'Gate name is required'
+          validate: (input) => (input ? true : 'Gate name is required'),
         },
         {
           type: 'list',
@@ -955,26 +1000,28 @@ export class FrameworkValidationCLI {
             'error_rate',
             'test_coverage',
             'code_quality',
-            'security_score'
-          ]
+            'security_score',
+          ],
         },
         {
           type: 'number',
           name: 'threshold',
           message: 'Threshold value:',
-          validate: (input) => typeof input === 'number' ? true : 'Must be a number'
-        }
+          validate: (input) => (typeof input === 'number' ? true : 'Must be a number'),
+        },
       ]);
 
       gates.push(gate);
 
       if (gates.length < 5) {
-        const { continueAdding } = await inquirer.prompt([{
-          type: 'confirm',
-          name: 'continueAdding',
-          message: 'Add another quality gate?',
-          default: false
-        }]);
+        const { continueAdding } = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'continueAdding',
+            message: 'Add another quality gate?',
+            default: false,
+          },
+        ]);
         addMore = continueAdding;
       }
     }
@@ -988,14 +1035,14 @@ export class FrameworkValidationCLI {
         type: 'confirm',
         name: 'inheritable',
         message: 'Allow other frameworks to extend this framework?',
-        default: true
+        default: true,
       },
       {
         type: 'confirm',
         name: 'composable',
         message: 'Allow this framework to be used in composition?',
-        default: true
-      }
+        default: true,
+      },
     ]);
   }
 
@@ -1010,7 +1057,7 @@ export class FrameworkValidationCLI {
       code_quality_score: 8.5,
       security_score: 0.95,
       evidence: ['test_evidence'],
-      confidence: 0.8
+      confidence: 0.8,
     };
   }
 
@@ -1038,7 +1085,12 @@ export class FrameworkValidationCLI {
   async getFramework(frameworkId) {
     // In production, this would query the framework registry
     try {
-      const frameworkPath = path.join(process.cwd(), '.claude-flow-novice', 'frameworks', `${frameworkId}.json`);
+      const frameworkPath = path.join(
+        process.cwd(),
+        '.claude-flow-novice',
+        'frameworks',
+        `${frameworkId}.json`,
+      );
       const content = await fs.readFile(frameworkPath, 'utf8');
       return JSON.parse(content);
     } catch (error) {
@@ -1048,7 +1100,12 @@ export class FrameworkValidationCLI {
 
   async removeFramework(frameworkId) {
     // In production, this would use the framework registry
-    const frameworkPath = path.join(process.cwd(), '.claude-flow-novice', 'frameworks', `${frameworkId}.json`);
+    const frameworkPath = path.join(
+      process.cwd(),
+      '.claude-flow-novice',
+      'frameworks',
+      `${frameworkId}.json`,
+    );
     await fs.unlink(frameworkPath);
   }
 
@@ -1056,7 +1113,7 @@ export class FrameworkValidationCLI {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     if (bytes === 0) return '0 Byte';
     const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
   showHelp() {
@@ -1069,7 +1126,7 @@ export class FrameworkValidationCLI {
       ['remove <id>', 'Remove a custom framework'],
       ['export <id> [file]', 'Export framework to file'],
       ['wizard', 'Interactive framework creation wizard'],
-      ['validate <completion> <id>', 'Validate completion with framework']
+      ['validate <completion> <id>', 'Validate completion with framework'],
     ];
 
     commands.forEach(([cmd, desc]) => {

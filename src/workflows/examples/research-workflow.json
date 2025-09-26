@@ -24,7 +24,7 @@
     {
       "id": "business-analyst",
       "type": "analyst",
-      "name": "Business Analyst", 
+      "name": "Business Analyst",
       "capabilities": ["market-analysis", "business-strategy", "competitive-analysis"]
     },
     {
@@ -99,7 +99,7 @@
     },
     {
       "id": "ethical-research",
-      "name": "Ethical and Social Impact Analysis", 
+      "name": "Ethical and Social Impact Analysis",
       "type": "research",
       "description": "Ethical implications and social impact assessment",
       "assignTo": "ethics-researcher",

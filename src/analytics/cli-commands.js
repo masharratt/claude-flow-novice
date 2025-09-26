@@ -50,7 +50,6 @@ export class AnalyticsCLI {
       if (options.verbose) {
         await this.showDetailedMetrics(report);
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Error generating analytics:'), error.message);
       if (options.debug) {
@@ -90,10 +89,13 @@ export class AnalyticsCLI {
     // Bottlenecks
     if (bottlenecks && bottlenecks.length > 0) {
       console.log(chalk.red('   ⚠️  Bottlenecks detected:'));
-      bottlenecks.forEach(bottleneck => {
-        const severity = bottleneck.severity === 'high' ? chalk.red('HIGH') :
-                        bottleneck.severity === 'medium' ? chalk.yellow('MED') :
-                        chalk.gray('LOW');
+      bottlenecks.forEach((bottleneck) => {
+        const severity =
+          bottleneck.severity === 'high'
+            ? chalk.red('HIGH')
+            : bottleneck.severity === 'medium'
+              ? chalk.yellow('MED')
+              : chalk.gray('LOW');
         console.log(`      ${severity}: ${bottleneck.description}`);
       });
     } else {
@@ -113,8 +115,8 @@ export class AnalyticsCLI {
 
     if (statusAnalysis) {
       const total = statusAnalysis.reduce((sum, s) => sum + s.count, 0);
-      const completed = statusAnalysis.find(s => s.status === 'completed')?.count || 0;
-      const failed = statusAnalysis.find(s => s.status === 'failed')?.count || 0;
+      const completed = statusAnalysis.find((s) => s.status === 'completed')?.count || 0;
+      const failed = statusAnalysis.find((s) => s.status === 'failed')?.count || 0;
       const successRate = total > 0 ? (completed / total) * 100 : 0;
 
       console.log(`   Total Tasks:     ${chalk.cyan(total)}`);
@@ -124,17 +126,21 @@ export class AnalyticsCLI {
 
       // Show status breakdown
       console.log('\n   Status Breakdown:');
-      statusAnalysis.forEach(status => {
+      statusAnalysis.forEach((status) => {
         const bar = this.createProgressBar(status.percentage, 20);
-        console.log(`   ${status.status.padEnd(12)} ${bar} ${status.percentage.toFixed(1)}% (${status.count})`);
+        console.log(
+          `   ${status.status.padEnd(12)} ${bar} ${status.percentage.toFixed(1)}% (${status.count})`,
+        );
       });
     }
 
     if (complexityAnalysis) {
       console.log('\n   Complexity Analysis:');
-      complexityAnalysis.forEach(complexity => {
+      complexityAnalysis.forEach((complexity) => {
         const successRate = complexity.success_rate;
-        console.log(`   ${complexity.complexity_level.padEnd(8)} ${this.formatMetric(successRate, '%', 80, 60, true)} (${complexity.total_tasks} tasks)`);
+        console.log(
+          `   ${complexity.complexity_level.padEnd(8)} ${this.formatMetric(successRate, '%', 80, 60, true)} (${complexity.total_tasks} tasks)`,
+        );
       });
     }
 
@@ -148,12 +154,15 @@ export class AnalyticsCLI {
     console.log(chalk.yellow.bold('🤖 Agent Status'));
 
     const totalAgents = agentPerformance.length;
-    const activeAgents = agentPerformance.filter(a => a.recent_tasks > 0).length;
-    const avgPerformance = agentPerformance.reduce((sum, a) => sum + a.performance_score, 0) / totalAgents;
+    const activeAgents = agentPerformance.filter((a) => a.recent_tasks > 0).length;
+    const avgPerformance =
+      agentPerformance.reduce((sum, a) => sum + a.performance_score, 0) / totalAgents;
 
     console.log(`   Total Agents:    ${chalk.cyan(totalAgents)}`);
     console.log(`   Active Agents:   ${chalk.green(activeAgents)}`);
-    console.log(`   Avg Performance: ${this.formatMetric(avgPerformance * 100, '%', 70, 50, true)}`);
+    console.log(
+      `   Avg Performance: ${this.formatMetric(avgPerformance * 100, '%', 70, 50, true)}`,
+    );
 
     // Top performers
     const topAgents = agentPerformance
@@ -164,7 +173,9 @@ export class AnalyticsCLI {
     topAgents.forEach((agent, index) => {
       const score = (agent.performance_score * 100).toFixed(1);
       const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
-      console.log(`   ${medal} ${agent.name.padEnd(20)} ${this.formatMetric(parseFloat(score), '%', 70, 50, true)} (${agent.task_count} tasks)`);
+      console.log(
+        `   ${medal} ${agent.name.padEnd(20)} ${this.formatMetric(parseFloat(score), '%', 70, 50, true)} (${agent.task_count} tasks)`,
+      );
     });
 
     // Agent type distribution
@@ -194,21 +205,27 @@ export class AnalyticsCLI {
     // Swarm topology
     if (swarmTopology) {
       console.log('   Swarm Topologies:');
-      swarmTopology.forEach(topo => {
-        console.log(`   ${topo.topology.padEnd(15)} ${topo.swarm_count} swarms, ${topo.avg_agents.toFixed(1)} avg agents`);
+      swarmTopology.forEach((topo) => {
+        console.log(
+          `   ${topo.topology.padEnd(15)} ${topo.swarm_count} swarms, ${topo.avg_agents.toFixed(1)} avg agents`,
+        );
       });
     }
 
     // Consensus effectiveness
     if (consensusAnalysis && consensusAnalysis.length > 0) {
-      const avgConsensus = consensusAnalysis.reduce((sum, c) => sum + c.avg_vote, 0) / consensusAnalysis.length;
-      console.log(`   Consensus Score:  ${this.formatMetric(avgConsensus * 100, '%', 70, 50, true)}`);
+      const avgConsensus =
+        consensusAnalysis.reduce((sum, c) => sum + c.avg_vote, 0) / consensusAnalysis.length;
+      console.log(
+        `   Consensus Score:  ${this.formatMetric(avgConsensus * 100, '%', 70, 50, true)}`,
+      );
     }
 
     // Knowledge sharing
     if (knowledgeSharing) {
       const totalKnowledge = knowledgeSharing.reduce((sum, k) => sum + k.knowledge_count, 0);
-      const avgAccess = knowledgeSharing.reduce((sum, k) => sum + k.avg_access_count, 0) / knowledgeSharing.length;
+      const avgAccess =
+        knowledgeSharing.reduce((sum, k) => sum + k.avg_access_count, 0) / knowledgeSharing.length;
 
       console.log(`   Knowledge Items:  ${chalk.cyan(totalKnowledge)}`);
       console.log(`   Avg Access Rate:  ${this.formatMetric(avgAccess, '', 5, 2, true)}`);
@@ -231,17 +248,21 @@ export class AnalyticsCLI {
         .sort((a, b) => b.entry_count - a.entry_count)
         .slice(0, 5);
 
-      sortedNamespaces.forEach(ns => {
+      sortedNamespaces.forEach((ns) => {
         const size = this.formatBytes(ns.total_size);
-        console.log(`   ${ns.namespace.padEnd(15)} ${ns.entry_count.toString().padStart(4)} entries, ${size}`);
+        console.log(
+          `   ${ns.namespace.padEnd(15)} ${ns.entry_count.toString().padStart(4)} entries, ${size}`,
+        );
       });
     }
 
     if (efficiencyAnalysis) {
       console.log('\n   Usage Efficiency:');
-      efficiencyAnalysis.forEach(eff => {
+      efficiencyAnalysis.forEach((eff) => {
         const size = this.formatBytes(eff.total_size);
-        console.log(`   ${eff.usage_category.padEnd(15)} ${eff.entry_count.toString().padStart(4)} entries, ${size}`);
+        console.log(
+          `   ${eff.usage_category.padEnd(15)} ${eff.entry_count.toString().padStart(4)} entries, ${size}`,
+        );
       });
     }
 
@@ -278,9 +299,10 @@ export class AnalyticsCLI {
       // Summary
       console.log(chalk.blue.bold('📊 Summary'));
       console.log(`   High Priority: ${chalk.red(optimizations.priority.high.length)} suggestions`);
-      console.log(`   Medium Priority: ${chalk.yellow(optimizations.priority.medium.length)} suggestions`);
+      console.log(
+        `   Medium Priority: ${chalk.yellow(optimizations.priority.medium.length)} suggestions`,
+      );
       console.log(`   Low Priority: ${chalk.green(optimizations.priority.low.length)} suggestions`);
-
     } catch (error) {
       console.error(chalk.red('❌ Error generating optimization suggestions:'), error.message);
     }
@@ -293,11 +315,13 @@ export class AnalyticsCLI {
     suggestions.forEach((suggestion, index) => {
       console.log(`\n   ${index + 1}. ${chalk.bold(suggestion.title)}`);
       console.log(`      ${suggestion.description}`);
-      console.log(`      Impact: ${this.formatImpact(suggestion.impact)} | Effort: ${this.formatEffort(suggestion.effort)}`);
+      console.log(
+        `      Impact: ${this.formatImpact(suggestion.impact)} | Effort: ${this.formatEffort(suggestion.effort)}`,
+      );
 
       if (detailed && suggestion.suggestions) {
         console.log('      Actions:');
-        suggestion.suggestions.slice(0, 3).forEach(action => {
+        suggestion.suggestions.slice(0, 3).forEach((action) => {
           console.log(`        • ${action}`);
         });
       }
@@ -313,7 +337,8 @@ export class AnalyticsCLI {
 
     try {
       await this.suggestionGenerator.initialize();
-      const personalizedSuggestions = await this.suggestionGenerator.generatePersonalizedSuggestions();
+      const personalizedSuggestions =
+        await this.suggestionGenerator.generatePersonalizedSuggestions();
 
       // User profile
       console.log(chalk.yellow.bold('Your Profile:'));
@@ -330,15 +355,18 @@ export class AnalyticsCLI {
       // Short-term suggestions
       if (personalizedSuggestions.suggestions.shortTerm.length > 0) {
         console.log(chalk.yellow.bold('\n📅 Short-term Goals'));
-        this.displayPersonalizedSuggestions(personalizedSuggestions.suggestions.shortTerm.slice(0, 3));
+        this.displayPersonalizedSuggestions(
+          personalizedSuggestions.suggestions.shortTerm.slice(0, 3),
+        );
       }
 
       // Learning suggestions
       if (personalizedSuggestions.suggestions.learning.length > 0) {
         console.log(chalk.blue.bold('\n🧠 Learning Opportunities'));
-        this.displayPersonalizedSuggestions(personalizedSuggestions.suggestions.learning.slice(0, 3));
+        this.displayPersonalizedSuggestions(
+          personalizedSuggestions.suggestions.learning.slice(0, 3),
+        );
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Error generating personalized suggestions:'), error.message);
     }
@@ -359,7 +387,7 @@ export class AnalyticsCLI {
 
       if (suggestion.implementation_steps) {
         console.log('      Steps:');
-        suggestion.implementation_steps.slice(0, 2).forEach(step => {
+        suggestion.implementation_steps.slice(0, 2).forEach((step) => {
           console.log(`        • ${step}`);
         });
       }
@@ -385,8 +413,8 @@ export class AnalyticsCLI {
         metadata: {
           version: '1.0.0',
           generated_by: 'Claude Flow Analytics CLI',
-          format: format
-        }
+          format: format,
+        },
       };
 
       // Determine output path
@@ -417,7 +445,6 @@ export class AnalyticsCLI {
       console.log(chalk.green(`✅ Report exported to: ${filePath}`));
       console.log(`   Format: ${format.toUpperCase()}`);
       console.log(`   Size: ${this.formatBytes((await fs.stat(filePath)).size)}`);
-
     } catch (error) {
       console.error(chalk.red('❌ Error exporting report:'), error.message);
     }
@@ -435,14 +462,22 @@ export class AnalyticsCLI {
 
       console.log(chalk.yellow.bold('Task Details:'));
       console.log(`   Status: ${this.formatTaskStatus(insights.task.status)}`);
-      console.log(`   Complexity: ${this.formatMetric(insights.task.complexity * 100, '%', 50, 80)}`);
+      console.log(
+        `   Complexity: ${this.formatMetric(insights.task.complexity * 100, '%', 50, 80)}`,
+      );
       console.log(`   Duration: ${insights.task.actual_time || 'N/A'}ms`);
       console.log(`   Agent: ${insights.task.agent_type}`);
 
       console.log(chalk.yellow.bold('\nPerformance Metrics:'));
-      console.log(`   Rating: ${this.formatMetric(insights.performance.rating * 100, '%', 70, 50, true)}`);
-      console.log(`   Efficiency: ${this.formatMetric(insights.performance.efficiency * 100, '%', 70, 50, true)}`);
-      console.log(`   Quality: ${this.formatMetric(insights.performance.quality * 100, '%', 70, 50, true)}`);
+      console.log(
+        `   Rating: ${this.formatMetric(insights.performance.rating * 100, '%', 70, 50, true)}`,
+      );
+      console.log(
+        `   Efficiency: ${this.formatMetric(insights.performance.efficiency * 100, '%', 70, 50, true)}`,
+      );
+      console.log(
+        `   Quality: ${this.formatMetric(insights.performance.quality * 100, '%', 70, 50, true)}`,
+      );
 
       if (insights.suggestions.length > 0) {
         console.log(chalk.yellow.bold('\nSuggestions:'));
@@ -450,7 +485,7 @@ export class AnalyticsCLI {
           console.log(`\n   ${index + 1}. ${chalk.bold(suggestion.title)}`);
           console.log(`      ${suggestion.description}`);
           if (suggestion.suggestions) {
-            suggestion.suggestions.slice(0, 2).forEach(s => {
+            suggestion.suggestions.slice(0, 2).forEach((s) => {
               console.log(`        • ${s}`);
             });
           }
@@ -459,11 +494,10 @@ export class AnalyticsCLI {
 
       if (insights.learningOpportunities.length > 0) {
         console.log(chalk.blue.bold('\nLearning Opportunities:'));
-        insights.learningOpportunities.forEach(opp => {
+        insights.learningOpportunities.forEach((opp) => {
           console.log(`   • ${opp.description}`);
         });
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Error generating task insights:'), error.message);
     }
@@ -494,7 +528,7 @@ export class AnalyticsCLI {
     const colors = {
       high: chalk.red,
       medium: chalk.yellow,
-      low: chalk.green
+      low: chalk.green,
     };
     return colors[impact]?.(impact.toUpperCase()) || chalk.gray(impact);
   }
@@ -503,7 +537,7 @@ export class AnalyticsCLI {
     const colors = {
       high: chalk.red,
       medium: chalk.yellow,
-      low: chalk.green
+      low: chalk.green,
     };
     return colors[effort]?.(effort.toUpperCase()) || chalk.gray(effort);
   }
@@ -513,7 +547,7 @@ export class AnalyticsCLI {
       completed: chalk.green,
       failed: chalk.red,
       pending: chalk.yellow,
-      in_progress: chalk.blue
+      in_progress: chalk.blue,
     };
     return colors[status]?.(status.toUpperCase()) || chalk.gray(status);
   }
@@ -534,7 +568,7 @@ export class AnalyticsCLI {
 
   generateTextReport(report) {
     let text = 'CLAUDE FLOW ANALYTICS REPORT\n';
-    text += '=' .repeat(50) + '\n\n';
+    text += '='.repeat(50) + '\n\n';
     text += `Generated: ${report.timestamp}\n\n`;
 
     // Add summary sections

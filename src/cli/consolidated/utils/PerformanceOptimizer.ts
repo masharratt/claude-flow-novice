@@ -34,21 +34,23 @@ export class PerformanceOptimizer {
   private config: OptimizationConfig;
   private preloadedData: Map<string, any> = new Map();
 
-  constructor(config: OptimizationConfig = {
-    cacheEnabled: true,
-    preloadEnabled: true,
-    parallelExecution: true,
-    maxConcurrency: 4,
-    cacheSize: 100,
-    defaultTtl: 300000 // 5 minutes
-  }) {
+  constructor(
+    config: OptimizationConfig = {
+      cacheEnabled: true,
+      preloadEnabled: true,
+      parallelExecution: true,
+      maxConcurrency: 4,
+      cacheSize: 100,
+      defaultTtl: 300000, // 5 minutes
+    },
+  ) {
     this.config = config;
     this.metrics = {
       commandExecutionTime: 0,
       memoryUsage: 0,
       cacheHitRate: 0,
       agentSpawnTime: 0,
-      totalResponseTime: 0
+      totalResponseTime: 0,
     };
 
     this.initializeOptimizations();
@@ -60,7 +62,7 @@ export class PerformanceOptimizer {
   async optimizeExecution<T>(
     key: string,
     executor: () => Promise<T>,
-    options: { cacheable?: boolean; ttl?: number } = {}
+    options: { cacheable?: boolean; ttl?: number } = {},
   ): Promise<T> {
     const startTime = performance.now();
 
@@ -84,7 +86,7 @@ export class PerformanceOptimizer {
 
       this.updateMetrics({
         cacheHit: false,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       });
 
       return result;
@@ -92,7 +94,7 @@ export class PerformanceOptimizer {
       this.updateMetrics({
         cacheHit: false,
         executionTime: performance.now() - startTime,
-        error: true
+        error: true,
       });
       throw error;
     }
@@ -115,7 +117,7 @@ export class PerformanceOptimizer {
     const batches = this.createBatches(operations, this.config.maxConcurrency);
 
     for (const batch of batches) {
-      const batchResults = await Promise.all(batch.map(op => op()));
+      const batchResults = await Promise.all(batch.map((op) => op()));
       results.push(...batchResults);
     }
 
@@ -132,7 +134,7 @@ export class PerformanceOptimizer {
       this.preloadProjectContext(),
       this.preloadUserProgress(),
       this.preloadSystemStatus(),
-      this.preloadCommandMetadata()
+      this.preloadCommandMetadata(),
     ];
 
     await Promise.all(preloadTasks);
@@ -170,7 +172,7 @@ export class PerformanceOptimizer {
       data,
       timestamp: Date.now(),
       ttl: ttl || this.config.defaultTtl,
-      accessCount: 0
+      accessCount: 0,
     });
   }
 
@@ -197,7 +199,7 @@ export class PerformanceOptimizer {
       memoryUsage: 0,
       cacheHitRate: 0,
       agentSpawnTime: 0,
-      totalResponseTime: 0
+      totalResponseTime: 0,
     };
   }
 
@@ -214,7 +216,8 @@ export class PerformanceOptimizer {
     }
 
     // Clear preloaded data if memory usage is high
-    if (process.memoryUsage().heapUsed > 100 * 1024 * 1024) { // 100MB
+    if (process.memoryUsage().heapUsed > 100 * 1024 * 1024) {
+      // 100MB
       this.preloadedData.clear();
     }
 
@@ -234,7 +237,7 @@ export class PerformanceOptimizer {
       this.preloadData(),
       this.testAgentSpawning(),
       this.precompileTemplates(),
-      this.validateSystemResources()
+      this.validateSystemResources(),
     ];
 
     await Promise.all(warmupTasks);
@@ -313,7 +316,7 @@ export class PerformanceOptimizer {
 
     // Update execution time (moving average)
     this.metrics.totalResponseTime =
-      (this.metrics.totalResponseTime * 0.8) + (update.executionTime * 0.2);
+      this.metrics.totalResponseTime * 0.8 + update.executionTime * 0.2;
   }
 
   private getCacheStats(): { totalRequests: number; hits: number } {
@@ -334,13 +337,13 @@ export class PerformanceOptimizer {
       this.preloadedData.set('projectPatterns', {
         web: ['package.json', 'src', 'public'],
         api: ['package.json', 'src', 'routes'],
-        mobile: ['package.json', 'App.js', 'android', 'ios']
+        mobile: ['package.json', 'App.js', 'android', 'ios'],
       });
 
       this.preloadedData.set('frameworkSignatures', {
         react: ['react', 'jsx', 'tsx'],
         vue: ['vue', '.vue'],
-        angular: ['@angular', 'angular.json']
+        angular: ['@angular', 'angular.json'],
       });
     } catch (error) {
       console.warn('Failed to preload project context');
@@ -354,7 +357,7 @@ export class PerformanceOptimizer {
         tier: 'novice',
         commandsUsed: 0,
         achievements: [],
-        preferences: {}
+        preferences: {},
       });
     } catch (error) {
       console.warn('Failed to preload user progress');
@@ -367,7 +370,7 @@ export class PerformanceOptimizer {
       this.preloadedData.set('systemStatusTemplate', {
         agents: { active: 0, available: 5 },
         memory: { usage: '0MB', available: '100MB' },
-        performance: { avgResponseTime: '0s', uptime: '0s' }
+        performance: { avgResponseTime: '0s', uptime: '0s' },
       });
     } catch (error) {
       console.warn('Failed to preload system status');
@@ -380,7 +383,7 @@ export class PerformanceOptimizer {
       this.preloadedData.set('commandExamples', {
         init: ['claude-flow init', 'claude-flow init react', 'claude-flow init "todo app"'],
         build: ['claude-flow build "add auth"', 'claude-flow build "REST API"'],
-        status: ['claude-flow status', 'claude-flow status --detailed']
+        status: ['claude-flow status', 'claude-flow status --detailed'],
       });
     } catch (error) {
       console.warn('Failed to preload command metadata');
@@ -392,7 +395,7 @@ export class PerformanceOptimizer {
 
     try {
       // Test a lightweight agent operation
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       this.metrics.agentSpawnTime = performance.now() - startTime;
     } catch (error) {
@@ -405,7 +408,7 @@ export class PerformanceOptimizer {
       // Precompile common project templates
       this.preloadedData.set('compiledTemplates', {
         web: 'precompiled-web-template',
-        api: 'precompiled-api-template'
+        api: 'precompiled-api-template',
       });
     } catch (error) {
       console.warn('Failed to precompile templates');
@@ -440,7 +443,8 @@ export class PerformanceOptimizer {
         this.optimizeMemory();
       }
 
-      if (metrics.memoryUsage > 50 * 1024 * 1024) { // 50MB
+      if (metrics.memoryUsage > 50 * 1024 * 1024) {
+        // 50MB
         console.warn('⚠️ High memory usage detected - optimizing cache');
         this.evictLeastUsed();
       }
@@ -474,7 +478,7 @@ export class PerformanceOptimizer {
     return {
       metrics,
       recommendations,
-      cacheStats
+      cacheStats,
     };
   }
 }

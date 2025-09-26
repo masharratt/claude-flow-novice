@@ -14,7 +14,7 @@ export class SwarmIntegration {
     this.swarmVisualizer = null;
     this.dashboard = null;
     this.isSwarmMode = false;
-    
+
     this.init();
   }
 
@@ -34,41 +34,41 @@ export class SwarmIntegration {
    */
   addSwarmCommands() {
     const swarmCommands = {
-      'swarm': {
+      swarm: {
         description: 'Enter swarm visualization mode',
         handler: () => this.enterSwarmMode(),
-        usage: 'swarm'
+        usage: 'swarm',
       },
       'swarm-status': {
         description: 'Show current swarm status',
         handler: () => this.showSwarmStatus(),
-        usage: 'swarm-status'
+        usage: 'swarm-status',
       },
       'swarm-monitor': {
         description: 'Start real-time swarm monitoring',
         handler: (args) => this.startSwarmMonitoring(args),
-        usage: 'swarm-monitor [topology]'
+        usage: 'swarm-monitor [topology]',
       },
       'swarm-stop': {
         description: 'Stop swarm monitoring',
         handler: () => this.stopSwarmMonitoring(),
-        usage: 'swarm-stop'
+        usage: 'swarm-stop',
       },
-      'dashboard': {
+      dashboard: {
         description: 'Open real-time dashboard',
         handler: () => this.openDashboard(),
-        usage: 'dashboard'
+        usage: 'dashboard',
       },
-      'agents': {
+      agents: {
         description: 'List active agents',
         handler: () => this.listAgents(),
-        usage: 'agents'
+        usage: 'agents',
       },
-      'topology': {
+      topology: {
         description: 'Change swarm topology',
         handler: (args) => this.changeTopology(args),
-        usage: 'topology [mesh|hierarchical|ring|star]'
-      }
+        usage: 'topology [mesh|hierarchical|ring|star]',
+      },
     };
 
     // Register commands with the console's command handler
@@ -90,9 +90,9 @@ export class SwarmIntegration {
         type: 'secondary',
         text: 'Swarm Mode',
         icon: '🌊',
-        onclick: () => this.toggleSwarmMode()
+        onclick: () => this.toggleSwarmMode(),
       });
-      
+
       headerRight.insertBefore(swarmToggle.element, headerRight.firstChild);
       this.swarmToggleButton = swarmToggle;
     }
@@ -144,7 +144,7 @@ export class SwarmIntegration {
     }
 
     this.isSwarmMode = true;
-    
+
     // Create swarm container
     const swarmContainer = document.createElement('div');
     swarmContainer.id = 'swarm-visualization-container';
@@ -165,7 +165,7 @@ export class SwarmIntegration {
       type: 'secondary',
       text: 'Exit Swarm Mode',
       icon: '❌',
-      onclick: () => this.exitSwarmMode()
+      onclick: () => this.exitSwarmMode(),
     });
 
     closeButton.element.style.cssText = `
@@ -194,7 +194,7 @@ export class SwarmIntegration {
     // Update UI
     this.updateSwarmStatus('Active');
     this.swarmToggleButton.setText('Exit Swarm');
-    
+
     this.console.terminal.writeSuccess('Entered swarm visualization mode');
     this.console.terminal.writeInfo('Use "swarm-monitor" to start real-time monitoring');
   }
@@ -242,7 +242,7 @@ export class SwarmIntegration {
    */
   showSwarmStatus() {
     this.console.terminal.writeInfo('📊 Swarm Status:');
-    
+
     // Mock status data - would normally fetch from API
     const status = {
       active: this.isSwarmMode,
@@ -250,7 +250,7 @@ export class SwarmIntegration {
       topology: 'mesh',
       uptime: '2h 34m',
       tasksCompleted: Math.floor(Math.random() * 100) + 50,
-      averageResponseTime: Math.floor(Math.random() * 500) + 200
+      averageResponseTime: Math.floor(Math.random() * 500) + 200,
     };
 
     this.console.terminal.write(`  Mode: ${status.active ? 'Active' : 'Inactive'}`, 'info');
@@ -271,7 +271,7 @@ export class SwarmIntegration {
     }
 
     const topology = args && args[0] ? args[0] : 'mesh';
-    
+
     if (this.swarmVisualizer) {
       this.swarmVisualizer.topology = topology;
       this.swarmVisualizer.startMonitoring();
@@ -319,7 +319,7 @@ export class SwarmIntegration {
       type: 'secondary',
       text: 'Close Dashboard',
       icon: '❌',
-      onclick: () => this.closeDashboard()
+      onclick: () => this.closeDashboard(),
     });
 
     closeButton.element.style.cssText = `
@@ -361,23 +361,23 @@ export class SwarmIntegration {
    */
   listAgents() {
     this.console.terminal.writeInfo('🤖 Active Agents:');
-    
+
     // Mock agent data
     const agents = [
       { id: 'coder_01', type: 'coder', status: 'active', task: 'Implementing API endpoints' },
       { id: 'researcher_02', type: 'researcher', status: 'busy', task: 'Analyzing data patterns' },
       { id: 'reviewer_03', type: 'reviewer', status: 'idle', task: null },
-      { id: 'tester_04', type: 'tester', status: 'active', task: 'Running test suite' }
+      { id: 'tester_04', type: 'tester', status: 'active', task: 'Running test suite' },
     ];
 
-    agents.forEach(agent => {
-      const statusColor = agent.status === 'active' ? 'success' : 
-                         agent.status === 'busy' ? 'warning' : 'info';
+    agents.forEach((agent) => {
+      const statusColor =
+        agent.status === 'active' ? 'success' : agent.status === 'busy' ? 'warning' : 'info';
       const taskText = agent.task ? ` | Task: ${agent.task}` : ' | No active task';
-      
+
       this.console.terminal.write(
-        `  ${agent.id} (${agent.type}) - ${agent.status}${taskText}`, 
-        statusColor
+        `  ${agent.id} (${agent.type}) - ${agent.status}${taskText}`,
+        statusColor,
       );
     });
   }
@@ -393,9 +393,11 @@ export class SwarmIntegration {
 
     const topology = args[0];
     const validTopologies = ['mesh', 'hierarchical', 'ring', 'star'];
-    
+
     if (!validTopologies.includes(topology)) {
-      this.console.terminal.writeError(`Invalid topology. Valid options: ${validTopologies.join(', ')}`);
+      this.console.terminal.writeError(
+        `Invalid topology. Valid options: ${validTopologies.join(', ')}`,
+      );
       return;
     }
 
@@ -421,7 +423,7 @@ export class SwarmIntegration {
     if (this.dashboard) {
       this.dashboard.handleWebSocketMessage({
         type: 'swarm_update',
-        payload: data
+        payload: data,
       });
     }
   }
@@ -461,7 +463,7 @@ export class SwarmIntegration {
       swarmMode: this.isSwarmMode,
       visualizerActive: this.swarmVisualizer?.isActive || false,
       dashboardOpen: !!this.dashboard,
-      componentsLoaded: this.components.isInitialized
+      componentsLoaded: this.components.isInitialized,
     };
   }
 
@@ -471,11 +473,11 @@ export class SwarmIntegration {
   destroy() {
     this.exitSwarmMode();
     this.closeDashboard();
-    
+
     if (this.swarmToggleButton) {
       this.swarmToggleButton.element.remove();
     }
-    
+
     if (this.swarmStatusElement) {
       this.swarmStatusElement.remove();
     }

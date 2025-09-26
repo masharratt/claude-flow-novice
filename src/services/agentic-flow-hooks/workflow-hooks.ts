@@ -1,6 +1,6 @@
 /**
  * Self-improving workflow hooks for agentic-flow
- * 
+ *
  * Enables adaptive workflows with provider selection
  * and continuous improvement based on outcomes.
  */
@@ -24,24 +24,19 @@ export const workflowStartHook = {
   priority: 100,
   handler: async (
     payload: WorkflowHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { workflowId, state } = payload;
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Load workflow history and learnings
     const history = await loadWorkflowHistory(workflowId, context);
     const learnings = await loadWorkflowLearnings(workflowId, context);
-    
+
     // Select optimal provider based on history
-    const provider = await selectOptimalProvider(
-      workflowId,
-      state,
-      history,
-      context
-    );
-    
+    const provider = await selectOptimalProvider(workflowId, state, history, context);
+
     // Initialize workflow state
     const enhancedState = {
       ...state,
@@ -50,7 +45,7 @@ export const workflowStartHook = {
       learnings: learnings.slice(-10), // Last 10 learnings
       predictions: await generateWorkflowPredictions(workflowId, state, context),
     };
-    
+
     // Store workflow session
     sideEffects.push({
       type: 'memory',
@@ -61,14 +56,14 @@ export const workflowStartHook = {
         ttl: 86400, // 24 hours
       },
     });
-    
+
     // Track workflow start
     sideEffects.push({
       type: 'metric',
       action: 'increment',
       data: { name: `workflow.starts.${workflowId}` },
     });
-    
+
     return {
       continue: true,
       modified: true,
@@ -89,33 +84,26 @@ export const workflowStepHook = {
   priority: 100,
   handler: async (
     payload: WorkflowHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { workflowId, step, state } = payload;
-    
+
     if (!step) {
       return { continue: true };
     }
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Measure step performance
     const stepStart = Date.now();
-    
+
     // Check for step optimizations
-    const optimizations = await getStepOptimizations(
-      workflowId,
-      step,
-      context
-    );
-    
+    const optimizations = await getStepOptimizations(workflowId, step, context);
+
     if (optimizations.length > 0) {
       // Apply step optimizations
-      const optimizedState = applyStepOptimizations(
-        state,
-        optimizations
-      );
-      
+      const optimizedState = applyStepOptimizations(state, optimizations);
+
       sideEffects.push({
         type: 'log',
         action: 'write',
@@ -125,7 +113,7 @@ export const workflowStepHook = {
           data: { optimizations },
         },
       });
-      
+
       return {
         continue: true,
         modified: true,
@@ -136,7 +124,7 @@ export const workflowStepHook = {
         sideEffects,
       };
     }
-    
+
     // Track step execution
     sideEffects.push({
       type: 'memory',
@@ -151,7 +139,7 @@ export const workflowStepHook = {
         ttl: 86400,
       },
     });
-    
+
     return {
       continue: true,
       sideEffects,
@@ -167,43 +155,31 @@ export const workflowDecisionHook = {
   priority: 90,
   handler: async (
     payload: WorkflowHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { workflowId, decision, state } = payload;
-    
+
     if (!decision) {
       return { continue: true };
     }
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Enhance decision with historical data
-    const historicalOutcomes = await getDecisionOutcomes(
-      workflowId,
-      decision.point,
-      context
-    );
-    
+    const historicalOutcomes = await getDecisionOutcomes(workflowId, decision.point, context);
+
     // Calculate confidence adjustments
-    const adjustedDecision = adjustDecisionConfidence(
-      decision,
-      historicalOutcomes
-    );
-    
+    const adjustedDecision = adjustDecisionConfidence(decision, historicalOutcomes);
+
     // Generate alternative paths
-    const alternatives = await generateAlternativeDecisions(
-      workflowId,
-      decision,
-      state,
-      context
-    );
-    
+    const alternatives = await generateAlternativeDecisions(workflowId, decision, state, context);
+
     if (alternatives.length > 0) {
       // Check if better alternative exists
-      const bestAlternative = alternatives.find(alt => 
-        alt.confidence > adjustedDecision.confidence * 1.2
+      const bestAlternative = alternatives.find(
+        (alt) => alt.confidence > adjustedDecision.confidence * 1.2,
       );
-      
+
       if (bestAlternative) {
         sideEffects.push({
           type: 'notification',
@@ -216,14 +192,14 @@ export const workflowDecisionHook = {
             },
           },
         });
-        
+
         // Override with better decision
         adjustedDecision.selected = bestAlternative.selected;
         adjustedDecision.confidence = bestAlternative.confidence;
         adjustedDecision.reasoning = `${adjustedDecision.reasoning} (AI-optimized)`;
       }
     }
-    
+
     // Store decision for learning
     sideEffects.push({
       type: 'memory',
@@ -238,7 +214,7 @@ export const workflowDecisionHook = {
         ttl: 604800, // 7 days
       },
     });
-    
+
     // Track decision metrics
     sideEffects.push({
       type: 'metric',
@@ -248,7 +224,7 @@ export const workflowDecisionHook = {
         value: adjustedDecision.confidence,
       },
     });
-    
+
     return {
       continue: true,
       modified: true,
@@ -269,23 +245,18 @@ export const workflowCompleteHook = {
   priority: 100,
   handler: async (
     payload: WorkflowHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { workflowId, state, metrics } = payload;
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Calculate workflow performance
     const performance = calculateWorkflowPerformance(state, metrics);
-    
+
     // Extract learnings from this execution
-    const learnings = await extractWorkflowLearnings(
-      workflowId,
-      state,
-      performance,
-      context
-    );
-    
+    const learnings = await extractWorkflowLearnings(workflowId, state, performance, context);
+
     // Store learnings
     for (const learning of learnings) {
       sideEffects.push({
@@ -298,7 +269,7 @@ export const workflowCompleteHook = {
         },
       });
     }
-    
+
     // Update workflow success patterns
     if (performance.success) {
       const pattern: Pattern = {
@@ -313,9 +284,9 @@ export const workflowCompleteHook = {
           decisions: countDecisions(state),
         },
       };
-      
+
       context.neural.patterns.add(pattern);
-      
+
       sideEffects.push({
         type: 'neural',
         action: 'train',
@@ -325,16 +296,16 @@ export const workflowCompleteHook = {
         },
       });
     }
-    
+
     // Generate improvement suggestions
     const improvements = await generateImprovementSuggestions(
       workflowId,
       state,
       performance,
       learnings,
-      context
+      context,
     );
-    
+
     if (improvements.length > 0) {
       sideEffects.push({
         type: 'notification',
@@ -349,7 +320,7 @@ export const workflowCompleteHook = {
         },
       });
     }
-    
+
     // Update workflow metrics
     sideEffects.push(
       {
@@ -367,9 +338,9 @@ export const workflowCompleteHook = {
           name: `workflow.performance.score.${workflowId}`,
           value: performance.score,
         },
-      }
+      },
     );
-    
+
     return {
       continue: true,
       sideEffects,
@@ -385,24 +356,19 @@ export const workflowErrorHook = {
   priority: 95,
   handler: async (
     payload: WorkflowHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { workflowId, error, state } = payload;
-    
+
     if (!error) {
       return { continue: true };
     }
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Analyze error pattern
-    const errorPattern = await analyzeErrorPattern(
-      workflowId,
-      error,
-      state,
-      context
-    );
-    
+    const errorPattern = await analyzeErrorPattern(workflowId, error, state, context);
+
     // Store error for learning
     sideEffects.push({
       type: 'memory',
@@ -422,15 +388,10 @@ export const workflowErrorHook = {
         ttl: 604800, // 7 days
       },
     });
-    
+
     // Check for recovery strategies
-    const recovery = await findRecoveryStrategy(
-      workflowId,
-      error,
-      errorPattern,
-      context
-    );
-    
+    const recovery = await findRecoveryStrategy(workflowId, error, errorPattern, context);
+
     if (recovery) {
       sideEffects.push({
         type: 'log',
@@ -441,10 +402,10 @@ export const workflowErrorHook = {
           data: recovery,
         },
       });
-      
+
       // Apply recovery
       const recoveredState = applyRecoveryStrategy(state, recovery);
-      
+
       return {
         continue: true,
         modified: true,
@@ -456,7 +417,7 @@ export const workflowErrorHook = {
         sideEffects,
       };
     }
-    
+
     // Learn from failure
     const failureLearning: Learning = {
       type: 'failure',
@@ -468,7 +429,7 @@ export const workflowErrorHook = {
       },
       applicability: errorPattern.confidence,
     };
-    
+
     sideEffects.push({
       type: 'memory',
       action: 'store',
@@ -478,7 +439,7 @@ export const workflowErrorHook = {
         ttl: 0, // Permanent
       },
     });
-    
+
     return {
       continue: true,
       sideEffects,
@@ -490,43 +451,43 @@ export const workflowErrorHook = {
 
 async function loadWorkflowHistory(
   workflowId: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any[]> {
   const historyKey = `workflow:history:${workflowId}`;
-  return await context.memory.cache.get(historyKey) || [];
+  return (await context.memory.cache.get(historyKey)) || [];
 }
 
 async function loadWorkflowLearnings(
   workflowId: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<Learning[]> {
   const learningsKey = `workflow:learnings:${workflowId}`;
-  return await context.memory.cache.get(learningsKey) || [];
+  return (await context.memory.cache.get(learningsKey)) || [];
 }
 
 async function selectOptimalProvider(
   workflowId: string,
   state: any,
   history: any[],
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<string> {
   // Analyze historical performance by provider
   const providerStats = new Map<string, { success: number; total: number }>();
-  
+
   for (const execution of history) {
     const provider = execution.provider;
     if (!provider) continue;
-    
+
     const stats = providerStats.get(provider) || { success: 0, total: 0 };
     stats.total++;
     if (execution.success) stats.success++;
     providerStats.set(provider, stats);
   }
-  
+
   // Calculate success rates
   let bestProvider = 'openai'; // Default
   let bestRate = 0;
-  
+
   for (const [provider, stats] of providerStats) {
     const rate = stats.success / stats.total;
     if (rate > bestRate && stats.total >= 5) {
@@ -534,23 +495,23 @@ async function selectOptimalProvider(
       bestProvider = provider;
     }
   }
-  
+
   // Check current provider health
   const healthKey = `provider:health:${bestProvider}`;
   const health = await context.memory.cache.get(healthKey);
-  
+
   if (health && health.score < 0.5) {
     // Provider unhealthy, select alternative
     return selectAlternativeProvider(bestProvider, providerStats);
   }
-  
+
   return bestProvider;
 }
 
 async function generateWorkflowPredictions(
   workflowId: string,
   state: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any> {
   // Generate predictions for workflow execution
   const predictions = {
@@ -559,70 +520,55 @@ async function generateWorkflowPredictions(
     likelyBottlenecks: [],
     recommendedOptimizations: [],
   };
-  
+
   // Load historical durations
   const history = await loadWorkflowHistory(workflowId, context);
   if (history.length > 0) {
-    const durations = history
-      .filter(h => h.duration)
-      .map(h => h.duration);
-    
+    const durations = history.filter((h) => h.duration).map((h) => h.duration);
+
     if (durations.length > 0) {
-      predictions.estimatedDuration = 
-        durations.reduce((a, b) => a + b, 0) / durations.length;
+      predictions.estimatedDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
     }
-    
-    const successes = history.filter(h => h.success).length;
+
+    const successes = history.filter((h) => h.success).length;
     predictions.successProbability = successes / history.length;
   }
-  
+
   return predictions;
 }
 
 async function getStepOptimizations(
   workflowId: string,
   step: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any[]> {
   // Get optimizations for specific step
   const optKey = `optimizations:${workflowId}:${step}`;
-  return await context.memory.cache.get(optKey) || [];
+  return (await context.memory.cache.get(optKey)) || [];
 }
 
-function applyStepOptimizations(
-  state: any,
-  optimizations: any[]
-): any {
+function applyStepOptimizations(state: any, optimizations: any[]): any {
   let optimizedState = { ...state };
-  
+
   for (const opt of optimizations) {
     switch (opt.type) {
       case 'skip':
         if (opt.condition && opt.condition(state)) {
-          optimizedState.skipSteps = [
-            ...(optimizedState.skipSteps || []),
-            opt.target,
-          ];
+          optimizedState.skipSteps = [...(optimizedState.skipSteps || []), opt.target];
         }
         break;
-        
+
       case 'parallel':
-        optimizedState.parallelSteps = [
-          ...(optimizedState.parallelSteps || []),
-          ...opt.steps,
-        ];
+        optimizedState.parallelSteps = [...(optimizedState.parallelSteps || []), ...opt.steps];
         break;
-        
+
       case 'cache':
         optimizedState.useCache = true;
-        optimizedState.cacheKeys = [
-          ...(optimizedState.cacheKeys || []),
-          opt.key,
-        ];
+        optimizedState.cacheKeys = [...(optimizedState.cacheKeys || []), opt.key];
         break;
     }
   }
-  
+
   return optimizedState;
 }
 
@@ -640,36 +586,33 @@ function summarizeState(state: any): any {
 async function getDecisionOutcomes(
   workflowId: string,
   decisionPoint: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any[]> {
   // Get historical outcomes for decision point
   const outcomeKey = `outcomes:${workflowId}:${decisionPoint}`;
-  return await context.memory.cache.get(outcomeKey) || [];
+  return (await context.memory.cache.get(outcomeKey)) || [];
 }
 
 function adjustDecisionConfidence(
   decision: WorkflowDecision,
-  historicalOutcomes: any[]
+  historicalOutcomes: any[],
 ): WorkflowDecision {
   if (historicalOutcomes.length === 0) {
     return decision;
   }
-  
+
   // Calculate success rate for selected option
-  const relevantOutcomes = historicalOutcomes.filter(o => 
-    o.selected === decision.selected
-  );
-  
+  const relevantOutcomes = historicalOutcomes.filter((o) => o.selected === decision.selected);
+
   if (relevantOutcomes.length === 0) {
     return decision;
   }
-  
-  const successRate = relevantOutcomes.filter(o => o.success).length / 
-    relevantOutcomes.length;
-  
+
+  const successRate = relevantOutcomes.filter((o) => o.success).length / relevantOutcomes.length;
+
   // Adjust confidence based on historical success
   const adjustedConfidence = decision.confidence * 0.7 + successRate * 0.3;
-  
+
   return {
     ...decision,
     confidence: adjustedConfidence,
@@ -689,24 +632,24 @@ async function generateAlternativeDecisions(
   workflowId: string,
   decision: WorkflowDecision,
   state: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<WorkflowDecision[]> {
   // Generate alternative decision paths
   const alternatives: WorkflowDecision[] = [];
-  
+
   // Check each option not selected
   for (const option of decision.options) {
     if (option === decision.selected) continue;
-    
+
     // Calculate alternative confidence
     const altConfidence = await calculateAlternativeConfidence(
       workflowId,
       decision.point,
       option,
       state,
-      context
+      context,
     );
-    
+
     if (altConfidence > 0.5) {
       alternatives.push({
         ...decision,
@@ -716,14 +659,11 @@ async function generateAlternativeDecisions(
       });
     }
   }
-  
+
   return alternatives;
 }
 
-function calculateWorkflowPerformance(
-  state: any,
-  metrics: any
-): any {
+function calculateWorkflowPerformance(state: any, metrics: any): any {
   const performance = {
     success: !state.error,
     score: 0,
@@ -731,25 +671,25 @@ function calculateWorkflowPerformance(
     efficiency: 0,
     reliability: 0,
   };
-  
+
   // Calculate performance score
   if (performance.success) {
     performance.score = 0.7; // Base success score
-    
+
     // Adjust for duration
     if (metrics?.duration && state.predictions?.estimatedDuration) {
       const durationRatio = state.predictions.estimatedDuration / metrics.duration;
       performance.efficiency = Math.min(durationRatio, 1);
       performance.score += performance.efficiency * 0.2;
     }
-    
+
     // Adjust for error rate
     if (metrics?.errorRate !== undefined) {
       performance.reliability = 1 - metrics.errorRate;
       performance.score += performance.reliability * 0.1;
     }
   }
-  
+
   return performance;
 }
 
@@ -757,10 +697,10 @@ async function extractWorkflowLearnings(
   workflowId: string,
   state: any,
   performance: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<Learning[]> {
   const learnings: Learning[] = [];
-  
+
   // Learn from successful execution
   if (performance.success) {
     learnings.push({
@@ -774,7 +714,7 @@ async function extractWorkflowLearnings(
       applicability: performance.score,
     });
   }
-  
+
   // Learn from optimizations
   if (state.appliedOptimizations) {
     for (const opt of state.appliedOptimizations) {
@@ -786,7 +726,7 @@ async function extractWorkflowLearnings(
       });
     }
   }
-  
+
   return learnings;
 }
 
@@ -800,10 +740,10 @@ async function generateImprovementSuggestions(
   state: any,
   performance: any,
   learnings: Learning[],
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any[]> {
   const suggestions: any[] = [];
-  
+
   // Suggest caching if repeated operations
   if (performance.duration > 5000) {
     suggestions.push({
@@ -813,7 +753,7 @@ async function generateImprovementSuggestions(
       expectedImprovement: '30-50% reduction in duration',
     });
   }
-  
+
   // Suggest parallelization
   if (state.sequentialSteps?.length > 3) {
     suggestions.push({
@@ -823,12 +763,10 @@ async function generateImprovementSuggestions(
       expectedImprovement: '40-60% reduction in duration',
     });
   }
-  
+
   // Suggest provider switch based on learnings
-  const providerLearnings = learnings.filter(l => 
-    l.type === 'success' && l.value.provider
-  );
-  
+  const providerLearnings = learnings.filter((l) => l.type === 'success' && l.value.provider);
+
   if (providerLearnings.length > 0) {
     const providerScores = new Map<string, number>();
     for (const learning of providerLearnings) {
@@ -836,7 +774,7 @@ async function generateImprovementSuggestions(
       const score = providerScores.get(provider) || 0;
       providerScores.set(provider, score + learning.applicability);
     }
-    
+
     const currentScore = providerScores.get(state.provider) || 0;
     for (const [provider, score] of providerScores) {
       if (score > currentScore * 1.2) {
@@ -849,7 +787,7 @@ async function generateImprovementSuggestions(
       }
     }
   }
-  
+
   return suggestions;
 }
 
@@ -857,7 +795,7 @@ async function analyzeErrorPattern(
   workflowId: string,
   error: Error,
   state: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any> {
   // Analyze error to find patterns
   const pattern = {
@@ -869,18 +807,17 @@ async function analyzeErrorPattern(
       errorMessage: error.message,
     },
   };
-  
+
   // Check for similar errors
-  const errorHistory = await context.memory.cache.get(
-    `errors:${workflowId}:${pattern.type}`
-  ) || [];
-  
+  const errorHistory =
+    (await context.memory.cache.get(`errors:${workflowId}:${pattern.type}`)) || [];
+
   if (errorHistory.length > 5) {
     pattern.confidence = 0.9;
     pattern.context.recurring = true;
     pattern.context.occurrences = errorHistory.length;
   }
-  
+
   return pattern;
 }
 
@@ -888,7 +825,7 @@ async function findRecoveryStrategy(
   workflowId: string,
   error: Error,
   errorPattern: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any | null> {
   // Find recovery strategy for error
   if (errorPattern.type === 'timeout') {
@@ -901,7 +838,7 @@ async function findRecoveryStrategy(
       },
     };
   }
-  
+
   if (errorPattern.type === 'rate_limit') {
     return {
       type: 'throttle',
@@ -911,7 +848,7 @@ async function findRecoveryStrategy(
       },
     };
   }
-  
+
   if (errorPattern.type === 'validation') {
     return {
       type: 'transform',
@@ -921,54 +858,54 @@ async function findRecoveryStrategy(
       },
     };
   }
-  
+
   return null;
 }
 
 function applyRecoveryStrategy(state: any, recovery: any): any {
   const recoveredState = { ...state };
-  
+
   switch (recovery.type) {
     case 'retry':
       recoveredState.retryConfig = recovery.params;
       recoveredState.shouldRetry = true;
       break;
-      
+
     case 'throttle':
       recoveredState.throttleConfig = recovery.params;
       recoveredState.throttled = true;
       break;
-      
+
     case 'transform':
       recoveredState.transformConfig = recovery.params;
       recoveredState.needsTransform = true;
       break;
   }
-  
+
   recoveredState.recoveryApplied = recovery;
   delete recoveredState.error; // Clear error state
-  
+
   return recoveredState;
 }
 
 function selectAlternativeProvider(
   currentProvider: string,
-  providerStats: Map<string, { success: number; total: number }>
+  providerStats: Map<string, { success: number; total: number }>,
 ): string {
   // Select alternative provider based on stats
   let bestAlternative = 'anthropic'; // Default fallback
   let bestRate = 0;
-  
+
   for (const [provider, stats] of providerStats) {
     if (provider === currentProvider) continue;
-    
+
     const rate = stats.success / stats.total;
     if (rate > bestRate && stats.total >= 3) {
       bestRate = rate;
       bestAlternative = provider;
     }
   }
-  
+
   return bestAlternative;
 }
 
@@ -977,24 +914,23 @@ async function calculateAlternativeConfidence(
   decisionPoint: string,
   option: string,
   state: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<number> {
   // Calculate confidence for alternative option
   const outcomeKey = `outcomes:${workflowId}:${decisionPoint}:${option}`;
-  const outcomes = await context.memory.cache.get(outcomeKey) || [];
-  
+  const outcomes = (await context.memory.cache.get(outcomeKey)) || [];
+
   if (outcomes.length === 0) {
     return 0.5; // Default confidence
   }
-  
-  const successRate = outcomes.filter((o: any) => o.success).length / 
-    outcomes.length;
-  
+
+  const successRate = outcomes.filter((o: any) => o.success).length / outcomes.length;
+
   // Adjust for recency
   const recentOutcomes = outcomes.slice(-10);
-  const recentSuccessRate = recentOutcomes.filter((o: any) => o.success).length / 
-    recentOutcomes.length;
-  
+  const recentSuccessRate =
+    recentOutcomes.filter((o: any) => o.success).length / recentOutcomes.length;
+
   return successRate * 0.7 + recentSuccessRate * 0.3;
 }
 
@@ -1005,13 +941,13 @@ function extractDecisions(state: any): any[] {
 
 function classifyError(error: Error): string {
   const message = error.message.toLowerCase();
-  
+
   if (message.includes('timeout')) return 'timeout';
   if (message.includes('rate limit')) return 'rate_limit';
   if (message.includes('validation')) return 'validation';
   if (message.includes('network')) return 'network';
   if (message.includes('auth')) return 'authentication';
-  
+
   return 'unknown';
 }
 

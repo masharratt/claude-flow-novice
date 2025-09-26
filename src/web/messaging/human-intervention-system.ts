@@ -12,7 +12,14 @@ export interface HumanIntervention {
   agentId?: string; // Optional - can target all agents in swarm
   userId: string;
   message: string;
-  action: 'redirect' | 'pause' | 'resume' | 'priority-change' | 'relaunch-swarm' | 'modify-goal' | 'add-constraint';
+  action:
+    | 'redirect'
+    | 'pause'
+    | 'resume'
+    | 'priority-change'
+    | 'relaunch-swarm'
+    | 'modify-goal'
+    | 'add-constraint';
   metadata?: {
     newPriority?: 'low' | 'medium' | 'high' | 'urgent';
     newGoal?: string;
@@ -60,13 +67,15 @@ export class HumanInterventionSystem extends EventEmitter {
   /**
    * Send human intervention to agents with swarm relaunch capability
    */
-  public async sendIntervention(intervention: Omit<HumanIntervention, 'id' | 'status'>): Promise<string> {
+  public async sendIntervention(
+    intervention: Omit<HumanIntervention, 'id' | 'status'>,
+  ): Promise<string> {
     const interventionId = this.generateInterventionId();
 
     const fullIntervention: HumanIntervention = {
       ...intervention,
       id: interventionId,
-      status: 'pending'
+      status: 'pending',
     };
 
     // Handle special case: swarm relaunch
@@ -89,7 +98,7 @@ export class HumanInterventionSystem extends EventEmitter {
       interventionId,
       swarmId: intervention.swarmId,
       agentId: intervention.agentId,
-      action: intervention.action
+      action: intervention.action,
     });
 
     return interventionId;
@@ -105,14 +114,14 @@ export class HumanInterventionSystem extends EventEmitter {
     if (relaunchCount > this.MAX_RELAUNCHES) {
       this.logger.warn('Maximum relaunch attempts reached', {
         swarmId: intervention.swarmId,
-        relaunchCount
+        relaunchCount,
       });
       intervention.status = 'rejected';
       intervention.response = {
         agentId: 'system',
         message: `Cannot relaunch swarm: maximum ${this.MAX_RELAUNCHES} attempts reached`,
         timestamp: new Date().toISOString(),
-        actionTaken: 'rejected'
+        actionTaken: 'rejected',
       };
       this.interventions.set(intervention.id, intervention);
       return intervention.id;
@@ -126,18 +135,18 @@ export class HumanInterventionSystem extends EventEmitter {
         agentTypes: this.determineOptimalAgentTypes(intervention),
         objective: intervention.metadata?.newGoal,
         constraints: intervention.metadata?.constraints,
-        priority: intervention.metadata?.newPriority
+        priority: intervention.metadata?.newPriority,
       },
       relaunchCount,
       maxRelaunches: this.MAX_RELAUNCHES,
       preserveContext: true,
-      learningsFromPrevious: this.extractLearningsFromPreviousAttempts(intervention.swarmId)
+      learningsFromPrevious: this.extractLearningsFromPreviousAttempts(intervention.swarmId),
     };
 
     this.swarmRelaunches.set(intervention.swarmId, relaunchConfig);
     intervention.metadata = {
       ...intervention.metadata,
-      relaunchCount
+      relaunchCount,
     };
 
     this.interventions.set(intervention.id, intervention);
@@ -145,13 +154,13 @@ export class HumanInterventionSystem extends EventEmitter {
     // Emit relaunch event
     this.emit('swarm-relaunch-requested', {
       intervention,
-      relaunchConfig
+      relaunchConfig,
     });
 
     this.logger.info('Swarm relaunch initiated', {
       swarmId: intervention.swarmId,
       relaunchCount,
-      reason: intervention.message
+      reason: intervention.message,
     });
 
     return intervention.id;
@@ -160,7 +169,9 @@ export class HumanInterventionSystem extends EventEmitter {
   /**
    * Determine optimal agent composition based on previous attempts
    */
-  private determineOptimalAgentTypes(intervention: HumanIntervention): ('researcher' | 'coder' | 'reviewer')[] {
+  private determineOptimalAgentTypes(
+    intervention: HumanIntervention,
+  ): ('researcher' | 'coder' | 'reviewer')[] {
     const relaunchHistory = this.swarmRelaunches.get(intervention.swarmId);
 
     if (!relaunchHistory) {
@@ -171,11 +182,17 @@ export class HumanInterventionSystem extends EventEmitter {
     // Adjust based on what worked/didn't work
     const objective = intervention.metadata?.newGoal || 'general';
 
-    if (objective.toLowerCase().includes('research') || objective.toLowerCase().includes('analyze')) {
+    if (
+      objective.toLowerCase().includes('research') ||
+      objective.toLowerCase().includes('analyze')
+    ) {
       return ['researcher', 'researcher', 'reviewer']; // Research-heavy
     }
 
-    if (objective.toLowerCase().includes('build') || objective.toLowerCase().includes('implement')) {
+    if (
+      objective.toLowerCase().includes('build') ||
+      objective.toLowerCase().includes('implement')
+    ) {
       return ['researcher', 'coder', 'coder']; // Implementation-heavy
     }
 
@@ -193,7 +210,7 @@ export class HumanInterventionSystem extends EventEmitter {
   private extractLearningsFromPreviousAttempts(swarmId: string): string[] {
     const learnings: string[] = [];
     const interventions = Array.from(this.interventions.values())
-      .filter(i => i.swarmId === swarmId)
+      .filter((i) => i.swarmId === swarmId)
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     for (const intervention of interventions) {
@@ -209,7 +226,9 @@ export class HumanInterventionSystem extends EventEmitter {
     // Add default learnings for common patterns
     const relaunchCount = this.swarmRelaunches.get(swarmId)?.relaunchCount || 0;
     if (relaunchCount > 0) {
-      learnings.push(`This is attempt #${relaunchCount + 1} - apply lessons from previous attempts`);
+      learnings.push(
+        `This is attempt #${relaunchCount + 1} - apply lessons from previous attempts`,
+      );
     }
 
     if (relaunchCount > 2) {
@@ -237,7 +256,7 @@ export class HumanInterventionSystem extends EventEmitter {
       agentId,
       message: `Intervention acknowledged by agent ${agentId}`,
       timestamp: new Date().toISOString(),
-      actionTaken: 'acknowledged'
+      actionTaken: 'acknowledged',
     };
 
     this.emit('intervention-acknowledged', intervention);
@@ -245,14 +264,18 @@ export class HumanInterventionSystem extends EventEmitter {
     this.logger.debug('Intervention acknowledged', {
       interventionId,
       agentId,
-      swarmId: intervention.swarmId
+      swarmId: intervention.swarmId,
     });
   }
 
   /**
    * Agent applies intervention
    */
-  public async applyIntervention(interventionId: string, agentId: string, actionDetails: string): Promise<void> {
+  public async applyIntervention(
+    interventionId: string,
+    agentId: string,
+    actionDetails: string,
+  ): Promise<void> {
     const intervention = this.interventions.get(interventionId);
     if (!intervention) {
       throw new Error(`Intervention ${interventionId} not found`);
@@ -263,7 +286,7 @@ export class HumanInterventionSystem extends EventEmitter {
       agentId,
       message: `Intervention applied: ${actionDetails}`,
       timestamp: new Date().toISOString(),
-      actionTaken: actionDetails
+      actionTaken: actionDetails,
     };
 
     this.emit('intervention-applied', intervention);
@@ -272,7 +295,7 @@ export class HumanInterventionSystem extends EventEmitter {
       interventionId,
       agentId,
       swarmId: intervention.swarmId,
-      actionTaken: actionDetails
+      actionTaken: actionDetails,
     });
   }
 
@@ -281,7 +304,7 @@ export class HumanInterventionSystem extends EventEmitter {
    */
   public getPendingInterventions(swarmId: string): HumanIntervention[] {
     const swarmQueue = this.interventionQueue.get(swarmId) || [];
-    return swarmQueue.filter(i => i.status === 'pending');
+    return swarmQueue.filter((i) => i.status === 'pending');
   }
 
   /**
@@ -289,7 +312,7 @@ export class HumanInterventionSystem extends EventEmitter {
    */
   public getInterventionHistory(swarmId: string): HumanIntervention[] {
     return Array.from(this.interventions.values())
-      .filter(i => i.swarmId === swarmId)
+      .filter((i) => i.swarmId === swarmId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 
@@ -303,7 +326,11 @@ export class HumanInterventionSystem extends EventEmitter {
   /**
    * Check if swarm can be relaunched
    */
-  public canRelaunchSwarm(swarmId: string): { canRelaunch: boolean; remainingAttempts: number; reason?: string } {
+  public canRelaunchSwarm(swarmId: string): {
+    canRelaunch: boolean;
+    remainingAttempts: number;
+    reason?: string;
+  } {
     const relaunchConfig = this.swarmRelaunches.get(swarmId);
     const currentCount = relaunchConfig?.relaunchCount || 0;
     const remaining = this.MAX_RELAUNCHES - currentCount;
@@ -312,13 +339,13 @@ export class HumanInterventionSystem extends EventEmitter {
       return {
         canRelaunch: false,
         remainingAttempts: 0,
-        reason: `Maximum ${this.MAX_RELAUNCHES} relaunches reached`
+        reason: `Maximum ${this.MAX_RELAUNCHES} relaunches reached`,
       };
     }
 
     return {
       canRelaunch: true,
-      remainingAttempts: remaining
+      remainingAttempts: remaining,
     };
   }
 
@@ -329,20 +356,20 @@ export class HumanInterventionSystem extends EventEmitter {
     let targetInterventions = Array.from(this.interventions.values());
 
     if (swarmId) {
-      targetInterventions = targetInterventions.filter(i => i.swarmId === swarmId);
+      targetInterventions = targetInterventions.filter((i) => i.swarmId === swarmId);
     }
 
     const stats = {
       total: targetInterventions.length,
       byStatus: {
-        pending: targetInterventions.filter(i => i.status === 'pending').length,
-        acknowledged: targetInterventions.filter(i => i.status === 'acknowledged').length,
-        applied: targetInterventions.filter(i => i.status === 'applied').length,
-        rejected: targetInterventions.filter(i => i.status === 'rejected').length
+        pending: targetInterventions.filter((i) => i.status === 'pending').length,
+        acknowledged: targetInterventions.filter((i) => i.status === 'acknowledged').length,
+        applied: targetInterventions.filter((i) => i.status === 'applied').length,
+        rejected: targetInterventions.filter((i) => i.status === 'rejected').length,
       },
       byAction: {} as Record<string, number>,
       swarmRelaunches: this.swarmRelaunches.size,
-      averageRelaunchCount: 0
+      averageRelaunchCount: 0,
     };
 
     // Count by action type
@@ -352,8 +379,10 @@ export class HumanInterventionSystem extends EventEmitter {
 
     // Calculate average relaunch count
     if (this.swarmRelaunches.size > 0) {
-      const totalRelaunches = Array.from(this.swarmRelaunches.values())
-        .reduce((sum, config) => sum + config.relaunchCount, 0);
+      const totalRelaunches = Array.from(this.swarmRelaunches.values()).reduce(
+        (sum, config) => sum + config.relaunchCount,
+        0,
+      );
       stats.averageRelaunchCount = totalRelaunches / this.swarmRelaunches.size;
     }
 
@@ -381,7 +410,7 @@ export class HumanInterventionSystem extends EventEmitter {
         // Clean up from queue
         const swarmQueue = this.interventionQueue.get(intervention.swarmId);
         if (swarmQueue) {
-          const index = swarmQueue.findIndex(i => i.id === id);
+          const index = swarmQueue.findIndex((i) => i.id === id);
           if (index > -1) {
             swarmQueue.splice(index, 1);
           }

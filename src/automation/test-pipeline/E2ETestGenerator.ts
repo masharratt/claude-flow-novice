@@ -66,7 +66,7 @@ export class E2ETestGenerator {
       const testCode = this.generatePlaywrightTestCode(scenarios, {
         testType: 'user-flow',
         flowName: flow.name,
-        mcpIntegration: this.mcpEnabled
+        mcpIntegration: this.mcpEnabled,
       });
 
       testFiles.push(testCode);
@@ -85,7 +85,7 @@ export class E2ETestGenerator {
     const testCode = this.generatePlaywrightTestCode(regressionScenarios, {
       testType: 'regression',
       parallel: true,
-      swarmCoordinated: true
+      swarmCoordinated: true,
     });
 
     return testCode;
@@ -101,7 +101,7 @@ export class E2ETestGenerator {
     const testCode = this.generatePlaywrightTestCode(performanceScenarios, {
       testType: 'performance',
       monitoring: true,
-      thresholds: performanceTargets.thresholds
+      thresholds: performanceTargets.thresholds,
     });
 
     return testCode;
@@ -113,11 +113,11 @@ export class E2ETestGenerator {
   async generateVisualRegressionTests(pages: string[]): Promise<string> {
     console.log(`📸 Generating visual regression tests for ${pages.length} pages`);
 
-    const visualScenarios = pages.map(page => this.createVisualScenario(page));
+    const visualScenarios = pages.map((page) => this.createVisualScenario(page));
     const testCode = this.generatePlaywrightTestCode(visualScenarios, {
       testType: 'visual-regression',
       screenshots: true,
-      comparison: true
+      comparison: true,
     });
 
     return testCode;
@@ -129,14 +129,14 @@ export class E2ETestGenerator {
   async generateAccessibilityTests(components: string[]): Promise<string> {
     console.log(`♿ Generating accessibility tests for ${components.length} components`);
 
-    const accessibilityScenarios = components.map(component =>
-      this.createAccessibilityScenario(component)
+    const accessibilityScenarios = components.map((component) =>
+      this.createAccessibilityScenario(component),
     );
 
     const testCode = this.generatePlaywrightTestCode(accessibilityScenarios, {
       testType: 'accessibility',
       axeIntegration: true,
-      wcagCompliance: true
+      wcagCompliance: true,
     });
 
     return testCode;
@@ -156,17 +156,17 @@ export class E2ETestGenerator {
       assertions: await this.generateHappyPathAssertions(specs),
       category: 'user-flow',
       priority: 'high',
-      dependencies: []
+      dependencies: [],
     });
 
     // Error handling scenarios
     if (specs.errorHandling) {
-      scenarios.push(...await this.generateErrorScenarios(feature, specs.errorHandling));
+      scenarios.push(...(await this.generateErrorScenarios(feature, specs.errorHandling)));
     }
 
     // Edge case scenarios
     if (specs.edgeCases) {
-      scenarios.push(...await this.generateEdgeCaseScenarios(feature, specs.edgeCases));
+      scenarios.push(...(await this.generateEdgeCaseScenarios(feature, specs.edgeCases)));
     }
 
     return scenarios;
@@ -179,7 +179,7 @@ export class E2ETestGenerator {
       steps.push({
         action: 'navigate',
         target: specs.navigation.url,
-        screenshot: this.screenshotEnabled
+        screenshot: this.screenshotEnabled,
       });
     }
 
@@ -190,7 +190,7 @@ export class E2ETestGenerator {
           target: interaction.selector,
           value: interaction.value,
           timeout: interaction.timeout || 5000,
-          screenshot: this.screenshotEnabled && interaction.critical
+          screenshot: this.screenshotEnabled && interaction.critical,
         });
       }
     }
@@ -207,7 +207,7 @@ export class E2ETestGenerator {
           type: outcome.type,
           target: outcome.selector,
           expected: outcome.value,
-          message: `Expected ${outcome.description}`
+          message: `Expected ${outcome.description}`,
         });
       }
     }
@@ -385,18 +385,18 @@ export class E2ETestGenerator {
           action: step.action,
           target: step.selector,
           value: step.value,
-          screenshot: this.screenshotEnabled
+          screenshot: this.screenshotEnabled,
         })),
         assertions: flow.expectedOutcomes.map((outcome: any) => ({
           type: outcome.type,
           target: outcome.selector,
           expected: outcome.value,
-          message: outcome.description
+          message: outcome.description,
         })),
         category: 'user-flow',
         priority: flow.priority || 'medium',
-        dependencies: flow.dependencies || []
-      }
+        dependencies: flow.dependencies || [],
+      },
     ];
   }
 
@@ -413,7 +413,7 @@ export class E2ETestGenerator {
         assertions: await this.generateRegressionAssertions(component),
         category: 'regression',
         priority: 'high',
-        dependencies: []
+        dependencies: [],
       });
     }
 
@@ -425,7 +425,7 @@ export class E2ETestGenerator {
     return [
       { action: 'navigate', target: `/${component}` },
       { action: 'wait', target: `[data-testid="${component}"]` },
-      { action: 'click', target: `[data-testid="${component}-action"]` }
+      { action: 'click', target: `[data-testid="${component}-action"]` },
     ];
   }
 
@@ -436,8 +436,8 @@ export class E2ETestGenerator {
         type: 'element-visible',
         target: `[data-testid="${component}"]`,
         expected: true,
-        message: `${component} should be visible`
-      }
+        message: `${component} should be visible`,
+      },
     ];
   }
 
@@ -448,21 +448,19 @@ export class E2ETestGenerator {
         id: 'performance-load-time',
         name: 'Page Load Performance',
         description: 'Measure and validate page load performance',
-        steps: [
-          { action: 'navigate', target: '/' }
-        ],
+        steps: [{ action: 'navigate', target: '/' }],
         assertions: [
           {
             type: 'performance',
             target: 'loadTime',
             expected: targets.loadTime,
-            message: 'Page should load within expected time'
-          }
+            message: 'Page should load within expected time',
+          },
         ],
         category: 'performance',
         priority: 'high',
-        dependencies: []
-      }
+        dependencies: [],
+      },
     ];
   }
 
@@ -471,20 +469,18 @@ export class E2ETestGenerator {
       id: `visual-${page}`,
       name: `Visual regression for ${page}`,
       description: `Compare visual appearance of ${page}`,
-      steps: [
-        { action: 'navigate', target: `/${page}`, screenshot: true }
-      ],
+      steps: [{ action: 'navigate', target: `/${page}`, screenshot: true }],
       assertions: [
         {
           type: 'element-visible',
           target: 'body',
           expected: true,
-          message: 'Page should be visible'
-        }
+          message: 'Page should be visible',
+        },
       ],
       category: 'visual',
       priority: 'medium',
-      dependencies: []
+      dependencies: [],
     };
   }
 
@@ -493,24 +489,25 @@ export class E2ETestGenerator {
       id: `accessibility-${component}`,
       name: `Accessibility test for ${component}`,
       description: `Validate accessibility compliance of ${component}`,
-      steps: [
-        { action: 'navigate', target: `/${component}` }
-      ],
+      steps: [{ action: 'navigate', target: `/${component}` }],
       assertions: [
         {
           type: 'accessibility',
           target: component,
           expected: 'compliant',
-          message: `${component} should be accessibility compliant`
-        }
+          message: `${component} should be accessibility compliant`,
+        },
       ],
       category: 'accessibility',
       priority: 'medium',
-      dependencies: []
+      dependencies: [],
     };
   }
 
-  private async generateErrorScenarios(feature: string, errorHandling: any): Promise<TestScenario[]> {
+  private async generateErrorScenarios(
+    feature: string,
+    errorHandling: any,
+  ): Promise<TestScenario[]> {
     // Generate error handling test scenarios
     return errorHandling.map((error: any, index: number) => ({
       id: `${feature}-error-${index}`,
@@ -520,11 +517,14 @@ export class E2ETestGenerator {
       assertions: error.assertions,
       category: 'user-flow',
       priority: 'medium',
-      dependencies: []
+      dependencies: [],
     }));
   }
 
-  private async generateEdgeCaseScenarios(feature: string, edgeCases: any): Promise<TestScenario[]> {
+  private async generateEdgeCaseScenarios(
+    feature: string,
+    edgeCases: any,
+  ): Promise<TestScenario[]> {
     // Generate edge case test scenarios
     return edgeCases.map((edgeCase: any, index: number) => ({
       id: `${feature}-edge-${index}`,
@@ -534,7 +534,7 @@ export class E2ETestGenerator {
       assertions: edgeCase.assertions,
       category: 'regression',
       priority: 'low',
-      dependencies: []
+      dependencies: [],
     }));
   }
 }

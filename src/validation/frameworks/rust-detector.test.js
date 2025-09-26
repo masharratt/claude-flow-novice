@@ -98,9 +98,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.web).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'axum' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'axum' })]),
       );
       expect(result.scores.webFrameworks.axum).toBeGreaterThan(0);
     });
@@ -112,9 +110,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.web).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'warp' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'warp' })]),
       );
     });
 
@@ -125,9 +121,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.web).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'actix-web' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'actix-web' })]),
       );
     });
 
@@ -138,9 +132,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.web).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'rocket' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'rocket' })]),
       );
     });
   });
@@ -153,9 +145,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.database).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'diesel' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'diesel' })]),
       );
     });
 
@@ -166,9 +156,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.database).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'sea-orm' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'sea-orm' })]),
       );
     });
 
@@ -179,9 +167,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.database).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'sqlx' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'sqlx' })]),
       );
     });
   });
@@ -194,9 +180,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.async).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'tokio' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'tokio' })]),
       );
     });
 
@@ -207,9 +191,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.async).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'async-std' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'async-std' })]),
       );
     });
   });
@@ -222,9 +204,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.testing).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'builtin' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'builtin' })]),
       );
     });
 
@@ -235,9 +215,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.testing).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'criterion' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'criterion' })]),
       );
     });
 
@@ -248,9 +226,7 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.frameworks.testing).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'proptest' })
-        ])
+        expect.arrayContaining([expect.objectContaining({ name: 'proptest' })]),
       );
     });
   });

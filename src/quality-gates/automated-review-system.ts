@@ -144,7 +144,7 @@ export class AutomatedReviewSystem extends EventEmitter {
           requiredChecks: ['lint', 'format', 'types'],
           reviewers: [],
           autoApprove: true,
-          timeoutMinutes: 5
+          timeoutMinutes: 5,
         },
         prReview: {
           enabled: true,
@@ -152,7 +152,7 @@ export class AutomatedReviewSystem extends EventEmitter {
           requiredChecks: ['lint', 'test', 'security', 'complexity'],
           reviewers: ['automated-reviewer', 'senior-developer'],
           autoApprove: false,
-          timeoutMinutes: 240
+          timeoutMinutes: 240,
         },
         preDeployment: {
           enabled: true,
@@ -160,7 +160,7 @@ export class AutomatedReviewSystem extends EventEmitter {
           requiredChecks: ['test', 'security', 'performance', 'integration'],
           reviewers: ['deployment-manager', 'tech-lead'],
           autoApprove: false,
-          timeoutMinutes: 60
+          timeoutMinutes: 60,
         },
         postDeployment: {
           enabled: true,
@@ -168,38 +168,38 @@ export class AutomatedReviewSystem extends EventEmitter {
           requiredChecks: ['monitoring', 'performance', 'health'],
           reviewers: ['sre-team'],
           autoApprove: true,
-          timeoutMinutes: 30
+          timeoutMinutes: 30,
         },
-        ...config.stages
+        ...config.stages,
       },
       tools: {
         linting: {
           eslint: true,
           prettier: true,
           typescript: true,
-          customRules: []
+          customRules: [],
         },
         security: {
           auditDependencies: true,
           secretScanning: true,
           codeAnalysis: true,
-          licenseCheck: true
+          licenseCheck: true,
         },
         testing: {
           unitTests: true,
           integrationTests: true,
           e2eTests: true,
           coverageThreshold: 80,
-          performanceTests: false
+          performanceTests: false,
         },
         performance: {
           bundleSize: true,
           loadTime: true,
           memoryUsage: false,
-          cpuUsage: false
+          cpuUsage: false,
         },
-        ...config.tools
-      }
+        ...config.tools,
+      },
     };
   }
 
@@ -208,32 +208,32 @@ export class AutomatedReviewSystem extends EventEmitter {
     this.reviewers.set('automated-reviewer', {
       type: 'automated',
       specializations: ['general', 'style', 'complexity'],
-      weight: 1.0
+      weight: 1.0,
     });
 
     this.reviewers.set('security-reviewer', {
       type: 'automated',
       specializations: ['security', 'vulnerability-analysis'],
-      weight: 1.0
+      weight: 1.0,
     });
 
     this.reviewers.set('performance-reviewer', {
       type: 'automated',
       specializations: ['performance', 'optimization'],
-      weight: 0.8
+      weight: 0.8,
     });
 
     this.reviewers.set('test-reviewer', {
       type: 'automated',
       specializations: ['testing', 'coverage'],
-      weight: 0.9
+      weight: 0.9,
     });
   }
 
   public async startReview(
     filePaths: string[],
     stage: keyof QualityGateConfig['stages'],
-    metadata: any = {}
+    metadata: any = {},
   ): Promise<string> {
     const reviewId = `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const stageConfig = this.config.stages[stage];
@@ -254,7 +254,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         securityScore: 0,
         performanceScore: 0,
         linesOfCode: 0,
-        technicalDebt: 0
+        technicalDebt: 0,
       },
       criteria: this.getReviewCriteria(stage),
       passed: false,
@@ -262,15 +262,15 @@ export class AutomatedReviewSystem extends EventEmitter {
       suggestions: [],
       autoFixable: false,
       blocksDeployment: stageConfig.blocksProgression,
-      reviewerComments: []
+      reviewerComments: [],
     };
 
     this.activeReviews.set(reviewId, review);
     this.emit('review:started', { reviewId, stage, filePaths, metadata });
 
     // Run parallel checks based on stage requirements
-    const checkPromises = stageConfig.requiredChecks.map(check =>
-      this.runQualityCheck(check, filePaths, review)
+    const checkPromises = stageConfig.requiredChecks.map((check) =>
+      this.runQualityCheck(check, filePaths, review),
     );
 
     try {
@@ -278,7 +278,7 @@ export class AutomatedReviewSystem extends EventEmitter {
 
       // Analyze results and make final decision
       review.passed = this.evaluateReviewResults(review);
-      review.autoFixable = review.issues.every(issue => issue.fixable);
+      review.autoFixable = review.issues.every((issue) => issue.fixable);
 
       this.reviewHistory.push(review);
       this.activeReviews.delete(reviewId);
@@ -290,7 +290,6 @@ export class AutomatedReviewSystem extends EventEmitter {
       }
 
       return reviewId;
-
     } catch (error) {
       review.passed = false;
       review.issues.push({
@@ -300,7 +299,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         column: 0,
         message: `Review failed: ${error instanceof Error ? error.message : String(error)}`,
         rule: 'review-system',
-        fixable: false
+        fixable: false,
       });
 
       this.emit('review:failed', { reviewId, error, stage });
@@ -317,7 +316,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         minTestCoverage: 0,
         minSecurityScore: 70,
         minPerformanceScore: 70,
-        maxTechnicalDebt: 30
+        maxTechnicalDebt: 30,
       },
       prReview: {
         minComplexity: 15,
@@ -326,7 +325,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         minTestCoverage: 80,
         minSecurityScore: 80,
         minPerformanceScore: 75,
-        maxTechnicalDebt: 20
+        maxTechnicalDebt: 20,
       },
       preDeployment: {
         minComplexity: 20,
@@ -335,7 +334,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         minTestCoverage: 85,
         minSecurityScore: 90,
         minPerformanceScore: 80,
-        maxTechnicalDebt: 15
+        maxTechnicalDebt: 15,
       },
       postDeployment: {
         minComplexity: 25,
@@ -344,21 +343,21 @@ export class AutomatedReviewSystem extends EventEmitter {
         minTestCoverage: 90,
         minSecurityScore: 95,
         minPerformanceScore: 85,
-        maxTechnicalDebt: 10
-      }
+        maxTechnicalDebt: 10,
+      },
     };
 
     const thresholds = baseThresholds[stage];
     return {
       ...thresholds,
-      requiredChecks: this.config.stages[stage].requiredChecks
+      requiredChecks: this.config.stages[stage].requiredChecks,
     };
   }
 
   private async runQualityCheck(
     checkType: string,
     filePaths: string[],
-    review: ReviewResult
+    review: ReviewResult,
   ): Promise<void> {
     switch (checkType) {
       case 'lint':
@@ -400,9 +399,7 @@ export class AutomatedReviewSystem extends EventEmitter {
     if (!this.config.tools.linting.eslint) return;
 
     try {
-      const { stdout, stderr } = await execAsync(
-        `npx eslint ${filePaths.join(' ')} --format json`
-      );
+      const { stdout, stderr } = await execAsync(`npx eslint ${filePaths.join(' ')} --format json`);
 
       const lintResults = JSON.parse(stdout);
 
@@ -415,11 +412,10 @@ export class AutomatedReviewSystem extends EventEmitter {
             column: message.column,
             message: message.message,
             rule: message.ruleId || 'unknown',
-            fixable: message.fix !== undefined
+            fixable: message.fix !== undefined,
           });
         }
       }
-
     } catch (error) {
       // ESLint returns non-zero exit code for lint errors, parse the output anyway
       if (error instanceof Error && 'stdout' in error) {
@@ -434,7 +430,7 @@ export class AutomatedReviewSystem extends EventEmitter {
             column: 0,
             message: `Linting failed: ${error.message}`,
             rule: 'eslint-error',
-            fixable: false
+            fixable: false,
           });
         }
       }
@@ -445,15 +441,12 @@ export class AutomatedReviewSystem extends EventEmitter {
     if (!this.config.tools.linting.prettier) return;
 
     try {
-      const { stdout } = await execAsync(
-        `npx prettier --check ${filePaths.join(' ')}`
-      );
+      const { stdout } = await execAsync(`npx prettier --check ${filePaths.join(' ')}`);
 
       // If no output, formatting is correct
       if (!stdout.trim()) {
         return;
       }
-
     } catch (error) {
       review.issues.push({
         type: 'style',
@@ -463,7 +456,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         message: 'Code formatting issues detected',
         rule: 'prettier',
         fixable: true,
-        suggestion: 'Run: npx prettier --write <files>'
+        suggestion: 'Run: npx prettier --write <files>',
       });
     }
   }
@@ -475,9 +468,11 @@ export class AutomatedReviewSystem extends EventEmitter {
       const { stdout, stderr } = await execAsync('npx tsc --noEmit');
 
       if (stderr) {
-        const typeErrors = stderr.split('\n').filter(line =>
-          line.includes('error TS') && filePaths.some(path => line.includes(path))
-        );
+        const typeErrors = stderr
+          .split('\n')
+          .filter(
+            (line) => line.includes('error TS') && filePaths.some((path) => line.includes(path)),
+          );
 
         for (const error of typeErrors) {
           const match = error.match(/(.+?)\((\d+),(\d+)\): error TS(\d+): (.+)/);
@@ -489,12 +484,11 @@ export class AutomatedReviewSystem extends EventEmitter {
               column: parseInt(match[3]),
               message: match[5],
               rule: `TS${match[4]}`,
-              fixable: false
+              fixable: false,
             });
           }
         }
       }
-
     } catch (error) {
       // TypeScript errors are expected in stderr
     }
@@ -518,11 +512,10 @@ export class AutomatedReviewSystem extends EventEmitter {
             message: `Test coverage (${review.metrics.testCoverage}%) below threshold (${review.criteria.minTestCoverage}%)`,
             rule: 'coverage-threshold',
             fixable: false,
-            suggestion: 'Add more tests to improve coverage'
+            suggestion: 'Add more tests to improve coverage',
           });
         }
       }
-
     } catch (error) {
       review.issues.push({
         type: 'testing',
@@ -531,7 +524,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         column: 0,
         message: 'Failed to analyze test coverage',
         rule: 'test-analysis',
-        fixable: false
+        fixable: false,
       });
     }
   }
@@ -553,19 +546,20 @@ export class AutomatedReviewSystem extends EventEmitter {
             column: 0,
             message: `Security vulnerability in ${name}: ${vulnData.title}`,
             rule: 'npm-audit',
-            fixable: vulnData.fixAvailable !== false
+            fixable: vulnData.fixAvailable !== false,
           });
         }
       }
 
       // Calculate security score based on vulnerabilities
-      const criticalCount = Object.values(auditData.vulnerabilities || {})
-        .filter((v: any) => v.severity === 'critical').length;
-      const highCount = Object.values(auditData.vulnerabilities || {})
-        .filter((v: any) => v.severity === 'high').length;
+      const criticalCount = Object.values(auditData.vulnerabilities || {}).filter(
+        (v: any) => v.severity === 'critical',
+      ).length;
+      const highCount = Object.values(auditData.vulnerabilities || {}).filter(
+        (v: any) => v.severity === 'high',
+      ).length;
 
       review.metrics.securityScore = Math.max(0, 100 - (criticalCount * 25 + highCount * 10));
-
     } catch (error) {
       review.metrics.securityScore = 50; // Unknown security status
     }
@@ -584,7 +578,8 @@ export class AutomatedReviewSystem extends EventEmitter {
       // Simple performance score based on file size and complexity
       review.metrics.performanceScore = Math.max(0, 100 - Math.floor(totalSize / 10000) * 5);
 
-      if (totalSize > 100000) { // 100KB threshold
+      if (totalSize > 100000) {
+        // 100KB threshold
         review.issues.push({
           type: 'performance',
           severity: 'minor',
@@ -593,10 +588,9 @@ export class AutomatedReviewSystem extends EventEmitter {
           message: `Large file size (${Math.round(totalSize / 1024)}KB) may impact performance`,
           rule: 'file-size',
           fixable: false,
-          suggestion: 'Consider code splitting or optimization'
+          suggestion: 'Consider code splitting or optimization',
         });
       }
-
     } catch (error) {
       review.metrics.performanceScore = 70; // Default score
     }
@@ -623,7 +617,7 @@ export class AutomatedReviewSystem extends EventEmitter {
             message: `High cyclomatic complexity (${complexity})`,
             rule: 'complexity-threshold',
             fixable: false,
-            suggestion: 'Consider breaking down complex functions'
+            suggestion: 'Consider breaking down complex functions',
           });
         }
       } catch (error) {
@@ -647,7 +641,7 @@ export class AutomatedReviewSystem extends EventEmitter {
       /\bcatch\b/g,
       /\b&&\b/g,
       /\b\|\|\b/g,
-      /\?\s*.*\s*:/g
+      /\?\s*.*\s*:/g,
     ];
 
     let complexity = 1; // Base complexity
@@ -667,7 +661,7 @@ export class AutomatedReviewSystem extends EventEmitter {
       description: 'Consider adding integration tests',
       impact: 'medium',
       effort: 'medium',
-      priority: 3
+      priority: 3,
     });
   }
 
@@ -684,7 +678,7 @@ export class AutomatedReviewSystem extends EventEmitter {
         description: 'Add logging for better observability',
         impact: 'medium',
         effort: 'low',
-        priority: 4
+        priority: 4,
       });
     }
   }
@@ -696,13 +690,13 @@ export class AutomatedReviewSystem extends EventEmitter {
       description: 'Ensure health check endpoints are available',
       impact: 'high',
       effort: 'low',
-      priority: 5
+      priority: 5,
     });
   }
 
   private evaluateReviewResults(review: ReviewResult): boolean {
-    const criticalIssues = review.issues.filter(issue => issue.severity === 'critical').length;
-    const majorIssues = review.issues.filter(issue => issue.severity === 'major').length;
+    const criticalIssues = review.issues.filter((issue) => issue.severity === 'critical').length;
+    const majorIssues = review.issues.filter((issue) => issue.severity === 'major').length;
 
     // Fail if there are critical issues
     if (criticalIssues > 0) return false;
@@ -735,24 +729,33 @@ export class AutomatedReviewSystem extends EventEmitter {
 
   private mapEslintSeverity(severity: number): ReviewIssue['severity'] {
     switch (severity) {
-      case 2: return 'major';
-      case 1: return 'minor';
-      default: return 'info';
+      case 2:
+        return 'major';
+      case 1:
+        return 'minor';
+      default:
+        return 'info';
     }
   }
 
   private mapAuditSeverity(severity: string): ReviewIssue['severity'] {
     switch (severity.toLowerCase()) {
-      case 'critical': return 'critical';
-      case 'high': return 'major';
-      case 'moderate': return 'minor';
-      default: return 'info';
+      case 'critical':
+        return 'critical';
+      case 'high':
+        return 'major';
+      case 'moderate':
+        return 'minor';
+      default:
+        return 'info';
     }
   }
 
   public getReview(reviewId: string): ReviewResult | undefined {
-    return this.reviewHistory.find(review => review.id === reviewId) ||
-           this.activeReviews.get(reviewId);
+    return (
+      this.reviewHistory.find((review) => review.id === reviewId) ||
+      this.activeReviews.get(reviewId)
+    );
   }
 
   public getActiveReviews(): ReviewResult[] {
@@ -767,7 +770,7 @@ export class AutomatedReviewSystem extends EventEmitter {
     const review = this.getReview(reviewId);
     if (!review || !review.autoFixable) return false;
 
-    const fixableIssues = review.issues.filter(issue => issue.fixable);
+    const fixableIssues = review.issues.filter((issue) => issue.fixable);
 
     for (const issue of fixableIssues) {
       try {

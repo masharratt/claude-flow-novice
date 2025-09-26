@@ -31,15 +31,15 @@ class PairProgrammingSession {
   async start() {
     await this.saveSession();
     this.showWelcome();
-    
+
     if (this.verify) {
       await this.startVerification();
     }
-    
+
     if (this.test) {
       await this.startTestWatcher();
     }
-    
+
     await this.startInteractiveMode();
   }
 
@@ -94,7 +94,7 @@ class PairProgrammingSession {
     console.log(`  • Threshold: ${this.threshold}`);
     console.log('  • Real-time validation enabled');
     console.log('  • Auto-rollback on failures');
-    
+
     // Start verification loop
     this.verificationInterval = setInterval(async () => {
       await this.runVerification();
@@ -103,36 +103,36 @@ class PairProgrammingSession {
 
   async runVerification() {
     console.log('\n🔍 Running verification check...');
-    
+
     const checks = [
       { name: 'Type Check', command: 'npm run typecheck 2>&1 || true' },
       { name: 'Linting', command: 'npm run lint 2>&1 || true' },
-      { name: 'Build', command: 'npm run build 2>&1 || true' }
+      { name: 'Build', command: 'npm run build 2>&1 || true' },
     ];
-    
+
     let totalScore = 0;
     let passedChecks = 0;
-    
+
     for (const check of checks) {
       try {
         const { stdout } = await execAsync(check.command);
         const passed = !stdout.toLowerCase().includes('error');
         const score = passed ? 1.0 : 0.5;
-        
+
         totalScore += score;
         if (passed) passedChecks++;
-        
+
         console.log(`  ${passed ? '✅' : '⚠️'} ${check.name}: ${score.toFixed(2)}`);
       } catch (error) {
         console.log(`  ❌ ${check.name}: 0.00 (failed)`);
       }
     }
-    
+
     const averageScore = totalScore / checks.length;
     this.verificationScores.push(averageScore);
-    
+
     console.log(`\n📊 Verification Score: ${averageScore.toFixed(2)}/${this.threshold}`);
-    
+
     if (averageScore < this.threshold) {
       console.log('⚠️ Verification threshold not met!');
       if (this.verify && averageScore < 0.7) {
@@ -141,7 +141,7 @@ class PairProgrammingSession {
     } else {
       console.log('✅ Verification passed!');
     }
-    
+
     return averageScore;
   }
 
@@ -149,10 +149,10 @@ class PairProgrammingSession {
     console.log('\n🧪 Test Watcher Active');
     console.log('  • Tests run on file changes');
     console.log('  • Coverage tracking enabled');
-    
+
     // Run initial test
     await this.runTests();
-    
+
     // Watch for file changes (simplified version)
     this.testInterval = setInterval(async () => {
       // In a real implementation, this would watch actual file changes
@@ -162,29 +162,31 @@ class PairProgrammingSession {
 
   async runTests() {
     console.log('\n🧪 Running tests...');
-    
+
     try {
       const { stdout } = await execAsync('npm test 2>&1 || true');
       const lines = stdout.split('\n');
-      
+
       // Parse test results
-      const summaryLine = lines.find(l => l.includes('Tests:') || l.includes('PASS') || l.includes('FAIL'));
-      
+      const summaryLine = lines.find(
+        (l) => l.includes('Tests:') || l.includes('PASS') || l.includes('FAIL'),
+      );
+
       if (summaryLine) {
         console.log(`  ${summaryLine.trim()}`);
-        
+
         // Extract coverage if available
-        const coverageLine = lines.find(l => l.includes('Coverage'));
+        const coverageLine = lines.find((l) => l.includes('Coverage'));
         if (coverageLine) {
           console.log(`  ${coverageLine.trim()}`);
         }
-        
+
         this.testResults.push({
           timestamp: new Date(),
           passed: stdout.includes('PASS'),
-          summary: summaryLine
+          summary: summaryLine,
         });
-        
+
         return stdout.includes('PASS');
       } else {
         console.log('  ⚠️ No test results found');
@@ -198,17 +200,20 @@ class PairProgrammingSession {
 
   startRoleTimer() {
     if (this.mode !== 'switch') return;
-    
-    this.roleTimer = setTimeout(() => {
-      this.switchRoles();
-      this.startRoleTimer(); // Restart timer
-    }, 10 * 60 * 1000); // 10 minutes
+
+    this.roleTimer = setTimeout(
+      () => {
+        this.switchRoles();
+        this.startRoleTimer(); // Restart timer
+      },
+      10 * 60 * 1000,
+    ); // 10 minutes
   }
 
   switchRoles() {
     const oldRole = this.currentRole;
     this.currentRole = this.currentRole === 'driver' ? 'navigator' : 'driver';
-    
+
     console.log('\n🔄 Role Switch!');
     console.log(`  Previous role: ${oldRole.toUpperCase()}`);
     console.log(`  New role: ${this.currentRole.toUpperCase()}`);
@@ -219,16 +224,16 @@ class PairProgrammingSession {
     this.rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: '\n💻 pair> '
+      prompt: '\n💻 pair> ',
     });
 
     console.log('\n💡 Interactive mode active. Type /help for commands.\n');
-    
+
     this.rl.prompt();
 
     this.rl.on('line', async (line) => {
       const input = line.trim();
-      
+
       if (input.startsWith('/')) {
         await this.handleCommand(input);
       } else if (input) {
@@ -236,7 +241,7 @@ class PairProgrammingSession {
         console.log('🤖 AI: Processing your input...');
         // In a real implementation, this would send to AI
       }
-      
+
       this.rl.prompt();
     });
 
@@ -247,51 +252,51 @@ class PairProgrammingSession {
 
   async handleCommand(command) {
     const [cmd, ...args] = command.split(' ');
-    
+
     switch (cmd) {
       case '/help':
         this.showCommands();
         break;
-        
+
       case '/switch':
         this.switchRoles();
         break;
-        
+
       case '/suggest':
         console.log('🤖 AI Suggestion: Consider using async/await for better readability');
         break;
-        
+
       case '/review':
         console.log('🔍 Starting code review...');
         await this.runVerification();
         break;
-        
+
       case '/test':
         await this.runTests();
         break;
-        
+
       case '/verify':
         await this.runVerification();
         break;
-        
+
       case '/status':
         await this.showStatus();
         break;
-        
+
       case '/metrics':
         this.showMetrics();
         break;
-        
+
       case '/commit':
         await this.commitWithVerification();
         break;
-        
+
       case '/end':
       case '/exit':
         await this.end();
         process.exit(0);
         break;
-        
+
       default:
         console.log(`❌ Unknown command: ${cmd}`);
         console.log('💡 Type /help for available commands');
@@ -300,7 +305,7 @@ class PairProgrammingSession {
 
   async showStatus() {
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
-    
+
     console.log('\n📊 Session Status');
     console.log('━'.repeat(40));
     console.log(`Session ID: ${this.sessionId}`);
@@ -308,14 +313,15 @@ class PairProgrammingSession {
     console.log(`Current Role: ${this.currentRole.toUpperCase()}`);
     console.log(`Mode: ${this.mode}`);
     console.log(`Status: ${this.status}`);
-    
+
     if (this.verify && this.verificationScores.length > 0) {
-      const avgScore = this.verificationScores.reduce((a, b) => a + b, 0) / this.verificationScores.length;
+      const avgScore =
+        this.verificationScores.reduce((a, b) => a + b, 0) / this.verificationScores.length;
       console.log(`Average Verification: ${avgScore.toFixed(2)}`);
     }
-    
+
     if (this.test && this.testResults.length > 0) {
-      const passed = this.testResults.filter(r => r.passed).length;
+      const passed = this.testResults.filter((r) => r.passed).length;
       console.log(`Tests Passed: ${passed}/${this.testResults.length}`);
     }
   }
@@ -323,7 +329,7 @@ class PairProgrammingSession {
   showMetrics() {
     console.log('\n📈 Quality Metrics');
     console.log('━'.repeat(40));
-    
+
     if (this.verificationScores.length > 0) {
       console.log('\nVerification History:');
       this.verificationScores.slice(-5).forEach((score, i) => {
@@ -331,20 +337,22 @@ class PairProgrammingSession {
         console.log(`  ${i + 1}. ${bar} ${score.toFixed(2)}`);
       });
     }
-    
+
     if (this.testResults.length > 0) {
       console.log('\nTest Results:');
       this.testResults.slice(-5).forEach((result, i) => {
-        console.log(`  ${i + 1}. ${result.passed ? '✅' : '❌'} ${new Date(result.timestamp).toLocaleTimeString()}`);
+        console.log(
+          `  ${i + 1}. ${result.passed ? '✅' : '❌'} ${new Date(result.timestamp).toLocaleTimeString()}`,
+        );
       });
     }
   }
 
   async commitWithVerification() {
     console.log('\n🔍 Pre-commit verification...');
-    
+
     const score = await this.runVerification();
-    
+
     if (score >= this.threshold) {
       console.log('✅ Verification passed! Ready to commit.');
       console.log('💡 Run: git commit -m "your message"');
@@ -355,40 +363,41 @@ class PairProgrammingSession {
 
   async end() {
     console.log('\n🛑 Ending pair programming session...');
-    
+
     // Clear intervals
     if (this.verificationInterval) clearInterval(this.verificationInterval);
     if (this.testInterval) clearInterval(this.testInterval);
     if (this.roleTimer) clearTimeout(this.roleTimer);
     if (this.rl) this.rl.close();
-    
+
     // Update session
     this.status = 'completed';
     await this.saveSession();
-    
+
     // Show summary
     const duration = Math.floor((Date.now() - this.startTime) / 1000 / 60);
     console.log('\n✨ Session Complete!');
     console.log('━'.repeat(40));
     console.log(`Duration: ${duration} minutes`);
-    
+
     if (this.verificationScores.length > 0) {
-      const avgScore = this.verificationScores.reduce((a, b) => a + b, 0) / this.verificationScores.length;
+      const avgScore =
+        this.verificationScores.reduce((a, b) => a + b, 0) / this.verificationScores.length;
       console.log(`Average Verification: ${avgScore.toFixed(2)}`);
     }
-    
+
     if (this.testResults.length > 0) {
-      const passed = this.testResults.filter(r => r.passed).length;
+      const passed = this.testResults.filter((r) => r.passed).length;
       console.log(`Test Success Rate: ${((passed / this.testResults.length) * 100).toFixed(0)}%`);
     }
-    
+
     console.log('\n👋 Thanks for pair programming!\n');
   }
 
   async saveSession() {
     const sessionPath = '.claude-flow/sessions/pair';
     await fs.mkdir(sessionPath, { recursive: true });
-    
+
     const sessionData = {
       id: this.sessionId,
       mode: this.mode,
@@ -400,12 +409,12 @@ class PairProgrammingSession {
       status: this.status,
       currentRole: this.currentRole,
       verificationScores: this.verificationScores,
-      testResults: this.testResults
+      testResults: this.testResults,
     };
-    
+
     await fs.writeFile(
       path.join(sessionPath, `${this.sessionId}.json`),
-      JSON.stringify(sessionData, null, 2)
+      JSON.stringify(sessionData, null, 2),
     );
   }
 }
@@ -432,9 +441,9 @@ async function pairCommand(args = [], flags = {}) {
       agent: flags.agent || 'auto',
       verify: flags.verify || false,
       test: flags.test || false,
-      threshold: parseFloat(flags.threshold) || 0.95
+      threshold: parseFloat(flags.threshold) || 0.95,
     });
-    
+
     return await session.start();
   }
 
@@ -504,19 +513,23 @@ function showHelp() {
 
 async function startBackgroundSession(args, flags) {
   console.log('\n🔄 Starting pair session in background...');
-  
-  const child = spawn(process.argv[0], [
-    process.argv[1],
-    'pair',
-    '--start',
-    ...args.filter(arg => arg !== '--background' && arg !== '--bg')
-  ], {
-    detached: true,
-    stdio: 'ignore'
-  });
+
+  const child = spawn(
+    process.argv[0],
+    [
+      process.argv[1],
+      'pair',
+      '--start',
+      ...args.filter((arg) => arg !== '--background' && arg !== '--bg'),
+    ],
+    {
+      detached: true,
+      stdio: 'ignore',
+    },
+  );
 
   child.unref();
-  
+
   const pid = child.pid;
   console.log(`✅ Background session started (PID: ${pid})`);
   console.log('\n📊 Monitor with: claude-flow pair --status');
@@ -543,8 +556,8 @@ async function showSessionStatus() {
 
     console.log('\n📊 Pair Programming Sessions:');
     console.log('━'.repeat(50));
-    
-    for (const session of sessions.filter(s => s.status === 'active')) {
+
+    for (const session of sessions.filter((s) => s.status === 'active')) {
       const duration = Math.floor((Date.now() - new Date(session.startTime).getTime()) / 1000 / 60);
       console.log(`\n🔹 Session: ${session.id}`);
       console.log(`   Mode: ${session.mode}`);
@@ -553,13 +566,14 @@ async function showSessionStatus() {
       console.log(`   Status: ${session.status}`);
       console.log(`   Verification: ${session.verify ? '✅' : '❌'}`);
       console.log(`   Testing: ${session.test ? '✅' : '❌'}`);
-      
+
       if (session.verificationScores && session.verificationScores.length > 0) {
-        const avgScore = session.verificationScores.reduce((a, b) => a + b, 0) / session.verificationScores.length;
+        const avgScore =
+          session.verificationScores.reduce((a, b) => a + b, 0) / session.verificationScores.length;
         console.log(`   Avg Verification: ${avgScore.toFixed(2)}`);
       }
     }
-    
+
     console.log('━'.repeat(50));
   } catch (error) {
     console.log('\n❌ No active pair programming sessions\n');
@@ -568,14 +582,14 @@ async function showSessionStatus() {
 
 async function endSession(sessionId) {
   console.log(`\n🛑 Ending pair programming session: ${sessionId}`);
-  
+
   try {
     const sessionPath = '.claude-flow/sessions/pair';
-    
+
     if (sessionId === 'current') {
       // End most recent active session
       const files = await fs.readdir(sessionPath);
-      for (const file of files.filter(f => f.endsWith('.json'))) {
+      for (const file of files.filter((f) => f.endsWith('.json'))) {
         const data = await fs.readFile(path.join(sessionPath, file), 'utf8');
         const session = JSON.parse(data);
         if (session.status === 'active') {
@@ -584,19 +598,21 @@ async function endSession(sessionId) {
         }
       }
     }
-    
+
     const sessionFile = path.join(sessionPath, `${sessionId}.json`);
     const data = await fs.readFile(sessionFile, 'utf8');
     const session = JSON.parse(data);
-    
+
     session.status = 'completed';
     session.endTime = new Date().toISOString();
-    
+
     await fs.writeFile(sessionFile, JSON.stringify(session, null, 2));
-    
+
     console.log('✅ Session ended successfully');
     console.log(`\n📊 Session Summary:`);
-    console.log(`  Duration: ${Math.floor((new Date(session.endTime) - new Date(session.startTime)) / 1000 / 60)} minutes`);
+    console.log(
+      `  Duration: ${Math.floor((new Date(session.endTime) - new Date(session.startTime)) / 1000 / 60)} minutes`,
+    );
     console.log(`  Mode: ${session.mode}`);
     console.log(`  Agent: ${session.agent}\n`);
   } catch (error) {

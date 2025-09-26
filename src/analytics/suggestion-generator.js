@@ -41,11 +41,11 @@ export class SuggestionGenerator {
         immediate: [],
         shortTerm: [],
         longTerm: [],
-        learning: []
+        learning: [],
       },
       insights: {},
       preferences: this.userPreferences,
-      adaptations: []
+      adaptations: [],
     };
 
     // Apply personalization to base suggestions
@@ -98,15 +98,16 @@ export class SuggestionGenerator {
       timestamp: new Date().toISOString(),
       successful_configurations: [],
       learned_insights: [],
-      recommendations: []
+      recommendations: [],
     };
 
     // Analyze successful configurations
-    successfulPatterns.forEach(pattern => {
+    successfulPatterns.forEach((pattern) => {
       const successRate = pattern.completed_count / pattern.task_count;
       const agentTypes = pattern.agent_types ? pattern.agent_types.split(',') : [];
 
-      if (successRate >= 0.9) { // 90%+ success rate
+      if (successRate >= 0.9) {
+        // 90%+ success rate
         patterns.successful_configurations.push({
           topology: pattern.topology,
           maxAgents: pattern.max_agents,
@@ -114,16 +115,20 @@ export class SuggestionGenerator {
           successRate: successRate,
           avgDuration: pattern.avg_duration,
           taskCount: pattern.task_count,
-          score: this.calculatePatternScore(pattern)
+          score: this.calculatePatternScore(pattern),
         });
       }
     });
 
     // Generate insights from successful patterns
-    patterns.learned_insights = this.extractInsightsFromPatterns(patterns.successful_configurations);
+    patterns.learned_insights = this.extractInsightsFromPatterns(
+      patterns.successful_configurations,
+    );
 
     // Generate recommendations based on learned patterns
-    patterns.recommendations = this.generatePatternBasedRecommendations(patterns.successful_configurations);
+    patterns.recommendations = this.generatePatternBasedRecommendations(
+      patterns.successful_configurations,
+    );
 
     // Update learning patterns
     await this.updateLearningPatternsFromSuccess(patterns);
@@ -139,13 +144,16 @@ export class SuggestionGenerator {
       throw new Error('Database not available for task analysis');
     }
 
-    const task = await this.analyzer.hiveDb.get(`
+    const task = await this.analyzer.hiveDb.get(
+      `
       SELECT t.*, a.type as agent_type, a.performance_score, s.topology
       FROM tasks t
       JOIN agents a ON t.agent_id = a.id
       JOIN swarms s ON t.swarm_id = s.id
       WHERE t.id = ?
-    `, [taskId]);
+    `,
+      [taskId],
+    );
 
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -157,11 +165,11 @@ export class SuggestionGenerator {
       performance: {
         rating: this.calculateTaskPerformanceRating(task),
         efficiency: this.calculateTaskEfficiency(task),
-        quality: this.calculateTaskQuality(task)
+        quality: this.calculateTaskQuality(task),
       },
       suggestions: [],
       learningOpportunities: [],
-      futureOptimizations: []
+      futureOptimizations: [],
     };
 
     // Analyze task performance
@@ -175,9 +183,9 @@ export class SuggestionGenerator {
           'Review task complexity estimation',
           'Break down similar tasks into smaller components',
           'Consider adding buffer time for complex tasks',
-          'Improve task scoping accuracy'
+          'Improve task scoping accuracy',
         ],
-        impact: 'medium'
+        impact: 'medium',
       });
     }
 
@@ -191,9 +199,9 @@ export class SuggestionGenerator {
           'Review error logs and failure points',
           'Check agent capabilities vs task requirements',
           'Validate input data and prerequisites',
-          'Consider retry mechanisms or alternative approaches'
+          'Consider retry mechanisms or alternative approaches',
         ],
-        impact: 'high'
+        impact: 'high',
       });
     }
 
@@ -205,21 +213,25 @@ export class SuggestionGenerator {
         learnings: [
           `Agent type ${task.agent_type} effective for complexity ${task.complexity}`,
           `Topology ${task.topology} suitable for complex tasks`,
-          `Duration pattern: ${task.actual_time}ms for complexity ${task.complexity}`
+          `Duration pattern: ${task.actual_time}ms for complexity ${task.complexity}`,
         ],
-        applicableScenarios: ['Similar complexity tasks', 'Same agent type assignments']
+        applicableScenarios: ['Similar complexity tasks', 'Same agent type assignments'],
       });
     }
 
     // Generate future optimizations
-    const similarTasks = await this.analyzer.hiveDb.all(`
+    const similarTasks = await this.analyzer.hiveDb.all(
+      `
       SELECT * FROM tasks
       WHERE agent_id = ? AND complexity BETWEEN ? AND ?
       ORDER BY created_at DESC LIMIT 5
-    `, [task.agent_id, task.complexity - 0.1, task.complexity + 0.1]);
+    `,
+      [task.agent_id, task.complexity - 0.1, task.complexity + 0.1],
+    );
 
     if (similarTasks.length >= 3) {
-      const avgDuration = similarTasks.reduce((sum, t) => sum + (t.actual_time || 0), 0) / similarTasks.length;
+      const avgDuration =
+        similarTasks.reduce((sum, t) => sum + (t.actual_time || 0), 0) / similarTasks.length;
 
       insights.futureOptimizations.push({
         type: 'pattern_optimization',
@@ -229,8 +241,8 @@ export class SuggestionGenerator {
           `Expected duration: ${Math.round(avgDuration)}ms`,
           'Consider task template creation',
           'Implement automated routing for similar tasks',
-          'Add predictive time estimation'
-        ]
+          'Add predictive time estimation',
+        ],
       });
     }
 
@@ -252,13 +264,13 @@ export class SuggestionGenerator {
       current_preferences: currentPrefs,
       suggested_adjustments: [],
       reasoning: [],
-      impact_analysis: {}
+      impact_analysis: {},
     };
 
     // Analyze agent type preferences
     if (usageAnalysis.agentTypeUsage) {
       const mostUsedTypes = Object.entries(usageAnalysis.agentTypeUsage)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 3);
 
       if (mostUsedTypes.length > 0 && !currentPrefs.preferredAgentTypes) {
@@ -267,15 +279,16 @@ export class SuggestionGenerator {
           setting: 'preferredAgentTypes',
           currentValue: null,
           suggestedValue: mostUsedTypes.map(([type]) => type),
-          reason: 'Based on your usage patterns, these agent types are most effective'
+          reason: 'Based on your usage patterns, these agent types are most effective',
         });
       }
     }
 
     // Analyze topology preferences
     if (usageAnalysis.topologyEffectiveness) {
-      const bestTopology = Object.entries(usageAnalysis.topologyEffectiveness)
-        .sort(([,a], [,b]) => b.successRate - a.successRate)[0];
+      const bestTopology = Object.entries(usageAnalysis.topologyEffectiveness).sort(
+        ([, a], [, b]) => b.successRate - a.successRate,
+      )[0];
 
       if (bestTopology && currentPrefs.preferredTopology !== bestTopology[0]) {
         adjustments.suggested_adjustments.push({
@@ -283,7 +296,7 @@ export class SuggestionGenerator {
           setting: 'preferredTopology',
           currentValue: currentPrefs.preferredTopology || 'none set',
           suggestedValue: bestTopology[0],
-          reason: `${bestTopology[0]} topology shows ${(bestTopology[1].successRate * 100).toFixed(1)}% success rate in your usage`
+          reason: `${bestTopology[0]} topology shows ${(bestTopology[1].successRate * 100).toFixed(1)}% success rate in your usage`,
         });
       }
     }
@@ -298,14 +311,16 @@ export class SuggestionGenerator {
           setting: 'complexityThreshold',
           currentValue: null,
           suggestedValue: optimalComplexity,
-          reason: 'Optimal complexity range based on your success patterns'
+          reason: 'Optimal complexity range based on your success patterns',
         });
       }
     }
 
     // Analyze notification preferences
     if (usageAnalysis.responsePatterns) {
-      const suggestedNotificationLevel = this.calculateOptimalNotificationLevel(usageAnalysis.responsePatterns);
+      const suggestedNotificationLevel = this.calculateOptimalNotificationLevel(
+        usageAnalysis.responsePatterns,
+      );
 
       if (suggestedNotificationLevel !== currentPrefs.notificationLevel) {
         adjustments.suggested_adjustments.push({
@@ -313,7 +328,7 @@ export class SuggestionGenerator {
           setting: 'notificationLevel',
           currentValue: currentPrefs.notificationLevel || 'default',
           suggestedValue: suggestedNotificationLevel,
-          reason: 'Optimized based on your response and engagement patterns'
+          reason: 'Optimized based on your response and engagement patterns',
         });
       }
     }
@@ -327,7 +342,7 @@ export class SuggestionGenerator {
   personalizeBaseSuggestions(baseOptimizations, personalizedSuggestions) {
     const userStyle = this.getUserStyle();
 
-    baseOptimizations.priority.high.forEach(suggestion => {
+    baseOptimizations.priority.high.forEach((suggestion) => {
       const personalized = this.adaptSuggestionToUserStyle(suggestion, userStyle);
 
       if (this.isRelevantToUser(suggestion)) {
@@ -335,7 +350,7 @@ export class SuggestionGenerator {
       }
     });
 
-    baseOptimizations.priority.medium.forEach(suggestion => {
+    baseOptimizations.priority.medium.forEach((suggestion) => {
       const personalized = this.adaptSuggestionToUserStyle(suggestion, userStyle);
 
       if (this.isRelevantToUser(suggestion)) {
@@ -343,7 +358,7 @@ export class SuggestionGenerator {
       }
     });
 
-    baseOptimizations.priority.low.forEach(suggestion => {
+    baseOptimizations.priority.low.forEach((suggestion) => {
       const personalized = this.adaptSuggestionToUserStyle(suggestion, userStyle);
 
       if (this.isRelevantToUser(suggestion)) {
@@ -358,7 +373,7 @@ export class SuggestionGenerator {
   async generateWorkflowSuggestions(personalizedSuggestions) {
     const workflows = this.identifyUserWorkflows();
 
-    workflows.forEach(workflow => {
+    workflows.forEach((workflow) => {
       const suggestions = this.generateWorkflowSpecificSuggestions(workflow);
       personalizedSuggestions.suggestions.shortTerm.push(...suggestions);
     });
@@ -372,7 +387,7 @@ export class SuggestionGenerator {
 
     // Suggest based on successful patterns
     if (patterns.successfulConfigurations) {
-      patterns.successfulConfigurations.forEach(config => {
+      patterns.successfulConfigurations.forEach((config) => {
         if (config.score > 0.8 && !this.isCurrentlyUsing(config)) {
           personalizedSuggestions.suggestions.learning.push({
             type: 'pattern_adoption',
@@ -381,10 +396,10 @@ export class SuggestionGenerator {
             implementation: [
               `Use ${config.topology} topology`,
               `Limit to ${config.maxAgents} agents`,
-              `Include agent types: ${config.agentTypes.join(', ')}`
+              `Include agent types: ${config.agentTypes.join(', ')}`,
             ],
             expectedBenefit: 'Higher success rate and better performance',
-            confidence: config.score
+            confidence: config.score,
           });
         }
       });
@@ -392,13 +407,13 @@ export class SuggestionGenerator {
 
     // Suggest avoiding anti-patterns
     if (patterns.antiPatterns) {
-      patterns.antiPatterns.forEach(antiPattern => {
+      patterns.antiPatterns.forEach((antiPattern) => {
         personalizedSuggestions.suggestions.learning.push({
           type: 'anti_pattern_avoidance',
           title: `Avoid: ${antiPattern.description}`,
           description: `This pattern has led to ${antiPattern.failureRate}% failure rate`,
           avoidance: antiPattern.avoidanceStrategies,
-          risk: antiPattern.riskLevel
+          risk: antiPattern.riskLevel,
         });
       });
     }
@@ -418,8 +433,8 @@ export class SuggestionGenerator {
         adaptations: [
           'Task difficulty aligned with preference',
           'Agent selections optimized for preferred complexity',
-          'Timeline estimates adjusted for complexity preference'
-        ]
+          'Timeline estimates adjusted for complexity preference',
+        ],
       });
     }
 
@@ -431,8 +446,8 @@ export class SuggestionGenerator {
         adaptations: [
           'Task scheduling aligned with pace preference',
           'Notification timing optimized',
-          'Resource allocation matched to pace'
-        ]
+          'Resource allocation matched to pace',
+        ],
       });
     }
   }
@@ -470,7 +485,7 @@ export class SuggestionGenerator {
     adapted.personalization = {
       relevance_score: this.calculateRelevanceScore(suggestion),
       user_style_match: userStyle.match_score,
-      historical_success: this.getHistoricalSuccessRate(suggestion.type)
+      historical_success: this.getHistoricalSuccessRate(suggestion.type),
     };
 
     return adapted;
@@ -531,7 +546,7 @@ export class SuggestionGenerator {
           successfulConfigurations: [],
           antiPatterns: [],
           userBehaviorPatterns: {},
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         };
       }
     } catch (error) {
@@ -567,7 +582,7 @@ export class SuggestionGenerator {
       learningMode: true,
       preferredAgentTypes: [],
       preferredTopology: null,
-      complexityThreshold: null
+      complexityThreshold: null,
     };
   }
 
@@ -580,7 +595,7 @@ export class SuggestionGenerator {
       experience_level: this.calculateExperienceLevel(),
       working_style: this.getUserStyle(),
       success_patterns: this.getSuccessPatterns(),
-      learning_progress: this.getLearningProgress()
+      learning_progress: this.getLearningProgress(),
     };
 
     return profile;
@@ -591,7 +606,7 @@ export class SuggestionGenerator {
    */
   calculateExperienceLevel() {
     const historyLength = this.suggestionHistory.length;
-    const implementedSuggestions = this.suggestionHistory.filter(s => s.implemented).length;
+    const implementedSuggestions = this.suggestionHistory.filter((s) => s.implemented).length;
 
     if (historyLength < 10) return 'beginner';
     if (historyLength < 50 && implementedSuggestions > historyLength * 0.6) return 'intermediate';
@@ -608,14 +623,18 @@ export class SuggestionGenerator {
     const history = this.suggestionHistory;
 
     // Analyze patterns in user behavior
-    const detailOriented = prefs.detailLevel === 'detailed' ||
-      history.filter(s => s.type === 'detailed_analysis').length > history.length * 0.3;
+    const detailOriented =
+      prefs.detailLevel === 'detailed' ||
+      history.filter((s) => s.type === 'detailed_analysis').length > history.length * 0.3;
 
-    const quickExecutor = prefs.workingPace === 'fast' ||
-      history.filter(s => s.implemented && s.implementation_time < 24).length > history.length * 0.5;
+    const quickExecutor =
+      prefs.workingPace === 'fast' ||
+      history.filter((s) => s.implemented && s.implementation_time < 24).length >
+        history.length * 0.5;
 
-    const analytical = prefs.learningMode === true &&
-      history.filter(s => s.feedback_provided).length > history.length * 0.4;
+    const analytical =
+      prefs.learningMode === true &&
+      history.filter((s) => s.feedback_provided).length > history.length * 0.4;
 
     // Determine primary style
     if (detailOriented) return { type: 'detailed_planner', match_score: 0.8 };
@@ -634,7 +653,7 @@ export class SuggestionGenerator {
       topologyEffectiveness: {},
       complexityPatterns: [],
       responsePatterns: {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     if (!this.analyzer.hiveDb) {
@@ -651,7 +670,7 @@ export class SuggestionGenerator {
       ORDER BY usage_count DESC
     `);
 
-    agentUsage.forEach(usage => {
+    agentUsage.forEach((usage) => {
       patterns.agentTypeUsage[usage.type] = usage.usage_count;
     });
 
@@ -669,11 +688,11 @@ export class SuggestionGenerator {
       GROUP BY s.topology
     `);
 
-    topologyData.forEach(topo => {
+    topologyData.forEach((topo) => {
       patterns.topologyEffectiveness[topo.topology] = {
         successRate: topo.completed_tasks / topo.total_tasks,
         avgDuration: topo.avg_duration,
-        taskCount: topo.total_tasks
+        taskCount: topo.total_tasks,
       };
     });
 
@@ -728,12 +747,12 @@ export class SuggestionGenerator {
       'Identify required resources and dependencies',
       'Execute implementation in phases',
       'Monitor progress and adjust as needed',
-      'Validate results and document outcomes'
+      'Validate results and document outcomes',
     ];
   }
 
   generateQuickActions(suggestion) {
-    return suggestion.suggestions.slice(0, 2).map(s => `Quick: ${s}`);
+    return suggestion.suggestions.slice(0, 2).map((s) => `Quick: ${s}`);
   }
 
   calculateRelevanceScore(suggestion) {
@@ -742,10 +761,10 @@ export class SuggestionGenerator {
   }
 
   getHistoricalSuccessRate(type) {
-    const typeHistory = this.suggestionHistory.filter(s => s.type === type);
+    const typeHistory = this.suggestionHistory.filter((s) => s.type === type);
     if (typeHistory.length === 0) return 0.5;
 
-    const implemented = typeHistory.filter(s => s.implemented).length;
+    const implemented = typeHistory.filter((s) => s.implemented).length;
     return implemented / typeHistory.length;
   }
 
@@ -790,28 +809,28 @@ export class SuggestionGenerator {
     const efficiencyScore = Math.min(1, 300000 / (pattern.avg_duration || 300000)); // Normalize around 5min
     const volumeScore = Math.min(1, pattern.task_count / 20); // Normalize around 20 tasks
 
-    return (successScore * successWeight) +
-           (efficiencyScore * efficiencyWeight) +
-           (volumeScore * volumeWeight);
+    return (
+      successScore * successWeight + efficiencyScore * efficiencyWeight + volumeScore * volumeWeight
+    );
   }
 
   extractInsightsFromPatterns(configurations) {
-    return configurations.map(config => ({
+    return configurations.map((config) => ({
       insight: `${config.topology} topology with ${config.maxAgents} agents shows high success`,
       confidence: config.score,
-      applicability: 'Similar team sizes and task types'
+      applicability: 'Similar team sizes and task types',
     }));
   }
 
   generatePatternBasedRecommendations(configurations) {
-    return configurations.slice(0, 3).map(config => ({
+    return configurations.slice(0, 3).map((config) => ({
       title: `Adopt High-Success Pattern: ${config.topology}`,
       description: `${(config.successRate * 100).toFixed(1)}% success rate with ${config.avgDuration.toFixed(0)}ms avg duration`,
       implementation: [
         `Configure ${config.topology} topology`,
         `Use ${config.agentTypes.join(', ')} agent types`,
-        `Limit to ${config.maxAgents} concurrent agents`
-      ]
+        `Limit to ${config.maxAgents} concurrent agents`,
+      ],
     }));
   }
 
@@ -859,7 +878,7 @@ export class SuggestionGenerator {
     return {
       metrics: ['Performance', 'Efficiency', 'Success Rate'],
       baseline: 'Current performance metrics',
-      expected_improvement: `${suggestion.impact} improvement expected`
+      expected_improvement: `${suggestion.impact} improvement expected`,
     };
   }
 

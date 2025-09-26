@@ -29,7 +29,7 @@ export class ResilientHookEngine extends EventEmitter {
       consensusThreshold: options.consensusThreshold || 0.85,
       retryAttempts: options.retryAttempts || 3,
       retryDelay: options.retryDelay || 1000,
-      ...options
+      ...options,
     };
 
     // Core hook storage
@@ -48,7 +48,7 @@ export class ResilientHookEngine extends EventEmitter {
       averageExecutionTime: 0,
       lastExecution: null,
       queueSize: 0,
-      activeCount: 0
+      activeCount: 0,
     };
 
     // Byzantine consensus state
@@ -57,7 +57,7 @@ export class ResilientHookEngine extends EventEmitter {
       agreements: 0,
       disagreements: 0,
       accuracy: 0,
-      truthScores: new Map()
+      truthScores: new Map(),
     };
 
     // Memory system for coordination
@@ -79,7 +79,7 @@ export class ResilientHookEngine extends EventEmitter {
       VALIDATION: 'validation',
       CONSENSUS: 'consensus',
       ERROR: 'error',
-      COMPLETION: 'completion'
+      COMPLETION: 'completion',
     };
 
     // Event binding
@@ -101,7 +101,7 @@ export class ResilientHookEngine extends EventEmitter {
           enablePersistence: false, // In-memory only for resilience
           maxMemoryMB: 50,
           byzantineMode: true,
-          consensusThreshold: this.options.consensusThreshold || 0.85
+          consensusThreshold: this.options.consensusThreshold || 0.85,
         });
         await this.memory.initialize();
       }
@@ -118,7 +118,7 @@ export class ResilientHookEngine extends EventEmitter {
         duration,
         memoryMode: this.memory?.getSystemInfo().mode || 'none',
         byzantineEnabled: this.options.enableByzantineConsensus,
-        resilient: true
+        resilient: true,
       });
 
       console.log(`✅ Resilient Hook System initialized (${duration.toFixed(2)}ms)`);
@@ -127,7 +127,7 @@ export class ResilientHookEngine extends EventEmitter {
         success: true,
         resilient: true,
         memoryMode: this.memory?.getSystemInfo().mode || 'none',
-        duration
+        duration,
       };
     } catch (error) {
       this.emit('error', error);
@@ -157,7 +157,7 @@ export class ResilientHookEngine extends EventEmitter {
       successCount: 0,
       failureCount: 0,
       averageExecutionTime: 0,
-      lastExecuted: null
+      lastExecuted: null,
     };
 
     // Validate hook
@@ -211,7 +211,7 @@ export class ResilientHookEngine extends EventEmitter {
             byzantineValidations.push({
               hookId: hook.id,
               result: hookResult,
-              score: this.calculateTruthScore(hookResult)
+              score: this.calculateTruthScore(hookResult),
             });
           }
         } catch (error) {
@@ -219,7 +219,7 @@ export class ResilientHookEngine extends EventEmitter {
             hookId: hook.id,
             success: false,
             error: error.message,
-            duration: 0
+            duration: 0,
           };
           results.push(hookResult);
           this.metrics.hooksFailed++;
@@ -244,7 +244,7 @@ export class ResilientHookEngine extends EventEmitter {
         results,
         duration: totalDuration,
         timestamp: Date.now(),
-        byzantineConsensus: byzantineValidations.length > 0
+        byzantineConsensus: byzantineValidations.length > 0,
       };
 
       this.hookHistory.unshift(execution);
@@ -280,7 +280,7 @@ export class ResilientHookEngine extends EventEmitter {
             success: true,
             skipped: true,
             reason: 'Conditions not met',
-            duration: performance.now() - startTime
+            duration: performance.now() - startTime,
           };
         }
 
@@ -295,7 +295,7 @@ export class ResilientHookEngine extends EventEmitter {
           payload,
           hookId: hook.id,
           hookName: hook.name,
-          metadata: hook.metadata
+          metadata: hook.metadata,
         });
 
         const result = await Promise.race([executionPromise, timeoutPromise]);
@@ -318,16 +318,15 @@ export class ResilientHookEngine extends EventEmitter {
           success: true,
           result,
           duration,
-          attempts: attempts + 1
+          attempts: attempts + 1,
         };
-
       } catch (error) {
         lastError = error;
         attempts++;
 
         if (attempts <= hook.retryAttempts) {
           // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, this.options.retryDelay * attempts));
+          await new Promise((resolve) => setTimeout(resolve, this.options.retryDelay * attempts));
           console.warn(`🔄 Retrying hook ${hook.name} (attempt ${attempts + 1})`);
         }
       }
@@ -348,7 +347,7 @@ export class ResilientHookEngine extends EventEmitter {
       success: false,
       error: lastError.message,
       duration,
-      attempts
+      attempts,
     };
   }
 
@@ -378,7 +377,7 @@ export class ResilientHookEngine extends EventEmitter {
       return true;
     }
 
-    return conditions.every(condition => {
+    return conditions.every((condition) => {
       try {
         switch (condition.type) {
           case 'filePattern':
@@ -405,10 +404,7 @@ export class ResilientHookEngine extends EventEmitter {
     if (pattern === '*') return true;
 
     // Convert glob pattern to regex
-    const regexPattern = pattern
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.')
-      .replace(/\./g, '\\.');
+    const regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.').replace(/\./g, '\\.');
 
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(text);
@@ -422,7 +418,7 @@ export class ResilientHookEngine extends EventEmitter {
 
     try {
       // Calculate consensus score
-      const scores = validations.map(v => v.score);
+      const scores = validations.map((v) => v.score);
       const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
       const consensusReached = averageScore >= this.options.consensusThreshold;
 
@@ -436,8 +432,8 @@ export class ResilientHookEngine extends EventEmitter {
             hookId: validation.hookId,
             result: validation.result,
             consensusReached,
-            averageScore
-          }
+            averageScore,
+          },
         );
       }
 
@@ -455,9 +451,8 @@ export class ResilientHookEngine extends EventEmitter {
         executionId,
         consensusReached,
         averageScore,
-        accuracy: this.consensusState.accuracy
+        accuracy: this.consensusState.accuracy,
       });
-
     } catch (error) {
       console.warn('Byzantine consensus processing failed:', error.message);
     }
@@ -505,7 +500,7 @@ export class ResilientHookEngine extends EventEmitter {
         failureCount: hook.failureCount,
         successRate: hook.executionCount > 0 ? hook.successCount / hook.executionCount : 0,
         averageExecutionTime: hook.averageExecutionTime,
-        lastExecuted: hook.lastExecuted
+        lastExecuted: hook.lastExecuted,
       });
     }
 
@@ -523,7 +518,7 @@ export class ResilientHookEngine extends EventEmitter {
         initialized: this.isInitialized,
         running: this.isRunning,
         resilient: true,
-        byzantineEnabled: this.options.enableByzantineConsensus
+        byzantineEnabled: this.options.enableByzantineConsensus,
       },
       metrics: { ...this.metrics },
       consensus: { ...this.consensusState },
@@ -531,8 +526,8 @@ export class ResilientHookEngine extends EventEmitter {
       memory: memoryStats,
       queue: {
         size: this.hookQueue.length,
-        active: this.activeHooks.size
-      }
+        active: this.activeHooks.size,
+      },
     };
   }
 
@@ -595,12 +590,7 @@ export class ResilientHookEngine extends EventEmitter {
   }
 
   validateHook(hook) {
-    return (
-      hook.id &&
-      hook.name &&
-      hook.type &&
-      typeof hook.handler === 'function'
-    );
+    return hook.id && hook.name && hook.type && typeof hook.handler === 'function';
   }
 
   generateHookId() {
@@ -612,12 +602,14 @@ export class ResilientHookEngine extends EventEmitter {
   }
 
   updateExecutionMetrics(duration, results) {
-    const succeeded = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
 
     this.metrics.totalExecutionTime += duration;
     this.metrics.averageExecutionTime =
-      this.metrics.hooksExecuted > 0 ? this.metrics.totalExecutionTime / this.metrics.hooksExecuted : 0;
+      this.metrics.hooksExecuted > 0
+        ? this.metrics.totalExecutionTime / this.metrics.hooksExecuted
+        : 0;
     this.metrics.lastExecution = Date.now();
     this.metrics.queueSize = this.hookQueue.length;
     this.metrics.activeCount = this.activeHooks.size;
@@ -678,11 +670,11 @@ export class BuiltInResilientHooks {
         return {
           validated: true,
           task: payload.task,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       },
       conditions: [],
-      metadata: { builtin: true, ...options }
+      metadata: { builtin: true, ...options },
     };
   }
 
@@ -700,11 +692,11 @@ export class BuiltInResilientHooks {
           completed: true,
           task: payload.task,
           duration: payload.duration || 0,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       },
       conditions: [],
-      metadata: { builtin: true, ...options }
+      metadata: { builtin: true, ...options },
     };
   }
 
@@ -726,14 +718,18 @@ export class BuiltInResilientHooks {
           validated: true,
           file: payload.file,
           operation: payload.operation || 'unknown',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       },
-      conditions: options.filePattern ? [{
-        type: 'filePattern',
-        pattern: options.filePattern
-      }] : [],
-      metadata: { builtin: true, ...options }
+      conditions: options.filePattern
+        ? [
+            {
+              type: 'filePattern',
+              pattern: options.filePattern,
+            },
+          ]
+        : [],
+      metadata: { builtin: true, ...options },
     };
   }
 
@@ -753,11 +749,11 @@ export class BuiltInResilientHooks {
           validated: payload.completed === true,
           truthScore,
           evidence: payload.evidence || {},
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       },
       conditions: [],
-      metadata: { builtin: true, critical: true, ...options }
+      metadata: { builtin: true, critical: true, ...options },
     };
   }
 }
@@ -776,7 +772,7 @@ export async function testHookSystemResilience() {
   try {
     const hookSystem = new ResilientHookEngine({
       enableByzantineConsensus: true,
-      enableMetrics: true
+      enableMetrics: true,
     });
 
     await hookSystem.initialize();
@@ -785,7 +781,7 @@ export async function testHookSystemResilience() {
     const hookId = hookSystem.register({
       name: 'Test Resilience Hook',
       type: 'test',
-      handler: async () => ({ tested: true, timestamp: Date.now() })
+      handler: async () => ({ tested: true, timestamp: Date.now() }),
     });
 
     // Execute test hook
@@ -802,13 +798,13 @@ export async function testHookSystemResilience() {
       tested: result.results.length > 0 && result.results[0].success,
       memoryMode: stats.memory?.system?.mode || 'none',
       byzantineEnabled: stats.system.byzantineEnabled,
-      error: null
+      error: null,
     };
   } catch (error) {
     return {
       resilient: false,
       tested: false,
-      error: error.message
+      error: error.message,
     };
   }
 }

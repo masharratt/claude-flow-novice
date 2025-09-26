@@ -7,7 +7,7 @@ import { getUnifiedMemory } from '../../memory/unified-memory-manager.js';
 export async function memoryCommand(subArgs, flags) {
   const memorySubcommand = subArgs[0];
   const memoryStore = './memory/memory-store.json';
-  
+
   // Extract namespace from flags or subArgs
   const namespace = flags?.namespace || flags?.ns || getNamespaceFromArgs(subArgs) || 'default';
 
@@ -260,7 +260,7 @@ async function clearMemory(subArgs, saveMemory, namespace) {
         return {};
       }
     }
-    
+
     const data = await loadMemory();
 
     if (!data[namespace]) {

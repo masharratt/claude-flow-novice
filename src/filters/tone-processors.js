@@ -11,12 +11,12 @@ class ToneProcessors {
         casual: { formality: 0.3, enthusiasm: 0.6, technical: 0.4 },
         technical: { formality: 0.9, enthusiasm: 0.2, technical: 0.9 },
         concise: { formality: 0.6, enthusiasm: 0.1, technical: 0.8 },
-        friendly: { formality: 0.4, enthusiasm: 0.8, technical: 0.5 }
+        friendly: { formality: 0.4, enthusiasm: 0.8, technical: 0.5 },
       },
       removeSelfCongratulatory: config.removeSelfCongratulatory !== false,
       simplifyJargon: config.simplifyJargon || false,
       focusOnActionable: config.focusOnActionable !== false,
-      customPatterns: config.customPatterns || {}
+      customPatterns: config.customPatterns || {},
     };
 
     this.processingHistory = [];
@@ -58,7 +58,7 @@ class ToneProcessors {
       processed: processedMessage,
       changes: this.detectChanges(originalMessage, processedMessage),
       tone: tone,
-      metrics: this.calculateMetrics(processedMessage)
+      metrics: this.calculateMetrics(processedMessage),
     };
   }
 
@@ -68,9 +68,20 @@ class ToneProcessors {
   removeSelfCongratulatory(text) {
     const patterns = [
       // Excessive praise patterns
-      { pattern: /\b(successfully|perfectly|flawlessly|brilliantly|masterfully)\s+(implemented|executed|completed|delivered|achieved)/gi, replacement: 'completed' },
-      { pattern: /\b(amazing|incredible|outstanding|exceptional|remarkable)\s+(results|performance|implementation|solution)/gi, replacement: 'good results' },
-      { pattern: /\b(effortlessly|seamlessly|smoothly)\s+(integrated|deployed|implemented)/gi, replacement: 'integrated' },
+      {
+        pattern:
+          /\b(successfully|perfectly|flawlessly|brilliantly|masterfully)\s+(implemented|executed|completed|delivered|achieved)/gi,
+        replacement: 'completed',
+      },
+      {
+        pattern:
+          /\b(amazing|incredible|outstanding|exceptional|remarkable)\s+(results|performance|implementation|solution)/gi,
+        replacement: 'good results',
+      },
+      {
+        pattern: /\b(effortlessly|seamlessly|smoothly)\s+(integrated|deployed|implemented)/gi,
+        replacement: 'integrated',
+      },
 
       // Self-praise phrases
       { pattern: /we have successfully/gi, replacement: 'we have' },
@@ -87,7 +98,7 @@ class ToneProcessors {
       { pattern: /!{2,}/g, replacement: '!' },
       { pattern: /amazing!/gi, replacement: 'good.' },
       { pattern: /fantastic!/gi, replacement: 'good.' },
-      { pattern: /incredible!/gi, replacement: 'notable.' }
+      { pattern: /incredible!/gi, replacement: 'notable.' },
     ];
 
     let processedText = text;
@@ -115,15 +126,15 @@ class ToneProcessors {
       'microservices architecture': 'modular system',
       'distributed systems': 'connected systems',
       'event-driven architecture': 'responsive system',
-      'containerization': 'packaging',
-      'orchestration': 'coordination',
+      containerization: 'packaging',
+      orchestration: 'coordination',
 
       // Development terms
-      'refactoring': 'code improvement',
-      'optimization': 'improvement',
-      'paradigm': 'approach',
-      'methodology': 'method',
-      'implementation': 'build',
+      refactoring: 'code improvement',
+      optimization: 'improvement',
+      paradigm: 'approach',
+      methodology: 'method',
+      implementation: 'build',
 
       // Technical processes
       'asynchronous processing': 'background processing',
@@ -132,11 +143,11 @@ class ToneProcessors {
       'vertical scaling': 'upgrading hardware',
 
       // Buzzwords
-      'leverage': 'use',
-      'utilize': 'use',
-      'facilitate': 'enable',
-      'optimize': 'improve',
-      'streamline': 'simplify'
+      leverage: 'use',
+      utilize: 'use',
+      facilitate: 'enable',
+      optimize: 'improve',
+      streamline: 'simplify',
     };
 
     let simplifiedText = text;
@@ -159,12 +170,12 @@ class ToneProcessors {
       /\b(it should be noted that|it's worth mentioning that|please note that)\s*/gi,
       /\b(furthermore|moreover|additionally|in addition),?\s*/gi,
       /\bin conclusion,?\s*/gi,
-      /\bto summarize,?\s*/gi
+      /\bto summarize,?\s*/gi,
     ];
 
     let actionableText = text;
 
-    fluffPatterns.forEach(pattern => {
+    fluffPatterns.forEach((pattern) => {
       actionableText = actionableText.replace(pattern, '');
     });
 
@@ -173,7 +184,7 @@ class ToneProcessors {
       { pattern: /you should probably/gi, replacement: 'you should' },
       { pattern: /you might want to consider/gi, replacement: 'consider' },
       { pattern: /it would be good to/gi, replacement: 'to' },
-      { pattern: /you could potentially/gi, replacement: 'you can' }
+      { pattern: /you could potentially/gi, replacement: 'you can' },
     ];
 
     actionEnhancements.forEach(({ pattern, replacement }) => {
@@ -196,23 +207,27 @@ class ToneProcessors {
         { pattern: /\bisn't\b/gi, replacement: 'is not' },
         { pattern: /\blet's\b/gi, replacement: 'let us' },
         { pattern: /\bthat's\b/gi, replacement: 'that is' },
-        { pattern: /\bit's\b/gi, replacement: 'it is' }
+        { pattern: /\bit's\b/gi, replacement: 'it is' },
       ];
 
-      return formalizations.reduce((text, { pattern, replacement }) =>
-        text.replace(pattern, replacement), text);
+      return formalizations.reduce(
+        (text, { pattern, replacement }) => text.replace(pattern, replacement),
+        text,
+      );
     } else if (formalityLevel < 0.3) {
       // Decrease formality
       const casualizations = [
-        { pattern: /\bcannot\b/gi, replacement: 'can\'t' },
-        { pattern: /\bwill not\b/gi, replacement: 'won\'t' },
-        { pattern: /\bdo not\b/gi, replacement: 'don\'t' },
-        { pattern: /\bis not\b/gi, replacement: 'isn\'t' },
-        { pattern: /\blet us\b/gi, replacement: 'let\'s' }
+        { pattern: /\bcannot\b/gi, replacement: "can't" },
+        { pattern: /\bwill not\b/gi, replacement: "won't" },
+        { pattern: /\bdo not\b/gi, replacement: "don't" },
+        { pattern: /\bis not\b/gi, replacement: "isn't" },
+        { pattern: /\blet us\b/gi, replacement: "let's" },
       ];
 
-      return casualizations.reduce((text, { pattern, replacement }) =>
-        text.replace(pattern, replacement), text);
+      return casualizations.reduce(
+        (text, { pattern, replacement }) => text.replace(pattern, replacement),
+        text,
+      );
     }
 
     return text;
@@ -262,9 +277,7 @@ class ToneProcessors {
    * Batch process multiple messages
    */
   batchProcess(messages, tonePreset = 'professional', userPreferences = {}) {
-    return messages.map(message =>
-      this.processMessage(message, tonePreset, userPreferences)
-    );
+    return messages.map((message) => this.processMessage(message, tonePreset, userPreferences));
   }
 
   /**
@@ -276,12 +289,12 @@ class ToneProcessors {
       'user-guide': 'friendly',
       'error-message': 'concise',
       'status-update': 'professional',
-      'tutorial': 'casual',
+      tutorial: 'casual',
       'technical-spec': 'technical',
-      'email': 'professional',
+      email: 'professional',
       'chat-message': 'casual',
-      'presentation': 'professional',
-      'code-comment': 'concise'
+      presentation: 'professional',
+      'code-comment': 'concise',
     };
 
     return suggestions[contentType] || 'professional';
@@ -300,7 +313,7 @@ class ToneProcessors {
       jargonDensity: this.calculateJargonDensity(text),
       formalityScore: this.calculateFormalityScore(text),
       enthusiasmScore: this.calculateEnthusiasmScore(text),
-      actionabilityScore: this.calculateActionabilityScore(text)
+      actionabilityScore: this.calculateActionabilityScore(text),
     };
   }
 
@@ -324,14 +337,23 @@ class ToneProcessors {
 
   calculateJargonDensity(text) {
     const jargonTerms = [
-      'microservices', 'containerization', 'orchestration', 'kubernetes',
-      'distributed', 'asynchronous', 'paradigm', 'methodology',
-      'implementation', 'optimization', 'refactoring', 'leverage'
+      'microservices',
+      'containerization',
+      'orchestration',
+      'kubernetes',
+      'distributed',
+      'asynchronous',
+      'paradigm',
+      'methodology',
+      'implementation',
+      'optimization',
+      'refactoring',
+      'leverage',
     ];
 
     const words = text.toLowerCase().split(/\s+/);
-    const jargonCount = words.filter(word =>
-      jargonTerms.some(term => word.includes(term))
+    const jargonCount = words.filter((word) =>
+      jargonTerms.some((term) => word.includes(term)),
     ).length;
 
     return jargonCount / Math.max(1, words.length);
@@ -339,31 +361,46 @@ class ToneProcessors {
 
   calculateFormalityScore(text) {
     const formalIndicators = [
-      /\bcannot\b/gi, /\bwill not\b/gi, /\bdo not\b/gi,
-      /\btherefore\b/gi, /\bconsequently\b/gi, /\bfurthermore\b/gi
+      /\bcannot\b/gi,
+      /\bwill not\b/gi,
+      /\bdo not\b/gi,
+      /\btherefore\b/gi,
+      /\bconsequently\b/gi,
+      /\bfurthermore\b/gi,
     ];
 
     const informalIndicators = [
-      /\bcan't\b/gi, /\bwon't\b/gi, /\bdon't\b/gi,
-      /\bokay\b/gi, /\byeah\b/gi, /\bgonna\b/gi
+      /\bcan't\b/gi,
+      /\bwon't\b/gi,
+      /\bdon't\b/gi,
+      /\bokay\b/gi,
+      /\byeah\b/gi,
+      /\bgonna\b/gi,
     ];
 
-    const formalCount = formalIndicators.reduce((count, pattern) =>
-      count + (text.match(pattern) || []).length, 0);
-    const informalCount = informalIndicators.reduce((count, pattern) =>
-      count + (text.match(pattern) || []).length, 0);
+    const formalCount = formalIndicators.reduce(
+      (count, pattern) => count + (text.match(pattern) || []).length,
+      0,
+    );
+    const informalCount = informalIndicators.reduce(
+      (count, pattern) => count + (text.match(pattern) || []).length,
+      0,
+    );
 
     return formalCount / Math.max(1, formalCount + informalCount);
   }
 
   calculateEnthusiasmScore(text) {
     const enthusiasmIndicators = [
-      /!/g, /\b(amazing|awesome|incredible|fantastic|great|love|excited)\b/gi,
-      /\b(wonderful|brilliant|excellent|outstanding)\b/gi
+      /!/g,
+      /\b(amazing|awesome|incredible|fantastic|great|love|excited)\b/gi,
+      /\b(wonderful|brilliant|excellent|outstanding)\b/gi,
     ];
 
-    const totalIndicators = enthusiasmIndicators.reduce((count, pattern) =>
-      count + (text.match(pattern) || []).length, 0);
+    const totalIndicators = enthusiasmIndicators.reduce(
+      (count, pattern) => count + (text.match(pattern) || []).length,
+      0,
+    );
 
     const words = text.split(/\s+/).length;
     return totalIndicators / Math.max(1, words);
@@ -371,11 +408,13 @@ class ToneProcessors {
 
   calculateActionabilityScore(text) {
     const actionWords = [
-      /\b(should|must|need to|have to|will|can|let's|do|create|build|implement|fix|update|add|remove|change)\b/gi
+      /\b(should|must|need to|have to|will|can|let's|do|create|build|implement|fix|update|add|remove|change)\b/gi,
     ];
 
-    const actionCount = actionWords.reduce((count, pattern) =>
-      count + (text.match(pattern) || []).length, 0);
+    const actionCount = actionWords.reduce(
+      (count, pattern) => count + (text.match(pattern) || []).length,
+      0,
+    );
 
     const sentences = text.split(/[.!?]+/).length - 1;
     return actionCount / Math.max(1, sentences);
@@ -385,7 +424,7 @@ class ToneProcessors {
     return {
       readabilityScore: this.calculateReadabilityScore(text),
       clarityScore: this.calculateClarityScore(text),
-      concisenessScore: this.calculateConcisenessScore(text)
+      concisenessScore: this.calculateConcisenessScore(text),
     };
   }
 
@@ -407,9 +446,18 @@ class ToneProcessors {
 
   calculateConcisenessScore(text) {
     // Based on word efficiency and fluff words
-    const fluffWords = ['obviously', 'clearly', 'basically', 'actually', 'really', 'quite', 'very', 'extremely'];
+    const fluffWords = [
+      'obviously',
+      'clearly',
+      'basically',
+      'actually',
+      'really',
+      'quite',
+      'very',
+      'extremely',
+    ];
     const words = text.toLowerCase().split(/\s+/);
-    const fluffCount = words.filter(word => fluffWords.includes(word)).length;
+    const fluffCount = words.filter((word) => fluffWords.includes(word)).length;
 
     return Math.max(0, 1 - (fluffCount / Math.max(1, words.length)) * 5);
   }
@@ -421,7 +469,7 @@ class ToneProcessors {
       processedLength: processed.length,
       preset,
       tone,
-      changesMade: original !== processed
+      changesMade: original !== processed,
     });
 
     // Keep history manageable
@@ -438,22 +486,23 @@ class ToneProcessors {
 
     return {
       totalProcessed: this.processingHistory.length,
-      avgLengthReduction: recent.reduce((sum, entry) =>
-        sum + (entry.originalLength - entry.processedLength), 0) / Math.max(1, recent.length),
-      changesRate: recent.filter(entry => entry.changesMade).length / Math.max(1, recent.length),
+      avgLengthReduction:
+        recent.reduce((sum, entry) => sum + (entry.originalLength - entry.processedLength), 0) /
+        Math.max(1, recent.length),
+      changesRate: recent.filter((entry) => entry.changesMade).length / Math.max(1, recent.length),
       popularPresets: this.getPopularPresets(),
-      recentProcessing: recent.slice(-10)
+      recentProcessing: recent.slice(-10),
     };
   }
 
   getPopularPresets() {
     const presetCounts = {};
-    this.processingHistory.forEach(entry => {
+    this.processingHistory.forEach((entry) => {
       presetCounts[entry.preset] = (presetCounts[entry.preset] || 0) + 1;
     });
 
     return Object.entries(presetCounts)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([preset, count]) => ({ preset, count }));
   }
@@ -471,7 +520,7 @@ class ToneProcessors {
   exportConfig() {
     return {
       ...this.config,
-      stats: this.getProcessingStats()
+      stats: this.getProcessingStats(),
     };
   }
 

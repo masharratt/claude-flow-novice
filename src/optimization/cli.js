@@ -76,10 +76,7 @@ export class OptimizationCLI {
       .command('schedule <pattern>')
       .description('Schedule regular optimization runs')
       .option('-c, --context <json>', 'Additional context as JSON')
-      .examples([
-        'claude-flow-optimize schedule @daily',
-        'claude-flow-optimize schedule @hourly'
-      ])
+      .examples(['claude-flow-optimize schedule @daily', 'claude-flow-optimize schedule @hourly'])
       .action(async (pattern, options) => {
         await this.handleScheduleCommand(pattern, options);
       });
@@ -189,7 +186,7 @@ export class OptimizationCLI {
       const analysisOptions = {
         depth: options.depth,
         enableLearning: !options.noLearning,
-        autoImplementSafe: options.autoImplement
+        autoImplementSafe: options.autoImplement,
       };
 
       const result = await engine.optimize(analysisOptions);
@@ -199,7 +196,6 @@ export class OptimizationCLI {
       if (options.autoImplement && result.recommendations?.topPriority?.length > 0) {
         await this.autoImplementSafeRecommendations(result.recommendations.topPriority, engine);
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Analysis failed:'), error.message);
       process.exit(1);
@@ -217,7 +213,6 @@ export class OptimizationCLI {
       }
 
       this.displayStatus(status, options.verbose);
-
     } catch (error) {
       console.error(chalk.red('❌ Status check failed:'), error.message);
       process.exit(1);
@@ -233,11 +228,11 @@ export class OptimizationCLI {
 
       // Apply filters
       if (options.priority) {
-        recommendations = recommendations.filter(r => r.priority === options.priority);
+        recommendations = recommendations.filter((r) => r.priority === options.priority);
       }
 
       if (options.category) {
-        recommendations = recommendations.filter(r => r.type === options.category);
+        recommendations = recommendations.filter((r) => r.type === options.category);
       }
 
       if (options.implemented) {
@@ -251,7 +246,6 @@ export class OptimizationCLI {
       }
 
       this.displayRecommendations(recommendations);
-
     } catch (error) {
       console.error(chalk.red('❌ Failed to get recommendations:'), error.message);
       process.exit(1);
@@ -270,7 +264,9 @@ export class OptimizationCLI {
 
       if (!options.force) {
         // Would prompt for confirmation in a real implementation
-        console.log(chalk.yellow('⚠️  This would implement the optimization. Use --force to proceed.'));
+        console.log(
+          chalk.yellow('⚠️  This would implement the optimization. Use --force to proceed.'),
+        );
         return;
       }
 
@@ -279,7 +275,6 @@ export class OptimizationCLI {
 
       console.log(chalk.green('✅ Optimization implemented successfully'));
       console.log(JSON.stringify(result, null, 2));
-
     } catch (error) {
       console.error(chalk.red('❌ Implementation failed:'), error.message);
       process.exit(1);
@@ -300,7 +295,6 @@ export class OptimizationCLI {
       console.log(chalk.green('📅 Optimization scheduled successfully'));
       console.log(`Schedule ID: ${scheduleId}`);
       console.log(`Pattern: ${pattern}`);
-
     } catch (error) {
       console.error(chalk.red('❌ Scheduling failed:'), error.message);
       process.exit(1);
@@ -313,7 +307,7 @@ export class OptimizationCLI {
 
       const monitorOptions = {
         interval: parseInt(options.interval),
-        threshold: parseFloat(options.threshold)
+        threshold: parseFloat(options.threshold),
       };
 
       await engine.startContinuousOptimization(monitorOptions);
@@ -338,7 +332,6 @@ export class OptimizationCLI {
 
       // Keep the process alive
       await new Promise(() => {});
-
     } catch (error) {
       console.error(chalk.red('❌ Monitoring failed:'), error.message);
       process.exit(1);
@@ -353,7 +346,6 @@ export class OptimizationCLI {
       if (options.export) {
         console.log(chalk.green(`📁 History exported to: ${options.export}`));
       }
-
     } catch (error) {
       console.error(chalk.red('❌ History retrieval failed:'), error.message);
       process.exit(1);
@@ -364,7 +356,6 @@ export class OptimizationCLI {
     try {
       console.log(chalk.blue('🧠 Learned Optimization Patterns'));
       console.log(chalk.gray('(This would show learned patterns)'));
-
     } catch (error) {
       console.error(chalk.red('❌ Pattern retrieval failed:'), error.message);
       process.exit(1);
@@ -374,13 +365,14 @@ export class OptimizationCLI {
   async handleResetCommand(options) {
     try {
       if (!options.confirm) {
-        console.log(chalk.yellow('⚠️  This will reset optimization data. Use --confirm to proceed.'));
+        console.log(
+          chalk.yellow('⚠️  This will reset optimization data. Use --confirm to proceed.'),
+        );
         return;
       }
 
       console.log(chalk.yellow('🧹 Resetting optimization data...'));
       console.log(chalk.green('✅ Reset completed'));
-
     } catch (error) {
       console.error(chalk.red('❌ Reset failed:'), error.message);
       process.exit(1);
@@ -391,7 +383,6 @@ export class OptimizationCLI {
     try {
       console.log(chalk.blue('📤 Exporting optimization data...'));
       console.log(chalk.green(`✅ Data exported in ${options.format} format`));
-
     } catch (error) {
       console.error(chalk.red('❌ Export failed:'), error.message);
       process.exit(1);
@@ -410,7 +401,6 @@ export class OptimizationCLI {
       } else {
         console.log(chalk.yellow('Use --list, --get, or --set options'));
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Configuration failed:'), error.message);
       process.exit(1);
@@ -428,10 +418,10 @@ export class OptimizationCLI {
           orchestration: 'active',
           integration: 'active',
           workflow: 'active',
-          resource: 'active'
+          resource: 'active',
         },
         issues: [],
-        recommendations: []
+        recommendations: [],
       };
 
       this.displayDiagnostics(diagnostics, options.verbose);
@@ -440,7 +430,6 @@ export class OptimizationCLI {
         console.log(chalk.yellow('🔧 Attempting to fix detected issues...'));
         console.log(chalk.green('✅ Issues fixed'));
       }
-
     } catch (error) {
       console.error(chalk.red('❌ Diagnostics failed:'), error.message);
       process.exit(1);
@@ -455,17 +444,23 @@ export class OptimizationCLI {
 
     // Summary
     console.log(chalk.blue.bold('Summary:'));
-    console.log(`  Total Recommendations: ${chalk.yellow(result.recommendations?.all?.length || 0)}`);
+    console.log(
+      `  Total Recommendations: ${chalk.yellow(result.recommendations?.all?.length || 0)}`,
+    );
     console.log(`  High Priority: ${chalk.red(result.recommendations?.topPriority?.length || 0)}`);
     console.log(`  Analysis Time: ${chalk.cyan(result.duration?.toFixed(2) || 0)}ms`);
-    console.log(`  Confidence Score: ${chalk.green((result.confidenceScores?.overall || 0.5).toFixed(2))}`);
+    console.log(
+      `  Confidence Score: ${chalk.green((result.confidenceScores?.overall || 0.5).toFixed(2))}`,
+    );
 
     // Top recommendations
     if (result.recommendations?.topPriority?.length > 0) {
       console.log('\\n' + chalk.blue.bold('Top Priority Recommendations:'));
       result.recommendations.topPriority.slice(0, 5).forEach((rec, index) => {
         console.log(`  ${index + 1}. ${chalk.yellow(rec.title || rec.description)}`);
-        console.log(`     Impact: ${this.formatImpact(rec.impact)} | Effort: ${this.formatEffort(rec.effort)}`);
+        console.log(
+          `     Impact: ${this.formatImpact(rec.impact)} | Effort: ${this.formatEffort(rec.effort)}`,
+        );
         if (rec.estimatedTimeMinutes) {
           console.log(`     Estimated Time: ${chalk.cyan(rec.estimatedTimeMinutes)} minutes`);
         }
@@ -485,7 +480,9 @@ export class OptimizationCLI {
     // Orchestration status
     console.log(chalk.blue.bold('Orchestration Engine:'));
     console.log(`  Status: ${this.formatStatus(status.orchestration?.status)}`);
-    console.log(`  Queue Length: ${chalk.yellow(status.orchestration?.operationQueue?.length || 0)}`);
+    console.log(
+      `  Queue Length: ${chalk.yellow(status.orchestration?.operationQueue?.length || 0)}`,
+    );
     console.log(`  Scheduled Jobs: ${chalk.cyan(status.scheduledJobs?.length || 0)}`);
 
     // Statistics
@@ -494,7 +491,9 @@ export class OptimizationCLI {
       const stats = status.orchestration.statistics;
       console.log(`  Total Optimizations: ${chalk.yellow(stats.totalOptimizations || 0)}`);
       console.log(`  Success Rate: ${chalk.green((stats.successRate * 100).toFixed(1))}%`);
-      console.log(`  Average Duration: ${chalk.cyan((stats.averageOptimizationTime || 0).toFixed(2))}ms`);
+      console.log(
+        `  Average Duration: ${chalk.cyan((stats.averageOptimizationTime || 0).toFixed(2))}ms`,
+      );
     }
 
     // Active recommendations
@@ -523,7 +522,9 @@ export class OptimizationCLI {
       console.log(`\\n${chalk.blue.bold(`${index + 1}. ${rec.title || rec.description}`)}`);
       console.log(`   Type: ${chalk.cyan(rec.type || 'unknown')}`);
       console.log(`   Priority: ${this.formatPriority(rec.priority)}`);
-      console.log(`   Impact: ${this.formatImpact(rec.impact)} | Effort: ${this.formatEffort(rec.effort)}`);
+      console.log(
+        `   Impact: ${this.formatImpact(rec.impact)} | Effort: ${this.formatEffort(rec.effort)}`,
+      );
 
       if (rec.benefits && rec.benefits.length > 0) {
         console.log(`   Benefits: ${rec.benefits.join(', ')}`);
@@ -656,8 +657,8 @@ export class OptimizationCLI {
   async autoImplementSafeRecommendations(recommendations, engine) {
     console.log(chalk.blue('🤖 Auto-implementing safe optimizations...'));
 
-    const safeRecommendations = recommendations.filter(r =>
-      r.implementationComplexity < 0.3 && r.systemImpact < 0.5
+    const safeRecommendations = recommendations.filter(
+      (r) => r.implementationComplexity < 0.3 && r.systemImpact < 0.5,
     );
 
     for (const rec of safeRecommendations.slice(0, 3)) {
@@ -677,7 +678,7 @@ export const cli = new OptimizationCLI();
 
 // Auto-run if this file is executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  cli.run().catch(error => {
+  cli.run().catch((error) => {
     console.error(chalk.red('❌ CLI execution failed:'), error);
     process.exit(1);
   });

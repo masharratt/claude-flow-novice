@@ -1,6 +1,6 @@
 /**
  * Performance optimization hooks for agentic-flow
- * 
+ *
  * Tracks metrics, identifies bottlenecks, and provides
  * optimization suggestions based on provider performance.
  */
@@ -24,12 +24,12 @@ export const performanceMetricHook = {
   priority: 100,
   handler: async (
     payload: PerformanceHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { metric, value, unit, threshold } = payload;
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Store metric
     const metricData: PerformanceMetric = {
       name: metric,
@@ -38,13 +38,13 @@ export const performanceMetricHook = {
       timestamp: Date.now(),
       tags: extractTags(payload.context),
     };
-    
+
     context.performance.metrics.set(metric, metricData);
-    
+
     // Check threshold violations
     if (threshold !== undefined) {
       const violated = checkThreshold(value, threshold, payload.context);
-      
+
       if (violated) {
         sideEffects.push({
           type: 'notification',
@@ -59,15 +59,10 @@ export const performanceMetricHook = {
             },
           },
         });
-        
+
         // Generate optimization suggestion
-        const suggestion = await generateOptimizationSuggestion(
-          metric,
-          value,
-          threshold,
-          context
-        );
-        
+        const suggestion = await generateOptimizationSuggestion(metric, value, threshold, context);
+
         if (suggestion) {
           context.performance.optimizations.push(suggestion);
           sideEffects.push({
@@ -82,10 +77,10 @@ export const performanceMetricHook = {
         }
       }
     }
-    
+
     // Update rolling averages
     await updateRollingAverages(metric, value, context);
-    
+
     // Detect anomalies
     const anomaly = await detectAnomaly(metric, value, context);
     if (anomaly) {
@@ -98,7 +93,7 @@ export const performanceMetricHook = {
         },
       });
     }
-    
+
     return {
       continue: true,
       sideEffects,
@@ -114,16 +109,16 @@ export const performanceBottleneckHook = {
   priority: 90,
   handler: async (
     payload: PerformanceHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { bottleneck } = payload;
-    
+
     if (!bottleneck) {
       return { continue: true };
     }
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Analyze bottleneck severity
     const analysis: BottleneckAnalysis = {
       component: bottleneck.location,
@@ -131,9 +126,9 @@ export const performanceBottleneckHook = {
       impact: bottleneck.severity / 10, // Normalize to 0-1
       suggestions: bottleneck.suggestions,
     };
-    
+
     context.performance.bottlenecks.push(analysis);
-    
+
     // Store for historical analysis
     sideEffects.push({
       type: 'memory',
@@ -144,13 +139,10 @@ export const performanceBottleneckHook = {
         ttl: 86400, // 24 hours
       },
     });
-    
+
     // Check for recurring bottlenecks
-    const recurrence = await checkBottleneckRecurrence(
-      analysis.component,
-      context
-    );
-    
+    const recurrence = await checkBottleneckRecurrence(analysis.component, context);
+
     if (recurrence.count > 3) {
       // Recurring bottleneck - escalate
       sideEffects.push({
@@ -165,25 +157,18 @@ export const performanceBottleneckHook = {
           },
         },
       });
-      
+
       // Generate advanced optimization
-      const optimization = await generateAdvancedOptimization(
-        analysis,
-        recurrence,
-        context
-      );
-      
+      const optimization = await generateAdvancedOptimization(analysis, recurrence, context);
+
       if (optimization) {
         context.performance.optimizations.push(optimization);
       }
     }
-    
+
     // Correlate with other metrics
-    const correlations = await findMetricCorrelations(
-      analysis.component,
-      context
-    );
-    
+    const correlations = await findMetricCorrelations(analysis.component, context);
+
     if (correlations.length > 0) {
       sideEffects.push({
         type: 'log',
@@ -195,7 +180,7 @@ export const performanceBottleneckHook = {
         },
       });
     }
-    
+
     return {
       continue: true,
       sideEffects,
@@ -211,16 +196,16 @@ export const performanceOptimizationHook = {
   priority: 80,
   handler: async (
     payload: PerformanceHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { optimization } = payload;
-    
+
     if (!optimization) {
       return { continue: true };
     }
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Validate optimization
     const validation = await validateOptimization(optimization, context);
     if (!validation.valid) {
@@ -235,15 +220,15 @@ export const performanceOptimizationHook = {
       });
       return { continue: true, sideEffects };
     }
-    
+
     // Simulate optimization impact
     const simulation = await simulateOptimization(optimization, context);
-    
+
     if (simulation.expectedImprovement < 0.1) {
       // Low impact - skip
       return { continue: true };
     }
-    
+
     // Store optimization recommendation
     const recommendation = {
       optimization,
@@ -251,7 +236,7 @@ export const performanceOptimizationHook = {
       timestamp: Date.now(),
       autoApply: optimization.applied && simulation.risk === 'low',
     };
-    
+
     sideEffects.push({
       type: 'memory',
       action: 'store',
@@ -261,11 +246,11 @@ export const performanceOptimizationHook = {
         ttl: 604800, // 7 days
       },
     });
-    
+
     // Auto-apply low-risk optimizations
     if (recommendation.autoApply) {
       await applyOptimization(optimization, context);
-      
+
       sideEffects.push({
         type: 'notification',
         action: 'emit',
@@ -285,7 +270,7 @@ export const performanceOptimizationHook = {
         },
       });
     }
-    
+
     return {
       continue: true,
       sideEffects,
@@ -301,23 +286,20 @@ export const performanceThresholdHook = {
   priority: 95,
   handler: async (
     payload: PerformanceHookPayload,
-    context: AgenticHookContext
+    context: AgenticHookContext,
   ): Promise<HookHandlerResult> => {
     const { metric, value, threshold } = payload;
-    
+
     if (threshold === undefined) {
       return { continue: true };
     }
-    
+
     const sideEffects: SideEffect[] = [];
-    
+
     // Dynamic threshold adjustment
     const historicalData = await getMetricHistory(metric, context);
-    const adjustedThreshold = calculateDynamicThreshold(
-      threshold,
-      historicalData
-    );
-    
+    const adjustedThreshold = calculateDynamicThreshold(threshold, historicalData);
+
     if (adjustedThreshold !== threshold) {
       sideEffects.push({
         type: 'log',
@@ -333,15 +315,15 @@ export const performanceThresholdHook = {
         },
       });
     }
-    
+
     // Predict threshold violations
     const prediction = await predictThresholdViolation(
       metric,
       value,
       adjustedThreshold,
-      historicalData
+      historicalData,
     );
-    
+
     if (prediction.willViolate && prediction.confidence > 0.7) {
       sideEffects.push({
         type: 'notification',
@@ -357,19 +339,15 @@ export const performanceThresholdHook = {
           },
         },
       });
-      
+
       // Proactive optimization
-      const proactiveOpt = await generateProactiveOptimization(
-        metric,
-        prediction,
-        context
-      );
-      
+      const proactiveOpt = await generateProactiveOptimization(metric, prediction, context);
+
       if (proactiveOpt) {
         context.performance.optimizations.push(proactiveOpt);
       }
     }
-    
+
     return {
       continue: true,
       sideEffects,
@@ -381,31 +359,34 @@ export const performanceThresholdHook = {
 
 function extractTags(context: Record<string, any>): string[] {
   const tags: string[] = [];
-  
+
   if (context.provider) tags.push(`provider:${context.provider}`);
   if (context.model) tags.push(`model:${context.model}`);
   if (context.operation) tags.push(`op:${context.operation}`);
   if (context.component) tags.push(`component:${context.component}`);
-  
+
   return tags;
 }
 
-function checkThreshold(
-  value: number,
-  threshold: number,
-  context: Record<string, any>
-): boolean {
+function checkThreshold(value: number, threshold: number, context: Record<string, any>): boolean {
   // Check if threshold is violated based on context
   const operator = context.thresholdOperator || 'gt';
-  
+
   switch (operator) {
-    case 'gt': return value > threshold;
-    case 'gte': return value >= threshold;
-    case 'lt': return value < threshold;
-    case 'lte': return value <= threshold;
-    case 'eq': return value === threshold;
-    case 'ne': return value !== threshold;
-    default: return value > threshold;
+    case 'gt':
+      return value > threshold;
+    case 'gte':
+      return value >= threshold;
+    case 'lt':
+      return value < threshold;
+    case 'lte':
+      return value <= threshold;
+    case 'eq':
+      return value === threshold;
+    case 'ne':
+      return value !== threshold;
+    default:
+      return value > threshold;
   }
 }
 
@@ -413,11 +394,11 @@ async function generateOptimizationSuggestion(
   metric: string,
   value: number,
   threshold: number,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<OptimizationSuggestion | null> {
   // Generate optimization based on metric type
   const metricType = getMetricType(metric);
-  
+
   switch (metricType) {
     case 'latency':
       if (value > threshold * 2) {
@@ -438,7 +419,7 @@ async function generateOptimizationSuggestion(
         };
       }
       break;
-      
+
     case 'throughput':
       if (value < threshold * 0.5) {
         return {
@@ -450,7 +431,7 @@ async function generateOptimizationSuggestion(
         };
       }
       break;
-      
+
     case 'memory':
       if (value > threshold * 0.9) {
         return {
@@ -463,51 +444,50 @@ async function generateOptimizationSuggestion(
       }
       break;
   }
-  
+
   return null;
 }
 
 async function updateRollingAverages(
   metric: string,
   value: number,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<void> {
   const avgKey = `avg:${metric}`;
-  const history = await context.memory.cache.get(avgKey) || [];
-  
+  const history = (await context.memory.cache.get(avgKey)) || [];
+
   history.push({ value, timestamp: Date.now() });
-  
+
   // Keep last 1000 values
   if (history.length > 1000) {
     history.shift();
   }
-  
+
   await context.memory.cache.set(avgKey, history);
 }
 
 async function detectAnomaly(
   metric: string,
   value: number,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<any | null> {
   const avgKey = `avg:${metric}`;
-  const history = await context.memory.cache.get(avgKey) || [];
-  
+  const history = (await context.memory.cache.get(avgKey)) || [];
+
   if (history.length < 100) {
     return null; // Not enough data
   }
-  
+
   // Calculate statistics
   const values = history.map((h: any) => h.value);
   const mean = values.reduce((a: number, b: number) => a + b, 0) / values.length;
-  const variance = values.reduce((a: number, b: number) => 
-    a + Math.pow(b - mean, 2), 0
-  ) / values.length;
+  const variance =
+    values.reduce((a: number, b: number) => a + Math.pow(b - mean, 2), 0) / values.length;
   const stdDev = Math.sqrt(variance);
-  
+
   // Check if value is anomalous (> 3 standard deviations)
   const zScore = Math.abs((value - mean) / stdDev);
-  
+
   if (zScore > 3) {
     return {
       type: 'statistical',
@@ -517,7 +497,7 @@ async function detectAnomaly(
       severity: zScore > 5 ? 'high' : 'medium',
     };
   }
-  
+
   return null;
 }
 
@@ -530,19 +510,17 @@ function mapSeverity(severity: number): BottleneckAnalysis['severity'] {
 
 async function checkBottleneckRecurrence(
   component: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<{ count: number; timespan: number }> {
   const historyKey = `bottleneck:history:${component}`;
-  const history = await context.memory.cache.get(historyKey) || [];
-  
+  const history = (await context.memory.cache.get(historyKey)) || [];
+
   const now = Date.now();
   const dayAgo = now - 86400000;
-  
+
   // Count occurrences in last 24 hours
-  const recentOccurrences = history.filter((h: any) => 
-    h.timestamp > dayAgo
-  );
-  
+  const recentOccurrences = history.filter((h: any) => h.timestamp > dayAgo);
+
   return {
     count: recentOccurrences.length,
     timespan: 86400000, // 24 hours in ms
@@ -552,7 +530,7 @@ async function checkBottleneckRecurrence(
 async function generateAdvancedOptimization(
   bottleneck: BottleneckAnalysis,
   recurrence: { count: number; timespan: number },
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<OptimizationSuggestion | null> {
   // Generate advanced optimization for recurring bottlenecks
   if (bottleneck.severity === 'critical' && recurrence.count > 5) {
@@ -564,7 +542,7 @@ async function generateAdvancedOptimization(
       risk: 'high',
     };
   }
-  
+
   if (bottleneck.severity === 'high' && recurrence.count > 3) {
     return {
       type: 'cache',
@@ -574,16 +552,16 @@ async function generateAdvancedOptimization(
       risk: 'medium',
     };
   }
-  
+
   return null;
 }
 
 async function findMetricCorrelations(
   component: string,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<Array<{ metric: string; correlation: number }>> {
   const correlations: Array<{ metric: string; correlation: number }> = [];
-  
+
   // Check correlations with other metrics
   for (const [metric, data] of context.performance.metrics) {
     if (data.tags.includes(`component:${component}`)) {
@@ -594,13 +572,13 @@ async function findMetricCorrelations(
       });
     }
   }
-  
+
   return correlations;
 }
 
 async function validateOptimization(
   optimization: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<{ valid: boolean; reason?: string }> {
   // Validate optimization is safe to apply
   if (!optimization.type || !optimization.details) {
@@ -609,7 +587,7 @@ async function validateOptimization(
       reason: 'Missing required optimization fields',
     };
   }
-  
+
   // Check risk level
   if (optimization.details === 'high' && !context.metadata.allowHighRisk) {
     return {
@@ -617,69 +595,52 @@ async function validateOptimization(
       reason: 'High-risk optimizations not allowed',
     };
   }
-  
+
   return { valid: true };
 }
 
-async function simulateOptimization(
-  optimization: any,
-  context: AgenticHookContext
-): Promise<any> {
+async function simulateOptimization(optimization: any, context: AgenticHookContext): Promise<any> {
   // Simulate optimization impact
   const baseline = await getBaselineMetrics(optimization.type, context);
-  
+
   const simulation = {
     expectedImprovement: optimization.improvement || 0.2,
     risk: calculateRisk(optimization),
     affectedMetrics: identifyAffectedMetrics(optimization),
     rollbackPlan: generateRollbackPlan(optimization),
   };
-  
+
   return simulation;
 }
 
-async function applyOptimization(
-  optimization: any,
-  context: AgenticHookContext
-): Promise<void> {
+async function applyOptimization(optimization: any, context: AgenticHookContext): Promise<void> {
   // Apply optimization
   // Placeholder implementation
   const timestamp = Date.now();
-  
+
   // Store optimization application
-  await context.memory.cache.set(
-    `applied:${optimization.type}:${timestamp}`,
-    {
-      optimization,
-      appliedAt: timestamp,
-      appliedBy: 'automatic',
-    }
-  );
+  await context.memory.cache.set(`applied:${optimization.type}:${timestamp}`, {
+    optimization,
+    appliedAt: timestamp,
+    appliedBy: 'automatic',
+  });
 }
 
-async function getMetricHistory(
-  metric: string,
-  context: AgenticHookContext
-): Promise<any[]> {
+async function getMetricHistory(metric: string, context: AgenticHookContext): Promise<any[]> {
   const historyKey = `history:${metric}`;
-  return await context.memory.cache.get(historyKey) || [];
+  return (await context.memory.cache.get(historyKey)) || [];
 }
 
-function calculateDynamicThreshold(
-  baseThreshold: number,
-  historicalData: any[]
-): number {
+function calculateDynamicThreshold(baseThreshold: number, historicalData: any[]): number {
   if (historicalData.length < 50) {
     return baseThreshold; // Not enough data
   }
-  
+
   // Calculate percentile-based threshold
-  const values = historicalData
-    .map(d => d.value)
-    .sort((a, b) => a - b);
-  
+  const values = historicalData.map((d) => d.value).sort((a, b) => a - b);
+
   const p95 = values[Math.floor(values.length * 0.95)];
-  
+
   // Adjust threshold based on historical performance
   return Math.max(baseThreshold, p95 * 1.1);
 }
@@ -688,7 +649,7 @@ async function predictThresholdViolation(
   metric: string,
   currentValue: number,
   threshold: number,
-  historicalData: any[]
+  historicalData: any[],
 ): Promise<any> {
   if (historicalData.length < 10) {
     return {
@@ -696,21 +657,21 @@ async function predictThresholdViolation(
       confidence: 0,
     };
   }
-  
+
   // Simple linear trend prediction
-  const recentValues = historicalData.slice(-10).map(d => d.value);
+  const recentValues = historicalData.slice(-10).map((d) => d.value);
   const trend = calculateTrend(recentValues);
-  
+
   if (trend > 0 && currentValue > threshold * 0.8) {
     const timeToViolation = (threshold - currentValue) / trend;
-    
+
     return {
       willViolate: true,
       timeToViolation,
       confidence: Math.min(trend * 10, 0.9),
     };
   }
-  
+
   return {
     willViolate: false,
     confidence: 0,
@@ -720,11 +681,11 @@ async function predictThresholdViolation(
 async function generateProactiveOptimization(
   metric: string,
   prediction: any,
-  context: AgenticHookContext
+  context: AgenticHookContext,
 ): Promise<OptimizationSuggestion | null> {
   // Generate proactive optimization to prevent violation
   const metricType = getMetricType(metric);
-  
+
   if (metricType === 'latency' && prediction.timeToViolation < 300000) {
     return {
       type: 'cache',
@@ -734,7 +695,7 @@ async function generateProactiveOptimization(
       risk: 'low',
     };
   }
-  
+
   return null;
 }
 
@@ -746,10 +707,7 @@ function getMetricType(metric: string): string {
   return 'unknown';
 }
 
-async function getBaselineMetrics(
-  type: string,
-  context: AgenticHookContext
-): Promise<any> {
+async function getBaselineMetrics(type: string, context: AgenticHookContext): Promise<any> {
   // Get baseline metrics for comparison
   // Placeholder implementation
   return {};
@@ -767,7 +725,7 @@ function calculateRisk(optimization: any): string {
 function identifyAffectedMetrics(optimization: any): string[] {
   // Identify metrics affected by optimization
   const affected: string[] = [];
-  
+
   switch (optimization.type) {
     case 'cache':
       affected.push('latency', 'memory_usage');
@@ -782,7 +740,7 @@ function identifyAffectedMetrics(optimization: any): string[] {
       affected.push('latency', 'cpu_usage', 'memory_usage');
       break;
   }
-  
+
   return affected;
 }
 
@@ -804,16 +762,16 @@ function generateRollbackPlan(optimization: any): any {
 
 function calculateTrend(values: number[]): number {
   if (values.length < 2) return 0;
-  
+
   // Simple linear regression
   const n = values.length;
   const sumX = values.reduce((a, _, i) => a + i, 0);
   const sumY = values.reduce((a, b) => a + b, 0);
   const sumXY = values.reduce((a, b, i) => a + i * b, 0);
   const sumX2 = values.reduce((a, _, i) => a + i * i, 0);
-  
+
   const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-  
+
   return slope;
 }
 

@@ -66,7 +66,7 @@ export class FeatureFlagManager extends EventEmitter {
 
       this.emit('initialized', {
         flagCount: this.flags.size,
-        environment: this.environment
+        environment: this.environment,
       });
     } catch (error) {
       this.emit('error', error);
@@ -89,13 +89,13 @@ export class FeatureFlagManager extends EventEmitter {
           owner: 'Phase4-Deployment-Manager',
           createdAt: new Date().toISOString(),
           phase: 'Phase4',
-          category: 'validation'
+          category: 'validation',
         },
         rollback: {
           enabled: true,
           threshold: 0.01, // 1% error rate threshold
-          autoRollback: true
-        }
+          autoRollback: true,
+        },
       },
       {
         name: 'byzantine-consensus',
@@ -107,16 +107,16 @@ export class FeatureFlagManager extends EventEmitter {
           owner: 'Phase4-Deployment-Manager',
           createdAt: new Date().toISOString(),
           phase: 'Phase4',
-          category: 'consensus'
+          category: 'consensus',
         },
         conditions: {
-          minVersion: '1.0.0'
+          minVersion: '1.0.0',
         },
         rollback: {
           enabled: true,
           threshold: 0.01,
-          autoRollback: true
-        }
+          autoRollback: true,
+        },
       },
       {
         name: 'hook-interception',
@@ -128,14 +128,14 @@ export class FeatureFlagManager extends EventEmitter {
           owner: 'Phase4-Deployment-Manager',
           createdAt: new Date().toISOString(),
           phase: 'Phase4',
-          category: 'hooks'
+          category: 'hooks',
         },
         rollback: {
           enabled: true,
           threshold: 0.05, // 5% threshold for hooks
-          autoRollback: this.getBooleanEnv('AUTO_RELAUNCH_ENABLED', true)
-        }
-      }
+          autoRollback: this.getBooleanEnv('AUTO_RELAUNCH_ENABLED', true),
+        },
+      },
     ];
 
     for (const flag of phase4Flags) {
@@ -188,7 +188,7 @@ export class FeatureFlagManager extends EventEmitter {
       }
 
       if (flag.conditions.groups && context?.groups) {
-        const hasGroup = flag.conditions.groups.some(group => context.groups.includes(group));
+        const hasGroup = flag.conditions.groups.some((group) => context.groups.includes(group));
         if (!hasGroup) return false;
       }
     }
@@ -228,7 +228,7 @@ export class FeatureFlagManager extends EventEmitter {
     this.emit('rollout_increased', {
       flagName,
       oldPercentage: flag.rolloutPercentage,
-      newPercentage: targetPercentage
+      newPercentage: targetPercentage,
     });
   }
 
@@ -275,7 +275,7 @@ export class FeatureFlagManager extends EventEmitter {
     this.emit('rollback_triggered', {
       flagName,
       reason: reason || 'Manual rollback',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -291,12 +291,15 @@ export class FeatureFlagManager extends EventEmitter {
 
       if (metrics.errorRate > flag.rollback.threshold) {
         if (flag.rollback.autoRollback) {
-          await this.rollback(flagName, `Auto-rollback: Error rate ${metrics.errorRate} exceeded threshold ${flag.rollback.threshold}`);
+          await this.rollback(
+            flagName,
+            `Auto-rollback: Error rate ${metrics.errorRate} exceeded threshold ${flag.rollback.threshold}`,
+          );
         } else {
           this.emit('rollback_threshold_exceeded', {
             flagName,
             errorRate: metrics.errorRate,
-            threshold: flag.rollback.threshold
+            threshold: flag.rollback.threshold,
           });
         }
       }
@@ -310,7 +313,8 @@ export class FeatureFlagManager extends EventEmitter {
       if (event === 'error') {
         metrics.errorRate = (metrics.errorRate * metrics.userCount + 1) / (metrics.userCount + 1);
       } else if (event === 'enabled') {
-        metrics.successRate = (metrics.successRate * metrics.userCount + 1) / (metrics.userCount + 1);
+        metrics.successRate =
+          (metrics.successRate * metrics.userCount + 1) / (metrics.userCount + 1);
       }
       metrics.lastUpdated = new Date().toISOString();
     }
@@ -324,7 +328,7 @@ export class FeatureFlagManager extends EventEmitter {
       successRate: 0,
       errorRate: 0,
       userCount: 0,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     });
   }
 
@@ -333,7 +337,7 @@ export class FeatureFlagManager extends EventEmitter {
     const str = `${userId}-${flagName}`;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash) % 100;

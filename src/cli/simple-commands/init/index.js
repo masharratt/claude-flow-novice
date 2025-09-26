@@ -11,17 +11,21 @@ function runCommand(command, args, options = {}) {
     const child = spawn(command, args, {
       cwd: options.cwd,
       env: { ...process.env, ...options.env },
-      stdio: options.stdout === 'inherit' ? 'inherit' : 'pipe'
+      stdio: options.stdout === 'inherit' ? 'inherit' : 'pipe',
     });
-    
+
     let stdout = '';
     let stderr = '';
-    
+
     if (options.stdout !== 'inherit') {
-      child.stdout.on('data', (data) => { stdout += data; });
-      child.stderr.on('data', (data) => { stderr += data; });
+      child.stdout.on('data', (data) => {
+        stdout += data;
+      });
+      child.stderr.on('data', (data) => {
+        stderr += data;
+      });
     }
-    
+
     child.on('close', (code) => {
       if (code === 0) {
         resolve({ success: true, code, stdout, stderr });
@@ -29,7 +33,7 @@ function runCommand(command, args, options = {}) {
         reject(new Error(`Command failed with exit code ${code}`));
       }
     });
-    
+
     child.on('error', reject);
   });
 }
@@ -41,7 +45,12 @@ import { createOptimizedClaudeSlashCommands } from './claude-commands/optimized-
 import { promises as fs } from 'fs';
 import { copyTemplates } from './template-copier.js';
 import { copyRevisedTemplates, validateTemplatesExist } from './copy-revised-templates.js';
-import { copyAgentFiles, createAgentDirectories, validateAgentSystem, copyCommandFiles } from './agent-copier.js';
+import {
+  copyAgentFiles,
+  createAgentDirectories,
+  validateAgentSystem,
+  copyCommandFiles,
+} from './agent-copier.js';
 import { showInitHelp } from './help.js';
 import { batchInitCommand, batchInitFromConfig, validateBatchOptions } from './batch-init.js';
 import { ValidationSystem, runFullValidation } from './validation/index.js';
@@ -66,20 +75,13 @@ import {
   createVerificationClaudeMd,
   createVerificationSettingsJson,
 } from './templates/verification-claude-md.js';
-import {
-  createFullMemoryBankMd,
-  createMinimalMemoryBankMd,
-} from './templates/memory-bank-md.js';
+import { createFullMemoryBankMd, createMinimalMemoryBankMd } from './templates/memory-bank-md.js';
 import {
   createFullCoordinationMd,
   createMinimalCoordinationMd,
 } from './templates/coordination-md.js';
 import { createAgentsReadme, createSessionsReadme } from './templates/readme-files.js';
-import { 
-  initializeHiveMind, 
-  getHiveMindStatus,
-  rollbackHiveMindInit
-} from './hive-mind-init.js';
+import { initializeHiveMind, getHiveMindStatus, rollbackHiveMindInit } from './hive-mind-init.js';
 
 /**
  * Check if Claude Code CLI is installed
@@ -152,9 +154,9 @@ export async function initCommand(subArgs, flags) {
   }
 
   // Check for verification flags first
-  const hasVerificationFlags = subArgs.includes('--verify') || subArgs.includes('--pair') || 
-                               flags.verify || flags.pair;
-  
+  const hasVerificationFlags =
+    subArgs.includes('--verify') || subArgs.includes('--pair') || flags.verify || flags.pair;
+
   // Handle Flow Nexus minimal init
   if (flags['flow-nexus']) {
     return await flowNexusMinimalInit(flags, subArgs);
@@ -201,7 +203,7 @@ export async function initCommand(subArgs, flags) {
   const initDryRun = subArgs.includes('--dry-run') || subArgs.includes('-d') || flags.dryRun;
   const initOptimized = initSparc && initForce; // Use optimized templates when both flags are present
   const selectedModes = flags.modes ? flags.modes.split(',') : null; // Support selective mode initialization
-  
+
   // Check for verification and pair programming flags
   const initVerify = subArgs.includes('--verify') || flags.verify;
   const initPair = subArgs.includes('--pair') || flags.pair;
@@ -255,20 +257,26 @@ export async function initCommand(subArgs, flags) {
     // If verification flags are set, always use generated templates for CLAUDE.md and settings.json
     if (initVerify || initPair) {
       console.log('  📁 Creating verification-focused configuration...');
-      
+
       // Create verification CLAUDE.md
       if (!initDryRun) {
-        const { createVerificationClaudeMd, createVerificationSettingsJson } = await import('./templates/verification-claude-md.js');
+        const { createVerificationClaudeMd, createVerificationSettingsJson } = await import(
+          './templates/verification-claude-md.js'
+        );
         await fs.writeFile(`${workingDir}/CLAUDE.md`, createVerificationClaudeMd(), 'utf8');
-        
+
         // Create .claude directory and settings
         await fs.mkdir(`${workingDir}/.claude`, { recursive: true });
-        await fs.writeFile(`${workingDir}/.claude/settings.json`, createVerificationSettingsJson(), 'utf8');
+        await fs.writeFile(
+          `${workingDir}/.claude/settings.json`,
+          createVerificationSettingsJson(),
+          'utf8',
+        );
         console.log('  ✅ Created verification-focused CLAUDE.md and settings.json');
       } else {
         console.log('  [DRY RUN] Would create verification-focused CLAUDE.md and settings.json');
       }
-      
+
       // Copy other template files from repository if available
       const validation = validateTemplatesExist();
       if (validation.valid) {
@@ -276,17 +284,16 @@ export async function initCommand(subArgs, flags) {
           force: initForce,
           dryRun: initDryRun,
           verbose: false,
-          sparc: initSparc
+          sparc: initSparc,
         });
       }
-      
+
       // Also create standard memory and coordination files
       const copyResults = await copyTemplates(workingDir, {
         ...templateOptions,
-        skipClaudeMd: true,  // Don't overwrite the verification CLAUDE.md
-        skipSettings: true   // Don't overwrite the verification settings.json
+        skipClaudeMd: true, // Don't overwrite the verification CLAUDE.md
+        skipSettings: true, // Don't overwrite the verification settings.json
       });
-      
     } else {
       // Standard template copying logic
       const validation = validateTemplatesExist();
@@ -296,7 +303,7 @@ export async function initCommand(subArgs, flags) {
           force: initForce,
           dryRun: initDryRun,
           verbose: true,
-          sparc: initSparc
+          sparc: initSparc,
         });
 
         if (revisedResults.success) {
@@ -306,7 +313,7 @@ export async function initCommand(subArgs, flags) {
           }
         } else {
           console.log('  ⚠️  Some template files could not be copied:');
-          revisedResults.errors.forEach(err => console.log(`    - ${err}`));
+          revisedResults.errors.forEach((err) => console.log(`    - ${err}`));
         }
       } else {
         // Fall back to generated templates
@@ -315,7 +322,7 @@ export async function initCommand(subArgs, flags) {
 
         if (!copyResults.success) {
           printError('Failed to copy templates:');
-          copyResults.errors.forEach(err => console.log(`  ❌ ${err}`));
+          copyResults.errors.forEach((err) => console.log(`  ❌ ${err}`));
           return;
         }
       }
@@ -358,14 +365,18 @@ export async function initCommand(subArgs, flags) {
         try {
           // Use isolated NPX cache to prevent concurrent conflicts
           console.log('  🔄 Running: npx -y create-sparc init --force');
-          const createSparcResult = await runCommand('npx', ['-y', 'create-sparc', 'init', '--force'], {
-            cwd: workingDir,
-            stdout: 'inherit',
-            stderr: 'inherit',
-            env: getIsolatedNpxEnv({
-              PWD: workingDir,
-            }),
-          });
+          const createSparcResult = await runCommand(
+            'npx',
+            ['-y', 'create-sparc', 'init', '--force'],
+            {
+              cwd: workingDir,
+              stdout: 'inherit',
+              stderr: 'inherit',
+              env: getIsolatedNpxEnv({
+                PWD: workingDir,
+              }),
+            },
+          );
 
           if (createSparcResult.success) {
             console.log('  ✅ SPARC environment initialized successfully');
@@ -505,14 +516,14 @@ export async function initCommand(subArgs, flags) {
           config: {
             integration: {
               claudeCode: { enabled: isClaudeCodeInstalled() },
-              mcpTools: { enabled: true }
+              mcpTools: { enabled: true },
             },
-            monitoring: { enabled: false } // Basic setup for standard init
-          }
+            monitoring: { enabled: false }, // Basic setup for standard init
+          },
         };
-        
+
         const hiveMindResult = await initializeHiveMind(workingDir, hiveMindOptions, false);
-        
+
         if (hiveMindResult.success) {
           console.log('  ✅ Basic hive-mind system initialized');
           console.log('  💡 Use "npx claude-flow@alpha hive-mind" for advanced features');
@@ -984,7 +995,9 @@ async function setupMemorySystem(workingDir, dryRun = false) {
   if (!dryRun) {
     const initialData = { agents: [], tasks: [], lastUpdated: Date.now() };
     await fs.writeFile(
-      `${workingDir}/memory/claude-flow-data.json`, JSON.stringify(initialData, null, 2), 'utf8'
+      `${workingDir}/memory/claude-flow-data.json`,
+      JSON.stringify(initialData, null, 2),
+      'utf8',
     );
 
     await fs.writeFile(`${workingDir}/memory/agents/README.md`, createAgentsReadme(), 'utf8');
@@ -1002,15 +1015,15 @@ async function setupCoordinationSystem(workingDir, dryRun = false) {
  */
 async function setupMonitoring(workingDir) {
   console.log('  📈 Configuring token usage tracking...');
-  
+
   const fs = await import('fs/promises');
   const path = await import('path');
-  
+
   try {
     // Create .claude-flow directory for tracking data
     const trackingDir = path.join(workingDir, '.claude-flow');
     await fs.mkdir(trackingDir, { recursive: true });
-    
+
     // Create initial token usage file
     const tokenUsageFile = path.join(trackingDir, 'token-usage.json');
     const initialData = {
@@ -1018,34 +1031,35 @@ async function setupMonitoring(workingDir) {
       input: 0,
       output: 0,
       byAgent: {},
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
-    
+
     await fs.writeFile(tokenUsageFile, JSON.stringify(initialData, null, 2));
     printSuccess('  ✓ Created token usage tracking file');
-    
+
     // Add telemetry configuration to .claude/settings.json if it exists
     const settingsPath = path.join(workingDir, '.claude', 'settings.json');
     try {
       const settingsContent = await fs.readFile(settingsPath, 'utf8');
       const settings = JSON.parse(settingsContent);
-      
+
       // Add telemetry hook
       if (!settings.hooks) settings.hooks = {};
       if (!settings.hooks['post-task']) settings.hooks['post-task'] = [];
-      
+
       // Add token tracking hook
-      const tokenTrackingHook = 'npx claude-flow@alpha internal track-tokens --session-id {{session_id}} --tokens {{token_usage}}';
+      const tokenTrackingHook =
+        'npx claude-flow@alpha internal track-tokens --session-id {{session_id}} --tokens {{token_usage}}';
       if (!settings.hooks['post-task'].includes(tokenTrackingHook)) {
         settings.hooks['post-task'].push(tokenTrackingHook);
       }
-      
+
       await fs.writeFile(settingsPath, JSON.stringify(settings, null, 2));
       printSuccess('  ✓ Added token tracking hooks to settings');
     } catch (err) {
       console.log('  ⚠️  Could not update settings.json:', err.message);
     }
-    
+
     // Create monitoring configuration
     const monitoringConfig = {
       enabled: true,
@@ -1053,26 +1067,26 @@ async function setupMonitoring(workingDir) {
         claudeCode: {
           env: 'CLAUDE_CODE_ENABLE_TELEMETRY',
           value: '1',
-          description: 'Enable Claude Code OpenTelemetry metrics'
-        }
+          description: 'Enable Claude Code OpenTelemetry metrics',
+        },
       },
       tracking: {
         tokens: true,
         costs: true,
         agents: true,
-        sessions: true
+        sessions: true,
       },
       storage: {
         location: '.claude-flow/token-usage.json',
         format: 'json',
-        rotation: 'monthly'
-      }
+        rotation: 'monthly',
+      },
     };
-    
+
     const configPath = path.join(trackingDir, 'monitoring.config.json');
     await fs.writeFile(configPath, JSON.stringify(monitoringConfig, null, 2));
     printSuccess('  ✓ Created monitoring configuration');
-    
+
     // Create shell profile snippet for environment variable
     const envSnippet = `
 # Claude Flow Token Tracking
@@ -1082,17 +1096,16 @@ export CLAUDE_CODE_ENABLE_TELEMETRY=1
 # Optional: Set custom metrics path
 # export CLAUDE_METRICS_PATH="$HOME/.claude/metrics"
 `;
-    
+
     const envPath = path.join(trackingDir, 'env-setup.sh');
     await fs.writeFile(envPath, envSnippet.trim());
     printSuccess('  ✓ Created environment setup script');
-    
+
     console.log('\n  📋 To enable Claude Code telemetry:');
     console.log('     1. Add to your shell profile: export CLAUDE_CODE_ENABLE_TELEMETRY=1');
     console.log('     2. Or run: source .claude-flow/env-setup.sh');
     console.log('\n  💡 Token usage will be tracked in .claude-flow/token-usage.json');
     console.log('     Run: claude-flow analysis token-usage --breakdown --cost-analysis');
-    
   } catch (err) {
     printError(`  Failed to setup monitoring: ${err.message}`);
   }
@@ -1176,7 +1189,8 @@ async function enhancedClaudeFlowInit(flags, subArgs = []) {
 
     if (!dryRun) {
       await fs.writeFile(
-        `${claudeDir}/settings.local.json`, JSON.stringify(settingsLocal, null, 2, 'utf8'),
+        `${claudeDir}/settings.local.json`,
+        JSON.stringify(settingsLocal, null, 2, 'utf8'),
       );
       printSuccess('✓ Created .claude/settings.local.json with default MCP permissions');
     } else {
@@ -1232,7 +1246,8 @@ async function enhancedClaudeFlowInit(flags, subArgs = []) {
 
     if (!dryRun) {
       await fs.writeFile(
-        `${workingDir}/claude-flow.config.json`, JSON.stringify(claudeFlowConfig, null, 2, 'utf8'),
+        `${workingDir}/claude-flow.config.json`,
+        JSON.stringify(claudeFlowConfig, null, 2, 'utf8'),
       );
       printSuccess('✓ Created claude-flow.config.json for Claude Flow settings');
     } else {
@@ -1282,7 +1297,10 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       await fs.writeFile(`${workingDir}/claude-flow.bat`, createWrapperScript('windows', 'utf8'));
 
       // PowerShell wrapper
-      await fs.writeFile(`${workingDir}/claude-flow.ps1`, createWrapperScript('powershell', 'utf8'));
+      await fs.writeFile(
+        `${workingDir}/claude-flow.ps1`,
+        createWrapperScript('powershell', 'utf8'),
+      );
 
       printSuccess('✓ Created platform-specific wrapper scripts');
     } else {
@@ -1290,7 +1308,14 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
     }
 
     // Create helper scripts
-    const helpers = ['setup-mcp.sh', 'quick-start.sh', 'github-setup.sh', 'github-safe.js', 'standard-checkpoint-hooks.sh', 'checkpoint-manager.sh'];
+    const helpers = [
+      'setup-mcp.sh',
+      'quick-start.sh',
+      'github-setup.sh',
+      'github-safe.js',
+      'standard-checkpoint-hooks.sh',
+      'checkpoint-manager.sh',
+    ];
     for (const helper of helpers) {
       if (!dryRun) {
         const content = createHelperScript(helper);
@@ -1333,7 +1358,8 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       // Initialize memory system
       const initialData = { agents: [], tasks: [], lastUpdated: Date.now() };
       await fs.writeFile(
-        `${workingDir}/memory/claude-flow-data.json`, JSON.stringify(initialData, null, 2, 'utf8'),
+        `${workingDir}/memory/claude-flow-data.json`,
+        JSON.stringify(initialData, null, 2, 'utf8'),
       );
 
       // Create README files
@@ -1371,19 +1397,21 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
           config: {
             integration: {
               claudeCode: { enabled: isClaudeCodeInstalled() },
-              mcpTools: { enabled: true }
+              mcpTools: { enabled: true },
             },
-            monitoring: { enabled: flags.monitoring || false }
-          }
+            monitoring: { enabled: flags.monitoring || false },
+          },
         };
-        
+
         const hiveMindResult = await initializeHiveMind(workingDir, hiveMindOptions, dryRun);
-        
+
         if (hiveMindResult.success) {
-          printSuccess(`✓ Hive Mind System initialized with ${hiveMindResult.features.length} features`);
-          
+          printSuccess(
+            `✓ Hive Mind System initialized with ${hiveMindResult.features.length} features`,
+          );
+
           // Log individual features
-          hiveMindResult.features.forEach(feature => {
+          hiveMindResult.features.forEach((feature) => {
             console.log(`    • ${feature}`);
           });
         } else {
@@ -1468,25 +1496,25 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       await createAgentDirectories(workingDir, dryRun);
       const agentResult = await copyAgentFiles(workingDir, {
         force: force,
-        dryRun: dryRun
+        dryRun: dryRun,
       });
-      
+
       if (agentResult.success) {
         await validateAgentSystem(workingDir);
-        
+
         // Copy command files including Flow Nexus commands
         console.log('\n📚 Setting up command system...');
         const commandResult = await copyCommandFiles(workingDir, {
           force: force,
-          dryRun: dryRun
+          dryRun: dryRun,
         });
-        
+
         if (commandResult.success) {
           console.log('✅ ✓ Command system setup complete with Flow Nexus integration');
         } else {
           console.log('⚠️  Command system setup failed:', commandResult.error);
         }
-        
+
         console.log('✅ ✓ Agent system setup complete with 64 specialized agents');
       } else {
         console.log('⚠️  Agent system setup failed:', agentResult.error);
@@ -1501,17 +1529,21 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       console.log('\n📊 Setting up monitoring and telemetry...');
       await setupMonitoring(workingDir);
     }
-    
+
     // Final instructions with hive-mind status
     console.log('\n🎉 Claude Flow v2.0.0 initialization complete!');
-    
+
     // Display hive-mind status
     const hiveMindStatus = getHiveMindStatus(workingDir);
     console.log('\n🧠 Hive Mind System Status:');
     console.log(`  Configuration: ${hiveMindStatus.configured ? '✅ Ready' : '❌ Missing'}`);
-    console.log(`  Database: ${hiveMindStatus.database === 'sqlite' ? '✅ SQLite' : hiveMindStatus.database === 'fallback' ? '⚠️ JSON Fallback' : '❌ Not initialized'}`);
-    console.log(`  Directory Structure: ${hiveMindStatus.directories ? '✅ Created' : '❌ Missing'}`);
-    
+    console.log(
+      `  Database: ${hiveMindStatus.database === 'sqlite' ? '✅ SQLite' : hiveMindStatus.database === 'fallback' ? '⚠️ JSON Fallback' : '❌ Not initialized'}`,
+    );
+    console.log(
+      `  Directory Structure: ${hiveMindStatus.directories ? '✅ Created' : '❌ Missing'}`,
+    );
+
     console.log('\n📚 Quick Start:');
     if (isClaudeCodeInstalled()) {
       console.log('1. View available commands: ls .claude/commands/');
@@ -1540,7 +1572,7 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
     console.log('• Use .claude/helpers/checkpoint-manager.sh for easy rollback');
   } catch (err) {
     printError(`Failed to initialize Claude Flow v2.0.0: ${err.message}`);
-    
+
     // Attempt hive-mind rollback if it was partially initialized
     try {
       const hiveMindStatus = getHiveMindStatus(workingDir);
@@ -1564,24 +1596,24 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
  */
 async function flowNexusMinimalInit(flags, subArgs) {
   console.log('🌐 Flow Nexus: Initializing minimal setup...');
-  
+
   try {
     const force = flags.force || flags.f;
-    
+
     // Import functions we need
     const { createFlowNexusClaudeMd } = await import('./templates/claude-md.js');
     const { promises: fs } = await import('fs');
-    
+
     // Create Flow Nexus CLAUDE.md
     console.log('📝 Creating Flow Nexus CLAUDE.md...');
     const flowNexusClaudeMd = createFlowNexusClaudeMd();
     await fs.writeFile('CLAUDE.md', flowNexusClaudeMd);
     console.log('  ✅ Created CLAUDE.md with Flow Nexus integration');
-    
+
     // Create .claude/commands/flow-nexus directory and copy commands
     console.log('📁 Setting up Flow Nexus commands...');
     await fs.mkdir('.claude/commands/flow-nexus', { recursive: true });
-    
+
     // Copy Flow Nexus command files
     const { fileURLToPath } = await import('url');
     const { dirname, join } = await import('path');
@@ -1591,7 +1623,7 @@ async function flowNexusMinimalInit(flags, subArgs) {
     try {
       const commandFiles = await fs.readdir(sourceCommandsDir);
       let copiedCommands = 0;
-      
+
       for (const file of commandFiles) {
         if (file.endsWith('.md')) {
           const sourcePath = `${sourceCommandsDir}/${file}`;
@@ -1601,22 +1633,22 @@ async function flowNexusMinimalInit(flags, subArgs) {
           copiedCommands++;
         }
       }
-      
+
       console.log(`  ✅ Copied ${copiedCommands} Flow Nexus command files`);
     } catch (err) {
       console.log('  ⚠️  Could not copy Flow Nexus commands:', err.message);
     }
-    
+
     // Create .claude/agents/flow-nexus directory and copy agents
     console.log('🤖 Setting up Flow Nexus agents...');
     await fs.mkdir('.claude/agents/flow-nexus', { recursive: true });
-    
+
     // Copy Flow Nexus agent files
     const sourceAgentsDir = join(__dirname, '../../../../.claude/agents/flow-nexus');
     try {
       const agentFiles = await fs.readdir(sourceAgentsDir);
       let copiedAgents = 0;
-      
+
       for (const file of agentFiles) {
         if (file.endsWith('.md')) {
           const sourcePath = `${sourceAgentsDir}/${file}`;
@@ -1626,12 +1658,12 @@ async function flowNexusMinimalInit(flags, subArgs) {
           copiedAgents++;
         }
       }
-      
+
       console.log(`  ✅ Copied ${copiedAgents} Flow Nexus agent files`);
     } catch (err) {
       console.log('  ⚠️  Could not copy Flow Nexus agents:', err.message);
     }
-    
+
     console.log('\n🎉 Flow Nexus minimal initialization complete!');
     console.log('📚 Created: CLAUDE.md with Flow Nexus documentation');
     console.log('📁 Created: .claude/commands/flow-nexus/ directory with command documentation');
@@ -1643,7 +1675,6 @@ async function flowNexusMinimalInit(flags, subArgs) {
     console.log('  3. Deploy: mcp__flow-nexus__swarm_init({ topology: "mesh", maxAgents: 5 })');
     console.log('');
     console.log('🔗 Use Flow Nexus MCP tools in Claude Code for full functionality');
-    
   } catch (err) {
     console.log(`❌ Flow Nexus initialization failed: ${err.message}`);
     console.log('Stack trace:', err.stack);

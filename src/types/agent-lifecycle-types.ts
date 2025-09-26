@@ -48,7 +48,7 @@ export enum AgentLifecycleState {
 
   // Special States
   HIBERNATING = 'hibernating',
-  SCALING = 'scaling'
+  SCALING = 'scaling',
 }
 
 /**
@@ -89,7 +89,7 @@ export enum AgentLifecycleTrigger {
   // Special triggers
   HIBERNATE_REQUEST = 'hibernate_request',
   WAKE_REQUEST = 'wake_request',
-  SCALE_REQUEST = 'scale_request'
+  SCALE_REQUEST = 'scale_request',
 }
 
 /**
@@ -201,7 +201,7 @@ export enum LifecycleHookType {
   // Communication hooks
   MESSAGE_SENT = 'message-sent',
   MESSAGE_RECEIVED = 'message-received',
-  COORDINATION_UPDATE = 'coordination-update'
+  COORDINATION_UPDATE = 'coordination-update',
 }
 
 /**
@@ -471,7 +471,7 @@ export enum LifecycleEventType {
   AGENT_CREATED = 'lifecycle:agent_created',
   AGENT_DESTROYED = 'lifecycle:agent_destroyed',
   CONFIGURATION_CHANGED = 'lifecycle:configuration_changed',
-  HEALTH_CHECK_COMPLETED = 'lifecycle:health_check_completed'
+  HEALTH_CHECK_COMPLETED = 'lifecycle:health_check_completed',
 }
 
 /**
@@ -585,7 +585,7 @@ export enum DegradationLevel {
   MINIMAL = 'minimal',
   PARTIAL = 'partial',
   SEVERE = 'severe',
-  COMPLETE = 'complete'
+  COMPLETE = 'complete',
 }
 
 /**
@@ -613,13 +613,16 @@ export interface AgentLifecycleManager {
   transitionState(
     agentId: string,
     trigger: AgentLifecycleTrigger,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): Promise<AgentStateHistoryEntry>;
 
   // Hook management
   registerHook(hook: LifecycleHook): void;
   unregisterHook(hookName: string): void;
-  executeHooks(type: LifecycleHookType, context: LifecycleHookContext): Promise<LifecycleHookResult[]>;
+  executeHooks(
+    type: LifecycleHookType,
+    context: LifecycleHookContext,
+  ): Promise<LifecycleHookResult[]>;
 
   // Agent management
   createAgent(definition: AgentDefinition): Promise<AgentLifecycleRecord>;
@@ -646,15 +649,12 @@ export interface LifecycleMemoryManager {
   updateState(
     agentId: string,
     newState: AgentLifecycleState,
-    transition: AgentStateHistoryEntry
+    transition: AgentStateHistoryEntry,
   ): Promise<void>;
 
   // Metrics storage
   storeMetrics(metrics: LifecycleMetrics): Promise<void>;
-  queryMetrics(
-    agentId: string,
-    timeRange: { start: Date; end: Date }
-  ): Promise<LifecycleMetrics[]>;
+  queryMetrics(agentId: string, timeRange: { start: Date; end: Date }): Promise<LifecycleMetrics[]>;
 
   // Bulk operations
   bulkStore(records: AgentLifecycleRecord[]): Promise<void>;
@@ -674,16 +674,19 @@ export interface LifecycleCommunicationManager extends EventEmitter {
     agentId: string,
     fromState: AgentLifecycleState,
     toState: AgentLifecycleState,
-    trigger: AgentLifecycleTrigger
+    trigger: AgentLifecycleTrigger,
   ): Promise<void>;
 
   publishEvent(event: LifecycleEvent): Promise<void>;
 
   // Subscriptions
-  subscribeToAgent(agentId: string, callback: (event: LifecycleEvent) => void): Promise<EventSubscription>;
+  subscribeToAgent(
+    agentId: string,
+    callback: (event: LifecycleEvent) => void,
+  ): Promise<EventSubscription>;
   subscribeToEvents(
     filter: Partial<LifecycleEvent>,
-    callback: (event: LifecycleEvent) => void
+    callback: (event: LifecycleEvent) => void,
   ): Promise<EventSubscription>;
 
   // Broadcasting
@@ -706,7 +709,7 @@ export enum HealthStatus {
   HEALTHY = 'healthy',
   DEGRADED = 'degraded',
   UNHEALTHY = 'unhealthy',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
 }
 
 /**
@@ -814,7 +817,7 @@ export interface LifecycleManagerFactory {
   createManager(config: LifecycleSystemConfig): Promise<AgentLifecycleManager>;
   createMemoryManager(config: LifecycleSystemConfig['memory']): Promise<LifecycleMemoryManager>;
   createCommunicationManager(
-    config: LifecycleSystemConfig['communication']
+    config: LifecycleSystemConfig['communication'],
   ): Promise<LifecycleCommunicationManager>;
 }
 
@@ -835,7 +838,11 @@ export interface PriorityQueueItem<T> {
  * Time series store interface
  */
 export interface TimeSeriesStore {
-  store(key: string, data: any, options?: { timestamp?: Date; tags?: Record<string, string> }): Promise<void>;
+  store(
+    key: string,
+    data: any,
+    options?: { timestamp?: Date; tags?: Record<string, string> },
+  ): Promise<void>;
   query(
     key: string,
     options?: {
@@ -843,7 +850,7 @@ export interface TimeSeriesStore {
       tags?: Record<string, string>;
       limit?: number;
       orderBy?: string;
-    }
+    },
   ): Promise<any[]>;
 }
 
@@ -928,5 +935,5 @@ export type {
 
   // Configuration types
   LifecycleSystemConfig,
-  LifecycleManagerFactory
+  LifecycleManagerFactory,
 };

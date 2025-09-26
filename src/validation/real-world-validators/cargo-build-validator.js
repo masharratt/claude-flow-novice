@@ -28,19 +28,22 @@ export class CargoBuildValidator {
       buildModes: options.buildModes || ['debug', 'release'],
       enableClipper: options.enableClipper !== false,
       enableCrossCompilation: options.enableCrossCompilation || false,
-      crossCompilationTargets: options.crossCompilationTargets || ['x86_64-pc-windows-gnu', 'aarch64-unknown-linux-gnu'],
+      crossCompilationTargets: options.crossCompilationTargets || [
+        'x86_64-pc-windows-gnu',
+        'aarch64-unknown-linux-gnu',
+      ],
       performanceThresholds: options.performanceThresholds || {
         buildTime: 600000, // 10 minutes
         binarySize: 100 * 1024 * 1024, // 100MB
         memoryUsage: 2 * 1024 * 1024 * 1024, // 2GB
-        compilationUnits: 1000
+        compilationUnits: 1000,
       },
       clippy: {
         denyWarnings: options.clippy?.denyWarnings || false,
         allowedLints: options.clippy?.allowedLints || [],
-        forbiddenLints: options.clippy?.forbiddenLints || ['clippy::unwrap_used', 'clippy::panic']
+        forbiddenLints: options.clippy?.forbiddenLints || ['clippy::unwrap_used', 'clippy::panic'],
       },
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -101,7 +104,7 @@ export class CargoBuildValidator {
         artifactValidation,
         performanceMetrics,
         dependencyValidation,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof of build integrity
@@ -113,7 +116,7 @@ export class CargoBuildValidator {
         artifactValidation,
         performanceMetrics,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -128,22 +131,22 @@ export class CargoBuildValidator {
           edition: cargoProject.edition,
           workspaceMembers: cargoProject.workspaceMembers,
           dependencies: cargoProject.dependencies.length,
-          devDependencies: cargoProject.devDependencies.length
+          devDependencies: cargoProject.devDependencies.length,
         },
         builds: {
           total: buildResults.length,
-          successful: buildResults.filter(r => r.success).length,
-          failed: buildResults.filter(r => !r.success).length,
-          modes: buildResults.map(r => r.mode),
-          overallSuccess: buildResults.every(r => r.success),
-          results: buildResults
+          successful: buildResults.filter((r) => r.success).length,
+          failed: buildResults.filter((r) => !r.success).length,
+          modes: buildResults.map((r) => r.mode),
+          overallSuccess: buildResults.every((r) => r.success),
+          results: buildResults,
         },
         check: {
           success: checkResults.success,
           duration: checkResults.duration,
           warnings: checkResults.warnings,
           errors: checkResults.errors,
-          compilationUnits: checkResults.compilationUnits
+          compilationUnits: checkResults.compilationUnits,
         },
         clippy: {
           enabled: this.options.enableClipper,
@@ -152,27 +155,27 @@ export class CargoBuildValidator {
           errors: clippyResults.errors,
           allowedLints: clippyResults.allowedLints,
           forbiddenLints: clippyResults.forbiddenLints,
-          lintViolations: clippyResults.lintViolations
+          lintViolations: clippyResults.lintViolations,
         },
         crossCompilation: {
           enabled: this.options.enableCrossCompilation,
-          targets: crossCompilationResults.results?.map(r => r.target) || [],
-          successful: crossCompilationResults.results?.filter(r => r.success).length || 0,
-          results: crossCompilationResults.results || []
+          targets: crossCompilationResults.results?.map((r) => r.target) || [],
+          successful: crossCompilationResults.results?.filter((r) => r.success).length || 0,
+          results: crossCompilationResults.results || [],
         },
         artifacts: {
           binaries: artifactValidation.binaries.length,
           libraries: artifactValidation.libraries.length,
           totalSize: artifactValidation.totalSize,
           integrityPassed: artifactValidation.integrityPassed,
-          details: artifactValidation.details
+          details: artifactValidation.details,
         },
         dependencies: {
           resolved: dependencyValidation.resolved,
           total: dependencyValidation.total,
           vulnerabilities: dependencyValidation.vulnerabilities,
           outdated: dependencyValidation.outdated,
-          securityPassed: dependencyValidation.securityPassed
+          securityPassed: dependencyValidation.securityPassed,
         },
         performance: {
           totalBuildTime: performanceMetrics.totalBuildTime,
@@ -180,25 +183,26 @@ export class CargoBuildValidator {
           maxMemoryUsage: performanceMetrics.maxMemoryUsage,
           compilationSpeed: performanceMetrics.compilationSpeed,
           parallelization: performanceMetrics.parallelization,
-          meetsThresholds: this.evaluateCargoPerformanceThresholds(performanceMetrics)
+          meetsThresholds: this.evaluateCargoPerformanceThresholds(performanceMetrics),
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         executionTime: performance.now() - startTime,
-        errors: this.extractCargoErrors(buildResults, checkResults, clippyResults)
+        errors: this.extractCargoErrors(buildResults, checkResults, clippyResults),
       };
 
       // Store build history for analysis
       this.buildHistory.set(validationId, result);
 
-      console.log(`✅ Cargo build validation completed [${validationId}]: ${result.builds.successful}/${result.builds.total} builds successful`);
+      console.log(
+        `✅ Cargo build validation completed [${validationId}]: ${result.builds.successful}/${result.builds.total} builds successful`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -206,7 +210,7 @@ export class CargoBuildValidator {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.buildHistory.set(validationId, errorResult);
@@ -221,7 +225,7 @@ export class CargoBuildValidator {
     const requiredTools = [
       { command: 'cargo --version', name: 'Cargo' },
       { command: 'rustc --version', name: 'Rust compiler' },
-      { command: 'rustup --version', name: 'Rustup' }
+      { command: 'rustup --version', name: 'Rustup' },
     ];
 
     for (const tool of requiredTools) {
@@ -269,9 +273,8 @@ export class CargoBuildValidator {
         buildDependencies: dependencies.buildDependencies,
         targets: cargoProject.bin || [],
         features: Object.keys(cargoProject.features || {}),
-        raw: cargoProject
+        raw: cargoProject,
       };
-
     } catch (error) {
       throw new Error(`Failed to analyze Cargo project: ${error.message}`);
     }
@@ -318,8 +321,10 @@ export class CargoBuildValidator {
         let value = trimmedLine.substring(equalIndex + 1).trim();
 
         // Remove quotes
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
           value = value.slice(1, -1);
         }
 
@@ -354,7 +359,7 @@ export class CargoBuildValidator {
             await fs.access(memberCargoToml);
             members.push({
               path: path.relative(projectPath, memberPath),
-              cargoToml: path.relative(projectPath, memberCargoToml)
+              cargoToml: path.relative(projectPath, memberCargoToml),
             });
           } catch (error) {
             // Member doesn't have Cargo.toml, skip
@@ -375,7 +380,7 @@ export class CargoBuildValidator {
     return {
       dependencies: Object.keys(cargoProject.dependencies || {}),
       devDependencies: Object.keys(cargoProject['dev-dependencies'] || {}),
-      buildDependencies: Object.keys(cargoProject['build-dependencies'] || {})
+      buildDependencies: Object.keys(cargoProject['build-dependencies'] || {}),
     };
   }
 
@@ -393,8 +398,8 @@ export class CargoBuildValidator {
         ...process.env,
         RUST_BACKTRACE: '1',
         CARGO_TERM_COLOR: 'always',
-        ...buildConfig.env
-      }
+        ...buildConfig.env,
+      },
     };
 
     try {
@@ -432,20 +437,24 @@ export class CargoBuildValidator {
       console.log(`🔧 Building with cargo in ${mode} mode...`);
 
       try {
-        const buildResult = await this.executeCargoBuild(projectPath, mode, cargoProject, buildConfig);
+        const buildResult = await this.executeCargoBuild(
+          projectPath,
+          mode,
+          cargoProject,
+          buildConfig,
+        );
         buildResults.push({ mode, ...buildResult });
 
         if (!buildResult.success) {
           console.warn(`Cargo build failed in ${mode} mode`);
         }
-
       } catch (error) {
         buildResults.push({
           mode,
           success: false,
           error: error.message,
           duration: 0,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }
@@ -455,7 +464,11 @@ export class CargoBuildValidator {
       console.log(`🏗️ Building workspace with ${cargoProject.workspaceMembers.length} members...`);
 
       try {
-        const workspaceBuild = await this.executeCargoWorkspaceBuild(projectPath, cargoProject, buildConfig);
+        const workspaceBuild = await this.executeCargoWorkspaceBuild(
+          projectPath,
+          cargoProject,
+          buildConfig,
+        );
         buildResults.push({ mode: 'workspace', ...workspaceBuild });
       } catch (error) {
         buildResults.push({
@@ -463,7 +476,7 @@ export class CargoBuildValidator {
           success: false,
           error: error.message,
           duration: 0,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }
@@ -504,7 +517,7 @@ export class CargoBuildValidator {
       const { stdout, stderr } = await this.executeCommand(command, {
         cwd: projectPath,
         timeout: this.options.timeout,
-        maxBuffer: 100 * 1024 * 1024 // 100MB buffer for Rust compilation output
+        maxBuffer: 100 * 1024 * 1024, // 100MB buffer for Rust compilation output
       });
 
       const duration = performance.now() - buildStartTime;
@@ -517,9 +530,8 @@ export class CargoBuildValidator {
         stdout: stdout.toString(),
         stderr: stderr.toString(),
         metrics: buildMetrics,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-
     } catch (error) {
       const duration = performance.now() - buildStartTime;
 
@@ -531,7 +543,7 @@ export class CargoBuildValidator {
         stdout: error.stdout || '',
         stderr: error.stderr || '',
         exitCode: error.code,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -547,7 +559,7 @@ export class CargoBuildValidator {
       const { stdout, stderr } = await this.executeCommand(command, {
         cwd: projectPath,
         timeout: this.options.timeout * 1.5, // Workspace builds take longer
-        maxBuffer: 200 * 1024 * 1024 // 200MB buffer
+        maxBuffer: 200 * 1024 * 1024, // 200MB buffer
       });
 
       const duration = performance.now() - buildStartTime;
@@ -561,9 +573,8 @@ export class CargoBuildValidator {
         stdout: stdout.toString(),
         stderr: stderr.toString(),
         metrics: buildMetrics,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-
     } catch (error) {
       const duration = performance.now() - buildStartTime;
 
@@ -576,7 +587,7 @@ export class CargoBuildValidator {
         stdout: error.stdout || '',
         stderr: error.stderr || '',
         exitCode: error.code,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -591,7 +602,7 @@ export class CargoBuildValidator {
       const { stdout, stderr } = await this.executeCommand('cargo check --all', {
         cwd: projectPath,
         timeout: this.options.timeout / 2, // Check is faster than build
-        maxBuffer: 50 * 1024 * 1024
+        maxBuffer: 50 * 1024 * 1024,
       });
 
       const duration = performance.now() - checkStartTime;
@@ -605,9 +616,8 @@ export class CargoBuildValidator {
         warnings: checkMetrics.warnings,
         errors: checkMetrics.errors,
         compilationUnits: checkMetrics.compilationUnits,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-
     } catch (error) {
       const duration = performance.now() - checkStartTime;
 
@@ -618,7 +628,7 @@ export class CargoBuildValidator {
         stdout: error.stdout || '',
         stderr: error.stderr || '',
         exitCode: error.code,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -650,7 +660,7 @@ export class CargoBuildValidator {
       const { stdout, stderr } = await this.executeCommand(command, {
         cwd: projectPath,
         timeout: this.options.timeout,
-        maxBuffer: 50 * 1024 * 1024
+        maxBuffer: 50 * 1024 * 1024,
       });
 
       const duration = performance.now() - clippyStartTime;
@@ -667,9 +677,8 @@ export class CargoBuildValidator {
         lintViolations: clippyMetrics.lintViolations,
         allowedLints: this.options.clippy.allowedLints,
         forbiddenLints: this.options.clippy.forbiddenLints,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-
     } catch (error) {
       const duration = performance.now() - clippyStartTime;
 
@@ -681,7 +690,7 @@ export class CargoBuildValidator {
         stdout: error.stdout || '',
         stderr: error.stderr || '',
         exitCode: error.code,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -699,16 +708,19 @@ export class CargoBuildValidator {
         // Install target if not available
         await this.installRustTarget(target);
 
-        const crossBuild = await this.executeCrossCompilationBuild(projectPath, target, cargoProject);
+        const crossBuild = await this.executeCrossCompilationBuild(
+          projectPath,
+          target,
+          cargoProject,
+        );
         crossResults.push({ target, ...crossBuild });
-
       } catch (error) {
         crossResults.push({
           target,
           success: false,
           error: error.message,
           duration: 0,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     }
@@ -722,7 +734,7 @@ export class CargoBuildValidator {
   async installRustTarget(target) {
     try {
       await this.executeCommand(`rustup target add ${target}`, {
-        timeout: 60000 // 1 minute
+        timeout: 60000, // 1 minute
       });
     } catch (error) {
       console.warn(`Failed to install target ${target}:`, error.message);
@@ -741,7 +753,7 @@ export class CargoBuildValidator {
       const { stdout, stderr } = await this.executeCommand(command, {
         cwd: projectPath,
         timeout: this.options.timeout,
-        maxBuffer: 100 * 1024 * 1024
+        maxBuffer: 100 * 1024 * 1024,
       });
 
       const duration = performance.now() - buildStartTime;
@@ -752,9 +764,8 @@ export class CargoBuildValidator {
         duration,
         stdout: stdout.toString(),
         stderr: stderr.toString(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
-
     } catch (error) {
       const duration = performance.now() - buildStartTime;
 
@@ -766,7 +777,7 @@ export class CargoBuildValidator {
         stdout: error.stdout || '',
         stderr: error.stderr || '',
         exitCode: error.code,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -784,7 +795,7 @@ export class CargoBuildValidator {
       linkerInvocations: 0,
       compilationTime: 0,
       binarySize: 0,
-      parallelJobs: 1
+      parallelJobs: 1,
     };
 
     // Count compilation units
@@ -819,7 +830,7 @@ export class CargoBuildValidator {
     return {
       warnings: (output.match(/warning:/g) || []).length,
       errors: (output.match(/error:/g) || []).length,
-      compilationUnits: (output.match(/Checking \w+/g) || []).length
+      compilationUnits: (output.match(/Checking \w+/g) || []).length,
     };
   }
 
@@ -832,7 +843,7 @@ export class CargoBuildValidator {
     const metrics = {
       warnings: 0,
       errors: 0,
-      lintViolations: []
+      lintViolations: [],
     };
 
     // Count warnings and errors
@@ -846,7 +857,9 @@ export class CargoBuildValidator {
       const violation = {
         lint: lintMatch,
         severity: output.includes(`error: ${lintMatch}`) ? 'error' : 'warning',
-        count: (output.match(new RegExp(lintMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length
+        count: (
+          output.match(new RegExp(lintMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []
+        ).length,
       };
 
       metrics.lintViolations.push(violation);
@@ -864,7 +877,7 @@ export class CargoBuildValidator {
       libraries: [],
       totalSize: 0,
       integrityPassed: true,
-      details: []
+      details: [],
     };
 
     // Check target directories for artifacts
@@ -893,7 +906,6 @@ export class CargoBuildValidator {
             validation.integrityPassed = false;
           }
         }
-
       } catch (error) {
         console.warn(`Target directory ${targetDir} not accessible:`, error.message);
       }
@@ -917,14 +929,21 @@ export class CargoBuildValidator {
           const ext = path.extname(entry.name);
 
           // Check for Rust binary/library artifacts
-          if (ext === '.exe' || ext === '' || // Binaries
-              ext === '.dll' || ext === '.so' || ext === '.dylib' || // Dynamic libraries
-              ext === '.lib' || ext === '.a' || ext === '.rlib') { // Static libraries
+          if (
+            ext === '.exe' ||
+            ext === '' || // Binaries
+            ext === '.dll' ||
+            ext === '.so' ||
+            ext === '.dylib' || // Dynamic libraries
+            ext === '.lib' ||
+            ext === '.a' ||
+            ext === '.rlib'
+          ) {
+            // Static libraries
             artifacts.push(fullPath);
           }
         }
       }
-
     } catch (error) {
       console.warn(`Error collecting artifacts from ${targetPath}:`, error.message);
     }
@@ -945,7 +964,7 @@ export class CargoBuildValidator {
         modified: stats.mtime,
         checksum: null,
         type: this.determineArtifactType(artifactPath),
-        checks: []
+        checks: [],
       };
 
       // Basic validations
@@ -968,13 +987,12 @@ export class CargoBuildValidator {
       }
 
       return validation;
-
     } catch (error) {
       return {
         path: artifactPath,
         valid: false,
         error: error.message,
-        checks: ['access_failed']
+        checks: ['access_failed'],
       };
     }
   }
@@ -1013,10 +1031,11 @@ export class CargoBuildValidator {
       // Check for common executable signatures
       if (process.platform === 'win32') {
         // PE format starts with 'MZ'
-        validFormat = buffer[0] === 0x4D && buffer[1] === 0x5A;
+        validFormat = buffer[0] === 0x4d && buffer[1] === 0x5a;
       } else {
         // ELF format starts with specific magic bytes
-        validFormat = buffer[0] === 0x7F && buffer[1] === 0x45 && buffer[2] === 0x4C && buffer[3] === 0x46;
+        validFormat =
+          buffer[0] === 0x7f && buffer[1] === 0x45 && buffer[2] === 0x4c && buffer[3] === 0x46;
       }
 
       return {
@@ -1024,14 +1043,13 @@ export class CargoBuildValidator {
         valid: isExecutable && validFormat,
         executable: isExecutable,
         validFormat,
-        size: stats.size
+        size: stats.size,
       };
-
     } catch (error) {
       return {
         type: 'rust_binary_validation',
         valid: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -1045,18 +1063,18 @@ export class CargoBuildValidator {
       total: 0,
       vulnerabilities: [],
       outdated: [],
-      securityPassed: true
+      securityPassed: true,
     };
 
     try {
       // Check dependency resolution
       const { stdout } = await this.executeCommand('cargo tree', {
         cwd: projectPath,
-        timeout: 30000
+        timeout: 30000,
       });
 
       // Count resolved dependencies
-      const treeLines = stdout.split('\n').filter(line => line.trim());
+      const treeLines = stdout.split('\n').filter((line) => line.trim());
       validation.resolved = treeLines.length;
       validation.total = cargoProject.dependencies.length + cargoProject.devDependencies.length;
 
@@ -1064,23 +1082,25 @@ export class CargoBuildValidator {
       try {
         const auditResult = await this.executeCommand('cargo audit', {
           cwd: projectPath,
-          timeout: 60000
+          timeout: 60000,
         });
 
         // Parse audit output for vulnerabilities
         const auditLines = auditResult.stdout.split('\n');
         for (const line of auditLines) {
-          if (line.includes('vulnerability') || line.includes('CRITICAL') || line.includes('HIGH')) {
+          if (
+            line.includes('vulnerability') ||
+            line.includes('CRITICAL') ||
+            line.includes('HIGH')
+          ) {
             validation.vulnerabilities.push(line.trim());
           }
         }
 
         validation.securityPassed = validation.vulnerabilities.length === 0;
-
       } catch (auditError) {
         console.warn('Cargo audit not available or failed:', auditError.message);
       }
-
     } catch (error) {
       console.warn('Dependency validation failed:', error.message);
       validation.error = error.message;
@@ -1100,10 +1120,10 @@ export class CargoBuildValidator {
       compilationSpeed: 0,
       parallelization: 1,
       checkTime: checkResults.duration || 0,
-      compilationUnits: 0
+      compilationUnits: 0,
     };
 
-    const successfulBuilds = buildResults.filter(r => r.success);
+    const successfulBuilds = buildResults.filter((r) => r.success);
 
     if (successfulBuilds.length > 0) {
       metrics.totalBuildTime = successfulBuilds.reduce((sum, build) => sum + build.duration, 0);
@@ -1113,13 +1133,16 @@ export class CargoBuildValidator {
       for (const build of successfulBuilds) {
         if (build.metrics) {
           metrics.compilationUnits += build.metrics.compilationUnits || 0;
-          metrics.parallelization = Math.max(metrics.parallelization, build.metrics.parallelJobs || 1);
+          metrics.parallelization = Math.max(
+            metrics.parallelization,
+            build.metrics.parallelJobs || 1,
+          );
         }
       }
 
       // Calculate compilation speed (compilation units per second)
       if (metrics.totalBuildTime > 0) {
-        metrics.compilationSpeed = (metrics.compilationUnits / (metrics.totalBuildTime / 1000));
+        metrics.compilationSpeed = metrics.compilationUnits / (metrics.totalBuildTime / 1000);
       }
     }
 
@@ -1136,11 +1159,10 @@ export class CargoBuildValidator {
       buildTime: performanceMetrics.totalBuildTime <= thresholds.buildTime,
       memoryUsage: performanceMetrics.maxMemoryUsage <= thresholds.memoryUsage,
       compilationUnits: performanceMetrics.compilationUnits <= thresholds.compilationUnits,
-      overallPerformance: (
+      overallPerformance:
         performanceMetrics.totalBuildTime <= thresholds.buildTime &&
         performanceMetrics.maxMemoryUsage <= thresholds.memoryUsage &&
-        performanceMetrics.compilationUnits <= thresholds.compilationUnits
-      )
+        performanceMetrics.compilationUnits <= thresholds.compilationUnits,
     };
   }
 
@@ -1161,37 +1183,37 @@ export class CargoBuildValidator {
         project: {
           name: validationData.cargoProject.name,
           version: validationData.cargoProject.version,
-          edition: validationData.cargoProject.edition
+          edition: validationData.cargoProject.edition,
         },
         builds: {
-          successful: validationData.buildResults.filter(r => r.success).length,
-          failed: validationData.buildResults.filter(r => !r.success).length,
-          total: validationData.buildResults.length
+          successful: validationData.buildResults.filter((r) => r.success).length,
+          failed: validationData.buildResults.filter((r) => !r.success).length,
+          total: validationData.buildResults.length,
         },
         check: {
           success: validationData.checkResults.success,
           warnings: validationData.checkResults.warnings,
-          errors: validationData.checkResults.errors
+          errors: validationData.checkResults.errors,
         },
         clippy: {
           success: validationData.clippyResults.success,
-          violations: validationData.clippyResults.lintViolations?.length || 0
+          violations: validationData.clippyResults.lintViolations?.length || 0,
         },
         artifacts: {
           binaries: validationData.artifactValidation.binaries.length,
           libraries: validationData.artifactValidation.libraries.length,
-          integrityPassed: validationData.artifactValidation.integrityPassed
+          integrityPassed: validationData.artifactValidation.integrityPassed,
         },
         dependencies: {
           resolved: validationData.dependencyValidation.resolved,
-          securityPassed: validationData.dependencyValidation.securityPassed
+          securityPassed: validationData.dependencyValidation.securityPassed,
         },
         performance: {
           buildTime: validationData.performanceMetrics.totalBuildTime,
-          compilationUnits: validationData.performanceMetrics.compilationUnits
+          compilationUnits: validationData.performanceMetrics.compilationUnits,
         },
         executionHash: this.generateCargoExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -1203,15 +1225,14 @@ export class CargoBuildValidator {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Cargo Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -1222,7 +1243,7 @@ export class CargoBuildValidator {
   generateCargoValidators(validationData) {
     const baseValidatorCount = 8;
     const complexityMultiplier = validationData.cargoProject.isWorkspace ? 1.3 : 1;
-    const failureMultiplier = validationData.buildResults.some(r => !r.success) ? 1.4 : 1;
+    const failureMultiplier = validationData.buildResults.some((r) => !r.success) ? 1.4 : 1;
 
     const validatorCount = Math.ceil(baseValidatorCount * complexityMultiplier * failureMultiplier);
 
@@ -1236,10 +1257,10 @@ export class CargoBuildValidator {
         'performance_analysis',
         'security_audit',
         'clippy_linting',
-        'workspace_coordination'
+        'workspace_coordination',
       ][i % 8],
-      reputation: 0.80 + (Math.random() * 0.20),
-      riskTolerance: validationData.buildResults.every(r => r.success) ? 'medium' : 'low'
+      reputation: 0.8 + Math.random() * 0.2,
+      riskTolerance: validationData.buildResults.every((r) => r.success) ? 'medium' : 'low',
     }));
   }
 
@@ -1250,20 +1271,24 @@ export class CargoBuildValidator {
    */
   executeCommand(command, options = {}) {
     return new Promise((resolve, reject) => {
-      exec(command, {
-        timeout: options.timeout || this.options.timeout,
-        maxBuffer: options.maxBuffer || 50 * 1024 * 1024,
-        cwd: options.cwd,
-        env: options.env || process.env
-      }, (error, stdout, stderr) => {
-        if (error) {
-          error.stdout = stdout;
-          error.stderr = stderr;
-          reject(error);
-        } else {
-          resolve({ stdout, stderr });
-        }
-      });
+      exec(
+        command,
+        {
+          timeout: options.timeout || this.options.timeout,
+          maxBuffer: options.maxBuffer || 50 * 1024 * 1024,
+          cwd: options.cwd,
+          env: options.env || process.env,
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            error.stdout = stdout;
+            error.stderr = stderr;
+            reject(error);
+          } else {
+            resolve({ stdout, stderr });
+          }
+        },
+      );
     });
   }
 
@@ -1274,20 +1299,20 @@ export class CargoBuildValidator {
   generateCargoExecutionHash(validationData) {
     const hashData = JSON.stringify({
       project: validationData.cargoProject?.name || 'unknown',
-      builds: (validationData.buildResults || []).map(r => ({
+      builds: (validationData.buildResults || []).map((r) => ({
         mode: r.mode,
         success: r.success,
-        duration: r.duration
+        duration: r.duration,
       })),
       check: {
         success: validationData.checkResults?.success || false,
-        warnings: validationData.checkResults?.warnings || 0
+        warnings: validationData.checkResults?.warnings || 0,
       },
       artifacts: {
         binaries: validationData.artifactValidation?.binaries?.length || 0,
-        integrity: validationData.artifactValidation?.integrityPassed || false
+        integrity: validationData.artifactValidation?.integrityPassed || false,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -1301,7 +1326,7 @@ export class CargoBuildValidator {
       clippyResults: data.clippyResults,
       artifactValidation: data.artifactValidation,
       performanceMetrics: data.performanceMetrics,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -1312,7 +1337,7 @@ export class CargoBuildValidator {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'cargo-build-validator',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -1335,7 +1360,7 @@ export class CargoBuildValidator {
           mode: build.mode,
           command: build.command,
           error: build.error || 'Build failed',
-          stderr: build.stderr
+          stderr: build.stderr,
         });
       }
     }
@@ -1344,7 +1369,7 @@ export class CargoBuildValidator {
       errors.push({
         type: 'check',
         error: checkResults.error || 'Cargo check failed',
-        stderr: checkResults.stderr
+        stderr: checkResults.stderr,
       });
     }
 
@@ -1352,7 +1377,7 @@ export class CargoBuildValidator {
       errors.push({
         type: 'clippy',
         error: clippyResults.error || 'Clippy linting failed',
-        stderr: clippyResults.stderr
+        stderr: clippyResults.stderr,
       });
     }
 
@@ -1360,9 +1385,8 @@ export class CargoBuildValidator {
   }
 
   detectCargoResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.6 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.6 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateCargoExecutionHash(validationData);
@@ -1372,7 +1396,7 @@ export class CargoBuildValidator {
       detected: suspiciousVotes.length > consensus.votes.length * 0.25 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -1395,17 +1419,18 @@ export class CargoBuildValidator {
 
     if (totalBuilds === 0) return { rate: 0, sample: 0, falseCompletions: 0 };
 
-    const falseCompletions = builds.filter(build =>
-      build.builds?.overallSuccess &&
-      (!build.artifacts?.integrityPassed ||
-       !build.dependencies?.securityPassed ||
-       !build.performance?.meetsThresholds?.overallPerformance)
+    const falseCompletions = builds.filter(
+      (build) =>
+        build.builds?.overallSuccess &&
+        (!build.artifacts?.integrityPassed ||
+          !build.dependencies?.securityPassed ||
+          !build.performance?.meetsThresholds?.overallPerformance),
     );
 
     return {
       rate: falseCompletions.length / totalBuilds,
       sample: totalBuilds,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

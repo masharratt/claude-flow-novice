@@ -23,57 +23,57 @@ export class TruthConfigManager {
       version: '2.0.0',
       framework: 'auto',
       qualityGates: {
-        truthScore: 0.90,
+        truthScore: 0.9,
         testCoverage: 0.95,
         codeQuality: 0.85,
-        documentationScore: 0.80
+        documentationScore: 0.8,
       },
       frameworkSpecific: {
         javascript: {
           framework: 'jest',
           truthScore: 0.85,
-          testCoverage: 0.90,
+          testCoverage: 0.9,
           filePatterns: ['**/*.test.js', '**/*.spec.js'],
-          packageJson: true
+          packageJson: true,
         },
         typescript: {
           framework: 'jest',
-          truthScore: 0.90,
+          truthScore: 0.9,
           testCoverage: 0.95,
           filePatterns: ['**/*.test.ts', '**/*.spec.ts'],
-          tsConfig: true
+          tsConfig: true,
         },
         python: {
           framework: 'pytest',
           truthScore: 0.88,
           testCoverage: 0.92,
           filePatterns: ['**/test_*.py', '**/*_test.py'],
-          requirementsFile: true
+          requirementsFile: true,
         },
         tdd: {
           truthScore: 0.95,
           testCoverage: 0.98,
           testFirst: true,
-          redGreenRefactor: true
+          redGreenRefactor: true,
         },
         bdd: {
-          truthScore: 0.90,
+          truthScore: 0.9,
           scenarioCoverage: 0.95,
-          gherkinCompliant: true
+          gherkinCompliant: true,
         },
         sparc: {
           truthScore: 0.92,
           phaseCompletion: 1.0,
-          architectureDocumented: true
-        }
+          architectureDocumented: true,
+        },
       },
       validationSettings: {
         byzantineConsensusEnabled: true,
         consensusTimeout: 5000,
         requiredValidators: 3,
         allowPartialValidation: false,
-        strictMode: false
-      }
+        strictMode: false,
+      },
     };
   }
 
@@ -100,7 +100,7 @@ export class TruthConfigManager {
       python: 0,
       confidence: 0,
       detected: 'unknown',
-      evidence: {}
+      evidence: {},
     };
 
     try {
@@ -113,10 +113,12 @@ export class TruthConfigManager {
         detectionResults.javascript += 0.3;
 
         // Check for TypeScript indicators
-        if (pkg.devDependencies?.typescript ||
-            pkg.dependencies?.typescript ||
-            pkg.devDependencies?.['@types/node'] ||
-            await this.fileExists('tsconfig.json')) {
+        if (
+          pkg.devDependencies?.typescript ||
+          pkg.dependencies?.typescript ||
+          pkg.devDependencies?.['@types/node'] ||
+          (await this.fileExists('tsconfig.json'))
+        ) {
           detectionResults.typescript += 0.4;
           detectionResults.evidence.typescript = true;
         }
@@ -132,15 +134,18 @@ export class TruthConfigManager {
           detectionResults.javascript += 0.2;
           detectionResults.evidence.mocha = true;
         }
-
       } catch (error) {
         // No package.json found
       }
 
       // Check for Python indicators
       const pythonFiles = [
-        'requirements.txt', 'setup.py', 'pyproject.toml',
-        'Pipfile', 'environment.yml', 'conda.yml'
+        'requirements.txt',
+        'setup.py',
+        'pyproject.toml',
+        'Pipfile',
+        'environment.yml',
+        'conda.yml',
       ];
 
       for (const file of pythonFiles) {
@@ -172,11 +177,11 @@ export class TruthConfigManager {
       const scores = {
         javascript: detectionResults.javascript,
         typescript: detectionResults.typescript,
-        python: detectionResults.python
+        python: detectionResults.python,
       };
 
       const maxScore = Math.max(...Object.values(scores));
-      const detected = Object.keys(scores).find(key => scores[key] === maxScore);
+      const detected = Object.keys(scores).find((key) => scores[key] === maxScore);
 
       detectionResults.detected = detected;
       detectionResults.confidence = maxScore;
@@ -184,18 +189,17 @@ export class TruthConfigManager {
       // Store detection results for future reference
       await this.memoryStore.store('framework-detection', detectionResults, {
         namespace: 'configuration',
-        metadata: { timestamp: new Date().toISOString() }
+        metadata: { timestamp: new Date().toISOString() },
       });
 
       return detectionResults;
-
     } catch (error) {
       console.warn('Framework detection error:', error.message);
       return {
         ...detectionResults,
         detected: 'unknown',
         confidence: 0,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -247,7 +251,7 @@ export class TruthConfigManager {
 
         // Cache in memory store
         await this.memoryStore.store('current-config', this.config, {
-          namespace: 'configuration'
+          namespace: 'configuration',
         });
       } else {
         // Use default configuration
@@ -276,8 +280,8 @@ export class TruthConfigManager {
         namespace: 'configuration',
         metadata: {
           timestamp: new Date().toISOString(),
-          saved: true
-        }
+          saved: true,
+        },
       });
 
       return true;
@@ -322,7 +326,7 @@ export class TruthConfigManager {
 
     return {
       ...this.config.qualityGates,
-      ...frameworkConfig
+      ...frameworkConfig,
     };
   }
 
@@ -350,7 +354,12 @@ export class TruthConfigManager {
     }
 
     // Validate framework selection
-    if (updates.framework && !['auto', 'javascript', 'typescript', 'python', 'tdd', 'bdd', 'sparc'].includes(updates.framework)) {
+    if (
+      updates.framework &&
+      !['auto', 'javascript', 'typescript', 'python', 'tdd', 'bdd', 'sparc'].includes(
+        updates.framework,
+      )
+    ) {
       errors.push('Invalid framework selection');
     }
 
@@ -369,7 +378,7 @@ export class TruthConfigManager {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -401,7 +410,7 @@ export class TruthConfigManager {
       frameworkDetection: null,
       qualityGates: {},
       validationSettings: {},
-      errors: []
+      errors: [],
     };
 
     try {
@@ -428,7 +437,6 @@ export class TruthConfigManager {
           results.errors.push(`Byzantine consensus test failed: ${error.message}`);
         }
       }
-
     } catch (error) {
       results.configurationValid = false;
       results.errors.push(`Configuration test failed: ${error.message}`);

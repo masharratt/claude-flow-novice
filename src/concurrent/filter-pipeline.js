@@ -20,7 +20,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
       timeout: options.timeout || 30000,
       retries: options.retries || 3,
       concurrencyLimit: options.concurrencyLimit || 20,
-      ...options
+      ...options,
     };
 
     this.workers = [];
@@ -36,7 +36,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
       totalTime: 0,
       avgTime: 0,
       throughput: 0,
-      workerUtilization: 0
+      workerUtilization: 0,
     };
 
     this.isRunning = false;
@@ -71,8 +71,8 @@ class ConcurrentFilterPipeline extends EventEmitter {
     const worker = new Worker(__filename, {
       workerData: {
         isWorker: true,
-        options: this.options
-      }
+        options: this.options,
+      },
     });
 
     worker.isAvailable = true;
@@ -106,10 +106,20 @@ class ConcurrentFilterPipeline extends EventEmitter {
         let result;
         switch (type) {
           case 'processContent':
-            result = await this.processContentInWorker(data, filterHooks, realtimeFilter, auditSystem);
+            result = await this.processContentInWorker(
+              data,
+              filterHooks,
+              realtimeFilter,
+              auditSystem,
+            );
             break;
           case 'processBatch':
-            result = await this.processBatchInWorker(data, filterHooks, realtimeFilter, auditSystem);
+            result = await this.processBatchInWorker(
+              data,
+              filterHooks,
+              realtimeFilter,
+              auditSystem,
+            );
             break;
           case 'auditAnalysis':
             result = await this.performAuditAnalysisInWorker(data, auditSystem);
@@ -121,17 +131,16 @@ class ConcurrentFilterPipeline extends EventEmitter {
         parentPort.postMessage({
           jobId,
           type: 'success',
-          result
+          result,
         });
-
       } catch (error) {
         parentPort.postMessage({
           jobId,
           type: 'error',
           error: {
             message: error.message,
-            stack: error.stack
-          }
+            stack: error.stack,
+          },
         });
       }
     });
@@ -148,7 +157,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
         const docResult = filterHooks.interceptDocumentGeneration(
           metadata.filePath || 'unknown.md',
           content,
-          metadata
+          metadata,
         );
         auditSystem.logDocumentGeneration(metadata.filePath, content, docResult);
         return docResult;
@@ -157,7 +166,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
         const processedMessage = filterHooks.processAgentMessage(
           content,
           metadata.agentType || 'generic',
-          metadata
+          metadata,
         );
         auditSystem.logAgentMessage(metadata.agentType, content, processedMessage, metadata);
         return { original: content, processed: processedMessage };
@@ -179,22 +188,27 @@ class ConcurrentFilterPipeline extends EventEmitter {
 
     for (const item of items) {
       try {
-        const result = await this.processContentInWorker({
-          content: item.content,
-          metadata: { ...metadata, ...item.metadata },
-          processingType: item.processingType || 'document'
-        }, filterHooks, realtimeFilter, auditSystem);
+        const result = await this.processContentInWorker(
+          {
+            content: item.content,
+            metadata: { ...metadata, ...item.metadata },
+            processingType: item.processingType || 'document',
+          },
+          filterHooks,
+          realtimeFilter,
+          auditSystem,
+        );
 
         results.push({
           ...item,
           result,
-          success: true
+          success: true,
         });
       } catch (error) {
         results.push({
           ...item,
           error: error.message,
-          success: false
+          success: false,
         });
       }
     }
@@ -203,10 +217,10 @@ class ConcurrentFilterPipeline extends EventEmitter {
     auditSystem.logBatchProcessing(metadata.batchId || 'unknown', {
       summary: {
         total: results.length,
-        succeeded: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length
+        succeeded: results.filter((r) => r.success).length,
+        failed: results.filter((r) => !r.success).length,
       },
-      processingTime: Date.now() - metadata.startTime
+      processingTime: Date.now() - metadata.startTime,
     });
 
     return results;
@@ -238,8 +252,8 @@ class ConcurrentFilterPipeline extends EventEmitter {
       content,
       metadata: {
         ...metadata,
-        processingType: metadata.processingType || 'document'
-      }
+        processingType: metadata.processingType || 'document',
+      },
     });
   }
 
@@ -255,10 +269,10 @@ class ConcurrentFilterPipeline extends EventEmitter {
         metadata: {
           ...metadata,
           ...item.metadata,
-          batchIndex: index
+          batchIndex: index,
         },
-        processingType: item.processingType || 'document'
-      }
+        processingType: item.processingType || 'document',
+      },
     }));
 
     return this.processJobsParallel(jobs);
@@ -275,8 +289,8 @@ class ConcurrentFilterPipeline extends EventEmitter {
       metadata: {
         ...metadata,
         batchId,
-        startTime: Date.now()
-      }
+        startTime: Date.now(),
+      },
     });
   }
 
@@ -292,7 +306,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
       write: async (item) => {
         buffer.push({
           ...item,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         if (buffer.length >= (options.batchSize || this.options.batchSize) && !processing) {
@@ -302,7 +316,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
             const results = await this.processBatch(batch, {
               ...options.metadata,
               streamId,
-              isStreaming: true
+              isStreaming: true,
             });
             this.emit('streamBatch', { streamId, results });
           } finally {
@@ -318,7 +332,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
             ...options.metadata,
             streamId,
             isStreaming: true,
-            isFinal: true
+            isFinal: true,
           });
           this.emit('streamBatch', { streamId, results });
         }
@@ -326,7 +340,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
 
       end: () => {
         this.emit('streamEnd', { streamId });
-      }
+      },
     };
 
     this.emit('streamStart', { streamId, processor });
@@ -349,7 +363,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
         reject,
         startTime,
         retries: 0,
-        maxRetries: this.options.retries
+        maxRetries: this.options.retries,
       };
 
       this.taskQueue.push(job);
@@ -375,7 +389,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
   processQueue() {
     if (this.taskQueue.length === 0) return;
 
-    const availableWorkers = this.workers.filter(w => w.isAvailable && !w.currentJob);
+    const availableWorkers = this.workers.filter((w) => w.isAvailable && !w.currentJob);
     if (availableWorkers.length === 0) return;
 
     const worker = availableWorkers[0];
@@ -389,7 +403,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
     worker.postMessage({
       jobId: job.jobId,
       type: job.type,
-      data: job.data
+      data: job.data,
     });
 
     this.emit('jobStarted', { jobId: job.jobId, workerId: worker.threadId });
@@ -402,9 +416,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
    * Process multiple jobs in parallel
    */
   async processJobsParallel(jobs) {
-    const promises = jobs.map(job =>
-      this.submitJob(job.type, job.data)
-    );
+    const promises = jobs.map((job) => this.submitJob(job.type, job.data));
 
     return Promise.allSettled(promises);
   }
@@ -431,7 +443,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
       this.completedJobs.set(jobId, {
         ...job,
         result,
-        processingTime
+        processingTime,
       });
 
       job.resolve(result);
@@ -450,7 +462,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
         this.failedJobs.set(jobId, {
           ...job,
           error,
-          processingTime
+          processingTime,
         });
 
         job.reject(new Error(error.message));
@@ -551,7 +563,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
     this.stats.throughput = this.stats.processed / Math.max(1, elapsedSeconds);
 
     // Calculate worker utilization
-    const busyWorkers = this.workers.filter(w => !w.isAvailable).length;
+    const busyWorkers = this.workers.filter((w) => !w.isAvailable).length;
     this.stats.workerUtilization = (busyWorkers / this.workers.length) * 100;
   }
 
@@ -563,15 +575,15 @@ class ConcurrentFilterPipeline extends EventEmitter {
       ...this.stats,
       workers: {
         total: this.workers.length,
-        available: this.workers.filter(w => w.isAvailable).length,
-        busy: this.workers.filter(w => !w.isAvailable).length
+        available: this.workers.filter((w) => w.isAvailable).length,
+        busy: this.workers.filter((w) => !w.isAvailable).length,
       },
       queue: {
         pending: this.taskQueue.length,
         active: this.activeJobs.size,
         completed: this.completedJobs.size,
-        failed: this.failedJobs.size
-      }
+        failed: this.failedJobs.size,
+      },
     };
   }
 
@@ -586,7 +598,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
     }
 
     while (this.workers.length > targetCount) {
-      const worker = this.workers.find(w => w.isAvailable && !w.currentJob);
+      const worker = this.workers.find((w) => w.isAvailable && !w.currentJob);
       if (worker) {
         this.removeWorker(worker);
       } else {
@@ -642,7 +654,7 @@ class ConcurrentFilterPipeline extends EventEmitter {
       totalTime: 0,
       avgTime: 0,
       throughput: 0,
-      workerUtilization: 0
+      workerUtilization: 0,
     };
 
     this.emit('cleared');
@@ -658,16 +670,17 @@ class ConcurrentFilterPipeline extends EventEmitter {
     const shutdownTimeout = 30000;
     const startTime = Date.now();
 
-    while (this.activeJobs.size > 0 && (Date.now() - startTime) < shutdownTimeout) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+    while (this.activeJobs.size > 0 && Date.now() - startTime < shutdownTimeout) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     // Terminate all workers
-    const terminationPromises = this.workers.map(worker =>
-      new Promise((resolve) => {
-        worker.once('exit', resolve);
-        worker.terminate();
-      })
+    const terminationPromises = this.workers.map(
+      (worker) =>
+        new Promise((resolve) => {
+          worker.once('exit', resolve);
+          worker.terminate();
+        }),
     );
 
     try {

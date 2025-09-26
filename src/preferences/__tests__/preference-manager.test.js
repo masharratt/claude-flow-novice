@@ -11,7 +11,12 @@ jest.mock('fs-extra');
 describe('PreferenceManager', () => {
   let manager;
   const mockProjectPath = '/mock/project/.claude-flow-novice/preferences/user-global.json';
-  const mockGlobalPath = path.join(os.homedir(), '.claude-flow-novice', 'preferences', 'global.json');
+  const mockGlobalPath = path.join(
+    os.homedir(),
+    '.claude-flow-novice',
+    'preferences',
+    'global.json',
+  );
 
   beforeEach(() => {
     manager = new PreferenceManager();
@@ -23,12 +28,12 @@ describe('PreferenceManager', () => {
     test('loads and merges preferences correctly', async () => {
       const globalPrefs = {
         experience: { level: 'intermediate' },
-        documentation: { verbosity: 'standard' }
+        documentation: { verbosity: 'standard' },
       };
 
       const projectPrefs = {
         experience: { level: 'advanced' },
-        workflow: { concurrency: 4 }
+        workflow: { concurrency: 4 },
       };
 
       fs.pathExists.mockImplementation((path) => {
@@ -82,22 +87,22 @@ describe('PreferenceManager', () => {
       expect(fs.writeJson).toHaveBeenCalledWith(
         expect.stringContaining('user-global.json'),
         expect.objectContaining({
-          documentation: { verbosity: 'detailed' }
+          documentation: { verbosity: 'detailed' },
         }),
-        { spaces: 2 }
+        { spaces: 2 },
       );
     });
 
     test('validates preference values before setting', async () => {
-      await expect(
-        manager.set('experience.level', 'invalid_level')
-      ).rejects.toThrow('Invalid preference value');
+      await expect(manager.set('experience.level', 'invalid_level')).rejects.toThrow(
+        'Invalid preference value',
+      );
     });
 
     test('gets nested preference values', async () => {
       manager.cachedPreferences = {
         documentation: { verbosity: 'detailed' },
-        workflow: { concurrency: 3 }
+        workflow: { concurrency: 3 },
       };
 
       const verbosity = await manager.get('documentation.verbosity');
@@ -114,7 +119,7 @@ describe('PreferenceManager', () => {
     test('validates preferences and returns errors', async () => {
       manager.cachedPreferences = {
         experience: { level: 'invalid' },
-        workflow: { concurrency: 10 }
+        workflow: { concurrency: 10 },
       };
 
       const result = await manager.validate();
@@ -128,7 +133,7 @@ describe('PreferenceManager', () => {
       manager.cachedPreferences = {
         experience: { level: 'intermediate' },
         documentation: { verbosity: 'standard' },
-        workflow: { concurrency: 3 }
+        workflow: { concurrency: 3 },
       };
 
       const result = await manager.validate();
@@ -142,23 +147,23 @@ describe('PreferenceManager', () => {
     test('suggests neural learning for advanced users', async () => {
       manager.cachedPreferences = {
         experience: { level: 'advanced' },
-        advanced: { neuralLearning: false }
+        advanced: { neuralLearning: false },
       };
 
       const suggestions = await manager.generateSuggestions();
 
-      expect(suggestions.some(s => s.key === 'advanced.neuralLearning')).toBe(true);
+      expect(suggestions.some((s) => s.key === 'advanced.neuralLearning')).toBe(true);
     });
 
     test('suggests verbosity reduction for advanced users', async () => {
       manager.cachedPreferences = {
         experience: { level: 'advanced' },
-        documentation: { verbosity: 'detailed' }
+        documentation: { verbosity: 'detailed' },
       };
 
       const suggestions = await manager.generateSuggestions();
 
-      expect(suggestions.some(s => s.key === 'documentation.verbosity')).toBe(true);
+      expect(suggestions.some((s) => s.key === 'documentation.verbosity')).toBe(true);
     });
   });
 
@@ -167,11 +172,11 @@ describe('PreferenceManager', () => {
       manager.cachedPreferences = {
         experience: { level: 'advanced' },
         documentation: { verbosity: 'detailed' },
-        workflow: { concurrency: 4 }
+        workflow: { concurrency: 4 },
       };
 
       const contextualPrefs = await manager.getContextualPreferences({
-        taskComplexity: 'simple'
+        taskComplexity: 'simple',
       });
 
       expect(contextualPrefs.documentation.verbosity).toBe('minimal');
@@ -179,11 +184,11 @@ describe('PreferenceManager', () => {
 
     test('limits concurrency for limited resources', async () => {
       manager.cachedPreferences = {
-        workflow: { concurrency: 6 }
+        workflow: { concurrency: 6 },
       };
 
       const contextualPrefs = await manager.getContextualPreferences({
-        systemResources: 'limited'
+        systemResources: 'limited',
       });
 
       expect(contextualPrefs.workflow.concurrency).toBe(2);
@@ -193,7 +198,7 @@ describe('PreferenceManager', () => {
   describe('import and export', () => {
     test('exports preferences to file', async () => {
       manager.cachedPreferences = {
-        experience: { level: 'intermediate' }
+        experience: { level: 'intermediate' },
       };
 
       fs.ensureDir.mockResolvedValue();
@@ -204,9 +209,9 @@ describe('PreferenceManager', () => {
       expect(fs.writeJson).toHaveBeenCalledWith(
         '/test/path.json',
         expect.objectContaining({
-          experience: { level: 'intermediate' }
+          experience: { level: 'intermediate' },
         }),
-        { spaces: 2 }
+        { spaces: 2 },
       );
       expect(result).toBe('/test/path.json');
     });
@@ -214,7 +219,7 @@ describe('PreferenceManager', () => {
     test('imports preferences from file', async () => {
       const importData = {
         experience: { level: 'advanced' },
-        workflow: { concurrency: 4 }
+        workflow: { concurrency: 4 },
       };
 
       fs.pathExists.mockResolvedValue(true);
@@ -230,10 +235,10 @@ describe('PreferenceManager', () => {
           experience: { level: 'advanced' },
           workflow: { concurrency: 4 },
           meta: expect.objectContaining({
-            importedFrom: '/test/import.json'
-          })
+            importedFrom: '/test/import.json',
+          }),
         }),
-        { spaces: 2 }
+        { spaces: 2 },
       );
     });
   });

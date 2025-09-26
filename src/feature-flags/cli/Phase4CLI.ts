@@ -5,11 +5,7 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import {
-  Phase4FeatureFlagSystem,
-  getPhase4System,
-  PHASE4_PRESETS
-} from '../index.js';
+import { Phase4FeatureFlagSystem, getPhase4System, PHASE4_PRESETS } from '../index.js';
 
 export class Phase4CLI {
   private program: Command;
@@ -31,7 +27,11 @@ export class Phase4CLI {
     this.program
       .command('init')
       .description('Initialize Phase 4 feature flag system')
-      .option('-e, --environment <env>', 'Environment (development, staging, production)', 'development')
+      .option(
+        '-e, --environment <env>',
+        'Environment (development, staging, production)',
+        'development',
+      )
       .option('--preset <preset>', 'Use configuration preset (conservative, aggressive, testing)')
       .action(this.initSystem.bind(this));
 
@@ -234,7 +234,6 @@ export class Phase4CLI {
       console.log(chalk.cyan(`📊 Environment: ${status.environment}`));
       console.log(chalk.cyan(`🏁 Feature flags: ${status.flags.length}`));
       console.log(chalk.cyan(`📈 Active rollouts: ${status.activeRollouts}`));
-
     } catch (error) {
       console.error(chalk.red(`❌ Initialization failed: ${error.message}`));
       process.exit(1);
@@ -253,9 +252,15 @@ export class Phase4CLI {
       console.log(chalk.blue.bold('\n📊 Phase 4 System Status\n'));
 
       // System health
-      const healthColor = status.systemHealth.overallStatus === 'healthy' ? 'green' :
-        status.systemHealth.overallStatus === 'warning' ? 'yellow' : 'red';
-      console.log(chalk[healthColor](`🏥 Health: ${status.systemHealth.overallStatus.toUpperCase()}`));
+      const healthColor =
+        status.systemHealth.overallStatus === 'healthy'
+          ? 'green'
+          : status.systemHealth.overallStatus === 'warning'
+            ? 'yellow'
+            : 'red';
+      console.log(
+        chalk[healthColor](`🏥 Health: ${status.systemHealth.overallStatus.toUpperCase()}`),
+      );
 
       // Feature flags
       console.log(chalk.cyan(`\n🏁 Feature Flags (${status.flags.length}):`));
@@ -269,7 +274,9 @@ export class Phase4CLI {
       if (status.rollouts.length > 0) {
         console.log(chalk.cyan(`\n📈 Active Rollouts (${status.rollouts.length}):`));
         status.rollouts.forEach((rollout: any) => {
-          console.log(`  🔄 ${rollout.flagName}: Stage ${rollout.currentStage}/${rollout.totalStages} (${rollout.status})`);
+          console.log(
+            `  🔄 ${rollout.flagName}: Stage ${rollout.currentStage}/${rollout.totalStages} (${rollout.status})`,
+          );
         });
       }
 
@@ -277,12 +284,11 @@ export class Phase4CLI {
       if (status.alerts.length > 0) {
         console.log(chalk.yellow(`\n⚠️  Recent Alerts (${status.alerts.length}):`));
         status.alerts.slice(0, 5).forEach((alert: any) => {
-          const severityColor = alert.severity === 'critical' ? 'red' :
-            alert.severity === 'high' ? 'yellow' : 'white';
+          const severityColor =
+            alert.severity === 'critical' ? 'red' : alert.severity === 'high' ? 'yellow' : 'white';
           console.log(chalk[severityColor](`  ${alert.severity.toUpperCase()}: ${alert.message}`));
         });
       }
-
     } catch (error) {
       console.error(chalk.red(`❌ Failed to get status: ${error.message}`));
     }
@@ -304,22 +310,23 @@ export class Phase4CLI {
       let filteredFlags = flags;
 
       if (options.enabled) {
-        filteredFlags = flags.filter(f => f.enabled);
+        filteredFlags = flags.filter((f) => f.enabled);
       } else if (options.disabled) {
-        filteredFlags = flags.filter(f => !f.enabled);
+        filteredFlags = flags.filter((f) => !f.enabled);
       }
 
       console.log(chalk.blue.bold(`\n🏁 Feature Flags (${filteredFlags.length}):\n`));
 
-      filteredFlags.forEach(flag => {
+      filteredFlags.forEach((flag) => {
         const statusIcon = flag.enabled ? '🟢' : '🔴';
         const rolloutText = flag.enabled ? ` [${flag.rolloutPercentage}%]` : '';
         console.log(`${statusIcon} ${flag.name}${rolloutText}`);
         console.log(chalk.gray(`   ${flag.metadata.description}`));
-        console.log(chalk.gray(`   Category: ${flag.metadata.category} | Phase: ${flag.metadata.phase}`));
+        console.log(
+          chalk.gray(`   Category: ${flag.metadata.category} | Phase: ${flag.metadata.phase}`),
+        );
         console.log();
       });
-
     } catch (error) {
       console.error(chalk.red(`❌ Failed to list flags: ${error.message}`));
     }
@@ -419,7 +426,7 @@ export class Phase4CLI {
         const rollouts = this.system.rolloutController.getActiveRollouts();
         console.log(chalk.blue.bold(`\n📈 Active Rollouts (${rollouts.length}):\n`));
 
-        rollouts.forEach(rollout => {
+        rollouts.forEach((rollout) => {
           console.log(`${rollout.id}`);
           console.log(`  Flag: ${rollout.flagName}`);
           console.log(`  Stage: ${rollout.currentStage + 1}/${rollout.stages.length}`);
@@ -456,9 +463,13 @@ export class Phase4CLI {
 
       console.log(chalk.blue.bold(`\n📚 Rollout History (${history.length}):\n`));
 
-      history.forEach(plan => {
-        const statusColor = plan.status === 'completed' ? 'green' :
-          plan.status === 'failed' || plan.status === 'rolled_back' ? 'red' : 'yellow';
+      history.forEach((plan) => {
+        const statusColor =
+          plan.status === 'completed'
+            ? 'green'
+            : plan.status === 'failed' || plan.status === 'rolled_back'
+              ? 'red'
+              : 'yellow';
 
         console.log(chalk[statusColor](`${plan.id} (${plan.status.toUpperCase()})`));
         console.log(`  Flag: ${plan.flagName}`);
@@ -483,13 +494,25 @@ export class Phase4CLI {
       console.log(chalk.blue.bold('\n📊 Monitoring Dashboard\n'));
 
       // System health
-      const healthColor = dashboardData.systemHealth.overallStatus === 'healthy' ? 'green' :
-        dashboardData.systemHealth.overallStatus === 'warning' ? 'yellow' : 'red';
-      console.log(chalk[healthColor](`🏥 System Health: ${dashboardData.systemHealth.overallStatus.toUpperCase()}`));
+      const healthColor =
+        dashboardData.systemHealth.overallStatus === 'healthy'
+          ? 'green'
+          : dashboardData.systemHealth.overallStatus === 'warning'
+            ? 'yellow'
+            : 'red';
+      console.log(
+        chalk[healthColor](
+          `🏥 System Health: ${dashboardData.systemHealth.overallStatus.toUpperCase()}`,
+        ),
+      );
 
       console.log(`📈 Active Rollouts: ${dashboardData.systemHealth.activeRollouts}`);
-      console.log(`📊 Average Error Rate: ${(dashboardData.systemHealth.avgErrorRate * 100).toFixed(2)}%`);
-      console.log(`✅ Average Success Rate: ${(dashboardData.systemHealth.avgSuccessRate * 100).toFixed(2)}%`);
+      console.log(
+        `📊 Average Error Rate: ${(dashboardData.systemHealth.avgErrorRate * 100).toFixed(2)}%`,
+      );
+      console.log(
+        `✅ Average Success Rate: ${(dashboardData.systemHealth.avgSuccessRate * 100).toFixed(2)}%`,
+      );
 
       // Performance
       console.log(chalk.cyan('\n⚡ Performance:'));
@@ -497,7 +520,9 @@ export class Phase4CLI {
       console.log(`Memory Usage: ${dashboardData.performance.memoryUsage.toFixed(1)}MB`);
       console.log(`CPU Usage: ${dashboardData.performance.cpuUsage.toFixed(1)}s`);
 
-      console.log(chalk.gray(`\n💡 Dashboard would be available at http://localhost:${options.port}`));
+      console.log(
+        chalk.gray(`\n💡 Dashboard would be available at http://localhost:${options.port}`),
+      );
     } catch (error) {
       console.error(chalk.red(`❌ Failed to show dashboard: ${error.message}`));
     }
@@ -509,7 +534,7 @@ export class Phase4CLI {
       let alerts = dashboardData.alerts;
 
       if (options.severity) {
-        alerts = alerts.filter(alert => alert.severity === options.severity);
+        alerts = alerts.filter((alert) => alert.severity === options.severity);
       }
 
       console.log(chalk.blue.bold(`\n⚠️  Alerts (${alerts.length}):\n`));
@@ -519,10 +544,15 @@ export class Phase4CLI {
         return;
       }
 
-      alerts.forEach(alert => {
-        const severityColor = alert.severity === 'critical' ? 'red' :
-          alert.severity === 'high' ? 'yellow' :
-          alert.severity === 'medium' ? 'cyan' : 'white';
+      alerts.forEach((alert) => {
+        const severityColor =
+          alert.severity === 'critical'
+            ? 'red'
+            : alert.severity === 'high'
+              ? 'yellow'
+              : alert.severity === 'medium'
+                ? 'cyan'
+                : 'white';
 
         console.log(chalk[severityColor](`${alert.severity.toUpperCase()}: ${alert.message}`));
         console.log(chalk.gray(`  Time: ${new Date(alert.timestamp).toLocaleString()}`));
@@ -542,7 +572,7 @@ export class Phase4CLI {
 
       console.log(chalk.blue.bold(`\n📈 Metrics${options.flag ? ` for ${options.flag}` : ''}:\n`));
 
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         console.log(chalk.cyan(`🏁 ${metric.flagName}:`));
         console.log(`  Current Rollout: ${metric.currentPercentage}%`);
         console.log(`  Target Rollout: ${metric.targetPercentage}%`);
@@ -615,7 +645,7 @@ export class Phase4CLI {
         id: taskId,
         description: options.description || `Validation for task ${taskId}`,
         context: { timestamp: Date.now() },
-        userId: options.user || 'cli-user'
+        userId: options.user || 'cli-user',
       };
 
       const result = await this.system.validateTaskCompletion(task);
@@ -644,7 +674,7 @@ export class Phase4CLI {
         command: options.command,
         args: options.args || [],
         timestamp: new Date().toISOString(),
-        userId: 'cli-user'
+        userId: 'cli-user',
       };
 
       console.log(chalk.blue(`🪝 Executing ${hookType} hook...`));

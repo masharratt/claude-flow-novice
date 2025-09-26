@@ -167,7 +167,7 @@ export async function swarmAction(ctx: CommandContext) {
     // Create objective in coordinator
     const objectiveId = await coordinator.createObjective(
       objective,
-      (options.strategy || 'auto') as any
+      (options.strategy || 'auto') as any,
     );
 
     console.log(`\n📝 Objective created with ID: ${objectiveId}`);

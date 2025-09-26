@@ -212,10 +212,23 @@ export class AgentFactory {
    */
   getSupportedTypes(): AgentType[] {
     return [
-      'researcher', 'coder', 'analyst', 'architect', 'tester', 'coordinator',
-      'reviewer', 'optimizer', 'documenter', 'monitor', 'specialist',
-      'requirements_analyst', 'design_architect', 'task_planner', 
-      'implementation_coder', 'quality_reviewer', 'steering_documenter'
+      'researcher',
+      'coder',
+      'analyst',
+      'architect',
+      'tester',
+      'coordinator',
+      'reviewer',
+      'optimizer',
+      'documenter',
+      'monitor',
+      'specialist',
+      'requirements_analyst',
+      'design_architect',
+      'task_planner',
+      'implementation_coder',
+      'quality_reviewer',
+      'steering_documenter',
     ];
   }
 
@@ -235,15 +248,16 @@ export class AgentFactory {
       documenter: 'Creates and maintains comprehensive documentation',
       monitor: 'Monitors system health and performance metrics',
       specialist: 'Provides domain-specific expertise and specialized knowledge',
-      requirements_analyst: 'Analyzes requirements and creates user stories with acceptance criteria',
+      requirements_analyst:
+        'Analyzes requirements and creates user stories with acceptance criteria',
       design_architect: 'Creates technical designs and system architecture for features',
       'system-architect': 'High-level system architecture and design patterns',
-      task_planner: 'Plans implementation tasks and orchestrates workflow execution', 
+      task_planner: 'Plans implementation tasks and orchestrates workflow execution',
       'task-planner': 'Plans implementation tasks and orchestrates workflow execution',
       implementation_coder: 'Implements code based on designs with quality focus',
       developer: 'General purpose software development and implementation',
       quality_reviewer: 'Reviews code quality and ensures standards compliance',
-      steering_documenter: 'Maintains governance documentation and project steering'
+      steering_documenter: 'Maintains governance documentation and project steering',
     };
   }
 

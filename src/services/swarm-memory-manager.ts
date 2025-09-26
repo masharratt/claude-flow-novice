@@ -63,7 +63,7 @@ export class SwarmMemoryManager extends EventEmitter {
       context.byzantineMetrics = {
         consensusEvents: 0,
         trustScoreHistory: [],
-        verificationSuccess: 0
+        verificationSuccess: 0,
       };
     }
 
@@ -92,8 +92,10 @@ export class SwarmMemoryManager extends EventEmitter {
   async getSwarmContext(contextId?: string): Promise<SwarmContext | null> {
     if (!contextId) {
       // Return the most recent context
-      const contexts = Array.from(this.contextStore.entries())
-        .sort(([, a], [, b]) => (b.byzantineMetrics?.consensusEvents || 0) - (a.byzantineMetrics?.consensusEvents || 0));
+      const contexts = Array.from(this.contextStore.entries()).sort(
+        ([, a], [, b]) =>
+          (b.byzantineMetrics?.consensusEvents || 0) - (a.byzantineMetrics?.consensusEvents || 0),
+      );
 
       if (contexts.length === 0) return null;
       return contexts[0][1];
@@ -117,11 +119,16 @@ export class SwarmMemoryManager extends EventEmitter {
     return context;
   }
 
-  async storeMemory(key: string, value: any, agentId: string, options: {
-    encrypt?: boolean;
-    requireConsensus?: boolean;
-    ttl?: number;
-  } = {}): Promise<string> {
+  async storeMemory(
+    key: string,
+    value: any,
+    agentId: string,
+    options: {
+      encrypt?: boolean;
+      requireConsensus?: boolean;
+      ttl?: number;
+    } = {},
+  ): Promise<string> {
     const memoryBlock = await this.createMemoryBlock(key, value, agentId);
 
     // Encrypt if requested
@@ -153,7 +160,10 @@ export class SwarmMemoryManager extends EventEmitter {
     return memoryBlock.id;
   }
 
-  async retrieveMemory(key: string, requestingAgent: string): Promise<{ data: any; verified: boolean; trustScore: number }> {
+  async retrieveMemory(
+    key: string,
+    requestingAgent: string,
+  ): Promise<{ data: any; verified: boolean; trustScore: number }> {
     const memoryChain = this.memoryChain.get(key);
     if (!memoryChain || memoryChain.length === 0) {
       throw new Error(`Memory not found for key: ${key}`);
@@ -175,7 +185,9 @@ export class SwarmMemoryManager extends EventEmitter {
       trustScore = latestBlock.consensusProof.trustScore;
 
       // Verify consensus proof
-      const consensusValid = await this.consensusValidator.verifyConsensusProof(latestBlock.consensusProof);
+      const consensusValid = await this.consensusValidator.verifyConsensusProof(
+        latestBlock.consensusProof,
+      );
       if (!consensusValid) {
         this.emit('security:consensus_violation', { key, blockId: latestBlock.id });
         trustScore *= 0.5; // Reduce trust but don't fail completely
@@ -197,7 +209,7 @@ export class SwarmMemoryManager extends EventEmitter {
     return {
       data,
       verified: isValid && trustScore >= 0.7,
-      trustScore
+      trustScore,
     };
   }
 
@@ -216,14 +228,15 @@ export class SwarmMemoryManager extends EventEmitter {
       memoryChain: Object.fromEntries(this.memoryChain),
       contextStore: Object.fromEntries(this.contextStore),
       metadata: {
-        totalBlocks: Array.from(this.memoryChain.values()).reduce((sum, chain) => sum + chain.length, 0),
-        byzantineScore: await this.calculateOverallByzantineScore()
-      }
+        totalBlocks: Array.from(this.memoryChain.values()).reduce(
+          (sum, chain) => sum + chain.length,
+          0,
+        ),
+        byzantineScore: await this.calculateOverallByzantineScore(),
+      },
     };
 
-    const snapshotId = crypto.createHash('sha256')
-      .update(JSON.stringify(snapshot))
-      .digest('hex');
+    const snapshotId = crypto.createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
 
     // Store snapshot (in production, this would go to persistent storage)
     await this.storeSnapshot(snapshotId, snapshot);
@@ -240,11 +253,14 @@ export class SwarmMemoryManager extends EventEmitter {
     }
 
     // Verify snapshot integrity
-    const calculatedHash = crypto.createHash('sha256')
-      .update(JSON.stringify({
-        ...snapshot,
-        metadata: undefined // Exclude metadata from hash calculation
-      }))
+    const calculatedHash = crypto
+      .createHash('sha256')
+      .update(
+        JSON.stringify({
+          ...snapshot,
+          metadata: undefined, // Exclude metadata from hash calculation
+        }),
+      )
       .digest('hex');
 
     // Restore memory chains
@@ -276,7 +292,7 @@ export class SwarmMemoryManager extends EventEmitter {
       taskStates[contextId] = {
         phase: context.currentPhase,
         completedWork: context.completedWork,
-        byzantineMetrics: context.byzantineMetrics
+        byzantineMetrics: context.byzantineMetrics,
       };
     }
 
@@ -284,18 +300,20 @@ export class SwarmMemoryManager extends EventEmitter {
     for (const [key, chain] of this.memoryChain) {
       if (key.startsWith('agent_')) {
         const agentId = key.replace('agent_', '');
-        agentMemories[agentId] = chain.map(block => ({
+        agentMemories[agentId] = chain.map((block) => ({
           timestamp: block.timestamp,
           data: block.data,
-          trustScore: block.consensusProof?.trustScore || 1.0
+          trustScore: block.consensusProof?.trustScore || 1.0,
         }));
       } else if (key.startsWith('workflow_')) {
-        workflowHistory.push(...chain.map(block => ({
-          workflow: key,
-          timestamp: block.timestamp,
-          data: block.data,
-          agentId: block.agentId
-        })));
+        workflowHistory.push(
+          ...chain.map((block) => ({
+            workflow: key,
+            timestamp: block.timestamp,
+            data: block.data,
+            agentId: block.agentId,
+          })),
+        );
       }
     }
 
@@ -304,7 +322,8 @@ export class SwarmMemoryManager extends EventEmitter {
 
   private async createMemoryBlock(key: string, data: any, agentId: string): Promise<MemoryBlock> {
     const existingChain = this.memoryChain.get(key) || [];
-    const previousHash = existingChain.length > 0 ? existingChain[existingChain.length - 1].hash : '0';
+    const previousHash =
+      existingChain.length > 0 ? existingChain[existingChain.length - 1].hash : '0';
 
     const blockId = `${key}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -313,7 +332,7 @@ export class SwarmMemoryManager extends EventEmitter {
       data,
       timestamp: Date.now(),
       agentId,
-      previousHash
+      previousHash,
     };
 
     const blockString = JSON.stringify(blockData);
@@ -333,8 +352,8 @@ export class SwarmMemoryManager extends EventEmitter {
         validators: [],
         signatures: [],
         trustScore: 1.0,
-        verificationCount: 0
-      }
+        verificationCount: 0,
+      },
     };
   }
 
@@ -355,7 +374,7 @@ export class SwarmMemoryManager extends EventEmitter {
   private removeFromMemoryChain(key: string, blockId: string): void {
     const chain = this.memoryChain.get(key);
     if (chain) {
-      const index = chain.findIndex(block => block.id === blockId);
+      const index = chain.findIndex((block) => block.id === blockId);
       if (index !== -1) {
         chain.splice(index, 1);
         if (chain.length === 0) {
@@ -374,8 +393,8 @@ export class SwarmMemoryManager extends EventEmitter {
     if (allBlocks.length === 0) return 1.0;
 
     const trustScores = allBlocks
-      .map(block => block.consensusProof?.trustScore || 1.0)
-      .filter(score => score > 0);
+      .map((block) => block.consensusProof?.trustScore || 1.0)
+      .filter((score) => score > 0);
 
     return trustScores.reduce((sum, score) => sum + score, 0) / trustScores.length;
   }
@@ -408,8 +427,8 @@ export class SwarmMemoryManager extends EventEmitter {
       contextStore: {},
       metadata: {
         totalBlocks: 0,
-        byzantineScore: 1.0
-      }
+        byzantineScore: 1.0,
+      },
     };
   }
 }
@@ -423,7 +442,7 @@ class MemoryCryptographyManager {
       const keyPair = crypto.generateKeyPairSync('rsa', {
         modulusLength: 2048,
         publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
       });
       this.keyPairs.set(agentId, keyPair);
     }
@@ -431,7 +450,7 @@ class MemoryCryptographyManager {
     const keyPair = this.keyPairs.get(agentId)!;
     const signature = crypto.sign('sha256', Buffer.from(blockData), {
       key: keyPair.privateKey,
-      padding: crypto.constants.RSA_PKCS1_PSS_PADDING
+      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
     });
 
     return signature.toString('base64');
@@ -445,7 +464,7 @@ class MemoryCryptographyManager {
         data: block.data,
         timestamp: block.timestamp,
         agentId: block.agentId,
-        previousHash: block.previousHash
+        previousHash: block.previousHash,
       };
 
       const blockString = JSON.stringify(blockData);
@@ -464,9 +483,9 @@ class MemoryCryptographyManager {
           Buffer.from(blockString),
           {
             key: keyPair.publicKey,
-            padding: crypto.constants.RSA_PKCS1_PSS_PADDING
+            padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
           },
-          Buffer.from(block.signature, 'base64')
+          Buffer.from(block.signature, 'base64'),
         );
       }
 
@@ -488,7 +507,7 @@ class MemoryCryptographyManager {
       encrypted: true,
       ciphertext: encrypted,
       key: key.toString('hex'),
-      iv: iv.toString('hex')
+      iv: iv.toString('hex'),
     };
   }
 
@@ -538,9 +557,9 @@ class MemoryConsensusValidator {
         validators,
         signatures,
         trustScore: consensusReached ? trustScore : 0,
-        verificationCount: signatures.length
+        verificationCount: signatures.length,
       },
-      reason: consensusReached ? undefined : 'Insufficient consensus'
+      reason: consensusReached ? undefined : 'Insufficient consensus',
     };
   }
 
@@ -560,7 +579,10 @@ class MemoryConsensusValidator {
     return ['validator-1', 'validator-2', 'validator-3'];
   }
 
-  private async performValidation(validator: string, block: MemoryBlock): Promise<{
+  private async performValidation(
+    validator: string,
+    block: MemoryBlock,
+  ): Promise<{
     valid: boolean;
     signature: string;
     trustContribution: number;
@@ -572,7 +594,7 @@ class MemoryConsensusValidator {
     return {
       valid,
       signature: `sig_${validator}_${block.id}`,
-      trustContribution
+      trustContribution,
     };
   }
 }
@@ -580,7 +602,10 @@ class MemoryConsensusValidator {
 class MemorySyncManager {
   constructor(private memoryManager: SwarmMemoryManager) {}
 
-  async syncWithNodes(targetNodes: string[], memoryChain: Map<string, MemoryBlock[]>): Promise<{
+  async syncWithNodes(
+    targetNodes: string[],
+    memoryChain: Map<string, MemoryBlock[]>,
+  ): Promise<{
     success: boolean;
     syncedBlocks: number;
     conflicts: Array<{ key: string; reason: string }>;
@@ -605,11 +630,15 @@ class MemorySyncManager {
     return {
       success: conflicts.length < memoryChain.size * 0.1, // Less than 10% conflicts
       syncedBlocks,
-      conflicts
+      conflicts,
     };
   }
 
-  private async syncChainWithNodes(key: string, chain: MemoryBlock[], targetNodes: string[]): Promise<{
+  private async syncChainWithNodes(
+    key: string,
+    chain: MemoryBlock[],
+    targetNodes: string[],
+  ): Promise<{
     success: boolean;
     reason?: string;
   }> {
@@ -618,7 +647,7 @@ class MemorySyncManager {
 
     return {
       success: syncSuccess,
-      reason: syncSuccess ? undefined : 'Network timeout during sync'
+      reason: syncSuccess ? undefined : 'Network timeout during sync',
     };
   }
 }

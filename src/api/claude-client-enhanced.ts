@@ -6,7 +6,7 @@
 import { EventEmitter } from 'events';
 import { ILogger } from '../core/logger.js';
 import { ConfigManager } from '../config/config-manager.js';
-import { 
+import {
   ClaudeAPIError,
   ClaudeInternalServerError,
   ClaudeServiceUnavailableError,
@@ -19,11 +19,11 @@ import {
   getUserFriendlyError,
 } from './claude-api-errors.js';
 import { circuitBreaker, CircuitBreaker } from '../utils/helpers.js';
-import { 
-  ClaudeAPIConfig, 
-  ClaudeModel, 
-  ClaudeMessage, 
-  ClaudeRequest, 
+import {
+  ClaudeAPIConfig,
+  ClaudeModel,
+  ClaudeMessage,
+  ClaudeRequest,
   ClaudeResponse,
   ClaudeStreamEvent,
 } from './claude-client.js';
@@ -48,12 +48,16 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
   private lastHealthCheck?: HealthCheckResult;
   private healthCheckTimer?: NodeJS.Timeout;
 
-  constructor(logger: ILogger, configManager: ConfigManager, config?: Partial<EnhancedClaudeAPIConfig>) {
+  constructor(
+    logger: ILogger,
+    configManager: ConfigManager,
+    config?: Partial<EnhancedClaudeAPIConfig>,
+  ) {
     super();
     this.logger = logger;
     this.configManager = configManager;
     this.config = this.loadConfiguration(config);
-    
+
     // Initialize circuit breaker
     this.circuitBreaker = circuitBreaker('claude-api', {
       threshold: this.config.circuitBreakerThreshold || 5,
@@ -120,7 +124,9 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
    */
   private validateConfiguration(config: EnhancedClaudeAPIConfig): void {
     if (!config.apiKey) {
-      throw new ClaudeAuthenticationError('Claude API key is required. Set ANTHROPIC_API_KEY environment variable.');
+      throw new ClaudeAuthenticationError(
+        'Claude API key is required. Set ANTHROPIC_API_KEY environment variable.',
+      );
     }
 
     if (config.temperature !== undefined && (config.temperature < 0 || config.temperature > 1)) {
@@ -137,7 +143,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
    */
   private startHealthCheck(): void {
     this.performHealthCheck(); // Initial check
-    
+
     this.healthCheckTimer = setInterval(
       () => this.performHealthCheck(),
       this.config.healthCheckInterval || 300000,
@@ -149,7 +155,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
    */
   async performHealthCheck(): Promise<HealthCheckResult> {
     const startTime = Date.now();
-    
+
     try {
       // Simple health check request
       const controller = new AbortController();
@@ -171,10 +177,10 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
       });
 
       clearTimeout(timeout);
-      
+
       const latency = Date.now() - startTime;
       const healthy = response.ok || response.status === 429; // Rate limit is still "healthy"
-      
+
       this.lastHealthCheck = {
         healthy,
         latency,
@@ -184,11 +190,11 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
 
       this.logger.debug('Claude API health check completed', this.lastHealthCheck);
       this.emit('health_check', this.lastHealthCheck);
-      
+
       return this.lastHealthCheck;
     } catch (error) {
       const latency = Date.now() - startTime;
-      
+
       this.lastHealthCheck = {
         healthy: false,
         latency,
@@ -198,7 +204,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
 
       this.logger.warn('Claude API health check failed', this.lastHealthCheck);
       this.emit('health_check', this.lastHealthCheck);
-      
+
       return this.lastHealthCheck;
     }
   }
@@ -278,21 +284,18 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
         return await this.sendRequestOnce(request);
       } catch (error) {
         lastError = this.transformError(error);
-        
+
         // Don't retry non-retryable errors
         if (!lastError.retryable) {
           this.handleError(lastError);
           throw lastError;
         }
 
-        this.logger.warn(
-          `Claude API request failed (attempt ${attempt + 1}/${maxRetries})`,
-          {
-            error: lastError.message,
-            statusCode: lastError.statusCode,
-            retryable: lastError.retryable,
-          },
-        );
+        this.logger.warn(`Claude API request failed (attempt ${attempt + 1}/${maxRetries})`, {
+          error: lastError.message,
+          statusCode: lastError.statusCode,
+          retryable: lastError.retryable,
+        });
 
         // Don't retry on the last attempt
         if (attempt < maxRetries - 1) {
@@ -332,7 +335,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
       if (!response.ok) {
         const errorText = await response.text();
         let errorData: any;
-        
+
         try {
           errorData = JSON.parse(errorText);
         } catch {
@@ -355,15 +358,12 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
       return data;
     } catch (error) {
       clearTimeout(timeout);
-      
+
       // Handle abort/timeout
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new ClaudeTimeoutError(
-          'Request timed out',
-          this.config.timeout || 60000,
-        );
+        throw new ClaudeTimeoutError('Request timed out', this.config.timeout || 60000);
       }
-      
+
       throw error;
     }
   }
@@ -381,7 +381,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
         return;
       } catch (error) {
         lastError = this.transformError(error);
-        
+
         if (!lastError.retryable) {
           this.handleError(lastError);
           throw lastError;
@@ -425,7 +425,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
       if (!response.ok) {
         const errorText = await response.text();
         let errorData: any;
-        
+
         try {
           errorData = JSON.parse(errorText);
         } catch {
@@ -508,7 +508,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
       if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
         return new ClaudeNetworkError(error.message);
       }
-      
+
       // Timeout errors
       if (error.name === 'AbortError' || error.message.includes('timeout')) {
         return new ClaudeTimeoutError(error.message, this.config.timeout || 60000);
@@ -533,10 +533,10 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
 
     const baseDelay = this.config.retryBaseDelay || 1000;
     const maxDelay = this.config.retryMaxDelay || 30000;
-    
+
     // Exponential backoff: delay = baseDelay * (2 ^ attempt)
     let delay = Math.min(baseDelay * Math.pow(2, attempt), maxDelay);
-    
+
     // Add jitter to prevent thundering herd
     if (this.config.retryJitter) {
       const jitter = Math.random() * 0.3 * delay; // Up to 30% jitter
@@ -551,7 +551,7 @@ export class EnhancedClaudeAPIClient extends EventEmitter {
    */
   private handleError(error: ClaudeAPIError): void {
     const errorInfo = getUserFriendlyError(error);
-    
+
     this.logger.error(`${errorInfo.title}: ${errorInfo.message}`, {
       error: error.message,
       code: error.code,

@@ -11,7 +11,7 @@ import {
   HookContext,
   AgentCapabilities,
   MultiRepoOperation,
-  ReleaseCoordination
+  ReleaseCoordination,
 } from '../types';
 import { GitHubClient, githubConnectionPool } from '../utils/github-client';
 
@@ -29,7 +29,7 @@ export class GitHubReleaseCoordinator {
       issues: false,
       workflows: false,
       releases: true,
-      multi_repo: true
+      multi_repo: true,
     };
   }
 
@@ -50,7 +50,7 @@ export class GitHubReleaseCoordinator {
       prerelease?: boolean;
       targetCommitish?: string;
       generateReleaseNotes?: boolean;
-    } = {}
+    } = {},
   ): Promise<Release> {
     const context: HookContext = {
       agent_id: this.agentId,
@@ -59,8 +59,8 @@ export class GitHubReleaseCoordinator {
       metadata: {
         tag_name: tagName,
         draft: options.draft || false,
-        prerelease: options.prerelease || false
-      }
+        prerelease: options.prerelease || false,
+      },
     };
 
     await this.executePreHook(context);
@@ -71,7 +71,7 @@ export class GitHubReleaseCoordinator {
         name: options.name || tagName,
         body: options.body || '',
         draft: options.draft || false,
-        prerelease: options.prerelease || false
+        prerelease: options.prerelease || false,
       };
 
       if (options.targetCommitish) {
@@ -87,8 +87,8 @@ export class GitHubReleaseCoordinator {
         {
           method: 'POST',
           body: JSON.stringify(releaseData),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       const releaseObj: Release = {
@@ -98,12 +98,12 @@ export class GitHubReleaseCoordinator {
         body: release.body,
         draft: release.draft,
         prerelease: release.prerelease,
-        repository
+        repository,
       };
 
       await this.executePostHook({
         ...context,
-        metadata: { ...context.metadata, release_id: release.id }
+        metadata: { ...context.metadata, release_id: release.id },
       });
 
       return releaseObj;
@@ -121,15 +121,15 @@ export class GitHubReleaseCoordinator {
       limit?: number;
       includeDrafts?: boolean;
       includePreleases?: boolean;
-    } = {}
+    } = {},
   ): Promise<Release[]> {
     try {
       const params = new URLSearchParams({
-        per_page: (options.limit || 30).toString()
+        per_page: (options.limit || 30).toString(),
       });
 
       const releases = await this.client.request(
-        `/repos/${repository.owner}/${repository.repo}/releases?${params}`
+        `/repos/${repository.owner}/${repository.repo}/releases?${params}`,
       );
 
       let filteredReleases = releases;
@@ -149,7 +149,7 @@ export class GitHubReleaseCoordinator {
         body: release.body,
         draft: release.draft,
         prerelease: release.prerelease,
-        repository
+        repository,
       }));
     } catch (error) {
       throw this.handleError(error, 'get_releases', repository);
@@ -168,13 +168,13 @@ export class GitHubReleaseCoordinator {
       body: string;
       draft: boolean;
       prerelease: boolean;
-    }>
+    }>,
   ): Promise<Release> {
     const context: HookContext = {
       agent_id: this.agentId,
       operation: 'update_release',
       repository,
-      metadata: { release_id: releaseId, updates }
+      metadata: { release_id: releaseId, updates },
     };
 
     await this.executePreHook(context);
@@ -185,8 +185,8 @@ export class GitHubReleaseCoordinator {
         {
           method: 'PATCH',
           body: JSON.stringify(updates),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       const releaseObj: Release = {
@@ -196,7 +196,7 @@ export class GitHubReleaseCoordinator {
         body: release.body,
         draft: release.draft,
         prerelease: release.prerelease,
-        repository
+        repository,
       };
 
       await this.executePostHook(context);
@@ -214,7 +214,7 @@ export class GitHubReleaseCoordinator {
       agent_id: this.agentId,
       operation: 'delete_release',
       repository,
-      metadata: { release_id: releaseId }
+      metadata: { release_id: releaseId },
     };
 
     await this.executePreHook(context);
@@ -222,7 +222,7 @@ export class GitHubReleaseCoordinator {
     try {
       await this.client.request(
         `/repos/${repository.owner}/${repository.repo}/releases/${releaseId}`,
-        { method: 'DELETE' }
+        { method: 'DELETE' },
       );
 
       await this.executePostHook(context);
@@ -245,8 +245,8 @@ export class GitHubReleaseCoordinator {
       metadata: {
         repository_count: coordination.repositories.length,
         version: coordination.version,
-        has_rollback_plan: coordination.rollback_plan
-      }
+        has_rollback_plan: coordination.rollback_plan,
+      },
     };
 
     await this.executePreHook(context);
@@ -255,19 +255,22 @@ export class GitHubReleaseCoordinator {
       // Phase 1: Validate all repositories
       const validationResults = await this.validateRepositoriesForRelease(
         coordination.repositories,
-        coordination.version
+        coordination.version,
       );
 
-      if (validationResults.some(r => !r.valid)) {
-        throw new Error(`Release validation failed for some repositories: ${
-          validationResults.filter(r => !r.valid).map(r => r.repository.full_name).join(', ')
-        }`);
+      if (validationResults.some((r) => !r.valid)) {
+        throw new Error(
+          `Release validation failed for some repositories: ${validationResults
+            .filter((r) => !r.valid)
+            .map((r) => r.repository.full_name)
+            .join(', ')}`,
+        );
       }
 
       // Phase 2: Check dependencies
       const dependencyOrder = this.resolveDependencyOrder(
         coordination.repositories,
-        coordination.dependencies
+        coordination.dependencies,
       );
 
       // Phase 3: Create releases in dependency order
@@ -282,14 +285,15 @@ export class GitHubReleaseCoordinator {
             name: `Release ${coordination.version}`,
             body: coordination.changelog,
             draft: false,
-            prerelease: coordination.version.includes('alpha') || coordination.version.includes('beta')
+            prerelease:
+              coordination.version.includes('alpha') || coordination.version.includes('beta'),
           });
 
           releaseResults.push({
             repository: repo,
             release,
             success: true,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           console.log(`[${this.agentId}] Released ${repo.full_name} v${coordination.version}`);
@@ -298,27 +302,29 @@ export class GitHubReleaseCoordinator {
             repository: repo,
             error: error.message,
             success: false,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           if (coordination.rollback_plan) {
-            console.log(`[${this.agentId}] Release failed for ${repo.full_name}, initiating rollback`);
-            await this.rollbackReleases(releaseResults.filter(r => r.success));
+            console.log(
+              `[${this.agentId}] Release failed for ${repo.full_name}, initiating rollback`,
+            );
+            await this.rollbackReleases(releaseResults.filter((r) => r.success));
             throw error;
           }
         }
       }
 
       // Phase 4: Post-release validation
-      await this.validateReleasesDeployed(releaseResults.filter(r => r.success));
+      await this.validateReleasesDeployed(releaseResults.filter((r) => r.success));
 
       await this.executePostHook({
         ...context,
         metadata: {
           ...context.metadata,
-          successful_releases: releaseResults.filter(r => r.success).length,
-          failed_releases: releaseResults.filter(r => !r.success).length
-        }
+          successful_releases: releaseResults.filter((r) => r.success).length,
+          failed_releases: releaseResults.filter((r) => !r.success).length,
+        },
       });
 
       return {
@@ -327,9 +333,9 @@ export class GitHubReleaseCoordinator {
         dependency_order: dependencyOrder,
         summary: {
           total: coordination.repositories.length,
-          successful: releaseResults.filter(r => r.success).length,
-          failed: releaseResults.filter(r => !r.success).length
-        }
+          successful: releaseResults.filter((r) => r.success).length,
+          failed: releaseResults.filter((r) => !r.success).length,
+        },
       };
     } catch (error) {
       throw this.handleError(error, 'coordinate_multi_repo_release', null);
@@ -345,7 +351,7 @@ export class GitHubReleaseCoordinator {
     options: {
       dryRun?: boolean;
       forceUpdate?: boolean;
-    } = {}
+    } = {},
   ): Promise<any[]> {
     const context: HookContext = {
       agent_id: this.agentId,
@@ -353,8 +359,8 @@ export class GitHubReleaseCoordinator {
       metadata: {
         repository_count: repositories.length,
         target_version: targetVersion,
-        dry_run: options.dryRun || false
-      }
+        dry_run: options.dryRun || false,
+      },
     };
 
     await this.executePreHook(context);
@@ -367,9 +373,8 @@ export class GitHubReleaseCoordinator {
           const releases = await this.getReleases(repo, { limit: 10 });
           const latestRelease = releases[0];
 
-          const needsUpdate = !latestRelease ||
-            latestRelease.tag_name !== targetVersion ||
-            options.forceUpdate;
+          const needsUpdate =
+            !latestRelease || latestRelease.tag_name !== targetVersion || options.forceUpdate;
 
           if (needsUpdate) {
             if (options.dryRun) {
@@ -378,13 +383,13 @@ export class GitHubReleaseCoordinator {
                 action: 'would_update',
                 from: latestRelease?.tag_name || 'none',
                 to: targetVersion,
-                success: true
+                success: true,
               });
             } else {
               const release = await this.createRelease(repo, targetVersion, {
                 name: `Sync Release ${targetVersion}`,
                 body: `Synchronized release to version ${targetVersion}`,
-                draft: false
+                draft: false,
               });
 
               syncResults.push({
@@ -393,7 +398,7 @@ export class GitHubReleaseCoordinator {
                 release,
                 from: latestRelease?.tag_name || 'none',
                 to: targetVersion,
-                success: true
+                success: true,
               });
             }
           } else {
@@ -401,7 +406,7 @@ export class GitHubReleaseCoordinator {
               repository: repo,
               action: 'up_to_date',
               current_version: latestRelease.tag_name,
-              success: true
+              success: true,
             });
           }
         } catch (error) {
@@ -409,7 +414,7 @@ export class GitHubReleaseCoordinator {
             repository: repo,
             action: 'failed',
             error: error.message,
-            success: false
+            success: false,
           });
         }
       }
@@ -418,9 +423,9 @@ export class GitHubReleaseCoordinator {
         ...context,
         metadata: {
           ...context.metadata,
-          updated_count: syncResults.filter(r => r.action === 'updated').length,
-          failed_count: syncResults.filter(r => !r.success).length
-        }
+          updated_count: syncResults.filter((r) => r.action === 'updated').length,
+          failed_count: syncResults.filter((r) => !r.success).length,
+        },
       });
 
       return syncResults;
@@ -444,7 +449,7 @@ export class GitHubReleaseCoordinator {
       parallel?: boolean;
       waitForCompletion?: boolean;
       rollbackOnFailure?: boolean;
-    } = {}
+    } = {},
   ): Promise<any[]> {
     const context: HookContext = {
       agent_id: this.agentId,
@@ -453,8 +458,8 @@ export class GitHubReleaseCoordinator {
         repository_count: repositories.length,
         environment,
         version,
-        parallel: options.parallel || false
-      }
+        parallel: options.parallel || false,
+      },
     };
 
     await this.executePreHook(context);
@@ -470,7 +475,7 @@ export class GitHubReleaseCoordinator {
             return {
               repository: repo,
               error: error.message,
-              success: false
+              success: false,
             };
           }
         });
@@ -490,14 +495,16 @@ export class GitHubReleaseCoordinator {
             const failureResult = {
               repository: repo,
               error: error.message,
-              success: false
+              success: false,
             };
 
             deploymentResults.push(failureResult);
 
             if (options.rollbackOnFailure) {
-              console.log(`[${this.agentId}] Deployment failed for ${repo.full_name}, initiating rollback`);
-              await this.rollbackDeployments(deploymentResults.filter(r => r.success));
+              console.log(
+                `[${this.agentId}] Deployment failed for ${repo.full_name}, initiating rollback`,
+              );
+              await this.rollbackDeployments(deploymentResults.filter((r) => r.success));
               throw error;
             }
           }
@@ -508,9 +515,9 @@ export class GitHubReleaseCoordinator {
         ...context,
         metadata: {
           ...context.metadata,
-          successful_deployments: deploymentResults.filter(r => r.success).length,
-          failed_deployments: deploymentResults.filter(r => !r.success).length
-        }
+          successful_deployments: deploymentResults.filter((r) => r.success).length,
+          failed_deployments: deploymentResults.filter((r) => !r.success).length,
+        },
       });
 
       return deploymentResults;
@@ -525,7 +532,7 @@ export class GitHubReleaseCoordinator {
   async monitorDeployments(
     repositories: Repository[],
     environment: string,
-    timeoutMs: number = 300000 // 5 minutes default
+    timeoutMs: number = 300000, // 5 minutes default
   ): Promise<any[]> {
     try {
       const startTime = Date.now();
@@ -537,16 +544,19 @@ export class GitHubReleaseCoordinator {
         for (const repo of repositories) {
           try {
             const deployments = await this.client.request(
-              `/repos/${repo.owner}/${repo.repo}/deployments`
+              `/repos/${repo.owner}/${repo.repo}/deployments`,
             );
 
             const latestDeployment = deployments
               .filter((d: any) => d.environment === environment)
-              .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+              .sort(
+                (a: any, b: any) =>
+                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+              )[0];
 
             if (latestDeployment) {
               const statuses = await this.client.request(
-                `/repos/${repo.owner}/${repo.repo}/deployments/${latestDeployment.id}/statuses`
+                `/repos/${repo.owner}/${repo.repo}/deployments/${latestDeployment.id}/statuses`,
               );
 
               const latestStatus = statuses[0];
@@ -556,27 +566,27 @@ export class GitHubReleaseCoordinator {
                 deployment: latestDeployment,
                 status: latestStatus?.state || 'unknown',
                 created_at: latestDeployment.created_at,
-                updated_at: latestStatus?.updated_at || latestDeployment.updated_at
+                updated_at: latestStatus?.updated_at || latestDeployment.updated_at,
               });
             } else {
               deploymentStatuses.push({
                 repository: repo,
                 status: 'no_deployment',
-                message: 'No deployment found for environment'
+                message: 'No deployment found for environment',
               });
             }
           } catch (error) {
             deploymentStatuses.push({
               repository: repo,
               status: 'error',
-              error: error.message
+              error: error.message,
             });
           }
         }
 
         // Check if all deployments are complete
         const pendingDeployments = deploymentStatuses.filter(
-          d => d.status === 'pending' || d.status === 'in_progress'
+          (d) => d.status === 'pending' || d.status === 'in_progress',
         );
 
         if (pendingDeployments.length === 0) {
@@ -584,7 +594,7 @@ export class GitHubReleaseCoordinator {
         }
 
         // Wait 10 seconds before next check
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        await new Promise((resolve) => setTimeout(resolve, 10000));
       }
 
       return deploymentStatuses;
@@ -605,7 +615,7 @@ export class GitHubReleaseCoordinator {
     timeframe: {
       start: string;
       end: string;
-    }
+    },
   ): Promise<any> {
     try {
       const analytics = {
@@ -616,40 +626,39 @@ export class GitHubReleaseCoordinator {
         release_frequency: {},
         deployment_success_rate: 0,
         common_issues: [],
-        recommendations: []
+        recommendations: [],
       };
 
       for (const repo of repositories) {
         const releases = await this.getReleases(repo, { limit: 100 });
 
-        const timeframeReleases = releases.filter(r => {
+        const timeframeReleases = releases.filter((r) => {
           const releaseDate = new Date(r.tag_name); // Simplified date parsing
-          return releaseDate >= new Date(timeframe.start) &&
-                 releaseDate <= new Date(timeframe.end);
+          return releaseDate >= new Date(timeframe.start) && releaseDate <= new Date(timeframe.end);
         });
 
         analytics.total_releases += timeframeReleases.length;
         analytics.releases_by_repo[repo.full_name] = {
           count: timeframeReleases.length,
-          releases: timeframeReleases.map(r => ({
+          releases: timeframeReleases.map((r) => ({
             version: r.tag_name,
             name: r.name,
             draft: r.draft,
-            prerelease: r.prerelease
-          }))
+            prerelease: r.prerelease,
+          })),
         };
       }
 
       // Calculate release frequency
       const daysDiff = Math.ceil(
         (new Date(timeframe.end).getTime() - new Date(timeframe.start).getTime()) /
-        (1000 * 60 * 60 * 24)
+          (1000 * 60 * 60 * 24),
       );
 
       analytics.release_frequency = {
         releases_per_day: analytics.total_releases / daysDiff,
         releases_per_week: (analytics.total_releases / daysDiff) * 7,
-        releases_per_month: (analytics.total_releases / daysDiff) * 30
+        releases_per_month: (analytics.total_releases / daysDiff) * 30,
       };
 
       // Generate recommendations
@@ -667,7 +676,7 @@ export class GitHubReleaseCoordinator {
 
   private async validateRepositoriesForRelease(
     repositories: Repository[],
-    version: string
+    version: string,
   ): Promise<any[]> {
     const validations = [];
 
@@ -675,12 +684,10 @@ export class GitHubReleaseCoordinator {
       try {
         // Check if version already exists
         const existingReleases = await this.getReleases(repo, { limit: 10 });
-        const versionExists = existingReleases.some(r => r.tag_name === version);
+        const versionExists = existingReleases.some((r) => r.tag_name === version);
 
         // Check if there are uncommitted changes
-        const branches = await this.client.request(
-          `/repos/${repo.owner}/${repo.repo}/branches`
-        );
+        const branches = await this.client.request(`/repos/${repo.owner}/${repo.repo}/branches`);
 
         const defaultBranch = branches.find((b: any) => b.name === 'main' || b.name === 'master');
 
@@ -688,14 +695,14 @@ export class GitHubReleaseCoordinator {
           repository: repo,
           valid: !versionExists,
           issues: versionExists ? [`Version ${version} already exists`] : [],
-          default_branch: defaultBranch?.name || 'unknown'
+          default_branch: defaultBranch?.name || 'unknown',
         });
       } catch (error) {
         validations.push({
           repository: repo,
           valid: false,
           issues: [`Validation failed: ${error.message}`],
-          error: true
+          error: true,
         });
       }
     }
@@ -705,9 +712,9 @@ export class GitHubReleaseCoordinator {
 
   private resolveDependencyOrder(
     repositories: Repository[],
-    dependencies: Record<string, string[]>
+    dependencies: Record<string, string[]>,
   ): Repository[] {
-    const repoMap = new Map(repositories.map(repo => [repo.full_name, repo]));
+    const repoMap = new Map(repositories.map((repo) => [repo.full_name, repo]));
     const visited = new Set<string>();
     const visiting = new Set<string>();
     const sorted: Repository[] = [];
@@ -750,18 +757,18 @@ export class GitHubReleaseCoordinator {
   private async waitForDependencies(
     repository: Repository,
     dependencies: Record<string, string[]>,
-    completedReleases: any[]
+    completedReleases: any[],
   ): Promise<void> {
     const deps = dependencies[repository.full_name] || [];
     const completedRepoNames = completedReleases
-      .filter(r => r.success)
-      .map(r => r.repository.full_name);
+      .filter((r) => r.success)
+      .map((r) => r.repository.full_name);
 
-    const missingDeps = deps.filter(dep => !completedRepoNames.includes(dep));
+    const missingDeps = deps.filter((dep) => !completedRepoNames.includes(dep));
 
     if (missingDeps.length > 0) {
       throw new Error(
-        `Cannot release ${repository.full_name}: waiting for dependencies ${missingDeps.join(', ')}`
+        `Cannot release ${repository.full_name}: waiting for dependencies ${missingDeps.join(', ')}`,
       );
     }
   }
@@ -772,9 +779,14 @@ export class GitHubReleaseCoordinator {
     for (const releaseResult of successfulReleases.reverse()) {
       try {
         await this.deleteRelease(releaseResult.repository, releaseResult.release.id);
-        console.log(`[${this.agentId}] Rolled back release for ${releaseResult.repository.full_name}`);
+        console.log(
+          `[${this.agentId}] Rolled back release for ${releaseResult.repository.full_name}`,
+        );
       } catch (error) {
-        console.error(`[${this.agentId}] Failed to rollback ${releaseResult.repository.full_name}:`, error);
+        console.error(
+          `[${this.agentId}] Failed to rollback ${releaseResult.repository.full_name}:`,
+          error,
+        );
       }
     }
   }
@@ -784,14 +796,19 @@ export class GitHubReleaseCoordinator {
     for (const releaseResult of successfulReleases) {
       try {
         const release = await this.client.request(
-          `/repos/${releaseResult.repository.owner}/${releaseResult.repository.repo}/releases/${releaseResult.release.id}`
+          `/repos/${releaseResult.repository.owner}/${releaseResult.repository.repo}/releases/${releaseResult.release.id}`,
         );
 
         if (!release || release.draft) {
-          console.warn(`[${this.agentId}] Release validation warning for ${releaseResult.repository.full_name}: release is draft or not found`);
+          console.warn(
+            `[${this.agentId}] Release validation warning for ${releaseResult.repository.full_name}: release is draft or not found`,
+          );
         }
       } catch (error) {
-        console.error(`[${this.agentId}] Release validation failed for ${releaseResult.repository.full_name}:`, error);
+        console.error(
+          `[${this.agentId}] Release validation failed for ${releaseResult.repository.full_name}:`,
+          error,
+        );
       }
     }
   }
@@ -799,7 +816,7 @@ export class GitHubReleaseCoordinator {
   private async triggerSingleDeployment(
     repository: Repository,
     environment: string,
-    version: string
+    version: string,
   ): Promise<any> {
     try {
       // Create deployment
@@ -811,10 +828,10 @@ export class GitHubReleaseCoordinator {
             ref: version,
             environment,
             description: `Deploy ${version} to ${environment}`,
-            auto_merge: false
+            auto_merge: false,
           }),
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { 'Content-Type': 'application/json' },
+        },
       );
 
       return {
@@ -824,7 +841,7 @@ export class GitHubReleaseCoordinator {
         environment,
         version,
         success: true,
-        triggered_at: new Date().toISOString()
+        triggered_at: new Date().toISOString(),
       };
     } catch (error) {
       throw new Error(`Failed to trigger deployment for ${repository.full_name}: ${error.message}`);
@@ -834,14 +851,14 @@ export class GitHubReleaseCoordinator {
   private async waitForDeploymentCompletion(
     deploymentId: number,
     repository: Repository,
-    timeoutMs: number = 300000
+    timeoutMs: number = 300000,
   ): Promise<void> {
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
       try {
         const statuses = await this.client.request(
-          `/repos/${repository.owner}/${repository.repo}/deployments/${deploymentId}/statuses`
+          `/repos/${repository.owner}/${repository.repo}/deployments/${deploymentId}/statuses`,
         );
 
         const latestStatus = statuses[0];
@@ -853,7 +870,7 @@ export class GitHubReleaseCoordinator {
         }
 
         // Wait 10 seconds before checking again
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        await new Promise((resolve) => setTimeout(resolve, 10000));
       } catch (error) {
         throw new Error(`Failed to monitor deployment: ${error.message}`);
       }
@@ -868,7 +885,9 @@ export class GitHubReleaseCoordinator {
     // Implementation would depend on deployment system
     // This is a placeholder for rollback logic
     for (const deployment of successfulDeployments.reverse()) {
-      console.log(`[${this.agentId}] Would rollback deployment for ${deployment.repository.full_name}`);
+      console.log(
+        `[${this.agentId}] Would rollback deployment for ${deployment.repository.full_name}`,
+      );
     }
   }
 
@@ -877,7 +896,9 @@ export class GitHubReleaseCoordinator {
 
     // Release frequency recommendations
     if (analytics.release_frequency.releases_per_month < 1) {
-      recommendations.push('Consider increasing release frequency - less than 1 release per month detected');
+      recommendations.push(
+        'Consider increasing release frequency - less than 1 release per month detected',
+      );
     } else if (analytics.release_frequency.releases_per_day > 1) {
       recommendations.push('High release frequency detected - consider batching changes');
     }
@@ -896,7 +917,9 @@ export class GitHubReleaseCoordinator {
     }, 0);
 
     if (totalPreReleases / analytics.total_releases > 0.3) {
-      recommendations.push('High percentage of pre-releases - consider more stable release process');
+      recommendations.push(
+        'High percentage of pre-releases - consider more stable release process',
+      );
     }
 
     return recommendations;
@@ -924,7 +947,7 @@ export class GitHubReleaseCoordinator {
       message: `${operation} failed: ${error.message}`,
       status: error.status,
       repository: repository || undefined,
-      context: { operation, agent_id: this.agentId }
+      context: { operation, agent_id: this.agentId },
     };
 
     console.error(`[${this.agentId}] Error in ${operation}:`, gitHubError);
@@ -943,7 +966,7 @@ export class GitHubReleaseCoordinator {
     return {
       ...this.client.getMetrics(),
       agent_id: this.agentId,
-      capabilities: this.capabilities
+      capabilities: this.capabilities,
     };
   }
 }

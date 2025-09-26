@@ -1,13 +1,21 @@
 /**
  * Security System Integration Examples
- * 
+ *
  * Demonstrates how to integrate the security enforcement system
  * with existing Claude Flow components and real-world scenarios.
  */
 
 import { EventEmitter } from 'events';
-import { SecurityEnforcementSystem, createProductionSecuritySystem, createHighSecuritySystem } from './index';
-import { SecurityMiddlewareManager, ThreatIntelligenceMiddleware, IPFilterMiddleware } from './middleware';
+import {
+  SecurityEnforcementSystem,
+  createProductionSecuritySystem,
+  createHighSecuritySystem,
+} from './index';
+import {
+  SecurityMiddlewareManager,
+  ThreatIntelligenceMiddleware,
+  IPFilterMiddleware,
+} from './middleware';
 import { PenetrationTestingSuite, LoadTestingSuite, SecurityValidationSuite } from './tests';
 import { VerificationRequest, VerificationResult } from './security';
 
@@ -20,7 +28,7 @@ export class BasicSecurityIntegration {
   constructor() {
     // Create production-ready security system
     this.security = createProductionSecuritySystem();
-    
+
     // Set up event listeners
     this.setupEventHandlers();
   }
@@ -34,7 +42,7 @@ export class BasicSecurityIntegration {
       'claude-verification-node-2',
       'claude-verification-node-3',
       'claude-verification-node-4',
-      'claude-verification-node-5'
+      'claude-verification-node-5',
     ];
 
     await this.security.initialize(participants);
@@ -51,7 +59,7 @@ export class BasicSecurityIntegration {
       { id: 'truth-verifier-1', capabilities: ['verify', 'audit'], level: 'HIGH' as const },
       { id: 'truth-verifier-2', capabilities: ['verify', 'sign'], level: 'HIGH' as const },
       { id: 'consensus-node-1', capabilities: ['verify', 'consensus'], level: 'CRITICAL' as const },
-      { id: 'monitoring-agent', capabilities: ['audit', 'monitor'], level: 'MEDIUM' as const }
+      { id: 'monitoring-agent', capabilities: ['audit', 'monitor'], level: 'MEDIUM' as const },
     ];
 
     for (const agent of defaultAgents) {
@@ -66,12 +74,17 @@ export class BasicSecurityIntegration {
 
   private setupEventHandlers(): void {
     this.security.on('verificationCompleted', (result: VerificationResult) => {
-      console.log(`✓ Verification completed: ${result.resultId} (confidence: ${result.confidence})`);
+      console.log(
+        `✓ Verification completed: ${result.resultId} (confidence: ${result.confidence})`,
+      );
     });
 
-    this.security.on('verificationError', (event: { request: VerificationRequest; error: string }) => {
-      console.error(`✗ Verification failed: ${event.error}`);
-    });
+    this.security.on(
+      'verificationError',
+      (event: { request: VerificationRequest; error: string }) => {
+        console.error(`✗ Verification failed: ${event.error}`);
+      },
+    );
 
     this.security.on('agentRegistered', (identity) => {
       console.log(`+ Agent registered: ${identity.agentId} (level: ${identity.securityLevel})`);
@@ -90,7 +103,7 @@ export class BasicSecurityIntegration {
       truthClaim: claim,
       timestamp: new Date(),
       nonce: require('crypto').randomBytes(32).toString('hex'),
-      signature: 'placeholder-signature' // In real implementation, this would be properly signed
+      signature: 'placeholder-signature', // In real implementation, this would be properly signed
     };
 
     return await this.security.processVerificationRequest(request);
@@ -119,17 +132,19 @@ export class AdvancedSecurityIntegration {
     this.security = createHighSecuritySystem();
     this.middlewareManager = new SecurityMiddlewareManager();
     this.threatIntelligence = new ThreatIntelligenceMiddleware();
-    
+
     this.setupAdvancedSecurity();
   }
 
   private setupAdvancedSecurity(): void {
     // Register security middleware
     this.middlewareManager.registerMiddleware(this.threatIntelligence);
-    this.middlewareManager.registerMiddleware(new IPFilterMiddleware(
-      ['127.0.0.1', '10.0.0.0/8'], // Whitelist
-      ['192.168.1.100'] // Blacklist
-    ));
+    this.middlewareManager.registerMiddleware(
+      new IPFilterMiddleware(
+        ['127.0.0.1', '10.0.0.0/8'], // Whitelist
+        ['192.168.1.100'], // Blacklist
+      ),
+    );
 
     // Integrate middleware with security system
     this.integrateMiddleware();
@@ -138,18 +153,20 @@ export class AdvancedSecurityIntegration {
   private integrateMiddleware(): void {
     // Override the security system's verification process to include middleware
     const originalProcess = this.security.processVerificationRequest.bind(this.security);
-    
-    this.security.processVerificationRequest = async (request: VerificationRequest): Promise<VerificationResult> => {
+
+    this.security.processVerificationRequest = async (
+      request: VerificationRequest,
+    ): Promise<VerificationResult> => {
       // Execute before-verification middleware
       await this.middlewareManager.executeBeforeVerification(request);
-      
+
       try {
         // Process with original security system
         const result = await originalProcess(request);
-        
+
         // Execute after-verification middleware
         await this.middlewareManager.executeAfterVerification(result);
-        
+
         return result;
       } catch (error) {
         // Execute error handling middleware
@@ -161,14 +178,24 @@ export class AdvancedSecurityIntegration {
 
   async initialize(): Promise<void> {
     await this.security.initialize([
-      'secure-node-1', 'secure-node-2', 'secure-node-3',
-      'secure-node-4', 'secure-node-5', 'secure-node-6',
-      'secure-node-7', 'secure-node-8', 'secure-node-9'
+      'secure-node-1',
+      'secure-node-2',
+      'secure-node-3',
+      'secure-node-4',
+      'secure-node-5',
+      'secure-node-6',
+      'secure-node-7',
+      'secure-node-8',
+      'secure-node-9',
     ]);
 
     // Register high-security agents
-    await this.security.registerAgent('high-security-verifier', ['verify', 'audit', 'sign'], 'CRITICAL');
-    
+    await this.security.registerAgent(
+      'high-security-verifier',
+      ['verify', 'audit', 'sign'],
+      'CRITICAL',
+    );
+
     console.log('Advanced security system initialized');
   }
 
@@ -185,7 +212,7 @@ export class AdvancedSecurityIntegration {
       truthClaim: claim,
       timestamp: new Date(),
       nonce: require('crypto').randomBytes(64).toString('hex'), // Larger nonce for high security
-      signature: 'high-security-signature'
+      signature: 'high-security-signature',
     };
 
     return await this.security.processVerificationRequest(request);
@@ -214,7 +241,7 @@ export class ClaudeFlowAgentSecurityWrapper {
 
     await this.security.registerAgent(agentConfig.agentId, capabilities, securityLevel);
     this.registeredAgents.add(agentConfig.agentId);
-    
+
     console.log(`Claude Flow agent secured: ${agentConfig.agentId} (${agentConfig.type})`);
   }
 
@@ -222,7 +249,7 @@ export class ClaudeFlowAgentSecurityWrapper {
   async executeSecureTask(
     agentId: string,
     task: string,
-    truthClaim: any
+    truthClaim: any,
   ): Promise<{
     taskResult: any;
     verificationResult: VerificationResult;
@@ -240,7 +267,7 @@ export class ClaudeFlowAgentSecurityWrapper {
         truthClaim,
         timestamp: new Date(),
         nonce: require('crypto').randomBytes(32).toString('hex'),
-        signature: 'task-signature'
+        signature: 'task-signature',
       });
 
       // Execute task (placeholder)
@@ -249,28 +276,28 @@ export class ClaudeFlowAgentSecurityWrapper {
       return {
         taskResult,
         verificationResult,
-        securityStatus: 'SECURE'
+        securityStatus: 'SECURE',
       };
     } catch (error) {
       if (error.message.includes('Byzantine') || error.message.includes('rate limit')) {
         return {
           taskResult: null,
           verificationResult: null as any,
-          securityStatus: 'BLOCKED'
+          securityStatus: 'BLOCKED',
         };
       }
-      
+
       return {
         taskResult: null,
         verificationResult: null as any,
-        securityStatus: 'SUSPICIOUS'
+        securityStatus: 'SUSPICIOUS',
       };
     }
   }
 
   private async simulateTaskExecution(task: string): Promise<any> {
     // Simulate task execution
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return { task, completed: true, timestamp: new Date() };
   }
 
@@ -283,7 +310,7 @@ export class ClaudeFlowAgentSecurityWrapper {
       agentMetrics.set(agentId, {
         reputation: status.metrics.reputationScores.get(agentId) || 100,
         registered: true,
-        securityLevel: 'ACTIVE'
+        securityLevel: 'ACTIVE',
       });
     }
 
@@ -319,7 +346,13 @@ export class SecurityTestingExample {
     console.log('🔒 Starting comprehensive security testing...');
 
     // Initialize security system
-    await this.security.initialize(['test-node-1', 'test-node-2', 'test-node-3', 'test-node-4', 'test-node-5']);
+    await this.security.initialize([
+      'test-node-1',
+      'test-node-2',
+      'test-node-3',
+      'test-node-4',
+      'test-node-5',
+    ]);
 
     // Run penetration tests
     console.log('🔍 Running penetration tests...');
@@ -337,7 +370,7 @@ export class SecurityTestingExample {
     const overallAssessment = this.generateOverallAssessment(
       penetrationTestResults,
       loadTestResults,
-      validationResults
+      validationResults,
     );
 
     console.log('🏁 Security testing completed');
@@ -346,14 +379,14 @@ export class SecurityTestingExample {
       penetrationTestResults,
       loadTestResults,
       validationResults,
-      overallAssessment
+      overallAssessment,
     };
   }
 
   private generateOverallAssessment(
     pentestResults: any,
     loadResults: any,
-    validationResults: any
+    validationResults: any,
   ): {
     securityScore: number;
     riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -365,7 +398,7 @@ export class SecurityTestingExample {
     const validationScore = validationResults.overallHealth ? 100 : 50;
     const validationWeight = 0.3;
 
-    const securityScore = Math.round(pentestScore + loadScore + (validationScore * validationWeight));
+    const securityScore = Math.round(pentestScore + loadScore + validationScore * validationWeight);
 
     // Determine risk level
     let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -377,7 +410,7 @@ export class SecurityTestingExample {
     // Generate recommendations
     const recommendations: string[] = [
       ...pentestResults.recommendations,
-      ...validationResults.recommendations
+      ...validationResults.recommendations,
     ];
 
     if (loadResults.failedRequests > loadResults.totalRequests * 0.1) {
@@ -399,7 +432,7 @@ export class ProductionDeploymentExample {
     this.security = createProductionSecuritySystem();
     this.monitoring = new EventEmitter();
     this.alerting = new EventEmitter();
-    
+
     this.setupProductionMonitoring();
   }
 
@@ -410,7 +443,7 @@ export class ProductionDeploymentExample {
         type: 'VERIFICATION_FAILURE',
         severity: 'HIGH',
         details: event,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     });
 
@@ -418,7 +451,7 @@ export class ProductionDeploymentExample {
       this.alerting.emit('criticalAlert', {
         type: 'EMERGENCY_SHUTDOWN',
         message: event.reason,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     });
 
@@ -437,7 +470,7 @@ export class ProductionDeploymentExample {
       'prod-security-node-us-west-2',
       'prod-security-node-eu-west-1',
       'prod-security-node-ap-southeast-1',
-      'prod-security-node-ap-northeast-1'
+      'prod-security-node-ap-northeast-1',
     ];
 
     await this.security.initialize(productionNodes);
@@ -453,10 +486,18 @@ export class ProductionDeploymentExample {
 
   private async registerProductionAgents(): Promise<void> {
     const productionAgents = [
-      { id: 'primary-verifier', capabilities: ['verify', 'audit', 'sign'], level: 'CRITICAL' as const },
+      {
+        id: 'primary-verifier',
+        capabilities: ['verify', 'audit', 'sign'],
+        level: 'CRITICAL' as const,
+      },
       { id: 'backup-verifier', capabilities: ['verify', 'audit'], level: 'HIGH' as const },
-      { id: 'consensus-coordinator', capabilities: ['consensus', 'audit'], level: 'CRITICAL' as const },
-      { id: 'security-monitor', capabilities: ['audit', 'monitor'], level: 'HIGH' as const }
+      {
+        id: 'consensus-coordinator',
+        capabilities: ['consensus', 'audit'],
+        level: 'CRITICAL' as const,
+      },
+      { id: 'security-monitor', capabilities: ['audit', 'monitor'], level: 'HIGH' as const },
     ];
 
     for (const agent of productionAgents) {
@@ -466,11 +507,11 @@ export class ProductionDeploymentExample {
 
   private startMonitoring(): void {
     console.log('📊 Starting production monitoring...');
-    
+
     // Monitor for security incidents
     this.monitoring.on('securityIncident', (incident) => {
       console.warn(`⚠️  Security incident: ${incident.type} - ${incident.details.error}`);
-      
+
       // Could integrate with external monitoring systems here
       // e.g., DataDog, New Relic, Prometheus, etc.
     });
@@ -478,19 +519,19 @@ export class ProductionDeploymentExample {
     // Handle critical alerts
     this.alerting.on('criticalAlert', (alert) => {
       console.error(`🚨 CRITICAL ALERT: ${alert.type} - ${alert.message}`);
-      
+
       // Could integrate with PagerDuty, Slack, etc.
     });
   }
 
   private performHealthCheck(): void {
     const status = this.security.getSecurityStatus();
-    
+
     if (!status.systemHealth.consensusCapable) {
       this.alerting.emit('criticalAlert', {
         type: 'CONSENSUS_FAILURE',
         message: 'System cannot achieve consensus',
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
 
@@ -499,7 +540,7 @@ export class ProductionDeploymentExample {
         type: 'BYZANTINE_NODES_DETECTED',
         severity: 'HIGH',
         details: { count: status.systemHealth.byzantineNodes },
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
   }
@@ -507,14 +548,14 @@ export class ProductionDeploymentExample {
   // Graceful shutdown for maintenance
   async gracefulShutdown(): Promise<void> {
     console.log('🔄 Initiating graceful shutdown...');
-    
+
     // Export final security report
     const report = this.security.exportSecurityReport();
     console.log('💾 Security report exported');
-    
+
     // Shutdown security system
     await this.security.emergencyShutdown('Scheduled maintenance');
-    
+
     console.log('✅ Graceful shutdown completed');
   }
 }
@@ -525,7 +566,7 @@ export {
   AdvancedSecurityIntegration,
   ClaudeFlowAgentSecurityWrapper,
   SecurityTestingExample,
-  ProductionDeploymentExample
+  ProductionDeploymentExample,
 };
 
 // Usage examples as comments:

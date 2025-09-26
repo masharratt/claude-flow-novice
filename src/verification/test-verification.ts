@@ -6,12 +6,12 @@ import { verificationHookManager } from './hooks.js';
 
 export async function testVerificationSystem(): Promise<void> {
   console.log('🧪 Testing Verification System...');
-  
+
   try {
     // Test status
     const metrics = verificationHookManager.getMetrics();
     console.log('✅ Metrics retrieved:', metrics);
-    
+
     // Test adding a simple checker
     verificationHookManager.addPreTaskChecker({
       id: 'test-checker',
@@ -21,19 +21,19 @@ export async function testVerificationSystem(): Promise<void> {
       check: async (context) => ({
         passed: true,
         score: 1.0,
-        message: 'Test check passed'
-      })
+        message: 'Test check passed',
+      }),
     });
-    
+
     console.log('✅ Test checker added successfully');
-    
+
     // Test configuration
     verificationHookManager.updateConfig({
-      preTask: { enabled: true, checkers: [], failureStrategy: 'warn' }
+      preTask: { enabled: true, checkers: [], failureStrategy: 'warn' },
     });
-    
+
     console.log('✅ Configuration updated successfully');
-    
+
     console.log('🎉 Verification system test completed successfully!');
   } catch (error) {
     console.error('❌ Verification system test failed:', error);

@@ -1,6 +1,6 @@
 /**
  * GitHub CLI Safety Wrapper - Production-Ready Implementation
- * 
+ *
  * Comprehensive wrapper around GitHub CLI commands with:
  * - Injection attack prevention
  * - Timeout handling with graceful cleanup
@@ -11,7 +11,7 @@
  * - Retry logic with exponential backoff
  * - Secure temp file handling
  * - Logging and monitoring
- * 
+ *
  * @version 2.0.0
  * @license MIT
  */
@@ -27,29 +27,47 @@ import { performance } from 'perf_hooks';
  * Configuration constants
  */
 const CONFIG = {
-  DEFAULT_TIMEOUT: 30000,          // 30 seconds
-  MAX_TIMEOUT: 300000,             // 5 minutes
+  DEFAULT_TIMEOUT: 30000, // 30 seconds
+  MAX_TIMEOUT: 300000, // 5 minutes
   MAX_RETRIES: 3,
-  RETRY_BASE_DELAY: 1000,          // 1 second
-  MAX_BODY_SIZE: 1024 * 1024,      // 1MB
-  RATE_LIMIT_WINDOW: 60000,        // 1 minute
+  RETRY_BASE_DELAY: 1000, // 1 second
+  MAX_BODY_SIZE: 1024 * 1024, // 1MB
+  RATE_LIMIT_WINDOW: 60000, // 1 minute
   MAX_REQUESTS_PER_WINDOW: 50,
   TEMP_FILE_PREFIX: 'gh-safe-',
   ALLOWED_COMMANDS: [
-    'auth', 'repo', 'issue', 'pr', 'release', 'gist', 'run', 'workflow', 
-    'api', 'browse', 'config', 'extension', 'gpg-key', 'label', 'project',
-    'secret', 'ssh-key', 'status', 'variable', 'cache', 'codespace'
+    'auth',
+    'repo',
+    'issue',
+    'pr',
+    'release',
+    'gist',
+    'run',
+    'workflow',
+    'api',
+    'browse',
+    'config',
+    'extension',
+    'gpg-key',
+    'label',
+    'project',
+    'secret',
+    'ssh-key',
+    'status',
+    'variable',
+    'cache',
+    'codespace',
   ],
   DANGEROUS_PATTERNS: [
-    /\$\([^)]*\)/g,                // Command substitution $(...)
-    /`[^`]*`/g,                    // Backtick execution
-    /&&|\|\||;|&/g,                // Command chaining
-    /<\(/g,                        // Process substitution
-    />\s*\/dev\/null/g,            // Output redirection
-    /\|\s*sh/g,                    // Pipe to shell
-    /eval\s*\(/g,                  // eval() calls
-    /exec\s*\(/g,                  // exec() calls
-  ]
+    /\$\([^)]*\)/g, // Command substitution $(...)
+    /`[^`]*`/g, // Backtick execution
+    /&&|\|\||;|&/g, // Command chaining
+    /<\(/g, // Process substitution
+    />\s*\/dev\/null/g, // Output redirection
+    /\|\s*sh/g, // Pipe to shell
+    /eval\s*\(/g, // eval() calls
+    /exec\s*\(/g, // exec() calls
+  ],
 };
 
 /**
@@ -98,18 +116,18 @@ class RateLimiter {
 
   async checkLimit() {
     const now = Date.now();
-    this.requests = this.requests.filter(time => now - time < this.windowMs);
-    
+    this.requests = this.requests.filter((time) => now - time < this.windowMs);
+
     if (this.requests.length >= this.maxRequests) {
       const oldestRequest = Math.min(...this.requests);
       const resetTime = oldestRequest + this.windowMs;
       const waitTime = resetTime - now;
-      
+
       throw new GitHubCliRateLimitError(
-        `Rate limit exceeded. Try again in ${Math.ceil(waitTime / 1000)} seconds`
+        `Rate limit exceeded. Try again in ${Math.ceil(waitTime / 1000)} seconds`,
       );
     }
-    
+
     this.requests.push(now);
   }
 }
@@ -126,9 +144,9 @@ export class GitHubCliSafe {
       enableRateLimit: options.enableRateLimit !== false,
       enableLogging: options.enableLogging !== false,
       tempDir: options.tempDir || tmpdir(),
-      ...options
+      ...options,
     };
-    
+
     this.rateLimiter = new RateLimiter();
     this.activeProcesses = new Map();
     this.stats = {
@@ -136,7 +154,7 @@ export class GitHubCliSafe {
       successfulRequests: 0,
       failedRequests: 0,
       timeoutRequests: 0,
-      retriedRequests: 0
+      retriedRequests: 0,
     };
   }
 
@@ -150,12 +168,12 @@ export class GitHubCliSafe {
 
     const parts = command.trim().split(' ');
     const mainCommand = parts[0];
-    
+
     if (!CONFIG.ALLOWED_COMMANDS.includes(mainCommand)) {
       throw new GitHubCliValidationError(
-        `Command '${mainCommand}' is not allowed`, 
-        'command', 
-        mainCommand
+        `Command '${mainCommand}' is not allowed`,
+        'command',
+        mainCommand,
       );
     }
 
@@ -173,7 +191,7 @@ export class GitHubCliSafe {
         throw new GitHubCliValidationError(
           `Input contains potentially dangerous pattern: ${pattern}`,
           'input',
-          input
+          input,
         );
       }
     }
@@ -186,7 +204,7 @@ export class GitHubCliSafe {
       throw new GitHubCliValidationError(
         `Body size exceeds maximum allowed size of ${CONFIG.MAX_BODY_SIZE} bytes`,
         'body',
-        body.length
+        body.length,
       );
     }
   }
@@ -197,13 +215,13 @@ export class GitHubCliSafe {
   async createSecureTempFile(content, suffix = '.tmp') {
     const filename = `${CONFIG.TEMP_FILE_PREFIX}${randomBytes(16).toString('hex')}${suffix}`;
     const filepath = resolve(this.options.tempDir, filename);
-    
+
     // Validate content size
     this.validateBodySize(content);
-    
+
     // Create file with restricted permissions (600 - owner read/write only)
     await fs.writeFile(filepath, content, { mode: 0o600 });
-    
+
     return filepath;
   }
 
@@ -223,19 +241,19 @@ export class GitHubCliSafe {
   async executeWithTimeout(command, args, options = {}) {
     const timeout = Math.min(options.timeout || this.options.timeout, CONFIG.MAX_TIMEOUT);
     const processId = randomBytes(8).toString('hex');
-    
+
     return new Promise((resolve, reject) => {
       const startTime = performance.now();
-      
+
       const child = spawn('gh', args, {
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: false, // Critical: prevent shell injection
         env: { ...process.env, ...options.env },
-        cwd: options.cwd || process.cwd()
+        cwd: options.cwd || process.cwd(),
       });
 
       this.activeProcesses.set(processId, child);
-      
+
       let stdout = '';
       let stderr = '';
       let isTimedOut = false;
@@ -263,33 +281,37 @@ export class GitHubCliSafe {
       // Process completion handler
       child.on('close', (code, signal) => {
         if (isResolved) return;
-        
+
         isResolved = true;
         clearTimeout(timer);
         this.activeProcesses.delete(processId);
-        
+
         const duration = performance.now() - startTime;
-        
+
         if (isTimedOut) {
           return; // Already handled by timeout
         }
 
         if (signal === 'SIGKILL' || signal === 'SIGTERM') {
-          reject(new GitHubCliError(
-            `Process terminated by signal ${signal}`,
-            'PROCESS_TERMINATED',
-            { signal, code, duration }
-          ));
+          reject(
+            new GitHubCliError(`Process terminated by signal ${signal}`, 'PROCESS_TERMINATED', {
+              signal,
+              code,
+              duration,
+            }),
+          );
           return;
         }
 
         if (code !== 0) {
           this.stats.failedRequests++;
-          reject(new GitHubCliError(
-            `Command failed with exit code ${code}: ${stderr || 'No error details'}`,
-            'COMMAND_FAILED',
-            { code, stderr, stdout, duration, command: `gh ${args.join(' ')}` }
-          ));
+          reject(
+            new GitHubCliError(
+              `Command failed with exit code ${code}: ${stderr || 'No error details'}`,
+              'COMMAND_FAILED',
+              { code, stderr, stdout, duration, command: `gh ${args.join(' ')}` },
+            ),
+          );
           return;
         }
 
@@ -299,24 +321,24 @@ export class GitHubCliSafe {
           stderr: stderr.trim(),
           code,
           duration,
-          command: `gh ${args.join(' ')}`
+          command: `gh ${args.join(' ')}`,
         });
       });
 
       // Error handler
       child.on('error', (error) => {
         if (isResolved) return;
-        
+
         isResolved = true;
         clearTimeout(timer);
         this.activeProcesses.delete(processId);
         this.stats.failedRequests++;
-        
-        reject(new GitHubCliError(
-          `Process error: ${error.message}`,
-          'PROCESS_ERROR',
-          { originalError: error }
-        ));
+
+        reject(
+          new GitHubCliError(`Process error: ${error.message}`, 'PROCESS_ERROR', {
+            originalError: error,
+          }),
+        );
       });
     });
   }
@@ -325,7 +347,7 @@ export class GitHubCliSafe {
     try {
       // Graceful termination first
       child.kill('SIGTERM');
-      
+
       // Force kill after 5 seconds if still running
       setTimeout(() => {
         if (this.activeProcesses.has(processId)) {
@@ -345,7 +367,7 @@ export class GitHubCliSafe {
    */
   async withRetry(operation, maxRetries = this.options.maxRetries) {
     let lastError;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
@@ -353,32 +375,31 @@ export class GitHubCliSafe {
           const delay = this.options.retryDelay * Math.pow(2, attempt - 1);
           await this.sleep(delay);
         }
-        
+
         return await operation();
       } catch (error) {
         lastError = error;
-        
+
         // Don't retry on validation errors or rate limits
-        if (error instanceof GitHubCliValidationError || 
-            error instanceof GitHubCliRateLimitError) {
+        if (error instanceof GitHubCliValidationError || error instanceof GitHubCliRateLimitError) {
           throw error;
         }
-        
+
         if (attempt === maxRetries) {
           break;
         }
-        
+
         if (this.options.enableLogging) {
           console.warn(`Attempt ${attempt + 1} failed, retrying:`, error.message);
         }
       }
     }
-    
+
     throw lastError;
   }
 
   async sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -386,16 +407,16 @@ export class GitHubCliSafe {
    */
   async execute(command, options = {}) {
     this.stats.totalRequests++;
-    
+
     // Rate limiting check
     if (this.options.enableRateLimit) {
       await this.rateLimiter.checkLimit();
     }
-    
+
     // Validate and sanitize command
     const validatedCommand = this.validateCommand(command);
     const args = validatedCommand.split(' ');
-    
+
     // Handle body content if provided
     let tempFile = null;
     try {
@@ -404,22 +425,24 @@ export class GitHubCliSafe {
         tempFile = await this.createSecureTempFile(sanitizedBody);
         args.push('--body-file', tempFile);
       }
-      
+
       // Add other options
       if (options.title) {
         args.push('--title', this.sanitizeInput(options.title));
       }
-      
+
       if (options.labels && Array.isArray(options.labels)) {
-        const sanitizedLabels = options.labels.map(label => this.sanitizeInput(label));
+        const sanitizedLabels = options.labels.map((label) => this.sanitizeInput(label));
         args.push('--label', sanitizedLabels.join(','));
       }
-      
+
       if (options.assignees && Array.isArray(options.assignees)) {
-        const sanitizedAssignees = options.assignees.map(assignee => this.sanitizeInput(assignee));
+        const sanitizedAssignees = options.assignees.map((assignee) =>
+          this.sanitizeInput(assignee),
+        );
         args.push('--assignee', sanitizedAssignees.join(','));
       }
-      
+
       // Add any additional flags
       if (options.flags) {
         for (const [flag, value] of Object.entries(options.flags)) {
@@ -429,12 +452,11 @@ export class GitHubCliSafe {
           }
         }
       }
-      
+
       // Execute with retry logic
       return await this.withRetry(async () => {
         return await this.executeWithTimeout(validatedCommand, args.slice(1), options);
       });
-      
     } finally {
       // Always cleanup temp file
       if (tempFile) {
@@ -452,7 +474,7 @@ export class GitHubCliSafe {
       body,
       labels,
       assignees,
-      ...options
+      ...options,
     });
   }
 
@@ -460,26 +482,26 @@ export class GitHubCliSafe {
     const flags = { base };
     if (head) flags.head = head;
     if (draft) flags.draft = true;
-    
+
     return await this.execute('pr create', {
       title,
       body,
       flags,
-      ...options
+      ...options,
     });
   }
 
   async addIssueComment(issueNumber, body, options = {}) {
     return await this.execute(`issue comment ${issueNumber}`, {
       body,
-      ...options
+      ...options,
     });
   }
 
   async addPRComment(prNumber, body, options = {}) {
     return await this.execute(`pr comment ${prNumber}`, {
       body,
-      ...options
+      ...options,
     });
   }
 
@@ -487,12 +509,12 @@ export class GitHubCliSafe {
     const flags = { tag };
     if (prerelease) flags.prerelease = true;
     if (draft) flags.draft = true;
-    
+
     return await this.execute('release create', {
       title,
       body,
       flags,
-      ...options
+      ...options,
     });
   }
 
@@ -557,18 +579,18 @@ export const gh = {
   async issueComment(issue, body, options = {}) {
     return await githubCli.addIssueComment(issue, body, options);
   },
-  
+
   async prComment(pr, body, options = {}) {
     return await githubCli.addPRComment(pr, body, options);
   },
-  
+
   async createIssue(params) {
     return await githubCli.createIssue(params);
   },
-  
+
   async createPR(params) {
     return await githubCli.createPR(params);
-  }
+  },
 };
 
 /**

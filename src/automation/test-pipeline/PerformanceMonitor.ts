@@ -90,7 +90,7 @@ export class PerformanceMonitor {
       'cpu_utilization',
       'network_latency',
       'disk_io',
-      'browser_resource_usage'
+      'browser_resource_usage',
     ];
 
     for (const metric of executionMetrics) {
@@ -124,14 +124,17 @@ export class PerformanceMonitor {
     const bottlenecks = await this.analyzeBottlenecks(executionId);
 
     // Generate optimization recommendations
-    const recommendations = await this.generateOptimizationRecommendations(executionId, bottlenecks);
+    const recommendations = await this.generateOptimizationRecommendations(
+      executionId,
+      bottlenecks,
+    );
 
     return {
       executionId,
       report,
       bottlenecks,
       recommendations,
-      summary: this.generatePerformanceSummary(report, bottlenecks)
+      summary: this.generatePerformanceSummary(report, bottlenecks),
     };
   }
 
@@ -146,7 +149,7 @@ export class PerformanceMonitor {
       memoryDistribution: await this.collectMemoryDistribution(swarmId),
       networkLatency: await this.collectNetworkLatency(swarmId),
       taskThroughput: await this.collectTaskThroughput(swarmId),
-      loadBalancing: await this.analyzeLoadBalancing(swarmId)
+      loadBalancing: await this.analyzeLoadBalancing(swarmId),
     };
 
     // Analyze resource efficiency
@@ -161,7 +164,10 @@ export class PerformanceMonitor {
       metrics: swarmMetrics,
       efficiency,
       bottlenecks: resourceBottlenecks,
-      recommendations: await this.generateSwarmOptimizationRecommendations(swarmMetrics, efficiency)
+      recommendations: await this.generateSwarmOptimizationRecommendations(
+        swarmMetrics,
+        efficiency,
+      ),
     };
   }
 
@@ -179,7 +185,7 @@ export class PerformanceMonitor {
       results: [],
       statistics: null,
       baseline: null,
-      comparison: null
+      comparison: null,
     };
 
     // Load baseline if available
@@ -198,7 +204,7 @@ export class PerformanceMonitor {
       benchmarkResults.results.push({
         iteration: i + 1,
         executionTime: iterationTime,
-        metrics: iterationMetrics
+        metrics: iterationMetrics,
       });
     }
 
@@ -209,7 +215,10 @@ export class PerformanceMonitor {
 
     // Compare with baseline
     if (baseline) {
-      benchmarkResults.comparison = this.compareBenchmarkResults(benchmarkResults.statistics, baseline);
+      benchmarkResults.comparison = this.compareBenchmarkResults(
+        benchmarkResults.statistics,
+        baseline,
+      );
     }
 
     // Store as new baseline if significantly better
@@ -231,7 +240,7 @@ export class PerformanceMonitor {
       currentStrategy: await this.analyzeCurrentStrategy(executionHistory),
       recommendations: [],
       projectedImprovement: 0,
-      optimalConfiguration: null
+      optimalConfiguration: null,
     };
 
     // Analyze test execution patterns
@@ -250,9 +259,9 @@ export class PerformanceMonitor {
         priority: 'high',
         title: 'Optimize Agent Count',
         description: `Adjust agent count from ${optimization.currentStrategy.agentCount} to ${optimalAgentCount}`,
-        expectedImprovement: `${Math.round(((optimalAgentCount / optimization.currentStrategy.agentCount) - 1) * 100)}% throughput increase`,
+        expectedImprovement: `${Math.round((optimalAgentCount / optimization.currentStrategy.agentCount - 1) * 100)}% throughput increase`,
         implementationComplexity: 'low',
-        estimatedEffort: '1 hour'
+        estimatedEffort: '1 hour',
       },
       {
         type: 'resource',
@@ -261,18 +270,20 @@ export class PerformanceMonitor {
         description: 'Reorganize tests into more balanced parallel groups',
         expectedImprovement: `${optimalGrouping.improvementPercentage}% execution time reduction`,
         implementationComplexity: 'medium',
-        estimatedEffort: '4 hours'
-      }
+        estimatedEffort: '4 hours',
+      },
     ];
 
     optimization.optimalConfiguration = {
       agentCount: optimalAgentCount,
       grouping: optimalGrouping.strategy,
-      loadBalancing: optimalGrouping.loadBalancing
+      loadBalancing: optimalGrouping.loadBalancing,
     };
 
-    optimization.projectedImprovement = optimization.recommendations
-      .reduce((sum, rec) => sum + parseFloat(rec.expectedImprovement.match(/(\d+)%/)?.[1] || '0'), 0);
+    optimization.projectedImprovement = optimization.recommendations.reduce(
+      (sum, rec) => sum + parseFloat(rec.expectedImprovement.match(/(\d+)%/)?.[1] || '0'),
+      0,
+    );
 
     return optimization;
   }
@@ -288,19 +299,19 @@ export class PerformanceMonitor {
       missRate: await this.calculateCacheMissRate(),
       size: await this.getCacheSize(),
       evictionRate: await this.calculateEvictionRate(),
-      accessPatterns: await this.analyzeCacheAccessPatterns()
+      accessPatterns: await this.analyzeCacheAccessPatterns(),
     };
 
     const cacheAnalysis = {
       efficiency: this.calculateCacheEfficiency(cacheMetrics),
       bottlenecks: await this.identifyCacheBottlenecks(cacheMetrics),
-      recommendations: await this.generateCacheOptimizationRecommendations(cacheMetrics)
+      recommendations: await this.generateCacheOptimizationRecommendations(cacheMetrics),
     };
 
     return {
       timestamp: new Date(),
       metrics: cacheMetrics,
-      analysis: cacheAnalysis
+      analysis: cacheAnalysis,
     };
   }
 
@@ -311,7 +322,7 @@ export class PerformanceMonitor {
       memory_usage: 85,
       cpu_utilization: 80,
       error_rate: 0.05,
-      throughput: 100
+      throughput: 100,
     };
 
     for (const [metric, defaultValue] of Object.entries(defaultThresholds)) {
@@ -347,7 +358,7 @@ export class PerformanceMonitor {
         value: await this.getMemoryUsage(),
         unit: 'MB',
         category: 'resource' as const,
-        status: 'normal' as const
+        status: 'normal' as const,
       },
       {
         timestamp,
@@ -355,7 +366,7 @@ export class PerformanceMonitor {
         value: await this.getCpuUtilization(),
         unit: '%',
         category: 'resource' as const,
-        status: 'normal' as const
+        status: 'normal' as const,
       },
       {
         timestamp,
@@ -363,8 +374,8 @@ export class PerformanceMonitor {
         value: await this.getNetworkLatency(),
         unit: 'ms',
         category: 'network' as const,
-        status: 'normal' as const
-      }
+        status: 'normal' as const,
+      },
     ];
 
     // Store metrics with threshold checking
@@ -393,21 +404,21 @@ export class PerformanceMonitor {
       timestamp: new Date(),
       metrics: {},
       summary: {},
-      trends: {}
+      trends: {},
     };
 
     // Aggregate metrics for report
     for (const [key, metrics] of this.metrics.entries()) {
       if (key.startsWith(executionId)) {
         const metricName = key.replace(`${executionId}_`, '');
-        const values = metrics.map(m => m.value);
+        const values = metrics.map((m) => m.value);
 
         report.metrics[metricName] = {
           count: values.length,
           average: values.reduce((sum, val) => sum + val, 0) / values.length,
           min: Math.min(...values),
           max: Math.max(...values),
-          latest: values[values.length - 1] || 0
+          latest: values[values.length - 1] || 0,
         };
       }
     }
@@ -426,10 +437,12 @@ export class PerformanceMonitor {
         // Check for performance bottlenecks
         const threshold = this.thresholds.get(metricName);
         if (threshold) {
-          const exceedingThreshold = recentMetrics.filter(m => m.value > threshold);
+          const exceedingThreshold = recentMetrics.filter((m) => m.value > threshold);
 
-          if (exceedingThreshold.length >= recentMetrics.length * 0.6) { // 60% of recent measurements
-            const avgValue = exceedingThreshold.reduce((sum, m) => sum + m.value, 0) / exceedingThreshold.length;
+          if (exceedingThreshold.length >= recentMetrics.length * 0.6) {
+            // 60% of recent measurements
+            const avgValue =
+              exceedingThreshold.reduce((sum, m) => sum + m.value, 0) / exceedingThreshold.length;
             const impact = Math.min(((avgValue - threshold) / threshold) * 100, 100);
 
             bottlenecks.push({
@@ -437,8 +450,12 @@ export class PerformanceMonitor {
               severity: impact > 50 ? 'critical' : impact > 25 ? 'high' : 'medium',
               impact: Math.round(impact),
               description: `${metricName} consistently exceeds threshold (${threshold}${recentMetrics[0]?.unit || ''})`,
-              recommendations: this.generateBottleneckRecommendations(metricName, avgValue, threshold),
-              metrics: exceedingThreshold
+              recommendations: this.generateBottleneckRecommendations(
+                metricName,
+                avgValue,
+                threshold,
+              ),
+              metrics: exceedingThreshold,
             });
           }
         }
@@ -448,7 +465,10 @@ export class PerformanceMonitor {
     return bottlenecks.sort((a, b) => b.impact - a.impact);
   }
 
-  private async generateOptimizationRecommendations(executionId: string, bottlenecks: BottleneckAnalysis[]): Promise<OptimizationRecommendation[]> {
+  private async generateOptimizationRecommendations(
+    executionId: string,
+    bottlenecks: BottleneckAnalysis[],
+  ): Promise<OptimizationRecommendation[]> {
     const recommendations: OptimizationRecommendation[] = [];
 
     for (const bottleneck of bottlenecks) {
@@ -459,10 +479,11 @@ export class PerformanceMonitor {
             type: 'resource',
             priority: bottleneck.severity === 'critical' ? 'high' : 'medium',
             title: 'Optimize Memory Usage',
-            description: 'Reduce memory consumption by optimizing test data management and browser instances',
+            description:
+              'Reduce memory consumption by optimizing test data management and browser instances',
             expectedImprovement: `${Math.round(bottleneck.impact * 0.7)}% memory reduction`,
             implementationComplexity: 'medium',
-            estimatedEffort: '2-4 hours'
+            estimatedEffort: '2-4 hours',
           });
           break;
 
@@ -475,7 +496,7 @@ export class PerformanceMonitor {
             description: 'Redistribute test load across agents to balance CPU usage',
             expectedImprovement: `${Math.round(bottleneck.impact * 0.6)}% CPU efficiency improvement`,
             implementationComplexity: 'low',
-            estimatedEffort: '1-2 hours'
+            estimatedEffort: '1-2 hours',
           });
           break;
 
@@ -488,7 +509,7 @@ export class PerformanceMonitor {
             description: 'Implement request batching and optimize network calls',
             expectedImprovement: `${Math.round(bottleneck.impact * 0.5)}% latency reduction`,
             implementationComplexity: 'medium',
-            estimatedEffort: '3-5 hours'
+            estimatedEffort: '3-5 hours',
           });
           break;
       }
@@ -499,33 +520,43 @@ export class PerformanceMonitor {
 
   private generatePerformanceSummary(report: any, bottlenecks: BottleneckAnalysis[]): any {
     return {
-      overallHealth: bottlenecks.length === 0 ? 'excellent' :
-                    bottlenecks.every(b => b.severity !== 'critical') ? 'good' : 'needs-attention',
-      criticalIssues: bottlenecks.filter(b => b.severity === 'critical').length,
+      overallHealth:
+        bottlenecks.length === 0
+          ? 'excellent'
+          : bottlenecks.every((b) => b.severity !== 'critical')
+            ? 'good'
+            : 'needs-attention',
+      criticalIssues: bottlenecks.filter((b) => b.severity === 'critical').length,
       totalBottlenecks: bottlenecks.length,
-      averageImpact: bottlenecks.length > 0 ?
-                    Math.round(bottlenecks.reduce((sum, b) => sum + b.impact, 0) / bottlenecks.length) : 0,
-      topBottleneck: bottlenecks[0] || null
+      averageImpact:
+        bottlenecks.length > 0
+          ? Math.round(bottlenecks.reduce((sum, b) => sum + b.impact, 0) / bottlenecks.length)
+          : 0,
+      topBottleneck: bottlenecks[0] || null,
     };
   }
 
-  private generateBottleneckRecommendations(metricName: string, avgValue: number, threshold: number): string[] {
+  private generateBottleneckRecommendations(
+    metricName: string,
+    avgValue: number,
+    threshold: number,
+  ): string[] {
     const recommendations = {
       memory_usage: [
         'Optimize test data cleanup',
         'Reduce concurrent browser instances',
-        'Implement memory pooling'
+        'Implement memory pooling',
       ],
       cpu_utilization: [
         'Balance test distribution across agents',
         'Optimize test execution order',
-        'Reduce parallel test count'
+        'Reduce parallel test count',
       ],
       network_latency: [
         'Implement request caching',
         'Optimize API endpoints',
-        'Use local test environment'
-      ]
+        'Use local test environment',
+      ],
     };
 
     return recommendations[metricName] || ['Review and optimize component implementation'];
@@ -545,7 +576,9 @@ export class PerformanceMonitor {
   }
 
   private async sendPerformanceAlert(metric: PerformanceMetric): Promise<void> {
-    console.log(`🚨 Performance alert: ${metric.metric} = ${metric.value}${metric.unit} (${metric.status})`);
+    console.log(
+      `🚨 Performance alert: ${metric.metric} = ${metric.value}${metric.unit} (${metric.status})`,
+    );
   }
 
   private async collectAgentUtilization(swarmId: string): Promise<any> {
@@ -577,7 +610,10 @@ export class PerformanceMonitor {
     return [];
   }
 
-  private async generateSwarmOptimizationRecommendations(metrics: any, efficiency: number): Promise<OptimizationRecommendation[]> {
+  private async generateSwarmOptimizationRecommendations(
+    metrics: any,
+    efficiency: number,
+  ): Promise<OptimizationRecommendation[]> {
     return [];
   }
 
@@ -591,18 +627,20 @@ export class PerformanceMonitor {
     return {
       memoryPeak: Math.random() * 500 + 200,
       cpuPeak: Math.random() * 80 + 20,
-      networkCalls: Math.floor(Math.random() * 50) + 10
+      networkCalls: Math.floor(Math.random() * 50) + 10,
     };
   }
 
   private calculateBenchmarkStatistics(results: any[]): any {
-    const executionTimes = results.map(r => r.executionTime);
+    const executionTimes = results.map((r) => r.executionTime);
 
     return {
-      averageTime: Math.round(executionTimes.reduce((sum, time) => sum + time, 0) / executionTimes.length),
+      averageTime: Math.round(
+        executionTimes.reduce((sum, time) => sum + time, 0) / executionTimes.length,
+      ),
       minTime: Math.min(...executionTimes),
       maxTime: Math.max(...executionTimes),
-      standardDeviation: this.calculateStandardDeviation(executionTimes)
+      standardDeviation: this.calculateStandardDeviation(executionTimes),
     };
   }
 
@@ -611,7 +649,7 @@ export class PerformanceMonitor {
 
     return {
       improvement: Math.round(improvement * 100) / 100,
-      status: improvement > 5 ? 'improved' : improvement < -5 ? 'regressed' : 'stable'
+      status: improvement > 5 ? 'improved' : improvement < -5 ? 'regressed' : 'stable',
     };
   }
 
@@ -621,7 +659,7 @@ export class PerformanceMonitor {
 
   private calculateStandardDeviation(values: number[]): number {
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
-    const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
+    const squaredDiffs = values.map((val) => Math.pow(val - mean, 2));
     const avgSquaredDiff = squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
 
     return Math.sqrt(avgSquaredDiff);
@@ -671,7 +709,9 @@ export class PerformanceMonitor {
     return [];
   }
 
-  private async generateCacheOptimizationRecommendations(metrics: any): Promise<OptimizationRecommendation[]> {
+  private async generateCacheOptimizationRecommendations(
+    metrics: any,
+  ): Promise<OptimizationRecommendation[]> {
     return [];
   }
 }

@@ -30,7 +30,7 @@ export class CargoIntegration {
       targetTriple: options.targetTriple,
       features: options.features || [],
       releaseMode: options.releaseMode || false,
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -73,7 +73,7 @@ export class CargoIntegration {
         parsedResults,
         coverageMetrics,
         projectPath,
-        rustEnvironment: this.rustEnvironment
+        rustEnvironment: this.rustEnvironment,
       });
 
       // Generate cryptographic proof
@@ -82,7 +82,7 @@ export class CargoIntegration {
         parsedResults,
         coverageMetrics,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -93,7 +93,7 @@ export class CargoIntegration {
           version: this.rustEnvironment.rustVersion,
           cargoVersion: this.rustEnvironment.cargoVersion,
           toolchain: this.rustEnvironment.toolchain,
-          targetTriple: this.rustEnvironment.targetTriple
+          targetTriple: this.rustEnvironment.targetTriple,
         },
         testResults: {
           totalTests: parsedResults.total || 0,
@@ -103,42 +103,43 @@ export class CargoIntegration {
           measuredTests: parsedResults.measured || 0,
           filteredOutTests: parsedResults.filteredOut || 0,
           duration: parsedResults.duration || 0,
-          success: parsedResults.success
+          success: parsedResults.success,
         },
         testTypes: {
           unitTests: parsedResults.unitTests || { passed: 0, failed: 0, ignored: 0 },
           integrationTests: parsedResults.integrationTests || { passed: 0, failed: 0, ignored: 0 },
-          docTests: parsedResults.docTests || { passed: 0, failed: 0, ignored: 0 }
+          docTests: parsedResults.docTests || { passed: 0, failed: 0, ignored: 0 },
         },
         coverage: {
           lines: coverageMetrics.lines || 0,
           functions: coverageMetrics.functions || 0,
           branches: coverageMetrics.branches || 0,
           statements: coverageMetrics.statements || 0,
-          meetsThreshold: this.evaluateCoverageThreshold(coverageMetrics)
+          meetsThreshold: this.evaluateCoverageThreshold(coverageMetrics),
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         performance: {
           executionTime: performance.now() - startTime,
           compilationTime: parsedResults.compilationTime || 0,
-          testExecutionTime: parsedResults.duration || 0
+          testExecutionTime: parsedResults.duration || 0,
         },
-        rawOutput: testExecutions.map(exec => exec.stdout).join('\n'),
-        errors: testExecutions.flatMap(exec => exec.stderr ? [exec.stderr] : [])
+        rawOutput: testExecutions.map((exec) => exec.stdout).join('\n'),
+        errors: testExecutions.flatMap((exec) => (exec.stderr ? [exec.stderr] : [])),
       };
 
       // Store execution history
       this.executionHistory.set(executionId, result);
 
-      console.log(`✅ Cargo execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`);
+      console.log(
+        `✅ Cargo execution completed [${executionId}]: ${result.testResults.passedTests}/${result.testResults.totalTests} passed`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         executionId,
@@ -146,7 +147,7 @@ export class CargoIntegration {
         realExecution: true,
         success: false,
         error: error.message,
-        executionTime: performance.now() - startTime
+        executionTime: performance.now() - startTime,
       };
 
       this.executionHistory.set(executionId, errorResult);
@@ -170,7 +171,6 @@ export class CargoIntegration {
       if (!rustVersion) {
         errors.push('Rust not found or not working');
       }
-
     } catch (error) {
       errors.push(`Rust detection failed: ${error.message}`);
     }
@@ -181,7 +181,6 @@ export class CargoIntegration {
       if (!cargoVersion) {
         errors.push('Cargo not found or not working');
       }
-
     } catch (error) {
       errors.push(`Cargo detection failed: ${error.message}`);
     }
@@ -192,7 +191,6 @@ export class CargoIntegration {
       if (this.options.rustToolchain && toolchain !== this.options.rustToolchain) {
         console.warn(`Expected toolchain ${this.options.rustToolchain}, got ${toolchain}`);
       }
-
     } catch (error) {
       errors.push(`Toolchain detection failed: ${error.message}`);
     }
@@ -200,7 +198,6 @@ export class CargoIntegration {
     try {
       // Get target triple
       targetTriple = await this.getDefaultTarget();
-
     } catch (error) {
       console.warn(`Target triple detection failed: ${error.message}`);
     }
@@ -215,7 +212,6 @@ export class CargoIntegration {
       if (!cargoTomlContent.includes('[package]') && !cargoTomlContent.includes('[workspace]')) {
         errors.push('Invalid Cargo.toml format');
       }
-
     } catch (error) {
       errors.push(`Cargo.toml not found or invalid: ${error.message}`);
     }
@@ -242,7 +238,6 @@ export class CargoIntegration {
       if (!hasSource) {
         errors.push('No Rust source files found (src/ or tests/ directory missing)');
       }
-
     } catch (error) {
       errors.push(`Source file detection failed: ${error.message}`);
     }
@@ -253,7 +248,7 @@ export class CargoIntegration {
       rustVersion,
       cargoVersion,
       toolchain: toolchain || this.options.rustToolchain,
-      targetTriple
+      targetTriple,
     };
   }
 
@@ -356,32 +351,36 @@ export class CargoIntegration {
 
       console.log(`🚀 Running Cargo test command: ${command}`);
 
-      exec(command, {
-        timeout: this.options.timeout,
-        maxBuffer: 20 * 1024 * 1024, // 20MB buffer for large outputs
-        env: {
-          ...process.env,
-          RUST_BACKTRACE: '1',
-          CARGO_TERM_COLOR: 'never' // Disable colors for parsing
-        }
-      }, (error, stdout, stderr) => {
-        const result = {
-          type: 'main',
-          success: !error || error.code === 0,
-          exitCode: error?.code || 0,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          command,
-          executedAt: new Date().toISOString()
-        };
+      exec(
+        command,
+        {
+          timeout: this.options.timeout,
+          maxBuffer: 20 * 1024 * 1024, // 20MB buffer for large outputs
+          env: {
+            ...process.env,
+            RUST_BACKTRACE: '1',
+            CARGO_TERM_COLOR: 'never', // Disable colors for parsing
+          },
+        },
+        (error, stdout, stderr) => {
+          const result = {
+            type: 'main',
+            success: !error || error.code === 0,
+            exitCode: error?.code || 0,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            command,
+            executedAt: new Date().toISOString(),
+          };
 
-        // Cargo test can exit with code 101 if tests fail but compilation succeeded
-        if (error && ![0, 101].includes(error.code)) {
-          console.error(`Cargo test error (code ${error.code}):`, stderr);
-        }
+          // Cargo test can exit with code 101 if tests fail but compilation succeeded
+          if (error && ![0, 101].includes(error.code)) {
+            console.error(`Cargo test error (code ${error.code}):`, stderr);
+          }
 
-        resolve(result);
-      });
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -394,27 +393,31 @@ export class CargoIntegration {
 
       console.log(`📖 Running Cargo doc tests: ${command}`);
 
-      exec(command, {
-        timeout: this.options.timeout / 2, // Doc tests usually faster
-        maxBuffer: 10 * 1024 * 1024,
-        env: {
-          ...process.env,
-          RUST_BACKTRACE: '1',
-          CARGO_TERM_COLOR: 'never'
-        }
-      }, (error, stdout, stderr) => {
-        const result = {
-          type: 'doc',
-          success: !error || error.code === 0,
-          exitCode: error?.code || 0,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          command,
-          executedAt: new Date().toISOString()
-        };
+      exec(
+        command,
+        {
+          timeout: this.options.timeout / 2, // Doc tests usually faster
+          maxBuffer: 10 * 1024 * 1024,
+          env: {
+            ...process.env,
+            RUST_BACKTRACE: '1',
+            CARGO_TERM_COLOR: 'never',
+          },
+        },
+        (error, stdout, stderr) => {
+          const result = {
+            type: 'doc',
+            success: !error || error.code === 0,
+            exitCode: error?.code || 0,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            command,
+            executedAt: new Date().toISOString(),
+          };
 
-        resolve(result);
-      });
+          resolve(result);
+        },
+      );
     });
   }
 
@@ -435,7 +438,7 @@ export class CargoIntegration {
         unitTests: { passed: 0, failed: 0, ignored: 0 },
         integrationTests: { passed: 0, failed: 0, ignored: 0 },
         docTests: { passed: 0, failed: 0, ignored: 0 },
-        compilationTime: 0
+        compilationTime: 0,
       };
 
       for (const execution of executions) {
@@ -459,7 +462,7 @@ export class CargoIntegration {
           totalResults.docTests = {
             passed: parsed.passed,
             failed: parsed.failed,
-            ignored: parsed.ignored
+            ignored: parsed.ignored,
           };
         } else {
           // Main tests include both unit and integration tests
@@ -468,18 +471,17 @@ export class CargoIntegration {
           totalResults.unitTests = {
             passed: Math.floor(parsed.passed * unitTestRatio),
             failed: Math.floor(parsed.failed * unitTestRatio),
-            ignored: Math.floor(parsed.ignored * unitTestRatio)
+            ignored: Math.floor(parsed.ignored * unitTestRatio),
           };
           totalResults.integrationTests = {
             passed: parsed.passed - totalResults.unitTests.passed,
             failed: parsed.failed - totalResults.unitTests.failed,
-            ignored: parsed.ignored - totalResults.unitTests.ignored
+            ignored: parsed.ignored - totalResults.unitTests.ignored,
           };
         }
       }
 
       return totalResults;
-
     } catch (error) {
       console.error('Error parsing Cargo results:', error);
       throw new Error(`Failed to parse Cargo test results: ${error.message}`);
@@ -509,7 +511,9 @@ export class CargoIntegration {
 
     // Parse test result summary
     // Example: "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s"
-    const summaryMatch = stdout.match(/test result: (\w+)\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out(?:; finished in ([\d.]+)s)?/);
+    const summaryMatch = stdout.match(
+      /test result: (\w+)\. (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out(?:; finished in ([\d.]+)s)?/,
+    );
 
     if (summaryMatch) {
       success = summaryMatch[1] === 'ok';
@@ -557,7 +561,7 @@ export class CargoIntegration {
       compilationTime,
       success,
       testType,
-      rawOutput: stdout
+      rawOutput: stdout,
     };
   }
 
@@ -588,7 +592,6 @@ export class CargoIntegration {
 
       console.warn('Tarpaulin execution failed:', coverageResult.stderr);
       return { lines: 0, functions: 0, branches: 0, statements: 0 };
-
     } catch (error) {
       console.warn('Could not extract coverage metrics:', error.message);
       return { lines: 0, functions: 0, branches: 0, statements: 0 };
@@ -625,21 +628,25 @@ export class CargoIntegration {
 
       console.log(`📊 Running tarpaulin: ${command}`);
 
-      exec(command, {
-        timeout: this.options.timeout,
-        maxBuffer: 20 * 1024 * 1024,
-        env: {
-          ...process.env,
-          RUST_BACKTRACE: '1'
-        }
-      }, (error, stdout, stderr) => {
-        resolve({
-          success: !error || error.code === 0,
-          stdout: stdout.toString(),
-          stderr: stderr.toString(),
-          command
-        });
-      });
+      exec(
+        command,
+        {
+          timeout: this.options.timeout,
+          maxBuffer: 20 * 1024 * 1024,
+          env: {
+            ...process.env,
+            RUST_BACKTRACE: '1',
+          },
+        },
+        (error, stdout, stderr) => {
+          resolve({
+            success: !error || error.code === 0,
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            command,
+          });
+        },
+      );
     });
   }
 
@@ -659,7 +666,7 @@ export class CargoIntegration {
         lines: parseFloat(totalMatch[1]),
         functions: parseFloat(totalMatch[2]),
         branches: parseFloat(totalMatch[3]),
-        statements: parseFloat(totalMatch[1]) // Use lines as approximation for statements
+        statements: parseFloat(totalMatch[1]), // Use lines as approximation for statements
       };
     }
 
@@ -671,7 +678,7 @@ export class CargoIntegration {
         lines: percentage,
         functions: percentage,
         branches: percentage,
-        statements: percentage
+        statements: percentage,
       };
     }
 
@@ -696,16 +703,16 @@ export class CargoIntegration {
           total: validationData.parsedResults.total,
           passed: validationData.parsedResults.passed,
           failed: validationData.parsedResults.failed,
-          success: validationData.parsedResults.success
+          success: validationData.parsedResults.success,
         },
         rustEnvironment: {
           version: validationData.rustEnvironment.rustVersion,
           cargoVersion: validationData.rustEnvironment.cargoVersion,
-          toolchain: validationData.rustEnvironment.toolchain
+          toolchain: validationData.rustEnvironment.toolchain,
         },
         coverageMetrics: validationData.coverageMetrics,
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -717,15 +724,14 @@ export class CargoIntegration {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -747,10 +753,10 @@ export class CargoIntegration {
         'coverage_verification',
         'result_integrity',
         'performance_analysis',
-        'toolchain_validation'
+        'toolchain_validation',
       ][i % 6],
-      reputation: 0.88 + (Math.random() * 0.12), // Higher reputation for Rust validators
-      riskTolerance: validationData.parsedResults.success ? 'medium' : 'low'
+      reputation: 0.88 + Math.random() * 0.12, // Higher reputation for Rust validators
+      riskTolerance: validationData.parsedResults.success ? 'medium' : 'low',
     }));
   }
 
@@ -758,9 +764,8 @@ export class CargoIntegration {
    * Detect result tampering for Rust tests
    */
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -771,12 +776,16 @@ export class CargoIntegration {
     const toolchainConsistencyCheck = this.validateToolchainConsistency(validationData);
 
     return {
-      detected: suspiciousVotes.length > consensus.votes.length * 0.25 || !hashMatch || !compilationTimeCheck || !toolchainConsistencyCheck,
+      detected:
+        suspiciousVotes.length > consensus.votes.length * 0.25 ||
+        !hashMatch ||
+        !compilationTimeCheck ||
+        !toolchainConsistencyCheck,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
       compilationTimeCheck,
       toolchainConsistencyCheck,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -818,7 +827,7 @@ export class CargoIntegration {
       executionId: data.executionId,
       testResults: data.parsedResults,
       coverageMetrics: data.coverageMetrics,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -829,7 +838,7 @@ export class CargoIntegration {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'cargo-integration',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
@@ -841,12 +850,12 @@ export class CargoIntegration {
 
   generateExecutionHash(validationData) {
     const hashData = JSON.stringify({
-      executions: validationData.testExecutions.map(exec => ({
+      executions: validationData.testExecutions.map((exec) => ({
         stdout: exec.stdout,
         stderr: exec.stderr,
         exitCode: exec.exitCode,
-        command: exec.command
-      }))
+        command: exec.command,
+      })),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -940,15 +949,14 @@ export class CargoIntegration {
     if (totalExecutions === 0) return { rate: 0, sample: 0 };
 
     // A false completion is when tests report success but should have failed
-    const falseCompletions = executions.filter(exec =>
-      exec.testResults?.success &&
-      (exec.coverage && !exec.coverage.meetsThreshold)
+    const falseCompletions = executions.filter(
+      (exec) => exec.testResults?.success && exec.coverage && !exec.coverage.meetsThreshold,
     );
 
     return {
       rate: falseCompletions.length / totalExecutions,
       sample: totalExecutions,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 
@@ -959,19 +967,23 @@ export class CargoIntegration {
     return new Promise((resolve, reject) => {
       console.log('📦 Installing cargo-tarpaulin...');
 
-      exec('cargo install cargo-tarpaulin', {
-        timeout: 300000, // 5 minutes
-        maxBuffer: 10 * 1024 * 1024
-      }, (error, stdout, stderr) => {
-        if (error) {
-          console.error('Failed to install cargo-tarpaulin:', stderr);
-          resolve(false);
-          return;
-        }
+      exec(
+        'cargo install cargo-tarpaulin',
+        {
+          timeout: 300000, // 5 minutes
+          maxBuffer: 10 * 1024 * 1024,
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            console.error('Failed to install cargo-tarpaulin:', stderr);
+            resolve(false);
+            return;
+          }
 
-        console.log('✅ cargo-tarpaulin installed successfully');
-        resolve(true);
-      });
+          console.log('✅ cargo-tarpaulin installed successfully');
+          resolve(true);
+        },
+      );
     });
   }
 

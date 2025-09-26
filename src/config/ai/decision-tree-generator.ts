@@ -130,7 +130,7 @@ export class DecisionTreeGenerator {
    */
   async generateDecisionTree(
     projectAnalysis: ProjectAnalysis,
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<ConfigurationDecisionTree> {
     const root = await this.buildDecisionTree(projectAnalysis, userContext);
 
@@ -141,8 +141,8 @@ export class DecisionTreeGenerator {
         createdAt: new Date(),
         description: `Decision tree for ${projectAnalysis.type} project`,
         categories: this.extractCategories(root),
-        confidenceThreshold: 0.7
-      }
+        confidenceThreshold: 0.7,
+      },
     };
   }
 
@@ -152,14 +152,14 @@ export class DecisionTreeGenerator {
   async executeDecisionTree(
     tree: ConfigurationDecisionTree,
     projectAnalysis: ProjectAnalysis,
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<any> {
     const configuration = {};
     const executionContext = {
       projectAnalysis,
       userContext,
       configuration,
-      visited: new Set<string>()
+      visited: new Set<string>(),
     };
 
     await this.executeNode(tree.root, executionContext);
@@ -178,13 +178,13 @@ export class DecisionTreeGenerator {
    */
   private async buildDecisionTree(
     projectAnalysis: ProjectAnalysis,
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<DecisionNode> {
     const root: DecisionNode = {
       id: 'root',
       type: 'split',
       children: [],
-      confidence: 1.0
+      confidence: 1.0,
     };
 
     // Primary split by project type
@@ -207,13 +207,13 @@ export class DecisionTreeGenerator {
    */
   private async createProjectTypeNode(
     projectAnalysis: ProjectAnalysis,
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<DecisionNode> {
     const node: DecisionNode = {
       id: 'project_type_split',
       type: 'split',
       children: [],
-      confidence: 0.9
+      confidence: 0.9,
     };
 
     // Web Application branch
@@ -257,7 +257,7 @@ export class DecisionTreeGenerator {
    */
   private async createWebAppBranch(
     projectAnalysis: ProjectAnalysis,
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<DecisionNode> {
     const webAppNode: DecisionNode = {
       id: 'web_app_branch',
@@ -266,10 +266,10 @@ export class DecisionTreeGenerator {
         type: 'project_type',
         operator: 'equals',
         value: 'web-app',
-        weight: 1.0
+        weight: 1.0,
       },
       children: [],
-      confidence: 0.9
+      confidence: 0.9,
     };
 
     // Framework-specific configurations
@@ -277,7 +277,7 @@ export class DecisionTreeGenerator {
       const frameworkNode = await this.createFrameworkNode(
         projectAnalysis.framework,
         projectAnalysis,
-        userContext
+        userContext,
       );
       webAppNode.children.push(frameworkNode);
     }
@@ -289,10 +289,10 @@ export class DecisionTreeGenerator {
       action: {
         type: 'merge_template',
         path: 'agent',
-        template: 'web-app-agents'
+        template: 'web-app-agents',
       },
       children: [],
-      confidence: 0.8
+      confidence: 0.8,
     };
 
     webAppNode.children.push(agentConfigNode);
@@ -304,10 +304,10 @@ export class DecisionTreeGenerator {
       action: {
         type: 'merge_template',
         path: 'features',
-        template: 'web-app-features'
+        template: 'web-app-features',
       },
       children: [],
-      confidence: 0.8
+      confidence: 0.8,
     };
 
     webAppNode.children.push(featureNode);
@@ -320,7 +320,7 @@ export class DecisionTreeGenerator {
    */
   private async createApiBranch(
     projectAnalysis: ProjectAnalysis,
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<DecisionNode> {
     const apiNode: DecisionNode = {
       id: 'api_branch',
@@ -329,10 +329,10 @@ export class DecisionTreeGenerator {
         type: 'project_type',
         operator: 'equals',
         value: 'api',
-        weight: 1.0
+        weight: 1.0,
       },
       children: [],
-      confidence: 0.9
+      confidence: 0.9,
     };
 
     // API type detection (REST, GraphQL, gRPC)
@@ -355,13 +355,13 @@ export class DecisionTreeGenerator {
    */
   private async createComplexityNode(
     projectAnalysis: ProjectAnalysis,
-    userContext: UserContext
+    userContext: UserContext,
   ): Promise<DecisionNode> {
     const complexityNode: DecisionNode = {
       id: 'complexity_split',
       type: 'split',
       children: [],
-      confidence: 0.8
+      confidence: 0.8,
     };
 
     // Small project configuration
@@ -372,7 +372,7 @@ export class DecisionTreeGenerator {
         type: 'complexity',
         operator: 'equals',
         value: 'small',
-        weight: 1.0
+        weight: 1.0,
       },
       children: [
         {
@@ -381,13 +381,13 @@ export class DecisionTreeGenerator {
           action: {
             type: 'merge_template',
             path: '',
-            template: 'small-project'
+            template: 'small-project',
           },
           children: [],
-          confidence: 0.9
-        }
+          confidence: 0.9,
+        },
       ],
-      confidence: 0.8
+      confidence: 0.8,
     };
 
     // Medium project configuration
@@ -398,7 +398,7 @@ export class DecisionTreeGenerator {
         type: 'complexity',
         operator: 'equals',
         value: 'medium',
-        weight: 1.0
+        weight: 1.0,
       },
       children: [
         {
@@ -407,13 +407,13 @@ export class DecisionTreeGenerator {
           action: {
             type: 'merge_template',
             path: '',
-            template: 'medium-project'
+            template: 'medium-project',
           },
           children: [],
-          confidence: 0.9
-        }
+          confidence: 0.9,
+        },
       ],
-      confidence: 0.8
+      confidence: 0.8,
     };
 
     // Large/Enterprise project configuration
@@ -424,7 +424,7 @@ export class DecisionTreeGenerator {
         type: 'complexity',
         operator: 'in',
         value: ['large', 'enterprise'],
-        weight: 1.0
+        weight: 1.0,
       },
       children: [
         {
@@ -433,13 +433,13 @@ export class DecisionTreeGenerator {
           action: {
             type: 'merge_template',
             path: '',
-            template: 'enterprise-project'
+            template: 'enterprise-project',
           },
           children: [],
-          confidence: 0.9
-        }
+          confidence: 0.9,
+        },
       ],
-      confidence: 0.8
+      confidence: 0.8,
     };
 
     complexityNode.children.push(smallProjectNode, mediumProjectNode, enterpriseProjectNode);
@@ -455,7 +455,7 @@ export class DecisionTreeGenerator {
       id: 'experience_split',
       type: 'split',
       children: [],
-      confidence: 0.7
+      confidence: 0.7,
     };
 
     // Novice user configuration
@@ -466,7 +466,7 @@ export class DecisionTreeGenerator {
         type: 'feature_presence',
         operator: 'equals',
         value: 'novice',
-        weight: 1.0
+        weight: 1.0,
       },
       children: [
         {
@@ -475,7 +475,7 @@ export class DecisionTreeGenerator {
           action: {
             type: 'set_value',
             path: 'mode',
-            value: 'novice'
+            value: 'novice',
           },
           children: [
             {
@@ -484,16 +484,16 @@ export class DecisionTreeGenerator {
               action: {
                 type: 'set_value',
                 path: 'agent.maxAgents',
-                value: 3
+                value: 3,
               },
               children: [],
-              confidence: 0.9
-            }
+              confidence: 0.9,
+            },
           ],
-          confidence: 0.9
-        }
+          confidence: 0.9,
+        },
       ],
-      confidence: 0.8
+      confidence: 0.8,
     };
 
     // Advanced user configuration
@@ -504,7 +504,7 @@ export class DecisionTreeGenerator {
         type: 'feature_presence',
         operator: 'in',
         value: ['advanced', 'expert'],
-        weight: 1.0
+        weight: 1.0,
       },
       children: [
         {
@@ -518,15 +518,15 @@ export class DecisionTreeGenerator {
                 type: 'feature_presence',
                 operator: 'equals',
                 value: 'expert',
-                weight: 1.0
-              }
-            ]
+                weight: 1.0,
+              },
+            ],
           },
           children: [],
-          confidence: 0.8
-        }
+          confidence: 0.8,
+        },
       ],
-      confidence: 0.7
+      confidence: 0.7,
     };
 
     experienceNode.children.push(noviceNode, advancedNode);
@@ -537,10 +537,7 @@ export class DecisionTreeGenerator {
   /**
    * Executes a decision node recursively
    */
-  private async executeNode(
-    node: DecisionNode,
-    context: ExecutionContext
-  ): Promise<void> {
+  private async executeNode(node: DecisionNode, context: ExecutionContext): Promise<void> {
     if (context.visited.has(node.id)) {
       return; // Prevent infinite loops
     }
@@ -577,51 +574,39 @@ export class DecisionTreeGenerator {
    */
   private async evaluateCondition(
     condition: DecisionCondition,
-    context: ExecutionContext
+    context: ExecutionContext,
   ): Promise<boolean> {
     const { projectAnalysis, userContext } = context;
 
     switch (condition.type) {
       case 'project_type':
-        return this.evaluateOperator(
-          projectAnalysis.type,
-          condition.operator,
-          condition.value
-        );
+        return this.evaluateOperator(projectAnalysis.type, condition.operator, condition.value);
 
       case 'complexity':
         return this.evaluateOperator(
           projectAnalysis.complexity,
           condition.operator,
-          condition.value
+          condition.value,
         );
 
       case 'language':
-        return this.evaluateOperator(
-          projectAnalysis.language,
-          condition.operator,
-          condition.value
-        );
+        return this.evaluateOperator(projectAnalysis.language, condition.operator, condition.value);
 
       case 'framework':
         return this.evaluateOperator(
           projectAnalysis.framework || '',
           condition.operator,
-          condition.value
+          condition.value,
         );
 
       case 'team_size':
-        return this.evaluateOperator(
-          projectAnalysis.teamSize,
-          condition.operator,
-          condition.value
-        );
+        return this.evaluateOperator(projectAnalysis.teamSize, condition.operator, condition.value);
 
       case 'feature_presence':
         return this.evaluateOperator(
           userContext.experienceLevel,
           condition.operator,
-          condition.value
+          condition.value,
         );
 
       default:
@@ -656,7 +641,7 @@ export class DecisionTreeGenerator {
    */
   private async executeAction(
     action: ConfigurationAction,
-    context: ExecutionContext
+    context: ExecutionContext,
   ): Promise<void> {
     const { configuration } = context;
 
@@ -680,9 +665,9 @@ export class DecisionTreeGenerator {
       case 'conditional_set':
         if (action.conditions) {
           const allConditionsMet = await Promise.all(
-            action.conditions.map(condition => this.evaluateCondition(condition, context))
+            action.conditions.map((condition) => this.evaluateCondition(condition, context)),
           );
-          if (allConditionsMet.every(met => met)) {
+          if (allConditionsMet.every((met) => met)) {
             this.setNestedValue(configuration, action.path, action.value);
           }
         }
@@ -705,9 +690,9 @@ export class DecisionTreeGenerator {
         maxAgents: 4,
         types: ['coder', 'tester', 'reviewer', 'researcher'],
         topology: 'mesh',
-        strategy: 'balanced'
+        strategy: 'balanced',
       },
-      customizations: []
+      customizations: [],
     });
 
     this.templates.set('web-app-features', {
@@ -718,9 +703,9 @@ export class DecisionTreeGenerator {
       baseConfiguration: {
         memory: { enabled: true },
         monitoring: { enabled: true },
-        neural: { enabled: false }
+        neural: { enabled: false },
       },
-      customizations: []
+      customizations: [],
     });
 
     // Small Project Template
@@ -734,15 +719,15 @@ export class DecisionTreeGenerator {
         agent: {
           maxAgents: 3,
           autoSpawn: true,
-          types: ['coder', 'tester']
+          types: ['coder', 'tester'],
         },
         features: {
           memory: { enabled: true },
           monitoring: { enabled: false },
-          neural: { enabled: false }
-        }
+          neural: { enabled: false },
+        },
       },
-      customizations: []
+      customizations: [],
     });
 
     // Medium Project Template
@@ -757,15 +742,15 @@ export class DecisionTreeGenerator {
           maxAgents: 6,
           autoSpawn: true,
           topology: 'mesh',
-          types: ['coder', 'tester', 'reviewer', 'researcher']
+          types: ['coder', 'tester', 'reviewer', 'researcher'],
         },
         features: {
           memory: { enabled: true },
           monitoring: { enabled: true },
-          neural: { enabled: true }
-        }
+          neural: { enabled: true },
+        },
       },
-      customizations: []
+      customizations: [],
     });
 
     // Enterprise Project Template
@@ -783,27 +768,27 @@ export class DecisionTreeGenerator {
           coordination: {
             consensus: 'byzantine',
             heartbeatInterval: 3000,
-            failureDetection: true
-          }
+            failureDetection: true,
+          },
         },
         features: {
           memory: { enabled: true },
           monitoring: {
             enabled: true,
-            alerting: { enabled: true }
+            alerting: { enabled: true },
           },
           neural: { enabled: true },
           security: {
             encryption: { enabled: true },
-            authentication: { enabled: true }
-          }
+            authentication: { enabled: true },
+          },
         },
         storage: {
           team: { enabled: true },
-          cloud: { enabled: true }
-        }
+          cloud: { enabled: true },
+        },
       },
-      customizations: []
+      customizations: [],
     });
 
     // Add more templates for specific frameworks, languages, etc.
@@ -865,21 +850,31 @@ export class DecisionTreeGenerator {
 
   private calculateOptimalAgentCount(projectAnalysis: ProjectAnalysis): number {
     switch (projectAnalysis.complexity) {
-      case 'small': return 3;
-      case 'medium': return 5;
-      case 'large': return 8;
-      case 'enterprise': return 12;
-      default: return 3;
+      case 'small':
+        return 3;
+      case 'medium':
+        return 5;
+      case 'large':
+        return 8;
+      case 'enterprise':
+        return 12;
+      default:
+        return 3;
     }
   }
 
   private calculateTimeout(complexity: ProjectComplexity): number {
     switch (complexity) {
-      case 'small': return 15000;
-      case 'medium': return 30000;
-      case 'large': return 45000;
-      case 'enterprise': return 60000;
-      default: return 30000;
+      case 'small':
+        return 15000;
+      case 'medium':
+        return 30000;
+      case 'large':
+        return 45000;
+      case 'enterprise':
+        return 60000;
+      default:
+        return 30000;
     }
   }
 
@@ -904,7 +899,7 @@ export class DecisionTreeGenerator {
 
   private async applyOrganizationPolicies(
     configuration: any,
-    teamContext?: TeamContext
+    teamContext?: TeamContext,
   ): Promise<void> {
     if (!teamContext?.organizationPolicies) return;
 
@@ -918,7 +913,7 @@ export class DecisionTreeGenerator {
   private async applyPolicyRule(
     configuration: any,
     rule: PolicyRule,
-    policy: OrganizationPolicy
+    policy: OrganizationPolicy,
   ): Promise<void> {
     const currentValue = this.getNestedValue(configuration, rule.path);
 
@@ -939,7 +934,11 @@ export class DecisionTreeGenerator {
         if (typeof currentValue === 'number') {
           const [min, max] = rule.value as [number, number];
           if (currentValue < min || currentValue > max) {
-            this.setNestedValue(configuration, rule.path, Math.max(min, Math.min(max, currentValue)));
+            this.setNestedValue(
+              configuration,
+              rule.path,
+              Math.max(min, Math.min(max, currentValue)),
+            );
           }
         }
         break;

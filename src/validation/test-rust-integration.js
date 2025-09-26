@@ -54,7 +54,6 @@ export class RustIntegrationTest {
       this.generateTestReport();
 
       return this.validateOverallResults();
-
     } catch (error) {
       console.error('❌ Rust integration tests failed:', error.message);
       throw error;
@@ -73,18 +72,19 @@ export class RustIntegrationTest {
     try {
       const validationSuite = new ProductionValidationSuite({
         frameworks: ['rust'],
-        enableByzantineValidation: true
+        enableByzantineValidation: true,
       });
 
       const projectSetup = await validationSuite.detectProjectSetup(mockProjectPath);
 
       const testResult = {
         test: 'rust_project_detection',
-        success: projectSetup.runtime === 'rust' &&
-                projectSetup.projectType === 'rust' &&
-                projectSetup.detected.testFrameworks.includes('rust'),
+        success:
+          projectSetup.runtime === 'rust' &&
+          projectSetup.projectType === 'rust' &&
+          projectSetup.detected.testFrameworks.includes('rust'),
         details: projectSetup,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -94,8 +94,9 @@ export class RustIntegrationTest {
         this.falseCompletions++;
       }
 
-      console.log(`   ${testResult.success ? '✅' : '❌'} Rust project detection: ${testResult.success ? 'PASSED' : 'FAILED'}`);
-
+      console.log(
+        `   ${testResult.success ? '✅' : '❌'} Rust project detection: ${testResult.success ? 'PASSED' : 'FAILED'}`,
+      );
     } finally {
       // Clean up mock project
       await this.cleanupMockProject(mockProjectPath);
@@ -115,7 +116,7 @@ export class RustIntegrationTest {
       const validationSuite = new ProductionValidationSuite({
         frameworks: ['rust'],
         enableByzantineValidation: true,
-        timeout: 120000 // 2 minutes
+        timeout: 120000, // 2 minutes
       });
 
       // Check if Rust toolchain is available
@@ -131,7 +132,7 @@ export class RustIntegrationTest {
           success: result && result.framework === 'rust-cargo',
           realExecution: result?.realExecution === true,
           details: result,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } else {
         // If Rust toolchain not available, mark as skipped but successful
@@ -140,7 +141,7 @@ export class RustIntegrationTest {
           success: true,
           skipped: true,
           reason: 'Rust toolchain not available',
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
 
@@ -152,14 +153,15 @@ export class RustIntegrationTest {
         this.falseCompletions++;
       }
 
-      console.log(`   ${testResult.success ? '✅' : '❌'} Cargo test execution: ${testResult.success ? 'PASSED' : 'FAILED'}${testResult.skipped ? ' (SKIPPED)' : ''}`);
-
+      console.log(
+        `   ${testResult.success ? '✅' : '❌'} Cargo test execution: ${testResult.success ? 'PASSED' : 'FAILED'}${testResult.skipped ? ' (SKIPPED)' : ''}`,
+      );
     } catch (error) {
       const testResult = {
         test: 'cargo_test_execution',
         success: false,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -183,20 +185,20 @@ export class RustIntegrationTest {
     try {
       const validationSuite = new ProductionValidationSuite({
         frameworks: ['rust'],
-        realWorldValidators: ['build']
+        realWorldValidators: ['build'],
       });
 
       const buildResults = await validationSuite.executeRealWorldValidator(
         'build',
         mockProjectPath,
-        { build: { enableRustSupport: true } }
+        { build: { enableRustSupport: true } },
       );
 
       const testResult = {
         test: 'cargo_build_validation',
         success: buildResults && buildResults.framework === 'build-validation',
         details: buildResults,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -206,14 +208,15 @@ export class RustIntegrationTest {
         this.falseCompletions++;
       }
 
-      console.log(`   ${testResult.success ? '✅' : '❌'} Cargo build validation: ${testResult.success ? 'PASSED' : 'FAILED'}`);
-
+      console.log(
+        `   ${testResult.success ? '✅' : '❌'} Cargo build validation: ${testResult.success ? 'PASSED' : 'FAILED'}`,
+      );
     } catch (error) {
       const testResult = {
         test: 'cargo_build_validation',
         success: false,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -236,7 +239,7 @@ export class RustIntegrationTest {
 
     try {
       const validationSuite = new ProductionValidationSuite({
-        frameworks: ['rust']
+        frameworks: ['rust'],
       });
 
       // Test the framework integration directly
@@ -244,19 +247,23 @@ export class RustIntegrationTest {
 
       const testResult = {
         test: 'rust_quality_tools',
-        success: rustFramework &&
-                typeof rustFramework.executeRustQualityChecks === 'function' &&
-                typeof rustFramework.executeClippy === 'function' &&
-                typeof rustFramework.executeRustfmt === 'function',
+        success:
+          rustFramework &&
+          typeof rustFramework.executeRustQualityChecks === 'function' &&
+          typeof rustFramework.executeClippy === 'function' &&
+          typeof rustFramework.executeRustfmt === 'function',
         details: {
           hasRustFramework: !!rustFramework,
-          hasQualityMethods: rustFramework ? {
-            executeRustQualityChecks: typeof rustFramework.executeRustQualityChecks === 'function',
-            executeClippy: typeof rustFramework.executeClippy === 'function',
-            executeRustfmt: typeof rustFramework.executeRustfmt === 'function'
-          } : null
+          hasQualityMethods: rustFramework
+            ? {
+                executeRustQualityChecks:
+                  typeof rustFramework.executeRustQualityChecks === 'function',
+                executeClippy: typeof rustFramework.executeClippy === 'function',
+                executeRustfmt: typeof rustFramework.executeRustfmt === 'function',
+              }
+            : null,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -266,14 +273,15 @@ export class RustIntegrationTest {
         this.falseCompletions++;
       }
 
-      console.log(`   ${testResult.success ? '✅' : '❌'} Rust quality tools: ${testResult.success ? 'PASSED' : 'FAILED'}`);
-
+      console.log(
+        `   ${testResult.success ? '✅' : '❌'} Rust quality tools: ${testResult.success ? 'PASSED' : 'FAILED'}`,
+      );
     } catch (error) {
       const testResult = {
         test: 'rust_quality_tools',
         success: false,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -297,23 +305,25 @@ export class RustIntegrationTest {
     try {
       const validationSuite = new ProductionValidationSuite({
         frameworks: ['rust'],
-        enableByzantineValidation: true
+        enableByzantineValidation: true,
       });
 
       // Test that Byzantine consensus is properly initialized
-      const hasByzantineConsensus = validationSuite.byzantineConsensus &&
-                                   typeof validationSuite.byzantineConsensus.achieveConsensus === 'function';
+      const hasByzantineConsensus =
+        validationSuite.byzantineConsensus &&
+        typeof validationSuite.byzantineConsensus.achieveConsensus === 'function';
 
       const testResult = {
         test: 'byzantine_consensus_validation',
-        success: hasByzantineConsensus &&
-                validationSuite.options.enableByzantineValidation === true,
+        success:
+          hasByzantineConsensus && validationSuite.options.enableByzantineValidation === true,
         details: {
           hasByzantineConsensus,
           byzantineEnabled: validationSuite.options.enableByzantineValidation,
-          rustFrameworkHasByzantine: validationSuite.testFrameworks.rust?.options?.enableByzantineValidation
+          rustFrameworkHasByzantine:
+            validationSuite.testFrameworks.rust?.options?.enableByzantineValidation,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -323,14 +333,15 @@ export class RustIntegrationTest {
         this.falseCompletions++;
       }
 
-      console.log(`   ${testResult.success ? '✅' : '❌'} Byzantine consensus: ${testResult.success ? 'PASSED' : 'FAILED'}`);
-
+      console.log(
+        `   ${testResult.success ? '✅' : '❌'} Byzantine consensus: ${testResult.success ? 'PASSED' : 'FAILED'}`,
+      );
     } catch (error) {
       const testResult = {
         test: 'byzantine_consensus_validation',
         success: false,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -362,22 +373,23 @@ export class RustIntegrationTest {
           targetRate,
           totalTests: this.totalTests,
           falseCompletions: this.falseCompletions,
-          meetsTarget: currentRate <= targetRate
+          meetsTarget: currentRate <= targetRate,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
       this.falseCompletionRate = currentRate;
 
-      console.log(`   ${testResult.success ? '✅' : '❌'} False completion rate: ${(currentRate * 100).toFixed(2)}% (Target: ≤5%)`);
-
+      console.log(
+        `   ${testResult.success ? '✅' : '❌'} False completion rate: ${(currentRate * 100).toFixed(2)}% (Target: ≤5%)`,
+      );
     } catch (error) {
       const testResult = {
         test: 'false_completion_rate',
         success: false,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -398,7 +410,7 @@ export class RustIntegrationTest {
         frameworks: ['rust'],
         realWorldValidators: ['build'],
         enableByzantineValidation: true,
-        falseCompletionRateThreshold: 0.05
+        falseCompletionRateThreshold: 0.05,
       });
 
       // Test framework registration
@@ -412,9 +424,9 @@ export class RustIntegrationTest {
           rustFrameworkRegistered,
           rustInFrameworksList,
           availableFrameworks: Object.keys(validationSuite.testFrameworks),
-          configuredFrameworks: validationSuite.options.frameworks
+          configuredFrameworks: validationSuite.options.frameworks,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -424,14 +436,15 @@ export class RustIntegrationTest {
         this.falseCompletions++;
       }
 
-      console.log(`   ${testResult.success ? '✅' : '❌'} Complete validation suite: ${testResult.success ? 'PASSED' : 'FAILED'}`);
-
+      console.log(
+        `   ${testResult.success ? '✅' : '❌'} Complete validation suite: ${testResult.success ? 'PASSED' : 'FAILED'}`,
+      );
     } catch (error) {
       const testResult = {
         test: 'complete_rust_validation_suite',
         success: false,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.testResults.push(testResult);
@@ -548,9 +561,9 @@ fn another_test() {
     console.log('\n📋 Rust Integration Test Report');
     console.log('================================');
 
-    const passedTests = this.testResults.filter(t => t.success && !t.skipped).length;
-    const skippedTests = this.testResults.filter(t => t.skipped).length;
-    const failedTests = this.testResults.filter(t => !t.success && !t.skipped).length;
+    const passedTests = this.testResults.filter((t) => t.success && !t.skipped).length;
+    const skippedTests = this.testResults.filter((t) => t.skipped).length;
+    const failedTests = this.testResults.filter((t) => !t.success && !t.skipped).length;
 
     console.log(`Total Tests: ${this.testResults.length}`);
     console.log(`Passed: ${passedTests}`);
@@ -562,7 +575,7 @@ fn another_test() {
 
     console.log('\nDetailed Results:');
     for (const result of this.testResults) {
-      const status = result.skipped ? 'SKIPPED' : (result.success ? 'PASSED' : 'FAILED');
+      const status = result.skipped ? 'SKIPPED' : result.success ? 'PASSED' : 'FAILED';
       console.log(`  ${result.test}: ${status}`);
       if (result.error) {
         console.log(`    Error: ${result.error}`);
@@ -576,16 +589,22 @@ fn another_test() {
    * Validate overall test results
    */
   validateOverallResults() {
-    const criticalTests = this.testResults.filter(t =>
-      ['rust_project_detection', 'complete_rust_validation_suite', 'false_completion_rate'].includes(t.test)
+    const criticalTests = this.testResults.filter((t) =>
+      [
+        'rust_project_detection',
+        'complete_rust_validation_suite',
+        'false_completion_rate',
+      ].includes(t.test),
     );
 
-    const allCriticalTestsPassed = criticalTests.every(t => t.success);
+    const allCriticalTestsPassed = criticalTests.every((t) => t.success);
     const falseCompletionRateMet = this.falseCompletionRate <= 0.05;
 
     const overallSuccess = allCriticalTestsPassed && falseCompletionRateMet;
 
-    console.log(`🎯 Overall Rust Integration Test Result: ${overallSuccess ? '✅ PASSED' : '❌ FAILED'}`);
+    console.log(
+      `🎯 Overall Rust Integration Test Result: ${overallSuccess ? '✅ PASSED' : '❌ FAILED'}`,
+    );
 
     if (!overallSuccess) {
       console.log('Critical issues detected:');
@@ -593,20 +612,22 @@ fn another_test() {
         console.log('  - One or more critical tests failed');
       }
       if (!falseCompletionRateMet) {
-        console.log(`  - False completion rate (${(this.falseCompletionRate * 100).toFixed(2)}%) exceeds 5% target`);
+        console.log(
+          `  - False completion rate (${(this.falseCompletionRate * 100).toFixed(2)}%) exceeds 5% target`,
+        );
       }
     }
 
     return {
       success: overallSuccess,
       totalTests: this.testResults.length,
-      passedTests: this.testResults.filter(t => t.success && !t.skipped).length,
-      skippedTests: this.testResults.filter(t => t.skipped).length,
-      failedTests: this.testResults.filter(t => !t.success && !t.skipped).length,
+      passedTests: this.testResults.filter((t) => t.success && !t.skipped).length,
+      skippedTests: this.testResults.filter((t) => t.skipped).length,
+      failedTests: this.testResults.filter((t) => !t.success && !t.skipped).length,
       falseCompletionRate: this.falseCompletionRate,
       falseCompletionRateMet,
       criticalTestResults: criticalTests,
-      allTestResults: this.testResults
+      allTestResults: this.testResults,
     };
   }
 }
@@ -617,12 +638,13 @@ export default RustIntegrationTest;
 // If running directly, execute the tests
 if (import.meta.url === `file://${process.argv[1]}`) {
   const test = new RustIntegrationTest();
-  test.runTests()
-    .then(result => {
+  test
+    .runTests()
+    .then((result) => {
       console.log('🏁 Test execution completed');
       process.exit(result.success ? 0 : 1);
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('💥 Test execution failed:', error);
       process.exit(1);
     });

@@ -25,12 +25,12 @@ export class SPARCIntegration {
       qualityGates: options.qualityGates || {},
       phaseWeights: options.phaseWeights || {
         specification: 0.25,
-        pseudocode: 0.20,
+        pseudocode: 0.2,
         architecture: 0.25,
         refinement: 0.15,
-        completion: 0.15
+        completion: 0.15,
       },
-      ...options
+      ...options,
     };
 
     this.byzantineConsensus = new ByzantineConsensus();
@@ -70,7 +70,7 @@ export class SPARCIntegration {
         phaseResults,
         completionMetrics,
         qualityGateResults,
-        projectPath
+        projectPath,
       });
 
       // Generate cryptographic proof
@@ -79,7 +79,7 @@ export class SPARCIntegration {
         phaseResults,
         completionMetrics,
         byzantineValidation,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       const result = {
@@ -90,43 +90,44 @@ export class SPARCIntegration {
           overallCompletion: completionMetrics.overallCompletion,
           phaseCompletion: completionMetrics.phaseCompletion,
           totalScore: completionMetrics.totalScore,
-          success: completionMetrics.overallCompletion >= 0.80 // 80% SPARC completion threshold
+          success: completionMetrics.overallCompletion >= 0.8, // 80% SPARC completion threshold
         },
         phaseResults: {
           specification: phaseResults.specification,
           pseudocode: phaseResults.pseudocode,
           architecture: phaseResults.architecture,
           refinement: phaseResults.refinement,
-          completion: phaseResults.completion
+          completion: phaseResults.completion,
         },
         qualityGates: {
           passed: qualityGateResults.passed,
           totalGates: qualityGateResults.totalGates,
           passedGates: qualityGateResults.passedGates,
           failedGates: qualityGateResults.failedGates,
-          details: qualityGateResults.details
+          details: qualityGateResults.details,
         },
         byzantineValidation: {
           consensusAchieved: byzantineValidation.consensusAchieved,
           validatorCount: byzantineValidation.validatorCount,
           tamperedResults: byzantineValidation.tamperedResults,
-          cryptographicProof
+          cryptographicProof,
         },
         performance: {
           validationTime: performance.now() - startTime,
-          phaseValidationTimes: this.getPhaseValidationTimes(phaseResults)
+          phaseValidationTimes: this.getPhaseValidationTimes(phaseResults),
         },
         deliverables: await this.catalogSPARCDeliverables(projectPath),
-        errors: this.extractValidationErrors(phaseResults)
+        errors: this.extractValidationErrors(phaseResults),
       };
 
       // Store execution history
       this.executionHistory.set(validationId, result);
 
-      console.log(`✅ SPARC validation completed [${validationId}]: ${(result.sparcCompletion.overallCompletion * 100).toFixed(1)}% complete`);
+      console.log(
+        `✅ SPARC validation completed [${validationId}]: ${(result.sparcCompletion.overallCompletion * 100).toFixed(1)}% complete`,
+      );
 
       return result;
-
     } catch (error) {
       const errorResult = {
         validationId,
@@ -134,7 +135,7 @@ export class SPARCIntegration {
         realValidation: true,
         success: false,
         error: error.message,
-        validationTime: performance.now() - startTime
+        validationTime: performance.now() - startTime,
       };
 
       this.executionHistory.set(validationId, errorResult);
@@ -156,10 +157,11 @@ export class SPARCIntegration {
       const packageJsonContent = await fs.readFile(packageJsonPath, 'utf8');
       packageJson = JSON.parse(packageJsonContent);
 
-      const hasSPARC = packageJson.devDependencies?.['claude-flow'] ||
-                     packageJson.dependencies?.['claude-flow'] ||
-                     packageJson.scripts?.sparc ||
-                     packageJson.scripts?.['sparc:run'];
+      const hasSPARC =
+        packageJson.devDependencies?.['claude-flow'] ||
+        packageJson.dependencies?.['claude-flow'] ||
+        packageJson.scripts?.sparc ||
+        packageJson.scripts?.['sparc:run'];
 
       if (!hasSPARC) {
         console.warn('SPARC CLI not found in package.json, checking global installation...');
@@ -170,7 +172,6 @@ export class SPARCIntegration {
           errors.push('SPARC CLI not found in project dependencies or global installation');
         }
       }
-
     } catch (error) {
       errors.push(`Cannot read package.json: ${error.message}`);
     }
@@ -181,7 +182,7 @@ export class SPARCIntegration {
         path.join(projectPath, 'sparc.config.js'),
         path.join(projectPath, 'sparc.config.json'),
         path.join(projectPath, '.sparcrc'),
-        path.join(projectPath, 'package.json') // sparc field in package.json
+        path.join(projectPath, 'package.json'), // sparc field in package.json
       ];
 
       for (const configPath of configPaths) {
@@ -201,7 +202,6 @@ export class SPARCIntegration {
           // Config file doesn't exist, continue checking
         }
       }
-
     } catch (error) {
       console.warn(`SPARC configuration check failed: ${error.message}`);
     }
@@ -214,7 +214,7 @@ export class SPARCIntegration {
         path.join(projectPath, 'specifications'),
         path.join(projectPath, 'README.md'),
         path.join(projectPath, 'ARCHITECTURE.md'),
-        path.join(projectPath, 'SPECIFICATION.md')
+        path.join(projectPath, 'SPECIFICATION.md'),
       ];
 
       let sparcIndicatorsFound = false;
@@ -231,7 +231,6 @@ export class SPARCIntegration {
       if (!sparcIndicatorsFound) {
         console.warn('No SPARC project indicators found (docs, architecture, specifications)');
       }
-
     } catch (error) {
       console.warn(`SPARC project structure check failed: ${error.message}`);
     }
@@ -240,7 +239,7 @@ export class SPARCIntegration {
       valid: errors.length === 0,
       errors,
       packageJson,
-      sparcConfig
+      sparcConfig,
     };
   }
 
@@ -253,7 +252,7 @@ export class SPARCIntegration {
         resolve({
           available: !error,
           version: stdout.includes('version') ? stdout.trim() : null,
-          error: error?.message
+          error: error?.message,
         });
       });
     });
@@ -277,16 +276,15 @@ export class SPARCIntegration {
 
         phaseResults[phase] = {
           ...phaseResult,
-          validationTime: performance.now() - phaseStartTime
+          validationTime: performance.now() - phaseStartTime,
         };
-
       } catch (error) {
         phaseResults[phase] = {
           completed: false,
           score: 0,
           error: error.message,
           validationTime: 0,
-          deliverables: []
+          deliverables: [],
         };
       }
     }
@@ -303,7 +301,7 @@ export class SPARCIntegration {
       score: 0,
       deliverables: [],
       qualityMetrics: {},
-      errors: []
+      errors: [],
     };
 
     try {
@@ -314,21 +312,24 @@ export class SPARCIntegration {
       const deliverables = await this.checkPhaseDeliverables(projectPath, phase);
 
       // Validate deliverable quality
-      const qualityMetrics = await this.validateDeliverableQuality(projectPath, phase, deliverables);
+      const qualityMetrics = await this.validateDeliverableQuality(
+        projectPath,
+        phase,
+        deliverables,
+      );
 
       // Calculate phase completion score
       const completionScore = this.calculatePhaseCompletionScore(phase, {
         cliResult,
         deliverables,
-        qualityMetrics
+        qualityMetrics,
       });
 
-      phaseValidation.completed = completionScore >= 0.70; // 70% threshold per phase
+      phaseValidation.completed = completionScore >= 0.7; // 70% threshold per phase
       phaseValidation.score = completionScore;
       phaseValidation.deliverables = deliverables;
       phaseValidation.qualityMetrics = qualityMetrics;
       phaseValidation.cliValidation = cliResult;
-
     } catch (error) {
       phaseValidation.errors.push(error.message);
     }
@@ -350,7 +351,7 @@ export class SPARCIntegration {
           stdout: stdout.toString(),
           stderr: stderr.toString(),
           command,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
 
         // Parse SPARC CLI output for validation metrics
@@ -369,7 +370,7 @@ export class SPARCIntegration {
       phaseScore: 0,
       completeness: 0,
       qualityScore: 0,
-      deliverableCount: 0
+      deliverableCount: 0,
     };
 
     // Extract metrics from SPARC CLI output
@@ -407,35 +408,18 @@ export class SPARCIntegration {
         'SPECIFICATION.md',
         'docs/specification.md',
         'specs/requirements.md',
-        'README.md'
+        'README.md',
       ],
-      pseudocode: [
-        'PSEUDOCODE.md',
-        'docs/pseudocode.md',
-        'docs/algorithms.md',
-        'docs/logic.md'
-      ],
+      pseudocode: ['PSEUDOCODE.md', 'docs/pseudocode.md', 'docs/algorithms.md', 'docs/logic.md'],
       architecture: [
         'ARCHITECTURE.md',
         'docs/architecture.md',
         'docs/design.md',
         'architecture/',
-        'diagrams/'
+        'diagrams/',
       ],
-      refinement: [
-        'src/',
-        'lib/',
-        'tests/',
-        'test/',
-        '__tests__/'
-      ],
-      completion: [
-        'dist/',
-        'build/',
-        'package.json',
-        'README.md',
-        'CHANGELOG.md'
-      ]
+      refinement: ['src/', 'lib/', 'tests/', 'test/', '__tests__/'],
+      completion: ['dist/', 'build/', 'package.json', 'README.md', 'CHANGELOG.md'],
     };
 
     const expectedDeliverables = phaseDeliverableMap[phase] || [];
@@ -451,15 +435,14 @@ export class SPARCIntegration {
           type: stats.isDirectory() ? 'directory' : 'file',
           size: stats.isFile() ? stats.size : 0,
           modified: stats.mtime,
-          quality: await this.assessDeliverableQuality(deliverablePath, phase, stats)
+          quality: await this.assessDeliverableQuality(deliverablePath, phase, stats),
         });
-
       } catch (error) {
         deliverables.push({
           path: deliverable,
           exists: false,
           error: error.message,
-          quality: { score: 0, issues: ['deliverable_missing'] }
+          quality: { score: 0, issues: ['deliverable_missing'] },
         });
       }
     }
@@ -474,7 +457,7 @@ export class SPARCIntegration {
     const quality = {
       score: 0,
       metrics: {},
-      issues: []
+      issues: [],
     };
 
     try {
@@ -483,22 +466,19 @@ export class SPARCIntegration {
         const content = await fs.readFile(deliverablePath, 'utf8');
         quality.metrics = this.analyzeMarkdownQuality(content, phase);
         quality.score = this.calculateDocumentationScore(quality.metrics);
-
       } else if (stats.isDirectory()) {
         // Analyze directory structure
         const files = await fs.readdir(deliverablePath);
         quality.metrics = {
           fileCount: files.length,
           hasStructure: files.length > 0,
-          isEmpty: files.length === 0
+          isEmpty: files.length === 0,
         };
         quality.score = files.length > 0 ? 0.8 : 0.2;
-
       } else {
         // Basic file existence check
         quality.score = 0.5; // Exists but not specifically analyzed
       }
-
     } catch (error) {
       quality.issues.push(`quality_assessment_failed: ${error.message}`);
     }
@@ -518,7 +498,7 @@ export class SPARCIntegration {
       linkCount: (content.match(/\[.*?\]\(.*?\)/g) || []).length,
       hasTitle: /^#\s/.test(content),
       hasIntroduction: /introduction|overview|summary/i.test(content),
-      phaseSpecificMetrics: this.analyzePhaseSpecificContent(content, phase)
+      phaseSpecificMetrics: this.analyzePhaseSpecificContent(content, phase),
     };
 
     return metrics;
@@ -532,32 +512,32 @@ export class SPARCIntegration {
       specification: (content) => ({
         hasRequirements: /requirements|functional|non-functional/i.test(content),
         hasUserStories: /user story|as a|i want|so that/i.test(content),
-        hasAcceptanceCriteria: /acceptance|criteria|given.*when.*then/i.test(content)
+        hasAcceptanceCriteria: /acceptance|criteria|given.*when.*then/i.test(content),
       }),
 
       pseudocode: (content) => ({
         hasAlgorithms: /algorithm|procedure|function|method/i.test(content),
         hasFlowControl: /if|else|while|for|loop/i.test(content),
-        hasDataStructures: /array|list|object|hash|tree|graph/i.test(content)
+        hasDataStructures: /array|list|object|hash|tree|graph/i.test(content),
       }),
 
       architecture: (content) => ({
         hasComponents: /component|module|service|class/i.test(content),
         hasRelationships: /relationship|dependency|interface|api/i.test(content),
-        hasPatterns: /pattern|mvc|mvp|observer|singleton/i.test(content)
+        hasPatterns: /pattern|mvc|mvp|observer|singleton/i.test(content),
       }),
 
       refinement: (content) => ({
         hasImplementation: /implementation|code|development/i.test(content),
         hasTestStrategy: /test|testing|unit|integration/i.test(content),
-        hasRefactoring: /refactor|optimize|improve|enhance/i.test(content)
+        hasRefactoring: /refactor|optimize|improve|enhance/i.test(content),
       }),
 
       completion: (content) => ({
         hasDeployment: /deploy|production|release|build/i.test(content),
         hasDocumentation: /documentation|readme|guide/i.test(content),
-        hasMaintenance: /maintain|support|monitor|update/i.test(content)
-      })
+        hasMaintenance: /maintain|support|monitor|update/i.test(content),
+      }),
     };
 
     const analyzer = phaseAnalyzers[phase];
@@ -573,12 +553,12 @@ export class SPARCIntegration {
     // Basic content metrics (40% of score)
     if (metrics.wordCount > 100) score += 0.15;
     if (metrics.wordCount > 500) score += 0.15;
-    if (metrics.headingCount >= 2) score += 0.10;
+    if (metrics.headingCount >= 2) score += 0.1;
 
     // Structure metrics (30% of score)
-    if (metrics.hasTitle) score += 0.10;
-    if (metrics.hasIntroduction) score += 0.10;
-    if (metrics.listCount > 0) score += 0.10;
+    if (metrics.hasTitle) score += 0.1;
+    if (metrics.hasIntroduction) score += 0.1;
+    if (metrics.listCount > 0) score += 0.1;
 
     // Phase-specific content (30% of score)
     const phaseMetrics = metrics.phaseSpecificMetrics || {};
@@ -587,7 +567,7 @@ export class SPARCIntegration {
     const totalRequirements = phaseRequirements.length;
 
     if (totalRequirements > 0) {
-      score += (metRequirements / totalRequirements) * 0.30;
+      score += (metRequirements / totalRequirements) * 0.3;
     }
 
     return Math.min(score, 1.0);
@@ -601,7 +581,7 @@ export class SPARCIntegration {
       overallQuality: 0,
       deliverableCount: deliverables.length,
       qualityDistribution: { high: 0, medium: 0, low: 0 },
-      issues: []
+      issues: [],
     };
 
     let totalQuality = 0;
@@ -642,17 +622,20 @@ export class SPARCIntegration {
     // CLI validation score (40%)
     if (validationData.cliResult.success) {
       const cliMetrics = validationData.cliResult.validationMetrics;
-      score += (cliMetrics.phaseScore || 0.5) * 0.40;
+      score += (cliMetrics.phaseScore || 0.5) * 0.4;
     }
 
     // Deliverable existence and quality (40%)
-    const existingDeliverables = validationData.deliverables.filter(d => d.exists);
-    const deliverableScore = existingDeliverables.length > 0 ?
-      existingDeliverables.reduce((sum, d) => sum + (d.quality?.score || 0), 0) / existingDeliverables.length : 0;
-    score += deliverableScore * 0.40;
+    const existingDeliverables = validationData.deliverables.filter((d) => d.exists);
+    const deliverableScore =
+      existingDeliverables.length > 0
+        ? existingDeliverables.reduce((sum, d) => sum + (d.quality?.score || 0), 0) /
+          existingDeliverables.length
+        : 0;
+    score += deliverableScore * 0.4;
 
     // Overall quality metrics (20%)
-    score += (validationData.qualityMetrics.overallQuality || 0) * 0.20;
+    score += (validationData.qualityMetrics.overallQuality || 0) * 0.2;
 
     return Math.min(score, 1.0);
   }
@@ -674,7 +657,7 @@ export class SPARCIntegration {
         phaseCompletion[phase] = {
           completed: phaseResult.completed,
           score: phaseResult.score || 0,
-          weight
+          weight,
         };
 
         weightedScore += (phaseResult.score || 0) * weight;
@@ -688,8 +671,8 @@ export class SPARCIntegration {
       overallCompletion,
       phaseCompletion,
       totalScore: weightedScore,
-      completedPhases: phases.filter(phase => phaseResults[phase]?.completed).length,
-      totalPhases: phases.length
+      completedPhases: phases.filter((phase) => phaseResults[phase]?.completed).length,
+      totalPhases: phases.length,
     };
   }
 
@@ -698,10 +681,10 @@ export class SPARCIntegration {
    */
   async validateSPARCQualityGates(phaseResults, projectPath) {
     const defaultQualityGates = [
-      { name: 'specification_quality', phase: 'specification', threshold: 0.70, metric: 'score' },
-      { name: 'architecture_completeness', phase: 'architecture', threshold: 0.80, metric: 'score' },
+      { name: 'specification_quality', phase: 'specification', threshold: 0.7, metric: 'score' },
+      { name: 'architecture_completeness', phase: 'architecture', threshold: 0.8, metric: 'score' },
       { name: 'implementation_coverage', phase: 'refinement', threshold: 0.75, metric: 'score' },
-      { name: 'overall_completion', phase: null, threshold: 0.80, metric: 'overall' }
+      { name: 'overall_completion', phase: null, threshold: 0.8, metric: 'overall' },
     ];
 
     const qualityGates = this.options.qualityGates.gates || defaultQualityGates;
@@ -710,7 +693,7 @@ export class SPARCIntegration {
       totalGates: qualityGates.length,
       passedGates: 0,
       failedGates: 0,
-      details: []
+      details: [],
     };
 
     for (const gate of qualityGates) {
@@ -740,7 +723,7 @@ export class SPARCIntegration {
         threshold: gate.threshold,
         actualValue,
         passed,
-        metric: gate.metric
+        metric: gate.metric,
       });
     }
 
@@ -764,16 +747,16 @@ export class SPARCIntegration {
         completionMetrics: {
           overallCompletion: validationData.completionMetrics.overallCompletion,
           completedPhases: validationData.completionMetrics.completedPhases,
-          totalPhases: validationData.completionMetrics.totalPhases
+          totalPhases: validationData.completionMetrics.totalPhases,
         },
         qualityGates: {
           passed: validationData.qualityGateResults.passed,
           passedGates: validationData.qualityGateResults.passedGates,
-          totalGates: validationData.qualityGateResults.totalGates
+          totalGates: validationData.qualityGateResults.totalGates,
         },
         deliverableCount: this.countTotalDeliverables(validationData.phaseResults),
         executionHash: this.generateExecutionHash(validationData),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       const consensus = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -785,15 +768,14 @@ export class SPARCIntegration {
         validatorCount: validators.length,
         tamperedResults,
         byzantineProof: consensus.byzantineProof,
-        votes: consensus.votes
+        votes: consensus.votes,
       };
-
     } catch (error) {
       console.error('Byzantine consensus validation failed:', error);
       return {
         consensusAchieved: false,
         error: error.message,
-        tamperedResults: true
+        tamperedResults: true,
       };
     }
   }
@@ -809,9 +791,15 @@ export class SPARCIntegration {
 
     return Array.from({ length: validatorCount }, (_, i) => ({
       id: `sparc-validator-${i}`,
-      specialization: ['specification_review', 'architecture_validation', 'implementation_check', 'documentation_audit', 'completion_verification'][i % 5],
-      reputation: 0.85 + (Math.random() * 0.15),
-      riskTolerance: validationData.completionMetrics.overallCompletion >= 0.8 ? 'medium' : 'low'
+      specialization: [
+        'specification_review',
+        'architecture_validation',
+        'implementation_check',
+        'documentation_audit',
+        'completion_verification',
+      ][i % 5],
+      reputation: 0.85 + Math.random() * 0.15,
+      riskTolerance: validationData.completionMetrics.overallCompletion >= 0.8 ? 'medium' : 'low',
     }));
   }
 
@@ -823,13 +811,13 @@ export class SPARCIntegration {
 
   generateExecutionHash(validationData) {
     const hashData = JSON.stringify({
-      phaseResults: Object.keys(validationData.phaseResults).map(phase => ({
+      phaseResults: Object.keys(validationData.phaseResults).map((phase) => ({
         phase,
         completed: validationData.phaseResults[phase].completed,
-        score: validationData.phaseResults[phase].score
+        score: validationData.phaseResults[phase].score,
       })),
       completionMetrics: validationData.completionMetrics,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return createHash('md5').update(hashData).digest('hex');
@@ -840,7 +828,7 @@ export class SPARCIntegration {
       validationId: data.validationId,
       phaseResults: data.phaseResults,
       completionMetrics: data.completionMetrics,
-      timestamp: data.timestamp
+      timestamp: data.timestamp,
     });
 
     const hash = createHash('sha256').update(proofString).digest('hex');
@@ -851,13 +839,14 @@ export class SPARCIntegration {
       timestamp: data.timestamp,
       proofData: proofString.length,
       validator: 'sparc-integration',
-      byzantineValidated: data.byzantineValidation?.consensusAchieved || false
+      byzantineValidated: data.byzantineValidation?.consensusAchieved || false,
     };
   }
 
   countTotalDeliverables(phaseResults) {
-    return Object.values(phaseResults).reduce((total, phase) =>
-      total + (phase.deliverables?.length || 0), 0
+    return Object.values(phaseResults).reduce(
+      (total, phase) => total + (phase.deliverables?.length || 0),
+      0,
     );
   }
 
@@ -873,7 +862,7 @@ export class SPARCIntegration {
     const errors = [];
     for (const [phase, result] of Object.entries(phaseResults)) {
       if (result.errors && result.errors.length > 0) {
-        errors.push(...result.errors.map(error => ({ phase, error })));
+        errors.push(...result.errors.map((error) => ({ phase, error })));
       }
     }
     return errors;
@@ -884,7 +873,7 @@ export class SPARCIntegration {
       documentation: [],
       code: [],
       tests: [],
-      configuration: []
+      configuration: [],
     };
 
     try {
@@ -919,7 +908,6 @@ export class SPARCIntegration {
         const files = await glob(path.join(projectPath, pattern));
         deliverables.configuration.push(...files);
       }
-
     } catch (error) {
       console.warn('Could not catalog SPARC deliverables:', error.message);
     }
@@ -928,9 +916,8 @@ export class SPARCIntegration {
   }
 
   detectResultTampering(validationData, consensus) {
-    const suspiciousVotes = consensus.votes.filter(vote =>
-      vote.confidence < 0.5 ||
-      (vote.reason && vote.reason.includes('suspicious'))
+    const suspiciousVotes = consensus.votes.filter(
+      (vote) => vote.confidence < 0.5 || (vote.reason && vote.reason.includes('suspicious')),
     );
 
     const expectedHash = this.generateExecutionHash(validationData);
@@ -940,7 +927,7 @@ export class SPARCIntegration {
       detected: suspiciousVotes.length > consensus.votes.length * 0.3 || !hashMatch,
       suspiciousVoteCount: suspiciousVotes.length,
       hashIntegrityCheck: hashMatch,
-      indicators: suspiciousVotes.map(vote => vote.reason).filter(Boolean)
+      indicators: suspiciousVotes.map((vote) => vote.reason).filter(Boolean),
     };
   }
 
@@ -963,15 +950,16 @@ export class SPARCIntegration {
 
     if (totalExecutions === 0) return { rate: 0, sample: 0 };
 
-    const falseCompletions = executions.filter(exec =>
-      exec.sparcCompletion?.success &&
-      (!exec.qualityGates?.passed || exec.sparcCompletion.overallCompletion < 0.8)
+    const falseCompletions = executions.filter(
+      (exec) =>
+        exec.sparcCompletion?.success &&
+        (!exec.qualityGates?.passed || exec.sparcCompletion.overallCompletion < 0.8),
     );
 
     return {
       rate: falseCompletions.length / totalExecutions,
       sample: totalExecutions,
-      falseCompletions: falseCompletions.length
+      falseCompletions: falseCompletions.length,
     };
   }
 }

@@ -14,7 +14,7 @@ export class FeatureClassification {
       description: 'Production-ready, visible to all users',
       riskLevel: 'none',
       requiresConsent: false,
-      showWarnings: false
+      showWarnings: false,
     },
     BETA: {
       level: 'beta',
@@ -22,7 +22,7 @@ export class FeatureClassification {
       description: 'Feature-complete, visible to intermediate+ users with opt-in',
       riskLevel: 'low',
       requiresConsent: true,
-      showWarnings: true
+      showWarnings: true,
     },
     ALPHA: {
       level: 'alpha',
@@ -30,7 +30,7 @@ export class FeatureClassification {
       description: 'Experimental, visible to advanced+ users with warnings',
       riskLevel: 'medium',
       requiresConsent: true,
-      showWarnings: true
+      showWarnings: true,
     },
     RESEARCH: {
       level: 'research',
@@ -38,8 +38,8 @@ export class FeatureClassification {
       description: 'Highly experimental, enterprise users only with explicit enablement',
       riskLevel: 'high',
       requiresConsent: true,
-      showWarnings: true
-    }
+      showWarnings: true,
+    },
   };
 
   /**
@@ -49,7 +49,7 @@ export class FeatureClassification {
     NOVICE: 'novice',
     INTERMEDIATE: 'intermediate',
     ADVANCED: 'advanced',
-    ENTERPRISE: 'enterprise'
+    ENTERPRISE: 'enterprise',
   };
 
   /**
@@ -63,7 +63,7 @@ export class FeatureClassification {
       description: 'Advanced consensus mechanism builder',
       dependencies: ['byzantine-coordinator'],
       warnings: ['May cause system instability in large swarms', 'Resource intensive operations'],
-      enablementFlags: ['experimental.consensus.enabled', 'experimental.byzantine.enabled']
+      enablementFlags: ['experimental.consensus.enabled', 'experimental.byzantine.enabled'],
     },
     'byzantine-coordinator': {
       stability: 'alpha',
@@ -71,7 +71,7 @@ export class FeatureClassification {
       description: 'Byzantine fault tolerance coordinator',
       dependencies: [],
       warnings: ['Complex consensus protocols', 'May increase latency'],
-      enablementFlags: ['experimental.consensus.enabled', 'experimental.byzantine.enabled']
+      enablementFlags: ['experimental.consensus.enabled', 'experimental.byzantine.enabled'],
     },
     'raft-manager': {
       stability: 'beta',
@@ -79,7 +79,7 @@ export class FeatureClassification {
       description: 'Raft consensus protocol manager',
       dependencies: [],
       warnings: ['Leader election overhead'],
-      enablementFlags: ['experimental.consensus.enabled']
+      enablementFlags: ['experimental.consensus.enabled'],
     },
     'gossip-coordinator': {
       stability: 'beta',
@@ -87,7 +87,7 @@ export class FeatureClassification {
       description: 'Gossip protocol coordination manager',
       dependencies: [],
       warnings: ['Network overhead in large clusters'],
-      enablementFlags: ['experimental.consensus.enabled']
+      enablementFlags: ['experimental.consensus.enabled'],
     },
     'crdt-synchronizer': {
       stability: 'alpha',
@@ -95,7 +95,7 @@ export class FeatureClassification {
       description: 'Conflict-free replicated data types synchronizer',
       dependencies: [],
       warnings: ['Memory overhead for large datasets', 'Complex merge operations'],
-      enablementFlags: ['experimental.data.crdt.enabled']
+      enablementFlags: ['experimental.data.crdt.enabled'],
     },
     'quorum-manager': {
       stability: 'beta',
@@ -103,7 +103,7 @@ export class FeatureClassification {
       description: 'Quorum-based decision making manager',
       dependencies: [],
       warnings: ['Requires minimum cluster size'],
-      enablementFlags: ['experimental.consensus.enabled']
+      enablementFlags: ['experimental.consensus.enabled'],
     },
     'security-manager': {
       stability: 'alpha',
@@ -111,7 +111,7 @@ export class FeatureClassification {
       description: 'Advanced security and access control manager',
       dependencies: [],
       warnings: ['May block legitimate operations', 'Performance impact on security checks'],
-      enablementFlags: ['experimental.security.advanced.enabled']
+      enablementFlags: ['experimental.security.advanced.enabled'],
     },
 
     // Advanced AI and Neural - Research Level
@@ -121,23 +121,31 @@ export class FeatureClassification {
       description: 'Temporal processing advantage optimizer',
       dependencies: [],
       warnings: ['Highly experimental AI', 'Unpredictable behavior', 'Resource intensive'],
-      enablementFlags: ['experimental.neural.temporal.enabled', 'research.ai.enabled']
+      enablementFlags: ['experimental.neural.temporal.enabled', 'research.ai.enabled'],
     },
     'consciousness-evolution': {
       stability: 'research',
       category: 'neural',
       description: 'Consciousness evolution simulation agent',
       dependencies: [],
-      warnings: ['Experimental consciousness models', 'May produce unpredictable outputs', 'High computational cost'],
-      enablementFlags: ['experimental.neural.consciousness.enabled', 'research.ai.enabled']
+      warnings: [
+        'Experimental consciousness models',
+        'May produce unpredictable outputs',
+        'High computational cost',
+      ],
+      enablementFlags: ['experimental.neural.consciousness.enabled', 'research.ai.enabled'],
     },
     'psycho-symbolic': {
       stability: 'research',
       category: 'neural',
       description: 'Psychological and symbolic reasoning agent',
       dependencies: [],
-      warnings: ['Experimental psychological models', 'May generate sensitive content', 'Requires careful monitoring'],
-      enablementFlags: ['experimental.neural.psycho.enabled', 'research.ai.enabled']
+      warnings: [
+        'Experimental psychological models',
+        'May generate sensitive content',
+        'Requires careful monitoring',
+      ],
+      enablementFlags: ['experimental.neural.psycho.enabled', 'research.ai.enabled'],
     },
     'phi-calculator': {
       stability: 'alpha',
@@ -145,7 +153,7 @@ export class FeatureClassification {
       description: 'Advanced mathematical phi calculations',
       dependencies: [],
       warnings: ['Complex mathematical operations', 'High precision requirements'],
-      enablementFlags: ['experimental.math.advanced.enabled']
+      enablementFlags: ['experimental.math.advanced.enabled'],
     },
 
     // Performance and Optimization - Alpha Level
@@ -155,7 +163,7 @@ export class FeatureClassification {
       description: 'Nanosecond precision task scheduler',
       dependencies: [],
       warnings: ['High precision timing requirements', 'May cause timing conflicts'],
-      enablementFlags: ['experimental.performance.precision.enabled']
+      enablementFlags: ['experimental.performance.precision.enabled'],
     },
     'matrix-solver': {
       stability: 'beta',
@@ -163,15 +171,15 @@ export class FeatureClassification {
       description: 'Advanced matrix computation solver',
       dependencies: [],
       warnings: ['High memory usage for large matrices'],
-      enablementFlags: ['experimental.math.matrix.enabled']
+      enablementFlags: ['experimental.math.matrix.enabled'],
     },
-    'pagerank': {
+    pagerank: {
       stability: 'beta',
       category: 'analysis',
       description: 'PageRank algorithm implementation',
       dependencies: [],
       warnings: ['Memory intensive for large graphs'],
-      enablementFlags: ['experimental.analysis.graph.enabled']
+      enablementFlags: ['experimental.analysis.graph.enabled'],
     },
 
     // Neural Specialists - Research Level
@@ -180,9 +188,13 @@ export class FeatureClassification {
       category: 'neural',
       description: 'Self-Aware Feedback Loop Algorithm neural specialist',
       dependencies: [],
-      warnings: ['Self-modifying neural networks', 'Unpredictable learning patterns', 'May require reset mechanisms'],
-      enablementFlags: ['experimental.neural.safla.enabled', 'research.ai.enabled']
-    }
+      warnings: [
+        'Self-modifying neural networks',
+        'Unpredictable learning patterns',
+        'May require reset mechanisms',
+      ],
+      enablementFlags: ['experimental.neural.safla.enabled', 'research.ai.enabled'],
+    },
   };
 
   /**
@@ -207,8 +219,8 @@ export class FeatureClassification {
 
     // Check if required feature flags are enabled
     if (agent.enablementFlags && agent.enablementFlags.length > 0) {
-      const hasRequiredFlags = agent.enablementFlags.every(flag =>
-        enabledFeatures.includes(flag)
+      const hasRequiredFlags = agent.enablementFlags.every((flag) =>
+        enabledFeatures.includes(flag),
       );
       if (!hasRequiredFlags) {
         return false;
@@ -226,14 +238,14 @@ export class FeatureClassification {
       [this.USER_LEVELS.NOVICE]: 0,
       [this.USER_LEVELS.INTERMEDIATE]: 1,
       [this.USER_LEVELS.ADVANCED]: 2,
-      [this.USER_LEVELS.ENTERPRISE]: 3
+      [this.USER_LEVELS.ENTERPRISE]: 3,
     };
 
     const visibilityHierarchy = {
-      'all': 0,
-      'intermediate': 1,
-      'advanced': 2,
-      'enterprise': 3
+      all: 0,
+      intermediate: 1,
+      advanced: 2,
+      enterprise: 3,
     };
 
     return levelHierarchy[userLevel] >= visibilityHierarchy[requiredVisibility];
@@ -243,8 +255,8 @@ export class FeatureClassification {
    * Get filtered agent list based on user level and enabled features
    */
   static getVisibleAgents(allAgents, userLevel, enabledFeatures = []) {
-    return allAgents.filter(agentName =>
-      this.isAgentVisible(agentName, userLevel, enabledFeatures)
+    return allAgents.filter((agentName) =>
+      this.isAgentVisible(agentName, userLevel, enabledFeatures),
     );
   }
 
@@ -271,7 +283,7 @@ export class FeatureClassification {
       requiresConsent: stability.requiresConsent,
       showWarnings: stability.showWarnings,
       dependencies: agent.dependencies || [],
-      enablementFlags: agent.enablementFlags || []
+      enablementFlags: agent.enablementFlags || [],
     };
   }
 
@@ -287,7 +299,7 @@ export class FeatureClassification {
       }
       categories[config.category].push({
         name: agentName,
-        ...config
+        ...config,
       });
     });
 

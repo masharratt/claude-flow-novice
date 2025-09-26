@@ -1,6 +1,6 @@
 /**
  * Hive-Mind System Integration Interface
- * 
+ *
  * This module provides seamless integration with the existing hive-mind system,
  * enabling swarms to leverage collective intelligence, shared memory, and
  * distributed coordination capabilities while maintaining compatibility
@@ -255,12 +255,9 @@ export class HiveMindIntegration extends EventEmitter {
   private syncInterval?: NodeJS.Timeout;
   private isInitialized: boolean = false;
 
-  constructor(
-    config: Partial<HiveMindConfig> = {},
-    memoryManager: MemoryManager
-  ) {
+  constructor(config: Partial<HiveMindConfig> = {}, memoryManager: MemoryManager) {
     super();
-    
+
     this.logger = new Logger('HiveMindIntegration');
     this.config = this.createDefaultConfig(config);
     this.memoryManager = memoryManager;
@@ -296,7 +293,6 @@ export class HiveMindIntegration extends EventEmitter {
       this.isInitialized = true;
       this.logger.info('Hive-mind integration initialized successfully');
       this.emit('initialized');
-
     } catch (error) {
       this.logger.error('Failed to initialize hive-mind integration', error);
       throw error;
@@ -322,15 +318,15 @@ export class HiveMindIntegration extends EventEmitter {
       await this.saveCollectiveIntelligence();
 
       // Terminate active sessions
-      const terminationPromises = Array.from(this.activeSessions.keys())
-        .map(sessionId => this.terminateSession(sessionId));
-      
+      const terminationPromises = Array.from(this.activeSessions.keys()).map((sessionId) =>
+        this.terminateSession(sessionId),
+      );
+
       await Promise.allSettled(terminationPromises);
 
       this.isInitialized = false;
       this.logger.info('Hive-mind integration shut down successfully');
       this.emit('shutdown');
-
     } catch (error) {
       this.logger.error('Error during hive-mind integration shutdown', error);
       throw error;
@@ -340,12 +336,9 @@ export class HiveMindIntegration extends EventEmitter {
   /**
    * Create a new hive-mind session for a swarm
    */
-  async createSession(
-    swarmId: string,
-    orchestrator: AdvancedSwarmOrchestrator
-  ): Promise<string> {
+  async createSession(swarmId: string, orchestrator: AdvancedSwarmOrchestrator): Promise<string> {
     const sessionId = generateId('hive-session');
-    
+
     this.logger.info('Creating hive-mind session', {
       sessionId,
       swarmId,
@@ -380,11 +373,7 @@ export class HiveMindIntegration extends EventEmitter {
   /**
    * Add an agent to a hive-mind session
    */
-  async addAgentToSession(
-    sessionId: string,
-    agentId: string,
-    agent: SwarmAgent
-  ): Promise<void> {
+  async addAgentToSession(sessionId: string, agentId: string, agent: SwarmAgent): Promise<void> {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
       throw new Error(`Hive-mind session not found: ${sessionId}`);
@@ -392,7 +381,7 @@ export class HiveMindIntegration extends EventEmitter {
 
     if (!session.participants.includes(agentId)) {
       session.participants.push(agentId);
-      
+
       this.logger.info('Agent added to hive-mind session', {
         sessionId,
         agentId,
@@ -413,10 +402,7 @@ export class HiveMindIntegration extends EventEmitter {
   /**
    * Remove an agent from a hive-mind session
    */
-  async removeAgentFromSession(
-    sessionId: string,
-    agentId: string
-  ): Promise<void> {
+  async removeAgentFromSession(sessionId: string, agentId: string): Promise<void> {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
       throw new Error(`Hive-mind session not found: ${sessionId}`);
@@ -425,7 +411,7 @@ export class HiveMindIntegration extends EventEmitter {
     const index = session.participants.indexOf(agentId);
     if (index !== -1) {
       session.participants.splice(index, 1);
-      
+
       this.logger.info('Agent removed from hive-mind session', {
         sessionId,
         agentId,
@@ -447,7 +433,7 @@ export class HiveMindIntegration extends EventEmitter {
     sessionId: string,
     agentId: string,
     type: 'knowledge' | 'experience' | 'insight' | 'pattern',
-    data: any
+    data: any,
   ): Promise<void> {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
@@ -489,7 +475,7 @@ export class HiveMindIntegration extends EventEmitter {
     sessionId: string,
     question: string,
     options: DecisionOption[],
-    requesterAgentId: string
+    requesterAgentId: string,
   ): Promise<string> {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
@@ -497,7 +483,7 @@ export class HiveMindIntegration extends EventEmitter {
     }
 
     const decisionId = generateId('decision');
-    
+
     this.logger.info('Requesting collective decision', {
       sessionId,
       decisionId,
@@ -552,7 +538,7 @@ export class HiveMindIntegration extends EventEmitter {
       keywords?: string[];
       context?: string;
       category?: string;
-    }
+    },
   ): Promise<any[]> {
     const session = this.activeSessions.get(sessionId);
     if (!session) {
@@ -667,7 +653,7 @@ export class HiveMindIntegration extends EventEmitter {
     learningModels: number;
   } {
     const sessions = Array.from(this.activeSessions.values());
-    
+
     return {
       activeSessions: sessions.length,
       totalParticipants: sessions.reduce((sum, s) => sum + s.participants.length, 0),
@@ -701,7 +687,6 @@ export class HiveMindIntegration extends EventEmitter {
         bestPracticesCount: this.globalKnowledgeBase.bestPractices.size,
         lessonsCount: this.globalKnowledgeBase.lessons.size,
       });
-
     } catch (error) {
       this.logger.warn('Failed to load knowledge base, starting fresh', error);
     }
@@ -725,7 +710,6 @@ export class HiveMindIntegration extends EventEmitter {
         decisionsCount: this.globalIntelligence.decisions.size,
         predictionsCount: this.globalIntelligence.predictions.size,
       });
-
     } catch (error) {
       this.logger.warn('Failed to load collective intelligence, starting fresh', error);
     }
@@ -752,7 +736,6 @@ export class HiveMindIntegration extends EventEmitter {
           itemCount: this.countKnowledgeItems(),
         },
       });
-
     } catch (error) {
       this.logger.error('Failed to save knowledge base', error);
     }
@@ -776,13 +759,13 @@ export class HiveMindIntegration extends EventEmitter {
         timestamp: new Date(),
         metadata: {
           type: 'intelligence-snapshot',
-          itemCount: this.globalIntelligence.patterns.size + 
-                     this.globalIntelligence.insights.size +
-                     this.globalIntelligence.decisions.size +
-                     this.globalIntelligence.predictions.size,
+          itemCount:
+            this.globalIntelligence.patterns.size +
+            this.globalIntelligence.insights.size +
+            this.globalIntelligence.decisions.size +
+            this.globalIntelligence.predictions.size,
         },
       });
-
     } catch (error) {
       this.logger.error('Failed to save collective intelligence', error);
     }
@@ -835,11 +818,11 @@ export class HiveMindIntegration extends EventEmitter {
   private async shareKnowledgeWithAgent(
     session: HiveMindSession,
     agentId: string,
-    agent: SwarmAgent
+    agent: SwarmAgent,
   ): Promise<void> {
     // Share relevant knowledge based on agent capabilities
     const relevantKnowledge = this.getRelevantKnowledge(session, agent.capabilities);
-    
+
     this.logger.debug('Sharing knowledge with agent', {
       sessionId: session.id,
       agentId,
@@ -854,14 +837,14 @@ export class HiveMindIntegration extends EventEmitter {
 
     // Filter facts by capabilities
     for (const fact of session.knowledgeBase.facts.values()) {
-      if (capabilities.some(cap => fact.category.includes(cap))) {
+      if (capabilities.some((cap) => fact.category.includes(cap))) {
         relevantItems.push(fact);
       }
     }
 
     // Filter procedures by capabilities
     for (const procedure of session.knowledgeBase.procedures.values()) {
-      if (capabilities.some(cap => procedure.contexts.includes(cap))) {
+      if (capabilities.some((cap) => procedure.contexts.includes(cap))) {
         relevantItems.push(procedure);
       }
     }
@@ -882,7 +865,7 @@ export class HiveMindIntegration extends EventEmitter {
         contexts: data.contexts || [],
         timestamp: new Date(),
       };
-      
+
       session.knowledgeBase.facts.set(fact.id, fact);
     }
     // Similar implementations for procedures, best practices, and lessons
@@ -936,7 +919,10 @@ export class HiveMindIntegration extends EventEmitter {
     session.collectiveIntelligence.patterns.set(pattern.id, pattern);
   }
 
-  private async initiateVoting(session: HiveMindSession, decision: CollectiveDecision): Promise<void> {
+  private async initiateVoting(
+    session: HiveMindSession,
+    decision: CollectiveDecision,
+  ): Promise<void> {
     // Implementation would send voting request to all participants
     // For now, simulate consensus building
     this.logger.debug('Initiating collective voting', {
@@ -968,28 +954,32 @@ export class HiveMindIntegration extends EventEmitter {
 
   private queryFacts(session: HiveMindSession, query: any): Fact[] {
     const results: Fact[] = [];
-    
+
     for (const fact of session.knowledgeBase.facts.values()) {
       let matches = true;
-      
+
       if (query.category && !fact.category.includes(query.category)) {
         matches = false;
       }
-      
-      if (query.keywords && !query.keywords.some(keyword => 
-        fact.statement.toLowerCase().includes(keyword.toLowerCase()))) {
+
+      if (
+        query.keywords &&
+        !query.keywords.some((keyword) =>
+          fact.statement.toLowerCase().includes(keyword.toLowerCase()),
+        )
+      ) {
         matches = false;
       }
-      
+
       if (query.context && !fact.contexts.includes(query.context)) {
         matches = false;
       }
-      
+
       if (matches) {
         results.push(fact);
       }
     }
-    
+
     return results;
   }
 
@@ -1051,10 +1041,12 @@ export class HiveMindIntegration extends EventEmitter {
   }
 
   private countKnowledgeItems(): number {
-    return this.globalKnowledgeBase.facts.size +
-           this.globalKnowledgeBase.procedures.size +
-           this.globalKnowledgeBase.bestPractices.size +
-           this.globalKnowledgeBase.lessons.size;
+    return (
+      this.globalKnowledgeBase.facts.size +
+      this.globalKnowledgeBase.procedures.size +
+      this.globalKnowledgeBase.bestPractices.size +
+      this.globalKnowledgeBase.lessons.size
+    );
   }
 
   private initializeKnowledgeBase(): KnowledgeBase {

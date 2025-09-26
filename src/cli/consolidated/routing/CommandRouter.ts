@@ -37,34 +37,34 @@ export class CommandRouter {
       handler: 'handleInit',
       tier: UserTier.NOVICE,
       aliases: ['initialize', 'create', 'new', 'start'],
-      mcpTool: 'swarm_init'
+      mcpTool: 'swarm_init',
     },
     {
       command: 'build',
       handler: 'handleBuild',
       tier: UserTier.NOVICE,
       aliases: ['develop', 'make', 'create-feature', 'implement'],
-      mcpTool: 'task_orchestrate'
+      mcpTool: 'task_orchestrate',
     },
     {
       command: 'status',
       handler: 'handleStatus',
       tier: UserTier.NOVICE,
       aliases: ['info', 'show', 'dashboard', 'overview'],
-      mcpTool: 'swarm_status'
+      mcpTool: 'swarm_status',
     },
     {
       command: 'help',
       handler: 'handleHelp',
       tier: UserTier.NOVICE,
-      aliases: ['h', '--help', '-h', 'docs', 'guide']
+      aliases: ['h', '--help', '-h', 'docs', 'guide'],
     },
     {
       command: 'learn',
       handler: 'handleLearn',
       tier: UserTier.NOVICE,
-      aliases: ['tutorial', 'training', 'discover', 'unlock']
-    }
+      aliases: ['tutorial', 'training', 'discover', 'unlock'],
+    },
   ];
 
   // Intermediate tier commands (unlocked with experience)
@@ -74,36 +74,36 @@ export class CommandRouter {
       handler: 'handleAgents',
       tier: UserTier.INTERMEDIATE,
       aliases: ['agent', 'spawn', 'workers'],
-      mcpTool: 'agent_spawn'
+      mcpTool: 'agent_spawn',
     },
     {
       command: 'test',
       handler: 'handleTest',
       tier: UserTier.INTERMEDIATE,
       aliases: ['testing', 'verify', 'validate'],
-      mcpTool: 'task_orchestrate'
+      mcpTool: 'task_orchestrate',
     },
     {
       command: 'deploy',
       handler: 'handleDeploy',
       tier: UserTier.INTERMEDIATE,
       aliases: ['deployment', 'publish', 'release'],
-      mcpTool: 'workflow_execute'
+      mcpTool: 'workflow_execute',
     },
     {
       command: 'optimize',
       handler: 'handleOptimize',
       tier: UserTier.INTERMEDIATE,
       aliases: ['performance', 'perf', 'speed'],
-      mcpTool: 'bottleneck_analyze'
+      mcpTool: 'bottleneck_analyze',
     },
     {
       command: 'review',
       handler: 'handleReview',
       tier: UserTier.INTERMEDIATE,
       aliases: ['audit', 'check', 'quality'],
-      mcpTool: 'quality_assess'
-    }
+      mcpTool: 'quality_assess',
+    },
   ];
 
   // Legacy command mappings for backward compatibility
@@ -114,7 +114,7 @@ export class CommandRouter {
       tier: UserTier.EXPERT,
       aliases: ['sparc-run', 'sparc-tdd'],
       deprecated: true,
-      replacedBy: 'build'
+      replacedBy: 'build',
     },
     {
       command: 'swarm-init',
@@ -122,7 +122,7 @@ export class CommandRouter {
       tier: UserTier.EXPERT,
       aliases: ['swarm', 'topology'],
       deprecated: true,
-      replacedBy: 'init'
+      replacedBy: 'init',
     },
     {
       command: 'agent-spawn',
@@ -130,7 +130,7 @@ export class CommandRouter {
       tier: UserTier.EXPERT,
       aliases: ['spawn-agent'],
       deprecated: true,
-      replacedBy: 'agents'
+      replacedBy: 'agents',
     },
     {
       command: 'task-orchestrate',
@@ -138,8 +138,8 @@ export class CommandRouter {
       tier: UserTier.EXPERT,
       aliases: ['orchestrate', 'workflow'],
       deprecated: true,
-      replacedBy: 'build'
-    }
+      replacedBy: 'build',
+    },
   ];
 
   constructor(
@@ -150,8 +150,8 @@ export class CommandRouter {
       enableBackwardCompatibility: true,
       showDeprecationWarnings: true,
       autoUpgradeCommands: true,
-      legacyMode: false
-    }
+      legacyMode: false,
+    },
   ) {
     this.tierManager = tierManager;
     this.intelligenceEngine = intelligenceEngine;
@@ -207,7 +207,7 @@ export class CommandRouter {
       allRoutes.push(...this.legacyRoutes);
     }
 
-    return allRoutes.filter(route => this.canAccessRoute(route, currentTier));
+    return allRoutes.filter((route) => this.canAccessRoute(route, currentTier));
   }
 
   /**
@@ -223,7 +223,7 @@ export class CommandRouter {
    */
   getCommandSuggestions(command: string): string[] {
     const availableCommands = this.getAvailableCommands();
-    const suggestions: Array<{command: string, score: number}> = [];
+    const suggestions: Array<{ command: string; score: number }> = [];
 
     for (const route of availableCommands) {
       const allNames = [route.command, ...route.aliases];
@@ -240,27 +240,29 @@ export class CommandRouter {
     return suggestions
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
-      .map(s => s.command);
+      .map((s) => s.command);
   }
 
   /**
    * Handle natural language command interpretation
    */
-  async interpretNaturalLanguage(input: string): Promise<{command: string, args: string[], confidence: number}> {
+  async interpretNaturalLanguage(
+    input: string,
+  ): Promise<{ command: string; args: string[]; confidence: number }> {
     // Use intelligence engine to interpret natural language
     const analysis = await this.intelligenceEngine.analyzeTask(input);
 
     // Map intent to command
     const commandMap: Record<string, string> = {
-      'create': 'init',
-      'build': 'build',
-      'implement': 'build',
-      'test': 'test',
-      'deploy': 'deploy',
-      'optimize': 'optimize',
-      'review': 'review',
-      'analyze': 'status',
-      'help': 'help'
+      create: 'init',
+      build: 'build',
+      implement: 'build',
+      test: 'test',
+      deploy: 'deploy',
+      optimize: 'optimize',
+      review: 'review',
+      analyze: 'status',
+      help: 'help',
     };
 
     const command = commandMap[analysis.intent] || 'build';
@@ -268,7 +270,7 @@ export class CommandRouter {
     return {
       command,
       args: [input],
-      confidence: analysis.confidence
+      confidence: analysis.confidence,
     };
   }
 
@@ -336,7 +338,7 @@ export class CommandRouter {
           projectType: args[0],
           template: options.template,
           interactive: options.interactive || options.i,
-          skipGit: options['skip-git']
+          skipGit: options['skip-git'],
         };
 
       case 'build':
@@ -344,14 +346,14 @@ export class CommandRouter {
           feature: args.join(' ') || options.feature,
           agent: options.agent,
           parallel: options.parallel,
-          dryRun: options['dry-run']
+          dryRun: options['dry-run'],
         };
 
       case 'status':
         return {
           detailed: options.detailed || options.d,
           watch: options.watch || options.w,
-          format: options.format
+          format: options.format,
         };
 
       case 'help':
@@ -359,14 +361,14 @@ export class CommandRouter {
           command: args[0],
           interactive: options.interactive || options.i,
           examples: options.examples,
-          newFeatures: options['new-features']
+          newFeatures: options['new-features'],
         };
 
       case 'learn':
         return {
           topic: args[0],
           level: options.level,
-          interactive: options.interactive || options.i
+          interactive: options.interactive || options.i,
         };
 
       default:
@@ -392,7 +394,7 @@ export class CommandRouter {
 
     if (suggestions.length > 0) {
       message += `\n\n💡 Did you mean one of these?`;
-      suggestions.forEach(suggestion => {
+      suggestions.forEach((suggestion) => {
         message += `\n   claude-flow ${suggestion}`;
       });
     }
@@ -404,7 +406,7 @@ export class CommandRouter {
     return {
       success: false,
       message,
-      suggestions: suggestions.length > 0 ? suggestions : ['help', 'learn', 'status']
+      suggestions: suggestions.length > 0 ? suggestions : ['help', 'learn', 'status'],
     };
   }
 
@@ -418,13 +420,13 @@ export class CommandRouter {
       data: {
         currentTier,
         requiredTier: route.tier,
-        progress
+        progress,
       },
       suggestions: [
         `You're currently ${currentTier.toUpperCase()} tier`,
         progress.nextTierRequirements || 'Keep using commands to unlock new features',
-        'Use `claude-flow learn` to discover how to unlock more commands'
-      ]
+        'Use `claude-flow learn` to discover how to unlock more commands',
+      ],
     };
   }
 
@@ -445,14 +447,16 @@ export class CommandRouter {
       suggestions: [
         'Try the command again',
         'Check `claude-flow status` for system issues',
-        'Use `claude-flow help` for command guidance'
-      ]
+        'Use `claude-flow help` for command guidance',
+      ],
     };
   }
 
   private calculateSimilarity(a: string, b: string): number {
     // Simple Levenshtein distance-based similarity
-    const matrix = Array(b.length + 1).fill(null).map(() => Array(a.length + 1).fill(null));
+    const matrix = Array(b.length + 1)
+      .fill(null)
+      .map(() => Array(a.length + 1).fill(null));
 
     for (let i = 0; i <= a.length; i += 1) {
       matrix[0][i] = i;
@@ -466,9 +470,9 @@ export class CommandRouter {
       for (let i = 1; i <= a.length; i += 1) {
         const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
         matrix[j][i] = Math.min(
-          matrix[j][i - 1] + 1,     // deletion
-          matrix[j - 1][i] + 1,     // insertion
-          matrix[j - 1][i - 1] + indicator  // substitution
+          matrix[j][i - 1] + 1, // deletion
+          matrix[j - 1][i] + 1, // insertion
+          matrix[j - 1][i - 1] + indicator, // substitution
         );
       }
     }
@@ -486,9 +490,9 @@ export class CommandRouter {
 
     const sparcToBuildMap: Record<string, string> = {
       'spec-pseudocode': 'analyze and plan implementation',
-      'architect': 'design system architecture',
-      'tdd': 'implement with test-driven development',
-      'integration': 'integrate and test components'
+      architect: 'design system architecture',
+      tdd: 'implement with test-driven development',
+      integration: 'integrate and test components',
     };
 
     const mode = options.args?.[0];
@@ -522,8 +526,8 @@ export class CommandRouter {
       suggestions: [
         'Use `claude-flow build "your feature"` - agents are selected automatically',
         'Upgrade to Intermediate tier to access direct agent management',
-        'Use `claude-flow learn agents` to understand the new system'
-      ]
+        'Use `claude-flow learn agents` to understand the new system',
+      ],
     };
   }
 
@@ -536,10 +540,10 @@ export class CommandRouter {
 
   private mapTopologyToProjectType(topology: string): string {
     const topologyMap: Record<string, string> = {
-      'hierarchical': 'enterprise',
-      'mesh': 'microservices',
-      'ring': 'web',
-      'star': 'api'
+      hierarchical: 'enterprise',
+      mesh: 'microservices',
+      ring: 'web',
+      star: 'api',
     };
 
     return topologyMap[topology] || 'web';

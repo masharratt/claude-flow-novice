@@ -1,18 +1,18 @@
 /**
  * Test suite for GitHub CLI Safety Wrapper
- * 
+ *
  * Tests all security features, error handling, and functionality
  */
 
 import { jest } from '@jest/globals';
-import { 
-  GitHubCliSafe, 
-  createGitHubCliSafe, 
+import {
+  GitHubCliSafe,
+  createGitHubCliSafe,
   githubCli,
   GitHubCliError,
   GitHubCliTimeoutError,
   GitHubCliValidationError,
-  GitHubCliRateLimitError
+  GitHubCliRateLimitError,
 } from '../github-cli-safety-wrapper.js';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -23,7 +23,7 @@ jest.mock('fs', () => ({
   promises: {
     writeFile: jest.fn(),
     unlink: jest.fn(),
-  }
+  },
 }));
 
 describe('GitHubCliSafe', () => {
@@ -35,14 +35,14 @@ describe('GitHubCliSafe', () => {
     ghSafe = new GitHubCliSafe({
       timeout: 5000,
       enableRateLimit: false,
-      enableLogging: false
+      enableLogging: false,
     });
 
     mockChild = {
       kill: jest.fn(),
       on: jest.fn(),
       stdout: { on: jest.fn() },
-      stderr: { on: jest.fn() }
+      stderr: { on: jest.fn() },
     };
 
     mockSpawn = spawn.mockReturnValue(mockChild);
@@ -58,7 +58,7 @@ describe('GitHubCliSafe', () => {
     test('should validate allowed commands', () => {
       expect(() => ghSafe.validateCommand('issue create')).not.toThrow();
       expect(() => ghSafe.validateCommand('pr comment')).not.toThrow();
-      
+
       expect(() => ghSafe.validateCommand('rm -rf /')).toThrow(GitHubCliValidationError);
       expect(() => ghSafe.validateCommand('maliciouscommand')).toThrow(GitHubCliValidationError);
     });
@@ -80,10 +80,10 @@ describe('GitHubCliSafe', () => {
         'test > /dev/null',
         'test | sh',
         'eval("malicious")',
-        'exec("malicious")'
+        'exec("malicious")',
       ];
 
-      dangerousInputs.forEach(input => {
+      dangerousInputs.forEach((input) => {
         expect(() => ghSafe.sanitizeInput(input)).toThrow(GitHubCliValidationError);
       });
     });
@@ -94,10 +94,10 @@ describe('GitHubCliSafe', () => {
         'Code example: console.log("hello")',
         'File path: /src/components/Button.jsx',
         'Numbers: 123, versions: v1.2.3',
-        'Special chars: @#$%^&*()_+-=[]{}|;:,.<>?'
+        'Special chars: @#$%^&*()_+-=[]{}|;:,.<>?',
       ];
 
-      safeInputs.forEach(input => {
+      safeInputs.forEach((input) => {
         expect(() => ghSafe.sanitizeInput(input)).not.toThrow();
       });
     });
@@ -105,7 +105,7 @@ describe('GitHubCliSafe', () => {
     test('should validate body size limits', () => {
       const largeBody = 'x'.repeat(1024 * 1024 + 1); // > 1MB
       expect(() => ghSafe.validateBodySize(largeBody)).toThrow(GitHubCliValidationError);
-      
+
       const normalBody = 'x'.repeat(1000);
       expect(() => ghSafe.validateBodySize(normalBody)).not.toThrow();
     });
@@ -114,35 +114,36 @@ describe('GitHubCliSafe', () => {
   describe('Process Management', () => {
     test('should spawn process with correct arguments', async () => {
       const mockProcess = setupMockProcess(0, 'success', '');
-      
+
       await ghSafe.execute('issue create', {
         title: 'Test Issue',
-        body: 'Test body'
+        body: 'Test body',
       });
 
-      expect(spawn).toHaveBeenCalledWith('gh', 
+      expect(spawn).toHaveBeenCalledWith(
+        'gh',
         expect.arrayContaining(['issue', 'create', '--title', 'Test Issue']),
         expect.objectContaining({
           stdio: ['ignore', 'pipe', 'pipe'],
-          shell: false
-        })
+          shell: false,
+        }),
       );
     });
 
     test('should handle process timeout', async () => {
       setupMockProcess(null, '', '', true); // Never completes
 
-      await expect(
-        ghSafe.execute('issue create', { title: 'Test' })
-      ).rejects.toThrow(GitHubCliTimeoutError);
+      await expect(ghSafe.execute('issue create', { title: 'Test' })).rejects.toThrow(
+        GitHubCliTimeoutError,
+      );
     });
 
     test('should handle process failure', async () => {
       setupMockProcess(1, '', 'Command failed');
 
-      await expect(
-        ghSafe.execute('issue create', { title: 'Test' })
-      ).rejects.toThrow(GitHubCliError);
+      await expect(ghSafe.execute('issue create', { title: 'Test' })).rejects.toThrow(
+        GitHubCliError,
+      );
     });
 
     test('should cleanup processes on timeout', async () => {
@@ -196,7 +197,7 @@ describe('GitHubCliSafe', () => {
       const rateLimitedGh = new GitHubCliSafe({
         enableRateLimit: true,
         maxRequestsPerWindow: 2,
-        rateLimitWindow: 1000
+        rateLimitWindow: 1000,
       });
 
       // Mock successful executions
@@ -207,9 +208,7 @@ describe('GitHubCliSafe', () => {
       await rateLimitedGh.execute('auth status');
 
       // Third request should be rate limited
-      await expect(
-        rateLimitedGh.execute('auth status')
-      ).rejects.toThrow(GitHubCliRateLimitError);
+      await expect(rateLimitedGh.execute('auth status')).rejects.toThrow(GitHubCliRateLimitError);
     });
   });
 
@@ -219,13 +218,13 @@ describe('GitHubCliSafe', () => {
 
       await ghSafe.execute('issue create', {
         title: 'Test',
-        body: 'Test body'
+        body: 'Test body',
       });
 
       expect(fs.writeFile).toHaveBeenCalledWith(
         expect.stringMatching(/gh-safe-.*\.tmp$/),
         'Test body',
-        { mode: 0o600 }
+        { mode: 0o600 },
       );
     });
 
@@ -235,7 +234,7 @@ describe('GitHubCliSafe', () => {
       try {
         await ghSafe.execute('issue create', {
           title: 'Test',
-          body: 'Test body'
+          body: 'Test body',
         });
       } catch (error) {
         // Expected to fail
@@ -255,18 +254,24 @@ describe('GitHubCliSafe', () => {
         title: 'Bug Report',
         body: 'Found a bug',
         labels: ['bug', 'high-priority'],
-        assignees: ['user1', 'user2']
+        assignees: ['user1', 'user2'],
       });
 
-      expect(spawn).toHaveBeenCalledWith('gh', 
+      expect(spawn).toHaveBeenCalledWith(
+        'gh',
         expect.arrayContaining([
-          'issue', 'create',
-          '--title', 'Bug Report',
-          '--body-file', expect.stringMatching(/gh-safe-.*\.tmp$/),
-          '--label', 'bug,high-priority',
-          '--assignee', 'user1,user2'
+          'issue',
+          'create',
+          '--title',
+          'Bug Report',
+          '--body-file',
+          expect.stringMatching(/gh-safe-.*\.tmp$/),
+          '--label',
+          'bug,high-priority',
+          '--assignee',
+          'user1,user2',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -276,31 +281,41 @@ describe('GitHubCliSafe', () => {
         body: 'Adds new component',
         base: 'develop',
         head: 'feature/new-component',
-        draft: true
+        draft: true,
       });
 
-      expect(spawn).toHaveBeenCalledWith('gh',
+      expect(spawn).toHaveBeenCalledWith(
+        'gh',
         expect.arrayContaining([
-          'pr', 'create',
-          '--title', 'Feature: Add new component',
-          '--body-file', expect.stringMatching(/gh-safe-.*\.tmp$/),
-          '--base', 'develop',
-          '--head', 'feature/new-component',
-          '--draft'
+          'pr',
+          'create',
+          '--title',
+          'Feature: Add new component',
+          '--body-file',
+          expect.stringMatching(/gh-safe-.*\.tmp$/),
+          '--base',
+          'develop',
+          '--head',
+          'feature/new-component',
+          '--draft',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
     test('should add issue comment', async () => {
       await ghSafe.addIssueComment(123, 'This is a comment');
 
-      expect(spawn).toHaveBeenCalledWith('gh',
+      expect(spawn).toHaveBeenCalledWith(
+        'gh',
         expect.arrayContaining([
-          'issue', 'comment', '123',
-          '--body-file', expect.stringMatching(/gh-safe-.*\.tmp$/)
+          'issue',
+          'comment',
+          '123',
+          '--body-file',
+          expect.stringMatching(/gh-safe-.*\.tmp$/),
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
@@ -324,9 +339,9 @@ describe('GitHubCliSafe', () => {
 
     test('should cleanup active processes', async () => {
       ghSafe.activeProcesses.set('test-process', mockChild);
-      
+
       await ghSafe.cleanup();
-      
+
       expect(mockChild.kill).toHaveBeenCalledWith('SIGTERM');
       expect(ghSafe.activeProcesses.size).toBe(0);
     });
@@ -336,7 +351,7 @@ describe('GitHubCliSafe', () => {
     test('should create configured instance', () => {
       const instance = createGitHubCliSafe({
         timeout: 10000,
-        maxRetries: 5
+        maxRetries: 5,
       });
 
       expect(instance).toBeInstanceOf(GitHubCliSafe);
@@ -383,7 +398,7 @@ describe('GitHubCliSafe', () => {
 describe('Error Classes', () => {
   test('GitHubCliError should contain proper details', () => {
     const error = new GitHubCliError('Test error', 'TEST_CODE', { test: true });
-    
+
     expect(error.name).toBe('GitHubCliError');
     expect(error.code).toBe('TEST_CODE');
     expect(error.details).toEqual({ test: true });
@@ -392,7 +407,7 @@ describe('Error Classes', () => {
 
   test('GitHubCliTimeoutError should extend GitHubCliError', () => {
     const error = new GitHubCliTimeoutError(5000, 'gh issue create');
-    
+
     expect(error).toBeInstanceOf(GitHubCliError);
     expect(error.name).toBe('GitHubCliTimeoutError');
     expect(error.code).toBe('TIMEOUT');
@@ -400,7 +415,7 @@ describe('Error Classes', () => {
 
   test('GitHubCliValidationError should contain field info', () => {
     const error = new GitHubCliValidationError('Invalid field', 'testField', 'testValue');
-    
+
     expect(error.name).toBe('GitHubCliValidationError');
     expect(error.details.field).toBe('testField');
     expect(error.details.value).toBe('testValue');

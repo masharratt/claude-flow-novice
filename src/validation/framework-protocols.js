@@ -25,20 +25,26 @@ export class FrameworkProtocolHandler {
     // Framework-specific thresholds
     this.frameworkThresholds = {
       TDD: {
-        truthScore: 0.90,
+        truthScore: 0.9,
         testCoverage: 0.95,
-        requiredEvidence: ['unitTests', 'integrationTests', 'redGreenRefactor']
+        requiredEvidence: ['unitTests', 'integrationTests', 'redGreenRefactor'],
       },
       BDD: {
         truthScore: 0.85,
-        scenarioCoverage: 0.90,
-        requiredEvidence: ['gherkinScenarios', 'acceptanceCriteria', 'userStories']
+        scenarioCoverage: 0.9,
+        requiredEvidence: ['gherkinScenarios', 'acceptanceCriteria', 'userStories'],
       },
       SPARC: {
-        truthScore: 0.80,
+        truthScore: 0.8,
         phaseCompletion: 1.0,
-        requiredEvidence: ['specification', 'pseudocode', 'architecture', 'refinement', 'completion']
-      }
+        requiredEvidence: [
+          'specification',
+          'pseudocode',
+          'architecture',
+          'refinement',
+          'completion',
+        ],
+      },
     };
 
     this.initialized = false;
@@ -98,7 +104,7 @@ export class FrameworkProtocolHandler {
       framework: 'TDD',
       byzantineConsensus: byzantineResult.consensus,
       ...tddRequirements,
-      ...byzantineResult
+      ...byzantineResult,
     };
 
     // Store validation result
@@ -120,7 +126,7 @@ export class FrameworkProtocolHandler {
       redPhaseValid: false,
       greenPhaseValid: false,
       refactorPhaseValid: false,
-      violations: []
+      violations: [],
     };
 
     // Validate Red Phase
@@ -141,7 +147,10 @@ export class FrameworkProtocolHandler {
 
     // Validate Refactor Phase
     const refactorPhase = cycleEvidence.refactorPhase || {};
-    if (refactorPhase.codeImproved && refactorPhase.testsStillPassing === greenPhase.testsNowPassing) {
+    if (
+      refactorPhase.codeImproved &&
+      refactorPhase.testsStillPassing === greenPhase.testsNowPassing
+    ) {
       validationResults.refactorPhaseValid = true;
     } else {
       validationResults.violations.push('refactor_phase_invalid');
@@ -160,7 +169,7 @@ export class FrameworkProtocolHandler {
       ...validationResults,
       truthScore,
       byzantineValidated: byzantineResult.consensus,
-      ...byzantineResult
+      ...byzantineResult,
     };
   }
 
@@ -209,7 +218,7 @@ export class FrameworkProtocolHandler {
       violations,
       framework: 'BDD',
       byzantineConsensus: byzantineResult.consensus,
-      ...byzantineResult
+      ...byzantineResult,
     };
 
     // Store validation result
@@ -232,7 +241,7 @@ export class FrameworkProtocolHandler {
       scenariosCount: gherkinScenarios.length,
       allScenariosValid: true,
       scenarios: [],
-      violations: []
+      violations: [],
     };
 
     // Validate evidence if available
@@ -251,7 +260,7 @@ export class FrameworkProtocolHandler {
         hasGiven: Boolean(scenario.given),
         hasWhen: Boolean(scenario.when),
         hasThen: Boolean(scenario.then),
-        valid: Boolean(scenario.given && scenario.when && scenario.then)
+        valid: Boolean(scenario.given && scenario.when && scenario.then),
       };
 
       if (!scenarioValidation.valid) {
@@ -310,7 +319,7 @@ export class FrameworkProtocolHandler {
       incompletePhases: phaseValidation.incompletePhases,
       framework: 'SPARC',
       byzantineConsensus: byzantineResult.consensus,
-      ...byzantineResult
+      ...byzantineResult,
     };
 
     // Store validation result
@@ -331,10 +340,16 @@ export class FrameworkProtocolHandler {
       evidenceValidated: true,
       missingDeliverables: [],
       validatedDeliverables: [],
-      phaseEvidence: {}
+      phaseEvidence: {},
     };
 
-    const requiredPhases = ['specification', 'pseudocode', 'architecture', 'refinement', 'completion'];
+    const requiredPhases = [
+      'specification',
+      'pseudocode',
+      'architecture',
+      'refinement',
+      'completion',
+    ];
 
     for (const phase of requiredPhases) {
       const phaseDeliverables = deliverables[phase] || [];
@@ -342,10 +357,10 @@ export class FrameworkProtocolHandler {
         hasEvidence: phaseDeliverables.length > 0,
         validDeliverables: 0,
         totalDeliverables: phaseDeliverables.length,
-        missingFiles: []
+        missingFiles: [],
       };
 
-      phaseDeliverables.forEach(deliverable => {
+      phaseDeliverables.forEach((deliverable) => {
         if (deliverable.exists && deliverable.validated) {
           phaseValidation.validDeliverables++;
           validationResult.validatedDeliverables.push(deliverable.file);
@@ -375,24 +390,27 @@ export class FrameworkProtocolHandler {
     let overallConsensus = true;
 
     for (const completion of completions) {
-      const frameworkValidators = validators.filter(v =>
-        v.specialization === completion.framework || v.specialization === 'GENERAL'
+      const frameworkValidators = validators.filter(
+        (v) => v.specialization === completion.framework || v.specialization === 'GENERAL',
       );
 
       const proposal = {
         completionId: completion.id,
         framework: completion.framework,
         truthScore: completion.truthScore,
-        thresholdMet: this.checkFrameworkThreshold(completion)
+        thresholdMet: this.checkFrameworkThreshold(completion),
       };
 
-      const consensusResult = await this.byzantineConsensus.achieveConsensus(proposal, frameworkValidators);
+      const consensusResult = await this.byzantineConsensus.achieveConsensus(
+        proposal,
+        frameworkValidators,
+      );
 
       const frameworkResult = {
         framework: completion.framework,
         consensusAchieved: consensusResult.achieved,
         validatorAgreement: consensusResult.consensusRatio,
-        thresholdMet: proposal.thresholdMet
+        thresholdMet: proposal.thresholdMet,
       };
 
       frameworkResults.push(frameworkResult);
@@ -410,7 +428,7 @@ export class FrameworkProtocolHandler {
       frameworkResults,
       consensusProof: 'multi-framework-proof-xyz789',
       validatorSignatures: validators.length,
-      timestampVerified: true
+      timestampVerified: true,
     };
   }
 
@@ -425,19 +443,20 @@ export class FrameworkProtocolHandler {
       completionId: completion.id,
       framework: completion.framework,
       truthScore: completion.truthScore,
-      conflictResolution: true
+      conflictResolution: true,
     };
 
-    const validators = validatorOpinions.map(opinion => ({
+    const validators = validatorOpinions.map((opinion) => ({
       id: opinion.validator,
       vote: opinion.vote,
-      reason: opinion.reason
+      reason: opinion.reason,
     }));
 
     const consensusResult = await this.byzantineConsensus.achieveConsensus(proposal, validators);
 
     const frameworkRequirementsMet = this.checkFrameworkThreshold(completion);
-    const majorityVote = validatorOpinions.filter(op => op.vote).length > validatorOpinions.length / 2;
+    const majorityVote =
+      validatorOpinions.filter((op) => op.vote).length > validatorOpinions.length / 2;
 
     return {
       consensus: consensusResult.achieved,
@@ -446,7 +465,7 @@ export class FrameworkProtocolHandler {
       byzantineSecure: true,
       majorityVote,
       frameworkRequirementsMet,
-      validatorAgreement: consensusResult.consensusRatio
+      validatorAgreement: consensusResult.consensusRatio,
     };
   }
 
@@ -461,9 +480,9 @@ export class FrameworkProtocolHandler {
       performanceMetrics: {
         avgValidationTime: 0,
         maxValidationTime: 0,
-        totalTime: 0
+        totalTime: 0,
       },
-      frameworkResults: {}
+      frameworkResults: {},
     };
 
     const startTime = performance.now();
@@ -476,10 +495,10 @@ export class FrameworkProtocolHandler {
         const completion = {
           id: `${framework}-test-${i}`,
           framework,
-          truthScore: 0.80 + Math.random() * 0.20,
+          truthScore: 0.8 + Math.random() * 0.2,
           testCoverage: framework === 'TDD' ? 0.95 + Math.random() * 0.05 : undefined,
-          scenarioCoverage: framework === 'BDD' ? 0.90 + Math.random() * 0.10 : undefined,
-          phaseCompletion: framework === 'SPARC' ? 1.0 : undefined
+          scenarioCoverage: framework === 'BDD' ? 0.9 + Math.random() * 0.1 : undefined,
+          phaseCompletion: framework === 'SPARC' ? 1.0 : undefined,
         };
 
         const validationStartTime = performance.now();
@@ -488,7 +507,7 @@ export class FrameworkProtocolHandler {
 
         results.performanceMetrics.maxValidationTime = Math.max(
           results.performanceMetrics.maxValidationTime,
-          validationTime
+          validationTime,
         );
 
         frameworkValidations++;
@@ -499,7 +518,7 @@ export class FrameworkProtocolHandler {
       results.frameworkResults[framework] = {
         validations: frameworkValidations,
         totalTime: frameworkTime,
-        avgTime: frameworkTime / frameworkValidations
+        avgTime: frameworkTime / frameworkValidations,
       };
     }
 
@@ -533,12 +552,18 @@ export class FrameworkProtocolHandler {
       violations,
       testsWrittenFirst: implementation.testsWrittenFirst || false,
       redGreenRefactor: implementation.redGreenRefactor || false,
-      hasUnitTests: Boolean(evidence.unitTests)
+      hasUnitTests: Boolean(evidence.unitTests),
     };
   }
 
   validateSPARCPhases(phases) {
-    const requiredPhases = ['specification', 'pseudocode', 'architecture', 'refinement', 'completion'];
+    const requiredPhases = [
+      'specification',
+      'pseudocode',
+      'architecture',
+      'refinement',
+      'completion',
+    ];
     const violations = [];
     const incompletePhases = [];
     const phaseResults = {};
@@ -550,7 +575,7 @@ export class FrameworkProtocolHandler {
       phaseResults[phase] = {
         completed: isComplete,
         completeness: phaseData.completeness || 0,
-        evidenceProvided: Boolean(phaseData.evidence && phaseData.evidence.length > 0)
+        evidenceProvided: Boolean(phaseData.evidence && phaseData.evidence.length > 0),
       };
 
       if (!isComplete) {
@@ -562,14 +587,20 @@ export class FrameworkProtocolHandler {
     return {
       phases: phaseResults,
       violations,
-      incompletePhases
+      incompletePhases,
     };
   }
 
   calculateSPARCPhaseCompletion(phases) {
-    const requiredPhases = ['specification', 'pseudocode', 'architecture', 'refinement', 'completion'];
-    const completedPhases = requiredPhases.filter(phase =>
-      phases[phase]?.completed === true && phases[phase]?.completeness === 1.0
+    const requiredPhases = [
+      'specification',
+      'pseudocode',
+      'architecture',
+      'refinement',
+      'completion',
+    ];
+    const completedPhases = requiredPhases.filter(
+      (phase) => phases[phase]?.completed === true && phases[phase]?.completeness === 1.0,
     );
     return completedPhases.length / requiredPhases.length;
   }
@@ -612,7 +643,7 @@ export class FrameworkProtocolHandler {
       completionId: completion.id,
       framework,
       claim: completion.claim,
-      truthScore: completion.truthScore || 0
+      truthScore: completion.truthScore || 0,
     };
 
     const consensusResult = await this.byzantineConsensus.achieveConsensus(proposal, validators);
@@ -621,7 +652,7 @@ export class FrameworkProtocolHandler {
       consensus: consensusResult.achieved,
       validatorAgreement: consensusResult.consensusRatio,
       cryptographicProof: consensusResult.byzantineProof?.proofHash || 'test-proof',
-      consensusRatio: consensusResult.consensusRatio
+      consensusRatio: consensusResult.consensusRatio,
     };
   }
 
@@ -629,13 +660,13 @@ export class FrameworkProtocolHandler {
     return Array.from({ length: count }, (_, i) => ({
       id: `${framework.toLowerCase()}-validator-${i}`,
       specialization: framework,
-      reputation: 0.85 + Math.random() * 0.15
+      reputation: 0.85 + Math.random() * 0.15,
     }));
   }
 
   calculateFallbackTruthScore(completion) {
     // Simple fallback scoring
-    const baseScore = 0.70;
+    const baseScore = 0.7;
     const frameworkBonus = completion.framework ? 0.05 : 0;
     const evidenceBonus = Object.keys(completion.evidence || {}).length * 0.02;
     return Math.min(1.0, baseScore + frameworkBonus + evidenceBonus);
@@ -648,8 +679,8 @@ export class FrameworkProtocolHandler {
       metadata: {
         framework: result.framework,
         passed: result.passed,
-        truthScore: result.truthScore
-      }
+        truthScore: result.truthScore,
+      },
     });
   }
 

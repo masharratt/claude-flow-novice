@@ -196,7 +196,7 @@ export class SwarmApi {
   private async createSwarm(req: any, res: any): Promise<void> {
     try {
       const request = req.body as SwarmCreateRequest;
-      
+
       // Validate request
       if (!request.name || !request.topology) {
         return res.status(400).json({
@@ -296,7 +296,7 @@ export class SwarmApi {
         swarmId,
         config,
         status,
-        agents: agents.map(agent => ({
+        agents: agents.map((agent) => ({
           id: agent.id,
           type: agent.type,
           name: agent.name,
@@ -577,7 +577,7 @@ export class SwarmApi {
 
       const agents = await swarm.getAgents();
       res.json({
-        agents: agents.map(agent => ({
+        agents: agents.map((agent) => ({
           id: agent.id,
           type: agent.type,
           name: agent.name,
@@ -655,7 +655,7 @@ export class SwarmApi {
 
       const tasks = await swarm.getTasks();
       res.json({
-        tasks: tasks.map(task => ({
+        tasks: tasks.map((task) => ({
           id: task.id,
           description: task.description,
           status: task.status,

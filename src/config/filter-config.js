@@ -52,7 +52,7 @@ class FilterConfiguration {
         settingsConfig = {
           contentFilters: settings.contentFilters || {},
           toneProcessors: settings.toneProcessors || {},
-          userPreferences: settings.userPreferences || {}
+          userPreferences: settings.userPreferences || {},
         };
       }
     } catch (error) {
@@ -60,12 +60,7 @@ class FilterConfiguration {
     }
 
     // Merge configurations with precedence: project > settings > global > default
-    this.config = this.deepMerge(
-      defaultConfig,
-      globalConfig,
-      settingsConfig,
-      projectConfig
-    );
+    this.config = this.deepMerge(defaultConfig, globalConfig, settingsConfig, projectConfig);
 
     this.validateConfiguration();
   }
@@ -86,44 +81,44 @@ class FilterConfiguration {
           'GUIDE',
           'TUTORIAL',
           'SPEC',
-          'ARCHITECTURE'
+          'ARCHITECTURE',
         ],
         blockedPatterns: [
           {
             pattern: 'IMPLEMENTATION_REPORT',
             reason: 'Implementation reports create clutter',
-            severity: 'high'
+            severity: 'high',
           },
           {
             pattern: 'COMPLETION_SUMMARY',
             reason: 'Completion summaries are redundant',
-            severity: 'medium'
+            severity: 'medium',
           },
           {
             pattern: 'AGENT_REPORT',
             reason: 'Agent reports should be consolidated',
-            severity: 'medium'
+            severity: 'medium',
           },
           {
             pattern: 'PERFORMANCE_ANALYSIS',
             reason: 'Performance data should be in metrics files',
-            severity: 'low'
+            severity: 'low',
           },
           {
             pattern: '^TEMP_',
             reason: 'Temporary files should not be committed',
-            severity: 'high'
+            severity: 'high',
           },
           {
             pattern: '^WORKING_',
             reason: 'Working files should not be committed',
-            severity: 'high'
+            severity: 'high',
           },
           {
             pattern: 'STATUS_UPDATE',
             reason: 'Status updates should be in logs',
-            severity: 'medium'
-          }
+            severity: 'medium',
+          },
         ],
         rootDirectoryProtection: true,
         allowedRootFiles: [
@@ -132,26 +127,20 @@ class FilterConfiguration {
           'LICENSE.md',
           'CONTRIBUTING.md',
           'CODE_OF_CONDUCT.md',
-          'SECURITY.md'
+          'SECURITY.md',
         ],
         preferredDirectories: {
           documentation: ['docs', 'documentation', 'guides'],
           reports: ['reports', 'analysis', 'metrics'],
           temporary: ['temp', 'working', 'draft', 'scratch'],
           tests: ['test-reports', 'coverage', 'benchmarks'],
-          specifications: ['specs', 'requirements', 'designs']
+          specifications: ['specs', 'requirements', 'designs'],
         },
         consolidationRules: {
           maxSimilarFiles: 3,
           similarityThreshold: 0.7,
-          consolidatePatterns: [
-            'report',
-            'summary',
-            'analysis',
-            'status',
-            'update'
-          ]
-        }
+          consolidatePatterns: ['report', 'summary', 'analysis', 'status', 'update'],
+        },
       },
       toneProcessors: {
         enabled: true,
@@ -161,39 +150,39 @@ class FilterConfiguration {
             formality: 0.8,
             enthusiasm: 0.3,
             technical: 0.7,
-            conciseness: 0.6
+            conciseness: 0.6,
           },
           casual: {
             formality: 0.3,
             enthusiasm: 0.6,
             technical: 0.4,
-            conciseness: 0.5
+            conciseness: 0.5,
           },
           technical: {
             formality: 0.9,
             enthusiasm: 0.2,
             technical: 0.9,
-            conciseness: 0.8
+            conciseness: 0.8,
           },
           concise: {
             formality: 0.6,
             enthusiasm: 0.1,
             technical: 0.8,
-            conciseness: 0.9
+            conciseness: 0.9,
           },
           friendly: {
             formality: 0.4,
             enthusiasm: 0.8,
             technical: 0.5,
-            conciseness: 0.4
-          }
+            conciseness: 0.4,
+          },
         },
         processing: {
           removeSelfCongratulatory: true,
           simplifyJargon: false,
           focusOnActionable: true,
           removeFluff: true,
-          enhanceClarity: true
+          enhanceClarity: true,
         },
         customPatterns: {
           'we have successfully': 'we have',
@@ -203,7 +192,7 @@ class FilterConfiguration {
           'incredible performance': 'good performance',
           'outstanding achievement': 'achievement',
           'brilliant solution': 'solution',
-          'seamlessly integrated': 'integrated'
+          'seamlessly integrated': 'integrated',
         },
         agentSpecificTones: {
           researcher: 'technical',
@@ -215,8 +204,8 @@ class FilterConfiguration {
           'frontend-dev': 'friendly',
           devops: 'concise',
           analyst: 'technical',
-          architect: 'professional'
-        }
+          architect: 'professional',
+        },
       },
       userPreferences: {
         strictMode: false,
@@ -226,38 +215,38 @@ class FilterConfiguration {
         preferredTone: 'professional',
         autoSuggestAlternatives: true,
         logFilterActions: true,
-        realTimeNotifications: false
+        realTimeNotifications: false,
       },
       hooks: {
         preDocumentGeneration: true,
         postAgentMessage: true,
         preFileWrite: true,
         realTimeFiltering: true,
-        batchProcessing: true
+        batchProcessing: true,
       },
       projectTypes: {
         'web-app': {
           allowedDocTypes: ['API', 'README', 'GUIDE', 'SPEC'],
           maxMdFiles: 20,
-          preferredTone: 'professional'
+          preferredTone: 'professional',
         },
-        'library': {
+        library: {
           allowedDocTypes: ['API', 'README', 'CHANGELOG', 'TUTORIAL'],
           maxMdFiles: 10,
-          preferredTone: 'technical'
+          preferredTone: 'technical',
         },
-        'documentation': {
+        documentation: {
           allowedDocTypes: ['GUIDE', 'TUTORIAL', 'SPEC', 'API'],
           maxMdFiles: 50,
-          preferredTone: 'friendly'
+          preferredTone: 'friendly',
         },
-        'research': {
+        research: {
           allowedDocTypes: ['ANALYSIS', 'REPORT', 'SPEC', 'README'],
           maxMdFiles: 30,
           preferredTone: 'technical',
-          allowReports: true
-        }
-      }
+          allowReports: true,
+        },
+      },
     };
   }
 
@@ -285,7 +274,7 @@ class FilterConfiguration {
     // Validate tone processors
     if (this.config.toneProcessors && this.config.toneProcessors.presets) {
       Object.entries(this.config.toneProcessors.presets).forEach(([name, preset]) => {
-        ['formality', 'enthusiasm', 'technical', 'conciseness'].forEach(prop => {
+        ['formality', 'enthusiasm', 'technical', 'conciseness'].forEach((prop) => {
           if (typeof preset[prop] !== 'number' || preset[prop] < 0 || preset[prop] > 1) {
             errors.push(`Preset ${name}.${prop} must be a number between 0 and 1`);
           }
@@ -310,14 +299,15 @@ class FilterConfiguration {
       config = this.deepMerge(config, {
         contentFilters: this.config.projectTypes[context.projectType],
         userPreferences: {
-          preferredTone: this.config.projectTypes[context.projectType].preferredTone
-        }
+          preferredTone: this.config.projectTypes[context.projectType].preferredTone,
+        },
       });
     }
 
     // Apply agent-specific overrides
     if (context.agentType && this.config.toneProcessors.agentSpecificTones[context.agentType]) {
-      config.userPreferences.preferredTone = this.config.toneProcessors.agentSpecificTones[context.agentType];
+      config.userPreferences.preferredTone =
+        this.config.toneProcessors.agentSpecificTones[context.agentType];
     }
 
     // Apply runtime overrides
@@ -354,7 +344,7 @@ class FilterConfiguration {
       contentFilters: this.config.contentFilters,
       toneProcessors: this.config.toneProcessors,
       userPreferences: this.config.userPreferences,
-      hooks: this.config.hooks
+      hooks: this.config.hooks,
     };
 
     try {
@@ -379,7 +369,6 @@ class FilterConfiguration {
       if (scope === 'project') {
         this.updateSettingsJson();
       }
-
     } catch (error) {
       console.error('Error saving configuration:', error.message);
       throw error;
@@ -423,10 +412,10 @@ class FilterConfiguration {
         const watchPaths = [
           this.globalConfigPath,
           this.projectConfigPath,
-          this.settingsPath
-        ].filter(path => existsSync(path));
+          this.settingsPath,
+        ].filter((path) => existsSync(path));
 
-        watchPaths.forEach(path => {
+        watchPaths.forEach((path) => {
           fs.watchFile(path, { interval: 1000 }, () => {
             console.log(`Configuration file changed: ${path}`);
             this.loadConfiguration();
@@ -456,7 +445,7 @@ class FilterConfiguration {
 
     this.config.profiles[profileName] = {
       ...profileConfig,
-      created: new Date().toISOString()
+      created: new Date().toISOString(),
     };
 
     this.saveConfiguration();
@@ -519,10 +508,10 @@ class FilterConfiguration {
    * Deep merge utility
    */
   deepMerge(...objects) {
-    const isObject = obj => obj && typeof obj === 'object' && !Array.isArray(obj);
+    const isObject = (obj) => obj && typeof obj === 'object' && !Array.isArray(obj);
 
     return objects.reduce((prev, obj) => {
-      Object.keys(obj || {}).forEach(key => {
+      Object.keys(obj || {}).forEach((key) => {
         if (isObject(prev[key]) && isObject(obj[key])) {
           prev[key] = this.deepMerge(prev[key], obj[key]);
         } else {
@@ -543,9 +532,9 @@ class FilterConfiguration {
       configPaths: {
         global: this.globalConfigPath,
         project: this.projectConfigPath,
-        settings: this.settingsPath
+        settings: this.settingsPath,
       },
-      detectedProjectType: this.detectProjectType()
+      detectedProjectType: this.detectProjectType(),
     };
   }
 
@@ -592,7 +581,7 @@ class FilterConfiguration {
           default:
             throw new Error(`Unknown profile action: ${action}`);
         }
-      }
+      },
     };
   }
 }

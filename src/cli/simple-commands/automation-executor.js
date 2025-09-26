@@ -1,8 +1,8 @@
 /**
  * Modular Automation Executor for Claude Flow
- * 
+ *
  * This module provides the core infrastructure for executing automation
- * workflows with Claude CLI integration, while preserving existing 
+ * workflows with Claude CLI integration, while preserving existing
  * swarm and hive-mind functionality.
  */
 
@@ -28,14 +28,14 @@ export class WorkflowExecutor {
       maxConcurrency: 3,
       timeout: 3600000, // 1 hour default
       logLevel: 'info',
-      ...options
+      ...options,
     };
-    
+
     // Increase timeout for ML workflows
     if (options.workflowType === 'ml' || options.workflowName?.toLowerCase().includes('mle')) {
       this.options.timeout = 7200000; // 2 hours for ML workflows
     }
-    
+
     // Execution state
     this.executionId = generateId('workflow-exec');
     this.startTime = Date.now();
@@ -44,11 +44,11 @@ export class WorkflowExecutor {
     this.results = new Map();
     this.errors = [];
     this.currentWorkflow = null;
-    
+
     // Stream chaining support
     this.taskOutputStreams = new Map(); // Store output streams for chaining
     this.enableChaining = options.enableChaining !== false; // Default to true
-    
+
     // Hooks integration
     this.hooksEnabled = true;
     this.sessionId = generateId('automation-session');
@@ -61,65 +61,67 @@ export class WorkflowExecutor {
     try {
       // Store workflow for reference
       this.currentWorkflow = workflowData;
-      
+
       if (this.options.logLevel === 'quiet') {
         console.log(`🚀 Executing workflow: ${this.executionId}`);
       } else {
         console.log(`🚀 Starting workflow execution: ${this.executionId}`);
         console.log(`📋 Workflow: ${workflowData.name}`);
         console.log(`🎯 Strategy: MLE-STAR Machine Learning Engineering`);
-        
+
         if (this.options.enableClaude) {
           console.log(`🤖 Claude CLI Integration: Enabled`);
         }
-        
+
         if (this.options.nonInteractive) {
           console.log(`🖥️  Non-Interactive Mode: Enabled`);
           if (this.options.outputFormat === 'stream-json') {
             console.log();
             console.log('● Running MLE-STAR workflow with Claude CLI integration');
-            console.log('  ⎿  Command format: claude --print --output-format stream-json --verbose --dangerously-skip-permissions');
+            console.log(
+              '  ⎿  Command format: claude --print --output-format stream-json --verbose --dangerously-skip-permissions',
+            );
             console.log('  ⎿  Each agent will show real-time stream output below');
             console.log('  ⎿  Interactive-style formatting enabled');
           }
         }
       }
-      
+
       console.log();
 
       // Pre-execution hooks
       if (this.hooksEnabled) {
         await this.executeHook('pre-task', {
           description: `Execute workflow: ${workflowData.name}`,
-          sessionId: this.sessionId
+          sessionId: this.sessionId,
         });
       }
 
       // Validate workflow
       this.validateWorkflow(workflowData);
-      
+
       // Apply variable substitutions
       const processedWorkflow = this.applyVariables(workflowData, variables);
-      
+
       // Initialize agents if Claude integration is enabled
       if (this.options.enableClaude) {
         await this.initializeClaudeAgents(processedWorkflow.agents);
       }
-      
+
       // Execute workflow phases
       const result = await this.executeWorkflowTasks(processedWorkflow);
-      
+
       // Post-execution hooks
       if (this.hooksEnabled) {
         await this.executeHook('post-task', {
           taskId: this.executionId,
           sessionId: this.sessionId,
-          result: result.success ? 'success' : 'failure'
+          result: result.success ? 'success' : 'failure',
         });
       }
-      
+
       const duration = Date.now() - this.startTime;
-      
+
       if (result.success) {
         printSuccess(`✅ Workflow completed successfully in ${this.formatDuration(duration)}`);
         console.log(`📊 Tasks: ${result.completedTasks}/${result.totalTasks} completed`);
@@ -129,14 +131,13 @@ export class WorkflowExecutor {
         console.log(`📊 Tasks: ${result.completedTasks}/${result.totalTasks} completed`);
         console.log(`❌ Errors: ${this.errors.length}`);
       }
-      
+
       // Cleanup Claude instances
       if (this.options.enableClaude) {
         await this.cleanupClaudeInstances();
       }
-      
+
       return result;
-      
     } catch (error) {
       printError(`Workflow execution failed: ${error.message}`);
       await this.cleanupClaudeInstances();
@@ -151,9 +152,9 @@ export class WorkflowExecutor {
     if (!agents || agents.length === 0) {
       return;
     }
-    
+
     // Check if Claude CLI is available
-    if (!await this.isClaudeAvailable()) {
+    if (!(await this.isClaudeAvailable())) {
       throw new Error('Claude CLI not found. Please install Claude Code: https://claude.ai/code');
     }
 
@@ -166,41 +167,45 @@ export class WorkflowExecutor {
       return;
     } else {
       // Interactive mode: spawn single Claude instance with master coordination prompt
-      console.log(`🤖 Interactive mode: Initializing single Claude instance for workflow coordination...`);
-      
+      console.log(
+        `🤖 Interactive mode: Initializing single Claude instance for workflow coordination...`,
+      );
+
       try {
         // Create master coordination prompt for all agents and workflow
         const masterPrompt = this.createMasterCoordinationPrompt(agents);
-        
+
         // Spawn single Claude instance for workflow coordination
-        const claudeProcess = await this.spawnClaudeInstance({
-          id: 'master-coordinator',
-          name: 'Workflow Coordinator',
-          type: 'coordinator'
-        }, masterPrompt);
-        
+        const claudeProcess = await this.spawnClaudeInstance(
+          {
+            id: 'master-coordinator',
+            name: 'Workflow Coordinator',
+            type: 'coordinator',
+          },
+          masterPrompt,
+        );
+
         // Store as master coordinator
         this.claudeInstances.set('master-coordinator', {
           process: claudeProcess,
           agent: { id: 'master-coordinator', name: 'Workflow Coordinator', type: 'coordinator' },
           status: 'active',
           startTime: Date.now(),
-          agents: agents // Store agent definitions for reference
+          agents: agents, // Store agent definitions for reference
         });
-        
+
         console.log(`  ✅ Master Workflow Coordinator (PID: ${claudeProcess.pid})`);
         console.log(`  🎯 Coordinating ${agents.length} sub-agents via concurrent streams`);
-        console.log(`  📋 Agents: ${agents.map(a => a.name).join(', ')}`);
-        
+        console.log(`  📋 Agents: ${agents.map((a) => a.name).join(', ')}`);
       } catch (error) {
         console.error(`  ❌ Failed to initialize master coordinator: ${error.message}`);
         this.errors.push({
           type: 'master_coordinator_initialization',
           error: error.message,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
-      
+
       console.log();
     }
   }
@@ -228,7 +233,7 @@ export class WorkflowExecutor {
    */
   async spawnClaudeInstance(agent, prompt, options = {}) {
     const claudeArgs = [];
-    
+
     // Add flags based on mode
     if (this.options.nonInteractive) {
       // Non-interactive mode: use --print with stream-json output
@@ -236,69 +241,73 @@ export class WorkflowExecutor {
       if (this.options.outputFormat === 'stream-json') {
         claudeArgs.push('--output-format', 'stream-json');
         claudeArgs.push('--verbose'); // Required for stream-json
-        
+
         // Add input format if we're chaining from a previous agent
         if (options.inputStream) {
           claudeArgs.push('--input-format', 'stream-json');
         }
       }
     }
-    
+
     // Always skip permissions for automated workflows (both interactive and non-interactive)
     claudeArgs.push('--dangerously-skip-permissions');
-    
+
     // Always add the prompt as the final argument
     claudeArgs.push(prompt);
-    
+
     // Only show command details in verbose mode
     if (this.options.logLevel === 'debug') {
       const displayPrompt = prompt.length > 100 ? prompt.substring(0, 100) + '...' : prompt;
-      const flagsDisplay = this.options.nonInteractive ? 
-        (this.options.outputFormat === 'stream-json' ? 
-          (options.inputStream ? '--print --input-format stream-json --output-format stream-json --verbose --dangerously-skip-permissions' : '--print --output-format stream-json --verbose --dangerously-skip-permissions') : 
-          '--print --dangerously-skip-permissions') : 
-        '--dangerously-skip-permissions';
-      console.log(`    🤖 Spawning Claude for ${agent.name}: claude ${flagsDisplay} "${displayPrompt}"`);
+      const flagsDisplay = this.options.nonInteractive
+        ? this.options.outputFormat === 'stream-json'
+          ? options.inputStream
+            ? '--print --input-format stream-json --output-format stream-json --verbose --dangerously-skip-permissions'
+            : '--print --output-format stream-json --verbose --dangerously-skip-permissions'
+          : '--print --dangerously-skip-permissions'
+        : '--dangerously-skip-permissions';
+      console.log(
+        `    🤖 Spawning Claude for ${agent.name}: claude ${flagsDisplay} "${displayPrompt}"`,
+      );
     } else if (this.options.logLevel !== 'quiet') {
       console.log(`    🚀 Starting ${agent.name}`);
     }
-    
+
     // Determine stdio configuration based on mode and chaining
-    const stdioConfig = this.options.nonInteractive ? 
-      [options.inputStream ? 'pipe' : 'inherit', 'pipe', 'pipe'] : // Non-interactive: pipe for chaining
-      ['inherit', 'inherit', 'inherit']; // Interactive: inherit all for normal Claude interaction
-    
+    const stdioConfig = this.options.nonInteractive
+      ? [options.inputStream ? 'pipe' : 'inherit', 'pipe', 'pipe'] // Non-interactive: pipe for chaining
+      : ['inherit', 'inherit', 'inherit']; // Interactive: inherit all for normal Claude interaction
+
     // Spawn Claude process
     const claudeProcess = spawn('claude', claudeArgs, {
       stdio: stdioConfig,
       shell: false,
     });
-    
+
     // If we have an input stream, pipe it to Claude's stdin
     if (options.inputStream && claudeProcess.stdin) {
       console.log(`    🔗 Chaining: Piping output from previous agent to ${agent.name}`);
       options.inputStream.pipe(claudeProcess.stdin);
     }
-    
+
     // Handle stdout with stream processor for better formatting (only in non-interactive mode)
-    if (this.options.nonInteractive && this.options.outputFormat === 'stream-json' && claudeProcess.stdout) {
+    if (
+      this.options.nonInteractive &&
+      this.options.outputFormat === 'stream-json' &&
+      claudeProcess.stdout
+    ) {
       // Import and use stream processor
       const { createStreamProcessor } = await import('./stream-processor.js');
-      const streamProcessor = createStreamProcessor(
-        agent.name,
-        this.getAgentIcon(agent.id),
-        {
-          verbose: this.options.logLevel === 'debug',
-          logLevel: this.options.logLevel,
-          taskId: agent.taskId,
-          agentId: agent.id,
-          display: null // Interactive-style formatting instead of concurrent display
-        }
-      );
-      
+      const streamProcessor = createStreamProcessor(agent.name, this.getAgentIcon(agent.id), {
+        verbose: this.options.logLevel === 'debug',
+        logLevel: this.options.logLevel,
+        taskId: agent.taskId,
+        agentId: agent.id,
+        display: null, // Interactive-style formatting instead of concurrent display
+      });
+
       // Pipe stdout through processor
       claudeProcess.stdout.pipe(streamProcessor);
-      
+
       // Handle stderr for non-interactive mode
       claudeProcess.stderr.on('data', (data) => {
         const message = data.toString().trim();
@@ -311,13 +320,13 @@ export class WorkflowExecutor {
       claudeProcess.stdout.on('data', (data) => {
         console.log(data.toString().trimEnd());
       });
-      
+
       claudeProcess.stderr.on('data', (data) => {
         console.error(data.toString().trimEnd());
       });
     }
     // Note: In interactive mode, stdio is inherited so Claude handles its own I/O
-    
+
     // Handle process events
     claudeProcess.on('error', (error) => {
       console.error(`❌ Claude instance error for ${agent.name}:`, error.message);
@@ -325,10 +334,10 @@ export class WorkflowExecutor {
         type: 'claude_instance_error',
         agent: agent.id,
         error: error.message,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     });
-    
+
     claudeProcess.on('exit', (code) => {
       const instance = this.claudeInstances.get(agent.id);
       if (instance) {
@@ -337,7 +346,7 @@ export class WorkflowExecutor {
         instance.endTime = Date.now();
       }
     });
-    
+
     return claudeProcess;
   }
 
@@ -349,22 +358,22 @@ export class WorkflowExecutor {
       // Create concise formatted JSON with summary
       const summary = this.getEventSummary(event);
       const icon = this.getEventIcon(event.type);
-      
+
       // Simplified output for better readability
       const output = {
         t: new Date().toISOString().split('T')[1].split('.')[0], // HH:MM:SS
         agent: `${this.getAgentIcon(agent.id)} ${agent.name}`,
         phase: this.currentPhase,
-        event: `${icon} ${summary}`
+        event: `${icon} ${summary}`,
       };
-      
+
       // Add relevant details based on event type
       if (event.type === 'tool_use' && event.name) {
         output.tool = event.name;
       } else if (event.type === 'error' && event.error) {
         output.error = event.error;
       }
-      
+
       console.log(JSON.stringify(output));
     } else {
       // Format output for text mode
@@ -389,7 +398,7 @@ export class WorkflowExecutor {
       }
     }
   }
-  
+
   /**
    * Get a brief summary of an event
    */
@@ -409,20 +418,20 @@ export class WorkflowExecutor {
         return event.type;
     }
   }
-  
+
   /**
    * Get icon for event type
    */
   getEventIcon(eventType) {
     const icons = {
-      'tool_use': '🔧',
-      'message': '💬',
-      'completion': '✅',
-      'error': '❌',
-      'status': '📊',
-      'init': '🚀',
-      'thinking': '🤔',
-      'result': '📋'
+      tool_use: '🔧',
+      message: '💬',
+      completion: '✅',
+      error: '❌',
+      status: '📊',
+      init: '🚀',
+      thinking: '🤔',
+      result: '📋',
     };
     return icons[eventType] || '📌';
   }
@@ -436,12 +445,12 @@ export class WorkflowExecutor {
       // Apply variable substitutions to the prompt
       let basePrompt = task.claudePrompt;
       const allVariables = { ...workflow.variables, ...task.input };
-      
+
       for (const [key, value] of Object.entries(allVariables)) {
         const pattern = new RegExp(`\\$\\{${key}\\}`, 'g');
         basePrompt = basePrompt.replace(pattern, value);
       }
-      
+
       // Create comprehensive task prompt with MLE-STAR methodology
       return `🎯 MLE-STAR AGENT TASK EXECUTION
 
@@ -515,7 +524,7 @@ Begin execution now with the hooks pre-task command.`;
   createAgentPrompt(agent) {
     const { config } = agent;
     const capabilities = config?.capabilities?.join(', ') || 'general automation';
-    
+
     return `You are the ${agent.name} in a coordinated MLE-STAR automation workflow.
 
 🎯 AGENT ROLE: ${agent.type.toUpperCase()}
@@ -555,8 +564,11 @@ Execute your role in the MLE-STAR workflow with full coordination and hook integ
    * Create master coordination prompt for interactive mode
    */
   createMasterCoordinationPrompt(agents) {
-    const workflowData = this.currentWorkflow || { name: 'MLE-STAR Workflow', description: 'Machine Learning Engineering via Search and Targeted Refinement' };
-    
+    const workflowData = this.currentWorkflow || {
+      name: 'MLE-STAR Workflow',
+      description: 'Machine Learning Engineering via Search and Targeted Refinement',
+    };
+
     return `🚀 MLE-STAR WORKFLOW COORDINATION MASTER
 
 You are the MASTER COORDINATOR for a comprehensive MLE-STAR (Machine Learning Engineering via Search and Targeted Refinement) workflow. 
@@ -567,11 +579,15 @@ You are the MASTER COORDINATOR for a comprehensive MLE-STAR (Machine Learning En
 🔄 SESSION ID: ${this.sessionId}
 
 🤖 SUB-AGENTS TO COORDINATE (${agents.length} total):
-${agents.map((agent, index) => `
+${agents
+  .map(
+    (agent, index) => `
 ${index + 1}. ${agent.name} (${agent.type})
    🎯 Role: ${this.getAgentRoleDescription(agent.type)}
    📋 Capabilities: ${agent.config?.capabilities?.join(', ') || 'general automation'}
-   🆔 ID: ${agent.id}`).join('')}
+   🆔 ID: ${agent.id}`,
+  )
+  .join('')}
 
 🔧 CRITICAL: USE CONCURRENT STREAMS FOR PARALLEL EXECUTION
 
@@ -630,11 +646,11 @@ ${this.getMasterMethodologyGuide()}
   getAgentRoleDescription(agentType) {
     const roles = {
       researcher: 'Web Search & Foundation Discovery - Find state-of-the-art approaches',
-      coder: 'Model Implementation & Training Pipeline - Build foundation models',  
+      coder: 'Model Implementation & Training Pipeline - Build foundation models',
       optimizer: 'Performance Tuning & Architecture Refinement - Optimize models',
       analyst: 'Ensemble Methods & Meta-Learning - Combine multiple approaches',
       tester: 'Validation & Debugging - Ensure quality and performance',
-      coordinator: 'Workflow Orchestration - Manage overall pipeline'
+      coordinator: 'Workflow Orchestration - Manage overall pipeline',
     };
     return roles[agentType] || 'Specialized automation task execution';
   }
@@ -672,7 +688,7 @@ COORDINATION KEY POINTS:
       optimizer: 'Phase 2: Refinement & Optimization (Sequential, depends on Phase 1)',
       analyst: 'Phase 3: Ensemble & Meta-Learning (Parallel with Validation)',
       tester: 'Phase 3: Validation & Debugging (Parallel with Ensemble)',
-      coordinator: 'All Phases: Workflow Orchestration & Coordination'
+      coordinator: 'All Phases: Workflow Orchestration & Coordination',
     };
     return positions[agentType] || 'Specialized task execution';
   }
@@ -687,7 +703,7 @@ COORDINATION KEY POINTS:
       optimizer: 'Search & Foundation Agents (input), Ensemble & Validation Agents (handoff)',
       analyst: 'Refinement Agent (input), Validation Agent (parallel)',
       tester: 'All previous agents (validation), Ensemble Agent (parallel)',
-      coordinator: 'All agents (orchestration and monitoring)'
+      coordinator: 'All agents (orchestration and monitoring)',
     };
     return partners[agentType] || 'Other workflow agents as needed';
   }
@@ -737,10 +753,13 @@ COORDINATION KEY POINTS:
 - Monitor progress and performance metrics
 - Manage resource allocation and scheduling
 - Handle error recovery and workflow adaptation
-- Prepare final deployment and documentation`
+- Prepare final deployment and documentation`,
     };
 
-    return guidance[agentType] || 'Focus on your specialized capabilities and coordinate with other agents.';
+    return (
+      guidance[agentType] ||
+      'Focus on your specialized capabilities and coordinate with other agents.'
+    );
   }
 
   /**
@@ -748,35 +767,35 @@ COORDINATION KEY POINTS:
    */
   async executeWorkflowTasks(workflow) {
     const { tasks, dependencies = {} } = workflow;
-    
+
     let completedTasks = 0;
     let failedTasks = 0;
     const totalTasks = tasks.length;
-    
+
     // Task status tracking
     const taskStatuses = new Map();
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       taskStatuses.set(task.id, {
         name: task.name || task.id,
         status: 'pending',
         agent: task.assignTo,
         startTime: null,
         endTime: null,
-        summary: ''
+        summary: '',
       });
     });
-    
+
     // Create task execution plan based on dependencies
     const executionPlan = this.createExecutionPlan(tasks, dependencies);
-    
+
     console.log(`📋 Executing ${totalTasks} tasks in ${executionPlan.length} phases...`);
     console.log();
-    
+
     // Note: Concurrent display disabled in favor of interactive-style stream processing
     let concurrentDisplay = null;
     // if (this.options.nonInteractive && this.options.outputFormat === 'stream-json') {
     //   const { createConcurrentDisplay } = await import('./concurrent-display.js');
-    //   
+    //
     //   // Get all agents and their tasks
     //   const agentTasks = workflow.agents?.map(agent => ({
     //     id: agent.id,
@@ -784,18 +803,18 @@ COORDINATION KEY POINTS:
     //     type: agent.type,
     //     tasks: tasks.filter(t => t.assignTo === agent.id).map(t => t.name)
     //   })) || [];
-    //   
+    //
     //   concurrentDisplay = createConcurrentDisplay(agentTasks);
     //   concurrentDisplay.start();
-    //   
+    //
     //   // Store reference for stream processors
     //   this.concurrentDisplay = concurrentDisplay;
     // }
-    
+
     // Execute tasks phase by phase
     for (const [phaseIndex, phaseTasks] of executionPlan.entries()) {
       this.currentPhase = `Phase ${phaseIndex + 1}`;
-      
+
       // Show regular task board or update concurrent display
       if (!concurrentDisplay) {
         if (this.options.logLevel === 'quiet') {
@@ -805,32 +824,32 @@ COORDINATION KEY POINTS:
         }
         this.displayTaskBoard(taskStatuses, phaseTasks);
       }
-      
+
       // Mark tasks as in-progress
-      phaseTasks.forEach(task => {
+      phaseTasks.forEach((task) => {
         const status = taskStatuses.get(task.id);
         status.status = 'in-progress';
         status.startTime = Date.now();
       });
-      
+
       // Execute tasks in this phase (potentially in parallel)
       const phasePromises = phaseTasks.map(async (task) => {
         const taskStatus = taskStatuses.get(task.id);
-        
+
         try {
           // Show task starting
           console.log(`\n  🚀 Starting: ${task.name || task.id}`);
           console.log(`     Agent: ${task.assignTo}`);
           console.log(`     Description: ${task.description?.substring(0, 80)}...`);
-          
+
           const result = await this.executeTask(task, workflow);
-          
+
           taskStatus.status = result.success ? 'completed' : 'failed';
           taskStatus.endTime = Date.now();
-          taskStatus.summary = result.success ? 
-            `✅ Completed in ${this.formatDuration(result.duration)}` :
-            `❌ Failed: ${result.error?.message || 'Unknown error'}`;
-          
+          taskStatus.summary = result.success
+            ? `✅ Completed in ${this.formatDuration(result.duration)}`
+            : `❌ Failed: ${result.error?.message || 'Unknown error'}`;
+
           return result;
         } catch (error) {
           taskStatus.status = 'failed';
@@ -839,15 +858,15 @@ COORDINATION KEY POINTS:
           throw error;
         }
       });
-      
+
       // Wait for all phase tasks to complete
       const phaseResults = await Promise.allSettled(phasePromises);
-      
+
       // Process phase results
       for (const [taskIndex, result] of phaseResults.entries()) {
         const task = phaseTasks[taskIndex];
         const taskStatus = taskStatuses.get(task.id);
-        
+
         if (result.status === 'fulfilled' && result.value.success) {
           completedTasks++;
           this.results.set(task.id, result.value);
@@ -858,9 +877,9 @@ COORDINATION KEY POINTS:
             type: 'task_execution',
             task: task.id,
             error: error.message || error,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
-          
+
           // Check if we should fail fast
           if (workflow.settings?.failurePolicy === 'fail-fast') {
             console.log(`\n🛑 Failing fast due to task failure`);
@@ -868,19 +887,19 @@ COORDINATION KEY POINTS:
           }
         }
       }
-      
+
       // Show updated task board
       if (!concurrentDisplay) {
         console.log(`\n📊 Phase ${phaseIndex + 1} Complete:`);
         this.displayTaskBoard(taskStatuses);
       }
-      
+
       // Stop if fail-fast and we have failures
       if (workflow.settings?.failurePolicy === 'fail-fast' && failedTasks > 0) {
         break;
       }
     }
-    
+
     // Final summary
     if (!concurrentDisplay) {
       console.log(`\n📊 Final Workflow Summary:`);
@@ -890,7 +909,7 @@ COORDINATION KEY POINTS:
       concurrentDisplay.stop();
       console.log(); // Add some space after display
     }
-    
+
     return {
       success: failedTasks === 0,
       totalTasks,
@@ -899,10 +918,10 @@ COORDINATION KEY POINTS:
       executionId: this.executionId,
       duration: Date.now() - this.startTime,
       results: Object.fromEntries(this.results),
-      errors: this.errors
+      errors: this.errors,
     };
   }
-  
+
   /**
    * Display task board showing current status
    */
@@ -910,78 +929,94 @@ COORDINATION KEY POINTS:
     // In quiet mode, just show simple progress
     if (this.options.logLevel === 'quiet') {
       const totalTasks = taskStatuses.size;
-      const completedTasks = Array.from(taskStatuses.values()).filter(s => s.status === 'completed').length;
-      const activeTasks = Array.from(taskStatuses.values()).filter(s => s.status === 'in-progress').length;
+      const completedTasks = Array.from(taskStatuses.values()).filter(
+        (s) => s.status === 'completed',
+      ).length;
+      const activeTasks = Array.from(taskStatuses.values()).filter(
+        (s) => s.status === 'in-progress',
+      ).length;
       console.log(`📊 Progress: ${completedTasks}/${totalTasks} completed, ${activeTasks} active`);
       return;
     }
-    
+
     const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
     const frameIndex = Math.floor(Date.now() / 100) % frames.length;
     const spinner = frames[frameIndex];
-    
+
     console.log('\n╔═══════════════════════════════════════════════════════════════╗');
     console.log('║                    🤖 CONCURRENT TASK STATUS                   ║');
     console.log('╠═══════════════════════════════════════════════════════════════╣');
-    
+
     // Group by status
     const statusGroups = {
       'in-progress': [],
-      'completed': [],
-      'failed': [],
-      'pending': []
+      completed: [],
+      failed: [],
+      pending: [],
     };
-    
+
     taskStatuses.forEach((status, taskId) => {
       statusGroups[status.status].push({ taskId, ...status });
     });
-    
+
     // Show in-progress tasks with animation
     if (statusGroups['in-progress'].length > 0) {
-      console.log(`║ ${spinner} RUNNING (${statusGroups['in-progress'].length} agents):                                      ║`);
-      statusGroups['in-progress'].forEach(task => {
+      console.log(
+        `║ ${spinner} RUNNING (${statusGroups['in-progress'].length} agents):                                      ║`,
+      );
+      statusGroups['in-progress'].forEach((task) => {
         const duration = task.startTime ? this.formatDuration(Date.now() - task.startTime) : '';
         const progress = this.getProgressBar(Date.now() - task.startTime, 60000); // 1 min expected
         const agentIcon = this.getAgentIcon(task.agent);
-        console.log(`║   ${agentIcon} ${task.name.padEnd(25)} ${progress} ${duration.padStart(8)} ║`);
+        console.log(
+          `║   ${agentIcon} ${task.name.padEnd(25)} ${progress} ${duration.padStart(8)} ║`,
+        );
       });
     }
-    
+
     // Show completed tasks
     if (statusGroups['completed'].length > 0) {
-      console.log(`║ ✅ COMPLETED (${statusGroups['completed'].length}):                                           ║`);
-      statusGroups['completed'].forEach(task => {
-        const duration = task.endTime && task.startTime ? 
-          this.formatDuration(task.endTime - task.startTime) : '';
+      console.log(
+        `║ ✅ COMPLETED (${statusGroups['completed'].length}):                                           ║`,
+      );
+      statusGroups['completed'].forEach((task) => {
+        const duration =
+          task.endTime && task.startTime ? this.formatDuration(task.endTime - task.startTime) : '';
         console.log(`║   ✓ ${task.name.padEnd(35)} ${duration.padStart(10)} ║`);
       });
     }
-    
+
     // Show failed tasks
     if (statusGroups['failed'].length > 0) {
-      console.log(`║ ❌ FAILED (${statusGroups['failed'].length}):                                              ║`);
-      statusGroups['failed'].forEach(task => {
+      console.log(
+        `║ ❌ FAILED (${statusGroups['failed'].length}):                                              ║`,
+      );
+      statusGroups['failed'].forEach((task) => {
         const errorMsg = (task.summary || '').substring(0, 25);
         console.log(`║   ✗ ${task.name.padEnd(25)} ${errorMsg.padEnd(20)} ║`);
       });
     }
-    
+
     // Show pending tasks count
     if (statusGroups['pending'].length > 0) {
-      console.log(`║ ⏳ QUEUED: ${statusGroups['pending'].length} tasks waiting                                 ║`);
+      console.log(
+        `║ ⏳ QUEUED: ${statusGroups['pending'].length} tasks waiting                                 ║`,
+      );
     }
-    
+
     // Summary stats
     const total = taskStatuses.size;
     const completed = statusGroups['completed'].length;
     const failed = statusGroups['failed'].length;
-    const progress = total > 0 ? Math.floor((completed + failed) / total * 100) : 0;
-    
+    const progress = total > 0 ? Math.floor(((completed + failed) / total) * 100) : 0;
+
     console.log('╠═══════════════════════════════════════════════════════════════╣');
-    console.log(`║ 📊 Progress: ${progress}% (${completed}/${total}) │ ⚡ Active: ${statusGroups['in-progress'].length} │ ❌ Failed: ${failed}  ║`);
+    console.log(
+      `║ 📊 Progress: ${progress}% (${completed}/${total}) │ ⚡ Active: ${statusGroups['in-progress'].length} │ ❌ Failed: ${failed}  ║`,
+    );
     console.log('╚═══════════════════════════════════════════════════════════════╝');
   }
-  
+
   /**
    * Get progress bar visualization
    */
@@ -991,25 +1026,25 @@ COORDINATION KEY POINTS:
     const empty = 10 - filled;
     return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
   }
-  
+
   /**
    * Get agent icon based on type
    */
   getAgentIcon(agentId) {
     const icons = {
-      'search': '🔍',
-      'foundation': '🏗️',
-      'refinement': '🔧',
-      'ensemble': '🎯',
-      'validation': '✅',
-      'coordinator': '🎮',
-      'researcher': '🔬',
-      'coder': '💻',
-      'optimizer': '⚡',
-      'architect': '🏛️',
-      'tester': '🧪'
+      search: '🔍',
+      foundation: '🏗️',
+      refinement: '🔧',
+      ensemble: '🎯',
+      validation: '✅',
+      coordinator: '🎮',
+      researcher: '🔬',
+      coder: '💻',
+      optimizer: '⚡',
+      architect: '🏛️',
+      tester: '🧪',
     };
-    
+
     // Extract agent type from ID
     const type = agentId?.split('_')[0] || 'default';
     return icons[type] || '🤖';
@@ -1020,16 +1055,16 @@ COORDINATION KEY POINTS:
    */
   async executeTask(task, workflow) {
     const startTime = Date.now();
-    
+
     try {
       // Store task execution in memory if hooks enabled
       if (this.hooksEnabled) {
         await this.executeHook('notify', {
           message: `Starting task: ${task.name || task.id}`,
-          sessionId: this.sessionId
+          sessionId: this.sessionId,
         });
       }
-      
+
       if (this.options.nonInteractive && this.options.outputFormat === 'stream-json') {
         console.log(`\n● ${task.name || task.id} - Starting Execution`);
         console.log(`  ⎿  ${task.description}`);
@@ -1037,18 +1072,18 @@ COORDINATION KEY POINTS:
       } else {
         console.log(`    🔄 Executing: ${task.description}`);
       }
-      
+
       // For demonstration/testing mode (when Claude integration is disabled)
       // we simulate successful task completion
       if (!this.options.enableClaude) {
         // Simulate variable execution time
         const executionTime = Math.min(
           1000 + Math.random() * 3000, // 1-4 seconds simulation
-          task.timeout || 30000
+          task.timeout || 30000,
         );
-        
-        await new Promise(resolve => setTimeout(resolve, executionTime));
-        
+
+        await new Promise((resolve) => setTimeout(resolve, executionTime));
+
         // Simulate successful completion for demo/testing
         const result = {
           success: true,
@@ -1061,26 +1096,26 @@ COORDINATION KEY POINTS:
             metadata: {
               timestamp: new Date().toISOString(),
               executionId: this.executionId,
-              mode: 'simulation'
-            }
-          }
+              mode: 'simulation',
+            },
+          },
         };
-        
+
         // Store result in memory
         if (this.hooksEnabled) {
           await this.storeTaskResult(task.id, result.output);
         }
-        
+
         return result;
       } else {
         // When Claude integration is enabled, delegate to actual Claude instance
-        
+
         // Check if we have a master coordinator (interactive mode)
         const masterCoordinator = this.claudeInstances.get('master-coordinator');
         if (masterCoordinator && !this.options.nonInteractive) {
           // Interactive mode: All tasks are coordinated by the master coordinator
           console.log(`    🎯 Task delegated to Master Coordinator: ${task.description}`);
-          
+
           // In interactive mode, the master coordinator handles all tasks
           // We just wait for the master coordinator process to complete
           const completionPromise = new Promise((resolve, reject) => {
@@ -1091,21 +1126,21 @@ COORDINATION KEY POINTS:
                 reject(new Error(`Master coordinator exited with code ${code}`));
               }
             });
-            
+
             masterCoordinator.process.on('error', (err) => {
               reject(err);
             });
           });
-          
+
           // For interactive mode, we use a longer timeout since user interaction is involved
           const timeout = Math.max(this.options.timeout, 1800000); // 30 minutes minimum for interactive
           const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Interactive session timeout')), timeout);
           });
-          
+
           try {
             await Promise.race([completionPromise, timeoutPromise]);
-            
+
             const result = {
               success: true,
               taskId: task.id,
@@ -1117,38 +1152,41 @@ COORDINATION KEY POINTS:
                 metadata: {
                   timestamp: new Date().toISOString(),
                   executionId: this.executionId,
-                  mode: 'interactive-coordination'
-                }
-              }
+                  mode: 'interactive-coordination',
+                },
+              },
             };
-            
+
             // Store result in memory
             if (this.hooksEnabled) {
               await this.storeTaskResult(task.id, result.output);
             }
-            
+
             return result;
-            
           } catch (error) {
             throw new Error(`Task execution failed: ${error.message}`);
           }
         }
-        
+
         // Non-interactive mode or no master coordinator: use individual Claude instances
         const claudeInstance = this.claudeInstances.get(task.assignTo);
         if (!claudeInstance) {
           // If no pre-spawned instance, create one for this task
-          const agent = workflow.agents.find(a => a.id === task.assignTo);
+          const agent = workflow.agents.find((a) => a.id === task.assignTo);
           if (!agent) {
             throw new Error(`No agent definition found for: ${task.assignTo}`);
           }
-          
+
           // Create task-specific prompt
           const taskPrompt = this.createTaskPrompt(task, agent, workflow);
-          
+
           // Check if we should chain from a previous task
           let chainOptions = {};
-          if (this.enableChaining && this.options.outputFormat === 'stream-json' && task.depends?.length > 0) {
+          if (
+            this.enableChaining &&
+            this.options.outputFormat === 'stream-json' &&
+            task.depends?.length > 0
+          ) {
             // Get the output stream from the last dependency
             const lastDependency = task.depends[task.depends.length - 1];
             const dependencyStream = this.taskOutputStreams.get(lastDependency);
@@ -1157,38 +1195,45 @@ COORDINATION KEY POINTS:
               chainOptions.inputStream = dependencyStream;
             }
           }
-          
+
           // Spawn Claude instance for this specific task
           const taskClaudeProcess = await this.spawnClaudeInstance(agent, taskPrompt, chainOptions);
-          
+
           // Store the output stream for potential chaining
-          if (this.enableChaining && this.options.outputFormat === 'stream-json' && taskClaudeProcess.stdout) {
+          if (
+            this.enableChaining &&
+            this.options.outputFormat === 'stream-json' &&
+            taskClaudeProcess.stdout
+          ) {
             this.taskOutputStreams.set(task.id, taskClaudeProcess.stdout);
           }
-          
+
           // Store the instance
           this.claudeInstances.set(agent.id, {
             process: taskClaudeProcess,
             agent: agent,
             status: 'active',
             startTime: Date.now(),
-            taskId: task.id
+            taskId: task.id,
           });
-          
+
           // Wait for task completion or timeout
           // Use longer timeout for ML tasks
           const baseTimeout = this.options.timeout || 60000;
-          const isMLTask = task.type?.toLowerCase().includes('ml') || 
-                          task.type?.toLowerCase().includes('model') ||
-                          task.type?.toLowerCase().includes('search') ||
-                          task.type?.toLowerCase().includes('analysis') ||
-                          this.options.workflowType === 'ml';
+          const isMLTask =
+            task.type?.toLowerCase().includes('ml') ||
+            task.type?.toLowerCase().includes('model') ||
+            task.type?.toLowerCase().includes('search') ||
+            task.type?.toLowerCase().includes('analysis') ||
+            this.options.workflowType === 'ml';
           const timeout = task.timeout || (isMLTask ? Math.max(baseTimeout, 300000) : baseTimeout); // Min 5 minutes for ML tasks
-          
+
           if (this.options.logLevel === 'debug' || this.options.verbose) {
-            console.log(`    ⏱️  Timeout: ${this.formatDuration(timeout)} (Base: ${this.formatDuration(baseTimeout)}, ML Task: ${isMLTask})`);
+            console.log(
+              `    ⏱️  Timeout: ${this.formatDuration(timeout)} (Base: ${this.formatDuration(baseTimeout)}, ML Task: ${isMLTask})`,
+            );
           }
-          
+
           const completionPromise = new Promise((resolve, reject) => {
             taskClaudeProcess.on('exit', (code) => {
               if (code === 0) {
@@ -1197,21 +1242,21 @@ COORDINATION KEY POINTS:
                 reject(new Error(`Process exited with code ${code}`));
               }
             });
-            
+
             taskClaudeProcess.on('error', (err) => {
               reject(err);
             });
           });
-          
+
           const timeoutPromise = new Promise((_, reject) => {
             // Use a much longer timeout for ML tasks since Claude is actively working
             const actualTimeout = isMLTask ? Math.max(timeout, 600000) : timeout; // 10 min minimum for ML
             setTimeout(() => reject(new Error('Task timeout')), actualTimeout);
           });
-          
+
           try {
             await Promise.race([completionPromise, timeoutPromise]);
-            
+
             const result = {
               success: true,
               taskId: task.id,
@@ -1223,16 +1268,16 @@ COORDINATION KEY POINTS:
                 metadata: {
                   timestamp: new Date().toISOString(),
                   executionId: this.executionId,
-                  mode: 'claude-task-execution'
-                }
-              }
+                  mode: 'claude-task-execution',
+                },
+              },
             };
-            
+
             // Store result in memory
             if (this.hooksEnabled) {
               await this.storeTaskResult(task.id, result.output);
             }
-            
+
             return result;
           } catch (error) {
             throw error;
@@ -1241,13 +1286,17 @@ COORDINATION KEY POINTS:
           // Use existing Claude instance
           // In a full implementation, this would send the task to the running instance
           // For now, we'll spawn a new instance per task for simplicity
-          
+
           const agent = claudeInstance.agent;
           const taskPrompt = this.createTaskPrompt(task, agent, workflow);
-          
+
           // Check if we should chain from a previous task
           let chainOptions = {};
-          if (this.enableChaining && this.options.outputFormat === 'stream-json' && task.depends?.length > 0) {
+          if (
+            this.enableChaining &&
+            this.options.outputFormat === 'stream-json' &&
+            task.depends?.length > 0
+          ) {
             // Get the output stream from the last dependency
             const lastDependency = task.depends[task.depends.length - 1];
             const dependencyStream = this.taskOutputStreams.get(lastDependency);
@@ -1256,29 +1305,36 @@ COORDINATION KEY POINTS:
               chainOptions.inputStream = dependencyStream;
             }
           }
-          
+
           // For now, spawn a new instance for each task
           const taskClaudeProcess = await this.spawnClaudeInstance(agent, taskPrompt, chainOptions);
-          
+
           // Store the output stream for potential chaining
-          if (this.enableChaining && this.options.outputFormat === 'stream-json' && taskClaudeProcess.stdout) {
+          if (
+            this.enableChaining &&
+            this.options.outputFormat === 'stream-json' &&
+            taskClaudeProcess.stdout
+          ) {
             this.taskOutputStreams.set(task.id, taskClaudeProcess.stdout);
           }
-          
+
           // Wait for completion
           // Use longer timeout for ML tasks
           const baseTimeout = this.options.timeout || 60000;
-          const isMLTask = task.type?.toLowerCase().includes('ml') || 
-                          task.type?.toLowerCase().includes('model') ||
-                          task.type?.toLowerCase().includes('search') ||
-                          task.type?.toLowerCase().includes('analysis') ||
-                          this.options.workflowType === 'ml';
+          const isMLTask =
+            task.type?.toLowerCase().includes('ml') ||
+            task.type?.toLowerCase().includes('model') ||
+            task.type?.toLowerCase().includes('search') ||
+            task.type?.toLowerCase().includes('analysis') ||
+            this.options.workflowType === 'ml';
           const timeout = task.timeout || (isMLTask ? Math.max(baseTimeout, 300000) : baseTimeout); // Min 5 minutes for ML tasks
-          
+
           if (this.options.logLevel === 'debug' || this.options.verbose) {
-            console.log(`    ⏱️  Timeout: ${this.formatDuration(timeout)} (Base: ${this.formatDuration(baseTimeout)}, ML Task: ${isMLTask})`);
+            console.log(
+              `    ⏱️  Timeout: ${this.formatDuration(timeout)} (Base: ${this.formatDuration(baseTimeout)}, ML Task: ${isMLTask})`,
+            );
           }
-          
+
           const completionPromise = new Promise((resolve, reject) => {
             taskClaudeProcess.on('exit', (code) => {
               if (code === 0) {
@@ -1287,21 +1343,21 @@ COORDINATION KEY POINTS:
                 reject(new Error(`Process exited with code ${code}`));
               }
             });
-            
+
             taskClaudeProcess.on('error', (err) => {
               reject(err);
             });
           });
-          
+
           const timeoutPromise = new Promise((_, reject) => {
             // Use a much longer timeout for ML tasks since Claude is actively working
             const actualTimeout = isMLTask ? Math.max(timeout, 600000) : timeout; // 10 min minimum for ML
             setTimeout(() => reject(new Error('Task timeout')), actualTimeout);
           });
-          
+
           try {
             await Promise.race([completionPromise, timeoutPromise]);
-            
+
             const result = {
               success: true,
               taskId: task.id,
@@ -1313,29 +1369,28 @@ COORDINATION KEY POINTS:
                 metadata: {
                   timestamp: new Date().toISOString(),
                   executionId: this.executionId,
-                  mode: 'claude-task-execution'
-                }
-              }
+                  mode: 'claude-task-execution',
+                },
+              },
             };
-            
+
             // Store result in memory
             if (this.hooksEnabled) {
               await this.storeTaskResult(task.id, result.output);
             }
-            
+
             return result;
           } catch (error) {
             throw error;
           }
         }
       }
-      
     } catch (error) {
       return {
         success: false,
         taskId: task.id,
         duration: Date.now() - startTime,
-        error: error
+        error: error,
       };
     }
   }
@@ -1344,26 +1399,26 @@ COORDINATION KEY POINTS:
    * Create execution plan based on task dependencies
    */
   createExecutionPlan(tasks, dependencies) {
-    const taskMap = new Map(tasks.map(task => [task.id, task]));
+    const taskMap = new Map(tasks.map((task) => [task.id, task]));
     const completed = new Set();
     const phases = [];
-    
+
     while (completed.size < tasks.length) {
-      const readyTasks = tasks.filter(task => {
+      const readyTasks = tasks.filter((task) => {
         if (completed.has(task.id)) return false;
-        
+
         const deps = task.depends || dependencies[task.id] || [];
-        return deps.every(dep => completed.has(dep));
+        return deps.every((dep) => completed.has(dep));
       });
-      
+
       if (readyTasks.length === 0) {
         throw new Error('Circular dependency detected or invalid dependencies');
       }
-      
+
       phases.push(readyTasks);
-      readyTasks.forEach(task => completed.add(task.id));
+      readyTasks.forEach((task) => completed.add(task.id));
     }
-    
+
     return phases;
   }
 
@@ -1373,9 +1428,9 @@ COORDINATION KEY POINTS:
   async executeHook(hookType, params) {
     try {
       const { execSync } = await import('child_process');
-      
+
       let hookCommand = `npx claude-flow@alpha hooks ${hookType}`;
-      
+
       if (params.description) {
         hookCommand += ` --description "${params.description}"`;
       }
@@ -1391,9 +1446,8 @@ COORDINATION KEY POINTS:
       if (params.message) {
         hookCommand += ` --message "${params.message}"`;
       }
-      
+
       execSync(hookCommand, { stdio: 'pipe' });
-      
     } catch (error) {
       // Hooks are optional, don't fail the workflow if they fail
       console.debug(`Hook ${hookType} failed:`, error.message);
@@ -1407,11 +1461,13 @@ COORDINATION KEY POINTS:
     try {
       const { execSync } = await import('child_process');
       const resultJson = JSON.stringify(result);
-      
-      execSync(`npx claude-flow@alpha memory store "workflow/${this.executionId}/${taskId}" '${resultJson}'`, {
-        stdio: 'pipe'
-      });
-      
+
+      execSync(
+        `npx claude-flow@alpha memory store "workflow/${this.executionId}/${taskId}" '${resultJson}'`,
+        {
+          stdio: 'pipe',
+        },
+      );
     } catch (error) {
       console.debug(`Failed to store task result for ${taskId}:`, error.message);
     }
@@ -1424,21 +1480,21 @@ COORDINATION KEY POINTS:
     if (!workflow.name) {
       throw new Error('Workflow name is required');
     }
-    
+
     if (!workflow.tasks || workflow.tasks.length === 0) {
       throw new Error('Workflow must contain at least one task');
     }
-    
+
     // Validate task structure
     for (const task of workflow.tasks) {
       if (!task.id || !task.type || !task.description) {
         throw new Error(`Task ${task.id || 'unknown'} is missing required fields`);
       }
     }
-    
+
     // Validate agent assignments
     if (workflow.agents) {
-      const agentIds = new Set(workflow.agents.map(a => a.id));
+      const agentIds = new Set(workflow.agents.map((a) => a.id));
       for (const task of workflow.tasks) {
         if (task.assignTo && !agentIds.has(task.assignTo)) {
           throw new Error(`Task ${task.id} assigned to unknown agent: ${task.assignTo}`);
@@ -1453,14 +1509,14 @@ COORDINATION KEY POINTS:
   applyVariables(workflow, variables) {
     const allVariables = { ...workflow.variables, ...variables };
     const workflowStr = JSON.stringify(workflow);
-    
+
     // Simple variable substitution
     let processedStr = workflowStr;
     for (const [key, value] of Object.entries(allVariables)) {
       const pattern = new RegExp(`\\$\\{${key}\\}`, 'g');
       processedStr = processedStr.replace(pattern, value);
     }
-    
+
     return JSON.parse(processedStr);
   }
 
@@ -1469,14 +1525,14 @@ COORDINATION KEY POINTS:
    */
   async cleanupClaudeInstances() {
     if (this.claudeInstances.size === 0) return;
-    
+
     console.log('🧹 Cleaning up Claude instances...');
-    
+
     for (const [agentId, instance] of this.claudeInstances.entries()) {
       try {
         if (instance.process && !instance.process.killed) {
           instance.process.kill('SIGTERM');
-          
+
           // Wait for graceful shutdown, then force kill if needed
           setTimeout(() => {
             if (!instance.process.killed) {
@@ -1484,14 +1540,13 @@ COORDINATION KEY POINTS:
             }
           }, 5000);
         }
-        
+
         console.log(`  ✅ Cleaned up ${instance.agent.name}`);
-        
       } catch (error) {
         console.error(`  ❌ Error cleaning up ${instance.agent.name}:`, error.message);
       }
     }
-    
+
     this.claudeInstances.clear();
   }
 
@@ -1502,7 +1557,7 @@ COORDINATION KEY POINTS:
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
     } else if (minutes > 0) {
@@ -1519,7 +1574,7 @@ COORDINATION KEY POINTS:
 export async function loadWorkflowFromFile(filePath) {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    
+
     if (filePath.endsWith('.json')) {
       return JSON.parse(content);
     } else if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) {
@@ -1528,7 +1583,6 @@ export async function loadWorkflowFromFile(filePath) {
     } else {
       throw new Error('Unsupported workflow file format. Use .json or .yaml');
     }
-    
   } catch (error) {
     throw new Error(`Failed to load workflow: ${error.message}`);
   }
@@ -1538,5 +1592,12 @@ export async function loadWorkflowFromFile(filePath) {
  * Get default MLE-STAR workflow path
  */
 export function getMLEStarWorkflowPath() {
-  return join(process.cwd(), 'src', 'cli', 'simple-commands', 'templates', 'mle-star-workflow.json');
+  return join(
+    process.cwd(),
+    'src',
+    'cli',
+    'simple-commands',
+    'templates',
+    'mle-star-workflow.json',
+  );
 }

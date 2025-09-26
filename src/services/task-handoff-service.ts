@@ -79,7 +79,7 @@ export class TaskHandoffService extends EventEmitter {
             dataIntegrity: 0,
             informationLoss: 1,
             byzantineVerified: false,
-            error: `Validation failed: ${validation.issues.join(', ')}`
+            error: `Validation failed: ${validation.issues.join(', ')}`,
           };
         }
       }
@@ -94,7 +94,7 @@ export class TaskHandoffService extends EventEmitter {
           fromAgent,
           toAgent,
           data,
-          evidenceBlock
+          evidenceBlock,
         );
         byzantineVerified = consensusResult.verified;
       }
@@ -109,23 +109,22 @@ export class TaskHandoffService extends EventEmitter {
         data,
         evidenceBlock,
         byzantineVerified,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return {
         success: transferResult.success,
         dataIntegrity: this.calculateDataIntegrity(data),
         informationLoss: this.calculateInformationLoss(data),
-        byzantineVerified
+        byzantineVerified,
       };
-
     } catch (error) {
       return {
         success: false,
         dataIntegrity: 0,
         informationLoss: 1,
         byzantineVerified: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -149,8 +148,8 @@ export class TaskHandoffService extends EventEmitter {
             minCompleteness: 0.8,
             minConfidence: 0.7,
             requiredFields: ['deliverables'],
-            byzantineValidation: true
-          }
+            byzantineValidation: true,
+          },
         });
 
         if (result.success) {
@@ -163,7 +162,7 @@ export class TaskHandoffService extends EventEmitter {
       }
 
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
       }
     }
 
@@ -173,13 +172,13 @@ export class TaskHandoffService extends EventEmitter {
       informationLoss: 1,
       byzantineVerified: false,
       attempts: maxRetries,
-      error: lastError
+      error: lastError,
     };
   }
 
   async validateHandoffData(
     data: HandoffData,
-    requirements: ValidationRequirements
+    requirements: ValidationRequirements,
   ): Promise<{
     valid: boolean;
     issues: string[];
@@ -217,7 +216,7 @@ export class TaskHandoffService extends EventEmitter {
     return {
       valid: issues.length === 0,
       issues,
-      missingFields
+      missingFields,
     };
   }
 
@@ -235,9 +234,13 @@ export class TaskHandoffService extends EventEmitter {
     return true;
   }
 
-  async transferData(data: HandoffData, fromAgent: string, toAgent: string): Promise<{ success: boolean; transferred: boolean }> {
+  async transferData(
+    data: HandoffData,
+    fromAgent: string,
+    toAgent: string,
+  ): Promise<{ success: boolean; transferred: boolean }> {
     // Simulate data transfer with potential network issues
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+    await new Promise((resolve) => setTimeout(resolve, Math.random() * 100 + 50));
 
     // Simulate occasional transfer failures for testing
     const transferSuccess = Math.random() > 0.1; // 90% success rate
@@ -259,11 +262,14 @@ export class TaskHandoffService extends EventEmitter {
       agentId,
       deliverables: data.deliverables,
       metadata: data.metadata,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     const dataString = JSON.stringify(blockData);
-    const hash = crypto.createHash('sha256').update(dataString + previousHash).digest('hex');
+    const hash = crypto
+      .createHash('sha256')
+      .update(dataString + previousHash)
+      .digest('hex');
     const signature = await this.cryptographicVerifier.sign(hash, agentId);
 
     const evidenceBlock: EvidenceBlock = {
@@ -273,7 +279,7 @@ export class TaskHandoffService extends EventEmitter {
       timestamp: Date.now(),
       hash,
       previousHash,
-      signature
+      signature,
     };
 
     // Add to chain
@@ -301,7 +307,7 @@ export class TaskHandoffService extends EventEmitter {
       const isValidSignature = await this.cryptographicVerifier.verify(
         current.hash,
         current.signature,
-        current.agentId
+        current.agentId,
       );
 
       if (!isValidSignature) {
@@ -352,19 +358,19 @@ export class TaskHandoffService extends EventEmitter {
         totalHandoffs: 0,
         averageHandoffTime: 0,
         successRate: 0,
-        byzantineVerificationRate: 0
+        byzantineVerificationRate: 0,
       };
     }
 
-    const successfulHandoffs = history.filter(h => h.success !== false).length;
-    const byzantineVerified = history.filter(h => h.byzantineVerified).length;
+    const successfulHandoffs = history.filter((h) => h.success !== false).length;
+    const byzantineVerified = history.filter((h) => h.byzantineVerified).length;
     const averageTime = history.reduce((sum, h) => sum + (h.duration || 1000), 0) / history.length;
 
     return {
       totalHandoffs: history.length,
       averageHandoffTime: averageTime,
       successRate: successfulHandoffs / history.length,
-      byzantineVerificationRate: byzantineVerified / history.length
+      byzantineVerificationRate: byzantineVerified / history.length,
     };
   }
 
@@ -377,7 +383,7 @@ export class TaskHandoffService extends EventEmitter {
     return {
       totalRetries: 2,
       successAfterRetry: 1,
-      averageRetryAttempts: 2.5
+      averageRetryAttempts: 2.5,
     };
   }
 
@@ -386,15 +392,18 @@ export class TaskHandoffService extends EventEmitter {
     recommendations: string[];
   }> {
     const timesBySize = {
-      small: results.filter(r => r.dataSize === 'small').map(r => r.transferTime),
-      medium: results.filter(r => r.dataSize === 'medium').map(r => r.transferTime),
-      large: results.filter(r => r.dataSize === 'large').map(r => r.transferTime)
+      small: results.filter((r) => r.dataSize === 'small').map((r) => r.transferTime),
+      medium: results.filter((r) => r.dataSize === 'medium').map((r) => r.transferTime),
+      large: results.filter((r) => r.dataSize === 'large').map((r) => r.transferTime),
     };
 
     const averages = {
-      small: timesBySize.small.reduce((sum, t) => sum + t, 0) / Math.max(1, timesBySize.small.length),
-      medium: timesBySize.medium.reduce((sum, t) => sum + t, 0) / Math.max(1, timesBySize.medium.length),
-      large: timesBySize.large.reduce((sum, t) => sum + t, 0) / Math.max(1, timesBySize.large.length)
+      small:
+        timesBySize.small.reduce((sum, t) => sum + t, 0) / Math.max(1, timesBySize.small.length),
+      medium:
+        timesBySize.medium.reduce((sum, t) => sum + t, 0) / Math.max(1, timesBySize.medium.length),
+      large:
+        timesBySize.large.reduce((sum, t) => sum + t, 0) / Math.max(1, timesBySize.large.length),
     };
 
     const recommendations: string[] = [];
@@ -407,7 +416,7 @@ export class TaskHandoffService extends EventEmitter {
 
     return {
       averageTransferTime: averages,
-      recommendations
+      recommendations,
     };
   }
 }
@@ -419,7 +428,7 @@ class HandoffConsensusValidator {
     fromAgent: string,
     toAgent: string,
     data: HandoffData,
-    evidence: EvidenceBlock
+    evidence: EvidenceBlock,
   ): Promise<{ verified: boolean; consensusScore: number; conflicts: string[] }> {
     // Simulate consensus validation
     const validators = ['validator-1', 'validator-2', 'validator-3'];
@@ -430,20 +439,21 @@ class HandoffConsensusValidator {
       validationResults.push(result);
     }
 
-    const consensusScore = validationResults.reduce((sum, r) => sum + r.score, 0) / validationResults.length;
-    const conflicts = validationResults.filter(r => r.conflicts).flatMap(r => r.conflicts);
+    const consensusScore =
+      validationResults.reduce((sum, r) => sum + r.score, 0) / validationResults.length;
+    const conflicts = validationResults.filter((r) => r.conflicts).flatMap((r) => r.conflicts);
 
     return {
       verified: consensusScore >= 0.7 && conflicts.length === 0,
       consensusScore,
-      conflicts
+      conflicts,
     };
   }
 
   private async performValidation(
     validator: string,
     data: HandoffData,
-    evidence: EvidenceBlock
+    evidence: EvidenceBlock,
   ): Promise<{ score: number; conflicts: string[] }> {
     // Simulate individual validator assessment
     const score = Math.random() * 0.3 + 0.7; // 0.7 to 1.0
@@ -466,7 +476,7 @@ class CryptographicVerifier {
       const keyPair = crypto.generateKeyPairSync('rsa', {
         modulusLength: 2048,
         publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
       });
       this.keyPairs.set(agentId, keyPair);
     }
@@ -474,7 +484,7 @@ class CryptographicVerifier {
     const keyPair = this.keyPairs.get(agentId)!;
     const signature = crypto.sign('sha256', Buffer.from(data), {
       key: keyPair.privateKey,
-      padding: crypto.constants.RSA_PKCS1_PSS_PADDING
+      padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
     });
 
     return signature.toString('base64');
@@ -492,9 +502,9 @@ class CryptographicVerifier {
         Buffer.from(data),
         {
           key: keyPair.publicKey,
-          padding: crypto.constants.RSA_PKCS1_PSS_PADDING
+          padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
         },
-        Buffer.from(signature, 'base64')
+        Buffer.from(signature, 'base64'),
       );
     } catch {
       return false;

@@ -75,7 +75,7 @@ if (fs.existsSync(distDir)) {
 console.log('\n🔨 Building TypeScript files...');
 try {
   // First try to build just the CLI files with relaxed config
-  execSync('npx tsc -p tsconfig.cli.json', { cwd: rootDir, stdio: 'inherit' });
+  execSync('npx tsc -p config/typescript/tsconfig.cli.json', { cwd: rootDir, stdio: 'inherit' });
   console.log('   ✅ CLI files built successfully');
 } catch (error) {
   console.log('   ⚠️  Build had errors, trying fallback...');

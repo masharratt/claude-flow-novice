@@ -15,7 +15,7 @@ const execAsync = promisify(exec);
 const VERIFICATION_MODES = {
   strict: { threshold: 0.95, autoRollback: true, requireConsensus: true },
   moderate: { threshold: 0.85, autoRollback: false, requireConsensus: true },
-  development: { threshold: 0.75, autoRollback: false, requireConsensus: false }
+  development: { threshold: 0.75, autoRollback: false, requireConsensus: false },
 };
 
 // Agent-specific verification requirements
@@ -24,7 +24,7 @@ const AGENT_VERIFICATION = {
   reviewer: ['code-analysis', 'security-scan', 'performance-check'],
   tester: ['unit-tests', 'integration-tests', 'coverage-check'],
   planner: ['task-decomposition', 'dependency-check', 'feasibility'],
-  architect: ['design-validation', 'scalability-check', 'pattern-compliance']
+  architect: ['design-validation', 'scalability-check', 'pattern-compliance'],
 };
 
 class VerificationSystem {
@@ -61,16 +61,16 @@ class VerificationSystem {
     const memory = {
       scores: Array.from(this.scores.entries()),
       history: this.verificationHistory,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     await fs.mkdir(path.dirname(this.memoryPath), { recursive: true });
     await fs.writeFile(this.memoryPath, JSON.stringify(memory, null, 2));
   }
 
   async verifyTask(taskId, agentType, claims) {
     console.log(`\n🔍 Verifying task ${taskId} (Agent: ${agentType})`);
-    
+
     const requirements = AGENT_VERIFICATION[agentType] || ['basic-check'];
     const results = [];
     let totalScore = 0;
@@ -79,7 +79,7 @@ class VerificationSystem {
       const result = await this.runVerification(check, claims);
       results.push(result);
       totalScore += result.score;
-      
+
       console.log(`   ${result.passed ? '✅' : '❌'} ${check}: ${result.score.toFixed(2)}`);
     }
 
@@ -94,7 +94,7 @@ class VerificationSystem {
       passed,
       threshold,
       timestamp: new Date().toISOString(),
-      results
+      results,
     };
 
     this.verificationHistory.push(verification);
@@ -114,7 +114,7 @@ class VerificationSystem {
   async runVerification(checkType, claims) {
     // Simulate different verification checks
     const verificationChecks = {
-      'compile': async () => {
+      compile: async () => {
         try {
           const { stdout } = await execAsync('npm run typecheck 2>&1 || true');
           return { score: stdout.includes('error') ? 0.5 : 1.0, passed: !stdout.includes('error') };
@@ -122,7 +122,7 @@ class VerificationSystem {
           return { score: 0.5, passed: false };
         }
       },
-      'test': async () => {
+      test: async () => {
         try {
           const { stdout } = await execAsync('npm test 2>&1 || true');
           return { score: stdout.includes('PASS') ? 1.0 : 0.6, passed: stdout.includes('PASS') };
@@ -130,7 +130,7 @@ class VerificationSystem {
           return { score: 0.6, passed: false };
         }
       },
-      'lint': async () => {
+      lint: async () => {
         try {
           const { stdout } = await execAsync('npm run lint 2>&1 || true');
           return { score: stdout.includes('warning') ? 0.8 : 1.0, passed: true };
@@ -138,7 +138,7 @@ class VerificationSystem {
           return { score: 0.7, passed: false };
         }
       },
-      'typecheck': async () => {
+      typecheck: async () => {
         try {
           const { stdout } = await execAsync('npm run typecheck 2>&1 || true');
           return { score: stdout.includes('error') ? 0.6 : 1.0, passed: !stdout.includes('error') };
@@ -146,11 +146,11 @@ class VerificationSystem {
           return { score: 0.6, passed: false };
         }
       },
-      'default': async () => {
+      default: async () => {
         // Simulate verification based on claims
         const claimScore = claims && claims.success ? 0.85 : 0.65;
         return { score: claimScore, passed: claimScore >= 0.75 };
-      }
+      },
     };
 
     const check = verificationChecks[checkType] || verificationChecks.default;
@@ -160,12 +160,12 @@ class VerificationSystem {
   async triggerRollback(taskId) {
     console.log(`🔄 Rolling back task ${taskId}...`);
     // Simulate rollback process
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     console.log(`✅ Rollback completed for task ${taskId}`);
   }
 
   async getAgentReliability(agentId) {
-    const agentHistory = this.verificationHistory.filter(v => v.agentType === agentId);
+    const agentHistory = this.verificationHistory.filter((v) => v.agentType === agentId);
     if (agentHistory.length === 0) return 1.0;
 
     const totalScore = agentHistory.reduce((sum, v) => sum + v.score, 0);
@@ -177,10 +177,10 @@ class VerificationSystem {
       mode: this.mode,
       threshold: VERIFICATION_MODES[this.mode].threshold,
       totalVerifications: this.verificationHistory.length,
-      passedVerifications: this.verificationHistory.filter(v => v.passed).length,
+      passedVerifications: this.verificationHistory.filter((v) => v.passed).length,
       averageScore: 0,
       agentReliability: {},
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     if (this.verificationHistory.length > 0) {
@@ -189,7 +189,7 @@ class VerificationSystem {
     }
 
     // Calculate per-agent reliability
-    const agentTypes = [...new Set(this.verificationHistory.map(v => v.agentType))];
+    const agentTypes = [...new Set(this.verificationHistory.map((v) => v.agentType))];
     for (const agent of agentTypes) {
       report.agentReliability[agent] = await this.getAgentReliability(agent);
     }
@@ -204,10 +204,10 @@ async function generateFilteredReport(system, filteredHistory, agentType) {
     mode: system.mode,
     threshold: VERIFICATION_MODES[system.mode].threshold,
     totalVerifications: filteredHistory.length,
-    passedVerifications: filteredHistory.filter(v => v.passed).length,
+    passedVerifications: filteredHistory.filter((v) => v.passed).length,
     averageScore: 0,
     agentReliability: {},
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   if (filteredHistory.length > 0) {
@@ -223,7 +223,7 @@ async function generateFilteredReport(system, filteredHistory, agentType) {
 export async function verificationCommand(args, flags) {
   const system = new VerificationSystem();
   const subcommand = args[0] || 'status';
-  
+
   // Handle help flag
   if (flags.help || subcommand === '--help' || subcommand === 'help') {
     const { COMMAND_HELP } = await import('../help-text.js');
@@ -247,47 +247,47 @@ export async function verificationCommand(args, flags) {
     case 'truth':
     case 'score':
       await system.loadMemory();
-      
+
       // Filter by agent if specified
       let filteredHistory = system.verificationHistory;
       if (flags.agent) {
-        filteredHistory = system.verificationHistory.filter(v => v.agentType === flags.agent);
+        filteredHistory = system.verificationHistory.filter((v) => v.agentType === flags.agent);
         if (filteredHistory.length === 0) {
           console.log(`\n⚠️ No verification history found for agent: ${flags.agent}`);
           return;
         }
       }
-      
+
       // Filter by taskId if specified
       if (flags.taskId) {
-        filteredHistory = filteredHistory.filter(v => v.taskId === flags.taskId);
+        filteredHistory = filteredHistory.filter((v) => v.taskId === flags.taskId);
         if (filteredHistory.length === 0) {
           console.log(`\n⚠️ No verification history found for task: ${flags.taskId}`);
           return;
         }
       }
-      
+
       // Filter by threshold if specified
       if (flags.threshold) {
         const threshold = parseFloat(flags.threshold);
-        filteredHistory = filteredHistory.filter(v => v.score < threshold);
+        filteredHistory = filteredHistory.filter((v) => v.score < threshold);
         if (filteredHistory.length === 0) {
           console.log(`\n✅ All verifications meet or exceed threshold: ${threshold}`);
           return;
         }
       }
-      
+
       // Generate report (with filtered data if agent specified)
-      const report = flags.agent ? 
-        await generateFilteredReport(system, filteredHistory, flags.agent) :
-        await system.generateTruthReport();
-      
+      const report = flags.agent
+        ? await generateFilteredReport(system, filteredHistory, flags.agent)
+        : await system.generateTruthReport();
+
       // JSON output only mode
       if (flags.json) {
         console.log(JSON.stringify(report, null, 2));
         return;
       }
-      
+
       // Basic report (shown when not in JSON mode)
       console.log('\n📊 Truth Scoring Report' + (flags.agent ? ` - Agent: ${flags.agent}` : ''));
       console.log('━'.repeat(50));
@@ -296,45 +296,49 @@ export async function verificationCommand(args, flags) {
       console.log(`Total Verifications: ${report.totalVerifications}`);
       console.log(`Passed: ${report.passedVerifications}`);
       console.log(`Average Score: ${report.averageScore.toFixed(3)}`);
-      
+
       if (flags.agent) {
         // Show detailed info for specific agent
         console.log(`\n🤖 ${flags.agent} Agent Details:`);
         console.log(`   Reliability: ${(report.agentReliability[flags.agent] * 100).toFixed(1)}%`);
         console.log(`   Total Tasks: ${filteredHistory.length}`);
-        console.log(`   Passed: ${filteredHistory.filter(v => v.passed).length}`);
-        console.log(`   Failed: ${filteredHistory.filter(v => !v.passed).length}`);
-        
+        console.log(`   Passed: ${filteredHistory.filter((v) => v.passed).length}`);
+        console.log(`   Failed: ${filteredHistory.filter((v) => !v.passed).length}`);
+
         if (flags.detailed || flags.detail) {
           console.log('\n📋 Verification History:');
           const recentAgent = filteredHistory.slice(-10);
           for (const v of recentAgent) {
             const time = new Date(v.timestamp).toLocaleTimeString();
-            console.log(`   ${v.passed ? '✅' : '❌'} [${time}] ${v.taskId}: ${v.score.toFixed(3)}`);
+            console.log(
+              `   ${v.passed ? '✅' : '❌'} [${time}] ${v.taskId}: ${v.score.toFixed(3)}`,
+            );
             if (v.results && flags.verbose) {
               for (const [check, result] of Object.entries(v.results)) {
-                console.log(`      • ${check}: ${result.passed ? '✓' : '✗'} (${result.score.toFixed(2)})`);
+                console.log(
+                  `      • ${check}: ${result.passed ? '✓' : '✗'} (${result.score.toFixed(2)})`,
+                );
               }
             }
           }
-          
+
           // Score distribution
-          const scores = filteredHistory.map(v => v.score);
+          const scores = filteredHistory.map((v) => v.score);
           const minScore = Math.min(...scores);
           const maxScore = Math.max(...scores);
           console.log('\n📊 Score Distribution:');
           console.log(`   Min Score: ${minScore.toFixed(3)}`);
           console.log(`   Max Score: ${maxScore.toFixed(3)}`);
           console.log(`   Average: ${report.averageScore.toFixed(3)}`);
-          
+
           // Performance trend
           if (filteredHistory.length > 5) {
             const recent5 = filteredHistory.slice(-5);
             const older5 = filteredHistory.slice(-10, -5);
             const recentAvg = recent5.reduce((sum, v) => sum + v.score, 0) / recent5.length;
-            const olderAvg = older5.length > 0 ? 
-              older5.reduce((sum, v) => sum + v.score, 0) / older5.length : 0;
-            
+            const olderAvg =
+              older5.length > 0 ? older5.reduce((sum, v) => sum + v.score, 0) / older5.length : 0;
+
             console.log('\n📈 Performance Trend:');
             if (olderAvg > 0) {
               const trend = recentAvg - olderAvg;
@@ -353,53 +357,65 @@ export async function verificationCommand(args, flags) {
           console.log(`   ${agent}: ${(reliability * 100).toFixed(1)}%`);
         }
       }
-      
+
       // Detailed report with --report flag
       if (flags.report) {
         console.log('\n📈 Detailed Verification Breakdown:');
-        console.log(`   Pass Rate: ${((report.passedVerifications / report.totalVerifications) * 100).toFixed(1)}%`);
-        console.log(`   Failure Rate: ${(((report.totalVerifications - report.passedVerifications) / report.totalVerifications) * 100).toFixed(1)}%`);
-        
+        console.log(
+          `   Pass Rate: ${((report.passedVerifications / report.totalVerifications) * 100).toFixed(1)}%`,
+        );
+        console.log(
+          `   Failure Rate: ${(((report.totalVerifications - report.passedVerifications) / report.totalVerifications) * 100).toFixed(1)}%`,
+        );
+
         // Show recent history
         if (system.verificationHistory.length > 0) {
           console.log('\n📜 Last 10 Verifications:');
           const recent = system.verificationHistory.slice(-10);
           for (const v of recent) {
             const time = new Date(v.timestamp).toLocaleTimeString();
-            console.log(`   ${v.passed ? '✅' : '❌'} [${time}] ${v.taskId} (${v.agentType}): ${v.score.toFixed(3)}`);
+            console.log(
+              `   ${v.passed ? '✅' : '❌'} [${time}] ${v.taskId} (${v.agentType}): ${v.score.toFixed(3)}`,
+            );
           }
         }
-        
+
         // Performance metrics
         console.log('\n🎯 Target Metrics Comparison:');
-        console.log(`   Truth Accuracy: ${report.averageScore >= 0.95 ? '✅' : '❌'} ${(report.averageScore * 100).toFixed(1)}% (target: 95%)`);
-        console.log(`   Pass Rate: ${report.passedVerifications/report.totalVerifications >= 0.9 ? '✅' : '❌'} ${((report.passedVerifications/report.totalVerifications) * 100).toFixed(1)}% (target: 90%)`);
+        console.log(
+          `   Truth Accuracy: ${report.averageScore >= 0.95 ? '✅' : '❌'} ${(report.averageScore * 100).toFixed(1)}% (target: 95%)`,
+        );
+        console.log(
+          `   Pass Rate: ${report.passedVerifications / report.totalVerifications >= 0.9 ? '✅' : '❌'} ${((report.passedVerifications / report.totalVerifications) * 100).toFixed(1)}% (target: 90%)`,
+        );
       }
-      
+
       // Failure analysis with --analyze flag
       if (flags.analyze) {
         console.log('\n🔍 Failure Pattern Analysis:');
-        
+
         // Analyze failures by agent
-        const failures = system.verificationHistory.filter(v => !v.passed);
+        const failures = system.verificationHistory.filter((v) => !v.passed);
         if (failures.length > 0) {
           const failuresByAgent = {};
           for (const f of failures) {
             failuresByAgent[f.agentType] = (failuresByAgent[f.agentType] || 0) + 1;
           }
-          
+
           console.log('   Failures by Agent:');
           for (const [agent, count] of Object.entries(failuresByAgent)) {
-            const percentage = (count / failures.length * 100).toFixed(1);
+            const percentage = ((count / failures.length) * 100).toFixed(1);
             console.log(`   • ${agent}: ${count} failures (${percentage}%)`);
           }
-          
+
           // Common failure scores
-          const failureScores = failures.map(f => f.score);
+          const failureScores = failures.map((f) => f.score);
           const avgFailureScore = failureScores.reduce((a, b) => a + b, 0) / failureScores.length;
           console.log(`\n   Average Failure Score: ${avgFailureScore.toFixed(3)}`);
-          console.log(`   Score Gap to Threshold: ${(report.threshold - avgFailureScore).toFixed(3)}`);
-          
+          console.log(
+            `   Score Gap to Threshold: ${(report.threshold - avgFailureScore).toFixed(3)}`,
+          );
+
           // Recommendations
           console.log('\n💡 Recommendations:');
           if (avgFailureScore < 0.5) {
@@ -415,10 +431,11 @@ export async function verificationCommand(args, flags) {
           console.log('   ✅ No failures detected!');
         }
       }
-      
+
       // Export to file with --export flag
       if (flags.export) {
-        const exportPath = typeof flags.export === 'string' ? flags.export : `truth-report-${Date.now()}.json`;
+        const exportPath =
+          typeof flags.export === 'string' ? flags.export : `truth-report-${Date.now()}.json`;
         const exportData = {
           report,
           filteredHistory,
@@ -427,13 +444,13 @@ export async function verificationCommand(args, flags) {
             filters: {
               agent: flags.agent || null,
               taskId: flags.taskId || null,
-              threshold: flags.threshold || null
+              threshold: flags.threshold || null,
             },
             command: 'truth',
-            version: '2.0.0-alpha.89'
-          }
+            version: '2.0.0-alpha.89',
+          },
         };
-        
+
         try {
           await fs.writeFile(exportPath, JSON.stringify(exportData, null, 2));
           console.log(`\n📁 Report exported to: ${exportPath}`);
@@ -451,15 +468,17 @@ export async function verificationCommand(args, flags) {
       console.log(`Mode: ${system.mode}`);
       console.log(`Verifications: ${system.verificationHistory.length}`);
       console.log(`Recent: ${system.verificationHistory.slice(-5).length} verifications`);
-      
+
       if (system.verificationHistory.length > 0) {
         const recent = system.verificationHistory.slice(-5);
         console.log('\n📜 Recent Verifications:');
         for (const v of recent) {
-          console.log(`   ${v.passed ? '✅' : '❌'} ${v.taskId} (${v.agentType}): ${v.score.toFixed(2)}`);
+          console.log(
+            `   ${v.passed ? '✅' : '❌'} ${v.taskId} (${v.agentType}): ${v.score.toFixed(2)}`,
+          );
         }
       }
-      
+
       console.log('\n💡 Commands:');
       console.log('   verify init [mode]     - Initialize system');
       console.log('   verify verify [taskId] - Verify a task');
@@ -490,30 +509,30 @@ export async function pairCommand(args, flags) {
   }
   console.log('\n👥 Pair Programming with Verification');
   console.log('━'.repeat(50));
-  
+
   const system = new VerificationSystem();
   await system.initialize('strict');
-  
+
   console.log('\n🎯 Verification-First Development Mode Activated');
   console.log('   • All changes require verification');
   console.log('   • Truth threshold: 0.95');
   console.log('   • Real-time validation enabled');
   console.log('   • Auto-rollback on failures');
-  
+
   if (flags.start) {
     console.log('\n🚀 Starting pair programming session...');
     console.log('   Monitoring file changes...');
     console.log('   Running continuous verification...');
-    
+
     // Simulate monitoring
     let iteration = 0;
     const interval = setInterval(async () => {
       iteration++;
       console.log(`\n[${new Date().toISOString()}] Verification cycle ${iteration}`);
-      
+
       const taskId = `pair-${Date.now()}`;
       const result = await system.verifyTask(taskId, 'coder', { success: Math.random() > 0.3 });
-      
+
       if (iteration >= 3 || !result.passed) {
         clearInterval(interval);
         console.log('\n✨ Pair programming session complete');
@@ -528,5 +547,5 @@ export async function pairCommand(args, flags) {
 export default {
   verificationCommand,
   truthCommand,
-  pairCommand
+  pairCommand,
 };

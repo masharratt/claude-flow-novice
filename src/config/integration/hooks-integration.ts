@@ -56,10 +56,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
   private hookCache: Map<string, any>;
   private executionHistory: Map<string, HookExecutionResult[]>;
 
-  constructor(
-    configManager: IntelligentConfigurationManager,
-    config: HookIntegrationConfig
-  ) {
+  constructor(configManager: IntelligentConfigurationManager, config: HookIntegrationConfig) {
     super();
     this.configManager = configManager;
     this.config = config;
@@ -116,7 +113,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
       const sessionResult = await this.executeHook('session-restore', {
         ...hookContext,
         action: 'restore',
-        sessionId: hookContext.sessionId
+        sessionId: hookContext.sessionId,
       });
       results.push(sessionResult);
 
@@ -124,7 +121,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
       const resourceResult = await this.executeHook('resource-preparation', {
         ...hookContext,
         action: 'prepare',
-        resources: ['configuration', 'storage', 'ai-models']
+        resources: ['configuration', 'storage', 'ai-models'],
       });
       results.push(resourceResult);
 
@@ -132,7 +129,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
       const contextResult = await this.executeHook('context-loading', {
         ...hookContext,
         action: 'load',
-        contexts: ['user', 'project', 'team']
+        contexts: ['user', 'project', 'team'],
       });
       results.push(contextResult);
 
@@ -140,21 +137,20 @@ export class ConfigurationHookIntegration extends EventEmitter {
       const agentResult = await this.executeHook('agent-initialization', {
         ...hookContext,
         action: 'initialize',
-        agentTypes: await this.determineRequiredAgents(hookContext)
+        agentTypes: await this.determineRequiredAgents(hookContext),
       });
       results.push(agentResult);
-
     } catch (error) {
       this.emit('hookExecutionError', {
         hook: 'pre-task',
         error: error.message,
-        context: hookContext
+        context: hookContext,
       });
 
       results.push({
         success: false,
         duration: 0,
-        error: error.message
+        error: error.message,
       });
     }
 
@@ -178,7 +174,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         action: 'store',
         key: `config/${hookContext.sessionId}`,
         value: JSON.stringify(data.configuration),
-        namespace: 'configuration'
+        namespace: 'configuration',
       });
       results.push(memoryResult);
 
@@ -187,7 +183,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         ...hookContext,
         action: 'update',
         configuration: data.configuration,
-        changes: data.changes || []
+        changes: data.changes || [],
       });
       results.push(coordinationResult);
 
@@ -198,8 +194,8 @@ export class ConfigurationHookIntegration extends EventEmitter {
         metrics: {
           configurationUpdated: true,
           changesCount: data.changes?.length || 0,
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       });
       results.push(metricsResult);
 
@@ -212,17 +208,16 @@ export class ConfigurationHookIntegration extends EventEmitter {
           data: {
             configuration: data.configuration,
             changes: data.changes,
-            outcome: 'success'
-          }
+            outcome: 'success',
+          },
         });
         results.push(neuralResult);
       }
-
     } catch (error) {
       this.emit('hookExecutionError', {
         hook: 'post-configuration',
         error: error.message,
-        context: hookContext
+        context: hookContext,
       });
     }
 
@@ -245,7 +240,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         ...hookContext,
         action: 'backup',
         fromVersion: data.fromVersion,
-        toVersion: data.toVersion
+        toVersion: data.toVersion,
       });
       results.push(backupResult);
 
@@ -253,7 +248,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
       const validationResult = await this.executeHook('migration-validation', {
         ...hookContext,
         action: 'validate',
-        migration: data
+        migration: data,
       });
       results.push(validationResult);
 
@@ -262,16 +257,15 @@ export class ConfigurationHookIntegration extends EventEmitter {
         const verificationResult = await this.executeHook('post-migration-verification', {
           ...hookContext,
           action: 'verify',
-          migratedConfiguration: data.configuration
+          migratedConfiguration: data.configuration,
         });
         results.push(verificationResult);
       }
-
     } catch (error) {
       this.emit('hookExecutionError', {
         hook: 'migration',
         error: error.message,
-        context: hookContext
+        context: hookContext,
       });
     }
 
@@ -295,7 +289,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         action: 'adapt',
         fromLevel: data.from,
         toLevel: data.to,
-        smooth: data.smooth
+        smooth: data.smooth,
       });
       results.push(uiResult);
 
@@ -304,7 +298,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         ...hookContext,
         action: 'update',
         level: data.to,
-        visibleFeatures: await this.getVisibleFeaturesForLevel(data.to)
+        visibleFeatures: await this.getVisibleFeaturesForLevel(data.to),
       });
       results.push(featureResult);
 
@@ -313,15 +307,14 @@ export class ConfigurationHookIntegration extends EventEmitter {
         ...hookContext,
         action: 'reconfigure',
         level: data.to,
-        agentLimits: await this.getAgentLimitsForLevel(data.to)
+        agentLimits: await this.getAgentLimitsForLevel(data.to),
       });
       results.push(agentResult);
-
     } catch (error) {
       this.emit('hookExecutionError', {
         hook: 'level-change',
         error: error.message,
-        context: hookContext
+        context: hookContext,
       });
     }
 
@@ -344,7 +337,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         ...hookContext,
         action: 'notify',
         analysis: data.detectedProject,
-        confidence: data.confidence
+        confidence: data.confidence,
       });
       results.push(analysisResult);
 
@@ -354,7 +347,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
           ...hookContext,
           action: 'spawn',
           agentConfig: data.configuration.agent,
-          projectType: data.detectedProject?.type
+          projectType: data.detectedProject?.type,
         });
         results.push(spawnResult);
       }
@@ -364,7 +357,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         ...hookContext,
         action: 'optimize',
         configuration: data.configuration,
-        projectAnalysis: data.detectedProject
+        projectAnalysis: data.detectedProject,
       });
       results.push(optimizationResult);
 
@@ -374,15 +367,14 @@ export class ConfigurationHookIntegration extends EventEmitter {
         action: 'notify',
         configuration: data.configuration,
         recommendations: data.recommendations,
-        nextSteps: data.nextSteps
+        nextSteps: data.nextSteps,
       });
       results.push(notificationResult);
-
     } catch (error) {
       this.emit('hookExecutionError', {
         hook: 'auto-setup',
         error: error.message,
-        context: hookContext
+        context: hookContext,
       });
     }
 
@@ -392,10 +384,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
   /**
    * Execute a specific hook with retry and error handling
    */
-  private async executeHook(
-    hookName: string,
-    context: any
-  ): Promise<HookExecutionResult> {
+  private async executeHook(hookName: string, context: any): Promise<HookExecutionResult> {
     const startTime = Date.now();
     let attempt = 0;
 
@@ -410,7 +399,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
             success: true,
             duration: Date.now() - startTime,
             output: cachedResult.output,
-            metadata: { cached: true }
+            metadata: { cached: true },
           };
         }
 
@@ -421,7 +410,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         if (result.success) {
           this.hookCache.set(cacheKey, {
             output: result.output,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           });
         }
 
@@ -429,7 +418,6 @@ export class ConfigurationHookIntegration extends EventEmitter {
         this.recordExecution(hookName, result);
 
         return result;
-
       } catch (error) {
         attempt++;
 
@@ -438,7 +426,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
             success: false,
             duration: Date.now() - startTime,
             error: error.message,
-            warnings: [`Failed after ${attempt} attempts`]
+            warnings: [`Failed after ${attempt} attempts`],
           };
 
           this.recordExecution(hookName, failureResult);
@@ -454,7 +442,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
     return {
       success: false,
       duration: Date.now() - startTime,
-      error: 'Unexpected execution path'
+      error: 'Unexpected execution path',
     };
   }
 
@@ -463,7 +451,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
    */
   private async executeClaudeFlowHook(
     hookName: string,
-    context: any
+    context: any,
   ): Promise<HookExecutionResult> {
     const startTime = Date.now();
 
@@ -475,7 +463,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         return {
           success: false,
           duration: Date.now() - startTime,
-          error: `No command mapping for hook: ${hookName}`
+          error: `No command mapping for hook: ${hookName}`,
         };
       }
 
@@ -485,14 +473,13 @@ export class ConfigurationHookIntegration extends EventEmitter {
       return {
         success: true,
         duration: Date.now() - startTime,
-        output
+        output,
       };
-
     } catch (error) {
       return {
         success: false,
         duration: Date.now() - startTime,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -546,7 +533,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
     return {
       success: true,
       output: `Executed: ${command}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -562,8 +549,8 @@ export class ConfigurationHookIntegration extends EventEmitter {
       metadata: {
         ...data,
         hookSystem: 'configuration-integration',
-        version: '1.0.0'
-      }
+        version: '1.0.0',
+      },
     };
   }
 
@@ -580,10 +567,19 @@ export class ConfigurationHookIntegration extends EventEmitter {
    */
   private async getVisibleFeaturesForLevel(level: string): Promise<string[]> {
     const featureMap: Record<string, string[]> = {
-      'novice': ['basic-agents', 'simple-config'],
-      'intermediate': ['basic-agents', 'simple-config', 'monitoring', 'memory'],
-      'advanced': ['basic-agents', 'simple-config', 'monitoring', 'memory', 'neural', 'coordination'],
-      'enterprise': ['basic-agents', 'simple-config', 'monitoring', 'memory', 'neural', 'coordination', 'security', 'team-sharing']
+      novice: ['basic-agents', 'simple-config'],
+      intermediate: ['basic-agents', 'simple-config', 'monitoring', 'memory'],
+      advanced: ['basic-agents', 'simple-config', 'monitoring', 'memory', 'neural', 'coordination'],
+      enterprise: [
+        'basic-agents',
+        'simple-config',
+        'monitoring',
+        'memory',
+        'neural',
+        'coordination',
+        'security',
+        'team-sharing',
+      ],
     };
 
     return featureMap[level] || featureMap['novice'];
@@ -594,10 +590,10 @@ export class ConfigurationHookIntegration extends EventEmitter {
    */
   private async getAgentLimitsForLevel(level: string): Promise<{ min: number; max: number }> {
     const limitMap: Record<string, { min: number; max: number }> = {
-      'novice': { min: 1, max: 5 },
-      'intermediate': { min: 2, max: 8 },
-      'advanced': { min: 3, max: 15 },
-      'enterprise': { min: 5, max: 50 }
+      novice: { min: 1, max: 5 },
+      intermediate: { min: 2, max: 8 },
+      advanced: { min: 3, max: 15 },
+      enterprise: { min: 5, max: 50 },
     };
 
     return limitMap[level] || limitMap['novice'];
@@ -626,7 +622,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -636,7 +632,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
     const stats: Record<string, any> = {};
 
     for (const [hookName, history] of this.executionHistory.entries()) {
-      const successful = history.filter(r => r.success).length;
+      const successful = history.filter((r) => r.success).length;
       const failed = history.length - successful;
       const avgDuration = history.reduce((sum, r) => sum + r.duration, 0) / history.length;
 
@@ -646,7 +642,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
         failed,
         successRate: successful / history.length,
         averageDuration: Math.round(avgDuration),
-        lastExecution: history[history.length - 1]?.timestamp
+        lastExecution: history[history.length - 1]?.timestamp,
       };
     }
 

@@ -14,7 +14,16 @@ export class ConsentManager {
    * Request consent from user for experimental feature
    */
   async requestConsent(consentRequest) {
-    const { userId, featureName, title, description, stability, riskLevel, warnings, dependencies } = consentRequest;
+    const {
+      userId,
+      featureName,
+      title,
+      description,
+      stability,
+      riskLevel,
+      warnings,
+      dependencies,
+    } = consentRequest;
 
     // Check if consent already exists
     const existingConsent = this.getConsent(userId, featureName);
@@ -34,7 +43,7 @@ export class ConsentManager {
       warnings: warnings || [],
       dependencies: dependencies || [],
       timestamp: new Date().toISOString(),
-      sections: this.buildConsentSections(stability, riskLevel, warnings, dependencies)
+      sections: this.buildConsentSections(stability, riskLevel, warnings, dependencies),
     };
 
     // Store pending consent
@@ -55,7 +64,7 @@ export class ConsentManager {
         acknowledgedWarnings: userResponse.acknowledgedWarnings || [],
         userSignature: userResponse.signature,
         ipAddress: userResponse.ipAddress,
-        userAgent: userResponse.userAgent
+        userAgent: userResponse.userAgent,
       };
 
       this.recordConsent(consentRecord);
@@ -64,9 +73,8 @@ export class ConsentManager {
       return {
         granted: userResponse.granted,
         consentId: consentRecord.timestamp,
-        acknowledgedRisks: userResponse.acknowledgedRisks || []
+        acknowledgedRisks: userResponse.acknowledgedRisks || [],
       };
-
     } catch (error) {
       this.pendingConsents.delete(consentDialog.id);
       throw new Error(`Consent request failed: ${error.message}`);
@@ -86,8 +94,8 @@ export class ConsentManager {
       content: {
         stability: stability.toUpperCase(),
         riskLevel: riskLevel.toUpperCase(),
-        description: `This is an ${stability} feature with ${riskLevel} risk level.`
-      }
+        description: `This is an ${stability} feature with ${riskLevel} risk level.`,
+      },
     });
 
     // Risk Assessment Section
@@ -98,8 +106,8 @@ export class ConsentManager {
         content: {
           riskLevel,
           description: this.getRiskDescription(riskLevel),
-          mitigation: this.getRiskMitigation(riskLevel)
-        }
+          mitigation: this.getRiskMitigation(riskLevel),
+        },
       });
     }
 
@@ -110,8 +118,8 @@ export class ConsentManager {
         title: 'Important Warnings',
         content: {
           warnings,
-          requiresAcknowledgment: true
-        }
+          requiresAcknowledgment: true,
+        },
       });
     }
 
@@ -122,8 +130,8 @@ export class ConsentManager {
         title: 'Feature Dependencies',
         content: {
           dependencies,
-          description: 'This feature requires the following components to be enabled:'
-        }
+          description: 'This feature requires the following components to be enabled:',
+        },
       });
     }
 
@@ -133,8 +141,8 @@ export class ConsentManager {
       title: 'User Responsibilities',
       content: {
         responsibilities: this.getUserResponsibilities(stability, riskLevel),
-        requiresAcknowledgment: true
-      }
+        requiresAcknowledgment: true,
+      },
     });
 
     // Data Collection and Monitoring
@@ -143,11 +151,17 @@ export class ConsentManager {
         type: 'privacy',
         title: 'Monitoring and Data Collection',
         content: {
-          description: 'Experimental features may collect additional telemetry data for safety and improvement purposes.',
-          dataTypes: ['Performance metrics', 'Error logs', 'Usage patterns', 'System impact measurements'],
+          description:
+            'Experimental features may collect additional telemetry data for safety and improvement purposes.',
+          dataTypes: [
+            'Performance metrics',
+            'Error logs',
+            'Usage patterns',
+            'System impact measurements',
+          ],
           retention: '90 days or until feature becomes stable',
-          optOut: riskLevel === 'low'
-        }
+          optOut: riskLevel === 'low',
+        },
       });
     }
 
@@ -160,8 +174,9 @@ export class ConsentManager {
   getRiskDescription(riskLevel) {
     const descriptions = {
       low: 'This feature is generally stable but may have minor issues or limited functionality.',
-      medium: 'This feature may cause system instability, performance issues, or unexpected behavior.',
-      high: 'This feature is highly experimental and may cause significant system issues, data corruption, or security vulnerabilities.'
+      medium:
+        'This feature may cause system instability, performance issues, or unexpected behavior.',
+      high: 'This feature is highly experimental and may cause significant system issues, data corruption, or security vulnerabilities.',
     };
 
     return descriptions[riskLevel] || 'Unknown risk level';
@@ -172,9 +187,24 @@ export class ConsentManager {
    */
   getRiskMitigation(riskLevel) {
     const mitigations = {
-      low: ['Regular monitoring enabled', 'Easy disable option available', 'Support available during business hours'],
-      medium: ['Continuous monitoring enabled', 'Automatic rollback on critical issues', 'Enhanced logging enabled', '24/7 support available'],
-      high: ['Real-time monitoring with alerts', 'Immediate automatic rollback', 'Full system backup recommended', 'Dedicated support team assigned', 'Regular safety checks required']
+      low: [
+        'Regular monitoring enabled',
+        'Easy disable option available',
+        'Support available during business hours',
+      ],
+      medium: [
+        'Continuous monitoring enabled',
+        'Automatic rollback on critical issues',
+        'Enhanced logging enabled',
+        '24/7 support available',
+      ],
+      high: [
+        'Real-time monitoring with alerts',
+        'Immediate automatic rollback',
+        'Full system backup recommended',
+        'Dedicated support team assigned',
+        'Regular safety checks required',
+      ],
     };
 
     return mitigations[riskLevel] || [];
@@ -188,14 +218,14 @@ export class ConsentManager {
       'Monitor system behavior after enabling this feature',
       'Report any issues or unexpected behavior immediately',
       'Follow all safety guidelines and warnings',
-      'Keep backups of important data'
+      'Keep backups of important data',
     ];
 
     if (riskLevel === 'medium' || riskLevel === 'high') {
       responsibilities.push(
         'Avoid using this feature in production environments without thorough testing',
         'Have a rollback plan ready',
-        'Monitor system resources and performance'
+        'Monitor system resources and performance',
       );
     }
 
@@ -203,7 +233,7 @@ export class ConsentManager {
       responsibilities.push(
         'Perform full system backup before enabling',
         'Have dedicated support contact available',
-        'Schedule regular safety checks'
+        'Schedule regular safety checks',
       );
     }
 
@@ -228,7 +258,7 @@ export class ConsentManager {
       acknowledgedWarnings: consentDialog.warnings,
       signature: `${consentDialog.userId}_${Date.now()}`,
       ipAddress: '127.0.0.1',
-      userAgent: 'MockBrowser/1.0'
+      userAgent: 'MockBrowser/1.0',
     };
   }
 
@@ -271,7 +301,7 @@ export class ConsentManager {
         ...existingConsent,
         granted: false,
         revokedAt: new Date().toISOString(),
-        revokedReason: reason
+        revokedReason: reason,
       };
 
       this.consentRecords.set(key, revokedConsent);
@@ -306,7 +336,7 @@ export class ConsentManager {
       granted: 0,
       revoked: 0,
       byFeature: {},
-      byRiskLevel: { low: 0, medium: 0, high: 0, none: 0 }
+      byRiskLevel: { low: 0, medium: 0, high: 0, none: 0 },
     };
 
     for (const consent of this.consentRecords.values()) {
@@ -326,7 +356,8 @@ export class ConsentManager {
   /**
    * Cleanup expired consents
    */
-  cleanupExpiredConsents(maxAgeMs = 90 * 24 * 60 * 60 * 1000) { // 90 days default
+  cleanupExpiredConsents(maxAgeMs = 90 * 24 * 60 * 60 * 1000) {
+    // 90 days default
     const now = Date.now();
     let cleanedUp = 0;
 

@@ -360,9 +360,7 @@ async function initializeProject(projectPath, options = {}) {
     }
 
     // Create all directories in parallel
-    await Promise.all(
-      directories.map((dir) => fs.mkdir(dir, { recursive: true }).catch(() => {})),
-    );
+    await Promise.all(directories.map((dir) => fs.mkdir(dir, { recursive: true }).catch(() => {})));
 
     // Create configuration files in parallel
     const fileCreationTasks = [];

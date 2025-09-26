@@ -34,8 +34,8 @@ class ByzantineConsensus {
     this.consensusRounds++;
 
     // Simulate consensus process
-    const participatingNodes = this.consensusNodes.filter(node =>
-      !this.maliciousNodes.has(node) && !this.networkPartitions.has(node)
+    const participatingNodes = this.consensusNodes.filter(
+      (node) => !this.maliciousNodes.has(node) && !this.networkPartitions.has(node),
     );
 
     const validNodes = participatingNodes.length;
@@ -51,7 +51,7 @@ class ByzantineConsensus {
         participatingNodes: participatingNodes,
         consensusRounds: this.consensusRounds,
         proof: proof,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
 
@@ -61,7 +61,7 @@ class ByzantineConsensus {
       participatingNodes: participatingNodes,
       requiredNodes: this.consensusThreshold,
       availableNodes: validNodes,
-      consensusRounds: this.consensusRounds
+      consensusRounds: this.consensusRounds,
     };
   }
 
@@ -84,18 +84,18 @@ class ByzantineConsensus {
           consensusRounds: consensusAttempts,
           participatingNodes: result.participatingNodes,
           confidence: this._calculateConsensusConfidence(result),
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       }
 
       // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     return {
       consensusReached: false,
       consensusRounds: consensusAttempts,
-      error: 'Failed to reach consensus after maximum attempts'
+      error: 'Failed to reach consensus after maximum attempts',
     };
   }
 
@@ -104,8 +104,8 @@ class ByzantineConsensus {
    */
   async quickValidate(data) {
     // Simplified validation for <5ms operations
-    const availableNodes = this.consensusNodes.filter(node =>
-      !this.maliciousNodes.has(node) && !this.networkPartitions.has(node)
+    const availableNodes = this.consensusNodes.filter(
+      (node) => !this.maliciousNodes.has(node) && !this.networkPartitions.has(node),
     );
 
     const valid = availableNodes.length >= Math.ceil(this.totalNodes / 2);
@@ -114,7 +114,7 @@ class ByzantineConsensus {
       valid: valid,
       quickValidation: true,
       availableNodes: availableNodes.length,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -126,7 +126,7 @@ class ByzantineConsensus {
       reportedBy: this.nodeId,
       activity: activity,
       timestamp: Date.now(),
-      evidence: this._generateMaliciousActivityEvidence(activity)
+      evidence: this._generateMaliciousActivityEvidence(activity),
     };
 
     // Broadcast to consensus network (mock)
@@ -135,7 +135,7 @@ class ByzantineConsensus {
     return {
       reported: true,
       reportId: crypto.randomUUID(),
-      evidence: report.evidence
+      evidence: report.evidence,
     };
   }
 
@@ -145,15 +145,15 @@ class ByzantineConsensus {
   async generateConsensusProof(data) {
     const proof = {
       data: data,
-      consensusNodes: this.consensusNodes.filter(node => !this.maliciousNodes.has(node)),
+      consensusNodes: this.consensusNodes.filter((node) => !this.maliciousNodes.has(node)),
       timestamp: Date.now(),
-      proofHash: crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex')
+      proofHash: crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex'),
     };
 
     return {
       proof: proof,
       signature: this._signData(JSON.stringify(proof)),
-      validator: this.nodeId
+      validator: this.nodeId,
     };
   }
 
@@ -161,8 +161,8 @@ class ByzantineConsensus {
    * Get current consensus nodes
    */
   async getConsensusNodes() {
-    return this.consensusNodes.filter(node =>
-      !this.maliciousNodes.has(node) && !this.networkPartitions.has(node)
+    return this.consensusNodes.filter(
+      (node) => !this.maliciousNodes.has(node) && !this.networkPartitions.has(node),
     );
   }
 
@@ -179,7 +179,7 @@ class ByzantineConsensus {
       updated: true,
       totalNodes: this.totalNodes,
       consensusThreshold: this.consensusThreshold,
-      faultTolerance: this.faultTolerance
+      faultTolerance: this.faultTolerance,
     };
   }
 
@@ -212,7 +212,7 @@ class ByzantineConsensus {
    * Simulate network partition
    */
   simulateNetworkPartition(nodeIds) {
-    nodeIds.forEach(nodeId => this.networkPartitions.add(nodeId));
+    nodeIds.forEach((nodeId) => this.networkPartitions.add(nodeId));
     console.log('Network partition simulated:', nodeIds);
   }
 
@@ -229,7 +229,7 @@ class ByzantineConsensus {
    */
   simulateCoordinatedAttack(attack) {
     if (attack.maliciousNodes) {
-      attack.maliciousNodes.forEach(nodeId => this.maliciousNodes.add(nodeId));
+      attack.maliciousNodes.forEach((nodeId) => this.maliciousNodes.add(nodeId));
     }
     console.log('Coordinated attack simulated:', attack);
   }
@@ -242,13 +242,14 @@ class ByzantineConsensus {
       participatingNodes: participatingNodes,
       consensusThreshold: this.consensusThreshold,
       timestamp: Date.now(),
-      proofSignature: crypto.randomBytes(32).toString('hex')
+      proofSignature: crypto.randomBytes(32).toString('hex'),
     };
   }
 
   _calculateConsensusConfidence(result) {
     const participation = result.participatingNodes.length / this.totalNodes;
-    const overThreshold = (result.participatingNodes.length - this.consensusThreshold) / this.consensusThreshold;
+    const overThreshold =
+      (result.participatingNodes.length - this.consensusThreshold) / this.consensusThreshold;
     return Math.min(0.5 + participation * 0.3 + overThreshold * 0.2, 1.0);
   }
 
@@ -257,15 +258,13 @@ class ByzantineConsensus {
       activityHash: crypto.createHash('sha256').update(JSON.stringify(activity)).digest('hex'),
       detectedAt: Date.now(),
       evidenceType: 'behavioral_analysis',
-      severity: activity.attackType === 'byzantine_generals' ? 'high' : 'medium'
+      severity: activity.attackType === 'byzantine_generals' ? 'high' : 'medium',
     };
   }
 
   _signData(data) {
     // Mock data signing
-    return crypto.createHmac('sha256', this.nodeId)
-      .update(data)
-      .digest('hex');
+    return crypto.createHmac('sha256', this.nodeId).update(data).digest('hex');
   }
 }
 

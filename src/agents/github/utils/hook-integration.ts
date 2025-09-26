@@ -29,7 +29,7 @@ export class GitHubHookIntegration {
       timeout: 5000,
       retries: 2,
       debug: false,
-      ...config
+      ...config,
     };
   }
 
@@ -70,7 +70,10 @@ export class GitHubHookIntegration {
   /**
    * Register error handling hook
    */
-  registerErrorHook(operation: string, handler: (error: any, context: HookContext) => Promise<any> | any): void {
+  registerErrorHook(
+    operation: string,
+    handler: (error: any, context: HookContext) => Promise<any> | any,
+  ): void {
     const key = `error:${operation}`;
     if (!this.hooks.has(key)) {
       this.hooks.set(key, []);
@@ -126,13 +129,13 @@ export class GitHubHookIntegration {
       return {
         success: true,
         data: results,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -177,13 +180,13 @@ export class GitHubHookIntegration {
       return {
         success: true,
         data: results,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -227,13 +230,13 @@ export class GitHubHookIntegration {
       return {
         success: true,
         data: results,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -251,7 +254,9 @@ export class GitHubHookIntegration {
       try {
         // Store operation start in memory for coordination
         const memoryKey = `github/operations/${context.agent_id}/${Date.now()}`;
-        console.log(`[GitHubHooks] Starting operation: ${context.operation} for ${context.agent_id}`);
+        console.log(
+          `[GitHubHooks] Starting operation: ${context.operation} for ${context.agent_id}`,
+        );
 
         // This would integrate with claude-flow memory system
         // await storeInMemory(memoryKey, { context, started_at: new Date().toISOString() });
@@ -266,7 +271,9 @@ export class GitHubHookIntegration {
     this.registerPostHook('*', async (context: HookContext) => {
       try {
         // Update operation completion in memory
-        console.log(`[GitHubHooks] Completed operation: ${context.operation} for ${context.agent_id}`);
+        console.log(
+          `[GitHubHooks] Completed operation: ${context.operation} for ${context.agent_id}`,
+        );
 
         // This would integrate with claude-flow memory system
         // const completionData = { context, completed_at: new Date().toISOString() };
@@ -343,7 +350,9 @@ export class GitHubHookIntegration {
     // Coordination hooks for multi-repo operations
     this.registerPreHook('coordinate_multi_repo_release', async (context: HookContext) => {
       const repoCount = context.metadata?.repository_count || 0;
-      console.log(`[GitHubHooks] Starting multi-repo release coordination for ${repoCount} repositories`);
+      console.log(
+        `[GitHubHooks] Starting multi-repo release coordination for ${repoCount} repositories`,
+      );
 
       // This would coordinate with other agents
       // await notifyCoordinationStart('multi_repo_release', context);
@@ -374,7 +383,7 @@ export class GitHubHookIntegration {
    */
   async executeClaudeFlowHook(
     type: 'pre-task' | 'post-task' | 'notify',
-    context: HookContext
+    context: HookContext,
   ): Promise<HookResult> {
     const startTime = Date.now();
 
@@ -406,13 +415,13 @@ export class GitHubHookIntegration {
       return {
         success: true,
         data: { command, type },
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     } catch (error) {
       return {
         success: false,
         error: error.message,
-        duration: Date.now() - startTime
+        duration: Date.now() - startTime,
       };
     }
   }
@@ -438,7 +447,7 @@ export class GitHubHookIntegration {
     const summary: any = {
       total_hooks: 0,
       by_operation: {},
-      by_type: { pre: 0, post: 0, error: 0 }
+      by_type: { pre: 0, post: 0, error: 0 },
     };
 
     for (const [key, handlers] of this.hooks.entries()) {
@@ -493,7 +502,7 @@ export const githubHooks = new GitHubHookIntegration({
   enabled: true,
   timeout: 5000,
   retries: 2,
-  debug: process.env.NODE_ENV === 'development'
+  debug: process.env.NODE_ENV === 'development',
 });
 
 // Initialize default hooks

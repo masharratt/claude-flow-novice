@@ -37,73 +37,66 @@ async function executeStreamChain(prompts, flags = {}) {
 
   const results = [];
   let previousOutput = null;
-  
+
   for (let i = 0; i < prompts.length; i++) {
     const prompt = prompts[i];
     const isFirst = i === 0;
     const isLast = i === prompts.length - 1;
-    
+
     console.log(`\n🔄 Step ${i + 1}/${prompts.length}: ${prompt.slice(0, 50)}...`);
-    
+
     try {
-      const result = await executeSingleStep(
-        prompt, 
-        previousOutput, 
-        isFirst, 
-        isLast, 
-        flags
-      );
-      
+      const result = await executeSingleStep(prompt, previousOutput, isFirst, isLast, flags);
+
       results.push({
         step: i + 1,
         prompt: prompt.slice(0, 50),
         success: result.success,
-        duration: result.duration
+        duration: result.duration,
       });
-      
+
       if (!result.success) {
         console.error(`❌ Step ${i + 1} failed`);
         break;
       }
-      
+
       console.log(`✅ Step ${i + 1} completed (${result.duration}ms)`);
-      
+
       // Store output for next step (only if not last)
       if (!isLast) {
         previousOutput = result.output;
       }
-      
+
       // Show verbose output if requested
       if (flags.verbose && result.output) {
         const preview = result.output.slice(0, 200);
         console.log(`   Output preview: ${preview}...`);
       }
-      
     } catch (error) {
       console.error(`❌ Step ${i + 1} error:`, error.message);
       results.push({
         step: i + 1,
         prompt: prompt.slice(0, 50),
         success: false,
-        duration: 0
+        duration: 0,
       });
       break;
     }
   }
-  
+
   // Summary
   console.log('\n' + '═'.repeat(50));
   console.log('📊 Stream Chain Summary');
   console.log('═'.repeat(50));
-  
+
   for (const result of results) {
     const status = result.success ? '✅' : '❌';
     console.log(`${status} Step ${result.step}: ${result.prompt}... (${result.duration}ms)`);
   }
-  
+
   const totalTime = results.reduce((sum, r) => sum + r.duration, 0);
-  const successCount = results.filter(r => r.success).length;
-  
+  const successCount = results.filter((r) => r.success).length;
+
   console.log(`\n⏱️  Total execution time: ${totalTime}ms`);
   console.log(`📈 Success rate: ${successCount}/${results.length} steps`);
 }
@@ -115,47 +108,47 @@ async function executeSingleStep(prompt, inputStream, isFirst, isLast, flags) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
     const timeout = (flags.timeout || 30) * 1000;
-    
+
     // Build args based on position in chain
     const args = ['-p'];
-    
+
     // First step: only output stream-json
     // Middle steps: both input and output stream-json
     // Last step: only input stream-json (if not first)
-    
+
     if (!isFirst && inputStream) {
       args.push('--input-format', 'stream-json');
     }
-    
+
     if (!isLast) {
       args.push('--output-format', 'stream-json');
       if (flags.verbose) {
         args.push('--verbose');
       }
     }
-    
+
     args.push(prompt);
-    
+
     console.log(`   Executing: claude ${args.join(' ')}`);
-    
+
     // Spawn the Claude process
     const claudeProcess = spawn('claude', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: process.env
+      env: process.env,
     });
-    
+
     let output = '';
     let stderr = '';
     let processCompleted = false;
-    
+
     // If we have input from previous step, pipe it
     if (!isFirst && inputStream) {
       console.log('   🔗 Piping input from previous step...');
-      
+
       // Create a readable stream from the input string
       const inputReadable = Readable.from(inputStream);
       inputReadable.pipe(claudeProcess.stdin);
-      
+
       // Handle pipe errors
       inputReadable.on('error', (error) => {
         console.error('   Input pipe error:', error.message);
@@ -164,81 +157,81 @@ async function executeSingleStep(prompt, inputStream, isFirst, isLast, flags) {
       // Close stdin if no input
       claudeProcess.stdin.end();
     }
-    
+
     // Capture output
     claudeProcess.stdout.on('data', (data) => {
       output += data.toString();
-      
+
       // Show progress dots in verbose mode
       if (flags.verbose && !processCompleted) {
         process.stdout.write('.');
       }
     });
-    
+
     // Capture errors
     claudeProcess.stderr.on('data', (data) => {
       stderr += data.toString();
     });
-    
+
     // Handle process completion
     claudeProcess.on('close', (code) => {
       if (processCompleted) return;
       processCompleted = true;
-      
+
       const duration = Date.now() - startTime;
-      
+
       if (flags.verbose) {
         console.log(''); // New line after progress dots
       }
-      
+
       if (code !== 0) {
         console.error(`   Process exited with code ${code}`);
         if (stderr) {
           console.error(`   stderr: ${stderr.slice(0, 200)}`);
         }
-        
+
         resolve({
           success: false,
           duration,
           output: null,
-          error: stderr || `Process exited with code ${code}`
+          error: stderr || `Process exited with code ${code}`,
         });
         return;
       }
-      
+
       resolve({
         success: true,
         duration,
         output: output.trim(),
-        error: null
+        error: null,
       });
     });
-    
+
     // Handle process errors
     claudeProcess.on('error', (error) => {
       if (processCompleted) return;
       processCompleted = true;
-      
+
       console.error('   Process error:', error.message);
       reject(error);
     });
-    
+
     // Set timeout
     const timeoutId = setTimeout(() => {
       if (processCompleted) return;
       processCompleted = true;
-      
+
       console.log('   ⏱️  Timeout reached, terminating...');
       claudeProcess.kill('SIGTERM');
-      
+
       resolve({
         success: false,
         duration: timeout,
         output: null,
-        error: 'Process timed out'
+        error: 'Process timed out',
       });
     }, timeout);
-    
+
     // Clear timeout when process completes
     claudeProcess.on('exit', () => {
       clearTimeout(timeoutId);
@@ -251,28 +244,28 @@ async function executeSingleStep(prompt, inputStream, isFirst, isLast, flags) {
  */
 export async function streamChainCommand(args, flags) {
   const subcommand = args[0] || 'help';
-  
+
   switch (subcommand) {
     case 'help':
       showHelp();
       break;
-      
+
     case 'demo':
       await runDemo(flags);
       break;
-      
+
     case 'run':
       await runCustomChain(args.slice(1), flags);
       break;
-      
+
     case 'test':
       await testStreamConnection(flags);
       break;
-      
+
     case 'pipeline':
       await runPipeline(args.slice(1), flags);
       break;
-      
+
     default:
       console.error(`❌ Unknown subcommand: ${subcommand}`);
       console.log('Use "stream-chain help" for usage information');
@@ -334,13 +327,13 @@ async function runDemo(flags) {
   console.log('🎭 Running Stream Chain Demo');
   console.log('━'.repeat(50));
   console.log('This demonstrates a real 3-step chain with context preservation\n');
-  
+
   const prompts = [
-    "Generate a simple Python function to calculate factorial",
-    "Review the code and suggest improvements for efficiency",
-    "Apply the improvements and create the final optimized version"
+    'Generate a simple Python function to calculate factorial',
+    'Review the code and suggest improvements for efficiency',
+    'Apply the improvements and create the final optimized version',
   ];
-  
+
   await executeStreamChain(prompts, flags);
 }
 
@@ -353,7 +346,7 @@ async function runCustomChain(prompts, flags) {
     console.log('Usage: stream-chain run "prompt1" "prompt2" [...]');
     return;
   }
-  
+
   await executeStreamChain(prompts, flags);
 }
 
@@ -363,12 +356,12 @@ async function runCustomChain(prompts, flags) {
 async function testStreamConnection(flags) {
   console.log('🧪 Testing Stream Connection');
   console.log('━'.repeat(50));
-  
+
   const testPrompts = [
     "Say 'Stream test step 1 complete'",
-    "Acknowledge the previous message and say 'Stream test step 2 complete'"
+    "Acknowledge the previous message and say 'Stream test step 2 complete'",
   ];
-  
+
   await executeStreamChain(testPrompts, { ...flags, verbose: true });
 }
 
@@ -377,37 +370,37 @@ async function testStreamConnection(flags) {
  */
 async function runPipeline(args, flags) {
   const pipelineType = args[0] || 'analysis';
-  
+
   const pipelines = {
     analysis: [
-      "Analyze the current directory structure and identify key components",
-      "Based on the analysis, identify potential improvements",
-      "Create a detailed report with actionable recommendations"
+      'Analyze the current directory structure and identify key components',
+      'Based on the analysis, identify potential improvements',
+      'Create a detailed report with actionable recommendations',
     ],
     refactor: [
-      "Identify code that needs refactoring in the current project",
-      "Create a refactoring plan with priorities",
-      "Generate refactored code examples for the top priorities"
+      'Identify code that needs refactoring in the current project',
+      'Create a refactoring plan with priorities',
+      'Generate refactored code examples for the top priorities',
     ],
     test: [
-      "Analyze code coverage and identify untested areas",
-      "Design comprehensive test cases for critical functions",
-      "Generate unit test implementations"
+      'Analyze code coverage and identify untested areas',
+      'Design comprehensive test cases for critical functions',
+      'Generate unit test implementations',
     ],
     optimize: [
-      "Profile the codebase for performance bottlenecks",
-      "Identify optimization opportunities",
-      "Provide optimized implementations"
-    ]
+      'Profile the codebase for performance bottlenecks',
+      'Identify optimization opportunities',
+      'Provide optimized implementations',
+    ],
   };
-  
+
   const pipeline = pipelines[pipelineType];
   if (!pipeline) {
     console.error(`❌ Unknown pipeline: ${pipelineType}`);
     console.log('Available pipelines:', Object.keys(pipelines).join(', '));
     return;
   }
-  
+
   console.log(`🚀 Running ${pipelineType} pipeline`);
   await executeStreamChain(pipeline, flags);
 }

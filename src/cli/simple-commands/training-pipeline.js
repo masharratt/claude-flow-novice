@@ -37,7 +37,7 @@ export class TrainingPipeline {
       '.claude-flow/metrics',
       '.claude-flow/agents',
       '.claude-flow/validation',
-      '.claude-flow/benchmarks'
+      '.claude-flow/benchmarks',
     ];
 
     for (const dir of dirs) {
@@ -46,7 +46,7 @@ export class TrainingPipeline {
 
     // Load or create pipeline configuration
     await this.loadPipelineConfig();
-    
+
     console.log('🚀 Training Pipeline initialized');
     this.initialized = true;
   }
@@ -84,8 +84,8 @@ describe('validateEmail', () => {
     expect(validateEmail('invalid')).toBe(false);
   });
 });
-`
-        }
+`,
+        },
       ],
       medium: [
         {
@@ -135,8 +135,8 @@ describe('User API', () => {
     expect(res.body.name).toBe('Test');
   });
 });
-`
-        }
+`,
+        },
       ],
       hard: [
         {
@@ -198,9 +198,9 @@ describe('Sorting Algorithms', () => {
     expect(mergeSort([])).toEqual([]);
   });
 });
-`
-        }
-      ]
+`,
+        },
+      ],
     };
 
     const selectedTasks = tasks[complexity] || tasks.medium;
@@ -210,41 +210,41 @@ describe('Sorting Algorithms', () => {
     for (const task of selectedTasks) {
       const projectDir = path.join(taskDir, task.name);
       await fs.mkdir(projectDir, { recursive: true });
-      
+
       // Write actual code file
       await fs.writeFile(path.join(projectDir, 'index.js'), task.code);
-      
+
       // Write test file
       await fs.writeFile(path.join(projectDir, 'index.test.js'), task.test);
-      
+
       // Create package.json with real dependencies
       const packageJson = {
         name: task.name,
-        version: "1.0.0",
+        version: '1.0.0',
         scripts: {
-          test: "jest --silent",
-          lint: "eslint index.js || true",
-          typecheck: "echo 'No TypeScript' || true"
+          test: 'jest --silent',
+          lint: 'eslint index.js || true',
+          typecheck: "echo 'No TypeScript' || true",
         },
         devDependencies: {
-          jest: "^29.0.0",
-          eslint: "^8.0.0",
-          supertest: "^6.0.0"
+          jest: '^29.0.0',
+          eslint: '^8.0.0',
+          supertest: '^6.0.0',
         },
         dependencies: {
-          express: task.type === 'api' ? "^4.18.0" : undefined
-        }
+          express: task.type === 'api' ? '^4.18.0' : undefined,
+        },
       };
-      
+
       await fs.writeFile(
-        path.join(projectDir, 'package.json'), 
-        JSON.stringify(packageJson, null, 2)
+        path.join(projectDir, 'package.json'),
+        JSON.stringify(packageJson, null, 2),
       );
 
       realTasks.push({
         ...task,
         projectDir,
-        taskId
+        taskId,
       });
     }
 
@@ -258,16 +258,16 @@ describe('Sorting Algorithms', () => {
    */
   async executeTrainingRun(tasks, agentConfig = {}) {
     const results = [];
-    
+
     for (const task of tasks) {
       console.log(`\n🔄 Executing task: ${task.task}`);
-      
+
       // Install dependencies (only once per task)
       try {
         console.log(`   📦 Installing dependencies...`);
-        execSync('npm install --silent', { 
+        execSync('npm install --silent', {
           cwd: task.projectDir,
-          stdio: 'pipe'
+          stdio: 'pipe',
         });
       } catch (e) {
         console.log(`   ⚠️ Install warning: ${e.message.slice(0, 50)}`);
@@ -275,7 +275,7 @@ describe('Sorting Algorithms', () => {
 
       // Test different strategies with REAL variations
       const strategies = agentConfig.strategies || ['conservative', 'balanced', 'aggressive'];
-      
+
       for (const strategy of strategies) {
         const result = await this.executeTaskWithStrategy(task, strategy);
         results.push({
@@ -283,7 +283,7 @@ describe('Sorting Algorithms', () => {
           type: task.type,
           strategy,
           ...result,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
@@ -302,23 +302,20 @@ describe('Sorting Algorithms', () => {
   async executeTaskWithStrategy(task, strategy) {
     const startTime = Date.now();
     const checks = {};
-    
+
     // Save original code
     const originalCode = await fs.readFile(path.join(task.projectDir, 'index.js'), 'utf8');
-    
+
     // Modify code based on strategy (but more carefully!)
     if (strategy === 'aggressive') {
       // Aggressive: Skip some validation (but keep valid syntax)
-      const aggressiveCode = originalCode.replace(
-        /if \(!(\w+)\)/g, 
-        'if (false && !$1)'
-      );
+      const aggressiveCode = originalCode.replace(/if \(!(\w+)\)/g, 'if (false && !$1)');
       await fs.writeFile(path.join(task.projectDir, 'index.js'), aggressiveCode);
     } else if (strategy === 'conservative') {
       // Conservative: Add validation at the top of functions
       const conservativeCode = originalCode.replace(
         /function (\w+)\((.*?)\) {/g,
-        'function $1($2) {\n  // Extra validation for conservative strategy\n  if (arguments.length === 0) throw new Error("No arguments provided");'
+        'function $1($2) {\n  // Extra validation for conservative strategy\n  if (arguments.length === 0) throw new Error("No arguments provided");',
       );
       await fs.writeFile(path.join(task.projectDir, 'index.js'), conservativeCode);
     }
@@ -326,50 +323,51 @@ describe('Sorting Algorithms', () => {
 
     // Run REAL tests
     try {
-      const testResult = execSync('npm test', { 
+      const testResult = execSync('npm test', {
         cwd: task.projectDir,
         encoding: 'utf8',
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      checks.test = { 
-        passed: true, 
+      checks.test = {
+        passed: true,
         score: 1.0,
-        output: testResult.slice(0, 100)
+        output: testResult.slice(0, 100),
       };
     } catch (e) {
-      checks.test = { 
-        passed: false, 
+      checks.test = {
+        passed: false,
         score: 0.3,
-        error: e.message.slice(0, 100)
+        error: e.message.slice(0, 100),
       };
     }
 
     // Run REAL lint
     try {
-      const lintResult = execSync('npm run lint', { 
+      const lintResult = execSync('npm run lint', {
         cwd: task.projectDir,
         encoding: 'utf8',
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
       const hasErrors = lintResult.includes('error');
-      checks.lint = { 
-        passed: !hasErrors, 
-        score: hasErrors ? 0.5 : 1.0
+      checks.lint = {
+        passed: !hasErrors,
+        score: hasErrors ? 0.5 : 1.0,
       };
     } catch (e) {
-      checks.lint = { 
-        passed: false, 
-        score: 0.3
+      checks.lint = {
+        passed: false,
+        score: 0.3,
       };
     }
 
     // Restore original code after testing
     await fs.writeFile(path.join(task.projectDir, 'index.js'), originalCode);
-    
+
     // Calculate REAL performance metrics
     const executionTime = Date.now() - startTime;
-    const successRate = Object.values(checks).filter(c => c.passed).length / Object.values(checks).length;
-    
+    const successRate =
+      Object.values(checks).filter((c) => c.passed).length / Object.values(checks).length;
+
     // Strategy-specific scoring based on REAL results
     let strategyBonus = 0;
     if (strategy === 'aggressive' && executionTime < 1000) {
@@ -379,16 +377,17 @@ describe('Sorting Algorithms', () => {
     } else if (strategy === 'balanced' && successRate > 0.5 && executionTime < 2000) {
       strategyBonus = 0.25; // Bonus for good balance
     }
-    
-    const score = (successRate * 60) + (Math.max(0, 1 - executionTime/5000) * 20) + (strategyBonus * 20);
-    
+
+    const score =
+      successRate * 60 + Math.max(0, 1 - executionTime / 5000) * 20 + strategyBonus * 20;
+
     return {
       executionTime,
       successRate,
       checks,
       strategy,
       score,
-      real: true // Mark as real execution
+      real: true, // Mark as real execution
     };
   }
 
@@ -398,7 +397,7 @@ describe('Sorting Algorithms', () => {
    */
   async learnFromResults(results) {
     console.log('\n🧠 Learning from results...');
-    
+
     // Load current agent profiles
     let profiles = {};
     try {
@@ -417,10 +416,10 @@ describe('Sorting Algorithms', () => {
           count: 0,
           avgExecutionTime: 0,
           successRate: 0,
-          realExecutions: 0
+          realExecutions: 0,
         };
       }
-      
+
       const perf = strategyPerformance[result.strategy];
       perf.totalScore += result.score;
       perf.count++;
@@ -445,10 +444,12 @@ describe('Sorting Algorithms', () => {
 
     // Generate recommendations based on performance
     const recommendations = this.generateRecommendations(strategyPerformance);
-    
+
     console.log('\n📊 Learning Results:');
     for (const [strategy, perf] of Object.entries(strategyPerformance)) {
-      console.log(`   ${strategy}: Score ${perf.avgScore.toFixed(2)}, Success ${(perf.successRate * 100).toFixed(1)}%, Time ${perf.avgExecutionTime.toFixed(0)}ms`);
+      console.log(
+        `   ${strategy}: Score ${perf.avgScore.toFixed(2)}, Success ${(perf.successRate * 100).toFixed(1)}%, Time ${perf.avgExecutionTime.toFixed(0)}ms`,
+      );
     }
 
     return { profiles, recommendations };
@@ -461,16 +462,18 @@ describe('Sorting Algorithms', () => {
         avgScore: 50,
         avgExecutionTime: 2000,
         uses: 0,
-        realExecutions: 0
+        realExecutions: 0,
       };
     }
 
     const profile = profiles[strategy];
-    
+
     // Update with exponential moving average
-    profile.successRate = profile.successRate * (1 - learningRate) + performance.successRate * learningRate;
+    profile.successRate =
+      profile.successRate * (1 - learningRate) + performance.successRate * learningRate;
     profile.avgScore = profile.avgScore * (1 - learningRate) + performance.avgScore * learningRate;
-    profile.avgExecutionTime = profile.avgExecutionTime * (1 - learningRate) + performance.avgExecutionTime * learningRate;
+    profile.avgExecutionTime =
+      profile.avgExecutionTime * (1 - learningRate) + performance.avgExecutionTime * learningRate;
     profile.uses++;
     if (performance.realExecutions) {
       profile.realExecutions = (profile.realExecutions || 0) + performance.realExecutions;
@@ -481,7 +484,7 @@ describe('Sorting Algorithms', () => {
     profile.trend.push({
       score: performance.avgScore,
       timestamp: new Date().toISOString(),
-      real: performance.realExecutions > 0
+      real: performance.realExecutions > 0,
     });
     if (profile.trend.length > 20) {
       profile.trend = profile.trend.slice(-20);
@@ -489,10 +492,14 @@ describe('Sorting Algorithms', () => {
 
     // Mark improvement
     if (profile.trend.length > 1) {
-      const recent = profile.trend.slice(-5).reduce((sum, t) => sum + t.score, 0) / Math.min(5, profile.trend.length);
-      const older = profile.trend.slice(0, -5).reduce((sum, t) => sum + t.score, 0) / Math.max(1, profile.trend.length - 5);
+      const recent =
+        profile.trend.slice(-5).reduce((sum, t) => sum + t.score, 0) /
+        Math.min(5, profile.trend.length);
+      const older =
+        profile.trend.slice(0, -5).reduce((sum, t) => sum + t.score, 0) /
+        Math.max(1, profile.trend.length - 5);
       profile.improving = recent > older;
-      profile.improvementRate = ((recent - older) / older * 100).toFixed(1);
+      profile.improvementRate = (((recent - older) / older) * 100).toFixed(1);
     }
   }
 
@@ -505,7 +512,7 @@ describe('Sorting Algorithms', () => {
           type: 'improve_reliability',
           strategy,
           action: `${strategy} needs better error handling (${(perf.successRate * 100).toFixed(1)}% success)`,
-          priority: 'high'
+          priority: 'high',
         });
       }
 
@@ -514,7 +521,7 @@ describe('Sorting Algorithms', () => {
           type: 'optimize_speed',
           strategy,
           action: `${strategy} is too slow (${perf.avgExecutionTime.toFixed(0)}ms avg)`,
-          priority: 'medium'
+          priority: 'medium',
         });
       }
 
@@ -523,7 +530,7 @@ describe('Sorting Algorithms', () => {
           type: 'good_performance',
           strategy,
           action: `${strategy} performing well (${perf.avgScore.toFixed(1)} score)`,
-          priority: 'info'
+          priority: 'info',
         });
       }
     }
@@ -535,11 +542,7 @@ describe('Sorting Algorithms', () => {
    * Full Training Pipeline Execution
    */
   async runFullPipeline(options = {}) {
-    const {
-      complexity = 'medium',
-      iterations = 3,
-      validate = true
-    } = options;
+    const { complexity = 'medium', iterations = 3, validate = true } = options;
 
     console.log('🎯 Starting Training Pipeline');
     console.log('━'.repeat(50));
@@ -548,9 +551,9 @@ describe('Sorting Algorithms', () => {
 
     // Capture baseline metrics
     const baselineMetrics = await this.captureMetrics();
-    
+
     let cumulativeResults = [];
-    
+
     for (let i = 1; i <= iterations; i++) {
       console.log(`\n📍 Iteration ${i}/${iterations}`);
       console.log('─'.repeat(40));
@@ -577,7 +580,7 @@ describe('Sorting Algorithms', () => {
       if (validate && i === iterations) {
         const currentMetrics = await this.captureMetrics();
         const validation = await this.validateImprovements(baselineMetrics, currentMetrics);
-        
+
         if (validation.summary.overallImprovement) {
           console.log('✅ Improvement detected!');
         } else {
@@ -593,8 +596,8 @@ describe('Sorting Algorithms', () => {
     return {
       success: true,
       totalTasks: cumulativeResults.length,
-      realExecutions: cumulativeResults.filter(r => r.real).length,
-      improvements: await this.calculateOverallImprovement(baselineMetrics)
+      realExecutions: cumulativeResults.filter((r) => r.real).length,
+      improvements: await this.calculateOverallImprovement(baselineMetrics),
     };
   }
 
@@ -603,13 +606,13 @@ describe('Sorting Algorithms', () => {
     try {
       const data = await fs.readFile(this.agentProfiles, 'utf8');
       const profiles = JSON.parse(data);
-      
+
       // Calculate weighted average from all strategies
       let totalScore = 0;
       let totalSuccess = 0;
       let totalTime = 0;
       let count = 0;
-      
+
       for (const profile of Object.values(profiles)) {
         if (profile.uses > 0) {
           totalScore += profile.avgScore;
@@ -618,17 +621,17 @@ describe('Sorting Algorithms', () => {
           count++;
         }
       }
-      
+
       return {
         successRate: count > 0 ? totalSuccess / count : 0,
         executionTime: count > 0 ? totalTime / count : 0,
-        score: count > 0 ? totalScore / count : 0
+        score: count > 0 ? totalScore / count : 0,
       };
     } catch {
       return {
         successRate: 0,
         executionTime: 0,
-        score: 0
+        score: 0,
       };
     }
   }
@@ -638,11 +641,11 @@ describe('Sorting Algorithms', () => {
       improved: [],
       declined: [],
       unchanged: [],
-      summary: {}
+      summary: {},
     };
 
     const metrics = ['successRate', 'executionTime', 'score'];
-    
+
     for (const metric of metrics) {
       const before = beforeMetrics[metric] || 0.01; // Avoid division by zero
       const after = afterMetrics[metric] || 0;
@@ -661,7 +664,7 @@ describe('Sorting Algorithms', () => {
     validation.summary = {
       overallImprovement: validation.improved.length > validation.declined.length,
       improvementScore: validation.improved.length - validation.declined.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     console.log(`\n✅ Validating improvements...`);
@@ -674,26 +677,27 @@ describe('Sorting Algorithms', () => {
 
   async calculateOverallImprovement(baselineMetrics) {
     const currentMetrics = await this.captureMetrics();
-    
+
     const base = {
       successRate: baselineMetrics.successRate || 0.01,
       executionTime: baselineMetrics.executionTime || 1,
-      score: baselineMetrics.score || 0.01
+      score: baselineMetrics.score || 0.01,
     };
-    
+
     return {
       successRate: ((currentMetrics.successRate - base.successRate) / base.successRate) * 100,
-      executionTime: ((base.executionTime - currentMetrics.executionTime) / base.executionTime) * 100,
-      score: ((currentMetrics.score - base.score) / base.score) * 100
+      executionTime:
+        ((base.executionTime - currentMetrics.executionTime) / base.executionTime) * 100,
+      score: ((currentMetrics.score - base.score) / base.score) * 100,
     };
   }
 
   async generateFinalReport(results) {
-    const realResults = results.filter(r => r.real);
+    const realResults = results.filter((r) => r.real);
     const successRates = {};
     const scores = {};
     const times = {};
-    
+
     for (const result of realResults) {
       if (!successRates[result.strategy]) {
         successRates[result.strategy] = [];
@@ -707,12 +711,13 @@ describe('Sorting Algorithms', () => {
 
     let report = '📊 Training Pipeline Report\n';
     report += '━'.repeat(50) + '\n\n';
-    
+
     for (const strategy of Object.keys(successRates)) {
-      const avgSuccess = successRates[strategy].reduce((a, b) => a + b, 0) / successRates[strategy].length;
+      const avgSuccess =
+        successRates[strategy].reduce((a, b) => a + b, 0) / successRates[strategy].length;
       const avgScore = scores[strategy].reduce((a, b) => a + b, 0) / scores[strategy].length;
       const avgTime = times[strategy].reduce((a, b) => a + b, 0) / times[strategy].length;
-      
+
       report += `Strategy: ${strategy}\n`;
       report += `  Average Success Rate: ${(avgSuccess * 100).toFixed(1)}%\n`;
       report += `  Average Score: ${avgScore.toFixed(2)}\n`;
@@ -731,22 +736,22 @@ describe('Sorting Algorithms', () => {
         avgScore: 50,
         avgExecutionTime: 3000,
         uses: 0,
-        realExecutions: 0
+        realExecutions: 0,
       },
       balanced: {
         successRate: 0.5,
         avgScore: 50,
         avgExecutionTime: 2000,
         uses: 0,
-        realExecutions: 0
+        realExecutions: 0,
       },
       aggressive: {
         successRate: 0.5,
         avgScore: 50,
         avgExecutionTime: 1000,
         uses: 0,
-        realExecutions: 0
-      }
+        realExecutions: 0,
+      },
     };
   }
 
@@ -761,9 +766,9 @@ describe('Sorting Algorithms', () => {
         learningRate: 0.4,
         minSamplesForUpdate: 3,
         useRealExecution: true,
-        created: new Date().toISOString()
+        created: new Date().toISOString(),
       };
-      
+
       await fs.writeFile(this.pipelineConfig, JSON.stringify(defaultConfig, null, 2));
       return defaultConfig;
     }
@@ -783,26 +788,32 @@ export async function trainingPipelineCommand(args, flags) {
       const options = {
         complexity: flags.complexity || 'medium',
         iterations: parseInt(flags.iterations) || 3,
-        validate: flags.validate !== false
+        validate: flags.validate !== false,
       };
-      
+
       console.log('🚀 Starting Training Pipeline');
       console.log(`   Complexity: ${options.complexity}`);
       console.log(`   Iterations: ${options.iterations}`);
       console.log(`   Validation: ${options.validate ? 'Enabled' : 'Disabled'}`);
-      
+
       const result = await pipeline.runFullPipeline(options);
-      
+
       if (result.success) {
         console.log('\n✅ Training Pipeline completed');
         console.log(`   Total tasks: ${result.totalTasks}`);
         console.log(`   Real executions: ${result.realExecutions}`);
-        
+
         if (result.improvements) {
           console.log('\n📈 Improvements:');
-          console.log(`   Success Rate: ${result.improvements.successRate > 0 ? '+' : ''}${result.improvements.successRate.toFixed(1)}%`);
-          console.log(`   Execution Time: ${result.improvements.executionTime > 0 ? '+' : ''}${result.improvements.executionTime.toFixed(1)}%`);
-          console.log(`   Score: ${result.improvements.score > 0 ? '+' : ''}${result.improvements.score.toFixed(1)}%`);
+          console.log(
+            `   Success Rate: ${result.improvements.successRate > 0 ? '+' : ''}${result.improvements.successRate.toFixed(1)}%`,
+          );
+          console.log(
+            `   Execution Time: ${result.improvements.executionTime > 0 ? '+' : ''}${result.improvements.executionTime.toFixed(1)}%`,
+          );
+          console.log(
+            `   Score: ${result.improvements.score > 0 ? '+' : ''}${result.improvements.score.toFixed(1)}%`,
+          );
         }
       }
       break;
@@ -810,7 +821,7 @@ export async function trainingPipelineCommand(args, flags) {
     case 'status':
       // Show real pipeline status
       await pipeline.initialize();
-      
+
       let profiles = {};
       try {
         const data = await fs.readFile(pipeline.agentProfiles, 'utf8');
@@ -821,7 +832,7 @@ export async function trainingPipelineCommand(args, flags) {
 
       console.log('\n📊 Training Pipeline Status');
       console.log('━'.repeat(50));
-      
+
       console.log('\n🤖 Strategy Profiles:');
       for (const [strategy, profile] of Object.entries(profiles)) {
         console.log(`   ${strategy}:`);
@@ -831,7 +842,9 @@ export async function trainingPipelineCommand(args, flags) {
         console.log(`     Total Uses: ${profile.uses}`);
         console.log(`     Real Executions: ${profile.realExecutions || 0}`);
         if (profile.improving !== undefined) {
-          console.log(`     Trend: ${profile.improving ? '📈 Improving' : '📉 Declining'} (${profile.improvementRate}%)`);
+          console.log(
+            `     Trend: ${profile.improving ? '📈 Improving' : '📉 Declining'} (${profile.improvementRate}%)`,
+          );
         }
       }
       break;

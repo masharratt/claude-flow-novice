@@ -45,23 +45,23 @@ export class VerificationMiddleware {
 
     // Post-task verification
     const postCheck = await this.postTaskVerification(taskId, agentType, result, context);
-    
+
     // If verification fails and auto-rollback is enabled
     if (!postCheck.passed && this.autoRollback) {
       await this.rollbackTask(taskId, context);
-      return { 
-        success: false, 
-        reason: 'Post-task verification failed', 
+      return {
+        success: false,
+        reason: 'Post-task verification failed',
         result,
         verification: postCheck,
-        rollback: true 
+        rollback: true,
       };
     }
 
     return {
       success: postCheck.passed,
       result,
-      verification: postCheck
+      verification: postCheck,
     };
   }
 
@@ -77,7 +77,7 @@ export class VerificationMiddleware {
       checks.push({
         name: 'clean-state',
         passed: gitStatus.clean,
-        score: gitStatus.clean ? 1.0 : 0.0
+        score: gitStatus.clean ? 1.0 : 0.0,
       });
     }
 
@@ -88,20 +88,19 @@ export class VerificationMiddleware {
         checks.push({
           name: `dependency-${dep}`,
           passed: exists,
-          score: exists ? 1.0 : 0.0
+          score: exists ? 1.0 : 0.0,
         });
       }
     }
 
-    const score = checks.length > 0 
-      ? checks.reduce((sum, c) => sum + c.score, 0) / checks.length
-      : 1.0;
+    const score =
+      checks.length > 0 ? checks.reduce((sum, c) => sum + c.score, 0) / checks.length : 1.0;
 
     return {
       passed: score >= 0.95,
       score,
       checks,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -120,7 +119,7 @@ export class VerificationMiddleware {
           checks.push({
             name: 'typecheck',
             passed: typecheck.passed,
-            score: typecheck.score
+            score: typecheck.score,
           });
         }
 
@@ -130,7 +129,7 @@ export class VerificationMiddleware {
           checks.push({
             name: 'tests',
             passed: tests.passed,
-            score: tests.score
+            score: tests.score,
           });
         }
 
@@ -139,18 +138,19 @@ export class VerificationMiddleware {
         checks.push({
           name: 'lint',
           passed: lint.passed,
-          score: lint.score
+          score: lint.score,
         });
         break;
 
       case 'researcher':
         // Verify research output has required sections
         if (result && result.output) {
-          const hasFindings = result.output.includes('findings') || result.output.includes('results');
+          const hasFindings =
+            result.output.includes('findings') || result.output.includes('results');
           checks.push({
             name: 'research-completeness',
             passed: hasFindings,
-            score: hasFindings ? 1.0 : 0.5
+            score: hasFindings ? 1.0 : 0.5,
           });
         }
         break;
@@ -162,7 +162,7 @@ export class VerificationMiddleware {
           checks.push({
             name: 'coverage',
             passed: coverage.percentage >= 80,
-            score: coverage.percentage / 100
+            score: coverage.percentage / 100,
           });
         }
         break;
@@ -173,7 +173,7 @@ export class VerificationMiddleware {
         checks.push({
           name: 'documentation',
           passed: hasDocs,
-          score: hasDocs ? 1.0 : 0.3
+          score: hasDocs ? 1.0 : 0.3,
         });
         break;
     }
@@ -183,26 +183,25 @@ export class VerificationMiddleware {
       checks.push({
         name: 'claimed-success',
         passed: result.success,
-        score: result.success ? 1.0 : 0.0
+        score: result.success ? 1.0 : 0.0,
       });
     }
 
-    const score = checks.length > 0
-      ? checks.reduce((sum, c) => sum + c.score, 0) / checks.length
-      : 0.5;
+    const score =
+      checks.length > 0 ? checks.reduce((sum, c) => sum + c.score, 0) / checks.length : 0.5;
 
     // Store verification result
     await this.verificationSystem.verifyTask(taskId, agentType, {
       success: result?.success,
       checks,
-      score
+      score,
     });
 
     return {
       passed: score >= this.verificationSystem.getThreshold(),
       score,
       checks,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -211,7 +210,7 @@ export class VerificationMiddleware {
    */
   async rollbackTask(taskId, context) {
     console.log(`🔄 Rolling back task ${taskId}...`);
-    
+
     try {
       // If we have a git checkpoint, rollback to it
       if (context.gitCheckpoint) {
@@ -255,7 +254,7 @@ export class VerificationMiddleware {
       const hasErrors = stdout.toLowerCase().includes('error');
       return {
         passed: !hasErrors,
-        score: hasErrors ? 0.5 : 1.0
+        score: hasErrors ? 0.5 : 1.0,
       };
     } catch {
       return { passed: false, score: 0.3 };
@@ -267,7 +266,7 @@ export class VerificationMiddleware {
       const { stdout } = await execAsync('npm test 2>&1 || true');
       const passed = stdout.includes('PASS') || stdout.includes('passing');
       const failed = stdout.includes('FAIL') || stdout.includes('failing');
-      
+
       if (passed && !failed) {
         return { passed: true, score: 1.0 };
       } else if (passed && failed) {
@@ -285,7 +284,7 @@ export class VerificationMiddleware {
       const { stdout } = await execAsync('npm run lint 2>&1 || true');
       const hasErrors = stdout.toLowerCase().includes('error');
       const hasWarnings = stdout.toLowerCase().includes('warning');
-      
+
       if (!hasErrors && !hasWarnings) {
         return { passed: true, score: 1.0 };
       } else if (!hasErrors && hasWarnings) {
@@ -335,10 +334,10 @@ export function integrateWithSwarm(swarmCommand, verificationSystem) {
   const originalExecute = swarmCommand.execute;
   const middleware = new VerificationMiddleware(verificationSystem);
 
-  swarmCommand.execute = async function(objective, options) {
+  swarmCommand.execute = async function (objective, options) {
     // Create checkpoint before swarm execution
     const checkpoint = await createGitCheckpoint();
-    
+
     // Wrap the original execution with verification
     const context = {
       requiresCleanState: !options.allowDirty,
@@ -346,7 +345,7 @@ export function integrateWithSwarm(swarmCommand, verificationSystem) {
       language: options.language || 'javascript',
       hasTests: options.runTests !== false,
       requiresCoverage: options.coverage === true,
-      gitCheckpoint: checkpoint
+      gitCheckpoint: checkpoint,
     };
 
     // Execute with verification
@@ -354,7 +353,7 @@ export function integrateWithSwarm(swarmCommand, verificationSystem) {
       () => originalExecute.call(this, objective, options),
       `swarm-${Date.now()}`,
       'swarm',
-      context
+      context,
     );
   };
 
@@ -370,7 +369,7 @@ export function integrateWithNonInteractive(flags, verificationSystem) {
     ...flags,
     verify: true,
     verificationThreshold: flags.threshold || 0.95,
-    autoRollback: flags.rollback !== false
+    autoRollback: flags.rollback !== false,
   };
 
   // Return a verification wrapper for non-interactive execution
@@ -381,17 +380,13 @@ export function integrateWithNonInteractive(flags, verificationSystem) {
       console.log('✅ Verification enabled for non-interactive mode');
     },
     postExecute: async (taskId, result) => {
-      const verification = await verificationSystem.verifyTask(
-        taskId,
-        'non-interactive',
-        result
-      );
-      
+      const verification = await verificationSystem.verifyTask(taskId, 'non-interactive', result);
+
       if (!verification.passed) {
         console.error('❌ Verification failed in non-interactive mode');
         process.exit(1);
       }
-    }
+    },
   };
 }
 
@@ -406,24 +401,21 @@ export function integrateWithTraining(trainingSystem, verificationSystem) {
       input: {
         taskId: verification.taskId,
         agentType: verification.agentType,
-        context: verification.context
+        context: verification.context,
       },
       output: {
         success: verification.passed,
         score: verification.score,
-        checks: verification.results
-      }
+        checks: verification.results,
+      },
     };
 
     // Feed to training system
     await trainingSystem.learn(trainingData);
-    
+
     // Update agent model based on performance
     if (verification.agentType) {
-      await trainingSystem.updateAgentModel(
-        verification.agentType,
-        verification.score
-      );
+      await trainingSystem.updateAgentModel(verification.agentType, verification.score);
     }
   };
 
@@ -451,16 +443,16 @@ export const verificationHooks = {
     // Hook called before task execution
     console.log(`🔍 Pre-task verification for ${taskId}`);
   },
-  
+
   afterTask: async (taskId, result, context) => {
     // Hook called after task execution
     console.log(`✅ Post-task verification for ${taskId}`);
   },
-  
+
   onFailure: async (taskId, verification) => {
     // Hook called when verification fails
     console.log(`❌ Verification failed for ${taskId}: ${verification.score}`);
-  }
+  },
 };
 
 export default {
@@ -468,5 +460,5 @@ export default {
   integrateWithSwarm,
   integrateWithNonInteractive,
   integrateWithTraining,
-  verificationHooks
+  verificationHooks,
 };

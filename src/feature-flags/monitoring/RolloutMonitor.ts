@@ -56,7 +56,7 @@ export class RolloutMonitor extends EventEmitter {
   constructor(
     flagManager: FeatureFlagManager,
     validator: TruthBasedValidator,
-    interceptor: HookInterceptor
+    interceptor: HookInterceptor,
   ) {
     super();
     this.flagManager = flagManager;
@@ -69,25 +69,39 @@ export class RolloutMonitor extends EventEmitter {
   private setupEventListeners(): void {
     // Monitor flag manager events
     this.flagManager.on('rollback_threshold_exceeded', (data) => {
-      this.createAlert('error_threshold', 'critical',
-        `Flag ${data.flagName} exceeded error threshold: ${data.errorRate}%`, data.flagName);
+      this.createAlert(
+        'error_threshold',
+        'critical',
+        `Flag ${data.flagName} exceeded error threshold: ${data.errorRate}%`,
+        data.flagName,
+      );
     });
 
     this.flagManager.on('rollback_triggered', (data) => {
-      this.createAlert('rollback', 'critical',
-        `Emergency rollback triggered for ${data.flagName}: ${data.reason}`, data.flagName);
+      this.createAlert(
+        'rollback',
+        'critical',
+        `Emergency rollback triggered for ${data.flagName}: ${data.reason}`,
+        data.flagName,
+      );
     });
 
     // Monitor interceptor events
     this.interceptor.on('auto_relaunch_failed', (data) => {
-      this.createAlert('system_health', 'high',
-        `Hook auto-relaunch failed after ${data.attempts} attempts`);
+      this.createAlert(
+        'system_health',
+        'high',
+        `Hook auto-relaunch failed after ${data.attempts} attempts`,
+      );
     });
 
     // Monitor validator events
     this.validator.on('validation_error', (data) => {
-      this.createAlert('system_health', 'medium',
-        `Validation error for task ${data.taskId}: ${data.error}`);
+      this.createAlert(
+        'system_health',
+        'medium',
+        `Validation error for task ${data.taskId}: ${data.error}`,
+      );
     });
   }
 
@@ -129,7 +143,7 @@ export class RolloutMonitor extends EventEmitter {
       const history = this.metricsHistory.get(metric.flagName)!;
       history.push({
         ...metric,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
 
       // Keep only last 100 metrics to prevent memory bloat
@@ -149,23 +163,33 @@ export class RolloutMonitor extends EventEmitter {
 
     // Check error rates
     for (const metric of metrics) {
-      if (metric.errorRate > 0.05) { // 5% threshold
-        this.createAlert('error_threshold', 'high',
+      if (metric.errorRate > 0.05) {
+        // 5% threshold
+        this.createAlert(
+          'error_threshold',
+          'high',
           `High error rate detected for ${metric.flagName}: ${(metric.errorRate * 100).toFixed(2)}%`,
-          metric.flagName);
+          metric.flagName,
+        );
       }
     }
 
     // Check validator performance
     if (validatorMetrics.avgTruthScore < 0.7) {
-      this.createAlert('system_health', 'medium',
-        `Low average truth score: ${(validatorMetrics.avgTruthScore * 100).toFixed(2)}%`);
+      this.createAlert(
+        'system_health',
+        'medium',
+        `Low average truth score: ${(validatorMetrics.avgTruthScore * 100).toFixed(2)}%`,
+      );
     }
 
     // Check interceptor performance
     if (interceptorMetrics.runningProcesses > 10) {
-      this.createAlert('performance', 'medium',
-        `High number of running processes: ${interceptorMetrics.runningProcesses}`);
+      this.createAlert(
+        'performance',
+        'medium',
+        `High number of running processes: ${interceptorMetrics.runningProcesses}`,
+      );
     }
 
     // Auto-resolve old alerts
@@ -176,7 +200,10 @@ export class RolloutMonitor extends EventEmitter {
     const dashboardData = await this.generateDashboardData();
 
     // Write dashboard data to file for web interface
-    const dashboardPath = path.join(process.cwd(), 'src/feature-flags/monitoring/dashboard-data.json');
+    const dashboardPath = path.join(
+      process.cwd(),
+      'src/feature-flags/monitoring/dashboard-data.json',
+    );
     await fs.writeFile(dashboardPath, JSON.stringify(dashboardData, null, 2));
 
     this.emit('dashboard_updated', dashboardData);
@@ -188,33 +215,33 @@ export class RolloutMonitor extends EventEmitter {
     const validatorMetrics = this.validator.getSystemMetrics();
     const interceptorMetrics = this.interceptor.getSystemMetrics();
 
-    const flagData = flags.map(flag => {
-      const metric = metrics.find(m => m.flagName === flag.name);
+    const flagData = flags.map((flag) => {
+      const metric = metrics.find((m) => m.flagName === flag.name);
       return {
         name: flag.name,
         enabled: flag.enabled,
         rolloutPercentage: flag.rolloutPercentage,
         errorRate: metric?.errorRate || 0,
         successRate: metric?.successRate || 0,
-        userCount: metric?.userCount || 0
+        userCount: metric?.userCount || 0,
       };
     });
 
-    const avgErrorRate = metrics.length > 0
-      ? metrics.reduce((sum, m) => sum + m.errorRate, 0) / metrics.length
-      : 0;
+    const avgErrorRate =
+      metrics.length > 0 ? metrics.reduce((sum, m) => sum + m.errorRate, 0) / metrics.length : 0;
 
-    const avgSuccessRate = metrics.length > 0
-      ? metrics.reduce((sum, m) => sum + m.successRate, 0) / metrics.length
-      : 0;
+    const avgSuccessRate =
+      metrics.length > 0 ? metrics.reduce((sum, m) => sum + m.successRate, 0) / metrics.length : 0;
 
-    const activeRollouts = flags.filter(f => f.enabled && f.rolloutPercentage < 100).length;
+    const activeRollouts = flags.filter((f) => f.enabled && f.rolloutPercentage < 100).length;
 
     let overallStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
-    const criticalAlerts = Array.from(this.alerts.values())
-      .filter(a => !a.resolved && a.severity === 'critical');
-    const highAlerts = Array.from(this.alerts.values())
-      .filter(a => !a.resolved && a.severity === 'high');
+    const criticalAlerts = Array.from(this.alerts.values()).filter(
+      (a) => !a.resolved && a.severity === 'critical',
+    );
+    const highAlerts = Array.from(this.alerts.values()).filter(
+      (a) => !a.resolved && a.severity === 'high',
+    );
 
     if (criticalAlerts.length > 0) {
       overallStatus = 'critical';
@@ -229,17 +256,17 @@ export class RolloutMonitor extends EventEmitter {
         totalFlags: flags.length,
         activeRollouts,
         avgErrorRate,
-        avgSuccessRate
+        avgSuccessRate,
       },
       alerts: Array.from(this.alerts.values())
-        .filter(a => !a.resolved)
+        .filter((a) => !a.resolved)
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
       performance: {
         responseTime: this.calculateAverageResponseTime(),
         throughput: validatorMetrics.totalValidations,
         memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024, // MB
-        cpuUsage: process.cpuUsage().user / 1000000 // Seconds
-      }
+        cpuUsage: process.cpuUsage().user / 1000000, // Seconds
+      },
     };
   }
 
@@ -247,7 +274,7 @@ export class RolloutMonitor extends EventEmitter {
     type: Alert['type'],
     severity: Alert['severity'],
     message: string,
-    flagName?: string
+    flagName?: string,
   ): void {
     const alertId = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -258,7 +285,7 @@ export class RolloutMonitor extends EventEmitter {
       message,
       timestamp: new Date().toISOString(),
       flagName,
-      resolved: false
+      resolved: false,
     };
 
     this.alerts.set(alertId, alert);
@@ -271,7 +298,7 @@ export class RolloutMonitor extends EventEmitter {
   }
 
   private resolveOldAlerts(): void {
-    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
     for (const [alertId, alert] of this.alerts) {
       if (!alert.resolved && new Date(alert.timestamp).getTime() < oneHourAgo) {
@@ -285,14 +312,13 @@ export class RolloutMonitor extends EventEmitter {
 
   private calculateAverageResponseTime(): number {
     // Simplified calculation - in real implementation, this would track actual response times
-    const recentMetrics = Array.from(this.metricsHistory.values())
-      .flat()
-      .slice(-50); // Last 50 metrics
+    const recentMetrics = Array.from(this.metricsHistory.values()).flat().slice(-50); // Last 50 metrics
 
     if (recentMetrics.length === 0) return 0;
 
     // Simulate response time calculation based on success rates
-    const avgSuccessRate = recentMetrics.reduce((sum, m) => sum + m.successRate, 0) / recentMetrics.length;
+    const avgSuccessRate =
+      recentMetrics.reduce((sum, m) => sum + m.successRate, 0) / recentMetrics.length;
     return Math.max(50, 200 * (1 - avgSuccessRate)); // 50ms to 200ms range
   }
 
@@ -301,12 +327,15 @@ export class RolloutMonitor extends EventEmitter {
       timestamp: new Date().toISOString(),
       flags: Array.from(this.metricsHistory.entries()).map(([flagName, history]) => ({
         flagName,
-        history: history.slice(-10) // Keep last 10 entries per flag
+        history: history.slice(-10), // Keep last 10 entries per flag
       })),
-      alerts: Array.from(this.alerts.values())
+      alerts: Array.from(this.alerts.values()),
     };
 
-    const metricsPath = path.join(process.cwd(), 'src/feature-flags/monitoring/metrics-history.json');
+    const metricsPath = path.join(
+      process.cwd(),
+      'src/feature-flags/monitoring/metrics-history.json',
+    );
     await fs.writeFile(metricsPath, JSON.stringify(metricsData, null, 2));
   }
 
@@ -328,8 +357,9 @@ export class RolloutMonitor extends EventEmitter {
    * Get alerts for specific flag
    */
   getFlagAlerts(flagName: string): Alert[] {
-    return Array.from(this.alerts.values())
-      .filter(alert => alert.flagName === flagName && !alert.resolved);
+    return Array.from(this.alerts.values()).filter(
+      (alert) => alert.flagName === flagName && !alert.resolved,
+    );
   }
 
   /**
@@ -351,8 +381,7 @@ export class RolloutMonitor extends EventEmitter {
       }
     }
 
-    this.createAlert('system_health', 'critical',
-      `Emergency shutdown triggered: ${reason}`);
+    this.createAlert('system_health', 'critical', `Emergency shutdown triggered: ${reason}`);
 
     this.emit('emergency_shutdown', { reason, flagCount: flags.length });
   }
@@ -371,24 +400,26 @@ export class RolloutMonitor extends EventEmitter {
         totalValidations: validatorMetrics.totalValidations,
         avgTruthScore: validatorMetrics.avgTruthScore,
         successRate: validatorMetrics.successRate,
-        consensusNodes: validatorMetrics.consensusNodes
+        consensusNodes: validatorMetrics.consensusNodes,
       },
       interception: {
         totalExecutions: interceptorMetrics.totalExecutions,
         runningProcesses: interceptorMetrics.runningProcesses,
-        hookTypeCounts: interceptorMetrics.hookTypeCounts
+        hookTypeCounts: interceptorMetrics.hookTypeCounts,
       },
       flags: {
         totalFlags: flagMetrics.length,
         avgErrorRate: flagMetrics.reduce((sum, m) => sum + m.errorRate, 0) / flagMetrics.length,
         avgSuccessRate: flagMetrics.reduce((sum, m) => sum + m.successRate, 0) / flagMetrics.length,
-        totalUsers: flagMetrics.reduce((sum, m) => sum + m.userCount, 0)
+        totalUsers: flagMetrics.reduce((sum, m) => sum + m.userCount, 0),
       },
       alerts: {
         total: this.alerts.size,
-        unresolved: Array.from(this.alerts.values()).filter(a => !a.resolved).length,
-        critical: Array.from(this.alerts.values()).filter(a => !a.resolved && a.severity === 'critical').length
-      }
+        unresolved: Array.from(this.alerts.values()).filter((a) => !a.resolved).length,
+        critical: Array.from(this.alerts.values()).filter(
+          (a) => !a.resolved && a.severity === 'critical',
+        ).length,
+      },
     };
   }
 }

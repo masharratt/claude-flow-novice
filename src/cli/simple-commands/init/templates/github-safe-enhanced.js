@@ -3,14 +3,14 @@
 /**
  * Enhanced Safe GitHub CLI Helper - Production Ready
  * Uses the comprehensive GitHubCliSafe wrapper for secure command execution
- * 
+ *
  * Prevents:
  * - Timeout issues with large content
- * - Command injection attacks  
+ * - Command injection attacks
  * - Process resource leaks
  * - Rate limiting issues
  * - Input validation bypasses
- * 
+ *
  * Usage:
  *   ./github-safe-enhanced.js issue comment 123 "Message with `backticks` and $(dangerous) content"
  *   ./github-safe-enhanced.js pr create --title "Title" --body "Complex body with special chars"
@@ -19,7 +19,12 @@
  */
 
 // Import the production-ready GitHub CLI safety wrapper
-import { githubCli, GitHubCliError, GitHubCliTimeoutError, GitHubCliValidationError } from '../../../utils/github-cli-safety-wrapper.js';
+import {
+  githubCli,
+  GitHubCliError,
+  GitHubCliTimeoutError,
+  GitHubCliValidationError,
+} from '../../../utils/github-cli-safety-wrapper.js';
 
 const args = process.argv.slice(2);
 
@@ -102,15 +107,15 @@ function parseArguments(args) {
   const [command, subcommand, ...restArgs] = args;
   const options = {};
   const positionalArgs = [];
-  
+
   // Parse flags and options
   for (let i = 0; i < restArgs.length; i++) {
     const arg = restArgs[i];
-    
+
     if (arg.startsWith('--')) {
       const flagName = arg.substring(2);
       const nextArg = restArgs[i + 1];
-      
+
       if (nextArg && !nextArg.startsWith('--')) {
         options[flagName] = nextArg;
         i++; // Skip the next argument
@@ -121,7 +126,7 @@ function parseArguments(args) {
       positionalArgs.push(arg);
     }
   }
-  
+
   return { command, subcommand, positionalArgs, options };
 }
 
@@ -138,15 +143,15 @@ async function executeCommand(command, subcommand, positionalArgs, options) {
       console.log(`Options:`, options);
       return;
     }
-    
+
     // Configure GitHub CLI wrapper
     const cliOptions = {
       timeout: parseInt(options.timeout) || 30000,
-      enableLogging: options.verbose || false
+      enableLogging: options.verbose || false,
     };
-    
+
     let result;
-    
+
     // Route to appropriate method based on command
     if (command === 'issue') {
       result = await handleIssueCommand(subcommand, positionalArgs, options, cliOptions);
@@ -157,26 +162,25 @@ async function executeCommand(command, subcommand, positionalArgs, options) {
     } else {
       throw new Error(`Unsupported command: ${command}`);
     }
-    
+
     // Output result
     console.log('✅ Command executed successfully');
     if (options.verbose && result.stdout) {
       console.log('Output:', result.stdout);
     }
-    
   } catch (error) {
     console.error('❌ Command failed:', error.message);
-    
+
     if (error instanceof GitHubCliTimeoutError) {
       console.error('💡 Try increasing timeout with --timeout <ms>');
     } else if (error instanceof GitHubCliValidationError) {
       console.error('💡 Input validation failed. Check for dangerous characters or patterns.');
     }
-    
+
     if (options.verbose && error.details) {
       console.error('Details:', error.details);
     }
-    
+
     process.exit(1);
   }
 }
@@ -189,25 +193,23 @@ async function handleIssueCommand(subcommand, positionalArgs, options, cliOption
     if (!options.title || !options.body) {
       throw new Error('Issue creation requires --title and --body options');
     }
-    
+
     return await githubCli.createIssue({
       title: options.title,
       body: options.body,
       labels: options.labels ? options.labels.split(',') : [],
       assignees: options.assignees ? options.assignees.split(',') : [],
-      ...cliOptions
+      ...cliOptions,
     });
-    
   } else if (subcommand === 'comment') {
     const [issueNumber] = positionalArgs;
     const body = positionalArgs[1] || options.body;
-    
+
     if (!issueNumber || !body) {
       throw new Error('Issue comment requires issue number and body');
     }
-    
+
     return await githubCli.addIssueComment(parseInt(issueNumber), body, cliOptions);
-    
   } else {
     throw new Error(`Unsupported issue subcommand: ${subcommand}`);
   }
@@ -221,26 +223,24 @@ async function handlePRCommand(subcommand, positionalArgs, options, cliOptions) 
     if (!options.title || !options.body) {
       throw new Error('PR creation requires --title and --body options');
     }
-    
+
     return await githubCli.createPR({
       title: options.title,
       body: options.body,
       base: options.base || 'main',
       head: options.head,
       draft: options.draft || false,
-      ...cliOptions
+      ...cliOptions,
     });
-    
   } else if (subcommand === 'comment') {
     const [prNumber] = positionalArgs;
     const body = positionalArgs[1] || options.body;
-    
+
     if (!prNumber || !body) {
       throw new Error('PR comment requires PR number and body');
     }
-    
+
     return await githubCli.addPRComment(parseInt(prNumber), body, cliOptions);
-    
   } else {
     throw new Error(`Unsupported PR subcommand: ${subcommand}`);
   }
@@ -252,20 +252,19 @@ async function handlePRCommand(subcommand, positionalArgs, options, cliOptions) 
 async function handleReleaseCommand(subcommand, positionalArgs, options, cliOptions) {
   if (subcommand === 'create') {
     const [tag] = positionalArgs;
-    
+
     if (!tag || !options.title || !options.body) {
       throw new Error('Release creation requires tag, --title, and --body');
     }
-    
+
     return await githubCli.createRelease({
       tag,
       title: options.title,
       body: options.body,
       prerelease: options.prerelease || false,
       draft: options.draft || false,
-      ...cliOptions
+      ...cliOptions,
     });
-    
   } else {
     throw new Error(`Unsupported release subcommand: ${subcommand}`);
   }
@@ -278,7 +277,7 @@ async function main() {
   try {
     // Parse arguments
     const { command, subcommand, positionalArgs, options } = parseArguments(args);
-    
+
     // Check GitHub CLI availability
     const isAvailable = await githubCli.checkGitHubCli();
     if (!isAvailable) {
@@ -286,7 +285,7 @@ async function main() {
       console.error('💡 Install from: https://cli.github.com/');
       process.exit(1);
     }
-    
+
     // Check authentication (unless dry-run)
     if (!options['dry-run']) {
       const isAuthenticated = await githubCli.checkAuthentication();
@@ -296,10 +295,9 @@ async function main() {
         process.exit(1);
       }
     }
-    
+
     // Execute command
     await executeCommand(command, subcommand, positionalArgs, options);
-    
   } catch (error) {
     console.error('❌ Unexpected error:', error.message);
     if (args.includes('--verbose')) {
@@ -324,7 +322,7 @@ process.on('SIGTERM', async () => {
 
 // Run if called directly
 if (import.meta.main || process.argv[1].endsWith('github-safe-enhanced.js')) {
-  main().catch(error => {
+  main().catch((error) => {
     console.error('💥 Fatal error:', error.message);
     process.exit(1);
   });

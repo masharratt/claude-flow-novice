@@ -56,10 +56,10 @@ export class DatabaseManager extends EventEmitter {
   async initialize(): Promise<void> {
     // Load SQLite wrapper functions
     await loadSQLiteWrapper();
-    
+
     // Check if SQLite is available
     const sqliteAvailable = await isSQLiteAvailable();
-    
+
     if (!sqliteAvailable) {
       console.warn('SQLite not available, using in-memory storage for Hive Mind');
       this.initializeInMemoryFallback();
@@ -106,12 +106,12 @@ export class DatabaseManager extends EventEmitter {
       memory: new Map(),
       communications: new Map(),
       performance_metrics: new Map(),
-      consensus: new Map()
+      consensus: new Map(),
     };
 
     // Create mock statement methods
     this.statements = new Map();
-    
+
     if (isWindows && isWindows()) {
       console.info(`
 Note: Hive Mind data will not persist between runs on Windows without SQLite.

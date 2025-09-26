@@ -105,28 +105,28 @@ export class AnthropicProvider extends BaseProvider {
         timeout: this.config.timeout,
         retryAttempts: this.config.retryAttempts,
         retryDelay: this.config.retryDelay,
-      }
+      },
     );
   }
 
   protected async doComplete(request: LLMRequest): Promise<LLMResponse> {
     // Convert request to Claude format
     const claudeMessages = request.messages.map((msg) => ({
-      role: msg.role === 'system' ? 'user' : msg.role as 'user' | 'assistant',
+      role: msg.role === 'system' ? 'user' : (msg.role as 'user' | 'assistant'),
       content: msg.role === 'system' ? `System: ${msg.content}` : msg.content,
     }));
 
     // Extract system message if present
     const systemMessage = request.messages.find((m) => m.role === 'system');
-    
+
     // Call Claude API
-    const response = await this.claudeClient.sendMessage(claudeMessages, {
+    const response = (await this.claudeClient.sendMessage(claudeMessages, {
       model: request.model ? this.mapToAnthropicModel(request.model) : undefined,
       temperature: request.temperature,
       maxTokens: request.maxTokens,
       systemPrompt: systemMessage?.content,
       stream: false,
-    }) as any; // ClaudeResponse type
+    })) as any; // ClaudeResponse type
 
     // Calculate cost
     const pricing = this.capabilities.pricing![response.model];
@@ -157,20 +157,20 @@ export class AnthropicProvider extends BaseProvider {
   protected async *doStreamComplete(request: LLMRequest): AsyncIterable<LLMStreamEvent> {
     // Convert request to Claude format
     const claudeMessages = request.messages.map((msg) => ({
-      role: msg.role === 'system' ? 'user' : msg.role as 'user' | 'assistant',
+      role: msg.role === 'system' ? 'user' : (msg.role as 'user' | 'assistant'),
       content: msg.role === 'system' ? `System: ${msg.content}` : msg.content,
     }));
 
     const systemMessage = request.messages.find((m) => m.role === 'system');
-    
+
     // Get stream from Claude API
-    const stream = await this.claudeClient.sendMessage(claudeMessages, {
+    const stream = (await this.claudeClient.sendMessage(claudeMessages, {
       model: request.model ? this.mapToAnthropicModel(request.model) : undefined,
       temperature: request.temperature,
       maxTokens: request.maxTokens,
       systemPrompt: systemMessage?.content,
       stream: true,
-    }) as AsyncIterable<any>; // ClaudeStreamEvent type
+    })) as AsyncIterable<any>; // ClaudeStreamEvent type
 
     let accumulatedContent = '';
     let totalTokens = 0;
@@ -191,11 +191,11 @@ export class AnthropicProvider extends BaseProvider {
         // Calculate final cost
         const model = request.model || this.config.model;
         const pricing = this.capabilities.pricing![model];
-        
+
         // Estimate prompt tokens (rough approximation)
         const promptTokens = this.estimateTokens(JSON.stringify(request.messages));
         const completionTokens = totalTokens;
-        
+
         const promptCost = (promptTokens / 1000) * pricing.promptCostPer1k;
         const completionCost = (completionTokens / 1000) * pricing.completionCostPer1k;
 
@@ -224,7 +224,7 @@ export class AnthropicProvider extends BaseProvider {
   async getModelInfo(model: LLMModel): Promise<ModelInfo> {
     const anthropicModel = this.mapToAnthropicModel(model);
     const info = this.claudeClient.getModelInfo(anthropicModel);
-    
+
     return {
       model,
       name: info.name,
@@ -246,7 +246,7 @@ export class AnthropicProvider extends BaseProvider {
       await this.claudeClient.complete('Hi', {
         maxTokens: 1,
       });
-      
+
       return {
         healthy: true,
         timestamp: new Date(),

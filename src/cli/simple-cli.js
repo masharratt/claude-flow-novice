@@ -31,7 +31,7 @@ import { VERSION } from '../core/version.js';
 // Legacy agent type mapping for backward compatibility
 const LEGACY_AGENT_MAPPING = {
   analyst: 'code-analyzer',
-  coordinator: 'task-orchestrator', 
+  coordinator: 'task-orchestrator',
   optimizer: 'perf-analyzer',
   documenter: 'api-docs',
   monitor: 'performance-benchmarker',
@@ -352,7 +352,9 @@ async function main() {
 
       printSuccess(`Spawning ${spawnType} agent: ${spawnName}`);
       console.log('🤖 Agent would be created with the following configuration:');
-      console.log(`   Type: ${spawnType}${rawSpawnType !== spawnType ? ` (resolved from: ${rawSpawnType})` : ''}`);
+      console.log(
+        `   Type: ${spawnType}${rawSpawnType !== spawnType ? ` (resolved from: ${rawSpawnType})` : ''}`,
+      );
       console.log(`   Name: ${spawnName}`);
       console.log('   Capabilities: Research, Analysis, Code Generation');
       console.log('   Status: Ready');

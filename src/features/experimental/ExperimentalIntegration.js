@@ -34,7 +34,7 @@ export class ExperimentalIntegration {
         this.core.configManager,
         this.core.userManager,
         this.core.notificationService,
-        this.core.logger
+        this.core.logger,
       );
 
       await this.experimentalManager.initialize();
@@ -47,7 +47,6 @@ export class ExperimentalIntegration {
 
       this.isIntegrated = true;
       console.log('[ExperimentalIntegration] Integration completed successfully');
-
     } catch (error) {
       console.error('[ExperimentalIntegration] Integration failed:', error);
       throw error;
@@ -72,25 +71,34 @@ export class ExperimentalIntegration {
         const userLevel = await this.getUserLevel(userId);
         const enabledFeatures = await this.experimentalManager.getUserEnabledFeatures(userId);
 
-        const isVisible = FeatureClassification.isAgentVisible(agentType, userLevel, enabledFeatures);
+        const isVisible = FeatureClassification.isAgentVisible(
+          agentType,
+          userLevel,
+          enabledFeatures,
+        );
 
         if (!isVisible) {
           // Agent not visible to user - provide graceful degradation
-          const degradationResult = await this.experimentalManager.gracefulDegradation.handleFeatureUnavailable(
-            agentType,
-            'not-enabled'
-          );
+          const degradationResult =
+            await this.experimentalManager.gracefulDegradation.handleFeatureUnavailable(
+              agentType,
+              'not-enabled',
+            );
 
           if (degradationResult.success && degradationResult.fallbackAgent) {
-            console.log(`[ExperimentalIntegration] Using fallback agent ${degradationResult.fallbackAgent} for ${agentType}`);
+            console.log(
+              `[ExperimentalIntegration] Using fallback agent ${degradationResult.fallbackAgent} for ${agentType}`,
+            );
             return await originalSpawnAgent(degradationResult.fallbackAgent, {
               ...options,
               fallbackFor: agentType,
               capabilities: degradationResult.capabilities,
-              limitations: degradationResult.limitations
+              limitations: degradationResult.limitations,
             });
           } else {
-            throw new Error(`Agent ${agentType} is not available for your current experience level`);
+            throw new Error(
+              `Agent ${agentType} is not available for your current experience level`,
+            );
           }
         }
 
@@ -100,21 +108,21 @@ export class ExperimentalIntegration {
         // Start performance monitoring
         await this.experimentalManager.performanceMonitor.startMonitoring(agentType, {
           stability: agentConfig.stability,
-          category: agentConfig.category
+          category: agentConfig.category,
         });
 
         // Execute pre-spawn hook
         await this.executeHook('experimental-agent-pre-spawn', {
           agentType,
           userId,
-          stability: agentConfig.stability
+          stability: agentConfig.stability,
         });
 
         const agent = await originalSpawnAgent(agentType, {
           ...options,
           experimental: true,
           stability: agentConfig.stability,
-          category: agentConfig.category
+          category: agentConfig.category,
         });
 
         // Execute post-spawn hook
@@ -122,7 +130,7 @@ export class ExperimentalIntegration {
           agentType,
           userId,
           agentId: agent.id,
-          stability: agentConfig.stability
+          stability: agentConfig.stability,
         });
 
         return agent;
@@ -147,12 +155,14 @@ export class ExperimentalIntegration {
           taskData.agentType || 'unknown',
           'taskStart',
           Date.now(),
-          { taskId: taskData.taskId, experimental: true }
+          { taskId: taskData.taskId, experimental: true },
         );
 
         // Validate experimental features are still enabled
         if (taskData.userId) {
-          const enabledFeatures = await this.experimentalManager.getUserEnabledFeatures(taskData.userId);
+          const enabledFeatures = await this.experimentalManager.getUserEnabledFeatures(
+            taskData.userId,
+          );
           if (taskData.agentType && !enabledFeatures.includes(taskData.agentType)) {
             throw new Error(`Experimental feature ${taskData.agentType} is no longer enabled`);
           }
@@ -173,8 +183,8 @@ export class ExperimentalIntegration {
           {
             taskId: taskData.taskId,
             success: result.success,
-            experimental: true
-          }
+            experimental: true,
+          },
         );
 
         // Record error metrics if task failed
@@ -186,8 +196,8 @@ export class ExperimentalIntegration {
             {
               taskId: taskData.taskId,
               error: result.error,
-              experimental: true
-            }
+              experimental: true,
+            },
           );
         }
       }
@@ -201,11 +211,13 @@ export class ExperimentalIntegration {
         sessionData.experimentalConfig = userConfig;
 
         // Initialize user-specific monitoring
-        const enabledFeatures = await this.experimentalManager.getUserEnabledFeatures(sessionData.userId);
+        const enabledFeatures = await this.experimentalManager.getUserEnabledFeatures(
+          sessionData.userId,
+        );
         for (const feature of enabledFeatures) {
           await this.experimentalManager.performanceMonitor.startMonitoring(feature, {
             stability: FeatureClassification.EXPERIMENTAL_AGENTS[feature]?.stability || 'unknown',
-            userId: sessionData.userId
+            userId: sessionData.userId,
           });
         }
       }
@@ -214,7 +226,9 @@ export class ExperimentalIntegration {
     this.hookIntegrations.set('session-end', async (sessionData) => {
       if (sessionData.userId) {
         // Stop monitoring for user's features
-        const enabledFeatures = await this.experimentalManager.getUserEnabledFeatures(sessionData.userId);
+        const enabledFeatures = await this.experimentalManager.getUserEnabledFeatures(
+          sessionData.userId,
+        );
         for (const feature of enabledFeatures) {
           await this.experimentalManager.performanceMonitor.stopMonitoring(feature);
         }
@@ -225,7 +239,7 @@ export class ExperimentalIntegration {
           duration: sessionData.duration,
           experimentalFeaturesUsed: enabledFeatures.length,
           performanceScore: this.experimentalManager.performanceMonitor.getSystemHealthScore(),
-          degradationEvents: this.experimentalManager.gracefulDegradation.getDegradationStatus()
+          degradationEvents: this.experimentalManager.gracefulDegradation.getDegradationStatus(),
         };
 
         console.log('[ExperimentalIntegration] Session report:', sessionReport);
@@ -255,7 +269,7 @@ export class ExperimentalIntegration {
           agents: visibleAgents.agents,
           categories: visibleAgents.categories,
           recommendations: visibleAgents.recommendations,
-          userLevel: visibleAgents.userLevel
+          userLevel: visibleAgents.userLevel,
         };
       };
     }
@@ -264,26 +278,26 @@ export class ExperimentalIntegration {
     this.core.commandHandler.addCommand('experimental', {
       description: 'Manage experimental features',
       subcommands: {
-        'list': async (options) => {
+        list: async (options) => {
           const userId = options.userId || 'anonymous';
           return await this.experimentalManager.getVisibleAgents(userId);
         },
-        'enable': async (options) => {
+        enable: async (options) => {
           const { feature, userId } = options;
           return await this.experimentalManager.enableFeature(feature, userId);
         },
-        'disable': async (options) => {
+        disable: async (options) => {
           const { feature, userId } = options;
           return await this.experimentalManager.disableFeature(feature, userId);
         },
-        'status': async (options) => {
+        status: async (options) => {
           return await this.experimentalManager.getSystemStatus();
         },
         'upgrade-level': async (options) => {
           const { userId, level } = options;
           return await this.experimentalManager.setUserLevel(userId, level);
-        }
-      }
+        },
+      },
     });
 
     console.log('[ExperimentalIntegration] Command interceptors configured');
@@ -299,25 +313,25 @@ export class ExperimentalIntegration {
       this.core.uiManager.registerComponent('experimental-features-panel', {
         component: 'ExperimentalFeaturesPanel',
         props: {
-          manager: this.experimentalManager
+          manager: this.experimentalManager,
         },
-        permissions: ['view-experimental']
+        permissions: ['view-experimental'],
       });
 
       // Register agent visibility components
       this.core.uiManager.registerComponent('agent-list-with-experimental', {
         component: 'EnhancedAgentList',
         props: {
-          visibilityManager: this.experimentalManager.visibilityManager
-        }
+          visibilityManager: this.experimentalManager.visibilityManager,
+        },
       });
 
       // Register consent dialog component
       this.core.uiManager.registerComponent('experimental-consent-dialog', {
         component: 'ExperimentalConsentDialog',
         props: {
-          consentManager: this.experimentalManager.consentManager
-        }
+          consentManager: this.experimentalManager.consentManager,
+        },
       });
     }
 
@@ -345,7 +359,8 @@ export class ExperimentalIntegration {
     return (
       taskData.experimental ||
       (taskData.agentType && FeatureClassification.EXPERIMENTAL_AGENTS[taskData.agentType]) ||
-      (taskData.features && taskData.features.some(f => FeatureClassification.EXPERIMENTAL_AGENTS[f]))
+      (taskData.features &&
+        taskData.features.some((f) => FeatureClassification.EXPERIMENTAL_AGENTS[f]))
     );
   }
 
@@ -373,7 +388,7 @@ export class ExperimentalIntegration {
       overall: 'healthy',
       components: {},
       issues: [],
-      recommendations: []
+      recommendations: [],
     };
 
     try {
@@ -381,7 +396,7 @@ export class ExperimentalIntegration {
       const systemStatus = await this.experimentalManager.getSystemStatus();
       validationResults.components.experimentalManager = {
         status: systemStatus.initialized ? 'healthy' : 'unhealthy',
-        details: systemStatus
+        details: systemStatus,
       };
 
       // Validate agent interceptors
@@ -392,7 +407,7 @@ export class ExperimentalIntegration {
       } catch (error) {
         validationResults.components.agentInterceptors = {
           status: 'unhealthy',
-          error: error.message
+          error: error.message,
         };
         validationResults.issues.push('Agent interceptors failing');
       }
@@ -404,7 +419,7 @@ export class ExperimentalIntegration {
       } catch (error) {
         validationResults.components.hookIntegrations = {
           status: 'warning',
-          error: error.message
+          error: error.message,
         };
       }
 
@@ -413,28 +428,28 @@ export class ExperimentalIntegration {
       validationResults.components.performanceMonitor = {
         status: performanceHealth.score > 80 ? 'healthy' : 'warning',
         score: performanceHealth.score,
-        details: performanceHealth
+        details: performanceHealth,
       };
 
       // Validate graceful degradation
       const degradationStatus = this.experimentalManager.gracefulDegradation.getDegradationStatus();
       validationResults.components.gracefulDegradation = {
         status: degradationStatus.degradationLevel === 'none' ? 'healthy' : 'warning',
-        details: degradationStatus
+        details: degradationStatus,
       };
 
       // Overall health assessment
-      const unhealthyComponents = Object.values(validationResults.components)
-        .filter(c => c.status === 'unhealthy').length;
+      const unhealthyComponents = Object.values(validationResults.components).filter(
+        (c) => c.status === 'unhealthy',
+      ).length;
 
       if (unhealthyComponents > 0) {
         validationResults.overall = 'unhealthy';
         validationResults.recommendations.push('Address unhealthy components immediately');
-      } else if (Object.values(validationResults.components).some(c => c.status === 'warning')) {
+      } else if (Object.values(validationResults.components).some((c) => c.status === 'warning')) {
         validationResults.overall = 'warning';
         validationResults.recommendations.push('Monitor warning components closely');
       }
-
     } catch (error) {
       validationResults.overall = 'critical';
       validationResults.error = error.message;
@@ -453,7 +468,7 @@ export class ExperimentalIntegration {
       interceptorsActive: this.agentInterceptors.size,
       hooksRegistered: this.hookIntegrations.size,
       experimentalFeatures: Object.keys(FeatureClassification.EXPERIMENTAL_AGENTS).length,
-      systemHealth: this.experimentalManager?.performanceMonitor.getSystemHealthScore() || null
+      systemHealth: this.experimentalManager?.performanceMonitor.getSystemHealthScore() || null,
     };
   }
 
@@ -512,14 +527,14 @@ export class ExperimentalDeployment {
         defaultUserLevel: FeatureClassification.USER_LEVELS.ADVANCED,
         performanceMonitoring: 'enhanced',
         consentRequired: false, // For development ease
-        gracefulDegradation: true
+        gracefulDegradation: true,
       },
       testing: {
         enableAllFeatures: true,
         defaultUserLevel: FeatureClassification.USER_LEVELS.INTERMEDIATE,
         performanceMonitoring: 'full',
         consentRequired: true,
-        gracefulDegradation: true
+        gracefulDegradation: true,
       },
       staging: {
         enableAllFeatures: false,
@@ -530,8 +545,8 @@ export class ExperimentalDeployment {
         enabledFeatureFlags: [
           'experimental.consensus.enabled',
           'experimental.math.matrix.enabled',
-          'experimental.analysis.graph.enabled'
-        ]
+          'experimental.analysis.graph.enabled',
+        ],
       },
       production: {
         enableAllFeatures: false,
@@ -539,8 +554,8 @@ export class ExperimentalDeployment {
         performanceMonitoring: 'critical-only',
         consentRequired: true,
         gracefulDegradation: true,
-        enabledFeatureFlags: [] // No experimental features by default in production
-      }
+        enabledFeatureFlags: [], // No experimental features by default in production
+      },
     };
 
     return configs[environment] || configs.production;
@@ -550,7 +565,9 @@ export class ExperimentalDeployment {
    * Deploy experimental features for environment
    */
   async deploy(claudeFlowCore) {
-    console.log(`[ExperimentalDeployment] Deploying experimental features for ${this.environment} environment`);
+    console.log(
+      `[ExperimentalDeployment] Deploying experimental features for ${this.environment} environment`,
+    );
 
     // Create integration with environment-specific configuration
     const integration = new ExperimentalIntegration(claudeFlowCore);
@@ -567,7 +584,9 @@ export class ExperimentalDeployment {
       throw new Error(`Deployment validation failed: ${validation.error || 'System unhealthy'}`);
     }
 
-    console.log(`[ExperimentalDeployment] Deployment completed successfully for ${this.environment}`);
+    console.log(
+      `[ExperimentalDeployment] Deployment completed successfully for ${this.environment}`,
+    );
     return integration;
   }
 

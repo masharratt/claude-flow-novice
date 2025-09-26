@@ -19,7 +19,14 @@ interface SwarmAgent {
 
 interface CoordinationHook {
   id: string;
-  type: 'pre-task' | 'post-task' | 'pre-edit' | 'post-edit' | 'notify' | 'session-restore' | 'session-end';
+  type:
+    | 'pre-task'
+    | 'post-task'
+    | 'pre-edit'
+    | 'post-edit'
+    | 'notify'
+    | 'session-restore'
+    | 'session-end';
   timestamp: Date;
   agentId?: string;
   taskId?: string;
@@ -45,7 +52,8 @@ export class SwarmCoordinator {
   private memoryStore: Map<string, any> = new Map();
 
   constructor(sessionId?: string) {
-    this.sessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.sessionId =
+      sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.metrics = this.initializeMetrics();
   }
 
@@ -86,8 +94,8 @@ export class SwarmCoordinator {
       performance: {
         tasksCompleted: 0,
         averageExecutionTime: 0,
-        successRate: 100
-      }
+        successRate: 100,
+      },
     };
 
     this.agents.set(agent.id, agent);
@@ -106,7 +114,7 @@ export class SwarmCoordinator {
       type: 'pre-task',
       timestamp: new Date(),
       agentId,
-      data: { description: taskDescription }
+      data: { description: taskDescription },
     };
 
     this.hooks.push(hook);
@@ -119,7 +127,7 @@ export class SwarmCoordinator {
       this.memoryStore.set(`task_context_${agentId}`, {
         description: taskDescription,
         startTime: new Date(),
-        status: 'starting'
+        status: 'starting',
       });
     }
 
@@ -136,7 +144,7 @@ export class SwarmCoordinator {
       timestamp: new Date(),
       agentId,
       taskId,
-      data: { result }
+      data: { result },
     };
 
     this.hooks.push(hook);
@@ -171,7 +179,7 @@ export class SwarmCoordinator {
       type: 'post-edit',
       timestamp: new Date(),
       agentId,
-      data: { filePath, memoryKey }
+      data: { filePath, memoryKey },
     };
 
     this.hooks.push(hook);
@@ -181,7 +189,7 @@ export class SwarmCoordinator {
       filePath,
       timestamp: new Date(),
       agentId,
-      action: 'edited'
+      action: 'edited',
     });
 
     // Notify other agents about the file change
@@ -193,13 +201,17 @@ export class SwarmCoordinator {
   /**
    * Execute notification hook for inter-agent communication
    */
-  async executeNotifyHook(message: string, agentId?: string, targetAgents?: string[]): Promise<void> {
+  async executeNotifyHook(
+    message: string,
+    agentId?: string,
+    targetAgents?: string[],
+  ): Promise<void> {
     const hook: CoordinationHook = {
       id: `hook_${Date.now()}`,
       type: 'notify',
       timestamp: new Date(),
       agentId,
-      data: { message, targetAgents }
+      data: { message, targetAgents },
     };
 
     this.hooks.push(hook);
@@ -211,7 +223,7 @@ export class SwarmCoordinator {
       fromAgent: agentId,
       targetAgents: targetAgents || [],
       timestamp: new Date(),
-      read: false
+      read: false,
     });
 
     // Broadcast or send to specific agents
@@ -232,7 +244,7 @@ export class SwarmCoordinator {
       id: `hook_${Date.now()}`,
       type: 'session-restore',
       timestamp: new Date(),
-      data: { sessionId }
+      data: { sessionId },
     };
 
     this.hooks.push(hook);
@@ -251,7 +263,7 @@ export class SwarmCoordinator {
       id: `hook_${Date.now()}`,
       type: 'session-end',
       timestamp: new Date(),
-      data: { exportMetrics, sessionId: this.sessionId }
+      data: { exportMetrics, sessionId: this.sessionId },
     };
 
     this.hooks.push(hook);
@@ -270,18 +282,22 @@ export class SwarmCoordinator {
    * Find the best agent for a specific task
    */
   findBestAgent(requiredCapabilities: string[], taskType?: string): SwarmAgent | null {
-    const availableAgents = Array.from(this.agents.values())
-      .filter(agent =>
+    const availableAgents = Array.from(this.agents.values()).filter(
+      (agent) =>
         agent.status === 'idle' &&
-        requiredCapabilities.every(cap => agent.capabilities.includes(cap))
-      );
+        requiredCapabilities.every((cap) => agent.capabilities.includes(cap)),
+    );
 
     if (!availableAgents.length) return null;
 
     // Sort by performance metrics
     availableAgents.sort((a, b) => {
-      const scoreA = a.performance.successRate * 0.7 + (1 / Math.max(a.performance.averageExecutionTime, 1)) * 0.3;
-      const scoreB = b.performance.successRate * 0.7 + (1 / Math.max(b.performance.averageExecutionTime, 1)) * 0.3;
+      const scoreA =
+        a.performance.successRate * 0.7 +
+        (1 / Math.max(a.performance.averageExecutionTime, 1)) * 0.3;
+      const scoreB =
+        b.performance.successRate * 0.7 +
+        (1 / Math.max(b.performance.averageExecutionTime, 1)) * 0.3;
       return scoreB - scoreA;
     });
 
@@ -293,20 +309,19 @@ export class SwarmCoordinator {
    */
   distributeTasks(tasks: any[], capabilities: string[]): Map<string, any[]> {
     const distribution = new Map<string, any[]>();
-    const availableAgents = Array.from(this.agents.values())
-      .filter(agent =>
-        agent.status === 'idle' &&
-        capabilities.every(cap => agent.capabilities.includes(cap))
-      );
+    const availableAgents = Array.from(this.agents.values()).filter(
+      (agent) =>
+        agent.status === 'idle' && capabilities.every((cap) => agent.capabilities.includes(cap)),
+    );
 
     if (!availableAgents.length) return distribution;
 
     // Initialize distribution map
-    availableAgents.forEach(agent => distribution.set(agent.id, []));
+    availableAgents.forEach((agent) => distribution.set(agent.id, []));
 
     // Distribute tasks using round-robin with performance weighting
-    const sortedAgents = availableAgents.sort((a, b) =>
-      b.performance.successRate - a.performance.successRate
+    const sortedAgents = availableAgents.sort(
+      (a, b) => b.performance.successRate - a.performance.successRate,
     );
 
     tasks.forEach((task, index) => {
@@ -329,7 +344,7 @@ export class SwarmCoordinator {
       agents: Array.from(this.agents.values()),
       metrics: this.metrics,
       recentHooks: this.hooks.slice(-10),
-      memoryStoreSize: this.memoryStore.size
+      memoryStoreSize: this.memoryStore.size,
     };
   }
 
@@ -339,16 +354,16 @@ export class SwarmCoordinator {
   getAgentAnalytics(): any {
     const analytics = {
       totalAgents: this.agents.size,
-      agentPerformance: Array.from(this.agents.values()).map(agent => ({
+      agentPerformance: Array.from(this.agents.values()).map((agent) => ({
         id: agent.id,
         name: agent.name,
         type: agent.type,
         status: agent.status,
         performance: agent.performance,
-        efficiency: this.calculateAgentEfficiency(agent)
+        efficiency: this.calculateAgentEfficiency(agent),
       })),
       topPerformers: this.getTopPerformingAgents(3),
-      bottlenecks: this.identifyBottlenecks()
+      bottlenecks: this.identifyBottlenecks(),
     };
 
     return analytics;
@@ -410,7 +425,7 @@ export class SwarmCoordinator {
       failedTasks: 0,
       averageTaskTime: 0,
       parallelEfficiency: 0,
-      resourceUtilization: 0
+      resourceUtilization: 0,
     };
   }
 
@@ -418,18 +433,21 @@ export class SwarmCoordinator {
     const agents = Array.from(this.agents.values());
 
     this.metrics.totalAgents = agents.length;
-    this.metrics.activeAgents = agents.filter(a => a.status === 'busy').length;
+    this.metrics.activeAgents = agents.filter((a) => a.status === 'busy').length;
     this.metrics.completedTasks = agents.reduce((sum, a) => sum + a.performance.tasksCompleted, 0);
 
-    const totalExecutionTime = agents.reduce((sum, a) =>
-      sum + (a.performance.averageExecutionTime * a.performance.tasksCompleted), 0
+    const totalExecutionTime = agents.reduce(
+      (sum, a) => sum + a.performance.averageExecutionTime * a.performance.tasksCompleted,
+      0,
     );
 
-    this.metrics.averageTaskTime = this.metrics.completedTasks > 0 ?
-      totalExecutionTime / this.metrics.completedTasks : 0;
+    this.metrics.averageTaskTime =
+      this.metrics.completedTasks > 0 ? totalExecutionTime / this.metrics.completedTasks : 0;
 
-    this.metrics.parallelEfficiency = this.metrics.totalAgents > 0 ?
-      (this.metrics.activeAgents / this.metrics.totalAgents) * 100 : 0;
+    this.metrics.parallelEfficiency =
+      this.metrics.totalAgents > 0
+        ? (this.metrics.activeAgents / this.metrics.totalAgents) * 100
+        : 0;
 
     this.metrics.resourceUtilization = this.calculateResourceUtilization();
   }
@@ -438,7 +456,7 @@ export class SwarmCoordinator {
     const agents = Array.from(this.agents.values());
     if (!agents.length) return 0;
 
-    const busyAgents = agents.filter(a => a.status === 'busy').length;
+    const busyAgents = agents.filter((a) => a.status === 'busy').length;
     return (busyAgents / agents.length) * 100;
   }
 
@@ -450,9 +468,12 @@ export class SwarmCoordinator {
     const maxReasonableTime = 60000; // 60 seconds
 
     const successScore = agent.performance.successRate;
-    const speedScore = Math.max(0, 100 - (agent.performance.averageExecutionTime / maxReasonableTime) * 100);
+    const speedScore = Math.max(
+      0,
+      100 - (agent.performance.averageExecutionTime / maxReasonableTime) * 100,
+    );
 
-    return (successScore * successWeight) + (speedScore * speedWeight);
+    return successScore * successWeight + speedScore * speedWeight;
   }
 
   private getTopPerformingAgents(count: number): SwarmAgent[] {
@@ -467,28 +488,35 @@ export class SwarmCoordinator {
 
     // Identify slow agents
     const averageTime = this.metrics.averageTaskTime;
-    const slowAgents = agents.filter(a =>
-      a.performance.averageExecutionTime > averageTime * 1.5 &&
-      a.performance.tasksCompleted > 0
+    const slowAgents = agents.filter(
+      (a) =>
+        a.performance.averageExecutionTime > averageTime * 1.5 && a.performance.tasksCompleted > 0,
     );
 
     if (slowAgents.length) {
       bottlenecks.push({
         type: 'slow-agents',
-        agents: slowAgents.map(a => ({ id: a.id, name: a.name, averageTime: a.performance.averageExecutionTime }))
+        agents: slowAgents.map((a) => ({
+          id: a.id,
+          name: a.name,
+          averageTime: a.performance.averageExecutionTime,
+        })),
       });
     }
 
     // Identify agents with low success rates
-    const lowSuccessAgents = agents.filter(a =>
-      a.performance.successRate < 80 &&
-      a.performance.tasksCompleted > 2
+    const lowSuccessAgents = agents.filter(
+      (a) => a.performance.successRate < 80 && a.performance.tasksCompleted > 2,
     );
 
     if (lowSuccessAgents.length) {
       bottlenecks.push({
         type: 'low-success-rate',
-        agents: lowSuccessAgents.map(a => ({ id: a.id, name: a.name, successRate: a.performance.successRate }))
+        agents: lowSuccessAgents.map((a) => ({
+          id: a.id,
+          name: a.name,
+          successRate: a.performance.successRate,
+        })),
       });
     }
 
@@ -553,7 +581,7 @@ export class SwarmCoordinator {
     // Initialize shared memory store for agent coordination
     this.memoryStore.set(`session_${this.sessionId}`, {
       created: new Date(),
-      lastAccess: new Date()
+      lastAccess: new Date(),
     });
   }
 
@@ -572,7 +600,7 @@ export class SwarmCoordinator {
       metrics: this.metrics,
       agents: Array.from(this.agents.values()),
       hooks: this.hooks,
-      analytics: this.getAgentAnalytics()
+      analytics: this.getAgentAnalytics(),
     };
 
     // Store metrics export in memory for retrieval
@@ -587,7 +615,7 @@ export class SwarmCoordinator {
       agents: Array.from(this.agents.values()),
       hooks: this.hooks,
       memoryData: Object.fromEntries(this.memoryStore.entries()),
-      metrics: this.metrics
+      metrics: this.metrics,
     };
 
     // Store archive data

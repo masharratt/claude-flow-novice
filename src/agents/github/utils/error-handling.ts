@@ -66,7 +66,7 @@ export class GitHubErrorHandler {
         results.push({
           ...result,
           name: rule.name,
-          severity: rule.severity
+          severity: rule.severity,
         } as any);
       } catch (error) {
         results.push({
@@ -74,7 +74,7 @@ export class GitHubErrorHandler {
           name: rule.name,
           message: `Validation rule failed: ${error.message}`,
           code: 'VALIDATION_ERROR',
-          severity: 'error'
+          severity: 'error',
         } as any);
       }
     }
@@ -86,7 +86,7 @@ export class GitHubErrorHandler {
    * Check if validation results contain errors
    */
   hasValidationErrors(results: ValidationResult[]): boolean {
-    return results.some(r => !r.valid && (r as any).severity === 'error');
+    return results.some((r) => !r.valid && (r as any).severity === 'error');
   }
 
   // =============================================================================
@@ -101,7 +101,7 @@ export class GitHubErrorHandler {
     operation: string,
     agentId: string,
     repository?: Repository,
-    context?: any
+    context?: any,
   ): GitHubError {
     const errorContext: ErrorContext = {
       operation,
@@ -109,7 +109,7 @@ export class GitHubErrorHandler {
       repository,
       timestamp: new Date().toISOString(),
       context: context || {},
-      stack: error.stack
+      stack: error.stack,
     };
 
     // Transform error to standardized format
@@ -138,11 +138,7 @@ export class GitHubErrorHandler {
   /**
    * Execute retry logic for operations
    */
-  async executeWithRetry<T>(
-    operation: string,
-    fn: () => Promise<T>,
-    context?: any
-  ): Promise<T> {
+  async executeWithRetry<T>(operation: string, fn: () => Promise<T>, context?: any): Promise<T> {
     const retryConfig = this.retryConfig.get(operation) || { maxRetries: 3, backoff: 1000 };
     let lastError: any;
 
@@ -161,10 +157,10 @@ export class GitHubErrorHandler {
           const delay = retryConfig.backoff * Math.pow(2, attempt - 1);
           console.warn(
             `[GitHubErrorHandler] Attempt ${attempt} failed for ${operation}, retrying in ${delay}ms:`,
-            error.message
+            error.message,
           );
 
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
@@ -205,23 +201,28 @@ export class GitHubErrorHandler {
     primaryFn: () => Promise<T>,
     fallbackFn: () => Promise<T>,
     operation: string,
-    context?: any
+    context?: any,
   ): Promise<T> {
     try {
       return await primaryFn();
     } catch (error) {
-      console.warn(`[GitHubErrorHandler] Primary execution failed for ${operation}, attempting fallback:`, error.message);
+      console.warn(
+        `[GitHubErrorHandler] Primary execution failed for ${operation}, attempting fallback:`,
+        error.message,
+      );
 
       try {
         return await fallbackFn();
       } catch (fallbackError) {
         // Both primary and fallback failed
         throw this.handleError(
-          new Error(`Both primary and fallback execution failed: ${error.message} | ${fallbackError.message}`),
+          new Error(
+            `Both primary and fallback execution failed: ${error.message} | ${fallbackError.message}`,
+          ),
           operation,
           'graceful-degradation',
           undefined,
-          { primary_error: error, fallback_error: fallbackError, ...context }
+          { primary_error: error, fallback_error: fallbackError, ...context },
         );
       }
     }
@@ -242,13 +243,13 @@ export class GitHubErrorHandler {
             return {
               valid: false,
               message: 'Repository must have owner and repo properties',
-              code: 'INVALID_REPOSITORY'
+              code: 'INVALID_REPOSITORY',
             };
           }
         }
         return { valid: true };
       },
-      severity: 'error'
+      severity: 'error',
     });
 
     // Token validation
@@ -259,7 +260,7 @@ export class GitHubErrorHandler {
         // For now, just a placeholder
         return { valid: true };
       },
-      severity: 'error'
+      severity: 'error',
     });
 
     // Pull request validation
@@ -271,7 +272,7 @@ export class GitHubErrorHandler {
           return {
             valid: false,
             message: 'Pull request requires title, head, and base parameters',
-            code: 'INVALID_PR_PARAMETERS'
+            code: 'INVALID_PR_PARAMETERS',
           };
         }
 
@@ -279,13 +280,13 @@ export class GitHubErrorHandler {
           return {
             valid: false,
             message: 'Head and base branches cannot be the same',
-            code: 'INVALID_BRANCH_CONFIGURATION'
+            code: 'INVALID_BRANCH_CONFIGURATION',
           };
         }
 
         return { valid: true };
       },
-      severity: 'error'
+      severity: 'error',
     });
 
     // Release validation
@@ -297,7 +298,7 @@ export class GitHubErrorHandler {
           return {
             valid: false,
             message: 'Release requires tag name',
-            code: 'INVALID_RELEASE_PARAMETERS'
+            code: 'INVALID_RELEASE_PARAMETERS',
           };
         }
 
@@ -308,13 +309,13 @@ export class GitHubErrorHandler {
             valid: false,
             message: 'Tag name should follow semantic versioning (e.g., v1.0.0)',
             code: 'INVALID_TAG_FORMAT',
-            severity: 'warning'
+            severity: 'warning',
           };
         }
 
         return { valid: true };
       },
-      severity: 'warning'
+      severity: 'warning',
     });
 
     // Multi-repo operation validation
@@ -326,7 +327,7 @@ export class GitHubErrorHandler {
           return {
             valid: false,
             message: 'Multi-repo operation requires repositories array',
-            code: 'INVALID_MULTI_REPO_CONFIG'
+            code: 'INVALID_MULTI_REPO_CONFIG',
           };
         }
 
@@ -334,7 +335,7 @@ export class GitHubErrorHandler {
           return {
             valid: false,
             message: 'At least one repository required for multi-repo operation',
-            code: 'EMPTY_REPOSITORY_LIST'
+            code: 'EMPTY_REPOSITORY_LIST',
           };
         }
 
@@ -345,32 +346,44 @@ export class GitHubErrorHandler {
             return {
               valid: false,
               message: 'Circular dependencies detected in repository configuration',
-              code: 'CIRCULAR_DEPENDENCIES'
+              code: 'CIRCULAR_DEPENDENCIES',
             };
           }
         }
 
         return { valid: true };
       },
-      severity: 'error'
+      severity: 'error',
     });
   }
 
   private setupDefaultErrorHandlers(): void {
     // Rate limit error handler
-    this.registerErrorHandler('RATE_LIMIT_EXCEEDED', (error: GitHubError, context: ErrorContext) => {
-      console.warn(`[GitHubErrorHandler] Rate limit exceeded for ${context.operation}. Consider implementing backoff strategy.`);
-    });
+    this.registerErrorHandler(
+      'RATE_LIMIT_EXCEEDED',
+      (error: GitHubError, context: ErrorContext) => {
+        console.warn(
+          `[GitHubErrorHandler] Rate limit exceeded for ${context.operation}. Consider implementing backoff strategy.`,
+        );
+      },
+    );
 
     // Network error handler
     this.registerErrorHandler('NETWORK_ERROR', (error: GitHubError, context: ErrorContext) => {
-      console.warn(`[GitHubErrorHandler] Network error in ${context.operation}. Will retry with exponential backoff.`);
+      console.warn(
+        `[GitHubErrorHandler] Network error in ${context.operation}. Will retry with exponential backoff.`,
+      );
     });
 
     // Authentication error handler
-    this.registerErrorHandler('AUTHENTICATION_ERROR', (error: GitHubError, context: ErrorContext) => {
-      console.error(`[GitHubErrorHandler] Authentication failed for ${context.operation}. Check GitHub token validity.`);
-    });
+    this.registerErrorHandler(
+      'AUTHENTICATION_ERROR',
+      (error: GitHubError, context: ErrorContext) => {
+        console.error(
+          `[GitHubErrorHandler] Authentication failed for ${context.operation}. Check GitHub token validity.`,
+        );
+      },
+    );
   }
 
   private setupRetryConfiguration(): void {
@@ -394,7 +407,7 @@ export class GitHubErrorHandler {
             message: 'GitHub authentication failed. Check your access token.',
             status: error.status,
             repository: context.repository,
-            context: context.context
+            context: context.context,
           };
         case 403:
           return {
@@ -402,7 +415,7 @@ export class GitHubErrorHandler {
             message: 'Insufficient permissions for this operation.',
             status: error.status,
             repository: context.repository,
-            context: context.context
+            context: context.context,
           };
         case 404:
           return {
@@ -410,7 +423,7 @@ export class GitHubErrorHandler {
             message: `Resource not found: ${error.message || 'Unknown resource'}`,
             status: error.status,
             repository: context.repository,
-            context: context.context
+            context: context.context,
           };
         case 422:
           return {
@@ -418,7 +431,7 @@ export class GitHubErrorHandler {
             message: `GitHub validation failed: ${error.message || 'Invalid request'}`,
             status: error.status,
             repository: context.repository,
-            context: context.context
+            context: context.context,
           };
         case 429:
           return {
@@ -426,7 +439,7 @@ export class GitHubErrorHandler {
             message: 'GitHub API rate limit exceeded. Please wait before retrying.',
             status: error.status,
             repository: context.repository,
-            context: context.context
+            context: context.context,
           };
         default:
           return {
@@ -434,7 +447,7 @@ export class GitHubErrorHandler {
             message: error.message || `HTTP error ${error.status}`,
             status: error.status,
             repository: context.repository,
-            context: context.context
+            context: context.context,
           };
       }
     }
@@ -445,7 +458,7 @@ export class GitHubErrorHandler {
         code: 'NETWORK_ERROR',
         message: `Network error: ${error.message}`,
         repository: context.repository,
-        context: { ...context.context, network_error_code: error.code }
+        context: { ...context.context, network_error_code: error.code },
       };
     }
 
@@ -454,7 +467,7 @@ export class GitHubErrorHandler {
       code: error.code || 'UNKNOWN_ERROR',
       message: error.message || 'An unknown error occurred',
       repository: context.repository,
-      context: context.context
+      context: context.context,
     };
   }
 
@@ -462,7 +475,7 @@ export class GitHubErrorHandler {
     const handlers = this.errorHandlers.get(error.code) || [];
     const globalHandlers = this.errorHandlers.get('*') || [];
 
-    [...handlers, ...globalHandlers].forEach(handler => {
+    [...handlers, ...globalHandlers].forEach((handler) => {
       try {
         handler(error, context);
       } catch (handlerError) {
@@ -480,7 +493,7 @@ export class GitHubErrorHandler {
       error_message: error.message,
       repository: context.repository?.full_name,
       status: error.status,
-      context: context.context
+      context: context.context,
     };
 
     // In production, this would integrate with proper logging system
@@ -493,35 +506,35 @@ export class GitHubErrorHandler {
       'AUTHENTICATION_ERROR',
       'PERMISSION_DENIED',
       'VALIDATION_ERROR',
-      'NOT_FOUND'
+      'NOT_FOUND',
     ];
 
     const nonRetryableStatuses = [401, 403, 404, 422];
 
-    return nonRetryableCodes.includes(error.code) ||
-           nonRetryableStatuses.includes(error.status);
+    return nonRetryableCodes.includes(error.code) || nonRetryableStatuses.includes(error.status);
   }
 
   private async recoverFromRateLimit(error: GitHubError, context: ErrorContext): Promise<any> {
     // Wait for rate limit reset
     const resetTime = context.context?.rate_limit_reset;
     if (resetTime) {
-      const waitTime = (resetTime * 1000) - Date.now();
-      if (waitTime > 0 && waitTime < 300000) { // Max 5 minutes
+      const waitTime = resetTime * 1000 - Date.now();
+      if (waitTime > 0 && waitTime < 300000) {
+        // Max 5 minutes
         console.log(`[GitHubErrorHandler] Waiting ${waitTime}ms for rate limit reset`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
         return { recovered: true };
       }
     }
 
     // Default fallback: wait 60 seconds
-    await new Promise(resolve => setTimeout(resolve, 60000));
+    await new Promise((resolve) => setTimeout(resolve, 60000));
     return { recovered: true };
   }
 
   private async recoverFromNetworkError(error: GitHubError, context: ErrorContext): Promise<any> {
     // Simple network recovery: wait and retry
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     return { recovered: true };
   }
 
@@ -532,7 +545,9 @@ export class GitHubErrorHandler {
 
   private async recoverFromNotFound(error: GitHubError, context: ErrorContext): Promise<any> {
     // Check if resource might have been created/moved
-    console.warn(`[GitHubErrorHandler] Resource not found in ${context.operation}. This may require manual verification.`);
+    console.warn(
+      `[GitHubErrorHandler] Resource not found in ${context.operation}. This may require manual verification.`,
+    );
     throw error; // Cannot automatically recover
   }
 
