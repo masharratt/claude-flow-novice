@@ -2,7 +2,7 @@
  * Tests for Agent Lifecycle State Management
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import {
   AgentLifecycleManager,
   lifecycleManager,
@@ -58,11 +58,11 @@ describe('AgentLifecycleManager', () => {
   beforeEach(() => {
     manager = new AgentLifecycleManager();
     // Mock console.log to reduce test noise
-    vi.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Agent Initialization', () => {
@@ -130,12 +130,14 @@ describe('AgentLifecycleManager', () => {
       // uninitialized -> running (invalid)
       await expect(manager.transitionState(agentId, 'running')).rejects.toThrow();
 
-      // Move to idle first
+      // Move to stopped state
       await manager.transitionState(agentId, 'initializing');
       await manager.transitionState(agentId, 'idle');
+      await manager.transitionState(agentId, 'stopping');
+      await manager.transitionState(agentId, 'stopped');
 
-      // idle -> cleanup (invalid)
-      await expect(manager.transitionState(agentId, 'cleanup')).rejects.toThrow();
+      // stopped -> running (invalid)
+      await expect(manager.transitionState(agentId, 'running')).rejects.toThrow();
     });
 
     it('should update state history', async () => {

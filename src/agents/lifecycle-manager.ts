@@ -222,12 +222,12 @@ class AgentLifecycleManager {
    */
   private getValidTransitions(currentState: AgentLifecycleState): AgentLifecycleState[] {
     const transitions: Record<AgentLifecycleState, AgentLifecycleState[]> = {
-      uninitialized: ['initializing', 'error'],
-      initializing: ['idle', 'error'],
-      idle: ['running', 'stopping', 'error'],
-      running: ['idle', 'paused', 'stopping', 'error'],
-      paused: ['running', 'stopping', 'error'],
-      stopping: ['stopped', 'error'],
+      uninitialized: ['initializing', 'error', 'cleanup'], // Allow cleanup from any state
+      initializing: ['idle', 'error', 'cleanup'],
+      idle: ['running', 'stopping', 'error', 'cleanup'],
+      running: ['idle', 'paused', 'stopping', 'error', 'cleanup'],
+      paused: ['running', 'stopping', 'error', 'cleanup'],
+      stopping: ['stopped', 'error', 'cleanup'],
       stopped: ['cleanup', 'initializing', 'error'],
       error: ['cleanup', 'initializing', 'stopped'],
       cleanup: ['stopped']
@@ -346,7 +346,7 @@ class AgentLifecycleManager {
     if (!context) return false;
 
     try {
-      // Transition to cleanup state
+      // Transition to cleanup state (now allowed from any state)
       await this.transitionState(agentId, 'cleanup', 'Agent cleanup requested');
 
       // Execute cleanup hook

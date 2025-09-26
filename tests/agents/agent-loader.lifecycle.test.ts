@@ -2,7 +2,7 @@
  * Integration tests for Agent Loader with Lifecycle Management
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { AgentLoader, type AgentDefinition } from '../../src/agents/agent-loader.js';
 import { AgentLifecycleManager } from '../../src/agents/lifecycle-manager.js';
 

@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { glob } from 'glob';
+import glob from 'glob';
 import { resolve, dirname } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 
@@ -62,7 +62,7 @@ export interface AgentCategory {
   agents: AgentDefinition[];
 }
 
-class AgentLoader {
+export class AgentLoader {
   private agentCache: Map<string, AgentDefinition> = new Map();
   private categoriesCache: AgentCategory[] = [];
   private lastLoadTime = 0;
