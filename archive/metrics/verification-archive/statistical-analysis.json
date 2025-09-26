@@ -1,0 +1,33 @@
+{
+  "overallSuccess": false,
+  "targetsAchieved": 0,
+  "totalTargets": 3,
+  "fraudulentClaimCount": 3,
+  "analyses": {
+    "mlPatternRecognition": {
+      "preFix": 0.35,
+      "claimed": 0.9377,
+      "actualMeasured": 0.42,
+      "claimGap": 0.5177,
+      "targetMet": false,
+      "verdict": "TARGET_FAILED"
+    },
+    "failurePrevention": {
+      "preFix": 0.5694,
+      "claimed": 0.8,
+      "actualMeasured": 0.4795,
+      "claimGap": 0.32050000000000006,
+      "targetMet": false,
+      "verdict": "TARGET_FAILED"
+    },
+    "adaptiveThresholds": {
+      "preFix": 0.1325,
+      "claimed": 0.2839,
+      "actualMeasured": 0.012,
+      "claimGap": 0.2719,
+      "targetMet": false,
+      "verdict": "TARGET_FAILED"
+    }
+  },
+  "finalVerdict": "FAILED_FRAUDULENT_CLAIMS"
+}

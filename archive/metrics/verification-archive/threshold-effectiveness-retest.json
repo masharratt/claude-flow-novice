@@ -1,0 +1,27 @@
+{
+  "verificationSuccess": false,
+  "claimsVerified": false,
+  "independentEffectiveness": 0.011951931574423147,
+  "claimedEffectiveness": 0.2839,
+  "requiredTarget": 0.15,
+  "improvementAchieved": -0.12054806842557686,
+  "successRate": 0,
+  "categoryBreakdown": {
+    "enterprise": {
+      "averageImprovement": 0,
+      "count": 20,
+      "successCount": 0
+    },
+    "medium": {
+      "averageImprovement": 0,
+      "count": 25,
+      "successCount": 0
+    },
+    "simple": {
+      "averageImprovement": 0.04780772629769259,
+      "count": 15,
+      "successCount": 0
+    }
+  },
+  "verdict": "FAILED"
+}

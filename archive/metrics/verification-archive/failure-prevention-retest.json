@@ -1,0 +1,31 @@
+{
+  "verificationSuccess": false,
+  "claimsVerified": false,
+  "independentPreventionRate": 0.4794520547945205,
+  "claimedPreventionRate": 0.8,
+  "requiredTarget": 0.7,
+  "improvementAchieved": -0.0899479452054795,
+  "categoryBreakdown": {
+    "critical": {
+      "prevented": 11,
+      "total": 25,
+      "shouldPrevent": 25
+    },
+    "high_risk": {
+      "prevented": 22,
+      "total": 30,
+      "shouldPrevent": 30
+    },
+    "medium_risk": {
+      "prevented": 2,
+      "total": 30,
+      "shouldPrevent": 18
+    },
+    "low_risk": {
+      "prevented": 0,
+      "total": 15,
+      "shouldPrevent": 0
+    }
+  },
+  "verdict": "FAILED"
+}
