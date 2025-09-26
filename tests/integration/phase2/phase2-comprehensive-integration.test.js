@@ -19,7 +19,7 @@ import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals
  * - >95% test coverage for all Phase 2 components
  */
 
-const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
+// Using ES6 imports from line 5, removing duplicate require
 const path = require('path');
 const fs = require('fs').promises;
 const crypto = require('crypto');

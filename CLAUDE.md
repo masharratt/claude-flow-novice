@@ -84,22 +84,22 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 - **Clean Architecture**: Separate concerns
 - **Documentation**: Keep updated
 
-## 🚀 Available Agents (54 Total)
+## 🚀 Available Agents (78+ Total)
 
 ### Core Development
 `coder`, `reviewer`, `tester`, `planner`, `researcher`
 
 ### Swarm Coordination
-`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`, `collective-intelligence-coordinator`, `swarm-memory-manager`
+`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`, `memory-coordinator`, `smart-agent`, `swarm-init`
 
 ### Consensus & Distributed
 `byzantine-coordinator`, `raft-manager`, `gossip-coordinator`, `consensus-builder`, `crdt-synchronizer`, `quorum-manager`, `security-manager`
 
 ### Performance & Optimization
-`perf-analyzer`, `performance-benchmarker`, `task-orchestrator`, `memory-coordinator`, `smart-agent`
+`perf-analyzer`, `performance-benchmarker`, `task-orchestrator`, `nanosecond-scheduler`, `temporal-advantage`
 
 ### GitHub & Repository
-`github-modes`, `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`, `workflow-automation`, `project-board-sync`, `repo-architect`, `multi-repo-swarm`
+`github-modes`, `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`, `workflow-automation`, `project-board-sync`, `repo-architect`, `multi-repo-swarm`, `swarm-issue`, `swarm-pr`, `sync-coordinator`, `release-swarm`
 
 ### SPARC Methodology
 `sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`, `refinement`
@@ -110,8 +110,17 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 ### Testing & Validation
 `tdd-london-swarm`, `production-validator`
 
-### Migration & Planning
-`migration-planner`, `swarm-init`
+### Advanced AI & Neural
+`safla-neural`, `consciousness-evolution`, `psycho-symbolic`, `phi-calculator`, `pagerank`, `matrix-solver`
+
+### Goal Planning & Strategy
+`goal-planner`, `sublinear-goal-planner`, `migration-planner`
+
+### Flow-Nexus Cloud (Optional)
+`flow-nexus-app-store`, `flow-nexus-auth`, `flow-nexus-challenges`, `flow-nexus-neural`, `flow-nexus-payments`, `flow-nexus-sandbox`, `flow-nexus-swarm`, `flow-nexus-user-tools`, `flow-nexus-workflow`
+
+### Legacy Support (Auto-Mapped)
+`analyst` → `code-analyzer`, `coordinator` → `hierarchical-coordinator`, `optimizer` → `perf-analyzer`, `monitor` → `performance-benchmarker`, `documenter` → `api-docs`, `specialist` → `system-architect`, `architect` → `system-architect`
 
 ## 🎯 Claude Code vs MCP Tools
 

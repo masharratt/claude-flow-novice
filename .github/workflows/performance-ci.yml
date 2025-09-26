@@ -1,0 +1,607 @@
+name: Performance CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run performance tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Performance test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - basic
+          - load
+          - stress
+          - endurance
+
+env:
+  NODE_VERSION: '18'
+  PERFORMANCE_BASELINE_PATH: './performance-baseline.json'
+  PERFORMANCE_REPORTS_PATH: './performance-reports'
+  SLACK_WEBHOOK: ${{ secrets.SLACK_PERFORMANCE_WEBHOOK }}
+
+jobs:
+  performance-setup:
+    name: Setup Performance Environment
+    runs-on: ubuntu-latest
+    outputs:
+      baseline-exists: ${{ steps.check-baseline.outputs.exists }}
+      test-suite: ${{ steps.determine-suite.outputs.suite }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for baseline comparison
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Check for performance baseline
+        id: check-baseline
+        run: |
+          if [ -f "${{ env.PERFORMANCE_BASELINE_PATH }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Found existing performance baseline"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No performance baseline found, will create new one"
+          fi
+
+      - name: Determine test suite
+        id: determine-suite
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "suite=${{ github.event.inputs.test_suite }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "suite=all" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "suite=basic" >> $GITHUB_OUTPUT
+          else
+            echo "suite=load" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Cache performance data
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./performance-data.json
+            ./performance-baseline.json
+          key: performance-data-${{ github.sha }}
+          restore-keys: |
+            performance-data-${{ github.ref_name }}-
+            performance-data-
+
+  basic-performance-tests:
+    name: Basic Performance Tests
+    runs-on: ubuntu-latest
+    needs: performance-setup
+    if: contains(needs.performance-setup.outputs.test-suite, 'basic') || contains(needs.performance-setup.outputs.test-suite, 'all')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Restore performance data cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./performance-data.json
+            ./performance-baseline.json
+          key: performance-data-${{ github.sha }}
+          restore-keys: |
+            performance-data-${{ github.ref_name }}-
+            performance-data-
+
+      - name: Run basic performance tests
+        run: |
+          npm run test:performance:basic
+        env:
+          PERFORMANCE_GATE_ENABLED: true
+          PERFORMANCE_BASELINE_AUTO_UPDATE: false
+
+      - name: Upload basic test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: basic-performance-results
+          path: |
+            ${{ env.PERFORMANCE_REPORTS_PATH }}/basic-*.json
+            ./performance-data.json
+          retention-days: 30
+
+  load-performance-tests:
+    name: Load Performance Tests
+    runs-on: ubuntu-latest
+    needs: performance-setup
+    if: contains(needs.performance-setup.outputs.test-suite, 'load') || contains(needs.performance-setup.outputs.test-suite, 'all')
+    strategy:
+      matrix:
+        concurrency: [10, 50, 100]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Restore performance data cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./performance-data.json
+            ./performance-baseline.json
+          key: performance-data-${{ github.sha }}
+          restore-keys: |
+            performance-data-${{ github.ref_name }}-
+            performance-data-
+
+      - name: Run load tests - ${{ matrix.concurrency }} concurrent users
+        run: |
+          npm run test:performance:load -- --concurrency=${{ matrix.concurrency }}
+        env:
+          PERFORMANCE_GATE_ENABLED: true
+          PERFORMANCE_BASELINE_AUTO_UPDATE: false
+          LOAD_TEST_DURATION: 300000  # 5 minutes
+          LOAD_TEST_RAMP_UP: 60000    # 1 minute ramp up
+
+      - name: Upload load test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: load-performance-results-${{ matrix.concurrency }}
+          path: |
+            ${{ env.PERFORMANCE_REPORTS_PATH }}/load-*.json
+            ./performance-data.json
+          retention-days: 30
+
+  stress-performance-tests:
+    name: Stress Performance Tests
+    runs-on: ubuntu-latest
+    needs: performance-setup
+    if: contains(needs.performance-setup.outputs.test-suite, 'stress') || contains(needs.performance-setup.outputs.test-suite, 'all')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Restore performance data cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./performance-data.json
+            ./performance-baseline.json
+          key: performance-data-${{ github.sha }}
+          restore-keys: |
+            performance-data-${{ github.ref_name }}-
+            performance-data-
+
+      - name: Run stress tests
+        run: |
+          npm run test:performance:stress
+        env:
+          PERFORMANCE_GATE_ENABLED: true
+          PERFORMANCE_BASELINE_AUTO_UPDATE: false
+          STRESS_TEST_DURATION: 600000     # 10 minutes
+          STRESS_TEST_MAX_CONCURRENCY: 500
+          STRESS_TEST_RAMP_UP: 120000      # 2 minute ramp up
+
+      - name: Upload stress test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: stress-performance-results
+          path: |
+            ${{ env.PERFORMANCE_REPORTS_PATH }}/stress-*.json
+            ./performance-data.json
+          retention-days: 30
+
+  endurance-performance-tests:
+    name: Endurance Performance Tests
+    runs-on: ubuntu-latest
+    needs: performance-setup
+    if: contains(needs.performance-setup.outputs.test-suite, 'endurance') || contains(needs.performance-setup.outputs.test-suite, 'all')
+    timeout-minutes: 120  # 2 hours maximum
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Restore performance data cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./performance-data.json
+            ./performance-baseline.json
+          key: performance-data-${{ github.sha }}
+          restore-keys: |
+            performance-data-${{ github.ref_name }}-
+            performance-data-
+
+      - name: Run endurance tests
+        run: |
+          npm run test:performance:endurance
+        env:
+          PERFORMANCE_GATE_ENABLED: true
+          PERFORMANCE_BASELINE_AUTO_UPDATE: false
+          ENDURANCE_TEST_DURATION: 3600000  # 1 hour
+          ENDURANCE_TEST_CONCURRENCY: 50
+          ENDURANCE_TEST_MEMORY_LIMIT: 1024 # MB
+
+      - name: Upload endurance test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: endurance-performance-results
+          path: |
+            ${{ env.PERFORMANCE_REPORTS_PATH }}/endurance-*.json
+            ./performance-data.json
+          retention-days: 30
+
+  performance-gate:
+    name: Performance Gate Validation
+    runs-on: ubuntu-latest
+    needs: [performance-setup, basic-performance-tests, load-performance-tests]
+    if: always() && (needs.basic-performance-tests.result == 'success' || needs.load-performance-tests.result == 'success')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build
+
+      - name: Download all performance results
+        uses: actions/download-artifact@v3
+        with:
+          path: ./performance-artifacts
+
+      - name: Consolidate performance data
+        run: |
+          mkdir -p ${{ env.PERFORMANCE_REPORTS_PATH }}
+
+          # Merge all performance data files
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+
+            let consolidatedData = { dataPoints: [], alerts: [] };
+
+            // Find all performance data files
+            const findDataFiles = (dir) => {
+              const files = [];
+              if (fs.existsSync(dir)) {
+                for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+                  if (item.isDirectory()) {
+                    files.push(...findDataFiles(path.join(dir, item.name)));
+                  } else if (item.name === 'performance-data.json') {
+                    files.push(path.join(dir, item.name));
+                  }
+                }
+              }
+              return files;
+            };
+
+            const dataFiles = findDataFiles('./performance-artifacts');
+
+            for (const file of dataFiles) {
+              try {
+                const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+                if (data.dataPoints) {
+                  consolidatedData.dataPoints.push(...data.dataPoints);
+                }
+                if (data.alerts) {
+                  consolidatedData.alerts.push(...data.alerts);
+                }
+              } catch (err) {
+                console.warn(\`Failed to process \${file}: \${err.message}\`);
+              }
+            }
+
+            // Remove duplicates and sort by timestamp
+            consolidatedData.dataPoints = consolidatedData.dataPoints
+              .filter((dp, index, arr) =>
+                index === arr.findIndex(d => d.timestamp === dp.timestamp && d.commit === dp.commit)
+              )
+              .sort((a, b) => a.timestamp - b.timestamp);
+
+            fs.writeFileSync('./performance-data.json', JSON.stringify(consolidatedData, null, 2));
+            console.log(\`Consolidated \${consolidatedData.dataPoints.length} data points\`);
+          "
+
+      - name: Run performance gate validation
+        id: gate-validation
+        run: |
+          npm run performance:gate:validate
+        env:
+          PERFORMANCE_GATE_ENABLED: true
+          PERFORMANCE_BASELINE_AUTO_UPDATE: ${{ github.ref == 'refs/heads/main' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate performance report
+        run: |
+          npm run performance:report:generate
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+
+      - name: Upload consolidated results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-gate-results
+          path: |
+            ${{ env.PERFORMANCE_REPORTS_PATH }}/gate-*.json
+            ${{ env.PERFORMANCE_REPORTS_PATH }}/consolidated-*.json
+            ./performance-data.json
+            ./performance-baseline.json
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read gate results
+            const gateResultsPath = '${{ env.PERFORMANCE_REPORTS_PATH }}/gate-latest.json';
+            let gateResults = null;
+
+            try {
+              gateResults = JSON.parse(fs.readFileSync(gateResultsPath, 'utf-8'));
+            } catch (err) {
+              console.warn('Could not read gate results:', err.message);
+              return;
+            }
+
+            const { passed, violations, regressions, improvements, recommendation } = gateResults;
+
+            let status = '✅';
+            if (recommendation === 'FAIL') status = '❌';
+            else if (recommendation === 'WARNING') status = '⚠️';
+
+            let body = `## ${status} Performance Gate Results\n\n`;
+            body += `**Status:** ${recommendation}\n`;
+            body += `**Violations:** ${violations.length}\n`;
+            body += `**Regressions:** ${regressions.length}\n`;
+            body += `**Improvements:** ${improvements.length}\n\n`;
+
+            if (violations.length > 0) {
+              body += `### ❌ Violations\n`;
+              violations.forEach(v => body += `- ${v}\n`);
+              body += '\n';
+            }
+
+            if (regressions.length > 0) {
+              body += `### 📉 Regressions\n`;
+              regressions.forEach(r => body += `- ${r}\n`);
+              body += '\n';
+            }
+
+            if (improvements.length > 0) {
+              body += `### 📈 Improvements\n`;
+              improvements.forEach(i => body += `- ${i}\n`);
+              body += '\n';
+            }
+
+            body += `<details><summary>View detailed metrics</summary>\n\n`;
+            body += `\`\`\`json\n${JSON.stringify(gateResults.details, null, 2)}\n\`\`\`\n\n`;
+            body += `</details>\n`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.find(comment =>
+              comment.body.includes('Performance Gate Results')
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Update status check
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let state = 'success';
+            let description = 'Performance gate passed';
+
+            try {
+              const gateResults = JSON.parse(fs.readFileSync('${{ env.PERFORMANCE_REPORTS_PATH }}/gate-latest.json', 'utf-8'));
+
+              if (gateResults.recommendation === 'FAIL') {
+                state = 'failure';
+                description = `Performance gate failed: ${gateResults.violations.length} violations, ${gateResults.regressions.length} regressions`;
+              } else if (gateResults.recommendation === 'WARNING') {
+                state = 'success';
+                description = `Performance gate passed with warnings: ${gateResults.regressions.length} regressions`;
+              }
+            } catch (err) {
+              state = 'error';
+              description = 'Performance gate validation failed';
+            }
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              description: description,
+              context: 'performance/gate'
+            });
+
+      - name: Fail job if gate failed
+        if: steps.gate-validation.outcome == 'failure'
+        run: |
+          echo "Performance gate validation failed"
+          exit 1
+
+  update-baseline:
+    name: Update Performance Baseline
+    runs-on: ubuntu-latest
+    needs: [performance-gate]
+    if: github.ref == 'refs/heads/main' && needs.performance-gate.result == 'success'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download performance results
+        uses: actions/download-artifact@v3
+        with:
+          name: performance-gate-results
+
+      - name: Commit updated baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -f "./performance-baseline.json" ]; then
+            git add ./performance-baseline.json
+            git commit -m "Update performance baseline [skip ci]" || echo "No baseline changes to commit"
+            git push || echo "Failed to push baseline update"
+          fi
+
+  notification:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [performance-gate]
+    if: always() && (needs.performance-gate.result == 'failure' || (github.event_name == 'schedule' && needs.performance-gate.result == 'success'))
+    steps:
+      - name: Download performance results
+        uses: actions/download-artifact@v3
+        with:
+          name: performance-gate-results
+
+      - name: Send Slack notification
+        if: env.SLACK_WEBHOOK
+        run: |
+          # Read gate results
+          GATE_RESULTS=$(cat performance-reports/gate-latest.json 2>/dev/null || echo '{}')
+
+          # Extract key metrics
+          STATUS=$(echo "$GATE_RESULTS" | jq -r '.recommendation // "UNKNOWN"')
+          VIOLATIONS=$(echo "$GATE_RESULTS" | jq -r '.violations | length')
+          REGRESSIONS=$(echo "$GATE_RESULTS" | jq -r '.regressions | length')
+
+          # Determine color
+          COLOR="good"
+          if [ "$STATUS" = "FAIL" ]; then
+            COLOR="danger"
+          elif [ "$STATUS" = "WARNING" ]; then
+            COLOR="warning"
+          fi
+
+          # Send notification
+          curl -X POST "${{ env.SLACK_WEBHOOK }}" \
+            -H 'Content-type: application/json' \
+            --data '{
+              "attachments": [{
+                "color": "'$COLOR'",
+                "title": "Performance CI Results",
+                "fields": [
+                  {
+                    "title": "Status",
+                    "value": "'$STATUS'",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "${{ github.ref_name }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Violations",
+                    "value": "'$VIOLATIONS'",
+                    "short": true
+                  },
+                  {
+                    "title": "Regressions",
+                    "value": "'$REGRESSIONS'",
+                    "short": true
+                  }
+                ],
+                "footer": "Performance CI",
+                "ts": '$(($(date +%s)))'
+              }]
+            }'

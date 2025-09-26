@@ -1,5 +1,13 @@
 # Claude Flow Swarm Intelligence Documentation
 
+**[🏠 Home](../README.md) > [📚 Docs](README.md) > [🗺️ Site Map](SITE_MAP.md) > Swarm Intelligence**
+
+### 🔗 **Related Documentation**
+- **[🤖 Agent Catalog](AGENTS.md)** - All 54+ specialized agents
+- **[🏗️ Architecture Guide](ARCHITECTURE.md)** - System design and patterns
+- **[📊 Full-Stack Swarm Specification](full-stack-swarm-team-specification.md)** - Team coordination patterns
+- **[🎯 Byzantine Consensus Reports](./consensus/)** - Fault tolerance and consensus
+
 ## Table of Contents
 
 - [Overview](#overview)

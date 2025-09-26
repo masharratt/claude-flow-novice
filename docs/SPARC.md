@@ -1,5 +1,13 @@
 # SPARC Methodology Documentation
 
+**[🏠 Home](../README.md) > [📚 Docs](README.md) > [🗺️ Site Map](SITE_MAP.md) > SPARC Methodology**
+
+### 🔗 **Related Documentation**
+- **[🛠️ Development Workflow](DEVELOPMENT_WORKFLOW.md)** - Development setup and practices
+- **[🤖 Agent Catalog](AGENTS.md)** - Available agents for SPARC modes
+- **[📡 API Documentation](API_DOCUMENTATION.md)** - Complete API reference
+- **[🎯 Consolidated CLI](consolidated-cli-implementation.md)** - CLI implementation guide
+
 ## Overview
 
 SPARC (Specification → Pseudocode → Architecture → Refinement → Code) is a systematic development methodology that provides structured, mode-based development environments for different software development tasks. This comprehensive approach ensures consistent, high-quality results across all phases of development.

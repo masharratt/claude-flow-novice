@@ -11,7 +11,7 @@ import { parse as parseYaml } from 'yaml';
 // Legacy agent type mapping for backward compatibility
 const LEGACY_AGENT_MAPPING = {
   analyst: 'code-analyzer',
-  coordinator: 'task-orchestrator', 
+  coordinator: 'hierarchical-coordinator',
   optimizer: 'perf-analyzer',
   documenter: 'api-docs',
   monitor: 'performance-benchmarker',

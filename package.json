@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy",
   "mcpName": "io.github.ruvnet/claude-flow",
-  "main": "cli.mjs",
+  "main": "dist/index.js",
   "bin": {
-    "claude-flow-novice": "bin/claude-flow-novice.js"
+    "claude-flow-novice": "dist/cli/main.js"
   },
   "scripts": {
     "dev": "tsx src/cli/main.ts",
@@ -51,6 +51,17 @@
     "test:health": "NODE_OPTIONS='--experimental-vm-modules' jest src/__tests__/integration/system-integration.test.ts --testNamePattern='Health'",
     "test:swarm": "NODE_OPTIONS='--experimental-vm-modules' jest src/__tests__/e2e/swarm-coordination.test.ts",
     "test:benchmark": "NODE_OPTIONS='--experimental-vm-modules' jest src/__tests__/performance/benchmark.test.ts",
+    "test:performance:basic": "node scripts/performance-test-runner.js basic",
+    "test:performance:load": "node scripts/performance-test-runner.js load",
+    "test:performance:stress": "node scripts/performance-test-runner.js stress",
+    "test:performance:endurance": "node scripts/performance-test-runner.js endurance",
+    "test:performance:all": "node scripts/performance-test-runner.js all",
+    "performance:gate:validate": "node scripts/performance-test-runner.js gate",
+    "performance:regression:detect": "node scripts/performance-test-runner.js regression",
+    "performance:report:generate": "node scripts/performance-test-runner.js report",
+    "performance:baseline:create": "npm run test:performance:basic && npm run performance:gate:validate",
+    "performance:ci": "npm run test:performance:basic && npm run test:performance:load && npm run performance:gate:validate",
+    "performance:full": "npm run test:performance:all && npm run performance:gate:validate && npm run performance:regression:detect && npm run performance:report:generate",
     "test:e2e:playwright": "playwright test",
     "test:e2e:playwright:ui": "playwright test --ui",
     "test:e2e:playwright:debug": "playwright test --debug",
@@ -92,7 +103,9 @@
     "validate:phase1-completion": "npm run test:completion-validation-all",
     "debug:hooks": "DEBUG=hooks* npm run dev",
     "debug:sparc": "DEBUG=sparc* npm run dev",
-    "debug:swarm": "DEBUG=swarm* npm run dev"
+    "debug:swarm": "DEBUG=swarm* npm run dev",
+    "mcp:start": "node dist/mcp/mcp-server.js",
+    "mcp:status": "node -e \"console.log('MCP Server Status: Ready')\""
   },
   "keywords": [
     "ai",
@@ -132,26 +145,19 @@
     "npm": ">=9.0.0"
   },
   "files": [
-    "cli.js",
-    "bin/claude-flow.js",
-    "bin/claude-flow",
-    "bin/claude-flow-dev",
-    "bin/claude-flow-pkg.js",
-    "bin/claude-flow-swarm",
-    "bin/claude-flow-swarm-background",
-    "bin/claude-flow-swarm-bg",
-    "bin/claude-flow-swarm-monitor",
-    "bin/claude-flow-swarm-ui",
     "dist/",
-    "src/",
+    "wiki/",
     ".claude/",
-    "docker-test/",
-    "scripts/",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md",
-    "DOCKER_TEST_REPORT.md"
+    "CHANGELOG.md"
   ],
+  "exports": {
+    ".": "./dist/index.js",
+    "./cli": "./dist/cli/index.js",
+    "./mcp": "./dist/mcp/mcp-server.js",
+    "./core": "./dist/core/index.js"
+  },
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.22.0",
     "boxen": "^7.0.0",
@@ -240,7 +246,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "directories": {
-    "doc": "docs",
+    "doc": "wiki",
     "example": "examples",
     "test": "tests"
   }

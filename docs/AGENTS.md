@@ -1,8 +1,17 @@
 # 🤖 Claude-Flow Agent Reference
 
+**[🏠 Home](../README.md) > [📚 Docs](README.md) > [🗺️ Site Map](SITE_MAP.md) > Agents Reference**
+
 ## Complete Guide to All 65+ Specialized AI Agents
 
 Claude-Flow provides a comprehensive ecosystem of specialized AI agents designed for enterprise-grade software development, coordination, and automation. Each agent is optimized for specific tasks and domains, enabling intelligent swarm coordination and autonomous workflow execution.
+
+### 🔗 **Related Documentation**
+- **[🐝 Swarm Intelligence](SWARM.md)** - Coordination patterns and topologies
+- **[⚡ SPARC Development](SPARC.md)** - Structured development methodology
+- **[🏗️ Architecture Guide](ARCHITECTURE.md)** - System design and patterns
+- **[📊 Agent Analysis Report](agent-analysis-report.md)** - Performance metrics and analysis
+- **[🎯 Agent Scope Prevention](agent-scope-creep-prevention-guide.md)** - Best practices guide
 
 ---
 

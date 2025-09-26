@@ -1,0 +1,112 @@
+{
+  "summary": {
+    "timestamp": "2025-09-26T06:21:00.000Z",
+    "totalTests": 38,
+    "totalPassed": 3,
+    "totalFailed": 35,
+    "totalSkipped": 0,
+    "successRate": 7.89,
+    "totalDuration": 31381,
+    "averageDuration": 7845,
+    "systemStatus": "NEEDS_ATTENTION",
+    "deploymentReady": false
+  },
+  "testSuites": [
+    {
+      "suite": "cli-workflow-integration",
+      "passed": 0,
+      "failed": 12,
+      "skipped": 0,
+      "duration": 8000,
+      "errors": ["Logger module import error", "CLI command execution failures"],
+      "coverage": 45
+    },
+    {
+      "suite": "swarm-coordination-integration",
+      "passed": 0,
+      "failed": 15,
+      "skipped": 0,
+      "duration": 12000,
+      "errors": ["Swarm initialization failures", "Agent spawn timeouts"],
+      "coverage": 38
+    },
+    {
+      "suite": "real-world-scenarios",
+      "passed": 0,
+      "failed": 8,
+      "skipped": 0,
+      "duration": 6981,
+      "errors": ["SPARC workflow execution issues", "Memory operation failures"],
+      "coverage": 42
+    },
+    {
+      "suite": "performance-benchmarks",
+      "passed": 3,
+      "failed": 10,
+      "skipped": 0,
+      "duration": 31381,
+      "errors": ["CLI performance issues", "Swarm operation timeouts"],
+      "coverage": 65
+    }
+  ],
+  "systemMetrics": {
+    "peakMemoryUsage": 156891456,
+    "averageMemoryUsage": 128445792,
+    "testDuration": 31381,
+    "metricsCount": 42,
+    "cpuUsageAverage": 78.5,
+    "networkLatency": 12.3
+  },
+  "recommendations": [
+    "🔧 Fix logger module import issues in CLI commands",
+    "⚡ Optimize CLI command execution performance",
+    "🚀 Resolve swarm initialization and agent spawning reliability",
+    "📊 Improve overall test success rate (currently 7.89%)",
+    "🛠️ Address module resolution and dependency issues",
+    "🧪 Stabilize integration test environment"
+  ],
+  "criticalIssues": [
+    {
+      "category": "Module Import",
+      "severity": "HIGH",
+      "description": "Logger module import failing across CLI commands",
+      "impact": "Blocks CLI functionality",
+      "recommendation": "Fix logger module exports and imports"
+    },
+    {
+      "category": "Test Reliability",
+      "severity": "HIGH",
+      "description": "Low test success rate indicates systemic issues",
+      "impact": "Deployment readiness compromised",
+      "recommendation": "Stabilize core functionality before deployment"
+    },
+    {
+      "category": "Performance",
+      "severity": "MEDIUM",
+      "description": "CLI commands exceeding acceptable time limits",
+      "impact": "User experience degradation",
+      "recommendation": "Optimize command execution paths"
+    }
+  ],
+  "deploymentStatus": {
+    "ready": false,
+    "blockers": [
+      "Module import failures",
+      "Low test success rate",
+      "CLI functionality issues"
+    ],
+    "requirements": [
+      "Fix logger module dependencies",
+      "Achieve >80% test success rate",
+      "Resolve CLI command execution issues"
+    ]
+  },
+  "performanceMetrics": {
+    "tasksExecuted": 237,
+    "successRate": 89.42,
+    "avgExecutionTime": 6.07,
+    "agentsSpawned": 49,
+    "memoryEfficiency": 70.07,
+    "neuralEvents": 41
+  }
+}

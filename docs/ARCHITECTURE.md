@@ -1,5 +1,14 @@
 # 🏗️ Claude-Flow Architecture Documentation
 
+**[🏠 Home](../README.md) > [📚 Docs](README.md) > [🗺️ Site Map](SITE_MAP.md) > Architecture**
+
+### 🔗 **Related Documentation**
+- **[🚀 Deployment Guide](DEPLOYMENT.md)** - Production setup and scaling
+- **[🐝 Swarm Intelligence](SWARM.md)** - Coordination patterns
+- **[📁 Architecture Specs](architecture/)** - Detailed architecture documents
+- **[📊 Technical Implementation](technical-implementation-guide.md)** - Implementation details
+- **[📋 Architecture Summary](architecture-summary-report.md)** - Executive summary
+
 ## Table of Contents
 
 - [System Overview](#system-overview)
