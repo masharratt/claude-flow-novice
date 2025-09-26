@@ -1,5 +1,8 @@
-export default {
-  rootDir: '../../',
+// Jest configuration proxy file
+// This file ensures backwards compatibility for scripts that don't use --config flag
+// The actual configuration is maintained in config/jest/jest.config.js
+
+module.exports = {
   preset: 'ts-jest/presets/default-esm',
   extensionsToTreatAsEsm: ['.ts'],
   testEnvironment: 'node',

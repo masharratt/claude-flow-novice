@@ -1,0 +1,13 @@
+[
+  {
+    "timestamp": 1758926208993,
+    "test": "basic-cli-operations",
+    "duration": 32313,
+    "operations": 255,
+    "successRate": "78.43",
+    "avgLatency": "251.19",
+    "throughput": "8.48",
+    "passed": false,
+    "score": 60
+  }
+]

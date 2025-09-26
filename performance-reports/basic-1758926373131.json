@@ -1,0 +1,10 @@
+{
+  "results": [
+    {
+      "name": "basic-cli-operations",
+      "success": false,
+      "error": "Simulated command failure"
+    }
+  ],
+  "summary": "Completed 1 tests"
+}

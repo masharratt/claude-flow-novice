@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 
-// Import TypeScript modules will be handled via dynamic imports or simplified implementations
-// import { PerformanceTestRunner } from '../src/testing/performance/PerformanceTestRunner.js';
-// import { PerformanceGate } from '../src/ci-cd/performance/PerformanceGate.js';
-// import { RegressionDetector, defaultRegressionConfig } from '../src/monitoring/regression/RegressionDetector.js';
-import { promises as fs } from 'fs';
-import { join, dirname } from 'path';
-import { platform, cpus, totalmem, version } from 'os';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { PerformanceTestRunner } = require('../src/testing/performance/PerformanceTestRunner');
+const { PerformanceGate } = require('../src/ci-cd/performance/PerformanceGate');
+const { RegressionDetector, defaultRegressionConfig } = require('../src/monitoring/regression/RegressionDetector');
+const fs = require('fs').promises;
+const path = require('path');
 
 /**
  * Performance Test Runner Script
@@ -21,25 +15,7 @@ const __dirname = dirname(__filename);
 
 class PerformanceTestCLI {
   constructor() {
-    // Simplified test runner for now - can be enhanced when TS modules are properly compiled
-    this.testRunner = {
-      registerTest: (config) => {
-        console.log(`Registered test: ${config.name}`);
-      },
-      runTestSuite: async (tests) => {
-        console.log(`Running ${tests.length} tests...`);
-        const results = [];
-        for (const test of tests) {
-          try {
-            const result = await test.function();
-            results.push({ name: test.name, success: true, result });
-          } catch (error) {
-            results.push({ name: test.name, success: false, error: error.message });
-          }
-        }
-        return { results, summary: `Completed ${results.length} tests` };
-      }
-    };
+    this.testRunner = new PerformanceTestRunner();
     this.setupTestConfigurations();
   }
 
@@ -311,19 +287,7 @@ class PerformanceTestCLI {
     console.log('🚪 Running performance gate validation...');
 
     const gateConfig = this.createPerformanceGateConfig();
-    // Simplified gate validation for now
-    const gate = {
-      validatePerformance: async (tests) => {
-        const results = await this.testRunner.runTestSuite(tests);
-        return {
-          passed: results.results.every(r => r.success),
-          recommendation: 'PASS',
-          violations: [],
-          regressions: [],
-          improvements: []
-        };
-      }
-    };
+    const gate = new PerformanceGate(gateConfig);
 
     // Run a subset of tests for gate validation
     const tests = [
@@ -372,23 +336,7 @@ class PerformanceTestCLI {
   async detectRegressions() {
     console.log('🔍 Running regression detection...');
 
-    // Simplified regression detector for now
-    const detector = {
-      detectRegressions: async (dataPoint) => {
-        // Simple mock regression detection
-        const alerts = [];
-        if (dataPoint.metrics.avgLatency > 100) {
-          alerts.push({
-            type: 'REGRESSION',
-            severity: 'MEDIUM',
-            metric: 'avgLatency',
-            description: 'Average latency is higher than expected',
-            recommendation: 'Investigate performance optimization opportunities'
-          });
-        }
-        return alerts;
-      }
-    };
+    const detector = new RegressionDetector(defaultRegressionConfig);
 
     // Create a synthetic data point for testing
     const dataPoint = {
@@ -407,10 +355,10 @@ class PerformanceTestCLI {
         errorRate: Math.random() * 0.05 // 0-5%
       },
       environment: {
-        os: platform(),
-        nodeVersion: version,
-        cpuCores: cpus().length,
-        memory: Math.round(totalmem() / 1024 / 1024) // MB
+        os: process.platform,
+        nodeVersion: process.version,
+        cpuCores: require('os').cpus().length,
+        memory: Math.round(require('os').totalmem() / 1024 / 1024) // MB
       }
     };
 
@@ -445,10 +393,10 @@ class PerformanceTestCLI {
     const reportData = {
       timestamp: Date.now(),
       environment: {
-        os: platform(),
-        nodeVersion: version,
-        cpuCores: cpus().length,
-        memory: Math.round(totalmem() / 1024 / 1024),
+        os: process.platform,
+        nodeVersion: process.version,
+        cpuCores: require('os').cpus().length,
+        memory: Math.round(require('os').totalmem() / 1024 / 1024),
         branch: process.env.GITHUB_REF_NAME || 'unknown',
         commit: process.env.GITHUB_SHA || 'unknown'
       },
@@ -462,8 +410,8 @@ class PerformanceTestCLI {
       regressions: await this.loadRegressionResults()
     };
 
-    const reportPath = join(process.cwd(), 'performance-reports', `consolidated-${Date.now()}.json`);
-    await fs.mkdir(dirname(reportPath), { recursive: true });
+    const reportPath = path.join(process.cwd(), 'performance-reports', `consolidated-${Date.now()}.json`);
+    await fs.mkdir(path.dirname(reportPath), { recursive: true });
     await fs.writeFile(reportPath, JSON.stringify(reportData, null, 2));
 
     console.log(`📊 Performance report saved to: ${reportPath}`);
@@ -517,21 +465,21 @@ class PerformanceTestCLI {
   }
 
   async saveResults(testType, results) {
-    const reportsDir = join(process.cwd(), 'performance-reports');
+    const reportsDir = path.join(process.cwd(), 'performance-reports');
     await fs.mkdir(reportsDir, { recursive: true });
 
-    const resultsPath = join(reportsDir, `${testType}-${Date.now()}.json`);
+    const resultsPath = path.join(reportsDir, `${testType}-${Date.now()}.json`);
     await fs.writeFile(resultsPath, JSON.stringify(results, null, 2));
 
     console.log(`Results saved to: ${resultsPath}`);
   }
 
   async saveGateResults(gateResult) {
-    const reportsDir = join(process.cwd(), 'performance-reports');
+    const reportsDir = path.join(process.cwd(), 'performance-reports');
     await fs.mkdir(reportsDir, { recursive: true });
 
-    const gateResultsPath = join(reportsDir, `gate-${Date.now()}.json`);
-    const latestGateResultsPath = join(reportsDir, 'gate-latest.json');
+    const gateResultsPath = path.join(reportsDir, `gate-${Date.now()}.json`);
+    const latestGateResultsPath = path.join(reportsDir, 'gate-latest.json');
 
     await fs.writeFile(gateResultsPath, JSON.stringify(gateResult, null, 2));
     await fs.writeFile(latestGateResultsPath, JSON.stringify(gateResult, null, 2));
@@ -540,7 +488,7 @@ class PerformanceTestCLI {
   }
 
   async saveRegressionResults(alerts, dataPoint) {
-    const reportsDir = join(process.cwd(), 'performance-reports');
+    const reportsDir = path.join(process.cwd(), 'performance-reports');
     await fs.mkdir(reportsDir, { recursive: true });
 
     const regressionData = {
@@ -549,7 +497,7 @@ class PerformanceTestCLI {
       alerts: alerts
     };
 
-    const regressionResultsPath = join(reportsDir, `regression-${Date.now()}.json`);
+    const regressionResultsPath = path.join(reportsDir, `regression-${Date.now()}.json`);
     await fs.writeFile(regressionResultsPath, JSON.stringify(regressionData, null, 2));
 
     console.log(`Regression results saved to: ${regressionResultsPath}`);
@@ -557,14 +505,14 @@ class PerformanceTestCLI {
 
   async loadResults(testType) {
     try {
-      const reportsDir = join(process.cwd(), 'performance-reports');
+      const reportsDir = path.join(process.cwd(), 'performance-reports');
       const files = await fs.readdir(reportsDir);
       const testFiles = files.filter(f => f.startsWith(`${testType}-`) && f.endsWith('.json'));
 
       if (testFiles.length === 0) return null;
 
       const latestFile = testFiles.sort().pop();
-      const resultsPath = join(reportsDir, latestFile);
+      const resultsPath = path.join(reportsDir, latestFile);
       const data = await fs.readFile(resultsPath, 'utf-8');
 
       return JSON.parse(data);
@@ -576,7 +524,7 @@ class PerformanceTestCLI {
 
   async loadGateResults() {
     try {
-      const gateResultsPath = join(process.cwd(), 'performance-reports', 'gate-latest.json');
+      const gateResultsPath = path.join(process.cwd(), 'performance-reports', 'gate-latest.json');
       const data = await fs.readFile(gateResultsPath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
@@ -587,14 +535,14 @@ class PerformanceTestCLI {
 
   async loadRegressionResults() {
     try {
-      const reportsDir = join(process.cwd(), 'performance-reports');
+      const reportsDir = path.join(process.cwd(), 'performance-reports');
       const files = await fs.readdir(reportsDir);
       const regressionFiles = files.filter(f => f.startsWith('regression-') && f.endsWith('.json'));
 
       if (regressionFiles.length === 0) return null;
 
       const latestFile = regressionFiles.sort().pop();
-      const resultsPath = join(reportsDir, latestFile);
+      const resultsPath = path.join(reportsDir, latestFile);
       const data = await fs.readFile(resultsPath, 'utf-8');
 
       return JSON.parse(data);
@@ -690,9 +638,8 @@ Environment Variables:
   }
 }
 
-// Handle both direct execution and module imports
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   main();
 }
 
-export { PerformanceTestCLI };
+module.exports = { PerformanceTestCLI };

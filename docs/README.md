@@ -1,31 +1,85 @@
-# 📚 Claude-Flow Documentation
+# Claude Flow Documentation Hub
 
-Welcome to the Claude-Flow documentation! This directory contains comprehensive guides and references for using Claude-Flow v2.0.0-alpha.88.
+## 🚀 Welcome to Claude Flow v2.0.0-alpha.88
 
-## 📖 Documentation Structure
+This is the comprehensive documentation hub for Claude Flow, the ultimate AI agent orchestration platform with 54+ specialized agents, 112 MCP tools, and swarm intelligence capabilities.
 
-### 🏠 **Core Documentation**
-| Document | Description | Audience | Prerequisites |
-|----------|-------------|----------|---------------|
-| **[INDEX.md](INDEX.md)** | 📖 Main documentation hub with guided navigation | All users | None |
-| **[SITE_MAP.md](SITE_MAP.md)** | 🗺️ Comprehensive navigation and cross-references | All users | None |
-| **[USER_GUIDE.md](USER_GUIDE.md)** | 🎯 Step-by-step tutorials and examples | Beginners | None |
-| **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** | 📡 Complete API reference with 112 MCP tools | Developers | Basic CLI |
+> **🎯 Post-Phase 14 Organization**: All 2,557+ documentation files have been organized into logical categories for optimal navigation and usability.
 
-### 🤖 **Agent & Coordination**
-| Document | Description | Related Docs |
-|----------|-------------|--------------|
-| **[AGENTS.md](AGENTS.md)** | 🤖 All 54+ agent types with capabilities | [SWARM.md](SWARM.md), [agent-analysis-report.md](agent-analysis-report.md) |
-| **[SWARM.md](SWARM.md)** | 🐝 Swarm intelligence, topologies, coordination | [AGENTS.md](AGENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md) |
-| **[SPARC.md](SPARC.md)** | ⚡ SPARC methodology with 17 development modes | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) |
-| **[MCP_TOOLS.md](MCP_TOOLS.md)** | 🔧 Detailed reference for all MCP tools | [API_DOCUMENTATION.md](API_DOCUMENTATION.md) |
+## 📋 Quick Navigation
 
-### 🏗️ **System & Architecture**
-| Document | Description | Related Docs |
-|----------|-------------|--------------|
-| **[ARCHITECTURE.md](ARCHITECTURE.md)** | 🏗️ System architecture and design patterns | [DEPLOYMENT.md](DEPLOYMENT.md), [architecture/](architecture/) |
-| **[DEPLOYMENT.md](DEPLOYMENT.md)** | 🚀 Production deployment for Docker, K8s, Cloud | [SECURITY_AUDIT_REPORT.md](SECURITY_AUDIT_REPORT.md) |
-| **[DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md)** | 🛠️ Development setup and contribution guide | [SPARC.md](SPARC.md), [API_DOCUMENTATION.md](API_DOCUMENTATION.md) |
+### 🏃‍♂️ **Getting Started**
+- **[Project Overview](../README.md)** - Quick start and project introduction
+- **[Installation Guide](operations/DEPLOYMENT.md)** - Complete setup instructions
+- **[User Guide](user/USER_GUIDE.md)** - User-friendly documentation
+- **[Tutorial](user/tutorial.md)** - Step-by-step learning path
+
+### 🏗️ **For Developers**
+- **[Development Workflow](development/DEVELOPMENT_WORKFLOW.md)** - Development best practices
+- **[SPARC Methodology](development/SPARC.md)** - Structured development approach
+- **[Technical Implementation](development/technical-implementation-guide.md)** - Implementation details
+- **[Troubleshooting](development/troubleshooting.md)** - Common issues and solutions
+
+### 🏛️ **System Architecture**
+- **[Architecture Overview](architecture/ARCHITECTURE.md)** - System design and patterns
+- **[Swarm Intelligence](architecture/SWARM.md)** - Distributed coordination
+- **[Agent System](architecture/AGENTS.md)** - Agent architecture and capabilities
+- **[Full-Stack Specification](architecture/full-stack-swarm-team-specification.md)** - Complete team coordination
+
+### 📡 **API & Integration**
+- **[API Documentation](api/API_DOCUMENTATION.md)** - Complete API reference
+- **[MCP Tools](api/MCP_TOOLS.md)** - MCP tool integration guide
+- **[Swarm Integration API](api/mcp-swarm-integration-api.md)** - Swarm coordination APIs
+- **[Custom Framework API](api/custom-framework-api.md)** - Custom integrations
+
+### 👥 **User Guides**
+- **[User Guide](user/USER_GUIDE.md)** - Comprehensive user documentation
+- **[Novice Guide](user/novice-user-guide.md)** - Beginner-friendly introduction
+- **[Enterprise Guide](user/enterprise-stakeholder-guide.md)** - Enterprise deployment
+- **[Preference System](user/PREFERENCE_SYSTEM_GUIDE.md)** - Customization options
+
+### ⚙️ **Operations & Deployment**
+- **[Deployment Guide](operations/DEPLOYMENT.md)** - Production deployment
+- **[Security Audit](operations/SECURITY_AUDIT_REPORT.md)** - Security best practices
+- **[Performance Analysis](operations/performance-analysis-report.md)** - Performance optimization
+- **[Cleanup Phases](operations/cleanup-phases/)** - Documentation cleanup process
+
+## 📚 **Organized Documentation Structure**
+
+### 📁 **API Documentation** (`/api/`)
+Complete API reference, MCP tools, and integration guides
+- REST API endpoints and examples
+- MCP tool documentation (112 tools)
+- Integration patterns and best practices
+- OpenAPI specifications
+
+### 📁 **Development Guides** (`/development/`)
+Development workflows, methodologies, and technical guides
+- SPARC development methodology (17 modes)
+- Development best practices
+- Technical implementation guides
+- Troubleshooting and debugging
+
+### 📁 **Architecture Documentation** (`/architecture/`)
+System design, patterns, and architectural decisions
+- High-level system architecture
+- Swarm coordination patterns (54+ agents)
+- Agent system design
+- Scalability and performance patterns
+
+### 📁 **User Documentation** (`/user/`)
+User guides, tutorials, and getting started information
+- Getting started guides
+- User tutorials and walkthroughs
+- Enterprise user documentation
+- Configuration and preferences
+
+### 📁 **Operations Documentation** (`/operations/`)
+Deployment, monitoring, and operational procedures
+- Production deployment guides
+- Security and compliance documentation
+- Performance monitoring and optimization
+- Operational procedures and checklists
 
 ## 🗺️ **Navigation & Cross-References**
 
