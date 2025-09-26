@@ -1,9 +1,17 @@
 /**
  * Agent Lifecycle State Management
  * Handles agent state transitions, memory persistence, and lifecycle hooks
+ * Integrated with dependency tracking to prevent premature completion
  */
 
 import { AgentDefinition } from './agent-loader.js';
+import {
+  DependencyTracker,
+  getDependencyTracker,
+  DependencyType,
+  type CompletionBlockerInfo,
+  type DependencyViolation
+} from '../lifecycle/dependency-tracker.js';
 
 export type AgentLifecycleState =
   | 'uninitialized'
@@ -33,6 +41,11 @@ export interface AgentLifecycleContext {
     timestamp: Date;
     reason?: string;
   }>;
+  // Dependency tracking
+  dependencies?: string[];
+  dependentAgents?: string[];
+  pendingCompletion?: boolean;
+  completionBlocker?: CompletionBlockerInfo;
 }
 
 export interface LifecycleHookResult {
@@ -46,6 +59,50 @@ class AgentLifecycleManager {
   private agents: Map<string, AgentLifecycleContext> = new Map();
   private hooks: Map<string, Function> = new Map();
   private memoryStorage: Map<string, Map<string, any>> = new Map();
+  private dependencyTracker: DependencyTracker;
+  private isInitialized: boolean = false;
+
+  constructor() {
+    this.dependencyTracker = getDependencyTracker('lifecycle-manager');
+    this.setupDependencyEventHandlers();
+  }
+
+  /**
+   * Initialize the lifecycle manager and dependency tracker
+   */
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+
+    await this.dependencyTracker.initialize();
+    this.isInitialized = true;
+  }
+
+  /**
+   * Shutdown the lifecycle manager
+   */
+  async shutdown(): Promise<void> {
+    if (!this.isInitialized) return;
+
+    await this.dependencyTracker.shutdown();
+    this.isInitialized = false;
+  }
+
+  /**
+   * Setup event handlers for dependency tracking
+   */
+  private setupDependencyEventHandlers(): void {
+    this.dependencyTracker.on('agent:completion_approved', (event: { agentId: string }) => {
+      this.handleCompletionApproved(event.agentId);
+    });
+
+    this.dependencyTracker.on('agent:completion_blocked', (event: { agentId: string; blockerInfo: CompletionBlockerInfo }) => {
+      this.handleCompletionBlocked(event.agentId, event.blockerInfo);
+    });
+
+    this.dependencyTracker.on('dependency:violation', (violation: DependencyViolation) => {
+      this.handleDependencyViolation(violation);
+    });
+  }
 
   /**
    * Initialize a new agent lifecycle context
@@ -106,6 +163,20 @@ class AgentLifecycleManager {
       );
     }
 
+    // Check dependency constraints for completion states
+    if (this.isCompletionState(newState)) {
+      const canComplete = await this.checkDependencyConstraints(agentId, newState);
+      if (!canComplete) {
+        context.pendingCompletion = true;
+        context.completionBlocker = await this.dependencyTracker.canAgentComplete(agentId);
+
+        // Emit completion request to dependency tracker
+        this.dependencyTracker.emit('agent:completing', { agentId });
+
+        return false; // State transition blocked
+      }
+    }
+
     const previousState = context.state;
     context.previousState = previousState;
     context.state = newState;
@@ -129,12 +200,209 @@ class AgentLifecycleManager {
       }
     }
 
+    // Notify dependency tracker of state change
+    this.dependencyTracker.emit('agent:state_changed', {
+      agentId,
+      newState,
+      oldState: previousState
+    });
+
     // Save state if persistent memory is enabled
     if (context.agentDefinition.lifecycle?.persistent_memory) {
       await this.savePersistentMemory(agentId);
     }
 
     return true;
+  }
+
+  /**
+   * Check if a state represents completion
+   */
+  private isCompletionState(state: AgentLifecycleState): boolean {
+    return ['stopped', 'cleanup'].includes(state);
+  }
+
+  /**
+   * Check dependency constraints before allowing state transition
+   */
+  private async checkDependencyConstraints(agentId: string, targetState: AgentLifecycleState): Promise<boolean> {
+    if (!this.isInitialized) {
+      return true; // Allow if dependency tracker not initialized
+    }
+
+    const blockerInfo = await this.dependencyTracker.canAgentComplete(agentId);
+    return blockerInfo.canComplete;
+  }
+
+  /**
+   * Register a dependency between agents
+   */
+  async registerAgentDependency(
+    dependentAgentId: string,
+    providerAgentId: string,
+    type: DependencyType = DependencyType.COMPLETION,
+    options: {
+      timeout?: number;
+      metadata?: Record<string, unknown>;
+    } = {}
+  ): Promise<string> {
+    if (!this.isInitialized) {
+      throw new Error('Lifecycle manager not initialized');
+    }
+
+    const dependencyId = await this.dependencyTracker.registerDependency(
+      dependentAgentId,
+      providerAgentId,
+      type,
+      options
+    );
+
+    // Update agent contexts
+    const dependentContext = this.agents.get(dependentAgentId);
+    if (dependentContext) {
+      if (!dependentContext.dependencies) {
+        dependentContext.dependencies = [];
+      }
+      dependentContext.dependencies.push(dependencyId);
+    }
+
+    const providerContext = this.agents.get(providerAgentId);
+    if (providerContext) {
+      if (!providerContext.dependentAgents) {
+        providerContext.dependentAgents = [];
+      }
+      providerContext.dependentAgents.push(dependentAgentId);
+    }
+
+    return dependencyId;
+  }
+
+  /**
+   * Remove a dependency between agents
+   */
+  async removeAgentDependency(dependencyId: string): Promise<boolean> {
+    if (!this.isInitialized) {
+      return false;
+    }
+
+    const dependency = this.dependencyTracker.getDependencyDetails(dependencyId);
+    if (!dependency) {
+      return false;
+    }
+
+    const removed = await this.dependencyTracker.removeDependency(dependencyId);
+
+    if (removed) {
+      // Update agent contexts
+      const dependentContext = this.agents.get(dependency.dependentAgentId);
+      if (dependentContext?.dependencies) {
+        const index = dependentContext.dependencies.indexOf(dependencyId);
+        if (index > -1) {
+          dependentContext.dependencies.splice(index, 1);
+        }
+      }
+
+      const providerContext = this.agents.get(dependency.providerAgentId);
+      if (providerContext?.dependentAgents) {
+        const index = providerContext.dependentAgents.indexOf(dependency.dependentAgentId);
+        if (index > -1) {
+          providerContext.dependentAgents.splice(index, 1);
+        }
+      }
+    }
+
+    return removed;
+  }
+
+  /**
+   * Handle completion approval from dependency tracker
+   */
+  private async handleCompletionApproved(agentId: string): Promise<void> {
+    const context = this.agents.get(agentId);
+    if (!context || !context.pendingCompletion) {
+      return;
+    }
+
+    context.pendingCompletion = false;
+    context.completionBlocker = undefined;
+
+    // Complete the pending state transition
+    const targetState = context.state === 'running' ? 'stopped' : 'cleanup';
+    await this.completeStateTransition(agentId, targetState, 'Dependencies resolved');
+  }
+
+  /**
+   * Handle completion blocked from dependency tracker
+   */
+  private async handleCompletionBlocked(agentId: string, blockerInfo: CompletionBlockerInfo): Promise<void> {
+    const context = this.agents.get(agentId);
+    if (!context) {
+      return;
+    }
+
+    context.pendingCompletion = true;
+    context.completionBlocker = blockerInfo;
+
+    // Log the blockage
+    console.log(`Agent ${agentId} completion blocked: ${blockerInfo.reason}`);
+  }
+
+  /**
+   * Handle dependency violations
+   */
+  private handleDependencyViolation(violation: DependencyViolation): void {
+    console.error(`Dependency violation detected: ${violation.message}`);
+
+    for (const agentId of violation.affectedAgents) {
+      const context = this.agents.get(agentId);
+      if (context) {
+        context.errorHistory.push(`Dependency violation: ${violation.message}`);
+      }
+    }
+  }
+
+  /**
+   * Complete a pending state transition
+   */
+  private async completeStateTransition(
+    agentId: string,
+    newState: AgentLifecycleState,
+    reason: string
+  ): Promise<void> {
+    const context = this.agents.get(agentId);
+    if (!context) {
+      return;
+    }
+
+    const previousState = context.state;
+    context.previousState = previousState;
+    context.state = newState;
+    context.lastActivity = new Date();
+
+    // Add to state history
+    context.stateHistory.push({
+      state: newState,
+      timestamp: new Date(),
+      reason
+    });
+
+    // Execute lifecycle hook for the new state
+    const hookName = this.getHookNameForState(newState);
+    if (hookName) {
+      await this.executeLifecycleHook(agentId, hookName);
+    }
+
+    // Notify dependency tracker
+    this.dependencyTracker.emit('agent:state_changed', {
+      agentId,
+      newState,
+      oldState: previousState
+    });
+
+    // Save state if persistent memory is enabled
+    if (context.agentDefinition.lifecycle?.persistent_memory) {
+      await this.savePersistentMemory(agentId);
+    }
   }
 
   /**
@@ -346,6 +614,11 @@ class AgentLifecycleManager {
     if (!context) return false;
 
     try {
+      // Clean up dependencies first
+      if (this.isInitialized) {
+        await this.cleanupAgentDependencies(agentId);
+      }
+
       // Transition to cleanup state (now allowed from any state)
       await this.transitionState(agentId, 'cleanup', 'Agent cleanup requested');
 
@@ -371,6 +644,73 @@ class AgentLifecycleManager {
       console.error(`Error cleaning up agent ${agentId}:`, error);
       return false;
     }
+  }
+
+  /**
+   * Clean up all dependencies for an agent
+   */
+  private async cleanupAgentDependencies(agentId: string): Promise<void> {
+    const context = this.agents.get(agentId);
+    if (!context) return;
+
+    // Remove all dependencies where this agent is dependent
+    if (context.dependencies) {
+      for (const depId of context.dependencies) {
+        await this.dependencyTracker.removeDependency(depId);
+      }
+      context.dependencies = [];
+    }
+
+    // Cancel all dependencies where this agent is a provider
+    const dependentAgents = this.dependencyTracker.getDependentAgents(agentId);
+    for (const dependentAgentId of dependentAgents) {
+      const agentDeps = this.dependencyTracker.getAgentDependencies(dependentAgentId);
+      for (const dep of agentDeps) {
+        if (dep.providerAgentId === agentId) {
+          await this.dependencyTracker.removeDependency(dep.id);
+        }
+      }
+    }
+  }
+
+  /**
+   * Force agent completion bypassing dependencies
+   */
+  async forceAgentCompletion(agentId: string, reason: string): Promise<boolean> {
+    if (!this.isInitialized) {
+      return false;
+    }
+
+    await this.dependencyTracker.forceAgentCompletion(agentId, reason);
+
+    const context = this.agents.get(agentId);
+    if (context) {
+      context.pendingCompletion = false;
+      context.completionBlocker = undefined;
+    }
+
+    return true;
+  }
+
+  /**
+   * Get agent dependency status
+   */
+  getAgentDependencyStatus(agentId: string): {
+    canComplete: boolean;
+    dependencies: string[];
+    dependentAgents: string[];
+    pendingCompletion: boolean;
+    blockerInfo?: CompletionBlockerInfo;
+  } {
+    const context = this.agents.get(agentId);
+
+    return {
+      canComplete: !context?.pendingCompletion ?? true,
+      dependencies: context?.dependencies ?? [],
+      dependentAgents: context?.dependentAgents ?? [],
+      pendingCompletion: context?.pendingCompletion ?? false,
+      blockerInfo: context?.completionBlocker
+    };
   }
 
   /**
@@ -461,4 +801,26 @@ export const updateAgentMemory = (agentId: string, key: string, value: any) =>
 export const getAgentMemory = (agentId: string, key: string) =>
   lifecycleManager.getAgentMemory(agentId, key);
 
-export { AgentLifecycleManager };
+export const registerAgentDependency = (
+  dependentAgentId: string,
+  providerAgentId: string,
+  type?: DependencyType,
+  options?: { timeout?: number; metadata?: Record<string, unknown> }
+) => lifecycleManager.registerAgentDependency(dependentAgentId, providerAgentId, type, options);
+
+export const removeAgentDependency = (dependencyId: string) =>
+  lifecycleManager.removeAgentDependency(dependencyId);
+
+export const forceAgentCompletion = (agentId: string, reason: string) =>
+  lifecycleManager.forceAgentCompletion(agentId, reason);
+
+export const getAgentDependencyStatus = (agentId: string) =>
+  lifecycleManager.getAgentDependencyStatus(agentId);
+
+export const initializeLifecycleManager = () =>
+  lifecycleManager.initialize();
+
+export const shutdownLifecycleManager = () =>
+  lifecycleManager.shutdown();
+
+export { AgentLifecycleManager, DependencyType };
