@@ -1,5 +1,58 @@
 # Personalization System Changelog
 
+## Latest Update: Novice-Friendly Slash Commands (September 27, 2025)
+
+### New Slash Commands Added ✅
+**Implementation**: Three intelligent assistance commands designed specifically for novice developers
+
+#### `/suggest-improvements`
+- **Purpose**: Analyzes project and provides intelligent improvement suggestions
+- **Features**:
+  - Automatic project analysis (testing, CI/CD, documentation, linting, security)
+  - Framework-specific recommendations (React, Express, Vue, Angular)
+  - Prioritized suggestions (High/Medium/Low with effort/impact ratings)
+  - Actionable commands for each improvement
+  - Integration with existing preference system
+- **File**: `src/commands/suggest-improvements.js`
+- **Output**: Categorized recommendations with priority-based action plan
+
+#### `/suggest-templates`
+- **Purpose**: Provides contextual templates based on detected project patterns
+- **Features**:
+  - React component templates with TypeScript and testing
+  - Express API route templates with validation
+  - Database model templates (Mongoose)
+  - DevOps templates (GitHub Actions, Docker)
+  - Security configuration templates
+  - Framework-specific template suggestions
+- **File**: `src/commands/suggest-templates.js`
+- **Output**: Ready-to-use code templates with installation instructions
+
+#### `/dependency-recommendations`
+- **Purpose**: Proactive dependency update notifications with explanations
+- **Features**:
+  - Security vulnerability scanning with `npm audit` integration
+  - Outdated package detection with risk assessment
+  - Performance optimization suggestions (bundle size, alternatives)
+  - Modern alternative recommendations for deprecated packages
+  - Duplicate dependency detection
+  - Prioritized update commands with safety ratings
+- **File**: `src/commands/dependency-recommendations.js`
+- **Output**: Comprehensive dependency health report with actionable fixes
+
+### Integration Points
+- **Framework Detection**: Leverages existing 98.5% accurate framework detection
+- **User Preferences**: Integrates with personalization system for customized output
+- **Progressive Disclosure**: Commands respect user experience level settings
+- **Content Filtering**: Output follows established tone and verbosity preferences
+
+### Novice-Friendly Design Principles
+- **Zero Configuration**: Commands work immediately with intelligent defaults
+- **Educational Output**: Explanations focus on "why" not just "what"
+- **Safety-First**: Clear risk assessments and safe update paths
+- **Actionable**: Every suggestion includes specific commands to execute
+- **Non-Intrusive**: Commands are optional and respect user preferences
+
 ## Overview
 Comprehensive personalization system for claude-flow-novice addressing .md file overload, tone customization, language-specific configurations, and team collaboration.
 
@@ -1224,6 +1277,59 @@ PRAGMA wal_autocheckpoint=10000; -- Optimized checkpointing
 - **Prerequisites Met**: Build system fixed, comprehensive backup created
 - **Safety Validated**: Low risk assessment with robust rollback capability
 - **Performance Optimized**: 96GB DDR5-6400 configuration deployed
+
+## CLAUDE.md Slash Command Implementation (✅ COMPLETED - September 27, 2025)
+
+### Mission: Simple, Protected CLAUDE.md Generation
+**Problem**: Complex CLAUDE.md generation process and NPX overwrites user customizations
+**Solution**: Simple slash command with intelligent NPX protection system
+
+### Core Features Implemented
+- **Simple Slash Command**: `/claude-md` with intuitive options
+- **NPX Protection**: Creates `claude-copy-to-main.md` to protect user customizations
+- **Smart Detection**: Auto-detects project types and frameworks
+- **Backup System**: Protects existing files with automatic backup creation
+- **Preview Mode**: Show generated content without writing files
+
+### Files Added
+- `src/slash-commands/claude-md.js` - Core slash command implementation
+- `src/slash-commands/register-claude-md.js` - Registration system integration
+- `src/npx/claude-md-protection.js` - NPX protection and detection logic
+- `scripts/post-install-claude-md.js` - Post-install hook for NPX scenarios
+- `src/slash-commands/README.md` - Complete documentation
+
+### NPX Protection Strategy
+- **Detection**: Identifies NPX install contexts and existing CLAUDE.md files
+- **Protection**: Generates alternative file instead of overwriting
+- **Preservation**: User customizations never lost during package updates
+- **Instructions**: Clear guidance for manual merge process
+
+### Integration Points
+- Uses existing `claude-md-generator.js` system
+- Respects `.claude-flow-novice/preferences/generation.json` settings
+- Leverages language detection capabilities
+- Added `postinstall` script to package.json
+
+### Usage Examples
+```bash
+/claude-md                    # Generate CLAUDE.md
+/claude-md --preview         # Preview without writing
+/claude-md --force           # Overwrite without confirmation
+/claude-md --detect          # Show project detection results
+```
+
+### Design Principles
+- **Simple & Focused**: Single command, clear options, no bloat
+- **Protective**: Never overwrites without permission, always offers backups
+- **Smart**: Auto-detects and suggests appropriate configurations
+- **Safe**: Fails gracefully, preserves user work
+
+### Result: Production-Ready System
+- ✅ **Simple slash command** for CLAUDE.md generation
+- ✅ **NPX protection** prevents customization loss
+- ✅ **Smart detection** for project types and frameworks
+- ✅ **Complete integration** with existing systems
+- ✅ **No feature bloat** - focused on essential functionality
 - **Infrastructure Ready**: Multi-swarm capability with monitoring dashboard
 
 #### Success Metrics ✅

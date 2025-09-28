@@ -4,7 +4,10 @@
   "_used_in": [
     "src/language/claude-md-generator.js (template generation)",
     "src/language/language-detector.js (framework detection)",
-    "src/preferences/preference-manager.js (configuration loading)"
+    "src/preferences/preference-manager.js (configuration loading)",
+    "src/slash-commands/claude-md.js (slash command execution)",
+    "src/npx/claude-md-protection.js (NPX protection system)",
+    "scripts/post-install-claude-md.js (postinstall hook)"
   ],
 
   "autoGenerate": true,

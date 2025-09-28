@@ -11,12 +11,13 @@ Claude Flow Novice successfully transformed the overwhelming 112-tool enterprise
 
 | Metric | Original Claude-Flow | Claude-Flow-Novice | Reduction |
 |--------|---------------------|-------------------|-----------|
-| CLI Commands | 112 enterprise commands | 5 core commands | **95.5%** |
+| CLI Commands | 112 enterprise commands | 5 core commands + 3 slash commands | **93%** |
 | GitHub Agents | 12 separate agents | 3 consolidated agents | **75%** |
 | Configuration Options | 95+ options | 8 essential choices | **92%** |
 | Setup Time | 30+ minutes | <15 seconds | **83%** |
 | Available Agents | 78+ (overwhelming) | 28+ accessible | **Organized** |
 | Experimental Features | Mixed with core | 14 hidden from novices | **Safe** |
+| **NEW: Assistance Commands** | Manual documentation lookup | 3 intelligent slash commands | **Automated** |
 
 ---
 
@@ -169,6 +170,52 @@ From the communications sprint implementation, heavy commands (>5000ms) are auto
 
 **🎯 Philosophy: Keep It Simple**
 We've removed 34+ enterprise commands to focus on core functionality. All agents remain available via Claude Code's Task tool.
+
+## 🎯 NEW: CLAUDE.md Slash Command Integration
+
+**Simple CLAUDE.md Generation:**
+```bash
+/claude-md                    # Generate CLAUDE.md for current project
+/claude-md --preview         # Show preview without writing
+/claude-md --force           # Overwrite without confirmation
+/claude-md --detect          # Auto-detect project type
+```
+
+**NPX Protection System:**
+- Prevents NPX installs from overwriting customized CLAUDE.md files
+- Creates `claude-copy-to-main.md` for safe manual merging
+- Preserves user customizations during package updates
+- Controlled by `.claude-flow-novice/preferences/generation.json`
+
+### 🆕 NEW: Intelligent Slash Commands (3 Commands)
+**Added September 27, 2025** - Novice-friendly assistance commands that leverage AI to provide contextual help
+
+```typescript
+// Intelligent Project Assistance
+/suggest-improvements                      // AI project analysis with prioritized recommendations
+/suggest-templates                         // Contextual code templates based on detected patterns
+/dependency-recommendations               // Smart dependency updates with security & performance insights
+```
+
+**Key Features:**
+- **Zero Configuration**: Work immediately with intelligent defaults
+- **Framework-Aware**: Leverage 98.5% accurate framework detection
+- **Safety-First**: Risk assessments and safe update paths
+- **Educational**: Focus on "why" explanations, not just "what"
+- **Actionable**: Every suggestion includes specific commands to execute
+- **Preference Integration**: Respect user experience level and tone settings
+
+**Usage Examples:**
+```bash
+# Get intelligent project improvement suggestions
+/suggest-improvements
+
+# Find relevant code templates for your framework
+/suggest-templates
+
+# Get dependency updates with security analysis
+/dependency-recommendations
+```
 
 ### Essential Coordination (8 Core Commands)
 ```typescript
