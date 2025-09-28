@@ -1,7 +1,20 @@
 {
+  "_description": "Python Language Configuration - Defines Python project patterns, frameworks, and development best practices",
+  "_purpose": "This configuration helps detect Python projects and applies Python-specific tooling, linting, and testing patterns",
+  "_used_in": [
+    "src/language/language-detector.js (Python project detection)",
+    "src/language/framework-detector.js (Django/Flask/FastAPI detection)",
+    "src/hooks/enhanced/personalization-hooks.js (Python-specific behavior)"
+  ],
+
   "language": "python",
+  "_language_description": "Primary language identifier for Python projects",
+
   "frameworks": ["django", "flask", "fastapi", "pytest", "pandas", "numpy"],
+  "_frameworks_description": "Common Python frameworks and libraries that indicate specialized project types",
+
   "best_practices": {
+    "_description": "Python development standards and tooling recommendations",
     "file_structure": {
       "src": "Source modules",
       "tests": "Test files (pytest)",

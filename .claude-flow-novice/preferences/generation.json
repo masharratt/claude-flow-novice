@@ -1,12 +1,35 @@
 {
+  "_description": "CLAUDE.md Template Generation Settings - Controls automatic generation of language-specific CLAUDE.md files",
+  "_purpose": "This file controls how CLAUDE.md templates are automatically generated for different programming languages and frameworks",
+  "_used_in": [
+    "src/language/claude-md-generator.js (template generation)",
+    "src/language/language-detector.js (framework detection)",
+    "src/preferences/preference-manager.js (configuration loading)"
+  ],
+
   "autoGenerate": true,
+  "_autoGenerate_description": "Whether to automatically generate CLAUDE.md files when a new project language is detected",
+
   "includeFrameworkSpecific": true,
+  "_includeFrameworkSpecific_description": "Include framework-specific configurations (React hooks, Django settings, etc.)",
+
   "includeBestPractices": true,
+  "_includeBestPractices_description": "Include language/framework best practices in generated templates",
+
   "includeTestingPatterns": true,
+  "_includeTestingPatterns_description": "Include testing framework patterns (Jest, pytest, etc.) in templates",
+
   "includeDeploymentGuidelines": false,
+  "_includeDeploymentGuidelines_description": "Include deployment and CI/CD guidelines in generated templates",
+
   "backupExisting": true,
+  "_backupExisting_description": "Create backup of existing CLAUDE.md before overwriting with new template",
+
   "preserveCustomSections": true,
+  "_preserveCustomSections_description": "Preserve custom sections when regenerating templates",
+
   "confidenceThreshold": 0.3,
+  "_confidenceThreshold_description": "Minimum confidence level (0-1) required for language detection before generating template",
   "languages": {
     "javascript": {
       "enabled": true,

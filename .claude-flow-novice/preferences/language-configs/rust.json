@@ -1,8 +1,24 @@
 {
+  "_description": "Rust Language Configuration - Comprehensive Rust project detection, frameworks, and performance-focused development practices",
+  "_purpose": "This configuration provides complete Rust ecosystem support including web frameworks, async runtimes, testing, and performance optimization",
+  "_used_in": [
+    "src/language/language-detector.js (Rust project detection)",
+    "src/language/framework-detector.js (Axum/Actix/Rocket detection)",
+    "src/hooks/enhanced/personalization-hooks.js (Rust-specific behavior)",
+    "config/hooks/fast-file-testing.cjs (Rust testing integration)"
+  ],
+
   "language": "rust",
+  "_language_description": "Primary language identifier for Rust projects",
+
   "name": "Rust",
+  "_name_description": "Display name for the language",
+
   "extensions": [".rs", ".toml"],
+  "_extensions_description": "File extensions that identify Rust projects (.rs=source files, .toml=configuration)",
+
   "packageFiles": ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".cargo/config.toml"],
+  "_packageFiles_description": "Configuration files that indicate a Rust project and its tooling setup",
   "frameworks": {
     "web": {
       "axum": {

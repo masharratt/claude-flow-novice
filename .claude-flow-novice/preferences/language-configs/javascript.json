@@ -1,21 +1,37 @@
 {
+  "_description": "JavaScript Language Configuration - Defines JavaScript project detection patterns and best practices",
+  "_purpose": "This configuration helps the system recognize JavaScript projects and apply appropriate tooling and patterns",
+  "_used_in": [
+    "src/language/language-detector.js (project type detection)",
+    "src/language/framework-detector.js (JavaScript framework detection)",
+    "src/hooks/enhanced/personalization-hooks.js (language-specific behavior)"
+  ],
+
   "name": "JavaScript",
   "extensions": [".js", ".mjs", ".cjs"],
+  "_extensions_description": "File extensions that identify JavaScript files (.js=standard, .mjs=ES modules, .cjs=CommonJS)",
+
   "packageFiles": ["package.json", ".eslintrc*", "babel.config.*"],
+  "_packageFiles_description": "Configuration files that indicate a JavaScript project and its tooling setup",
   "testFrameworks": {
+    "_description": "Testing framework detection patterns and priority ordering for JavaScript projects",
     "jest": {
       "patterns": ["jest.config.js", "__tests__", ".test.js", ".spec.js"],
-      "priority": 1
+      "priority": 1,
+      "_description": "Most popular React/Node.js testing framework"
     },
     "vitest": {
       "patterns": ["vitest.config.js", "vite.config.js"],
-      "priority": 2
+      "priority": 2,
+      "_description": "Fast testing framework for Vite-based projects"
     },
     "mocha": {
       "patterns": ["mocha.opts", ".mocharc*"],
-      "priority": 3
+      "priority": 3,
+      "_description": "Traditional JavaScript testing framework"
     }
   },
+
   "bestPractices": [
     "Use ES6+ features (arrow functions, destructuring, modules)",
     "Prefer const/let over var",
@@ -23,7 +39,10 @@
     "Implement proper error boundaries",
     "Follow ESLint/Prettier configurations"
   ],
+  "_bestPractices_description": "JavaScript coding standards and recommendations that agents should follow and suggest",
+
   "concurrentPatterns": {
+    "_description": "Claude Code-specific patterns for optimal JavaScript development workflow",
     "agentCoordination": "Use Claude Code's Task tool for parallel agent execution",
     "fileOperations": "Batch all Read/Write/Edit operations in single message",
     "bashCommands": "Execute multiple bash commands with && or ; separators",

@@ -1,39 +1,91 @@
 {
+  "_description": "Project-Local Preferences - Project-specific overrides and configurations that supplement global user preferences",
+  "_purpose": "This file contains project-specific settings that override global preferences and adapt behavior to this particular project's needs",
+  "_used_in": [
+    "src/preferences/preference-manager.js (preference merging and override logic)",
+    "src/language/language-detector.js (project type and language detection)",
+    "src/analytics/project-analytics.js (project-specific analytics and learning)"
+  ],
+
   "project": {
+    "_description": "Basic project identification and language information",
     "name": "claude-flow-novice",
+    "_name_description": "Project identifier used for analytics and preference scoping",
+
     "type": "javascript",
+    "_type_description": "Primary project type detected by the system",
+
     "framework": "node",
+    "_framework_description": "Primary framework detected (node, react, django, etc.)",
+
     "initialized": "2025-09-24T14:52:00.000Z",
+    "_initialized_description": "Timestamp when project preferences were first created",
+
     "language_detected": "javascript",
+    "_language_detected_description": "Primary language detected by file analysis",
+
     "primary_language": "javascript",
-    "secondary_languages": ["typescript", "python"]
+    "_primary_language_description": "Main programming language for this project",
+
+    "secondary_languages": ["typescript", "python"],
+    "_secondary_languages_description": "Additional languages detected in the project codebase"
   },
+
   "overrides": {
+    "_description": "Project-specific preference overrides that take precedence over global user settings",
     "documentation": {
+      "_description": "Documentation generation overrides for this specific project",
       "claude_md_generated": true,
+      "_claude_md_generated_description": "Whether CLAUDE.md was auto-generated for this project",
+
       "custom_best_practices": true,
+      "_custom_best_practices_description": "Enable project-specific best practices in generated documentation",
+
       "project_specific_rules": [
         "Focus on concurrent execution patterns",
         "Emphasize SPARC methodology",
         "Highlight swarm coordination"
-      ]
+      ],
+      "_project_specific_rules_description": "Custom rules that agents should follow for this specific project"
     },
+
     "tone": {
+      "_description": "Communication style overrides for this project",
       "technical_focus": true,
-      "minimize_fluff": true
+      "_technical_focus_description": "Emphasize technical depth over general explanations for this project",
+
+      "minimize_fluff": true,
+      "_minimize_fluff_description": "Reduce celebratory language and focus on actionable information"
     },
+
     "agents": {
+      "_description": "Agent behavior and coordination preferences specific to this project",
       "preferred_agent_types": ["coder", "reviewer", "tester", "researcher"],
+      "_preferred_agent_types_description": "Default agent types to prioritize for this project's workflow",
+
       "auto_spawn_patterns": {
+        "_description": "Automatic agent spawning patterns based on task types",
         "development": ["coder", "tester"],
+        "_development_description": "Agents to spawn automatically for development tasks",
+
         "analysis": ["researcher", "reviewer"],
-        "architecture": ["system-architect", "planner"]
+        "_analysis_description": "Agents to spawn automatically for analysis tasks",
+
+        "architecture": ["system-architect", "planner"],
+        "_architecture_description": "Agents to spawn automatically for architectural decisions"
       }
     }
   },
+
   "analytics": {
+    "_description": "Project-specific analytics and learning settings",
     "track_performance": true,
+    "_track_performance_description": "Enable performance tracking for this project's workflows",
+
     "optimize_workflows": true,
-    "learn_patterns": true
+    "_optimize_workflows_description": "Allow system to optimize workflows based on this project's patterns",
+
+    "learn_patterns": true,
+    "_learn_patterns_description": "Enable pattern learning to improve future task handling for similar projects"
   }
 }

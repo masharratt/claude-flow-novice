@@ -1,7 +1,20 @@
 {
+  "_description": "TypeScript Language Configuration - Defines TypeScript project patterns and type-safe development practices",
+  "_purpose": "This configuration enables TypeScript project detection and applies TypeScript-specific tooling and best practices",
+  "_used_in": [
+    "src/language/language-detector.js (TypeScript project detection)",
+    "src/language/framework-detector.js (React/Angular/Node TypeScript detection)",
+    "src/hooks/enhanced/personalization-hooks.js (TypeScript-specific behavior)"
+  ],
+
   "language": "typescript",
+  "_language_description": "Primary language identifier for TypeScript projects",
+
   "frameworks": ["node", "express", "react", "angular", "next", "nest"],
+  "_frameworks_description": "Common TypeScript frameworks that indicate specialized project architectures",
+
   "best_practices": {
+    "_description": "TypeScript development standards and type-safe coding practices",
     "file_structure": {
       "src": "Source code with types",
       "tests": "Test files (Jest, Vitest)",
