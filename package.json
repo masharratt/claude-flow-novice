@@ -8,6 +8,7 @@
     "claude-flow-novice": "dist/cli/main.js"
   },
   "scripts": {
+    "postinstall": "node scripts/post-install-claude-md.js",
     "dev": "tsx src/cli/main.ts",
     "fullstack:demo": "tsx examples/fullstack-demo.ts",
     "fullstack:develop": "tsx src/swarm-fullstack/cli/fullstack-cli.ts develop",
