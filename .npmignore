@@ -1,12 +1,13 @@
 # Development files
-*.log
-*.tmp
+node_modules/
 .DS_Store
-.env*
+.env
+.env.local
+.env.development
+.env.test
+.env.production
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # UI source files (extension not needed for CLI)
 src/ui/
@@ -15,15 +16,10 @@ src/ui/
 __tests__/
 test/
 tests/
-*.test.js
-*.test.ts
-*.spec.js
-*.spec.ts
 coverage/
 .nyc_output/
 
 # Build artifacts (we include dist/ for compiled files)
-*.map
 tsconfig.tsbuildinfo
 
 # Source control
@@ -45,15 +41,24 @@ src/**/*.ts
 # Documentation source files
 docs/
 planning/
-*.md
+# Exclude specific markdown files only
+CONTRIBUTING.md
+SECURITY.md
+CODE_OF_CONDUCT.md
+DEVELOPMENT.md
+TESTING.md
+# Keep essential files
 !README.md
 !CHANGELOG.md
 !LICENSE
 
 # Development configs
-.eslintrc*
-.prettierrc*
-jest.config.*
+.eslintrc.js
+.eslintrc.json
+.prettierrc.js
+.prettierrc.json
+jest.config.js
+jest.config.json
 tsconfig.json
 deno.json
 deno.lock
@@ -64,11 +69,13 @@ claude-flow.cmd
 init-test/
 exported-memory.json
 test-memory.json
-*.json.bak
 
 # Reports and analysis
 reports/
-*.json
+# Exclude JSON files except essential ones
+package-lock.json.bak
+test-memory.json.bak
+exported-memory.json.bak
 !package.json
 !package-lock.json
 !.claude/config.json
@@ -78,7 +85,6 @@ bin/claude-flow-linux
 bin/claude-flow-macos
 bin/claude-flow-win
 bin/claude-flow-node-pkg
-bin/*.exe
 
 # Example and demo files
 examples/

@@ -1,11 +1,12 @@
 {
   "name": "claude-flow-novice",
-  "version": "1.0.1",
-  "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy. 95% complexity reduction while preserving all advanced capabilities via progressive disclosure.",
+  "version": "1.0.2",
+  "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy. 95% complexity reduction while preserving all advanced capabilities via progressive disclosure. Includes AI-readable project soul system for consistent Claude Code sessions.",
   "mcpName": "io.github.ruvnet/claude-flow",
   "main": "dist/index.js",
   "bin": {
-    "claude-flow-novice": "dist/cli/main.js"
+    "claude-flow-novice": "dist/cli/main.js",
+    "claude-soul": "src/slash-commands/claude-soul.js"
   },
   "scripts": {
     "postinstall": "node scripts/post-install-claude-md.js && npx claude-code-templates@latest --hook=pre-tool/update-search-year --yes --silent",
@@ -132,11 +133,14 @@
     "dev:portal": "scripts/dev/start-portal.sh",
     "dev:monitor": "python scripts/dev/claude-monitor.py",
     "utils:fix-imports": "node scripts/utils/fix-import-paths.js",
-    "utils:cleanup": "bash scripts/utils/clean-build-artifacts.sh"
+    "utils:cleanup": "bash scripts/utils/clean-build-artifacts.sh",
+    "claude-soul": "node src/slash-commands/claude-soul.js",
+    "hooks:session-start": "node src/cli/simple-commands/hooks.js session-start"
   },
   "keywords": [
     "ai",
     "claude",
+    "claude-code",
     "flow",
     "orchestration",
     "agents",
@@ -155,7 +159,11 @@
     "beginner",
     "novice",
     "simple",
-    "learning"
+    "learning",
+    "project-soul",
+    "session-hooks",
+    "ai-context",
+    "documentation"
   ],
   "author": "Claude Flow Novice Team",
   "license": "MIT",
@@ -174,6 +182,8 @@
   "files": [
     "dist/",
     "src/commands/",
+    "src/slash-commands/",
+    "src/cli/simple-commands/hooks/",
     "src/npx/",
     "wiki/",
     ".claude/",
@@ -186,7 +196,10 @@
     ".": "./dist/index.js",
     "./cli": "./dist/cli/index.js",
     "./mcp": "./dist/mcp/mcp-server.js",
-    "./core": "./dist/core/index.js"
+    "./core": "./dist/core/index.js",
+    "./slash-commands/claude-soul": "./src/slash-commands/claude-soul.js",
+    "./slash-commands/register-claude-soul": "./src/slash-commands/register-claude-soul.js",
+    "./hooks/session-start-soul": "./src/cli/simple-commands/hooks/session-start-soul.js"
   },
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.22.0",

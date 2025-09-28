@@ -1,6 +1,65 @@
 # Personalization System Changelog
 
-## Latest Update: Novice-Friendly Slash Commands (September 27, 2025)
+## Latest Update: Project Soul & Session Management (September 28, 2025)
+
+### New Project Soul System ✅
+**Implementation**: AI-readable project context system for consistent Claude Code sessions
+
+#### `/claude-soul` Slash Command
+- **Purpose**: Generate AI-readable project soul document (claude-soul.md)
+- **Features**:
+  - Intelligent project analysis (package.json, file structure, tech stack)
+  - AI-optimized format with built-in context blocks
+  - 500-line limit for focused, sparse documentation
+  - Project inference: mission, values, architecture, methodology
+  - Built-in backup system with timestamp protection
+  - Preview mode for reviewing before generation
+- **File**: `src/slash-commands/claude-soul.js`
+- **Output**: Single `claude-soul.md` file serving both human docs and AI context
+
+#### Session Start Hook System
+- **Purpose**: Automatically load project soul into Claude Code sessions
+- **Features**:
+  - Direct reading of `claude-soul.md` (no temporary files)
+  - Auto-generation of missing soul files
+  - Graceful error handling for missing context
+  - Integration with existing hooks system
+  - SQLite-optional operation for Windows/WSL compatibility
+  - Session cleanup automation
+- **Files**:
+  - `src/cli/simple-commands/hooks/session-start-soul.js`
+  - Enhanced `src/cli/simple-commands/hooks.js`
+- **NPM Scripts**: `npm run claude-soul`, `npm run hooks:session-start`
+
+#### AI-Readable Soul Document Structure
+```markdown
+# Project Soul
+> **AI Context**: Built-in instructions for Claude Code
+
+## WHY - The Purpose (Mission, Problem, Vision)
+## WHAT - The Essence (Identity, Capabilities, Features)
+## HOW - The Approach (Methodology, Stack, Principles)
+## SOUL - The Spirit (Values, Community, Future)
+
+> **For AI Assistants**: Reference for technical decisions
+```
+
+### Key Design Decisions
+- **Single File Approach**: Eliminated dual-file complexity (.claude-soul-context.md removed)
+- **AI-First Design**: Built-in context blocks for direct Claude Code consumption
+- **Version Control Friendly**: Track project evolution in git
+- **No Temporary Files**: Cleaner workflow without cleanup overhead
+- **Intelligent Inference**: Analyze project to automatically generate meaningful content
+
+### Integration Points
+- **Session Hooks**: Seamless integration with existing hooks system
+- **Package.json**: New NPM scripts for easy access
+- **Error Handling**: Graceful degradation when SQLite unavailable
+- **Backup System**: Automatic timestamped backups of existing files
+
+---
+
+## Previous Update: Novice-Friendly Slash Commands (September 27, 2025)
 
 ### New Slash Commands Added ✅
 **Implementation**: Three intelligent assistance commands designed specifically for novice developers

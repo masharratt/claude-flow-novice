@@ -11,13 +11,13 @@ Claude Flow Novice successfully transformed the overwhelming 112-tool enterprise
 
 | Metric | Original Claude-Flow | Claude-Flow-Novice | Reduction |
 |--------|---------------------|-------------------|-----------|
-| CLI Commands | 112 enterprise commands | 5 core commands + 3 slash commands | **93%** |
+| CLI Commands | 112 enterprise commands | 5 core commands + 4 slash commands + session hooks | **93%** |
 | GitHub Agents | 12 separate agents | 3 consolidated agents | **75%** |
 | Configuration Options | 95+ options | 8 essential choices | **92%** |
 | Setup Time | 30+ minutes | <15 seconds | **83%** |
 | Available Agents | 78+ (overwhelming) | 28+ accessible | **Organized** |
 | Experimental Features | Mixed with core | 14 hidden from novices | **Safe** |
-| **NEW: Assistance Commands** | Manual documentation lookup | 3 intelligent slash commands | **Automated** |
+| **NEW: Assistance Commands** | Manual documentation lookup | 4 intelligent slash commands + session hooks | **Automated** |
 
 ---
 
@@ -215,6 +215,49 @@ We've removed 34+ enterprise commands to focus on core functionality. All agents
 
 # Get dependency updates with security analysis
 /dependency-recommendations
+```
+
+### 🆕 NEW: Project Soul & Session Hooks
+**Added September 28, 2025** - AI-readable project context and session management
+
+```typescript
+// Project Soul Commands
+/claude-soul                          // Generate AI-readable project soul document
+/claude-soul --preview                // Preview without writing
+/claude-soul --force                  // Overwrite without confirmation
+
+// Session Hooks
+hooks session-start                   // Load project soul into Claude Code session
+hooks session-start --generate-missing // Auto-generate missing claude-soul.md
+hooks session-start --silent          // Run without output
+hooks session-end                     // Session cleanup and metrics
+```
+
+**Key Features:**
+- **Single File Design**: `claude-soul.md` serves both human docs and AI context
+- **AI-Readable Format**: Built-in context blocks for Claude Code consumption
+- **Project Analysis**: Intelligent inference of mission, values, tech stack, philosophy
+- **Session Integration**: Automatic project context loading for consistent AI assistance
+- **Version Control Friendly**: Track project soul evolution in git
+- **500-Line Limit**: Focused, sparse language for optimal AI processing
+
+**Soul Document Structure:**
+```markdown
+# Project Soul
+> **AI Context**: Use this to understand project goals...
+
+## WHY - The Purpose (Mission, Problem, Vision)
+## WHAT - The Essence (Identity, Capabilities, Features)
+## HOW - The Approach (Methodology, Stack, Principles)
+## SOUL - The Spirit (Values, Community, Future)
+
+> **For AI Assistants**: Reference when making technical decisions...
+```
+
+**NPM Scripts:**
+```bash
+npm run claude-soul                   # Generate soul document
+npm run hooks:session-start           # Load into session
 ```
 
 ### Essential Coordination (8 Core Commands)

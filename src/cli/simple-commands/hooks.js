@@ -6,6 +6,7 @@ import {
   checkRuvSwarmAvailable,
 } from '../utils.js';
 import { SqliteMemoryStore } from '../../memory/sqlite-store.js';
+import { executeSessionStartSoulHook, executeSessionEndSoulHook } from './hooks/session-start-soul.js';
 
 // Initialize memory store
 let memoryStore = null;
@@ -76,6 +77,9 @@ export async function hooksAction(subArgs, flags) {
         break;
 
       // Session Hooks
+      case 'session-start':
+        await sessionStartCommand(subArgs, flags);
+        break;
       case 'session-end':
         await sessionEndCommand(subArgs, flags);
         break;
@@ -956,6 +960,37 @@ async function neuralTrainedCommand(subArgs, flags) {
 
 // ===== SESSION HOOKS =====
 
+async function sessionStartCommand(subArgs, flags) {
+  const options = flags;
+  const silent = options.silent || false;
+  const generateMissing = options['generate-missing'] !== 'false';
+  const fallbackToDefault = options['fallback-to-default'] !== 'false';
+
+  console.log(`🚀 Executing session-start hook...`);
+  if (generateMissing) console.log(`🔄 Auto-generate missing soul: ENABLED`);
+  if (fallbackToDefault) console.log(`📄 Fallback to default: ENABLED`);
+
+  try {
+    const result = await executeSessionStartSoulHook({
+      silent,
+      generateMissing,
+      fallbackToDefault
+    });
+
+    if (result.success) {
+      console.log(`  💾 Soul integration: ${result.action.toUpperCase()}`);
+      if (result.contentLength) {
+        console.log(`  📊 Content loaded: ${result.contentLength} characters`);
+      }
+      printSuccess(`✅ Session-start hook completed`);
+    } else {
+      printError(`Session-start hook failed: ${result.error}`);
+    }
+  } catch (err) {
+    printError(`Session-start hook failed: ${err.message}`);
+  }
+}
+
 async function sessionEndCommand(subArgs, flags) {
   const options = flags;
   const generateSummary = options['generate-summary'] !== 'false';
@@ -1066,6 +1101,14 @@ async function sessionEndCommand(subArgs, flags) {
     }
 
     console.log(`  💾 Session saved to .swarm/memory.db`);
+
+    // Clean up soul context files
+    try {
+      await executeSessionEndSoulHook();
+      console.log(`  🧹 Soul context cleanup completed`);
+    } catch (err) {
+      console.log(`  ⚠️  Soul cleanup warning: ${err.message}`);
+    }
 
     if (memoryStore) {
       memoryStore.close();
@@ -1194,6 +1237,10 @@ function showHooksHelp() {
   console.log('  neural-trained     Save pattern improvements');
 
   console.log('\nSession Hooks:');
+  console.log('  session-start      Load project soul into Claude Code session');
+  console.log('                     --generate-missing    Auto-generate missing claude-soul.md');
+  console.log('                     --fallback-to-default Use minimal soul if generation fails');
+  console.log('                     --silent              Run without output');
   console.log('  session-end        Generate summary and save state');
   console.log('                     --generate-summary    Generate session summary');
   console.log('                     --persist-state       Persist session state');
@@ -1202,6 +1249,7 @@ function showHooksHelp() {
   console.log('  notify             Custom notifications');
 
   console.log('\nExamples:');
+  console.log('  hooks session-start --generate-missing true --silent false');
   console.log('  hooks pre-command --command "npm test" --validate-safety true');
   console.log('  hooks pre-edit --file "src/app.js" --auto-assign-agents true');
   console.log('  hooks post-command --command "build" --track-metrics true');
