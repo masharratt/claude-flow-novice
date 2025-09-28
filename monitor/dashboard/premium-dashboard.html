@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Performance Monitor - 96GB Setup</title>
+    <link rel="stylesheet" href="premium-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="premium-dashboard">
+        <!-- Header with real-time status -->
+        <header class="premium-header">
+            <div class="header-left">
+                <h1>Premium Performance Monitor</h1>
+                <div class="system-specs">
+                    <span class="spec-item">96GB Setup</span>
+                    <span class="spec-item">62GB RAM</span>
+                    <span class="spec-item">24 Cores</span>
+                    <span class="spec-item">DDR5-6400</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="connection-status">
+                    <div class="status-dot" id="connection-status"></div>
+                    <span id="connection-text">Connecting...</span>
+                </div>
+                <div class="update-frequency">
+                    Updates: <span id="update-interval">1s</span>
+                </div>
+                <div class="last-update">
+                    Last: <span id="last-update-time">--:--:--</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="dashboard-grid">
+            <!-- Real-time System Metrics -->
+            <div class="card system-card">
+                <h2>System Performance</h2>
+                <div class="system-metrics">
+                    <div class="metric-group">
+                        <div class="metric-item critical">
+                            <span class="metric-label">Memory Usage</span>
+                            <span class="metric-value" id="memory-usage">--</span>
+                            <span class="metric-unit">GB / 62GB</span>
+                            <div class="metric-bar">
+                                <div class="progress-bar" id="memory-bar"></div>
+                            </div>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">CPU Usage</span>
+                            <span class="metric-value" id="cpu-usage">--</span>
+                            <span class="metric-unit">% (24 cores)</span>
+                            <div class="metric-bar">
+                                <div class="progress-bar" id="cpu-bar"></div>
+                            </div>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">DDR5-6400 Bandwidth</span>
+                            <span class="metric-value" id="memory-bandwidth">--</span>
+                            <span class="metric-unit">GB/s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Multi-Swarm Tracking -->
+            <div class="card swarm-card">
+                <h2>Multi-Swarm Performance</h2>
+                <div class="swarm-grid" id="swarm-grid">
+                    <!-- Dynamic swarm instances will be added here -->
+                </div>
+            </div>
+
+            <!-- Database Performance -->
+            <div class="card database-card">
+                <h2>Database Performance</h2>
+                <div class="database-metrics">
+                    <div class="db-metric">
+                        <span class="label">Query Latency</span>
+                        <span class="value" id="db-latency">--ms</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Connections</span>
+                        <span class="value" id="db-connections">--</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Cache Hit Rate</span>
+                        <span class="value" id="db-cache-rate">--%</span>
+                    </div>
+                    <div class="db-metric">
+                        <span class="label">Storage I/O</span>
+                        <span class="value" id="db-io">-- MB/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real-time Performance Chart -->
+            <div class="card chart-card large">
+                <h2>Real-time Performance (1s updates)</h2>
+                <div class="chart-controls">
+                    <button class="chart-control active" data-timeframe="1m">1m</button>
+                    <button class="chart-control" data-timeframe="5m">5m</button>
+                    <button class="chart-control" data-timeframe="15m">15m</button>
+                    <button class="chart-control" data-timeframe="1h">1h</button>
+                </div>
+                <canvas id="realtime-performance-chart"></canvas>
+            </div>
+
+            <!-- Memory Optimization -->
+            <div class="card memory-card">
+                <h2>Memory Optimization</h2>
+                <div class="memory-details">
+                    <div class="memory-section">
+                        <h3>Heap Usage</h3>
+                        <div class="memory-breakdown">
+                            <div class="memory-item">
+                                <span>Used</span>
+                                <span id="heap-used">-- MB</span>
+                            </div>
+                            <div class="memory-item">
+                                <span>Total</span>
+                                <span id="heap-total">-- MB</span>
+                            </div>
+                            <div class="memory-item">
+                                <span>Limit</span>
+                                <span id="heap-limit">-- MB</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="memory-section">
+                        <h3>GC Performance</h3>
+                        <div class="gc-stats">
+                            <div class="gc-stat">
+                                <span>Last GC</span>
+                                <span id="last-gc">--ms</span>
+                            </div>
+                            <div class="gc-stat">
+                                <span>GC Frequency</span>
+                                <span id="gc-frequency">--/min</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Alerts -->
+            <div class="card alerts-card">
+                <h2>Performance Alerts</h2>
+                <div class="alert-controls">
+                    <button class="alert-filter active" data-severity="all">All</button>
+                    <button class="alert-filter" data-severity="critical">Critical</button>
+                    <button class="alert-filter" data-severity="warning">Warning</button>
+                    <button class="alert-filter" data-severity="info">Info</button>
+                </div>
+                <div class="alerts-list" id="alerts-list">
+                    <!-- Alerts will be populated here -->
+                </div>
+            </div>
+
+            <!-- Benchmarking Tools -->
+            <div class="card benchmark-card">
+                <h2>Benchmarking Tools</h2>
+                <div class="benchmark-controls">
+                    <button class="benchmark-btn" id="cpu-benchmark">CPU Benchmark</button>
+                    <button class="benchmark-btn" id="memory-benchmark">Memory Benchmark</button>
+                    <button class="benchmark-btn" id="swarm-benchmark">Swarm Benchmark</button>
+                    <button class="benchmark-btn" id="full-benchmark">Full System</button>
+                </div>
+                <div class="benchmark-results" id="benchmark-results">
+                    <div class="result-item">
+                        <span>Last CPU Score:</span>
+                        <span id="last-cpu-score">--</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Memory Throughput:</span>
+                        <span id="memory-throughput">-- GB/s</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Swarm Efficiency:</span>
+                        <span id="swarm-efficiency">--%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Performance -->
+            <div class="card network-card">
+                <h2>Network Performance</h2>
+                <div class="network-metrics">
+                    <div class="network-item">
+                        <span class="label">Throughput In</span>
+                        <span class="value" id="network-in">-- MB/s</span>
+                    </div>
+                    <div class="network-item">
+                        <span class="label">Throughput Out</span>
+                        <span class="value" id="network-out">-- MB/s</span>
+                    </div>
+                    <div class="network-item">
+                        <span class="label">Latency</span>
+                        <span class="value" id="network-latency">--ms</span>
+                    </div>
+                    <div class="network-item">
+                        <span class="label">Connections</span>
+                        <span class="value" id="active-connections">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optimization Recommendations -->
+            <div class="card recommendations-card">
+                <h2>Optimization Recommendations</h2>
+                <div class="recommendations-list" id="recommendations-list">
+                    <!-- Recommendations will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="premium-dashboard.js"></script>
+</body>
+</html>

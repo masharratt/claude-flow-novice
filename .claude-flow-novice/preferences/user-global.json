@@ -1,53 +1,154 @@
 {
   "version": "1.0.0",
   "created": "2025-09-24",
+  "_description": "Claude Flow Novice User Preferences - Controls behavior, communication style, and automation settings",
+
   "preferences": {
     "documentation": {
+      "_description": "Controls how much documentation is generated and what types are allowed",
+      "_used_in": [
+        "src/preferences/preference-manager.js:283,419",
+        "src/preferences/preference-wizard.js:174,485",
+        "src/hooks/enhanced/personalization-hooks.js"
+      ],
       "verbosity": "moderate",
+      "_verbosity_options": ["minimal", "moderate", "comprehensive"],
+      "_verbosity_description": "Amount of documentation detail - minimal=essential only, moderate=balanced, comprehensive=detailed",
+
       "auto_generate_md": false,
+      "_auto_generate_md_description": "Whether agents automatically create .md files without being asked",
+      "_auto_generate_md_used_in": ["src/filters/content-filters.js (controls .md generation limits)"],
+
       "allowed_md_types": ["README", "API_DOCS", "CHANGELOG"],
-      "max_md_files_per_session": 3
+      "_allowed_md_types_description": "Types of markdown files agents can create. Prevents unwanted documentation spam",
+      "_allowed_md_types_used_in": ["src/filters/content-filters.js (file type validation)"],
+
+      "max_md_files_per_session": 3,
+      "_max_md_files_per_session_description": "Maximum .md files agents can create in one session to prevent documentation overload",
+      "_max_md_files_per_session_used_in": ["src/filters/content-filters.js (session limits)"]
     },
+
     "tone": {
+      "_description": "Controls communication style and how agents respond to you",
       "style": "professional",
+      "_style_options": ["professional", "casual", "minimal-feedback"],
+      "_style_description": "Communication formality - professional=structured responses, casual=conversational, minimal-feedback=brief answers",
+
       "celebration_level": "minimal",
+      "_celebration_level_options": ["none", "minimal", "moderate", "enthusiastic"],
+      "_celebration_level_description": "How much agents celebrate successes - none=no celebrations, minimal=brief acknowledgment, enthusiastic=lots of emojis",
+
       "feedback_verbosity": "concise",
-      "technical_depth": "balanced"
+      "_feedback_verbosity_options": ["terse", "concise", "detailed", "verbose"],
+      "_feedback_verbosity_description": "Length of agent responses - terse=one-liners, concise=brief explanations, detailed=full context",
+
+      "technical_depth": "balanced",
+      "_technical_depth_options": ["surface", "balanced", "deep", "expert"],
+      "_technical_depth_description": "Technical detail level - surface=simple explanations, balanced=moderate detail, expert=full technical depth"
     },
+
     "guidance": {
+      "_description": "Controls how much help and guidance agents provide based on your experience level",
+      "_used_in": [
+        "src/guidance/experience-manager.js:183,184",
+        "src/guidance/adaptive-guide.js:155,176,650"
+      ],
       "experience_level": "adaptive",
+      "_experience_level_options": ["novice", "intermediate", "expert", "adaptive"],
+      "_experience_level_description": "Your skill level - novice=lots of guidance, expert=minimal help, adaptive=learns your patterns",
+
       "show_advanced_options": false,
+      "_show_advanced_options_description": "Whether to show complex/dangerous options to prevent accidents",
+      "_show_advanced_options_used_in": ["src/cli/commands/ (controls advanced option visibility)"],
+
       "progressive_disclosure": true,
-      "context_aware_help": true
+      "_progressive_disclosure_description": "Show simple options first, reveal advanced features as you grow",
+      "_progressive_disclosure_used_in": ["src/guidance/adaptive-guide.js (feature reveal logic)"],
+
+      "context_aware_help": true,
+      "_context_aware_help_description": "Provide help based on what you're currently working on",
+      "_context_aware_help_used_in": ["src/guidance/context-helper.js (contextual assistance)"]
     },
+
     "workflow": {
+      "_description": "Controls automatic optimization and learning from your work patterns",
       "auto_optimize": true,
+      "_auto_optimize_description": "Let the system automatically improve workflows based on your usage patterns",
+
       "suggestion_frequency": "after_major_tasks",
+      "_suggestion_frequency_options": ["never", "after_major_tasks", "frequently", "always"],
+      "_suggestion_frequency_description": "When to offer optimization suggestions - never=no suggestions, always=constant suggestions",
+
       "analytics_driven": true,
-      "pattern_learning": true
+      "_analytics_driven_description": "Use analytics to make better decisions about agent coordination and task routing",
+
+      "pattern_learning": true,
+      "_pattern_learning_description": "Learn from your successful patterns to improve future task handling"
     },
+
     "languages": {
+      "_description": "Controls automatic language detection and setup for different programming languages",
       "auto_detect": true,
+      "_auto_detect_description": "Automatically detect what programming language/framework you're using",
+
       "preferred_languages": ["javascript", "typescript", "python"],
+      "_preferred_languages_description": "Languages to prioritize when multiple options are available",
+
       "auto_setup_linting": true,
-      "framework_detection": true
+      "_auto_setup_linting_description": "Automatically configure linting and formatting tools for detected languages",
+
+      "framework_detection": true,
+      "_framework_detection_description": "Detect specific frameworks (React, Django, etc.) for better assistance"
     },
+
     "team": {
+      "_description": "Controls team collaboration and preference sharing across multiple developers",
       "share_preferences": false,
+      "_share_preferences_description": "Share your preferences with team members for consistency",
+
       "sync_claude_md": true,
-      "collaborative_mode": false
+      "_sync_claude_md_description": "Keep CLAUDE.md configuration files synchronized across team",
+
+      "collaborative_mode": false,
+      "_collaborative_mode_description": "Enable real-time collaboration features with other team members"
     },
+
     "resourceDelegation": {
+      "_description": "Controls how heavy/slow commands are distributed across agents to improve performance",
+      "_used_in": [
+        "src/resource-management/resource-coordinator.js:39-50",
+        "src/resource-management/cli.js",
+        "src/collaboration/team-sync.js"
+      ],
       "mode": "adaptive",
+      "_mode_options": ["adaptive", "distributed", "single-delegate"],
+      "_mode_description": "Strategy for handling heavy commands - adaptive=smart choice, distributed=spread across agents, single-delegate=one agent handles all",
+
       "heavyCommandThreshold": 5000,
+      "_heavyCommandThreshold_description": "Commands taking longer than this (milliseconds) are considered 'heavy' and get special handling",
+      "_heavyCommandThreshold_used_in": ["src/resource-management/resource-coordinator.js:42 (command classification)"],
+
       "maxConcurrentHeavyCommands": 2,
+      "_maxConcurrentHeavyCommands_description": "Maximum heavy commands running simultaneously to prevent system overload",
+      "_maxConcurrentHeavyCommands_used_in": ["src/resource-management/resource-coordinator.js:43 (concurrency limiting)"],
+
       "preferredDelegate": "auto",
+      "_preferredDelegate_options": ["auto", "performance-optimized", "memory-optimized", "specific-agent-name"],
+      "_preferredDelegate_description": "Which agent to prefer for heavy tasks - auto=best available, performance-optimized=fastest agent",
+      "_preferredDelegate_used_in": ["src/resource-management/resource-coordinator.js:44 (agent selection)"],
+
       "resourceLimits": {
+        "_description": "System resource usage limits to prevent overloading your machine",
         "cpu": 80,
+        "_cpu_description": "Maximum CPU usage percentage before throttling",
         "memory": 75,
-        "network": 90
+        "_memory_description": "Maximum memory usage percentage before warnings",
+        "network": 90,
+        "_network_description": "Maximum network bandwidth usage percentage"
       },
+
       "commands": {
+        "_description": "Specific command patterns and how they should be handled",
         "heavyCommands": [
           "npm test",
           "npm run test",
@@ -66,30 +167,81 @@
           "gradle build",
           "docker build"
         ],
+        "_heavyCommands_description": "Commands that typically take a long time and should use resource delegation",
+
         "delegationRules": {
+          "_description": "Specific rules for different types of commands",
           "test": "single-delegate",
+          "_test_description": "Testing commands use single-delegate to avoid conflicts",
           "build": "adaptive",
+          "_build_description": "Build commands use adaptive strategy for best performance",
           "compile": "single-delegate",
-          "lint": "distributed"
+          "_compile_description": "Compilation uses single agent to avoid file conflicts",
+          "lint": "distributed",
+          "_lint_description": "Linting can be distributed since it's read-only"
         }
       }
     }
   },
+
   "customizations": {
+    "_description": "Fine-tune agent behavior and system organization to match your preferences",
+
     "message_filters": {
+      "_description": "Control what types of messages and language agents use",
+      "_used_in": [
+        "src/filters/tone-processors.js",
+        "src/hooks/enhanced/personalization-hooks.js"
+      ],
       "remove_congratulatory": true,
+      "_remove_congratulatory_description": "Remove celebratory language like 'Great job!' to keep responses focused",
+      "_remove_congratulatory_used_in": ["src/filters/tone-processors.js (message filtering)"],
+
       "simplify_technical_jargon": false,
-      "focus_on_actionable": true
+      "_simplify_technical_jargon_description": "Replace complex technical terms with simpler explanations",
+      "_simplify_technical_jargon_used_in": ["src/filters/tone-processors.js (jargon replacement)"],
+
+      "focus_on_actionable": true,
+      "_focus_on_actionable_description": "Emphasize what you need to do next rather than explanations of what was done",
+      "_focus_on_actionable_used_in": ["src/filters/content-filters.js (response structuring)"]
     },
+
     "file_organization": {
+      "_description": "Control how agents organize and create files in your project",
+      "_used_in": [
+        "src/filters/content-filters.js",
+        "config/hooks/pre-edit-security.cjs"
+      ],
       "strict_directory_rules": true,
+      "_strict_directory_rules_description": "Enforce proper file organization (no files in root directory, proper folder structure)",
+      "_strict_directory_rules_used_in": ["config/hooks/pre-edit-security.cjs (directory enforcement)"],
+
       "auto_categorize": true,
-      "prevent_root_clutter": true
+      "_auto_categorize_description": "Automatically put files in appropriate directories (src/, tests/, docs/, etc.)",
+      "_auto_categorize_used_in": ["src/filters/content-filters.js (automatic file placement)"],
+
+      "prevent_root_clutter": true,
+      "_prevent_root_clutter_description": "Block agents from creating files in the root directory to keep it clean",
+      "_prevent_root_clutter_used_in": ["config/hooks/pre-edit-security.cjs (root directory protection)"]
     },
+
     "agent_behavior": {
+      "_description": "Control overall agent personality and response style",
+      "_used_in": [
+        "src/hooks/enhanced/personalization-hooks.js",
+        "src/cli/personalization-cli.js"
+      ],
       "concise_reporting": true,
+      "_concise_reporting_description": "Keep agent reports brief and to-the-point",
+      "_concise_reporting_used_in": ["src/hooks/enhanced/personalization-hooks.js (response formatting)"],
+
       "focus_on_results": true,
-      "minimize_process_descriptions": false
+      "_focus_on_results_description": "Emphasize what was accomplished rather than how it was done",
+      "_focus_on_results_used_in": ["src/filters/content-filters.js (result emphasis)"],
+
+      "minimize_process_descriptions": false,
+      "_minimize_process_descriptions_description": "Reduce explanations of internal processes and focus on user-relevant information",
+      "_minimize_process_descriptions_used_in": ["src/filters/tone-processors.js (process filtering)"]
     }
   }
 }

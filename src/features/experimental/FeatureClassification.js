@@ -56,22 +56,22 @@ export class FeatureClassification {
    * Experimental agents classification
    */
   static EXPERIMENTAL_AGENTS = {
-    // Consensus and Distributed Systems - Alpha Level
+    // Consensus and Distributed Systems - Now Stable for Novice Access
     'consensus-builder': {
-      stability: 'alpha',
+      stability: 'stable',
       category: 'consensus',
-      description: 'Advanced consensus mechanism builder',
-      dependencies: ['byzantine-coordinator'],
-      warnings: ['May cause system instability in large swarms', 'Resource intensive operations'],
-      enablementFlags: ['experimental.consensus.enabled', 'experimental.byzantine.enabled'],
+      description: 'General consensus mechanism builder',
+      dependencies: [],
+      warnings: [],
+      enablementFlags: [],
     },
     'byzantine-coordinator': {
-      stability: 'alpha',
+      stability: 'stable',
       category: 'consensus',
       description: 'Byzantine fault tolerance coordinator',
       dependencies: [],
-      warnings: ['Complex consensus protocols', 'May increase latency'],
-      enablementFlags: ['experimental.consensus.enabled', 'experimental.byzantine.enabled'],
+      warnings: [],
+      enablementFlags: [],
     },
     'raft-manager': {
       stability: 'beta',
@@ -82,12 +82,12 @@ export class FeatureClassification {
       enablementFlags: ['experimental.consensus.enabled'],
     },
     'gossip-coordinator': {
-      stability: 'beta',
+      stability: 'stable',
       category: 'consensus',
-      description: 'Gossip protocol coordination manager',
+      description: 'Gossip protocol coordination for scalability',
       dependencies: [],
-      warnings: ['Network overhead in large clusters'],
-      enablementFlags: ['experimental.consensus.enabled'],
+      warnings: [],
+      enablementFlags: [],
     },
     'crdt-synchronizer': {
       stability: 'alpha',

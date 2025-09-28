@@ -25,5 +25,9 @@
     "agents": ["Coordinator-1", "Developer-1", "Developer-2", "Tester-1", "Reviewer-1", "Documenter-1"],
     "qualityThreshold": 0.9,
     "parallel": true
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
   }
 }

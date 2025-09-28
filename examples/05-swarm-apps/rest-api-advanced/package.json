@@ -62,7 +62,8 @@
     "@faker-js/faker": "^8.2.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
   },
   "jest": {
     "testEnvironment": "node",

@@ -1,0 +1,98 @@
+{
+  "formatters": {
+    "javascript": ["prettier", "--write", "--single-quote", "--trailing-comma", "es5"],
+    "typescript": ["prettier", "--write", "--single-quote", "--trailing-comma", "es5"],
+    "python": ["black", "--quiet", "--line-length", "88"],
+    "rust": ["rustfmt", "--edition", "2021"],
+    "go": ["gofmt", "-w"],
+    "java": ["google-java-format", "--replace"],
+    "cpp": ["clang-format", "-i"],
+    "c": ["clang-format", "-i"],
+    "php": ["php-cs-fixer", "fix"],
+    "ruby": ["rubocop", "--fix-layout", "--format", "quiet"],
+    "csharp": ["dotnet", "format"],
+    "json": ["prettier", "--write"],
+    "yaml": ["prettier", "--write"],
+    "markdown": ["prettier", "--write", "--prose-wrap", "always"]
+  },
+  "linters": {
+    "javascript": ["eslint", "--fix", "--format", "compact"],
+    "typescript": ["eslint", "--fix", "--format", "compact"],
+    "python": ["flake8", "--max-line-length", "88"],
+    "rust": ["cargo", "clippy", "--", "-D", "warnings"],
+    "go": ["golangci-lint", "run"],
+    "java": ["checkstyle", "-c", "google_checks.xml"],
+    "cpp": ["cppcheck", "--enable=all"],
+    "c": ["cppcheck", "--enable=all"],
+    "php": ["phpstan", "analyse"],
+    "ruby": ["rubocop", "--format", "compact"],
+    "csharp": ["dotnet", "build", "--verbosity", "quiet"]
+  },
+  "typeCheckers": {
+    "typescript": ["tsc", "--noEmit", "--skipLibCheck"],
+    "python": ["mypy", "--ignore-missing-imports"],
+    "rust": ["cargo", "check", "--quiet"],
+    "go": ["go", "vet"],
+    "java": ["javac", "-Xlint"],
+    "csharp": ["dotnet", "build", "--verbosity", "quiet"]
+  },
+  "testCommands": {
+    "javascript": ["npm", "test", "--", "--passWithNoTests"],
+    "typescript": ["npm", "test", "--", "--passWithNoTests"],
+    "python": ["pytest", "-v", "--tb=short"],
+    "rust": ["cargo", "test", "--quiet"],
+    "go": ["go", "test", "-v"],
+    "java": ["mvn", "test", "-q"],
+    "csharp": ["dotnet", "test", "--verbosity", "quiet"],
+    "php": ["phpunit", "--testdox"],
+    "ruby": ["rspec", "--format", "documentation"]
+  },
+  "securityScanners": {
+    "javascript": ["npm", "audit", "--audit-level", "moderate"],
+    "typescript": ["npm", "audit", "--audit-level", "moderate"],
+    "python": ["bandit", "-r", ".", "-f", "json"],
+    "rust": ["cargo", "audit"],
+    "go": ["gosec", "./..."],
+    "java": ["dependency-check", "--project", ".", "--format", "JSON"],
+    "php": ["security-checker", "security:check"],
+    "ruby": ["bundle", "audit", "--update"],
+    "csharp": ["dotnet", "list", "package", "--vulnerable"]
+  },
+  "dependencyCheckers": {
+    "javascript": ["npm", "ls", "--depth=0"],
+    "typescript": ["npm", "ls", "--depth=0"],
+    "python": ["pip", "check"],
+    "rust": ["cargo", "tree", "--depth", "1"],
+    "go": ["go", "mod", "verify"],
+    "java": ["mvn", "dependency:resolve", "-q"],
+    "php": ["composer", "check-platform-reqs"],
+    "ruby": ["bundle", "check"],
+    "csharp": ["dotnet", "restore", "--verbosity", "quiet"]
+  },
+  "validationTiers": {
+    "syntax": ["formatters", "linters"],
+    "interface": ["formatters", "linters", "typeCheckers"],
+    "integration": ["formatters", "linters", "typeCheckers", "dependencyCheckers"],
+    "full": ["formatters", "linters", "typeCheckers", "dependencyCheckers", "testCommands", "securityScanners"]
+  },
+  "agentSpawning": {
+    "missingDependencyThreshold": 0.3,
+    "testFailureThreshold": 3,
+    "securityIssueThreshold": 1,
+    "spawnAgentTypes": {
+      "dependencies": "coder",
+      "tests": "tester",
+      "security": "reviewer",
+      "documentation": "api-docs"
+    }
+  },
+  "progressiveValidation": {
+    "enabled": true,
+    "completenessThresholds": {
+      "syntax": 0.0,
+      "interface": 0.3,
+      "integration": 0.7,
+      "full": 0.9
+    }
+  }
+}

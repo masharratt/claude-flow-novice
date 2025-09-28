@@ -164,14 +164,14 @@ claude mcp add flow-nexus npx flow-nexus@latest mcp start  # Optional: Cloud fea
 ### Monitoring
 `swarm_status`, `agent_list`, `agent_metrics`, `task_status`, `task_results`
 
-### Memory & Neural
-`memory_usage`, `neural_status`, `neural_train`, `neural_patterns`
-
-### GitHub Integration
-`github_swarm`, `repo_analyze`, `pr_enhance`, `issue_triage`, `code_review`
+### Memory Management
+`memory_usage`, `memory_search`, `memory_persist`
 
 ### System
 `benchmark_run`, `features_detect`, `swarm_monitor`
+
+### 🚫 Deprecated (Removed from NPM Package)
+`neural_train`, `neural_patterns`, `performance_report`, `github_repo_analyze`, `workflow_create`
 
 ### Flow-Nexus MCP Tools (Optional Advanced Features)
 Flow-Nexus extends MCP capabilities with 70+ cloud-based orchestration tools:

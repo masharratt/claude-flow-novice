@@ -1,0 +1,221 @@
+{
+  "language": "rust",
+  "name": "Rust",
+  "extensions": [".rs", ".toml"],
+  "packageFiles": ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".cargo/config.toml"],
+  "frameworks": {
+    "web": {
+      "axum": {
+        "patterns": ["axum", "tokio"],
+        "priority": 1,
+        "description": "Modern async web framework built on tokio"
+      },
+      "actix-web": {
+        "patterns": ["actix-web", "actix"],
+        "priority": 2,
+        "description": "Powerful, pragmatic, and extremely fast web framework"
+      },
+      "rocket": {
+        "patterns": ["rocket"],
+        "priority": 3,
+        "description": "Type-safe, secure web framework with code generation"
+      },
+      "warp": {
+        "patterns": ["warp"],
+        "priority": 4,
+        "description": "Composable, async web framework"
+      }
+    },
+    "async": {
+      "tokio": {
+        "patterns": ["tokio"],
+        "priority": 1,
+        "description": "Async runtime for Rust"
+      },
+      "async-std": {
+        "patterns": ["async-std"],
+        "priority": 2,
+        "description": "Alternative async runtime"
+      }
+    },
+    "cli": {
+      "clap": {
+        "patterns": ["clap"],
+        "priority": 1,
+        "description": "Command line argument parser"
+      },
+      "structopt": {
+        "patterns": ["structopt"],
+        "priority": 2,
+        "description": "Parse command line arguments by defining structs"
+      }
+    },
+    "serialization": {
+      "serde": {
+        "patterns": ["serde", "serde_json", "serde_yaml"],
+        "priority": 1,
+        "description": "Serialization framework"
+      }
+    }
+  },
+  "testFrameworks": {
+    "built-in": {
+      "patterns": ["#[test]", "#[cfg(test)]", "tests/"],
+      "priority": 1,
+      "description": "Rust's built-in testing framework"
+    },
+    "proptest": {
+      "patterns": ["proptest"],
+      "priority": 2,
+      "description": "Property-based testing framework"
+    },
+    "criterion": {
+      "patterns": ["criterion"],
+      "priority": 3,
+      "description": "Benchmarking library"
+    },
+    "quickcheck": {
+      "patterns": ["quickcheck"],
+      "priority": 4,
+      "description": "QuickCheck-style property testing"
+    }
+  },
+  "best_practices": {
+    "file_structure": {
+      "src": "Source code modules (lib.rs, main.rs, modules/)",
+      "tests": "Integration tests directory",
+      "benches": "Benchmark tests",
+      "examples": "Example code",
+      "docs": "Documentation and README",
+      "target": "Build artifacts (auto-generated)",
+      ".cargo": "Cargo configuration"
+    },
+    "linting": {
+      "clippy": true,
+      "rustfmt": true,
+      "rust_analyzer": true,
+      "config_files": ["rustfmt.toml", "clippy.toml", ".cargo/config.toml"],
+      "commands": {
+        "format": "cargo fmt",
+        "lint": "cargo clippy -- -D warnings",
+        "check": "cargo check"
+      }
+    },
+    "testing": {
+      "framework": "built-in",
+      "patterns": ["#[test]", "tests/*.rs", "*_test.rs"],
+      "coverage": "cargo tarpaulin",
+      "commands": {
+        "test": "cargo test",
+        "test_release": "cargo test --release",
+        "bench": "cargo bench",
+        "doc_test": "cargo test --doc"
+      }
+    },
+    "security": {
+      "cargo_audit": {
+        "enabled": true,
+        "command": "cargo audit",
+        "description": "Audit dependencies for security vulnerabilities"
+      },
+      "cargo_deny": {
+        "enabled": true,
+        "command": "cargo deny check",
+        "config_file": "deny.toml",
+        "description": "Lint dependencies for licensing, bans, and advisories"
+      }
+    },
+    "dependencies": {
+      "package_manager": "cargo",
+      "manifest": "Cargo.toml",
+      "lock_file": "Cargo.lock",
+      "dev_dependencies": ["tokio-test", "proptest", "criterion", "cargo-audit", "cargo-deny"],
+      "commands": {
+        "build": "cargo build",
+        "build_release": "cargo build --release",
+        "run": "cargo run",
+        "clean": "cargo clean",
+        "update": "cargo update",
+        "tree": "cargo tree"
+      }
+    },
+    "performance": {
+      "optimization": {
+        "release_profile": {
+          "lto": true,
+          "codegen_units": 1,
+          "panic": "abort"
+        },
+        "build_flags": ["--release", "-C target-cpu=native"]
+      },
+      "profiling": {
+        "tools": ["perf", "valgrind", "flamegraph"],
+        "commands": {
+          "flamegraph": "cargo flamegraph",
+          "bench": "cargo bench"
+        }
+      }
+    }
+  },
+  "claude_md_template": {
+    "concurrent_patterns": "Use tokio for async operations, rayon for parallel computation, channels for communication",
+    "error_handling": "Use Result<T, E> types, create custom error enums with thiserror, propagate with ? operator",
+    "code_style": "Follow rustfmt, use clippy lints, prefer owned types in APIs, use lifetimes sparingly",
+    "testing": "Write unit tests with #[test], integration tests in tests/, use proptest for property testing",
+    "performance": "Profile before optimizing, use zero-cost abstractions, prefer stack allocation, avoid unnecessary clones",
+    "memory_safety": "Leverage ownership system, use Rc/Arc for shared ownership, RefCell/Mutex for interior mutability",
+    "concurrency": "Use tokio for async I/O, rayon for CPU-bound parallelism, avoid shared mutable state"
+  },
+  "build_commands": {
+    "development": {
+      "build": "cargo build",
+      "test": "cargo test",
+      "run": "cargo run",
+      "check": "cargo check",
+      "format": "cargo fmt",
+      "lint": "cargo clippy",
+      "doc": "cargo doc --open"
+    },
+    "production": {
+      "build": "cargo build --release",
+      "test": "cargo test --release",
+      "strip": "cargo build --release && strip target/release/*",
+      "optimize": "cargo build --release --target=x86_64-unknown-linux-musl"
+    },
+    "quality": {
+      "audit": "cargo audit",
+      "deny": "cargo deny check",
+      "outdated": "cargo outdated",
+      "coverage": "cargo tarpaulin --out Html"
+    }
+  },
+  "bestPractices": [
+    "Use Rust's ownership system to prevent memory bugs",
+    "Prefer Result<T, E> over panicking for error handling",
+    "Use cargo clippy for additional linting beyond the compiler",
+    "Write comprehensive tests including edge cases",
+    "Document public APIs with rustdoc comments",
+    "Use serde for serialization instead of manual implementations",
+    "Leverage the type system for compile-time guarantees",
+    "Use async/await for I/O operations with tokio runtime",
+    "Profile before optimizing - Rust is fast by default",
+    "Use cargo-audit regularly to check for security vulnerabilities"
+  ],
+  "concurrentPatterns": {
+    "agentCoordination": "Use Claude Code's Task tool for parallel agent execution with Rust specialization",
+    "fileOperations": "Batch all Read/Write/Edit operations in single message for Cargo.toml and source files",
+    "bashCommands": "Execute multiple cargo commands with && separators (cargo fmt && cargo clippy && cargo test)",
+    "todoManagement": "Batch ALL todos in ONE TodoWrite call (5-10+ minimum) with Rust-specific tasks",
+    "cargoWorkflows": "Combine build, test, and quality checks in single execution pipeline"
+  },
+  "workspace_support": {
+    "enabled": true,
+    "config_file": "Cargo.toml",
+    "member_detection": ["members", "exclude"],
+    "commands": {
+      "workspace_build": "cargo build --workspace",
+      "workspace_test": "cargo test --workspace",
+      "workspace_check": "cargo check --workspace"
+    }
+  }
+}

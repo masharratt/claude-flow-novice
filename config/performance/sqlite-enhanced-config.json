@@ -1,0 +1,108 @@
+{
+  "environment": "high-performance-96gb-ddr5",
+  "hardwareProfile": {
+    "totalRAM": "96GB",
+    "ramType": "DDR5-6400",
+    "cpuCores": 24,
+    "cpuModel": "i7-13700KF",
+    "storageType": "SSD"
+  },
+  "sqliteOptimizations": {
+    "basic": {
+      "cache_size": -2048000,
+      "mmap_size": 8589934592,
+      "temp_store": "memory",
+      "journal_mode": "WAL",
+      "synchronous": "NORMAL",
+      "wal_autocheckpoint": 1000,
+      "busy_timeout": 30000
+    },
+    "aggressive": {
+      "cache_size": -4096000,
+      "mmap_size": 17179869184,
+      "temp_store": "memory",
+      "journal_mode": "WAL",
+      "synchronous": "NORMAL",
+      "wal_autocheckpoint": 2000,
+      "busy_timeout": 60000,
+      "threads": 8
+    },
+    "maximum": {
+      "cache_size": -8192000,
+      "mmap_size": 34359738368,
+      "temp_store": "memory",
+      "journal_mode": "WAL",
+      "synchronous": "NORMAL",
+      "wal_autocheckpoint": 5000,
+      "busy_timeout": 120000,
+      "threads": 16
+    }
+  },
+  "enhancedBackendConfig": {
+    "databasePath": ".swarm",
+    "namespace": "enhanced",
+    "isolation": "cross-agent",
+    "enableWAL": true,
+    "enableCompression": true,
+    "enableIndexing": true,
+    "reliabilityTarget": 0.999,
+    "syncInterval": 5000,
+    "maxConnections": 12,
+    "transactionTimeout": 30000,
+    "connectionPoolConfig": {
+      "minConnections": 2,
+      "maxConnections": 12,
+      "acquireTimeoutMs": 30000,
+      "idleTimeoutMs": 300000,
+      "reapIntervalMs": 1000
+    },
+    "compressionConfig": {
+      "enabled": true,
+      "algorithm": "gzip",
+      "minSizeBytes": 1024,
+      "compressionLevel": 6
+    },
+    "indexingConfig": {
+      "autoAnalyze": true,
+      "analyzeThreshold": 1000,
+      "customIndexes": [
+        "CREATE INDEX IF NOT EXISTS idx_memory_content_fts ON memory_entries(content) WHERE length(content) > 100;",
+        "CREATE INDEX IF NOT EXISTS idx_memory_large_values ON memory_entries(value) WHERE length(value) > 10000;",
+        "CREATE INDEX IF NOT EXISTS idx_memory_recent_accessed ON memory_entries(accessed_at) WHERE accessed_at > datetime('now', '-1 day');",
+        "CREATE INDEX IF NOT EXISTS idx_memory_high_access ON memory_entries(access_count) WHERE access_count > 10;"
+      ]
+    },
+    "performanceMonitoring": {
+      "enabled": true,
+      "metricsInterval": 30000,
+      "slowQueryThreshold": 100,
+      "memoryWarningThreshold": 0.8,
+      "diskSpaceWarningThreshold": 0.9
+    }
+  },
+  "activationSettings": {
+    "performanceLevel": "aggressive",
+    "safetyChecks": true,
+    "backupBeforeActivation": true,
+    "rollbackOnFailure": true,
+    "verificationTests": true
+  },
+  "monitoringThresholds": {
+    "memory": {
+      "warning": 80,
+      "critical": 90
+    },
+    "cpu": {
+      "warning": 70,
+      "critical": 85
+    },
+    "diskSpace": {
+      "warning": 80,
+      "critical": 95
+    },
+    "queryTime": {
+      "warning": 100,
+      "critical": 1000
+    }
+  }
+}
