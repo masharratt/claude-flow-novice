@@ -1,0 +1,158 @@
+# GitLeaks Configuration for Claude Flow Novice
+# Detects secrets, API keys, tokens, and other sensitive information
+
+title = "Claude Flow Novice - Secret Detection Configuration"
+
+[extend]
+# Use default GitLeaks rules as base
+useDefault = true
+
+[[rules]]
+id = "custom-api-key"
+description = "Custom API Key Pattern"
+regex = '''(?i)(api[_-]?key|apikey)\s*[:=]\s*['"][a-zA-Z0-9]{10,}['"]'''
+tags = ["api", "key", "custom"]
+
+[[rules]]
+id = "custom-secret-key"
+description = "Custom Secret Key Pattern"
+regex = '''(?i)(secret[_-]?key|secretkey)\s*[:=]\s*['"][a-zA-Z0-9]{10,}['"]'''
+tags = ["secret", "key", "custom"]
+
+[[rules]]
+id = "custom-password"
+description = "Hardcoded Password Pattern"
+regex = '''(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"\s]{8,}['"]'''
+tags = ["password", "custom"]
+
+[[rules]]
+id = "custom-database-url"
+description = "Database Connection String"
+regex = '''(?i)(database[_-]?url|db[_-]?url)\s*[:=]\s*['"].*://.*:[^'"\s]+@[^'"\s]+['"]'''
+tags = ["database", "connection", "custom"]
+
+[[rules]]
+id = "custom-jwt-token"
+description = "JWT Token Pattern"
+regex = '''(?i)(jwt[_-]?token|jwttoken)\s*[:=]\s*['"][a-zA-Z0-9\-_=]+\.[a-zA-Z0-9\-_=]+\.[a-zA-Z0-9\-_=]+['"]'''
+tags = ["jwt", "token", "custom"]
+
+[[rules]]
+id = "custom-private-key"
+description = "Private Key Pattern"
+regex = '''(?i)(private[_-]?key|privatekey)\s*[:=]\s*['"][a-zA-Z0-9+/=]{20,}['"]'''
+tags = ["private", "key", "custom"]
+
+[[rules]]
+id = "custom-access-token"
+description = "Access Token Pattern"
+regex = '''(?i)(access[_-]?token|accesstoken)\s*[:=]\s*['"][a-zA-Z0-9]{20,}['"]'''
+tags = ["access", "token", "custom"]
+
+[[rules]]
+id = "env-file-secrets"
+description = "Environment File Secret Patterns"
+regex = '''(?i)^[A-Z_]+(PASSWORD|SECRET|KEY|TOKEN|API)=[^#\s].+'''
+path = '''\.env.*'''
+tags = ["env", "environment", "secrets"]
+
+[[rules]]
+id = "ssh-private-keys"
+description = "SSH Private Key Detection"
+regex = '''-----BEGIN\s+(RSA\s+|OPENSSH\s+)?PRIVATE\s+KEY-----'''
+tags = ["ssh", "private", "key"]
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key ID"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["aws", "access", "key"]
+
+[[rules]]
+id = "aws-secret-key"
+description = "AWS Secret Access Key"
+regex = '''(?i)aws[_-]?secret[_-]?access[_-]?key\s*[:=]\s*['"][a-zA-Z0-9/+=]{40}['"]'''
+tags = ["aws", "secret", "key"]
+
+[[rules]]
+id = "github-token"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[a-zA-Z0-9]{36}'''
+tags = ["github", "token", "pat"]
+
+[[rules]]
+id = "stripe-secret-key"
+description = "Stripe Secret Key"
+regex = '''sk_(live|test)_[0-9a-zA-Z]{24}'''
+tags = ["stripe", "secret", "key"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-[a-zA-Z0-9]{48}'''
+tags = ["openai", "api", "key"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API Key"
+regex = '''sk-ant-[a-zA-Z0-9\-_]{95}'''
+tags = ["anthropic", "api", "key"]
+
+[allowlist]
+# Example files and templates
+paths = [
+    '''.*\.example$''',
+    '''.*\.template$''',
+    '''.*\.sample$''',
+    '''README\.md$''',
+    '''SECURITY\.md$''',
+    '''\.github/workflows/.*''',
+    '''docs/.*''',
+    '''examples/.*''',
+    '''.*\.jpg$''',
+    '''.*\.jpeg$''',
+    '''.*\.png$''',
+    '''.*\.gif$''',
+    '''.*\.pdf$''',
+    '''.*\.zip$''',
+    '''.*\.tar\.gz$''',
+    '''.*\.min\.js$''',
+    '''.*\.min\.css$''',
+    '''package-lock\.json$''',
+    '''yarn\.lock$''',
+    '''node_modules/.*''',
+    '''\.git/.*''',
+    '''dist/.*''',
+    '''build/.*''',
+    '''\.cache/.*''',
+    '''scripts/security/.*''',
+    '''\.gitleaks\.toml$''',
+]
+
+# Test fixtures and common placeholders
+regexes = [
+    '''(?i)(test|mock|fake|dummy|placeholder)[_-]?(password|secret|key|token)''',
+    '''(password|secret|key|token)[_-]?(test|mock|fake|dummy|placeholder)''',
+    '''your[_-]?(password|secret|key|token)[_-]?here''',
+    '''\<(password|secret|key|token)\>''',
+    '''\[(password|secret|key|token)\]''',
+    '''\{(password|secret|key|token)\}''',
+    '''(?i)(password|secret|key|token)\s*[:=]\s*['"]?(your|replace|change|enter|add)[_-]?(password|secret|key|token)?[_-]?here['"]?''',
+    '''(?i)(password|secret|key|token)\s*[:=]\s*['"]?\*+['"]?''',
+    '''(?i)(password|secret|key|token)\s*[:=]\s*['"]?x+['"]?''',
+    '''(?i)(password|secret|key|token)\s*[:=]\s*['"]?\.\.\.['"]?''',
+    '''(?i)process\.env\.[A-Z_]+''',
+    '''\$\{[A-Z_]+\}''',
+    '''\$[A-Z_]+''',
+    # Test and tutorial specific patterns
+    '''(?i)password\s*[:=]\s*['"]SecurePass123!['"]''',
+    '''(?i)password\s*[:=]\s*['"]password['"]''',
+    '''(?i)password\s*[:=]\s*['"]testpass['"]''',
+    '''(?i)password\s*[:=]\s*['"]wrongpassword['"]''',
+    '''(?i)password\s*[:=]\s*['"]securepassword123['"]''',
+    '''(?i)password\s*[:=]\s*['"]hashed-password['"]''',
+    '''(?i)password\s*[:=]\s*['"]hashedpassword['"]''',
+    # Example AWS key pattern (not real credentials)
+    '''AKIA123456789\.\.\.''',
+    '''const accessKey = "AKIA123456789\.\.\."''',
+]

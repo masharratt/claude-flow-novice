@@ -1,14 +1,14 @@
 {
   "name": "claude-flow-novice",
-  "version": "1.0.0",
-  "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy",
+  "version": "1.0.1",
+  "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy. 95% complexity reduction while preserving all advanced capabilities via progressive disclosure.",
   "mcpName": "io.github.ruvnet/claude-flow",
   "main": "dist/index.js",
   "bin": {
     "claude-flow-novice": "dist/cli/main.js"
   },
   "scripts": {
-    "postinstall": "node scripts/post-install-claude-md.js",
+    "postinstall": "node scripts/post-install-claude-md.js && npx claude-code-templates@latest --hook=pre-tool/update-search-year --yes --silent",
     "dev": "tsx src/cli/main.ts",
     "fullstack:demo": "tsx examples/fullstack-demo.ts",
     "fullstack:develop": "tsx src/swarm-fullstack/cli/fullstack-cli.ts develop",
@@ -173,8 +173,11 @@
   },
   "files": [
     "dist/",
+    "src/commands/",
+    "src/npx/",
     "wiki/",
     ".claude/",
+    "scripts/post-install-claude-md.js",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

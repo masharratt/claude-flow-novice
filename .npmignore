@@ -34,6 +34,8 @@ tsconfig.tsbuildinfo
 # TypeScript source files (we ship compiled JS)
 src/**/*.ts
 !src/**/*.d.ts
+# Include slash commands
+!src/commands/*.js
 # Include memory JS files
 !src/memory/*.js
 !src/memory/*.sql
@@ -42,10 +44,11 @@ src/**/*.ts
 
 # Documentation source files
 docs/
+planning/
 *.md
 !README.md
-!SWARM_TTY_SOLUTION.md
-!SWARM_VISIBILITY.md
+!CHANGELOG.md
+!LICENSE
 
 # Development configs
 .eslintrc*

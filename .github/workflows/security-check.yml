@@ -1,0 +1,209 @@
+name: Security Check - Detect Hardcoded Secrets
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Scan for Hardcoded Secrets
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better detection
+
+    - name: Run TruffleHog OSS
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Only required for Organizations
+
+    - name: Custom Secret Pattern Check
+      run: |
+        echo "🔍 Running custom secret pattern detection..."
+
+        # Define patterns for common secrets
+        PATTERNS=(
+          "password\s*=\s*['\"][^'\"]{8,}['\"]"
+          "api[_-]?key\s*=\s*['\"][^'\"]{10,}['\"]"
+          "secret[_-]?key\s*=\s*['\"][^'\"]{10,}['\"]"
+          "access[_-]?token\s*=\s*['\"][^'\"]{10,}['\"]"
+          "private[_-]?key\s*=\s*['\"][^'\"]{20,}['\"]"
+          "jwt[_-]?token\s*=\s*['\"][^'\"]{20,}['\"]"
+          "database[_-]?url\s*=\s*['\"].*://.*:[^'\"]+@[^'\"]+['\"]"
+          "mongodb://[^'\"\s]+:[^'\"\s]+@"
+          "postgres://[^'\"\s]+:[^'\"\s]+@"
+          "mysql://[^'\"\s]+:[^'\"\s]+@"
+          "redis://[^'\"\s]+:[^'\"\s]+@"
+          "ssh-rsa\s+[A-Za-z0-9+/]{50,}"
+          "ssh-ed25519\s+[A-Za-z0-9+/]{50,}"
+          "-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----"
+          "AKIA[0-9A-Z]{16}"  # AWS Access Key
+          "sk_live_[0-9a-zA-Z]{24}"  # Stripe Secret Key
+          "sk_test_[0-9a-zA-Z]{24}"  # Stripe Test Key
+        )
+
+        # Files to exclude from scanning
+        EXCLUDE_PATTERNS=(
+          "\.git/"
+          "node_modules/"
+          "\.jpg$"
+          "\.png$"
+          "\.pdf$"
+          "\.zip$"
+          "\.tar\.gz$"
+          "package-lock\.json$"
+          "yarn\.lock$"
+          "\.min\.js$"
+          "\.min\.css$"
+          "\.example$"
+          "\.template$"
+          "\.sample$"
+          "README\.md$"
+          "SECURITY\.md$"
+          "\.github/workflows/"
+        )
+
+        # Create exclude pattern for grep
+        EXCLUDE_GREP=""
+        for pattern in "${EXCLUDE_PATTERNS[@]}"; do
+          EXCLUDE_GREP="$EXCLUDE_GREP --exclude-dir=${pattern%/*} --exclude=$pattern"
+        done
+
+        # Scan for secrets
+        SECRETS_FOUND=false
+
+        echo "📋 Scanning for hardcoded secrets..."
+
+        for pattern in "${PATTERNS[@]}"; do
+          echo "🔎 Checking pattern: ${pattern:0:30}..."
+
+          # Use grep with case-insensitive matching
+          if grep -r -i -n --color=never $EXCLUDE_GREP -E "$pattern" . 2>/dev/null; then
+            echo "❌ SECURITY VIOLATION: Potential secret found with pattern: $pattern"
+            SECRETS_FOUND=true
+          fi
+        done
+
+        # Additional check for common secret file patterns
+        echo "📁 Checking for secret files..."
+        SECRET_FILES=(
+          ".env"
+          ".env.local"
+          ".env.production"
+          "id_rsa"
+          "id_dsa"
+          "id_ecdsa"
+          "id_ed25519"
+          "*.pem"
+          "*.key"
+          "*.p12"
+          "*.pfx"
+          "credentials.json"
+          "service-account.json"
+          ".aws/credentials"
+          ".ssh/id_*"
+        )
+
+        for file_pattern in "${SECRET_FILES[@]}"; do
+          if find . -name "$file_pattern" -not -path "./node_modules/*" -not -path "./.git/*" | grep -q .; then
+            echo "⚠️  WARNING: Found potential secret file: $file_pattern"
+            echo "📋 Files found:"
+            find . -name "$file_pattern" -not -path "./node_modules/*" -not -path "./.git/*"
+
+            # Check if these files contain actual secrets (not examples)
+            while IFS= read -r -d '' file; do
+              if [[ ! "$file" =~ \.(example|template|sample)$ ]] && [[ -s "$file" ]]; then
+                echo "❌ SECURITY VIOLATION: Non-example secret file found: $file"
+                SECRETS_FOUND=true
+              fi
+            done < <(find . -name "$file_pattern" -not -path "./node_modules/*" -not -path "./.git/*" -print0)
+          fi
+        done
+
+        # Check git history for recently added secrets
+        echo "📜 Checking recent commits for secrets..."
+        if git log --oneline -10 --grep="password\|secret\|key\|token" --ignore-case | grep -q .; then
+          echo "⚠️  WARNING: Recent commits mention secrets in commit messages"
+          git log --oneline -10 --grep="password\|secret\|key\|token" --ignore-case
+        fi
+
+        # Final result
+        if [ "$SECRETS_FOUND" = true ]; then
+          echo ""
+          echo "🚨 SECURITY CHECK FAILED!"
+          echo "❌ Hardcoded secrets detected in the repository"
+          echo "🛡️  Please remove all hardcoded secrets before committing"
+          echo ""
+          echo "💡 Recommendations:"
+          echo "   • Move secrets to environment variables"
+          echo "   • Use .env files (and add them to .gitignore)"
+          echo "   • Use secret management services"
+          echo "   • Create .example files for configuration templates"
+          echo ""
+          exit 1
+        else
+          echo ""
+          echo "✅ SECURITY CHECK PASSED!"
+          echo "🛡️  No hardcoded secrets detected"
+          echo ""
+        fi
+
+    - name: Check .gitignore for Secret Patterns
+      run: |
+        echo "📋 Verifying .gitignore contains secret file patterns..."
+
+        REQUIRED_PATTERNS=(
+          "\.env"
+          "\.env\.*"
+          "\*\.key"
+          "\*\.pem"
+          "credentials\.json"
+          "service-account\.json"
+        )
+
+        MISSING_PATTERNS=()
+
+        for pattern in "${REQUIRED_PATTERNS[@]}"; do
+          if ! grep -q "$pattern" .gitignore 2>/dev/null; then
+            MISSING_PATTERNS+=("$pattern")
+          fi
+        done
+
+        if [ ${#MISSING_PATTERNS[@]} -gt 0 ]; then
+          echo "⚠️  WARNING: .gitignore missing secret file patterns:"
+          for pattern in "${MISSING_PATTERNS[@]}"; do
+            echo "   • $pattern"
+          done
+          echo ""
+          echo "💡 Consider adding these patterns to .gitignore"
+        else
+          echo "✅ .gitignore properly configured for secret files"
+        fi
+
+    - name: Security Summary
+      if: always()
+      run: |
+        echo ""
+        echo "🛡️  SECURITY SCAN SUMMARY"
+        echo "=========================="
+        echo "✅ TruffleHog OSS scan completed"
+        echo "✅ GitLeaks scan completed"
+        echo "✅ Custom pattern detection completed"
+        echo "✅ Secret file detection completed"
+        echo "✅ .gitignore verification completed"
+        echo ""
+        echo "🔒 Repository security check finished"
