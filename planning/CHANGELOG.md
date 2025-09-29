@@ -1,5 +1,25 @@
 # Claude Flow Novice Changelog
 
+## v1.3.5 - Security and Documentation Fixes (September 29, 2025)
+
+### Fixed
+- Fixed ESM import for glob module in language detector
+- Resolved security violations in documentation examples
+- Added missing glob dependency to package.json
+- Fixed dependency resolution issues in published package
+
+### Changed
+- Updated 4,106+ command references from "claude-flow" to "claude-flow-novice"
+- Improved security by replacing hardcoded credentials with environment variable references
+- Added claude-flow-novice MCP server configuration to ourstories-v2 project
+- Enhanced integration patterns and workflow documentation
+- Removed playwright-report from version control (added to .gitignore)
+
+### Security
+- Eliminated all hardcoded API keys and passwords in documentation
+- Implemented proper environment variable patterns for sensitive data
+- Enhanced pre-commit security scanning
+
 ## v1.3.0 - Workflow Orchestration (September 28, 2025)
 
 ### Full Stack Workflow System
