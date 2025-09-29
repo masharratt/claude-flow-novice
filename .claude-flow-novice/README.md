@@ -1,0 +1,1 @@
+# Claude Flow Novice System Directory\n\nThis directory contains the compiled system files for claude-flow-novice.\nUser source code should go in /src/ directory to avoid conflicts.\n\n## Structure:\n- dist/ - Compiled JavaScript output\n- Other system files...\n

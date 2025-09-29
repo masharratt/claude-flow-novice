@@ -581,3 +581,63 @@ Claude Flow Novice successfully achieved its ambitious goal of making enterprise
 - **Enterprise teams** benefit from advanced multi-swarm coordination
 
 **The future of AI-assisted development is here, accessible to everyone.**
+
+  Post-Edit Validation Hook Found
+
+  The post-edit validation hook does exist and provides exactly the functionality you
+  described:
+
+  Location: /config/hooks/post-edit-pipeline.js - This is a comprehensive post-edit validation     
+  pipeline
+
+  Capabilities:
+  - ✅ Code type detection - Auto-detects language from file extension
+  - ✅ Syntax error checking - Runs linters (ESLint, flake8, etc.)
+  - ✅ Dependency checking - Validates imports and dependencies exist
+  - ✅ File compilation - Runs type checkers (TypeScript, mypy, etc.)
+  - ✅ Test execution - Runs project tests if dependencies are available
+
+  Hook Architecture:
+
+  1. Configuration: .claude/hooks.json defines enabled hooks including post-edit
+  2. Pipeline: post-edit-pipeline.js implements the comprehensive validation
+  3. Integration: src/cli/simple-commands/hooks.js provides CLI interface
+  4. Verification: verification-hooks.js provides additional quality checks
+
+  Key Features of the Post-Edit Hook:
+
+  // The hook performs these validations:
+  async run(filePath) {
+      // Step 1: Auto-format code (prettier, black, rustfmt, etc.)
+      results.steps.formatting = await this.formatFile(filePath, language);
+
+      // Step 2: Lint for syntax errors
+      results.steps.linting = await this.lintFile(filePath, language);
+
+      // Step 3: Type checking
+      results.steps.typeCheck = await this.typeCheck(filePath, language);
+
+      // Step 4: Dependency analysis
+      results.steps.dependencies = await this.checkDependencies(filePath, language);
+
+      // Step 5: Security scanning
+      results.steps.security = await this.securityScan(filePath, language);
+
+      // Step 6: Run tests (if most dependencies exist)
+      results.steps.tests = await this.runTests(filePath, language);
+  }
+
+  Current Hook Configuration:
+
+  The .claude/hooks.json shows the post-edit hook is configured:
+
+  {
+    "hooks": {
+      "post_edit": {
+        "enabled": true,
+        "command": "npx claude-flow-novice@latest hooks post-edit --file \"$FILE_PATH\"
+  --memory-key \"swarm/$AGENT_ID/$STEP\"",
+        "description": "Post-edit memory storage hook"
+      }
+    }
+  }
