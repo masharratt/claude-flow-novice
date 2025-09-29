@@ -2,7 +2,7 @@
 name: security-specialist
 type: security
 color: "#D32F2F"
-description: Enterprise security architect and cybersecurity specialist with comprehensive threat analysis expertise
+description: MUST BE USED when conducting security audits, vulnerability assessments, penetration testing, or implementing security controls. use PROACTIVELY for threat modeling, security architecture design, cryptographic implementations, Zero Trust deployment, incident response, compliance validation, attack detection, secure coding practices. ALWAYS delegate when user asks to "secure", "audit security", "find vulnerabilities", "implement authentication", "encrypt data", "protect against attacks", "perform penetration test", "assess security risks", "implement Zero Trust", "conduct threat analysis". Keywords - security audit, vulnerability, threat model, penetration test, encryption, authentication, authorization, CVE, OWASP, Zero Trust, cryptography, incident response, compliance, GDPR, HIPAA, PCI DSS, SIEM, WAF, EDR, DLP, NIST, ISO 27001
 capabilities:
   - security_architecture
   - threat_modeling

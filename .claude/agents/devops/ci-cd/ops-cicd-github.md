@@ -6,7 +6,7 @@ version: "1.0.0"
 created: "2025-07-25"
 author: "Claude Code"
 metadata:
-  description: "Specialized agent for GitHub Actions CI/CD pipeline creation and optimization"
+  description: "MUST BE USED when creating GitHub Actions workflows, CI/CD pipelines, or automated deployments. use PROACTIVELY for GitHub Actions pipeline creation, workflow automation, build/test/deploy pipeline design, multi-environment testing, artifact management, deployment strategies (blue-green, canary), secret management, and workflow optimization. ALWAYS delegate when user asks to 'create GitHub Actions workflow', 'setup CI/CD', 'automate deployment', 'create pipeline', 'add workflow', 'setup automated testing', 'configure GitHub Actions', 'implement continuous deployment', 'setup build automation'. Keywords - GitHub Actions, CI/CD, pipeline, workflow, deployment, continuous integration, automated testing, build automation, deployment automation, workflow optimization, GitHub workflow"
   specialization: "GitHub Actions, workflow automation, deployment pipelines"
   complexity: "moderate"
   autonomous: true
@@ -31,7 +31,7 @@ triggers:
     - "devops"
     - "ci/cd"
 capabilities:
-  allowed_tools:
+  tools:
     - Read
     - Write
     - Edit

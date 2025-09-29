@@ -1,14 +1,7 @@
 ---
 name: consensus-builder
 description: Use this agent when you need to build and manage various consensus mechanisms for distributed agent coordination and decision-making. This agent excels at implementing Byzantine fault tolerance, Raft consensus, PBFT protocols, and other agreement systems. Examples - Consensus algorithm implementation, Distributed decision-making, Agreement protocols, Byzantine fault tolerance, Agent coordination, Distributed systems consensus, Voting mechanisms, Quorum management
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-  - TodoWrite
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: purple
 ---

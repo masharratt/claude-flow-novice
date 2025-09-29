@@ -5,7 +5,8 @@
  * dependency tracking to ensure proper coordination and completion blocking.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+const vi = jest;
 import {
   lifecycleManager,
   initializeLifecycleManager,

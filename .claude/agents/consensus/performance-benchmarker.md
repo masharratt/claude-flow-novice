@@ -1,14 +1,7 @@
 ---
 name: performance-benchmarker
 description: Use this agent when you need comprehensive performance benchmarking and optimization analysis for distributed consensus protocols. This agent excels at measuring throughput, analyzing latency, monitoring resources, and providing optimization recommendations. Examples - Protocol benchmarking, Throughput measurement, Latency analysis, Resource monitoring, Comparative analysis, Adaptive tuning, Performance optimization, System bottleneck identification
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-  - TodoWrite
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: gray
 ---

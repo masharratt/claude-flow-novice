@@ -2,7 +2,9 @@
  * Tests for Claude API enhanced error handling
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, Mock } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+const vi = jest;
+type Mock = jest.Mock;
 import { ClaudeAPIClient } from '../../../src/api/claude-client.js';
 import { 
   ClaudeInternalServerError,
@@ -31,8 +33,8 @@ describe('Claude API Enhanced Error Handling', () => {
       get: vi.fn().mockReturnValue(null),
     };
     
-    // Set up client with API key
-    process.env.ANTHROPIC_API_KEY = 'test-api-key';
+    // Set up client with test API key (mock value for unit testing)
+    process.env.ANTHROPIC_API_KEY = 'test-mock';
     
     client = new ClaudeAPIClient(mockLogger, mockConfigManager as any, {
       retryAttempts: 3,

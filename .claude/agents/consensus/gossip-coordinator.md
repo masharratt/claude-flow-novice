@@ -1,14 +1,7 @@
 ---
 name: gossip-coordinator
 description: Use this agent when you need gossip-based consensus protocols for scalable eventually consistent distributed systems. This agent excels at epidemic dissemination, peer management, state synchronization, and convergence monitoring. Examples - Epidemic dissemination, Peer selection and management, State synchronization, Conflict resolution, Scalability optimization, Eventually consistent systems, Anti-entropy protocols, Membership management
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-  - TodoWrite
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: orange
 ---

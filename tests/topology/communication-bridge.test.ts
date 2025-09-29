@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+const vi = jest;
 import { CommunicationBridge } from '../../src/topology/communication-bridge';
 import { CoordinationMessage } from '../../src/topology/types';
 

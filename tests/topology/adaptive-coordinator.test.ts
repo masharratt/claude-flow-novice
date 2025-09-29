@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+const vi = jest;
 import { AdaptiveCoordinator } from '../../src/topology/adaptive-coordinator';
 import { LifecycleManager } from '../../src/agents/lifecycle-manager';
 import { DependencyTracker } from '../../src/lifecycle/dependency-tracker';

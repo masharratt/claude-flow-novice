@@ -6,7 +6,7 @@ version: "1.0.0"
 created: "2025-07-25"
 author: "Claude Code"
 metadata:
-  description: "Specialized agent for backend API development, including REST and GraphQL endpoints"
+  description: "MUST BE USED when developing REST APIs, GraphQL endpoints, or backend services. use PROACTIVELY for API routes, controllers, middleware, authentication, database queries, API documentation, request validation, error handling, rate limiting. ALWAYS delegate when user asks to 'create API', 'build endpoint', 'implement REST', 'GraphQL resolver', 'backend service', 'authentication endpoint', 'CRUD API', 'API route', 'server endpoint', 'database integration'. Keywords - API, REST, GraphQL, endpoint, route, controller, middleware, backend, server, Express, authentication, validation, HTTP"
   specialization: "API design, implementation, and optimization"
   complexity: "moderate"
   autonomous: true
@@ -31,7 +31,7 @@ triggers:
     - "backend"
     - "api"
 capabilities:
-  allowed_tools:
+  tools:
     - Read
     - Write
     - Edit

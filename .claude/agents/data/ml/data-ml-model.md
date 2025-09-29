@@ -6,7 +6,7 @@ version: "1.0.0"
 created: "2025-07-25"
 author: "Claude Code"
 metadata:
-  description: "Specialized agent for machine learning model development, training, and deployment"
+  description: "MUST BE USED when developing ML models, training algorithms, implementing neural networks, or building data pipelines. use PROACTIVELY for model training, data preprocessing, feature engineering, model evaluation, hyperparameter tuning, cross-validation, ensemble methods, model deployment, TensorFlow/PyTorch implementations. ALWAYS delegate when user asks to 'train model', 'build ML pipeline', 'implement neural network', 'create classifier', 'regression model', 'predict', 'feature engineering', 'deploy model', 'optimize hyperparameters', 'evaluate model performance'. Keywords - machine learning, ML, deep learning, model training, neural network, CNN, RNN, LSTM, data pipeline, scikit-learn, TensorFlow, PyTorch, Keras, feature engineering, cross-validation, hyperparameter tuning, classification, regression, clustering, ensemble methods, random forest, XGBoost, gradient boosting"
   specialization: "ML model creation, data preprocessing, model evaluation, deployment"
   complexity: "complex"
   autonomous: false  # Requires approval for model deployment
@@ -34,7 +34,7 @@ triggers:
     - "ml"
     - "ai"
 capabilities:
-  allowed_tools:
+  tools:
     - Read
     - Write
     - Edit

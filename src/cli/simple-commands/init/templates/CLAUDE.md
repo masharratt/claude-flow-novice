@@ -61,24 +61,83 @@ npx claude-flow-novice hooks pre-edit --file "[file]" --auto-assign-agents true 
 # Track metrics and store results
 npx claude-flow-novice hooks post-command --command "[command]" --track-metrics true --store-results true
 
-# Comprehensive validation pipeline (runs automatically on file edits)
-node config/hooks/post-edit-pipeline.js "[file]"
+# Enhanced post-edit pipeline with comprehensive TDD validation
+npx enhanced-hooks post-edit "[file]" --memory-key "swarm/[agent]/[step]" --minimum-coverage 80 --structured
 
-# Validates: formatting, linting, type checking, dependencies, security, tests
-# Progressive validation: skips tests if dependencies missing (beginner-friendly)
+# Manual hook execution (guaranteed working)
+node src/hooks/enhanced-hooks-cli.js post-edit "[file]" --memory-key "[key]" --structured
+
+# Validates: formatting, linting, type checking, dependencies, security, tests, TDD compliance
+# Progressive validation: graceful degradation when dependencies missing (beginner-friendly)
 ```
 
-**Enhanced Post-Edit Pipeline Features:**
-- **TDD Testing**: Single-file testing without full system compilation
-- **Real-time Coverage**: Coverage analysis and diff reporting with thresholds
-- **Multi-Language**: JS/TS, Python, Go, Rust, Java, C/C++, JSON validation
-- **Formatting**: Prettier, Black, RustFmt, GoFmt with diff preview
-- **Security Analysis**: XSS, eval(), hardcoded credentials detection
-- **TDD Compliance**: Red-Green-Refactor phase detection and enforcement
-- **Framework Detection**: Jest, Mocha, Pytest, Go Test, Cargo Test, JUnit
-- **Agent Feedback**: Structured JSON with actionable recommendations
-- **Memory Coordination**: Cross-agent state sharing and enhanced persistence
-- **Blocking Mechanisms**: Quality gates for critical validation failures
+## 🎯 **Enhanced Post-Edit Hook System**
+
+### **🚨 MANDATORY: Manual Hook Execution After Every File Edit**
+
+**CRITICAL RULE**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
+
+```bash
+# After editing any file, IMMEDIATELY run:
+npx enhanced-hooks post-edit "[FILE_PATH]" --memory-key "swarm/[AGENT]/[STEP]" --minimum-coverage 80 --structured
+
+# Or via slash command:
+/hooks post-edit [FILE_PATH] --memory-key "[CONTEXT]" --structured
+```
+
+**⚠️ NO EXCEPTIONS**: This applies to:
+- All JavaScript/TypeScript files
+- All Rust files
+- All Python files
+- All configuration files
+- ALL file modifications
+
+### **Enhanced Post-Edit Pipeline Features:**
+- **🧪 TDD Testing**: Single-file testing without full system compilation
+- **📊 Real-time Coverage**: Coverage analysis with configurable thresholds (default: 80%)
+- **🌐 Multi-Language Support**:
+  - **JavaScript/TypeScript**: Jest, Mocha, Prettier, ESLint integration
+  - **Rust**: cargo check, cargo test, cargo-tarpaulin, rustfmt
+  - **Python**: pytest, unittest, black, pylint
+  - **Go**: go test, go fmt, go vet
+  - **Java**: JUnit, TestNG, google-java-format
+  - **C/C++**: GTest, Catch2, clang-format
+- **🎨 Formatting**: Prettier, Black, RustFmt, GoFmt with diff preview
+- **🔒 Security Analysis**: XSS, eval(), hardcoded credentials, SQL injection detection
+- **✅ TDD Compliance**: Red-Green-Refactor phase detection and enforcement
+- **🔍 Framework Detection**: Automatic test framework identification
+- **🤖 Agent Feedback**: Structured JSON with actionable recommendations
+- **💾 Memory Coordination**: Cross-agent state sharing and enhanced persistence
+- **🚫 Blocking Mechanisms**: Quality gates for critical validation failures
+
+### **Usage Examples:**
+```bash
+# For JavaScript/TypeScript files
+npx enhanced-hooks post-edit "src/components/Button.tsx" --memory-key "frontend/button" --structured
+
+# For Rust files (full cargo integration)
+npx enhanced-hooks post-edit "src/lib.rs" --memory-key "backend/rust" --minimum-coverage 90 --structured
+
+# Via slash commands in Claude Code
+/hooks post-edit your-file.js --memory-key "agent-memory-key" --structured
+```
+
+### **Response Structure:**
+```json
+{
+  "success": true,
+  "file": "src/component.js",
+  "validation": { "passed": true, "issues": [], "coverage": "advanced" },
+  "formatting": { "needed": true, "changes": 12, "formatter": "prettier" },
+  "testing": { "executed": true, "framework": "jest", "results": {...} },
+  "tddCompliance": { "hasTests": true, "coverage": 85, "recommendations": [...] },
+  "recommendations": [
+    { "type": "security", "priority": "high", "message": "...", "action": "..." },
+    { "type": "formatting", "priority": "medium", "action": "prettier file.js" }
+  ],
+  "memory": { "stored": true, "enhancedStore": true }
+}
+```
 
 #### Session Management
 ```bash
@@ -98,7 +157,7 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
 
 **MCP tools are ONLY for coordination setup:**
 ### MCP Integration
-**MCP tools are ONLY for coordination setup:**
+**TRIGGER WORDS: SWARM, SPAWN, COORDINATE, TEAM**
 - `mcp__claude-flow-novice__swarm_init` - Initialize coordination topology
 - `mcp__claude-flow-novice__agent_spawn` - Define agent types for coordination
 - `mcp__claude-flow-novice__task_orchestrate` - Orchestrate high-level workflows
@@ -106,9 +165,6 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
 - **Memory**: `memory_usage`, `memory_search`
 
 ## File Organization
-- `/src` - Source code
-- `/tests` - Test files
-- `/docs` - Documentation
 - **Never save working files to root**
 
 # Add MCP server
@@ -119,3 +175,15 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 - `npx claude-flow-novice status` - System health
 - `npx claude-flow-novice --help` - Available commands
 - `/swarm`, `/sparc`, `/hooks` - Slash commands (auto-discovered)
+
+## DEVELOPMENT FLOW 
+  1. Execute - Primary swarm (3-8 agents) produces deliverables with confidence score
+  1a. Only when the swarm believes its done move to step 2. 
+  1b. If swarm does not believe it's done (confidence scores < 75%, repeat step 1)
+  2. Verify - Consensus swarm (2-4 validators) runs comprehensive checks with Byzantine voting
+  3. Decision - PASS (≥90% agreement + critical criteria) OR FAIL
+  4. Action -
+    - PASS → Store results → Move to next task
+    - FAIL → Round++ → If <10: inject feedback → Relaunch swarm | If ≥10: Escalate to human
+  5. Repeat - Iterative improvement with accumulated context from all previous rounds
+  6. Escalate - Full history + feedback + recommendations after 10 rounds

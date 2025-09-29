@@ -10,7 +10,9 @@
  * - Performance under load
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, MockedFunction } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+const vi = jest;
+type MockedFunction<T extends (...args: any[]) => any> = jest.MockedFunction<T>;
 import {
   DependencyTracker,
   createDependencyTracker,

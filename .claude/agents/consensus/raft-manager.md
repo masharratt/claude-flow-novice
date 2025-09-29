@@ -1,14 +1,7 @@
 ---
 name: raft-manager
 description: Use this agent when you need to implement and manage the Raft consensus algorithm for distributed systems with strong consistency guarantees. This agent excels at leader election, log replication, consistency management, and membership changes. Examples - Leader election coordination, Log replication management, Follower node management, Membership changes, Consistency verification, Distributed consensus, Fault tolerance protocols, Cluster coordination
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-  - TodoWrite
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: blue
 ---

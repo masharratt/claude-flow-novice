@@ -11,7 +11,7 @@
 
 import { Orchestrator } from '../../src/core/orchestrator.ts';
 import { EventBus } from '../../src/core/event-bus.ts';
-import { ConsoleLogger } from '../../src/core/logger.ts';
+import { Logger } from '../../src/core/logger.js';
 import { TerminalManager } from '../../src/terminal/manager.ts';
 import { MemoryManager } from '../../src/memory/manager.ts';
 import { CoordinationManager } from '../../src/coordination/manager.ts';
@@ -174,7 +174,7 @@ export async function runBatchTaskTest() {
   
   // Initialize components
   const eventBus = new EventBus();
-  const logger = new ConsoleLogger('test');
+  const logger = new Logger({ level: 'info', format: 'json', destination: 'console' });
   
   // Set up event monitoring
   const taskMetrics = {

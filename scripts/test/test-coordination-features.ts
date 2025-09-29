@@ -10,7 +10,7 @@
  */
 
 import { EventBus } from '../src/core/event-bus.ts';
-import { ConsoleLogger } from '../src/core/logger.ts';
+import { Logger } from '../src/core/logger.js';
 import { CoordinationManager } from '../src/coordination/manager.ts';
 import { Task, SystemEvents } from '../src/utils/types.ts';
 import { delay } from '../src/utils/helpers.ts';
@@ -19,7 +19,7 @@ async function testCoordinationFeatures() {
   console.log('🔄 Testing Claude-Flow Coordination Features\n');
   
   const eventBus = new EventBus();
-  const logger = new ConsoleLogger('coord-test');
+  const logger = new Logger({ level: 'info', format: 'json', destination: 'console' });
   
   const config = {
     maxRetries: 3,

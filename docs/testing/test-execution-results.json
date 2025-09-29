@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-09-29T21:42:04.006Z",
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "typeScriptErrors": 0
+  },
+  "categories": {
+    "postEditPipeline": [
+      {
+        "description": "Single Agent Post-Edit Pipeline",
+        "category": "postEditPipeline",
+        "command": "node src/hooks/communication-integrated-post-edit.js post-edit src/hooks/enhanced-post-edit-pipeline.js --memory-key \"test/single-agent\" --structured",
+        "passed": true,
+        "duration": 7762,
+        "output": "🚀 Communication-Integrated Post-Edit Hook Starting...\n📄 File: src/hooks/enhanced-post-edit-pipeline.js\n💾 Memory key: test/single-agent\nℹ️  Using fallback communication (EventEmitter)\n✅ Communication memory store loaded (2 entries)\n📡 Subscribed to memory pattern: agent:edit:*\n🚀 Enhanced Post-Edit Hook Starting...\n📄 File: src/hooks/enhanced-post-edit-pipeline.js\n💾 Memory key: test/single-agent\nℹ️ Enhanced memory store loaded (84 entries)\nℹ️ Running enhanced validation...\n❌ Validation failed (1 errors, 0 warnings)\nℹ️ Analyzing formatting...\n⚠️ Formatting needed: 2044 changes\n🧪 Executing TDD tests...\n✅ Tests executed with jest\n🧪 Test results: 0/0 passed, 0 failed\nℹ️ Generating recommendations...\nℹ️ Generated 7 recommendations (3 high priority)\n✅ Data stored in enhanced memory\n✅ Enhanced post-edit hook completed successfully\n📡 Unsubscribed: sub-1759182124056-et0kv4890\n{\n  \"success\": true,\n  \"editId\": \"edit-1759182124057-nb5sjd1n4\",\n  \"file\": \"src/hooks/enhanced-post-edit-pipeline.js\",\n  \"memoryKey\": \"test/single-agent\",\n  \"timestamp\": \"2025-09-29T21:42:04.057Z\",\n  \"validation\": {\n    \"passed\": false,\n    \"issues\": [\n      {\n        \"type\": \"syntax_error\",\n        \"severity\": \"error\",\n        \"message\": \"Invalid or unexpected token\",\n        \"line\": null,\n        \"column\": null\n      }\n    ],\n    \"suggestions\": [\n      \"Fix syntax error before proceeding\",\n      \"Check for missing brackets, semicolons, or quotes\"\n    ],\n    \"coverage\": \"syntax_only\"\n  },\n  \"formatting\": {\n    \"needed\": true,\n    \"changes\": 2044,\n    \"formatter\": \"prettier\",\n    \"preview\": \"Line 1: Remove trailing whitespace\\nLine 2: Remove trailing whitespace\\nLine 3: Remove trailing whitespace\\nLine 4: Remove trailing whitespace\\nLine 5: Remove trailing whitespace\",\n    \"suggestion\": \"Run prettier to fix 2044 formatting issues\"\n  },\n  \"testing\": {\n    \"executed\": true,\n    \"framework\": \"jest\",\n    \"results\": {\n      \"passed\": false,\n      \"reason\": \"No test file found\",\n      \"tests\": [],\n      \"summary\": {\n        \"total\": 0,\n        \"passed\": 0,\n        \"failed\": 0,\n        \"skipped\": 0\n      }\n    },\n    \"coverage\": {\n      \"error\": \"Command failed: npx jest \\\"src/hooks/enhanced-post-edit-pipeline.js\\\" --coverage --coverageReporters=json --silent\",\n      \"available\": false\n    },\n    \"tddCompliance\": {\n      \"hasTests\": true,\n      \"testFirst\": false,\n      \"redGreenRefactor\": false,\n      \"coverage\": 0,\n      \"recommendations\": [\n        {\n          \"type\": \"tdd_violation\",\n          \"priority\": \"high\",\n          \"message\": \"No tests found in test file\",\n          \"action\": \"Write tests before implementing functionality\"\n        }\n      ]\n    },\n    \"singleFileMode\": true\n  },\n  \"coverage\": {\n    \"error\": \"Command failed: npx jest \\\"src/hooks/enhanced-post-edit-pipeline.js\\\" --coverage --coverageReporters=json --silent\",\n    \"available\": false\n  },\n  \"tddCompliance\": {\n    \"hasTests\": true,\n    \"testFirst\": false,\n    \"redGreenRefactor\": false,\n    \"coverage\": 0,\n    \"recommendations\": [\n      {\n        \"type\": \"tdd_violation\",\n        \"priority\": \"high\",\n        \"message\": \"No tests found in test file\",\n        \"action\": \"Write tests before implementing functionality\"\n      }\n    ]\n  },\n  \"tddPhase\": \"unknown\",\n  \"recommendations\": [\n    {\n      \"type\": \"security\",\n      \"priority\": \"high\",\n      \"message\": \"Address security vulnerabilities immediately\",\n      \"action\": \"Move hardcoded credentials to environment variables\"\n    },\n    {\n      \"type\": \"security\",\n      \"priority\": \"medium\",\n      \"message\": \"Potential XSS vulnerability with innerHTML\",\n      \"action\": \"Use textContent or proper sanitization\"\n    },\n    {\n      \"type\": \"maintainability\",\n      \"priority\": \"medium\",\n      \"message\": \"File has 2044 lines - consider breaking it down\",\n      \"action\": \"Split into smaller, focused modules\"\n    },\n    {\n      \"type\": \"testing\",\n      \"priority\": \"medium\",\n      \"message\": \"Consider writing tests for this module\",\n      \"action\": \"Create corresponding test file\"\n    },\n    {\n      \"type\": \"immediate\",\n      \"priority\": \"high\",\n      \"message\": \"Fix validation errors before proceeding\",\n      \"action\": \"Address syntax or structural issues\"\n    },\n    {\n      \"type\": \"formatting\",\n      \"priority\": \"medium\",\n      \"message\": \"Run prettier to fix 2044 formatting issues\",\n      \"action\": \"Execute: prettier src/hooks/enhanced-post-edit-pipeline.js\"\n    },\n    {\n      \"type\": \"tdd_violation\",\n      \"priority\": \"high\",\n      \"message\": \"No tests found in test file\",\n      \"action\": \"Write tests before implementing functionality\"\n    }\n  ],\n  \"memory\": {\n    \"stored\": true,\n    \"enhancedStore\": true\n  },\n  \"logs\": [\n    {\n      \"level\": \"info\",\n      \"message\": \"Running enhanced validation...\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"error\",\n      \"message\": \"Validation failed (1 errors, 0 warnings)\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"info\",\n      \"message\": \"Analyzing formatting...\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"warning\",\n      \"message\": \"Formatting needed: 2044 changes\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"test\",\n      \"message\": \"Executing TDD tests...\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"success\",\n      \"message\": \"Tests executed with jest\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"test\",\n      \"message\": \"Test results: 0/0 passed, 0 failed\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"info\",\n      \"message\": \"Generating recommendations...\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"info\",\n      \"message\": \"Generated 7 recommendations (3 high priority)\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"success\",\n      \"message\": \"Data stored in enhanced memory\",\n      \"data\": {}\n    },\n    {\n      \"level\": \"success\",\n      \"message\": \"Enhanced post-edit hook completed successfully\",\n      \"data\": {}\n    }\n  ],\n  \"blocking\": false,\n  \"communication\": {\n    \"enabled\": false,\n    \"metrics\": {\n      \"messagesPublished\": 3,\n      \"messagesReceived\": 0,\n      \"averageLatency\": 0.225798228799925,\n      \"peakLatency\": 1.4045059999998557,\n      \"totalBytes\": 8750,\n      \"messagesPerSecond\": 1.7053379214294761e-9,\n      \"averageThroughput\": 0.000004973902270835972,\n      \"communicationEnabled\": false,\n      \"subscribers\": 1\n    },\n    \"subscribers\": 1\n  }\n}\n",
+        "error": ""
+      }
+    ],
+    "fullstackSwarm": [],
+    "performance": [
+      {
+        "description": "Basic Test Runner Validation",
+        "category": "performance",
+        "command": "npm test -- tests/unit/example.test.ts",
+        "passed": true,
+        "duration": 26416,
+        "output": "\n> claude-flow-novice@1.4.1 test\n> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/unit/example.test.ts\n\n",
+        "error": ""
+      }
+    ],
+    "integration": [
+      {
+        "description": "Simple Example Test",
+        "category": "integration",
+        "command": "npm test -- tests/unit/simple-example.test.ts",
+        "passed": true,
+        "duration": 26725,
+        "output": "\n> claude-flow-novice@1.4.1 test\n> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/unit/simple-example.test.ts\n\n",
+        "error": ""
+      }
+    ],
+    "unit": []
+  },
+  "performanceMetrics": {
+    "communicationBus": {
+      "agentCount": 5,
+      "averageLatency": 0.6323586124800868,
+      "peakLatency": 5.238663000000088,
+      "totalMessages": 15,
+      "averageThroughput": 0.000004996641174684189
+    },
+    "memoryOperations": {},
+    "testExecution": {}
+  },
+  "errors": []
+}

@@ -2,7 +2,7 @@
 name: perf-analyzer
 type: optimizer
 color: "#FF9800"
-description: Performance optimization specialist with advanced profiling and benchmarking expertise
+description: MUST BE USED when analyzing performance issues, optimizing code, or identifying bottlenecks. use PROACTIVELY for profiling applications, memory leak detection, database query optimization, latency reduction, throughput improvement, capacity planning, load testing, and monitoring setup. ALWAYS delegate when user asks to "optimize", "improve performance", "make it faster", "reduce latency", "analyze bottlenecks", "profile code", "benchmark system", "tune database", "scale application", "test load", or "monitor performance". Keywords - performance, optimize, bottleneck, profile, latency, throughput, speed, memory leak, database tuning, caching, load test, scalability, monitoring, capacity, efficiency
 capabilities:
   - performance_profiling
   - bottleneck_analysis

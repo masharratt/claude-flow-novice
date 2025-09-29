@@ -2,7 +2,7 @@
 name: architecture
 type: architect
 color: purple
-description: SPARC Architecture phase specialist for system design
+description: MUST BE USED when designing system architecture, component structure, or technical infrastructure in SPARC methodology. use PROACTIVELY for system design, component architecture, interface design, technology selection, scalability planning, deployment architecture, infrastructure design, API design, database schema design. ALWAYS delegate when user asks to "design architecture", "SPARC architecture", "system design", "component design", "choose tech stack", "design API", "database schema", "scalability plan", "deployment strategy". Keywords - SPARC, architecture, system design, components, scalability, infrastructure, microservices, API, database, deployment, tech stack, design patterns
 capabilities:
   - system_design
   - component_architecture

@@ -15,15 +15,15 @@
  * - Concurrent throughput: >5M events/second
  */
 
-import { EventEmitter } from 'node:events';
-import { performance } from 'perf_hooks';
+import { EventEmitter } from "node:events";
+import { performance } from "perf_hooks";
 import {
   LockFreeHashTable,
   LockFreeRingBuffer,
-  AtomicOperations
-} from '../memory/lock-free-structures.js';
-import { IEventBus } from '../core/event-bus.js';
-import { ILogger } from '../core/logger.js';
+  AtomicOperations,
+} from "../memory/lock-free-structures.js";
+import { IEventBus } from "../core/event-bus.js";
+import { ILogger } from "../core/logger.js";
 
 export interface EventBusConfig {
   // Performance settings
@@ -97,23 +97,33 @@ export enum EventPriority {
   CRITICAL = 0,
   HIGH = 1,
   NORMAL = 2,
-  LOW = 3
+  LOW = 3,
 }
 
 export interface EventFilter {
   conditions: FilterCondition[];
-  operator: 'AND' | 'OR';
+  operator: "AND" | "OR";
 }
 
 export interface FilterCondition {
   field: string;
-  operator: 'eq' | 'ne' | 'gt' | 'lt' | 'gte' | 'lte' | 'contains' | 'matches' | 'in' | 'exists';
+  operator:
+    | "eq"
+    | "ne"
+    | "gt"
+    | "lt"
+    | "gte"
+    | "lte"
+    | "contains"
+    | "matches"
+    | "in"
+    | "exists";
   value: any;
   caseSensitive?: boolean;
 }
 
 export interface EventTransform {
-  type: 'map' | 'filter' | 'reduce' | 'aggregate';
+  type: "map" | "filter" | "reduce" | "aggregate";
   function: string; // Serialized function
   config: any;
 }
@@ -122,8 +132,8 @@ export interface SubscriptionGroup {
   id: string;
   name: string;
   members: Set<string>;
-  loadBalancing: 'round-robin' | 'random' | 'least-busy';
-  deliveryMode: 'all' | 'one-of' | 'broadcast';
+  loadBalancing: "round-robin" | "random" | "least-busy";
+  deliveryMode: "all" | "one-of" | "broadcast";
 }
 
 export interface EventDeliveryResult {
@@ -189,7 +199,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       eventPoolSize: 64 * 1024 * 1024, // 64MB
       enableMetrics: true,
       metricsInterval: 1000,
-      ...config
+      ...config,
     };
 
     this.logger = logger;
@@ -209,28 +219,28 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
     this.subscriptionTable = new LockFreeHashTable(
       this.sharedBuffer,
       16384, // 16K buckets
-      4096
+      4096,
     );
 
     // Initialize priority queues
     for (let priority = 0; priority < 4; priority++) {
-      const queueOffset = 4096 + 16384 * 32 + (priority * 16 * 1024 * 1024);
+      const queueOffset = 4096 + 16384 * 32 + priority * 16 * 1024 * 1024;
       this.eventQueues.set(
         priority as EventPriority,
         new LockFreeRingBuffer(
           this.sharedBuffer,
           queueOffset,
-          16 * 1024 * 1024 // 16MB per priority queue
-        )
+          16 * 1024 * 1024, // 16MB per priority queue
+        ),
       );
     }
 
     // Initialize dead letter queue
-    const dlqOffset = 4096 + 16384 * 32 + (4 * 16 * 1024 * 1024);
+    const dlqOffset = 4096 + 16384 * 32 + 4 * 16 * 1024 * 1024;
     this.deadLetterQueue = new LockFreeRingBuffer(
       this.sharedBuffer,
       dlqOffset,
-      8 * 1024 * 1024 // 8MB for DLQ
+      8 * 1024 * 1024, // 8MB for DLQ
     );
 
     // Initialize metrics
@@ -245,8 +255,8 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
           this.subscriptions,
           this.topicTree,
           this.config,
-          this.logger
-        )
+          this.logger,
+        ),
       );
     }
   }
@@ -255,10 +265,10 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    * Start the event bus
    */
   async start(): Promise<void> {
-    this.logger.info('Starting Enhanced Event Bus', {
+    this.logger.info("Starting Enhanced Event Bus", {
       maxSubscriptions: this.config.maxSubscriptions,
       bufferSize: `${this.config.sharedBufferSize / 1024 / 1024}MB`,
-      enableWildcards: this.config.enableWildcards
+      enableWildcards: this.config.enableWildcards,
     });
 
     this.isRunning = true;
@@ -273,8 +283,8 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       this.startMetricsCollection();
     }
 
-    this.emit('eventbus:started');
-    this.logger.info('Enhanced Event Bus started successfully');
+    this.emit("eventbus:started");
+    this.logger.info("Enhanced Event Bus started successfully");
   }
 
   /**
@@ -289,7 +299,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       transform?: EventTransform;
       ackRequired?: boolean;
       groupId?: string;
-    } = {}
+    } = {},
   ): Promise<string> {
     const subscriptionId = this.generateSubscriptionId();
     const now = process.hrtime.bigint();
@@ -312,7 +322,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       createdAt: now,
       lastMatch: BigInt(0),
       matchCount: BigInt(0),
-      errorCount: BigInt(0)
+      errorCount: BigInt(0),
     };
 
     // Validate subscription
@@ -336,16 +346,16 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
 
     this.metrics.recordSubscription(subscription);
 
-    this.logger.debug('Subscription created', {
+    this.logger.debug("Subscription created", {
       subscriptionId,
       subscriberId,
       pattern,
       priority: subscription.priority,
       hasFilter: !!subscription.filter,
-      hasTransform: !!subscription.transform
+      hasTransform: !!subscription.transform,
     });
 
-    this.emit('subscription:created', { subscription });
+    this.emit("subscription:created", { subscription });
 
     return subscriptionId;
   }
@@ -356,7 +366,9 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
   async unsubscribe(subscriptionId: string): Promise<boolean> {
     const subscription = this.subscriptions.get(subscriptionId);
     if (!subscription) {
-      this.logger.warn('Subscription not found for unsubscribe', { subscriptionId });
+      this.logger.warn("Subscription not found for unsubscribe", {
+        subscriptionId,
+      });
       return false;
     }
 
@@ -377,13 +389,13 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
 
     this.metrics.recordUnsubscription(subscription);
 
-    this.logger.debug('Subscription removed', {
+    this.logger.debug("Subscription removed", {
       subscriptionId,
       subscriberId: subscription.subscriberId,
-      pattern: subscription.pattern
+      pattern: subscription.pattern,
     });
 
-    this.emit('subscription:removed', { subscriptionId, subscription });
+    this.emit("subscription:removed", { subscriptionId, subscription });
 
     return true;
   }
@@ -420,10 +432,9 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       this.metrics.recordEventEmitted(envelope, Number(enqueueDuration));
 
       return true;
-
     } catch (error) {
-      this.logger.error('Event emission failed', { event, error });
-      this.metrics.recordError('emit_failed', error);
+      this.logger.error("Event emission failed", { event, error });
+      this.metrics.recordError("emit_failed", error);
       return false;
     }
   }
@@ -433,14 +444,14 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    */
   on(event: string, handler: (data: unknown) => void): void {
     // Create internal subscription for compatibility
-    this.subscribe('internal', event, {
-      priority: EventPriority.NORMAL
-    }).then(subscriptionId => {
+    this.subscribe("internal", event, {
+      priority: EventPriority.NORMAL,
+    }).then((subscriptionId) => {
       // Store handler mapping
       this.subscriptions.get(subscriptionId)!.transform = {
-        type: 'map',
+        type: "map",
         function: handler.toString(),
-        config: {}
+        config: {},
       };
     });
 
@@ -453,7 +464,10 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
   off(event: string, handler: (data: unknown) => void): void {
     // Find and remove matching subscription
     for (const [subscriptionId, subscription] of this.subscriptions) {
-      if (subscription.pattern === event && subscription.subscriberId === 'internal') {
+      if (
+        subscription.pattern === event &&
+        subscription.subscriberId === "internal"
+      ) {
         this.unsubscribe(subscriptionId);
         break;
       }
@@ -480,34 +494,37 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
     groupId: string,
     name: string,
     config: {
-      loadBalancing?: 'round-robin' | 'random' | 'least-busy';
-      deliveryMode?: 'all' | 'one-of' | 'broadcast';
-    } = {}
+      loadBalancing?: "round-robin" | "random" | "least-busy";
+      deliveryMode?: "all" | "one-of" | "broadcast";
+    } = {},
   ): Promise<void> {
     const group: SubscriptionGroup = {
       id: groupId,
       name,
       members: new Set(),
-      loadBalancing: config.loadBalancing || 'round-robin',
-      deliveryMode: config.deliveryMode || 'one-of'
+      loadBalancing: config.loadBalancing || "round-robin",
+      deliveryMode: config.deliveryMode || "one-of",
     };
 
     this.subscriptionGroups.set(groupId, group);
 
-    this.logger.info('Subscription group created', {
+    this.logger.info("Subscription group created", {
       groupId,
       name,
       loadBalancing: group.loadBalancing,
-      deliveryMode: group.deliveryMode
+      deliveryMode: group.deliveryMode,
     });
 
-    this.emit('group:created', { group });
+    this.emit("group:created", { group });
   }
 
   /**
    * Add subscription to group
    */
-  private async addToSubscriptionGroup(groupId: string, subscriptionId: string): Promise<void> {
+  private async addToSubscriptionGroup(
+    groupId: string,
+    subscriptionId: string,
+  ): Promise<void> {
     const group = this.subscriptionGroups.get(groupId);
     if (!group) {
       throw new Error(`Subscription group not found: ${groupId}`);
@@ -515,10 +532,10 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
 
     group.members.add(subscriptionId);
 
-    this.logger.debug('Added subscription to group', {
+    this.logger.debug("Added subscription to group", {
       groupId,
       subscriptionId,
-      groupSize: group.members.size
+      groupSize: group.members.size,
     });
   }
 
@@ -533,18 +550,18 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       type: event,
       data,
       metadata: {
-        source: 'enhanced-event-bus',
-        version: '1.0',
-        contentType: 'application/json',
-        encoding: 'utf-8',
+        source: "enhanced-event-bus",
+        version: "1.0",
+        contentType: "application/json",
+        encoding: "utf-8",
         compressed: false,
         size: this.calculateDataSize(data),
         tags: [],
-        customFields: new Map()
+        customFields: new Map(),
       },
       priority: this.determineEventPriority(event),
       timestamp: now,
-      retryCount: 0
+      retryCount: 0,
     };
   }
 
@@ -553,12 +570,16 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    */
   private determineEventPriority(event: string): EventPriority {
     // Critical system events
-    if (event.startsWith('system:') || event.includes('error') || event.includes('alert')) {
+    if (
+      event.startsWith("system:") ||
+      event.includes("error") ||
+      event.includes("alert")
+    ) {
       return EventPriority.CRITICAL;
     }
 
     // High priority agent events
-    if (event.startsWith('agent:') || event.includes('coordination')) {
+    if (event.startsWith("agent:") || event.includes("coordination")) {
       return EventPriority.HIGH;
     }
 
@@ -570,7 +591,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    * Add subscription to topic tree for fast matching
    */
   private addToTopicTree(pattern: string, subscriptionId: string): void {
-    const segments = pattern.split('.');
+    const segments = pattern.split(".");
     let currentNode = this.topicTree;
 
     for (const segment of segments) {
@@ -580,7 +601,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
           children: new Map(),
           subscriptions: new Set(),
           wildcardSubscriptions: new Set(),
-          isWildcard: segment === '*' || segment === '**'
+          isWildcard: segment === "*" || segment === "**",
         });
       }
       currentNode = currentNode.children.get(segment)!;
@@ -598,7 +619,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    * Remove subscription from topic tree
    */
   private removeFromTopicTree(pattern: string, subscriptionId: string): void {
-    const segments = pattern.split('.');
+    const segments = pattern.split(".");
     let currentNode = this.topicTree;
 
     // Navigate to leaf node
@@ -621,7 +642,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    */
   findMatchingSubscriptions(eventType: string): Set<string> {
     const matches = new Set<string>();
-    const segments = eventType.split('.');
+    const segments = eventType.split(".");
 
     this.traverseTopicTree(this.topicTree, segments, 0, matches);
 
@@ -635,7 +656,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
     node: TopicNode,
     segments: string[],
     segmentIndex: number,
-    matches: Set<string>
+    matches: Set<string>,
   ): void {
     // Exact match at leaf
     if (segmentIndex === segments.length) {
@@ -657,13 +678,18 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
     }
 
     // Check single-level wildcard (*)
-    const singleWildcard = node.children.get('*');
+    const singleWildcard = node.children.get("*");
     if (singleWildcard) {
-      this.traverseTopicTree(singleWildcard, segments, segmentIndex + 1, matches);
+      this.traverseTopicTree(
+        singleWildcard,
+        segments,
+        segmentIndex + 1,
+        matches,
+      );
     }
 
     // Check multi-level wildcard (**)
-    const multiWildcard = node.children.get('**');
+    const multiWildcard = node.children.get("**");
     if (multiWildcard) {
       // Multi-level wildcard matches everything from here
       for (const subscriptionId of multiWildcard.subscriptions) {
@@ -685,30 +711,35 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    */
   private validateSubscription(subscription: EventSubscription): void {
     if (!subscription.pattern) {
-      throw new Error('Subscription pattern is required');
+      throw new Error("Subscription pattern is required");
     }
 
     if (!subscription.subscriberId) {
-      throw new Error('Subscriber ID is required');
+      throw new Error("Subscriber ID is required");
     }
 
     if (this.subscriptions.size >= this.config.maxSubscriptions) {
-      throw new Error(`Maximum subscriptions reached: ${this.config.maxSubscriptions}`);
+      throw new Error(
+        `Maximum subscriptions reached: ${this.config.maxSubscriptions}`,
+      );
     }
 
     // Validate filter
     if (subscription.filter && !this.config.enableFilters) {
-      throw new Error('Filters are not enabled');
+      throw new Error("Filters are not enabled");
     }
 
     // Validate transform
     if (subscription.transform && !this.config.enableTransforms) {
-      throw new Error('Transforms are not enabled');
+      throw new Error("Transforms are not enabled");
     }
 
     // Validate pattern
-    if (this.isWildcardPattern(subscription.pattern) && !this.config.enableWildcards) {
-      throw new Error('Wildcards are not enabled');
+    if (
+      this.isWildcardPattern(subscription.pattern) &&
+      !this.config.enableWildcards
+    ) {
+      throw new Error("Wildcards are not enabled");
     }
   }
 
@@ -716,7 +747,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    * Check if pattern contains wildcards
    */
   private isWildcardPattern(pattern: string): boolean {
-    return pattern.includes('*');
+    return pattern.includes("*");
   }
 
   /**
@@ -730,9 +761,9 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
 
     // Convert wildcard pattern to regex
     let regexPattern = pattern
-      .replace(/\./g, '\\.')
-      .replace(/\*\*/g, '.*')
-      .replace(/\*/g, '[^.]*');
+      .replace(/\./g, "\\.")
+      .replace(/\*\*/g, ".*")
+      .replace(/\*/g, "[^.]*");
 
     regexPattern = `^${regexPattern}$`;
 
@@ -753,7 +784,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
     let hash = 0;
     for (let i = 0; i < pattern.length; i++) {
       const char = pattern.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return hash;
@@ -771,7 +802,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       priority: envelope.priority,
       timestamp: envelope.timestamp.toString(),
       correlationId: envelope.correlationId,
-      retryCount: envelope.retryCount
+      retryCount: envelope.retryCount,
     });
 
     return new TextEncoder().encode(jsonData);
@@ -789,19 +820,19 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       type: parsed.type,
       data: parsed.data,
       metadata: {
-        source: 'enhanced-event-bus',
-        version: '1.0',
-        contentType: 'application/json',
-        encoding: 'utf-8',
+        source: "enhanced-event-bus",
+        version: "1.0",
+        contentType: "application/json",
+        encoding: "utf-8",
         compressed: false,
         size: data.length,
         tags: [],
-        customFields: new Map()
+        customFields: new Map(),
       },
       priority: parsed.priority,
       timestamp: BigInt(parsed.timestamp),
       correlationId: parsed.correlationId,
-      retryCount: parsed.retryCount || 0
+      retryCount: parsed.retryCount || 0,
     };
   }
 
@@ -809,26 +840,26 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    * Handle queue overflow
    */
   private handleQueueOverflow(envelope: EventEnvelope): void {
-    this.logger.warn('Event queue overflow', {
+    this.logger.warn("Event queue overflow", {
       eventType: envelope.type,
-      priority: envelope.priority
+      priority: envelope.priority,
     });
 
     // Try to add to dead letter queue
     if (this.config.enableDeadLetterQueue) {
       const dlqEntry = this.serializeEvent({
         ...envelope,
-        data: { originalEvent: envelope, reason: 'queue_overflow' }
+        data: { originalEvent: envelope, reason: "queue_overflow" },
       });
 
       if (!this.deadLetterQueue.enqueue(dlqEntry)) {
-        this.logger.error('Dead letter queue also full', {
-          eventType: envelope.type
+        this.logger.error("Dead letter queue also full", {
+          eventType: envelope.type,
         });
       }
     }
 
-    this.metrics.recordError('queue_overflow', new Error('Queue overflow'));
+    this.metrics.recordError("queue_overflow", new Error("Queue overflow"));
   }
 
   /**
@@ -843,11 +874,11 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    */
   private createRootNode(): TopicNode {
     return {
-      segment: '',
+      segment: "",
       children: new Map(),
       subscriptions: new Set(),
       wildcardSubscriptions: new Set(),
-      isWildcard: false
+      isWildcard: false,
     };
   }
 
@@ -865,7 +896,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
   private startMetricsCollection(): void {
     this.metricsInterval = setInterval(() => {
       this.updateMetrics();
-      this.emit('metrics:updated', this.getMetrics());
+      this.emit("metrics:updated", this.getMetrics());
     }, this.config.metricsInterval);
   }
 
@@ -901,20 +932,24 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
         total: this.subscriptions.size,
         byPriority: this.getSubscriptionsByPriority(),
         withFilters: this.getSubscriptionsWithFilters(),
-        withTransforms: this.getSubscriptionsWithTransforms()
+        withTransforms: this.getSubscriptionsWithTransforms(),
       },
       queues: Object.fromEntries(
-        Array.from(this.eventQueues.entries())
-          .map(([priority, queue]) => [priority, queue.getStats()])
+        Array.from(this.eventQueues.entries()).map(([priority, queue]) => [
+          priority,
+          queue.getStats(),
+        ]),
       ),
       deadLetterQueue: this.deadLetterQueue.getStats(),
       topicTree: this.getTopicTreeStats(),
       performance: this.metrics.getPerformanceStats(),
       groups: {
         total: this.subscriptionGroups.size,
-        totalMembers: Array.from(this.subscriptionGroups.values())
-          .reduce((sum, group) => sum + group.members.size, 0)
-      }
+        totalMembers: Array.from(this.subscriptionGroups.values()).reduce(
+          (sum, group) => sum + group.members.size,
+          0,
+        ),
+      },
     };
   }
 
@@ -924,7 +959,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
   private getSubscriptionsByPriority(): Record<string, number> {
     const byPriority: Record<string, number> = {};
     for (const priority of Object.values(EventPriority)) {
-      if (typeof priority === 'number') {
+      if (typeof priority === "number") {
         byPriority[EventPriority[priority]] = 0;
       }
     }
@@ -941,16 +976,17 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    * Count subscriptions with filters
    */
   private getSubscriptionsWithFilters(): number {
-    return Array.from(this.subscriptions.values())
-      .filter(sub => !!sub.filter).length;
+    return Array.from(this.subscriptions.values()).filter((sub) => !!sub.filter)
+      .length;
   }
 
   /**
    * Count subscriptions with transforms
    */
   private getSubscriptionsWithTransforms(): number {
-    return Array.from(this.subscriptions.values())
-      .filter(sub => !!sub.transform).length;
+    return Array.from(this.subscriptions.values()).filter(
+      (sub) => !!sub.transform,
+    ).length;
   }
 
   /**
@@ -961,7 +997,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
       totalNodes: 0,
       maxDepth: 0,
       subscriptionNodes: 0,
-      wildcardNodes: 0
+      wildcardNodes: 0,
     };
 
     this.calculateTopicTreeStats(this.topicTree, 0, stats);
@@ -972,7 +1008,11 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
   /**
    * Calculate topic tree statistics recursively
    */
-  private calculateTopicTreeStats(node: TopicNode, depth: number, stats: any): void {
+  private calculateTopicTreeStats(
+    node: TopicNode,
+    depth: number,
+    stats: any,
+  ): void {
     stats.totalNodes++;
     stats.maxDepth = Math.max(stats.maxDepth, depth);
 
@@ -993,7 +1033,7 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
    * Graceful shutdown
    */
   async shutdown(): Promise<void> {
-    this.logger.info('Shutting down Enhanced Event Bus');
+    this.logger.info("Shutting down Enhanced Event Bus");
 
     this.isRunning = false;
 
@@ -1011,8 +1051,8 @@ export class EnhancedEventBus extends EventEmitter implements IEventBus {
     this.subscriptions.clear();
     this.subscriptionGroups.clear();
 
-    this.emit('eventbus:shutdown');
-    this.logger.info('Enhanced Event Bus shutdown complete');
+    this.emit("eventbus:shutdown");
+    this.logger.info("Enhanced Event Bus shutdown complete");
   }
 }
 
@@ -1029,7 +1069,7 @@ class EventProcessor {
     private subscriptions: Map<string, EventSubscription>,
     private topicTree: TopicNode,
     private config: EventBusConfig,
-    private logger: ILogger
+    private logger: ILogger,
   ) {}
 
   start(): void {
@@ -1049,15 +1089,20 @@ class EventProcessor {
   private processEvents(): void {
     if (!this.isRunning) return;
 
-    // Process events by priority (critical first)
+    // Process events by priority (critical first) in batches
     for (let priority = 0; priority < 4; priority++) {
       const queue = this.eventQueues.get(priority as EventPriority);
       if (!queue) continue;
 
-      const eventData = queue.dequeue();
-      if (!eventData) continue;
+      // Process multiple events per cycle for better throughput
+      const batchSize = 32;
+      for (let i = 0; i < batchSize; i++) {
+        const eventData = queue.dequeue();
+        if (!eventData) break;
 
-      this.processEvent(eventData);
+        // Process asynchronously to avoid blocking
+        setImmediate(() => this.processEvent(eventData));
+      }
     }
   }
 
@@ -1076,15 +1121,15 @@ class EventBusMetrics {
   private errorCounts = new Map<string, bigint>();
 
   recordSubscription(subscription: EventSubscription): void {
-    this.incrementCounter('subscriptions_created');
+    this.incrementCounter("subscriptions_created");
   }
 
   recordUnsubscription(subscription: EventSubscription): void {
-    this.incrementCounter('subscriptions_removed');
+    this.incrementCounter("subscriptions_removed");
   }
 
   recordEventEmitted(envelope: EventEnvelope, latency: number): void {
-    this.incrementCounter('events_emitted');
+    this.incrementCounter("events_emitted");
     this.recordLatency(latency);
   }
 
@@ -1107,14 +1152,18 @@ class EventBusMetrics {
   getPerformanceStats(): any {
     return {
       counters: Object.fromEntries(
-        Array.from(this.eventCounts.entries())
-          .map(([key, value]) => [key, Number(value)])
+        Array.from(this.eventCounts.entries()).map(([key, value]) => [
+          key,
+          Number(value),
+        ]),
       ),
       latency: this.getLatencyStats(),
       errors: Object.fromEntries(
-        Array.from(this.errorCounts.entries())
-          .map(([key, value]) => [key, Number(value)])
-      )
+        Array.from(this.errorCounts.entries()).map(([key, value]) => [
+          key,
+          Number(value),
+        ]),
+      ),
     };
   }
 
@@ -1142,7 +1191,7 @@ class EventBusMetrics {
       median: sorted[Math.floor(sorted.length / 2)],
       p95: sorted[Math.floor(sorted.length * 0.95)],
       p99: sorted[Math.floor(sorted.length * 0.99)],
-      avg: sorted.reduce((a, b) => a + b, 0) / sorted.length
+      avg: sorted.reduce((a, b) => a + b, 0) / sorted.length,
     };
   }
 }

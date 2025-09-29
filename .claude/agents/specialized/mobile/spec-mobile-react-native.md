@@ -7,7 +7,7 @@ created: "2025-07-25"
 author: "Claude Code"
 
 metadata:
-  description: "Expert agent for React Native mobile application development across iOS and Android"
+  description: "MUST BE USED when developing React Native mobile apps, cross-platform features, or mobile UI. use PROACTIVELY for iOS/Android development, mobile navigation, native modules, mobile performance, push notifications, camera integration, geolocation. ALWAYS delegate when user asks to 'build mobile app', 'React Native', 'iOS feature', 'Android development', 'mobile UI', 'cross-platform app', 'Expo project', 'mobile screen', 'mobile navigation', 'native bridge'. Keywords - React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module, mobile UI, TouchableOpacity, FlatList, navigation"
   specialization: "React Native, mobile UI/UX, native modules, cross-platform development"
   complexity: "complex"
   autonomous: true
@@ -37,7 +37,7 @@ triggers:
     - "cross-platform"
 
 capabilities:
-  allowed_tools:
+  tools:
     - Read
     - Write
     - Edit

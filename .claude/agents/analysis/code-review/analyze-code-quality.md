@@ -34,7 +34,7 @@ triggers:
     - "quality"
 
 capabilities:
-  allowed_tools:
+  tools:
     - Read
     - Grep
     - Glob

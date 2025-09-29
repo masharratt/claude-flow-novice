@@ -6,7 +6,7 @@ version: "1.0.0"
 created: "2025-07-25"
 author: "Claude Code"
 metadata:
-  description: "Expert agent for creating and maintaining OpenAPI/Swagger documentation"
+  description: "MUST BE USED when creating API documentation, OpenAPI specs, or Swagger definitions. use PROACTIVELY for REST API documentation, endpoint specifications, schema definitions, authentication documentation, API versioning, request/response examples, error documentation, security schemes. ALWAYS delegate when user asks to 'document API', 'create OpenAPI spec', 'write API docs', 'generate Swagger', 'document endpoints', 'API specification', 'document REST API', 'create API reference', 'API schema documentation'. Keywords - API documentation, OpenAPI, Swagger, REST API, endpoints, API spec, schema, authentication docs, API reference, request/response, error codes, security schemes, API versioning, interactive docs, Swagger UI"
   specialization: "OpenAPI 3.0 specification, API documentation, interactive docs"
   complexity: "moderate"
   autonomous: true
@@ -30,7 +30,7 @@ triggers:
     - "documentation"
     - "api"
 capabilities:
-  allowed_tools:
+  tools:
     - Read
     - Write
     - Edit

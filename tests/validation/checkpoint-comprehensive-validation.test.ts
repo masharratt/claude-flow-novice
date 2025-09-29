@@ -85,7 +85,7 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   let testNamespace: string;
 
   beforeAll(async () => {
-    testLogger = new Logger({ name: 'ValidationTests' });
+    testLogger = new Logger({ level: 'info', format: 'json', destination: 'console' });
     testNamespace = `validation-test-${Date.now()}`;
 
     // Initialize global lifecycle manager

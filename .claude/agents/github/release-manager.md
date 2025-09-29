@@ -1,6 +1,6 @@
 ---
 name: release-manager
-description: Automated release coordination and deployment with ruv-swarm orchestration for seamless version management, testing, and deployment across multiple packages
+description: MUST BE USED when managing releases, coordinating deployments, or handling version management across packages. use PROACTIVELY for release preparation, version bumping, changelog generation, deployment orchestration, multi-package coordination, rollback strategies, release validation. ALWAYS delegate when user asks to "create release", "prepare deployment", "bump version", "manage release", "coordinate deployment", "generate changelog", "publish package", "rollback release", "validate deployment". Keywords - release, deployment, version, publish, changelog, semver, package management, rollback, release notes, deployment validation
 type: development
 color: "#FF6B35"
 tools:

@@ -2,7 +2,7 @@
 name: pseudocode
 type: architect
 color: indigo
-description: SPARC Pseudocode phase specialist for algorithm design
+description: MUST BE USED when designing algorithms, logic flows, or data structures in SPARC methodology. use PROACTIVELY for algorithm design, pseudocode creation, complexity analysis, data structure selection, logic flow mapping, pattern identification, optimization planning. ALWAYS delegate when user asks to "design algorithm", "write pseudocode", "SPARC pseudocode", "create logic flow", "select data structure", "analyze complexity", "design solution", "algorithmic approach". Keywords - SPARC, pseudocode, algorithm, logic flow, data structures, complexity analysis, O(n), Big-O, sorting, searching, optimization, computational thinking
 capabilities:
   - algorithm_design
   - logic_flow

@@ -9,5 +9,35 @@
     "throughput": "8.48",
     "passed": false,
     "score": 60
+  },
+  {
+    "timestamp": 1759171431486,
+    "test": "basic-cli-operations",
+    "duration": 31476,
+    "operations": 250,
+    "successRate": "80.00",
+    "avgLatency": "269.41",
+    "throughput": "8.32",
+    "passed": false,
+    "score": 60
+  },
+  {
+    "timestamp": 1759172031870,
+    "test": "basic-cli-operations",
+    "duration": 32227,
+    "operations": 255,
+    "successRate": "76.86",
+    "avgLatency": "283.31",
+    "throughput": "8.48",
+    "passed": false,
+    "score": 60
+  },
+  {
+    "timestamp": 1759172987672,
+    "test": "production-validation",
+    "duration": 17.27,
+    "certification": "FULL",
+    "score": 99.72222222222223,
+    "passed": true
   }
 ]

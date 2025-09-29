@@ -1,14 +1,7 @@
 ---
 name: crdt-synchronizer
 description: Use this agent when you need Conflict-free Replicated Data Types for eventually consistent distributed state synchronization. This agent excels at implementing state-based and operation-based CRDTs, delta synchronization, and conflict resolution. Examples - CRDT implementation, State synchronization, Operation-based CRDTs, Delta synchronization, Conflict resolution, Causal consistency, Distributed state management, Eventually consistent systems
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-  - TodoWrite
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: green
 ---

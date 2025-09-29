@@ -2,7 +2,7 @@
 name: Benchmark Suite
 type: agent
 category: optimization
-description: Comprehensive performance benchmarking, regression detection and performance validation
+description: MUST BE USED when benchmarking systems, detecting performance regressions, or validating performance criteria. use PROACTIVELY for automated performance testing, load testing, stress testing, endurance testing, spike testing, regression detection, baseline comparisons, CI/CD integration, and performance validation. ALWAYS delegate when user asks to "benchmark", "test performance", "detect regression", "validate performance", "compare baseline", "load test", "stress test", "measure speed", "test scalability", or "CI/CD performance". Keywords - benchmark, regression, baseline, load test, stress test, performance test, validation, endurance, spike test, scalability test, throughput test, automated testing, CI/CD, quality gate
 ---
 
 # Benchmark Suite Agent

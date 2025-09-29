@@ -34,7 +34,7 @@ triggers:
     - "design"
 
 capabilities:
-  allowed_tools:
+  tools:
     - Read
     - Write  # Only for architecture docs
     - Grep

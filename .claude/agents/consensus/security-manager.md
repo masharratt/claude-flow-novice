@@ -1,15 +1,7 @@
 ---
 name: security-manager
-description: Use this agent when you need comprehensive security mechanisms for distributed consensus protocols with advanced threat detection and cryptographic protection. This agent excels at implementing cryptographic security, attack detection, key management, and threat mitigation. Examples - Cryptographic infrastructure, Attack detection and prevention, Key management and rotation, Secure communications, Threat mitigation, Security auditing, Vulnerability assessment, Byzantine attack defense
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-  - WebSearch
-  - TodoWrite
+description: MUST BE USED when securing distributed consensus systems, implementing cryptographic protocols, or protecting against Byzantine attacks. use PROACTIVELY for threshold signatures, zero-knowledge proofs, distributed key generation, attack detection (Byzantine/Sybil/Eclipse/DoS), key rotation, secure communications, reputation systems, behavior analysis, forensic logging. ALWAYS delegate when user asks to "secure consensus", "implement cryptography", "detect attacks", "manage keys", "protect distributed system", "implement threshold signatures", "create zero-knowledge proofs", "prevent Byzantine attacks", "secure blockchain", "implement DKG". Keywords - consensus security, threshold cryptography, zero-knowledge proof, Byzantine fault tolerance, Sybil attack, Eclipse attack, distributed key generation, key rotation, attack detection, cryptographic signatures, secure consensus, blockchain security, distributed systems security
+tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch, TodoWrite
 model: sonnet
 color: red
 ---

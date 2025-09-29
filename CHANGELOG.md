@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2025-09-29
+
+### 🔧 Fixed
+- **Agent Configuration**: Converted all agent YAML frontmatter from array format to comma-separated format
+  - Updated 15+ agent files for proper tool access control
+  - Session reload now required for agent config changes to take effect
+  - Fixes silent tool denial issues where agents couldn't access Write tool
+- **Tool Access**: Improved tool availability for researcher, coder, and other specialized agents
+
+### 📝 Changed
+- All agent `tools:` sections now use comma-separated format: `tools: Read, Write, Bash`
+- Previously: YAML array format with `- Tool` entries (now deprecated)
+
 ## [2.0.0-alpha.111] - 2025-09-28
 
 > **🚀 Full Stack Workflow System**: Revolutionary coordinated looping workflow system enabling iterative full stack development with Chrome Dev MCP, ShadCN MCP, and intelligent agent orchestration in 30-minute development cycles.

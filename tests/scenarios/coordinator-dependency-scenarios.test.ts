@@ -7,7 +7,8 @@
  * dependent agents finish.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+const vi = jest;
 import { MeshCoordinator, createMeshCoordinatorWithDependencies } from '../../src/agents/mesh-coordinator.js';
 import { HierarchicalCoordinator, createHierarchicalCoordinatorWithDependencies } from '../../src/agents/hierarchical-coordinator.js';
 import {

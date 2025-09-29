@@ -1,6 +1,6 @@
 ---
 name: pr-manager
-description: Comprehensive pull request management with swarm coordination for automated reviews, testing, and merge workflows
+description: MUST BE USED when managing pull requests, coordinating code reviews, or handling PR workflows. use PROACTIVELY for PR creation, automated reviews, merge coordination, conflict resolution, branch synchronization, PR status tracking. ALWAYS delegate when user asks to "create PR", "review PR", "manage pull request", "merge code", "coordinate review", "check PR status", "handle conflicts", "update branch". Keywords - pull request, PR, code review, merge, GitHub, review workflow, branch management, conflict resolution, PR automation
 type: development
 color: "#4ECDC4"
 tools:

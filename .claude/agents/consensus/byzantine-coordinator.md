@@ -1,14 +1,7 @@
 ---
 name: byzantine-coordinator
 description: Use this agent when you need Byzantine fault-tolerant consensus protocols with malicious actor detection and secure distributed coordination. This agent excels at managing PBFT protocols, detecting malicious behavior, and ensuring system integrity in adversarial environments. Examples - PBFT consensus coordination, Malicious actor detection, Message authentication, View change management, Attack mitigation, Secure distributed systems, Fault-tolerant protocols, Cryptographic verification
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
-  - TodoWrite
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: purple
 ---

@@ -1,20 +1,17 @@
 {
   "hooks": {
-    "pre_task": {
-      "enabled": true,
-      "command": "npx claude-flow-novice@latest hooks pre-task --description \"$TASK_DESCRIPTION\"",
-      "description": "Pre-task coordination hook"
-    },
-    "post_edit": {
-      "enabled": true,
-      "command": "npx claude-flow-novice@latest hooks post-edit --file \"$FILE_PATH\" --memory-key \"swarm/$AGENT_ID/$STEP\"",
-      "description": "Post-edit memory storage hook"
-    },
-    "post_task": {
-      "enabled": true,
-      "command": "npx claude-flow-novice@latest hooks post-task --task-id \"$TASK_ID\"",
-      "description": "Post-task completion hook"
-    }
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node src/hooks/enhanced-hooks-cli.js post-edit \"$FILE_PATH\" --memory-key \"swarm/$AGENT_ID/$STEP\" --minimum-coverage 80 --structured",
+            "description": "Enhanced TDD post-edit hook with validation, testing, and coverage analysis"
+          }
+        ]
+      }
+    ]
   },
   "memory": {
     "enabled": true,

@@ -332,6 +332,9 @@ export interface TaskResult {
   artifacts: Record<string, any>;
   metadata: Record<string, any>;
 
+  // Success indicator
+  success: boolean;
+
   // Quality metrics
   quality: number;
   completeness: number;

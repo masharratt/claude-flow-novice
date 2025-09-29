@@ -73,20 +73,42 @@ export class Logger implements ILogger {
   static getInstance(config?: LoggingConfig): Logger {
     if (!Logger.instance) {
       if (!config) {
-        // Use default config if none provided and not in test environment
-        const isTestEnv = process.env.CLAUDE_FLOW_ENV === 'test';
+        // Support test environment with silent default config
+        const isTestEnv =
+          process.env.CLAUDE_FLOW_ENV === 'test' ||
+          process.env.NODE_ENV === 'test' ||
+          typeof process.env.JEST_WORKER_ID !== 'undefined';
+
         if (isTestEnv) {
-          throw new Error('Logger configuration required for initialization');
+          // Provide silent logger for tests to avoid noise
+          config = {
+            level: 'error', // Only show errors in tests by default
+            format: 'json',
+            destination: 'console',
+          };
+        } else {
+          // Default production config
+          config = {
+            level: 'info',
+            format: 'json',
+            destination: 'console',
+          };
         }
-        config = {
-          level: 'info',
-          format: 'json',
-          destination: 'console',
-        };
       }
       Logger.instance = new Logger(config);
     }
     return Logger.instance;
+  }
+
+  /**
+   * Resets the singleton instance (useful for testing)
+   */
+  static resetInstance(): void {
+    if (Logger.instance) {
+      // Close any open file handles before resetting
+      Logger.instance.close().catch(console.error);
+    }
+    Logger.instance = null as any;
   }
 
   /**
@@ -309,5 +331,12 @@ export class Logger implements ILogger {
   }
 }
 
-// Export singleton instance with lazy initialization
-export const logger = Logger.getInstance();
+// Export singleton instance getter function to avoid module-level initialization
+export const logger = (() => {
+  try {
+    return Logger.getInstance();
+  } catch {
+    // In test environment without configuration, return null
+    return null as any;
+  }
+})();

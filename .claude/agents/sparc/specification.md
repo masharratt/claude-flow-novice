@@ -2,7 +2,7 @@
 name: specification
 type: analyst
 color: blue
-description: SPARC Specification phase specialist for requirements analysis
+description: MUST BE USED when defining requirements, specifications, or problem analysis in SPARC methodology. use PROACTIVELY for requirements gathering, constraint identification, acceptance criteria definition, scope analysis, stakeholder requirements, domain analysis, use case documentation. ALWAYS delegate when user asks to "define requirements", "create spec", "analyze problem", "SPARC specification", "gather requirements", "write acceptance criteria", "define constraints", "scope definition". Keywords - SPARC, specification, requirements, constraints, acceptance criteria, problem definition, functional requirements, non-functional requirements, use cases, scope, stakeholders
 capabilities:
   - requirements_gathering
   - constraint_analysis

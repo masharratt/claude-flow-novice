@@ -674,8 +674,102 @@ class SingleFileTestEngine {
     return { error: 'Go coverage not implemented', available: false };
   }
 
+  async runCargoTestSingleFile(file) {
+    try {
+      // For Rust, we run tests from the crate root, not individual files
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      // Check if we're in a Cargo project
+      const cargoTomlExists = await this.fileExists('Cargo.toml');
+      if (!cargoTomlExists) {
+        return {
+          passed: false,
+          reason: 'No Cargo.toml found - not a Rust project',
+          tests: [],
+          summary: { total: 0, passed: 0, failed: 0, skipped: 0 }
+        };
+      }
+
+      // Run cargo check first for syntax validation
+      await execAsync('cargo check --quiet');
+
+      // Run cargo test with output capture
+      const { stdout, stderr } = await execAsync('cargo test --quiet -- --nocapture', {
+        timeout: 30000,
+        maxBuffer: 1024 * 1024
+      });
+
+      // Parse test output (simplified)
+      const testOutput = stdout + stderr;
+      const testRegex = /test\s+(\S+)\s+\.\.\.\s+(ok|FAILED)/g;
+      const tests = [];
+      let match;
+
+      while ((match = testRegex.exec(testOutput)) !== null) {
+        tests.push({
+          name: match[1],
+          status: match[2] === 'ok' ? 'passed' : 'failed'
+        });
+      }
+
+      const passed = tests.filter(t => t.status === 'passed').length;
+      const failed = tests.filter(t => t.status === 'failed').length;
+
+      return {
+        passed: failed === 0,
+        reason: failed > 0 ? `${failed} tests failed` : 'All tests passed',
+        tests,
+        summary: { total: tests.length, passed, failed, skipped: 0 }
+      };
+
+    } catch (error) {
+      return {
+        passed: false,
+        reason: `Cargo test failed: ${error.message}`,
+        tests: [],
+        summary: { total: 0, passed: 0, failed: 0, skipped: 0 }
+      };
+    }
+  }
+
   async getRustCoverage(file) {
-    return { error: 'Rust coverage not implemented', available: false };
+    try {
+      // Check if cargo-tarpaulin is available
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      // Try to run tarpaulin for coverage
+      const { stdout } = await execAsync('cargo tarpaulin --version', { timeout: 5000 });
+
+      if (stdout.includes('tarpaulin')) {
+        // Run coverage analysis
+        const { stdout: coverageOutput } = await execAsync('cargo tarpaulin --out Json --timeout 30', {
+          timeout: 60000,
+          maxBuffer: 1024 * 1024
+        });
+
+        const coverage = JSON.parse(coverageOutput);
+        return {
+          available: true,
+          percentage: coverage.coverage || 0,
+          lines: coverage.files || {},
+          tool: 'cargo-tarpaulin'
+        };
+      }
+    } catch (error) {
+      // Fallback: check if we can at least detect test presence
+      const cargoTomlExists = await this.fileExists('Cargo.toml');
+      return {
+        available: false,
+        error: cargoTomlExists
+          ? 'cargo-tarpaulin not installed - run: cargo install cargo-tarpaulin'
+          : 'Not a Rust project (no Cargo.toml)',
+        tool: 'cargo-tarpaulin'
+      };
+    }
   }
 
   async getJavaCoverage(file) {
@@ -1040,13 +1134,98 @@ class ValidationEngine {
   }
 
   async validateRust(file, content) {
-    // Basic Rust validation
-    return {
-      passed: true,
-      issues: [],
-      suggestions: ['Rust validation requires cargo check for complete analysis'],
-      coverage: 'basic'
-    };
+    const issues = [];
+    const suggestions = [];
+
+    try {
+      // Check if we're in a Cargo project
+      const cargoTomlExists = await this.fileExists('Cargo.toml');
+
+      if (cargoTomlExists) {
+        // Run cargo check for syntax validation
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+
+        try {
+          const { stderr } = await execAsync('cargo check --quiet', {
+            timeout: 30000,
+            maxBuffer: 1024 * 1024
+          });
+
+          if (stderr) {
+            // Parse cargo check output for errors
+            const errorLines = stderr.split('\n').filter(line => line.includes('error['));
+            errorLines.forEach((line, index) => {
+              if (index < 5) { // Limit to first 5 errors
+                issues.push({
+                  type: 'rust_compile_error',
+                  severity: 'error',
+                  message: line.trim(),
+                  suggestion: 'Fix compilation error before proceeding'
+                });
+              }
+            });
+
+            if (errorLines.length > 5) {
+              suggestions.push(`${errorLines.length - 5} additional compilation errors found`);
+            }
+          }
+
+          suggestions.push('Rust syntax validated with cargo check');
+
+        } catch (cargoError) {
+          issues.push({
+            type: 'rust_compile_error',
+            severity: 'error',
+            message: `Compilation failed: ${cargoError.message}`,
+            suggestion: 'Fix Rust syntax errors'
+          });
+        }
+
+      } else {
+        suggestions.push('Not in a Cargo project - create Cargo.toml for full validation');
+      }
+
+      // Basic content checks
+      if (!content.includes('fn ') && !content.includes('struct ') && !content.includes('enum ') && !content.includes('impl ')) {
+        issues.push({
+          type: 'rust_structure',
+          severity: 'warning',
+          message: 'Rust files typically contain functions, structs, enums, or implementations',
+          suggestion: 'Add appropriate Rust code structure'
+        });
+      }
+
+      // Check for common Rust patterns
+      if (content.includes('unwrap()')) {
+        suggestions.push('Consider using proper error handling instead of unwrap()');
+      }
+
+      if (content.includes('clone()') && content.split('clone()').length > 3) {
+        suggestions.push('Excessive use of clone() - consider borrowing or references');
+      }
+
+      return {
+        passed: issues.filter(i => i.severity === 'error').length === 0,
+        issues,
+        suggestions,
+        coverage: cargoTomlExists ? 'advanced' : 'basic'
+      };
+
+    } catch (error) {
+      return {
+        passed: true,
+        issues: [{
+          type: 'validation_error',
+          severity: 'warning',
+          message: `Rust validation error: ${error.message}`,
+          suggestion: 'Manual review recommended'
+        }],
+        suggestions: ['Rust validation encountered an error'],
+        coverage: 'basic'
+      };
+    }
   }
 
   async validateJava(file, content) {

@@ -1,13 +1,7 @@
 ---
 name: code-analyzer
-description: Use this agent when you need advanced code quality analysis, comprehensive code reviews, and code improvement recommendations. This agent excels at detecting performance bottlenecks, security vulnerabilities, architectural issues, and technical debt. Examples - Code quality assessment, Security vulnerability scanning, Performance analysis, Architectural pattern analysis, Dependency analysis, Code complexity evaluation, Technical debt identification, Best practices validation, Code smell detection, Refactoring suggestions
-tools:
-  - Read
-  - Grep
-  - Glob
-  - Bash
-  - WebSearch
-  - TodoWrite
+description: MUST BE USED when performing deep code quality analysis, detecting code smells, or identifying refactoring opportunities. use PROACTIVELY for security vulnerability scanning, performance bottleneck detection, architectural pattern validation, code complexity evaluation, dependency analysis, best practices validation, technical debt quantification. ALWAYS delegate when user asks to "analyze code", "review quality", "find vulnerabilities", "detect code smells", "assess complexity", "scan security", "identify improvements", "check patterns", "evaluate architecture", "find bottlenecks", "suggest refactoring". Keywords - analyze, review, scan, detect, assess, evaluate, inspect, code quality, vulnerabilities, code smells, complexity, patterns, architecture, refactoring, technical debt, performance issues, best practices
+tools: Read, Grep, Glob, Bash, WebSearch, TodoWrite
 model: sonnet
 color: indigo
 ---

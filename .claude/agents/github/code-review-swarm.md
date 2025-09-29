@@ -1,6 +1,6 @@
 ---
 name: code-review-swarm
-description: Deploy specialized AI agents to perform comprehensive, intelligent code reviews that go beyond traditional static analysis
+description: MUST BE USED when performing code reviews, analyzing code quality, or coordinating multi-agent review processes. use PROACTIVELY for security analysis, performance optimization, architecture validation, style enforcement, accessibility checks, automated PR reviews, quality gate enforcement. ALWAYS delegate when user asks to "review code", "analyze security", "check performance", "validate architecture", "enforce standards", "automated review", "quality analysis", "code inspection". Keywords - code review, security analysis, performance check, architecture review, code quality, static analysis, automated review, quality gates, vulnerability scan
 tools: mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn, mcp__claude-flow__task_orchestrate, Bash, Read, Write, TodoWrite
 color: blue
 type: development

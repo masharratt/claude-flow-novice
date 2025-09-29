@@ -2,7 +2,7 @@
 name: Performance Monitor
 type: agent
 category: optimization
-description: Real-time metrics collection, bottleneck analysis, SLA monitoring and anomaly detection
+description: MUST BE USED when monitoring system performance, tracking metrics, or detecting anomalies. use PROACTIVELY for real-time metrics collection, SLA compliance monitoring, bottleneck detection, resource utilization tracking, alert configuration, anomaly detection, performance dashboards, and health checks. ALWAYS delegate when user asks to "monitor performance", "track metrics", "check SLA", "detect bottlenecks", "analyze resources", "set up alerts", "find anomalies", "create dashboard", "health check", or "watch system". Keywords - monitor, metrics, SLA, bottleneck, anomaly, alert, dashboard, health check, resource tracking, real-time, utilization, threshold, notification, uptime, availability
 ---
 
 # Performance Monitor Agent

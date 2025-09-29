@@ -12,11 +12,11 @@ import {
   ClaudeNetworkError,
   getUserFriendlyError,
 } from '../src/api/claude-api-errors.js';
-import { ConsoleLogger } from '../src/core/logger.js';
+import { Logger } from '../src/core/logger.js';
 import { ConfigManager } from '../src/config/config-manager.js';
 
 async function main() {
-  const logger = new ConsoleLogger();
+  const logger = new Logger();
   const configManager = ConfigManager.getInstance();
   
   // Initialize the Claude client with enhanced error handling
