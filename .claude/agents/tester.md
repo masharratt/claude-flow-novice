@@ -10,7 +10,7 @@ tools:
   - Glob
   - Grep
   - TodoWrite
-model: claude-3-5-sonnet-20241022
+model: sonnet
 color: purple
 ---
 

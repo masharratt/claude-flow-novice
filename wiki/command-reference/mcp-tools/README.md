@@ -674,7 +674,7 @@ claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 claude mcp add ruv-swarm npx ruv-swarm mcp start
 
 # Optional: Cloud features (requires registration)
-claude mcp add flow-nexus npx flow-nexus@latest mcp start
+# Flow-nexus integration removed
 ```
 
 ### Verify MCP Setup

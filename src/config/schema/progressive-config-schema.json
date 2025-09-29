@@ -388,19 +388,6 @@
                 "timeout": { "type": "integer", "default": 30000 }
               }
             },
-            "flowNexus": {
-              "type": "object",
-              "properties": {
-                "enabled": { "type": "boolean", "default": false },
-                "command": { "type": "string", "default": "npx" },
-                "args": {
-                  "type": "array",
-                  "items": { "type": "string" },
-                  "default": ["flow-nexus@latest"]
-                },
-                "requiresAuth": { "type": "boolean", "default": true }
-              }
-            }
           },
           "meta": {
             "uiLevel": "intermediate",
@@ -743,7 +730,7 @@
             },
             "provider": {
               "type": "string",
-              "enum": ["flow-nexus", "github", "s3", "custom"]
+              "enum": ["github", "s3", "custom"]
             },
             "encryption": {
               "type": "string",

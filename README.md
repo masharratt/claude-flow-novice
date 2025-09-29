@@ -319,7 +319,6 @@ Automated validation of agent-human communication portal available at [`playwrig
 
 ### 🌐 **External Resources**
 - **[GitHub Repository](https://github.com/ruvnet/claude-flow)** - Source code and issues
-- **[Flow-Nexus Platform](https://flow-nexus.ruv.io)** - Cloud features and advanced orchestration
 - **[Community Discord](https://discord.gg/claude-flow)** - Real-time support and discussions
 - **[Stack Overflow](https://stackoverflow.com/questions/tagged/claude-flow)** - Technical Q&A
 

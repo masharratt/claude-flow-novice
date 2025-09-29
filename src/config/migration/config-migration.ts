@@ -218,7 +218,7 @@ export class ConfigMigration {
 
     // Update Claude model to latest
     if (config.claude && config.claude.model === 'claude-3-sonnet-20240229') {
-      config.claude.model = 'claude-3-5-sonnet-20241022';
+      config.claude.model = 'sonnet';
       changes.push('Updated Claude model to latest version');
     }
 

@@ -11,14 +11,13 @@ export { VERSION };
 export const MAIN_HELP = `
 🌊 Claude-Flow v${VERSION} - Enterprise-Grade AI Agent Orchestration Platform
 
-🎯 ENTERPRISE FEATURES: Complete ruv-swarm integration with 100+ MCP tools, Flow Nexus cloud platform, and production-ready infrastructure
+🎯 ENTERPRISE FEATURES: Complete ruv-swarm integration with 100+ MCP tools and production-ready infrastructure
 🐝 NEW: Claude Code 1.0.51+ full compatibility with enhanced hooks and cross-platform support
-⚡ ALPHA 107: Flow Nexus Integration & Enhanced Cloud Features
+⚡ ALPHA 107: Enhanced Cloud Features & Ruv-Swarm Integration
 
 🔍 ALPHA 107 HIGHLIGHTS:
-  ✅ Flow Nexus Cloud Platform - Full integration with sandboxes, neural networks, and workflows
   🐛 macOS Compatibility Fixes - Enhanced settings.json hooks for cross-platform support
-  🧠 Distributed Neural Networks - Real multi-node training with E2B sandbox clusters
+  🧠 Distributed Neural Networks - Real multi-node training with sandbox clusters
   📊 100% Real Functionality - All MCP tools fully implemented with real backends
   🔧 Enhanced GitHub Integration - Automated releases, checkpoints, and workflow orchestration
   🔧 Production-Ready Infrastructure - Enterprise-grade reliability and performance
@@ -35,11 +34,6 @@ USAGE:
 🚀 QUICK START:
   # First time setup (creates CLAUDE.md & .claude/commands)
   npx claude-flow@alpha init
-  
-  # 🌐 FLOW NEXUS CLOUD (NEW!):
-  mcp__flow-nexus__user_register         # Register for cloud features
-  mcp__flow-nexus__user_login            # Login to access sandboxes & neural networks
-  mcp__flow-nexus__sandbox_create        # Create cloud execution environments
   
   # 🐝 HIVE MIND QUICK START:
   claude-flow-novice hive-mind wizard          # Interactive setup wizard

@@ -23,7 +23,7 @@ export class ClaudeAPI {
     // Mock response for testing
     return {
       content: [{ text: `Mock response for: ${options.messages?.[0]?.content || 'test'}` }],
-      model: options.model || 'claude-3-5-sonnet-20241022',
+      model: options.model || 'sonnet',
       usage: {
         input_tokens: 10,
         output_tokens: 20,

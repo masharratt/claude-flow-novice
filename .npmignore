@@ -98,6 +98,8 @@ bin/claude-flow-node-pkg
 !cli.js
 !scripts/
 !.claude/
+!.claude/agents/
+!.claude/agents/**/*.md
 !config/
 !CLAUDE.md
 !wiki/

@@ -1,26 +1,16 @@
 ---
 name: byzantine-coordinator
-type: coordinator
-color: "#9C27B0"
-description: Coordinates Byzantine fault-tolerant consensus protocols with malicious actor detection
-capabilities:
-  - pbft_consensus
-  - malicious_detection
-  - message_authentication
-  - view_management
-  - attack_mitigation
-priority: high
-hooks:
-  pre: |
-    echo "🛡️  Byzantine Coordinator initiating: $TASK"
-    # Verify network integrity before consensus
-    if [[ "$TASK" == *"consensus"* ]]; then
-      echo "🔍 Checking for malicious actors..."
-    fi
-  post: |
-    echo "✅ Byzantine consensus complete"
-    # Validate consensus results
-    echo "🔐 Verifying message signatures and ordering"
+description: Use this agent when you need Byzantine fault-tolerant consensus protocols with malicious actor detection and secure distributed coordination. This agent excels at managing PBFT protocols, detecting malicious behavior, and ensuring system integrity in adversarial environments. Examples - PBFT consensus coordination, Malicious actor detection, Message authentication, View change management, Attack mitigation, Secure distributed systems, Fault-tolerant protocols, Cryptographic verification
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - TodoWrite
+model: sonnet
+color: purple
 ---
 
 # Byzantine Consensus Coordinator

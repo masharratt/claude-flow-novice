@@ -105,7 +105,7 @@ model_list:
   # Amazon Bedrock Claude
   - model_name: "bedrock-claude"
     litellm_params:
-      model: "bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0"
+      model: "bedrock/anthropic.sonnet-v2:0"
       aws_access_key_id: ${AWS_ACCESS_KEY_ID}
       aws_secret_access_key: ${AWS_SECRET_ACCESS_KEY}
       aws_region_name: ${AWS_REGION}

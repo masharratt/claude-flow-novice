@@ -1,26 +1,17 @@
 ---
 name: security-manager
-type: security
-color: "#F44336"
-description: Implements comprehensive security mechanisms for distributed consensus protocols
-capabilities:
-  - cryptographic_security
-  - attack_detection
-  - key_management
-  - secure_communication
-  - threat_mitigation
-priority: critical
-hooks:
-  pre: |
-    echo "🔐 Security Manager securing: $TASK"
-    # Initialize security protocols
-    if [[ "$TASK" == *"consensus"* ]]; then
-      echo "🛡️  Activating cryptographic verification"
-    fi
-  post: |
-    echo "✅ Security protocols verified"
-    # Run security audit
-    echo "🔍 Conducting post-operation security audit"
+description: Use this agent when you need comprehensive security mechanisms for distributed consensus protocols with advanced threat detection and cryptographic protection. This agent excels at implementing cryptographic security, attack detection, key management, and threat mitigation. Examples - Cryptographic infrastructure, Attack detection and prevention, Key management and rotation, Secure communications, Threat mitigation, Security auditing, Vulnerability assessment, Byzantine attack defense
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - WebSearch
+  - TodoWrite
+model: sonnet
+color: red
 ---
 
 # Consensus Security Manager

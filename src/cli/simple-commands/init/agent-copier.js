@@ -163,9 +163,7 @@ export async function createAgentDirectories(targetDir, dryRun = false) {
     '.claude/agents/documentation/api-docs',
     '.claude/agents/specialized',
     '.claude/agents/specialized/mobile',
-    '.claude/agents/flow-nexus',
     '.claude/commands',
-    '.claude/commands/flow-nexus',
   ];
 
   if (dryRun) {

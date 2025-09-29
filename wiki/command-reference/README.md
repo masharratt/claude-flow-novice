@@ -253,8 +253,7 @@ claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 # RUV Swarm MCP (Enhanced coordination)
 claude mcp add ruv-swarm npx ruv-swarm mcp start
 
-# Flow Nexus MCP (Cloud features - optional)
-claude mcp add flow-nexus npx flow-nexus@latest mcp start
+# Flow Nexus integration removed
 ```
 
 ### IDE Integration

@@ -4,6 +4,7 @@
 
 ## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 
+
 **ABSOLUTE RULES**:
 1. ALL operations MUST be concurrent/parallel in a single message
 2. **NEVER save working files, text/mds and tests to the root folder**
@@ -18,6 +19,31 @@
 - **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
 - **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
 - **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
+
+## 🎯 Claude Code vs MCP Tools
+
+### Claude Code Handles ALL EXECUTION:
+- **Task tool**: Spawn and run agents concurrently for actual work
+- File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
+- Code generation and programming
+- Bash commands and system operations
+- Implementation work
+- Project navigation and analysis
+- TodoWrite and task management
+- Git operations
+- Package management
+- Testing and debugging
+
+### MCP Tools ONLY COORDINATE:
+- Swarm initialization (topology setup)
+- Agent type definitions (coordination patterns)
+- Task orchestration (high-level planning)
+- Memory management
+- Neural features
+- Performance tracking
+- GitHub integration
+
+**KEY**: MCP coordinates the strategy, Claude Code's Task tool executes with real agents.
 
 ### Agent Coordination Framework
 
@@ -42,16 +68,17 @@ node config/hooks/post-edit-pipeline.js "[file]"
 # Progressive validation: skips tests if dependencies missing (beginner-friendly)
 ```
 
-**Post-Edit Pipeline Features:**
-- **Multi-Language**: JS/TS, Python, Rust, Go, Java, C++, PHP, Ruby, C#
-- **Formatting**: Prettier, Black, RustFmt, GoFmt (auto-formats code)
-- **Linting**: ESLint, Flake8, Clippy, GoLint (finds code issues)
-- **Type Checking**: TSC, MyPy, Cargo Check, Go Vet (catches type errors)
-- **Dependency Analysis**: Checks imports/requires, suggests missing deps
-- **Security Scanning**: NPM Audit, Bandit, Cargo Audit, GoSec
-- **Test Execution**: NPM Test, PyTest, Cargo Test, Go Test (if deps satisfied)
-- **Progressive Validation**: 4 tiers (syntax→interface→integration→full)
-- **Smart Agent Spawning**: Auto-suggests agents for missing dependencies/tests
+**Enhanced Post-Edit Pipeline Features:**
+- **TDD Testing**: Single-file testing without full system compilation
+- **Real-time Coverage**: Coverage analysis and diff reporting with thresholds
+- **Multi-Language**: JS/TS, Python, Go, Rust, Java, C/C++, JSON validation
+- **Formatting**: Prettier, Black, RustFmt, GoFmt with diff preview
+- **Security Analysis**: XSS, eval(), hardcoded credentials detection
+- **TDD Compliance**: Red-Green-Refactor phase detection and enforcement
+- **Framework Detection**: Jest, Mocha, Pytest, Go Test, Cargo Test, JUnit
+- **Agent Feedback**: Structured JSON with actionable recommendations
+- **Memory Coordination**: Cross-agent state sharing and enhanced persistence
+- **Blocking Mechanisms**: Quality gates for critical validation failures
 
 #### Session Management
 ```bash
@@ -71,7 +98,10 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
 
 **MCP tools are ONLY for coordination setup:**
 ### MCP Integration
-- **Coordination**: `mcp__claude-flow-novice__swarm_init`, `agent_spawn`, `task_orchestrate`
+**MCP tools are ONLY for coordination setup:**
+- `mcp__claude-flow-novice__swarm_init` - Initialize coordination topology
+- `mcp__claude-flow-novice__agent_spawn` - Define agent types for coordination
+- `mcp__claude-flow-novice__task_orchestrate` - Orchestrate high-level workflows
 - **Monitoring**: `swarm_status`, `agent_metrics`, `task_results`
 - **Memory**: `memory_usage`, `memory_search`
 

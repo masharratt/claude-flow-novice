@@ -152,8 +152,7 @@ claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 # Optional: Enhanced coordination
 claude mcp add ruv-swarm npx ruv-swarm mcp start
 
-# Optional: Cloud features (requires registration)
-claude mcp add flow-nexus npx flow-nexus@latest mcp start
+# Flow-nexus integration removed
 ```
 
 ### Step 2: Verify MCP Installation
@@ -258,14 +257,7 @@ npx claude-flow@alpha config set auth.apiKey "your-key-here"
 
 ### Cloud Features (Optional)
 ```bash
-# Register for Flow-Nexus cloud features
-npx flow-nexus@latest register
-
-# Login to existing account
-npx flow-nexus@latest login
-
-# Verify cloud access
-npx flow-nexus@latest status
+# Flow-nexus registration removed
 ```
 
 ---

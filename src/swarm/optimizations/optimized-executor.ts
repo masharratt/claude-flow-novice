@@ -147,7 +147,7 @@ export class OptimizedExecutor extends EventEmitter {
         const executionResult = await this.connectionPool.execute(async (api) => {
           const response = await api.complete({
             messages: this.buildMessages(task),
-            model: task.metadata?.model || 'claude-3-5-sonnet-20241022',
+            model: task.metadata?.model || 'sonnet',
             max_tokens: task.constraints.maxTokens || 4096,
             temperature: task.metadata?.temperature || 0.7,
           });

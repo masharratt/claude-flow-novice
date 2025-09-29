@@ -53,7 +53,6 @@ export interface AutoDetectionResult {
 export interface SecureCredentials {
   claudeApiKey?: string;
   githubToken?: string;
-  flowNexusAuth?: string;
   customKeys?: Record<string, string>;
 }
 
@@ -114,7 +113,7 @@ export interface Config {
   // Claude API configuration (credentials stored securely in OS keychain)
   claude?: {
     model?:
-      | 'claude-3-5-sonnet-20241022'
+      | 'sonnet'
       | 'claude-3-opus-20240229'
       | 'claude-3-sonnet-20240229'
       | 'claude-3-haiku-20240307'
@@ -262,7 +261,7 @@ function getIntelligentDefaults(autoDetection?: AutoDetectionResult): Config {
       configPath: '.claude/ruv-swarm-config.json',
     },
     claude: {
-      model: 'claude-3-5-sonnet-20241022', // Latest model for best performance
+      model: 'sonnet', // Latest model for best performance
       temperature: 0.7,
       maxTokens: 4096,
       topP: 1,

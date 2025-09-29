@@ -7,6 +7,7 @@ import {
 } from '../utils.js';
 import { SqliteMemoryStore } from '../../memory/sqlite-store.js';
 import { executeSessionStartSoulHook, executeSessionEndSoulHook } from './hooks/session-start-soul.js';
+import { enhancedPostEditHook } from '../../hooks/enhanced-post-edit-pipeline.js';
 
 // Initialize memory store
 let memoryStore = null;

@@ -214,7 +214,7 @@ triggers:
 
 ## Support and Resources
 
-- Agent documentation: `.claude/agents/README.md`
+- Agent documentation: `docs/agents/README.md`
 - Migration guides: `.claude/agents/migration/`
 - Example workflows: `.claude/agents/examples/`
 - Community support: GitHub discussions

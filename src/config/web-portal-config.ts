@@ -32,13 +32,6 @@ export interface MCPConfig {
     retryAttempts: number;
     retryDelay: number;
   };
-  flowNexus?: {
-    enabled: boolean;
-    command: string;
-    args: string[];
-    apiUrl?: string;
-    authToken?: string;
-  };
 }
 
 export interface WebSocketConfig {
@@ -182,13 +175,6 @@ const defaultConfig: WebPortalConfig = {
       timeout: parseInt(process.env.RUV_SWARM_TIMEOUT || '30000'),
       retryAttempts: parseInt(process.env.RUV_SWARM_RETRY_ATTEMPTS || '3'),
       retryDelay: parseInt(process.env.RUV_SWARM_RETRY_DELAY || '1000'),
-    },
-    flowNexus: {
-      enabled: process.env.FLOW_NEXUS_ENABLED === 'true',
-      command: 'npx',
-      args: ['flow-nexus@latest'],
-      apiUrl: process.env.FLOW_NEXUS_API_URL,
-      authToken: process.env.FLOW_NEXUS_AUTH_TOKEN,
     },
   },
 

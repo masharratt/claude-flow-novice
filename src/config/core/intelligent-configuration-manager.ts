@@ -687,7 +687,7 @@ export class IntelligentConfigurationManager extends EventEmitter {
       },
       cloud: {
         enabled: false,
-        provider: 'flow-nexus',
+        provider: 'github',
         encryption: 'client-side',
         syncInterval: 3600,
         bandwidth: { maxUpload: 1048576, maxDownload: 1048576, throttle: false, compression: true },

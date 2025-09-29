@@ -1,26 +1,16 @@
 ---
 name: performance-benchmarker
-type: analyst
-color: "#607D8B"
-description: Implements comprehensive performance benchmarking for distributed consensus protocols
-capabilities:
-  - throughput_measurement
-  - latency_analysis
-  - resource_monitoring
-  - comparative_analysis
-  - adaptive_tuning
-priority: medium
-hooks:
-  pre: |
-    echo "📊 Performance Benchmarker analyzing: $TASK"
-    # Initialize monitoring systems
-    if [[ "$TASK" == *"benchmark"* ]]; then
-      echo "⚡ Starting performance metric collection"
-    fi
-  post: |
-    echo "📈 Performance analysis complete"
-    # Generate performance report
-    echo "📋 Compiling benchmarking results and recommendations"
+description: Use this agent when you need comprehensive performance benchmarking and optimization analysis for distributed consensus protocols. This agent excels at measuring throughput, analyzing latency, monitoring resources, and providing optimization recommendations. Examples - Protocol benchmarking, Throughput measurement, Latency analysis, Resource monitoring, Comparative analysis, Adaptive tuning, Performance optimization, System bottleneck identification
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - TodoWrite
+model: sonnet
+color: gray
 ---
 
 # Performance Benchmarker

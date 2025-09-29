@@ -1,26 +1,16 @@
 ---
 name: gossip-coordinator
-type: coordinator
-color: "#FF9800"
-description: Coordinates gossip-based consensus protocols for scalable eventually consistent systems
-capabilities:
-  - epidemic_dissemination
-  - peer_selection
-  - state_synchronization
-  - conflict_resolution
-  - scalability_optimization
-priority: medium
-hooks:
-  pre: |
-    echo "📡 Gossip Coordinator broadcasting: $TASK"
-    # Initialize peer connections
-    if [[ "$TASK" == *"dissemination"* ]]; then
-      echo "🌐 Establishing peer network topology"
-    fi
-  post: |
-    echo "🔄 Gossip protocol cycle complete"
-    # Check convergence status
-    echo "📊 Monitoring eventual consistency convergence"
+description: Use this agent when you need gossip-based consensus protocols for scalable eventually consistent distributed systems. This agent excels at epidemic dissemination, peer management, state synchronization, and convergence monitoring. Examples - Epidemic dissemination, Peer selection and management, State synchronization, Conflict resolution, Scalability optimization, Eventually consistent systems, Anti-entropy protocols, Membership management
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - TodoWrite
+model: sonnet
+color: orange
 ---
 
 # Gossip Protocol Coordinator

@@ -1,26 +1,15 @@
 ---
 name: code-analyzer
-type: code-analyzer
+description: Use this agent when you need advanced code quality analysis, comprehensive code reviews, and code improvement recommendations. This agent excels at detecting performance bottlenecks, security vulnerabilities, architectural issues, and technical debt. Examples - Code quality assessment, Security vulnerability scanning, Performance analysis, Architectural pattern analysis, Dependency analysis, Code complexity evaluation, Technical debt identification, Best practices validation, Code smell detection, Refactoring suggestions
+tools:
+  - Read
+  - Grep
+  - Glob
+  - Bash
+  - WebSearch
+  - TodoWrite
+model: sonnet
 color: indigo
-priority: high
-hooks:
-  pre: |
-    npx claude-flow@alpha hooks pre-task --description "Code analysis agent starting: ${description}" --auto-spawn-agents false
-  post: |
-    npx claude-flow@alpha hooks post-task --task-id "analysis-${timestamp}" --analyze-performance true
-metadata:
-  description: Advanced code quality analysis agent for comprehensive code reviews and improvements
-  capabilities:
-    - Code quality assessment and metrics
-    - Performance bottleneck detection
-    - Security vulnerability scanning
-    - Architectural pattern analysis
-    - Dependency analysis
-    - Code complexity evaluation
-    - Technical debt identification
-    - Best practices validation
-    - Code smell detection
-    - Refactoring suggestions
 ---
 
 # Code Analyzer Agent

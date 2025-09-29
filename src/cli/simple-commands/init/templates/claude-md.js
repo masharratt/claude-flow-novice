@@ -41,9 +41,9 @@ If ANY answer is "No", you MUST combine operations into a single message!
 Flow Nexus extends Claude Flow with cloud-powered features:
 
 ### Quick Start
-1. **Register**: \`mcp__flow-nexus__user_register\` with email/password
-2. **Login**: \`mcp__flow-nexus__user_login\` to access features
-3. **Check Balance**: \`mcp__flow-nexus__check_balance\` for credits
+1. **Register**: \`mcp__claude-flow-novice__user_register\` with email/password
+2. **Login**: \`mcp__claude-flow-novice__user_login\` to access features
+3. **Check Balance**: \`mcp__claude-flow-novice__check_balance\` for credits
 
 ### Key Capabilities
 
@@ -53,22 +53,22 @@ Flow Nexus extends Claude Flow with cloud-powered features:
 - Auto-scaling and load balancing
 
 **📦 E2B Sandboxes**
-- \`mcp__flow-nexus__sandbox_create\` - Isolated execution environments
+- \`mcp__claude-flow-novice__sandbox_create\` - Isolated execution environments
 - Support for Node.js, Python, React, Next.js
 - Real-time code execution with environment variables
 
 **⚡ Workflows**
-- \`mcp__flow-nexus__workflow_create\` - Event-driven automation
+- \`mcp__claude-flow-novice__workflow_create\` - Event-driven automation
 - Parallel task processing with message queues
 - Reusable workflow templates
 
 **🎯 Challenges & Learning**
-- \`mcp__flow-nexus__challenges_list\` - Coding challenges
+- \`mcp__claude-flow-novice__challenges_list\` - Coding challenges
 - Earn rUv credits by completing tasks
 - Global leaderboard and achievements
 
 **🧠 Neural Networks**
-- \`mcp__flow-nexus__neural_train\` - Train custom models
+- \`mcp__claude-flow-novice__neural_train\` - Train custom models
 - Distributed training across sandboxes
 - Pre-built templates for ML tasks
 
@@ -80,12 +80,12 @@ Flow Nexus extends Claude Flow with cloud-powered features:
 ### Example: Deploy a Swarm
 \`\`\`javascript
 // Login and deploy
-mcp__flow-nexus__user_login { email: "user@example.com", password: "***" }
-mcp__flow-nexus__swarm_init { topology: "mesh", maxAgents: 5 }
-mcp__flow-nexus__sandbox_create { template: "node", name: "api-dev" }
+mcp__claude-flow-novice__user_login { email: "user@example.com", password: "***" }
+mcp__claude-flow-novice__swarm_init { topology: "mesh", maxAgents: 5 }
+mcp__claude-flow-novice__sandbox_create { template: "node", name: "api-dev" }
 \`\`\`
 
-Learn more: https://github.com/ruvnet/claude-flow#flow-nexus
+Learn more: https://github.com/ruvnet/claude-flow#claude-flow-novice
 
 ## Project Info
 This is a Claude-Flow AI agent orchestration system.
@@ -198,9 +198,9 @@ This is a Claude-Flow AI agent orchestration system with the following component
 Flow Nexus extends Claude Flow with cloud-powered features:
 
 ### Quick Start
-1. **Register**: \`mcp__flow-nexus__user_register\` with email/password
-2. **Login**: \`mcp__flow-nexus__user_login\` to access features
-3. **Check Balance**: \`mcp__flow-nexus__check_balance\` for credits
+1. **Register**: \`mcp__claude-flow-novice__user_register\` with email/password
+2. **Login**: \`mcp__claude-flow-novice__user_login\` to access features
+3. **Check Balance**: \`mcp__claude-flow-novice__check_balance\` for credits
 
 ### Key Capabilities
 
@@ -210,22 +210,22 @@ Flow Nexus extends Claude Flow with cloud-powered features:
 - Auto-scaling and load balancing
 
 **📦 E2B Sandboxes**
-- \`mcp__flow-nexus__sandbox_create\` - Isolated execution environments
+- \`mcp__claude-flow-novice__sandbox_create\` - Isolated execution environments
 - Support for Node.js, Python, React, Next.js
 - Real-time code execution with environment variables
 
 **⚡ Workflows**
-- \`mcp__flow-nexus__workflow_create\` - Event-driven automation
+- \`mcp__claude-flow-novice__workflow_create\` - Event-driven automation
 - Parallel task processing with message queues
 - Reusable workflow templates
 
 **🎯 Challenges & Learning**
-- \`mcp__flow-nexus__challenges_list\` - Coding challenges
+- \`mcp__claude-flow-novice__challenges_list\` - Coding challenges
 - Earn rUv credits by completing tasks
 - Global leaderboard and achievements
 
 **🧠 Neural Networks**
-- \`mcp__flow-nexus__neural_train\` - Train custom models
+- \`mcp__claude-flow-novice__neural_train\` - Train custom models
 - Distributed training across sandboxes
 - Pre-built templates for ML tasks
 
@@ -237,12 +237,12 @@ Flow Nexus extends Claude Flow with cloud-powered features:
 ### Example: Deploy a Swarm
 \`\`\`javascript
 // Login and deploy
-mcp__flow-nexus__user_login { email: "user@example.com", password: "***" }
-mcp__flow-nexus__swarm_init { topology: "mesh", maxAgents: 5 }
-mcp__flow-nexus__sandbox_create { template: "node", name: "api-dev" }
+mcp__claude-flow-novice__user_login { email: "user@example.com", password: "***" }
+mcp__claude-flow-novice__swarm_init { topology: "mesh", maxAgents: 5 }
+mcp__claude-flow-novice__sandbox_create { template: "node", name: "api-dev" }
 \`\`\`
 
-Learn more: https://github.com/ruvnet/claude-flow#flow-nexus
+Learn more: https://github.com/ruvnet/claude-flow#claude-flow-novice
 `;
 }
 
@@ -574,9 +574,9 @@ For more information about SPARC methodology, see: https://github.com/ruvnet/cla
 Flow Nexus extends Claude Flow with cloud-powered features:
 
 ### Quick Start
-1. **Register**: \`mcp__flow-nexus__user_register\` with email/password
-2. **Login**: \`mcp__flow-nexus__user_login\` to access features
-3. **Check Balance**: \`mcp__flow-nexus__check_balance\` for credits
+1. **Register**: \`mcp__claude-flow-novice__user_register\` with email/password
+2. **Login**: \`mcp__claude-flow-novice__user_login\` to access features
+3. **Check Balance**: \`mcp__claude-flow-novice__check_balance\` for credits
 
 ### Key Capabilities
 
@@ -586,22 +586,22 @@ Flow Nexus extends Claude Flow with cloud-powered features:
 - Auto-scaling and load balancing
 
 **📦 E2B Sandboxes**
-- \`mcp__flow-nexus__sandbox_create\` - Isolated execution environments
+- \`mcp__claude-flow-novice__sandbox_create\` - Isolated execution environments
 - Support for Node.js, Python, React, Next.js
 - Real-time code execution with environment variables
 
 **⚡ Workflows**
-- \`mcp__flow-nexus__workflow_create\` - Event-driven automation
+- \`mcp__claude-flow-novice__workflow_create\` - Event-driven automation
 - Parallel task processing with message queues
 - Reusable workflow templates
 
 **🎯 Challenges & Learning**
-- \`mcp__flow-nexus__challenges_list\` - Coding challenges
+- \`mcp__claude-flow-novice__challenges_list\` - Coding challenges
 - Earn rUv credits by completing tasks
 - Global leaderboard and achievements
 
 **🧠 Neural Networks**
-- \`mcp__flow-nexus__neural_train\` - Train custom models
+- \`mcp__claude-flow-novice__neural_train\` - Train custom models
 - Distributed training across sandboxes
 - Pre-built templates for ML tasks
 
@@ -613,12 +613,12 @@ Flow Nexus extends Claude Flow with cloud-powered features:
 ### Example: Deploy a Swarm
 \`\`\`javascript
 // Login and deploy
-mcp__flow-nexus__user_login { email: "user@example.com", password: "***" }
-mcp__flow-nexus__swarm_init { topology: "mesh", maxAgents: 5 }
-mcp__flow-nexus__sandbox_create { template: "node", name: "api-dev" }
+mcp__claude-flow-novice__user_login { email: "user@example.com", password: "***" }
+mcp__claude-flow-novice__swarm_init { topology: "mesh", maxAgents: 5 }
+mcp__claude-flow-novice__sandbox_create { template: "node", name: "api-dev" }
 \`\`\`
 
-Learn more: https://github.com/ruvnet/claude-flow#flow-nexus
+Learn more: https://github.com/ruvnet/claude-flow#claude-flow-novice
 `;
 }
 
@@ -770,7 +770,7 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 # Add MCP servers (Claude Flow required, others optional)
 claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 claude mcp add ruv-swarm npx ruv-swarm mcp start  # Optional: Enhanced coordination
-claude mcp add flow-nexus npx flow-nexus@latest mcp start  # Optional: Cloud features
+claude mcp add claude-flow-novice npx claude-flow-novice@latest mcp start  # Optional: Cloud features
 \`\`\`
 
 ## MCP Tool Categories
@@ -803,8 +803,8 @@ Flow-Nexus extends MCP capabilities with 70+ cloud-based orchestration tools:
 - **Storage**: \`storage_upload\`, \`storage_list\` (cloud file management)
 
 **Authentication Required:**
-- Register: \`mcp__flow-nexus__user_register\` or \`npx flow-nexus@latest register\`
-- Login: \`mcp__flow-nexus__user_login\` or \`npx flow-nexus@latest login\`
+- Register: \`mcp__claude-flow-novice__user_register\` or \`npx claude-flow-novice@latest register\`
+- Login: \`mcp__claude-flow-novice__user_login\` or \`npx claude-flow-novice@latest login\`
 - Access 70+ specialized MCP tools for advanced orchestration
 
 ## 🚀 Agent Execution Flow with Claude Code
@@ -964,7 +964,7 @@ Message 4: Write "file.js"
 
 - Documentation: https://github.com/ruvnet/claude-flow
 - Issues: https://github.com/ruvnet/claude-flow/issues
-- Flow-Nexus Platform: https://flow-nexus.ruv.io (registration required for cloud features)
+- Claude Flow Platform: https://claude-flow-novice.ruv.io (registration required for cloud features)
 
 ---
 
@@ -979,123 +979,4 @@ Never save working files, text/mds and tests to the root folder.
 `;
 }
 
-export function createFlowNexusClaudeMd() {
-  return `# Claude Code Configuration - Flow Nexus Integration
-
-## 🌐 Flow Nexus Cloud Platform
-
-Flow Nexus extends Claude Flow with cloud-powered features for AI development and deployment.
-
-### Quick Start
-1. **Register**: Use \`mcp__flow-nexus__user_register\` with email/password
-2. **Login**: Use \`mcp__flow-nexus__user_login\` to access features
-3. **Check Balance**: Use \`mcp__flow-nexus__check_balance\` for credits
-
-### 🚀 Key Capabilities
-
-**🤖 AI Swarms**
-- Deploy multi-agent swarms in cloud sandboxes
-- Pre-built templates for common architectures
-- Auto-scaling and load balancing
-
-**📦 E2B Sandboxes**
-- \`mcp__flow-nexus__sandbox_create\` - Isolated execution environments
-- Support for Node.js, Python, React, Next.js
-- Real-time code execution with environment variables
-
-**⚡ Workflows**
-- \`mcp__flow-nexus__workflow_create\` - Event-driven automation
-- Parallel task processing with message queues
-- Reusable workflow templates
-
-**🎯 Challenges & Learning**
-- \`mcp__flow-nexus__challenges_list\` - Coding challenges
-- Earn rUv credits by completing tasks
-- Global leaderboard and achievements
-
-**🧠 Neural Networks**
-- \`mcp__flow-nexus__neural_train\` - Train custom models
-- Distributed training across sandboxes
-- Pre-built templates for ML tasks
-
-**💰 Credits & Billing**
-- Pay-as-you-go with rUv credits
-- Auto-refill configuration available
-- Free tier for getting started
-
-### 🤖 Flow Nexus Agents
-
-Specialized agents for Flow Nexus operations available in \`.claude/agents/flow-nexus/\`:
-
-- **flow-nexus-auth**: Authentication and user management
-- **flow-nexus-sandbox**: E2B sandbox deployment and management  
-- **flow-nexus-swarm**: AI swarm orchestration and scaling
-- **flow-nexus-workflow**: Event-driven workflow automation
-- **flow-nexus-neural**: Neural network training and deployment
-- **flow-nexus-challenges**: Coding challenges and gamification
-- **flow-nexus-app-store**: Application marketplace management
-- **flow-nexus-payments**: Credit management and billing
-- **flow-nexus-user-tools**: User management and system utilities
-
-### 📁 Flow Nexus Commands
-
-Detailed Flow Nexus command documentation available in \`.claude/commands/flow-nexus/\`:
-
-- \`login-registration.md\` - Authentication workflows
-- \`sandbox.md\` - E2B sandbox management
-- \`swarm.md\` - AI swarm deployment
-- \`workflow.md\` - Automation workflows
-- \`neural-network.md\` - ML model training
-- \`challenges.md\` - Coding challenges
-- \`app-store.md\` - App marketplace
-- \`payments.md\` - Credit and billing
-- \`user-tools.md\` - User utilities
-
-### 💡 Example: Deploy a Swarm
-\`\`\`javascript
-// 1. Login to Flow Nexus
-mcp__flow-nexus__user_login({ 
-  email: "user@example.com", 
-  password: "password" 
-})
-
-// 2. Initialize swarm
-mcp__flow-nexus__swarm_init({ 
-  topology: "mesh", 
-  maxAgents: 5 
-})
-
-// 3. Create sandbox
-mcp__flow-nexus__sandbox_create({ 
-  template: "node", 
-  name: "api-dev" 
-})
-
-// 4. Orchestrate task
-mcp__flow-nexus__task_orchestrate({
-  task: "Build REST API with authentication",
-  strategy: "parallel"
-})
-\`\`\`
-
-### 🔗 Integration with Claude Code
-
-Flow Nexus seamlessly integrates with Claude Code through MCP (Model Context Protocol):
-
-1. **Add MCP Server**: \`claude mcp add flow-nexus npx flow-nexus@latest mcp start\`
-2. **Use in Claude Code**: Access all Flow Nexus tools through MCP interface
-3. **Agent Coordination**: Use Flow Nexus agents for specialized cloud operations
-4. **Command Reference**: Use slash commands for quick Flow Nexus operations
-
-### 📚 Learn More
-
-- Documentation: https://github.com/ruvnet/claude-flow#flow-nexus
-- MCP Integration: Use \`mcp__flow-nexus__*\` tools in Claude Code
-- Agent Usage: Type \`/\` in Claude Code to see Flow Nexus commands
-- Community: Join discussions and share templates
-
----
-
-**Ready to build with Flow Nexus? Start with authentication and explore the cloud-powered AI development platform!**
-`;
-}
+// createFlowNexusClaudeMd function removed

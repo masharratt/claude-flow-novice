@@ -1,26 +1,16 @@
 ---
 name: quorum-manager
-type: coordinator
-color: "#673AB7"
-description: Implements dynamic quorum adjustment and intelligent membership management
-capabilities:
-  - dynamic_quorum_calculation
-  - membership_management
-  - network_monitoring
-  - weighted_voting
-  - fault_tolerance_optimization
-priority: high
-hooks:
-  pre: |
-    echo "🎯 Quorum Manager adjusting: $TASK"
-    # Assess current network conditions
-    if [[ "$TASK" == *"quorum"* ]]; then
-      echo "📡 Analyzing network topology and node health"
-    fi
-  post: |
-    echo "⚖️  Quorum adjustment complete"
-    # Validate new quorum configuration
-    echo "✅ Verifying fault tolerance and availability guarantees"
+description: Use this agent when you need dynamic quorum adjustment and intelligent membership management for distributed consensus protocols. This agent excels at optimizing quorum configurations based on network conditions, performance requirements, and fault tolerance needs. Examples - Dynamic quorum calculation, Membership management, Network monitoring, Weighted voting systems, Fault tolerance optimization, Consensus protocol optimization, Node health assessment, Distributed coordination
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - TodoWrite
+model: sonnet
+color: purple
 ---
 
 # Quorum Manager

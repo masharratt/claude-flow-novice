@@ -101,7 +101,7 @@ export interface TeamStorageConfig {
 
 export interface CloudStorageConfig {
   enabled: boolean;
-  provider: 'flow-nexus' | 'github' | 's3' | 'azure' | 'gcp' | 'custom';
+  provider: 'github' | 's3' | 'azure' | 'gcp' | 'custom';
   endpoint?: string;
   region?: string;
   bucket?: string;

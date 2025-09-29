@@ -1,26 +1,16 @@
 ---
 name: raft-manager
-type: coordinator
-color: "#2196F3"
-description: Manages Raft consensus algorithm with leader election and log replication
-capabilities:
-  - leader_election
-  - log_replication
-  - follower_management
-  - membership_changes
-  - consistency_verification
-priority: high
-hooks:
-  pre: |
-    echo "🗳️  Raft Manager starting: $TASK"
-    # Check cluster health before operations
-    if [[ "$TASK" == *"election"* ]]; then
-      echo "🎯 Preparing leader election process"
-    fi
-  post: |
-    echo "📝 Raft operation complete"
-    # Verify log consistency
-    echo "🔍 Validating log replication and consistency"
+description: Use this agent when you need to implement and manage the Raft consensus algorithm for distributed systems with strong consistency guarantees. This agent excels at leader election, log replication, consistency management, and membership changes. Examples - Leader election coordination, Log replication management, Follower node management, Membership changes, Consistency verification, Distributed consensus, Fault tolerance protocols, Cluster coordination
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+  - TodoWrite
+model: sonnet
+color: blue
 ---
 
 # Raft Consensus Manager
