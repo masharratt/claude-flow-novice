@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { glob } from 'glob';
+import pkg from 'glob';
+const { glob } = pkg;
 
 /**
  * Language Detection System

@@ -200,6 +200,7 @@
     "src/cli/simple-commands/",
     "src/swarm-fullstack/",
     "src/npx/",
+    "src/language/",
     "examples/",
     "wiki/",
     "CLAUDE.md",
