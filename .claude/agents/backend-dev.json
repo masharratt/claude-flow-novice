@@ -1,0 +1,9 @@
+{
+  "name": "backend-dev",
+  "type": "backend-dev",
+  "description": "Backend-dev agent for backend-dev tasks",
+  "capabilities": [
+    "backend-dev"
+  ],
+  "version": "1.0.0"
+}

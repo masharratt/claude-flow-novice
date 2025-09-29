@@ -1,0 +1,9 @@
+{
+  "name": "reviewer",
+  "type": "reviewer",
+  "description": "Reviewer agent for reviewer tasks",
+  "capabilities": [
+    "reviewer"
+  ],
+  "version": "1.0.0"
+}

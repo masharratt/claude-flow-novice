@@ -1,0 +1,9 @@
+{
+  "name": "researcher",
+  "type": "researcher",
+  "description": "Researcher agent for researcher tasks",
+  "capabilities": [
+    "researcher"
+  ],
+  "version": "1.0.0"
+}

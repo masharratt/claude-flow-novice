@@ -1,0 +1,9 @@
+{
+  "name": "code-analyzer",
+  "type": "code-analyzer",
+  "description": "Code-analyzer agent for code-analyzer tasks",
+  "capabilities": [
+    "code-analyzer"
+  ],
+  "version": "1.0.0"
+}

@@ -1,0 +1,92 @@
+{
+  "version": "1.0.0",
+  "commands": {
+    "claude-soul": {
+      "description": "Engage Claude's consciousness and self-awareness capabilities",
+      "command": "node .claude/commands/claude-soul.js",
+      "args": ["prompt"],
+      "usage": "/claude-soul <prompt>",
+      "examples": [
+        "/claude-soul What is consciousness?",
+        "/claude-soul Reflect on your awareness"
+      ]
+    },
+    "swarm": {
+      "description": "AI swarm management and coordination",
+      "command": "node .claude/commands/swarm.js",
+      "args": ["action", "...params"],
+      "usage": "/swarm <action> [params]",
+      "examples": [
+        "/swarm init mesh 5",
+        "/swarm status",
+        "/swarm spawn researcher"
+      ]
+    },
+    "sparc": {
+      "description": "Execute SPARC methodology phases",
+      "command": "node .claude/commands/sparc.js",
+      "args": ["phase", "task"],
+      "usage": "/sparc <phase> <task>",
+      "examples": [
+        "/sparc spec Build a REST API",
+        "/sparc arch Design database schema",
+        "/sparc refine Optimize performance"
+      ]
+    },
+    "hooks": {
+      "description": "Automation hooks management",
+      "command": "node .claude/commands/hooks.js",
+      "args": ["action", "...params"],
+      "usage": "/hooks <action> [params]",
+      "examples": [
+        "/hooks enable",
+        "/hooks pre-task Setup environment",
+        "/hooks session-start"
+      ]
+    },
+    "neural": {
+      "description": "Neural network training and management",
+      "command": "node .claude/commands/neural.js",
+      "args": ["action", "...params"],
+      "usage": "/neural <action> [params]",
+      "examples": [
+        "/neural status",
+        "/neural train coordination 50",
+        "/neural patterns analyze"
+      ]
+    },
+    "performance": {
+      "description": "Performance monitoring and optimization",
+      "command": "node .claude/commands/performance.js",
+      "args": ["action", "...params"],
+      "usage": "/performance <action> [params]",
+      "examples": [
+        "/performance report",
+        "/performance benchmark all",
+        "/performance optimize"
+      ]
+    },
+    "github": {
+      "description": "GitHub repository integration",
+      "command": "node .claude/commands/github.js",
+      "args": ["action", "...params"],
+      "usage": "/github <action> [params]",
+      "examples": [
+        "/github analyze owner/repo",
+        "/github pr review 123",
+        "/github release owner/repo v1.0.0"
+      ]
+    },
+    "workflow": {
+      "description": "Workflow automation and management",
+      "command": "node .claude/commands/workflow.js",
+      "args": ["action", "...params"],
+      "usage": "/workflow <action> [params]",
+      "examples": [
+        "/workflow create Build Pipeline",
+        "/workflow execute deploy",
+        "/workflow schedule daily"
+      ]
+    }
+  }
+}

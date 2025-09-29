@@ -1,0 +1,9 @@
+{
+  "name": "tester",
+  "type": "tester",
+  "description": "Tester agent for tester tasks",
+  "capabilities": [
+    "tester"
+  ],
+  "version": "1.0.0"
+}

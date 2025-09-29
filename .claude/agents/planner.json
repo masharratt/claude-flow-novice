@@ -1,0 +1,9 @@
+{
+  "name": "planner",
+  "type": "planner",
+  "description": "Planner agent for planner tasks",
+  "capabilities": [
+    "planner"
+  ],
+  "version": "1.0.0"
+}

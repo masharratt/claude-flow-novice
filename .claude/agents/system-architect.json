@@ -1,0 +1,9 @@
+{
+  "name": "system-architect",
+  "type": "system-architect",
+  "description": "System-architect agent for system-architect tasks",
+  "capabilities": [
+    "system-architect"
+  ],
+  "version": "1.0.0"
+}

@@ -7,7 +7,7 @@ const { ContentFilteringSystem } = require('../personalization/content-filtering
 const { HeavyCommandDetector } = require('../optimization/heavy-command-detector');
 const { SublinearOptimizer } = require('../optimization/sublinear-optimizer');
 const { PageRankPatternAnalyzer } = require('../analytics/pagerank-pattern-analyzer');
-const { TemporalAdvantagePredictor } = require('../analytics/temporal-predictor');
+// Temporal predictor removed for novice simplicity
 const { TeamSynchronizer } = require('../collaboration/team-synchronizer');
 const { ConflictResolutionSystem } = require('../collaboration/conflict-resolution');
 const { ContextAwareSmartHooks } = require('../advanced/context-aware-smart-hooks');
@@ -357,7 +357,7 @@ class UnifiedHookSystem extends EventEmitter {
         new PageRankPatternAnalyzer({ securityManager: this.securityManager }),
       temporalPredictor:
         providedPhases.temporalPredictor ||
-        new TemporalAdvantagePredictor({ securityManager: this.securityManager }),
+        // Temporal predictor removed for novice simplicity
 
       // Phase 4: Team Collaboration (with fixes)
       teamSynchronizer:

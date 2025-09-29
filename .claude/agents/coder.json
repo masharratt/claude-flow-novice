@@ -1,0 +1,9 @@
+{
+  "name": "coder",
+  "type": "coder",
+  "description": "Coder agent for coder tasks",
+  "capabilities": [
+    "coder"
+  ],
+  "version": "1.0.0"
+}

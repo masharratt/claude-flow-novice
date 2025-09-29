@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "pre_task": {
+      "enabled": true,
+      "command": "npx claude-flow-novice@latest hooks pre-task --description \"$TASK_DESCRIPTION\"",
+      "description": "Pre-task coordination hook"
+    },
+    "post_edit": {
+      "enabled": true,
+      "command": "npx claude-flow-novice@latest hooks post-edit --file \"$FILE_PATH\" --memory-key \"swarm/$AGENT_ID/$STEP\"",
+      "description": "Post-edit memory storage hook"
+    },
+    "post_task": {
+      "enabled": true,
+      "command": "npx claude-flow-novice@latest hooks post-task --task-id \"$TASK_ID\"",
+      "description": "Post-task completion hook"
+    }
+  },
+  "memory": {
+    "enabled": true,
+    "persistence": "local",
+    "namespace": "claude-flow-novice"
+  }
+}

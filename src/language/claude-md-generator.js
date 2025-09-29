@@ -201,7 +201,7 @@ export class ClaudeMdGenerator {
   applySubstitutions(content, substitutions) {
     let result = content;
 
-    for (const [key, value] = Object.entries(substitutions)) {
+    for (const [key, value] of Object.entries(substitutions)) {
       const placeholder = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
       result = result.replace(placeholder, value);
     }

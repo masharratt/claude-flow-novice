@@ -259,6 +259,91 @@ export function setupCommands(cli: CLI): void {
         await writeFile('memory/claude-flow-data.json', JSON.stringify(initialData, null, 2));
         console.log('  ✓ Created memory/claude-flow-data.json (persistence database)');
 
+        // Enhanced features for novice package: Agent system, MCP config, and hooks
+        console.log('\n🤖 Setting up enhanced agent system...');
+
+        // Create .claude directory structure for agents
+        const claudeDirectories = [
+          '.claude',
+          '.claude/agents',
+          '.claude/commands',
+          '.claude/hooks'
+        ];
+
+        for (const dir of claudeDirectories) {
+          await mkdir(dir, { recursive: true });
+          console.log(`  ✓ Created ${dir}/ directory`);
+        }
+
+        // Create MCP configuration file
+        console.log('\n🔌 Setting up MCP configuration...');
+        const mcpConfig = {
+          mcpServers: {
+            'claude-flow-novice': {
+              command: 'npx',
+              args: ['claude-flow-novice@latest', 'mcp', 'start'],
+              type: 'stdio'
+            },
+            'ruv-swarm': {
+              command: 'npx',
+              args: ['ruv-swarm@latest', 'mcp', 'start'],
+              type: 'stdio'
+            }
+          }
+        };
+
+        await writeFile('.mcp.json', JSON.stringify(mcpConfig, null, 2));
+        console.log('  ✓ Created .mcp.json with claude-flow-novice and ruv-swarm servers');
+
+        // Create hooks configuration
+        console.log('\n🪝 Setting up hooks system...');
+        const hooksConfig = {
+          hooks: {
+            pre_task: {
+              enabled: true,
+              command: 'npx claude-flow-novice@latest hooks pre-task --description "$TASK_DESCRIPTION"',
+              description: 'Pre-task coordination hook'
+            },
+            post_edit: {
+              enabled: true,
+              command: 'npx claude-flow-novice@latest hooks post-edit --file "$FILE_PATH" --memory-key "swarm/$AGENT_ID/$STEP"',
+              description: 'Post-edit memory storage hook'
+            },
+            post_task: {
+              enabled: true,
+              command: 'npx claude-flow-novice@latest hooks post-task --task-id "$TASK_ID"',
+              description: 'Post-task completion hook'
+            }
+          },
+          memory: {
+            enabled: true,
+            persistence: 'local',
+            namespace: 'claude-flow-novice'
+          }
+        };
+
+        await writeFile('.claude/hooks.json', JSON.stringify(hooksConfig, null, 2));
+        console.log('  ✓ Created .claude/hooks.json with automated coordination');
+
+        // Create basic agent definitions (simplified for novice package)
+        const basicAgents = [
+          'coder', 'reviewer', 'tester', 'planner', 'researcher',
+          'backend-dev', 'system-architect', 'code-analyzer'
+        ];
+
+        for (const agent of basicAgents) {
+          const agentConfig = {
+            name: agent,
+            type: agent,
+            description: `${agent.charAt(0).toUpperCase() + agent.slice(1)} agent for ${agent} tasks`,
+            capabilities: [agent],
+            version: '1.0.0'
+          };
+
+          await writeFile(`.claude/agents/${agent}.json`, JSON.stringify(agentConfig, null, 2));
+        }
+        console.log(`  ✓ Created ${basicAgents.length} essential agent definitions`);
+
         success('Claude Code integration files initialized successfully!');
         console.log('\nNext steps:');
         console.log('1. Review and customize the generated files for your project');
