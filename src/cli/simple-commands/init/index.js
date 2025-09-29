@@ -579,7 +579,7 @@ export async function initCommand(subArgs, flags) {
 
         if (hiveMindResult.success) {
           console.log('  ✅ Basic hive-mind system initialized');
-          console.log('  💡 Use "npx claude-flow@alpha hive-mind" for advanced features');
+          console.log('  💡 Use "npx claude-flow-novice hive-mind" for advanced features');
         } else {
           console.log(`  ⚠️  Hive-mind setup skipped: ${hiveMindResult.error}`);
         }
@@ -1213,7 +1213,7 @@ async function setupMonitoring(workingDir) {
 
       // Add token tracking hook
       const tokenTrackingHook =
-        'npx claude-flow@alpha internal track-tokens --session-id {{session_id}} --tokens {{token_usage}}';
+        'npx claude-flow-novice internal track-tokens --session-id {{session_id}} --tokens {{token_usage}}';
       if (!settings.hooks['post-task'].includes(tokenTrackingHook)) {
         settings.hooks['post-task'].push(tokenTrackingHook);
       }
@@ -1692,7 +1692,7 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       } else {
         console.log('  ℹ️  Skipping MCP setup (--skip-mcp flag used)');
         console.log('\n  📋 To add MCP servers manually:');
-        console.log('     claude mcp add claude-flow-novice npx claude-flow@alpha mcp start');
+        console.log('     claude mcp add claude-flow-novice npx claude-flow-novice mcp start');
         console.log('     claude mcp add ruv-swarm npx ruv-swarm@latest mcp start');
         console.log('     claude mcp add flow-nexus npx flow-nexus@latest mcp start');
         console.log('\n  💡 MCP servers are defined in .mcp.json (project scope)');
@@ -1702,7 +1702,7 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       console.log('\n  📥 To install Claude Code:');
       console.log('     npm install -g @anthropic-ai/claude-code');
       console.log('\n  📋 After installing, add MCP servers:');
-      console.log('     claude mcp add claude-flow-novice npx claude-flow@alpha mcp start');
+      console.log('     claude mcp add claude-flow-novice npx claude-flow-novice mcp start');
       console.log('     claude mcp add ruv-swarm npx ruv-swarm@latest mcp start');
       console.log('     claude mcp add flow-nexus npx flow-nexus@latest mcp start');
       console.log('\n  💡 MCP servers are defined in .mcp.json (project scope)');
@@ -1744,17 +1744,17 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
         hooks: {
           pre_task: {
             enabled: true,
-            command: "npx claude-flow@alpha hooks pre-task --description \"$TASK_DESCRIPTION\"",
+            command: "npx claude-flow-novice hooks pre-task --description \"$TASK_DESCRIPTION\"",
             description: "Pre-task coordination hook"
           },
           post_edit: {
             enabled: true,
-            command: "npx claude-flow@alpha hooks post-edit --file \"$FILE_PATH\" --memory-key \"swarm/$AGENT_ID/$STEP\"",
+            command: "npx claude-flow-novice hooks post-edit --file \"$FILE_PATH\" --memory-key \"swarm/$AGENT_ID/$STEP\"",
             description: "Post-edit memory storage hook"
           },
           post_task: {
             enabled: true,
-            command: "npx claude-flow@alpha hooks post-task --task-id \"$TASK_ID\"",
+            command: "npx claude-flow-novice hooks post-task --task-id \"$TASK_ID\"",
             description: "Post-task completion hook"
           }
         },
@@ -1812,20 +1812,20 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
     if (isClaudeCodeInstalled()) {
       console.log('1. Verify MCP setup: claude mcp list');
       console.log('2. View available commands: ls .claude/commands/');
-      console.log('3. Start a swarm: npx claude-flow@alpha swarm "your objective" --claude');
-      console.log('4. Use hive-mind: npx claude-flow@alpha hive-mind spawn "command" --claude');
+      console.log('3. Start a swarm: npx claude-flow-novice swarm "your objective" --claude');
+      console.log('4. Use hive-mind: npx claude-flow-novice hive-mind spawn "command" --claude');
       console.log('5. Use enhanced MCP tools in Claude Code for bulletproof coordination');
       if (hiveMindStatus.configured) {
-        console.log('5. Initialize first swarm: npx claude-flow@alpha hive-mind init');
+        console.log('5. Initialize first swarm: npx claude-flow-novice hive-mind init');
       }
     } else {
       console.log('1. Install Claude Code: npm install -g @anthropic-ai/claude-code');
       console.log('2. Add MCP servers (see instructions above)');
       console.log('3. View available commands: ls .claude/commands/');
-      console.log('4. Start a swarm: npx claude-flow@alpha swarm "your objective" --claude');
-      console.log('5. Use hive-mind: npx claude-flow@alpha hive-mind spawn "command" --claude');
+      console.log('4. Start a swarm: npx claude-flow-novice swarm "your objective" --claude');
+      console.log('5. Use hive-mind: npx claude-flow-novice hive-mind spawn "command" --claude');
       if (hiveMindStatus.configured) {
-        console.log('6. Initialize first swarm: npx claude-flow@alpha hive-mind init');
+        console.log('6. Initialize first swarm: npx claude-flow-novice hive-mind init');
       }
     }
     console.log('\n💡 Tips:');

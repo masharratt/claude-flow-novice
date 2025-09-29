@@ -2,12 +2,22 @@
 
 ## Core Orchestration Patterns
 
-### Parallel Execution Protocol
-ALL related operations MUST execute concurrently in single messages:
-- **TodoWrite**: Batch 5-10+ todos in one call
-- **File Operations**: Batch reads/writes/edits together
-- **Agent Spawning**: Use Task tool for concurrent agent execution
-- **Memory Operations**: Batch store/retrieve operations
+## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
+
+**ABSOLUTE RULES**:
+1. ALL operations MUST be concurrent/parallel in a single message
+2. **NEVER save working files, text/mds and tests to the root folder**
+3. ALWAYS organize files in appropriate subdirectories
+4. **USE CLAUDE CODE'S TASK TOOL** for spawning agents concurrently, not just MCP
+
+### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
+
+**MANDATORY PATTERNS:**
+- **TodoWrite**: ALWAYS batch ALL todos in ONE call (5-10+ todos minimum)
+- **Task tool (Claude Code)**: ALWAYS spawn ALL agents in ONE message with full instructions
+- **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
+- **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
+- **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
 
 ### Agent Coordination Framework
 

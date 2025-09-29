@@ -1,9 +1,40 @@
 {
   "name": "tester",
   "type": "tester",
-  "description": "Tester agent for tester tasks",
+  "description": "Quality assurance agent for testing, validation, and quality control",
   "capabilities": [
-    "tester"
+    "unit-testing",
+    "integration-testing",
+    "test-automation",
+    "quality-validation",
+    "bug-detection"
   ],
-  "version": "1.0.0"
+  "tools": {
+    "required": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "Glob",
+      "Grep",
+      "TodoWrite"
+    ],
+    "optional": [
+      "MultiEdit",
+      "Task",
+      "NotebookEdit"
+    ],
+    "coordination": [
+      "mcp__claude-flow-novice__task_status",
+      "mcp__claude-flow-novice__memory_usage"
+    ]
+  },
+  "responsibilities": [
+    "Create comprehensive test suites and test cases",
+    "Execute automated and manual testing procedures",
+    "Validate functionality against requirements",
+    "Identify and document bugs and issues",
+    "Ensure quality standards are met before deployment"
+  ],
+  "version": "2.0.0"
 }

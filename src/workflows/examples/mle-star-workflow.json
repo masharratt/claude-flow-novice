@@ -15,7 +15,7 @@
       "id": "search-coordinator",
       "type": "coordinator",
       "name": "Web Search Coordinator",
-      "capabilities": ["web-search", "knowledge-synthesis"]
+      "capabilities": ["WebSearch", "WebFetch", "knowledge-synthesis"]
     },
     {
       "id": "ml-researcher",

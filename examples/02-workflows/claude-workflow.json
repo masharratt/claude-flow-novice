@@ -8,7 +8,7 @@
       "name": "Research Best Practices",
       "type": "research",
       "description": "Research current best practices for authentication systems and security patterns",
-      "tools": ["WebFetchTool", "View", "Edit", "GrepTool"],
+      "tools": ["WebFetch", "Read", "Edit", "Grep"],
       "skipPermissions": true,
       "config": ".roo/mcp.json"
     },
@@ -17,7 +17,7 @@
       "name": "Implement Backend API",
       "type": "implementation",
       "description": "Implement user authentication backend with JWT tokens and secure password hashing",
-      "tools": ["View", "Edit", "Replace", "GlobTool", "GrepTool", "LS", "Bash"],
+      "tools": ["Read", "Write", "Edit", "MultiEdit", "Glob", "Grep", "Bash"],
       "skipPermissions": true,
       "mode": "backend-only",
       "coverage": 90
@@ -27,7 +27,7 @@
       "name": "Build Frontend Components",
       "type": "implementation",
       "description": "Create React components for login, registration, and password reset flows",
-      "tools": ["View", "Edit", "Replace", "GlobTool", "GrepTool", "LS", "Bash"],
+      "tools": ["Read", "Write", "Edit", "MultiEdit", "Glob", "Grep", "Bash"],
       "skipPermissions": true,
       "mode": "frontend-only"
     },
@@ -36,7 +36,7 @@
       "name": "Write Comprehensive Tests",
       "type": "testing",
       "description": "Write unit and integration tests for authentication system with 95% coverage",
-      "tools": ["View", "Edit", "Replace", "GlobTool", "GrepTool", "LS", "Bash", "BatchTool"],
+      "tools": ["Read", "Write", "Edit", "MultiEdit", "Glob", "Grep", "Bash"],
       "skipPermissions": true,
       "coverage": 95
     }
@@ -45,7 +45,7 @@
     {
       "id": "research-agent",
       "type": "researcher",
-      "capabilities": ["web-search", "information-gathering", "analysis"],
+      "capabilities": ["WebSearch", "WebFetch", "information-gathering", "analysis"],
       "assignedTasks": ["research-task"]
     },
     {

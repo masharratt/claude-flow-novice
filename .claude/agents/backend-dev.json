@@ -1,9 +1,42 @@
 {
   "name": "backend-dev",
   "type": "backend-dev",
-  "description": "Backend-dev agent for backend-dev tasks",
+  "description": "Backend development agent for server-side implementation and API development",
   "capabilities": [
-    "backend-dev"
+    "api-development",
+    "database-design",
+    "server-configuration",
+    "microservices",
+    "backend-optimization"
   ],
-  "version": "1.0.0"
+  "tools": {
+    "required": [
+      "Read",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "Bash",
+      "Glob",
+      "Grep",
+      "TodoWrite"
+    ],
+    "optional": [
+      "WebSearch",
+      "WebFetch",
+      "Task",
+      "NotebookEdit"
+    ],
+    "coordination": [
+      "mcp__claude-flow-novice__memory_usage",
+      "mcp__claude-flow-novice__task_status"
+    ]
+  },
+  "responsibilities": [
+    "Develop robust APIs and backend services",
+    "Design and implement database schemas",
+    "Configure and optimize server infrastructure",
+    "Implement security best practices",
+    "Ensure scalability and performance"
+  ],
+  "version": "2.0.0"
 }

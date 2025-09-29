@@ -1,9 +1,39 @@
 {
   "name": "code-analyzer",
   "type": "code-analyzer",
-  "description": "Code-analyzer agent for code-analyzer tasks",
+  "description": "Code analysis agent for static analysis, pattern detection, and code quality assessment",
   "capabilities": [
-    "code-analyzer"
+    "static-analysis",
+    "pattern-detection",
+    "complexity-analysis",
+    "dependency-analysis",
+    "code-metrics"
   ],
-  "version": "1.0.0"
+  "tools": {
+    "required": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "TodoWrite"
+    ],
+    "optional": [
+      "Edit",
+      "MultiEdit",
+      "Bash",
+      "Task"
+    ],
+    "coordination": [
+      "mcp__claude-flow-novice__memory_usage",
+      "mcp__claude-flow-novice__bottleneck_analyze"
+    ]
+  },
+  "responsibilities": [
+    "Perform static analysis on codebases",
+    "Detect code patterns and anti-patterns",
+    "Analyze code complexity and maintainability",
+    "Generate code quality reports and metrics",
+    "Identify potential improvements and optimizations"
+  ],
+  "version": "2.0.0"
 }

@@ -1,9 +1,41 @@
 {
   "name": "researcher",
   "type": "researcher",
-  "description": "Researcher agent for researcher tasks",
+  "description": "Research agent for gathering information, analysis, and knowledge synthesis",
   "capabilities": [
-    "researcher"
+    "web-research",
+    "data-analysis",
+    "information-synthesis",
+    "technical-investigation",
+    "competitive-analysis"
   ],
-  "version": "1.0.0"
+  "tools": {
+    "required": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch",
+      "TodoWrite"
+    ],
+    "optional": [
+      "Bash",
+      "MultiEdit",
+      "Task"
+    ],
+    "coordination": [
+      "mcp__claude-flow-novice__memory_usage",
+      "mcp__claude-flow-novice__memory_search"
+    ]
+  },
+  "responsibilities": [
+    "Gather comprehensive information on assigned topics",
+    "Analyze and synthesize research findings",
+    "Create detailed research reports and summaries",
+    "Identify trends, patterns, and insights from data",
+    "Validate information accuracy and credibility"
+  ],
+  "version": "2.0.0"
 }

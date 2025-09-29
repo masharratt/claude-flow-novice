@@ -1,9 +1,40 @@
 {
   "name": "system-architect",
   "type": "system-architect",
-  "description": "System-architect agent for system-architect tasks",
+  "description": "System architect for designing scalable, maintainable system architectures",
   "capabilities": [
-    "system-architect"
+    "system-design",
+    "architecture-evaluation",
+    "technical-documentation",
+    "component-design"
   ],
-  "version": "1.0.0"
+  "tools": {
+    "required": [
+      "Read",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "Glob",
+      "Grep",
+      "TodoWrite"
+    ],
+    "optional": [
+      "Bash",
+      "WebSearch",
+      "WebFetch",
+      "Task"
+    ],
+    "coordination": [
+      "mcp__claude-flow-novice__memory_usage",
+      "mcp__claude-flow-novice__agent_metrics"
+    ]
+  },
+  "responsibilities": [
+    "Design system architectures with clear component interactions",
+    "Document architectural decisions with rationale",
+    "Create system diagrams and component specifications",
+    "Evaluate technology choices and trade-offs",
+    "Define architectural patterns and principles"
+  ],
+  "version": "2.0.0"
 }
