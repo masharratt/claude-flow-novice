@@ -48,7 +48,7 @@ export async function createClaudeSlashCommands(workingDir) {
       }
     }
 
-    // Create claude-flow specific commands
+    // Create claude-flow-novice specific commands
     await createClaudeFlowCommands(workingDir);
   } catch (err) {
     // Legacy slash command creation - silently skip if it fails

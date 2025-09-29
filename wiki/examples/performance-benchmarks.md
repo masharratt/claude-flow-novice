@@ -431,7 +431,7 @@ Optimal Thread Count: 8 threads for best performance/resource ratio
 
 ```bash
 # Benchmark command
-npx claude-flow benchmark run --scenario ecommerce --duration 3600 --agents 24
+npx claude-flow-novice benchmark run --scenario ecommerce --duration 3600 --agents 24
 ```
 
 ```
@@ -484,7 +484,7 @@ Bugs: 67% fewer bugs in initial implementation
 
 ```bash
 # Benchmark command
-npx claude-flow benchmark run --scenario ml-pipeline --duration 7200 --agents 16
+npx claude-flow-novice benchmark run --scenario ml-pipeline --duration 7200 --agents 16
 ```
 
 ```
@@ -538,7 +538,7 @@ Hyperparameter Trials: 23 trials/hour
 
 ```bash
 # Benchmark command
-npx claude-flow benchmark run --scenario microservices --duration 5400 --agents 32
+npx claude-flow-novice benchmark run --scenario microservices --duration 5400 --agents 32
 ```
 
 ```
@@ -676,20 +676,20 @@ Memory Efficiency: +78%
 
 ```bash
 # Quick performance check
-npx claude-flow perf quick --agents 8 --duration 300
+npx claude-flow-novice perf quick --agents 8 --duration 300
 
 # Comprehensive benchmark suite
-npx claude-flow benchmark run --suite comprehensive --export results.json
+npx claude-flow-novice benchmark run --suite comprehensive --export results.json
 
 # Custom workload testing
-npx claude-flow test custom \
+npx claude-flow-novice test custom \
   --agents 16 \
   --workload "frontend,backend,testing" \
   --duration 1800 \
   --load-profile realistic
 
 # Load testing with scaling
-npx claude-flow test load \
+npx claude-flow-novice test load \
   --start-agents 4 \
   --max-agents 32 \
   --ramp-up 300 \
@@ -697,27 +697,27 @@ npx claude-flow test load \
   --target-rps 1000
 
 # Memory profiling
-npx claude-flow profile memory \
+npx claude-flow-novice profile memory \
   --heap-snapshots \
   --gc-analysis \
   --leak-detection \
   --duration 3600
 
 # Network performance testing
-npx claude-flow test network \
+npx claude-flow-novice test network \
   --topology mesh \
   --agents 16 \
   --message-sizes "1KB,10KB,100KB,1MB" \
   --protocols "websocket,grpc"
 
 # Database performance testing
-npx claude-flow test database \
+npx claude-flow-novice test database \
   --queries 10000 \
   --concurrent-connections 50 \
   --query-types "select,insert,update,join"
 
 # Stress testing
-npx claude-flow test stress \
+npx claude-flow-novice test stress \
   --max-load \
   --duration 600 \
   --monitor-resources \

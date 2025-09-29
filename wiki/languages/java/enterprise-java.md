@@ -22,10 +22,10 @@ public class ApplicationBootstrap {
 
 ```bash
 # Generate Jakarta EE application with agents
-npx claude-flow sparc run architect "Design Jakarta EE enterprise application"
+npx claude-flow-novice sparc run architect "Design Jakarta EE enterprise application"
 
 # Setup enterprise patterns
-npx claude-flow sparc batch architect,coder "Implement Jakarta EE with microprofile"
+npx claude-flow-novice sparc batch architect,coder "Implement Jakarta EE with microprofile"
 ```
 
 ## Core Jakarta EE Components
@@ -947,7 +947,7 @@ COPY src/main/resources/payara-resources.xml $PAYARA_DIR/domains/domain1/config/
 # Set environment variables
 ENV JDBC_URL="jdbc:postgresql://db:5432/userdb"
 ENV JDBC_USERNAME="user"
-ENV JDBC_PASSWORD="password"
+ENV JDBC_PASSWORD=$DB_PASSWORD
 
 EXPOSE 8080 4848
 
@@ -1035,35 +1035,35 @@ spec:
 
 ```bash
 # Initialize enterprise project with agents
-npx claude-flow sparc run architect "Design Jakarta EE enterprise architecture"
+npx claude-flow-novice sparc run architect "Design Jakarta EE enterprise architecture"
 
 # Generate enterprise components
-npx claude-flow sparc batch coder,tester "Create Jakarta EE components with EJB and JPA"
+npx claude-flow-novice sparc batch coder,tester "Create Jakarta EE components with EJB and JPA"
 
 # Setup security
-npx claude-flow sparc run coder "Implement JWT security with Jakarta Security"
+npx claude-flow-novice sparc run coder "Implement JWT security with Jakarta Security"
 
 # Create comprehensive tests
-npx claude-flow sparc run tester "Generate Arquillian integration tests"
+npx claude-flow-novice sparc run tester "Generate Arquillian integration tests"
 
 # Setup cloud deployment
-npx claude-flow sparc batch architect,coder "Create Kubernetes deployment manifests"
+npx claude-flow-novice sparc batch architect,coder "Create Kubernetes deployment manifests"
 ```
 
 ### MCP Integration for Enterprise Java
 
 ```bash
 # Initialize enterprise development swarm
-npx claude-flow mcp swarm_init --topology hierarchical --max-agents 10
+npx claude-flow-novice mcp swarm_init --topology hierarchical --max-agents 10
 
 # Spawn enterprise specialists
-npx claude-flow mcp agent_spawn --type architect --capabilities "jakarta-ee,microprofile,enterprise-patterns"
-npx claude-flow mcp agent_spawn --type coder --capabilities "ejb,jpa,jax-rs,cdi"
-npx claude-flow mcp agent_spawn --type tester --capabilities "arquillian,junit,integration-tests"
-npx claude-flow mcp agent_spawn --type reviewer --capabilities "security,performance,enterprise-standards"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "jakarta-ee,microprofile,enterprise-patterns"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "ejb,jpa,jax-rs,cdi"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "arquillian,junit,integration-tests"
+npx claude-flow-novice mcp agent_spawn --type reviewer --capabilities "security,performance,enterprise-standards"
 
 # Orchestrate enterprise development
-npx claude-flow mcp task_orchestrate --task "Build enterprise Jakarta EE application" --strategy hierarchical
+npx claude-flow-novice mcp task_orchestrate --task "Build enterprise Jakarta EE application" --strategy hierarchical
 ```
 
 ## Performance Optimization
@@ -1143,7 +1143,7 @@ public class OptimizedUserRepository {
         <property name="portNumber" value="5432"/>
         <property name="databaseName" value="userdb"/>
         <property name="user" value="user"/>
-        <property name="password" value="password"/>
+        <property name="password" value="${DB_PASSWORD}"/>
         <property name="preparedStatementCacheSize" value="250"/>
         <property name="preparedStatementCacheQueries" value="true"/>
     </jdbc-connection-pool>

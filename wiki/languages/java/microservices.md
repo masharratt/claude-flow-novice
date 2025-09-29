@@ -39,10 +39,10 @@ public class UserResource {
 
 ```bash
 # Generate microservices architecture with agents
-npx claude-flow sparc run architect "Design Spring Cloud microservices architecture"
+npx claude-flow-novice sparc run architect "Design Spring Cloud microservices architecture"
 
 # Build distributed system
-npx claude-flow sparc batch architect,coder "Implement microservices with Spring Cloud and Quarkus"
+npx claude-flow-novice sparc batch architect,coder "Implement microservices with Spring Cloud and Quarkus"
 ```
 
 ## Spring Cloud Microservices
@@ -1200,46 +1200,46 @@ public class UserQueryHandler {
 
 ```bash
 # Design microservices architecture
-npx claude-flow sparc run architect "Design Spring Cloud microservices architecture with service discovery"
+npx claude-flow-novice sparc run architect "Design Spring Cloud microservices architecture with service discovery"
 
 # Generate individual services
-npx claude-flow sparc batch coder,tester "Create user microservice with Spring Boot and JPA"
-npx claude-flow sparc batch coder,tester "Create order microservice with Spring Boot and Kafka"
-npx claude-flow sparc batch coder,tester "Create notification microservice with Quarkus"
+npx claude-flow-novice sparc batch coder,tester "Create user microservice with Spring Boot and JPA"
+npx claude-flow-novice sparc batch coder,tester "Create order microservice with Spring Boot and Kafka"
+npx claude-flow-novice sparc batch coder,tester "Create notification microservice with Quarkus"
 
 # Setup infrastructure components
-npx claude-flow sparc run coder "Create API Gateway with Spring Cloud Gateway"
-npx claude-flow sparc run coder "Setup Eureka service discovery"
-npx claude-flow sparc run coder "Configure Spring Cloud Config server"
+npx claude-flow-novice sparc run coder "Create API Gateway with Spring Cloud Gateway"
+npx claude-flow-novice sparc run coder "Setup Eureka service discovery"
+npx claude-flow-novice sparc run coder "Configure Spring Cloud Config server"
 
 # Implement cross-cutting concerns
-npx claude-flow sparc batch coder,reviewer "Add distributed tracing with Sleuth and Zipkin"
-npx claude-flow sparc batch coder,reviewer "Implement circuit breakers with Resilience4j"
+npx claude-flow-novice sparc batch coder,reviewer "Add distributed tracing with Sleuth and Zipkin"
+npx claude-flow-novice sparc batch coder,reviewer "Implement circuit breakers with Resilience4j"
 
 # Create deployment manifests
-npx claude-flow sparc run architect "Create Kubernetes deployment manifests for microservices"
+npx claude-flow-novice sparc run architect "Create Kubernetes deployment manifests for microservices"
 ```
 
 ### 2. MCP Integration for Distributed Systems
 
 ```bash
 # Initialize microservices development swarm
-npx claude-flow mcp swarm_init --topology mesh --max-agents 12
+npx claude-flow-novice mcp swarm_init --topology mesh --max-agents 12
 
 # Spawn microservices specialists
-npx claude-flow mcp agent_spawn --type architect --capabilities "microservices,spring-cloud,service-mesh"
-npx claude-flow mcp agent_spawn --type coder --capabilities "spring-boot,spring-cloud-gateway"
-npx claude-flow mcp agent_spawn --type coder --capabilities "quarkus,reactive,native"
-npx claude-flow mcp agent_spawn --type tester --capabilities "integration-testing,contract-testing"
-npx claude-flow mcp agent_spawn --type reviewer --capabilities "distributed-systems,performance"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "microservices,spring-cloud,service-mesh"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "spring-boot,spring-cloud-gateway"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "quarkus,reactive,native"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "integration-testing,contract-testing"
+npx claude-flow-novice mcp agent_spawn --type reviewer --capabilities "distributed-systems,performance"
 
 # Spawn infrastructure specialists
-npx claude-flow mcp agent_spawn --type architect --capabilities "kubernetes,istio,helm"
-npx claude-flow mcp agent_spawn --type coder --capabilities "kafka,event-sourcing,cqrs"
-npx claude-flow mcp agent_spawn --type monitor --capabilities "prometheus,grafana,jaeger"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "kubernetes,istio,helm"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "kafka,event-sourcing,cqrs"
+npx claude-flow-novice mcp agent_spawn --type monitor --capabilities "prometheus,grafana,jaeger"
 
 # Orchestrate microservices development
-npx claude-flow mcp task_orchestrate --task "Build complete microservices ecosystem" --strategy hierarchical
+npx claude-flow-novice mcp task_orchestrate --task "Build complete microservices ecosystem" --strategy hierarchical
 ```
 
 ## Monitoring and Observability

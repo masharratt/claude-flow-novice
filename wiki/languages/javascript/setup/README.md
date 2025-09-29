@@ -8,17 +8,17 @@ Complete guide to setting up JavaScript projects with Claude-Flow agent coordina
 
 ```bash
 # Initialize with agent assistance
-npx claude-flow sparc run base-template-generator "Modern JavaScript project with TypeScript"
+npx claude-flow-novice sparc run base-template-generator "Modern JavaScript project with TypeScript"
 
 # Alternative: Use architect for complex projects
-npx claude-flow sparc run architect "Full-stack MERN application with authentication"
+npx claude-flow-novice sparc run architect "Full-stack MERN application with authentication"
 ```
 
 ### 2. Package Manager Configuration
 
 ```bash
 # Setup package.json with agent optimization
-npx claude-flow sparc run coder "Configure package.json with modern dependencies"
+npx claude-flow-novice sparc run coder "Configure package.json with modern dependencies"
 
 # Initialize with npm/yarn/pnpm
 npm init -y
@@ -32,7 +32,7 @@ pnpm init
 
 ```bash
 # Setup development tools with coordination
-npx claude-flow sparc batch "coder,reviewer" "ESLint, Prettier, and TypeScript configuration"
+npx claude-flow-novice sparc batch "coder,reviewer" "ESLint, Prettier, and TypeScript configuration"
 ```
 
 ## 📦 Modern JavaScript Project Structure
@@ -72,10 +72,10 @@ my-js-project/
 
 ```bash
 # Generate project structure with agents
-npx claude-flow sparc run system-architect "Create scalable JavaScript project structure"
+npx claude-flow-novice sparc run system-architect "Create scalable JavaScript project structure"
 
 # Generate with specific patterns
-npx claude-flow sparc run base-template-generator "React TypeScript project with testing setup"
+npx claude-flow-novice sparc run base-template-generator "React TypeScript project with testing setup"
 ```
 
 ## 🛠 Development Tools Configuration
@@ -115,7 +115,7 @@ npx claude-flow sparc run base-template-generator "React TypeScript project with
 
 ```bash
 # Generate TypeScript configuration with agent
-npx claude-flow sparc run coder "Setup TypeScript with strict configuration and path mapping"
+npx claude-flow-novice sparc run coder "Setup TypeScript with strict configuration and path mapping"
 ```
 
 ### 2. ESLint Configuration
@@ -162,7 +162,7 @@ module.exports = {
 
 ```bash
 # Setup ESLint with agent coordination
-npx claude-flow sparc run reviewer "Configure ESLint with TypeScript and React rules"
+npx claude-flow-novice sparc run reviewer "Configure ESLint with TypeScript and React rules"
 ```
 
 ### 3. Prettier Configuration
@@ -183,7 +183,7 @@ npx claude-flow sparc run reviewer "Configure ESLint with TypeScript and React r
 
 ```bash
 # Configure Prettier with agent
-npx claude-flow sparc run coder "Setup Prettier with team-friendly configuration"
+npx claude-flow-novice sparc run coder "Setup Prettier with team-friendly configuration"
 ```
 
 ## 🔧 Build Tools & Bundlers
@@ -221,14 +221,14 @@ export default defineConfig({
 
 ```bash
 # Setup Vite with agent assistance
-npx claude-flow sparc run coder "Configure Vite with React, TypeScript, and testing"
+npx claude-flow-novice sparc run coder "Configure Vite with React, TypeScript, and testing"
 ```
 
 ### 2. Webpack Configuration (Enterprise)
 
 ```bash
 # Generate Webpack config with agent
-npx claude-flow sparc run system-architect "Webpack configuration for production deployment"
+npx claude-flow-novice sparc run system-architect "Webpack configuration for production deployment"
 ```
 
 ### 3. Package.json Scripts
@@ -278,7 +278,7 @@ npx claude-flow sparc run system-architect "Webpack configuration for production
 
 ```bash
 # Complete project setup with agent coordination
-npx claude-flow sparc pipeline "Project Setup"
+npx claude-flow-novice sparc pipeline "Project Setup"
 
 # This runs:
 # 1. base-template-generator - Creates structure
@@ -291,23 +291,23 @@ npx claude-flow sparc pipeline "Project Setup"
 
 ```bash
 # Parallel development with agents
-npx claude-flow sparc batch "backend-dev,coder,tester" "E-commerce platform development"
+npx claude-flow-novice sparc batch "backend-dev,coder,tester" "E-commerce platform development"
 
 # Sequential workflow for complex features
-npx claude-flow sparc run architect "Design authentication system"
-npx claude-flow sparc run backend-dev "Implement JWT authentication"
-npx claude-flow sparc run coder "Create login/register UI"
-npx claude-flow sparc run tester "Add authentication tests"
+npx claude-flow-novice sparc run architect "Design authentication system"
+npx claude-flow-novice sparc run backend-dev "Implement JWT authentication"
+npx claude-flow-novice sparc run coder "Create login/register UI"
+npx claude-flow-novice sparc run tester "Add authentication tests"
 ```
 
 ### 3. Code Quality Workflow
 
 ```bash
 # Automated code quality with agents
-npx claude-flow sparc run reviewer "Code review and optimization suggestions"
+npx claude-flow-novice sparc run reviewer "Code review and optimization suggestions"
 
 # Performance analysis
-npx claude-flow sparc run perf-analyzer "Bundle size and runtime performance analysis"
+npx claude-flow-novice sparc run perf-analyzer "Bundle size and runtime performance analysis"
 ```
 
 ## 🔄 MCP Integration for Project Setup
@@ -374,10 +374,10 @@ await mcp__claude_flow__task_status({
 
 ```bash
 # Generate setup checklist with agent
-npx claude-flow sparc run planner "Create comprehensive JavaScript project setup checklist"
+npx claude-flow-novice sparc run planner "Create comprehensive JavaScript project setup checklist"
 
 # Validate setup with agent
-npx claude-flow sparc run reviewer "Validate project configuration and setup"
+npx claude-flow-novice sparc run reviewer "Validate project configuration and setup"
 ```
 
 ## 🚀 Quick Start Templates
@@ -386,28 +386,28 @@ npx claude-flow sparc run reviewer "Validate project configuration and setup"
 
 ```bash
 # Generate React app with agent
-npx claude-flow sparc run base-template-generator "React TypeScript application with routing and state management"
+npx claude-flow-novice sparc run base-template-generator "React TypeScript application with routing and state management"
 ```
 
 ### 2. Node.js API
 
 ```bash
 # Generate API with agent
-npx claude-flow sparc run backend-dev "Express TypeScript API with authentication and database"
+npx claude-flow-novice sparc run backend-dev "Express TypeScript API with authentication and database"
 ```
 
 ### 3. Full-Stack Application
 
 ```bash
 # Generate full-stack app with agent coordination
-npx claude-flow sparc batch "backend-dev,coder" "MERN stack application with authentication"
+npx claude-flow-novice sparc batch "backend-dev,coder" "MERN stack application with authentication"
 ```
 
 ### 4. Microservices Architecture
 
 ```bash
 # Generate microservices with agent
-npx claude-flow sparc run system-architect "Node.js microservices with Docker and API Gateway"
+npx claude-flow-novice sparc run system-architect "Node.js microservices with Docker and API Gateway"
 ```
 
 ## 🔗 Integration Points
@@ -416,21 +416,21 @@ npx claude-flow sparc run system-architect "Node.js microservices with Docker an
 
 ```bash
 # Setup git hooks with agent
-npx claude-flow sparc run reviewer "Configure pre-commit hooks for code quality"
+npx claude-flow-novice sparc run reviewer "Configure pre-commit hooks for code quality"
 ```
 
 ### CI/CD Pipeline
 
 ```bash
 # Generate GitHub Actions with agent
-npx claude-flow sparc run cicd-engineer "Create CI/CD pipeline for JavaScript project"
+npx claude-flow-novice sparc run cicd-engineer "Create CI/CD pipeline for JavaScript project"
 ```
 
 ### Docker Configuration
 
 ```bash
 # Generate Docker setup with agent
-npx claude-flow sparc run system-architect "Docker configuration for JavaScript development"
+npx claude-flow-novice sparc run system-architect "Docker configuration for JavaScript development"
 ```
 
 ---

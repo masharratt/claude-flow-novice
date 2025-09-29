@@ -4,7 +4,7 @@
  * This module provides seamless integration with the existing hive-mind system,
  * enabling swarms to leverage collective intelligence, shared memory, and
  * distributed coordination capabilities while maintaining compatibility
- * with the current claude-flow architecture.
+ * with the current claude-flow-novice architecture.
  */
 
 import { EventEmitter } from 'node:events';

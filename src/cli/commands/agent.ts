@@ -252,7 +252,7 @@ export function createAgentCommand(): Command {
           await manager.startAgent(agentId);
           console.log(chalk.green('✅ Agent started and ready!'));
         } else {
-          console.log(chalk.yellow(`Use 'claude-flow agent start ${agentId}' to start the agent`));
+          console.log(chalk.yellow(`Use 'claude-flow-novice agent start ${agentId}' to start the agent`));
         }
 
         // Display agent info

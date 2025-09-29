@@ -1,10 +1,10 @@
 # Inclusive Design Review Processes
 
-This guide provides comprehensive strategies for implementing inclusive design review processes using claude-flow agents, ensuring accessibility and inclusion are evaluated at every stage of development through systematic, automated, and human-centered review workflows.
+This guide provides comprehensive strategies for implementing inclusive design review processes using claude-flow-novice agents, ensuring accessibility and inclusion are evaluated at every stage of development through systematic, automated, and human-centered review workflows.
 
 ## 🎯 Overview
 
-Inclusive design reviews ensure that accessibility considerations are embedded throughout the development lifecycle. By leveraging claude-flow agents, teams can create comprehensive review processes that catch accessibility issues early, provide actionable feedback, and maintain high standards of inclusion.
+Inclusive design reviews ensure that accessibility considerations are embedded throughout the development lifecycle. By leveraging claude-flow-novice agents, teams can create comprehensive review processes that catch accessibility issues early, provide actionable feedback, and maintain high standards of inclusion.
 
 ## 🔄 Review Process Architecture
 
@@ -785,29 +785,29 @@ export class ReviewAnalytics {
 
 ```bash
 # Initiate comprehensive inclusive design review
-npx claude-flow sparc run inclusive-design-review "Complete accessibility and inclusion review"
+npx claude-flow-novice sparc run inclusive-design-review "Complete accessibility and inclusion review"
 
 # Automated review with agent coordination
-npx claude-flow sparc batch "accessibility-review,ux-review,inclusion-review" "Multi-dimensional design review"
+npx claude-flow-novice sparc batch "accessibility-review,ux-review,inclusion-review" "Multi-dimensional design review"
 
 # Continuous review monitoring
-npx claude-flow sparc run review-monitor "Monitor ongoing reviews and provide status updates"
+npx claude-flow-novice sparc run review-monitor "Monitor ongoing reviews and provide status updates"
 
 # Generate review reports
-npx claude-flow sparc run review-report "Generate comprehensive review report with recommendations"
+npx claude-flow-novice sparc run review-report "Generate comprehensive review report with recommendations"
 ```
 
 ### Agent Coordination for Reviews
 
 ```bash
 # Expert agent consultation
-npx claude-flow sparc run expert-consultation "Consult specialized agents for complex review scenarios"
+npx claude-flow-novice sparc run expert-consultation "Consult specialized agents for complex review scenarios"
 
 # User validation coordination
-npx claude-flow sparc run user-validation "Coordinate user testing and validation processes"
+npx claude-flow-novice sparc run user-validation "Coordinate user testing and validation processes"
 
 # Review quality assurance
-npx claude-flow sparc run review-qa "Quality assurance for review process and results"
+npx claude-flow-novice sparc run review-qa "Quality assurance for review process and results"
 ```
 
 ## 🏆 Best Practices

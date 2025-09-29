@@ -356,41 +356,41 @@ export CLAUDE_PAIR_AUTO_TEST=true
 ### Set Configuration
 ```bash
 # Set single value
-claude-flow pair config set defaultMode switch
+claude-flow-novice pair config set defaultMode switch
 
 # Set nested value
-claude-flow pair config set verification.threshold 0.98
+claude-flow-novice pair config set verification.threshold 0.98
 
 # Set from file
-claude-flow pair config import config.json
+claude-flow-novice pair config import config.json
 ```
 
 ### Get Configuration
 ```bash
 # Get all configuration
-claude-flow pair config get
+claude-flow-novice pair config get
 
 # Get specific value
-claude-flow pair config get defaultMode
+claude-flow-novice pair config get defaultMode
 
 # Export configuration
-claude-flow pair config export > config.json
+claude-flow-novice pair config export > config.json
 ```
 
 ### Reset Configuration
 ```bash
 # Reset to defaults
-claude-flow pair config reset
+claude-flow-novice pair config reset
 
 # Reset specific section
-claude-flow pair config reset verification
+claude-flow-novice pair config reset verification
 ```
 
 ## Profile Management
 
 ### Create Profile
 ```bash
-claude-flow pair profile create refactoring \
+claude-flow-novice pair profile create refactoring \
   --mode driver \
   --verify true \
   --threshold 0.98 \
@@ -399,12 +399,12 @@ claude-flow pair profile create refactoring \
 
 ### Use Profile
 ```bash
-claude-flow pair --start --profile refactoring
+claude-flow-novice pair --start --profile refactoring
 ```
 
 ### List Profiles
 ```bash
-claude-flow pair profile list
+claude-flow-novice pair profile list
 ```
 
 ### Profiles Configuration
@@ -458,26 +458,26 @@ claude-flow pair profile list
 
 ```bash
 # Validate configuration
-claude-flow pair config validate
+claude-flow-novice pair config validate
 
 # Test configuration
-claude-flow pair config test
+claude-flow-novice pair config test
 ```
 
 ## Migration
 
 ### From Version 1.x
 ```bash
-claude-flow pair config migrate --from 1.x
+claude-flow-novice pair config migrate --from 1.x
 ```
 
 ### Export/Import
 ```bash
 # Export current config
-claude-flow pair config export > my-config.json
+claude-flow-novice pair config export > my-config.json
 
 # Import config
-claude-flow pair config import my-config.json
+claude-flow-novice pair config import my-config.json
 ```
 
 ## Best Practices

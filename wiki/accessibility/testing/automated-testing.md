@@ -1,10 +1,10 @@
 # Automated Accessibility Testing with Claude-Flow Agents
 
-This guide provides comprehensive automated accessibility testing strategies using claude-flow agents to ensure continuous WCAG compliance and inclusive design validation.
+This guide provides comprehensive automated accessibility testing strategies using claude-flow-novice agents to ensure continuous WCAG compliance and inclusive design validation.
 
 ## 🎯 Overview
 
-Automated accessibility testing forms the foundation of an inclusive development workflow. By integrating accessibility testing directly into the development process using claude-flow agents, teams can catch and fix issues early while maintaining high development velocity.
+Automated accessibility testing forms the foundation of an inclusive development workflow. By integrating accessibility testing directly into the development process using claude-flow-novice agents, teams can catch and fix issues early while maintaining high development velocity.
 
 ## 🤖 Agent-Driven Testing Architecture
 
@@ -554,28 +554,28 @@ jobs:
 ### Comprehensive Accessibility Testing
 ```bash
 # Run full accessibility audit
-npx claude-flow sparc run accessibility-audit "Comprehensive WCAG 2.1 AA audit of entire application"
+npx claude-flow-novice sparc run accessibility-audit "Comprehensive WCAG 2.1 AA audit of entire application"
 
 # Test specific components
-npx claude-flow sparc run component-a11y-test "Test Button, Form, and Navigation components for accessibility"
+npx claude-flow-novice sparc run component-a11y-test "Test Button, Form, and Navigation components for accessibility"
 
 # Keyboard navigation testing
-npx claude-flow sparc run keyboard-test "Validate complete keyboard navigation flow"
+npx claude-flow-novice sparc run keyboard-test "Validate complete keyboard navigation flow"
 
 # Screen reader compatibility
-npx claude-flow sparc run screen-reader-test "Test with NVDA, JAWS, and VoiceOver compatibility"
+npx claude-flow-novice sparc run screen-reader-test "Test with NVDA, JAWS, and VoiceOver compatibility"
 
 # Color contrast validation
-npx claude-flow sparc run contrast-test "Validate all color combinations meet WCAG AA requirements"
+npx claude-flow-novice sparc run contrast-test "Validate all color combinations meet WCAG AA requirements"
 ```
 
 ### Batch Testing with Agents
 ```bash
 # Run multiple accessibility tests in parallel
-npx claude-flow sparc batch "accessibility-audit,keyboard-test,screen-reader-test" "Complete accessibility validation"
+npx claude-flow-novice sparc batch "accessibility-audit,keyboard-test,screen-reader-test" "Complete accessibility validation"
 
 # Continuous monitoring
-npx claude-flow sparc concurrent accessibility-monitor "Monitor accessibility in real-time during development"
+npx claude-flow-novice sparc concurrent accessibility-monitor "Monitor accessibility in real-time during development"
 ```
 
 ## 📊 Reporting and Metrics

@@ -70,7 +70,7 @@ export async function createOptimizedClaudeSlashCommands(workingDir, selectedMod
       }
     }
 
-    // Create claude-flow specific commands with batchtools optimization
+    // Create claude-flow-novice specific commands with batchtools optimization
     await createOptimizedClaudeFlowCommands(workingDir);
 
     // Create batchtools-specific commands
@@ -229,25 +229,25 @@ Chain operations with parallel execution at each stage:
 ### Full SPARC Pipeline with Batchtools
 \`\`\`bash
 # Execute complete SPARC workflow with parallel processing
-./claude-flow sparc pipeline "authentication system" --batch-optimize
+./claude-flow-novice sparc pipeline "authentication system" --batch-optimize
 
 # Run multiple SPARC modes concurrently
-./claude-flow sparc batch architect,code,tdd "user management" --parallel
+./claude-flow-novice sparc batch architect,code,tdd "user management" --parallel
 
 # Concurrent project analysis
-./claude-flow sparc concurrent-analyze project-requirements.json --parallel
+./claude-flow-novice sparc concurrent-analyze project-requirements.json --parallel
 \`\`\`
 
 ### Performance Monitoring
 \`\`\`bash
 # Monitor batch operation performance
-./claude-flow batchtools monitor --real-time
+./claude-flow-novice batchtools monitor --real-time
 
 # Analyze parallel processing metrics
-./claude-flow batchtools analyze --performance --detailed
+./claude-flow-novice batchtools analyze --performance --detailed
 
 # Check system resource utilization
-./claude-flow batchtools resources --concurrent --verbose
+./claude-flow-novice batchtools resources --concurrent --verbose
 \`\`\`
 
 For detailed documentation, see: https://github.com/ruvnet/claude-code-flow/docs/batchtools.md
@@ -285,25 +285,25 @@ Real-time performance monitoring and optimization tools for Claude-Flow operatio
 ### Real-time Monitoring
 \`\`\`bash
 # Monitor all system performance
-./claude-flow performance monitor --real-time --all
+./claude-flow-novice performance monitor --real-time --all
 
 # Focus on parallel operations
-./claude-flow performance monitor --parallel --batchtools
+./claude-flow-novice performance monitor --parallel --batchtools
 
 # Monitor specific components
-./claude-flow performance monitor --focus sparc --concurrent
+./claude-flow-novice performance monitor --focus sparc --concurrent
 \`\`\`
 
 ### Performance Analysis
 \`\`\`bash
 # Generate performance report
-./claude-flow performance report --detailed --timeframe 24h
+./claude-flow-novice performance report --detailed --timeframe 24h
 
 # Analyze batch operation efficiency
-./claude-flow performance analyze --batchtools --optimization
+./claude-flow-novice performance analyze --batchtools --optimization
 
 # Compare performance across different modes
-./claude-flow performance compare --modes architect,code,tdd
+./claude-flow-novice performance compare --modes architect,code,tdd
 \`\`\`
 
 ## Optimization Recommendations

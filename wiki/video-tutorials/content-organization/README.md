@@ -82,7 +82,7 @@ class ContentTaxonomyManager {
         options: ['beginner', 'intermediate', 'advanced', 'expert'],
         metadata: {
           beginner: { description: 'No prior experience required', estimated_time: '5-15 min' },
-          intermediate: { description: 'Basic claude-flow knowledge needed', estimated_time: '15-30 min' },
+          intermediate: { description: 'Basic claude-flow-novice knowledge needed', estimated_time: '15-30 min' },
           advanced: { description: 'Solid understanding required', estimated_time: '30-60 min' },
           expert: { description: 'Deep expertise assumed', estimated_time: '60+ min' }
         }
@@ -263,7 +263,7 @@ class LearningPathManager {
   constructor() {
     this.skillLevels = {
       novice: {
-        description: "New to claude-flow and related concepts",
+        description: "New to claude-flow-novice and related concepts",
         characteristics: [
           "Needs guided step-by-step instructions",
           "Benefits from conceptual overviews",
@@ -418,17 +418,17 @@ const exampleLearningPaths = {
   "complete-beginner": {
     name: "Claude Flow Complete Beginner",
     description: "Comprehensive introduction for developers new to claude-flow",
-    target_audience: "Developers with no claude-flow experience",
+    target_audience: "Developers with no claude-flow-novice experience",
     estimated_duration: "4-6 weeks",
     skill_progression: ["novice", "beginner"],
     modules: [
       {
         title: "Introduction and Setup",
-        description: "Get claude-flow installed and configured",
+        description: "Get claude-flow-novice installed and configured",
         estimated_duration: "1 week",
         difficulty: "novice",
         learning_objectives: [
-          "Install claude-flow on your system",
+          "Install claude-flow-novice on your system",
           "Understand basic architecture",
           "Complete first agent execution"
         ],

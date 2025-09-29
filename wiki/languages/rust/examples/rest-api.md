@@ -1,6 +1,6 @@
 # Complete REST API Example with Claude-Flow
 
-This comprehensive example demonstrates building a production-ready REST API using Rust, Axum, and claude-flow orchestration, showcasing real toolchain integration and agent coordination.
+This comprehensive example demonstrates building a production-ready REST API using Rust, Axum, and claude-flow-novice orchestration, showcasing real toolchain integration and agent coordination.
 
 ## 🎯 Project Overview
 
@@ -18,7 +18,7 @@ We'll build a **Task Management API** with the following features:
 
 ```bash
 # Initialize the project with multiple specialized agents
-npx claude-flow sparc run architect "Create a production-ready REST API for task management with user auth, real-time updates, and PostgreSQL"
+npx claude-flow-novice sparc run architect "Create a production-ready REST API for task management with user auth, real-time updates, and PostgreSQL"
 
 # This spawns coordinated agents:
 Task("API Architect", "Design RESTful API architecture with proper resource modeling", "api-architect")
@@ -1805,10 +1805,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libpq-dev
 
-    - name: Run claude-flow quality validation
+    - name: Run claude-flow-novice quality validation
       run: |
         npm install -g claude-flow@alpha
-        npx claude-flow validate rust . --comprehensive
+        npx claude-flow-novice validate rust . --comprehensive
 
     - name: Run tests
       env:
@@ -1917,7 +1917,7 @@ jobs:
         npx swagger-parser validate docs/api-spec.yml
 ```
 
-This comprehensive REST API example demonstrates how claude-flow orchestrates multiple specialized agents to create a production-ready Rust application with real toolchain integration, comprehensive testing, and deployment automation.
+This comprehensive REST API example demonstrates how claude-flow-novice orchestrates multiple specialized agents to create a production-ready Rust application with real toolchain integration, comprehensive testing, and deployment automation.
 
 ## 🔗 Related Resources
 

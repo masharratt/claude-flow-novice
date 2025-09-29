@@ -150,20 +150,20 @@ export class IntelligentDefaults {
     const suggestions = [];
 
     if (!projectContext) {
-      return ['Start with: claude-flow init to create a new project'];
+      return ['Start with: claude-flow-novice init to create a new project'];
     }
 
     // Analyze project and suggest improvements
     if (!projectContext.hasTests) {
-      suggestions.push('Add testing: claude-flow build "setup comprehensive testing"');
+      suggestions.push('Add testing: claude-flow-novice build "setup comprehensive testing"');
     }
 
     if (!projectContext.hasCi) {
-      suggestions.push('Setup CI/CD: claude-flow build "configure continuous integration"');
+      suggestions.push('Setup CI/CD: claude-flow-novice build "configure continuous integration"');
     }
 
     if (!projectContext.gitInitialized) {
-      suggestions.push('Initialize git: claude-flow init --git-setup');
+      suggestions.push('Initialize git: claude-flow-novice init --git-setup');
     }
 
     // Framework-specific suggestions
@@ -171,11 +171,11 @@ export class IntelligentDefaults {
       projectContext.framework === 'react' &&
       !projectContext.dependencies.includes('react-router')
     ) {
-      suggestions.push('Add routing: claude-flow build "setup React Router navigation"');
+      suggestions.push('Add routing: claude-flow-novice build "setup React Router navigation"');
     }
 
     if (projectContext.type === 'api' && !projectContext.dependencies.includes('express')) {
-      suggestions.push('Add web framework: claude-flow build "setup Express.js server"');
+      suggestions.push('Add web framework: claude-flow-novice build "setup Express.js server"');
     }
 
     return suggestions.slice(0, 3); // Top 3 suggestions

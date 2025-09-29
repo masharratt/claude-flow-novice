@@ -1,16 +1,16 @@
 # Go Performance Optimization and Profiling with Claude-Flow
 
-Advanced performance optimization techniques for Go applications using claude-flow for automated analysis and optimization.
+Advanced performance optimization techniques for Go applications using claude-flow-novice for automated analysis and optimization.
 
 ## ⚡ Performance Analysis Overview
 
 ### Quick Performance Assessment
 ```bash
 # Generate performance analysis with claude-flow
-npx claude-flow sparc run perf-analyzer "comprehensive Go application performance analysis"
+npx claude-flow-novice sparc run perf-analyzer "comprehensive Go application performance analysis"
 
 # Automated bottleneck detection
-npx claude-flow sparc run perf-analyzer "identify and fix performance bottlenecks in concurrent Go application"
+npx claude-flow-novice sparc run perf-analyzer "identify and fix performance bottlenecks in concurrent Go application"
 ```
 
 ## 📊 Profiling Fundamentals
@@ -858,7 +858,7 @@ func (q *CacheFriendlyQueue) Cap() int {
 ### Comprehensive Benchmarking Suite
 ```bash
 # Generate benchmarking suite with claude-flow
-npx claude-flow sparc run perf-analyzer "create comprehensive benchmarking suite for Go application"
+npx claude-flow-novice sparc run perf-analyzer "create comprehensive benchmarking suite for Go application"
 ```
 
 **Generated Benchmark Code:**
@@ -1256,26 +1256,26 @@ type GCStats struct {
 
 ```bash
 # Comprehensive performance analysis
-npx claude-flow sparc run perf-analyzer "analyze and optimize Go application performance"
+npx claude-flow-novice sparc run perf-analyzer "analyze and optimize Go application performance"
 
 # Specific optimizations
-npx claude-flow sparc run perf-analyzer "optimize memory allocation patterns"
-npx claude-flow sparc run perf-analyzer "reduce CPU bottlenecks in concurrent operations"
-npx claude-flow sparc run perf-analyzer "optimize database query performance"
+npx claude-flow-novice sparc run perf-analyzer "optimize memory allocation patterns"
+npx claude-flow-novice sparc run perf-analyzer "reduce CPU bottlenecks in concurrent operations"
+npx claude-flow-novice sparc run perf-analyzer "optimize database query performance"
 
 # Benchmarking
-npx claude-flow sparc run tester "create comprehensive benchmark suite"
-npx claude-flow sparc run perf-analyzer "profile application under load"
+npx claude-flow-novice sparc run tester "create comprehensive benchmark suite"
+npx claude-flow-novice sparc run perf-analyzer "profile application under load"
 
 # Monitoring setup
-npx claude-flow sparc run coder "add performance monitoring and alerting"
+npx claude-flow-novice sparc run coder "add performance monitoring and alerting"
 ```
 
 ## 📊 Performance Monitoring Dashboard
 
 ```bash
 # Generate monitoring dashboard with claude-flow
-npx claude-flow sparc run coder "create Prometheus and Grafana dashboard for Go application performance"
+npx claude-flow-novice sparc run coder "create Prometheus and Grafana dashboard for Go application performance"
 ```
 
 ## 🛡️ Best Practices
@@ -1306,5 +1306,5 @@ npx claude-flow sparc run coder "create Prometheus and Grafana dashboard for Go 
 
 **Next Steps:**
 - [Microservices](../microservices/) - Build scalable distributed systems
-- [Integration](../integration/) - Advanced claude-flow patterns
+- [Integration](../integration/) - Advanced claude-flow-novice patterns
 - [Examples](../examples/) - See optimized production applications

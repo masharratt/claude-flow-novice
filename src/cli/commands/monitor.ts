@@ -342,7 +342,7 @@ class Dashboard {
 
     if ((error as Error).message.includes('ECONNREFUSED')) {
       console.log(chalk.red('✗ Cannot connect to Claude-Flow'));
-      console.log(chalk.gray('Make sure Claude-Flow is running with: claude-flow start'));
+      console.log(chalk.gray('Make sure Claude-Flow is running with: claude-flow-novice start'));
     } else {
       console.log(chalk.red('Error:'), (error as Error).message);
     }

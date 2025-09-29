@@ -41,15 +41,15 @@ if (!objective && !flags.help) {
 🐝 Claude Flow Advanced Swarm System
 
 USAGE:
-  claude-flow swarm <objective> [options]
+  claude-flow-novice swarm <objective> [options]
 
 EXAMPLES:
-  claude-flow swarm "Build a REST API" --strategy development
-  claude-flow swarm "Research cloud architecture" --strategy research --ui
-  claude-flow swarm "Analyze data trends" --strategy analysis --parallel
-  claude-flow swarm "Optimize performance" --distributed --monitor
+  claude-flow-novice swarm "Build a REST API" --strategy development
+  claude-flow-novice swarm "Research cloud architecture" --strategy research --ui
+  claude-flow-novice swarm "Analyze data trends" --strategy analysis --parallel
+  claude-flow-novice swarm "Optimize performance" --distributed --monitor
 
-Run 'claude-flow swarm --help' for full options
+Run 'claude-flow-novice swarm --help' for full options
 `);
   process.exit(1);
 }

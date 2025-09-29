@@ -9,9 +9,9 @@ BatchTool enables powerful parallel and concurrent execution of SPARC modes, all
 Run multiple independent SPARC modes simultaneously:
 ```bash
 batchtool run --parallel \
-  "npx claude-flow sparc run code 'user authentication' --non-interactive" \
-  "npx claude-flow sparc run code 'database schema' --non-interactive" \
-  "npx claude-flow sparc run code 'API endpoints' --non-interactive"
+  "npx claude-flow-novice sparc run code 'user authentication' --non-interactive" \
+  "npx claude-flow-novice sparc run code 'database schema' --non-interactive" \
+  "npx claude-flow-novice sparc run code 'API endpoints' --non-interactive"
 ```
 
 ### 2. Boomerang Pattern
@@ -29,9 +29,9 @@ batchtool orchestrate --boomerang \
 Handle task dependencies intelligently:
 ```bash
 batchtool run --dependency-aware \
-  --task "db:npx claude-flow sparc run code 'database layer' --non-interactive" \
-  --task "auth:npx claude-flow sparc run code 'auth service' --non-interactive:depends=db" \
-  --task "api:npx claude-flow sparc run code 'API layer' --non-interactive:depends=auth,db"
+  --task "db:npx claude-flow-novice sparc run code 'database layer' --non-interactive" \
+  --task "auth:npx claude-flow-novice sparc run code 'auth service' --non-interactive:depends=db" \
+  --task "api:npx claude-flow-novice sparc run code 'API layer' --non-interactive:depends=auth,db"
 ```
 
 ## Complete Workflow Examples
@@ -41,40 +41,40 @@ batchtool run --dependency-aware \
 # Complete application development with SPARC + BatchTool
 batchtool orchestrate --name "full-app-development" --boomerang \
   --phase1-parallel "Research Phase" \
-    "npx claude-flow sparc run ask 'research best practices for modern web apps' --non-interactive" \
-    "npx claude-flow sparc run ask 'analyze competitor features' --non-interactive" \
-    "npx claude-flow sparc run security-review 'identify security requirements' --non-interactive" \
+    "npx claude-flow-novice sparc run ask 'research best practices for modern web apps' --non-interactive" \
+    "npx claude-flow-novice sparc run ask 'analyze competitor features' --non-interactive" \
+    "npx claude-flow-novice sparc run security-review 'identify security requirements' --non-interactive" \
   --phase2-sequential "Design Phase" \
-    "npx claude-flow sparc run spec-pseudocode 'create detailed specifications' --non-interactive" \
-    "npx claude-flow sparc run architect 'design system architecture' --non-interactive" \
+    "npx claude-flow-novice sparc run spec-pseudocode 'create detailed specifications' --non-interactive" \
+    "npx claude-flow-novice sparc run architect 'design system architecture' --non-interactive" \
   --phase3-parallel "Implementation Phase" \
-    "npx claude-flow sparc run code 'implement frontend' --non-interactive" \
-    "npx claude-flow sparc run code 'implement backend' --non-interactive" \
-    "npx claude-flow sparc run code 'implement database' --non-interactive" \
+    "npx claude-flow-novice sparc run code 'implement frontend' --non-interactive" \
+    "npx claude-flow-novice sparc run code 'implement backend' --non-interactive" \
+    "npx claude-flow-novice sparc run code 'implement database' --non-interactive" \
   --phase4-sequential "Integration Phase" \
-    "npx claude-flow sparc run integration 'integrate all components' --non-interactive" \
-    "npx claude-flow sparc run tdd 'comprehensive testing suite' --non-interactive" \
+    "npx claude-flow-novice sparc run integration 'integrate all components' --non-interactive" \
+    "npx claude-flow-novice sparc run tdd 'comprehensive testing suite' --non-interactive" \
   --phase5-parallel "Optimization Phase" \
-    "npx claude-flow sparc run optimization 'optimize performance' --non-interactive" \
-    "npx claude-flow sparc run security-review 'security hardening' --non-interactive" \
-    "npx claude-flow sparc run docs-writer 'complete documentation' --non-interactive"
+    "npx claude-flow-novice sparc run optimization 'optimize performance' --non-interactive" \
+    "npx claude-flow-novice sparc run security-review 'security hardening' --non-interactive" \
+    "npx claude-flow-novice sparc run docs-writer 'complete documentation' --non-interactive"
 ```
 
 ### Microservices Development
 ```bash
 # Develop multiple microservices concurrently
 batchtool run --parallel --tag "microservices" \
-  "npx claude-flow sparc run code 'user-service' --non-interactive" \
-  "npx claude-flow sparc run code 'auth-service' --non-interactive" \
-  "npx claude-flow sparc run code 'notification-service' --non-interactive" \
-  "npx claude-flow sparc run code 'payment-service' --non-interactive" \
-  "npx claude-flow sparc run code 'api-gateway' --non-interactive"
+  "npx claude-flow-novice sparc run code 'user-service' --non-interactive" \
+  "npx claude-flow-novice sparc run code 'auth-service' --non-interactive" \
+  "npx claude-flow-novice sparc run code 'notification-service' --non-interactive" \
+  "npx claude-flow-novice sparc run code 'payment-service' --non-interactive" \
+  "npx claude-flow-novice sparc run code 'api-gateway' --non-interactive"
 
 # Then integrate and test
 batchtool run --sequential \
-  "npx claude-flow sparc run integration 'integrate all microservices' --non-interactive" \
-  "npx claude-flow sparc run tdd 'end-to-end testing' --non-interactive" \
-  "npx claude-flow sparc run devops 'kubernetes deployment' --non-interactive"
+  "npx claude-flow-novice sparc run integration 'integrate all microservices' --non-interactive" \
+  "npx claude-flow-novice sparc run tdd 'end-to-end testing' --non-interactive" \
+  "npx claude-flow-novice sparc run devops 'kubernetes deployment' --non-interactive"
 ```
 
 ### Feature Development Sprint
@@ -82,18 +82,18 @@ batchtool run --sequential \
 # Sprint planning and execution
 batchtool orchestrate --sprint "feature-sprint-1" \
   --planning \
-    "npx claude-flow sparc run sparc 'break down epic into features' --non-interactive" \
+    "npx claude-flow-novice sparc run sparc 'break down epic into features' --non-interactive" \
   --development-parallel \
-    "npx claude-flow sparc run code 'feature: user profile' --non-interactive" \
-    "npx claude-flow sparc run code 'feature: notifications' --non-interactive" \
-    "npx claude-flow sparc run code 'feature: settings page' --non-interactive" \
+    "npx claude-flow-novice sparc run code 'feature: user profile' --non-interactive" \
+    "npx claude-flow-novice sparc run code 'feature: notifications' --non-interactive" \
+    "npx claude-flow-novice sparc run code 'feature: settings page' --non-interactive" \
   --testing-parallel \
-    "npx claude-flow sparc run tdd 'test user profile' --non-interactive" \
-    "npx claude-flow sparc run tdd 'test notifications' --non-interactive" \
-    "npx claude-flow sparc run tdd 'test settings' --non-interactive" \
+    "npx claude-flow-novice sparc run tdd 'test user profile' --non-interactive" \
+    "npx claude-flow-novice sparc run tdd 'test notifications' --non-interactive" \
+    "npx claude-flow-novice sparc run tdd 'test settings' --non-interactive" \
   --review \
-    "npx claude-flow sparc run security-review 'audit all features' --non-interactive" \
-    "npx claude-flow sparc run optimization 'performance review' --non-interactive"
+    "npx claude-flow-novice sparc run security-review 'audit all features' --non-interactive" \
+    "npx claude-flow-novice sparc run optimization 'performance review' --non-interactive"
 ```
 
 ## Advanced Patterns
@@ -103,10 +103,10 @@ batchtool orchestrate --sprint "feature-sprint-1" \
 # Continuous improvement cycle
 while true; do
   batchtool orchestrate --boomerang \
-    --monitor "npx claude-flow sparc run monitoring 'analyze metrics' --non-interactive" \
-    --identify "npx claude-flow sparc run debug 'identify bottlenecks' --non-interactive" \
-    --optimize "npx claude-flow sparc run optimization 'improve performance' --non-interactive" \
-    --validate "npx claude-flow sparc run tdd 'verify improvements' --non-interactive"
+    --monitor "npx claude-flow-novice sparc run monitoring 'analyze metrics' --non-interactive" \
+    --identify "npx claude-flow-novice sparc run debug 'identify bottlenecks' --non-interactive" \
+    --optimize "npx claude-flow-novice sparc run optimization 'improve performance' --non-interactive" \
+    --validate "npx claude-flow-novice sparc run tdd 'verify improvements' --non-interactive"
   sleep 3600  # Run every hour
 done
 ```
@@ -115,20 +115,20 @@ done
 ```bash
 # Implement two approaches in parallel and compare
 batchtool run --ab-test \
-  --variant-a "npx claude-flow sparc run code 'implement with approach A' --non-interactive" \
-  --variant-b "npx claude-flow sparc run code 'implement with approach B' --non-interactive" \
-  --compare "npx claude-flow sparc run optimization 'compare performance' --non-interactive"
+  --variant-a "npx claude-flow-novice sparc run code 'implement with approach A' --non-interactive" \
+  --variant-b "npx claude-flow-novice sparc run code 'implement with approach B' --non-interactive" \
+  --compare "npx claude-flow-novice sparc run optimization 'compare performance' --non-interactive"
 ```
 
 ### 3. Progressive Enhancement
 ```bash
 # Build features progressively
 batchtool orchestrate --progressive \
-  --mvp "npx claude-flow sparc run code 'minimal viable product' --non-interactive" \
-  --enhance-1 "npx claude-flow sparc run code 'add user authentication' --non-interactive" \
-  --enhance-2 "npx claude-flow sparc run code 'add real-time updates' --non-interactive" \
-  --enhance-3 "npx claude-flow sparc run code 'add analytics' --non-interactive" \
-  --polish "npx claude-flow sparc run optimization 'final optimizations' --non-interactive"
+  --mvp "npx claude-flow-novice sparc run code 'minimal viable product' --non-interactive" \
+  --enhance-1 "npx claude-flow-novice sparc run code 'add user authentication' --non-interactive" \
+  --enhance-2 "npx claude-flow-novice sparc run code 'add real-time updates' --non-interactive" \
+  --enhance-3 "npx claude-flow-novice sparc run code 'add analytics' --non-interactive" \
+  --polish "npx claude-flow-novice sparc run optimization 'final optimizations' --non-interactive"
 ```
 
 ## Monitoring and Control
@@ -152,11 +152,11 @@ batchtool config --max-concurrent 5
 
 # Set memory limits per task
 batchtool run --memory-limit 2GB \
-  "npx claude-flow sparc run code 'heavy processing task' --non-interactive"
+  "npx claude-flow-novice sparc run code 'heavy processing task' --non-interactive"
 
 # Priority-based execution
 batchtool run --priority high \
-  "npx claude-flow sparc run security-review 'urgent security audit' --non-interactive"
+  "npx claude-flow-novice sparc run security-review 'urgent security audit' --non-interactive"
 ```
 
 ## Best Practices
@@ -206,10 +206,10 @@ jobs:
       - name: Run SPARC orchestration
         run: |
           batchtool orchestrate --boomerang \
-            --analyze "npx claude-flow sparc run architect 'analyze changes' --non-interactive" \
-            --implement "npx claude-flow sparc run code 'implement features' --non-interactive" \
-            --test "npx claude-flow sparc run tdd 'run tests' --non-interactive" \
-            --deploy "npx claude-flow sparc run devops 'deploy to staging' --non-interactive"
+            --analyze "npx claude-flow-novice sparc run architect 'analyze changes' --non-interactive" \
+            --implement "npx claude-flow-novice sparc run code 'implement features' --non-interactive" \
+            --test "npx claude-flow-novice sparc run tdd 'run tests' --non-interactive" \
+            --deploy "npx claude-flow-novice sparc run devops 'deploy to staging' --non-interactive"
 ```
 
 ## Troubleshooting

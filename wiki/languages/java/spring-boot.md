@@ -19,10 +19,10 @@ public class Application {
 
 ```bash
 # Generate Spring Boot application with agents
-npx claude-flow sparc run coder "Create Spring Boot REST API with JPA and security"
+npx claude-flow-novice sparc run coder "Create Spring Boot REST API with JPA and security"
 
 # Setup cloud-native patterns
-npx claude-flow sparc batch architect,coder "Implement Spring Boot with cloud patterns"
+npx claude-flow-novice sparc batch architect,coder "Implement Spring Boot with cloud patterns"
 ```
 
 ## Core Spring Boot Components
@@ -470,34 +470,34 @@ volumes:
 
 ```bash
 # Initialize Spring Boot project with agents
-npx claude-flow sparc run architect "Design Spring Boot microservice architecture"
+npx claude-flow-novice sparc run architect "Design Spring Boot microservice architecture"
 
 # Generate boilerplate code
-npx claude-flow sparc run coder "Create Spring Boot REST API with security"
+npx claude-flow-novice sparc run coder "Create Spring Boot REST API with security"
 
 # Setup database integration
-npx claude-flow sparc run coder "Implement JPA entities and repositories"
+npx claude-flow-novice sparc run coder "Implement JPA entities and repositories"
 
 # Create comprehensive tests
-npx claude-flow sparc run tester "Generate unit and integration tests"
+npx claude-flow-novice sparc run tester "Generate unit and integration tests"
 
 # Setup cloud-native features
-npx claude-flow sparc batch architect,coder "Add health checks, metrics, and tracing"
+npx claude-flow-novice sparc batch architect,coder "Add health checks, metrics, and tracing"
 ```
 
 ### MCP Integration for Spring Boot
 
 ```bash
 # Initialize development swarm
-npx claude-flow mcp swarm_init --topology mesh --max-agents 6
+npx claude-flow-novice mcp swarm_init --topology mesh --max-agents 6
 
 # Spawn Spring Boot specialists
-npx claude-flow mcp agent_spawn --type coder --capabilities "spring-boot,jpa,security"
-npx claude-flow mcp agent_spawn --type architect --capabilities "microservices,cloud-native"
-npx claude-flow mcp agent_spawn --type tester --capabilities "spring-test,testcontainers"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "spring-boot,jpa,security"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "microservices,cloud-native"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "spring-test,testcontainers"
 
 # Orchestrate development tasks
-npx claude-flow mcp task_orchestrate --task "Build Spring Boot microservice" --strategy parallel
+npx claude-flow-novice mcp task_orchestrate --task "Build Spring Boot microservice" --strategy parallel
 ```
 
 ## Testing with Spring Boot

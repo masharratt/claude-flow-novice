@@ -132,7 +132,7 @@ async function handleError(error: unknown, options?: any): Promise<void> {
   // Suggest helpful actions
   if (!options?.quiet) {
     console.error(chalk.gray('\nTry running with --verbose for more details'));
-    console.error(chalk.gray('Or use "claude-flow help" to see available commands'));
+    console.error(chalk.gray('Or use "claude-flow-novice help" to see available commands'));
   }
 
   process.exit(1);

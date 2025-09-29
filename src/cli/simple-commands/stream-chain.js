@@ -240,10 +240,10 @@ export async function streamChainCommand(args, flags) {
 function showHelp() {
   console.log(`
 🔗 NAME
-    claude-flow stream-chain - Connect multiple Claude instances via stream-json for chained workflows
+    claude-flow-novice stream-chain - Connect multiple Claude instances via stream-json for chained workflows
 
 📋 SYNOPSIS
-    claude-flow stream-chain <subcommand> [options]
+    claude-flow-novice stream-chain <subcommand> [options]
 
 📝 DESCRIPTION
     Stream chaining enables multi-step Claude workflows where each step receives the full
@@ -303,22 +303,22 @@ function showHelp() {
 
 💡 EXAMPLES
     # Run a custom 3-step code improvement chain
-    claude-flow stream-chain run "analyze this code" "suggest improvements" "implement the top 3"
+    claude-flow-novice stream-chain run "analyze this code" "suggest improvements" "implement the top 3"
     
     # Execute the demo chain to see stream chaining in action
-    claude-flow stream-chain demo
+    claude-flow-novice stream-chain demo
     
     # Run the analysis pipeline on your codebase
-    claude-flow stream-chain pipeline analysis
+    claude-flow-novice stream-chain pipeline analysis
     
     # Test that stream chaining is working correctly
-    claude-flow stream-chain test --verbose
+    claude-flow-novice stream-chain test --verbose
     
     # Custom refactoring workflow with extended timeout
-    claude-flow stream-chain run "find code smells" "prioritize fixes" "refactor" --timeout 60
+    claude-flow-novice stream-chain run "find code smells" "prioritize fixes" "refactor" --timeout 60
     
     # Debug mode to see raw stream-json messages
-    claude-flow stream-chain demo --debug --verbose
+    claude-flow-novice stream-chain demo --debug --verbose
 
 🔧 HOW IT WORKS
     1. Step 1 executes with --output-format stream-json to capture structured output
@@ -362,9 +362,9 @@ function showHelp() {
     → Report issue if stream format has changed
 
 🔗 SEE ALSO
-    claude-flow swarm        - Multi-agent coordination
-    claude-flow hive-mind    - Collective intelligence mode
-    claude-flow sparc        - SPARC development methodology
+    claude-flow-novice swarm        - Multi-agent coordination
+    claude-flow-novice hive-mind    - Collective intelligence mode
+    claude-flow-novice sparc        - SPARC development methodology
     
 📖 DOCUMENTATION
     Full docs: ./claude-flow-wiki/Stream-Chain-Command.md
@@ -459,7 +459,7 @@ async function runPipeline(args, flags) {
   if (!pipelineType || !pipelines[pipelineType]) {
     console.error('❌ Invalid or missing pipeline type');
     console.log('Available pipelines: ' + Object.keys(pipelines).join(', '));
-    console.log('Usage: claude-flow stream-chain pipeline <type>');
+    console.log('Usage: claude-flow-novice stream-chain pipeline <type>');
     return;
   }
 

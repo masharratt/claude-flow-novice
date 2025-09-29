@@ -1,11 +1,11 @@
 # Claude Flow Integration Architecture
 
-This document provides comprehensive integration patterns and architectural diagrams for claude-flow across different environments and tools.
+This document provides comprehensive integration patterns and architectural diagrams for claude-flow-novice across different environments and tools.
 
 ## Table of Contents
 
 1. [Integration Overview](#integration-overview)
-2. [Claude Code + claude-flow Integration](#claude-code--claude-flow-integration)
+2. [Claude Code + claude-flow-novice Integration](#claude-code--claude-flow-integration)
 3. [MCP Server Connection Patterns](#mcp-server-connection-patterns)
 4. [Architecture Patterns](#architecture-patterns)
 5. [Performance Considerations](#performance-considerations)
@@ -34,7 +34,7 @@ graph TB
     end
 
     subgraph "MCP Server Ecosystem"
-        MCP1[claude-flow MCP]
+        MCP1[claude-flow-novice MCP]
         MCP2[ruv-swarm MCP]
         MCP3[flow-nexus MCP]
         MCP4[Custom MCP Servers]
@@ -69,7 +69,7 @@ graph TB
     style GH fill:#fff3e0
 ```
 
-## Claude Code + claude-flow Integration
+## Claude Code + claude-flow-novice Integration
 
 ### Primary Integration Flow
 
@@ -142,7 +142,7 @@ graph TB
     end
 
     subgraph "Core MCP Servers"
-        CFMCP[claude-flow MCP<br/>Primary Coordination]
+        CFMCP[claude-flow-novice MCP<br/>Primary Coordination]
         RSMCP[ruv-swarm MCP<br/>Enhanced Features]
         FNMCP[flow-nexus MCP<br/>Cloud Services]
     end
@@ -477,8 +477,8 @@ Use shared memory for agent coordination:
 
 ```javascript
 // Agents coordinate through shared memory
-npx claude-flow hooks store --key "api/schema" --value "{...}"
-npx claude-flow hooks retrieve --key "api/schema"
+npx claude-flow-novice hooks store --key "api/schema" --value "{...}"
+npx claude-flow-novice hooks retrieve --key "api/schema"
 ```
 
 ### 3. Error Handling Pattern

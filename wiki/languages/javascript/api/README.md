@@ -8,22 +8,22 @@ Complete guide to building REST APIs and GraphQL endpoints using Claude-Flow age
 
 ```bash
 # Generate REST API with agent
-npx claude-flow sparc run api-docs "Express TypeScript REST API with OpenAPI documentation"
+npx claude-flow-novice sparc run api-docs "Express TypeScript REST API with OpenAPI documentation"
 
 # Alternative: GraphQL API
-npx claude-flow sparc run backend-dev "GraphQL API with Apollo Server and TypeScript"
+npx claude-flow-novice sparc run backend-dev "GraphQL API with Apollo Server and TypeScript"
 ```
 
 ### 2. Agent-Driven API Development
 
 ```bash
 # Parallel API development
-npx claude-flow sparc batch "backend-dev,api-docs,tester" "E-commerce API with documentation and testing"
+npx claude-flow-novice sparc batch "backend-dev,api-docs,tester" "E-commerce API with documentation and testing"
 
 # Sequential API development for complex features
-npx claude-flow sparc run backend-dev "User authentication and authorization API"
-npx claude-flow sparc run api-docs "Generate comprehensive API documentation"
-npx claude-flow sparc run tester "Create API integration and load tests"
+npx claude-flow-novice sparc run backend-dev "User authentication and authorization API"
+npx claude-flow-novice sparc run api-docs "Generate comprehensive API documentation"
+npx claude-flow-novice sparc run tester "Create API integration and load tests"
 ```
 
 ## 🏗 REST API Architecture
@@ -75,7 +75,7 @@ api/
 
 ```bash
 # Complete API generation
-npx claude-flow sparc run backend-dev "Express TypeScript REST API with:
+npx claude-flow-novice sparc run backend-dev "Express TypeScript REST API with:
 - RESTful endpoints for CRUD operations
 - JWT authentication middleware
 - Input validation with Joi
@@ -411,7 +411,7 @@ export const searchProducts = catchAsync(async (req: Request, res: Response) => 
 
 ```bash
 # Generate REST API endpoints with agent
-npx claude-flow sparc run backend-dev "RESTful CRUD endpoints with OpenAPI documentation"
+npx claude-flow-novice sparc run backend-dev "RESTful CRUD endpoints with OpenAPI documentation"
 ```
 
 ### 2. Service Layer Implementation
@@ -531,7 +531,7 @@ export class ProductService {
 
 ```bash
 # Generate service layer with agent
-npx claude-flow sparc run backend-dev "Service layer with business logic and data access patterns"
+npx claude-flow-novice sparc run backend-dev "Service layer with business logic and data access patterns"
 ```
 
 ## 📖 API Documentation
@@ -640,14 +640,14 @@ export { specs };
 
 ```bash
 # Generate API documentation with agent
-npx claude-flow sparc run api-docs "OpenAPI 3.0 documentation with Swagger UI integration"
+npx claude-flow-novice sparc run api-docs "OpenAPI 3.0 documentation with Swagger UI integration"
 ```
 
 ### 2. Postman Collection Generation
 
 ```bash
 # Generate Postman collection with agent
-npx claude-flow sparc run api-docs "Postman collection with environment variables and test scripts"
+npx claude-flow-novice sparc run api-docs "Postman collection with environment variables and test scripts"
 ```
 
 ## 🔍 GraphQL API Implementation
@@ -874,7 +874,7 @@ export const resolvers = {
 
 ```bash
 # Generate GraphQL API with agent
-npx claude-flow sparc run backend-dev "GraphQL API with Apollo Server, subscriptions, and TypeScript"
+npx claude-flow-novice sparc run backend-dev "GraphQL API with Apollo Server, subscriptions, and TypeScript"
 ```
 
 ### 2. Apollo Server Setup
@@ -955,7 +955,7 @@ export const setupGraphQL = async (app: Express) => {
 
 ```bash
 # Generate GraphQL server setup with agent
-npx claude-flow sparc run backend-dev "Apollo Server setup with subscriptions and authentication"
+npx claude-flow-novice sparc run backend-dev "Apollo Server setup with subscriptions and authentication"
 ```
 
 ## 🧪 API Testing Strategies
@@ -1240,7 +1240,7 @@ describe('Products API', () => {
 
 ```bash
 # Generate comprehensive API tests with agent
-npx claude-flow sparc run tester "Complete API testing suite with Jest, Supertest, and test database"
+npx claude-flow-novice sparc run tester "Complete API testing suite with Jest, Supertest, and test database"
 ```
 
 ### 2. Load Testing
@@ -1351,7 +1351,7 @@ export function handleSummary(data) {
 
 ```bash
 # Generate load testing with agent
-npx claude-flow sparc run tester "Load testing with K6 for API performance validation"
+npx claude-flow-novice sparc run tester "Load testing with K6 for API performance validation"
 ```
 
 ## 🔄 MCP Integration for API Development
@@ -1407,21 +1407,21 @@ const status = await mcp__claude_flow__task_status({
 
 ```bash
 # Generate rate limiting with agent
-npx claude-flow sparc run backend-dev "Advanced rate limiting with Redis and tiered limits"
+npx claude-flow-novice sparc run backend-dev "Advanced rate limiting with Redis and tiered limits"
 ```
 
 ### 2. API Security
 
 ```bash
 # Generate security middleware with agent
-npx claude-flow sparc run reviewer "API security with helmet, CORS, input validation, and SQL injection prevention"
+npx claude-flow-novice sparc run reviewer "API security with helmet, CORS, input validation, and SQL injection prevention"
 ```
 
 ### 3. API Monitoring
 
 ```bash
 # Generate monitoring setup with agent
-npx claude-flow sparc run backend-dev "API monitoring with metrics, logging, and health checks"
+npx claude-flow-novice sparc run backend-dev "API monitoring with metrics, logging, and health checks"
 ```
 
 ## 📦 API Deployment
@@ -1430,14 +1430,14 @@ npx claude-flow sparc run backend-dev "API monitoring with metrics, logging, and
 
 ```bash
 # Generate Docker setup for API with agent
-npx claude-flow sparc run cicd-engineer "Docker configuration for API deployment with multi-stage builds"
+npx claude-flow-novice sparc run cicd-engineer "Docker configuration for API deployment with multi-stage builds"
 ```
 
 ### 2. CI/CD Pipeline
 
 ```bash
 # Generate CI/CD pipeline with agent
-npx claude-flow sparc run cicd-engineer "GitHub Actions pipeline for API testing and deployment"
+npx claude-flow-novice sparc run cicd-engineer "GitHub Actions pipeline for API testing and deployment"
 ```
 
 ---

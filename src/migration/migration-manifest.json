@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "name": "Claude-Flow Optimized Prompts Migration",
-  "description": "Migrate existing claude-flow projects to use optimized prompts and configurations",
+  "description": "Migrate existing claude-flow-novice projects to use optimized prompts and configurations",
   "compatibleVersions": ["0.9.x", "1.0.x"],
   "files": {
     "commands": {

@@ -180,7 +180,7 @@ export async function interactiveSetup(): Promise<SetupResult> {
         recommendations: [],
       },
       recommendations: [],
-      nextSteps: ['Try the zero-config setup instead: claude-flow setup --zero-config'],
+      nextSteps: ['Try the zero-config setup instead: claude-flow-novice setup --zero-config'],
       warnings: [error.message],
     };
   }
@@ -203,7 +203,7 @@ async function setupSecureCredentials(): Promise<void> {
       if (apiKey) {
         console.log('✅ Found ANTHROPIC_API_KEY environment variable');
       } else {
-        console.log('💡 Set your API key using: claude-flow config set-api-key <your-key>');
+        console.log('💡 Set your API key using: claude-flow-novice config set-api-key <your-key>');
         console.log('   Or set the ANTHROPIC_API_KEY environment variable');
       }
     } else {
@@ -224,51 +224,51 @@ function generateNextSteps(
   const steps: string[] = [];
 
   // Universal first step
-  steps.push('Run "claude-flow help" to see available commands');
+  steps.push('Run "claude-flow-novice help" to see available commands');
 
   // Project-specific steps
   switch (detection.projectType) {
     case 'web-app':
-      steps.push('Try "claude-flow build "Add responsive navigation bar"" to get started');
+      steps.push('Try "claude-flow-novice build "Add responsive navigation bar"" to get started');
       if (detection.framework === 'react') {
-        steps.push('Use "claude-flow agents spawn coder" for React component development');
+        steps.push('Use "claude-flow-novice agents spawn coder" for React component development');
       }
       break;
 
     case 'api':
-      steps.push('Try "claude-flow build "Create REST API endpoints"" to begin');
-      steps.push('Use "claude-flow test" to set up API testing');
+      steps.push('Try "claude-flow-novice build "Create REST API endpoints"" to begin');
+      steps.push('Use "claude-flow-novice test" to set up API testing');
       break;
 
     case 'systems':
       if (detection.language === 'rust') {
-        steps.push('Try "claude-flow build "Add error handling to main function""');
-        steps.push('Use "claude-flow analyze performance" for Rust optimization');
+        steps.push('Try "claude-flow-novice build "Add error handling to main function""');
+        steps.push('Use "claude-flow-novice analyze performance" for Rust optimization');
       }
       break;
 
     default:
-      steps.push('Try "claude-flow build "Implement main functionality"" to start coding');
+      steps.push('Try "claude-flow-novice build "Implement main functionality"" to start coding');
   }
 
   // Experience level specific steps
   if (experienceLevel === 'novice') {
-    steps.push('Run "claude-flow tutorial" for a guided walkthrough');
-    steps.push('Use "claude-flow status" to see what Claude Flow is doing');
+    steps.push('Run "claude-flow-novice tutorial" for a guided walkthrough');
+    steps.push('Use "claude-flow-novice status" to see what Claude Flow is doing');
   } else if (experienceLevel === 'intermediate') {
-    steps.push('Explore "claude-flow workflow create" for custom workflows');
-    steps.push('Try "claude-flow memory store" to save project context');
+    steps.push('Explore "claude-flow-novice workflow create" for custom workflows');
+    steps.push('Try "claude-flow-novice memory store" to save project context');
   } else if (experienceLevel === 'advanced') {
-    steps.push('Configure "claude-flow swarm init" for advanced agent coordination');
-    steps.push('Use "claude-flow analyze bottlenecks" for performance optimization');
+    steps.push('Configure "claude-flow-novice swarm init" for advanced agent coordination');
+    steps.push('Use "claude-flow-novice analyze bottlenecks" for performance optimization');
   }
 
   // Complexity-specific steps
   if (detection.complexity === 'complex') {
     steps.push(
-      'Consider upgrading to intermediate level: "claude-flow config experience intermediate"',
+      'Consider upgrading to intermediate level: "claude-flow-novice config experience intermediate"',
     );
-    steps.push('Enable team collaboration: "claude-flow team create <team-name>"');
+    steps.push('Enable team collaboration: "claude-flow-novice team create <team-name>"');
   }
 
   return steps;

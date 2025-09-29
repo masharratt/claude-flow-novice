@@ -148,18 +148,18 @@ function showSwarmHelp() {
 🐝 Claude Flow Advanced Swarm System
 
 USAGE:
-  claude-flow swarm <objective> [options]
+  claude-flow-novice swarm <objective> [options]
 
 EXAMPLES:
-  claude-flow swarm "Build a REST API with authentication"
-  claude-flow swarm "Research cloud architecture patterns" --strategy research
-  claude-flow swarm "Analyze database performance" --max-agents 3 --parallel
-  claude-flow swarm "Develop user registration feature" --mode distributed
-  claude-flow swarm "Optimize React app performance" --strategy optimization
-  claude-flow swarm "Create microservice" --executor  # Use built-in executor
-  claude-flow swarm "Build API" --claude  # Open Claude Code CLI
-  claude-flow swarm "Build API endpoints" --output-format json  # Get JSON output
-  claude-flow swarm "Research AI trends" --output-format json --output-file results.json
+  claude-flow-novice swarm "Build a REST API with authentication"
+  claude-flow-novice swarm "Research cloud architecture patterns" --strategy research
+  claude-flow-novice swarm "Analyze database performance" --max-agents 3 --parallel
+  claude-flow-novice swarm "Develop user registration feature" --mode distributed
+  claude-flow-novice swarm "Optimize React app performance" --strategy optimization
+  claude-flow-novice swarm "Create microservice" --executor  # Use built-in executor
+  claude-flow-novice swarm "Build API" --claude  # Open Claude Code CLI
+  claude-flow-novice swarm "Build API endpoints" --output-format json  # Get JSON output
+  claude-flow-novice swarm "Research AI trends" --output-format json --output-file results.json
 
 DEFAULT BEHAVIOR:
   Swarm attempts to open Claude Code CLI with comprehensive MCP tool instructions
@@ -904,10 +904,10 @@ The swarm should be self-documenting - use memory_store to save all important in
           console.log(`📋 Objective: ${objective}`);
           console.log('\nOptions:');
           console.log(
-            '  • Use --executor flag for built-in executor: claude-flow swarm "objective" --executor',
+            '  • Use --executor flag for built-in executor: claude-flow-novice swarm "objective" --executor',
           );
           console.log(
-            '  • Use --claude flag to open Claude Code CLI: claude-flow swarm "objective" --claude',
+            '  • Use --claude flag to open Claude Code CLI: claude-flow-novice swarm "objective" --claude',
           );
         } else {
           // In non-interactive mode, output JSON error
@@ -1124,7 +1124,7 @@ exit 0
 
         console.log(`\n✅ Swarm launched in background!`);
         console.log(`📄 Logs: tail -f ${logFile}`);
-        console.log(`📊 Status: claude-flow swarm status ${swarmId}`);
+        console.log(`📊 Status: claude-flow-novice swarm status ${swarmId}`);
         console.log(`\nThe swarm will continue running independently.`);
 
         // Exit immediately
@@ -1174,7 +1174,7 @@ exit 0
       console.log(`\n⚠️  Background execution requires the claude-flow-swarm-bg script.`);
       console.log(`\nFor true background execution, use:`);
       console.log(
-        `  nohup claude-flow swarm "${objective}" ${Object.entries(flags)
+        `  nohup claude-flow-novice swarm "${objective}" ${Object.entries(flags)
           .filter(([k, v]) => k !== 'background' && v)
           .map(([k, v]) => `--${k}${v !== true ? ` ${v}` : ''}`)
           .join(' ')} > swarm.log 2>&1 &`,
@@ -1495,13 +1495,13 @@ Begin execution now. Create all necessary files and provide a complete, working 
 🐝 Claude Flow Advanced Swarm System
 
 USAGE:
-  claude-flow swarm <objective> [options]
+  claude-flow-novice swarm <objective> [options]
 
 EXAMPLES:
-  claude-flow swarm "Build a REST API" --strategy development
-  claude-flow swarm "Research cloud architecture" --strategy research --ui
-  claude-flow swarm "Analyze data trends" --strategy analysis --parallel
-  claude-flow swarm "Optimize performance" --distributed --monitor
+  claude-flow-novice swarm "Build a REST API" --strategy development
+  claude-flow-novice swarm "Research cloud architecture" --strategy research --ui
+  claude-flow-novice swarm "Analyze data trends" --strategy analysis --parallel
+  claude-flow-novice swarm "Optimize performance" --distributed --monitor
 
 STRATEGIES:
   auto           Automatically determine best approach (default)

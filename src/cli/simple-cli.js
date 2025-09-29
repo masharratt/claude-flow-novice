@@ -69,7 +69,7 @@ function printLegacyHelp() {
 ⚡ ALPHA 85: Advanced automation capabilities & stream-JSON chaining for multi-agent pipelines
 
 USAGE:
-  claude-flow <command> [options]
+  claude-flow-novice <command> [options]
 
 🚀 INSTALLATION & ENTERPRISE SETUP:
   npx claude-flow@2.0.0 init --sparc  # Enterprise SPARC + ruv-swarm integration
@@ -122,19 +122,19 @@ USAGE:
   npx claude-flow@2.0.0 init --sparc
   
   # Start enterprise orchestration with swarm intelligence
-  ./claude-flow start --ui --swarm
+  ./claude-flow-novice start --ui --swarm
   
   # Deploy intelligent multi-agent development workflow
-  ./claude-flow swarm "build enterprise API" --strategy development --parallel --monitor
+  ./claude-flow-novice swarm "build enterprise API" --strategy development --parallel --monitor
   
   # GitHub workflow automation
-  ./claude-flow github pr-manager "coordinate release with automated testing"
+  ./claude-flow-novice github pr-manager "coordinate release with automated testing"
   
   # Neural memory management
-  ./claude-flow memory store "architecture" "microservices with API gateway pattern"
+  ./claude-flow-novice memory store "architecture" "microservices with API gateway pattern"
   
   # Real-time system monitoring
-  ./claude-flow status --verbose
+  ./claude-flow-novice status --verbose
 
 🏢 ENTERPRISE COMMAND CATEGORIES:
   Core Intelligence:    swarm, agent, sparc, memory, neural
@@ -166,14 +166,14 @@ USAGE:
   • Cross-package synchronization and dependency management
 
 GET DETAILED HELP:
-  claude-flow help <command>           # Command-specific enterprise documentation
-  claude-flow <command> --help         # Alternative help syntax
+  claude-flow-novice help <command>           # Command-specific enterprise documentation
+  claude-flow-novice <command> --help         # Alternative help syntax
   
   Examples:
-    claude-flow help swarm             # Swarm intelligence coordination
-    claude-flow help github            # GitHub workflow automation
-    claude-flow help neural            # Neural network processing
-    claude-flow help enterprise        # Enterprise features and compliance
+    claude-flow-novice help swarm             # Swarm intelligence coordination
+    claude-flow-novice help github            # GitHub workflow automation
+    claude-flow-novice help neural            # Neural network processing
+    claude-flow-novice help enterprise        # Enterprise features and compliance
 
 COMMON OPTIONS:
   --verbose, -v                        Enable detailed output with performance metrics
@@ -212,7 +212,7 @@ function showHelpWithCommands(plain = false) {
   for (const command of commands) {
     console.log(`  ${command.name.padEnd(12)} ${command.description}`);
   }
-  console.log('\nUse "claude-flow help <command>" for detailed usage information');
+  console.log('\nUse "claude-flow-novice help <command>" for detailed usage information');
 }
 
 async function main() {
@@ -258,7 +258,7 @@ async function main() {
       showCommandHelp(command);
     } else {
       printError(`Unknown command: ${command}`);
-      console.log('\nRun "claude-flow --help" to see available commands.');
+      console.log('\nRun "claude-flow-novice --help" to see available commands.');
     }
     return;
   }
@@ -320,7 +320,7 @@ async function main() {
       return;
     } catch (err) {
       printError(err.message);
-      console.log(`\nRun "claude-flow ${command} --help" for usage information.`);
+      console.log(`\nRun "claude-flow-novice ${command} --help" for usage information.`);
       return;
     }
   }
@@ -1371,7 +1371,7 @@ async function main() {
             console.log(`Coverage: ${flags.coverage || 80}%`);
             console.log(`Commit: ${flags.commit || 'phase'}`);
             console.log(`\nEnhanced Features:`);
-            console.log(`  - Memory Bank enabled via: npx claude-flow memory commands`);
+            console.log(`  - Memory Bank enabled via: npx claude-flow-novice memory commands`);
             console.log(`  - Coordination ${flags.parallel ? 'enabled' : 'disabled'}`);
             console.log(`  - Access Claude-Flow features through Bash tool`);
           } else {
@@ -1413,22 +1413,22 @@ ${flags.tools ? `- Custom tools specified: ${flags.tools}` : ''}
 
 ### Optional Orchestration Features
 
-If this task requires complex coordination, memory persistence, or multi-agent collaboration, you can use the claude-flow system:
+If this task requires complex coordination, memory persistence, or multi-agent collaboration, you can use the claude-flow-novice system:
 
 1. **Persistent Memory** (if needed for your task)
-   - Store project data: \`npx claude-flow memory store <key> "<value>"\`
-   - Retrieve stored data: \`npx claude-flow memory query <key>\`
-   - Export/Import memory: \`npx claude-flow memory export/import <file>\`
+   - Store project data: \`npx claude-flow-novice memory store <key> "<value>"\`
+   - Retrieve stored data: \`npx claude-flow-novice memory query <key>\`
+   - Export/Import memory: \`npx claude-flow-novice memory export/import <file>\`
 
 2. **Task Coordination** (if working on complex multi-part tasks)
-   - Check task status: \`npx claude-flow status\`
-   - Monitor progress: \`npx claude-flow monitor\`
-   - List active tasks: \`npx claude-flow task list\`
+   - Check task status: \`npx claude-flow-novice status\`
+   - Monitor progress: \`npx claude-flow-novice monitor\`
+   - List active tasks: \`npx claude-flow-novice task list\`
 
 3. **Multi-Agent Collaboration** (if task benefits from parallelization)
-   - Spawn specialized agents: \`npx claude-flow agent spawn <type> --name <name>\`
-   - Create subtasks: \`npx claude-flow task create <type> "<description>"\`
-   - Coordinate work: \`npx claude-flow task assign <task-id> <agent-id>\``;
+   - Spawn specialized agents: \`npx claude-flow-novice agent spawn <type> --name <name>\`
+   - Create subtasks: \`npx claude-flow-novice task create <type> "<description>"\`
+   - Coordinate work: \`npx claude-flow-novice task assign <task-id> <agent-id>\``;
 
             if (flags.parallel) {
               enhancedTask += `
@@ -1480,14 +1480,14 @@ Begin working on your task. The orchestration features are available as tools to
 
 \`\`\`bash
 # Example: Storing project-specific data
-Bash("npx claude-flow memory store project_config '{\\"name\\": \\"my-app\\", \\"version\\": \\"1.0.0\\"}'")
+Bash("npx claude-flow-novice memory store project_config '{\\"name\\": \\"my-app\\", \\"version\\": \\"1.0.0\\"}'")
 
 # Example: Checking for previous work
-Bash("npx claude-flow memory query previous_implementation")
+Bash("npx claude-flow-novice memory query previous_implementation")
 
 # Example: Creating subtasks for complex projects
-Bash("npx claude-flow task create frontend 'Build React components'")
-Bash("npx claude-flow task create backend 'Implement API endpoints'")
+Bash("npx claude-flow-novice task create frontend 'Build React components'")
+Bash("npx claude-flow-novice task create backend 'Implement API endpoints'")
 \`\`\`
 
 Remember: These are optional tools. Use them when they add value to your development process.
@@ -1538,7 +1538,7 @@ ${flags.mode === 'full' || !flags.mode ? `Full-stack development covering all as
                   CLAUDE_FLOW_MODE: flags.mode || 'full',
                   CLAUDE_FLOW_COVERAGE: (flags.coverage || 80).toString(),
                   CLAUDE_FLOW_COMMIT: flags.commit || 'phase',
-                  // Add claude-flow specific features
+                  // Add claude-flow-novice specific features
                   CLAUDE_FLOW_MEMORY_ENABLED: 'true',
                   CLAUDE_FLOW_MEMORY_NAMESPACE: 'default',
                   CLAUDE_FLOW_COORDINATION_ENABLED: flags.parallel ? 'true' : 'false',
@@ -1579,10 +1579,10 @@ ${flags.mode === 'full' || !flags.mode ? `Full-stack development covering all as
           console.log('Claude commands: spawn, batch');
           console.log('\nExamples:');
           console.log(
-            '  claude-flow claude spawn "implement user authentication" --research --parallel',
+            '  claude-flow-novice claude spawn "implement user authentication" --research --parallel',
           );
-          console.log('  claude-flow claude spawn "fix bug in payment system" --no-permissions');
-          console.log('  claude-flow claude batch workflow.json --dry-run');
+          console.log('  claude-flow-novice claude spawn "fix bug in payment system" --no-permissions');
+          console.log('  claude-flow-novice claude batch workflow.json --dry-run');
       }
       break;
 
@@ -2155,7 +2155,7 @@ ${flags.mode === 'full' || !flags.mode ? `Full-stack development covering all as
 
     default:
       printError(`Unknown command: ${command}`);
-      console.log('Run "claude-flow help" for available commands');
+      console.log('Run "claude-flow-novice help" for available commands');
 
       // Suggest similar commands
       const commonCommands = [
@@ -2175,7 +2175,7 @@ ${flags.mode === 'full' || !flags.mode ? `Full-stack development covering all as
 
       if (suggestions.length > 0) {
         console.log('\nDid you mean:');
-        suggestions.forEach((cmd) => console.log(`  claude-flow ${cmd}`));
+        suggestions.forEach((cmd) => console.log(`  claude-flow-novice ${cmd}`));
       }
 
       exit(1);
@@ -3147,20 +3147,20 @@ SPARC is a systematic approach to software development:
 
 ## Usage with Claude-Flow
 
-Use the claude-flow SPARC commands to leverage this environment:
+Use the claude-flow-novice SPARC commands to leverage this environment:
 
 \`\`\`bash
 # List available modes
-claude-flow sparc modes
+claude-flow-novice sparc modes
 
 # Run specific mode
-claude-flow sparc run code "implement user authentication"
+claude-flow-novice sparc run code "implement user authentication"
 
 # Execute full TDD workflow  
-claude-flow sparc tdd "payment processing system"
+claude-flow-novice sparc tdd "payment processing system"
 
 # Use custom workflow
-claude-flow sparc workflow .roo/workflows/basic-tdd.json
+claude-flow-novice sparc workflow .roo/workflows/basic-tdd.json
 \`\`\`
 
 ## Configuration
@@ -3187,10 +3187,10 @@ This project uses the SPARC (Specification, Pseudocode, Architecture, Refinement
 ## SPARC Development Commands
 
 ### Core SPARC Commands
-- \`npx claude-flow sparc modes\`: List all available SPARC development modes
-- \`npx claude-flow sparc run <mode> "<task>"\`: Execute specific SPARC mode for a task
-- \`npx claude-flow sparc tdd "<feature>"\`: Run complete TDD workflow using SPARC methodology
-- \`npx claude-flow sparc info <mode>\`: Get detailed information about a specific mode
+- \`npx claude-flow-novice sparc modes\`: List all available SPARC development modes
+- \`npx claude-flow-novice sparc run <mode> "<task>"\`: Execute specific SPARC mode for a task
+- \`npx claude-flow-novice sparc tdd "<feature>"\`: Run complete TDD workflow using SPARC methodology
+- \`npx claude-flow-novice sparc info <mode>\`: Get detailed information about a specific mode
 
 ### Standard Build Commands
 - \`npm run build\`: Build the project
@@ -3203,7 +3203,7 @@ This project uses the SPARC (Specification, Pseudocode, Architecture, Refinement
 ### 1. Specification Phase
 \`\`\`bash
 # Create detailed specifications and requirements
-npx claude-flow sparc run spec-pseudocode "Define user authentication requirements"
+npx claude-flow-novice sparc run spec-pseudocode "Define user authentication requirements"
 \`\`\`
 - Define clear functional requirements
 - Document edge cases and constraints
@@ -3213,7 +3213,7 @@ npx claude-flow sparc run spec-pseudocode "Define user authentication requiremen
 ### 2. Pseudocode Phase
 \`\`\`bash
 # Develop algorithmic logic and data flows
-npx claude-flow sparc run spec-pseudocode "Create authentication flow pseudocode"
+npx claude-flow-novice sparc run spec-pseudocode "Create authentication flow pseudocode"
 \`\`\`
 - Break down complex logic into steps
 - Define data structures and interfaces
@@ -3223,7 +3223,7 @@ npx claude-flow sparc run spec-pseudocode "Create authentication flow pseudocode
 ### 3. Architecture Phase
 \`\`\`bash
 # Design system architecture and component structure
-npx claude-flow sparc run architect "Design authentication service architecture"
+npx claude-flow-novice sparc run architect "Design authentication service architecture"
 \`\`\`
 - Create system diagrams and component relationships
 - Define API contracts and interfaces
@@ -3233,7 +3233,7 @@ npx claude-flow sparc run architect "Design authentication service architecture"
 ### 4. Refinement Phase (TDD Implementation)
 \`\`\`bash
 # Execute Test-Driven Development cycle
-npx claude-flow sparc tdd "implement user authentication system"
+npx claude-flow-novice sparc tdd "implement user authentication system"
 \`\`\`
 
 **TDD Cycle:**
@@ -3245,7 +3245,7 @@ npx claude-flow sparc tdd "implement user authentication system"
 ### 5. Completion Phase
 \`\`\`bash
 # Integration, documentation, and validation
-npx claude-flow sparc run integration "integrate authentication with user management"
+npx claude-flow-novice sparc run integration "integrate authentication with user management"
 \`\`\`
 - Integrate all components
 - Perform end-to-end testing
@@ -3288,7 +3288,7 @@ npx claude-flow sparc run integration "integrate authentication with user manage
 - Prefer composition over inheritance
 
 ### Memory and State Management
-- Use claude-flow memory system for persistent state across sessions
+- Use claude-flow-novice memory system for persistent state across sessions
 - Store progress and findings using namespaced keys
 - Query previous work before starting new tasks
 - Export/import memory for backup and sharing
@@ -3298,19 +3298,19 @@ npx claude-flow sparc run integration "integrate authentication with user manage
 ### Memory Commands for SPARC Development
 \`\`\`bash
 # Store project specifications
-npx claude-flow memory store spec_auth "User authentication requirements and constraints"
+npx claude-flow-novice memory store spec_auth "User authentication requirements and constraints"
 
 # Store architectural decisions
-npx claude-flow memory store arch_decisions "Database schema and API design choices"
+npx claude-flow-novice memory store arch_decisions "Database schema and API design choices"
 
 # Store test results and coverage
-npx claude-flow memory store test_coverage "Authentication module: 95% coverage, all tests passing"
+npx claude-flow-novice memory store test_coverage "Authentication module: 95% coverage, all tests passing"
 
 # Query previous work
-npx claude-flow memory query auth_implementation
+npx claude-flow-novice memory query auth_implementation
 
 # Export project memory
-npx claude-flow memory export project_backup.json
+npx claude-flow-novice memory export project_backup.json
 \`\`\`
 
 ### Memory Namespaces
@@ -3325,37 +3325,37 @@ npx claude-flow memory export project_backup.json
 ### Feature Development Workflow
 \`\`\`bash
 # 1. Start with specification
-npx claude-flow sparc run spec-pseudocode "User profile management feature"
+npx claude-flow-novice sparc run spec-pseudocode "User profile management feature"
 
 # 2. Design architecture
-npx claude-flow sparc run architect "Profile service architecture with data validation"
+npx claude-flow-novice sparc run architect "Profile service architecture with data validation"
 
 # 3. Implement with TDD
-npx claude-flow sparc tdd "user profile CRUD operations"
+npx claude-flow-novice sparc tdd "user profile CRUD operations"
 
 # 4. Security review
-npx claude-flow sparc run security-review "profile data access and validation"
+npx claude-flow-novice sparc run security-review "profile data access and validation"
 
 # 5. Integration testing
-npx claude-flow sparc run integration "profile service with authentication system"
+npx claude-flow-novice sparc run integration "profile service with authentication system"
 
 # 6. Documentation
-npx claude-flow sparc run docs-writer "profile service API documentation"
+npx claude-flow-novice sparc run docs-writer "profile service API documentation"
 \`\`\`
 
 ### Bug Fix Workflow
 \`\`\`bash
 # 1. Debug and analyze
-npx claude-flow sparc run debug "authentication token expiration issue"
+npx claude-flow-novice sparc run debug "authentication token expiration issue"
 
 # 2. Write regression tests
-npx claude-flow sparc run tdd "token refresh mechanism tests"
+npx claude-flow-novice sparc run tdd "token refresh mechanism tests"
 
 # 3. Implement fix
-npx claude-flow sparc run code "fix token refresh in authentication service"
+npx claude-flow-novice sparc run code "fix token refresh in authentication service"
 
 # 4. Security review
-npx claude-flow sparc run security-review "token handling security implications"
+npx claude-flow-novice sparc run security-review "token handling security implications"
 \`\`\`
 
 ## Configuration Files
@@ -3393,16 +3393,16 @@ npx claude-flow sparc run security-review "token handling security implications"
 ### Debug Commands
 \`\`\`bash
 # Check SPARC configuration
-npx claude-flow sparc modes
+npx claude-flow-novice sparc modes
 
 # Verify memory system
-npx claude-flow memory stats
+npx claude-flow-novice memory stats
 
 # Check system status
-npx claude-flow status
+npx claude-flow-novice status
 
 # View detailed mode information
-npx claude-flow sparc info <mode-name>
+npx claude-flow-novice sparc info <mode-name>
 \`\`\`
 
 ## Project Architecture

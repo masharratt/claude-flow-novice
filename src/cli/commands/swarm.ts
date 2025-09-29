@@ -22,8 +22,8 @@ export async function swarmAction(ctx: CommandContext) {
   if (!objective) {
     error('Usage: swarm <objective>');
     console.log('\nExamples:');
-    console.log('  claude-flow swarm "Build a REST API"');
-    console.log('  claude-flow swarm "Research cloud architecture"');
+    console.log('  claude-flow-novice swarm "Build a REST API"');
+    console.log('  claude-flow-novice swarm "Research cloud architecture"');
     console.log('\nOptions:');
     console.log('  --dry-run              Show configuration without executing');
     console.log('  --strategy <type>      Strategy: auto, research, development, analysis');
@@ -210,7 +210,7 @@ export async function swarmAction(ctx: CommandContext) {
 
     if (options.background) {
       console.log(
-        `Running in background mode. Check status with: claude-flow swarm status ${swarmId}`,
+        `Running in background mode. Check status with: claude-flow-novice swarm status ${swarmId}`,
       );
 
       // Save coordinator state and exit
@@ -520,7 +520,7 @@ exit \${PIPESTATUS[0]}`;
       // Simulate execution if claude CLI not available
       console.log(`    → Simulating: ${task.type} (claude CLI not available)`);
 
-      // For now, let's use the claude-flow claude spawn command instead
+      // For now, let's use the claude-flow-novice claude spawn command instead
       const claudeFlowArgs = ['claude', 'spawn', task.description];
 
       if (task.type === 'research' || options.research) {
@@ -531,14 +531,14 @@ exit \${PIPESTATUS[0]}`;
         claudeFlowArgs.push('--parallel');
       }
 
-      console.log(`    → Using: claude-flow ${claudeFlowArgs.join(' ')}`);
+      console.log(`    → Using: claude-flow-novice ${claudeFlowArgs.join(' ')}`);
 
-      // Get the path to claude-flow binary
+      // Get the path to claude-flow-novice binary
       const claudeFlowPath = new URL(import.meta.url).pathname;
       const projectRoot = claudeFlowPath.substring(0, claudeFlowPath.indexOf('/src/'));
       const claudeFlowBin = `${projectRoot}/bin/claude-flow`;
 
-      // Execute claude-flow command
+      // Execute claude-flow-novice command
       const command = new Deno.Command(claudeFlowBin, {
         args: claudeFlowArgs,
         stdout: 'piped',

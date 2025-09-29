@@ -434,7 +434,7 @@ export class VerificationTrainingIntegration {
     try {
       // Call the training command
       const result = execSync(
-        'npx claude-flow training neural-train --data .claude-flow/training/verification-data.jsonl --model verification-predictor --epochs 100',
+        'npx claude-flow-novice training neural-train --data .claude-flow/training/verification-data.jsonl --model verification-predictor --epochs 100',
         { encoding: 'utf8', stdio: 'pipe' },
       );
 

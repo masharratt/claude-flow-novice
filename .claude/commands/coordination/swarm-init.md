@@ -5,7 +5,7 @@ Initialize a Claude Flow swarm with specified topology and configuration.
 ## Usage
 
 ```bash
-npx claude-flow swarm init [options]
+npx claude-flow-novice swarm init [options]
 ```
 
 ## Options
@@ -22,25 +22,25 @@ npx claude-flow swarm init [options]
 ### Basic initialization
 
 ```bash
-npx claude-flow swarm init
+npx claude-flow-novice swarm init
 ```
 
 ### Mesh topology for research
 
 ```bash
-npx claude-flow swarm init --topology mesh --max-agents 5 --strategy balanced
+npx claude-flow-novice swarm init --topology mesh --max-agents 5 --strategy balanced
 ```
 
 ### Hierarchical for development
 
 ```bash
-npx claude-flow swarm init --topology hierarchical --max-agents 10 --strategy parallel --auto-spawn
+npx claude-flow-novice swarm init --topology hierarchical --max-agents 10 --strategy parallel --auto-spawn
 ```
 
 ### GitHub-focused swarm
 
 ```bash
-npx claude-flow swarm init --topology star --github --memory
+npx claude-flow-novice swarm init --topology star --github --memory
 ```
 
 ## Topologies

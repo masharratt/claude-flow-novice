@@ -603,7 +603,7 @@ async function connectToOrchestrator(context: REPLContext, target?: string): Pro
   } else {
     context.connectionStatus = 'disconnected';
     console.log(chalk.red('✗ Connection failed'));
-    console.log(chalk.gray('Make sure Claude-Flow is running with: claude-flow start'));
+    console.log(chalk.gray('Make sure Claude-Flow is running with: claude-flow-novice start'));
   }
 }
 

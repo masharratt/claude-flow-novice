@@ -12,7 +12,7 @@ export async function neuralCommand(args, flags) {
 
   if (!subcommand) {
     console.log(chalk.cyan('🧠 Claude Flow Neural Module'));
-    console.log('\nUsage: claude-flow neural <command> [options]');
+    console.log('\nUsage: claude-flow-novice neural <command> [options]');
     console.log('\nCommands:');
     console.log('  init    Initialize SAFLA neural module');
     console.log('\nOptions:');

@@ -31,7 +31,7 @@ function createResearchCommand(): string {
 
 ## Usage
 \`\`\`bash
-claude-flow swarm "Research objective" --strategy research --mode distributed --parallel
+claude-flow-novice swarm "Research objective" --strategy research --mode distributed --parallel
 \`\`\`
 
 ## Description
@@ -75,7 +75,7 @@ function createDevelopmentCommand(): string {
 
 ## Usage
 \`\`\`bash
-claude-flow swarm "Build application" --strategy development --mode hierarchical --parallel
+claude-flow-novice swarm "Build application" --strategy development --mode hierarchical --parallel
 \`\`\`
 
 ## Description
@@ -122,7 +122,7 @@ function createAnalysisCommand(): string {
 
 ## Usage
 \`\`\`bash
-claude-flow swarm "Analyze data" --strategy analysis --parallel --max-agents 10
+claude-flow-novice swarm "Analyze data" --strategy analysis --parallel --max-agents 10
 \`\`\`
 
 ## Description
@@ -170,7 +170,7 @@ function createTestingCommand(): string {
 
 ## Usage
 \`\`\`bash
-claude-flow swarm "Test application" --strategy testing --mode mesh --parallel
+claude-flow-novice swarm "Test application" --strategy testing --mode mesh --parallel
 \`\`\`
 
 ## Description
@@ -219,7 +219,7 @@ function createOptimizationCommand(): string {
 
 ## Usage
 \`\`\`bash
-claude-flow swarm "Optimize performance" --strategy optimization --mode hybrid --parallel
+claude-flow-novice swarm "Optimize performance" --strategy optimization --mode hybrid --parallel
 \`\`\`
 
 ## Description
@@ -267,7 +267,7 @@ function createMaintenanceCommand(): string {
 
 ## Usage
 \`\`\`bash
-claude-flow swarm "System maintenance" --strategy maintenance --mode centralized --monitor
+claude-flow-novice swarm "System maintenance" --strategy maintenance --mode centralized --monitor
 \`\`\`
 
 ## Description
@@ -319,55 +319,55 @@ function createSwarmExamples(): string {
 ### Research Tasks with Parallel Execution
 \`\`\`bash
 # Distributed research with parallel agents
-claude-flow swarm "Research modern web frameworks" --strategy research --mode distributed --parallel --max-agents 6
+claude-flow-novice swarm "Research modern web frameworks" --strategy research --mode distributed --parallel --max-agents 6
 
 # Market analysis with coordinated batch operations
-claude-flow swarm "Analyze AI market trends" --strategy research --parallel --monitor --timeout 120
+claude-flow-novice swarm "Analyze AI market trends" --strategy research --parallel --monitor --timeout 120
 \`\`\`
 
 ### Development Tasks with Batch Coordination
 \`\`\`bash
 # Hierarchical development with batch file operations
-claude-flow swarm "Build microservice API" --strategy development --mode hierarchical --parallel --max-agents 8
+claude-flow-novice swarm "Build microservice API" --strategy development --mode hierarchical --parallel --max-agents 8
 
 # React dashboard with coordinated component development
-claude-flow swarm "Create React dashboard" --strategy development --parallel --monitor --output sqlite
+claude-flow-novice swarm "Create React dashboard" --strategy development --parallel --monitor --output sqlite
 \`\`\`
 
 ### Analysis Tasks with Batch Processing
 \`\`\`bash
 # Mesh-coordinated data analysis
-claude-flow swarm "Analyze user behavior data" --strategy analysis --mode mesh --parallel --max-agents 10
+claude-flow-novice swarm "Analyze user behavior data" --strategy analysis --mode mesh --parallel --max-agents 10
 
 # Performance analysis with monitoring
-claude-flow swarm "Performance analysis of application" --strategy analysis --monitor --output csv
+claude-flow-novice swarm "Performance analysis of application" --strategy analysis --monitor --output csv
 \`\`\`
 
 ### Testing Tasks with Parallel Validation
 \`\`\`bash
 # Comprehensive parallel testing
-claude-flow swarm "Comprehensive testing suite" --strategy testing --parallel --max-agents 12
+claude-flow-novice swarm "Comprehensive testing suite" --strategy testing --parallel --max-agents 12
 
 # Security testing with distributed coordination
-claude-flow swarm "Security testing analysis" --strategy testing --mode distributed --monitor
+claude-flow-novice swarm "Security testing analysis" --strategy testing --mode distributed --monitor
 \`\`\`
 
 ### Optimization Tasks with Hybrid Coordination
 \`\`\`bash
 # Database optimization with hybrid approach
-claude-flow swarm "Optimize database queries" --strategy optimization --mode hybrid --parallel
+claude-flow-novice swarm "Optimize database queries" --strategy optimization --mode hybrid --parallel
 
 # Frontend optimization with batch processing
-claude-flow swarm "Frontend performance optimization" --strategy optimization --monitor --max-agents 6
+claude-flow-novice swarm "Frontend performance optimization" --strategy optimization --monitor --max-agents 6
 \`\`\`
 
 ### Maintenance Tasks with Centralized Control
 \`\`\`bash
 # Dependency updates with centralized coordination
-claude-flow swarm "Update dependencies safely" --strategy maintenance --mode centralized --monitor
+claude-flow-novice swarm "Update dependencies safely" --strategy maintenance --mode centralized --monitor
 
 # System health checks with batch operations
-claude-flow swarm "System health check" --strategy maintenance --parallel --output json
+claude-flow-novice swarm "System health check" --strategy maintenance --parallel --output json
 \`\`\`
 
 See individual strategy files for detailed documentation and best practices.

@@ -1,6 +1,6 @@
 # MCP Tool Usage Patterns for Python Development
 
-Comprehensive guide to using MCP (Model Context Protocol) tools with claude-flow for enhanced Python development workflows, including coordination patterns, memory management, and advanced orchestration.
+Comprehensive guide to using MCP (Model Context Protocol) tools with claude-flow-novice for enhanced Python development workflows, including coordination patterns, memory management, and advanced orchestration.
 
 ## 🔗 MCP Overview for Python
 

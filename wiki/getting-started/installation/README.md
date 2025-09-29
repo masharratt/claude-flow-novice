@@ -47,7 +47,7 @@ npx claude-flow@alpha doctor
 npm install -g claude-flow-novice
 
 # Verify installation
-claude-flow --version
+claude-flow-novice --version
 ```
 
 ### Project-Specific Installation
@@ -61,8 +61,8 @@ yarn add claude-flow-novice
 {
   "scripts": {
     "ai": "claude-flow",
-    "sparc": "claude-flow sparc",
-    "agents": "claude-flow agents"
+    "sparc": "claude-flow-novice sparc",
+    "agents": "claude-flow-novice agents"
   }
 }
 ```
@@ -146,8 +146,8 @@ npm test
 
 ### Step 1: Add MCP Server
 ```bash
-# Add claude-flow MCP server
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Add claude-flow-novice MCP server
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Optional: Enhanced coordination
 claude mcp add ruv-swarm npx ruv-swarm mcp start
@@ -324,7 +324,7 @@ npx claude-flow@alpha doctor
 # Expected output:
 # ✅ Node.js version: 18.12.0
 # ✅ npm version: 8.19.2
-# ✅ claude-flow version: 2.0.0
+# ✅ claude-flow-novice version: 2.0.0
 # ✅ Configuration: valid
 # ✅ API access: connected
 # ✅ MCP integration: available
@@ -397,7 +397,7 @@ claude mcp logs claude-flow
 
 # Reinstall MCP server
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 ```
 
 ### Getting Help

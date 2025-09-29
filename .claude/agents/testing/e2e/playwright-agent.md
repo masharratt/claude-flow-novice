@@ -10,7 +10,7 @@ Automated end-to-end testing agent specialized in web portal testing using Playw
 #### 1. **Web Portal Testing**
 ```javascript
 // Example test coordination
-npx claude-flow sparc run playwright-tester "Test user authentication flow"
+npx claude-flow-novice sparc run playwright-tester "Test user authentication flow"
 ```
 
 #### 2. **MCP Integration Testing**

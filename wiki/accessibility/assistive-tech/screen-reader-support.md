@@ -1,6 +1,6 @@
 # Screen Reader and Assistive Technology Support
 
-This comprehensive guide provides strategies for optimizing claude-flow applications for screen readers and other assistive technologies, ensuring seamless accessibility for users with visual impairments.
+This comprehensive guide provides strategies for optimizing claude-flow-novice applications for screen readers and other assistive technologies, ensuring seamless accessibility for users with visual impairments.
 
 ## 🎯 Overview
 
@@ -697,16 +697,16 @@ export class ScreenReaderTestingAgent {
 ### Screen Reader Testing Agent
 ```bash
 # Comprehensive screen reader testing
-npx claude-flow sparc run screen-reader-test "Test complete application with NVDA, JAWS, and VoiceOver simulation"
+npx claude-flow-novice sparc run screen-reader-test "Test complete application with NVDA, JAWS, and VoiceOver simulation"
 
 # ARIA compliance validation
-npx claude-flow sparc run aria-validator "Validate all ARIA attributes and roles for screen reader compatibility"
+npx claude-flow-novice sparc run aria-validator "Validate all ARIA attributes and roles for screen reader compatibility"
 
 # Semantic structure analysis
-npx claude-flow sparc run semantic-analyzer "Analyze semantic HTML structure for screen reader navigation"
+npx claude-flow-novice sparc run semantic-analyzer "Analyze semantic HTML structure for screen reader navigation"
 
 # Focus management testing
-npx claude-flow sparc run focus-test "Test focus management in dynamic content and modals"
+npx claude-flow-novice sparc run focus-test "Test focus management in dynamic content and modals"
 ```
 
 ### Automated Testing Pipeline
@@ -909,4 +909,4 @@ Track these key metrics for screen reader support:
 4. **Error Recovery**: Success rate of error correction with screen readers
 5. **User Satisfaction**: Feedback scores from screen reader users
 
-By implementing these strategies and continuously testing with actual screen readers, claude-flow applications can provide excellent support for users who rely on assistive technologies.
+By implementing these strategies and continuously testing with actual screen readers, claude-flow-novice applications can provide excellent support for users who rely on assistive technologies.

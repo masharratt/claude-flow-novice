@@ -4,11 +4,11 @@
 **Agents**: 1 (coder)
 **Technologies**: JavaScript, Node.js
 
-A simple introduction to claude-flow that creates a basic "Hello World" application with file operations and basic automation.
+A simple introduction to claude-flow-novice that creates a basic "Hello World" application with file operations and basic automation.
 
 ## What You'll Learn
 
-- Basic claude-flow CLI commands
+- Basic claude-flow-novice CLI commands
 - Agent spawning and coordination
 - File creation and manipulation
 - SPARC methodology basics
@@ -91,7 +91,7 @@ hello-world-claude-flow/
 {
   "name": "hello-world-claude-flow",
   "version": "1.0.0",
-  "description": "A simple Hello World application demonstrating claude-flow basics",
+  "description": "A simple Hello World application demonstrating claude-flow-novice basics",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -144,7 +144,7 @@ async function main() {
   try {
     // Welcome message
     console.log(chalk.blue.bold('🚀 Claude Flow Hello World Application'));
-    console.log(chalk.green('Welcome to your first claude-flow application!'));
+    console.log(chalk.green('Welcome to your first claude-flow-novice application!'));
 
     logger.info('Application started successfully');
 
@@ -287,7 +287,7 @@ npm start
 
 # Expected output:
 # 🚀 Claude Flow Hello World Application
-# Welcome to your first claude-flow application!
+# Welcome to your first claude-flow-novice application!
 # Hello, World! 🌍
 #
 # 📊 Agent Information:
@@ -388,7 +388,7 @@ Task("Database Architect",
 
 **Issue**: Agent not spawning
 ```bash
-# Check claude-flow installation
+# Check claude-flow-novice installation
 npx claude-flow@alpha --version
 
 # Reinstall if needed
@@ -431,4 +431,4 @@ npx claude-flow@alpha hooks reset
 
 ---
 
-**Congratulations!** 🎉 You've completed your first claude-flow example. This foundation will help you understand more complex multi-agent workflows and coordination patterns.
+**Congratulations!** 🎉 You've completed your first claude-flow-novice example. This foundation will help you understand more complex multi-agent workflows and coordination patterns.

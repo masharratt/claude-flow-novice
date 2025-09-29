@@ -15,16 +15,16 @@ Java development with Claude Flow enables:
 
 ```bash
 # Generate a complete Spring Boot microservice
-npx claude-flow sparc run coder "Create Spring Boot REST API with JPA, security, and caching"
+npx claude-flow-novice sparc run coder "Create Spring Boot REST API with JPA, security, and caching"
 
 # Build microservices architecture
-npx claude-flow sparc batch architect,coder "Design and implement microservices with Spring Cloud"
+npx claude-flow-novice sparc batch architect,coder "Design and implement microservices with Spring Cloud"
 
 # Comprehensive testing suite
-npx claude-flow sparc run tester "Generate unit, integration, and performance tests with 95% coverage"
+npx claude-flow-novice sparc run tester "Generate unit, integration, and performance tests with 95% coverage"
 
 # Performance optimization
-npx claude-flow sparc run perf-analyzer "Optimize JVM settings, database queries, and application performance"
+npx claude-flow-novice sparc run perf-analyzer "Optimize JVM settings, database queries, and application performance"
 ```
 
 ## Documentation Structure
@@ -50,43 +50,43 @@ npx claude-flow sparc run perf-analyzer "Optimize JVM settings, database queries
 ### 🔧 Core Development Agents
 ```bash
 # Backend development specialist
-npx claude-flow sparc run backend-dev "Create enterprise REST API with Spring Boot"
+npx claude-flow-novice sparc run backend-dev "Create enterprise REST API with Spring Boot"
 
 # Code generation and implementation
-npx claude-flow sparc run coder "Implement JPA entities with validation and auditing"
+npx claude-flow-novice sparc run coder "Implement JPA entities with validation and auditing"
 
 # Comprehensive testing
-npx claude-flow sparc run tester "Generate test suite with TestContainers and contract testing"
+npx claude-flow-novice sparc run tester "Generate test suite with TestContainers and contract testing"
 
 # Code quality and security review
-npx claude-flow sparc run reviewer "Review code for security vulnerabilities and best practices"
+npx claude-flow-novice sparc run reviewer "Review code for security vulnerabilities and best practices"
 ```
 
 ### 🏗️ Architecture & Design Agents
 ```bash
 # System architecture design
-npx claude-flow sparc run system-architect "Design scalable microservices architecture"
+npx claude-flow-novice sparc run system-architect "Design scalable microservices architecture"
 
 # Performance analysis and optimization
-npx claude-flow sparc run perf-analyzer "Analyze performance bottlenecks and optimize JVM"
+npx claude-flow-novice sparc run perf-analyzer "Analyze performance bottlenecks and optimize JVM"
 
 # API documentation generation
-npx claude-flow sparc run api-docs "Generate OpenAPI documentation with examples"
+npx claude-flow-novice sparc run api-docs "Generate OpenAPI documentation with examples"
 
 # Migration planning
-npx claude-flow sparc run migration-planner "Plan migration from monolith to microservices"
+npx claude-flow-novice sparc run migration-planner "Plan migration from monolith to microservices"
 ```
 
 ### ☁️ Cloud & DevOps Agents
 ```bash
 # CI/CD pipeline setup
-npx claude-flow sparc run cicd-engineer "Create GitHub Actions workflow for Java applications"
+npx claude-flow-novice sparc run cicd-engineer "Create GitHub Actions workflow for Java applications"
 
 # Code analysis and quality gates
-npx claude-flow sparc run code-analyzer "Setup SonarQube analysis and quality gates"
+npx claude-flow-novice sparc run code-analyzer "Setup SonarQube analysis and quality gates"
 
 # Base template generation
-npx claude-flow sparc run base-template-generator "Create enterprise Java project template"
+npx claude-flow-novice sparc run base-template-generator "Create enterprise Java project template"
 ```
 
 ## Enterprise Integration Examples
@@ -95,7 +95,7 @@ npx claude-flow sparc run base-template-generator "Create enterprise Java projec
 
 ```bash
 # Complete Spring Boot application with enterprise features
-npx claude-flow sparc run coder "Create Spring Boot app with:
+npx claude-flow-novice sparc run coder "Create Spring Boot app with:
 - JWT authentication and RBAC authorization
 - JPA entities with audit logging
 - Redis caching layer
@@ -109,7 +109,7 @@ npx claude-flow sparc run coder "Create Spring Boot app with:
 
 ```bash
 # Multi-service e-commerce platform
-npx claude-flow sparc batch architect,coder,tester "Build e-commerce platform with:
+npx claude-flow-novice sparc batch architect,coder,tester "Build e-commerce platform with:
 - User service (Spring Boot + PostgreSQL)
 - Product service (Spring Boot + Elasticsearch)
 - Order service (Spring Boot + Kafka)
@@ -124,7 +124,7 @@ npx claude-flow sparc batch architect,coder,tester "Build e-commerce platform wi
 
 ```bash
 # Comprehensive performance optimization
-npx claude-flow sparc run perf-analyzer "Optimize Java application:
+npx claude-flow-novice sparc run perf-analyzer "Optimize Java application:
 - JVM memory management and GC tuning
 - Database connection pooling optimization
 - Redis caching strategy implementation
@@ -139,16 +139,16 @@ npx claude-flow sparc run perf-analyzer "Optimize Java application:
 
 ```bash
 # Initialize enterprise development swarm
-npx claude-flow mcp swarm_init --topology hierarchical --max-agents 12
+npx claude-flow-novice mcp swarm_init --topology hierarchical --max-agents 12
 
 # Spawn specialized Java agents
-npx claude-flow mcp agent_spawn --type coder --capabilities "spring-boot,jpa,security"
-npx claude-flow mcp agent_spawn --type architect --capabilities "microservices,cloud-native"
-npx claude-flow mcp agent_spawn --type tester --capabilities "junit5,testcontainers,performance"
-npx claude-flow mcp agent_spawn --type perf-analyzer --capabilities "jvm-tuning,database-optimization"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "spring-boot,jpa,security"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "microservices,cloud-native"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "junit5,testcontainers,performance"
+npx claude-flow-novice mcp agent_spawn --type perf-analyzer --capabilities "jvm-tuning,database-optimization"
 
 # Orchestrate complex development tasks
-npx claude-flow mcp task_orchestrate --task "Build enterprise microservices platform" --strategy hierarchical
+npx claude-flow-novice mcp task_orchestrate --task "Build enterprise microservices platform" --strategy hierarchical
 ```
 
 ## Best Practices & Patterns
@@ -189,7 +189,7 @@ npx claude-flow mcp task_orchestrate --task "Build enterprise microservices plat
 
 - [ ] Set up development environment with Java 17+
 - [ ] Install Claude Flow: `npm install -g claude-flow@alpha`
-- [ ] Add MCP server: `claude mcp add claude-flow npx claude-flow@alpha mcp start`
+- [ ] Add MCP server: `claude mcp add claude-flow-novice npx claude-flow@alpha mcp start`
 - [ ] Review [Project Setup](project-setup.md) for build tools
 - [ ] Explore [Examples](examples.md) for practical implementations
 - [ ] Check [Spring Boot Development](spring-boot.md) for modern patterns

@@ -5,7 +5,7 @@ Execute a custom stream chain with your own prompts.
 ## Usage
 
 ```bash
-claude-flow stream-chain run <prompt1> <prompt2> [...] [options]
+claude-flow-novice stream-chain run <prompt1> <prompt2> [...] [options]
 ```
 
 Minimum 2 prompts required for chaining.
@@ -24,14 +24,14 @@ Each prompt in the chain receives the complete output from the previous step as 
 
 ### Basic Chain
 ```bash
-claude-flow stream-chain run \
+claude-flow-novice stream-chain run \
   "Write a function" \
   "Add tests for it"
 ```
 
 ### Complex Workflow
 ```bash
-claude-flow stream-chain run \
+claude-flow-novice stream-chain run \
   "Analyze the authentication system" \
   "Identify security vulnerabilities" \
   "Propose fixes with priority levels" \
@@ -41,7 +41,7 @@ claude-flow stream-chain run \
 
 ### With Options
 ```bash
-claude-flow stream-chain run \
+claude-flow-novice stream-chain run \
   "Complex analysis task" \
   "Detailed implementation" \
   --timeout 60 \

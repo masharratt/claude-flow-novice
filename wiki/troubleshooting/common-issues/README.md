@@ -180,7 +180,7 @@ claude mcp restart claude-flow
 4. **If connection fails, reinstall:**
    ```bash
    claude mcp remove claude-flow
-   claude mcp add claude-flow npx claude-flow@alpha mcp start
+   claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
    ```
 
 5. **Verify Node.js version:**
@@ -192,7 +192,7 @@ claude mcp restart claude-flow
    ```bash
    # If using custom port
    claude mcp remove claude-flow
-   claude mcp add claude-flow npx claude-flow@alpha mcp start --port 3001
+   claude mcp add claude-flow-novice npx claude-flow@alpha mcp start --port 3001
    ```
 
 ### Issue: MCP Tools Not Available in Claude Code
@@ -210,7 +210,7 @@ claude mcp tools claude-flow
 ```
 
 **Detailed Solution:**
-1. **Verify claude-flow installation:**
+1. **Verify claude-flow-novice installation:**
    ```bash
    npx claude-flow@alpha --version
    ```
@@ -223,7 +223,7 @@ claude mcp tools claude-flow
 3. **Re-register MCP server:**
    ```bash
    claude mcp remove claude-flow
-   claude mcp add claude-flow npx claude-flow@alpha mcp start
+   claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
    ```
 
 4. **Check available tools:**
@@ -471,7 +471,7 @@ npx claude-flow@alpha optimize --auto-tune
 ### Issue: High Memory Usage
 
 **Symptoms:**
-- System becomes sluggish during claude-flow operations
+- System becomes sluggish during claude-flow-novice operations
 - Out of memory errors
 - System warns about high memory usage
 
@@ -545,7 +545,7 @@ npx claude-flow@alpha --version
 3. **Try global installation:**
    ```bash
    npm install -g claude-flow-novice
-   claude-flow --version
+   claude-flow-novice --version
    ```
 
 4. **Fix PATH issues (if global install doesn't work):**

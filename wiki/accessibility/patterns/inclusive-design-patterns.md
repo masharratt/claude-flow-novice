@@ -488,13 +488,13 @@ const AccessibleAccordion: React.FC<{ items: AccordionItem[] }> = ({ items }) =>
 ### Pattern Validation Agent
 ```bash
 # Validate inclusive design patterns
-npx claude-flow sparc run inclusive-design-review "Review all components for inclusive design patterns"
+npx claude-flow-novice sparc run inclusive-design-review "Review all components for inclusive design patterns"
 
 # Generate accessible component variations
-npx claude-flow sparc run accessibility-generator "Generate WCAG AA compliant versions of UI components"
+npx claude-flow-novice sparc run accessibility-generator "Generate WCAG AA compliant versions of UI components"
 
 # Test pattern compliance
-npx claude-flow sparc run pattern-validator "Validate all patterns meet inclusive design criteria"
+npx claude-flow-novice sparc run pattern-validator "Validate all patterns meet inclusive design criteria"
 ```
 
 ### Automated Pattern Testing
@@ -712,4 +712,4 @@ For each pattern, verify:
 3. **Pattern Evolution**: Update patterns based on user feedback
 4. **Team Training**: Regular accessibility training and updates
 
-These patterns form the foundation of inclusive design in claude-flow projects, ensuring that accessibility is not an afterthought but a core aspect of every component.
+These patterns form the foundation of inclusive design in claude-flow-novice projects, ensuring that accessibility is not an afterthought but a core aspect of every component.

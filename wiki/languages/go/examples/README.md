@@ -1,13 +1,13 @@
 # Go Examples and Templates with Claude-Flow
 
-Real-world Go project examples showcasing claude-flow integration for accelerated development, testing, and deployment.
+Real-world Go project examples showcasing claude-flow-novice integration for accelerated development, testing, and deployment.
 
 ## 🚀 Complete Project Examples
 
 ### Example 1: E-commerce Microservice
 ```bash
 # Generate complete e-commerce microservice with claude-flow
-npx claude-flow sparc pipeline "Go e-commerce microservice with product catalog, user management, and order processing"
+npx claude-flow-novice sparc pipeline "Go e-commerce microservice with product catalog, user management, and order processing"
 ```
 
 **Generated Architecture:**
@@ -269,7 +269,7 @@ var (
 ### Example 2: Real-time Chat System
 ```bash
 # Generate WebSocket-based chat system
-npx claude-flow sparc pipeline "Go real-time chat system with WebSockets, Redis pub/sub, and PostgreSQL"
+npx claude-flow-novice sparc pipeline "Go real-time chat system with WebSockets, Redis pub/sub, and PostgreSQL"
 ```
 
 **Key Features:**
@@ -562,7 +562,7 @@ func (c *Client) writePump() {
 ### Example 3: Payment Processing Service
 ```bash
 # Generate secure payment processing microservice
-npx claude-flow sparc pipeline "Go payment processing service with Stripe integration, fraud detection, and audit logging"
+npx claude-flow-novice sparc pipeline "Go payment processing service with Stripe integration, fraud detection, and audit logging"
 ```
 
 **Security Features:**
@@ -577,7 +577,7 @@ npx claude-flow sparc pipeline "Go payment processing service with Stripe integr
 ### Comprehensive Test Suite
 ```bash
 # Generate complete testing suite
-npx claude-flow sparc run tester "comprehensive test suite with unit, integration, and e2e tests for Go microservice"
+npx claude-flow-novice sparc run tester "comprehensive test suite with unit, integration, and e2e tests for Go microservice"
 ```
 
 **Generated Test Structure:**
@@ -739,7 +739,7 @@ func TestProductServiceIntegrationSuite(t *testing.T) {
 ### Load Testing Example
 ```bash
 # Generate load testing suite
-npx claude-flow sparc run tester "create load testing suite for Go web service with various scenarios"
+npx claude-flow-novice sparc run tester "create load testing suite for Go web service with various scenarios"
 ```
 
 ## 🚀 Deployment Examples
@@ -747,7 +747,7 @@ npx claude-flow sparc run tester "create load testing suite for Go web service w
 ### Kubernetes with Helm
 ```bash
 # Generate Kubernetes deployment with Helm charts
-npx claude-flow sparc run deployer "create Kubernetes deployment with Helm charts for Go microservice"
+npx claude-flow-novice sparc run deployer "create Kubernetes deployment with Helm charts for Go microservice"
 ```
 
 **Generated Helm Chart:**
@@ -940,46 +940,46 @@ volumes:
 mkdir my-go-project && cd my-go-project
 
 # Setup project structure and dependencies
-npx claude-flow sparc run architect "Go project structure with clean architecture"
+npx claude-flow-novice sparc run architect "Go project structure with clean architecture"
 
 # Generate domain models and business logic
-npx claude-flow sparc run coder "user management domain with clean architecture"
+npx claude-flow-novice sparc run coder "user management domain with clean architecture"
 
 # Add database layer
-npx claude-flow sparc run coder "PostgreSQL repository implementation with GORM"
+npx claude-flow-novice sparc run coder "PostgreSQL repository implementation with GORM"
 
 # Add API layer
-npx claude-flow sparc run coder "REST API with Gin framework and validation"
+npx claude-flow-novice sparc run coder "REST API with Gin framework and validation"
 
 # Generate comprehensive tests
-npx claude-flow sparc run tester "unit and integration tests with testcontainers"
+npx claude-flow-novice sparc run tester "unit and integration tests with testcontainers"
 
 # Add monitoring and observability
-npx claude-flow sparc run coder "Prometheus metrics and structured logging"
+npx claude-flow-novice sparc run coder "Prometheus metrics and structured logging"
 
 # Setup deployment
-npx claude-flow sparc run deployer "Docker and Kubernetes deployment configuration"
+npx claude-flow-novice sparc run deployer "Docker and Kubernetes deployment configuration"
 
 # Performance optimization
-npx claude-flow sparc run perf-analyzer "identify and fix performance bottlenecks"
+npx claude-flow-novice sparc run perf-analyzer "identify and fix performance bottlenecks"
 
 # Security review
-npx claude-flow sparc run security-auditor "comprehensive security audit"
+npx claude-flow-novice sparc run security-auditor "comprehensive security audit"
 
 # Final review and documentation
-npx claude-flow sparc run reviewer "code review and documentation generation"
+npx claude-flow-novice sparc run reviewer "code review and documentation generation"
 ```
 
 ### Continuous Development with Claude-Flow
 ```bash
 # Start intelligent development session
-npx claude-flow dev start --language go --mode ai-assisted
+npx claude-flow-novice dev start --language go --mode ai-assisted
 
 # Enable file watching for auto-generation
-npx claude-flow dev watch --auto-test --auto-format --auto-optimize
+npx claude-flow-novice dev watch --auto-test --auto-format --auto-optimize
 
 # Continuous integration with claude-flow
-npx claude-flow ci run --quality-gates --security-scan --performance-check
+npx claude-flow-novice ci run --quality-gates --security-scan --performance-check
 ```
 
 ## 📊 Performance Examples
@@ -987,13 +987,13 @@ npx claude-flow ci run --quality-gates --security-scan --performance-check
 ### High-Performance HTTP Server
 ```bash
 # Generate optimized HTTP server
-npx claude-flow sparc run perf-analyzer "high-performance HTTP server with connection pooling and caching"
+npx claude-flow-novice sparc run perf-analyzer "high-performance HTTP server with connection pooling and caching"
 ```
 
 ### Concurrent Data Processing
 ```bash
 # Generate concurrent data processor
-npx claude-flow sparc run architect "concurrent data processing pipeline with worker pools"
+npx claude-flow-novice sparc run architect "concurrent data processing pipeline with worker pools"
 ```
 
 ## 🛡️ Security Examples
@@ -1001,27 +1001,27 @@ npx claude-flow sparc run architect "concurrent data processing pipeline with wo
 ### Secure API with JWT
 ```bash
 # Generate secure API implementation
-npx claude-flow sparc run security-auditor "secure REST API with JWT authentication and RBAC"
+npx claude-flow-novice sparc run security-auditor "secure REST API with JWT authentication and RBAC"
 ```
 
 ### Encrypted Data Storage
 ```bash
 # Generate encrypted storage solution
-npx claude-flow sparc run security-auditor "encrypted data storage with key rotation"
+npx claude-flow-novice sparc run security-auditor "encrypted data storage with key rotation"
 ```
 
 ## 🚀 Quick Start Commands
 
 ```bash
 # Clone and setup any example
-npx claude-flow example clone go-ecommerce-microservice
-npx claude-flow example setup --install-deps --run-tests
+npx claude-flow-novice example clone go-ecommerce-microservice
+npx claude-flow-novice example setup --install-deps --run-tests
 
 # Generate project from template
-npx claude-flow template create --language go --type microservice --features api,database,tests
+npx claude-flow-novice template create --language go --type microservice --features api,database,tests
 
 # One-command development environment
-npx claude-flow dev env --language go --services postgres,redis --monitoring prometheus,grafana
+npx claude-flow-novice dev env --language go --services postgres,redis --monitoring prometheus,grafana
 ```
 
 ## 📈 Success Metrics
@@ -1062,5 +1062,5 @@ When using these examples with claude-flow:
 **Next Steps:**
 - Try the examples in your own projects
 - Customize templates for your specific needs
-- Integrate claude-flow into your development workflow
+- Integrate claude-flow-novice into your development workflow
 - Share feedback and contribute improvements

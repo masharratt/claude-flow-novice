@@ -389,11 +389,11 @@ export async function initCommand(subArgs, flags) {
 
     // Memory README files and persistence database are created by template copier
 
-    // Create local claude-flow executable wrapper
+    // Create local claude-flow-novice executable wrapper
     if (!initDryRun) {
       await createLocalExecutable(workingDir);
     } else {
-      console.log('  [DRY RUN] Would create local claude-flow executable wrapper');
+      console.log('  [DRY RUN] Would create local claude-flow-novice executable wrapper');
     }
 
     // SPARC initialization
@@ -521,7 +521,7 @@ export async function initCommand(subArgs, flags) {
 
       console.log('\n🚀 Next steps:');
       console.log('1. Review and customize the generated files for your project');
-      console.log("2. Run './claude-flow start' to begin the orchestration system");
+      console.log("2. Run './claude-flow-novice start' to begin the orchestration system");
       console.log("3. Use './claude-flow' instead of 'npx claude-flow' for all commands");
       console.log("4. Use 'claude --dangerously-skip-permissions' for unattended operation");
 
@@ -529,13 +529,13 @@ export async function initCommand(subArgs, flags) {
         console.log(
           '5. Use Claude Code slash commands: /sparc, /sparc-architect, /sparc-tdd, etc.',
         );
-        console.log("6. Explore SPARC modes with './claude-flow sparc modes'");
-        console.log('7. Try TDD workflow with \'./claude-flow sparc tdd "your task"\'');
+        console.log("6. Explore SPARC modes with './claude-flow-novice sparc modes'");
+        console.log('7. Try TDD workflow with \'./claude-flow-novice sparc tdd "your task"\'');
 
         if (initOptimized) {
           console.log('8. Use batchtools commands: /batchtools, /performance for optimization');
           console.log('9. Enable parallel processing with --parallel flags');
-          console.log("10. Monitor performance with './claude-flow performance monitor'");
+          console.log("10. Monitor performance with './claude-flow-novice performance monitor'");
         }
       }
 
@@ -553,8 +553,8 @@ export async function initCommand(subArgs, flags) {
 
       console.log('\n💡 Tips:');
       console.log("  • Type '/' in Claude Code to see all available slash commands");
-      console.log("  • Use './claude-flow status' to check system health");
-      console.log("  • Store important context with './claude-flow memory store'");
+      console.log("  • Use './claude-flow-novice status' to check system health");
+      console.log("  • Store important context with './claude-flow-novice memory store'");
 
       if (initOptimized) {
         console.log('  • Use --parallel flags for concurrent operations');
@@ -610,7 +610,7 @@ export async function initCommand(subArgs, flags) {
         console.log('\n⚠️  Claude Code CLI not detected!');
         console.log('  📥 Install with: npm install -g @anthropic-ai/claude-code');
         console.log('  📋 Then add MCP servers manually with:');
-        console.log('     claude mcp add claude-flow claude-flow mcp start');
+        console.log('     claude mcp add claude-flow-novice claude-flow-novice mcp start');
         console.log('     claude mcp add ruv-swarm npx ruv-swarm mcp start');
         console.log('     claude mcp add flow-nexus npx flow-nexus@latest mcp start');
       }
@@ -1184,7 +1184,7 @@ async function setupMonitoring(workingDir) {
   const path = await import('path');
 
   try {
-    // Create .claude-flow directory for tracking data
+    // Create .claude-flow-novice directory for tracking data
     const trackingDir = path.join(workingDir, '.claude-flow');
     await fs.mkdir(trackingDir, { recursive: true });
 
@@ -1269,7 +1269,7 @@ export CLAUDE_CODE_ENABLE_TELEMETRY=1
     console.log('     1. Add to your shell profile: export CLAUDE_CODE_ENABLE_TELEMETRY=1');
     console.log('     2. Or run: source .claude-flow/env-setup.sh');
     console.log('\n  💡 Token usage will be tracked in .claude-flow/token-usage.json');
-    console.log('     Run: claude-flow analysis token-usage --breakdown --cost-analysis');
+    console.log('     Run: claude-flow-novice analysis token-usage --breakdown --cost-analysis');
   } catch (err) {
     printError(`  Failed to setup monitoring: ${err.message}`);
   }
@@ -1692,7 +1692,7 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       } else {
         console.log('  ℹ️  Skipping MCP setup (--skip-mcp flag used)');
         console.log('\n  📋 To add MCP servers manually:');
-        console.log('     claude mcp add claude-flow npx claude-flow@alpha mcp start');
+        console.log('     claude mcp add claude-flow-novice npx claude-flow@alpha mcp start');
         console.log('     claude mcp add ruv-swarm npx ruv-swarm@latest mcp start');
         console.log('     claude mcp add flow-nexus npx flow-nexus@latest mcp start');
         console.log('\n  💡 MCP servers are defined in .mcp.json (project scope)');
@@ -1702,7 +1702,7 @@ ${commands.map((cmd) => `- [${cmd}](./${cmd}.md)`).join('\n')}
       console.log('\n  📥 To install Claude Code:');
       console.log('     npm install -g @anthropic-ai/claude-code');
       console.log('\n  📋 After installing, add MCP servers:');
-      console.log('     claude mcp add claude-flow npx claude-flow@alpha mcp start');
+      console.log('     claude mcp add claude-flow-novice npx claude-flow@alpha mcp start');
       console.log('     claude mcp add ruv-swarm npx ruv-swarm@latest mcp start');
       console.log('     claude mcp add flow-nexus npx flow-nexus@latest mcp start');
       console.log('\n  💡 MCP servers are defined in .mcp.json (project scope)');

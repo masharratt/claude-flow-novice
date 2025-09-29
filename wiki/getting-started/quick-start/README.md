@@ -74,8 +74,8 @@ npx claude-flow@alpha logs show
 
 ### Step 1: Add MCP Server (1 minute)
 ```bash
-# Add claude-flow MCP server
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Add claude-flow-novice MCP server
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Verify installation
 claude mcp status

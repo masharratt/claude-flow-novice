@@ -295,7 +295,7 @@ npx claude-flow@alpha community profile
 4. **Lead Discussions** - Facilitate technical conversations
 
 ### For Organizations
-1. **Pilot Program** - Trial claude-flow with your team
+1. **Pilot Program** - Trial claude-flow-novice with your team
 2. **Case Study** - Share your organization's success story
 3. **Partnership** - Explore collaboration opportunities
 4. **Sponsorship** - Support community events and development

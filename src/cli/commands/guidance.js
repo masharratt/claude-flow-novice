@@ -166,7 +166,7 @@ class GuidanceCommands {
         const status = this.guidanceSystem.getUserStatus();
         console.log(chalk.cyan(`\n👤 Experience Level: ${status?.experienceLevel || 'novice'}`));
         console.log(
-          chalk.gray('💡 Use "claude-flow guidance help-with <command>" for contextual help'),
+          chalk.gray('💡 Use "claude-flow-novice guidance help-with <command>" for contextual help'),
         );
       } else {
         console.error(chalk.red('❌ Failed to initialize guidance system'));
@@ -408,7 +408,7 @@ class GuidanceCommands {
         console.log('');
       });
 
-      console.log(chalk.gray('💡 Use "claude-flow guidance tutorial <topic>" to start learning'));
+      console.log(chalk.gray('💡 Use "claude-flow-novice guidance tutorial <topic>" to start learning'));
     } catch (error) {
       console.error(chalk.red('❌ Failed to get recommendations:', error.message));
     }

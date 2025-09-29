@@ -464,7 +464,7 @@ async function pairCommand(args = [], flags = {}) {
 function showHelp() {
   console.log(`
 📚 USAGE:
-  claude-flow pair [options]
+  claude-flow-novice pair [options]
 
 ⚙️ OPTIONS:
   --start              Start a new pair programming session
@@ -496,12 +496,12 @@ function showHelp() {
   /end       End session
 
 💡 EXAMPLES:
-  claude-flow pair --start
-  claude-flow pair --start --mode driver --verify
-  claude-flow pair --start --verify --test
-  claude-flow pair --start --agent senior-dev --test
-  claude-flow pair --status
-  claude-flow pair --end
+  claude-flow-novice pair --start
+  claude-flow-novice pair --start --mode driver --verify
+  claude-flow-novice pair --start --verify --test
+  claude-flow-novice pair --start --agent senior-dev --test
+  claude-flow-novice pair --status
+  claude-flow-novice pair --end
 
 🎯 QUICK START:
   npx claude-flow@alpha pair --start --verify --test
@@ -532,8 +532,8 @@ async function startBackgroundSession(args, flags) {
 
   const pid = child.pid;
   console.log(`✅ Background session started (PID: ${pid})`);
-  console.log('\n📊 Monitor with: claude-flow pair --status');
-  console.log('🛑 Stop with: claude-flow pair --end\n');
+  console.log('\n📊 Monitor with: claude-flow-novice pair --status');
+  console.log('🛑 Stop with: claude-flow-novice pair --end\n');
 }
 
 async function showSessionStatus() {

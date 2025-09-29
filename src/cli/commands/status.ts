@@ -45,7 +45,7 @@ async function showStatus(options: any): Promise<void> {
       (error as Error).message.includes('connection refused')
     ) {
       console.error(chalk.red('✗ Claude-Flow is not running'));
-      console.log(chalk.gray('Start it with: claude-flow start'));
+      console.log(chalk.gray('Start it with: claude-flow-novice start'));
     } else {
       console.error(chalk.red('Error getting status:'), (error as Error).message);
     }

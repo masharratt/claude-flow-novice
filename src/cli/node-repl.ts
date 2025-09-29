@@ -544,12 +544,12 @@ async function connectToOrchestrator(context: REPLContext, target?: string): Pro
     } else {
       context.connectionStatus = 'disconnected';
       console.log(chalk.red('✗ Connection failed'));
-      console.log(chalk.gray('Make sure Claude-Flow is running with: npx claude-flow start'));
+      console.log(chalk.gray('Make sure Claude-Flow is running with: npx claude-flow-novice start'));
     }
   } catch (error) {
     context.connectionStatus = 'disconnected';
     console.log(chalk.red('✗ Connection failed'));
-    console.log(chalk.gray('Make sure Claude-Flow is running with: npx claude-flow start'));
+    console.log(chalk.gray('Make sure Claude-Flow is running with: npx claude-flow-novice start'));
   }
 }
 

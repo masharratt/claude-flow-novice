@@ -124,7 +124,7 @@ AGENT_ERROR_TREE: Agent-related errors
 │   │   ├─ Check error message type
 │   │   │   ├─ "Cannot spawn agent: <type>"
 │   │   │   │   ├─ Verify agent type exists
-│   │   │   │   │   ├─ Check available types: claude-flow agent types
+│   │   │   │   │   ├─ Check available types: claude-flow-novice agent types
 │   │   │   │   │   ├─ Fix typos in agent type
 │   │   │   │   │   └─ Use valid agent type
 │   │   │   │   │
@@ -642,16 +642,16 @@ CONFIG_ERROR_TREE: Configuration-related errors
 ### Error Pattern Analysis
 ```bash
 # Analyze error frequency and patterns
-claude-flow analyze errors --timeframe=24h --group-by=type
+claude-flow-novice analyze errors --timeframe=24h --group-by=type
 
 # Error trend analysis
-claude-flow analyze trends --metric=error-rate --period=7d
+claude-flow-novice analyze trends --metric=error-rate --period=7d
 
 # Correlation analysis
-claude-flow analyze correlations --events=errors,performance,resources
+claude-flow-novice analyze correlations --events=errors,performance,resources
 
 # Root cause analysis
-claude-flow analyze root-cause --error-id=<error-id>
+claude-flow-novice analyze root-cause --error-id=<error-id>
 ```
 
 ### Automated Error Recovery

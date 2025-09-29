@@ -1,7 +1,7 @@
 /**
  * ruv-swarm integration helper for Claude Code configuration
  *
- * This module bridges the main claude-flow configuration with
+ * This module bridges the main claude-flow-novice configuration with
  * ruv-swarm specific settings and provides utility functions
  * for seamless integration.
  */

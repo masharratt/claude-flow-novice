@@ -418,7 +418,7 @@ Metrics Tracked:
 ## 🌐 External Learning Partnerships
 
 ### University Collaborations
-- **Course Integration**: Embedding claude-flow in CS curricula
+- **Course Integration**: Embedding claude-flow-novice in CS curricula
 - **Research Projects**: Student thesis and capstone projects
 - **Faculty Training**: Professional development for educators
 - **Industry Connections**: Bridging academia and practice

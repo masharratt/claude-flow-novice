@@ -194,7 +194,7 @@ Show help information for all commands or a specific command.
 
 Examples:
   help              - Show all commands
-  help claude-flow  - Show help for claude-flow command`,
+  help claude-flow-novice  - Show help for claude-flow-novice command`,
 
       clear: `
 Usage: clear
@@ -214,7 +214,7 @@ Examples:
   connect ws://localhost:3000/ws my-auth-token`,
 
       'claude-flow': `
-Usage: claude-flow <subcommand> [options]
+Usage: claude-flow-novice <subcommand> [options]
 Execute Claude Flow commands.
 
 Subcommands:
@@ -224,9 +224,9 @@ Subcommands:
   modes            - List available SPARC modes
   
 Examples:
-  claude-flow start coder
-  claude-flow status
-  claude-flow modes`,
+  claude-flow-novice start coder
+  claude-flow-novice status
+  claude-flow-novice modes`,
 
       swarm: `
 Usage: swarm <action> [options]
@@ -472,7 +472,7 @@ Examples:
     }
 
     if (args.length === 0) {
-      this.terminal.writeError('Usage: claude-flow <subcommand> [options]');
+      this.terminal.writeError('Usage: claude-flow-novice <subcommand> [options]');
       return;
     }
 

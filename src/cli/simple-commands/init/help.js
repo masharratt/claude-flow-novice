@@ -3,10 +3,10 @@
 export function showInitHelp() {
   console.log('Initialize Claude Code integration files with Claude Flow v2.0.0');
   console.log();
-  console.log('Usage: claude-flow init [options]');
+  console.log('Usage: claude-flow-novice init [options]');
   console.log();
   console.log('🚀 DEFAULT BEHAVIOR:');
-  console.log('  claude-flow init     Initialize with Claude Flow v2.0.0 enhanced features');
+  console.log('  claude-flow-novice init     Initialize with Claude Flow v2.0.0 enhanced features');
   console.log('                       Creates CLAUDE.md & .claude/commands for MCP integration');
   console.log();
   console.log('Standard Options:');
@@ -45,32 +45,32 @@ export function showInitHelp() {
   console.log();
   console.log('Examples:');
   console.log('🌊 CLAUDE FLOW v2.0.0 (DEFAULT):');
-  console.log('  claude-flow init                    # ⭐ DEFAULT: Full Claude Flow v2.0.0 setup');
-  console.log('  claude-flow init --force            # Overwrite existing configuration');
-  console.log('  claude-flow init --dry-run          # Preview what will be created');
-  console.log('  claude-flow init --monitoring       # Initialize with token tracking enabled');
+  console.log('  claude-flow-novice init                    # ⭐ DEFAULT: Full Claude Flow v2.0.0 setup');
+  console.log('  claude-flow-novice init --force            # Overwrite existing configuration');
+  console.log('  claude-flow-novice init --dry-run          # Preview what will be created');
+  console.log('  claude-flow-novice init --monitoring       # Initialize with token tracking enabled');
   console.log();
   console.log('🚀 STANDARD INITIALIZATION:');
   console.log('  npx claude-flow@latest init --sparc --force  # ⭐ RECOMMENDED: Optimized setup');
   console.log('  npx claude-flow@latest init --sparc          # Standard SPARC setup');
   console.log(
-    '  claude-flow init --sparc --force             # Optimized setup (existing project)',
+    '  claude-flow-novice init --sparc --force             # Optimized setup (existing project)',
   );
-  console.log('  claude-flow init --sparc --modes architect,tdd,code  # Selective initialization');
-  console.log('  claude-flow init --dry-run --sparc          # Preview initialization');
-  console.log('  claude-flow init --minimal                  # Minimal setup');
+  console.log('  claude-flow-novice init --sparc --modes architect,tdd,code  # Selective initialization');
+  console.log('  claude-flow-novice init --dry-run --sparc          # Preview initialization');
+  console.log('  claude-flow-novice init --minimal                  # Minimal setup');
   console.log();
   console.log('🔍 VERIFICATION & PAIR PROGRAMMING:');
-  console.log('  claude-flow init --verify                   # Truth Verification System setup');
-  console.log('  claude-flow init --pair                     # Pair Programming mode setup');
-  console.log('  claude-flow init --verify --pair            # Both verification and pairing');
+  console.log('  claude-flow-novice init --verify                   # Truth Verification System setup');
+  console.log('  claude-flow-novice init --pair                     # Pair Programming mode setup');
+  console.log('  claude-flow-novice init --verify --pair            # Both verification and pairing');
   console.log('  npx claude-flow@alpha init --verify --pair  # Complete verification setup');
   console.log();
   console.log('🔄 VALIDATION & ROLLBACK:');
-  console.log('  claude-flow init --validate                 # Validate existing setup');
-  console.log('  claude-flow init --rollback --full          # Full system rollback');
-  console.log('  claude-flow init --rollback --partial --phase sparc-init  # Rollback SPARC only');
-  console.log('  claude-flow init --list-backups             # Show available backups');
+  console.log('  claude-flow-novice init --validate                 # Validate existing setup');
+  console.log('  claude-flow-novice init --rollback --full          # Full system rollback');
+  console.log('  claude-flow-novice init --rollback --partial --phase sparc-init  # Rollback SPARC only');
+  console.log('  claude-flow-novice init --list-backups             # Show available backups');
   console.log();
   console.log('What gets created:');
   console.log('  • .claude/settings.json - Claude Code configuration with hooks');
@@ -81,7 +81,7 @@ export function showInitHelp() {
   console.log('  • CLAUDE.md with project instructions (v2.0.0 enhanced by default)');
   console.log('  • memory/ directory for persistent context storage');
   console.log('  • coordination/ directory for agent orchestration');
-  console.log('  • ./claude-flow local executable wrapper');
+  console.log('  • ./claude-flow-novice local executable wrapper');
   console.log('  • .gitignore entries for Claude Flow generated files');
   console.log('  • Automatic MCP server setup if Claude Code CLI is installed');
   console.log('  • Pre-configured for TDD, architecture, and code generation');
@@ -89,7 +89,7 @@ export function showInitHelp() {
   console.log('Claude Code Slash Commands Created:');
   console.log('  • /sparc - Execute SPARC methodology workflows');
   console.log('  • /sparc-<mode> - Run specific SPARC modes (17+ modes)');
-  console.log('  • /claude-flow-help - Show all claude-flow commands');
+  console.log('  • /claude-flow-help - Show all claude-flow-novice commands');
   console.log('  • /claude-flow-memory - Interact with memory system');
   console.log('  • /claude-flow-swarm - Coordinate multi-agent swarms');
   console.log();

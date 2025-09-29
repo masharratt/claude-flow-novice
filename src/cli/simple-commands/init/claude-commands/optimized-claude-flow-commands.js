@@ -20,85 +20,85 @@ Claude-Flow is the ultimate multi-terminal orchestration platform that revolutio
 ## Core Commands (Enhanced)
 
 ### 🚀 System Management
-- \`./claude-flow start\` - Start orchestration system
-- \`./claude-flow start --ui\` - Start with interactive process management UI
-- \`./claude-flow start --parallel\` - Start with enhanced parallel processing
-- \`./claude-flow status\` - Check system status
-- \`./claude-flow status --concurrent\` - Check status with parallel monitoring
-- \`./claude-flow monitor\` - Real-time monitoring
-- \`./claude-flow monitor --performance\` - Enhanced performance monitoring
-- \`./claude-flow stop\` - Stop orchestration
+- \`./claude-flow-novice start\` - Start orchestration system
+- \`./claude-flow-novice start --ui\` - Start with interactive process management UI
+- \`./claude-flow-novice start --parallel\` - Start with enhanced parallel processing
+- \`./claude-flow-novice status\` - Check system status
+- \`./claude-flow-novice status --concurrent\` - Check status with parallel monitoring
+- \`./claude-flow-novice monitor\` - Real-time monitoring
+- \`./claude-flow-novice monitor --performance\` - Enhanced performance monitoring
+- \`./claude-flow-novice stop\` - Stop orchestration
 
 ### 🤖 Agent Management (Parallel)
-- \`./claude-flow agent spawn <type>\` - Create new agent
-- \`./claude-flow agent batch-spawn <config>\` - Create multiple agents in parallel
-- \`./claude-flow agent list\` - List active agents
-- \`./claude-flow agent parallel-status\` - Check all agent status concurrently
-- \`./claude-flow agent info <id>\` - Agent details
-- \`./claude-flow agent terminate <id>\` - Stop agent
-- \`./claude-flow agent batch-terminate <ids>\` - Stop multiple agents in parallel
+- \`./claude-flow-novice agent spawn <type>\` - Create new agent
+- \`./claude-flow-novice agent batch-spawn <config>\` - Create multiple agents in parallel
+- \`./claude-flow-novice agent list\` - List active agents
+- \`./claude-flow-novice agent parallel-status\` - Check all agent status concurrently
+- \`./claude-flow-novice agent info <id>\` - Agent details
+- \`./claude-flow-novice agent terminate <id>\` - Stop agent
+- \`./claude-flow-novice agent batch-terminate <ids>\` - Stop multiple agents in parallel
 
 ### 📋 Task Management (Concurrent)
-- \`./claude-flow task create <type> "description"\` - Create task
-- \`./claude-flow task batch-create <tasks-file>\` - Create multiple tasks in parallel
-- \`./claude-flow task list\` - List all tasks
-- \`./claude-flow task parallel-status\` - Check all task status concurrently
-- \`./claude-flow task status <id>\` - Task status
-- \`./claude-flow task cancel <id>\` - Cancel task
-- \`./claude-flow task batch-cancel <ids>\` - Cancel multiple tasks in parallel
-- \`./claude-flow task workflow <file>\` - Execute workflow
-- \`./claude-flow task parallel-workflow <files>\` - Execute multiple workflows concurrently
+- \`./claude-flow-novice task create <type> "description"\` - Create task
+- \`./claude-flow-novice task batch-create <tasks-file>\` - Create multiple tasks in parallel
+- \`./claude-flow-novice task list\` - List all tasks
+- \`./claude-flow-novice task parallel-status\` - Check all task status concurrently
+- \`./claude-flow-novice task status <id>\` - Task status
+- \`./claude-flow-novice task cancel <id>\` - Cancel task
+- \`./claude-flow-novice task batch-cancel <ids>\` - Cancel multiple tasks in parallel
+- \`./claude-flow-novice task workflow <file>\` - Execute workflow
+- \`./claude-flow-novice task parallel-workflow <files>\` - Execute multiple workflows concurrently
 
 ### 🧠 Memory Operations (Batch Enhanced)
-- \`./claude-flow memory store "key" "value"\` - Store data
-- \`./claude-flow memory batch-store <entries-file>\` - Store multiple entries in parallel
-- \`./claude-flow memory query "search"\` - Search memory
-- \`./claude-flow memory parallel-query <queries>\` - Execute multiple queries concurrently
-- \`./claude-flow memory stats\` - Memory statistics
-- \`./claude-flow memory stats --concurrent\` - Parallel memory analysis
-- \`./claude-flow memory export <file>\` - Export memory
-- \`./claude-flow memory concurrent-export <namespaces>\` - Export multiple namespaces in parallel
-- \`./claude-flow memory import <file>\` - Import memory
-- \`./claude-flow memory batch-import <files>\` - Import multiple files concurrently
+- \`./claude-flow-novice memory store "key" "value"\` - Store data
+- \`./claude-flow-novice memory batch-store <entries-file>\` - Store multiple entries in parallel
+- \`./claude-flow-novice memory query "search"\` - Search memory
+- \`./claude-flow-novice memory parallel-query <queries>\` - Execute multiple queries concurrently
+- \`./claude-flow-novice memory stats\` - Memory statistics
+- \`./claude-flow-novice memory stats --concurrent\` - Parallel memory analysis
+- \`./claude-flow-novice memory export <file>\` - Export memory
+- \`./claude-flow-novice memory concurrent-export <namespaces>\` - Export multiple namespaces in parallel
+- \`./claude-flow-novice memory import <file>\` - Import memory
+- \`./claude-flow-novice memory batch-import <files>\` - Import multiple files concurrently
 
 ### ⚡ SPARC Development (Optimized)
-- \`./claude-flow sparc "task"\` - Run SPARC orchestrator
-- \`./claude-flow sparc parallel "tasks"\` - Run multiple SPARC tasks concurrently
-- \`./claude-flow sparc modes\` - List all 17+ SPARC modes
-- \`./claude-flow sparc run <mode> "task"\` - Run specific mode
-- \`./claude-flow sparc batch <modes> "task"\` - Run multiple modes in parallel
-- \`./claude-flow sparc tdd "feature"\` - TDD workflow
-- \`./claude-flow sparc concurrent-tdd <features>\` - Parallel TDD for multiple features
-- \`./claude-flow sparc info <mode>\` - Mode details
+- \`./claude-flow-novice sparc "task"\` - Run SPARC orchestrator
+- \`./claude-flow-novice sparc parallel "tasks"\` - Run multiple SPARC tasks concurrently
+- \`./claude-flow-novice sparc modes\` - List all 17+ SPARC modes
+- \`./claude-flow-novice sparc run <mode> "task"\` - Run specific mode
+- \`./claude-flow-novice sparc batch <modes> "task"\` - Run multiple modes in parallel
+- \`./claude-flow-novice sparc tdd "feature"\` - TDD workflow
+- \`./claude-flow-novice sparc concurrent-tdd <features>\` - Parallel TDD for multiple features
+- \`./claude-flow-novice sparc info <mode>\` - Mode details
 
 ### 🐝 Swarm Coordination (Enhanced)
-- \`./claude-flow swarm "task" --strategy <type>\` - Start swarm
-- \`./claude-flow swarm "task" --background\` - Long-running swarm
-- \`./claude-flow swarm "task" --monitor\` - With monitoring
-- \`./claude-flow swarm "task" --ui\` - Interactive UI
-- \`./claude-flow swarm "task" --distributed\` - Distributed coordination
-- \`./claude-flow swarm batch <tasks-config>\` - Multiple swarms in parallel
-- \`./claude-flow swarm concurrent "tasks" --parallel\` - Concurrent swarm execution
+- \`./claude-flow-novice swarm "task" --strategy <type>\` - Start swarm
+- \`./claude-flow-novice swarm "task" --background\` - Long-running swarm
+- \`./claude-flow-novice swarm "task" --monitor\` - With monitoring
+- \`./claude-flow-novice swarm "task" --ui\` - Interactive UI
+- \`./claude-flow-novice swarm "task" --distributed\` - Distributed coordination
+- \`./claude-flow-novice swarm batch <tasks-config>\` - Multiple swarms in parallel
+- \`./claude-flow-novice swarm concurrent "tasks" --parallel\` - Concurrent swarm execution
 
 ### 🌍 MCP Integration (Parallel)
-- \`./claude-flow mcp status\` - MCP server status
-- \`./claude-flow mcp parallel-status\` - Check all MCP servers concurrently
-- \`./claude-flow mcp tools\` - List available tools
-- \`./claude-flow mcp config\` - Show configuration
-- \`./claude-flow mcp logs\` - View MCP logs
-- \`./claude-flow mcp batch-logs <servers>\` - View multiple server logs in parallel
+- \`./claude-flow-novice mcp status\` - MCP server status
+- \`./claude-flow-novice mcp parallel-status\` - Check all MCP servers concurrently
+- \`./claude-flow-novice mcp tools\` - List available tools
+- \`./claude-flow-novice mcp config\` - Show configuration
+- \`./claude-flow-novice mcp logs\` - View MCP logs
+- \`./claude-flow-novice mcp batch-logs <servers>\` - View multiple server logs in parallel
 
 ### 🤖 Claude Integration (Enhanced)
-- \`./claude-flow claude spawn "task"\` - Spawn Claude with enhanced guidance
-- \`./claude-flow claude batch-spawn <tasks>\` - Spawn multiple Claude instances in parallel
-- \`./claude-flow claude batch <file>\` - Execute workflow configuration
+- \`./claude-flow-novice claude spawn "task"\` - Spawn Claude with enhanced guidance
+- \`./claude-flow-novice claude batch-spawn <tasks>\` - Spawn multiple Claude instances in parallel
+- \`./claude-flow-novice claude batch <file>\` - Execute workflow configuration
 
 ### 🚀 Batchtools Commands (New)
-- \`./claude-flow batchtools status\` - Check batchtools system status
-- \`./claude-flow batchtools monitor\` - Real-time performance monitoring
-- \`./claude-flow batchtools optimize\` - System optimization recommendations
-- \`./claude-flow batchtools benchmark\` - Performance benchmarking
-- \`./claude-flow batchtools config\` - Batchtools configuration management
+- \`./claude-flow-novice batchtools status\` - Check batchtools system status
+- \`./claude-flow-novice batchtools monitor\` - Real-time performance monitoring
+- \`./claude-flow-novice batchtools optimize\` - System optimization recommendations
+- \`./claude-flow-novice batchtools benchmark\` - Performance benchmarking
+- \`./claude-flow-novice batchtools config\` - Batchtools configuration management
 
 ## 🌟 Quick Examples (Optimized)
 
@@ -109,22 +109,22 @@ npx -y claude-flow@latest init --sparc --force
 
 ### Start a parallel development swarm:
 \`\`\`bash
-./claude-flow swarm "Build REST API" --strategy development --monitor --review --parallel
+./claude-flow-novice swarm "Build REST API" --strategy development --monitor --review --parallel
 \`\`\`
 
 ### Run concurrent TDD workflow:
 \`\`\`bash
-./claude-flow sparc concurrent-tdd "user authentication,payment processing,notification system"
+./claude-flow-novice sparc concurrent-tdd "user authentication,payment processing,notification system"
 \`\`\`
 
 ### Store project context with batch operations:
 \`\`\`bash
-./claude-flow memory batch-store "project-contexts.json" --namespace project --parallel
+./claude-flow-novice memory batch-store "project-contexts.json" --namespace project --parallel
 \`\`\`
 
 ### Spawn specialized agents in parallel:
 \`\`\`bash
-./claude-flow agent batch-spawn agents-config.json --parallel --validate
+./claude-flow-novice agent batch-spawn agents-config.json --parallel --validate
 \`\`\`
 
 ## 🎯 Performance Features
@@ -215,25 +215,25 @@ npx -y claude-flow@latest init --sparc --force
 ### Performance Issues
 \`\`\`bash
 # Monitor system performance during operations
-./claude-flow monitor --performance --real-time
+./claude-flow-novice monitor --performance --real-time
 
 # Check resource utilization
-./claude-flow batchtools monitor --resources --detailed
+./claude-flow-novice batchtools monitor --resources --detailed
 
 # Analyze operation bottlenecks
-./claude-flow performance analyze --bottlenecks --optimization
+./claude-flow-novice performance analyze --bottlenecks --optimization
 \`\`\`
 
 ### Optimization Commands
 \`\`\`bash
 # Auto-optimize system configuration
-./claude-flow batchtools optimize --auto-tune
+./claude-flow-novice batchtools optimize --auto-tune
 
 # Performance benchmarking
-./claude-flow batchtools benchmark --detailed --export
+./claude-flow-novice batchtools benchmark --detailed --export
 
 # System resource analysis
-./claude-flow performance report --system --recommendations
+./claude-flow-novice performance report --system --recommendations
 \`\`\`
 
 For comprehensive documentation and optimization guides, see the resources above.
@@ -259,22 +259,22 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ### Standard Storage
 \`\`\`bash
 # Store with default namespace
-./claude-flow memory store "key" "value"
+./claude-flow-novice memory store "key" "value"
 
 # Store with specific namespace
-./claude-flow memory store "architecture_decisions" "microservices with API gateway" --namespace arch
+./claude-flow-novice memory store "architecture_decisions" "microservices with API gateway" --namespace arch
 \`\`\`
 
 ### Batch Storage (Optimized)
 \`\`\`bash
 # Store multiple entries in parallel
-./claude-flow memory batch-store entries.json --parallel
+./claude-flow-novice memory batch-store entries.json --parallel
 
 # Store with concurrent validation
-./claude-flow memory concurrent-store "multiple_keys" "values" --namespace arch --validate
+./claude-flow-novice memory concurrent-store "multiple_keys" "values" --namespace arch --validate
 
 # Bulk storage with optimization
-./claude-flow memory bulk-store project-data/ --recursive --optimize --parallel
+./claude-flow-novice memory bulk-store project-data/ --recursive --optimize --parallel
 \`\`\`
 
 ## Query Memory (Enhanced)
@@ -282,22 +282,22 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ### Standard Queries
 \`\`\`bash
 # Search across all namespaces
-./claude-flow memory query "authentication"
+./claude-flow-novice memory query "authentication"
 
 # Search with filters
-./claude-flow memory query "API design" --namespace arch --limit 10
+./claude-flow-novice memory query "API design" --namespace arch --limit 10
 \`\`\`
 
 ### Parallel Queries (Optimized)
 \`\`\`bash
 # Execute multiple queries concurrently
-./claude-flow memory parallel-query "auth,api,database" --concurrent
+./claude-flow-novice memory parallel-query "auth,api,database" --concurrent
 
 # Search across multiple namespaces simultaneously
-./claude-flow memory concurrent-search "authentication" --namespaces arch,impl,test --parallel
+./claude-flow-novice memory concurrent-search "authentication" --namespaces arch,impl,test --parallel
 
 # Batch query processing
-./claude-flow memory batch-query queries.json --optimize --results-parallel
+./claude-flow-novice memory batch-query queries.json --optimize --results-parallel
 \`\`\`
 
 ## Memory Statistics (Enhanced)
@@ -305,22 +305,22 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ### Standard Statistics
 \`\`\`bash
 # Show overall statistics
-./claude-flow memory stats
+./claude-flow-novice memory stats
 
 # Show namespace-specific stats
-./claude-flow memory stats --namespace project
+./claude-flow-novice memory stats --namespace project
 \`\`\`
 
 ### Performance Statistics (Optimized)
 \`\`\`bash
 # Real-time performance monitoring
-./claude-flow memory stats --real-time --performance
+./claude-flow-novice memory stats --real-time --performance
 
 # Concurrent analysis across all namespaces
-./claude-flow memory concurrent-stats --all-namespaces --detailed
+./claude-flow-novice memory concurrent-stats --all-namespaces --detailed
 
 # Batch performance analysis
-./claude-flow memory performance-stats --optimization --benchmarks
+./claude-flow-novice memory performance-stats --optimization --benchmarks
 \`\`\`
 
 ## Export/Import (Enhanced)
@@ -328,25 +328,25 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ### Standard Operations
 \`\`\`bash
 # Export all memory
-./claude-flow memory export full-backup.json
+./claude-flow-novice memory export full-backup.json
 
 # Export specific namespace
-./claude-flow memory export project-backup.json --namespace project
+./claude-flow-novice memory export project-backup.json --namespace project
 
 # Import memory
-./claude-flow memory import backup.json
+./claude-flow-novice memory import backup.json
 \`\`\`
 
 ### Batch Operations (Optimized)
 \`\`\`bash
 # Export multiple namespaces in parallel
-./claude-flow memory concurrent-export namespaces.json --parallel --compress
+./claude-flow-novice memory concurrent-export namespaces.json --parallel --compress
 
 # Batch import with validation
-./claude-flow memory batch-import backups/ --validate --parallel
+./claude-flow-novice memory batch-import backups/ --validate --parallel
 
 # Incremental export with optimization
-./claude-flow memory incremental-export --since yesterday --optimize --concurrent
+./claude-flow-novice memory incremental-export --since yesterday --optimize --concurrent
 \`\`\`
 
 ## Cleanup Operations (Enhanced)
@@ -354,22 +354,22 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ### Standard Cleanup
 \`\`\`bash
 # Clean entries older than 30 days
-./claude-flow memory cleanup --days 30
+./claude-flow-novice memory cleanup --days 30
 
 # Clean specific namespace
-./claude-flow memory cleanup --namespace temp --days 7
+./claude-flow-novice memory cleanup --namespace temp --days 7
 \`\`\`
 
 ### Batch Cleanup (Optimized)
 \`\`\`bash
 # Parallel cleanup across multiple namespaces
-./claude-flow memory concurrent-cleanup --namespaces temp,cache --days 7 --parallel
+./claude-flow-novice memory concurrent-cleanup --namespaces temp,cache --days 7 --parallel
 
 # Smart cleanup with optimization
-./claude-flow memory smart-cleanup --auto-optimize --performance-based
+./claude-flow-novice memory smart-cleanup --auto-optimize --performance-based
 
 # Batch maintenance operations
-./claude-flow memory batch-maintenance --compress --reindex --parallel
+./claude-flow-novice memory batch-maintenance --compress --reindex --parallel
 \`\`\`
 
 ## 🗂️ Namespaces (Enhanced)
@@ -419,37 +419,37 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ### Store SPARC context with parallel operations:
 \`\`\`bash
 # Batch store multiple SPARC contexts
-./claude-flow memory batch-store sparc-contexts.json --namespace sparc --parallel
+./claude-flow-novice memory batch-store sparc-contexts.json --namespace sparc --parallel
 
 # Concurrent storage across multiple namespaces
-./claude-flow memory concurrent-store spec,arch,impl "project data" --parallel --validate
+./claude-flow-novice memory concurrent-store spec,arch,impl "project data" --parallel --validate
 
 # Performance-optimized bulk storage
-./claude-flow memory bulk-store project-data/ --optimize --concurrent --compress
+./claude-flow-novice memory bulk-store project-data/ --optimize --concurrent --compress
 \`\`\`
 
 ### Query project decisions with concurrent processing:
 \`\`\`bash
 # Parallel queries across multiple namespaces
-./claude-flow memory parallel-query "authentication" --namespaces arch,impl,test --concurrent
+./claude-flow-novice memory parallel-query "authentication" --namespaces arch,impl,test --concurrent
 
 # Batch query processing with optimization
-./claude-flow memory batch-query project-queries.json --optimize --results-concurrent
+./claude-flow-novice memory batch-query project-queries.json --optimize --results-concurrent
 
 # Real-time search with performance monitoring
-./claude-flow memory concurrent-search "API design" --real-time --performance
+./claude-flow-novice memory concurrent-search "API design" --real-time --performance
 \`\`\`
 
 ### Backup project memory with parallel processing:
 \`\`\`bash
 # Concurrent export with compression
-./claude-flow memory concurrent-export project-$(date +%Y%m%d).json --namespace project --compress --parallel
+./claude-flow-novice memory concurrent-export project-$(date +%Y%m%d).json --namespace project --compress --parallel
 
 # Batch backup with incremental processing
-./claude-flow memory batch-backup --incremental --all-namespaces --optimize
+./claude-flow-novice memory batch-backup --incremental --all-namespaces --optimize
 
 # Performance-optimized full backup
-./claude-flow memory parallel-backup --full --compress --validate --concurrent
+./claude-flow-novice memory parallel-backup --full --compress --validate --concurrent
 \`\`\`
 
 ## 📊 Performance Features
@@ -506,25 +506,25 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ### Performance Issues
 \`\`\`bash
 # Monitor memory operation performance
-./claude-flow memory debug --performance --concurrent
+./claude-flow-novice memory debug --performance --concurrent
 
 # Analyze batch operation efficiency
-./claude-flow memory analyze --batchtools --optimization
+./claude-flow-novice memory analyze --batchtools --optimization
 
 # Check parallel processing status
-./claude-flow memory status --parallel --detailed
+./claude-flow-novice memory status --parallel --detailed
 \`\`\`
 
 ### Optimization Commands
 \`\`\`bash
 # Optimize memory configuration
-./claude-flow memory optimize --auto-tune --performance
+./claude-flow-novice memory optimize --auto-tune --performance
 
 # Benchmark memory operations
-./claude-flow memory benchmark --all-operations --detailed
+./claude-flow-novice memory benchmark --all-operations --detailed
 
 # Performance report generation
-./claude-flow memory performance-report --detailed --recommendations
+./claude-flow-novice memory performance-report --detailed --recommendations
 \`\`\`
 
 For comprehensive memory system documentation and optimization guides, see: https://github.com/ruvnet/claude-code-flow/docs/memory-batchtools.md
@@ -547,7 +547,7 @@ Advanced multi-agent coordination system with timeout-free execution, distribute
 
 ## Basic Usage (Enhanced)
 \`\`\`bash
-./claude-flow swarm "your complex task" --strategy <type> [options] --parallel
+./claude-flow-novice swarm "your complex task" --strategy <type> [options] --parallel
 \`\`\`
 
 ## 🎯 Swarm Strategies (Optimized)
@@ -601,7 +601,7 @@ Advanced multi-agent coordination system with timeout-free execution, distribute
 
 ### Development Swarm with Parallel Review
 \`\`\`bash
-./claude-flow swarm "Build e-commerce REST API" \\
+./claude-flow-novice swarm "Build e-commerce REST API" \\
   --strategy development \\
   --monitor \\
   --review \\
@@ -613,7 +613,7 @@ Advanced multi-agent coordination system with timeout-free execution, distribute
 
 ### Long-Running Research Swarm with Concurrent Processing
 \`\`\`bash
-./claude-flow swarm "Analyze AI market trends 2024-2025" \\
+./claude-flow-novice swarm "Analyze AI market trends 2024-2025" \\
   --strategy research \\
   --background \\
   --distributed \\
@@ -625,7 +625,7 @@ Advanced multi-agent coordination system with timeout-free execution, distribute
 
 ### Performance Optimization Swarm with Parallel Analysis
 \`\`\`bash
-./claude-flow swarm "Optimize database queries and API performance" \\
+./claude-flow-novice swarm "Optimize database queries and API performance" \\
   --strategy optimization \\
   --testing \\
   --parallel \\
@@ -637,7 +637,7 @@ Advanced multi-agent coordination system with timeout-free execution, distribute
 
 ### Enterprise Development Swarm with Full Parallelization
 \`\`\`bash
-./claude-flow swarm "Implement secure payment processing system" \\
+./claude-flow-novice swarm "Implement secure payment processing system" \\
   --strategy development \\
   --mode distributed \\
   --max-agents 20 \\
@@ -654,7 +654,7 @@ Advanced multi-agent coordination system with timeout-free execution, distribute
 
 ### Testing and QA Swarm with Concurrent Validation
 \`\`\`bash
-./claude-flow swarm "Comprehensive security audit and testing" \\
+./claude-flow-novice swarm "Comprehensive security audit and testing" \\
   --strategy testing \\
   --review \\
   --verbose \\
@@ -670,37 +670,37 @@ Advanced multi-agent coordination system with timeout-free execution, distribute
 ### Real-time monitoring with parallel metrics:
 \`\`\`bash
 # Monitor swarm activity with performance data
-./claude-flow monitor --parallel --performance --real-time
+./claude-flow-novice monitor --parallel --performance --real-time
 
 # Monitor specific component with concurrent analysis
-./claude-flow monitor --focus swarm --concurrent --detailed
+./claude-flow-novice monitor --focus swarm --concurrent --detailed
 
 # Performance dashboard with parallel monitoring
-./claude-flow monitor --ui --performance --all-metrics
+./claude-flow-novice monitor --ui --performance --all-metrics
 \`\`\`
 
 ### Check swarm status with concurrent analysis:
 \`\`\`bash
 # Overall system status with parallel checks
-./claude-flow status --concurrent --performance
+./claude-flow-novice status --concurrent --performance
 
 # Detailed swarm status with optimization metrics
-./claude-flow status --verbose --parallel --optimization
+./claude-flow-novice status --verbose --parallel --optimization
 
 # Performance analysis with concurrent processing
-./claude-flow status --performance --detailed --concurrent
+./claude-flow-novice status --performance --detailed --concurrent
 \`\`\`
 
 ### View agent activity with parallel monitoring:
 \`\`\`bash
 # List all agents with concurrent status checks
-./claude-flow agent list --parallel --performance
+./claude-flow-novice agent list --parallel --performance
 
 # Agent details with concurrent analysis
-./claude-flow agent info <agent-id> --detailed --concurrent
+./claude-flow-novice agent info <agent-id> --detailed --concurrent
 
 # Batch agent monitoring
-./claude-flow agent batch-status --all-agents --parallel
+./claude-flow-novice agent batch-status --all-agents --parallel
 \`\`\`
 
 ## 💾 Memory Integration (Enhanced)
@@ -710,25 +710,25 @@ Swarms automatically use distributed memory with parallel processing for collabo
 ### Standard Memory Operations
 \`\`\`bash
 # Store swarm objectives
-./claude-flow memory store "swarm_objective" "Build scalable API" --namespace swarm
+./claude-flow-novice memory store "swarm_objective" "Build scalable API" --namespace swarm
 
 # Query swarm progress
-./claude-flow memory query "swarm_progress" --namespace swarm
+./claude-flow-novice memory query "swarm_progress" --namespace swarm
 
 # Export swarm memory
-./claude-flow memory export swarm-results.json --namespace swarm
+./claude-flow-novice memory export swarm-results.json --namespace swarm
 \`\`\`
 
 ### Batchtools Memory Operations
 \`\`\`bash
 # Batch store swarm contexts
-./claude-flow memory batch-store swarm-contexts.json --namespace swarm --parallel
+./claude-flow-novice memory batch-store swarm-contexts.json --namespace swarm --parallel
 
 # Concurrent query across swarm namespaces
-./claude-flow memory parallel-query "swarm_coordination" --namespaces swarm,agents,tasks --concurrent
+./claude-flow-novice memory parallel-query "swarm_coordination" --namespaces swarm,agents,tasks --concurrent
 
 # Performance-optimized swarm memory export
-./claude-flow memory concurrent-export swarm-backup.json --namespace swarm --compress --parallel
+./claude-flow-novice memory concurrent-export swarm-backup.json --namespace swarm --compress --parallel
 \`\`\`
 
 ## 🎯 Key Features (Enhanced)
@@ -767,12 +767,12 @@ Swarms automatically use distributed memory with parallel processing for collabo
 
 ### Dry run with parallel preview:
 \`\`\`bash
-./claude-flow swarm "Test task" --dry-run --strategy development --parallel --performance
+./claude-flow-novice swarm "Test task" --dry-run --strategy development --parallel --performance
 \`\`\`
 
 ### Custom quality thresholds with concurrent validation:
 \`\`\`bash
-./claude-flow swarm "High quality API" \\
+./claude-flow-novice swarm "High quality API" \\
   --strategy development \\
   --quality-threshold 0.95 \\
   --parallel \\
@@ -838,25 +838,25 @@ Swarms automatically use distributed memory with parallel processing for collabo
 ### Performance Issues
 \`\`\`bash
 # Monitor swarm performance with concurrent analysis
-./claude-flow swarm debug --performance --concurrent --verbose
+./claude-flow-novice swarm debug --performance --concurrent --verbose
 
 # Analyze batch operation efficiency
-./claude-flow swarm analyze --batchtools --optimization --detailed
+./claude-flow-novice swarm analyze --batchtools --optimization --detailed
 
 # Check parallel processing status
-./claude-flow swarm status --parallel --performance --real-time
+./claude-flow-novice swarm status --parallel --performance --real-time
 \`\`\`
 
 ### Optimization Commands
 \`\`\`bash
 # Auto-optimize swarm configuration
-./claude-flow swarm optimize --auto-tune --performance
+./claude-flow-novice swarm optimize --auto-tune --performance
 
 # Performance benchmarking
-./claude-flow swarm benchmark --all-strategies --detailed
+./claude-flow-novice swarm benchmark --all-strategies --detailed
 
 # Resource usage analysis
-./claude-flow swarm resources --concurrent --optimization
+./claude-flow-novice swarm resources --concurrent --optimization
 \`\`\`
 
 ## 📈 Performance Benchmarks

@@ -24,13 +24,13 @@ Claude Flow uses a progressive disclosure system that grows with your expertise:
 ```bash
 # Install and setup
 npm install -g claude-flow@alpha
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Your first command
-claude-flow help
+claude-flow-novice help
 
 # Check your status
-claude-flow status
+claude-flow-novice status
 ```
 
 **Goal**: Understand the basic interface
@@ -39,13 +39,13 @@ claude-flow status
 #### Day 2: First Project
 ```bash
 # Initialize your first project
-claude-flow init
+claude-flow-novice init
 
 # Build something simple
-claude-flow build "create a hello world function"
+claude-flow-novice build "create a hello world function"
 
 # Check what happened
-claude-flow status --detailed
+claude-flow-novice status --detailed
 ```
 
 **Goal**: Successfully complete project initialization
@@ -54,9 +54,9 @@ claude-flow status --detailed
 #### Day 3: Natural Language Practice
 ```bash
 # Try different descriptions
-claude-flow build "add a simple form with validation"
-claude-flow build "create a responsive navigation bar"
-claude-flow build "implement error handling"
+claude-flow-novice build "add a simple form with validation"
+claude-flow-novice build "create a responsive navigation bar"
+claude-flow-novice build "implement error handling"
 ```
 
 **Goal**: Learn effective natural language patterns
@@ -65,9 +65,9 @@ claude-flow build "implement error handling"
 #### Day 4: Help System Mastery
 ```bash
 # Explore help system
-claude-flow help build --examples
-claude-flow help --interactive
-claude-flow help --search "authentication"
+claude-flow-novice help build --examples
+claude-flow-novice help --interactive
+claude-flow-novice help --search "authentication"
 ```
 
 **Goal**: Become proficient with help system
@@ -76,9 +76,9 @@ claude-flow help --search "authentication"
 #### Day 5: Learning Dashboard
 ```bash
 # Check your progress
-claude-flow learn
-claude-flow learn --progress
-claude-flow status
+claude-flow-novice learn
+claude-flow-novice learn --progress
+claude-flow-novice status
 ```
 
 **Goal**: Understand progression system
@@ -89,9 +89,9 @@ claude-flow status
 #### Project Diversity
 ```bash
 # Try different project types
-claude-flow init "web application"
-claude-flow init "REST API server"
-claude-flow init "mobile app"
+claude-flow-novice init "web application"
+claude-flow-novice init "REST API server"
+claude-flow-novice init "mobile app"
 ```
 
 **Practice Goal**: Experience with different domains
@@ -99,13 +99,13 @@ claude-flow init "mobile app"
 #### Feature Complexity
 ```bash
 # Start simple
-claude-flow build "add a contact form"
+claude-flow-novice build "add a contact form"
 
 # Increase complexity
-claude-flow build "user authentication with password reset"
+claude-flow-novice build "user authentication with password reset"
 
 # Multi-step features
-claude-flow build "complete user management system"
+claude-flow-novice build "complete user management system"
 ```
 
 **Practice Goal**: Handle increasingly complex requests
@@ -113,9 +113,9 @@ claude-flow build "complete user management system"
 #### Problem Solving
 ```bash
 # When things go wrong
-claude-flow help --troubleshoot
-claude-flow status --errors-only
-claude-flow review --fix
+claude-flow-novice help --troubleshoot
+claude-flow-novice status --errors-only
+claude-flow-novice review --fix
 ```
 
 **Practice Goal**: Independent problem resolution
@@ -131,7 +131,7 @@ You're ready for Intermediate tier when:
 
 **Check Your Progress:**
 ```bash
-claude-flow learn --progress --detailed
+claude-flow-novice learn --progress --detailed
 ```
 
 ---
@@ -145,25 +145,25 @@ The system will automatically upgrade you when ready:
 
 ```bash
 # Check progress
-claude-flow status
+claude-flow-novice status
 
 # Output will show:
 # 🎉 Congratulations! You've been upgraded from novice to intermediate!
 # You now have access to 15 commands.
-# Run 'claude-flow help --new-features' to see what's new.
+# Run 'claude-flow-novice help --new-features' to see what's new.
 ```
 
 #### Exploring New Commands
 ```bash
 # See what's new
-claude-flow help --new-features
+claude-flow-novice help --new-features
 
 # List all available commands
-claude-flow help
+claude-flow-novice help
 
 # Try new commands
-claude-flow agents list
-claude-flow test --generate
+claude-flow-novice agents list
+claude-flow-novice test --generate
 ```
 
 ### Direct Agent Management (Weeks 5-6)
@@ -171,33 +171,33 @@ claude-flow test --generate
 #### Understanding Agents
 ```bash
 # Learn about agents
-claude-flow learn agents --interactive
+claude-flow-novice learn agents --interactive
 
 # See available agents
-claude-flow agents list
+claude-flow-novice agents list
 
 # Spawn your first agent
-claude-flow agents spawn coder
+claude-flow-novice agents spawn coder
 ```
 
 #### Agent Coordination
 ```bash
 # Multiple agents for complex tasks
-claude-flow agents spawn researcher --task "analyze requirements"
-claude-flow agents spawn coder --task "implement feature"
-claude-flow agents spawn tester --task "create tests"
+claude-flow-novice agents spawn researcher --task "analyze requirements"
+claude-flow-novice agents spawn coder --task "implement feature"
+claude-flow-novice agents spawn tester --task "create tests"
 
 # Monitor their work
-claude-flow agents status --watch
+claude-flow-novice agents status --watch
 ```
 
 #### Performance Monitoring
 ```bash
 # Track agent performance
-claude-flow agents metrics --detailed
+claude-flow-novice agents metrics --detailed
 
 # Optimize agent usage
-claude-flow agents optimize --performance
+claude-flow-novice agents optimize --performance
 ```
 
 ### Testing Mastery (Weeks 7-8)
@@ -205,30 +205,30 @@ claude-flow agents optimize --performance
 #### Test Generation
 ```bash
 # Generate comprehensive tests
-claude-flow test --generate --coverage
+claude-flow-novice test --generate --coverage
 
 # Different test types
-claude-flow test unit --generate
-claude-flow test integration --generate
-claude-flow test e2e --generate
+claude-flow-novice test unit --generate
+claude-flow-novice test integration --generate
+claude-flow-novice test e2e --generate
 ```
 
 #### Continuous Testing
 ```bash
 # Watch mode for development
-claude-flow test --watch
+claude-flow-novice test --watch
 
 # Automated fixing
-claude-flow test --fix --auto
+claude-flow-novice test --fix --auto
 ```
 
 #### Advanced Testing
 ```bash
 # Performance testing
-claude-flow test performance --benchmark
+claude-flow-novice test performance --benchmark
 
 # Security testing
-claude-flow test security --detailed
+claude-flow-novice test security --detailed
 ```
 
 ### Quality & Reviews (Weeks 9-10)
@@ -236,23 +236,23 @@ claude-flow test security --detailed
 #### Code Review Automation
 ```bash
 # Review your code
-claude-flow review all --detailed
+claude-flow-novice review all --detailed
 
 # Security-focused reviews
-claude-flow review security --fix
+claude-flow-novice review security --fix
 
 # Interactive reviews
-claude-flow review --interactive
+claude-flow-novice review --interactive
 ```
 
 #### Performance Optimization
 ```bash
 # Analyze performance
-claude-flow optimize --analyze --all-targets
+claude-flow-novice optimize --analyze --all-targets
 
 # Apply optimizations
-claude-flow optimize bundle --apply
-claude-flow optimize database --benchmark
+claude-flow-novice optimize bundle --apply
+claude-flow-novice optimize database --benchmark
 ```
 
 ### Deployment Skills (Weeks 11-12)
@@ -260,22 +260,22 @@ claude-flow optimize database --benchmark
 #### Environment Management
 ```bash
 # Deploy to staging
-claude-flow deploy staging --auto-setup
+claude-flow-novice deploy staging --auto-setup
 
 # Production deployment
-claude-flow deploy production --zero-downtime
+claude-flow-novice deploy production --zero-downtime
 
 # Rollback capabilities
-claude-flow deploy --rollback --safe
+claude-flow-novice deploy --rollback --safe
 ```
 
 #### CI/CD Integration
 ```bash
 # Automated deployment pipelines
-claude-flow deploy setup-pipeline --auto
+claude-flow-novice deploy setup-pipeline --auto
 
 # Monitor deployments
-claude-flow deploy status --watch
+claude-flow-novice deploy status --watch
 ```
 
 ### Intermediate Mastery Indicators
@@ -314,24 +314,24 @@ Ready for Expert tier when:
 #### Understanding MCP Architecture
 ```bash
 # List all MCP tools
-claude-flow mcp claude-flow --list-tools
-claude-flow mcp ruv-swarm --list-tools
+claude-flow-novice mcp claude-flow-novice --list-tools
+claude-flow-novice mcp ruv-swarm --list-tools
 
 # Direct tool access
-claude-flow mcp claude-flow swarm_init --topology mesh
-claude-flow mcp ruv-swarm neural_train --pattern optimization
+claude-flow-novice mcp claude-flow-novice swarm_init --topology mesh
+claude-flow-novice mcp ruv-swarm neural_train --pattern optimization
 ```
 
 #### Advanced Swarm Management
 ```bash
 # Complex swarm topologies
-claude-flow mcp claude-flow swarm_init \
+claude-flow-novice mcp claude-flow-novice swarm_init \
   --topology adaptive \
   --max-agents 20 \
   --strategy intelligent
 
 # Real-time monitoring
-claude-flow mcp claude-flow swarm_monitor \
+claude-flow-novice mcp claude-flow-novice swarm_monitor \
   --interval 1 \
   --duration 3600 \
   --alerts true
@@ -340,13 +340,13 @@ claude-flow mcp claude-flow swarm_monitor \
 #### Neural Network Operations
 ```bash
 # Train custom models
-claude-flow mcp claude-flow neural_train \
+claude-flow-novice mcp claude-flow-novice neural_train \
   --pattern-type "code-optimization" \
   --training-data "./samples" \
   --epochs 100
 
 # Deploy neural models
-claude-flow mcp claude-flow neural_predict \
+claude-flow-novice mcp claude-flow-novice neural_predict \
   --model-id "custom-model-v1" \
   --input "complex task description"
 ```
@@ -356,7 +356,7 @@ claude-flow mcp claude-flow neural_predict \
 #### Workflow Design
 ```bash
 # Create custom workflows
-claude-flow workflow create "microservice-pipeline" \
+claude-flow-novice workflow create "microservice-pipeline" \
   --steps '[
     {"name": "design", "agent": "architect"},
     {"name": "implement", "agent": "coder", "parallel": true},
@@ -368,7 +368,7 @@ claude-flow workflow create "microservice-pipeline" \
 #### Automation Rules
 ```bash
 # Setup complex automation
-claude-flow mcp claude-flow automation_setup \
+claude-flow-novice mcp claude-flow-novice automation_setup \
   --rules '[
     {
       "trigger": "pull-request",
@@ -383,15 +383,15 @@ claude-flow mcp claude-flow automation_setup \
 #### Team Management
 ```bash
 # Enterprise setup
-claude-flow enterprise setup --team-size 50
+claude-flow-novice enterprise setup --team-size 50
 
 # Team coordination
-claude-flow enterprise team-create "backend-team" \
+claude-flow-novice enterprise team-create "backend-team" \
   --members "dev1,dev2,dev3" \
   --permissions "deploy-staging"
 
 # Multi-project coordination
-claude-flow enterprise multi-project \
+claude-flow-novice enterprise multi-project \
   --projects "frontend,backend,mobile" \
   --shared-resources true
 ```
@@ -399,11 +399,11 @@ claude-flow enterprise multi-project \
 #### Compliance & Governance
 ```bash
 # Compliance framework
-claude-flow enterprise compliance-setup \
+claude-flow-novice enterprise compliance-setup \
   --standards "SOC2,GDPR"
 
 # Automated auditing
-claude-flow enterprise audit-automated \
+claude-flow-novice enterprise audit-automated \
   --schedule "daily" \
   --scope "security,privacy"
 ```
@@ -413,29 +413,29 @@ claude-flow enterprise audit-automated \
 #### Performance Analytics
 ```bash
 # Comprehensive metrics
-claude-flow mcp claude-flow performance_report \
+claude-flow-novice mcp claude-flow-novice performance_report \
   --format "detailed" \
   --timeframe "30d"
 
 # Trend analysis
-claude-flow mcp claude-flow trend_analysis \
+claude-flow-novice mcp claude-flow-novice trend_analysis \
   --metric "task-completion-time" \
   --forecast true
 
 # Cost optimization
-claude-flow mcp claude-flow cost_analysis \
+claude-flow-novice mcp claude-flow-novice cost_analysis \
   --breakdown "by-agent,by-project"
 ```
 
 #### Predictive Analytics
 ```bash
 # Performance predictions
-claude-flow mcp claude-flow neural_predict \
+claude-flow-novice mcp claude-flow-novice neural_predict \
   --model-id "performance-predictor" \
   --input "system-metrics"
 
 # Bottleneck prediction
-claude-flow mcp claude-flow bottleneck_analyze \
+claude-flow-novice mcp claude-flow-novice bottleneck_analyze \
   --predictive true \
   --recommendations automated
 ```
@@ -445,13 +445,13 @@ claude-flow mcp claude-flow bottleneck_analyze \
 #### Multi-Cloud Deployment
 ```bash
 # Cloud platform integration
-claude-flow cloud deploy \
+claude-flow-novice cloud deploy \
   --providers "aws,azure,gcp" \
   --strategy "blue-green" \
   --auto-scaling true
 
 # Infrastructure as Code
-claude-flow cloud terraform-generate \
+claude-flow-novice cloud terraform-generate \
   --provider "aws" \
   --services "ecs,rds,cloudfront" \
   --apply true
@@ -460,13 +460,13 @@ claude-flow cloud terraform-generate \
 #### Global Scale Operations
 ```bash
 # Global deployment
-claude-flow deploy global \
+claude-flow-novice deploy global \
   --regions "us,eu,asia" \
   --latency-optimization true \
   --failover-automation true
 
 # Performance at scale
-claude-flow optimize enterprise-scale \
+claude-flow-novice optimize enterprise-scale \
   --targets "all" \
   --load-testing true \
   --auto-scaling true
@@ -492,15 +492,15 @@ True expert status achieved when:
 #### Daily Practice Routine
 ```bash
 # Morning check (5 minutes)
-claude-flow status
-claude-flow learn --progress
+claude-flow-novice status
+claude-flow-novice learn --progress
 
 # Active development (varied)
-claude-flow build "something new each day"
+claude-flow-novice build "something new each day"
 
 # Evening review (10 minutes)
-claude-flow review changes --since "morning"
-claude-flow status --summary
+claude-flow-novice review changes --since "morning"
+claude-flow-novice status --summary
 ```
 
 #### Weekly Challenges
@@ -528,37 +528,37 @@ claude-flow status --summary
 #### Spaced Repetition
 ```bash
 # Day 1: Learn new command
-claude-flow learn agents
+claude-flow-novice learn agents
 
 # Day 3: Practice command
-claude-flow agents spawn coder
+claude-flow-novice agents spawn coder
 
 # Day 7: Advanced usage
-claude-flow agents metrics --optimize
+claude-flow-novice agents metrics --optimize
 
 # Day 14: Teach others
-claude-flow help agents --generate-guide
+claude-flow-novice help agents --generate-guide
 ```
 
 #### Progressive Complexity
 ```bash
 # Start simple
-claude-flow build "hello world"
+claude-flow-novice build "hello world"
 
 # Add complexity
-claude-flow build "web app with authentication"
+claude-flow-novice build "web app with authentication"
 
 # Full complexity
-claude-flow build "microservices architecture with monitoring"
+claude-flow-novice build "microservices architecture with monitoring"
 ```
 
 #### Cross-Domain Practice
 ```bash
 # Try different domains
-claude-flow init "web app"
-claude-flow init "mobile app"
-claude-flow init "ML pipeline"
-claude-flow init "desktop app"
+claude-flow-novice init "web app"
+claude-flow-novice init "mobile app"
+claude-flow-novice init "ML pipeline"
+claude-flow-novice init "desktop app"
 ```
 
 ---
@@ -693,10 +693,10 @@ claude-flow init "desktop app"
 npm update -g claude-flow@alpha
 
 # New feature announcements
-claude-flow help --new-features
+claude-flow-novice help --new-features
 
 # Community updates
-claude-flow community --updates
+claude-flow-novice community --updates
 ```
 
 #### Learning Resources
@@ -727,13 +727,13 @@ claude-flow community --updates
 
 ```bash
 # Daily metrics
-claude-flow learn --progress --detailed
+claude-flow-novice learn --progress --detailed
 
 # Weekly summary
-claude-flow status --weekly-summary
+claude-flow-novice status --weekly-summary
 
 # Monthly analysis
-claude-flow analytics --monthly --trends
+claude-flow-novice analytics --monthly --trends
 ```
 
 ### Key Performance Indicators
@@ -762,9 +762,9 @@ Your progression through Claude Flow tiers is a journey of continuous learning a
 
 **Ready to start your journey? Begin with:**
 ```bash
-claude-flow init
-claude-flow build "my first feature"
-claude-flow learn
+claude-flow-novice init
+claude-flow-novice build "my first feature"
+claude-flow-novice learn
 ```
 
 <function_calls>

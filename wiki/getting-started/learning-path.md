@@ -133,7 +133,7 @@ graph TD
 ┌─────────────────────────────────────────┐
 │ Week 1: Setup & First Steps             │
 ├─────────────────────────────────────────┤
-│ ✅ Install Node.js and claude-flow      │
+│ ✅ Install Node.js and claude-flow-novice      │
 │ ✅ Run first "Hello World" agent        │
 │ ✅ Understand agent vs traditional code │
 │ ✅ Complete CLI tutorial                │
@@ -229,7 +229,7 @@ graph TD
 ┌─────────────────────────────────────────┐
 │ Ongoing: Mastery & Innovation          │
 ├─────────────────────────────────────────┤
-│ ✅ Contribute to claude-flow ecosystem  │
+│ ✅ Contribute to claude-flow-novice ecosystem  │
 │ ✅ Mentor other learners                │
 │ ✅ Design novel coordination patterns   │
 │ ✅ Lead enterprise implementations      │

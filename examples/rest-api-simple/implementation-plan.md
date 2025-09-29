@@ -23,7 +23,7 @@ Implement a minimal REST API for task management demonstrating core REST princip
 
 **Command**:
 ```bash
-npx claude-flow sparc run code "Setup Express server with health endpoint for rest-api-simple" --non-interactive
+npx claude-flow-novice sparc run code "Setup Express server with health endpoint for rest-api-simple" --non-interactive
 ```
 
 ---
@@ -48,7 +48,7 @@ npx claude-flow sparc run code "Setup Express server with health endpoint for re
 
 **Command**:
 ```bash
-npx claude-flow sparc run tdd "Implement CRUD operations for tasks with full test coverage" --non-interactive
+npx claude-flow-novice sparc run tdd "Implement CRUD operations for tasks with full test coverage" --non-interactive
 ```
 
 ---
@@ -70,7 +70,7 @@ npx claude-flow sparc run tdd "Implement CRUD operations for tasks with full tes
 
 **Command**:
 ```bash
-npx claude-flow sparc run code "Add input validation and error handling to REST API" --non-interactive
+npx claude-flow-novice sparc run code "Add input validation and error handling to REST API" --non-interactive
 ```
 
 ---
@@ -93,7 +93,7 @@ npx claude-flow sparc run code "Add input validation and error handling to REST 
 
 **Command**:
 ```bash
-npx claude-flow sparc run docs-writer "Create comprehensive documentation for simple REST API" --non-interactive
+npx claude-flow-novice sparc run docs-writer "Create comprehensive documentation for simple REST API" --non-interactive
 ```
 
 ---
@@ -110,7 +110,7 @@ npx claude-flow sparc run docs-writer "Create comprehensive documentation for si
 
 **Command**:
 ```bash
-npx claude-flow sparc run security-review "Review REST API for security best practices" --non-interactive
+npx claude-flow-novice sparc run security-review "Review REST API for security best practices" --non-interactive
 ```
 
 ---
@@ -203,12 +203,12 @@ For faster implementation, use background swarms:
 
 ```bash
 # Complete implementation in parallel
-npx claude-flow swarm "Implement complete simple REST API based on architecture" \
+npx claude-flow-novice swarm "Implement complete simple REST API based on architecture" \
   --strategy development --background --parallel --testing \
   --max-agents 4 --output ./
 
 # Monitor progress
-npx claude-flow monitor
+npx claude-flow-novice monitor
 ```
 
 ## Time Estimate

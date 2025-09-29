@@ -1,6 +1,6 @@
 # Systems Programming with Claude-Flow
 
-This guide demonstrates how to leverage claude-flow for high-performance systems programming in Rust, utilizing real toolchain integration and agent coordination for building low-level, performance-critical applications.
+This guide demonstrates how to leverage claude-flow-novice for high-performance systems programming in Rust, utilizing real toolchain integration and agent coordination for building low-level, performance-critical applications.
 
 ## 🎯 Systems Programming Overview
 
@@ -19,7 +19,7 @@ Systems programming in Rust focuses on building foundational software with stric
 
 ```bash
 # Initialize systems programming project
-npx claude-flow sparc run architect "Create a high-throughput TCP proxy server with load balancing"
+npx claude-flow-novice sparc run architect "Create a high-throughput TCP proxy server with load balancing"
 
 # This spawns specialized agents:
 Task("Systems Architect", "Design async TCP proxy architecture with tokio", "systems-architect")
@@ -60,7 +60,7 @@ tcp-proxy/
 
 ```bash
 # Create custom allocator system
-npx claude-flow sparc run architect "Build a zero-allocation memory pool for real-time systems"
+npx claude-flow-novice sparc run architect "Build a zero-allocation memory pool for real-time systems"
 
 Task("Memory Engineer", "Design lock-free memory pool with NUMA awareness", "memory-specialist")
 Task("Performance Engineer", "Optimize allocation patterns and fragmentation", "performance-optimizer")
@@ -71,7 +71,7 @@ Task("Safety Engineer", "Ensure memory safety without runtime overhead", "safety
 
 ```bash
 # Build OS-level component
-npx claude-flow sparc run architect "Create a kernel module interface for high-speed packet processing"
+npx claude-flow-novice sparc run architect "Create a kernel module interface for high-speed packet processing"
 
 Task("Kernel Engineer", "Design safe kernel interface with minimal syscalls", "kernel-specialist")
 Task("Driver Developer", "Implement userspace-kernel communication", "driver-developer")
@@ -1179,7 +1179,7 @@ impl ProductionMonitor {
 }
 ```
 
-This comprehensive systems programming guide demonstrates how claude-flow leverages real Rust toolchain integration to build high-performance, production-ready systems applications with agent coordination and validation.
+This comprehensive systems programming guide demonstrates how claude-flow-novice leverages real Rust toolchain integration to build high-performance, production-ready systems applications with agent coordination and validation.
 
 ## 🔗 Next Steps
 

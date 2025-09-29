@@ -1,10 +1,10 @@
 # Agent Creation Guide
 
-This guide explains how to create, register, and deploy new agents in the claude-flow system. The validation system now prevents agent spawning gaps by providing automatic fallbacks and legacy support.
+This guide explains how to create, register, and deploy new agents in the claude-flow-novice system. The validation system now prevents agent spawning gaps by providing automatic fallbacks and legacy support.
 
 ## Overview
 
-The claude-flow system uses a file-based agent definition system where agents are defined as Markdown files with YAML frontmatter in the `.claude/agents/` directory. The system provides automatic validation, legacy mapping, and intelligent fallbacks.
+The claude-flow-novice system uses a file-based agent definition system where agents are defined as Markdown files with YAML frontmatter in the `.claude/agents/` directory. The system provides automatic validation, legacy mapping, and intelligent fallbacks.
 
 ## Quick Start
 
@@ -53,10 +53,10 @@ Your agent description and capabilities go here...
 
 ```bash
 # Test that your agent is recognized
-npx claude-flow agent list | grep data-processor
+npx claude-flow-novice agent list | grep data-processor
 
 # Test validation system
-npx claude-flow agent validate data-processor
+npx claude-flow-novice agent validate data-processor
 ```
 
 ## Agent Definition Structure
@@ -291,13 +291,13 @@ console.log(prepared.spawnCommand); // Task(...) command with validated type
 ### 1. Validation Testing
 ```bash
 # Test agent is recognized
-npx claude-flow agent validate your-agent-name
+npx claude-flow-novice agent validate your-agent-name
 
 # List all available agents
-npx claude-flow agent list
+npx claude-flow-novice agent list
 
 # Test agent spawning
-npx claude-flow agent spawn your-agent-name "test task"
+npx claude-flow-novice agent spawn your-agent-name "test task"
 ```
 
 ### 2. Integration Testing
@@ -329,7 +329,7 @@ Task("Test new agent", "Test the agent functionality", "your-agent-name")
 1. Check file exists in `.claude/agents/`
 2. Verify YAML frontmatter is valid
 3. Ensure `name` field matches filename
-4. Check agent loader cache with `npx claude-flow agent refresh`
+4. Check agent loader cache with `npx claude-flow-novice agent refresh`
 
 ### Legacy Agent Mapping
 **Problem**: Old agent names stop working
@@ -426,6 +426,6 @@ agentValidator.addCustomRule('security-agent', (type, context) => {
 
 ## Conclusion
 
-The agent system provides a flexible, validated approach to extending claude-flow capabilities. With automatic fallbacks and legacy support, the system prevents coordination gaps while allowing seamless migration to new agent architectures.
+The agent system provides a flexible, validated approach to extending claude-flow-novice capabilities. With automatic fallbacks and legacy support, the system prevents coordination gaps while allowing seamless migration to new agent architectures.
 
 For questions or issues, refer to the troubleshooting section or check the system logs for validation warnings and errors.

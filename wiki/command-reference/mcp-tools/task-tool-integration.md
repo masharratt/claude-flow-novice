@@ -1,14 +1,14 @@
 # Task Tool Integration Guide
 
-Complete guide for using Claude Code's Task tool with claude-flow agents for maximum productivity and coordination.
+Complete guide for using Claude Code's Task tool with claude-flow-novice agents for maximum productivity and coordination.
 
 ## 🎯 Overview
 
-Claude Code's Task tool is the primary execution engine for claude-flow agents, providing:
+Claude Code's Task tool is the primary execution engine for claude-flow-novice agents, providing:
 - **Real agent spawning** that creates working implementations
 - **Parallel execution** of multiple specialized agents
 - **Integration with MCP coordination** for team-based development
-- **Persistent context** through the claude-flow memory system
+- **Persistent context** through the claude-flow-novice memory system
 
 ## 🚀 Quick Start
 

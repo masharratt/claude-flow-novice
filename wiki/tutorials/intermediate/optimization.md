@@ -27,12 +27,12 @@ The foundation of Claude Flow's performance gains comes from parallel execution:
 
 ```bash
 # ❌ WRONG: Sequential execution
-npx claude-flow sparc run spec-pseudocode "Feature A"
-npx claude-flow sparc run spec-pseudocode "Feature B"
-npx claude-flow sparc run spec-pseudocode "Feature C"
+npx claude-flow-novice sparc run spec-pseudocode "Feature A"
+npx claude-flow-novice sparc run spec-pseudocode "Feature B"
+npx claude-flow-novice sparc run spec-pseudocode "Feature C"
 
 # ✅ CORRECT: Parallel execution
-npx claude-flow sparc batch spec-pseudocode,architect,refactor "Feature A,Feature B,Feature C"
+npx claude-flow-novice sparc batch spec-pseudocode,architect,refactor "Feature A,Feature B,Feature C"
 ```
 
 ### Performance Impact Visualization
@@ -61,13 +61,13 @@ Result: 3.7x performance improvement
 
 ```bash
 # Token-efficient batch operations
-npx claude-flow sparc pipeline "Full-stack application with authentication, testing, and deployment"
+npx claude-flow-novice sparc pipeline "Full-stack application with authentication, testing, and deployment"
 
 # vs individual requests that consume 32.3% more tokens
-npx claude-flow sparc run architect "Authentication system"
-npx claude-flow sparc run coder "Login implementation"
-npx claude-flow sparc run tester "Authentication tests"
-npx claude-flow sparc run documenter "API documentation"
+npx claude-flow-novice sparc run architect "Authentication system"
+npx claude-flow-novice sparc run coder "Login implementation"
+npx claude-flow-novice sparc run tester "Authentication tests"
+npx claude-flow-novice sparc run documenter "API documentation"
 ```
 
 ### Token Usage Comparison
@@ -93,13 +93,13 @@ Total: 113,580 tokens (32.3% reduction = 54,190 tokens saved)
 
 ```bash
 # Initialize optimal topology for your workload
-npx claude-flow mcp swarm_init --topology mesh --max-agents 8
+npx claude-flow-novice mcp swarm_init --topology mesh --max-agents 8
 
 # Spawn specialized agents in parallel
-npx claude-flow mcp agent_spawn --type researcher &
-npx claude-flow mcp agent_spawn --type coder &
-npx claude-flow mcp agent_spawn --type tester &
-npx claude-flow mcp agent_spawn --type reviewer &
+npx claude-flow-novice mcp agent_spawn --type researcher &
+npx claude-flow-novice mcp agent_spawn --type coder &
+npx claude-flow-novice mcp agent_spawn --type tester &
+npx claude-flow-novice mcp agent_spawn --type reviewer &
 wait
 ```
 
@@ -124,11 +124,11 @@ Target: <50ms for all operations
 
 ```bash
 # Efficient memory usage
-npx claude-flow mcp memory_usage --action store --key "project_context" --value "$(cat context.json)"
-npx claude-flow mcp memory_usage --action store --key "api_specs" --value "$(cat api-specs.json)"
+npx claude-flow-novice mcp memory_usage --action store --key "project_context" --value "$(cat context.json)"
+npx claude-flow-novice mcp memory_usage --action store --key "api_specs" --value "$(cat api-specs.json)"
 
 # Retrieve shared context efficiently
-npx claude-flow mcp memory_search --pattern "project_*" --limit 10
+npx claude-flow-novice mcp memory_search --pattern "project_*" --limit 10
 ```
 
 ### Resource Utilization Chart
@@ -180,13 +180,13 @@ Efficiency Rating: 94.2% linear scaling maintained
 
 ```bash
 # Auto-scale based on workload
-npx claude-flow mcp swarm_scale --target-size 16 --strategy adaptive
+npx claude-flow-novice mcp swarm_scale --target-size 16 --strategy adaptive
 
 # Load balance across agents
-npx claude-flow mcp load_balance --tasks "$(cat task-queue.json)"
+npx claude-flow-novice mcp load_balance --tasks "$(cat task-queue.json)"
 
 # Monitor scaling performance
-npx claude-flow mcp swarm_monitor --interval 5 --duration 60
+npx claude-flow-novice mcp swarm_monitor --interval 5 --duration 60
 ```
 
 ## 6. Performance Monitoring and Measurement
@@ -195,13 +195,13 @@ npx claude-flow mcp swarm_monitor --interval 5 --duration 60
 
 ```bash
 # Performance monitoring setup
-npx claude-flow mcp performance_report --format detailed --timeframe 24h
+npx claude-flow-novice mcp performance_report --format detailed --timeframe 24h
 
 # Bottleneck analysis
-npx claude-flow mcp bottleneck_analyze --component swarm --metrics cpu,memory,network
+npx claude-flow-novice mcp bottleneck_analyze --component swarm --metrics cpu,memory,network
 
 # Token usage analysis
-npx claude-flow mcp token_usage --operation batch --timeframe 7d
+npx claude-flow-novice mcp token_usage --operation batch --timeframe 7d
 ```
 
 ### Performance Dashboard
@@ -228,7 +228,7 @@ Last Month   |██████████████████████
 
 ```bash
 # Full-stack web app with maximum performance
-npx claude-flow sparc pipeline "React frontend with Node.js backend, PostgreSQL database, JWT authentication, comprehensive testing, Docker deployment"
+npx claude-flow-novice sparc pipeline "React frontend with Node.js backend, PostgreSQL database, JWT authentication, comprehensive testing, Docker deployment"
 
 # Performance impact:
 # - Development time: 4.2x faster
@@ -240,7 +240,7 @@ npx claude-flow sparc pipeline "React frontend with Node.js backend, PostgreSQL 
 
 ```bash
 # High-performance API development
-npx claude-flow sparc batch architect,coder,tester,documenter "RESTful API with authentication, rate limiting, caching, monitoring"
+npx claude-flow-novice sparc batch architect,coder,tester,documenter "RESTful API with authentication, rate limiting, caching, monitoring"
 
 # Optimization results:
 # - Endpoint creation: 4.1x faster
@@ -252,7 +252,7 @@ npx claude-flow sparc batch architect,coder,tester,documenter "RESTful API with 
 
 ```bash
 # Efficient data pipeline creation
-npx claude-flow sparc concurrent data-pipeline "ETL pipeline,Data validation,Visualization dashboard,Performance monitoring"
+npx claude-flow-novice sparc concurrent data-pipeline "ETL pipeline,Data validation,Visualization dashboard,Performance monitoring"
 
 # Performance gains:
 # - Pipeline setup: 3.7x faster
@@ -266,17 +266,17 @@ npx claude-flow sparc concurrent data-pipeline "ETL pipeline,Data validation,Vis
 
 ```bash
 # Enable neural learning for pattern optimization
-npx claude-flow mcp neural_train --pattern_type optimization --training_data "$(cat performance-logs.json)"
+npx claude-flow-novice mcp neural_train --pattern_type optimization --training_data "$(cat performance-logs.json)"
 
 # Analyze cognitive patterns
-npx claude-flow mcp neural_patterns --action analyze --operation "parallel_execution"
+npx claude-flow-novice mcp neural_patterns --action analyze --operation "parallel_execution"
 ```
 
 ### Predictive Optimization
 
 ```bash
 # Predictive performance optimization
-npx claude-flow mcp neural_predict --input "project_complexity: high, team_size: 5" --model-id performance-predictor
+npx claude-flow-novice mcp neural_predict --input "project_complexity: high, team_size: 5" --model-id performance-predictor
 
 # Expected output: Recommended agent count, topology, and resource allocation
 ```
@@ -303,13 +303,13 @@ Success rate: 96.4%
 
 ```bash
 # Comprehensive performance diagnosis
-npx claude-flow mcp health_check --components all
+npx claude-flow-novice mcp health_check --components all
 
 # Error pattern analysis
-npx claude-flow mcp error_analysis --logs "$(cat error-logs.json)"
+npx claude-flow-novice mcp error_analysis --logs "$(cat error-logs.json)"
 
 # Quality assessment
-npx claude-flow mcp quality_assess --target current-project --criteria performance,efficiency,scalability
+npx claude-flow-novice mcp quality_assess --target current-project --criteria performance,efficiency,scalability
 ```
 
 ## 10. Performance Best Practices
@@ -339,13 +339,13 @@ npx claude-flow mcp quality_assess --target current-project --criteria performan
 
 ```bash
 # Step 1: Initialize optimized environment
-npx claude-flow mcp swarm_init --topology mesh --max-agents 12 --strategy adaptive
+npx claude-flow-novice mcp swarm_init --topology mesh --max-agents 12 --strategy adaptive
 
 # Step 2: Execute parallel development pipeline
-npx claude-flow sparc pipeline "E-commerce platform with user authentication, product catalog, shopping cart, payment processing, order management, admin dashboard, mobile API, comprehensive testing, CI/CD pipeline, monitoring, and documentation"
+npx claude-flow-novice sparc pipeline "E-commerce platform with user authentication, product catalog, shopping cart, payment processing, order management, admin dashboard, mobile API, comprehensive testing, CI/CD pipeline, monitoring, and documentation"
 
 # Step 3: Monitor performance
-npx claude-flow mcp performance_report --format detailed
+npx claude-flow-novice mcp performance_report --format detailed
 
 # Expected results:
 # - Development time: <4 hours (vs 16+ hours traditional)

@@ -1,17 +1,17 @@
 # Go Microservices Architecture with Claude-Flow
 
-Build scalable, distributed microservices using Go and claude-flow for automated development, testing, and deployment.
+Build scalable, distributed microservices using Go and claude-flow-novice for automated development, testing, and deployment.
 
 ## 🏗️ Microservices Architecture Overview
 
 ### Quick Microservice Generation
 ```bash
 # Generate complete microservice with claude-flow
-npx claude-flow sparc pipeline "Go microservice with gRPC, REST API, and database"
+npx claude-flow-novice sparc pipeline "Go microservice with gRPC, REST API, and database"
 
 # Or use MCP for complex coordination
-npx claude-flow mcp swarm_init --topology mesh --max-agents 6
-npx claude-flow mcp agent_spawn --type backend-dev --capabilities microservices,grpc,kubernetes
+npx claude-flow-novice mcp swarm_init --topology mesh --max-agents 6
+npx claude-flow-novice mcp agent_spawn --type backend-dev --capabilities microservices,grpc,kubernetes
 ```
 
 ## 🌐 Service Communication Patterns
@@ -19,7 +19,7 @@ npx claude-flow mcp agent_spawn --type backend-dev --capabilities microservices,
 ### gRPC Service Implementation
 ```bash
 # Generate gRPC microservice with claude-flow
-npx claude-flow sparc run architect "gRPC microservice with Protocol Buffers and middleware"
+npx claude-flow-novice sparc run architect "gRPC microservice with Protocol Buffers and middleware"
 ```
 
 **Generated gRPC Service:**
@@ -791,7 +791,7 @@ func (hc *HealthChecker) checkHealth(ctx context.Context, service *discovery.Ser
 ### Database per Service Pattern
 ```bash
 # Generate database integration with claude-flow
-npx claude-flow sparc run architect "database per service pattern with PostgreSQL and Redis"
+npx claude-flow-novice sparc run architect "database per service pattern with PostgreSQL and Redis"
 ```
 
 ### Event Sourcing and CQRS
@@ -1123,20 +1123,20 @@ data:
 
 ```bash
 # Generate complete microservice
-npx claude-flow sparc pipeline "Go microservice with gRPC, REST, database, and Kubernetes deployment"
+npx claude-flow-novice sparc pipeline "Go microservice with gRPC, REST, database, and Kubernetes deployment"
 
 # Add specific features
-npx claude-flow sparc run architect "add event sourcing and CQRS to microservice"
-npx claude-flow sparc run coder "implement service discovery with etcd"
-npx claude-flow sparc run coder "add distributed tracing with Jaeger"
+npx claude-flow-novice sparc run architect "add event sourcing and CQRS to microservice"
+npx claude-flow-novice sparc run coder "implement service discovery with etcd"
+npx claude-flow-novice sparc run coder "add distributed tracing with Jaeger"
 
 # Testing microservices
-npx claude-flow sparc run tester "create integration tests for microservice"
-npx claude-flow sparc run tester "add contract testing with Pact"
+npx claude-flow-novice sparc run tester "create integration tests for microservice"
+npx claude-flow-novice sparc run tester "add contract testing with Pact"
 
 # Deployment and operations
-npx claude-flow sparc run deployer "deploy microservice to Kubernetes with Helm"
-npx claude-flow sparc run coder "add monitoring and alerting with Prometheus"
+npx claude-flow-novice sparc run deployer "deploy microservice to Kubernetes with Helm"
+npx claude-flow-novice sparc run coder "add monitoring and alerting with Prometheus"
 ```
 
 ## 📊 Observability and Monitoring
@@ -1144,13 +1144,13 @@ npx claude-flow sparc run coder "add monitoring and alerting with Prometheus"
 ### Distributed Tracing
 ```bash
 # Add tracing with claude-flow
-npx claude-flow sparc run coder "add OpenTelemetry distributed tracing"
+npx claude-flow-novice sparc run coder "add OpenTelemetry distributed tracing"
 ```
 
 ### Metrics and Health Checks
 ```bash
 # Add comprehensive monitoring
-npx claude-flow sparc run coder "add Prometheus metrics and health checks"
+npx claude-flow-novice sparc run coder "add Prometheus metrics and health checks"
 ```
 
 ## 🛡️ Best Practices
@@ -1180,6 +1180,6 @@ npx claude-flow sparc run coder "add Prometheus metrics and health checks"
 - **Security**: Implement authentication and authorization
 
 **Next Steps:**
-- [Integration](../integration/) - Advanced claude-flow integration patterns
+- [Integration](../integration/) - Advanced claude-flow-novice integration patterns
 - [Examples](../examples/) - Complete microservice implementations
 - [Performance](../performance/) - Optimize microservice performance

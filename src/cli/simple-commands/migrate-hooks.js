@@ -49,8 +49,8 @@ export const migrateHooksCommandConfig = {
   description: 'Migrate settings.json hooks to Claude Code 1.0.51+ format',
   usage: 'migrate-hooks [settings-file]',
   examples: [
-    'claude-flow migrate-hooks                    # Migrate all found settings.json files',
-    'claude-flow migrate-hooks .claude/settings.json  # Migrate specific file',
+    'claude-flow-novice migrate-hooks                    # Migrate all found settings.json files',
+    'claude-flow-novice migrate-hooks .claude/settings.json  # Migrate specific file',
   ],
   details: `
 Migrates old hooks format to new Claude Code 1.0.51+ format:

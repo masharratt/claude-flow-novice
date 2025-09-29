@@ -21,7 +21,7 @@ function printHelp() {
 🧠 Claude-Flow v${VERSION} - Advanced AI Agent Orchestration System
 
 USAGE:
-  claude-flow [COMMAND] [OPTIONS]
+  claude-flow-novice [COMMAND] [OPTIONS]
 
 COMMANDS:
   init                  Initialize Claude Code integration files
@@ -45,12 +45,12 @@ OPTIONS:
   --help                Show help for any command
 
 EXAMPLES:
-  claude-flow init                    # Initialize Claude Code integration
-  claude-flow start                   # Start orchestration system
-  claude-flow agent spawn researcher  # Spawn a research agent
-  claude-flow task create research "Analyze authentication patterns"
-  claude-flow memory store key "value"
-  claude-flow status                  # Check system status
+  claude-flow-novice init                    # Initialize Claude Code integration
+  claude-flow-novice start                   # Start orchestration system
+  claude-flow-novice agent spawn researcher  # Spawn a research agent
+  claude-flow-novice task create research "Analyze authentication patterns"
+  claude-flow-novice memory store key "value"
+  claude-flow-novice status                  # Check system status
 
 For more info: https://github.com/ruvnet/claude-code-flow
 `);
@@ -97,7 +97,7 @@ async function main() {
       console.log('   git clone https://github.com/ruvnet/claude-code-flow.git');
       console.log('   cd claude-code-flow');
       console.log('   npm install -g claude-flow');
-      console.log('   claude-flow init');
+      console.log('   claude-flow-novice init');
       break;
 
     case 'install':
@@ -107,7 +107,7 @@ async function main() {
       console.log('  npm install -g claude-flow');
       console.log('');
       console.log(chalk.gray('  # Or using Deno'));
-      console.log('  deno install --allow-all --name claude-flow \\');
+      console.log('  deno install --allow-all --name claude-flow-novice \\');
       console.log(
         '    https://raw.githubusercontent.com/ruvnet/claude-code-flow/main/src/cli/index.ts',
       );
@@ -123,7 +123,7 @@ async function main() {
       console.log('\n📥 To use all features, install Claude-Flow:');
       console.log('   npm install -g claude-flow');
       console.log('\n🌐 Or run directly with Deno:');
-      console.log('   deno install --allow-all --name claude-flow \\');
+      console.log('   deno install --allow-all --name claude-flow-novice \\');
       console.log(
         '     https://raw.githubusercontent.com/ruvnet/claude-code-flow/main/src/cli/index.ts',
       );

@@ -36,7 +36,7 @@
 ## 🌳 Agent Command Hierarchy
 
 ```
-claude-flow agents
+claude-flow-novice agents
 ├── 📊 MONITORING COMMANDS
 │   ├── list [options]
 │   │   ├── --type <agent-type>      # Filter by agent type
@@ -310,23 +310,23 @@ claude-flow agents
 
 ```bash
 # SINGLE AGENT SPAWN
-claude-flow agents spawn coder --name "auth-developer" --priority high
+claude-flow-novice agents spawn coder --name "auth-developer" --priority high
 
 # TEAM SPAWN (Multiple agents for complex task)
-claude-flow agents spawn researcher --name "requirements-analyst"
-claude-flow agents spawn architect --name "system-designer"
-claude-flow agents spawn coder --name "backend-dev"
-claude-flow agents spawn coder --name "frontend-dev"
-claude-flow agents spawn tester --name "qa-engineer"
+claude-flow-novice agents spawn researcher --name "requirements-analyst"
+claude-flow-novice agents spawn architect --name "system-designer"
+claude-flow-novice agents spawn coder --name "backend-dev"
+claude-flow-novice agents spawn coder --name "frontend-dev"
+claude-flow-novice agents spawn tester --name "qa-engineer"
 
 # SPECIALIZED CAPABILITY SPAWN
-claude-flow agents spawn coder \
+claude-flow-novice agents spawn coder \
   --capabilities "react,typescript,api-integration" \
   --memory 512mb \
   --priority high
 
 # SWARM-TARGETED SPAWN
-claude-flow agents spawn security \
+claude-flow-novice agents spawn security \
   --swarm-id "security-audit-swarm" \
   --capabilities "penetration-testing,compliance" \
   --config security-audit.yml
@@ -336,32 +336,32 @@ claude-flow agents spawn security \
 
 ```bash
 # COMPREHENSIVE MONITORING
-claude-flow agents list --detailed --watch --format table
+claude-flow-novice agents list --detailed --watch --format table
 
 # SPECIFIC AGENT TRACKING
-claude-flow agents status auth-developer --watch --refresh 5
+claude-flow-novice agents status auth-developer --watch --refresh 5
 
 # PERFORMANCE METRICS
-claude-flow agents metrics --type performance --timeframe 24h --export metrics.json
+claude-flow-novice agents metrics --type performance --timeframe 24h --export metrics.json
 
 # RESOURCE UTILIZATION
-claude-flow agents metrics --type memory --format json | jq '.agents[] | select(.usage > 80)'
+claude-flow-novice agents metrics --type memory --format json | jq '.agents[] | select(.usage > 80)'
 ```
 
 ### Optimization Patterns
 
 ```bash
 # AUTO-OPTIMIZATION
-claude-flow agents optimize --algorithm genetic --target efficiency
+claude-flow-novice agents optimize --algorithm genetic --target efficiency
 
 # LOAD BALANCING
-claude-flow agents balance --strategy round-robin --threshold 75
+claude-flow-novice agents balance --strategy round-robin --threshold 75
 
 # SMART SCALING
-claude-flow agents scale up --auto --criteria "cpu>80,memory>70,queue>10"
+claude-flow-novice agents scale up --auto --criteria "cpu>80,memory>70,queue>10"
 
 # RESOURCE OPTIMIZATION
-claude-flow agents optimize --target memory --safe-only --dry-run
+claude-flow-novice agents optimize --target memory --safe-only --dry-run
 ```
 
 ## 🔧 Advanced Agent Configuration
@@ -448,17 +448,17 @@ agent:
 
 ```bash
 # PARALLEL DEVELOPMENT TEAM
-claude-flow agents spawn researcher --name "req-analyst" &
-claude-flow agents spawn architect --name "sys-designer" &
-claude-flow agents spawn coder --name "backend-dev" &
-claude-flow agents spawn coder --name "frontend-dev" &
-claude-flow agents spawn tester --name "qa-engineer" &
+claude-flow-novice agents spawn researcher --name "req-analyst" &
+claude-flow-novice agents spawn architect --name "sys-designer" &
+claude-flow-novice agents spawn coder --name "backend-dev" &
+claude-flow-novice agents spawn coder --name "frontend-dev" &
+claude-flow-novice agents spawn tester --name "qa-engineer" &
 wait
 
 # PARALLEL REVIEW TEAM
-claude-flow agents spawn reviewer --name "code-reviewer" &
-claude-flow agents spawn security --name "security-auditor" &
-claude-flow agents spawn optimizer --name "performance-analyst" &
+claude-flow-novice agents spawn reviewer --name "code-reviewer" &
+claude-flow-novice agents spawn security --name "security-auditor" &
+claude-flow-novice agents spawn optimizer --name "performance-analyst" &
 wait
 ```
 
@@ -466,34 +466,34 @@ wait
 
 ```bash
 # WATERFALL DEVELOPMENT
-claude-flow agents spawn researcher --name "requirements"
-claude-flow agents status requirements --wait-for completion
-claude-flow agents spawn architect --name "design"
-claude-flow agents status design --wait-for completion
-claude-flow agents spawn coder --name "implementation"
-claude-flow agents status implementation --wait-for completion
-claude-flow agents spawn tester --name "validation"
+claude-flow-novice agents spawn researcher --name "requirements"
+claude-flow-novice agents status requirements --wait-for completion
+claude-flow-novice agents spawn architect --name "design"
+claude-flow-novice agents status design --wait-for completion
+claude-flow-novice agents spawn coder --name "implementation"
+claude-flow-novice agents status implementation --wait-for completion
+claude-flow-novice agents spawn tester --name "validation"
 ```
 
 ### Adaptive Coordination Patterns
 
 ```bash
 # DYNAMIC AGENT ALLOCATION
-claude-flow agents spawn researcher --name "analysis"
+claude-flow-novice agents spawn researcher --name "analysis"
 if [analysis_complexity == "high"]; then
-  claude-flow agents spawn researcher --name "deep-research"
+  claude-flow-novice agents spawn researcher --name "deep-research"
 fi
 
-claude-flow agents spawn architect --name "design"
+claude-flow-novice agents spawn architect --name "design"
 if [system_complexity == "distributed"]; then
-  claude-flow agents spawn architect --name "microservices-expert"
+  claude-flow-novice agents spawn architect --name "microservices-expert"
 fi
 
 # Based on requirements, spawn appropriate coders
 case $project_type in
-  "web") claude-flow agents spawn coder --capabilities "react,node" ;;
-  "mobile") claude-flow agents spawn coder --capabilities "react-native" ;;
-  "api") claude-flow agents spawn coder --capabilities "express,fastapi" ;;
+  "web") claude-flow-novice agents spawn coder --capabilities "react,node" ;;
+  "mobile") claude-flow-novice agents spawn coder --capabilities "react-native" ;;
+  "api") claude-flow-novice agents spawn coder --capabilities "express,fastapi" ;;
 esac
 ```
 
@@ -503,29 +503,29 @@ esac
 
 ```bash
 # MEMORY-EFFICIENT SPAWNING
-claude-flow agents spawn coder --memory 256mb --optimize memory
+claude-flow-novice agents spawn coder --memory 256mb --optimize memory
 
 # MEMORY MONITORING & ADJUSTMENT
-claude-flow agents metrics coder-1 --type memory
+claude-flow-novice agents metrics coder-1 --type memory
 if [memory_usage > 90%]; then
-  claude-flow agents configure coder-1 --memory 512mb
+  claude-flow-novice agents configure coder-1 --memory 512mb
 fi
 
 # MEMORY CLEANUP
-claude-flow agents optimize --target memory --algorithm aggressive
+claude-flow-novice agents optimize --target memory --algorithm aggressive
 ```
 
 ### Performance Tuning
 
 ```bash
 # CPU OPTIMIZATION
-claude-flow agents configure high-priority-agent --priority critical
+claude-flow-novice agents configure high-priority-agent --priority critical
 
 # PARALLEL PROCESSING OPTIMIZATION
-claude-flow agents balance --strategy cpu-aware --threshold 80
+claude-flow-novice agents balance --strategy cpu-aware --threshold 80
 
 # THROUGHPUT OPTIMIZATION
-claude-flow agents scale up 2 --criteria "queue>5,response_time>30s"
+claude-flow-novice agents scale up 2 --criteria "queue>5,response_time>30s"
 ```
 
 ## 🎯 Agent Success Patterns

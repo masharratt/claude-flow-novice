@@ -460,7 +460,7 @@ class DeploymentCommandPlugin extends BasePlugin implements CommandPlugin {
       id: 'deploy',
       name: 'deploy',
       description: 'Deploy application to various environments',
-      usage: 'claude-flow deploy <environment> [options]',
+      usage: 'claude-flow-novice deploy <environment> [options]',
       category: 'deployment',
       options: [
         {
@@ -486,11 +486,11 @@ class DeploymentCommandPlugin extends BasePlugin implements CommandPlugin {
       ],
       examples: [
         {
-          command: 'claude-flow deploy staging',
+          command: 'claude-flow-novice deploy staging',
           description: 'Deploy to staging environment'
         },
         {
-          command: 'claude-flow deploy production --strategy blue-green',
+          command: 'claude-flow-novice deploy production --strategy blue-green',
           description: 'Deploy to production using blue-green strategy'
         }
       ],

@@ -115,19 +115,19 @@ You have access to the advanced Claude-Flow swarm system with the following capa
 ### Basic Swarm Execution:
 \`\`\`bash
 # Start a development swarm for complex implementation
-npx claude-flow swarm "Build a complete REST API with authentication" --strategy development --monitor
+npx claude-flow-novice swarm "Build a complete REST API with authentication" --strategy development --monitor
 
 # Research swarm with distributed coordination
-npx claude-flow swarm "Research and analyze blockchain technologies" --strategy research --distributed --ui
+npx claude-flow-novice swarm "Research and analyze blockchain technologies" --strategy research --distributed --ui
 
 # Background optimization swarm (for long-running tasks)
-npx claude-flow swarm "Optimize application performance across all modules" --strategy optimization --background --monitor
+npx claude-flow-novice swarm "Optimize application performance across all modules" --strategy optimization --background --monitor
 \`\`\`
 
 ### Advanced Swarm Configuration:
 \`\`\`bash
 # Full-featured swarm with all enterprise features
-npx claude-flow swarm "Complex enterprise application development" \\
+npx claude-flow-novice swarm "Complex enterprise application development" \\
   --strategy development \\
   --mode distributed \\
   --max-agents 10 \\
@@ -139,20 +139,20 @@ npx claude-flow swarm "Complex enterprise application development" \\
   --verbose
 
 # Dry run to see configuration before execution
-npx claude-flow swarm "Your complex task" --dry-run --strategy development
+npx claude-flow-novice swarm "Your complex task" --dry-run --strategy development
 \`\`\`
 
 ### 🔍 Monitoring and Management:
 \`\`\`bash
 # Real-time swarm monitoring
-npx claude-flow monitor
+npx claude-flow-novice monitor
 
 # Check swarm status
-npx claude-flow status
+npx claude-flow-novice status
 
 # Memory operations for cross-agent sharing
-npx claude-flow memory store "key" "value" --namespace swarm
-npx claude-flow memory query "search-term" --namespace swarm
+npx claude-flow-novice memory store "key" "value" --namespace swarm
+npx claude-flow-novice memory query "search-term" --namespace swarm
 \`\`\`
 
 ## 🎯 SWARM METHODOLOGY
@@ -191,7 +191,7 @@ The swarm system is specifically designed to handle complex, long-running tasks 
 ### 🌙 Background Execution:
 - Use \`--background\` flag for tasks that might take over 60 minutes
 - Background swarms run independently and save results
-- Monitor progress with \`npx claude-flow status\`
+- Monitor progress with \`npx claude-flow-novice status\`
 
 ### 🔄 Task Splitting:
 - Large tasks are automatically decomposed into smaller chunks
@@ -208,40 +208,40 @@ The swarm system is specifically designed to handle complex, long-running tasks 
 ### Complex Development Project:
 \`\`\`bash
 # 1. Start comprehensive development swarm
-npx claude-flow swarm "Build microservices e-commerce platform" \\
+npx claude-flow-novice swarm "Build microservices e-commerce platform" \\
   --strategy development --parallel --monitor --review --testing
 
 # 2. Monitor progress in real-time
-npx claude-flow monitor
+npx claude-flow-novice monitor
 
 # 3. Check specific swarm status
-npx claude-flow status
+npx claude-flow-novice status
 \`\`\`
 
 ### Research and Analysis:
 \`\`\`bash
 # 1. Launch research swarm with UI
-npx claude-flow swarm "Comprehensive AI/ML market analysis" \\
+npx claude-flow-novice swarm "Comprehensive AI/ML market analysis" \\
   --strategy research --distributed --ui --verbose
 
 # 2. Store findings for cross-agent access
-npx claude-flow memory store "research-findings" "key insights" --namespace swarm
+npx claude-flow-novice memory store "research-findings" "key insights" --namespace swarm
 \`\`\`
 
 ### Long-Running Optimization:
 \`\`\`bash
 # 1. Background optimization swarm
-npx claude-flow swarm "Optimize entire codebase performance" \\
+npx claude-flow-novice swarm "Optimize entire codebase performance" \\
   --strategy optimization --background --testing --encryption
 
 # 2. Check background progress
-npx claude-flow status
+npx claude-flow-novice status
 \`\`\`
 
 ## 🔧 TROUBLESHOOTING
 
 ### Common Issues:
-1. **Swarm fails to start**: Check if Claude-Flow is initialized with \`npx claude-flow init --sparc\`
+1. **Swarm fails to start**: Check if Claude-Flow is initialized with \`npx claude-flow-novice init --sparc\`
 2. **Agents not coordinating**: Ensure memory namespace is consistent
 3. **Timeout concerns**: Use \`--background\` flag for long tasks
 4. **Performance issues**: Reduce \`--max-agents\` or use \`--monitor\` for insights
@@ -305,16 +305,16 @@ export function getSwarmOrchestration(taskDescription, memoryNamespace) {
 4. **Environment Preparation**
    \`\`\`bash
    # Ensure Claude-Flow is properly initialized
-   npx claude-flow status
+   npx claude-flow-novice status
    
    # Check memory system
-   npx claude-flow memory stats
+   npx claude-flow-novice memory stats
    \`\`\`
 
 5. **Dry Run Validation**
    \`\`\`bash
    # Test swarm configuration before execution
-   npx claude-flow swarm "${taskDescription}" --dry-run --strategy <selected-strategy>
+   npx claude-flow-novice swarm "${taskDescription}" --dry-run --strategy <selected-strategy>
    \`\`\`
 
 ### Phase 3: Swarm Execution (Variable)
@@ -323,22 +323,22 @@ export function getSwarmOrchestration(taskDescription, memoryNamespace) {
 
    **For Standard Tasks (< 30 minutes):**
    \`\`\`bash
-   npx claude-flow swarm "${taskDescription}" --strategy <strategy> --monitor --verbose
+   npx claude-flow-novice swarm "${taskDescription}" --strategy <strategy> --monitor --verbose
    \`\`\`
 
    **For Complex Tasks (30-60 minutes):**
    \`\`\`bash
-   npx claude-flow swarm "${taskDescription}" --strategy <strategy> --parallel --monitor --review
+   npx claude-flow-novice swarm "${taskDescription}" --strategy <strategy> --parallel --monitor --review
    \`\`\`
 
    **For Long-Running Tasks (> 60 minutes):**
    \`\`\`bash
-   npx claude-flow swarm "${taskDescription}" --strategy <strategy> --background --monitor --testing
+   npx claude-flow-novice swarm "${taskDescription}" --strategy <strategy> --background --monitor --testing
    \`\`\`
 
    **For Enterprise Tasks (Multiple hours):**
    \`\`\`bash
-   npx claude-flow swarm "${taskDescription}" \\
+   npx claude-flow-novice swarm "${taskDescription}" \\
      --strategy <strategy> \\
      --mode distributed \\
      --max-agents 10 \\
@@ -355,28 +355,28 @@ export function getSwarmOrchestration(taskDescription, memoryNamespace) {
 7. **Real-Time Monitoring**
    \`\`\`bash
    # Monitor swarm progress
-   npx claude-flow monitor
+   npx claude-flow-novice monitor
    
    # Check specific swarm status
-   npx claude-flow status
+   npx claude-flow-novice status
    
    # View agent activities
-   npx claude-flow agent list
+   npx claude-flow-novice agent list
    \`\`\`
 
 8. **Cross-Agent Memory Sharing**
    \`\`\`bash
    # Store important findings for all agents
-   npx claude-flow memory store "${memoryNamespace}_findings" "key insights and decisions"
+   npx claude-flow-novice memory store "${memoryNamespace}_findings" "key insights and decisions"
    
    # Store progress updates
-   npx claude-flow memory store "${memoryNamespace}_progress" "current completion status"
+   npx claude-flow-novice memory store "${memoryNamespace}_progress" "current completion status"
    
    # Store blockers or issues
-   npx claude-flow memory store "${memoryNamespace}_blockers" "any impediments or questions"
+   npx claude-flow-novice memory store "${memoryNamespace}_blockers" "any impediments or questions"
    
    # Query shared knowledge
-   npx claude-flow memory query "${memoryNamespace}" --limit 10
+   npx claude-flow-novice memory query "${memoryNamespace}" --limit 10
    \`\`\`
 
 ### Phase 5: Results Integration (5-15 minutes)
@@ -389,10 +389,10 @@ export function getSwarmOrchestration(taskDescription, memoryNamespace) {
 10. **Memory Documentation**
     \`\`\`bash
     # Store final results
-    npx claude-flow memory store "${memoryNamespace}_final" "completed task summary and results"
+    npx claude-flow-novice memory store "${memoryNamespace}_final" "completed task summary and results"
     
     # Store lessons learned
-    npx claude-flow memory store "${memoryNamespace}_lessons" "insights for future similar tasks"
+    npx claude-flow-novice memory store "${memoryNamespace}_lessons" "insights for future similar tasks"
     \`\`\`
 
 ## 🎯 SWARM SUCCESS CRITERIA

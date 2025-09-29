@@ -66,7 +66,7 @@ function showConfigIntegrationHelp() {
   console.log('config-integration - Enhanced configuration management with ruv-swarm\\n');
 
   console.log('Usage:');
-  console.log('  claude-flow config-integration <command> [options]\\n');
+  console.log('  claude-flow-novice config-integration <command> [options]\\n');
 
   console.log('Commands:');
   console.log('  setup                      Initialize ruv-swarm integration');
@@ -83,11 +83,11 @@ function showConfigIntegrationHelp() {
   console.log('  production                 Optimized for production environments\\n');
 
   console.log('Examples:');
-  console.log('  claude-flow config-integration setup --enable-ruv-swarm');
-  console.log('  claude-flow config-integration preset development');
-  console.log('  claude-flow config-integration sync --force');
-  console.log('  claude-flow config-integration export my-config.json');
-  console.log('  claude-flow config-integration status --verbose');
+  console.log('  claude-flow-novice config-integration setup --enable-ruv-swarm');
+  console.log('  claude-flow-novice config-integration preset development');
+  console.log('  claude-flow-novice config-integration sync --force');
+  console.log('  claude-flow-novice config-integration export my-config.json');
+  console.log('  claude-flow-novice config-integration status --verbose');
 }
 
 /**

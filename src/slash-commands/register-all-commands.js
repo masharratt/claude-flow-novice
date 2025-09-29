@@ -3,7 +3,7 @@
 /**
  * Register All Slash Commands
  * 
- * Central registry for all claude-flow slash commands
+ * Central registry for all claude-flow-novice slash commands
  */
 
 import { ClaudeMdSlashCommand } from './claude-md.js';

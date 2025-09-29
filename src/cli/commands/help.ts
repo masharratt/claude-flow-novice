@@ -31,24 +31,24 @@ const HELP_TOPICS = [
     tutorial: [
       'Welcome to Claude-Flow! This tutorial will get you started.',
       '1. First, initialize a configuration file:',
-      '   claude-flow config init',
+      '   claude-flow-novice config init',
       '',
       '2. Start the orchestration system:',
-      '   claude-flow start',
+      '   claude-flow-novice start',
       '',
       '3. In another terminal, spawn your first agent:',
-      '   claude-flow agent spawn researcher --name "My Research Agent"',
+      '   claude-flow-novice agent spawn researcher --name "My Research Agent"',
       '',
       '4. Create a task for the agent:',
-      '   claude-flow task create research "Find information about AI trends"',
+      '   claude-flow-novice task create research "Find information about AI trends"',
       '',
       '5. Monitor progress:',
-      '   claude-flow status',
+      '   claude-flow-novice status',
       '',
       'You can also use the interactive REPL mode:',
-      '   claude-flow repl',
+      '   claude-flow-novice repl',
       '',
-      'For more help, try: claude-flow help <topic>',
+      'For more help, try: claude-flow-novice help <topic>',
     ],
     related: ['agents', 'tasks', 'configuration'],
   },
@@ -59,23 +59,23 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Spawn a research agent',
-        command: 'claude-flow agent spawn researcher --name "Research Assistant"',
+        command: 'claude-flow-novice agent spawn researcher --name "Research Assistant"',
         explanation:
           'Creates a new research agent with specialized capabilities for information gathering',
       },
       {
         description: 'List all active agents',
-        command: 'claude-flow agent list',
+        command: 'claude-flow-novice agent list',
         explanation: 'Shows all currently running agents with their status and task counts',
       },
       {
         description: 'Get detailed agent information',
-        command: 'claude-flow agent info agent-001',
+        command: 'claude-flow-novice agent info agent-001',
         explanation: 'Displays comprehensive information about a specific agent',
       },
       {
         description: 'Terminate an agent',
-        command: 'claude-flow agent terminate agent-001',
+        command: 'claude-flow-novice agent terminate agent-001',
         explanation: 'Safely shuts down an agent and reassigns its tasks',
       },
     ],
@@ -97,7 +97,7 @@ const HELP_TOPICS = [
       'Best Practices:',
       '• Use descriptive names for your agents',
       '• Match agent types to your workflow needs',
-      '• Monitor agent performance with "claude-flow status"',
+      '• Monitor agent performance with "claude-flow-novice status"',
       '• Terminate idle agents to free resources',
     ],
     related: ['tasks', 'workflows', 'coordination'],
@@ -109,28 +109,28 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Create a research task',
-        command: 'claude-flow task create research "Find papers on quantum computing" --priority 5',
+        command: 'claude-flow-novice task create research "Find papers on quantum computing" --priority 5',
         explanation: 'Creates a high-priority research task with specific instructions',
       },
       {
         description: 'Create a task with dependencies',
         command:
-          'claude-flow task create analysis "Analyze research results" --dependencies task-001',
+          'claude-flow-novice task create analysis "Analyze research results" --dependencies task-001',
         explanation: 'Creates a task that waits for task-001 to complete before starting',
       },
       {
         description: 'Assign task to specific agent',
-        command: 'claude-flow task create implementation "Write API client" --assign agent-003',
+        command: 'claude-flow-novice task create implementation "Write API client" --assign agent-003',
         explanation: 'Directly assigns a task to a specific agent',
       },
       {
         description: 'Monitor task progress',
-        command: 'claude-flow task status task-001',
+        command: 'claude-flow-novice task status task-001',
         explanation: 'Shows detailed status and progress information for a task',
       },
       {
         description: 'Cancel a running task',
-        command: 'claude-flow task cancel task-001 --reason "Requirements changed"',
+        command: 'claude-flow-novice task cancel task-001 --reason "Requirements changed"',
         explanation: 'Stops a task and provides a reason for cancellation',
       },
     ],
@@ -168,28 +168,28 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Spawn Claude with web research capabilities',
-        command: 'claude-flow claude spawn "implement user authentication" --research --parallel',
+        command: 'claude-flow-novice claude spawn "implement user authentication" --research --parallel',
         explanation:
           'Creates a Claude instance with WebFetchTool and BatchTool for parallel web research',
       },
       {
         description: 'Spawn Claude without permission prompts',
-        command: 'claude-flow claude spawn "fix payment bug" --no-permissions',
+        command: 'claude-flow-novice claude spawn "fix payment bug" --no-permissions',
         explanation: 'Runs Claude with --dangerously-skip-permissions flag to avoid interruptions',
       },
       {
         description: 'Spawn Claude with custom tools',
-        command: 'claude-flow claude spawn "analyze codebase" --tools "View,Edit,GrepTool,LS"',
+        command: 'claude-flow-novice claude spawn "analyze codebase" --tools "View,Edit,GrepTool,LS"',
         explanation: 'Specifies exactly which tools Claude can use for the task',
       },
       {
         description: 'Spawn Claude with test coverage target',
-        command: 'claude-flow claude spawn "write unit tests" --coverage 95 --commit feature',
+        command: 'claude-flow-novice claude spawn "write unit tests" --coverage 95 --commit feature',
         explanation: 'Sets test coverage goal to 95% and commits after each feature',
       },
       {
         description: 'Dry run to preview command',
-        command: 'claude-flow claude spawn "build API" --mode backend-only --dry-run',
+        command: 'claude-flow-novice claude spawn "build API" --mode backend-only --dry-run',
         explanation: 'Shows what would be executed without actually running Claude',
       },
     ],
@@ -230,27 +230,27 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Run a workflow from file',
-        command: 'claude-flow workflow run research-pipeline.json --watch',
+        command: 'claude-flow-novice workflow run research-pipeline.json --watch',
         explanation: 'Executes a workflow definition and monitors progress in real-time',
       },
       {
         description: 'Validate workflow before running',
-        command: 'claude-flow workflow validate my-workflow.json --strict',
+        command: 'claude-flow-novice workflow validate my-workflow.json --strict',
         explanation: 'Checks workflow syntax and dependencies without executing',
       },
       {
         description: 'Generate workflow template',
-        command: 'claude-flow workflow template research --output research-workflow.json',
+        command: 'claude-flow-novice workflow template research --output research-workflow.json',
         explanation: 'Creates a pre-configured workflow template for research tasks',
       },
       {
         description: 'Monitor running workflows',
-        command: 'claude-flow workflow list --all',
+        command: 'claude-flow-novice workflow list --all',
         explanation: 'Shows all workflows including completed ones',
       },
       {
         description: 'Stop a running workflow',
-        command: 'claude-flow workflow stop workflow-001 --force',
+        command: 'claude-flow-novice workflow stop workflow-001 --force',
         explanation: 'Immediately stops all tasks in a workflow',
       },
     ],
@@ -304,27 +304,27 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Initialize default configuration',
-        command: 'claude-flow config init --template development',
+        command: 'claude-flow-novice config init --template development',
         explanation: 'Creates a configuration file optimized for development',
       },
       {
         description: 'View current configuration',
-        command: 'claude-flow config show --diff',
+        command: 'claude-flow-novice config show --diff',
         explanation: 'Shows only settings that differ from defaults',
       },
       {
         description: 'Update a setting',
-        command: 'claude-flow config set orchestrator.maxConcurrentAgents 20',
+        command: 'claude-flow-novice config set orchestrator.maxConcurrentAgents 20',
         explanation: 'Changes the maximum number of concurrent agents',
       },
       {
         description: 'Save configuration profile',
-        command: 'claude-flow config profile save production',
+        command: 'claude-flow-novice config profile save production',
         explanation: 'Saves current settings as a named profile',
       },
       {
         description: 'Load configuration profile',
-        command: 'claude-flow config profile load development',
+        command: 'claude-flow-novice config profile load development',
         explanation: 'Switches to a previously saved configuration profile',
       },
     ],
@@ -370,22 +370,22 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Check system status',
-        command: 'claude-flow status --watch',
+        command: 'claude-flow-novice status --watch',
         explanation: 'Continuously monitors system health and updates every few seconds',
       },
       {
         description: 'Start monitoring dashboard',
-        command: 'claude-flow monitor --interval 5',
+        command: 'claude-flow-novice monitor --interval 5',
         explanation: 'Opens a live dashboard with real-time metrics and graphs',
       },
       {
         description: 'View component-specific status',
-        command: 'claude-flow status --component orchestrator',
+        command: 'claude-flow-novice status --component orchestrator',
         explanation: 'Shows detailed status for a specific system component',
       },
       {
         description: 'Monitor in compact mode',
-        command: 'claude-flow monitor --compact --no-graphs',
+        command: 'claude-flow-novice monitor --compact --no-graphs',
         explanation: 'Simplified monitoring view without visual graphs',
       },
     ],
@@ -427,27 +427,27 @@ const HELP_TOPICS = [
       {
         description: 'Save current session',
         command:
-          'claude-flow session save "Development Session" --description "Working on API integration"',
+          'claude-flow-novice session save "Development Session" --description "Working on API integration"',
         explanation: 'Saves all current agents, tasks, and memory state',
       },
       {
         description: 'List saved sessions',
-        command: 'claude-flow session list',
+        command: 'claude-flow-novice session list',
         explanation: 'Shows all saved sessions with creation dates and metadata',
       },
       {
         description: 'Restore a session',
-        command: 'claude-flow session restore session-001 --merge',
+        command: 'claude-flow-novice session restore session-001 --merge',
         explanation: 'Restores session state, merging with current state',
       },
       {
         description: 'Export session to file',
-        command: 'claude-flow session export session-001 backup.json --include-memory',
+        command: 'claude-flow-novice session export session-001 backup.json --include-memory',
         explanation: 'Creates a portable backup including agent memory',
       },
       {
         description: 'Clean up old sessions',
-        command: 'claude-flow session clean --older-than 30 --dry-run',
+        command: 'claude-flow-novice session clean --older-than 30 --dry-run',
         explanation: 'Shows what sessions would be deleted (older than 30 days)',
       },
     ],
@@ -489,17 +489,17 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Start REPL mode',
-        command: 'claude-flow repl',
+        command: 'claude-flow-novice repl',
         explanation: 'Opens interactive command line with tab completion',
       },
       {
         description: 'REPL with custom history file',
-        command: 'claude-flow repl --history-file .my-history',
+        command: 'claude-flow-novice repl --history-file .my-history',
         explanation: 'Uses a specific file for command history',
       },
       {
         description: 'Skip welcome banner',
-        command: 'claude-flow repl --no-banner',
+        command: 'claude-flow-novice repl --no-banner',
         explanation: 'Starts REPL in minimal mode',
       },
     ],
@@ -537,22 +537,22 @@ const HELP_TOPICS = [
     examples: [
       {
         description: 'Check system health',
-        command: 'claude-flow status --component all',
+        command: 'claude-flow-novice status --component all',
         explanation: 'Comprehensive health check of all components',
       },
       {
         description: 'Enable debug logging',
-        command: 'claude-flow start --log-level debug',
+        command: 'claude-flow-novice start --log-level debug',
         explanation: 'Start with verbose logging for debugging',
       },
       {
         description: 'Validate configuration',
-        command: 'claude-flow config validate claude-flow.config.json --strict',
+        command: 'claude-flow-novice config validate claude-flow.config.json --strict',
         explanation: 'Check configuration file for errors',
       },
       {
         description: 'Reset to defaults',
-        command: 'claude-flow config reset --confirm',
+        command: 'claude-flow-novice config reset --confirm',
         explanation: 'Restore default configuration settings',
       },
     ],
@@ -561,7 +561,7 @@ const HELP_TOPICS = [
       '',
       'Connection Issues:',
       '• Problem: "Connection refused" errors',
-      '• Solution: Ensure Claude-Flow is started with "claude-flow start"',
+      '• Solution: Ensure Claude-Flow is started with "claude-flow-novice start"',
       '• Check: MCP transport settings match between client and server',
       '',
       'Agent Issues:',
@@ -585,10 +585,10 @@ const HELP_TOPICS = [
       '• Check: Environment variable overrides',
       '',
       'Debug Commands:',
-      '• claude-flow status: System health check',
-      '• claude-flow config validate: Configuration check',
-      '• claude-flow --verbose: Enable detailed logging',
-      '• claude-flow monitor: Real-time diagnostics',
+      '• claude-flow-novice status: System health check',
+      '• claude-flow-novice config validate: Configuration check',
+      '• claude-flow-novice --verbose: Enable detailed logging',
+      '• claude-flow-novice monitor: Real-time diagnostics',
     ],
     related: ['monitoring', 'configuration', 'debugging'],
   },
@@ -598,9 +598,9 @@ function showMainHelp(): void {
   const mainHelp: CommandInfo = {
     name: 'claude-flow',
     description: 'Advanced AI agent orchestration system',
-    usage: `claude-flow <command> [<args>] [options]
-    claude-flow <command> --help
-    claude-flow --version`,
+    usage: `claude-flow-novice <command> [<args>] [options]
+    claude-flow-novice <command> --help
+    claude-flow-novice --version`,
     commands: [
       {
         name: 'hive-mind',
@@ -679,10 +679,10 @@ function showMainHelp(): void {
       },
     ],
     examples: [
-      'claude-flow init --sparc',
-      'claude-flow hive-mind wizard',
-      'claude-flow swarm "Build REST API"',
-      'claude-flow status --json',
+      'claude-flow-novice init --sparc',
+      'claude-flow-novice hive-mind wizard',
+      'claude-flow-novice swarm "Build REST API"',
+      'claude-flow-novice status --json',
     ],
   };
 
@@ -697,8 +697,8 @@ function showCommandHelp(command: string): void {
     console.error(
       HelpFormatter.formatError(
         `Unknown command: ${command}`,
-        'claude-flow help',
-        'claude-flow help [command]',
+        'claude-flow-novice help',
+        'claude-flow-novice help [command]',
       ),
     );
   }
@@ -707,9 +707,9 @@ function showCommandHelp(command: string): void {
 function getCommandHelp(command: string): CommandInfo | null {
   const commandHelpMap: Record<string, CommandInfo> = {
     'hive-mind': {
-      name: 'claude-flow hive-mind',
+      name: 'claude-flow-novice hive-mind',
       description: 'Manage hive mind swarm intelligence',
-      usage: 'claude-flow hive-mind <subcommand> [options]',
+      usage: 'claude-flow-novice hive-mind <subcommand> [options]',
       commands: [
         { name: 'init', description: 'Initialize hive mind system' },
         { name: 'spawn', description: 'Create intelligent swarm with objective' },
@@ -746,15 +746,15 @@ function getCommandHelp(command: string): CommandInfo | null {
         },
       ],
       examples: [
-        'claude-flow hive-mind spawn "Build REST API" --queen-type strategic',
-        'claude-flow hive-mind status --json',
-        'claude-flow hive-mind stop swarm-123',
+        'claude-flow-novice hive-mind spawn "Build REST API" --queen-type strategic',
+        'claude-flow-novice hive-mind status --json',
+        'claude-flow-novice hive-mind stop swarm-123',
       ],
     },
     agent: {
-      name: 'claude-flow agent',
+      name: 'claude-flow-novice agent',
       description: 'Manage individual agents',
-      usage: 'claude-flow agent <action> [options]',
+      usage: 'claude-flow-novice agent <action> [options]',
       commands: [
         { name: 'spawn', description: 'Create a new agent' },
         { name: 'list', description: 'List all active agents' },
@@ -781,9 +781,9 @@ function getCommandHelp(command: string): CommandInfo | null {
         },
       ],
       examples: [
-        'claude-flow agent spawn researcher --name "Research Bot"',
-        'claude-flow agent list --json',
-        'claude-flow agent terminate agent-123',
+        'claude-flow-novice agent spawn researcher --name "Research Bot"',
+        'claude-flow-novice agent list --json',
+        'claude-flow-novice agent terminate agent-123',
       ],
     },
   };
@@ -807,7 +807,7 @@ function showAllTopics(): void {
   console.log(table.toString());
 
   console.log();
-  console.log(chalk.gray('Use "claude-flow help <topic>" for detailed information.'));
+  console.log(chalk.gray('Use "claude-flow-novice help <topic>" for detailed information.'));
 }
 
 async function showTopicHelp(topicName: string, options: any): Promise<void> {
@@ -829,7 +829,7 @@ async function showTopicHelp(topicName: string, options: any): Promise<void> {
         console.log(chalk.cyan(`  ${suggestion.name}`));
       }
     } else {
-      console.log(chalk.gray('Use "claude-flow help --all" to see all topics.'));
+      console.log(chalk.gray('Use "claude-flow-novice help --all" to see all topics.'));
     }
     return;
   }
@@ -906,7 +906,7 @@ async function showTopicHelp(topicName: string, options: any): Promise<void> {
     console.log(chalk.yellow.bold('Related Topics:'));
     console.log('─'.repeat(20));
     for (const related of topic.related) {
-      console.log(chalk.cyan(`  claude-flow help ${related}`));
+      console.log(chalk.cyan(`  claude-flow-novice help ${related}`));
     }
     console.log();
   }

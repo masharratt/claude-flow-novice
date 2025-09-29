@@ -1,17 +1,17 @@
 # Go Development with Claude-Flow
 
-A comprehensive guide to Go development using claude-flow agents for accelerated development, testing, and deployment.
+A comprehensive guide to Go development using claude-flow-novice agents for accelerated development, testing, and deployment.
 
 ## 🚀 Quick Start
 
 ```bash
 # Initialize Go project with claude-flow
-npx claude-flow sparc run architect "Go microservice with REST API"
-npx claude-flow sparc tdd "user authentication service"
+npx claude-flow-novice sparc run architect "Go microservice with REST API"
+npx claude-flow-novice sparc tdd "user authentication service"
 
 # Or use MCP for complex coordination
-npx claude-flow mcp swarm_init --topology mesh --max-agents 5
-npx claude-flow mcp agent_spawn --type coder --capabilities go,rest-api,testing
+npx claude-flow-novice mcp swarm_init --topology mesh --max-agents 5
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities go,rest-api,testing
 ```
 
 ## 📚 Documentation Sections
@@ -88,24 +88,24 @@ npx claude-flow mcp agent_spawn --type coder --capabilities go,rest-api,testing
 ### REST API with Gin
 ```bash
 # Claude-flow assisted development
-npx claude-flow sparc run coder "Gin REST API with JWT authentication"
+npx claude-flow-novice sparc run coder "Gin REST API with JWT authentication"
 ```
 
 ### Concurrent Worker Pool
 ```bash
 # Systems programming patterns
-npx claude-flow sparc run architect "Go worker pool with rate limiting"
+npx claude-flow-novice sparc run architect "Go worker pool with rate limiting"
 ```
 
 ### Microservice with gRPC
 ```bash
 # Full microservice development
-npx claude-flow sparc pipeline "gRPC microservice with protobuf"
+npx claude-flow-novice sparc pipeline "gRPC microservice with protobuf"
 ```
 
 ## 🛡️ Best Practices
 
-1. **Leverage Go's Concurrency**: Use claude-flow agents to generate optimal goroutine patterns
+1. **Leverage Go's Concurrency**: Use claude-flow-novice agents to generate optimal goroutine patterns
 2. **Error Handling**: Implement comprehensive error handling with agent assistance
 3. **Testing First**: Use TDD workflows with automated test generation
 4. **Performance Focus**: Regular profiling and optimization with performance agents
@@ -113,7 +113,7 @@ npx claude-flow sparc pipeline "gRPC microservice with protobuf"
 
 ## 📈 Performance Metrics
 
-When using claude-flow with Go projects:
+When using claude-flow-novice with Go projects:
 - **Development Speed**: 2.8-4.4x faster
 - **Code Quality**: Improved error handling and testing
 - **Deployment**: Automated CI/CD pipeline generation

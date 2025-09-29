@@ -337,10 +337,10 @@ export const fixHookVariablesCommandConfig = {
     { flag: '--test', description: 'Create test hook configuration' },
   ],
   examples: [
-    'claude-flow fix-hook-variables',
-    'claude-flow fix-hook-variables .claude/settings.json',
-    'claude-flow fix-hook-variables --syntax wrapper',
-    'claude-flow fix-hook-variables --test',
+    'claude-flow-novice fix-hook-variables',
+    'claude-flow-novice fix-hook-variables .claude/settings.json',
+    'claude-flow-novice fix-hook-variables --syntax wrapper',
+    'claude-flow-novice fix-hook-variables --test',
   ],
   details: `
 Fixes the \${file} and \${command} variable interpolation issue in Claude Code hooks.

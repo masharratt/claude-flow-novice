@@ -1,6 +1,6 @@
 # Dual Access Workflows
 
-Seamless integration between CLI and MCP access methods for claude-flow projects, enabling flexible development workflows.
+Seamless integration between CLI and MCP access methods for claude-flow-novice projects, enabling flexible development workflows.
 
 ## 🔄 Overview
 

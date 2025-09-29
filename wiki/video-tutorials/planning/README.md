@@ -4,7 +4,7 @@
 
 ## 🎯 Planning Overview
 
-Effective video tutorials start with thorough planning. This guide provides frameworks, templates, and best practices for creating structured, engaging content that helps viewers learn claude-flow efficiently.
+Effective video tutorials start with thorough planning. This guide provides frameworks, templates, and best practices for creating structured, engaging content that helps viewers learn claude-flow-novice efficiently.
 
 ## 📅 Planning Process
 
@@ -32,7 +32,7 @@ Effective video tutorials start with thorough planning. This guide provides fram
 
 **Example:**
 "After watching this 10-minute tutorial, viewers will be able to 
-set up their first claude-flow swarm, spawn 3 different agent types, 
+set up their first claude-flow-novice swarm, spawn 3 different agent types, 
 and execute a basic development workflow with 80% accuracy on their first attempt."
 ```
 
@@ -210,7 +210,7 @@ Visuals: [Summary screen with links]
    - Current workarounds and limitations
 
 2. **Solution Overview** (1 min)
-   - How claude-flow solves this
+   - How claude-flow-novice solves this
    - Key benefits and advantages
    - Preview of final result
 
@@ -372,7 +372,7 @@ Visuals: [Summary screen with links]
 **Scene 1: Welcome & Overview**
 - **Timestamp:** 0:00 - 0:30
 - **Duration:** 30 seconds
-- **Audio:** "Welcome to claude-flow tutorial series. Today we'll build your first multi-agent swarm in under 10 minutes."
+- **Audio:** "Welcome to claude-flow-novice tutorial series. Today we'll build your first multi-agent swarm in under 10 minutes."
 - **Visual:** Branded intro screen → Desktop with terminal
 - **Actions:** None (intro only)
 - **Annotations:** Tutorial title, duration, difficulty level

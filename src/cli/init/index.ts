@@ -48,13 +48,13 @@ export async function initCommand(options: InitOptions = {}) {
     console.log('   📖 Created detailed usage examples with orchestration');
 
     console.log('\n   Next steps:');
-    console.log('   1. Run "claude-flow swarm --help" to see swarm options');
+    console.log('   1. Run "claude-flow-novice swarm --help" to see swarm options');
     console.log('   2. Check .claude/commands/swarm/ for detailed documentation');
     console.log('   3. Review batch tools guide for orchestration patterns');
-    console.log('   4. Run "claude-flow help" for all available commands');
+    console.log('   4. Run "claude-flow-novice help" for all available commands');
 
     if (options.sparc) {
-      console.log('   5. Run "claude-flow sparc modes" to see available SPARC modes');
+      console.log('   5. Run "claude-flow-novice sparc modes" to see available SPARC modes');
       console.log('   6. Use TodoWrite/TodoRead for task coordination');
       console.log('   7. Use Task tool for parallel agent execution');
     }

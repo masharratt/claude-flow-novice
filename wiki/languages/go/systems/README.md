@@ -1,13 +1,13 @@
 # Systems Programming and Concurrency with Go and Claude-Flow
 
-Master Go's concurrent programming patterns and systems-level development with claude-flow assistance.
+Master Go's concurrent programming patterns and systems-level development with claude-flow-novice assistance.
 
 ## 🧵 Concurrency Fundamentals
 
 ### Goroutines and Channels
 ```bash
 # Generate concurrent programming examples
-npx claude-flow sparc run architect "Go concurrency patterns with goroutines and channels"
+npx claude-flow-novice sparc run architect "Go concurrency patterns with goroutines and channels"
 ```
 
 **Generated Concurrency Patterns:**
@@ -395,7 +395,7 @@ func (b *Bulkhead) Release(resource string) error {
 ### Memory Management and Optimization
 ```bash
 # Generate memory-efficient patterns
-npx claude-flow sparc run perf-analyzer "Go memory optimization patterns and techniques"
+npx claude-flow-novice sparc run perf-analyzer "Go memory optimization patterns and techniques"
 ```
 
 **Generated Memory Management Code:**
@@ -714,7 +714,7 @@ func (sw *StreamWriter) Close() error {
 ### TCP/UDP Servers and Clients
 ```bash
 # Generate network programming examples
-npx claude-flow sparc run architect "Go network programming with TCP and UDP servers"
+npx claude-flow-novice sparc run architect "Go network programming with TCP and UDP servers"
 ```
 
 **Generated Network Code:**
@@ -915,7 +915,7 @@ func (p *ConnectionPool) Close() {
 ### Race Detection and Testing
 ```bash
 # Generate concurrent testing examples
-npx claude-flow sparc run tester "Go concurrent code testing with race detection"
+npx claude-flow-novice sparc run tester "Go concurrent code testing with race detection"
 ```
 
 **Generated Test Code:**
@@ -1080,19 +1080,19 @@ func TestConcurrencyProperties(t *testing.T) {
 
 ```bash
 # Generate concurrent system
-npx claude-flow sparc run architect "concurrent file processing system with worker pools"
+npx claude-flow-novice sparc run architect "concurrent file processing system with worker pools"
 
 # Optimize performance
-npx claude-flow sparc run perf-analyzer "optimize goroutine usage and memory allocation"
+npx claude-flow-novice sparc run perf-analyzer "optimize goroutine usage and memory allocation"
 
 # Add monitoring
-npx claude-flow sparc run coder "add metrics and monitoring for concurrent operations"
+npx claude-flow-novice sparc run coder "add metrics and monitoring for concurrent operations"
 
 # Security review
-npx claude-flow sparc run security-auditor "review concurrent code for race conditions"
+npx claude-flow-novice sparc run security-auditor "review concurrent code for race conditions"
 
 # Generate benchmarks
-npx claude-flow sparc run tester "create benchmarks for concurrent operations"
+npx claude-flow-novice sparc run tester "create benchmarks for concurrent operations"
 ```
 
 ## 📈 Performance Considerations

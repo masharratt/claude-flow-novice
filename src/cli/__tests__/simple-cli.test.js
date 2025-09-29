@@ -61,7 +61,7 @@ describe('Claude-Flow CLI', () => {
       const output = consoleLogSpy.mock.calls.join('\n');
       expect(output).toContain('Claude-Flow v2.0.0');
       expect(output).toContain('USAGE:');
-      expect(output).toContain('claude-flow <command> [options]');
+      expect(output).toContain('claude-flow-novice <command> [options]');
     });
 
     test('should show help for --help flag', async () => {

@@ -667,8 +667,8 @@ mcp__claude-flow__daa_workflow_execute({
 
 ### MCP Server Configuration
 ```bash
-# Add claude-flow MCP server to Claude Code
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Add claude-flow-novice MCP server to Claude Code
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Optional: Enhanced coordination features
 claude mcp add ruv-swarm npx ruv-swarm mcp start
@@ -699,7 +699,7 @@ claude mcp logs claude-flow
 
 # Remove and re-add server
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 ```
 
 ---
@@ -1511,7 +1511,7 @@ claude mcp restart claude-flow
 
 # Reinstall if needed
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Check for port conflicts
 lsof -i :8080  # Default MCP port

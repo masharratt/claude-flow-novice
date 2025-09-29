@@ -115,7 +115,7 @@ Accessible video content ensures that all learners can effectively engage with t
    WEBVTT
    
    00:00:00.000 --> 00:00:03.500
-   Welcome to claude-flow tutorial series.
+   Welcome to claude-flow-novice tutorial series.
    
    00:00:03.500 --> 00:00:07.200
    Today we'll learn how to set up
@@ -243,7 +243,7 @@ const getCaptions = async (jobId) => {
 Narrator: "The instructor opens a terminal window with a black background."
 [Pause for typing sounds]
 Narrator: "A command prompt appears with a dollar sign."
-Instructor: "Now let's install claude-flow by typing npm install..."
+Instructor: "Now let's install claude-flow-novice by typing npm install..."
 Narrator: "Green text appears showing successful installation."
 ```
 
@@ -651,7 +651,7 @@ document.querySelectorAll('video').forEach(video => {
   </video>
   
   <div id="video-description" class="sr-only">
-    Tutorial video: Setting up claude-flow development environment. 
+    Tutorial video: Setting up claude-flow-novice development environment. 
     Use space to play/pause, arrow keys to seek and adjust volume, 
     M to mute, F for fullscreen, C for captions.
   </div>
@@ -805,7 +805,7 @@ document.querySelectorAll('video').forEach(video => {
           <div class="transcript" role="document">
             <p>
               <span class="timestamp" aria-label="0 minutes 0 seconds">[00:00]</span>
-              Welcome to the claude-flow tutorial series. 
+              Welcome to the claude-flow-novice tutorial series. 
               I'm your instructor, and today we'll set up your development environment.
             </p>
             <p>

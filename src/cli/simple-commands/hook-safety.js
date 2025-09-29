@@ -587,7 +587,7 @@ function showHookSafetyHelp() {
 🛡️  Hook Safety System - Prevent Infinite Loops & Financial Damage
 
 USAGE:
-  claude-flow hook-safety <command> [options]
+  claude-flow-novice hook-safety <command> [options]
 
 COMMANDS:
   validate      Validate hook configuration for dangerous patterns
@@ -603,22 +603,22 @@ SAFE-MODE OPTIONS:
 
 EXAMPLES:
   # Check your Claude Code hooks for dangerous patterns
-  claude-flow hook-safety validate
+  claude-flow-novice hook-safety validate
 
   # Check specific configuration file
-  claude-flow hook-safety validate --config ~/.claude/settings.json
+  claude-flow-novice hook-safety validate --config ~/.claude/settings.json
 
   # View current safety status
-  claude-flow hook-safety status
+  claude-flow-novice hook-safety status
 
   # Reset if circuit breaker is triggered
-  claude-flow hook-safety reset
+  claude-flow-novice hook-safety reset
 
   # Enable safe mode (skips all hooks)
-  claude-flow hook-safety safe-mode
+  claude-flow-novice hook-safety safe-mode
 
   # Disable safe mode
-  claude-flow hook-safety safe-mode --disable
+  claude-flow-novice hook-safety safe-mode --disable
 
 🚨 CRITICAL WARNING:
 Stop hooks that call 'claude' commands create INFINITE LOOPS that can:

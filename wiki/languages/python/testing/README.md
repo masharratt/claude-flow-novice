@@ -1,6 +1,6 @@
 # Python Testing with Claude-Flow
 
-Comprehensive guide to Python testing strategies, automation, and continuous integration using claude-flow orchestration for robust, reliable applications.
+Comprehensive guide to Python testing strategies, automation, and continuous integration using claude-flow-novice orchestration for robust, reliable applications.
 
 ## 🧪 Testing Overview
 
@@ -143,9 +143,9 @@ def test_user(test_db_session, sample_user_data):
     test_db_session.refresh(user)
     return user
 
-# Notification helpers for claude-flow integration
+# Notification helpers for claude-flow-novice integration
 def notify_test_progress(message):
-    """Notify claude-flow of test progress."""
+    """Notify claude-flow-novice of test progress."""
     try:
         import subprocess
         subprocess.run([

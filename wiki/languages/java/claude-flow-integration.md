@@ -11,20 +11,20 @@ This comprehensive guide covers integrating Claude Flow's AI agent orchestration
 npm install -g claude-flow@alpha
 
 # Initialize Java project with agents
-npx claude-flow sparc run architect "Design enterprise Java application with Spring Boot"
+npx claude-flow-novice sparc run architect "Design enterprise Java application with Spring Boot"
 
 # Generate comprehensive code
-npx claude-flow sparc batch coder,tester,reviewer "Build Java microservices with tests"
+npx claude-flow-novice sparc batch coder,tester,reviewer "Build Java microservices with tests"
 ```
 
 ### MCP Integration
 
 ```bash
 # Add Claude Flow MCP server
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Initialize development swarm
-npx claude-flow mcp swarm_init --topology mesh --max-agents 8
+npx claude-flow-novice mcp swarm_init --topology mesh --max-agents 8
 ```
 
 ## Java Development Agents
@@ -33,35 +33,35 @@ npx claude-flow mcp swarm_init --topology mesh --max-agents 8
 
 ```bash
 # Backend Development Agent
-npx claude-flow sparc run backend-dev "Create Spring Boot REST API with JPA"
+npx claude-flow-novice sparc run backend-dev "Create Spring Boot REST API with JPA"
 
 # Database Architect Agent
-npx claude-flow sparc run code-analyzer "Design PostgreSQL schema with JPA entities"
+npx claude-flow-novice sparc run code-analyzer "Design PostgreSQL schema with JPA entities"
 
 # Testing Engineer Agent
-npx claude-flow sparc run tester "Generate comprehensive test suite with 90% coverage"
+npx claude-flow-novice sparc run tester "Generate comprehensive test suite with 90% coverage"
 
 # Performance Analyst Agent
-npx claude-flow sparc run perf-analyzer "Optimize JVM settings and database queries"
+npx claude-flow-novice sparc run perf-analyzer "Optimize JVM settings and database queries"
 
 # Security Reviewer Agent
-npx claude-flow sparc run reviewer "Implement security best practices and audit code"
+npx claude-flow-novice sparc run reviewer "Implement security best practices and audit code"
 ```
 
 ### 2. Enterprise Specialists
 
 ```bash
 # Enterprise Architect
-npx claude-flow sparc run system-architect "Design microservices architecture with Spring Cloud"
+npx claude-flow-novice sparc run system-architect "Design microservices architecture with Spring Cloud"
 
 # API Documentation Agent
-npx claude-flow sparc run api-docs "Generate OpenAPI documentation with examples"
+npx claude-flow-novice sparc run api-docs "Generate OpenAPI documentation with examples"
 
 # DevOps Engineer
-npx claude-flow sparc run cicd-engineer "Create CI/CD pipeline with Docker and Kubernetes"
+npx claude-flow-novice sparc run cicd-engineer "Create CI/CD pipeline with Docker and Kubernetes"
 
 # Migration Planner
-npx claude-flow sparc run migration-planner "Plan migration from monolith to microservices"
+npx claude-flow-novice sparc run migration-planner "Plan migration from monolith to microservices"
 ```
 
 ## Automated Code Generation
@@ -93,7 +93,7 @@ public class UserServiceApplication {
 }
 
 // Generated with Claude Flow command:
-// npx claude-flow sparc run coder "Create Spring Boot application with security, JPA, and Eureka client"
+// npx claude-flow-novice sparc run coder "Create Spring Boot application with security, JPA, and Eureka client"
 ```
 
 ### 2. Entity and Repository Generation
@@ -173,7 +173,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create User entity with JPA annotations and repository with custom queries"
+// npx claude-flow-novice sparc run coder "Create User entity with JPA annotations and repository with custom queries"
 ```
 
 ### 3. Service Layer Generation
@@ -274,7 +274,7 @@ public class UserService {
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create UserService with transactions, caching, validation, and event publishing"
+// npx claude-flow-novice sparc run coder "Create UserService with transactions, caching, validation, and event publishing"
 ```
 
 ## Test Generation and Automation
@@ -422,7 +422,7 @@ class UserServiceTest {
 }
 
 // Generated with:
-// npx claude-flow sparc run tester "Generate comprehensive unit tests for UserService with 90% coverage"
+// npx claude-flow-novice sparc run tester "Generate comprehensive unit tests for UserService with 90% coverage"
 ```
 
 ### 2. Integration Test Generation
@@ -530,7 +530,7 @@ class UserServiceIntegrationTest {
 }
 
 // Generated with:
-// npx claude-flow sparc run tester "Create integration tests with TestContainers for complete user workflow"
+// npx claude-flow-novice sparc run tester "Create integration tests with TestContainers for complete user workflow"
 ```
 
 ## Performance Optimization with Agents
@@ -539,7 +539,7 @@ class UserServiceIntegrationTest {
 
 ```bash
 # Analyze and optimize JVM settings
-npx claude-flow sparc run perf-analyzer "Analyze JVM performance and generate optimized settings for production workload"
+npx claude-flow-novice sparc run perf-analyzer "Analyze JVM performance and generate optimized settings for production workload"
 
 # Generated JVM configuration
 #!/bin/bash
@@ -639,7 +639,7 @@ public class DatabasePerformanceConfig {
 }
 
 // Generated with:
-// npx claude-flow sparc run perf-analyzer "Optimize database connection pool and JPA settings for high-throughput application"
+// npx claude-flow-novice sparc run perf-analyzer "Optimize database connection pool and JPA settings for high-throughput application"
 ```
 
 ## CI/CD Pipeline Generation
@@ -782,7 +782,7 @@ jobs:
         # Add smoke test commands here
 
 # Generated with:
-# npx claude-flow sparc run cicd-engineer "Create comprehensive CI/CD pipeline for Java enterprise application"
+# npx claude-flow-novice sparc run cicd-engineer "Create comprehensive CI/CD pipeline for Java enterprise application"
 ```
 
 ### 2. Kubernetes Deployment
@@ -900,7 +900,7 @@ spec:
               number: 80
 
 # Generated with:
-# npx claude-flow sparc run architect "Create production-ready Kubernetes deployment for Java microservice"
+# npx claude-flow-novice sparc run architect "Create production-ready Kubernetes deployment for Java microservice"
 ```
 
 ## Monitoring and Observability Integration
@@ -970,7 +970,7 @@ public class BusinessMetrics {
 }
 
 // Generated with:
-// npx claude-flow sparc run monitor "Create comprehensive monitoring with business and technical metrics"
+// npx claude-flow-novice sparc run monitor "Create comprehensive monitoring with business and technical metrics"
 ```
 
 ### 2. Distributed Tracing
@@ -1037,7 +1037,7 @@ public class CustomTracing {
 }
 
 // Generated with:
-// npx claude-flow sparc run monitor "Add distributed tracing with custom spans for business operations"
+// npx claude-flow-novice sparc run monitor "Add distributed tracing with custom spans for business operations"
 ```
 
 ## Advanced Agent Workflows
@@ -1046,45 +1046,45 @@ public class CustomTracing {
 
 ```bash
 # Coordinate multiple services development
-npx claude-flow mcp swarm_init --topology hierarchical --max-agents 15
+npx claude-flow-novice mcp swarm_init --topology hierarchical --max-agents 15
 
 # Spawn service-specific agents
-npx claude-flow mcp agent_spawn --type coder --capabilities "user-service,spring-boot"
-npx claude-flow mcp agent_spawn --type coder --capabilities "order-service,spring-boot"
-npx claude-flow mcp agent_spawn --type coder --capabilities "notification-service,quarkus"
-npx claude-flow mcp agent_spawn --type coder --capabilities "api-gateway,spring-cloud-gateway"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "user-service,spring-boot"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "order-service,spring-boot"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "notification-service,quarkus"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "api-gateway,spring-cloud-gateway"
 
 # Infrastructure agents
-npx claude-flow mcp agent_spawn --type architect --capabilities "service-discovery,eureka"
-npx claude-flow mcp agent_spawn --type architect --capabilities "configuration-management,spring-cloud-config"
-npx claude-flow mcp agent_spawn --type architect --capabilities "kubernetes,helm,istio"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "service-discovery,eureka"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "configuration-management,spring-cloud-config"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "kubernetes,helm,istio"
 
 # Cross-cutting concerns agents
-npx claude-flow mcp agent_spawn --type reviewer --capabilities "security,oauth2,jwt"
-npx claude-flow mcp agent_spawn --type tester --capabilities "contract-testing,integration-testing"
-npx claude-flow mcp agent_spawn --type monitor --capabilities "observability,prometheus,grafana"
+npx claude-flow-novice mcp agent_spawn --type reviewer --capabilities "security,oauth2,jwt"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "contract-testing,integration-testing"
+npx claude-flow-novice mcp agent_spawn --type monitor --capabilities "observability,prometheus,grafana"
 
 # Orchestrate microservices development
-npx claude-flow mcp task_orchestrate --task "Build complete microservices ecosystem with Spring Cloud" --strategy hierarchical --priority high
+npx claude-flow-novice mcp task_orchestrate --task "Build complete microservices ecosystem with Spring Cloud" --strategy hierarchical --priority high
 ```
 
 ### 2. Continuous Improvement Workflow
 
 ```bash
 # Performance optimization cycle
-npx claude-flow sparc run perf-analyzer "Analyze production metrics and identify performance bottlenecks"
+npx claude-flow-novice sparc run perf-analyzer "Analyze production metrics and identify performance bottlenecks"
 
 # Security audit cycle
-npx claude-flow sparc run reviewer "Perform comprehensive security audit and generate remediation plan"
+npx claude-flow-novice sparc run reviewer "Perform comprehensive security audit and generate remediation plan"
 
 # Code quality improvement
-npx claude-flow sparc batch reviewer,coder "Analyze code quality metrics and implement improvements"
+npx claude-flow-novice sparc batch reviewer,coder "Analyze code quality metrics and implement improvements"
 
 # Test coverage enhancement
-npx claude-flow sparc run tester "Analyze test coverage gaps and generate missing tests"
+npx claude-flow-novice sparc run tester "Analyze test coverage gaps and generate missing tests"
 
 # Documentation updates
-npx claude-flow sparc run api-docs "Update API documentation based on latest code changes"
+npx claude-flow-novice sparc run api-docs "Update API documentation based on latest code changes"
 ```
 
 ## Best Practices for Agent Coordination
@@ -1093,14 +1093,14 @@ npx claude-flow sparc run api-docs "Update API documentation based on latest cod
 
 ```bash
 # Use memory for agent coordination
-npx claude-flow hooks session-start --session-id "microservices-dev-$(date +%s)"
+npx claude-flow-novice hooks session-start --session-id "microservices-dev-$(date +%s)"
 
 # Agents store decisions and artifacts
-npx claude-flow hooks post-edit --file "src/main/java/User.java" --memory-key "entities/user"
-npx claude-flow hooks post-edit --file "src/test/java/UserTest.java" --memory-key "tests/user"
+npx claude-flow-novice hooks post-edit --file "src/main/java/User.java" --memory-key "entities/user"
+npx claude-flow-novice hooks post-edit --file "src/test/java/UserTest.java" --memory-key "tests/user"
 
 # Agents retrieve context from previous work
-npx claude-flow hooks session-restore --session-id "microservices-dev-123456"
+npx claude-flow-novice hooks session-restore --session-id "microservices-dev-123456"
 ```
 
 ### 2. Quality Gates
@@ -1134,20 +1134,20 @@ public class QualityGateService {
 }
 
 // Generated with:
-// npx claude-flow sparc run reviewer "Create automated quality gates for continuous integration"
+// npx claude-flow-novice sparc run reviewer "Create automated quality gates for continuous integration"
 ```
 
 ### 3. Rollback and Recovery
 
 ```bash
 # Automated rollback procedures
-npx claude-flow sparc run cicd-engineer "Create automated rollback procedures for failed deployments"
+npx claude-flow-novice sparc run cicd-engineer "Create automated rollback procedures for failed deployments"
 
 # Health check monitoring
-npx claude-flow sparc run monitor "Implement comprehensive health checks with automatic recovery"
+npx claude-flow-novice sparc run monitor "Implement comprehensive health checks with automatic recovery"
 
 # Disaster recovery planning
-npx claude-flow sparc run architect "Design disaster recovery procedures for microservices architecture"
+npx claude-flow-novice sparc run architect "Design disaster recovery procedures for microservices architecture"
 ```
 
 ## Integration with External Tools

@@ -5,7 +5,7 @@ Execute predefined pipelines for common development workflows.
 ## Usage
 
 ```bash
-claude-flow stream-chain pipeline <type> [options]
+claude-flow-novice stream-chain pipeline <type> [options]
 ```
 
 ## Available Pipelines
@@ -14,7 +14,7 @@ claude-flow stream-chain pipeline <type> [options]
 Code analysis and improvement pipeline.
 
 ```bash
-claude-flow stream-chain pipeline analysis
+claude-flow-novice stream-chain pipeline analysis
 ```
 
 **Steps:**
@@ -26,7 +26,7 @@ claude-flow stream-chain pipeline analysis
 Automated refactoring workflow.
 
 ```bash
-claude-flow stream-chain pipeline refactor
+claude-flow-novice stream-chain pipeline refactor
 ```
 
 **Steps:**
@@ -38,7 +38,7 @@ claude-flow stream-chain pipeline refactor
 Comprehensive test generation.
 
 ```bash
-claude-flow stream-chain pipeline test
+claude-flow-novice stream-chain pipeline test
 ```
 
 **Steps:**
@@ -50,7 +50,7 @@ claude-flow stream-chain pipeline test
 Performance optimization pipeline.
 
 ```bash
-claude-flow stream-chain pipeline optimize
+claude-flow-novice stream-chain pipeline optimize
 ```
 
 **Steps:**
@@ -68,22 +68,22 @@ claude-flow stream-chain pipeline optimize
 
 ### Run Analysis Pipeline
 ```bash
-claude-flow stream-chain pipeline analysis
+claude-flow-novice stream-chain pipeline analysis
 ```
 
 ### Refactor with Extended Timeout
 ```bash
-claude-flow stream-chain pipeline refactor --timeout 60
+claude-flow-novice stream-chain pipeline refactor --timeout 60
 ```
 
 ### Verbose Test Generation
 ```bash
-claude-flow stream-chain pipeline test --verbose
+claude-flow-novice stream-chain pipeline test --verbose
 ```
 
 ### Performance Optimization
 ```bash
-claude-flow stream-chain pipeline optimize --debug
+claude-flow-novice stream-chain pipeline optimize --debug
 ```
 
 ## Output
@@ -117,5 +117,5 @@ Define custom pipelines in `.claude-flow/config.json`:
 
 Then run:
 ```bash
-claude-flow stream-chain pipeline security
+claude-flow-novice stream-chain pipeline security
 ```

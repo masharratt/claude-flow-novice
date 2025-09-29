@@ -39,10 +39,10 @@ This assessment framework helps you:
 
 **Question 1 (2 points): Basic Commands**
 Which command initializes a new Claude Flow project?
-- a) `npx claude-flow create`
+- a) `npx claude-flow-novice create`
 - b) `npx claude-flow@latest init`
-- c) `npx claude-flow new-project`
-- d) `npx claude-flow setup`
+- c) `npx claude-flow-novice new-project`
+- d) `npx claude-flow-novice setup`
 
 **Question 2 (2 points): Agent Types**
 What are the main types of agents in Claude Flow?

@@ -12,7 +12,7 @@ export async function goalCommand(args, flags) {
 
   if (!subcommand) {
     console.log(chalk.magenta('🎯 Claude Flow Goal Module'));
-    console.log('\nUsage: claude-flow goal <command> [options]');
+    console.log('\nUsage: claude-flow-novice goal <command> [options]');
     console.log('\nCommands:');
     console.log('  init    Initialize GOAP goal module');
     console.log('\nOptions:');

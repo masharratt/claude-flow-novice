@@ -120,11 +120,11 @@ SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) is a sys
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                    USER INTERFACE                               │   │
 │  │                                                                 │   │
-│  │   npx claude-flow sparc modes        ──► List available modes  │   │
-│  │   npx claude-flow sparc run <mode>   ──► Execute specific mode │   │
-│  │   npx claude-flow sparc tdd          ──► Complete TDD workflow │   │
-│  │   npx claude-flow sparc batch        ──► Parallel execution   │   │
-│  │   npx claude-flow sparc pipeline     ──► Full pipeline        │   │
+│  │   npx claude-flow-novice sparc modes        ──► List available modes  │   │
+│  │   npx claude-flow-novice sparc run <mode>   ──► Execute specific mode │   │
+│  │   npx claude-flow-novice sparc tdd          ──► Complete TDD workflow │   │
+│  │   npx claude-flow-novice sparc batch        ──► Parallel execution   │   │
+│  │   npx claude-flow-novice sparc pipeline     ──► Full pipeline        │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                    │                                    │
 │                                    ▼                                    │

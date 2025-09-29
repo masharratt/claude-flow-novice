@@ -21,7 +21,7 @@ public class EcommerceApplication {
 
 ```bash
 # Generate complete e-commerce system
-npx claude-flow sparc batch architect,coder,tester "Build e-commerce platform with Spring Boot, React, and PostgreSQL"
+npx claude-flow-novice sparc batch architect,coder,tester "Build e-commerce platform with Spring Boot, React, and PostgreSQL"
 ```
 
 ## Enterprise E-Commerce Platform
@@ -284,7 +284,7 @@ public class UserController {
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create comprehensive user service with authentication, authorization, and profile management"
+// npx claude-flow-novice sparc run coder "Create comprehensive user service with authentication, authorization, and profile management"
 ```
 
 ### 3. Product Service with Search Integration
@@ -495,7 +495,7 @@ public class ProductService {
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create product service with Elasticsearch search, Redis caching, and recommendations"
+// npx claude-flow-novice sparc run coder "Create product service with Elasticsearch search, Redis caching, and recommendations"
 ```
 
 ### 4. Order Service with Saga Pattern
@@ -769,7 +769,7 @@ public class OrderSagaOrchestrator {
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create order service with saga pattern for distributed transactions"
+// npx claude-flow-novice sparc run coder "Create order service with saga pattern for distributed transactions"
 ```
 
 ## Integration with External Systems
@@ -924,7 +924,7 @@ public class PaymentService {
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create payment service with multiple providers and secure processing"
+// npx claude-flow-novice sparc run coder "Create payment service with multiple providers and secure processing"
 ```
 
 ### 2. Email Service Integration
@@ -1023,7 +1023,7 @@ public class EmailConfigurationProperties {
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create email service with template support and async processing"
+// npx claude-flow-novice sparc run coder "Create email service with template support and async processing"
 ```
 
 ### 3. File Storage Integration
@@ -1187,7 +1187,7 @@ public class FileStorageService {
 }
 
 // Generated with:
-// npx claude-flow sparc run coder "Create file storage service with AWS S3 and local storage support"
+// npx claude-flow-novice sparc run coder "Create file storage service with AWS S3 and local storage support"
 ```
 
 ## Monitoring and Observability Integration
@@ -1309,7 +1309,7 @@ public class EcommerceHealthIndicator implements HealthIndicator {
 }
 
 // Generated with:
-// npx claude-flow sparc run monitor "Create comprehensive metrics and health checks for e-commerce platform"
+// npx claude-flow-novice sparc run monitor "Create comprehensive metrics and health checks for e-commerce platform"
 ```
 
 ## Docker and Kubernetes Integration
@@ -1471,7 +1471,7 @@ volumes:
   grafana_data:
 
 # Generated with:
-# npx claude-flow sparc run architect "Create comprehensive Docker Compose setup for e-commerce development"
+# npx claude-flow-novice sparc run architect "Create comprehensive Docker Compose setup for e-commerce development"
 ```
 
 ### 2. Kubernetes Production Deployment
@@ -1624,7 +1624,7 @@ spec:
         averageUtilization: 80
 
 # Generated with:
-# npx claude-flow sparc run architect "Create production Kubernetes manifests with auto-scaling"
+# npx claude-flow-novice sparc run architect "Create production Kubernetes manifests with auto-scaling"
 ```
 
 ## Claude Flow Integration Examples
@@ -1639,37 +1639,37 @@ spec:
 echo "Starting e-commerce platform development with Claude Flow..."
 
 # Initialize project structure
-npx claude-flow sparc run architect "Design complete e-commerce microservices architecture"
+npx claude-flow-novice sparc run architect "Design complete e-commerce microservices architecture"
 
 # Generate core services in parallel
-npx claude-flow sparc batch coder,tester "Create user service with authentication and profile management" &
-npx claude-flow sparc batch coder,tester "Create product service with search and inventory management" &
-npx claude-flow sparc batch coder,tester "Create order service with payment processing and fulfillment" &
-npx claude-flow sparc batch coder,tester "Create notification service with email and SMS capabilities" &
+npx claude-flow-novice sparc batch coder,tester "Create user service with authentication and profile management" &
+npx claude-flow-novice sparc batch coder,tester "Create product service with search and inventory management" &
+npx claude-flow-novice sparc batch coder,tester "Create order service with payment processing and fulfillment" &
+npx claude-flow-novice sparc batch coder,tester "Create notification service with email and SMS capabilities" &
 
 # Wait for core services
 wait
 
 # Generate infrastructure components
-npx claude-flow sparc run coder "Create API Gateway with rate limiting and authentication"
-npx claude-flow sparc run coder "Setup service discovery with Eureka"
-npx claude-flow sparc run coder "Configure centralized logging with ELK stack"
+npx claude-flow-novice sparc run coder "Create API Gateway with rate limiting and authentication"
+npx claude-flow-novice sparc run coder "Setup service discovery with Eureka"
+npx claude-flow-novice sparc run coder "Configure centralized logging with ELK stack"
 
 # Generate deployment configurations
-npx claude-flow sparc run architect "Create Docker Compose for development environment"
-npx claude-flow sparc run architect "Create Kubernetes manifests for production deployment"
+npx claude-flow-novice sparc run architect "Create Docker Compose for development environment"
+npx claude-flow-novice sparc run architect "Create Kubernetes manifests for production deployment"
 
 # Generate monitoring and observability
-npx claude-flow sparc run monitor "Setup comprehensive monitoring with Prometheus and Grafana"
-npx claude-flow sparc run monitor "Configure distributed tracing with Jaeger"
+npx claude-flow-novice sparc run monitor "Setup comprehensive monitoring with Prometheus and Grafana"
+npx claude-flow-novice sparc run monitor "Configure distributed tracing with Jaeger"
 
 # Generate CI/CD pipeline
-npx claude-flow sparc run cicd-engineer "Create GitHub Actions workflow for automated testing and deployment"
+npx claude-flow-novice sparc run cicd-engineer "Create GitHub Actions workflow for automated testing and deployment"
 
 echo "E-commerce platform development completed!"
 
 # Generated with:
-# npx claude-flow sparc run architect "Create complete development workflow script for e-commerce platform"
+# npx claude-flow-novice sparc run architect "Create complete development workflow script for e-commerce platform"
 ```
 
 ### 2. Performance Optimization Workflow
@@ -1681,22 +1681,22 @@ echo "E-commerce platform development completed!"
 echo "Starting performance optimization workflow..."
 
 # Analyze current performance
-npx claude-flow sparc run perf-analyzer "Analyze application performance bottlenecks and generate optimization plan"
+npx claude-flow-novice sparc run perf-analyzer "Analyze application performance bottlenecks and generate optimization plan"
 
 # Database optimization
-npx claude-flow sparc run perf-analyzer "Optimize database queries and connection pool settings"
+npx claude-flow-novice sparc run perf-analyzer "Optimize database queries and connection pool settings"
 
 # JVM tuning
-npx claude-flow sparc run perf-analyzer "Generate optimized JVM settings for production workload"
+npx claude-flow-novice sparc run perf-analyzer "Generate optimized JVM settings for production workload"
 
 # Caching optimization
-npx claude-flow sparc run coder "Implement Redis caching strategy for frequently accessed data"
+npx claude-flow-novice sparc run coder "Implement Redis caching strategy for frequently accessed data"
 
 # Load testing
-npx claude-flow sparc run tester "Create comprehensive load tests with Gatling"
+npx claude-flow-novice sparc run tester "Create comprehensive load tests with Gatling"
 
 # Performance monitoring
-npx claude-flow sparc run monitor "Setup performance monitoring dashboards and alerts"
+npx claude-flow-novice sparc run monitor "Setup performance monitoring dashboards and alerts"
 
 echo "Performance optimization completed!"
 ```

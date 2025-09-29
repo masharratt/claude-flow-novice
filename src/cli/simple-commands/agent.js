@@ -64,9 +64,9 @@ async function listAgents(subArgs, flags) {
   printSuccess('Active agents:');
   console.log('📋 No agents currently active (orchestrator not running)');
   console.log('\nTo create agents:');
-  console.log('  claude-flow agent spawn researcher --name "ResearchBot"');
-  console.log('  claude-flow agent spawn coder --name "CodeBot"');
-  console.log('  claude-flow agent spawn analyst --name "DataBot"');
+  console.log('  claude-flow-novice agent spawn researcher --name "ResearchBot"');
+  console.log('  claude-flow-novice agent spawn coder --name "CodeBot"');
+  console.log('  claude-flow-novice agent spawn analyst --name "DataBot"');
 }
 
 async function manageHierarchy(subArgs, flags) {
@@ -90,8 +90,8 @@ async function manageHierarchy(subArgs, flags) {
     default:
       console.log('Hierarchy commands: create, show');
       console.log('Examples:');
-      console.log('  claude-flow agent hierarchy create enterprise');
-      console.log('  claude-flow agent hierarchy show');
+      console.log('  claude-flow-novice agent hierarchy create enterprise');
+      console.log('  claude-flow-novice agent hierarchy show');
   }
 }
 
@@ -209,8 +209,8 @@ function showAgentHelp() {
   console.log('  general       Multi-purpose agent');
   console.log();
   console.log('Examples:');
-  console.log('  claude-flow agent spawn researcher --name "DataBot"');
-  console.log('  claude-flow agent list --verbose');
-  console.log('  claude-flow agent hierarchy create enterprise');
-  console.log('  claude-flow agent ecosystem status');
+  console.log('  claude-flow-novice agent spawn researcher --name "DataBot"');
+  console.log('  claude-flow-novice agent list --verbose');
+  console.log('  claude-flow-novice agent hierarchy create enterprise');
+  console.log('  claude-flow-novice agent ecosystem status');
 }

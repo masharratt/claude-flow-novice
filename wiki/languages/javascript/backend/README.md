@@ -8,22 +8,22 @@ Complete guide to building Node.js backend applications using Claude-Flow agent 
 
 ```bash
 # Generate backend with agent
-npx claude-flow sparc run backend-dev "Express TypeScript API with authentication and database"
+npx claude-flow-novice sparc run backend-dev "Express TypeScript API with authentication and database"
 
 # Alternative: Full backend architecture
-npx claude-flow sparc run system-architect "Microservices architecture with Node.js"
+npx claude-flow-novice sparc run system-architect "Microservices architecture with Node.js"
 ```
 
 ### 2. Agent-Driven Development
 
 ```bash
 # Parallel backend development
-npx claude-flow sparc batch "backend-dev,api-docs,tester" "E-commerce API development"
+npx claude-flow-novice sparc batch "backend-dev,api-docs,tester" "E-commerce API development"
 
 # Sequential development for complex features
-npx claude-flow sparc run backend-dev "User authentication system"
-npx claude-flow sparc run api-docs "Generate OpenAPI documentation"
-npx claude-flow sparc run tester "Create comprehensive API tests"
+npx claude-flow-novice sparc run backend-dev "User authentication system"
+npx claude-flow-novice sparc run api-docs "Generate OpenAPI documentation"
+npx claude-flow-novice sparc run tester "Create comprehensive API tests"
 ```
 
 ## 🏗 Backend Architecture Patterns
@@ -58,7 +58,7 @@ server/
 
 ```bash
 # Complete backend generation
-npx claude-flow sparc run backend-dev "Express TypeScript API with:
+npx claude-flow-novice sparc run backend-dev "Express TypeScript API with:
 - JWT authentication
 - MongoDB integration
 - Input validation
@@ -128,7 +128,7 @@ export { app };
 
 ```bash
 # Generate Express setup with agent
-npx claude-flow sparc run backend-dev "Express server with security middleware and route organization"
+npx claude-flow-novice sparc run backend-dev "Express server with security middleware and route organization"
 ```
 
 ### 2. Authentication System
@@ -223,7 +223,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 
 ```bash
 # Generate authentication system with agent
-npx claude-flow sparc run backend-dev "JWT authentication with registration, login, and password hashing"
+npx claude-flow-novice sparc run backend-dev "JWT authentication with registration, login, and password hashing"
 ```
 
 ### 3. Database Integration
@@ -285,7 +285,7 @@ export const User = mongoose.model<IUser>('User', userSchema);
 
 ```bash
 # Generate database models with agent
-npx claude-flow sparc run backend-dev "MongoDB models with validation and indexing"
+npx claude-flow-novice sparc run backend-dev "MongoDB models with validation and indexing"
 ```
 
 ### 4. API Routes
@@ -325,7 +325,7 @@ export { router as userRoutes };
 
 ```bash
 # Generate API routes with agent
-npx claude-flow sparc run backend-dev "RESTful API routes with authentication and authorization"
+npx claude-flow-novice sparc run backend-dev "RESTful API routes with authentication and authorization"
 ```
 
 ## 🔒 Security Implementation
@@ -429,7 +429,7 @@ export const validateProduct = (req: Request, res: Response, next: NextFunction)
 
 ```bash
 # Generate security middleware with agent
-npx claude-flow sparc run backend-dev "Authentication, authorization, and input validation middleware"
+npx claude-flow-novice sparc run backend-dev "Authentication, authorization, and input validation middleware"
 ```
 
 ## 🧪 Testing Backend APIs
@@ -542,7 +542,7 @@ describe('Authentication Endpoints', () => {
 
 ```bash
 # Generate API tests with agent
-npx claude-flow sparc run tester "Comprehensive API testing with Jest and Supertest"
+npx claude-flow-novice sparc run tester "Comprehensive API testing with Jest and Supertest"
 ```
 
 ## 🚀 Performance & Optimization
@@ -551,7 +551,7 @@ npx claude-flow sparc run tester "Comprehensive API testing with Jest and Supert
 
 ```bash
 # Generate database optimization with agent
-npx claude-flow sparc run perf-analyzer "MongoDB query optimization and indexing strategies"
+npx claude-flow-novice sparc run perf-analyzer "MongoDB query optimization and indexing strategies"
 ```
 
 ### 2. Caching Implementation
@@ -597,7 +597,7 @@ export const cache = (duration: number = 300) => {
 
 ```bash
 # Generate rate limiting with agent
-npx claude-flow sparc run backend-dev "Advanced rate limiting with Redis and different tiers"
+npx claude-flow-novice sparc run backend-dev "Advanced rate limiting with Redis and different tiers"
 ```
 
 ## 🔄 MCP Integration for Backend Development
@@ -717,7 +717,7 @@ LOG_LEVEL=info
 
 ```bash
 # Generate deployment configuration with agent
-npx claude-flow sparc run cicd-engineer "Docker and environment configuration for Node.js API"
+npx claude-flow-novice sparc run cicd-engineer "Docker and environment configuration for Node.js API"
 ```
 
 ## 📚 Advanced Backend Patterns
@@ -726,21 +726,21 @@ npx claude-flow sparc run cicd-engineer "Docker and environment configuration fo
 
 ```bash
 # Generate microservices with agent
-npx claude-flow sparc run system-architect "Microservices architecture with API Gateway and service discovery"
+npx claude-flow-novice sparc run system-architect "Microservices architecture with API Gateway and service discovery"
 ```
 
 ### 2. GraphQL API
 
 ```bash
 # Generate GraphQL API with agent
-npx claude-flow sparc run backend-dev "GraphQL API with Apollo Server and TypeScript"
+npx claude-flow-novice sparc run backend-dev "GraphQL API with Apollo Server and TypeScript"
 ```
 
 ### 3. Real-time Features
 
 ```bash
 # Generate WebSocket implementation with agent
-npx claude-flow sparc run backend-dev "WebSocket integration with Socket.io for real-time features"
+npx claude-flow-novice sparc run backend-dev "WebSocket integration with Socket.io for real-time features"
 ```
 
 ---

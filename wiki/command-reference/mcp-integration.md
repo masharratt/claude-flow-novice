@@ -39,7 +39,7 @@
 ### 1. Swarm Initialization Flow
 
 ```
-claude-flow mcp claude-flow swarm_init
+claude-flow-novice mcp claude-flow-novice swarm_init
     │
     ├─ Parameters Input
     │   ├─ topology: "mesh" | "hierarchical" | "ring" | "star"
@@ -64,7 +64,7 @@ claude-flow mcp claude-flow swarm_init
 ### 2. Agent Spawning Flow
 
 ```
-claude-flow mcp claude-flow agent_spawn
+claude-flow-novice mcp claude-flow-novice agent_spawn
     │
     ├─ Parameters Input
     │   ├─ type: "researcher" | "coder" | "tester" | "reviewer"
@@ -92,7 +92,7 @@ claude-flow mcp claude-flow agent_spawn
 ### 3. Task Orchestration Flow
 
 ```
-claude-flow mcp claude-flow task_orchestrate
+claude-flow-novice mcp claude-flow-novice task_orchestrate
     │
     ├─ Parameters Input
     │   ├─ task: "Implement user authentication system"
@@ -227,27 +227,27 @@ claude-flow mcp claude-flow task_orchestrate
 START: New full-stack feature request
 │
 ├─ PHASE 1: Setup & Planning
-│   ├─ mcp claude-flow swarm_init --topology hierarchical --maxAgents 8
-│   ├─ mcp claude-flow agent_spawn --type researcher --name "requirements-analyst"
-│   ├─ mcp claude-flow agent_spawn --type architect --name "system-designer"
-│   └─ mcp claude-flow memory_usage --action store --key "project-context"
+│   ├─ mcp claude-flow-novice swarm_init --topology hierarchical --maxAgents 8
+│   ├─ mcp claude-flow-novice agent_spawn --type researcher --name "requirements-analyst"
+│   ├─ mcp claude-flow-novice agent_spawn --type architect --name "system-designer"
+│   └─ mcp claude-flow-novice memory_usage --action store --key "project-context"
 │
 ├─ PHASE 2: Implementation Coordination
-│   ├─ mcp claude-flow task_orchestrate --task "Build user dashboard" --strategy parallel
-│   ├─ mcp claude-flow agent_spawn --type coder --name "backend-dev"
-│   ├─ mcp claude-flow agent_spawn --type coder --name "frontend-dev"
-│   └─ mcp claude-flow coordination_sync --swarmId current
+│   ├─ mcp claude-flow-novice task_orchestrate --task "Build user dashboard" --strategy parallel
+│   ├─ mcp claude-flow-novice agent_spawn --type coder --name "backend-dev"
+│   ├─ mcp claude-flow-novice agent_spawn --type coder --name "frontend-dev"
+│   └─ mcp claude-flow-novice coordination_sync --swarmId current
 │
 ├─ PHASE 3: Quality Assurance
-│   ├─ mcp claude-flow agent_spawn --type tester --name "qa-engineer"
-│   ├─ mcp claude-flow task_orchestrate --task "Comprehensive testing" --priority high
-│   ├─ mcp claude-flow neural_patterns --action analyze --operation "code-quality"
-│   └─ mcp claude-flow performance_report --timeframe "24h"
+│   ├─ mcp claude-flow-novice agent_spawn --type tester --name "qa-engineer"
+│   ├─ mcp claude-flow-novice task_orchestrate --task "Comprehensive testing" --priority high
+│   ├─ mcp claude-flow-novice neural_patterns --action analyze --operation "code-quality"
+│   └─ mcp claude-flow-novice performance_report --timeframe "24h"
 │
 ├─ PHASE 4: Deployment & Monitoring
-│   ├─ mcp claude-flow github_workflow_auto --repo current --workflow deploy
-│   ├─ mcp claude-flow swarm_monitor --interval 30 --duration 3600
-│   └─ mcp claude-flow task_results --taskId deployment-task
+│   ├─ mcp claude-flow-novice github_workflow_auto --repo current --workflow deploy
+│   ├─ mcp claude-flow-novice swarm_monitor --interval 30 --duration 3600
+│   └─ mcp claude-flow-novice task_results --taskId deployment-task
 │
 └─ END: Feature deployed and monitored
 ```
@@ -259,23 +259,23 @@ START: Performance optimization request
 │
 ├─ PHASE 1: Baseline Analysis
 │   ├─ mcp ruv-swarm benchmark_run --type performance --iterations 10
-│   ├─ mcp claude-flow bottleneck_analyze --component "api-server"
-│   └─ mcp claude-flow neural_patterns --action analyze --operation "performance"
+│   ├─ mcp claude-flow-novice bottleneck_analyze --component "api-server"
+│   └─ mcp claude-flow-novice neural_patterns --action analyze --operation "performance"
 │
 ├─ PHASE 2: Neural Training
-│   ├─ mcp claude-flow neural_train --pattern_type optimization --epochs 50
+│   ├─ mcp claude-flow-novice neural_train --pattern_type optimization --epochs 50
 │   ├─ mcp ruv-swarm neural_train --agentId performance-optimizer --iterations 20
-│   └─ mcp claude-flow learning_adapt --experience performance-data
+│   └─ mcp claude-flow-novice learning_adapt --experience performance-data
 │
 ├─ PHASE 3: Pattern Recognition & Application
-│   ├─ mcp claude-flow pattern_recognize --data performance-metrics
-│   ├─ mcp claude-flow neural_predict --modelId optimizer-v1 --input current-metrics
-│   └─ mcp claude-flow neural_explain --modelId optimizer-v1 --prediction results
+│   ├─ mcp claude-flow-novice pattern_recognize --data performance-metrics
+│   ├─ mcp claude-flow-novice neural_predict --modelId optimizer-v1 --input current-metrics
+│   └─ mcp claude-flow-novice neural_explain --modelId optimizer-v1 --prediction results
 │
 ├─ PHASE 4: Validation & Deployment
 │   ├─ mcp ruv-swarm benchmark_run --type performance --iterations 10
-│   ├─ mcp claude-flow performance_report --format detailed --timeframe 24h
-│   └─ mcp claude-flow model_save --modelId optimizer-v1 --path production-models
+│   ├─ mcp claude-flow-novice performance_report --format detailed --timeframe 24h
+│   └─ mcp claude-flow-novice model_save --modelId optimizer-v1 --path production-models
 │
 └─ END: Optimized system with trained neural models
 ```
@@ -342,7 +342,7 @@ INPUT: --repo "my-project" --action "analyze" --analysis_type "code_quality"
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │ 1. Select Server:                                           │
-│    ○ claude-flow (Core features)                           │
+│    ○ claude-flow-novice (Core features)                           │
 │    ○ ruv-swarm (Enhanced coordination)                     │
 │    ○ flow-nexus (Cloud features)                           │
 │                                                             │
@@ -352,7 +352,7 @@ INPUT: --repo "my-project" --action "analyze" --analysis_type "code_quality"
 │    ○ Memory Management   ○ GitHub Integration              │
 │                                                             │
 │ 3. Generated Command:                                       │
-│    claude-flow mcp claude-flow swarm_init \                │
+│    claude-flow-novice mcp claude-flow-novice swarm_init \                │
 │      --topology mesh --maxAgents 5 --strategy balanced     │
 │                                                             │
 │ 4. Parameter Help:                                          │

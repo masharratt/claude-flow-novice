@@ -19,26 +19,26 @@ This directory contains configuration files for Claude Flow system settings and 
 - **simple-config.json**: Getting started configuration with essential settings
   ```bash
   cd examples
-  ../claude-flow orchestrate --config ./01-configurations/basic/simple-config.json workflow.json
+  ../claude-flow-novice orchestrate --config ./01-configurations/basic/simple-config.json workflow.json
   ```
 
 ### Minimal Configurations (`minimal/`)
 - **minimal-config.json**: Absolute minimum required - uses defaults for everything else
   ```bash
-  ../claude-flow sparc run tdd "create feature" --config ./01-configurations/minimal/minimal-config.json
+  ../claude-flow-novice sparc run tdd "create feature" --config ./01-configurations/minimal/minimal-config.json
   ```
 
 ### Advanced Configurations (`advanced/`)
 - **production-config.json**: Enterprise-ready with Redis, monitoring, security, and load balancing
   ```bash
-  ../claude-flow orchestrate --config ./01-configurations/advanced/production-config.json workflow.json
+  ../claude-flow-novice orchestrate --config ./01-configurations/advanced/production-config.json workflow.json
   ```
 
 ### Specialized Configurations (`specialized/`)
 - **research-config.json**: Optimized for research tasks with custom tools and memory schemas
 - **testing-config.json**: Test generation and execution with coverage requirements
   ```bash
-  ../claude-flow test generate --config ./01-configurations/specialized/testing-config.json src/
+  ../claude-flow-novice test generate --config ./01-configurations/specialized/testing-config.json src/
   ```
 
 ## Legacy File
@@ -46,7 +46,7 @@ This directory contains configuration files for Claude Flow system settings and 
 ### development-config.json
 The original comprehensive configuration example showing all available options:
 ```bash
-../claude-flow orchestrate --config ./01-configurations/development-config.json workflow.json
+../claude-flow-novice orchestrate --config ./01-configurations/development-config.json workflow.json
 ```
 
 ## Configuration Sections

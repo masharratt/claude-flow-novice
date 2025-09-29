@@ -1,7 +1,7 @@
 # Tutorial 06: Legacy System Integration and Migration
 
 ## Overview
-Master the complex integration of claude-flow with legacy enterprise systems, featuring gradual migration strategies, adapter patterns, data transformation, and risk mitigation for large-scale enterprise environments.
+Master the complex integration of claude-flow-novice with legacy enterprise systems, featuring gradual migration strategies, adapter patterns, data transformation, and risk mitigation for large-scale enterprise environments.
 
 **Duration**: 4-5 hours
 **Difficulty**: ⭐⭐⭐⭐⭐

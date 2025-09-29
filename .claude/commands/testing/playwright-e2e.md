@@ -8,13 +8,13 @@ End-to-end testing commands using Playwright framework with MCP integration for 
 ### Basic Commands
 ```bash
 # Run all E2E tests
-npx claude-flow sparc run playwright-tester "Execute full E2E test suite"
+npx claude-flow-novice sparc run playwright-tester "Execute full E2E test suite"
 
 # Run specific test file
-npx claude-flow sparc run playwright-tester "Test web portal dashboard functionality"
+npx claude-flow-novice sparc run playwright-tester "Test web portal dashboard functionality"
 
 # Run with specific browser
-npx claude-flow sparc run playwright-tester "Test mobile responsiveness on webkit"
+npx claude-flow-novice sparc run playwright-tester "Test mobile responsiveness on webkit"
 ```
 
 ### Interactive Commands
@@ -32,13 +32,13 @@ npm run playwright:codegen
 ### MCP Integration Commands
 ```bash
 # Test MCP server connectivity via Playwright
-npx claude-flow mcp-test playwright-server
+npx claude-flow-novice mcp-test playwright-server
 
 # Execute MCP commands through web interface
-npx claude-flow sparc batch playwright-tester,mcp-integration "Test command execution flow"
+npx claude-flow-novice sparc batch playwright-tester,mcp-integration "Test command execution flow"
 
 # Monitor real-time MCP responses
-npx claude-flow swarm monitor --include-playwright-tests
+npx claude-flow-novice swarm monitor --include-playwright-tests
 ```
 
 ## Command Categories
@@ -48,25 +48,25 @@ npx claude-flow swarm monitor --include-playwright-tests
 #### Full Suite Execution
 ```bash
 # All browsers, all tests
-npx claude-flow sparc run playwright-tester "Execute comprehensive E2E test suite across all browsers"
+npx claude-flow-novice sparc run playwright-tester "Execute comprehensive E2E test suite across all browsers"
 
 # Performance-focused testing
-npx claude-flow sparc run playwright-tester "Run performance tests with network monitoring"
+npx claude-flow-novice sparc run playwright-tester "Run performance tests with network monitoring"
 
 # Accessibility validation
-npx claude-flow sparc run playwright-tester "Validate web portal accessibility compliance"
+npx claude-flow-novice sparc run playwright-tester "Validate web portal accessibility compliance"
 ```
 
 #### Targeted Testing
 ```bash
 # Authentication flow testing
-npx claude-flow sparc run playwright-tester "Test complete user authentication workflow"
+npx claude-flow-novice sparc run playwright-tester "Test complete user authentication workflow"
 
 # MCP integration testing
-npx claude-flow sparc run playwright-tester "Validate MCP server communication and command execution"
+npx claude-flow-novice sparc run playwright-tester "Validate MCP server communication and command execution"
 
 # Responsive design testing
-npx claude-flow sparc run playwright-tester "Test responsive design across mobile, tablet, and desktop"
+npx claude-flow-novice sparc run playwright-tester "Test responsive design across mobile, tablet, and desktop"
 ```
 
 ### 2. **Development & Debugging**
@@ -112,7 +112,7 @@ npx playwright test --trace on-failure-retry
 npx playwright show-report
 
 # Generate custom report
-npx claude-flow sparc run playwright-tester "Generate comprehensive test report with performance metrics"
+npx claude-flow-novice sparc run playwright-tester "Generate comprehensive test report with performance metrics"
 
 # Export test results
 npx playwright test --reporter=junit --output-dir=reports
@@ -121,10 +121,10 @@ npx playwright test --reporter=junit --output-dir=reports
 #### Performance Analysis
 ```bash
 # Performance-focused test run
-npx claude-flow sparc run playwright-tester "Execute performance benchmark tests with detailed timing analysis"
+npx claude-flow-novice sparc run playwright-tester "Execute performance benchmark tests with detailed timing analysis"
 
 # Network monitoring tests
-npx claude-flow sparc run playwright-tester "Monitor network requests and identify bottlenecks"
+npx claude-flow-novice sparc run playwright-tester "Monitor network requests and identify bottlenecks"
 ```
 
 ### 4. **CI/CD Integration**
@@ -147,7 +147,7 @@ npx playwright test --retries=2
 docker run --rm -v $(pwd):/app -w /app mcr.microsoft.com/playwright:latest npm run test:e2e:playwright
 
 # With custom Docker setup
-npx claude-flow sparc run playwright-tester "Execute E2E tests in containerized environment"
+npx claude-flow-novice sparc run playwright-tester "Execute E2E tests in containerized environment"
 ```
 
 ## Swarm Coordination Commands
@@ -155,28 +155,28 @@ npx claude-flow sparc run playwright-tester "Execute E2E tests in containerized 
 ### Multi-Agent Coordination
 ```bash
 # Coordinate with multiple testing agents
-npx claude-flow swarm init hierarchical --max-agents 5
-npx claude-flow agent spawn playwright-tester
-npx claude-flow agent spawn performance-analyzer
-npx claude-flow task orchestrate "Execute comprehensive web portal testing with performance analysis"
+npx claude-flow-novice swarm init hierarchical --max-agents 5
+npx claude-flow-novice agent spawn playwright-tester
+npx claude-flow-novice agent spawn performance-analyzer
+npx claude-flow-novice task orchestrate "Execute comprehensive web portal testing with performance analysis"
 ```
 
 ### Memory-Integrated Testing
 ```bash
 # Store test results in swarm memory
-npx claude-flow sparc run playwright-tester "Execute tests and store results in coordination memory for team review"
+npx claude-flow-novice sparc run playwright-tester "Execute tests and store results in coordination memory for team review"
 
 # Load previous test context
-npx claude-flow sparc run playwright-tester "Continue testing from previous session state"
+npx claude-flow-novice sparc run playwright-tester "Continue testing from previous session state"
 ```
 
 ### Real-Time Coordination
 ```bash
 # Monitor testing progress
-npx claude-flow swarm monitor --agent-type playwright-tester
+npx claude-flow-novice swarm monitor --agent-type playwright-tester
 
 # Stream test results
-npx claude-flow swarm status --include-test-metrics
+npx claude-flow-novice swarm status --include-test-metrics
 ```
 
 ## Advanced Usage Patterns
@@ -184,28 +184,28 @@ npx claude-flow swarm status --include-test-metrics
 ### 1. **Parallel Test Execution**
 ```bash
 # Parallel execution across multiple agents
-npx claude-flow sparc batch playwright-tester,playwright-tester,playwright-tester "Split test suite across three parallel agents"
+npx claude-flow-novice sparc batch playwright-tester,playwright-tester,playwright-tester "Split test suite across three parallel agents"
 
 # Browser-specific parallel testing
-npx claude-flow sparc concurrent playwright-tester "tests-chromium.txt,tests-firefox.txt,tests-webkit.txt"
+npx claude-flow-novice sparc concurrent playwright-tester "tests-chromium.txt,tests-firefox.txt,tests-webkit.txt"
 ```
 
 ### 2. **Environment-Specific Testing**
 ```bash
 # Staging environment testing
-BASEURL=https://staging.example.com npx claude-flow sparc run playwright-tester "Test staging environment functionality"
+BASEURL=https://staging.example.com npx claude-flow-novice sparc run playwright-tester "Test staging environment functionality"
 
 # Production smoke tests
-ENVIRONMENT=production npx claude-flow sparc run playwright-tester "Execute production smoke test suite"
+ENVIRONMENT=production npx claude-flow-novice sparc run playwright-tester "Execute production smoke test suite"
 ```
 
 ### 3. **API Integration Testing**
 ```bash
 # Combined API and UI testing
-npx claude-flow sparc batch api-tester,playwright-tester "Test API endpoints and UI integration"
+npx claude-flow-novice sparc batch api-tester,playwright-tester "Test API endpoints and UI integration"
 
 # Mock API testing
-npx claude-flow sparc run playwright-tester "Test UI with mocked API responses"
+npx claude-flow-novice sparc run playwright-tester "Test UI with mocked API responses"
 ```
 
 ## Configuration Commands
@@ -243,7 +243,7 @@ npx playwright --version
 npx playwright install --dry-run
 
 # Test connectivity
-npx claude-flow health-check --include-playwright
+npx claude-flow-novice health-check --include-playwright
 ```
 
 ### Error Resolution
@@ -252,7 +252,7 @@ npx claude-flow health-check --include-playwright
 rm -rf test-results/ playwright-report/
 
 # Reset test state
-npx claude-flow sparc run playwright-tester "Reset and clean test environment state"
+npx claude-flow-novice sparc run playwright-tester "Reset and clean test environment state"
 
 # Debug specific failure
 npx playwright test tests/e2e/web-portal.spec.ts --debug --grep "failing test name"
@@ -265,22 +265,22 @@ npx playwright test tests/e2e/web-portal.spec.ts --debug --grep "failing test na
 # .github/workflows/e2e-tests.yml
 - name: Run Playwright tests
   run: |
-    npx claude-flow sparc run playwright-tester "Execute E2E tests for CI/CD pipeline"
+    npx claude-flow-novice sparc run playwright-tester "Execute E2E tests for CI/CD pipeline"
 ```
 
 ### With MCP Servers
 ```bash
 # Ensure MCP servers are running
-npx claude-flow mcp status
+npx claude-flow-novice mcp status
 
 # Test MCP integration specifically
-npx claude-flow sparc run playwright-tester "Validate all MCP server integrations via web interface"
+npx claude-flow-novice sparc run playwright-tester "Validate all MCP server integrations via web interface"
 ```
 
 ### With Performance Monitoring
 ```bash
 # Combined performance and functional testing
-npx claude-flow sparc batch playwright-tester,performance-analyzer "Execute E2E tests with comprehensive performance monitoring"
+npx claude-flow-novice sparc batch playwright-tester,performance-analyzer "Execute E2E tests with comprehensive performance monitoring"
 ```
 
 ---

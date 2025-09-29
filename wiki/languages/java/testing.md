@@ -22,10 +22,10 @@ class UserServiceTest {
 
 ```bash
 # Generate comprehensive test suite with agents
-npx claude-flow sparc run tester "Create comprehensive Java test suite with JUnit 5"
+npx claude-flow-novice sparc run tester "Create comprehensive Java test suite with JUnit 5"
 
 # Setup test automation
-npx claude-flow sparc batch tester,coder "Implement test automation with TestNG and Spring Test"
+npx claude-flow-novice sparc batch tester,coder "Implement test automation with TestNG and Spring Test"
 ```
 
 ## JUnit 5 Testing
@@ -989,32 +989,32 @@ public class UserApiLoadTest extends Simulation {
 
 ```bash
 # Generate comprehensive test suite
-npx claude-flow sparc run tester "Generate JUnit 5 test suite for UserService with 90% coverage"
+npx claude-flow-novice sparc run tester "Generate JUnit 5 test suite for UserService with 90% coverage"
 
 # Create integration tests
-npx claude-flow sparc run tester "Create Spring Boot integration tests with TestContainers"
+npx claude-flow-novice sparc run tester "Create Spring Boot integration tests with TestContainers"
 
 # Generate performance tests
-npx claude-flow sparc run tester "Create JMH benchmarks and Gatling load tests"
+npx claude-flow-novice sparc run tester "Create JMH benchmarks and Gatling load tests"
 
 # Setup test automation pipeline
-npx claude-flow sparc batch tester,coder "Create automated test pipeline with Maven/Gradle"
+npx claude-flow-novice sparc batch tester,coder "Create automated test pipeline with Maven/Gradle"
 ```
 
 ### 2. MCP Integration for Test Coordination
 
 ```bash
 # Initialize testing swarm
-npx claude-flow mcp swarm_init --topology star --max-agents 5
+npx claude-flow-novice mcp swarm_init --topology star --max-agents 5
 
 # Spawn testing specialists
-npx claude-flow mcp agent_spawn --type tester --capabilities "junit5,mockito,spring-test"
-npx claude-flow mcp agent_spawn --type tester --capabilities "testng,integration-testing"
-npx claude-flow mcp agent_spawn --type tester --capabilities "performance-testing,jmh,gatling"
-npx claude-flow mcp agent_spawn --type reviewer --capabilities "test-quality,coverage-analysis"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "junit5,mockito,spring-test"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "testng,integration-testing"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "performance-testing,jmh,gatling"
+npx claude-flow-novice mcp agent_spawn --type reviewer --capabilities "test-quality,coverage-analysis"
 
 # Orchestrate test development
-npx claude-flow mcp task_orchestrate --task "Create comprehensive Java test suite" --strategy parallel
+npx claude-flow-novice mcp task_orchestrate --task "Create comprehensive Java test suite" --strategy parallel
 ```
 
 ### 3. Test Configuration Management

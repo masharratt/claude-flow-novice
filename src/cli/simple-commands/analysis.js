@@ -98,8 +98,8 @@ async function setupTelemetry() {
 
   console.log(`\n🚀 NEXT STEPS:`);
   console.log(`   1. Run Claude commands with --claude flag`);
-  console.log(`   2. Example: ./claude-flow swarm "analyze code" --claude`);
-  console.log(`   3. Check usage: ./claude-flow analysis token-usage --breakdown`);
+  console.log(`   2. Example: ./claude-flow-novice swarm "analyze code" --claude`);
+  console.log(`   3. Check usage: ./claude-flow-novice analysis token-usage --breakdown`);
 
   console.log(`\n${'═'.repeat(60)}`);
   printSuccess(`Telemetry setup complete!`);
@@ -370,7 +370,7 @@ function showAnalysisHelp() {
 📊 Analysis Commands - Performance & Usage Analytics
 
 USAGE:
-  claude-flow analysis <command> [options]
+  claude-flow-novice analysis <command> [options]
 
 COMMANDS:
   setup-telemetry      Configure token tracking for Claude API calls
@@ -385,7 +385,7 @@ GLOBAL OPTIONS:
   --help, -h           Show this help message
 
 TELEMETRY SETUP:
-  claude-flow analysis setup-telemetry
+  claude-flow-novice analysis setup-telemetry
   
   This command will:
   • Set CLAUDE_CODE_ENABLE_TELEMETRY=1 in your environment
@@ -414,41 +414,41 @@ TOKEN USAGE OPTIONS:
 CLAUDE MONITOR OPTIONS:
   --interval <ms>      Update interval in milliseconds (default: 5000)
   
-  Usage: claude-flow analysis claude-monitor [session-id] [--interval 3000]
+  Usage: claude-flow-novice analysis claude-monitor [session-id] [--interval 3000]
   
   Monitors a Claude session for real-time token usage updates.
   Session ID defaults to 'current' if not specified.
 
 CLAUDE COST OPTIONS:
-  Usage: claude-flow analysis claude-cost
+  Usage: claude-flow-novice analysis claude-cost
   
   Retrieves the current Claude session's token usage and cost estimate.
   Works best when run during or immediately after a Claude session.
 
 EXAMPLES:
   # First-time setup for token tracking
-  claude-flow analysis setup-telemetry
+  claude-flow-novice analysis setup-telemetry
 
   # Token usage with telemetry enabled
-  claude-flow analysis token-usage --enable-telemetry --breakdown
+  claude-flow-novice analysis token-usage --enable-telemetry --breakdown
 
   # Detect system-wide bottlenecks
-  claude-flow analysis bottleneck-detect --scope system
+  claude-flow-novice analysis bottleneck-detect --scope system
 
   # Weekly performance report
-  claude-flow analysis performance-report --timeframe 7d --format detailed
+  claude-flow-novice analysis performance-report --timeframe 7d --format detailed
 
   # Token usage with full analysis
-  claude-flow analysis token-usage --breakdown --cost-analysis
+  claude-flow-novice analysis token-usage --breakdown --cost-analysis
 
   # Monitor Claude session in real-time
-  claude-flow analysis claude-monitor
+  claude-flow-novice analysis claude-monitor
 
   # Get current Claude session cost
-  claude-flow analysis claude-cost
+  claude-flow-novice analysis claude-cost
 
   # Run Claude with automatic token tracking
-  CLAUDE_CODE_ENABLE_TELEMETRY=1 claude-flow swarm "task" --claude
+  CLAUDE_CODE_ENABLE_TELEMETRY=1 claude-flow-novice swarm "task" --claude
 
 🎯 Analysis helps with:
   • Token usage tracking & cost management
@@ -531,7 +531,7 @@ async function showSimulatedTokenUsage(breakdown, costAnalysis) {
   console.log(`\n📋 QUICK SETUP - Choose one option:`);
   console.log(`\n  Option 1: Enable Telemetry (Recommended)`);
   console.log(`  ┌────────────────────────────────────────────────────────┐`);
-  console.log(`  │ ./claude-flow analysis setup-telemetry                │`);
+  console.log(`  │ ./claude-flow-novice analysis setup-telemetry                │`);
   console.log(`  └────────────────────────────────────────────────────────┘`);
 
   console.log(`\n  Option 2: Manual Environment Variable`);
@@ -541,11 +541,11 @@ async function showSimulatedTokenUsage(breakdown, costAnalysis) {
 
   console.log(`\n  Option 3: Use --enable-telemetry Flag`);
   console.log(`  ┌────────────────────────────────────────────────────────┐`);
-  console.log(`  │ ./claude-flow analysis token-usage --enable-telemetry │`);
+  console.log(`  │ ./claude-flow-novice analysis token-usage --enable-telemetry │`);
   console.log(`  └────────────────────────────────────────────────────────┘`);
 
   console.log(`\n✅ AFTER SETUP:`);
-  console.log(`  1. Run Claude commands: ./claude-flow swarm "task" --claude`);
+  console.log(`  1. Run Claude commands: ./claude-flow-novice swarm "task" --claude`);
   console.log(`  2. Token usage will be automatically tracked`);
   console.log(`  3. Return here to see real metrics`);
 

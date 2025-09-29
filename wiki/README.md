@@ -49,8 +49,8 @@ Claude Flow Novice supports two primary access methods:
 ### 1. CLI Access
 Traditional command-line interface for direct terminal usage:
 ```bash
-npx claude-flow sparc tdd "user authentication"
-npx claude-flow agents spawn coder "build REST API"
+npx claude-flow-novice sparc tdd "user authentication"
+npx claude-flow-novice agents spawn coder "build REST API"
 ```
 
 ### 2. Claude Code MCP Integration

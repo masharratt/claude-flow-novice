@@ -74,13 +74,13 @@ async function showBasicInterface(options: FallbackOptions): Promise<void> {
   console.log(chalk.green('📋 Available alternatives:'));
   console.log();
   console.log(chalk.white('1. Use CLI commands directly:'));
-  console.log(chalk.gray('   ./claude-flow status'));
-  console.log(chalk.gray('   ./claude-flow memory list'));
-  console.log(chalk.gray('   ./claude-flow sparc modes'));
+  console.log(chalk.gray('   ./claude-flow-novice status'));
+  console.log(chalk.gray('   ./claude-flow-novice memory list'));
+  console.log(chalk.gray('   ./claude-flow-novice sparc modes'));
   console.log();
   console.log(chalk.white('2. Use non-interactive modes:'));
-  console.log(chalk.gray('   ./claude-flow start (without --ui)'));
-  console.log(chalk.gray('   ./claude-flow swarm "task" --monitor'));
+  console.log(chalk.gray('   ./claude-flow-novice start (without --ui)'));
+  console.log(chalk.gray('   ./claude-flow-novice swarm "task" --monitor'));
   console.log();
   console.log(chalk.white('3. Use external terminal:'));
   console.log(chalk.gray('   Run in a standalone terminal application'));
@@ -88,8 +88,8 @@ async function showBasicInterface(options: FallbackOptions): Promise<void> {
 
   if (options.showHelp) {
     console.log(chalk.cyan('💡 For help with any command, use:'));
-    console.log(chalk.gray('   ./claude-flow help <command>'));
-    console.log(chalk.gray('   ./claude-flow <command> --help'));
+    console.log(chalk.gray('   ./claude-flow-novice help <command>'));
+    console.log(chalk.gray('   ./claude-flow-novice <command> --help'));
     console.log();
   }
 

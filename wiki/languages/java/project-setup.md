@@ -11,7 +11,7 @@ This guide covers comprehensive Java project setup using both Maven and Gradle b
 mvn archetype:generate -DgroupId=com.example -DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
 
 # With Claude Flow coordination
-npx claude-flow sparc run architect "Create Maven project structure with Spring Boot"
+npx claude-flow-novice sparc run architect "Create Maven project structure with Spring Boot"
 ```
 
 ### Gradle Project Setup
@@ -21,7 +21,7 @@ npx claude-flow sparc run architect "Create Maven project structure with Spring 
 gradle init --type java-application
 
 # With Claude Flow coordination
-npx claude-flow sparc run architect "Create Gradle project with multi-module structure"
+npx claude-flow-novice sparc run architect "Create Gradle project with multi-module structure"
 ```
 
 ## Maven Configuration
@@ -255,28 +255,28 @@ subprojects {
 
 ```bash
 # Initialize project with multiple agents
-npx claude-flow sparc batch architect,coder,tester "Create enterprise Java project with Maven"
+npx claude-flow-novice sparc batch architect,coder,tester "Create enterprise Java project with Maven"
 
 # Generate project structure
-npx claude-flow sparc run architect "Design multi-module Java project structure"
+npx claude-flow-novice sparc run architect "Design multi-module Java project structure"
 
 # Setup build configuration
-npx claude-flow sparc run coder "Configure Maven/Gradle with enterprise plugins"
+npx claude-flow-novice sparc run coder "Configure Maven/Gradle with enterprise plugins"
 
 # Generate tests
-npx claude-flow sparc run tester "Create comprehensive test structure"
+npx claude-flow-novice sparc run tester "Create comprehensive test structure"
 ```
 
 ### MCP Integration for Project Setup
 
 ```bash
 # Initialize swarm for Java development
-npx claude-flow mcp swarm_init --topology hierarchical --max-agents 8
+npx claude-flow-novice mcp swarm_init --topology hierarchical --max-agents 8
 
 # Spawn specialized agents
-npx claude-flow mcp agent_spawn --type architect --capabilities "project-structure,build-tools"
-npx claude-flow mcp agent_spawn --type coder --capabilities "maven,gradle,spring-boot"
-npx claude-flow mcp agent_spawn --type tester --capabilities "junit,testng,integration-tests"
+npx claude-flow-novice mcp agent_spawn --type architect --capabilities "project-structure,build-tools"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "maven,gradle,spring-boot"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "junit,testng,integration-tests"
 ```
 
 ## Directory Structure

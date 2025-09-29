@@ -456,19 +456,19 @@ THROUGHPUT_TREE: Low task completion rate
 ### Quick Performance Wins
 ```bash
 # Enable performance monitoring
-claude-flow monitor enable --metrics=all
+claude-flow-novice monitor enable --metrics=all
 
 # Optimize agent pooling
-claude-flow config set agent.pooling.enabled=true
-claude-flow config set agent.pooling.size=5
+claude-flow-novice config set agent.pooling.enabled=true
+claude-flow-novice config set agent.pooling.size=5
 
 # Enable intelligent caching
-claude-flow config set caching.enabled=true
-claude-flow config set caching.strategy=adaptive
+claude-flow-novice config set caching.enabled=true
+claude-flow-novice config set caching.strategy=adaptive
 
 # Optimize coordination
-claude-flow config set coordination.topology=mesh
-claude-flow config set coordination.batch_size=10
+claude-flow-novice config set coordination.topology=mesh
+claude-flow-novice config set coordination.batch_size=10
 ```
 
 ### Advanced Optimizations
@@ -509,16 +509,16 @@ const performanceMonitor = {
 ### Performance Testing Framework
 ```bash
 # Benchmark current performance
-claude-flow benchmark run --suite=comprehensive
+claude-flow-novice benchmark run --suite=comprehensive
 
 # Load testing
-claude-flow load-test --concurrent=50 --duration=300
+claude-flow-novice load-test --concurrent=50 --duration=300
 
 # Performance regression testing
-claude-flow test performance --baseline=last-release
+claude-flow-novice test performance --baseline=last-release
 
 # Memory profiling
-claude-flow profile memory --duration=600 --gc-analysis
+claude-flow-novice profile memory --duration=600 --gc-analysis
 ```
 
 ## 📊 Performance Metrics Dashboard

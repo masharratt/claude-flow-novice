@@ -126,11 +126,11 @@ function createClaudeMd(): string {
   return `# Claude Code Configuration for Your Project
 
 ## 🎯 Purpose of This Configuration
-This CLAUDE.md file configures Claude Code to help you BUILD YOUR OWN APPLICATIONS using the claude-flow orchestration system. Claude-flow is a tool to help you develop software - it is NOT the project you should be modifying.
+This CLAUDE.md file configures Claude Code to help you BUILD YOUR OWN APPLICATIONS using the claude-flow-novice orchestration system. Claude-flow is a tool to help you develop software - it is NOT the project you should be modifying.
 
 **IMPORTANT**: 
-- Use claude-flow commands to BUILD YOUR APPLICATION
-- DO NOT modify the claude-flow system itself
+- Use claude-flow-novice commands to BUILD YOUR APPLICATION
+- DO NOT modify the claude-flow-novice system itself
 - Focus on YOUR PROJECT'S code, not the orchestration tool
 
 ## 📁 Project Structure
@@ -153,33 +153,33 @@ Configure these for YOUR application (not claude-flow):
 Claude-flow provides powerful AI orchestration tools to accelerate YOUR application development. Use these commands to build YOUR project:
 
 ### 🎮 Getting Started with Your Project
-- \`./claude-flow start --ui\`: Start the AI orchestration system to help build YOUR app
-- \`./claude-flow sparc "Build a [YOUR APP TYPE] application"\`: Start building YOUR application
-- \`./claude-flow swarm "Create [YOUR FEATURE]"\`: Use multiple AI agents to build complex features
-- \`./claude-flow status\`: Check the status of YOUR development tasks
+- \`./claude-flow-novice start --ui\`: Start the AI orchestration system to help build YOUR app
+- \`./claude-flow-novice sparc "Build a [YOUR APP TYPE] application"\`: Start building YOUR application
+- \`./claude-flow-novice swarm "Create [YOUR FEATURE]"\`: Use multiple AI agents to build complex features
+- \`./claude-flow-novice status\`: Check the status of YOUR development tasks
 
 ### 🤖 AI Agents to Build Your Application
-- \`./claude-flow agent spawn coder\`: Create a coding agent for YOUR project
-- \`./claude-flow agent spawn researcher\`: Research best practices for YOUR features
-- \`./claude-flow agent spawn tester\`: Create tests for YOUR application
-- \`./claude-flow agent list\`: See agents working on YOUR project
+- \`./claude-flow-novice agent spawn coder\`: Create a coding agent for YOUR project
+- \`./claude-flow-novice agent spawn researcher\`: Research best practices for YOUR features
+- \`./claude-flow-novice agent spawn tester\`: Create tests for YOUR application
+- \`./claude-flow-novice agent list\`: See agents working on YOUR project
 
 ### 📋 Managing Your Development Tasks
-- \`./claude-flow task create feature "Add user authentication to my app"\`: Create development tasks
-- \`./claude-flow task list\`: View YOUR project's task queue
-- \`./claude-flow workflow my-app-workflow.json\`: Automate YOUR development workflow
+- \`./claude-flow-novice task create feature "Add user authentication to my app"\`: Create development tasks
+- \`./claude-flow-novice task list\`: View YOUR project's task queue
+- \`./claude-flow-novice workflow my-app-workflow.json\`: Automate YOUR development workflow
 
 ### 🧠 Project Knowledge Management
-- \`./claude-flow memory store "my_app_architecture" "REST API with React frontend"\`: Store YOUR project decisions
-- \`./claude-flow memory get "my_app_requirements"\`: Retrieve YOUR project information
-- \`./claude-flow memory list\`: See all stored knowledge about YOUR project
-- \`./claude-flow memory export my-project-knowledge.json\`: Export YOUR project knowledge
+- \`./claude-flow-novice memory store "my_app_architecture" "REST API with React frontend"\`: Store YOUR project decisions
+- \`./claude-flow-novice memory get "my_app_requirements"\`: Retrieve YOUR project information
+- \`./claude-flow-novice memory list\`: See all stored knowledge about YOUR project
+- \`./claude-flow-novice memory export my-project-knowledge.json\`: Export YOUR project knowledge
 
 ### 🎯 SPARC Modes for Building Your Application
-- \`./claude-flow sparc "Create a todo list app with React"\`: Start building YOUR app
-- \`./claude-flow sparc run coder "Implement user login for my app"\`: Code YOUR features
-- \`./claude-flow sparc tdd "Shopping cart functionality"\`: Build YOUR features test-first
-- \`./claude-flow sparc run architect "Design my app's database schema"\`: Design YOUR architecture
+- \`./claude-flow-novice sparc "Create a todo list app with React"\`: Start building YOUR app
+- \`./claude-flow-novice sparc run coder "Implement user login for my app"\`: Code YOUR features
+- \`./claude-flow-novice sparc tdd "Shopping cart functionality"\`: Build YOUR features test-first
+- \`./claude-flow-novice sparc run architect "Design my app's database schema"\`: Design YOUR architecture
 
 **Available SPARC modes for YOUR project:**
 - **coder**: Write code for YOUR application
@@ -192,7 +192,7 @@ Claude-flow provides powerful AI orchestration tools to accelerate YOUR applicat
 - **documenter**: Document YOUR project
 
 ### 🐝 Swarm Mode: Multiple AI Agents for Your Project
-\`./claude-flow swarm "Build a complete e-commerce website" --strategy development --parallel\`
+\`./claude-flow-novice swarm "Build a complete e-commerce website" --strategy development --parallel\`
 
 Options for YOUR project:
 - \`--strategy development\`: Build YOUR application features
@@ -206,71 +206,71 @@ Options for YOUR project:
 ### 🚀 Building a New Web Application
 \`\`\`bash
 # Example: Building a Task Management App
-./claude-flow sparc "Create a task management web app with React and Node.js"
+./claude-flow-novice sparc "Create a task management web app with React and Node.js"
 
 # Add authentication to YOUR app
-./claude-flow sparc run coder "Add user authentication with JWT tokens to my task app"
+./claude-flow-novice sparc run coder "Add user authentication with JWT tokens to my task app"
 
 # Create tests for YOUR features
-./claude-flow sparc tdd "Task creation and assignment features"
+./claude-flow-novice sparc tdd "Task creation and assignment features"
 
 # Use multiple agents to build faster
-./claude-flow swarm "Build complete task management system" --strategy development --parallel
+./claude-flow-novice swarm "Build complete task management system" --strategy development --parallel
 \`\`\`
 
 ### 🔍 Research Phase for Your Project
 \`\`\`bash
 # Research best practices for YOUR app type
-./claude-flow sparc run researcher "Research best practices for building SaaS applications"
+./claude-flow-novice sparc run researcher "Research best practices for building SaaS applications"
 
 # Store YOUR project's technical decisions
-./claude-flow memory store "tech_stack" "React, Node.js, PostgreSQL, Redis"
-./claude-flow memory store "auth_strategy" "JWT with refresh tokens"
+./claude-flow-novice memory store "tech_stack" "React, Node.js, PostgreSQL, Redis"
+./claude-flow-novice memory store "auth_strategy" "JWT with refresh tokens"
 
 # Analyze similar applications
-./claude-flow sparc run analyzer "Analyze successful task management apps for feature ideas"
+./claude-flow-novice sparc run analyzer "Analyze successful task management apps for feature ideas"
 \`\`\`
 
 ### 🏗️ Development Workflow for Your Application
 \`\`\`bash
 # Design YOUR application architecture
-./claude-flow sparc run architect "Design microservices architecture for my e-commerce platform"
+./claude-flow-novice sparc run architect "Design microservices architecture for my e-commerce platform"
 
 # Implement YOUR features with TDD
-./claude-flow sparc tdd "Shopping cart with discount calculation"
+./claude-flow-novice sparc tdd "Shopping cart with discount calculation"
 
 # Multiple agents working on YOUR project
-./claude-flow swarm "Build user dashboard with analytics" --strategy development --max-agents 5
+./claude-flow-novice swarm "Build user dashboard with analytics" --strategy development --max-agents 5
 
 # Review and optimize YOUR code
-./claude-flow sparc run reviewer "Review authentication implementation for security"
+./claude-flow-novice sparc run reviewer "Review authentication implementation for security"
 \`\`\`
 
 ### 🔧 Testing and Debugging Your Application
 \`\`\`bash
 # Comprehensive testing for YOUR app
-./claude-flow sparc run tester "Create comprehensive test suite for my API endpoints"
+./claude-flow-novice sparc run tester "Create comprehensive test suite for my API endpoints"
 
 # Debug issues in YOUR application
-./claude-flow sparc run debugger "Debug why user login is failing in production"
+./claude-flow-novice sparc run debugger "Debug why user login is failing in production"
 
 # Performance optimization for YOUR app
-./claude-flow sparc run optimizer "Optimize database queries in my application"
+./claude-flow-novice sparc run optimizer "Optimize database queries in my application"
 
 # Security review for YOUR project
-./claude-flow sparc run reviewer "Security audit of my payment processing system"
+./claude-flow-novice sparc run reviewer "Security audit of my payment processing system"
 \`\`\`
 
 ### 📚 Documentation for Your Project
 \`\`\`bash
 # Generate documentation for YOUR API
-./claude-flow sparc run documenter "Create API documentation for my REST endpoints"
+./claude-flow-novice sparc run documenter "Create API documentation for my REST endpoints"
 
 # Document YOUR project architecture
-./claude-flow sparc run documenter "Document the system architecture and design decisions"
+./claude-flow-novice sparc run documenter "Document the system architecture and design decisions"
 
 # Create user guides for YOUR application
-./claude-flow sparc run documenter "Write user guide for the admin dashboard"
+./claude-flow-novice sparc run documenter "Write user guide for the admin dashboard"
 \`\`\`
 
 ## 🎨 Building Your Application Step by Step
@@ -280,15 +280,15 @@ Store YOUR project decisions and requirements:
 
 \`\`\`bash
 # Define YOUR application requirements
-./claude-flow memory store "app_type" "SaaS project management tool"
-./claude-flow memory store "target_users" "Small to medium development teams"
-./claude-flow memory store "core_features" "Task tracking, team collaboration, time tracking, reporting"
+./claude-flow-novice memory store "app_type" "SaaS project management tool"
+./claude-flow-novice memory store "target_users" "Small to medium development teams"
+./claude-flow-novice memory store "core_features" "Task tracking, team collaboration, time tracking, reporting"
 
 # Design YOUR architecture based on requirements
-./claude-flow sparc run architect "Design scalable SaaS architecture for project management tool"
+./claude-flow-novice sparc run architect "Design scalable SaaS architecture for project management tool"
 
 # Research best practices for YOUR app type
-./claude-flow sparc run researcher "Research best practices for multi-tenant SaaS applications"
+./claude-flow-novice sparc run researcher "Research best practices for multi-tenant SaaS applications"
 \`\`\`
 
 ### 🏗️ Building Your Application Features
@@ -296,16 +296,16 @@ Implement YOUR application step by step:
 
 \`\`\`bash
 # Phase 1: Core functionality
-./claude-flow sparc tdd "User registration and team creation"
-./claude-flow sparc run coder "Implement project and task management features"
+./claude-flow-novice sparc tdd "User registration and team creation"
+./claude-flow-novice sparc run coder "Implement project and task management features"
 
 # Phase 2: Advanced features
-./claude-flow swarm "Build real-time collaboration features" --strategy development --parallel
-./claude-flow sparc run coder "Add time tracking and reporting dashboard"
+./claude-flow-novice swarm "Build real-time collaboration features" --strategy development --parallel
+./claude-flow-novice sparc run coder "Add time tracking and reporting dashboard"
 
 # Phase 3: Polish and optimize
-./claude-flow sparc run optimizer "Optimize performance for 1000+ concurrent users"
-./claude-flow sparc run designer "Improve UI/UX for mobile responsiveness"
+./claude-flow-novice sparc run optimizer "Optimize performance for 1000+ concurrent users"
+./claude-flow-novice sparc run designer "Improve UI/UX for mobile responsiveness"
 \`\`\`
 
 ### 🚀 Deploying Your Application
@@ -313,21 +313,21 @@ Prepare YOUR application for production:
 
 \`\`\`bash
 # Final testing and security review
-./claude-flow sparc run tester "Complete end-to-end testing suite"
-./claude-flow sparc run reviewer "Final security audit before launch"
+./claude-flow-novice sparc run tester "Complete end-to-end testing suite"
+./claude-flow-novice sparc run reviewer "Final security audit before launch"
 
 # Documentation for YOUR users
-./claude-flow sparc run documenter "Create user documentation and API guides"
+./claude-flow-novice sparc run documenter "Create user documentation and API guides"
 
 # Performance optimization
-./claude-flow sparc run optimizer "Optimize for production deployment"
+./claude-flow-novice sparc run optimizer "Optimize for production deployment"
 \`\`\`
 
 ## 🛠️ How Claude Code Helps Build YOUR Application
 
 ### 🤖 AI-Powered Development Assistance
-When you use claude-flow commands, Claude Code will help you:
-- **Write code** for YOUR application (not for claude-flow itself)
+When you use claude-flow-novice commands, Claude Code will help you:
+- **Write code** for YOUR application (not for claude-flow-novice itself)
 - **Design architecture** for YOUR project requirements
 - **Create tests** for YOUR features
 - **Debug issues** in YOUR code
@@ -395,15 +395,15 @@ Use swarm mode when building complex features that benefit from multiple special
 
 \`\`\`bash
 # Example: Building a complete e-commerce platform
-./claude-flow swarm "Build complete e-commerce platform with payment integration" \\
+./claude-flow-novice swarm "Build complete e-commerce platform with payment integration" \\
   --strategy development --parallel --max-agents 8
 
 # Example: Adding real-time features to YOUR app
-./claude-flow swarm "Add real-time chat and notifications to my app" \\
+./claude-flow-novice swarm "Add real-time chat and notifications to my app" \\
   --strategy development --parallel --max-agents 5
 
 # Example: Comprehensive testing of YOUR application
-./claude-flow swarm "Create comprehensive test suite for my API" \\
+./claude-flow-novice swarm "Create comprehensive test suite for my API" \\
   --strategy testing --parallel --max-agents 6
 \`\`\`
 
@@ -428,10 +428,10 @@ When Claude Code writes code for YOUR application, it will follow these best pra
 - Documenting YOUR project
 
 ### ❌ DON'T Use Claude-Flow For:
-- Modifying the claude-flow system itself
-- Changing how claude-flow works internally
-- Updating claude-flow commands or features
-- Fixing claude-flow bugs (report them on GitHub instead)
+- Modifying the claude-flow-novice system itself
+- Changing how claude-flow-novice works internally
+- Updating claude-flow-novice commands or features
+- Fixing claude-flow-novice bugs (report them on GitHub instead)
 
 ## 🎉 Get Started Building YOUR Application!
 
@@ -439,7 +439,7 @@ Remember: Claude-flow is a TOOL to help you build YOUR application faster and be
 
 **Example first command for a new project:**
 \`\`\`bash
-./claude-flow sparc "Create a [YOUR APP TYPE] application with [YOUR MAIN FEATURES]"
+./claude-flow-novice sparc "Create a [YOUR APP TYPE] application with [YOUR MAIN FEATURES]"
 \`\`\`
 
 Happy coding! 🚀

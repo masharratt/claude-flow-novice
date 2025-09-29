@@ -28,14 +28,14 @@ Welcome to the Intermediate tier! You've mastered the basics and are ready for m
 
 ---
 
-## 1. `claude-flow agents`
+## 1. `claude-flow-novice agents`
 
 ### Purpose
 Direct management and control of AI agents, giving you explicit control over who does what.
 
 ### Syntax
 ```bash
-claude-flow agents <action> [options]
+claude-flow-novice agents <action> [options]
 ```
 
 ### Actions
@@ -79,7 +79,7 @@ claude-flow agents <action> [options]
 
 #### List Available Agents
 ```bash
-claude-flow agents list
+claude-flow-novice agents list
 
 # Output:
 # 🤖 Available Agents
@@ -102,7 +102,7 @@ claude-flow agents list
 
 #### Spawn Specific Agent
 ```bash
-claude-flow agents spawn coder
+claude-flow-novice agents spawn coder
 
 # Output:
 # 🚀 Spawning coder agent...
@@ -111,12 +111,12 @@ claude-flow agents spawn coder
 # Capabilities: TypeScript, React, Node.js, Testing
 # Ready for tasks!
 #
-# Use: claude-flow agents status coder-a1b2c3 to monitor
+# Use: claude-flow-novice agents status coder-a1b2c3 to monitor
 ```
 
 #### Check Agent Status
 ```bash
-claude-flow agents status
+claude-flow-novice agents status
 
 # Output:
 # 🤖 Agent Status Report
@@ -140,7 +140,7 @@ claude-flow agents status
 
 #### Agent Metrics
 ```bash
-claude-flow agents metrics --detailed
+claude-flow-novice agents metrics --detailed
 
 # Output:
 # 📊 Agent Performance Metrics
@@ -164,7 +164,7 @@ claude-flow agents metrics --detailed
 
 #### Real-time Monitoring
 ```bash
-claude-flow agents status --watch
+claude-flow-novice agents status --watch
 
 # Live updating display:
 # 🔄 Live Agent Monitor (updates every 2s)
@@ -182,9 +182,9 @@ claude-flow agents status --watch
 #### Agent Coordination
 ```bash
 # Spawn coordinated team
-claude-flow agents spawn researcher
-claude-flow agents spawn coder
-claude-flow agents spawn tester
+claude-flow-novice agents spawn researcher
+claude-flow-novice agents spawn coder
+claude-flow-novice agents spawn tester
 
 # They automatically coordinate through Claude Flow's neural network
 ```
@@ -192,18 +192,18 @@ claude-flow agents spawn tester
 #### Custom Agent Workflows
 ```bash
 # Create specialized workflow
-claude-flow agents spawn security --for "authentication review"
-claude-flow agents spawn coder --for "implementing OAuth"
-claude-flow agents spawn tester --for "security testing"
+claude-flow-novice agents spawn security --for "authentication review"
+claude-flow-novice agents spawn coder --for "implementing OAuth"
+claude-flow-novice agents spawn tester --for "security testing"
 ```
 
 #### Performance Optimization
 ```bash
 # Monitor resource usage
-claude-flow agents metrics --type coder
+claude-flow-novice agents metrics --type coder
 
 # Optimize agent allocation
-claude-flow agents optimize --target "response-time"
+claude-flow-novice agents optimize --target "response-time"
 ```
 
 ### Common Use Cases
@@ -211,37 +211,37 @@ claude-flow agents optimize --target "response-time"
 #### Parallel Development
 ```bash
 # Multiple features simultaneously
-claude-flow agents spawn coder --task "user profiles"
-claude-flow agents spawn coder --task "notification system"
-claude-flow agents spawn tester --task "integration tests"
+claude-flow-novice agents spawn coder --task "user profiles"
+claude-flow-novice agents spawn coder --task "notification system"
+claude-flow-novice agents spawn tester --task "integration tests"
 ```
 
 #### Quality Assurance
 ```bash
 # Dedicated QA pipeline
-claude-flow agents spawn reviewer --focus "security"
-claude-flow agents spawn tester --focus "edge-cases"
-claude-flow agents spawn optimizer --focus "performance"
+claude-flow-novice agents spawn reviewer --focus "security"
+claude-flow-novice agents spawn tester --focus "edge-cases"
+claude-flow-novice agents spawn optimizer --focus "performance"
 ```
 
 #### Debugging and Analysis
 ```bash
 # Problem investigation team
-claude-flow agents spawn researcher --task "bug analysis"
-claude-flow agents spawn security --task "vulnerability scan"
-claude-flow agents spawn coder --task "bug fixes"
+claude-flow-novice agents spawn researcher --task "bug analysis"
+claude-flow-novice agents spawn security --task "vulnerability scan"
+claude-flow-novice agents spawn coder --task "bug fixes"
 ```
 
 ---
 
-## 2. `claude-flow test`
+## 2. `claude-flow-novice test`
 
 ### Purpose
 AI-powered testing with intelligent test generation, execution, and analysis.
 
 ### Syntax
 ```bash
-claude-flow test [test-type] [options]
+claude-flow-novice test [test-type] [options]
 ```
 
 ### Test Types
@@ -265,7 +265,7 @@ claude-flow test [test-type] [options]
 
 #### Generate Comprehensive Tests
 ```bash
-claude-flow test --generate
+claude-flow-novice test --generate
 
 # Output:
 # 🧪 AI Test Generation
@@ -286,7 +286,7 @@ claude-flow test --generate
 
 #### Run Specific Test Type
 ```bash
-claude-flow test unit
+claude-flow-novice test unit
 
 # Output:
 # 🧪 Running Unit Tests
@@ -305,7 +305,7 @@ claude-flow test unit
 
 #### Performance Testing
 ```bash
-claude-flow test performance
+claude-flow-novice test performance
 
 # Output:
 # ⚡ Performance Test Suite
@@ -327,7 +327,7 @@ claude-flow test performance
 
 #### Security Testing
 ```bash
-claude-flow test security
+claude-flow-novice test security
 
 # Output:
 # 🔒 Security Test Suite
@@ -350,7 +350,7 @@ claude-flow test security
 
 #### Continuous Testing
 ```bash
-claude-flow test --watch
+claude-flow-novice test --watch
 
 # Output:
 # 👀 Continuous Testing Mode
@@ -372,7 +372,7 @@ claude-flow test --watch
 
 #### AI-Generated Edge Cases
 ```bash
-claude-flow test unit --edge-cases
+claude-flow-novice test unit --edge-cases
 
 # AI automatically generates edge case tests:
 # • Empty inputs
@@ -385,7 +385,7 @@ claude-flow test unit --edge-cases
 
 #### Visual Regression Testing
 ```bash
-claude-flow test visual
+claude-flow-novice test visual
 
 # Compares UI screenshots:
 # • Baseline images stored
@@ -397,7 +397,7 @@ claude-flow test visual
 
 #### Test Data Generation
 ```bash
-claude-flow test --generate-data
+claude-flow-novice test --generate-data
 
 # Creates realistic test data:
 # • User profiles
@@ -409,14 +409,14 @@ claude-flow test --generate-data
 
 ---
 
-## 3. `claude-flow deploy`
+## 3. `claude-flow-novice deploy`
 
 ### Purpose
 Intelligent deployment with environment detection, CI/CD setup, and rollback capabilities.
 
 ### Syntax
 ```bash
-claude-flow deploy [environment] [options]
+claude-flow-novice deploy [environment] [options]
 ```
 
 ### Environments
@@ -436,7 +436,7 @@ claude-flow deploy [environment] [options]
 
 #### First-Time Production Deployment
 ```bash
-claude-flow deploy production --auto-setup
+claude-flow-novice deploy production --auto-setup
 
 # Output:
 # 🚀 Production Deployment Setup
@@ -471,7 +471,7 @@ claude-flow deploy production --auto-setup
 
 #### Staging Deployment
 ```bash
-claude-flow deploy staging
+claude-flow-novice deploy staging
 
 # Output:
 # 🧪 Staging Deployment
@@ -492,7 +492,7 @@ claude-flow deploy staging
 
 #### Rollback Deployment
 ```bash
-claude-flow deploy --rollback
+claude-flow-novice deploy --rollback
 
 # Output:
 # ⏪ Deployment Rollback
@@ -514,7 +514,7 @@ claude-flow deploy --rollback
 
 #### Zero-Downtime Deployment
 ```bash
-claude-flow deploy production --zero-downtime
+claude-flow-novice deploy production --zero-downtime
 
 # Output:
 # 🔄 Zero-Downtime Deployment (Blue-Green)
@@ -544,19 +544,19 @@ claude-flow deploy production --zero-downtime
 #### Environment Management
 ```bash
 # Auto-detect optimal deployment strategy
-claude-flow deploy --analyze
+claude-flow-novice deploy --analyze
 
 # Configure multiple environments
-claude-flow deploy setup --environments "dev,staging,prod"
+claude-flow-novice deploy setup --environments "dev,staging,prod"
 
 # Environment-specific configurations
-claude-flow deploy staging --config "staging.env"
+claude-flow-novice deploy staging --config "staging.env"
 ```
 
 #### Performance Optimization
 ```bash
 # Deploy with optimizations
-claude-flow deploy production --optimize
+claude-flow-novice deploy production --optimize
 
 # Results:
 # • Code splitting enabled
@@ -569,7 +569,7 @@ claude-flow deploy production --optimize
 #### Monitoring Integration
 ```bash
 # Deploy with monitoring
-claude-flow deploy production --monitor
+claude-flow-novice deploy production --monitor
 
 # Sets up:
 # • Error tracking
@@ -581,14 +581,14 @@ claude-flow deploy production --monitor
 
 ---
 
-## 4. `claude-flow optimize`
+## 4. `claude-flow-novice optimize`
 
 ### Purpose
 AI-powered performance optimization for code, databases, and infrastructure.
 
 ### Syntax
 ```bash
-claude-flow optimize [target] [options]
+claude-flow-novice optimize [target] [options]
 ```
 
 ### Optimization Targets
@@ -610,7 +610,7 @@ claude-flow optimize [target] [options]
 
 #### Comprehensive Performance Analysis
 ```bash
-claude-flow optimize --analyze
+claude-flow-novice optimize --analyze
 
 # Output:
 # ⚡ Performance Analysis Report
@@ -640,7 +640,7 @@ claude-flow optimize --analyze
 
 #### Bundle Size Optimization
 ```bash
-claude-flow optimize bundle
+claude-flow-novice optimize bundle
 
 # Output:
 # 📦 Bundle Size Optimization
@@ -678,7 +678,7 @@ claude-flow optimize bundle
 
 #### Database Optimization
 ```bash
-claude-flow optimize database
+claude-flow-novice optimize database
 
 # Output:
 # 🗄️ Database Optimization
@@ -717,7 +717,7 @@ claude-flow optimize database
 
 #### Memory Optimization
 ```bash
-claude-flow optimize memory
+claude-flow-novice optimize memory
 
 # Output:
 # 🧠 Memory Optimization
@@ -754,7 +754,7 @@ claude-flow optimize memory
 
 #### AI-Powered Code Analysis
 ```bash
-claude-flow optimize code --deep-analysis
+claude-flow-novice optimize code --deep-analysis
 
 # Analyzes:
 # • Algorithm complexity
@@ -766,7 +766,7 @@ claude-flow optimize code --deep-analysis
 
 #### Continuous Optimization
 ```bash
-claude-flow optimize --monitor
+claude-flow-novice optimize --monitor
 
 # Sets up:
 # • Performance monitoring
@@ -778,14 +778,14 @@ claude-flow optimize --monitor
 
 ---
 
-## 5. `claude-flow review`
+## 5. `claude-flow-novice review`
 
 ### Purpose
 AI-powered code review with security analysis, best practices, and quality metrics.
 
 ### Syntax
 ```bash
-claude-flow review [scope] [options]
+claude-flow-novice review [scope] [options]
 ```
 
 ### Review Scopes
@@ -806,7 +806,7 @@ claude-flow review [scope] [options]
 
 #### Comprehensive Code Review
 ```bash
-claude-flow review all
+claude-flow-novice review all
 
 # Output:
 # 👀 Comprehensive Code Review
@@ -840,7 +840,7 @@ claude-flow review all
 
 #### Security-Focused Review
 ```bash
-claude-flow review security
+claude-flow-novice review security
 
 # Output:
 # 🔒 Security Review Report
@@ -857,7 +857,7 @@ claude-flow review security
 #
 # 2. Hardcoded Credentials
 #    File: src/config.js:12
-#    Code: `API_KEY = "sk_live_12345..."`
+#    Code: `API_KEY = "sk-..."`
 #    Risk: Critical
 #    Fix: Move to environment variables
 #
@@ -881,7 +881,7 @@ claude-flow review security
 
 #### Performance Review
 ```bash
-claude-flow review performance
+claude-flow-novice review performance
 
 # Output:
 # ⚡ Performance Review
@@ -921,7 +921,7 @@ claude-flow review performance
 
 #### Interactive Review Mode
 ```bash
-claude-flow review --interactive
+claude-flow-novice review --interactive
 
 # Starts interactive session:
 # 👀 Interactive Code Review
@@ -953,7 +953,7 @@ claude-flow review --interactive
 
 #### Automatic Issue Resolution
 ```bash
-claude-flow review --fix
+claude-flow-novice review --fix
 
 # Automatically fixes:
 # • Unused imports
@@ -966,7 +966,7 @@ claude-flow review --fix
 
 #### Smart Suggestions
 ```bash
-claude-flow review changes --fix
+claude-flow-novice review changes --fix
 
 # For recent changes:
 # • Suggests better patterns

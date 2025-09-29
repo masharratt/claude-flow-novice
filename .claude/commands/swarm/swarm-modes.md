@@ -4,5 +4,5 @@ Command documentation for swarm-modes in category swarm.
 
 Usage:
 ```bash
-npx claude-flow swarm swarm-modes [options]
+npx claude-flow-novice swarm swarm-modes [options]
 ```

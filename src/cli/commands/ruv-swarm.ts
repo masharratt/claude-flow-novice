@@ -93,7 +93,7 @@ function showRuvSwarmHelp() {
 
   console.log('Usage:');
   console.log(
-    '  claude-flow ruv-swarm <command> [options]\
+    '  claude-flow-novice ruv-swarm <command> [options]\
 ',
   );
 
@@ -113,11 +113,11 @@ function showRuvSwarmHelp() {
   );
 
   console.log('Examples:');
-  console.log('  claude-flow ruv-swarm init --topology mesh --max-agents 8');
-  console.log('  claude-flow ruv-swarm spawn researcher --name \"AI Researcher\"');
-  console.log('  claude-flow ruv-swarm orchestrate \"Build a REST API\"');
-  console.log('  claude-flow ruv-swarm neural train --iterations 20');
-  console.log('  claude-flow ruv-swarm benchmark --type swarm');
+  console.log('  claude-flow-novice ruv-swarm init --topology mesh --max-agents 8');
+  console.log('  claude-flow-novice ruv-swarm spawn researcher --name \"AI Researcher\"');
+  console.log('  claude-flow-novice ruv-swarm orchestrate \"Build a REST API\"');
+  console.log('  claude-flow-novice ruv-swarm neural train --iterations 20');
+  console.log('  claude-flow-novice ruv-swarm benchmark --type swarm');
 }
 
 /**
@@ -231,7 +231,7 @@ async function handleStatus(ctx: CommandContext) {
 async function handleSpawn(ctx: CommandContext) {
   if (ctx.args.length === 0) {
     error('Agent type is required');
-    console.log('Usage: claude-flow ruv-swarm spawn <type> [--name <name>]');
+    console.log('Usage: claude-flow-novice ruv-swarm spawn <type> [--name <name>]');
     console.log('Types: researcher, coder, analyst, optimizer, coordinator');
     return;
   }
@@ -334,7 +334,7 @@ async function handleList(ctx: CommandContext) {
 async function handleOrchestrate(ctx: CommandContext) {
   if (ctx.args.length === 0) {
     error('Task description is required');
-    console.log('Usage: claude-flow ruv-swarm orchestrate \"<task description>\" [options]');
+    console.log('Usage: claude-flow-novice ruv-swarm orchestrate \"<task description>\" [options]');
     return;
   }
 

@@ -8,22 +8,22 @@ Comprehensive guide to testing JavaScript applications using Claude-Flow agent c
 
 ```bash
 # Generate comprehensive testing setup with agent
-npx claude-flow sparc run tester "Complete testing environment with Jest, React Testing Library, and E2E testing"
+npx claude-flow-novice sparc run tester "Complete testing environment with Jest, React Testing Library, and E2E testing"
 
 # Alternative: TDD workflow
-npx claude-flow sparc tdd "User authentication feature with test-driven development"
+npx claude-flow-novice sparc tdd "User authentication feature with test-driven development"
 ```
 
 ### 2. Agent-Driven Testing
 
 ```bash
 # Parallel testing development
-npx claude-flow sparc batch "tester,reviewer,perf-analyzer" "Comprehensive testing strategy implementation"
+npx claude-flow-novice sparc batch "tester,reviewer,perf-analyzer" "Comprehensive testing strategy implementation"
 
 # Sequential testing pipeline
-npx claude-flow sparc run tester "Unit tests for components and utilities"
-npx claude-flow sparc run tester "Integration tests for API endpoints"
-npx claude-flow sparc run tester "End-to-end tests for user workflows"
+npx claude-flow-novice sparc run tester "Unit tests for components and utilities"
+npx claude-flow-novice sparc run tester "Integration tests for API endpoints"
+npx claude-flow-novice sparc run tester "End-to-end tests for user workflows"
 ```
 
 ## 🏗 Testing Architecture
@@ -76,7 +76,7 @@ testing/
 
 ```bash
 # Complete testing environment generation
-npx claude-flow sparc run tester "Comprehensive testing setup with:
+npx claude-flow-novice sparc run tester "Comprehensive testing setup with:
 - Jest configuration for unit and integration tests
 - React Testing Library for component testing
 - Playwright for end-to-end testing
@@ -462,7 +462,7 @@ describe('useApiMutation Hook', () => {
 
 ```bash
 # Generate comprehensive unit tests with agent
-npx claude-flow sparc run tester "Complete unit testing suite for components, hooks, and utilities"
+npx claude-flow-novice sparc run tester "Complete unit testing suite for components, hooks, and utilities"
 ```
 
 ## 🔗 Integration Testing
@@ -1003,7 +1003,7 @@ describe('User Model Integration', () => {
 
 ```bash
 # Generate integration tests with agent
-npx claude-flow sparc run tester "Comprehensive integration testing for API endpoints and database operations"
+npx claude-flow-novice sparc run tester "Comprehensive integration testing for API endpoints and database operations"
 ```
 
 ## 🌐 End-to-End Testing
@@ -1310,7 +1310,7 @@ test.describe('Product Management', () => {
 
 ```bash
 # Generate E2E tests with agent
-npx claude-flow sparc run tester "Comprehensive end-to-end testing with Playwright for user journeys and admin workflows"
+npx claude-flow-novice sparc run tester "Comprehensive end-to-end testing with Playwright for user journeys and admin workflows"
 ```
 
 ## ⚡ Performance Testing
@@ -1644,7 +1644,7 @@ module.exports = { runLighthouseTest, runPerformanceTests };
 
 ```bash
 # Generate performance testing with agent
-npx claude-flow sparc run perf-analyzer "Comprehensive performance testing with Lighthouse and K6"
+npx claude-flow-novice sparc run perf-analyzer "Comprehensive performance testing with Lighthouse and K6"
 ```
 
 ## 🔄 MCP Integration for Testing
@@ -1751,7 +1751,7 @@ module.exports = {
 
 ```bash
 # Generate test reporting dashboard with agent
-npx claude-flow sparc run tester "Test reporting dashboard with coverage metrics and trend analysis"
+npx claude-flow-novice sparc run tester "Test reporting dashboard with coverage metrics and trend analysis"
 ```
 
 ## 🚀 CI/CD Integration
@@ -1760,14 +1760,14 @@ npx claude-flow sparc run tester "Test reporting dashboard with coverage metrics
 
 ```bash
 # Generate CI/CD testing pipeline with agent
-npx claude-flow sparc run cicd-engineer "GitHub Actions workflow for automated testing pipeline"
+npx claude-flow-novice sparc run cicd-engineer "GitHub Actions workflow for automated testing pipeline"
 ```
 
 ### 2. Test Automation Scripts
 
 ```bash
 # Generate test automation scripts with agent
-npx claude-flow sparc run tester "Test automation scripts for local development and CI/CD"
+npx claude-flow-novice sparc run tester "Test automation scripts for local development and CI/CD"
 ```
 
 ---

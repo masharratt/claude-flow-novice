@@ -24,10 +24,10 @@ public class PerformanceMonitor {
 
 ```bash
 # Analyze performance bottlenecks with agents
-npx claude-flow sparc run perf-analyzer "Analyze Java application performance bottlenecks"
+npx claude-flow-novice sparc run perf-analyzer "Analyze Java application performance bottlenecks"
 
 # Optimize JVM settings
-npx claude-flow sparc batch perf-analyzer,coder "Optimize JVM settings for production workload"
+npx claude-flow-novice sparc batch perf-analyzer,coder "Optimize JVM settings for production workload"
 ```
 
 ## JVM Memory Management
@@ -817,33 +817,33 @@ public class LoadTestManager {
 
 ```bash
 # Analyze application performance
-npx claude-flow sparc run perf-analyzer "Analyze Java application performance bottlenecks and memory leaks"
+npx claude-flow-novice sparc run perf-analyzer "Analyze Java application performance bottlenecks and memory leaks"
 
 # Optimize database performance
-npx claude-flow sparc run perf-analyzer "Optimize JPA queries and database connection pool settings"
+npx claude-flow-novice sparc run perf-analyzer "Optimize JPA queries and database connection pool settings"
 
 # JVM tuning
-npx claude-flow sparc batch perf-analyzer,coder "Tune JVM parameters for high-throughput application"
+npx claude-flow-novice sparc batch perf-analyzer,coder "Tune JVM parameters for high-throughput application"
 
 # Generate performance tests
-npx claude-flow sparc run tester "Create comprehensive performance test suite with JMH and load testing"
+npx claude-flow-novice sparc run tester "Create comprehensive performance test suite with JMH and load testing"
 ```
 
 ### 2. MCP Integration for Performance Optimization
 
 ```bash
 # Initialize performance optimization swarm
-npx claude-flow mcp swarm_init --topology star --max-agents 6
+npx claude-flow-novice mcp swarm_init --topology star --max-agents 6
 
 # Spawn performance specialists
-npx claude-flow mcp agent_spawn --type perf-analyzer --capabilities "jvm-tuning,memory-optimization"
-npx claude-flow mcp agent_spawn --type perf-analyzer --capabilities "database-optimization,query-tuning"
-npx claude-flow mcp agent_spawn --type coder --capabilities "caching,async-processing"
-npx claude-flow mcp agent_spawn --type tester --capabilities "performance-testing,load-testing"
-npx claude-flow mcp agent_spawn --type monitor --capabilities "apm,metrics,profiling"
+npx claude-flow-novice mcp agent_spawn --type perf-analyzer --capabilities "jvm-tuning,memory-optimization"
+npx claude-flow-novice mcp agent_spawn --type perf-analyzer --capabilities "database-optimization,query-tuning"
+npx claude-flow-novice mcp agent_spawn --type coder --capabilities "caching,async-processing"
+npx claude-flow-novice mcp agent_spawn --type tester --capabilities "performance-testing,load-testing"
+npx claude-flow-novice mcp agent_spawn --type monitor --capabilities "apm,metrics,profiling"
 
 # Orchestrate performance optimization
-npx claude-flow mcp task_orchestrate --task "Optimize Java application performance" --strategy parallel
+npx claude-flow-novice mcp task_orchestrate --task "Optimize Java application performance" --strategy parallel
 ```
 
 ## Production Performance Monitoring

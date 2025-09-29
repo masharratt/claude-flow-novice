@@ -1175,7 +1175,7 @@ class CommunityAnalytics {
 - Focus on community needs and priorities
 
 **Subject Matter Experts (30%):**
-- Technical leaders in claude-flow ecosystem
+- Technical leaders in claude-flow-novice ecosystem
 - Industry professionals and educators
 - Appointed based on expertise and contribution
 - 18-month terms with renewal option

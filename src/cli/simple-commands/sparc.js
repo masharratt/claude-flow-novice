@@ -479,29 +479,29 @@ function showSparcHelp() {
   console.log('  tdd <task>               Run Test-Driven Development workflow');
   console.log();
   console.log('Examples:');
-  console.log('  claude-flow sparc "orchestrate app development"    # Uses sparc orchestrator');
-  console.log('  claude-flow sparc modes --verbose');
-  console.log('  claude-flow sparc info architect');
-  console.log('  claude-flow sparc run code "implement user authentication"');
-  console.log('  claude-flow sparc run code "add login feature" --non-interactive');
-  console.log('  claude-flow sparc run tdd "create test suite" --namespace tests');
-  console.log('  claude-flow sparc tdd "payment processing system" --interactive');
+  console.log('  claude-flow-novice sparc "orchestrate app development"    # Uses sparc orchestrator');
+  console.log('  claude-flow-novice sparc modes --verbose');
+  console.log('  claude-flow-novice sparc info architect');
+  console.log('  claude-flow-novice sparc run code "implement user authentication"');
+  console.log('  claude-flow-novice sparc run code "add login feature" --non-interactive');
+  console.log('  claude-flow-novice sparc run tdd "create test suite" --namespace tests');
+  console.log('  claude-flow-novice sparc tdd "payment processing system" --interactive');
   console.log();
   console.log('Parallel Execution with BatchTool:');
   console.log('  # Run multiple SPARC modes concurrently');
   console.log('  batchtool run --parallel \\');
-  console.log('    "npx claude-flow sparc run code \'user service\' --non-interactive" \\');
-  console.log('    "npx claude-flow sparc run code \'auth service\' --non-interactive" \\');
-  console.log('    "npx claude-flow sparc run tdd \'test suite\' --non-interactive"');
+  console.log('    "npx claude-flow-novice sparc run code \'user service\' --non-interactive" \\');
+  console.log('    "npx claude-flow-novice sparc run code \'auth service\' --non-interactive" \\');
+  console.log('    "npx claude-flow-novice sparc run tdd \'test suite\' --non-interactive"');
   console.log();
   console.log('  # Boomerang orchestration pattern');
   console.log('  batchtool orchestrate --boomerang \\');
   console.log(
-    '    --research "npx claude-flow sparc run ask \'requirements\' --non-interactive" \\',
+    '    --research "npx claude-flow-novice sparc run ask \'requirements\' --non-interactive" \\',
   );
-  console.log('    --design "npx claude-flow sparc run architect \'system\' --non-interactive" \\');
-  console.log('    --implement "npx claude-flow sparc run code \'features\' --non-interactive" \\');
-  console.log('    --test "npx claude-flow sparc run tdd \'validation\' --non-interactive"');
+  console.log('    --design "npx claude-flow-novice sparc run architect \'system\' --non-interactive" \\');
+  console.log('    --implement "npx claude-flow-novice sparc run code \'features\' --non-interactive" \\');
+  console.log('    --test "npx claude-flow-novice sparc run tdd \'validation\' --non-interactive"');
   console.log();
   console.log('Flags:');
   console.log('  --dry-run, -d            Show configuration without executing');

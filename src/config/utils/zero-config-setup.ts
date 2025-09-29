@@ -239,7 +239,7 @@ export class ZeroConfigSetup {
     try {
       const { execSync } = require('child_process');
 
-      // Test if claude-flow hooks are available
+      // Test if claude-flow-novice hooks are available
       execSync('npx claude-flow@alpha hooks --help', {
         stdio: 'ignore',
         cwd: projectPath,

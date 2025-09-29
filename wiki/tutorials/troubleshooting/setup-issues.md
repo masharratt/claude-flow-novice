@@ -65,7 +65,7 @@ npx --version
 npm install -g claude-flow@latest
 
 # Then use without npx
-claude-flow --version
+claude-flow-novice --version
 ```
 
 **Option 3: Use Alternative Method**
@@ -688,7 +688,7 @@ npm cache clean --force
 npm install -g claude-flow@latest
 
 # Verify installation
-claude-flow --version
+claude-flow-novice --version
 ```
 
 **Alternative Installation Methods:**
@@ -703,7 +703,7 @@ docker run -it --rm claude-flow/cli:latest
 # Download and run manually
 curl -O https://releases.claude-flow.dev/latest/claude-flow.tar.gz
 tar -xzf claude-flow.tar.gz
-./claude-flow/bin/claude-flow --version
+./claude-flow/bin/claude-flow-novice --version
 ```
 
 Remember: Most setup issues are related to Node.js version, permissions, or network connectivity. Start with the basics and work your way up to more complex solutions.

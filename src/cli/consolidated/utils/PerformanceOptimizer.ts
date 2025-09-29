@@ -381,9 +381,9 @@ export class PerformanceOptimizer {
     try {
       // Preload command help and metadata
       this.preloadedData.set('commandExamples', {
-        init: ['claude-flow init', 'claude-flow init react', 'claude-flow init "todo app"'],
-        build: ['claude-flow build "add auth"', 'claude-flow build "REST API"'],
-        status: ['claude-flow status', 'claude-flow status --detailed'],
+        init: ['claude-flow-novice init', 'claude-flow-novice init react', 'claude-flow-novice init "todo app"'],
+        build: ['claude-flow-novice build "add auth"', 'claude-flow-novice build "REST API"'],
+        status: ['claude-flow-novice status', 'claude-flow-novice status --detailed'],
       });
     } catch (error) {
       console.warn('Failed to preload command metadata');

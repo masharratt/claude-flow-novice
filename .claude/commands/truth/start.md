@@ -9,7 +9,7 @@ The `truth` command provides comprehensive insights into code quality, agent per
 ## Usage
 
 ```bash
-claude-flow truth [options]
+claude-flow-novice truth [options]
 ```
 
 ## Options
@@ -45,28 +45,28 @@ claude-flow truth [options]
 ### Basic Usage
 ```bash
 # View current truth scores
-claude-flow truth
+claude-flow-novice truth
 
 # View scores for last 7 days
-claude-flow truth --period 7d
+claude-flow-novice truth --period 7d
 
 # Export to HTML report
-claude-flow truth --export report.html --format html
+claude-flow-novice truth --export report.html --format html
 ```
 
 ### Advanced Analysis
 ```bash
 # Monitor real-time scores
-claude-flow truth --watch
+claude-flow-novice truth --watch
 
 # Find problematic files
-claude-flow truth --threshold 0.8
+claude-flow-novice truth --threshold 0.8
 
 # Agent-specific metrics
-claude-flow truth --agent coder --period 24h
+claude-flow-novice truth --agent coder --period 24h
 
 # JSON for processing
-claude-flow truth --format json | jq '.overall_score'
+claude-flow-novice truth --format json | jq '.overall_score'
 ```
 
 ## Dashboard View
@@ -100,7 +100,7 @@ Recent Tasks:
 # GitHub Actions example
 - name: Check Truth Scores
   run: |
-    claude-flow truth --format json > truth.json
+    claude-flow-novice truth --format json > truth.json
     score=$(jq '.overall_score' truth.json)
     if (( $(echo "$score < 0.95" | bc -l) )); then
       echo "Truth score too low: $score"
@@ -111,7 +111,7 @@ Recent Tasks:
 ### With Monitoring
 ```bash
 # Send to monitoring system
-claude-flow truth --format json | \
+claude-flow-novice truth --format json | \
   curl -X POST https://metrics.example.com/api/truth \
   -H "Content-Type: application/json" \
   -d @-

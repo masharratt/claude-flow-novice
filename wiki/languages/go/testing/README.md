@@ -1,16 +1,16 @@
 # Go Testing Strategies with Claude-Flow
 
-Comprehensive testing approaches for Go applications using claude-flow to automate test generation and execution.
+Comprehensive testing approaches for Go applications using claude-flow-novice to automate test generation and execution.
 
 ## 🧪 Testing Framework Overview
 
 ### Go Testing Fundamentals
 ```bash
 # Generate comprehensive test suite
-npx claude-flow sparc tdd "user authentication service with comprehensive tests"
+npx claude-flow-novice sparc tdd "user authentication service with comprehensive tests"
 
 # Or generate specific test types
-npx claude-flow sparc run tester "unit tests with table-driven tests and mocks"
+npx claude-flow-novice sparc run tester "unit tests with table-driven tests and mocks"
 ```
 
 ## 📋 Test Types and Strategies
@@ -465,7 +465,7 @@ func TestE2ETestSuite(t *testing.T) {
 ### Automated Mock Generation
 ```bash
 # Generate mocks with claude-flow
-npx claude-flow sparc run coder "generate mocks for all interfaces using mockery"
+npx claude-flow-novice sparc run coder "generate mocks for all interfaces using mockery"
 
 # Or use Go generate
 //go:generate mockery --name=UserRepository --output=mocks --outpkg=mocks
@@ -619,7 +619,7 @@ func BenchmarkMemoryAllocation(b *testing.B) {
 ### Load Testing with CLI
 ```bash
 # Generate load test with claude-flow
-npx claude-flow sparc run tester "create load test for user API endpoints"
+npx claude-flow-novice sparc run tester "create load test for user API endpoints"
 
 # Run benchmarks
 go test -bench=. -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./test/benchmark/
@@ -634,7 +634,7 @@ go tool pprof mem.prof
 ### Coverage Configuration
 ```bash
 # Generate test coverage with claude-flow
-npx claude-flow sparc run tester "setup comprehensive test coverage reporting"
+npx claude-flow-novice sparc run tester "setup comprehensive test coverage reporting"
 ```
 
 **Generated Coverage Script:**
@@ -792,7 +792,7 @@ func usesMocks(fn *ast.FuncDecl) bool {
 ### TDD Workflow
 ```bash
 # Complete TDD cycle with claude-flow
-npx claude-flow sparc tdd "user authentication service"
+npx claude-flow-novice sparc tdd "user authentication service"
 
 # This generates:
 # 1. Failing tests first
@@ -958,19 +958,19 @@ func AssertUserEqual(t *testing.T, expected, actual *models.User) {
 
 ```bash
 # Generate complete test suite
-npx claude-flow sparc tdd "complete user management system"
+npx claude-flow-novice sparc tdd "complete user management system"
 
 # Generate specific test types
-npx claude-flow sparc run tester "integration tests with testcontainers"
-npx claude-flow sparc run tester "benchmark tests for API endpoints"
-npx claude-flow sparc run tester "property-based tests with fuzzing"
+npx claude-flow-novice sparc run tester "integration tests with testcontainers"
+npx claude-flow-novice sparc run tester "benchmark tests for API endpoints"
+npx claude-flow-novice sparc run tester "property-based tests with fuzzing"
 
 # Test analysis and improvement
-npx claude-flow sparc run reviewer "analyze test coverage and suggest improvements"
-npx claude-flow sparc run tester "add missing test cases for edge scenarios"
+npx claude-flow-novice sparc run reviewer "analyze test coverage and suggest improvements"
+npx claude-flow-novice sparc run tester "add missing test cases for edge scenarios"
 
 # Performance testing
-npx claude-flow sparc run perf-analyzer "create load tests for concurrent operations"
+npx claude-flow-novice sparc run perf-analyzer "create load tests for concurrent operations"
 ```
 
 ## 📈 Best Practices

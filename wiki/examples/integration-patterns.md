@@ -1,6 +1,6 @@
 # Integration Patterns and Examples
 
-This document provides practical examples and patterns for integrating claude-flow with various development environments and tools.
+This document provides practical examples and patterns for integrating claude-flow-novice with various development environments and tools.
 
 ## Table of Contents
 
@@ -120,16 +120,16 @@ jobs:
 
       - name: Setup MCP servers
         run: |
-          claude mcp add claude-flow npx claude-flow@alpha mcp start
+          claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
           claude mcp add ruv-swarm npx ruv-swarm mcp start
 
       - name: Initialize swarm
         run: |
-          npx claude-flow sparc init --topology mesh --agents 4
+          npx claude-flow-novice sparc init --topology mesh --agents 4
 
       - name: Execute agent tasks
         run: |
-          npx claude-flow sparc run ${{ matrix.agent-type }} "Analyze codebase and report findings"
+          npx claude-flow-novice sparc run ${{ matrix.agent-type }} "Analyze codebase and report findings"
 
       - name: Upload results
         uses: actions/upload-artifact@v3
@@ -150,16 +150,16 @@ jobs:
 
       - name: Aggregate results
         run: |
-          npx claude-flow sparc batch "coordinator,analyst" "Aggregate and analyze all reports"
+          npx claude-flow-novice sparc batch "coordinator,analyst" "Aggregate and analyze all reports"
 
       - name: Generate final report
         run: |
-          npx claude-flow sparc run documenter "Create comprehensive CI/CD report"
+          npx claude-flow-novice sparc run documenter "Create comprehensive CI/CD report"
 
       - name: Publish results
         if: github.ref == 'refs/heads/main'
         run: |
-          npx claude-flow hooks notify --message "CI/CD pipeline completed successfully"
+          npx claude-flow-novice hooks notify --message "CI/CD pipeline completed successfully"
 ```
 
 ### Jenkins Pipeline Integration
@@ -185,7 +185,7 @@ pipeline {
 
                 stage('Configure MCP') {
                     steps {
-                        sh 'claude mcp add claude-flow npx claude-flow@alpha mcp start'
+                        sh 'claude mcp add claude-flow-novice npx claude-flow@alpha mcp start'
                         sh 'claude mcp add ruv-swarm npx ruv-swarm mcp start'
                     }
                 }
@@ -205,7 +205,7 @@ pipeline {
                         steps {
                             script {
                                 sh """
-                                    npx claude-flow sparc run ${AGENT_TYPE} \
+                                    npx claude-flow-novice sparc run ${AGENT_TYPE} \
                                     "Analyze ${BRANCH_NAME} branch and generate report"
                                 """
                             }
@@ -222,7 +222,7 @@ pipeline {
 
         stage('Integration') {
             steps {
-                sh 'npx claude-flow sparc batch "coordinator,analyst" "Integrate all analysis results"'
+                sh 'npx claude-flow-novice sparc batch "coordinator,analyst" "Integrate all analysis results"'
             }
         }
 
@@ -231,7 +231,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                sh 'npx claude-flow sparc run cicd-engineer "Deploy to production"'
+                sh 'npx claude-flow-novice sparc run cicd-engineer "Deploy to production"'
             }
         }
     }
@@ -389,23 +389,23 @@ graph TB
 npm install -g claude-flow@alpha
 
 # Setup MCP servers for development
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 claude mcp add ruv-swarm npx ruv-swarm mcp start
 
 # Initialize development swarm
-npx claude-flow sparc init \
+npx claude-flow-novice sparc init \
   --topology mesh \
   --agents 6 \
   --strategy adaptive
 
 # Configure development agents
-npx claude-flow sparc config \
+npx claude-flow-novice sparc config \
   --agent-types "coder,tester,reviewer" \
   --memory-persistence true \
   --hooks-enabled true
 
 # Start development session
-npx claude-flow sparc session start \
+npx claude-flow-novice sparc session start \
   --name "dev-session-$(date +%Y%m%d)" \
   --auto-save true
 ```

@@ -20,7 +20,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 ```bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run innovator "innovative solutions for scaling"
+npx claude-flow-novice sparc run innovator "innovative solutions for scaling"
 
 # For alpha features
 npx claude-flow@alpha sparc run innovator "innovative solutions for scaling"
@@ -28,8 +28,8 @@ npx claude-flow@alpha sparc run innovator "innovative solutions for scaling"
 
 ### Option 3: Local Installation
 ```bash
-# If claude-flow is installed locally
-./claude-flow sparc run innovator "innovative solutions for scaling"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run innovator "innovative solutions for scaling"
 ```
 
 ## Core Capabilities

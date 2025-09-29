@@ -55,7 +55,7 @@
     │ Novice → Intermediate: 10+ commands, 4+ types, 80%+ success     │
     │ Intermediate → Expert: 25+ commands, 10+ types, 85%+ success    │
     │                                                                 │
-    │ Track Progress: claude-flow status | claude-flow learn          │
+    │ Track Progress: claude-flow-novice status | claude-flow-novice learn          │
     └─────────────────────────────────────────────────────────────────┘
 
     💡 COMMAND FLOW PATTERN:
@@ -87,7 +87,7 @@ Claude Flow uses a **3-tier progressive disclosure system** that adapts to your 
 
 ### 🚀 Expert Tier (112+ Commands)
 **Full power users** - Complete MCP tool access
-- All claude-flow MCP tools
+- All claude-flow-novice MCP tools
 - All ruv-swarm coordination tools
 - Advanced neural network features
 - Custom workflow creation
@@ -149,37 +149,37 @@ Claude Flow uses a **3-tier progressive disclosure system** that adapts to your 
 ### Core Development
 ```bash
 # Project Management
-claude-flow init              # Initialize projects
-claude-flow build            # Build features with AI
-claude-flow status           # Check project status
+claude-flow-novice init              # Initialize projects
+claude-flow-novice build            # Build features with AI
+claude-flow-novice status           # Check project status
 
 # Learning & Help
-claude-flow help             # Get contextual help
-claude-flow learn            # Unlock new features
+claude-flow-novice help             # Get contextual help
+claude-flow-novice learn            # Unlock new features
 ```
 
 ### Intermediate Features
 ```bash
 # Agent Management
-claude-flow agents           # Direct agent control
-claude-flow test            # AI-powered testing
-claude-flow review          # Code quality analysis
+claude-flow-novice agents           # Direct agent control
+claude-flow-novice test            # AI-powered testing
+claude-flow-novice review          # Code quality analysis
 
 # Deployment & Optimization
-claude-flow deploy          # Intelligent deployment
-claude-flow optimize        # Performance tuning
+claude-flow-novice deploy          # Intelligent deployment
+claude-flow-novice optimize        # Performance tuning
 ```
 
 ### Expert Features
 ```bash
 # MCP Tool Integration
-claude-flow mcp             # Access all MCP tools
-claude-flow swarm           # Advanced swarm management
-claude-flow neural          # Neural network operations
+claude-flow-novice mcp             # Access all MCP tools
+claude-flow-novice swarm           # Advanced swarm management
+claude-flow-novice neural          # Neural network operations
 
 # Advanced Workflows
-claude-flow workflow        # Custom workflow creation
-claude-flow enterprise      # Enterprise features
+claude-flow-novice workflow        # Custom workflow creation
+claude-flow-novice enterprise      # Enterprise features
 ```
 
 ## 🚀 Getting Started
@@ -190,13 +190,13 @@ claude-flow enterprise      # Enterprise features
 npm install -g claude-flow@alpha
 
 # Add MCP servers
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Initialize your first project
-claude-flow init
+claude-flow-novice init
 
 # Start building
-claude-flow build "create a todo app"
+claude-flow-novice build "create a todo app"
 ```
 
 ### Natural Language Interface
@@ -204,10 +204,10 @@ Claude Flow understands natural language - describe what you want:
 
 ```bash
 # These all work!
-claude-flow build "add user authentication"
-claude-flow "create a REST API with JWT"
-claude-flow "setup testing for my React app"
-claude-flow "optimize my database queries"
+claude-flow-novice build "add user authentication"
+claude-flow-novice "create a REST API with JWT"
+claude-flow-novice "setup testing for my React app"
+claude-flow-novice "optimize my database queries"
 ```
 
 ## 📊 Tier Progression
@@ -219,8 +219,8 @@ claude-flow "optimize my database queries"
 
 **Track Your Progress:**
 ```bash
-claude-flow status          # See current tier and progress
-claude-flow learn           # View progression dashboard
+claude-flow-novice status          # See current tier and progress
+claude-flow-novice learn           # View progression dashboard
 ```
 
 ## 🎯 Key Features
@@ -248,7 +248,7 @@ claude-flow learn           # View progression dashboard
 ### MCP Server Integration
 ```bash
 # Claude Flow MCP (Required)
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # RUV Swarm MCP (Enhanced coordination)
 claude mcp add ruv-swarm npx ruv-swarm mcp start
@@ -275,17 +275,17 @@ claude mcp add flow-nexus npx flow-nexus@latest mcp start
 
 ```bash
 # Get help anytime
-claude-flow help                    # General help
-claude-flow help <command>          # Command-specific help
-claude-flow help --interactive      # Interactive help system
-claude-flow help --examples         # See practical examples
+claude-flow-novice help                    # General help
+claude-flow-novice help <command>          # Command-specific help
+claude-flow-novice help --interactive      # Interactive help system
+claude-flow-novice help --examples         # See practical examples
 
 # Check what you can do
-claude-flow status                  # Current capabilities
-claude-flow learn                   # Learning dashboard
+claude-flow-novice status                  # Current capabilities
+claude-flow-novice learn                   # Learning dashboard
 
 # Emergency help
-claude-flow "I need help with..."   # Natural language help
+claude-flow-novice "I need help with..."   # Natural language help
 ```
 
 ## 📖 Documentation Structure

@@ -248,7 +248,7 @@ export class SPARCIntegration {
    */
   async checkGlobalSPARCInstallation() {
     return new Promise((resolve) => {
-      exec('npx claude-flow sparc --version', (error, stdout, stderr) => {
+      exec('npx claude-flow-novice sparc --version', (error, stdout, stderr) => {
         resolve({
           available: !error,
           version: stdout.includes('version') ? stdout.trim() : null,
@@ -342,7 +342,7 @@ export class SPARCIntegration {
    */
   async executeSPARCCLIValidation(projectPath, phase) {
     return new Promise((resolve) => {
-      const command = `cd "${projectPath}" && npx claude-flow sparc run ${phase} --validate-only`;
+      const command = `cd "${projectPath}" && npx claude-flow-novice sparc run ${phase} --validate-only`;
 
       exec(command, { timeout: this.options.timeout }, (error, stdout, stderr) => {
         const result = {

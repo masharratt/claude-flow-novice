@@ -1,6 +1,6 @@
 # MCP Tools Documentation Index
 
-Complete documentation for claude-flow MCP integration with Claude Code.
+Complete documentation for claude-flow-novice MCP integration with Claude Code.
 
 ## 📚 Documentation Structure
 
@@ -28,7 +28,7 @@ Complete documentation for claude-flow MCP integration with Claude Code.
 - Memory management and error handling
 
 ### [🔄 Task Tool Integration](./task-tool-integration.md)
-**Claude Code Task tool with claude-flow agents**
+**Claude Code Task tool with claude-flow-novice agents**
 - Comprehensive Task tool usage guide
 - Agent specializations and coordination
 - Memory-based and hook-based coordination

@@ -1,13 +1,13 @@
 # MCP Tools Quick Reference
 
-Fast reference guide for claude-flow MCP integration with Claude Code.
+Fast reference guide for claude-flow-novice MCP integration with Claude Code.
 
 ## 🚀 Quick Start
 
 ### Setup MCP Server
 ```bash
-# Add claude-flow MCP server to Claude Code
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Add claude-flow-novice MCP server to Claude Code
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Verify setup
 claude mcp status claude-flow
@@ -315,7 +315,7 @@ claude mcp logs claude-flow
 
 # Reset if needed
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 ```
 
 ### Memory Issues

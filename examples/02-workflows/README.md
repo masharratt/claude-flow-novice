@@ -21,19 +21,19 @@ This directory contains multi-agent workflow definitions demonstrating various c
 - **hello-world-workflow.json**: Single-agent starter workflow
   ```bash
   cd examples
-  ../claude-flow swarm create "Build hello world app" --output ./output/hello-world
+  ../claude-flow-novice swarm create "Build hello world app" --output ./output/hello-world
   ```
 
 ### Parallel Workflows (`parallel/`)
 - **data-processing-workflow.json**: Process multiple data sources simultaneously
   ```bash
-  ../claude-flow swarm create "Process CSV, JSON, and XML data in parallel" --agents 4 --output ./output/data-processing
+  ../claude-flow-novice swarm create "Process CSV, JSON, and XML data in parallel" --agents 4 --output ./output/data-processing
   ```
 
 ### Sequential Workflows (`sequential/`)
 - **blog-platform-workflow.json**: Step-by-step blog platform development
   ```bash
-  ../claude-flow swarm create "Build complete blog platform with authentication" --strategy development --output ./output/blog
+  ../claude-flow-novice swarm create "Build complete blog platform with authentication" --strategy development --output ./output/blog
   ```
 
 ### Complex Workflows (`complex/`)
@@ -41,7 +41,7 @@ This directory contains multi-agent workflow definitions demonstrating various c
   - System design → Service development → Frontend → DevOps → Testing
   - Smart execution with checkpoints and rollback
   ```bash
-  ../claude-flow swarm create "Build microservices e-commerce platform" --agents 8 --output ./output/microservices
+  ../claude-flow-novice swarm create "Build microservices e-commerce platform" --agents 8 --output ./output/microservices
   ```
 
 ### Specialized Workflows (`specialized/`)
@@ -49,7 +49,7 @@ This directory contains multi-agent workflow definitions demonstrating various c
   - Data prep → Feature engineering → Model research → Training → Deployment
   - Experiment tracking and model versioning
   ```bash
-  ../claude-flow swarm create "Build machine learning pipeline for customer churn prediction" --strategy analysis --output ./output/ml-pipeline
+  ../claude-flow-novice swarm create "Build machine learning pipeline for customer churn prediction" --strategy analysis --output ./output/ml-pipeline
   ```
 
 ## Legacy Workflows
@@ -91,13 +91,13 @@ Original AI research pipeline example
 
 ```bash
 # Execute a workflow
-npx claude-flow orchestrate ./claude-workflow.json
+npx claude-flow-novice orchestrate ./claude-workflow.json
 
 # With monitoring
-npx claude-flow orchestrate ./research-workflow.json --monitor
+npx claude-flow-novice orchestrate ./research-workflow.json --monitor
 
 # In background
-npx claude-flow orchestrate ./claude-workflow.json --background
+npx claude-flow-novice orchestrate ./claude-workflow.json --background
 ```
 
 ## Creating Custom Workflows

@@ -1,6 +1,6 @@
 /**
  * Claude Flow SPARC Executor
- * Executes tasks using the full claude-flow SPARC system in non-interactive mode
+ * Executes tasks using the full claude-flow-novice SPARC system in non-interactive mode
  */
 
 import type { TaskDefinition, AgentState, TaskResult } from './types.js';

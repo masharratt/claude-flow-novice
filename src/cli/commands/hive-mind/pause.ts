@@ -44,7 +44,7 @@ export const pauseCommand = new Command('pause')
 
         if (result) {
           console.log(chalk.green(`✓ Session ${sessionId} paused successfully`));
-          console.log(chalk.gray(`Use 'claude-flow hive-mind resume -s ${sessionId}' to resume`));
+          console.log(chalk.gray(`Use 'claude-flow-novice hive-mind resume -s ${sessionId}' to resume`));
         } else {
           console.log(chalk.red(`Failed to pause session ${sessionId}`));
         }
@@ -75,7 +75,7 @@ export const pauseCommand = new Command('pause')
 
         if (result) {
           console.log(chalk.green(`✓ Session paused successfully`));
-          console.log(chalk.gray(`Use 'claude-flow hive-mind resume -s ${sessionId}' to resume`));
+          console.log(chalk.gray(`Use 'claude-flow-novice hive-mind resume -s ${sessionId}' to resume`));
         } else {
           console.log(chalk.red(`Failed to pause session`));
         }

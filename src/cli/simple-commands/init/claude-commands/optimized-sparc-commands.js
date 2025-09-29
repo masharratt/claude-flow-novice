@@ -61,9 +61,9 @@ ${
 
 To use this optimized SPARC mode, you can:
 
-1. **Run directly with parallel processing**: \`./claude-flow sparc run ${mode.slug} "your task" --parallel\`
-2. **Batch operation mode**: \`./claude-flow sparc batch ${mode.slug} "tasks-file.json" --concurrent\`
-3. **Pipeline processing**: \`./claude-flow sparc pipeline ${mode.slug} "your task" --stages\`
+1. **Run directly with parallel processing**: \`./claude-flow-novice sparc run ${mode.slug} "your task" --parallel\`
+2. **Batch operation mode**: \`./claude-flow-novice sparc batch ${mode.slug} "tasks-file.json" --concurrent\`
+3. **Pipeline processing**: \`./claude-flow-novice sparc pipeline ${mode.slug} "your task" --stages\`
 4. **Use in concurrent workflow**: Include \`${mode.slug}\` in parallel SPARC workflow
 5. **Delegate with optimization**: Use \`new_task\` with \`--batch-optimize\` flag
 
@@ -72,37 +72,37 @@ To use this optimized SPARC mode, you can:
 ### Standard Operations
 \`\`\`bash
 # Run this specific mode
-./claude-flow sparc run ${mode.slug} "${getOptimizedExampleTask(mode.slug)}"
+./claude-flow-novice sparc run ${mode.slug} "${getOptimizedExampleTask(mode.slug)}"
 
 # Use with memory namespace and parallel processing
-./claude-flow sparc run ${mode.slug} "your task" --namespace ${mode.slug} --parallel
+./claude-flow-novice sparc run ${mode.slug} "your task" --namespace ${mode.slug} --parallel
 
 # Non-interactive mode with batchtools optimization
-./claude-flow sparc run ${mode.slug} "your task" --non-interactive --batch-optimize
+./claude-flow-novice sparc run ${mode.slug} "your task" --non-interactive --batch-optimize
 \`\`\`
 
 ### Batchtools Operations
 \`\`\`bash
 # Parallel execution with multiple related tasks
-./claude-flow sparc parallel ${mode.slug} "task1,task2,task3" --concurrent
+./claude-flow-novice sparc parallel ${mode.slug} "task1,task2,task3" --concurrent
 
 # Batch processing from configuration file
-./claude-flow sparc batch ${mode.slug} tasks-config.json --optimize
+./claude-flow-novice sparc batch ${mode.slug} tasks-config.json --optimize
 
 # Pipeline execution with staged processing
-./claude-flow sparc pipeline ${mode.slug} "complex-task" --stages parallel,validate,optimize
+./claude-flow-novice sparc pipeline ${mode.slug} "complex-task" --stages parallel,validate,optimize
 \`\`\`
 
 ### Performance Optimization
 \`\`\`bash
 # Monitor performance during execution
-./claude-flow sparc run ${mode.slug} "your task" --monitor --performance
+./claude-flow-novice sparc run ${mode.slug} "your task" --monitor --performance
 
 # Use concurrent processing with resource limits
-./claude-flow sparc concurrent ${mode.slug} "your task" --max-parallel 5 --resource-limit 80%
+./claude-flow-novice sparc concurrent ${mode.slug} "your task" --max-parallel 5 --resource-limit 80%
 
 # Batch execution with smart optimization
-./claude-flow sparc smart-batch ${mode.slug} "your task" --auto-optimize --adaptive
+./claude-flow-novice sparc smart-batch ${mode.slug} "your task" --auto-optimize --adaptive
 \`\`\`
 
 ## Memory Integration (Enhanced)
@@ -110,22 +110,22 @@ To use this optimized SPARC mode, you can:
 ### Standard Memory Operations
 \`\`\`bash
 # Store mode-specific context
-./claude-flow memory store "${mode.slug}_context" "important decisions" --namespace ${mode.slug}
+./claude-flow-novice memory store "${mode.slug}_context" "important decisions" --namespace ${mode.slug}
 
 # Query previous work
-./claude-flow memory query "${mode.slug}" --limit 5
+./claude-flow-novice memory query "${mode.slug}" --limit 5
 \`\`\`
 
 ### Batchtools Memory Operations
 \`\`\`bash
 # Batch store multiple related contexts
-./claude-flow memory batch-store "${mode.slug}_contexts.json" --namespace ${mode.slug} --parallel
+./claude-flow-novice memory batch-store "${mode.slug}_contexts.json" --namespace ${mode.slug} --parallel
 
 # Concurrent query across multiple namespaces
-./claude-flow memory parallel-query "${mode.slug}" --namespaces ${mode.slug},project,arch --concurrent
+./claude-flow-novice memory parallel-query "${mode.slug}" --namespaces ${mode.slug},project,arch --concurrent
 
 # Export mode-specific memory with compression
-./claude-flow memory export "${mode.slug}_backup.json" --namespace ${mode.slug} --compress --parallel
+./claude-flow-novice memory export "${mode.slug}_backup.json" --namespace ${mode.slug} --compress --parallel
 \`\`\`
 
 ## Performance Optimization Features
@@ -165,16 +165,16 @@ To use this optimized SPARC mode, you can:
 ### Concurrent Mode Execution
 \`\`\`bash
 # Run multiple modes in parallel for comprehensive analysis
-./claude-flow sparc concurrent ${mode.slug},architect,security-review "your project" --parallel
+./claude-flow-novice sparc concurrent ${mode.slug},architect,security-review "your project" --parallel
 
 # Pipeline execution across multiple modes
-./claude-flow sparc pipeline ${mode.slug}->code->tdd "feature implementation" --optimize
+./claude-flow-novice sparc pipeline ${mode.slug}->code->tdd "feature implementation" --optimize
 \`\`\`
 
 ### Batch Workflow Integration
 \`\`\`bash
 # Execute complete workflow with batchtools optimization
-./claude-flow sparc workflow ${mode.slug}-workflow.json --batch-optimize --monitor
+./claude-flow-novice sparc workflow ${mode.slug}-workflow.json --batch-optimize --monitor
 \`\`\`
 
 For detailed ${mode.name} documentation and batchtools integration guides, see: 
@@ -351,22 +351,22 @@ ${modeList}
 
 ### Run SPARC orchestrator with parallel processing:
 \`\`\`bash
-./claude-flow sparc "build complete authentication system" --parallel --optimize
+./claude-flow-novice sparc "build complete authentication system" --parallel --optimize
 \`\`\`
 
 ### Run multiple modes concurrently:
 \`\`\`bash
-./claude-flow sparc concurrent architect,code,tdd "your project" --parallel
+./claude-flow-novice sparc concurrent architect,code,tdd "your project" --parallel
 \`\`\`
 
 ### Execute batch operations:
 \`\`\`bash
-./claude-flow sparc batch "multiple-tasks.json" --optimize --monitor
+./claude-flow-novice sparc batch "multiple-tasks.json" --optimize --monitor
 \`\`\`
 
 ### Pipeline execution with staged processing:
 \`\`\`bash
-./claude-flow sparc pipeline "complex-project" --stages spec,architect,code,tdd,integration
+./claude-flow-novice sparc pipeline "complex-project" --stages spec,architect,code,tdd,integration
 \`\`\`
 
 ## SPARC Methodology Phases (Batchtools Enhanced)
@@ -396,13 +396,13 @@ ${modeList}
 Use memory commands with parallel processing for persistent context across SPARC sessions:
 \`\`\`bash
 # Batch store multiple specifications
-./claude-flow memory batch-store "sparc-contexts.json" --namespace sparc --parallel
+./claude-flow-novice memory batch-store "sparc-contexts.json" --namespace sparc --parallel
 
 # Concurrent query across multiple phases
-./claude-flow memory parallel-query "authentication" --namespaces spec,arch,impl --concurrent
+./claude-flow-novice memory parallel-query "authentication" --namespaces spec,arch,impl --concurrent
 
 # Export project memory with compression
-./claude-flow memory export sparc-project-backup.json --compress --parallel
+./claude-flow-novice memory export sparc-project-backup.json --compress --parallel
 \`\`\`
 
 ## Advanced Swarm Mode (Batchtools Enhanced)
@@ -410,22 +410,22 @@ Use memory commands with parallel processing for persistent context across SPARC
 For complex tasks requiring multiple agents with timeout-free execution and parallel processing:
 \`\`\`bash
 # Development swarm with parallel monitoring
-./claude-flow swarm "Build e-commerce platform" --strategy development --monitor --review --parallel
+./claude-flow-novice swarm "Build e-commerce platform" --strategy development --monitor --review --parallel
 
 # Background optimization swarm with concurrent processing
-./claude-flow swarm "Optimize system performance" --strategy optimization --background --concurrent
+./claude-flow-novice swarm "Optimize system performance" --strategy optimization --background --concurrent
 
 # Distributed research swarm with batch analysis
-./claude-flow swarm "Analyze market trends" --strategy research --distributed --ui --batch-analyze
+./claude-flow-novice swarm "Analyze market trends" --strategy research --distributed --ui --batch-analyze
 \`\`\`
 
 ## Non-Interactive Mode (Enhanced)
 
 For CI/CD integration and automation with parallel processing:
 \`\`\`bash
-./claude-flow sparc run code "implement API" --non-interactive --parallel
-./claude-flow sparc batch tdd "user tests" --non-interactive --enable-permissions --concurrent
-./claude-flow sparc pipeline "full-stack-app" --non-interactive --optimize --stages parallel
+./claude-flow-novice sparc run code "implement API" --non-interactive --parallel
+./claude-flow-novice sparc batch tdd "user tests" --non-interactive --enable-permissions --concurrent
+./claude-flow-novice sparc pipeline "full-stack-app" --non-interactive --optimize --stages parallel
 \`\`\`
 
 ## Performance Monitoring
@@ -433,22 +433,22 @@ For CI/CD integration and automation with parallel processing:
 ### Real-time Performance Metrics
 \`\`\`bash
 # Monitor SPARC workflow performance
-./claude-flow sparc monitor --real-time --performance --all-phases
+./claude-flow-novice sparc monitor --real-time --performance --all-phases
 
 # Analyze batch operation efficiency
-./claude-flow sparc analyze --batchtools --optimization --detailed
+./claude-flow-novice sparc analyze --batchtools --optimization --detailed
 
 # Performance comparison across modes
-./claude-flow sparc compare --modes architect,code,tdd --performance
+./claude-flow-novice sparc compare --modes architect,code,tdd --performance
 \`\`\`
 
 ### Optimization Commands
 \`\`\`bash
 # Optimize SPARC configuration for your system
-./claude-flow sparc optimize --auto-tune --system-profile
+./claude-flow-novice sparc optimize --auto-tune --system-profile
 
 # Performance benchmarking
-./claude-flow sparc benchmark --all-modes --detailed --export-results
+./claude-flow-novice sparc benchmark --all-modes --detailed --export-results
 \`\`\`
 
 ## Best Practices (Batchtools Enhanced)
@@ -475,13 +475,13 @@ For CI/CD integration and automation with parallel processing:
 ### Performance Issues
 \`\`\`bash
 # Check system resource usage during parallel operations
-./claude-flow sparc debug --resources --concurrent --verbose
+./claude-flow-novice sparc debug --resources --concurrent --verbose
 
 # Analyze batch operation performance
-./claude-flow sparc analyze --performance --bottlenecks --optimization
+./claude-flow-novice sparc analyze --performance --bottlenecks --optimization
 
 # Monitor parallel processing efficiency
-./claude-flow sparc monitor --parallel --efficiency --real-time
+./claude-flow-novice sparc monitor --parallel --efficiency --real-time
 \`\`\`
 
 ### Optimization Recommendations

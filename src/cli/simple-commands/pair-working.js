@@ -797,7 +797,7 @@ async function pairCommand(args = [], flags = {}) {
 function showHelp() {
   console.log(`
 📚 USAGE:
-  claude-flow pair [options]
+  claude-flow-novice pair [options]
 
 ⚙️ OPTIONS:
   --start              Start a new pair programming session
@@ -825,13 +825,13 @@ function showHelp() {
 
 💡 EXAMPLES:
   # Beginner mode with auto-fix
-  claude-flow pair --start --guidance beginner --verify --autofix
+  claude-flow-novice pair --start --guidance beginner --verify --autofix
   
   # Expert mode with high threshold
-  claude-flow pair --start --guidance expert --verify --autofix --threshold 0.98
+  claude-flow-novice pair --start --guidance expert --verify --autofix --threshold 0.98
   
   # Mentor mode (educational, no auto-fix)
-  claude-flow pair --start --guidance mentor --verify
+  claude-flow-novice pair --start --guidance mentor --verify
 
 📊 DURING SESSION:
   /verify    - Manual verification

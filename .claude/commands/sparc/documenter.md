@@ -20,7 +20,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 ```bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run documenter "create API documentation"
+npx claude-flow-novice sparc run documenter "create API documentation"
 
 # For alpha features
 npx claude-flow@alpha sparc run documenter "create API documentation"
@@ -28,8 +28,8 @@ npx claude-flow@alpha sparc run documenter "create API documentation"
 
 ### Option 3: Local Installation
 ```bash
-# If claude-flow is installed locally
-./claude-flow sparc run documenter "create API documentation"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run documenter "create API documentation"
 ```
 
 ## Core Capabilities

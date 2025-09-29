@@ -219,7 +219,7 @@ function startWebUI(host: string, port: number) {
         </div>
         <div class="console-container">
             <div class="console-output scrollbar" id="output"></div>
-            <input type="text" class="console-input" id="input" placeholder="Enter claude-flow command..." autocomplete="off">
+            <input type="text" class="console-input" id="input" placeholder="Enter claude-flow-novice command..." autocomplete="off">
         </div>
 
         <script>
@@ -273,7 +273,7 @@ function startWebUI(host: string, port: number) {
                         }
                         
                         appendOutput('\n<span class="success">🔗 Connected to Claude-Flow Console</span>\n');
-                        appendOutput('<span class="info">Type "help" for available commands or use any claude-flow command</span>\n\n');
+                        appendOutput('<span class="info">Type "help" for available commands or use any claude-flow-novice command</span>\n\n');
                     };
                     
                     ws.onmessage = (event) => {
@@ -653,7 +653,7 @@ function startWebUI(host: string, port: number) {
 • <span class="info">clear</span> - Clear console
 • <span class="info">version</span> - Show version information
 
-<span class="warning">Note:</span> This is a web console interface for claude-flow CLI commands.
+<span class="warning">Note:</span> This is a web console interface for claude-flow-novice CLI commands.
 `;
       sendResponse(ws, {
         type: 'output',
@@ -700,7 +700,7 @@ function startWebUI(host: string, port: number) {
     const cmd = args[0];
     const cmdArgs = args.slice(1);
 
-    // Determine the correct claude-flow executable path
+    // Determine the correct claude-flow-novice executable path
     const rootDir = path.resolve(__dirname, '../..');
     const cliPath = path.join(rootDir, 'bin', 'claude-flow');
 
@@ -799,7 +799,7 @@ function startWebUI(host: string, port: number) {
     server.on('error', (err: any) => {
       if (err.code === 'EADDRINUSE') {
         console.error(`\n❌ Port ${port} is already in use`);
-        console.log(`💡 Try a different port: claude-flow start --ui --port ${port + 1}`);
+        console.log(`💡 Try a different port: claude-flow-novice start --ui --port ${port + 1}`);
         console.log(`💡 Or stop the process using port ${port}: lsof -ti:${port} | xargs kill -9`);
         componentStatus.webUI = false;
         reject(err);
@@ -882,8 +882,8 @@ export async function startOrchestrator(options: any) {
     );
   }
 
-  console.log('\n💡 Use "claude-flow status" to check system status');
-  console.log('💡 Use "claude-flow stop" to stop the orchestrator');
+  console.log('\n💡 Use "claude-flow-novice status" to check system status');
+  console.log('💡 Use "claude-flow-novice stop" to stop the orchestrator');
 
   // Keep the process running
   if (!options.daemon) {

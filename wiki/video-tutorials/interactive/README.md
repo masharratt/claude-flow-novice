@@ -49,9 +49,9 @@ Interactive video content transforms passive viewing into active learning experi
     "description": "Follow along to set up your development environment",
     "steps": [
       {
-        "instruction": "Install claude-flow globally",
+        "instruction": "Install claude-flow-novice globally",
         "command": "npm install -g claude-flow@alpha",
-        "validation": "claude-flow --version",
+        "validation": "claude-flow-novice --version",
         "expected": "^2\\.[0-9]+\\.[0-9]+",
         "hint": "Make sure Node.js 18+ is installed first"
       }
@@ -122,7 +122,7 @@ const chapterData = [
     startTime: 120,
     endTime: 300,
     title: "Installation and Setup",
-    description: "Getting claude-flow ready for development",
+    description: "Getting claude-flow-novice ready for development",
     thumbnail: "setup-thumb.jpg"
   }
 ];
@@ -206,7 +206,7 @@ class AdaptiveTutorial {
 const achievements = {
   'first-agent': {
     title: 'Agent Spawner',
-    description: 'Successfully spawn your first claude-flow agent',
+    description: 'Successfully spawn your first claude-flow-novice agent',
     icon: 'agent-badge.svg',
     points: 100
   },
@@ -733,7 +733,7 @@ const InteractiveElement = () => {
       </label>
       <label>
         <input type="radio" name="answer" value="1" />
-        <span>npx claude-flow install</span>
+        <span>npx claude-flow-novice install</span>
       </label>
     </div>
   </fieldset>

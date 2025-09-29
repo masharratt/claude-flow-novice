@@ -18,32 +18,32 @@ This project enforces **"truth is enforced, not assumed"** with mandatory verifi
 ### Initialize Verification System
 \`\`\`bash
 # Set verification mode (strict/moderate/development)
-./claude-flow verify init strict     # 95% threshold, auto-rollback
-./claude-flow verify init moderate   # 85% threshold, no auto-rollback
-./claude-flow verify init development # 75% threshold, for prototyping
+./claude-flow-novice verify init strict     # 95% threshold, auto-rollback
+./claude-flow-novice verify init moderate   # 85% threshold, no auto-rollback
+./claude-flow-novice verify init development # 75% threshold, for prototyping
 \`\`\`
 
 ### Run Verification
 \`\`\`bash
 # Verify specific tasks
-./claude-flow verify verify task-123 --agent coder
-./claude-flow verify verify task-456 --agent reviewer --threshold 0.90
+./claude-flow-novice verify verify task-123 --agent coder
+./claude-flow-novice verify verify task-456 --agent reviewer --threshold 0.90
 
 # Check truth scores
-./claude-flow truth                  # View current truth scores
-./claude-flow truth --report         # Generate detailed report
-./claude-flow truth --analyze        # Analyze failure patterns
+./claude-flow-novice truth                  # View current truth scores
+./claude-flow-novice truth --report         # Generate detailed report
+./claude-flow-novice truth --analyze        # Analyze failure patterns
 \`\`\`
 
 ### Pair Programming Mode
 \`\`\`bash
 # Start pair programming with real-time verification
-./claude-flow pair --start           # Begin collaborative session
-./claude-flow pair --start --mode strict  # Production-quality pairing
-./claude-flow pair --verify --threshold 0.90  # Custom threshold
+./claude-flow-novice pair --start           # Begin collaborative session
+./claude-flow-novice pair --start --mode strict  # Production-quality pairing
+./claude-flow-novice pair --verify --threshold 0.90  # Custom threshold
 
 # Background monitoring (use run_in_background: true)
-./claude-flow pair --start --monitor # Continuous monitoring dashboard
+./claude-flow-novice pair --start --monitor # Continuous monitoring dashboard
 \`\`\`
 
 ## 📊 VERIFICATION REQUIREMENTS BY AGENT TYPE
@@ -76,7 +76,7 @@ This project enforces **"truth is enforced, not assumed"** with mandatory verifi
 // Use run_in_background parameter for continuous monitoring
 {
   "tool": "Bash",
-  "command": "./claude-flow pair --start --monitor",
+  "command": "./claude-flow-novice pair --start --monitor",
   "run_in_background": true  // Enables background execution
 }
 \`\`\`
@@ -104,15 +104,15 @@ This project enforces **"truth is enforced, not assumed"** with mandatory verifi
 \`\`\`javascript
 [Single Message]:
   // Initialize verification for multiple tasks
-  - Bash("./claude-flow verify verify task-1 --agent coder")
-  - Bash("./claude-flow verify verify task-2 --agent reviewer")
-  - Bash("./claude-flow verify verify task-3 --agent tester")
+  - Bash("./claude-flow-novice verify verify task-1 --agent coder")
+  - Bash("./claude-flow-novice verify verify task-2 --agent reviewer")
+  - Bash("./claude-flow-novice verify verify task-3 --agent tester")
   
   // Check all truth scores
-  - Bash("./claude-flow truth --json")
+  - Bash("./claude-flow-novice truth --json")
   
   // Start monitoring in background
-  - Bash("./claude-flow pair --start --monitor", run_in_background: true)
+  - Bash("./claude-flow-novice pair --start --monitor", run_in_background: true)
 \`\`\`
 
 ### ❌ WRONG - Sequential Verification
@@ -143,7 +143,7 @@ Message 3: Check truth score
 ### 1. Start Session
 \`\`\`bash
 # Initialize pair programming with verification
-./claude-flow pair --start --mode strict
+./claude-flow-novice pair --start --mode strict
 \`\`\`
 
 ### 2. Real-time Verification Cycle
@@ -167,7 +167,7 @@ Fail (<0.95) → Suggest fixes or rollback
 ### 3. Continuous Monitoring
 \`\`\`bash
 # Monitor in background
-./claude-flow pair --start --monitor &
+./claude-flow-novice pair --start --monitor &
 
 # Check verification output
 /bashes  # Interactive view
@@ -192,7 +192,7 @@ Fail (<0.95) → Suggest fixes or rollback
 cat .swarm/verification-memory.json | jq .history
 
 # Check agent reliability
-./claude-flow truth --agent coder --detailed
+./claude-flow-novice truth --agent coder --detailed
 \`\`\`
 
 ## 🚀 QUICK START VERIFICATION WORKFLOW
@@ -203,13 +203,13 @@ cat .swarm/verification-memory.json | jq .history
 npx claude-flow@alpha init --verify --pair
 
 # Set up strict verification
-./claude-flow verify init strict
+./claude-flow-novice verify init strict
 \`\`\`
 
 ### Step 2: Start Development with Pair Programming
 \`\`\`bash
 # Start pair programming session
-./claude-flow pair --start --mode strict --monitor &
+./claude-flow-novice pair --start --mode strict --monitor &
 
 # Monitor verification (background task)
 /bashes  # Check bash_1 status
@@ -225,10 +225,10 @@ npx claude-flow@alpha init --verify --pair
 ### Step 4: Check Truth Metrics
 \`\`\`bash
 # View current truth scores
-./claude-flow truth
+./claude-flow-novice truth
 
 # Generate detailed report
-./claude-flow truth --report --export metrics.json
+./claude-flow-novice truth --report --export metrics.json
 \`\`\`
 
 ## 📋 VERIFICATION CHECKLIST
@@ -249,10 +249,10 @@ Before ANY operation:
 - \`npm run typecheck\`: Type check with validation
 
 ### Verification Commands
-- \`./claude-flow verify status\`: Check system status
-- \`./claude-flow verify verify <task>\`: Run verification
-- \`./claude-flow truth\`: View truth scores
-- \`./claude-flow pair --start\`: Begin pair programming
+- \`./claude-flow-novice verify status\`: Check system status
+- \`./claude-flow-novice verify verify <task>\`: Run verification
+- \`./claude-flow-novice truth\`: View truth scores
+- \`./claude-flow-novice pair --start\`: Begin pair programming
 
 ## 💾 PERSISTENT VERIFICATION MEMORY
 
@@ -303,17 +303,17 @@ Task("Validate", "Final verification", "production-validator")
 # .github/workflows/verification.yml
 - name: Run Verification
   run: |
-    npx claude-flow verify init strict
-    npx claude-flow verify verify \${{ github.run_id }}
-    npx claude-flow truth --threshold 0.95
+    npx claude-flow-novice verify init strict
+    npx claude-flow-novice verify verify \${{ github.run_id }}
+    npx claude-flow-novice truth --threshold 0.95
 \`\`\`
 
 ### Pre-commit Hooks
 \`\`\`bash
 # .git/hooks/pre-commit
 #!/bin/bash
-npx claude-flow verify verify pre-commit --agent coder
-SCORE=\$(npx claude-flow truth --json | jq .averageScore)
+npx claude-flow-novice verify verify pre-commit --agent coder
+SCORE=\$(npx claude-flow-novice truth --json | jq .averageScore)
 if [ "\$SCORE" -lt "0.85" ]; then
   echo "❌ Commit blocked: Truth score \$SCORE below threshold"
   exit 1
@@ -398,9 +398,9 @@ export function createVerificationSettingsJson() {
         autoBackground: {
           enabled: true,
           patterns: [
-            './claude-flow pair --start',
-            './claude-flow verify verify',
-            './claude-flow truth --monitor',
+            './claude-flow-novice pair --start',
+            './claude-flow-novice verify verify',
+            './claude-flow-novice truth --monitor',
             '*--monitor*',
             '*--watch*',
           ],
@@ -417,12 +417,12 @@ export function createVerificationSettingsJson() {
       hooks: {
         'pre-commit': {
           enabled: true,
-          commands: ['npx claude-flow verify verify pre-commit --agent coder'],
+          commands: ['npx claude-flow-novice verify verify pre-commit --agent coder'],
           threshold: 0.85,
         },
         'post-task': {
           enabled: true,
-          commands: ['npx claude-flow truth --json', 'npx claude-flow verify status'],
+          commands: ['npx claude-flow-novice truth --json', 'npx claude-flow-novice verify status'],
         },
       },
     },

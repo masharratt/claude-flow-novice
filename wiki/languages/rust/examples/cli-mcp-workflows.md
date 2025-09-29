@@ -17,7 +17,7 @@ This document provides hands-on examples of:
 
 ```bash
 # Initialize a new Rust project with claude-flow
-npx claude-flow sparc run architect "Create a CLI tool for file processing with async I/O"
+npx claude-flow-novice sparc run architect "Create a CLI tool for file processing with async I/O"
 
 # This command spawns multiple agents:
 # - API Architect: Designs the CLI interface and command structure
@@ -57,7 +57,7 @@ file-processor-cli/
 
 ```bash
 # Run comprehensive Rust quality validation
-npx claude-flow validate rust ./my-rust-project
+npx claude-flow-novice validate rust ./my-rust-project
 
 # This executes real Cargo commands:
 # cargo clippy --all-targets --all-features -- --deny warnings
@@ -78,7 +78,7 @@ npx claude-flow validate rust ./my-rust-project
 
 ```bash
 # Run validation with custom configuration
-npx claude-flow validate rust ./project --config rust-quality-config.json
+npx claude-flow-novice validate rust ./project --config rust-quality-config.json
 
 # Custom quality configuration file:
 cat > rust-quality-config.json << 'EOF'
@@ -110,14 +110,14 @@ cat > rust-quality-config.json << 'EOF'
 }
 EOF
 
-npx claude-flow validate rust ./project --config rust-quality-config.json
+npx claude-flow-novice validate rust ./project --config rust-quality-config.json
 ```
 
 ### 4. Performance Optimization Workflows
 
 ```bash
 # Run performance analysis and optimization
-npx claude-flow optimize rust ./project --target release
+npx claude-flow-novice optimize rust ./project --target release
 
 # This spawns performance-focused agents:
 Task("Performance Analyzer", "Profile and identify bottlenecks", "performance-optimizer")
@@ -136,7 +136,7 @@ Task("Compilation Optimizer", "Reduce build times and binary size", "build-engin
 
 ```bash
 # Run comprehensive testing workflow
-npx claude-flow test rust ./project --comprehensive
+npx claude-flow-novice test rust ./project --comprehensive
 
 # This includes:
 # - Unit tests with coverage analysis
@@ -154,7 +154,7 @@ npx claude-flow test rust ./project --comprehensive
 #   Memory: No leaks detected
 
 # Run specific benchmark suites
-npx claude-flow bench rust ./project --suite api-performance
+npx claude-flow-novice bench rust ./project --suite api-performance
 ```
 
 ## 🤖 MCP Tool Integration
@@ -324,22 +324,22 @@ mcp__claude-flow__neural_patterns({
 echo "🚀 Building Rust Web Service with Claude-Flow"
 
 # Step 1: Initialize project with MCP coordination
-npx claude-flow mcp init-swarm --topology mesh --agents 8
+npx claude-flow-novice mcp init-swarm --topology mesh --agents 8
 
 # Step 2: Orchestrate the build process
-npx claude-flow mcp orchestrate "Build REST API with Axum, JWT auth, PostgreSQL, Redis caching, and WebSocket support"
+npx claude-flow-novice mcp orchestrate "Build REST API with Axum, JWT auth, PostgreSQL, Redis caching, and WebSocket support"
 
 # Step 3: Monitor progress
-npx claude-flow mcp monitor --real-time
+npx claude-flow-novice mcp monitor --real-time
 
 # Step 4: Validate quality throughout development
-npx claude-flow validate rust . --continuous
+npx claude-flow-novice validate rust . --continuous
 
 # Step 5: Run performance benchmarks
-npx claude-flow bench rust . --load-test --concurrent-users 1000
+npx claude-flow-novice bench rust . --load-test --concurrent-users 1000
 
 # Step 6: Generate deployment configuration
-npx claude-flow deploy rust . --target kubernetes --with-monitoring
+npx claude-flow-novice deploy rust . --target kubernetes --with-monitoring
 ```
 
 ### 2. CLI Tool Development Workflow
@@ -349,7 +349,7 @@ npx claude-flow deploy rust . --target kubernetes --with-monitoring
 echo "🛠️ Building High-Performance CLI Tool"
 
 # Initialize with CLI-focused agents
-npx claude-flow sparc run cli-architect "Create a parallel file processing CLI with progress bars and async I/O"
+npx claude-flow-novice sparc run cli-architect "Create a parallel file processing CLI with progress bars and async I/O"
 
 # This automatically:
 # ✅ Sets up clap for argument parsing
@@ -361,13 +361,13 @@ npx claude-flow sparc run cli-architect "Create a parallel file processing CLI w
 # ✅ Sets up cross-platform builds
 
 # Validate CLI-specific quality metrics
-npx claude-flow validate rust . --cli-mode
+npx claude-flow-novice validate rust . --cli-mode
 
 # Test CLI functionality
-npx claude-flow test rust . --cli-integration
+npx claude-flow-novice test rust . --cli-integration
 
 # Performance test with large datasets
-npx claude-flow bench rust . --cli-performance --dataset-size 1GB
+npx claude-flow-novice bench rust . --cli-performance --dataset-size 1GB
 ```
 
 ### 3. WebAssembly Development Workflow
@@ -377,7 +377,7 @@ npx claude-flow bench rust . --cli-performance --dataset-size 1GB
 echo "🌐 Building WebAssembly Module with Rust"
 
 # Initialize WASM project
-npx claude-flow sparc run wasm-architect "Create WebAssembly module for image processing with JS bindings"
+npx claude-flow-novice sparc run wasm-architect "Create WebAssembly module for image processing with JS bindings"
 
 # Agents automatically configure:
 # ✅ wasm-pack integration
@@ -387,13 +387,13 @@ npx claude-flow sparc run wasm-architect "Create WebAssembly module for image pr
 # ✅ Browser compatibility testing
 
 # Build and optimize WASM module
-npx claude-flow build rust . --target wasm32-unknown-unknown --optimize-size
+npx claude-flow-novice build rust . --target wasm32-unknown-unknown --optimize-size
 
 # Validate WASM-specific metrics
-npx claude-flow validate rust . --wasm-mode
+npx claude-flow-novice validate rust . --wasm-mode
 
 # Test in browser environment
-npx claude-flow test rust . --wasm-browser --headless
+npx claude-flow-novice test rust . --wasm-browser --headless
 ```
 
 ### 4. Systems Programming Workflow
@@ -403,7 +403,7 @@ npx claude-flow test rust . --wasm-browser --headless
 echo "⚡ Building High-Performance Systems Component"
 
 # Initialize with systems-focused agents
-npx claude-flow sparc run systems-architect "Create async TCP proxy with load balancing and zero-copy networking"
+npx claude-flow-novice sparc run systems-architect "Create async TCP proxy with load balancing and zero-copy networking"
 
 # This creates:
 # ✅ Lock-free data structures
@@ -414,13 +414,13 @@ npx claude-flow sparc run systems-architect "Create async TCP proxy with load ba
 # ✅ Real-time metrics collection
 
 # Validate systems programming best practices
-npx claude-flow validate rust . --systems-mode --unsafe-audit
+npx claude-flow-novice validate rust . --systems-mode --unsafe-audit
 
 # Performance profiling with perf integration
-npx claude-flow profile rust . --perf-integration --flame-graph
+npx claude-flow-novice profile rust . --perf-integration --flame-graph
 
 # Stress testing under load
-npx claude-flow test rust . --stress-test --duration 300s
+npx claude-flow-novice test rust . --stress-test --duration 300s
 ```
 
 ## 📊 Advanced MCP Workflows
@@ -570,30 +570,30 @@ mcp__claude-flow__workflow_execute({
 echo "🛍️ Building E-Commerce Microservice with Claude-Flow"
 
 # Initialize swarm for complex project
-npx claude-flow mcp init --topology hierarchical --max-agents 12
+npx claude-flow-novice mcp init --topology hierarchical --max-agents 12
 
 # Orchestrate microservice development
-npx claude-flow mcp orchestrate \
+npx claude-flow-novice mcp orchestrate \
   "Build e-commerce microservice with product catalog, inventory management, order processing, payment integration, and real-time analytics" \
   --strategy adaptive \
   --priority critical
 
 # Monitor development progress
-npx claude-flow mcp monitor --dashboard --port 3001 &
+npx claude-flow-novice mcp monitor --dashboard --port 3001 &
 
 # Continuous quality validation
-npx claude-flow validate rust . --watch --quality-gate 9.0 &
+npx claude-flow-novice validate rust . --watch --quality-gate 9.0 &
 
 # Performance monitoring
-npx claude-flow perf rust . --continuous --alerts &
+npx claude-flow-novice perf rust . --continuous --alerts &
 
 # Wait for core development completion
-npx claude-flow mcp wait-for-completion --timeout 7200 # 2 hours
+npx claude-flow-novice mcp wait-for-completion --timeout 7200 # 2 hours
 
 echo "✅ Core development completed"
 
 # Run comprehensive testing
-npx claude-flow test rust . \
+npx claude-flow-novice test rust . \
   --unit \
   --integration \
   --load-test \
@@ -601,7 +601,7 @@ npx claude-flow test rust . \
   --performance-regression
 
 # Generate deployment artifacts
-npx claude-flow deploy rust . \
+npx claude-flow-novice deploy rust . \
   --target kubernetes \
   --with-monitoring \
   --with-tracing \

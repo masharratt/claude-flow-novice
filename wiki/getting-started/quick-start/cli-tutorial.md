@@ -49,7 +49,7 @@ AI Agent Orchestration for Beginners
 
 ### Initialize Claude Flow Project
 ```bash
-# Initialize claude-flow in project
+# Initialize claude-flow-novice in project
 npx claude-flow-novice@latest init
 
 # Expected output:

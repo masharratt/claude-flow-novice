@@ -5,7 +5,7 @@
 **Technologies**: GitHub Actions, Docker, Kubernetes, SonarQube, Trivy
 **Architecture**: Event-driven pipeline with intelligent quality gates
 
-A comprehensive CI/CD pipeline example demonstrating how claude-flow agents can coordinate to create an intelligent, self-healing deployment system with automated quality assurance.
+A comprehensive CI/CD pipeline example demonstrating how claude-flow-novice agents can coordinate to create an intelligent, self-healing deployment system with automated quality assurance.
 
 ## 🚀 Pipeline Overview
 
@@ -1246,7 +1246,7 @@ class PipelineAnalytics {
 
 ## 🤝 Contributing
 
-This pipeline demonstrates advanced claude-flow capabilities for DevOps automation. Contributions welcome:
+This pipeline demonstrates advanced claude-flow-novice capabilities for DevOps automation. Contributions welcome:
 
 1. **Agent Improvements** - Enhance decision-making algorithms
 2. **Tool Integrations** - Add support for new tools
@@ -1255,7 +1255,7 @@ This pipeline demonstrates advanced claude-flow capabilities for DevOps automati
 
 ---
 
-**Congratulations!** 🎉 You've implemented an intelligent CI/CD pipeline with multi-agent coordination. This example showcases how claude-flow can revolutionize DevOps workflows through intelligent automation and agent collaboration.
+**Congratulations!** 🎉 You've implemented an intelligent CI/CD pipeline with multi-agent coordination. This example showcases how claude-flow-novice can revolutionize DevOps workflows through intelligent automation and agent collaboration.
 
 ## Related Examples
 

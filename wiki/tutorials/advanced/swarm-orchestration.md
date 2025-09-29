@@ -45,14 +45,14 @@ We'll build a comprehensive full-stack application using coordinated agent swarm
 
 ```bash
 # Initialize complexity analysis
-npx claude-flow hooks pre-task --description "full-stack-development"
-npx claude-flow hooks complexity-analyze \
+npx claude-flow-novice hooks pre-task --description "full-stack-development"
+npx claude-flow-novice hooks complexity-analyze \
   --files 50 \
   --features "auth,api,frontend,testing" \
   --timeline "2-weeks"
 
 # Based on analysis, system selects HIERARCHICAL topology
-npx claude-flow hooks topology-select --result hierarchical
+npx claude-flow-novice hooks topology-select --result hierarchical
 ```
 
 ### 1.2 Multi-Level Coordination Structure
@@ -84,18 +84,18 @@ npx claude-flow hooks topology-select --result hierarchical
 
 ```bash
 # Initialize hierarchical swarm
-npx claude-flow swarm init --topology hierarchical --max-agents 12
+npx claude-flow-novice swarm init --topology hierarchical --max-agents 12
 
 # Spawn coordinator agents
-npx claude-flow agent spawn --type coordinator --name "master-coord" --capabilities ["planning", "coordination", "monitoring"]
-npx claude-flow agent spawn --type coordinator --name "backend-lead" --capabilities ["api-design", "database", "authentication"]
-npx claude-flow agent spawn --type coordinator --name "frontend-lead" --capabilities ["ui-design", "components", "styling"]
-npx claude-flow agent spawn --type coordinator --name "test-lead" --capabilities ["testing", "automation", "quality"]
+npx claude-flow-novice agent spawn --type coordinator --name "master-coord" --capabilities ["planning", "coordination", "monitoring"]
+npx claude-flow-novice agent spawn --type coordinator --name "backend-lead" --capabilities ["api-design", "database", "authentication"]
+npx claude-flow-novice agent spawn --type coordinator --name "frontend-lead" --capabilities ["ui-design", "components", "styling"]
+npx claude-flow-novice agent spawn --type coordinator --name "test-lead" --capabilities ["testing", "automation", "quality"]
 
 # Spawn worker agents under each coordinator
-npx claude-flow agent spawn --type specialist --name "api-developer" --parent "backend-lead"
-npx claude-flow agent spawn --type specialist --name "db-architect" --parent "backend-lead"
-npx claude-flow agent spawn --type specialist --name "auth-specialist" --parent "backend-lead"
+npx claude-flow-novice agent spawn --type specialist --name "api-developer" --parent "backend-lead"
+npx claude-flow-novice agent spawn --type specialist --name "db-architect" --parent "backend-lead"
+npx claude-flow-novice agent spawn --type specialist --name "auth-specialist" --parent "backend-lead"
 ```
 
 ## Part 2: Adaptive Coordination Patterns
@@ -122,13 +122,13 @@ npx claude-flow agent spawn --type specialist --name "auth-specialist" --parent 
 
 ```bash
 # Monitor performance metrics
-npx claude-flow hooks agent-monitor \
+npx claude-flow-novice hooks agent-monitor \
   --metrics "cpu,memory,queue-length" \
   --threshold cpu:80,memory:90,queue:10 \
   --interval 5s
 
 # Trigger adaptive coordination when thresholds exceeded
-npx claude-flow hooks coordination-adapt \
+npx claude-flow-novice hooks coordination-adapt \
   --strategy load-balance \
   --target-topology mesh \
   --migration-strategy gradual
@@ -204,14 +204,14 @@ npx claude-flow hooks coordination-adapt \
 
 ```bash
 # Configure circuit breaker for agent communication
-npx claude-flow hooks circuit-breaker-config \
+npx claude-flow-novice hooks circuit-breaker-config \
   --failure-threshold 5 \
   --timeout 30s \
   --retry-attempts 3 \
   --backoff exponential
 
 # Monitor circuit breaker status
-npx claude-flow hooks circuit-breaker-status --agent-id all
+npx claude-flow-novice hooks circuit-breaker-status --agent-id all
 ```
 
 ### 3.2 Message Retry and Dead Letter Queue
@@ -255,14 +255,14 @@ npx claude-flow hooks circuit-breaker-status --agent-id all
 
 ```bash
 # Configure message retry policy
-npx claude-flow hooks message-retry-config \
+npx claude-flow-novice hooks message-retry-config \
   --max-attempts 3 \
   --backoff-strategy exponential \
   --initial-delay 1s \
   --max-delay 30s
 
 # Setup dead letter queue for failed messages
-npx claude-flow hooks dlq-setup \
+npx claude-flow-novice hooks dlq-setup \
   --queue-name "failed-tasks" \
   --retention-period 7d \
   --alert-threshold 10
@@ -299,14 +299,14 @@ npx claude-flow hooks dlq-setup \
 
 ```bash
 # Initialize consensus group for critical decisions
-npx claude-flow hooks consensus-init \
+npx claude-flow-novice hooks consensus-init \
   --group "deployment-committee" \
   --members "security-agent,performance-agent,quality-agent" \
   --threshold 0.67 \
   --timeout 60s
 
 # Propose critical decision for consensus
-npx claude-flow hooks consensus-propose \
+npx claude-flow-novice hooks consensus-propose \
   --group "deployment-committee" \
   --proposal "deploy-to-production" \
   --data '{"version": "1.2.0", "tests_passed": true, "security_scan": "clean"}'
@@ -401,14 +401,14 @@ npx claude-flow hooks consensus-propose \
 
 ```bash
 # Start real-time monitoring
-npx claude-flow hooks monitor-start \
+npx claude-flow-novice hooks monitor-start \
   --dashboard true \
   --metrics "throughput,latency,errors,resource-usage" \
   --update-interval 1s \
   --export-format prometheus
 
 # Set up alerting
-npx claude-flow hooks alerts-config \
+npx claude-flow-novice hooks alerts-config \
   --error-rate-threshold 5% \
   --latency-threshold 1000ms \
   --resource-threshold 90% \
@@ -456,72 +456,72 @@ Let's implement a complete e-commerce platform using advanced swarm orchestratio
 # Advanced Swarm Orchestration Demo
 
 # Step 1: Initialize project with complexity analysis
-npx claude-flow hooks pre-task --description "e-commerce-platform-development"
-npx claude-flow hooks complexity-analyze \
+npx claude-flow-novice hooks pre-task --description "e-commerce-platform-development"
+npx claude-flow-novice hooks complexity-analyze \
   --features "user-auth,product-catalog,shopping-cart,payment,admin-panel" \
   --estimated-files 75 \
   --timeline "3-weeks" \
   --team-size 8
 
 # Step 2: Initialize hierarchical swarm based on complexity
-npx claude-flow swarm init \
+npx claude-flow-novice swarm init \
   --topology hierarchical \
   --max-agents 8 \
   --strategy adaptive
 
 # Step 3: Spawn coordinating agents
-npx claude-flow agent spawn --type coordinator --name "project-manager" \
+npx claude-flow-novice agent spawn --type coordinator --name "project-manager" \
   --capabilities '["planning", "coordination", "risk-management"]'
   
-npx claude-flow agent spawn --type coordinator --name "backend-lead" \
+npx claude-flow-novice agent spawn --type coordinator --name "backend-lead" \
   --capabilities '["api-design", "database", "security"]' \
   --parent "project-manager"
   
-npx claude-flow agent spawn --type coordinator --name "frontend-lead" \
+npx claude-flow-novice agent spawn --type coordinator --name "frontend-lead" \
   --capabilities '["ui-ux", "components", "state-management"]' \
   --parent "project-manager"
 
 # Step 4: Spawn specialist workers
-npx claude-flow agent spawn --type specialist --name "auth-specialist" \
+npx claude-flow-novice agent spawn --type specialist --name "auth-specialist" \
   --capabilities '["authentication", "authorization", "jwt"]' \
   --parent "backend-lead"
   
-npx claude-flow agent spawn --type specialist --name "api-developer" \
+npx claude-flow-novice agent spawn --type specialist --name "api-developer" \
   --capabilities '["rest-api", "graphql", "microservices"]' \
   --parent "backend-lead"
   
-npx claude-flow agent spawn --type specialist --name "db-architect" \
+npx claude-flow-novice agent spawn --type specialist --name "db-architect" \
   --capabilities '["postgresql", "redis", "data-modeling"]' \
   --parent "backend-lead"
   
-npx claude-flow agent spawn --type specialist --name "react-developer" \
+npx claude-flow-novice agent spawn --type specialist --name "react-developer" \
   --capabilities '["react", "redux", "typescript"]' \
   --parent "frontend-lead"
   
-npx claude-flow agent spawn --type specialist --name "ui-designer" \
+npx claude-flow-novice agent spawn --type specialist --name "ui-designer" \
   --capabilities '["tailwind", "responsive", "accessibility"]' \
   --parent "frontend-lead"
 
 # Step 5: Configure fault tolerance
-npx claude-flow hooks circuit-breaker-config \
+npx claude-flow-novice hooks circuit-breaker-config \
   --failure-threshold 3 \
   --timeout 30s \
   --retry-attempts 3
 
 # Step 6: Setup consensus for critical decisions
-npx claude-flow hooks consensus-init \
+npx claude-flow-novice hooks consensus-init \
   --group "architecture-committee" \
   --members "project-manager,backend-lead,frontend-lead" \
   --threshold 0.67
 
 # Step 7: Start monitoring
-npx claude-flow hooks monitor-start \
+npx claude-flow-novice hooks monitor-start \
   --dashboard true \
   --metrics all \
   --alerts true
 
 # Step 8: Execute coordinated development
-npx claude-flow task orchestrate \
+npx claude-flow-novice task orchestrate \
   --task "Build complete e-commerce platform with user authentication, product catalog, shopping cart, and payment processing" \
   --strategy adaptive \
   --priority high \
@@ -565,14 +565,14 @@ npx claude-flow task orchestrate \
 
 ```bash
 # Monitor resource utilization and adapt automatically
-npx claude-flow hooks resource-monitor \
+npx claude-flow-novice hooks resource-monitor \
   --auto-scale true \
   --cpu-threshold 80% \
   --memory-threshold 85% \
   --scale-factor 1.5
 
 # Optimize based on historical patterns
-npx claude-flow hooks pattern-optimize \
+npx claude-flow-novice hooks pattern-optimize \
   --learning-window 7d \
   --optimization-target "response-time" \
   --constraints "cost<1000,reliability>99%"
@@ -582,14 +582,14 @@ npx claude-flow hooks pattern-optimize \
 
 ```bash
 # Setup multi-level caching for coordination data
-npx claude-flow hooks cache-config \
+npx claude-flow-novice hooks cache-config \
   --levels "memory,redis,disk" \
   --ttl-memory 300s \
   --ttl-redis 3600s \
   --ttl-disk 86400s
 
 # Configure cache invalidation patterns
-npx claude-flow hooks cache-invalidation \
+npx claude-flow-novice hooks cache-invalidation \
   --strategy "write-through" \
   --events "agent-update,task-complete,topology-change"
 ```

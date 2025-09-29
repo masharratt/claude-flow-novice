@@ -580,7 +580,7 @@ async function pairCommand(args = [], flags = {}) {
 function showHelp() {
   console.log(`
 📚 USAGE:
-  claude-flow pair [options]
+  claude-flow-novice pair [options]
 
 ⚙️ OPTIONS:
   --start              Start a new pair programming session
@@ -616,16 +616,16 @@ function showHelp() {
 
 💡 EXAMPLES:
   # Basic session with manual verification
-  claude-flow pair --start --verify
+  claude-flow-novice pair --start --verify
   
   # Session with automatic verification (60s cooldown)
-  claude-flow pair --start --verify --auto
+  claude-flow-novice pair --start --verify --auto
   
   # Driver mode with testing
-  claude-flow pair --start --mode driver --test
+  claude-flow-novice pair --start --mode driver --test
   
   # Check session status
-  claude-flow pair --status
+  claude-flow-novice pair --status
 
 🎯 OPTIMIZATION TIPS:
   • Use /verify manually when needed
@@ -659,8 +659,8 @@ async function startBackgroundSession(args, flags) {
 
   const pid = child.pid;
   console.log(`✅ Background session started (PID: ${pid})`);
-  console.log('\n📊 Monitor with: claude-flow pair --status');
-  console.log('🛑 Stop with: claude-flow pair --end\n');
+  console.log('\n📊 Monitor with: claude-flow-novice pair --status');
+  console.log('🛑 Stop with: claude-flow-novice pair --end\n');
 }
 
 async function showSessionStatus() {

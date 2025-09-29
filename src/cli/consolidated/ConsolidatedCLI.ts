@@ -143,7 +143,7 @@ export class ConsolidatedCLI {
       return {
         success: false,
         message: '❌ Natural language processing is disabled',
-        suggestions: ['Use specific commands like: claude-flow help'],
+        suggestions: ['Use specific commands like: claude-flow-novice help'],
       };
     }
 
@@ -159,8 +159,8 @@ export class ConsolidatedCLI {
           message: `❌ Could not understand: "${fullInput}"`,
           suggestions: [
             'Try using specific commands: init, build, status, help, learn',
-            'Example: claude-flow build "add user authentication"',
-            'Use: claude-flow help for available commands',
+            'Example: claude-flow-novice build "add user authentication"',
+            'Use: claude-flow-novice help for available commands',
           ],
         };
       }
@@ -262,9 +262,9 @@ export class ConsolidatedCLI {
     }
 
     console.log('\n✨ Natural Language Examples:');
-    console.log('  claude-flow build "add user authentication"');
-    console.log('  claude-flow "create a REST API with JWT"');
-    console.log('  claude-flow "setup testing for my React app"');
+    console.log('  claude-flow-novice build "add user authentication"');
+    console.log('  claude-flow-novice "create a REST API with JWT"');
+    console.log('  claude-flow-novice "setup testing for my React app"');
 
     console.log('\n🎓 Pro Tips:');
     console.log('  • Use natural language to describe what you want to build');
@@ -289,9 +289,9 @@ export class ConsolidatedCLI {
       console.log('\n🎉 Welcome to Claude Flow!');
       console.log('Your AI-powered development companion is ready.');
       console.log('\n🎯 Start with these simple commands:');
-      console.log('  • claude-flow init - Create a new project');
-      console.log('  • claude-flow build "your idea" - Build anything');
-      console.log('  • claude-flow help - Get detailed help');
+      console.log('  • claude-flow-novice init - Create a new project');
+      console.log('  • claude-flow-novice build "your idea" - Build anything');
+      console.log('  • claude-flow-novice help - Get detailed help');
     } else {
       console.log(`\n👋 Welcome back! You're ${currentTier.toUpperCase()} tier.`);
     }
@@ -406,8 +406,8 @@ export class ConsolidatedCLI {
       message: `❌ Command execution failed: ${errorMessage}`,
       suggestions: [
         'Check your command syntax',
-        'Use `claude-flow help` for available commands',
-        'Try `claude-flow status` to check system health',
+        'Use `claude-flow-novice help` for available commands',
+        'Try `claude-flow-novice status` to check system health',
         'Report persistent issues to the development team',
       ],
     };

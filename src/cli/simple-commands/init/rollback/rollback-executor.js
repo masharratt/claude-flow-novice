@@ -285,9 +285,9 @@ export class RollbackExecutor {
 
       try {
         await fs.unlink(executablePath);
-        result.actions.push('Removed claude-flow executable');
+        result.actions.push('Removed claude-flow-novice executable');
       } catch {
-        result.actions.push('claude-flow executable was already clean');
+        result.actions.push('claude-flow-novice executable was already clean');
       }
     } catch (error) {
       result.success = false;

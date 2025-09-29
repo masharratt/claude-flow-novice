@@ -1,10 +1,10 @@
 # WCAG 2.1 AA Compliance Guidelines for Claude-Flow Projects
 
-This comprehensive guide provides a practical framework for achieving WCAG 2.1 AA compliance in claude-flow projects using agent-driven development.
+This comprehensive guide provides a practical framework for achieving WCAG 2.1 AA compliance in claude-flow-novice projects using agent-driven development.
 
 ## 🎯 Overview
 
-Web Content Accessibility Guidelines (WCAG) 2.1 provides the international standard for web accessibility. This guide translates WCAG requirements into actionable development practices for claude-flow projects.
+Web Content Accessibility Guidelines (WCAG) 2.1 provides the international standard for web accessibility. This guide translates WCAG requirements into actionable development practices for claude-flow-novice projects.
 
 ## 📋 WCAG 2.1 AA Compliance Checklist
 
@@ -121,13 +121,13 @@ Web Content Accessibility Guidelines (WCAG) 2.1 provides the international stand
 
 ```bash
 # Run comprehensive WCAG audit
-npx claude-flow sparc run accessibility-audit "Audit entire application for WCAG 2.1 AA compliance"
+npx claude-flow-novice sparc run accessibility-audit "Audit entire application for WCAG 2.1 AA compliance"
 
 # Check specific criterion
-npx claude-flow sparc run contrast-checker "Validate color contrast meets WCAG AA requirements"
+npx claude-flow-novice sparc run contrast-checker "Validate color contrast meets WCAG AA requirements"
 
 # Keyboard navigation testing
-npx claude-flow sparc run keyboard-tester "Test complete keyboard navigation flow"
+npx claude-flow-novice sparc run keyboard-tester "Test complete keyboard navigation flow"
 ```
 
 ### Agent-Driven Compliance Workflow
@@ -275,4 +275,4 @@ test('Navigation should be accessible', async () => {
 - [VoiceOver Guide](https://webaim.org/articles/voiceover/)
 - [Keyboard Testing Guide](https://webaim.org/articles/keyboard/)
 
-This framework ensures your claude-flow projects meet WCAG 2.1 AA compliance while leveraging automation to reduce manual testing burden.
+This framework ensures your claude-flow-novice projects meet WCAG 2.1 AA compliance while leveraging automation to reduce manual testing burden.

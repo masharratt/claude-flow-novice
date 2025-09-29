@@ -2,9 +2,9 @@
 
 **Category**: Code Snippets & Utilities
 **Complexity**: 🟢 Beginner to 🔴 Advanced
-**Usage**: Copy-paste patterns for claude-flow development
+**Usage**: Copy-paste patterns for claude-flow-novice development
 
-A comprehensive collection of reusable code patterns, design templates, and best practices for claude-flow applications.
+A comprehensive collection of reusable code patterns, design templates, and best practices for claude-flow-novice applications.
 
 ## 📚 Pattern Categories
 
@@ -383,7 +383,7 @@ class AgentMemoryManager {
     // Notify subscribers
     this.notifySubscribers(key, 'store', entry);
 
-    // Use claude-flow hooks
+    // Use claude-flow-novice hooks
     await this.syncWithClaudeFlow(key, entry);
   }
 
@@ -469,7 +469,7 @@ class AgentMemoryManager {
 
   async syncWithClaudeFlow(key, entry) {
     try {
-      // Store in claude-flow memory system
+      // Store in claude-flow-novice memory system
       await npx('claude-flow@alpha', [
         'hooks',
         'memory-store',
@@ -478,7 +478,7 @@ class AgentMemoryManager {
         '--metadata', JSON.stringify(entry.metadata)
       ]);
     } catch (error) {
-      console.warn('Failed to sync with claude-flow memory:', error.message);
+      console.warn('Failed to sync with claude-flow-novice memory:', error.message);
     }
   }
 
@@ -1091,7 +1091,7 @@ class SPARCOrchestrator {
   }
 
   async storeInMemory(key, data) {
-    // Use claude-flow memory system
+    // Use claude-flow-novice memory system
     try {
       await npx('claude-flow@alpha', [
         'hooks',
@@ -1333,7 +1333,7 @@ const userAuthFeature = await tddOrchestrator.executeTDD(
 );
 ```
 
-This comprehensive patterns library provides reusable solutions for common claude-flow development scenarios. Each pattern includes detailed implementation examples, usage guidelines, and best practices for multi-agent coordination.
+This comprehensive patterns library provides reusable solutions for common claude-flow-novice development scenarios. Each pattern includes detailed implementation examples, usage guidelines, and best practices for multi-agent coordination.
 
 ## 📚 Related Resources
 
@@ -1344,4 +1344,4 @@ This comprehensive patterns library provides reusable solutions for common claud
 
 ---
 
-These patterns serve as building blocks for more complex claude-flow applications. Combine and adapt them based on your specific requirements and use cases.
+These patterns serve as building blocks for more complex claude-flow-novice applications. Combine and adapt them based on your specific requirements and use cases.

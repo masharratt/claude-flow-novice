@@ -92,9 +92,9 @@ export class CommandHandlers {
         message: `✅ Successfully initialized ${projectType} project!`,
         suggestions,
         nextSteps: [
-          'Run `claude-flow status` to see your project overview',
-          'Use `claude-flow build "your feature idea"` to start developing',
-          'Try `claude-flow help build` to learn about development commands',
+          'Run `claude-flow-novice status` to see your project overview',
+          'Use `claude-flow-novice build "your feature idea"` to start developing',
+          'Try `claude-flow-novice help build` to learn about development commands',
         ],
       };
     } catch (error) {
@@ -126,8 +126,8 @@ export class CommandHandlers {
           success: false,
           message: '❌ No feature description provided',
           suggestions: [
-            'Try: claude-flow build "add user authentication"',
-            'Try: claude-flow build "create REST API"',
+            'Try: claude-flow-novice build "add user authentication"',
+            'Try: claude-flow-novice build "create REST API"',
             'Use natural language to describe what you want to build',
           ],
         };
@@ -159,7 +159,7 @@ export class CommandHandlers {
         suggestions: [
           'Try describing your feature more clearly',
           'Use --dry-run to see the planned execution',
-          'Check `claude-flow status` for any blocking issues',
+          'Check `claude-flow-novice status` for any blocking issues',
         ],
       };
     }
@@ -388,22 +388,22 @@ export class CommandHandlers {
   private getInitSuggestions(projectType: string): string[] {
     const suggestions: Record<string, string[]> = {
       web: [
-        'Add user authentication with "claude-flow build auth system"',
-        'Create responsive design with "claude-flow build responsive layout"',
-        'Set up testing with "claude-flow build test suite"',
+        'Add user authentication with "claude-flow-novice build auth system"',
+        'Create responsive design with "claude-flow-novice build responsive layout"',
+        'Set up testing with "claude-flow-novice build test suite"',
       ],
       api: [
-        'Add database integration with "claude-flow build database layer"',
-        'Implement JWT authentication with "claude-flow build jwt auth"',
-        'Add API documentation with "claude-flow build api docs"',
+        'Add database integration with "claude-flow-novice build database layer"',
+        'Implement JWT authentication with "claude-flow-novice build jwt auth"',
+        'Add API documentation with "claude-flow-novice build api docs"',
       ],
     };
 
     return (
       suggestions[projectType] || [
         'Start building features with natural language descriptions',
-        'Use "claude-flow status" to monitor your project',
-        'Learn new commands with "claude-flow learn"',
+        'Use "claude-flow-novice status" to monitor your project',
+        'Learn new commands with "claude-flow-novice learn"',
       ]
     );
   }
@@ -461,8 +461,8 @@ export class CommandHandlers {
         data: { analysis, results },
         nextSteps: [
           "Run tests with your framework's test command",
-          'Check the results with `claude-flow status`',
-          'Deploy when ready with `claude-flow learn deployment`',
+          'Check the results with `claude-flow-novice status`',
+          'Deploy when ready with `claude-flow-novice learn deployment`',
         ],
       };
     } catch (error) {
@@ -472,7 +472,7 @@ export class CommandHandlers {
         suggestions: [
           'Check the logs for specific error details',
           'Try breaking down the task into smaller parts',
-          'Use `claude-flow help build` for guidance',
+          'Use `claude-flow-novice help build` for guidance',
         ],
       };
     }
@@ -555,10 +555,10 @@ export class CommandHandlers {
     }
 
     if (systemStatus.agents.active === 0) {
-      steps.push('Start building with `claude-flow build "your idea"`');
+      steps.push('Start building with `claude-flow-novice build "your idea"`');
     }
 
-    steps.push('Use `claude-flow learn` to discover new features');
+    steps.push('Use `claude-flow-novice learn` to discover new features');
 
     return steps;
   }
@@ -581,7 +581,7 @@ export class CommandHandlers {
       message: 'New features displayed',
       nextSteps: [
         'Try the new commands to get familiar',
-        'Use `claude-flow help <command>` for detailed help',
+        'Use `claude-flow-novice help <command>` for detailed help',
         'Keep using commands to unlock more features',
       ],
     };
@@ -596,8 +596,8 @@ export class CommandHandlers {
         success: false,
         message: `❌ Command '${command}' not found or not available in your current tier`,
         suggestions: [
-          'Use `claude-flow help` to see available commands',
-          'Use `claude-flow learn` to unlock more commands',
+          'Use `claude-flow-novice help` to see available commands',
+          'Use `claude-flow-novice learn` to unlock more commands',
         ],
       };
     }
@@ -645,15 +645,15 @@ export class CommandHandlers {
     });
 
     console.log('\nTip: Use natural language with build command!');
-    console.log('Example: claude-flow build "add user login with JWT"');
+    console.log('Example: claude-flow-novice build "add user login with JWT"');
 
     return {
       success: true,
       message: 'General help displayed',
       nextSteps: [
-        'Try `claude-flow init` to start a new project',
-        'Use `claude-flow build "your idea"` to develop features',
-        'Run `claude-flow learn` to unlock advanced features',
+        'Try `claude-flow-novice init` to start a new project',
+        'Use `claude-flow-novice build "your idea"` to develop features',
+        'Run `claude-flow-novice learn` to unlock advanced features',
       ],
     };
   }
@@ -676,7 +676,7 @@ export class CommandHandlers {
       message: `❌ Topic '${topic}' not found`,
       suggestions: [
         'Available topics: agents, testing, deployment, optimization',
-        'Use `claude-flow learn` to see the learning dashboard',
+        'Use `claude-flow-novice learn` to see the learning dashboard',
       ],
     };
   }
@@ -693,8 +693,8 @@ export class CommandHandlers {
       success: true,
       message: 'Agent concepts explained',
       nextSteps: [
-        'Try `claude-flow build` to see agents in action',
-        'Use `claude-flow status` to monitor agent activity',
+        'Try `claude-flow-novice build` to see agents in action',
+        'Use `claude-flow-novice status` to monitor agent activity',
       ],
     };
   }
@@ -771,9 +771,9 @@ export class CommandHandlers {
       success: true,
       message: 'Learning dashboard displayed',
       nextSteps: [
-        'Pick a topic: `claude-flow learn agents`',
+        'Pick a topic: `claude-flow-novice learn agents`',
         'Try new commands to gain experience',
-        'Use `claude-flow help --interactive` for guided learning',
+        'Use `claude-flow-novice help --interactive` for guided learning',
       ],
     };
   }

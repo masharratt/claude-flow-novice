@@ -93,7 +93,7 @@ Practice Projects: Enterprise integration, Autonomous development system
 Custom Agent Development & Research
 ├── ⭐⭐⭐⭐⭐ Develop custom agent types
 ├── ⭐⭐⭐⭐⭐ Research novel coordination patterns
-├── ⭐⭐⭐⭐⭐ Contribute to claude-flow ecosystem
+├── ⭐⭐⭐⭐⭐ Contribute to claude-flow-novice ecosystem
 ├── ⭐⭐⭐⭐⭐ Train and mentor others
 └── ⭐⭐⭐⭐⭐ Lead industry innovation
 

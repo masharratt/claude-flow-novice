@@ -79,7 +79,7 @@ All swarm coordinators leverage the following MCP tools:
 ### Hierarchical Coordination
 ```bash
 # Initialize hierarchical swarm for development project
-claude-flow agent spawn hierarchical-coordinator "Build authentication microservice"
+claude-flow-novice agent spawn hierarchical-coordinator "Build authentication microservice"
 
 # Agents will automatically:
 # 1. Decompose project into tasks
@@ -91,7 +91,7 @@ claude-flow agent spawn hierarchical-coordinator "Build authentication microserv
 ### Mesh Coordination  
 ```bash
 # Initialize mesh network for distributed processing
-claude-flow agent spawn mesh-coordinator "Process user analytics data"
+claude-flow-novice agent spawn mesh-coordinator "Process user analytics data"
 
 # Network will automatically:
 # 1. Establish peer-to-peer connections
@@ -103,7 +103,7 @@ claude-flow agent spawn mesh-coordinator "Process user analytics data"
 ### Adaptive Coordination
 ```bash
 # Initialize adaptive swarm for production optimization
-claude-flow agent spawn adaptive-coordinator "Optimize system performance"
+claude-flow-novice agent spawn adaptive-coordinator "Optimize system performance"
 
 # System will automatically:
 # 1. Analyze current workload patterns
@@ -179,12 +179,12 @@ Real-time visibility into:
 
 ## Integration with Claude-Flow
 
-These agents integrate seamlessly with the broader claude-flow ecosystem:
+These agents integrate seamlessly with the broader claude-flow-novice ecosystem:
 
-- **Memory System**: All coordination state persisted in claude-flow memory bank
+- **Memory System**: All coordination state persisted in claude-flow-novice memory bank
 - **Terminal Management**: Agents can spawn and manage multiple terminal sessions
 - **MCP Integration**: Full access to claude-flow's MCP tool ecosystem
-- **Event System**: Real-time coordination through claude-flow event bus
-- **Configuration**: Managed through claude-flow configuration system
+- **Event System**: Real-time coordination through claude-flow-novice event bus
+- **Configuration**: Managed through claude-flow-novice configuration system
 
-For implementation details, see individual agent files and the claude-flow documentation.
+For implementation details, see individual agent files and the claude-flow-novice documentation.

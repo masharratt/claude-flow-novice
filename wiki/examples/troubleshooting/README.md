@@ -485,7 +485,7 @@ class AgentCoordinationTroubleshooter {
         kubectl top pods -l app=claude-flow
 
         # Check for resource limits
-        kubectl describe pods -l app=claude-flow | grep -A 5 "Limits:"
+        kubectl describe pods -l app=claude-flow-novice | grep -A 5 "Limits:"
 
         # Check for OOM kills
         dmesg | grep -i "killed process" | tail -10
@@ -502,7 +502,7 @@ class AgentCoordinationTroubleshooter {
       script: `
         # Validate agent configurations
         for config in /etc/claude-flow/agents/*.yaml; do
-          claude-flow config validate $config || echo "Invalid config: $config"
+          claude-flow-novice config validate $config || echo "Invalid config: $config"
         done
 
         # Check coordination settings

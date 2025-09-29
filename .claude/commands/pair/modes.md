@@ -8,7 +8,7 @@ In driver mode, you write the code while the AI acts as navigator.
 
 ### Usage
 ```bash
-claude-flow pair --start --mode driver
+claude-flow-novice pair --start --mode driver
 ```
 
 ### Responsibilities
@@ -34,7 +34,7 @@ claude-flow pair --start --mode driver
 
 ### Example Session
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode driver \
   --agent senior-navigator \
   --review \
@@ -56,7 +56,7 @@ In navigator mode, the AI writes code while you provide guidance.
 
 ### Usage
 ```bash
-claude-flow pair --start --mode navigator
+claude-flow-novice pair --start --mode navigator
 ```
 
 ### Responsibilities
@@ -82,7 +82,7 @@ claude-flow pair --start --mode navigator
 
 ### Example Session
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode navigator \
   --agent expert-coder \
   --test \
@@ -104,7 +104,7 @@ Automatically alternates between driver and navigator roles.
 
 ### Usage
 ```bash
-claude-flow pair --start --mode switch [--interval <time>]
+claude-flow-novice pair --start --mode switch [--interval <time>]
 ```
 
 ### Default Intervals
@@ -116,13 +116,13 @@ claude-flow pair --start --mode switch [--interval <time>]
 ### Configuration
 ```bash
 # 5-minute intervals
-claude-flow pair --start --mode switch --interval 5m
+claude-flow-novice pair --start --mode switch --interval 5m
 
 # 15-minute intervals
-claude-flow pair --start --mode switch --interval 15m
+claude-flow-novice pair --start --mode switch --interval 15m
 
 # Hour-long intervals
-claude-flow pair --start --mode switch --interval 1h
+claude-flow-novice pair --start --mode switch --interval 1h
 ```
 
 ### Role Transitions
@@ -142,7 +142,7 @@ claude-flow pair --start --mode switch --interval 1h
 
 ### Example Session
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode switch \
   --interval 10m \
   --verify \
@@ -155,7 +155,7 @@ claude-flow pair --start \
 Test-Driven Development focus.
 
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode tdd \
   --test-first \
   --coverage 100
@@ -171,7 +171,7 @@ claude-flow pair --start \
 Continuous code review focus.
 
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode review \
   --strict \
   --security
@@ -187,7 +187,7 @@ claude-flow pair --start \
 Learning-focused collaboration.
 
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode mentor \
   --explain-all \
   --pace slow
@@ -203,7 +203,7 @@ claude-flow pair --start \
 Problem-solving focus.
 
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode debug \
   --verbose \
   --trace
@@ -257,7 +257,7 @@ claude-flow pair --start \
 
 ### Quality-Focused
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode switch \
   --verify \
   --test \
@@ -267,7 +267,7 @@ claude-flow pair --start \
 
 ### Learning-Focused
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode mentor \
   --explain-all \
   --examples \
@@ -276,7 +276,7 @@ claude-flow pair --start \
 
 ### Speed-Focused
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode navigator \
   --quick \
   --templates \
@@ -285,7 +285,7 @@ claude-flow pair --start \
 
 ### Debug-Focused
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode debug \
   --trace \
   --verbose \

@@ -258,7 +258,7 @@ export class GitHubHookIntegration {
           `[GitHubHooks] Starting operation: ${context.operation} for ${context.agent_id}`,
         );
 
-        // This would integrate with claude-flow memory system
+        // This would integrate with claude-flow-novice memory system
         // await storeInMemory(memoryKey, { context, started_at: new Date().toISOString() });
 
         return { memory_key: memoryKey };
@@ -275,7 +275,7 @@ export class GitHubHookIntegration {
           `[GitHubHooks] Completed operation: ${context.operation} for ${context.agent_id}`,
         );
 
-        // This would integrate with claude-flow memory system
+        // This would integrate with claude-flow-novice memory system
         // const completionData = { context, completed_at: new Date().toISOString() };
         // await storeInMemory(`github/completed/${context.agent_id}/${context.operation}`, completionData);
 
@@ -299,7 +299,7 @@ export class GitHubHookIntegration {
         const duration = Date.now() - startTime;
         console.log(`[GitHubHooks] Operation ${context.operation} took ${duration}ms`);
 
-        // This would integrate with claude-flow metrics system
+        // This would integrate with claude-flow-novice metrics system
         // await recordMetric(`github.${context.operation}.duration`, duration);
 
         return { duration, performance_recorded: true };
@@ -311,7 +311,7 @@ export class GitHubHookIntegration {
     this.registerErrorHook('*', async (error: any, context: HookContext) => {
       console.error(`[GitHubHooks] Error in ${context.operation} for ${context.agent_id}:`, error);
 
-      // This would integrate with claude-flow error tracking
+      // This would integrate with claude-flow-novice error tracking
       // await recordError(`github.${context.operation}`, error, context);
 
       return { error_recorded: true };
@@ -379,7 +379,7 @@ export class GitHubHookIntegration {
   // =============================================================================
 
   /**
-   * Execute claude-flow hooks using bash commands
+   * Execute claude-flow-novice hooks using bash commands
    */
   async executeClaudeFlowHook(
     type: 'pre-task' | 'post-task' | 'notify',
@@ -402,11 +402,11 @@ export class GitHubHookIntegration {
           command = `npx claude-flow@alpha hooks notify --message "${message}"`;
           break;
         default:
-          throw new Error(`Unknown claude-flow hook type: ${type}`);
+          throw new Error(`Unknown claude-flow-novice hook type: ${type}`);
       }
 
       if (this.config.debug) {
-        console.log(`[GitHubHooks] Executing claude-flow hook: ${command}`);
+        console.log(`[GitHubHooks] Executing claude-flow-novice hook: ${command}`);
       }
 
       // In a real implementation, this would execute the command

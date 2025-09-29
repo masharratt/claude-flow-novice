@@ -6,7 +6,7 @@
 
 ### Standard Format
 ```bash
-claude-flow <command> [subcommand] [arguments] [options]
+claude-flow-novice <command> [subcommand] [arguments] [options]
 ```
 
 ### Option Formats
@@ -25,10 +25,10 @@ claude-flow <command> [subcommand] [arguments] [options]
 
 ## 🌱 Novice Tier Commands
 
-### `claude-flow init`
+### `claude-flow-novice init`
 
 ```bash
-claude-flow init [project-type] [options]
+claude-flow-novice init [project-type] [options]
 ```
 
 **Arguments:**
@@ -46,16 +46,16 @@ claude-flow init [project-type] [options]
 
 **Examples:**
 ```bash
-claude-flow init
-claude-flow init web --interactive
-claude-flow init "todo application" --template react
-claude-flow init api --skip-git --dry-run
+claude-flow-novice init
+claude-flow-novice init web --interactive
+claude-flow-novice init "todo application" --template react
+claude-flow-novice init api --skip-git --dry-run
 ```
 
-### `claude-flow build`
+### `claude-flow-novice build`
 
 ```bash
-claude-flow build [feature-description] [options]
+claude-flow-novice build [feature-description] [options]
 ```
 
 **Arguments:**
@@ -76,16 +76,16 @@ claude-flow build [feature-description] [options]
 
 **Examples:**
 ```bash
-claude-flow build "add user authentication"
-claude-flow build "create REST API" --agent coder
-claude-flow build --interactive --parallel
-claude-flow build "fix login bug" --fix --dry-run
+claude-flow-novice build "add user authentication"
+claude-flow-novice build "create REST API" --agent coder
+claude-flow-novice build --interactive --parallel
+claude-flow-novice build "fix login bug" --fix --dry-run
 ```
 
-### `claude-flow status`
+### `claude-flow-novice status`
 
 ```bash
-claude-flow status [options]
+claude-flow-novice status [options]
 ```
 
 **Arguments:**
@@ -103,16 +103,16 @@ claude-flow status [options]
 
 **Examples:**
 ```bash
-claude-flow status
-claude-flow status --detailed --format json
-claude-flow status --watch --refresh 5
-claude-flow status --filter agents
+claude-flow-novice status
+claude-flow-novice status --detailed --format json
+claude-flow-novice status --watch --refresh 5
+claude-flow-novice status --filter agents
 ```
 
-### `claude-flow help`
+### `claude-flow-novice help`
 
 ```bash
-claude-flow help [command] [options]
+claude-flow-novice help [command] [options]
 ```
 
 **Arguments:**
@@ -130,16 +130,16 @@ claude-flow help [command] [options]
 
 **Examples:**
 ```bash
-claude-flow help
-claude-flow help build --examples
-claude-flow help --interactive
-claude-flow help --search "authentication"
+claude-flow-novice help
+claude-flow-novice help build --examples
+claude-flow-novice help --interactive
+claude-flow-novice help --search "authentication"
 ```
 
-### `claude-flow learn`
+### `claude-flow-novice learn`
 
 ```bash
-claude-flow learn [topic] [options]
+claude-flow-novice learn [topic] [options]
 ```
 
 **Arguments:**
@@ -158,20 +158,20 @@ claude-flow learn [topic] [options]
 
 **Examples:**
 ```bash
-claude-flow learn
-claude-flow learn agents --level beginner
-claude-flow learn --interactive --exercises
-claude-flow learn testing --challenges
+claude-flow-novice learn
+claude-flow-novice learn agents --level beginner
+claude-flow-novice learn --interactive --exercises
+claude-flow-novice learn testing --challenges
 ```
 
 ---
 
 ## ⚡ Intermediate Tier Commands
 
-### `claude-flow agents`
+### `claude-flow-novice agents`
 
 ```bash
-claude-flow agents <action> [target] [options]
+claude-flow-novice agents <action> [target] [options]
 ```
 
 **Actions:**
@@ -199,16 +199,16 @@ claude-flow agents <action> [target] [options]
 
 **Examples:**
 ```bash
-claude-flow agents list --type coder
-claude-flow agents spawn researcher --priority high
-claude-flow agents status --detailed --watch
-claude-flow agents metrics coder-a1b2c3
+claude-flow-novice agents list --type coder
+claude-flow-novice agents spawn researcher --priority high
+claude-flow-novice agents status --detailed --watch
+claude-flow-novice agents metrics coder-a1b2c3
 ```
 
-### `claude-flow test`
+### `claude-flow-novice test`
 
 ```bash
-claude-flow test [test-type] [options]
+claude-flow-novice test [test-type] [options]
 ```
 
 **Test Types:**
@@ -235,16 +235,16 @@ claude-flow test [test-type] [options]
 
 **Examples:**
 ```bash
-claude-flow test unit --generate --coverage
-claude-flow test e2e --watch --parallel
-claude-flow test security --reporter json
-claude-flow test --pattern "**/*.test.js" --fix
+claude-flow-novice test unit --generate --coverage
+claude-flow-novice test e2e --watch --parallel
+claude-flow-novice test security --reporter json
+claude-flow-novice test --pattern "**/*.test.js" --fix
 ```
 
-### `claude-flow deploy`
+### `claude-flow-novice deploy`
 
 ```bash
-claude-flow deploy [environment] [options]
+claude-flow-novice deploy [environment] [options]
 ```
 
 **Environments:**
@@ -267,16 +267,16 @@ claude-flow deploy [environment] [options]
 
 **Examples:**
 ```bash
-claude-flow deploy production --auto-setup --monitor
-claude-flow deploy staging --dry-run --config staging.yml
-claude-flow deploy --rollback v1.2.2 --zero-downtime
-claude-flow deploy preview --env-file .env.preview
+claude-flow-novice deploy production --auto-setup --monitor
+claude-flow-novice deploy staging --dry-run --config staging.yml
+claude-flow-novice deploy --rollback v1.2.2 --zero-downtime
+claude-flow-novice deploy preview --env-file .env.preview
 ```
 
-### `claude-flow optimize`
+### `claude-flow-novice optimize`
 
 ```bash
-claude-flow optimize [target] [options]
+claude-flow-novice optimize [target] [options]
 ```
 
 **Optimization Targets:**
@@ -300,16 +300,16 @@ claude-flow optimize [target] [options]
 
 **Examples:**
 ```bash
-claude-flow optimize bundle --analyze --report
-claude-flow optimize database --apply --benchmark
-claude-flow optimize --aggressive --threshold 20
-claude-flow optimize memory --safe-only
+claude-flow-novice optimize bundle --analyze --report
+claude-flow-novice optimize database --apply --benchmark
+claude-flow-novice optimize --aggressive --threshold 20
+claude-flow-novice optimize memory --safe-only
 ```
 
-### `claude-flow review`
+### `claude-flow-novice review`
 
 ```bash
-claude-flow review [scope] [options]
+claude-flow-novice review [scope] [options]
 ```
 
 **Review Scopes:**
@@ -334,20 +334,20 @@ claude-flow review [scope] [options]
 
 **Examples:**
 ```bash
-claude-flow review security --severity high --report
-claude-flow review changes --since "2024-01-01" --fix
-claude-flow review --interactive --format html
-claude-flow review all --exclude "test/**,docs/**"
+claude-flow-novice review security --severity high --report
+claude-flow-novice review changes --since "2024-01-01" --fix
+claude-flow-novice review --interactive --format html
+claude-flow-novice review all --exclude "test/**,docs/**"
 ```
 
 ---
 
 ## 🚀 Expert Tier Commands
 
-### `claude-flow mcp`
+### `claude-flow-novice mcp`
 
 ```bash
-claude-flow mcp <server> <tool> [options]
+claude-flow-novice mcp <server> <tool> [options]
 ```
 
 **MCP Servers:**
@@ -370,15 +370,15 @@ claude-flow mcp <server> <tool> [options]
 
 **Examples:**
 ```bash
-claude-flow mcp claude-flow swarm_init --topology mesh
-claude-flow mcp ruv-swarm neural_train --pattern optimization
-claude-flow mcp flow-nexus sandbox_create --runtime nodejs
+claude-flow-novice mcp claude-flow-novice swarm_init --topology mesh
+claude-flow-novice mcp ruv-swarm neural_train --pattern optimization
+claude-flow-novice mcp flow-nexus sandbox_create --runtime nodejs
 ```
 
-### `claude-flow workflow`
+### `claude-flow-novice workflow`
 
 ```bash
-claude-flow workflow <action> [name] [options]
+claude-flow-novice workflow <action> [name] [options]
 ```
 
 **Actions:**
@@ -399,16 +399,16 @@ claude-flow workflow <action> [name] [options]
 
 **Examples:**
 ```bash
-claude-flow workflow create "full-stack-feature" --steps steps.json
-claude-flow workflow execute "security-audit" --dry-run
-claude-flow workflow list --format table
-claude-flow workflow export "my-workflow" --format yaml
+claude-flow-novice workflow create "full-stack-feature" --steps steps.json
+claude-flow-novice workflow execute "security-audit" --dry-run
+claude-flow-novice workflow list --format table
+claude-flow-novice workflow export "my-workflow" --format yaml
 ```
 
-### `claude-flow enterprise`
+### `claude-flow-novice enterprise`
 
 ```bash
-claude-flow enterprise <action> [options]
+claude-flow-novice enterprise <action> [options]
 ```
 
 **Actions:**
@@ -429,9 +429,9 @@ claude-flow enterprise <action> [options]
 
 **Examples:**
 ```bash
-claude-flow enterprise setup --compliance SOC2
-claude-flow enterprise team-create --name "frontend-team"
-claude-flow enterprise audit-log --timeframe 30d
+claude-flow-novice enterprise setup --compliance SOC2
+claude-flow-novice enterprise team-create --name "frontend-team"
+claude-flow-novice enterprise audit-log --timeframe 30d
 ```
 
 ---
@@ -512,13 +512,13 @@ claude-flow enterprise audit-log --timeframe 30d
 ### Command Chaining
 ```bash
 # Sequential execution
-claude-flow status && claude-flow build "feature" && claude-flow test
+claude-flow-novice status && claude-flow-novice build "feature" && claude-flow-novice test
 
 # Conditional execution
-claude-flow test || claude-flow review --fix
+claude-flow-novice test || claude-flow-novice review --fix
 
 # Piping output
-claude-flow status --format json | jq '.agents'
+claude-flow-novice status --format json | jq '.agents'
 ```
 
 ### Environment Variables
@@ -528,28 +528,28 @@ export CLAUDE_FLOW_LOG_LEVEL=debug
 export CLAUDE_FLOW_PARALLEL_LIMIT=10
 export CLAUDE_FLOW_DEFAULT_TIMEOUT=3600
 
-claude-flow build "feature"  # Uses environment settings
+claude-flow-novice build "feature"  # Uses environment settings
 ```
 
 ### Configuration Files
 ```bash
 # YAML configuration
-claude-flow --config .claude-flow.yml build "feature"
+claude-flow-novice --config .claude-flow.yml build "feature"
 
 # JSON configuration
-claude-flow --config claude-flow.json deploy production
+claude-flow-novice --config claude-flow.json deploy production
 ```
 
 ### Batch Operations
 ```bash
 # Multiple targets
-claude-flow test unit integration e2e
+claude-flow-novice test unit integration e2e
 
 # Multiple environments
-claude-flow deploy staging production --parallel
+claude-flow-novice deploy staging production --parallel
 
 # Multiple repositories
-claude-flow mcp claude-flow github_sync_coord --repos "repo1,repo2,repo3"
+claude-flow-novice mcp claude-flow-novice github_sync_coord --repos "repo1,repo2,repo3"
 ```
 
 ---
@@ -562,10 +562,10 @@ claude-flow mcp claude-flow github_sync_coord --repos "repo1,repo2,repo3"
 export CLAUDE_FLOW_API_KEY=your_api_key
 
 # Token-based authentication
-claude-flow auth login --token your_token
+claude-flow-novice auth login --token your_token
 
 # Interactive authentication
-claude-flow auth login --interactive
+claude-flow-novice auth login --interactive
 ```
 
 ### Secure Options
@@ -673,4 +673,4 @@ claude-flow auth login --interactive
 
 ---
 
-This syntax reference covers all available commands, options, and patterns. Use `claude-flow help <command>` for command-specific syntax details and examples.
+This syntax reference covers all available commands, options, and patterns. Use `claude-flow-novice help <command>` for command-specific syntax details and examples.

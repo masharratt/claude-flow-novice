@@ -484,11 +484,11 @@ jobs:
     - name: Setup Claude Flow
       run: |
         npm install -g claude-flow@alpha
-        claude-flow config set review.enabled true
+        claude-flow-novice config set review.enabled true
 
     - name: Spawn Review Team
       run: |
-        claude-flow agents spawn-team \
+        claude-flow-novice agents spawn-team \
           --coordination hierarchical \
           --max-agents 8 \
           code-analyzer:"Static analysis and code quality" \
@@ -502,14 +502,14 @@ jobs:
 
     - name: Coordinate Review Process
       run: |
-        claude-flow orchestrate review-workflow \
+        claude-flow-novice orchestrate review-workflow \
           --pr-number ${{ github.event.number }} \
           --parallel-execution true \
           --quality-gates enabled
 
     - name: Generate Review Report
       run: |
-        claude-flow reports generate review-summary \
+        claude-flow-novice reports generate review-summary \
           --format markdown \
           --include-metrics true \
           --output review-report.md
@@ -530,7 +530,7 @@ jobs:
 
     - name: Update PR Status
       run: |
-        claude-flow github update-pr-status \
+        claude-flow-novice github update-pr-status \
           --pr-number ${{ github.event.number }} \
           --status completed \
           --include-metrics true

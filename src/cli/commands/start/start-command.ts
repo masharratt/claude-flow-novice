@@ -46,7 +46,7 @@ export const startCommand = new Command()
         ]);
 
         if (!shouldContinue) {
-          console.log(chalk.gray('Use --force to override or "claude-flow stop" first'));
+          console.log(chalk.gray('Use --force to override or "claude-flow-novice stop" first'));
           return;
         }
 
@@ -190,8 +190,8 @@ export const startCommand = new Command()
         await waitForSystemReady(processManager);
 
         console.log(chalk.green.bold('✓'), 'Daemon started successfully');
-        console.log(chalk.gray('Use "claude-flow status" to check system status'));
-        console.log(chalk.gray('Use "claude-flow monitor" for real-time monitoring'));
+        console.log(chalk.gray('Use "claude-flow-novice status" to check system status'));
+        console.log(chalk.gray('Use "claude-flow-novice monitor" for real-time monitoring'));
 
         // Keep process running
         await new Promise<void>(() => {});

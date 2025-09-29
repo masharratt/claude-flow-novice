@@ -1,7 +1,7 @@
 /**
  * Verification Hooks Module
  *
- * Comprehensive verification and validation system for claude-flow operations.
+ * Comprehensive verification and validation system for claude-flow-novice operations.
  * Provides pre-task verification, post-task validation, integration testing,
  * truth telemetry, and rollback capabilities.
  */

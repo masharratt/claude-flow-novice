@@ -9,13 +9,13 @@ export async function createLocalExecutable(workingDir, dryRun = false) {
       // Create Windows batch file
       const wrapperScript = `@echo off
 REM Claude-Flow local wrapper
-REM This script ensures claude-flow runs from your project directory
+REM This script ensures claude-flow-novice runs from your project directory
 
 set PROJECT_DIR=%CD%
 set PWD=%PROJECT_DIR%
 set CLAUDE_WORKING_DIR=%PROJECT_DIR%
 
-REM Try to find claude-flow binary
+REM Try to find claude-flow-novice binary
 REM Check common locations for npm/npx installations
 
 REM 1. Local node_modules (npm install claude-flow)
@@ -33,10 +33,10 @@ if exist "%PROJECT_DIR%\\..\\node_modules\\.bin\\claude-flow.cmd" (
 )
 
 REM 3. Global installation (npm install -g claude-flow)
-where claude-flow >nul 2>nul
+where claude-flow-novice >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
   cd /d "%PROJECT_DIR%"
-  claude-flow %*
+  claude-flow-novice %*
   exit /b %ERRORLEVEL%
 )
 
@@ -49,7 +49,7 @@ npx claude-flow@latest %*
       if (!dryRun) {
         await writeFile(`${workingDir}/claude-flow.cmd`, wrapperScript, 'utf8');
         console.log('  ✓ Created local claude-flow.cmd executable wrapper');
-        console.log('    You can now use: claude-flow instead of npx claude-flow');
+        console.log('    You can now use: claude-flow-novice instead of npx claude-flow');
       }
     } else {
       // Check if we're in development mode (claude-code-flow repo)
@@ -61,7 +61,7 @@ npx claude-flow@latest %*
       // Create Unix/Linux/Mac shell script
       const wrapperScript = `#!/usr/bin/env bash
 # Claude-Flow local wrapper
-# This script ensures claude-flow runs from your project directory
+# This script ensures claude-flow-novice runs from your project directory
 
 # Save the current directory
 PROJECT_DIR="\${PWD}"
@@ -70,7 +70,7 @@ PROJECT_DIR="\${PWD}"
 export PWD="\${PROJECT_DIR}"
 export CLAUDE_WORKING_DIR="\${PROJECT_DIR}"
 
-# Try to find claude-flow binary
+# Try to find claude-flow-novice binary
 # Check common locations for npm/npx installations
 
 ${
@@ -94,9 +94,9 @@ elif [ -f "\${PROJECT_DIR}/../node_modules/.bin/claude-flow" ]; then
   exec "\${PROJECT_DIR}/../node_modules/.bin/claude-flow" "$@"
 
 # 3. Global installation (npm install -g claude-flow)
-elif command -v claude-flow &> /dev/null; then
+elif command -v claude-flow-novice &> /dev/null; then
   cd "\${PROJECT_DIR}"
-  exec claude-flow "$@"
+  exec claude-flow-novice "$@"
 
 # 4. Fallback to npx (will download if needed)
 else
@@ -112,8 +112,8 @@ fi
         // Make it executable
         await chmod(`${workingDir}/claude-flow`, 0o755);
 
-        console.log('  ✓ Created local claude-flow executable wrapper');
-        console.log('    You can now use: ./claude-flow instead of npx claude-flow');
+        console.log('  ✓ Created local claude-flow-novice executable wrapper');
+        console.log('    You can now use: ./claude-flow-novice instead of npx claude-flow');
       }
     }
   } catch (err) {

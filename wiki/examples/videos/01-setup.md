@@ -4,14 +4,14 @@
 **Complexity**: 🟢 Beginner
 **Prerequisites**: Node.js 18+
 
-Learn how to install and configure claude-flow for development in under 5 minutes.
+Learn how to install and configure claude-flow-novice for development in under 5 minutes.
 
 ## 🎥 Video Overview
 
 This tutorial covers the complete setup process from installation to your first agent execution, including MCP server configuration and basic troubleshooting.
 
 ### What You'll Learn
-- Installing claude-flow CLI
+- Installing claude-flow-novice CLI
 - Setting up MCP servers
 - Configuring your development environment
 - Running your first agent
@@ -20,7 +20,7 @@ This tutorial covers the complete setup process from installation to your first 
 ## 📺 Video Sections
 
 ### 0:00 - Introduction
-Brief overview of claude-flow and what we'll accomplish in this tutorial.
+Brief overview of claude-flow-novice and what we'll accomplish in this tutorial.
 
 ### 0:30 - Prerequisites Check
 ```bash
@@ -43,13 +43,13 @@ npm install -g claude-flow@alpha
 npx claude-flow@alpha --version
 
 # Verify installation
-claude-flow --help
+claude-flow-novice --help
 ```
 
 ### 1:30 - MCP Server Setup
 ```bash
-# Add claude-flow MCP server (required)
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Add claude-flow-novice MCP server (required)
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Add optional enhanced coordination server
 claude mcp add ruv-swarm npx ruv-swarm mcp start
@@ -64,7 +64,7 @@ claude mcp list
 mkdir my-first-claude-flow-project
 cd my-first-claude-flow-project
 
-# Initialize claude-flow project
+# Initialize claude-flow-novice project
 npx claude-flow@alpha init --type basic
 
 # Review generated configuration
@@ -114,9 +114,9 @@ Common setup problems and their solutions covered in the video.
 ### Quick Setup Script
 ```bash
 #!/bin/bash
-# quick-setup.sh - Complete claude-flow setup script
+# quick-setup.sh - Complete claude-flow-novice setup script
 
-echo "🚀 Setting up claude-flow development environment..."
+echo "🚀 Setting up claude-flow-novice development environment..."
 
 # Check prerequisites
 if ! command -v node &> /dev/null; then
@@ -135,12 +135,12 @@ npm install -g claude-flow@alpha
 
 # Setup MCP servers
 echo "🔧 Setting up MCP servers..."
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 claude mcp add ruv-swarm npx ruv-swarm mcp start
 
 # Verify installation
 echo "✅ Verifying installation..."
-claude-flow --version
+claude-flow-novice --version
 claude mcp list
 
 echo "🎉 Setup complete! You're ready to use claude-flow."
@@ -280,7 +280,7 @@ claude --version
 
 # Reset MCP servers
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Check server logs
 claude mcp logs claude-flow
@@ -326,8 +326,8 @@ scoop install claude-flow
 
 After setup, verify everything works:
 
-- [ ] `claude-flow --version` shows version number
-- [ ] `claude mcp list` shows claude-flow server
+- [ ] `claude-flow-novice --version` shows version number
+- [ ] `claude mcp list` shows claude-flow-novice server
 - [ ] `npx claude-flow@alpha init` creates project
 - [ ] Agent spawning works without errors
 - [ ] Hooks are enabled and functional
@@ -371,14 +371,14 @@ After completing setup:
 
 **Common Questions from Video:**
 
-**Q: Can I use claude-flow without Claude Code CLI?**
+**Q: Can I use claude-flow-novice without Claude Code CLI?**
 A: Yes, but Claude Code's Task tool provides the best integration. You can use MCP tools directly with other LLM interfaces.
 
 **Q: How much does it cost to run claude-flow?**
 A: Claude-flow itself is free. You pay for the underlying LLM usage (Claude, OpenAI, etc.) based on your chosen provider.
 
 **Q: Can I use this in production?**
-A: Yes! Many teams use claude-flow for production development. Start with development/staging environments first.
+A: Yes! Many teams use claude-flow-novice for production development. Start with development/staging environments first.
 
 **Q: Does this work with other LLMs besides Claude?**
 A: Primary focus is Claude integration, but MCP servers can work with other LLM platforms.

@@ -53,12 +53,12 @@ cd examples/03-demos
 For configuration examples, use them with Claude Flow commands:
 ```bash
 cd examples
-../claude-flow swarm create "Your task description" --config ./01-configurations/basic/simple-config.json
+../claude-flow-novice swarm create "Your task description" --config ./01-configurations/basic/simple-config.json
 ```
 
 Or from the project root:
 ```bash
-./claude-flow swarm create "Your task description" --config ./examples/01-configurations/basic/simple-config.json
+./claude-flow-novice swarm create "Your task description" --config ./examples/01-configurations/basic/simple-config.json
 ```
 
 ## Contributing

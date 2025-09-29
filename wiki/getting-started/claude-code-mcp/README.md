@@ -16,8 +16,8 @@ Claude Code MCP integration provides seamless access to claude-flow-novice direc
 
 ### 1. Install MCP Server
 ```bash
-# Add claude-flow MCP server to Claude Code
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+# Add claude-flow-novice MCP server to Claude Code
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Optional: Enhanced coordination features
 claude mcp add ruv-swarm npx ruv-swarm mcp start

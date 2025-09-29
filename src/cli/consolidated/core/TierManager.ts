@@ -40,12 +40,12 @@ export class TierManager {
       tier: UserTier.NOVICE,
       category: 'setup',
       complexity: 1,
-      usage: 'claude-flow init [project-type]',
+      usage: 'claude-flow-novice init [project-type]',
       description: 'Initialize a new project with intelligent defaults',
       examples: [
-        'claude-flow init',
-        'claude-flow init react',
-        'claude-flow init "build a todo app"',
+        'claude-flow-novice init',
+        'claude-flow-novice init react',
+        'claude-flow-novice init "build a todo app"',
       ],
     },
     {
@@ -53,12 +53,12 @@ export class TierManager {
       tier: UserTier.NOVICE,
       category: 'development',
       complexity: 2,
-      usage: 'claude-flow build [feature-description]',
+      usage: 'claude-flow-novice build [feature-description]',
       description: 'Build features using AI agents with natural language',
       examples: [
-        'claude-flow build "add user authentication"',
-        'claude-flow build "create REST API"',
-        'claude-flow build',
+        'claude-flow-novice build "add user authentication"',
+        'claude-flow-novice build "create REST API"',
+        'claude-flow-novice build',
       ],
     },
     {
@@ -66,30 +66,30 @@ export class TierManager {
       tier: UserTier.NOVICE,
       category: 'monitoring',
       complexity: 1,
-      usage: 'claude-flow status [--detailed]',
+      usage: 'claude-flow-novice status [--detailed]',
       description: 'Check project status, agents, and recent activity',
-      examples: ['claude-flow status', 'claude-flow status --detailed'],
+      examples: ['claude-flow-novice status', 'claude-flow-novice status --detailed'],
     },
     {
       name: 'help',
       tier: UserTier.NOVICE,
       category: 'guidance',
       complexity: 1,
-      usage: 'claude-flow help [command]',
+      usage: 'claude-flow-novice help [command]',
       description: 'Get contextual help and learn new commands',
-      examples: ['claude-flow help', 'claude-flow help build', 'claude-flow help --interactive'],
+      examples: ['claude-flow-novice help', 'claude-flow-novice help build', 'claude-flow-novice help --interactive'],
     },
     {
       name: 'learn',
       tier: UserTier.NOVICE,
       category: 'progression',
       complexity: 1,
-      usage: 'claude-flow learn [topic]',
+      usage: 'claude-flow-novice learn [topic]',
       description: 'Learn advanced features and unlock new commands',
       examples: [
-        'claude-flow learn',
-        'claude-flow learn agents',
-        'claude-flow learn "testing strategies"',
+        'claude-flow-novice learn',
+        'claude-flow-novice learn agents',
+        'claude-flow-novice learn "testing strategies"',
       ],
     },
   ];
@@ -101,12 +101,12 @@ export class TierManager {
       tier: UserTier.INTERMEDIATE,
       category: 'agents',
       complexity: 3,
-      usage: 'claude-flow agents <action> [options]',
+      usage: 'claude-flow-novice agents <action> [options]',
       description: 'Direct agent management and spawning',
       examples: [
-        'claude-flow agents list',
-        'claude-flow agents spawn coder',
-        'claude-flow agents metrics',
+        'claude-flow-novice agents list',
+        'claude-flow-novice agents spawn coder',
+        'claude-flow-novice agents metrics',
       ],
     },
     {
@@ -114,12 +114,12 @@ export class TierManager {
       tier: UserTier.INTERMEDIATE,
       category: 'quality',
       complexity: 3,
-      usage: 'claude-flow test [test-type]',
+      usage: 'claude-flow-novice test [test-type]',
       description: 'Run tests with AI-powered test generation',
       examples: [
-        'claude-flow test',
-        'claude-flow test unit',
-        'claude-flow test "integration tests for API"',
+        'claude-flow-novice test',
+        'claude-flow-novice test unit',
+        'claude-flow-novice test "integration tests for API"',
       ],
     },
     {
@@ -127,21 +127,21 @@ export class TierManager {
       tier: UserTier.INTERMEDIATE,
       category: 'deployment',
       complexity: 4,
-      usage: 'claude-flow deploy [environment]',
+      usage: 'claude-flow-novice deploy [environment]',
       description: 'Deploy with intelligent CI/CD setup',
-      examples: ['claude-flow deploy staging', 'claude-flow deploy production --auto-setup'],
+      examples: ['claude-flow-novice deploy staging', 'claude-flow-novice deploy production --auto-setup'],
     },
     {
       name: 'optimize',
       tier: UserTier.INTERMEDIATE,
       category: 'performance',
       complexity: 4,
-      usage: 'claude-flow optimize [target]',
+      usage: 'claude-flow-novice optimize [target]',
       description: 'Performance optimization with AI analysis',
       examples: [
-        'claude-flow optimize',
-        'claude-flow optimize bundle-size',
-        'claude-flow optimize database',
+        'claude-flow-novice optimize',
+        'claude-flow-novice optimize bundle-size',
+        'claude-flow-novice optimize database',
       ],
     },
     {
@@ -149,12 +149,12 @@ export class TierManager {
       tier: UserTier.INTERMEDIATE,
       category: 'quality',
       complexity: 3,
-      usage: 'claude-flow review [scope]',
+      usage: 'claude-flow-novice review [scope]',
       description: 'AI code review and quality analysis',
       examples: [
-        'claude-flow review',
-        'claude-flow review security',
-        'claude-flow review performance',
+        'claude-flow-novice review',
+        'claude-flow-novice review security',
+        'claude-flow-novice review performance',
       ],
     },
   ];
@@ -227,7 +227,7 @@ export class TierManager {
 
     console.log(`\n🎉 Congratulations! You've been upgraded from ${oldTier} to ${newTier}!`);
     console.log(`You now have access to ${this.getAvailableCommands().length} commands.`);
-    console.log(`Run 'claude-flow help --new-features' to see what's new.`);
+    console.log(`Run 'claude-flow-novice help --new-features' to see what's new.`);
   }
 
   private calculateSuccessRate(): number {

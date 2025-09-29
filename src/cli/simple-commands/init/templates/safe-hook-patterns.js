@@ -399,16 +399,16 @@ Use claude-flow's built-in safety tools:
 
 \`\`\`bash
 # Check your configuration for dangerous patterns
-claude-flow hook-safety validate
+claude-flow-novice hook-safety validate
 
 # Enable safe mode (skips all hooks)
-claude-flow hook-safety safe-mode
+claude-flow-novice hook-safety safe-mode
 
 # Check current safety status
-claude-flow hook-safety status
+claude-flow-novice hook-safety status
 
 # Reset circuit breakers if triggered
-claude-flow hook-safety reset
+claude-flow-novice hook-safety reset
 \`\`\`
 
 ## 📚 Additional Resources

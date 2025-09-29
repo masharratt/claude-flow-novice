@@ -24,7 +24,7 @@ Access help, examples, and documentation.
 ## 📁 Project Setup Commands
 
 ### `init` - Initialize New Project
-Create a new claude-flow project with proper structure.
+Create a new claude-flow-novice project with proper structure.
 
 ```bash
 # Basic project initialization

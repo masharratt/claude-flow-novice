@@ -1,7 +1,7 @@
 # Tutorial 08: Real-World Enterprise Scenarios
 
 ## Overview
-Apply advanced claude-flow mastery to complex real-world enterprise scenarios, featuring multi-industry case studies, cross-functional team coordination, and sophisticated business-technology integration patterns.
+Apply advanced claude-flow-novice mastery to complex real-world enterprise scenarios, featuring multi-industry case studies, cross-functional team coordination, and sophisticated business-technology integration patterns.
 
 **Duration**: 5-6 hours
 **Difficulty**: ⭐⭐⭐⭐⭐
@@ -10,7 +10,7 @@ Apply advanced claude-flow mastery to complex real-world enterprise scenarios, f
 ## Learning Objectives
 
 By completing this tutorial, you will:
-- Apply claude-flow to complex multi-industry enterprise scenarios
+- Apply claude-flow-novice to complex multi-industry enterprise scenarios
 - Master cross-functional team coordination and stakeholder management
 - Implement sophisticated business-technology integration patterns
 - Handle real-world constraints, compliance, and regulatory requirements
@@ -666,7 +666,7 @@ mcp__claude-flow__performance_report({
 
 ### Expert Mastery Validation
 
-You have successfully completed all advanced claude-flow tutorials and demonstrated mastery in:
+You have successfully completed all advanced claude-flow-novice tutorials and demonstrated mastery in:
 
 1. ✅ **Complex Multi-Agent Orchestration** - Enterprise-scale coordination
 2. ✅ **Enterprise Architecture Development** - Large-scale system design

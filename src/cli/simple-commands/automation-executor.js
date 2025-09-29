@@ -532,7 +532,7 @@ Begin execution now with the hooks pre-task command.`;
 🆔 AGENT ID: ${agent.id}
 
 CRITICAL COORDINATION REQUIREMENTS:
-1. HOOKS: Use claude-flow hooks for coordination:
+1. HOOKS: Use claude-flow-novice hooks for coordination:
    - Run "npx claude-flow@alpha hooks pre-task --description '[your task]'" before starting
    - Run "npx claude-flow@alpha hooks post-edit --file '[file]'" after each file operation  
    - Run "npx claude-flow@alpha hooks post-task --task-id '${agent.id}'" when complete

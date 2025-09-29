@@ -9,7 +9,7 @@
   },
   "permissions": {
     "allow": [
-      "Bash(npx claude-flow *)",
+      "Bash(npx claude-flow-novice *)",
       "Bash(npm run lint)",
       "Bash(npm run test:*)",
       "Bash(npm test *)",

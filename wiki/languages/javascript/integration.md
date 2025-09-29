@@ -1,6 +1,6 @@
 # JavaScript/TypeScript Integration Guide
 
-This guide provides comprehensive examples and patterns for integrating claude-flow with JavaScript and TypeScript projects.
+This guide provides comprehensive examples and patterns for integrating claude-flow-novice with JavaScript and TypeScript projects.
 
 ## Table of Contents
 
@@ -21,13 +21,13 @@ This guide provides comprehensive examples and patterns for integrating claude-f
   "name": "my-claude-flow-project",
   "version": "1.0.0",
   "scripts": {
-    "dev": "npx claude-flow sparc run coder 'Start development server'",
-    "build": "npx claude-flow sparc batch 'coder,tester' 'Build and test project'",
-    "test": "npx claude-flow sparc run tester 'Run comprehensive test suite'",
-    "deploy": "npx claude-flow sparc pipeline 'Build, test, and deploy to production'",
-    "sparc:init": "npx claude-flow sparc init --topology mesh --agents 5",
-    "sparc:tdd": "npx claude-flow sparc tdd",
-    "sparc:modes": "npx claude-flow sparc modes"
+    "dev": "npx claude-flow-novice sparc run coder 'Start development server'",
+    "build": "npx claude-flow-novice sparc batch 'coder,tester' 'Build and test project'",
+    "test": "npx claude-flow-novice sparc run tester 'Run comprehensive test suite'",
+    "deploy": "npx claude-flow-novice sparc pipeline 'Build, test, and deploy to production'",
+    "sparc:init": "npx claude-flow-novice sparc init --topology mesh --agents 5",
+    "sparc:tdd": "npx claude-flow-novice sparc tdd",
+    "sparc:modes": "npx claude-flow-novice sparc modes"
   },
   "dependencies": {
     "express": "^4.18.0",
@@ -47,9 +47,9 @@ This guide provides comprehensive examples and patterns for integrating claude-f
       "production": ["cicd-engineer", "security-manager", "performance-benchmarker"]
     },
     "hooks": {
-      "preCommit": "npx claude-flow sparc run reviewer 'Review changes before commit'",
-      "preBuild": "npx claude-flow sparc run code-analyzer 'Analyze code quality'",
-      "postDeploy": "npx claude-flow sparc run production-validator 'Validate deployment'"
+      "preCommit": "npx claude-flow-novice sparc run reviewer 'Review changes before commit'",
+      "preBuild": "npx claude-flow-novice sparc run code-analyzer 'Analyze code quality'",
+      "postDeploy": "npx claude-flow-novice sparc run production-validator 'Validate deployment'"
     }
   }
 }

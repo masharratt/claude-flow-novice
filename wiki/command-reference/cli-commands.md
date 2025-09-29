@@ -79,7 +79,7 @@ claude-flow
 │
 └── 🚀 EXPERT TIER (112+ Commands)
     ├── mcp <server> <tool> [options]
-    │   ├── claude-flow (Main MCP)
+    │   ├── claude-flow-novice (Main MCP)
     │   │   ├── swarm_init
     │   │   ├── agent_spawn
     │   │   ├── task_orchestrate
@@ -120,7 +120,7 @@ claude-flow
 ```
 START
   │
-  ├─ claude-flow init
+  ├─ claude-flow-novice init
   │    │
   │    ├─ Detect Project Type
   │    │    ├─ web → React/Vue/Angular template
@@ -151,7 +151,7 @@ START
 ```
 FEATURE REQUEST
   │
-  ├─ claude-flow build "feature description"
+  ├─ claude-flow-novice build "feature description"
   │    │
   │    ├─ 🧠 Intelligence Engine
   │    │    ├─ Parse natural language
@@ -186,7 +186,7 @@ FEATURE REQUEST
 ```
 CODE READY
   │
-  ├─ claude-flow test
+  ├─ claude-flow-novice test
   │    │
   │    ├─ Test Generation
   │    │    ├─ Unit tests → Function coverage
@@ -206,7 +206,7 @@ CODE READY
   │         ├─ Suggest fixes
   │         └─ Update documentation
   │
-  ├─ claude-flow deploy [environment]
+  ├─ claude-flow-novice deploy [environment]
   │    │
   │    ├─ Environment Setup
   │    │    ├─ Infrastructure provisioning
@@ -440,13 +440,13 @@ Month 4+: EXPERT USAGE
 
 | What You Want | Say This | Command Generated |
 |---------------|----------|-------------------|
-| "Start new project" | `init` or `"create new project"` | `claude-flow init --interactive` |
-| "Add authentication" | `"add user login"` | `claude-flow build "user authentication" --agent coder` |
-| "Fix bugs" | `"fix the issues"` | `claude-flow build --fix --agent reviewer` |
-| "Speed up app" | `"optimize performance"` | `claude-flow optimize --analyze --benchmark` |
-| "Deploy to staging" | `"deploy for testing"` | `claude-flow deploy staging --monitor` |
-| "Run all tests" | `"test everything"` | `claude-flow test --run --coverage` |
-| "Check project health" | `"how is my project?"` | `claude-flow status --detailed` |
+| "Start new project" | `init` or `"create new project"` | `claude-flow-novice init --interactive` |
+| "Add authentication" | `"add user login"` | `claude-flow-novice build "user authentication" --agent coder` |
+| "Fix bugs" | `"fix the issues"` | `claude-flow-novice build --fix --agent reviewer` |
+| "Speed up app" | `"optimize performance"` | `claude-flow-novice optimize --analyze --benchmark` |
+| "Deploy to staging" | `"deploy for testing"` | `claude-flow-novice deploy staging --monitor` |
+| "Run all tests" | `"test everything"` | `claude-flow-novice test --run --coverage` |
+| "Check project health" | `"how is my project?"` | `claude-flow-novice status --detailed` |
 
 ### Progressive Complexity Unlock
 
@@ -457,19 +457,19 @@ Level 1: Natural Language
 └─ "fix the login issue"
 
 Level 2: Specific Commands
-├─ claude-flow build "todo app" --parallel
-├─ claude-flow test unit --coverage
-└─ claude-flow deploy staging
+├─ claude-flow-novice build "todo app" --parallel
+├─ claude-flow-novice test unit --coverage
+└─ claude-flow-novice deploy staging
 
 Level 3: Agent Management
-├─ claude-flow agents spawn researcher
-├─ claude-flow agents metrics --detailed
-└─ claude-flow workflow create "full-stack"
+├─ claude-flow-novice agents spawn researcher
+├─ claude-flow-novice agents metrics --detailed
+└─ claude-flow-novice workflow create "full-stack"
 
 Level 4: MCP Direct Access
-├─ claude-flow mcp claude-flow swarm_init
-├─ claude-flow mcp ruv-swarm neural_train
-└─ claude-flow mcp flow-nexus sandbox_create
+├─ claude-flow-novice mcp claude-flow-novice swarm_init
+├─ claude-flow-novice mcp ruv-swarm neural_train
+└─ claude-flow-novice mcp flow-nexus sandbox_create
 ```
 
 ## 📱 Interactive Command Explorer

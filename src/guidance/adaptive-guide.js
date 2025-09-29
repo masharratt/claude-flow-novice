@@ -237,7 +237,7 @@ class AdaptiveGuide extends EventEmitter {
         type: 'workflow',
         message: 'Consider using TDD workflow for better code quality',
         priority: 'medium',
-        action: 'claude-flow sparc tdd',
+        action: 'claude-flow-novice sparc tdd',
       });
     }
 
@@ -295,7 +295,7 @@ class AdaptiveGuide extends EventEmitter {
     if (this.userProfile.experienceLevel === 'novice') {
       tips.push({
         type: 'learning',
-        message: 'Pro tip: Use "claude-flow help <command>" for detailed information',
+        message: 'Pro tip: Use "claude-flow-novice help <command>" for detailed information',
         category: 'navigation',
       });
     }
@@ -327,13 +327,13 @@ class AdaptiveGuide extends EventEmitter {
       alternatives.push({
         approach: 'hierarchical',
         description: 'Better for complex, multi-stage tasks',
-        command: 'claude-flow swarm-init hierarchical',
+        command: 'claude-flow-novice swarm-init hierarchical',
       });
 
       alternatives.push({
         approach: 'star',
         description: 'Optimal for centralized coordination',
-        command: 'claude-flow swarm-init star',
+        command: 'claude-flow-novice swarm-init star',
       });
     }
 
@@ -350,7 +350,7 @@ class AdaptiveGuide extends EventEmitter {
     if (command === 'task-orchestrate') {
       examples.push({
         title: 'Simple API Development',
-        command: 'claude-flow task-orchestrate "Build REST API with authentication"',
+        command: 'claude-flow-novice task-orchestrate "Build REST API with authentication"',
         description: 'Coordinates multiple agents to build a complete API',
       });
     }
@@ -369,7 +369,7 @@ class AdaptiveGuide extends EventEmitter {
       suggestions.push({
         action: 'spawn-agents',
         description: 'Spawn specialized agents for your task',
-        command: 'claude-flow agent-spawn <type>',
+        command: 'claude-flow-novice agent-spawn <type>',
       });
     }
 
@@ -377,7 +377,7 @@ class AdaptiveGuide extends EventEmitter {
       suggestions.push({
         action: 'monitor-progress',
         description: 'Monitor swarm activity and performance',
-        command: 'claude-flow swarm-status',
+        command: 'claude-flow-novice swarm-status',
       });
     }
 

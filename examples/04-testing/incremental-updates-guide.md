@@ -219,13 +219,13 @@ Use Claude Flow's built-in monitoring:
 
 ```bash
 # Monitor memory updates
-npx claude-flow memory monitor
+npx claude-flow-novice memory monitor
 
 # Track swarm progress
-npx claude-flow swarm status --watch
+npx claude-flow-novice swarm status --watch
 
 # View cache statistics
-npx claude-flow cache stats
+npx claude-flow-novice cache stats
 ```
 
 ## Troubleshooting

@@ -3,7 +3,7 @@
 /**
  * Base SlashCommand Class
  * 
- * Provides a consistent interface for all slash commands in the claude-flow system
+ * Provides a consistent interface for all slash commands in the claude-flow-novice system
  */
 
 export class SlashCommand {

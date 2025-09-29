@@ -31,9 +31,9 @@ START: Is there an issue?
 │
 └─ NO → System running normally
     └─ Consider preventive maintenance
-        ├─ Run: claude-flow health-check
+        ├─ Run: claude-flow-novice health-check
         ├─ Update dependencies: npm update
-        └─ Clear cache: claude-flow cache clear
+        └─ Clear cache: claude-flow-novice cache clear
 ```
 
 ## 🚀 Performance Issues Decision Tree
@@ -106,8 +106,8 @@ AGENT_SPAWN_TREE: Agents not spawning
 │   │
 │   ├─ Too many agents running?
 │   │   ├─ YES → Wait or terminate inactive agents
-│   │   │   ├─ Check: claude-flow agent list
-│   │   │   ├─ Terminate: claude-flow agent kill <id>
+│   │   │   ├─ Check: claude-flow-novice agent list
+│   │   │   ├─ Terminate: claude-flow-novice agent kill <id>
 │   │   │   └─ Adjust max agents setting
 │   │   │
 │   │   └─ NO → Check configuration
@@ -133,7 +133,7 @@ AGENT_RESPONSE_TREE: Agents unresponsive
 │
 ├─ Check agent status
 │   │
-│   ├─ Run: claude-flow agent status
+│   ├─ Run: claude-flow-novice agent status
 │   │   │
 │   │   ├─ Agent shows as "running"?
 │   │   │   ├─ YES → Network connectivity issue
@@ -142,9 +142,9 @@ AGENT_RESPONSE_TREE: Agents unresponsive
 │   │   │   │   └─ Restart networking
 │   │   │   │
 │   │   │   └─ NO → Agent crashed
-│   │   │       ├─ Check logs: claude-flow logs agent <id>
+│   │   │       ├─ Check logs: claude-flow-novice logs agent <id>
 │   │   │       ├─ Look for error patterns
-│   │   │       ├─ Restart agent: claude-flow agent restart <id>
+│   │   │       ├─ Restart agent: claude-flow-novice agent restart <id>
 │   │   │       └─ If persistent → Investigate root cause
 │   │   │
 │   │   └─ Agent not found?
@@ -170,7 +170,7 @@ CONFIG_TREE: Configuration problems
 ├─ Which config issue?
 │   │
 │   ├─ Commands not recognized
-│   │   ├─ Is claude-flow installed?
+│   │   ├─ Is claude-flow-novice installed?
 │   │   │   ├─ NO → Install: npm install -g claude-flow
 │   │   │   └─ YES → Check PATH
 │   │   │       ├─ Run: which claude-flow
@@ -178,15 +178,15 @@ CONFIG_TREE: Configuration problems
 │   │   │       └─ Restart terminal
 │   │   │
 │   │   └─ Specific command not found?
-│   │       ├─ Check available commands: claude-flow --help
+│   │       ├─ Check available commands: claude-flow-novice --help
 │   │       ├─ Verify spelling
 │   │       └─ Update if outdated
 │   │
 │   ├─ Invalid configuration
 │   │   ├─ Check config file exists
-│   │   │   ├─ NO → Generate: claude-flow init
+│   │   │   ├─ NO → Generate: claude-flow-novice init
 │   │   │   └─ YES → Validate syntax
-│   │   │       ├─ Run: claude-flow config validate
+│   │   │       ├─ Run: claude-flow-novice config validate
 │   │   │       ├─ Fix JSON/YAML errors
 │   │   │       └─ Check required fields
 │   │   │
@@ -322,11 +322,11 @@ VERSION_TREE: Version conflicts
 │   │       ├─ Run npm install
 │   │       └─ Commit new lockfile
 │   │
-│   └─ claude-flow version issues
-│       ├─ Check current version: claude-flow --version
-│       ├─ Check latest: npm info claude-flow version
+│   └─ claude-flow-novice version issues
+│       ├─ Check current version: claude-flow-novice --version
+│       ├─ Check latest: npm info claude-flow-novice version
 │       ├─ Update: npm update -g claude-flow
-│       └─ Force reinstall: npm uninstall -g claude-flow && npm install -g claude-flow
+│       └─ Force reinstall: npm uninstall -g claude-flow-novice && npm install -g claude-flow
 ```
 
 ```
@@ -376,25 +376,25 @@ PERMISSION_TREE: Permission errors
 ### Immediate Diagnostics
 ```bash
 # Quick health check
-claude-flow status --health
+claude-flow-novice status --health
 
 # Check resource usage
-claude-flow monitor --real-time --duration=30
+claude-flow-novice monitor --real-time --duration=30
 
 # List active agents
-claude-flow agent list --status
+claude-flow-novice agent list --status
 
 # Check recent errors
-claude-flow logs --level=error --tail=50
+claude-flow-novice logs --level=error --tail=50
 ```
 
 ### Common Quick Fixes
 ```bash
 # Clear all caches
-claude-flow cache clear --all
+claude-flow-novice cache clear --all
 
 # Restart all agents
-claude-flow agent restart --all
+claude-flow-novice agent restart --all
 
 # Force garbage collection (if available)
 node --expose-gc -e "global.gc(); console.log('GC forced')"
@@ -403,12 +403,12 @@ node --expose-gc -e "global.gc(); console.log('GC forced')"
 npm update && npm audit fix
 
 # Reset configuration to defaults
-claude-flow config reset --confirm
+claude-flow-novice config reset --confirm
 ```
 
 ### Emergency Recovery
 ```bash
-# Kill all claude-flow processes
+# Kill all claude-flow-novice processes
 pkill -f claude-flow
 
 # Clean install
@@ -416,8 +416,8 @@ rm -rf node_modules package-lock.json
 npm install
 
 # Full system reset
-claude-flow system reset --confirm
-claude-flow init --force
+claude-flow-novice system reset --confirm
+claude-flow-novice init --force
 ```
 
 ## 📊 Issue Tracking Matrix
@@ -446,7 +446,7 @@ When reporting issues, include:
 
 ```
 Issue: [Brief description]
-Environment: [OS, Node version, claude-flow version]
+Environment: [OS, Node version, claude-flow-novice version]
 Steps to reproduce: [Numbered steps]
 Expected behavior: [What should happen]
 Actual behavior: [What actually happens]

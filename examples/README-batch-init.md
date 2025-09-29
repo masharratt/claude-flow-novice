@@ -6,17 +6,17 @@ This directory contains comprehensive examples demonstrating the powerful batch 
 
 1. **Simple Batch Setup**
    ```bash
-   claude-flow init --batch-init project1,project2,project3 --sparc
+   claude-flow-novice init --batch-init project1,project2,project3 --sparc
    ```
 
 2. **Template-Based Setup**
    ```bash
-   claude-flow init --batch-init api-v1,api-v2 --template web-api --environments dev,staging
+   claude-flow-novice init --batch-init api-v1,api-v2 --template web-api --environments dev,staging
    ```
 
 3. **Configuration File Setup**
    ```bash
-   claude-flow init --config examples/batch-config-enterprise.json
+   claude-flow-novice init --config examples/batch-config-enterprise.json
    ```
 
 ## Example Files
@@ -28,7 +28,7 @@ Basic configuration for 3 projects with web-api template across dev and staging 
 
 **Usage:**
 ```bash
-claude-flow init --config examples/batch-config-simple.json
+claude-flow-novice init --config examples/batch-config-simple.json
 ```
 
 **Creates:**
@@ -41,7 +41,7 @@ Advanced configuration with project-specific templates and customizations.
 
 **Usage:**
 ```bash
-claude-flow init --config examples/batch-config-advanced.json
+claude-flow-novice init --config examples/batch-config-advanced.json
 ```
 
 **Creates:**
@@ -56,7 +56,7 @@ Enterprise-scale configuration with 12 projects across all environments.
 
 **Usage:**
 ```bash
-claude-flow init --config examples/batch-config-enterprise.json --max-concurrent 8
+claude-flow-novice init --config examples/batch-config-enterprise.json --max-concurrent 8
 ```
 
 **Creates:**
@@ -101,7 +101,7 @@ deno run --allow-all tests/batch-init.test.js
 ### Small Teams (1-5 projects)
 ```bash
 # Quick setup for small team
-claude-flow init --batch-init api,web,mobile --template web-api --sparc
+claude-flow-novice init --batch-init api,web,mobile --template web-api --sparc
 ```
 
 **Best for:**
@@ -113,7 +113,7 @@ claude-flow init --batch-init api,web,mobile --template web-api --sparc
 ### Medium Teams (5-15 projects)
 ```bash
 # Use configuration file for better organization
-claude-flow init --config batch-config-advanced.json --parallel
+claude-flow-novice init --config batch-config-advanced.json --parallel
 ```
 
 **Best for:**
@@ -125,7 +125,7 @@ claude-flow init --config batch-config-advanced.json --parallel
 ### Enterprise (15+ projects)
 ```bash
 # Enterprise-scale with high concurrency
-claude-flow init --config batch-config-enterprise.json --max-concurrent 8 --parallel
+claude-flow-novice init --config batch-config-enterprise.json --max-concurrent 8 --parallel
 ```
 
 **Best for:**
@@ -139,19 +139,19 @@ claude-flow init --config batch-config-enterprise.json --max-concurrent 8 --para
 ### Sequential vs Parallel Comparison
 ```bash
 # Sequential (slower but lower resource usage)
-claude-flow init --batch-init project1,project2,project3,project4,project5 --no-parallel
+claude-flow-novice init --batch-init project1,project2,project3,project4,project5 --no-parallel
 
 # Parallel (faster with optimal concurrency)
-claude-flow init --batch-init project1,project2,project3,project4,project5 --parallel --max-concurrent 3
+claude-flow-novice init --batch-init project1,project2,project3,project4,project5 --parallel --max-concurrent 3
 ```
 
 ### Resource Monitoring
 ```bash
 # With performance monitoring
-claude-flow init --config batch-config-advanced.json --verbose
+claude-flow-novice init --config batch-config-advanced.json --verbose
 
 # Estimate before running
-claude-flow batch estimate batch-config-enterprise.json
+claude-flow-novice batch estimate batch-config-enterprise.json
 ```
 
 ## Template Examples
@@ -159,37 +159,37 @@ claude-flow batch estimate batch-config-enterprise.json
 ### Web API Projects
 ```bash
 # Multiple API services
-claude-flow init --batch-init user-api,product-api,order-api --template web-api
+claude-flow-novice init --batch-init user-api,product-api,order-api --template web-api
 
 # With different environments
-claude-flow init --batch-init inventory-api --template web-api --environments dev,staging,prod
+claude-flow-novice init --batch-init inventory-api --template web-api --environments dev,staging,prod
 ```
 
 ### React Applications
 ```bash
 # Frontend applications
-claude-flow init --batch-init customer-portal,admin-panel --template react-app
+claude-flow-novice init --batch-init customer-portal,admin-panel --template react-app
 
 # With SPARC for TDD
-claude-flow init --batch-init dashboard --template react-app --sparc
+claude-flow-novice init --batch-init dashboard --template react-app --sparc
 ```
 
 ### Microservices
 ```bash
 # Containerized services
-claude-flow init --batch-init auth-service,payment-service,notification-service --template microservice
+claude-flow-novice init --batch-init auth-service,payment-service,notification-service --template microservice
 
 # Production-ready with monitoring
-claude-flow init --batch-init core-services --template microservice --environments prod --sparc
+claude-flow-novice init --batch-init core-services --template microservice --environments prod --sparc
 ```
 
 ### CLI Tools
 ```bash
 # Command-line utilities
-claude-flow init --batch-init deployment-tool,migration-tool --template cli-tool
+claude-flow-novice init --batch-init deployment-tool,migration-tool --template cli-tool
 
 # Cross-platform tools
-claude-flow init --batch-init admin-cli --template cli-tool --environments dev
+claude-flow-novice init --batch-init admin-cli --template cli-tool --environments dev
 ```
 
 ## Environment Examples
@@ -197,7 +197,7 @@ claude-flow init --batch-init admin-cli --template cli-tool --environments dev
 ### Development Setup
 ```bash
 # Development environment with debugging
-claude-flow init --batch-init myapp --environments dev --template web-api
+claude-flow-novice init --batch-init myapp --environments dev --template web-api
 ```
 
 **Creates:**
@@ -209,7 +209,7 @@ claude-flow init --batch-init myapp --environments dev --template web-api
 ### Staging Environment
 ```bash
 # Staging environment for testing
-claude-flow init --batch-init myapp --environments staging --template microservice
+claude-flow-novice init --batch-init myapp --environments staging --template microservice
 ```
 
 **Creates:**
@@ -221,7 +221,7 @@ claude-flow init --batch-init myapp --environments staging --template microservi
 ### Production Environment
 ```bash
 # Production environment with security
-claude-flow init --batch-init myapp --environments prod --template microservice
+claude-flow-novice init --batch-init myapp --environments prod --template microservice
 ```
 
 **Creates:**
@@ -233,7 +233,7 @@ claude-flow init --batch-init myapp --environments prod --template microservice
 ### Multi-Environment Pipeline
 ```bash
 # Complete CI/CD pipeline
-claude-flow init --batch-init payment-service --environments dev,staging,prod --template microservice
+claude-flow-novice init --batch-init payment-service --environments dev,staging,prod --template microservice
 ```
 
 **Creates:**
@@ -246,7 +246,7 @@ claude-flow init --batch-init payment-service --environments dev,staging,prod --
 ### With SPARC Development
 ```bash
 # SPARC-enabled batch initialization
-claude-flow init --batch-init project1,project2 --sparc --template web-api
+claude-flow-novice init --batch-init project1,project2 --sparc --template web-api
 ```
 
 **Creates:**
@@ -271,7 +271,7 @@ cat > my-batch.json << 'EOF'
 }
 EOF
 
-claude-flow init --config my-batch.json
+claude-flow-novice init --config my-batch.json
 ```
 
 ## Batch Manager Examples
@@ -279,25 +279,25 @@ claude-flow init --config my-batch.json
 ### Configuration Management
 ```bash
 # Create interactive configuration
-claude-flow batch create-config --interactive
+claude-flow-novice batch create-config --interactive
 
 # Validate configuration
-claude-flow batch validate-config my-batch.json
+claude-flow-novice batch validate-config my-batch.json
 
 # Estimate resources
-claude-flow batch estimate my-batch.json
+claude-flow-novice batch estimate my-batch.json
 ```
 
 ### Template and Environment Discovery
 ```bash
 # List available templates
-claude-flow batch list-templates
+claude-flow-novice batch list-templates
 
 # List available environments
-claude-flow batch list-environments
+claude-flow-novice batch list-environments
 
 # Get help
-claude-flow batch help
+claude-flow-novice batch help
 ```
 
 ## Troubleshooting Examples
@@ -307,37 +307,37 @@ claude-flow batch help
 #### Memory Usage Too High
 ```bash
 # Reduce concurrency
-claude-flow init --batch-init projects --max-concurrent 2
+claude-flow-novice init --batch-init projects --max-concurrent 2
 
 # Use minimal template
-claude-flow init --batch-init projects --minimal
+claude-flow-novice init --batch-init projects --minimal
 ```
 
 #### Slow Performance
 ```bash
 # Enable parallel processing
-claude-flow init --batch-init projects --parallel
+claude-flow-novice init --batch-init projects --parallel
 
 # Use faster template
-claude-flow init --batch-init projects --template cli-tool
+claude-flow-novice init --batch-init projects --template cli-tool
 ```
 
 #### Configuration Errors
 ```bash
 # Validate first
-claude-flow batch validate-config my-batch.json
+claude-flow-novice batch validate-config my-batch.json
 
 # Use force if needed
-claude-flow init --config my-batch.json --force
+claude-flow-novice init --config my-batch.json --force
 ```
 
 ### Debug Mode
 ```bash
 # Verbose output for debugging
-claude-flow init --batch-init projects --verbose
+claude-flow-novice init --batch-init projects --verbose
 
 # Sequential mode for easier debugging
-claude-flow init --batch-init projects --no-parallel
+claude-flow-novice init --batch-init projects --no-parallel
 ```
 
 ## Best Practices
@@ -345,39 +345,39 @@ claude-flow init --batch-init projects --no-parallel
 ### 1. Start Small
 ```bash
 # Test with a few projects first
-claude-flow init --batch-init test1,test2 --template web-api
+claude-flow-novice init --batch-init test1,test2 --template web-api
 ```
 
 ### 2. Use Configuration Files
 ```bash
 # Better for complex setups
-claude-flow batch create-config enterprise-setup.json
+claude-flow-novice batch create-config enterprise-setup.json
 # Edit the file, then:
-claude-flow init --config enterprise-setup.json
+claude-flow-novice init --config enterprise-setup.json
 ```
 
 ### 3. Validate Before Running
 ```bash
 # Always validate configurations
-claude-flow batch validate-config my-batch.json
+claude-flow-novice batch validate-config my-batch.json
 
 # Estimate resources
-claude-flow batch estimate my-batch.json
+claude-flow-novice batch estimate my-batch.json
 ```
 
 ### 4. Monitor Performance
 ```bash
 # Use performance monitoring
-claude-flow init --config my-batch.json --verbose
+claude-flow-novice init --config my-batch.json --verbose
 
 # Adjust concurrency based on system
-claude-flow init --config my-batch.json --max-concurrent 4
+claude-flow-novice init --config my-batch.json --max-concurrent 4
 ```
 
 ### 5. Environment Consistency
 ```bash
 # Use same template across environments
-claude-flow init --batch-init myapp --environments dev,staging,prod --template microservice
+claude-flow-novice init --batch-init myapp --environments dev,staging,prod --template microservice
 ```
 
 ## Advanced Examples
@@ -433,7 +433,7 @@ jobs:
 ## Next Steps
 
 1. **Try the Examples**: Run the provided configuration files
-2. **Create Custom Configs**: Use `claude-flow batch create-config --interactive`
+2. **Create Custom Configs**: Use `claude-flow-novice batch create-config --interactive`
 3. **Scale Gradually**: Start small and increase complexity
 4. **Monitor Performance**: Use built-in monitoring features
 5. **Integrate with SPARC**: Enable SPARC for advanced development workflows

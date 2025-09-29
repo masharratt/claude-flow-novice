@@ -115,7 +115,7 @@ function showGitHubHelp() {
 🐙 Claude Flow GitHub Workflow Automation
 
 USAGE:
-  claude-flow github <mode> <objective> [options]
+  claude-flow-novice github <mode> <objective> [options]
 
 GITHUB AUTOMATION MODES:
 `);
@@ -126,12 +126,12 @@ GITHUB AUTOMATION MODES:
 
   console.log(`
 EXAMPLES:
-  claude-flow github pr-manager "create feature PR with automated testing"
-  claude-flow github gh-coordinator "setup CI/CD pipeline" --auto-approve
-  claude-flow github release-manager "prepare v2.0.0 release"
-  claude-flow github repo-architect "optimize repository structure"
-  claude-flow github issue-tracker "analyze project roadmap issues"
-  claude-flow github sync-coordinator "sync package versions across repos"
+  claude-flow-novice github pr-manager "create feature PR with automated testing"
+  claude-flow-novice github gh-coordinator "setup CI/CD pipeline" --auto-approve
+  claude-flow-novice github release-manager "prepare v2.0.0 release"
+  claude-flow-novice github repo-architect "optimize repository structure"
+  claude-flow-novice github issue-tracker "analyze project roadmap issues"
+  claude-flow-novice github sync-coordinator "sync package versions across repos"
 
 OPTIONS:
   --auto-approve             Auto-approve Claude permissions

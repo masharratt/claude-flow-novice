@@ -1,10 +1,10 @@
 # Accessibility-First Development Workflows
 
-This guide establishes comprehensive accessibility-first development workflows using claude-flow agents, ensuring that accessibility is built into every stage of the development process from conception to deployment and maintenance.
+This guide establishes comprehensive accessibility-first development workflows using claude-flow-novice agents, ensuring that accessibility is built into every stage of the development process from conception to deployment and maintenance.
 
 ## 🎯 Overview
 
-Accessibility-first development means considering accessibility from the very beginning of the development process, not as an afterthought. By leveraging claude-flow agents, teams can create systematic workflows that embed accessibility into every development stage, making it natural, efficient, and comprehensive.
+Accessibility-first development means considering accessibility from the very beginning of the development process, not as an afterthought. By leveraging claude-flow-novice agents, teams can create systematic workflows that embed accessibility into every development stage, making it natural, efficient, and comprehensive.
 
 ## 📋 Accessibility-First Methodology
 
@@ -631,15 +631,15 @@ jobs:
 
     - name: Lint Accessibility
       run: |
-        npx claude-flow sparc run accessibility-lint "Quick accessibility linting"
+        npx claude-flow-novice sparc run accessibility-lint "Quick accessibility linting"
 
     - name: Basic WCAG Scan
       run: |
-        npx claude-flow sparc run wcag-quick-scan "Basic WCAG compliance check"
+        npx claude-flow-novice sparc run wcag-quick-scan "Basic WCAG compliance check"
 
     - name: Gate Decision
       run: |
-        npx claude-flow sparc run gate-decision "Determine if build can proceed"
+        npx claude-flow-novice sparc run gate-decision "Determine if build can proceed"
 
   accessibility-gate-2:
     name: Comprehensive Accessibility Testing
@@ -655,15 +655,15 @@ jobs:
 
     - name: Run Accessibility Test Suite
       run: |
-        npx claude-flow sparc batch "automated-testing,keyboard-testing,screen-reader-testing" "Comprehensive accessibility validation"
+        npx claude-flow-novice sparc batch "automated-testing,keyboard-testing,screen-reader-testing" "Comprehensive accessibility validation"
 
     - name: User Flow Testing
       run: |
-        npx claude-flow sparc run user-flow-testing "Test critical user flows for accessibility"
+        npx claude-flow-novice sparc run user-flow-testing "Test critical user flows for accessibility"
 
     - name: Generate Accessibility Report
       run: |
-        npx claude-flow sparc run accessibility-report "Generate comprehensive accessibility report"
+        npx claude-flow-novice sparc run accessibility-report "Generate comprehensive accessibility report"
 
     - name: Comment on PR
       if: github.event_name == 'pull_request'
@@ -678,15 +678,15 @@ jobs:
     steps:
     - name: Production Accessibility Validation
       run: |
-        npx claude-flow sparc run production-accessibility-check "Final accessibility validation for production"
+        npx claude-flow-novice sparc run production-accessibility-check "Final accessibility validation for production"
 
     - name: Performance Impact Assessment
       run: |
-        npx claude-flow sparc run accessibility-performance-check "Assess performance impact of accessibility features"
+        npx claude-flow-novice sparc run accessibility-performance-check "Assess performance impact of accessibility features"
 
     - name: Deployment Gate Decision
       run: |
-        npx claude-flow sparc run deployment-gate "Final decision for production deployment"
+        npx claude-flow-novice sparc run deployment-gate "Final decision for production deployment"
 ```
 
 ### Phase 5: Deployment and Continuous Monitoring
@@ -865,30 +865,30 @@ export class AccessibilityKPIs {
 ### Workflow Commands
 ```bash
 # Initialize accessibility-first workflow
-npx claude-flow sparc run accessibility-first-init "Set up accessibility-first development workflow"
+npx claude-flow-novice sparc run accessibility-first-init "Set up accessibility-first development workflow"
 
 # Phase-specific commands
-npx claude-flow sparc run accessibility-requirements "Analyze and define accessibility requirements"
-npx claude-flow sparc run accessibility-design "Validate and enhance accessible design"
-npx claude-flow sparc run accessibility-development "Real-time accessibility development assistance"
-npx claude-flow sparc run accessibility-testing "Comprehensive accessibility testing suite"
-npx claude-flow sparc run accessibility-deployment "Accessibility-aware deployment validation"
+npx claude-flow-novice sparc run accessibility-requirements "Analyze and define accessibility requirements"
+npx claude-flow-novice sparc run accessibility-design "Validate and enhance accessible design"
+npx claude-flow-novice sparc run accessibility-development "Real-time accessibility development assistance"
+npx claude-flow-novice sparc run accessibility-testing "Comprehensive accessibility testing suite"
+npx claude-flow-novice sparc run accessibility-deployment "Accessibility-aware deployment validation"
 
 # Continuous commands
-npx claude-flow sparc run accessibility-monitor "Continuous accessibility monitoring"
-npx claude-flow sparc run accessibility-report "Generate comprehensive accessibility status report"
+npx claude-flow-novice sparc run accessibility-monitor "Continuous accessibility monitoring"
+npx claude-flow-novice sparc run accessibility-report "Generate comprehensive accessibility status report"
 ```
 
 ### Quality Gate Commands
 ```bash
 # Gate validation
-npx claude-flow sparc run quality-gate-check "Validate current phase quality gate"
+npx claude-flow-novice sparc run quality-gate-check "Validate current phase quality gate"
 
 # Metrics and KPIs
-npx claude-flow sparc run accessibility-metrics "Calculate accessibility KPIs and metrics"
+npx claude-flow-novice sparc run accessibility-metrics "Calculate accessibility KPIs and metrics"
 
 # Continuous improvement
-npx claude-flow sparc run accessibility-optimization "Optimize accessibility workflow based on metrics"
+npx claude-flow-novice sparc run accessibility-optimization "Optimize accessibility workflow based on metrics"
 ```
 
 ## 🏆 Best Practices Summary

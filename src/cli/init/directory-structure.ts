@@ -72,9 +72,9 @@ This directory stores persistent information about AI agents created and managed
 
 ## Usage
 Agents are automatically managed by the Claude-Flow orchestration system. You can:
-- View agent status with \`claude-flow agent list\`
-- Create new agents with \`claude-flow agent spawn <type>\`
-- Configure agents with \`claude-flow agent configure <id>\`
+- View agent status with \`claude-flow-novice agent list\`
+- Create new agents with \`claude-flow-novice agent spawn <type>\`
+- Configure agents with \`claude-flow-novice agent configure <id>\`
 
 ## Files
 - \`agent-registry.json\`: Central agent registry
@@ -95,9 +95,9 @@ This directory stores information about Claude-Flow orchestration sessions.
 
 ## Usage
 Sessions are managed automatically during orchestration:
-- Start sessions with \`claude-flow start\`
-- Monitor sessions with \`claude-flow status\`
-- Review session history with \`claude-flow session list\`
+- Start sessions with \`claude-flow-novice start\`
+- Monitor sessions with \`claude-flow-novice status\`
+- Review session history with \`claude-flow-novice session list\`
 
 ## Files
 - \`session-<id>/\`: Individual session directories
@@ -139,8 +139,8 @@ This directory stores output reports from swarm operations and orchestration tas
 
 ## Usage
 Reports are generated automatically by swarm operations:
-- View recent reports with \`claude-flow swarm list\`
-- Check specific reports with \`claude-flow swarm status <id>\`
+- View recent reports with \`claude-flow-novice swarm list\`
+- Check specific reports with \`claude-flow-novice swarm status <id>\`
 - Export reports in different formats using \`--output\` flags
 
 ## File Types

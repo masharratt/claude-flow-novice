@@ -47,6 +47,8 @@ coverage/
 tests/results/
 tests/logs/
 *.lcov
+playwright-report/
+test-results/
 
 # Python
 __pycache__/

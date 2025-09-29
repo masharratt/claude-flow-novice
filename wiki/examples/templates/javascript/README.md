@@ -4,7 +4,7 @@
 **Technologies**: JavaScript (ES2022), Node.js 18+, Jest, ESLint, Prettier
 **Agents**: Configurable (1-5 agents)
 
-Modern JavaScript/Node.js template with best practices, testing setup, and claude-flow integration.
+Modern JavaScript/Node.js template with best practices, testing setup, and claude-flow-novice integration.
 
 ## Features
 
@@ -478,7 +478,7 @@ Task(\"Security Manager\",
 
 ---
 
-**Ready to build?** This template provides a solid foundation for JavaScript development with claude-flow integration. Choose your complexity level and let the agents help you build!
+**Ready to build?** This template provides a solid foundation for JavaScript development with claude-flow-novice integration. Choose your complexity level and let the agents help you build!
 
 ## Support
 

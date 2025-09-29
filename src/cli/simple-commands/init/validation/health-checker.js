@@ -372,7 +372,7 @@ export class HealthChecker {
       const content = await fs.readFile(claudePath, 'utf8');
 
       // Check if mentioned commands exist
-      const mentionedCommands = ['claude-flow sparc', 'npm run build', 'npm run test'];
+      const mentionedCommands = ['claude-flow-novice sparc', 'npm run build', 'npm run test'];
 
       for (const command of mentionedCommands) {
         if (content.includes(command)) {

@@ -1,10 +1,10 @@
 # Keyboard Navigation and Motor Accessibility
 
-This comprehensive guide provides strategies for implementing complete keyboard accessibility and motor accessibility patterns in claude-flow applications, ensuring usability for users with diverse motor abilities and those who rely on alternative input methods.
+This comprehensive guide provides strategies for implementing complete keyboard accessibility and motor accessibility patterns in claude-flow-novice applications, ensuring usability for users with diverse motor abilities and those who rely on alternative input methods.
 
 ## 🎯 Overview
 
-Keyboard navigation is essential for users with motor disabilities, vision impairments, and those who prefer or require alternatives to mouse interaction. This guide covers comprehensive keyboard support, focus management, and motor accessibility considerations for claude-flow applications.
+Keyboard navigation is essential for users with motor disabilities, vision impairments, and those who prefer or require alternatives to mouse interaction. This guide covers comprehensive keyboard support, focus management, and motor accessibility considerations for claude-flow-novice applications.
 
 ## ⌨️ Core Keyboard Navigation Principles
 
@@ -1118,16 +1118,16 @@ describe('Keyboard Navigation Integration', () => {
 
 ```bash
 # Comprehensive keyboard navigation testing
-npx claude-flow sparc run keyboard-nav-test "Test complete keyboard navigation flow"
+npx claude-flow-novice sparc run keyboard-nav-test "Test complete keyboard navigation flow"
 
 # Focus management validation
-npx claude-flow sparc run focus-manager-test "Validate focus management in modals and complex widgets"
+npx claude-flow-novice sparc run focus-manager-test "Validate focus management in modals and complex widgets"
 
 # Motor accessibility audit
-npx claude-flow sparc run motor-a11y-audit "Audit application for motor accessibility patterns"
+npx claude-flow-novice sparc run motor-a11y-audit "Audit application for motor accessibility patterns"
 
 # Switch navigation testing
-npx claude-flow sparc run switch-nav-test "Test switch navigation compatibility"
+npx claude-flow-novice sparc run switch-nav-test "Test switch navigation compatibility"
 ```
 
 ### Automated Testing Agent
@@ -1179,4 +1179,4 @@ export class KeyboardNavigationAgent extends BaseAgent {
 }
 ```
 
-This comprehensive keyboard navigation and motor accessibility framework ensures that claude-flow applications are fully accessible to users with diverse motor abilities and interaction preferences.
+This comprehensive keyboard navigation and motor accessibility framework ensures that claude-flow-novice applications are fully accessible to users with diverse motor abilities and interaction preferences.

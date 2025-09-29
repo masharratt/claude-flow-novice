@@ -1,10 +1,10 @@
 # Video Tutorial Framework
 
-**Complete guide to creating, producing, and distributing high-quality video tutorials for the claude-flow community.**
+**Complete guide to creating, producing, and distributing high-quality video tutorials for the claude-flow-novice community.**
 
 ## 🎥 Framework Overview
 
-This comprehensive framework enables community members to create professional video tutorials that help users learn claude-flow effectively. From planning to distribution, every aspect is covered to ensure consistent, accessible, and high-quality content.
+This comprehensive framework enables community members to create professional video tutorials that help users learn claude-flow-novice effectively. From planning to distribution, every aspect is covered to ensure consistent, accessible, and high-quality content.
 
 ## 📋 Quick Navigation
 
@@ -89,7 +89,7 @@ This comprehensive framework enables community members to create professional vi
 
 ### Content Freshness
 - **Update Frequency**: Major tutorials reviewed every 6 months
-- **Version Alignment**: Always match current claude-flow version
+- **Version Alignment**: Always match current claude-flow-novice version
 - **Link Validation**: All external links checked monthly
 - **Community Requests**: New tutorials based on user needs
 

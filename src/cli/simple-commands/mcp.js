@@ -283,7 +283,7 @@ async function listMcpTools(subArgs, flags) {
   console.log('\n📡 Status: 87 tools & resources available when server is running');
   console.log('🎯 Categories: swarm, neural, memory, analysis, workflow, github, daa, system');
   console.log('🔗 Compatibility: ruv-swarm + DAA + Claude-Flow unified platform');
-  console.log('\n💡 Usage: claude-flow mcp tools --category=<category> --verbose');
+  console.log('\n💡 Usage: claude-flow-novice mcp tools --category=<category> --verbose');
 }
 
 async function manageMcpAuth(subArgs, flags) {
@@ -314,8 +314,8 @@ async function manageMcpAuth(subArgs, flags) {
     default:
       console.log('Auth commands: setup, status, rotate');
       console.log('Examples:');
-      console.log('  claude-flow mcp auth setup');
-      console.log('  claude-flow mcp auth status');
+      console.log('  claude-flow-novice mcp auth setup');
+      console.log('  claude-flow-novice mcp auth status');
   }
 }
 
@@ -408,12 +408,12 @@ function showMcpHelp() {
   console.log('  system       ⚙️ System & utilities (8 tools)');
   console.log();
   console.log('EXAMPLES:');
-  console.log('  claude-flow mcp status');
-  console.log('  claude-flow mcp start --auto-orchestrator --daemon');
-  console.log('  claude-flow mcp tools --category=neural --verbose');
-  console.log('  claude-flow mcp tools --category=swarm');
-  console.log('  claude-flow mcp config');
-  console.log('  claude-flow mcp auth setup');
+  console.log('  claude-flow-novice mcp status');
+  console.log('  claude-flow-novice mcp start --auto-orchestrator --daemon');
+  console.log('  claude-flow-novice mcp tools --category=neural --verbose');
+  console.log('  claude-flow-novice mcp tools --category=swarm');
+  console.log('  claude-flow-novice mcp config');
+  console.log('  claude-flow-novice mcp auth setup');
   console.log();
   console.log('🎯 Total: 87 tools & resources available');
   console.log('🔗 Full ruv-swarm + DAA + Claude-Flow integration');

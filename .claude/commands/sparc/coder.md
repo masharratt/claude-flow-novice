@@ -20,7 +20,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 ```bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run coder "implement user authentication"
+npx claude-flow-novice sparc run coder "implement user authentication"
 
 # For alpha features
 npx claude-flow@alpha sparc run coder "implement user authentication"
@@ -28,8 +28,8 @@ npx claude-flow@alpha sparc run coder "implement user authentication"
 
 ### Option 3: Local Installation
 ```bash
-# If claude-flow is installed locally
-./claude-flow sparc run coder "implement user authentication"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run coder "implement user authentication"
 ```
 
 ## Core Capabilities

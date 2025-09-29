@@ -1,10 +1,10 @@
 # Color Contrast and Visual Accessibility Guidelines
 
-This comprehensive guide provides strategies for implementing accessible color schemes and visual design patterns in claude-flow applications, ensuring optimal visibility and usability for all users, including those with visual impairments.
+This comprehensive guide provides strategies for implementing accessible color schemes and visual design patterns in claude-flow-novice applications, ensuring optimal visibility and usability for all users, including those with visual impairments.
 
 ## 🎯 Overview
 
-Color contrast is fundamental to web accessibility, directly impacting readability and usability for millions of users. This guide covers WCAG compliance, design strategies, testing tools, and implementation techniques for creating visually accessible claude-flow applications.
+Color contrast is fundamental to web accessibility, directly impacting readability and usability for millions of users. This guide covers WCAG compliance, design strategies, testing tools, and implementation techniques for creating visually accessible claude-flow-novice applications.
 
 ## 📏 WCAG Contrast Requirements
 
@@ -816,16 +816,16 @@ const ContrastDebugger: React.FC = () => {
 
 ```bash
 # Comprehensive contrast validation
-npx claude-flow sparc run contrast-validator "Validate all color combinations meet WCAG AA requirements"
+npx claude-flow-novice sparc run contrast-validator "Validate all color combinations meet WCAG AA requirements"
 
 # Color blindness testing
-npx claude-flow sparc run colorblind-test "Test color schemes for color blindness accessibility"
+npx claude-flow-novice sparc run colorblind-test "Test color schemes for color blindness accessibility"
 
 # High contrast mode validation
-npx claude-flow sparc run high-contrast-test "Validate application in high contrast mode"
+npx claude-flow-novice sparc run high-contrast-test "Validate application in high contrast mode"
 
 # Dynamic contrast optimization
-npx claude-flow sparc run contrast-optimizer "Optimize color scheme for maximum accessibility"
+npx claude-flow-novice sparc run contrast-optimizer "Optimize color scheme for maximum accessibility"
 ```
 
 ### Contrast Testing Agent
@@ -923,4 +923,4 @@ export class ContrastTestingAgent extends BaseAgent {
 }
 ```
 
-This comprehensive approach to color contrast and visual accessibility ensures that claude-flow applications provide excellent visual accessibility across all user scenarios and assistive technologies.
+This comprehensive approach to color contrast and visual accessibility ensures that claude-flow-novice applications provide excellent visual accessibility across all user scenarios and assistive technologies.

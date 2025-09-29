@@ -4,7 +4,7 @@
 **Technologies**: Node.js, Git, npm, Claude Flow CLI
 **Integration**: CLI commands and MCP coordination
 
-A comprehensive template download and management system for claude-flow that supports both CLI and MCP approaches for template discovery, download, and customization.
+A comprehensive template download and management system for claude-flow-novice that supports both CLI and MCP approaches for template discovery, download, and customization.
 
 ## 🎯 Template System Overview
 

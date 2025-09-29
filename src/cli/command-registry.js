@@ -160,7 +160,7 @@ Benefits:
   commandRegistry.set('maestro', {
     handler: () => {
       console.log('⚠️  Maestro commands have been moved to TypeScript.');
-      console.log('Please use: npx claude-flow maestro help');
+      console.log('Please use: npx claude-flow-novice maestro help');
       console.log('Or import from: ./commands/maestro.js after compilation');
     },
     description: 'Maestro: Specs-Driven Development with Hive Mind Integration',
@@ -373,8 +373,8 @@ Batch operations support:
   • Configuration validation and estimation tools
   
 Use with init command:
-  claude-flow init --batch-init project1,project2,project3
-  claude-flow init --config batch-config.json --parallel`,
+  claude-flow-novice init --batch-init project1,project2,project3
+  claude-flow-novice init --config batch-config.json --parallel`,
   });
 
   commandRegistry.set('github', {
@@ -1237,7 +1237,7 @@ export function showCommandHelp(name) {
       HelpFormatter.formatError(
         `Unknown command: ${name}`,
         'claude-flow',
-        'claude-flow <command> [options]',
+        'claude-flow-novice <command> [options]',
       ),
     );
     return;
@@ -1251,9 +1251,9 @@ export function showCommandHelp(name) {
 
   // Convert command info to standardized format
   const helpInfo = {
-    name: `claude-flow ${name}`,
+    name: `claude-flow-novice ${name}`,
     description: HelpFormatter.stripFormatting(command.description),
-    usage: `claude-flow ${command.usage}`,
+    usage: `claude-flow-novice ${command.usage}`,
     details: command.details, // Pass through the details section
   };
 
@@ -1263,7 +1263,7 @@ export function showCommandHelp(name) {
       if (ex.startsWith('npx')) {
         return ex;
       }
-      return `claude-flow ${ex}`;
+      return `claude-flow-novice ${ex}`;
     });
   }
 
@@ -1313,7 +1313,7 @@ export function showAllCommands() {
   }
 
   console.log();
-  console.log('Use "claude-flow help <command>" for detailed usage information');
+  console.log('Use "claude-flow-novice help <command>" for detailed usage information');
 }
 
 // Initialize the command registry

@@ -35,4 +35,4 @@ Manage automation hooks for pre/post operations and session coordination.
 - **Session Start**: Initialize coordination context
 - **Session End**: Generate summaries and persist state
 
-Execute the specified hook action and coordinate with the claude-flow system for automation.
+Execute the specified hook action and coordinate with the claude-flow-novice system for automation.

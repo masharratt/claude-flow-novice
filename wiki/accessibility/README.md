@@ -1,6 +1,6 @@
 # Accessibility Documentation Hub
 
-Welcome to the comprehensive accessibility documentation for claude-flow projects. This hub provides everything needed to build inclusive, accessible applications using claude-flow's agent-driven development approach.
+Welcome to the comprehensive accessibility documentation for claude-flow-novice projects. This hub provides everything needed to build inclusive, accessible applications using claude-flow's agent-driven development approach.
 
 ## 📋 Table of Contents
 
@@ -48,13 +48,13 @@ Our specialized accessibility agents help automate and ensure accessibility thro
 ### Usage Examples
 ```bash
 # Comprehensive accessibility audit
-npx claude-flow sparc run accessibility-audit "Audit React component for WCAG 2.1 AA compliance"
+npx claude-flow-novice sparc run accessibility-audit "Audit React component for WCAG 2.1 AA compliance"
 
 # Inclusive design review
-npx claude-flow sparc run inclusive-design-review "Review checkout flow for accessibility barriers"
+npx claude-flow-novice sparc run inclusive-design-review "Review checkout flow for accessibility barriers"
 
 # Automated screen reader testing
-npx claude-flow sparc run screen-reader-test "Test navigation menu with NVDA, JAWS, and VoiceOver"
+npx claude-flow-novice sparc run screen-reader-test "Test navigation menu with NVDA, JAWS, and VoiceOver"
 ```
 
 ## 🚀 Quick Start

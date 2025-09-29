@@ -94,7 +94,7 @@ This directory contains a comprehensive suite of performance optimization agents
 - **Recovery Strategies**: Automated system recovery and healing
 
 ### Integration Capabilities
-- **MCP Tools**: Extensive use of claude-flow MCP performance tools
+- **MCP Tools**: Extensive use of claude-flow-novice MCP performance tools
 - **Real-time Dashboards**: WebSocket-based live performance monitoring
 - **CI/CD Integration**: Automated performance validation in deployment pipelines
 - **Alert Systems**: Multi-channel notification for performance issues
@@ -104,43 +104,43 @@ This directory contains a comprehensive suite of performance optimization agents
 ### Basic Optimization Workflow
 ```bash
 # 1. Start performance monitoring
-npx claude-flow swarm-monitor --swarm-id production --interval 30
+npx claude-flow-novice swarm-monitor --swarm-id production --interval 30
 
 # 2. Analyze current performance
-npx claude-flow performance-report --format detailed --timeframe 24h
+npx claude-flow-novice performance-report --format detailed --timeframe 24h
 
 # 3. Optimize topology if needed
-npx claude-flow topology-optimize --swarm-id production --strategy adaptive
+npx claude-flow-novice topology-optimize --swarm-id production --strategy adaptive
 
 # 4. Load balance based on current metrics
-npx claude-flow load-balance --swarm-id production --strategy work-stealing
+npx claude-flow-novice load-balance --swarm-id production --strategy work-stealing
 
 # 5. Scale resources predictively
-npx claude-flow swarm-scale --swarm-id production --target-size auto
+npx claude-flow-novice swarm-scale --swarm-id production --target-size auto
 ```
 
 ### Comprehensive Benchmarking
 ```bash
 # Run full benchmark suite
-npx claude-flow benchmark-run --suite comprehensive --duration 300
+npx claude-flow-novice benchmark-run --suite comprehensive --duration 300
 
 # Validate against SLA requirements
-npx claude-flow quality-assess --target swarm-performance --criteria throughput,latency,reliability
+npx claude-flow-novice quality-assess --target swarm-performance --criteria throughput,latency,reliability
 
 # Detect performance regressions
-npx claude-flow detect-regression --current latest-results.json --historical baseline.json
+npx claude-flow-novice detect-regression --current latest-results.json --historical baseline.json
 ```
 
 ### Advanced Resource Management
 ```bash
 # Analyze resource patterns
-npx claude-flow metrics-collect --components ["cpu", "memory", "network", "agents"]
+npx claude-flow-novice metrics-collect --components ["cpu", "memory", "network", "agents"]
 
 # Optimize resource allocation
-npx claude-flow daa-resource-alloc --resources optimal-config.json
+npx claude-flow-novice daa-resource-alloc --resources optimal-config.json
 
 # Profile system performance
-npx claude-flow profile-performance --duration 60000 --components all
+npx claude-flow-novice profile-performance --duration 60000 --components all
 ```
 
 ## Performance Optimization Strategies

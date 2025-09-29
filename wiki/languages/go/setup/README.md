@@ -1,26 +1,26 @@
 # Go Project Setup with Claude-Flow
 
-Complete guide to setting up Go projects with claude-flow integration for accelerated development.
+Complete guide to setting up Go projects with claude-flow-novice integration for accelerated development.
 
 ## 🚀 Quick Setup
 
 ### 1. Initialize New Go Project
 ```bash
-# Create project with claude-flow assistance
-npx claude-flow sparc run architect "Go project with modern toolchain"
+# Create project with claude-flow-novice assistance
+npx claude-flow-novice sparc run architect "Go project with modern toolchain"
 
-# Or use traditional Go setup with claude-flow integration
+# Or use traditional Go setup with claude-flow-novice integration
 mkdir my-go-project && cd my-go-project
 go mod init github.com/username/my-go-project
 
-# Initialize claude-flow in project
-npx claude-flow init --language go
+# Initialize claude-flow-novice in project
+npx claude-flow-novice init --language go
 ```
 
 ### 2. Project Structure Generation
 ```bash
 # Generate standard Go project structure
-npx claude-flow sparc run coder "standard Go project structure with best practices"
+npx claude-flow-novice sparc run coder "standard Go project structure with best practices"
 ```
 
 **Generated Structure:**
@@ -53,8 +53,8 @@ my-go-project/
 
 ### Modern Go Modules Setup
 ```bash
-# Initialize with claude-flow assisted dependency management
-npx claude-flow sparc run coder "Go project with essential dependencies for web service"
+# Initialize with claude-flow-novice assisted dependency management
+npx claude-flow-novice sparc run coder "Go project with essential dependencies for web service"
 ```
 
 **Essential Dependencies:**
@@ -82,8 +82,8 @@ go get -u ./...
 go mod tidy
 go mod verify
 
-# Use claude-flow for security analysis
-npx claude-flow sparc run reviewer "analyze Go dependencies for security vulnerabilities"
+# Use claude-flow-novice for security analysis
+npx claude-flow-novice sparc run reviewer "analyze Go dependencies for security vulnerabilities"
 ```
 
 ## ⚙️ Development Environment
@@ -160,7 +160,7 @@ docker-run:
 ### Pre-commit Hooks
 ```bash
 # Install pre-commit hooks with claude-flow
-npx claude-flow hooks install
+npx claude-flow-novice hooks install
 
 # Configure Go-specific hooks
 cat > .pre-commit-config.yaml << EOF
@@ -228,7 +228,7 @@ workflows:
 ### Test Configuration
 ```bash
 # Generate comprehensive test setup
-npx claude-flow sparc run tester "Go testing framework with table tests and mocks"
+npx claude-flow-novice sparc run tester "Go testing framework with table tests and mocks"
 ```
 
 **Generated Test Structure:**
@@ -368,27 +368,27 @@ var (
 ## 🔧 Development Commands
 
 ```bash
-# Start development with claude-flow assistance
-npx claude-flow sparc run coder "start development server with hot reload"
+# Start development with claude-flow-novice assistance
+npx claude-flow-novice sparc run coder "start development server with hot reload"
 
 # Generate code with best practices
-npx claude-flow sparc run architect "add new REST endpoint with validation"
+npx claude-flow-novice sparc run architect "add new REST endpoint with validation"
 
 # Run comprehensive tests
-npx claude-flow sparc run tester "run all tests with coverage report"
+npx claude-flow-novice sparc run tester "run all tests with coverage report"
 
 # Deploy to staging
-npx claude-flow sparc run deployer "deploy to staging environment"
+npx claude-flow-novice sparc run deployer "deploy to staging environment"
 ```
 
 ## 🛡️ Security Configuration
 
 ```bash
 # Security scanning with claude-flow
-npx claude-flow sparc run security-auditor "Go security audit with gosec"
+npx claude-flow-novice sparc run security-auditor "Go security audit with gosec"
 
 # Dependency vulnerability check
-npx claude-flow sparc run reviewer "check Go dependencies for vulnerabilities"
+npx claude-flow-novice sparc run reviewer "check Go dependencies for vulnerabilities"
 ```
 
 **Next Steps:**

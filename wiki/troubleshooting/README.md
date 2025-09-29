@@ -232,7 +232,7 @@ npx claude-flow@alpha memory rebuild-indexes
 
 **Symptoms:**
 - "MCP server not responding" errors
-- Claude Code can't access claude-flow tools
+- Claude Code can't access claude-flow-novice tools
 - Connection timeout messages
 
 **Diagnostic Steps:**
@@ -254,7 +254,7 @@ claude mcp restart claude-flow
 
 # Method 2: Reinstall MCP server
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Method 3: Check Node.js version
 node --version  # Should be 18+
@@ -280,7 +280,7 @@ npm update -g claude-flow-novice
 
 # Re-register MCP server
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Check tool availability
 claude mcp tools claude-flow

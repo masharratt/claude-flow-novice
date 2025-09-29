@@ -4,7 +4,7 @@ This guide provides comprehensive strategies for creating globally accessible ap
 
 ## 🌍 Overview
 
-Internationalization (i18n) and localization (l10n) are crucial for creating truly inclusive applications. When combined with accessibility principles, they ensure that your claude-flow applications serve users with disabilities across diverse linguistic and cultural contexts.
+Internationalization (i18n) and localization (l10n) are crucial for creating truly inclusive applications. When combined with accessibility principles, they ensure that your claude-flow-novice applications serve users with disabilities across diverse linguistic and cultural contexts.
 
 ## 🎯 Core Principles
 
@@ -771,16 +771,16 @@ const CulturalCalendar: React.FC<{
 
 ```bash
 # Comprehensive i18n accessibility testing
-npx claude-flow sparc run i18n-a11y-test "Test application accessibility across all supported languages"
+npx claude-flow-novice sparc run i18n-a11y-test "Test application accessibility across all supported languages"
 
 # RTL layout validation
-npx claude-flow sparc run rtl-validator "Validate right-to-left language support and accessibility"
+npx claude-flow-novice sparc run rtl-validator "Validate right-to-left language support and accessibility"
 
 # Cultural accessibility audit
-npx claude-flow sparc run cultural-a11y-audit "Audit cultural accessibility considerations"
+npx claude-flow-novice sparc run cultural-a11y-audit "Audit cultural accessibility considerations"
 
 # Translation completeness check
-npx claude-flow sparc run translation-validator "Validate accessibility translation completeness"
+npx claude-flow-novice sparc run translation-validator "Validate accessibility translation completeness"
 ```
 
 ### Automated Testing Pipeline
@@ -1019,4 +1019,4 @@ class I18nAccessibilityMetrics {
 }
 ```
 
-By implementing these comprehensive internationalization and localization accessibility strategies, claude-flow applications can serve users across diverse linguistic and cultural contexts while maintaining the highest standards of accessibility and inclusion.
+By implementing these comprehensive internationalization and localization accessibility strategies, claude-flow-novice applications can serve users across diverse linguistic and cultural contexts while maintaining the highest standards of accessibility and inclusion.

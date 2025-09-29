@@ -4,7 +4,7 @@
  * NPX Isolated Cache
  *
  * Provides isolated NPX cache directories per process to prevent
- * concurrent cache conflicts when multiple claude-flow instances
+ * concurrent cache conflicts when multiple claude-flow-novice instances
  * run simultaneously.
  *
  * This simple solution gives each process its own cache directory,

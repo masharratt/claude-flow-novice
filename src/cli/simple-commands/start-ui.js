@@ -125,10 +125,10 @@ async function launchTerminalUI(port) {
       printWarning('UI launch failed. Use these commands instead:');
       console.log();
       console.log('Process Management Commands:');
-      console.log('  • Start all: claude-flow start');
-      console.log('  • Check status: claude-flow status');
-      console.log('  • View logs: claude-flow logs');
-      console.log('  • Stop: claude-flow stop');
+      console.log('  • Start all: claude-flow-novice start');
+      console.log('  • Check status: claude-flow-novice status');
+      console.log('  • View logs: claude-flow-novice logs');
+      console.log('  • Stop: claude-flow-novice stop');
     }
   }
 }

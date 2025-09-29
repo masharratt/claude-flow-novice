@@ -403,7 +403,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
           };
         }
 
-        // Execute hook via claude-flow hooks system
+        // Execute hook via claude-flow-novice hooks system
         const result = await this.executeClaudeFlowHook(hookName, context);
 
         // Cache successful results
@@ -447,7 +447,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
   }
 
   /**
-   * Execute claude-flow hook command
+   * Execute claude-flow-novice hook command
    */
   private async executeClaudeFlowHook(
     hookName: string,
@@ -456,7 +456,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      // Map hook names to claude-flow commands
+      // Map hook names to claude-flow-novice commands
       const command = this.mapHookToCommand(hookName, context);
 
       if (!command) {
@@ -485,7 +485,7 @@ export class ConfigurationHookIntegration extends EventEmitter {
   }
 
   /**
-   * Map hook names to claude-flow commands
+   * Map hook names to claude-flow-novice commands
    */
   private mapHookToCommand(hookName: string, context: any): string | null {
     const commandMappings: Record<string, (ctx: any) => string> = {
@@ -525,10 +525,10 @@ export class ConfigurationHookIntegration extends EventEmitter {
   }
 
   /**
-   * Execute claude-flow command (integration point)
+   * Execute claude-flow-novice command (integration point)
    */
   private async executeClaudeFlowCommand(command: string): Promise<any> {
-    // This would integrate with the actual claude-flow command execution system
+    // This would integrate with the actual claude-flow-novice command execution system
     // For now, return a mock successful result
     return {
       success: true,

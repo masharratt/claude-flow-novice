@@ -89,7 +89,7 @@ export class ConfigValidator {
       }
 
       // Check for important command patterns
-      const importantCommands = ['npx claude-flow sparc', 'npm run build', 'npm run test'];
+      const importantCommands = ['npx claude-flow-novice sparc', 'npm run build', 'npm run test'];
 
       for (const command of importantCommands) {
         if (!content.includes(command)) {
@@ -208,7 +208,7 @@ export class ConfigValidator {
 
       if (!stat.isFile) {
         result.success = false;
-        result.errors.push('claude-flow executable is not a file');
+        result.errors.push('claude-flow-novice executable is not a file');
         return result;
       }
 
@@ -216,7 +216,7 @@ export class ConfigValidator {
       if (Deno.build.os !== 'windows') {
         const isExecutable = (stat.mode & 0o111) !== 0;
         if (!isExecutable) {
-          result.warnings.push('claude-flow file is not executable');
+          result.warnings.push('claude-flow-novice file is not executable');
         }
       }
 

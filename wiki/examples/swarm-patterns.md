@@ -49,32 +49,32 @@ This document provides practical examples of swarm coordination patterns using C
 # Star Pattern - Simple Task Distribution
 
 # Initialize star topology
-npx claude-flow swarm init --topology star --max-agents 4
+npx claude-flow-novice swarm init --topology star --max-agents 4
 
 # Spawn coordinator
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type coordinator \
   --name "task-distributor" \
   --capabilities '["task-distribution", "load-balancing", "result-aggregation"]'
 
 # Spawn workers
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type coder \
   --name "developer" \
   --capabilities '["javascript", "python", "api-development"]'
 
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type tester \
   --name "qa-engineer" \
   --capabilities '["unit-testing", "integration-testing", "automation"]'
 
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type reviewer \
   --name "code-reviewer" \
   --capabilities '["code-review", "security-analysis", "performance-audit"]'
 
 # Execute coordinated task
-npx claude-flow task orchestrate \
+npx claude-flow-novice task orchestrate \
   --task "Build and test a REST API with authentication" \
   --strategy parallel \
   --priority high
@@ -119,20 +119,20 @@ npx claude-flow task orchestrate \
 
 ```bash
 # Load-balanced star with dynamic scaling
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type coordinator \
   --name "load-balancer" \
   --capabilities '["load-monitoring", "dynamic-scaling", "performance-optimization"]'
 
 # Configure load balancing
-npx claude-flow hooks load-balance-config \
+npx claude-flow-novice hooks load-balance-config \
   --strategy "least-loaded" \
   --health-check-interval 5s \
   --scale-threshold 80% \
   --scale-factor 1.5
 
 # Monitor and auto-scale
-npx claude-flow hooks auto-scale \
+npx claude-flow-novice hooks auto-scale \
   --min-agents 3 \
   --max-agents 10 \
   --scale-up-threshold 75% \
@@ -185,7 +185,7 @@ npx claude-flow hooks auto-scale \
 
 ```bash
 # Full mesh collaboration pattern
-npx claude-flow swarm init --topology mesh --max-agents 4
+npx claude-flow-novice swarm init --topology mesh --max-agents 4
 
 # Spawn peer agents
 agents=("backend-dev" "frontend-dev" "database-dev" "testing-qa")
@@ -197,7 +197,7 @@ capabilities=(
 )
 
 for i in "${!agents[@]}"; do
-  npx claude-flow agent spawn \
+  npx claude-flow-novice agent spawn \
     --type specialist \
     --name "${agents[i]}" \
     --capabilities "${capabilities[i]}" \
@@ -205,7 +205,7 @@ for i in "${!agents[@]}"; do
 done
 
 # Configure peer-to-peer communication
-npx claude-flow hooks mesh-config \
+npx claude-flow-novice hooks mesh-config \
   --discovery-protocol "gossip" \
   --heartbeat-interval 10s \
   --failure-detector-timeout 30s
@@ -250,28 +250,28 @@ npx claude-flow hooks mesh-config \
 
 ```bash
 # Clustered mesh pattern
-npx claude-flow swarm init --topology mesh --clusters 3
+npx claude-flow-novice swarm init --topology mesh --clusters 3
 
 # Core coordination cluster
-npx claude-flow cluster create \
+npx claude-flow-novice cluster create \
   --name "coordination" \
   --type "core" \
   --agents "master,backup,monitor"
 
 # Development cluster
-npx claude-flow cluster create \
+npx claude-flow-novice cluster create \
   --name "development" \
   --type "functional" \
   --agents "api-dev,ui-dev,db-architect"
 
 # Operations cluster
-npx claude-flow cluster create \
+npx claude-flow-novice cluster create \
   --name "operations" \
   --type "functional" \
   --agents "deploy-manager,infrastructure,monitor"
 
 # Configure inter-cluster communication
-npx claude-flow hooks cluster-mesh \
+npx claude-flow-novice hooks cluster-mesh \
   --communication-pattern "hub-spoke" \
   --coordination-cluster "coordination" \
   --bandwidth-limit "100Mbps"
@@ -319,10 +319,10 @@ npx claude-flow hooks cluster-mesh \
 
 ```bash
 # Hierarchical multi-level management
-npx claude-flow swarm init --topology hierarchical --levels 4
+npx claude-flow-novice swarm init --topology hierarchical --levels 4
 
 # Executive level
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type coordinator \
   --name "project-director" \
   --level 1 \
@@ -331,7 +331,7 @@ npx claude-flow agent spawn \
 # Management level
 managers=("tech-lead" "product-manager" "qa-lead")
 for manager in "${managers[@]}"; do
-  npx claude-flow agent spawn \
+  npx claude-flow-novice agent spawn \
     --type coordinator \
     --name "$manager" \
     --level 2 \
@@ -340,7 +340,7 @@ for manager in "${managers[@]}"; do
 done
 
 # Operational level
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type specialist \
   --name "senior-backend" \
   --level 3 \
@@ -348,7 +348,7 @@ npx claude-flow agent spawn \
   --capabilities '["microservices", "api-design", "database-optimization"]'
 
 # Configure command chain
-npx claude-flow hooks hierarchy-config \
+npx claude-flow-novice hooks hierarchy-config \
   --command-flow "top-down" \
   --feedback-flow "bottom-up" \
   --delegation-strategy "capability-based"
@@ -393,12 +393,12 @@ npx claude-flow hooks hierarchy-config \
 
 ```bash
 # Matrix organization pattern
-npx claude-flow swarm init --topology matrix --dimensions 2
+npx claude-flow-novice swarm init --topology matrix --dimensions 2
 
 # Create functional dimension
 functional_managers=("tech-lead" "product-manager" "design-lead" "qa-lead")
 for manager in "${functional_managers[@]}"; do
-  npx claude-flow agent spawn \
+  npx claude-flow-novice agent spawn \
     --type coordinator \
     --name "$manager" \
     --dimension "functional" \
@@ -408,7 +408,7 @@ done
 # Create project dimension
 project_managers=("project-a-mgr" "project-b-mgr" "project-c-mgr")
 for manager in "${project_managers[@]}"; do
-  npx claude-flow agent spawn \
+  npx claude-flow-novice agent spawn \
     --type coordinator \
     --name "$manager" \
     --dimension "project" \
@@ -416,7 +416,7 @@ for manager in "${project_managers[@]}"; do
 done
 
 # Configure dual reporting
-npx claude-flow hooks matrix-config \
+npx claude-flow-novice hooks matrix-config \
   --reporting-structure "dual" \
   --conflict-resolution "escalation" \
   --communication-protocol "regular-sync"
@@ -468,10 +468,10 @@ npx claude-flow hooks matrix-config \
 
 ```bash
 # Hierarchical-Mesh Hybrid
-npx claude-flow swarm init --topology hybrid --pattern "hierarchical-mesh"
+npx claude-flow-novice swarm init --topology hybrid --pattern "hierarchical-mesh"
 
 # Global coordinator
-npx claude-flow agent spawn \
+npx claude-flow-novice agent spawn \
   --type coordinator \
   --name "global-orchestrator" \
   --scope "global" \
@@ -480,7 +480,7 @@ npx claude-flow agent spawn \
 # Regional coordinators
 regions=("region-a" "region-b" "region-c")
 for region in "${regions[@]}"; do
-  npx claude-flow agent spawn \
+  npx claude-flow-novice agent spawn \
     --type coordinator \
     --name "$region-coord" \
     --parent "global-orchestrator" \
@@ -489,7 +489,7 @@ for region in "${regions[@]}"; do
 done
 
 # Configure hybrid communication
-npx claude-flow hooks hybrid-config \
+npx claude-flow-novice hooks hybrid-config \
   --global-pattern "hierarchical" \
   --regional-pattern "mesh" \
   --cross-region-sync "gossip"
@@ -537,10 +537,10 @@ npx claude-flow hooks hybrid-config \
 
 ```bash
 # Ring-Star Hybrid
-npx claude-flow swarm init --topology hybrid --pattern "ring-star"
+npx claude-flow-novice swarm init --topology hybrid --pattern "ring-star"
 
 # Ring layer for coordination
-npx claude-flow layer create \
+npx claude-flow-novice layer create \
   --name "coordination-ring" \
   --topology "ring" \
   --agents 3 \
@@ -548,7 +548,7 @@ npx claude-flow layer create \
 
 # Star layers for workers
 for i in {1..3}; do
-  npx claude-flow layer create \
+  npx claude-flow-novice layer create \
     --name "worker-cluster-$i" \
     --topology "star" \
     --coordinator "coord-$i" \
@@ -556,7 +556,7 @@ for i in {1..3}; do
 done
 
 # Configure ring communication
-npx claude-flow hooks ring-config \
+npx claude-flow-novice hooks ring-config \
   --message-passing "token-ring" \
   --fault-tolerance "bypass" \
   --heartbeat-interval 5s
@@ -604,24 +604,24 @@ npx claude-flow hooks ring-config \
 
 ```bash
 # Load-adaptive topology
-npx claude-flow swarm init --topology adaptive --strategy "load-based"
+npx claude-flow-novice swarm init --topology adaptive --strategy "load-based"
 
 # Configure adaptation thresholds
-npx claude-flow hooks adaptive-config \
+npx claude-flow-novice hooks adaptive-config \
   --low-load-threshold 30% \
   --high-load-threshold 70% \
   --adaptation-cooldown 60s \
   --metrics "cpu,memory,queue-depth,response-time"
 
 # Set topology preferences
-npx claude-flow hooks topology-preference \
+npx claude-flow-novice hooks topology-preference \
   --low-load "star" \
   --medium-load "hierarchical" \
   --high-load "mesh" \
   --emergency-load "ring"
 
 # Enable automatic adaptation
-npx claude-flow hooks auto-adapt \
+npx claude-flow-novice hooks auto-adapt \
   --enabled true \
   --monitoring-interval 10s \
   --decision-window 30s
@@ -670,23 +670,23 @@ npx claude-flow hooks auto-adapt \
 
 ```bash
 # Context-aware adaptation
-npx claude-flow swarm init --topology adaptive --strategy "context-aware"
+npx claude-flow-novice swarm init --topology adaptive --strategy "context-aware"
 
 # Configure context analysis
-npx claude-flow hooks context-analyzer \
+npx claude-flow-novice hooks context-analyzer \
   --features "task-type,urgency,complexity,team-size,dependencies" \
   --model "decision-tree" \
   --training-data "historical-performance.json"
 
 # Set adaptation rules
-npx claude-flow hooks adaptation-rules \
+npx claude-flow-novice hooks adaptation-rules \
   --rule "bug-fix:urgency=high,complexity=low → star" \
   --rule "feature-dev:complexity=high,team=large → hierarchical" \
   --rule "research:uncertainty=high → mesh" \
   --confidence-threshold 0.8
 
 # Enable learning from outcomes
-npx claude-flow hooks learning-feedback \
+npx claude-flow-novice hooks learning-feedback \
   --enabled true \
   --metrics "success-rate,completion-time,resource-efficiency" \
   --update-frequency "weekly"
@@ -750,23 +750,23 @@ npx claude-flow hooks learning-feedback \
 
 ```bash
 # RAFT consensus protocol
-npx claude-flow consensus init --protocol "raft" --nodes 3
+npx claude-flow-novice consensus init --protocol "raft" --nodes 3
 
 # Configure RAFT parameters
-npx claude-flow hooks raft-config \
+npx claude-flow-novice hooks raft-config \
   --election-timeout "150-300ms" \
   --heartbeat-interval "50ms" \
   --log-replication "immediate" \
   --snapshot-threshold 1000
 
 # Start RAFT cluster
-npx claude-flow consensus start \
+npx claude-flow-novice consensus start \
   --nodes "node-a,node-b,node-c" \
   --bootstrap-node "node-a" \
   --persistence true
 
 # Monitor consensus state
-npx claude-flow hooks raft-monitor \
+npx claude-flow-novice hooks raft-monitor \
   --metrics "leader-status,log-consistency,election-frequency" \
   --alerts "split-brain,leader-failure"
 ```
@@ -818,24 +818,24 @@ npx claude-flow hooks raft-monitor \
 
 ```bash
 # Byzantine Fault Tolerance
-npx claude-flow consensus init --protocol "pbft" --nodes 4
+npx claude-flow-novice consensus init --protocol "pbft" --nodes 4
 
 # Configure Byzantine tolerance
-npx claude-flow hooks byzantine-config \
+npx claude-flow-novice hooks byzantine-config \
   --fault-threshold 1 \
   --agreement-threshold "2/3" \
   --timeout "30s" \
   --verification-rounds 2
 
 # Start Byzantine consensus
-npx claude-flow consensus start \
+npx claude-flow-novice consensus start \
   --protocol "pbft" \
   --primary "node-a" \
   --backups "node-b,node-c,node-d" \
   --view-change-timeout "60s"
 
 # Monitor Byzantine behavior
-npx claude-flow hooks byzantine-monitor \
+npx claude-flow-novice hooks byzantine-monitor \
   --detect-traitors true \
   --audit-trail true \
   --alert-threshold "inconsistent-messages"
@@ -891,21 +891,21 @@ npx claude-flow hooks byzantine-monitor \
 
 ```bash
 # Predictive scaling setup
-npx claude-flow hooks predictive-scaling \
+npx claude-flow-novice hooks predictive-scaling \
   --model "lstm" \
   --training-period "30d" \
   --prediction-horizon "4h" \
   --confidence-threshold 0.8
 
 # Configure scaling policies
-npx claude-flow hooks scaling-policy \
+npx claude-flow-novice hooks scaling-policy \
   --metric "load-prediction" \
   --scale-up-threshold 70% \
   --scale-down-threshold 30% \
   --cooldown-period 300s
 
 # Enable proactive actions
-npx claude-flow hooks proactive-actions \
+npx claude-flow-novice hooks proactive-actions \
   --resource-preloading true \
   --topology-preparation true \
   --cache-warming true \
@@ -959,28 +959,28 @@ npx claude-flow hooks proactive-actions \
 
 ```bash
 # Self-healing swarm setup
-npx claude-flow hooks self-healing \
+npx claude-flow-novice hooks self-healing \
   --health-check-interval 5s \
   --failure-detection-threshold 3 \
   --auto-recovery true \
   --replacement-strategy "immediate"
 
 # Configure health thresholds
-npx claude-flow hooks health-thresholds \
+npx claude-flow-novice hooks health-thresholds \
   --cpu-critical 90% \
   --memory-critical 85% \
   --response-time-critical 2000ms \
   --error-rate-critical 10%
 
 # Setup recovery actions
-npx claude-flow hooks recovery-actions \
+npx claude-flow-novice hooks recovery-actions \
   --restart-on-hang true \
   --migrate-tasks true \
   --spawn-replacement true \
   --update-topology true
 
 # Enable cascade failure prevention
-npx claude-flow hooks cascade-prevention \
+npx claude-flow-novice hooks cascade-prevention \
   --circuit-breaker true \
   --load-shedding true \
   --graceful-degradation true
@@ -992,20 +992,20 @@ npx claude-flow hooks cascade-prevention \
 
 ```bash
 # Initialize different topologies
-npx claude-flow swarm init --topology [star|mesh|hierarchical|ring|adaptive]
+npx claude-flow-novice swarm init --topology [star|mesh|hierarchical|ring|adaptive]
 
 # Spawn agents with specific roles
-npx claude-flow agent spawn --type [coordinator|specialist|coder|tester] --name "agent-name"
+npx claude-flow-novice agent spawn --type [coordinator|specialist|coder|tester] --name "agent-name"
 
 # Configure coordination patterns
-npx claude-flow hooks [pattern]-config [options]
+npx claude-flow-novice hooks [pattern]-config [options]
 
 # Monitor and adapt
-npx claude-flow hooks monitor-start --dashboard true
-npx claude-flow hooks auto-adapt --enabled true
+npx claude-flow-novice hooks monitor-start --dashboard true
+npx claude-flow-novice hooks auto-adapt --enabled true
 
 # Consensus protocols
-npx claude-flow consensus init --protocol [raft|pbft|gossip]
+npx claude-flow-novice consensus init --protocol [raft|pbft|gossip]
 ```
 
 ### Pattern Selection Guide

@@ -6,7 +6,7 @@ export function createMinimalMemoryBankMd() {
 ## Quick Reference
 - Project uses SQLite for memory persistence
 - Memory is organized by namespaces
-- Query with \`npx claude-flow memory query <search>\`
+- Query with \`npx claude-flow-novice memory query <search>\`
 
 ## Storage Location
 - Database: \`./memory/claude-flow-data.json\`
@@ -32,10 +32,10 @@ The Claude-Flow memory system provides persistent storage and intelligent retrie
 - **Replication**: Optional distributed storage support
 
 ## Commands
-- \`npx claude-flow memory query <search>\`: Search stored information
-- \`npx claude-flow memory stats\`: Show memory usage statistics
-- \`npx claude-flow memory export <file>\`: Export memory to file
-- \`npx claude-flow memory import <file>\`: Import memory from file
+- \`npx claude-flow-novice memory query <search>\`: Search stored information
+- \`npx claude-flow-novice memory stats\`: Show memory usage statistics
+- \`npx claude-flow-novice memory export <file>\`: Export memory to file
+- \`npx claude-flow-novice memory import <file>\`: Import memory from file
 
 ## Configuration
 Memory settings are configured in \`claude-flow.config.json\`:
@@ -109,16 +109,16 @@ The Claude-Flow memory system provides persistent storage and intelligent retrie
 ## Commands (Batchtools Enhanced)
 
 ### Standard Commands
-- \`npx claude-flow memory query <search>\`: Search stored information
-- \`npx claude-flow memory stats\`: Show memory usage statistics
-- \`npx claude-flow memory export <file>\`: Export memory to file
-- \`npx claude-flow memory import <file>\`: Import memory from file
+- \`npx claude-flow-novice memory query <search>\`: Search stored information
+- \`npx claude-flow-novice memory stats\`: Show memory usage statistics
+- \`npx claude-flow-novice memory export <file>\`: Export memory to file
+- \`npx claude-flow-novice memory import <file>\`: Import memory from file
 
 ### Batchtools Commands
-- \`npx claude-flow memory batch-store <entries-file>\`: Store multiple entries in parallel
-- \`npx claude-flow memory parallel-query <queries-file>\`: Execute multiple queries concurrently
-- \`npx claude-flow memory concurrent-export <namespaces>\`: Export multiple namespaces simultaneously
-- \`npx claude-flow memory batch-cleanup <retention-config>\`: Clean up multiple namespaces in parallel
+- \`npx claude-flow-novice memory batch-store <entries-file>\`: Store multiple entries in parallel
+- \`npx claude-flow-novice memory parallel-query <queries-file>\`: Execute multiple queries concurrently
+- \`npx claude-flow-novice memory concurrent-export <namespaces>\`: Export multiple namespaces simultaneously
+- \`npx claude-flow-novice memory batch-cleanup <retention-config>\`: Clean up multiple namespaces in parallel
 
 ## Configuration (Enhanced)
 Memory settings are configured in \`claude-flow.config.json\` with batchtools optimizations:
@@ -159,25 +159,25 @@ Memory settings are configured in \`claude-flow.config.json\` with batchtools op
 ### Parallel Storage Patterns
 \`\`\`bash
 # Store SPARC workflow data in parallel
-npx claude-flow memory batch-store sparc-data.json --namespace sparc --parallel
+npx claude-flow-novice memory batch-store sparc-data.json --namespace sparc --parallel
 
 # Concurrent query across multiple namespaces
-npx claude-flow memory parallel-query "authentication design" --namespaces arch,impl,test
+npx claude-flow-novice memory parallel-query "authentication design" --namespaces arch,impl,test
 
 # Batch export with parallel compression
-npx claude-flow memory concurrent-export project-backup --compress --parallel
+npx claude-flow-novice memory concurrent-export project-backup --compress --parallel
 \`\`\`
 
 ### Performance Monitoring
 \`\`\`bash
 # Monitor concurrent operations
-npx claude-flow memory stats --concurrent --verbose
+npx claude-flow-novice memory stats --concurrent --verbose
 
 # Analyze batch operation performance
-npx claude-flow memory performance-report --batchtools
+npx claude-flow-novice memory performance-report --batchtools
 
 # Check parallel indexing status
-npx claude-flow memory index-status --parallel
+npx claude-flow-novice memory index-status --parallel
 \`\`\`
 
 ## Memory Organization (Enhanced)
@@ -245,13 +245,13 @@ npx claude-flow memory index-status --parallel
 ### Debug Commands
 \`\`\`bash
 # Check concurrent operation status
-npx claude-flow memory debug --concurrent
+npx claude-flow-novice memory debug --concurrent
 
 # Analyze batch operation performance
-npx claude-flow memory analyze --batchtools --verbose
+npx claude-flow-novice memory analyze --batchtools --verbose
 
 # Validate parallel index integrity
-npx claude-flow memory index-validate --parallel --repair
+npx claude-flow-novice memory index-validate --parallel --repair
 \`\`\`
 
 For more information about memory system optimization, see: https://github.com/ruvnet/claude-code-flow/docs/memory-batchtools.md

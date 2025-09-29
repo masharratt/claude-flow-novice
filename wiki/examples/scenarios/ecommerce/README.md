@@ -1263,7 +1263,7 @@ This example demonstrates enterprise-scale development with claude-flow. Contrib
 
 ---
 
-**Congratulations!** 🎉 You've explored a comprehensive e-commerce platform built with multi-agent coordination. This example showcases the power of claude-flow for enterprise-scale development, demonstrating how specialized agents can collaborate to build complex, production-ready applications.
+**Congratulations!** 🎉 You've explored a comprehensive e-commerce platform built with multi-agent coordination. This example showcases the power of claude-flow-novice for enterprise-scale development, demonstrating how specialized agents can collaborate to build complex, production-ready applications.
 
 ## Related Examples
 

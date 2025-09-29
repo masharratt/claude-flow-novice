@@ -9,7 +9,7 @@ Implementing a user authentication feature with JWT tokens.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode switch \
   --agent senior-dev \
   --focus implement \
@@ -57,7 +57,7 @@ Debugging a memory leak in a Node.js application.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode navigator \
   --agent debugger-expert \
   --focus debug \
@@ -99,7 +99,7 @@ Building a shopping cart feature using TDD.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode tdd \
   --agent tdd-specialist \
   --test-first
@@ -142,7 +142,7 @@ Refactoring legacy code to modern patterns.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode driver \
   --focus refactor \
   --verify \
@@ -191,7 +191,7 @@ Learning React hooks with AI mentorship.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode mentor \
   --agent react-expert \
   --pace slow \
@@ -239,7 +239,7 @@ Optimizing a slow React application.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode switch \
   --agent performance-expert \
   --focus optimize \
@@ -285,7 +285,7 @@ Building a RESTful API with Express.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode navigator \
   --agent backend-expert \
   --focus implement \
@@ -334,7 +334,7 @@ Migrating from MongoDB to PostgreSQL.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode switch \
   --agent database-expert \
   --verify \
@@ -378,7 +378,7 @@ Setting up GitHub Actions CI/CD pipeline.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode navigator \
   --agent devops-expert \
   --focus implement
@@ -421,7 +421,7 @@ Building a React Native mobile feature.
 
 ### Session Setup
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --mode switch \
   --agent mobile-expert \
   --language react-native \
@@ -465,7 +465,7 @@ claude-flow pair --start \
 ### Starting Patterns
 ```bash
 # Quick start for common scenarios
-claude-flow pair --template <template>
+claude-flow-novice pair --template <template>
 ```
 
 Available templates:

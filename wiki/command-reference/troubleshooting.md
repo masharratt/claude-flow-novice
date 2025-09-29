@@ -10,21 +10,21 @@ This guide helps you diagnose and resolve common issues when using Claude Flow. 
 Start troubleshooting with a comprehensive health check:
 
 ```bash
-claude-flow status --detailed --format json > health-check.json
-claude-flow agents status --all
-claude-flow mcp claude-flow health_check --deep
+claude-flow-novice status --detailed --format json > health-check.json
+claude-flow-novice agents status --all
+claude-flow-novice mcp claude-flow-novice health_check --deep
 ```
 
 ### Common Quick Fixes
 ```bash
 # Restart agents that might be stuck
-claude-flow agents restart --all-failed
+claude-flow-novice agents restart --all-failed
 
 # Clear cache and temporary files
-claude-flow system-cleanup --cache --temp-files
+claude-flow-novice system-cleanup --cache --temp-files
 
 # Reset to known good state
-claude-flow system-reset --safe
+claude-flow-novice system-reset --safe
 
 # Update to latest version
 npm update -g claude-flow@alpha
@@ -88,7 +88,7 @@ source ~/.bashrc
 **Solutions:**
 ```bash
 # Check current version
-claude-flow --version
+claude-flow-novice --version
 
 # Force reinstall latest
 npm uninstall -g claude-flow
@@ -96,7 +96,7 @@ npm install -g claude-flow@alpha
 
 # Clear all caches
 npm cache clean --force
-claude-flow system-cleanup --all
+claude-flow-novice system-cleanup --all
 ```
 
 ### MCP Server Setup Issues
@@ -114,13 +114,13 @@ claude mcp list
 
 # Add/re-add servers
 claude mcp remove claude-flow
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+claude mcp add claude-flow-novice npx claude-flow@alpha mcp start
 
 # Test connection
 claude mcp test claude-flow
 
 # Debug connection
-claude mcp debug claude-flow --verbose
+claude mcp debug claude-flow-novice --verbose
 ```
 
 #### Issue: Authentication failures
@@ -148,7 +148,7 @@ npx flow-nexus@latest login --interactive
 
 ### Build Command Problems
 
-#### Issue: `claude-flow build` hangs or times out
+#### Issue: `claude-flow-novice build` hangs or times out
 **Symptoms:**
 - Command never completes
 - No agent activity
@@ -157,19 +157,19 @@ npx flow-nexus@latest login --interactive
 **Solutions:**
 ```bash
 # Check agent status
-claude-flow agents status --detailed
+claude-flow-novice agents status --detailed
 
 # Restart stuck agents
-claude-flow agents restart --all
+claude-flow-novice agents restart --all
 
 # Try with shorter timeout
-claude-flow build "your task" --timeout 300
+claude-flow-novice build "your task" --timeout 300
 
 # Use dry-run to see plan
-claude-flow build "your task" --dry-run
+claude-flow-novice build "your task" --dry-run
 
 # Try simpler task
-claude-flow build "create hello world function"
+claude-flow-novice build "create hello world function"
 ```
 
 #### Issue: Build fails with unclear errors
@@ -181,17 +181,17 @@ claude-flow build "create hello world function"
 **Solutions:**
 ```bash
 # Enable verbose logging
-claude-flow build "your task" --verbose --debug
+claude-flow-novice build "your task" --verbose --debug
 
 # Check recent logs
-claude-flow logs --recent --errors-only
+claude-flow-novice logs --recent --errors-only
 
 # Review project status
-claude-flow status --detailed
+claude-flow-novice status --detailed
 
 # Try incremental approach
-claude-flow build "analyze requirements for [your task]"
-claude-flow build "design approach for [your task]"
+claude-flow-novice build "analyze requirements for [your task]"
+claude-flow-novice build "design approach for [your task]"
 ```
 
 #### Issue: Natural language not understood
@@ -215,7 +215,7 @@ claude-flow build "design approach for [your task]"
 # Try: "create user authentication system"
 
 # Use examples
-claude-flow help build --examples
+claude-flow-novice help build --examples
 ```
 
 ### Agent Management Issues
@@ -229,16 +229,16 @@ claude-flow help build --examples
 **Solutions:**
 ```bash
 # Check available resources
-claude-flow system-status --resources
+claude-flow-novice system-status --resources
 
 # Try spawning with lower resource limits
-claude-flow agents spawn coder --memory 256mb
+claude-flow-novice agents spawn coder --memory 256mb
 
 # Clear agent cache
-claude-flow agents cleanup --inactive
+claude-flow-novice agents cleanup --inactive
 
 # Reset agent system
-claude-flow agents reset --confirm
+claude-flow-novice agents reset --confirm
 ```
 
 #### Issue: Agents performing poorly
@@ -250,16 +250,16 @@ claude-flow agents reset --confirm
 **Solutions:**
 ```bash
 # Check agent metrics
-claude-flow agents metrics --detailed
+claude-flow-novice agents metrics --detailed
 
 # Optimize agent allocation
-claude-flow agents optimize --performance
+claude-flow-novice agents optimize --performance
 
 # Restart underperforming agents
-claude-flow agents restart --performance-issues
+claude-flow-novice agents restart --performance-issues
 
 # Update agent models
-claude-flow agents update --all
+claude-flow-novice agents update --all
 ```
 
 ### Testing Issues
@@ -273,16 +273,16 @@ claude-flow agents update --all
 **Solutions:**
 ```bash
 # Check project structure
-claude-flow status --project-info
+claude-flow-novice status --project-info
 
 # Specify test framework explicitly
-claude-flow test unit --framework jest --generate
+claude-flow-novice test unit --framework jest --generate
 
 # Start with simple tests
-claude-flow test unit --pattern "utils/**" --generate
+claude-flow-novice test unit --pattern "utils/**" --generate
 
 # Check test configuration
-claude-flow config test --show
+claude-flow-novice config test --show
 ```
 
 #### Issue: Tests fail to run
@@ -294,16 +294,16 @@ claude-flow config test --show
 **Solutions:**
 ```bash
 # Install missing dependencies
-claude-flow build "install and configure testing dependencies"
+claude-flow-novice build "install and configure testing dependencies"
 
 # Fix test configuration
-claude-flow test --fix-config
+claude-flow-novice test --fix-config
 
 # Run specific test file
-claude-flow test unit --file "specific.test.js"
+claude-flow-novice test unit --file "specific.test.js"
 
 # Check test environment
-claude-flow test --check-environment
+claude-flow-novice test --check-environment
 ```
 
 ---
@@ -321,16 +321,16 @@ claude-flow test --check-environment
 **Solutions:**
 ```bash
 # Check deployment status
-claude-flow deploy status --environment staging
+claude-flow-novice deploy status --environment staging
 
 # Try dry run first
-claude-flow deploy staging --dry-run
+claude-flow-novice deploy staging --dry-run
 
 # Use safe deployment mode
-claude-flow deploy staging --safe-mode --rollback-on-failure
+claude-flow-novice deploy staging --safe-mode --rollback-on-failure
 
 # Check deployment logs
-claude-flow deploy logs --environment staging --tail 100
+claude-flow-novice deploy logs --environment staging --tail 100
 ```
 
 #### Issue: Environment configuration errors
@@ -342,16 +342,16 @@ claude-flow deploy logs --environment staging --tail 100
 **Solutions:**
 ```bash
 # Validate environment configuration
-claude-flow deploy validate-config --environment staging
+claude-flow-novice deploy validate-config --environment staging
 
 # Check environment variables
-claude-flow config env --show --environment staging
+claude-flow-novice config env --show --environment staging
 
 # Fix configuration
-claude-flow build "fix environment configuration for staging deployment"
+claude-flow-novice build "fix environment configuration for staging deployment"
 
 # Test configuration
-claude-flow deploy test-config --environment staging
+claude-flow-novice deploy test-config --environment staging
 ```
 
 ### Rollback Issues
@@ -365,16 +365,16 @@ claude-flow deploy test-config --environment staging
 **Solutions:**
 ```bash
 # Check available versions
-claude-flow deploy versions --environment production
+claude-flow-novice deploy versions --environment production
 
 # Force rollback to specific version
-claude-flow deploy rollback --version v1.2.2 --force
+claude-flow-novice deploy rollback --version v1.2.2 --force
 
 # Manual rollback if needed
-claude-flow deploy manual-rollback --emergency
+claude-flow-novice deploy manual-rollback --emergency
 
 # Check rollback status
-claude-flow deploy rollback-status --detailed
+claude-flow-novice deploy rollback-status --detailed
 ```
 
 ---
@@ -392,16 +392,16 @@ claude-flow deploy rollback-status --detailed
 **Solutions:**
 ```bash
 # Check memory usage
-claude-flow mcp claude-flow memory_usage --detailed
+claude-flow-novice mcp claude-flow-novice memory_usage --detailed
 
 # Clean up memory
-claude-flow mcp claude-flow memory_compress --all-namespaces
+claude-flow-novice mcp claude-flow-novice memory_compress --all-namespaces
 
 # Restart with more memory
-claude-flow agents restart --memory-limit 1024mb
+claude-flow-novice agents restart --memory-limit 1024mb
 
 # Optimize memory usage
-claude-flow optimize memory --aggressive
+claude-flow-novice optimize memory --aggressive
 ```
 
 #### Issue: Memory leaks
@@ -413,16 +413,16 @@ claude-flow optimize memory --aggressive
 **Solutions:**
 ```bash
 # Analyze memory patterns
-claude-flow optimize memory --analyze --detailed
+claude-flow-novice optimize memory --analyze --detailed
 
 # Fix detected leaks
-claude-flow optimize memory --fix --safe-only
+claude-flow-novice optimize memory --fix --safe-only
 
 # Monitor memory usage
-claude-flow status --watch --memory-tracking
+claude-flow-novice status --watch --memory-tracking
 
 # Restart agents periodically
-claude-flow agents schedule-restart --interval 4h
+claude-flow-novice agents schedule-restart --interval 4h
 ```
 
 ### Performance Issues
@@ -436,16 +436,16 @@ claude-flow agents schedule-restart --interval 4h
 **Solutions:**
 ```bash
 # Analyze performance bottlenecks
-claude-flow mcp claude-flow bottleneck_analyze --all
+claude-flow-novice mcp claude-flow-novice bottleneck_analyze --all
 
 # Optimize system performance
-claude-flow optimize --all-targets --apply
+claude-flow-novice optimize --all-targets --apply
 
 # Use parallel execution
-claude-flow build "your task" --parallel
+claude-flow-novice build "your task" --parallel
 
 # Check system resources
-claude-flow system-status --performance
+claude-flow-novice system-status --performance
 ```
 
 #### Issue: High CPU usage
@@ -457,16 +457,16 @@ claude-flow system-status --performance
 **Solutions:**
 ```bash
 # Check CPU usage by component
-claude-flow system-status --cpu-breakdown
+claude-flow-novice system-status --cpu-breakdown
 
 # Optimize CPU usage
-claude-flow optimize cpu --limit-processes
+claude-flow-novice optimize cpu --limit-processes
 
 # Reduce parallel operations
-claude-flow config set parallel-limit 4
+claude-flow-novice config set parallel-limit 4
 
 # Use efficiency mode
-claude-flow config set efficiency-mode true
+claude-flow-novice config set efficiency-mode true
 ```
 
 ---
@@ -491,12 +491,12 @@ chmod 755 $(pwd)
 chmod -R 644 $(pwd)/*
 
 # Run with appropriate permissions
-sudo claude-flow init --skip-git
+sudo claude-flow-novice init --skip-git
 
 # Use different directory
 mkdir ~/claude-flow-projects
 cd ~/claude-flow-projects
-claude-flow init
+claude-flow-novice init
 ```
 
 #### Issue: Authentication failures
@@ -532,16 +532,16 @@ claude auth login --method interactive
 **Solutions:**
 ```bash
 # Run comprehensive security scan
-claude-flow review security --detailed
+claude-flow-novice review security --detailed
 
 # Fix automatically
-claude-flow review security --fix --safe-only
+claude-flow-novice review security --fix --safe-only
 
 # Update dependencies
-claude-flow build "update dependencies to secure versions"
+claude-flow-novice build "update dependencies to secure versions"
 
 # Check security status
-claude-flow security-status --detailed
+claude-flow-novice security-status --detailed
 ```
 
 ---
@@ -562,13 +562,13 @@ claude-flow security-status --detailed
 ping api.anthropic.com
 
 # Use different network configuration
-claude-flow config network --retry-count 5 --timeout 60
+claude-flow-novice config network --retry-count 5 --timeout 60
 
 # Configure proxy if needed
-claude-flow config proxy --url http://proxy.company.com:8080
+claude-flow-novice config proxy --url http://proxy.company.com:8080
 
 # Test with different DNS
-claude-flow config dns --server 8.8.8.8
+claude-flow-novice config dns --server 8.8.8.8
 ```
 
 #### Issue: Firewall blocking connections
@@ -580,17 +580,17 @@ claude-flow config dns --server 8.8.8.8
 **Solutions:**
 ```bash
 # Check required ports
-claude-flow network-test --ports
+claude-flow-novice network-test --ports
 
 # Configure firewall exceptions
 # Allow outbound HTTPS (443)
 # Allow WebSocket connections
 
 # Use alternative endpoints
-claude-flow config endpoint --alternative
+claude-flow-novice config endpoint --alternative
 
 # Contact IT for allowlist
-claude-flow config network-requirements --export
+claude-flow-novice config network-requirements --export
 ```
 
 ---
@@ -608,16 +608,16 @@ claude-flow config network-requirements --export
 **Solutions:**
 ```bash
 # Validate configuration
-claude-flow config validate --detailed
+claude-flow-novice config validate --detailed
 
 # Reset to defaults
-claude-flow config reset --confirm
+claude-flow-novice config reset --confirm
 
 # Fix specific issues
-claude-flow config fix --auto
+claude-flow-novice config fix --auto
 
 # Show current configuration
-claude-flow config show --all
+claude-flow-novice config show --all
 ```
 
 #### Issue: Environment variable conflicts
@@ -629,7 +629,7 @@ claude-flow config show --all
 **Solutions:**
 ```bash
 # Check environment variables
-claude-flow config env --show
+claude-flow-novice config env --show
 
 # Clear conflicting variables
 unset CLAUDE_FLOW_DEBUG
@@ -639,7 +639,7 @@ unset CLAUDE_FLOW_VERBOSE
 export CLAUDE_FLOW_ENV=development
 
 # Check effective configuration
-claude-flow config effective --show
+claude-flow-novice config effective --show
 ```
 
 ---
@@ -651,25 +651,25 @@ claude-flow config effective --show
 #### Enable comprehensive debugging
 ```bash
 # Maximum verbosity
-claude-flow --debug --verbose command
+claude-flow-novice --debug --verbose command
 
 # Log to file
-claude-flow command --log-file debug.log --log-level trace
+claude-flow-novice command --log-file debug.log --log-level trace
 
 # Interactive debugging
-claude-flow debug --interactive command
+claude-flow-novice debug --interactive command
 ```
 
 #### Analyze debug information
 ```bash
 # View recent logs
-claude-flow logs --recent --level debug
+claude-flow-novice logs --recent --level debug
 
 # Analyze error patterns
-claude-flow logs --analyze --errors
+claude-flow-novice logs --analyze --errors
 
 # Export debug information
-claude-flow debug-export --include-logs --include-config
+claude-flow-novice debug-export --include-logs --include-config
 ```
 
 ### System Diagnostics
@@ -677,16 +677,16 @@ claude-flow debug-export --include-logs --include-config
 #### Comprehensive system check
 ```bash
 # Full system diagnostic
-claude-flow diagnostic --comprehensive
+claude-flow-novice diagnostic --comprehensive
 
 # Check all components
-claude-flow mcp claude-flow health_check --components all
+claude-flow-novice mcp claude-flow-novice health_check --components all
 
 # Performance analysis
-claude-flow benchmark --system --detailed
+claude-flow-novice benchmark --system --detailed
 
 # Generate diagnostic report
-claude-flow diagnostic-report --format html --include-recommendations
+claude-flow-novice diagnostic-report --format html --include-recommendations
 ```
 
 ---
@@ -697,16 +697,16 @@ claude-flow diagnostic-report --format html --include-recommendations
 
 ```bash
 # Interactive troubleshooting
-claude-flow help --troubleshoot --interactive
+claude-flow-novice help --troubleshoot --interactive
 
 # Search help for specific issues
-claude-flow help --search "memory error"
+claude-flow-novice help --search "memory error"
 
 # Get contextual help
-claude-flow help command --troubleshoot
+claude-flow-novice help command --troubleshoot
 
 # Show recent known issues
-claude-flow help --known-issues --recent
+claude-flow-novice help --known-issues --recent
 ```
 
 ### Community & Support
@@ -725,13 +725,13 @@ claude-flow help --known-issues --recent
 
 ```bash
 # Generate bug report
-claude-flow bug-report --auto-collect
+claude-flow-novice bug-report --auto-collect
 
 # Include system information
-claude-flow bug-report --include-system --include-logs
+claude-flow-novice bug-report --include-system --include-logs
 
 # Upload diagnostic data
-claude-flow bug-report --upload --consent
+claude-flow-novice bug-report --upload --consent
 ```
 
 ---
@@ -743,25 +743,25 @@ claude-flow bug-report --upload --consent
 #### Safe mode startup
 ```bash
 # Start in safe mode
-claude-flow --safe-mode status
+claude-flow-novice --safe-mode status
 
 # Reset to factory defaults
-claude-flow system-reset --factory-defaults --confirm
+claude-flow-novice system-reset --factory-defaults --confirm
 
 # Recover from backup
-claude-flow system-restore --backup-id latest
+claude-flow-novice system-restore --backup-id latest
 ```
 
 #### Data recovery
 ```bash
 # Backup current state
-claude-flow backup-create --emergency
+claude-flow-novice backup-create --emergency
 
 # Recover lost work
-claude-flow recover --session-id last --include-partial
+claude-flow-novice recover --session-id last --include-partial
 
 # Restore from automatic backup
-claude-flow restore --auto-backup --latest
+claude-flow-novice restore --auto-backup --latest
 ```
 
 ### Emergency Contacts
@@ -777,12 +777,12 @@ For critical issues:
 
 ### Before Reporting Issues
 
-- [ ] Check Claude Flow version: `claude-flow --version`
-- [ ] Run health check: `claude-flow status --detailed`
-- [ ] Check recent logs: `claude-flow logs --recent --errors`
-- [ ] Try with different command: `claude-flow help`
-- [ ] Clear cache: `claude-flow system-cleanup --cache`
-- [ ] Restart agents: `claude-flow agents restart --all`
+- [ ] Check Claude Flow version: `claude-flow-novice --version`
+- [ ] Run health check: `claude-flow-novice status --detailed`
+- [ ] Check recent logs: `claude-flow-novice logs --recent --errors`
+- [ ] Try with different command: `claude-flow-novice help`
+- [ ] Clear cache: `claude-flow-novice system-cleanup --cache`
+- [ ] Restart agents: `claude-flow-novice agents restart --all`
 - [ ] Check network connectivity: `ping api.anthropic.com`
 - [ ] Verify authentication: `claude auth status`
 - [ ] Check disk space: `df -h`

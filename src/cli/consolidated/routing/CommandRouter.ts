@@ -395,13 +395,13 @@ export class CommandRouter {
     if (suggestions.length > 0) {
       message += `\n\n💡 Did you mean one of these?`;
       suggestions.forEach((suggestion) => {
-        message += `\n   claude-flow ${suggestion}`;
+        message += `\n   claude-flow-novice ${suggestion}`;
       });
     }
 
     message += `\n\n✨ Tip: Try natural language!`;
-    message += `\n   Example: claude-flow build "add user authentication"`;
-    message += `\n   Use: claude-flow help to see all commands`;
+    message += `\n   Example: claude-flow-novice build "add user authentication"`;
+    message += `\n   Use: claude-flow-novice help to see all commands`;
 
     return {
       success: false,
@@ -425,7 +425,7 @@ export class CommandRouter {
       suggestions: [
         `You're currently ${currentTier.toUpperCase()} tier`,
         progress.nextTierRequirements || 'Keep using commands to unlock new features',
-        'Use `claude-flow learn` to discover how to unlock more commands',
+        'Use `claude-flow-novice learn` to discover how to unlock more commands',
       ],
     };
   }
@@ -446,8 +446,8 @@ export class CommandRouter {
       message: `❌ Internal router error: ${error instanceof Error ? error.message : String(error)}`,
       suggestions: [
         'Try the command again',
-        'Check `claude-flow status` for system issues',
-        'Use `claude-flow help` for command guidance',
+        'Check `claude-flow-novice status` for system issues',
+        'Use `claude-flow-novice help` for command guidance',
       ],
     };
   }
@@ -524,9 +524,9 @@ export class CommandRouter {
       success: true,
       message: '✨ Agent spawning is now automatic!',
       suggestions: [
-        'Use `claude-flow build "your feature"` - agents are selected automatically',
+        'Use `claude-flow-novice build "your feature"` - agents are selected automatically',
         'Upgrade to Intermediate tier to access direct agent management',
-        'Use `claude-flow learn agents` to understand the new system',
+        'Use `claude-flow-novice learn agents` to understand the new system',
       ],
     };
   }

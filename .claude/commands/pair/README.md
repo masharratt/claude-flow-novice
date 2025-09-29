@@ -9,20 +9,20 @@ The `pair` command enables collaborative pair programming between you and AI age
 ## Usage
 
 ```bash
-claude-flow pair [--start] [options]
+claude-flow-novice pair [--start] [options]
 ```
 
 ## Quick Start
 
 ```bash
 # Start pair programming session
-claude-flow pair --start
+claude-flow-novice pair --start
 
 # Start with specific agent
-claude-flow pair --start --agent senior-dev
+claude-flow-novice pair --start --agent senior-dev
 
 # Start with verification
-claude-flow pair --start --verify --threshold 0.98
+claude-flow-novice pair --start --verify --threshold 0.98
 ```
 
 ## Options
@@ -42,19 +42,19 @@ claude-flow pair --start --verify --threshold 0.98
 ### Driver Mode
 You write code, AI provides suggestions and reviews.
 ```bash
-claude-flow pair --start --mode driver
+claude-flow-novice pair --start --mode driver
 ```
 
 ### Navigator Mode
 AI writes code, you provide guidance and review.
 ```bash
-claude-flow pair --start --mode navigator
+claude-flow-novice pair --start --mode navigator
 ```
 
 ### Switch Mode (Default)
 Alternate between driver and navigator roles.
 ```bash
-claude-flow pair --start --mode switch --interval 10m
+claude-flow-novice pair --start --mode switch --interval 10m
 ```
 
 ## Features
@@ -87,10 +87,10 @@ claude-flow pair --start --mode switch --interval 10m
 ### Start Session
 ```bash
 # Basic start
-claude-flow pair --start
+claude-flow-novice pair --start
 
 # With configuration
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --agent expert-coder \
   --verify \
   --test \
@@ -115,17 +115,17 @@ claude-flow pair --start \
 ### End Session
 ```bash
 # End and save session
-claude-flow pair --end --save
+claude-flow-novice pair --end --save
 
 # End and generate report
-claude-flow pair --end --report
+claude-flow-novice pair --end --report
 ```
 
 ## Examples
 
 ### Refactoring Session
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --focus refactor \
   --verify \
   --threshold 0.98
@@ -133,7 +133,7 @@ claude-flow pair --start \
 
 ### Test-Driven Development
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --focus test \
   --mode tdd \
   --language javascript
@@ -141,7 +141,7 @@ claude-flow pair --start \
 
 ### Bug Fixing
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --focus debug \
   --agent debugger-expert \
   --test
@@ -149,7 +149,7 @@ claude-flow pair --start \
 
 ### Code Review Session
 ```bash
-claude-flow pair --start \
+claude-flow-novice pair --start \
   --review \
   --verify \
   --agent senior-reviewer
@@ -160,25 +160,25 @@ claude-flow pair --start \
 ### With Git
 ```bash
 # Auto-commit with verification
-claude-flow pair --start --git --auto-commit
+claude-flow-novice pair --start --git --auto-commit
 
 # Review before commit
-claude-flow pair --start --git --review-commit
+claude-flow-novice pair --start --git --review-commit
 ```
 
 ### With Testing Frameworks
 ```bash
 # Jest integration
-claude-flow pair --start --test-framework jest
+claude-flow-novice pair --start --test-framework jest
 
 # Pytest integration
-claude-flow pair --start --test-framework pytest
+claude-flow-novice pair --start --test-framework pytest
 ```
 
 ### With CI/CD
 ```bash
 # CI-friendly mode
-claude-flow pair --start --ci --non-interactive
+claude-flow-novice pair --start --ci --non-interactive
 ```
 
 ## Session Output

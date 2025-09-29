@@ -1,6 +1,6 @@
 # Python Integration Guide
 
-This guide provides comprehensive examples and patterns for integrating claude-flow with Python projects.
+This guide provides comprehensive examples and patterns for integrating claude-flow-novice with Python projects.
 
 ## Table of Contents
 
@@ -75,7 +75,7 @@ class AgentConfig:
     topology: str = "mesh"
 
 class ClaudeFlowIntegration:
-    """Python wrapper for claude-flow CLI integration."""
+    """Python wrapper for claude-flow-novice CLI integration."""
 
     def __init__(
         self,
@@ -193,7 +193,7 @@ class ClaudeFlowIntegration:
             return TaskResult(success=False, result=None, error=str(e))
 
     async def _run_cli(self, args: List[str]) -> str:
-        """Execute claude-flow CLI command."""
+        """Execute claude-flow-novice CLI command."""
         cmd = ["npx", "claude-flow"] + args
 
         process = await asyncio.create_subprocess_exec(
@@ -1266,8 +1266,8 @@ RUN npm install -g claude-flow@alpha
 COPY . .
 
 # Setup Claude Flow MCP servers
-RUN npx claude-flow mcp add claude-flow npx claude-flow@alpha mcp start
-RUN npx claude-flow mcp add ruv-swarm npx ruv-swarm mcp start
+RUN npx claude-flow-novice mcp add claude-flow-novice npx claude-flow@alpha mcp start
+RUN npx claude-flow-novice mcp add ruv-swarm npx ruv-swarm mcp start
 
 # Expose port
 EXPOSE 8000

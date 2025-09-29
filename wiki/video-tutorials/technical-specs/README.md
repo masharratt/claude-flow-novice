@@ -357,7 +357,7 @@ STYLE
 }
 
 00:00:00.000 --> 00:00:03.500
-Welcome to the claude-flow tutorial series.
+Welcome to the claude-flow-novice tutorial series.
 
 00:00:03.500 --> 00:00:07.200
 I'm your instructor, and today we'll set up
@@ -373,7 +373,7 @@ First, let's open our terminal application.
 <c.code>npm install -g claude-flow@alpha</c>
 
 00:00:17.300 --> 00:00:20.800
-This command installs claude-flow globally
+This command installs claude-flow-novice globally
 on your system.
 
 00:00:20.800 --> 00:00:23.500

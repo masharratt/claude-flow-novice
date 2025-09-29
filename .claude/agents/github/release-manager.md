@@ -349,7 +349,7 @@ jobs:
           cd claude-code-flow/claude-code-flow && npm install && npm test
           cd ../../ruv-swarm/npm && npm install && npm test:all
       - name: Validate Release
-        run: npx claude-flow release validate
+        run: npx claude-flow-novice release validate
 ```
 
 ## Monitoring and Metrics

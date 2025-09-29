@@ -101,9 +101,9 @@ async function initConfig(subArgs, flags) {
     console.log(`✓ Created ${configFile}`);
     console.log('✓ Default settings configured');
     console.log('\nNext steps:');
-    console.log('1. Review settings: claude-flow config show');
-    console.log('2. Customize values: claude-flow config set <key> <value>');
-    console.log('3. Validate config: claude-flow config validate');
+    console.log('1. Review settings: claude-flow-novice config show');
+    console.log('2. Customize values: claude-flow-novice config set <key> <value>');
+    console.log('3. Validate config: claude-flow-novice config validate');
   } catch (err) {
     printError(`Failed to initialize configuration: ${err.message}`);
   }
@@ -140,7 +140,7 @@ async function showConfig(subArgs, flags) {
     }
   } catch (err) {
     printError('Configuration file not found');
-    console.log('Run "claude-flow config init" to create default configuration');
+    console.log('Run "claude-flow-novice config init" to create default configuration');
   }
 }
 
@@ -151,8 +151,8 @@ async function getConfigValue(subArgs, flags) {
   if (!key) {
     printError('Usage: config get <key>');
     console.log('Examples:');
-    console.log('  claude-flow config get terminal.poolSize');
-    console.log('  claude-flow config get orchestrator.maxConcurrentTasks');
+    console.log('  claude-flow-novice config get terminal.poolSize');
+    console.log('  claude-flow-novice config get orchestrator.maxConcurrentTasks');
     return;
   }
 
@@ -167,7 +167,7 @@ async function getConfigValue(subArgs, flags) {
     }
   } catch (err) {
     printError('Configuration file not found');
-    console.log('Run "claude-flow config init" to create configuration');
+    console.log('Run "claude-flow-novice config init" to create configuration');
   }
 }
 
@@ -179,8 +179,8 @@ async function setConfigValue(subArgs, flags) {
   if (!key || value === undefined) {
     printError('Usage: config set <key> <value>');
     console.log('Examples:');
-    console.log('  claude-flow config set terminal.poolSize 15');
-    console.log('  claude-flow config set orchestrator.taskTimeout 600000');
+    console.log('  claude-flow-novice config set terminal.poolSize 15');
+    console.log('  claude-flow-novice config set orchestrator.taskTimeout 600000');
     return;
   }
 
@@ -254,7 +254,7 @@ async function validateConfig(subArgs, flags) {
     }
   } catch (err) {
     printError('Configuration file not found or invalid');
-    console.log('Run "claude-flow config init" to create valid configuration');
+    console.log('Run "claude-flow-novice config init" to create valid configuration');
   }
 }
 
@@ -312,8 +312,8 @@ function showConfigHelp() {
   console.log('  agents.maxAgents                 Maximum number of agents');
   console.log();
   console.log('Examples:');
-  console.log('  claude-flow config init');
-  console.log('  claude-flow config set terminal.poolSize 15');
-  console.log('  claude-flow config get orchestrator.maxConcurrentTasks');
-  console.log('  claude-flow config validate');
+  console.log('  claude-flow-novice config init');
+  console.log('  claude-flow-novice config set terminal.poolSize 15');
+  console.log('  claude-flow-novice config get orchestrator.maxConcurrentTasks');
+  console.log('  claude-flow-novice config validate');
 }

@@ -1,6 +1,6 @@
 # Agent-Driven Accessibility Testing Automation
 
-This guide provides comprehensive strategies for implementing automated accessibility testing using claude-flow agents, creating a robust testing pipeline that ensures continuous accessibility compliance throughout the development lifecycle.
+This guide provides comprehensive strategies for implementing automated accessibility testing using claude-flow-novice agents, creating a robust testing pipeline that ensures continuous accessibility compliance throughout the development lifecycle.
 
 ## 🎯 Overview
 
@@ -527,7 +527,7 @@ jobs:
 
     - name: Run accessibility test suite
       run: |
-        npx claude-flow sparc run accessibility-test-suite \
+        npx claude-flow-novice sparc run accessibility-test-suite \
           --suite="${{ matrix.test-suite }}" \
           --compliance="wcag-aa" \
           --output="json" \
@@ -535,7 +535,7 @@ jobs:
 
     - name: Generate accessibility report
       run: |
-        npx claude-flow sparc run accessibility-reporter \
+        npx claude-flow-novice sparc run accessibility-reporter \
           --input="test-results/${{ matrix.test-suite }}.json" \
           --format="github-actions"
 
@@ -588,7 +588,7 @@ jobs:
 
     - name: Consolidate and analyze
       run: |
-        npx claude-flow sparc run accessibility-consolidator \
+        npx claude-flow-novice sparc run accessibility-consolidator \
           --input="all-results/" \
           --output="final-report.json" \
           --trends=true \
@@ -596,7 +596,7 @@ jobs:
 
     - name: Generate final report
       run: |
-        npx claude-flow sparc run accessibility-final-report \
+        npx claude-flow-novice sparc run accessibility-final-report \
           --input="final-report.json" \
           --format="html,pdf,json"
 
@@ -827,32 +827,32 @@ export class AccessibilityDashboard {
 
 ```bash
 # Run complete accessibility test suite
-npx claude-flow sparc run accessibility-suite "Complete WCAG 2.1 AA compliance testing"
+npx claude-flow-novice sparc run accessibility-suite "Complete WCAG 2.1 AA compliance testing"
 
 # Agent-driven testing with parallel execution
-npx claude-flow sparc batch "accessibility-scanner,keyboard-nav,screen-reader" "Parallel accessibility validation"
+npx claude-flow-novice sparc batch "accessibility-scanner,keyboard-nav,screen-reader" "Parallel accessibility validation"
 
 # Continuous monitoring setup
-npx claude-flow sparc run accessibility-monitor "Setup continuous accessibility monitoring"
+npx claude-flow-novice sparc run accessibility-monitor "Setup continuous accessibility monitoring"
 
 # Generate comprehensive report
-npx claude-flow sparc run accessibility-report "Generate executive accessibility report with trends"
+npx claude-flow-novice sparc run accessibility-report "Generate executive accessibility report with trends"
 
 # Integration testing
-npx claude-flow sparc run accessibility-integration "Test complete user flows for accessibility"
+npx claude-flow-novice sparc run accessibility-integration "Test complete user flows for accessibility"
 ```
 
 ### Advanced Agent Coordination
 
 ```bash
 # Multi-modal testing
-npx claude-flow sparc concurrent accessibility-multimodal "Test across devices, browsers, and assistive technologies"
+npx claude-flow-novice sparc concurrent accessibility-multimodal "Test across devices, browsers, and assistive technologies"
 
 # Performance-aware accessibility testing
-npx claude-flow sparc run accessibility-performance "Test accessibility features' performance impact"
+npx claude-flow-novice sparc run accessibility-performance "Test accessibility features' performance impact"
 
 # Regression testing
-npx claude-flow sparc run accessibility-regression "Detect accessibility regressions in latest changes"
+npx claude-flow-novice sparc run accessibility-regression "Detect accessibility regressions in latest changes"
 ```
 
 ## 🔄 Best Practices for Agent-Driven Testing

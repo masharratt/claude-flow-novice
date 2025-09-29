@@ -26,17 +26,17 @@ ${flags.config ? `- MCP Config: ${flags.config}` : ''}
 ### Available Features
 
 1. **Memory Bank** (Always Available)
-   - Store data: \`npx claude-flow memory store <key> "<value>"\` - Save important data, findings, or progress
-   - Retrieve data: \`npx claude-flow memory query <key>\` - Access previously stored information
-   - Export memory: \`npx claude-flow memory export <file>\` - Export memory to file
-   - Import memory: \`npx claude-flow memory import <file>\` - Import memory from file
-   - Memory stats: \`npx claude-flow memory stats\` - Show memory usage statistics
+   - Store data: \`npx claude-flow-novice memory store <key> "<value>"\` - Save important data, findings, or progress
+   - Retrieve data: \`npx claude-flow-novice memory query <key>\` - Access previously stored information
+   - Export memory: \`npx claude-flow-novice memory export <file>\` - Export memory to file
+   - Import memory: \`npx claude-flow-novice memory import <file>\` - Import memory from file
+   - Memory stats: \`npx claude-flow-novice memory stats\` - Show memory usage statistics
 
 2. **System Management**
-   - Check status: \`npx claude-flow status\` - View current system/task status
-   - Monitor system: \`npx claude-flow monitor\` - Real-time system monitoring
-   - List agents: \`npx claude-flow agent list\` - See active agents
-   - List tasks: \`npx claude-flow task list\` - See active tasks
+   - Check status: \`npx claude-flow-novice status\` - View current system/task status
+   - Monitor system: \`npx claude-flow-novice monitor\` - Real-time system monitoring
+   - List agents: \`npx claude-flow-novice agent list\` - See active agents
+   - List tasks: \`npx claude-flow-novice task list\` - See active tasks
 
 3. **Tool Access**
    - You have access to these tools: ${tools}
@@ -44,9 +44,9 @@ ${flags.config ? `- MCP Config: ${flags.config}` : ''}
 
   if (flags.parallel) {
     enhancedTask += `
-   - **Parallel Execution Enabled**: Use \`npx claude-flow agent spawn <type> --name <name>\` to spawn sub-agents
-   - Create tasks: \`npx claude-flow task create <type> "<description>"\`
-   - Assign tasks: \`npx claude-flow task assign <task-id> <agent-id>\`
+   - **Parallel Execution Enabled**: Use \`npx claude-flow-novice agent spawn <type> --name <name>\` to spawn sub-agents
+   - Create tasks: \`npx claude-flow-novice task create <type> "<description>"\`
+   - Assign tasks: \`npx claude-flow-novice task assign <task-id> <agent-id>\`
    - Break down complex tasks and delegate to specialized agents`;
   }
 
@@ -60,21 +60,21 @@ ${flags.config ? `- MCP Config: ${flags.config}` : ''}
 ### Workflow Guidelines
 
 1. **Before Starting**:
-   - Check memory: \`npx claude-flow memory query previous_work\`
-   - Check memory stats: \`npx claude-flow memory stats\`
-   - Check system status: \`npx claude-flow status\`
-   - List active agents: \`npx claude-flow agent list\`
-   - List active tasks: \`npx claude-flow task list\`
+   - Check memory: \`npx claude-flow-novice memory query previous_work\`
+   - Check memory stats: \`npx claude-flow-novice memory stats\`
+   - Check system status: \`npx claude-flow-novice status\`
+   - List active agents: \`npx claude-flow-novice agent list\`
+   - List active tasks: \`npx claude-flow-novice task list\`
    ${flags.mode === 'backend-only' ? '- Focus on backend implementation without frontend concerns' : ''}
    ${flags.mode === 'frontend-only' ? '- Focus on frontend implementation without backend concerns' : ''}
    ${flags.mode === 'api-only' ? '- Focus on API design and implementation' : ''}
 
 2. **During Execution**:
-   - Store findings: \`npx claude-flow memory store findings "your data here"\`
-   - Save checkpoints: \`npx claude-flow memory store progress_${task.replace(/\s+/g, '_')} "current status"\`
-   ${flags.parallel ? '- Spawn agents: `npx claude-flow agent spawn researcher --name "research-agent"`' : ''}
-   ${flags.parallel ? '- Create tasks: `npx claude-flow task create implementation "implement feature X"`' : ''}
-   ${flags.parallel ? '- Assign tasks: `npx claude-flow task assign <task-id> <agent-id>`' : ''}
+   - Store findings: \`npx claude-flow-novice memory store findings "your data here"\`
+   - Save checkpoints: \`npx claude-flow-novice memory store progress_${task.replace(/\s+/g, '_')} "current status"\`
+   ${flags.parallel ? '- Spawn agents: `npx claude-flow-novice agent spawn researcher --name "research-agent"`' : ''}
+   ${flags.parallel ? '- Create tasks: `npx claude-flow-novice task create implementation "implement feature X"`' : ''}
+   ${flags.parallel ? '- Assign tasks: `npx claude-flow-novice task assign <task-id> <agent-id>`' : ''}
    ${flags.coverage ? `- Ensure test coverage meets ${flags.coverage}% target` : ''}
    ${flags.commit === 'phase' ? '- Commit changes after completing each major phase' : ''}
    ${flags.commit === 'feature' ? '- Commit changes after each feature is complete' : ''}
@@ -85,9 +85,9 @@ ${flags.config ? `- MCP Config: ${flags.config}` : ''}
    - Store data as JSON strings for complex structures
    - Query memory before starting to check for existing work
    - Use descriptive keys for memory storage
-   - Monitor progress: \`npx claude-flow monitor\`
+   - Monitor progress: \`npx claude-flow-novice monitor\`
    ${flags.parallel ? '- Coordinate with other agents through shared memory' : ''}
-   ${flags.research ? '- Store research findings: `npx claude-flow memory store research_findings "data"`' : ''}
+   ${flags.research ? '- Store research findings: `npx claude-flow-novice memory store research_findings "data"`' : ''}
    ${flags.noPermissions ? '- Running with --no-permissions, all operations will execute without prompts' : ''}
    ${flags.verbose ? '- Verbose mode enabled, provide detailed output and explanations' : ''}
 
@@ -97,25 +97,25 @@ To interact with Claude-Flow, use the Bash tool:
 
 \`\`\`bash
 # Memory Operations
-Bash("npx claude-flow memory query previous_work")
-Bash("npx claude-flow memory store task_analysis '{\\"status\\": \\"completed\\", \\"findings\\": [...]}'")
-Bash("npx claude-flow memory stats")
-Bash("npx claude-flow memory export backup.json")
+Bash("npx claude-flow-novice memory query previous_work")
+Bash("npx claude-flow-novice memory store task_analysis '{\\"status\\": \\"completed\\", \\"findings\\": [...]}'")
+Bash("npx claude-flow-novice memory stats")
+Bash("npx claude-flow-novice memory export backup.json")
 
 # System Management
-Bash("npx claude-flow status")
-Bash("npx claude-flow monitor")  # Real-time monitoring
-Bash("npx claude-flow agent list")
-Bash("npx claude-flow task list --verbose")
+Bash("npx claude-flow-novice status")
+Bash("npx claude-flow-novice monitor")  # Real-time monitoring
+Bash("npx claude-flow-novice agent list")
+Bash("npx claude-flow-novice task list --verbose")
 ${
   flags.parallel
     ? `
 # Parallel Execution (enabled for this instance)
-Bash("npx claude-flow agent spawn researcher --name research-bot")
-Bash("npx claude-flow agent spawn coder --name code-bot")
-Bash("npx claude-flow task create research 'Analyze best practices'")
-Bash("npx claude-flow task create implementation 'Implement auth module'")
-Bash("npx claude-flow task assign task-123 agent-456")`
+Bash("npx claude-flow-novice agent spawn researcher --name research-bot")
+Bash("npx claude-flow-novice agent spawn coder --name code-bot")
+Bash("npx claude-flow-novice task create research 'Analyze best practices'")
+Bash("npx claude-flow-novice task create implementation 'Implement auth module'")
+Bash("npx claude-flow-novice task assign task-123 agent-456")`
     : ''
 }
 ${
@@ -123,19 +123,19 @@ ${
     ? `
 # Research Operations (research mode enabled)
 # Use WebFetchTool for web research, then store findings
-Bash("npx claude-flow memory store web_research_urls '[\\"url1\\", \\"url2\\"]'")
-Bash("npx claude-flow memory store research_summary 'Key findings from research...'")`
+Bash("npx claude-flow-novice memory store web_research_urls '[\\"url1\\", \\"url2\\"]'")
+Bash("npx claude-flow-novice memory store research_summary 'Key findings from research...'")`
     : ''
 }
 
 # Configuration Management
-Bash("npx claude-flow config show")
-Bash("npx claude-flow config get orchestrator.maxConcurrentTasks")
-Bash("npx claude-flow config set orchestrator.maxConcurrentTasks 20")
+Bash("npx claude-flow-novice config show")
+Bash("npx claude-flow-novice config get orchestrator.maxConcurrentTasks")
+Bash("npx claude-flow-novice config set orchestrator.maxConcurrentTasks 20")
 
 # Workflow Execution
-Bash("npx claude-flow workflow examples/development-config.json")
-Bash("npx claude-flow workflow examples/research-workflow.json --async")
+Bash("npx claude-flow-novice workflow examples/development-config.json")
+Bash("npx claude-flow-novice workflow examples/research-workflow.json --async")
 \`\`\`
 
 ## Mode-Specific Guidelines

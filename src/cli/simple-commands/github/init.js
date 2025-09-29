@@ -261,7 +261,7 @@ async function createGitHubSettingsJson() {
     },
     permissions: {
       allow: [
-        'Bash(npx claude-flow *)',
+        'Bash(npx claude-flow-novice *)',
         'Bash(npm run lint)',
         'Bash(npm run test:*)',
         'Bash(npm test *)',
@@ -296,7 +296,7 @@ async function createGitHubSettingsJson() {
         'Bash(cat *)',
         'Bash(echo *)',
         'Bash(npx claude-flow@alpha *)',
-        'Bash(./claude-flow *)',
+        'Bash(./claude-flow-novice *)',
         'Bash(./.claude/helpers/*)',
       ],
       deny: ['Bash(rm -rf /)', 'Bash(curl * | bash)', 'Bash(wget * | sh)', 'Bash(eval *)'],

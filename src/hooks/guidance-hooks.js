@@ -265,7 +265,7 @@ class GuidanceHooks {
         recommendations.combined.slice(0, 2).forEach((rec, index) => {
           console.log(`  ${index + 1}. ${rec.title} (${rec.estimatedTime || '10 min'})`);
         });
-        console.log('  Use "claude-flow guidance learn" for more recommendations');
+        console.log('  Use "claude-flow-novice guidance learn" for more recommendations');
       }
     } catch (error) {
       console.warn('Session start guidance failed:', error.message);
@@ -423,7 +423,7 @@ class GuidanceHooks {
 
     // Provide learning opportunities
     if (command.includes('swarm-init') && userStatus.experienceLevel === 'novice') {
-      console.log('\n💡 Next: Try spawning agents with "claude-flow agent-spawn <type>"');
+      console.log('\n💡 Next: Try spawning agents with "claude-flow-novice agent-spawn <type>"');
     }
   }
 
@@ -452,7 +452,7 @@ class GuidanceHooks {
     this.sessionContext.errorCount++;
     if (this.sessionContext.errorCount >= 3) {
       console.log(
-        '\n💡 Tip: Consider using "claude-flow guidance help-with <command>" for detailed guidance',
+        '\n💡 Tip: Consider using "claude-flow-novice guidance help-with <command>" for detailed guidance',
       );
     }
   }
@@ -466,16 +466,16 @@ class GuidanceHooks {
     if (outcome === 'success') {
       if (command.includes('swarm-init')) {
         steps.push('Spawn specialized agents for your task');
-        steps.push('Monitor swarm status with "claude-flow swarm-status"');
+        steps.push('Monitor swarm status with "claude-flow-novice swarm-status"');
       }
 
       if (command.includes('agent-spawn')) {
-        steps.push('Orchestrate tasks with "claude-flow task-orchestrate"');
-        steps.push('Check agent metrics with "claude-flow agent-metrics"');
+        steps.push('Orchestrate tasks with "claude-flow-novice task-orchestrate"');
+        steps.push('Check agent metrics with "claude-flow-novice agent-metrics"');
       }
 
       if (command.includes('task-orchestrate')) {
-        steps.push('Monitor task progress with "claude-flow task-status"');
+        steps.push('Monitor task progress with "claude-flow-novice task-status"');
         steps.push('Review results when complete');
       }
     }
@@ -516,7 +516,7 @@ class GuidanceHooks {
 
     if (level === 'novice') {
       console.log("\n👋 Welcome! As a novice user, you'll receive detailed guidance.");
-      console.log('   Use "claude-flow guidance help-with <command>" anytime for help.');
+      console.log('   Use "claude-flow-novice guidance help-with <command>" anytime for help.');
     } else if (level === 'intermediate') {
       console.log(
         `\n👋 Welcome back! You're ${Math.round(userStatus.progressToNext * 100)}% of the way to expert level.`,

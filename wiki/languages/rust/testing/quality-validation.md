@@ -1,6 +1,6 @@
 # Rust Quality Validation with Claude-Flow
 
-This guide demonstrates how claude-flow integrates with the real Rust toolchain to provide comprehensive code quality validation, leveraging the existing `RustQualityValidator` implementation for authentic, production-ready quality assurance.
+This guide demonstrates how claude-flow-novice integrates with the real Rust toolchain to provide comprehensive code quality validation, leveraging the existing `RustQualityValidator` implementation for authentic, production-ready quality assurance.
 
 ## 🔍 Quality Validation Overview
 
@@ -21,7 +21,7 @@ Claude-flow provides real Rust toolchain integration through the `RustQualityVal
 
 ```bash
 # Run comprehensive quality validation
-npx claude-flow validate rust ./my-rust-project
+npx claude-flow-novice validate rust ./my-rust-project
 
 # This executes real Cargo commands:
 # - cargo clippy --all-targets --all-features -- --deny warnings
@@ -35,17 +35,17 @@ npx claude-flow validate rust ./my-rust-project
 
 ```bash
 # Run validation with custom configuration
-npx claude-flow validate rust ./project --config quality-config.json
+npx claude-flow-novice validate rust ./project --config quality-config.json
 
 # Advanced validation with performance profiling
-npx claude-flow validate rust ./project --comprehensive --performance-profiling
+npx claude-flow-novice validate rust ./project --comprehensive --performance-profiling
 ```
 
 ### 3. Agent-Driven Quality Assurance
 
 ```bash
 # Multi-agent quality validation workflow
-npx claude-flow sparc run quality-engineer "Implement comprehensive quality gates for production Rust service"
+npx claude-flow-novice sparc run quality-engineer "Implement comprehensive quality gates for production Rust service"
 
 Task("Quality Engineer", "Set up strict quality validation with custom clippy rules", "quality-engineer")
 Task("Security Auditor", "Configure security scanning and vulnerability detection", "security-engineer")
@@ -580,10 +580,10 @@ jobs:
         cargo install cargo-outdated
         cargo install cargo-bloat
 
-    - name: Run claude-flow quality validation
+    - name: Run claude-flow-novice quality validation
       run: |
         npm install -g claude-flow@alpha
-        npx claude-flow validate rust . --comprehensive --output quality-report.json
+        npx claude-flow-novice validate rust . --comprehensive --output quality-report.json
 
     - name: Upload quality report
       uses: actions/upload-artifact@v3
@@ -961,7 +961,7 @@ TIMESTAMP=$(date +%s)
 COMMIT=$(git rev-parse HEAD)
 BRANCH=$(git branch --show-current)
 
-npx claude-flow validate rust . --comprehensive --output "quality-reports/quality-${TIMESTAMP}.json"
+npx claude-flow-novice validate rust . --comprehensive --output "quality-reports/quality-${TIMESTAMP}.json"
 
 # Add metadata to report
 jq --arg commit "$COMMIT" --arg branch "$BRANCH" --arg timestamp "$TIMESTAMP" \
@@ -1088,7 +1088,7 @@ impl QualityDashboardGenerator {
 }
 ```
 
-This comprehensive quality validation guide demonstrates how claude-flow leverages the existing `RustQualityValidator` implementation to provide authentic, production-ready code quality assurance with real Rust toolchain integration, advanced metrics, and continuous monitoring capabilities.
+This comprehensive quality validation guide demonstrates how claude-flow-novice leverages the existing `RustQualityValidator` implementation to provide authentic, production-ready code quality assurance with real Rust toolchain integration, advanced metrics, and continuous monitoring capabilities.
 
 ## 🔗 Next Steps
 

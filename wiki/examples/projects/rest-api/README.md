@@ -828,7 +828,7 @@ After completing this example:
 
 ---
 
-**Congratulations!** 🎉 You've built a production-ready REST API with multi-agent coordination. This example demonstrates how claude-flow enables rapid development of complex applications through intelligent agent collaboration.
+**Congratulations!** 🎉 You've built a production-ready REST API with multi-agent coordination. This example demonstrates how claude-flow-novice enables rapid development of complex applications through intelligent agent collaboration.
 
 ## Performance Metrics
 

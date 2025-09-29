@@ -14,8 +14,8 @@ Matrix of agent capabilities and their specializations.
 ## Querying Capabilities
 ```bash
 # List all capabilities
-npx claude-flow agents capabilities
+npx claude-flow-novice agents capabilities
 
 # For specific agent
-npx claude-flow agents capabilities --type coder
+npx claude-flow-novice agents capabilities --type coder
 ```

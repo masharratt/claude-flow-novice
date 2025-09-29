@@ -10,7 +10,7 @@ This comprehensive tutorial guides you through optimizing Claude Flow performanc
 
 ```bash
 # Establish baseline metrics
-npx claude-flow perf baseline --duration 300 --output baseline.json
+npx claude-flow-novice perf baseline --duration 300 --output baseline.json
 
 # Example baseline results:
 {
@@ -86,7 +86,7 @@ Adaptive            █████████████ ██████�
 
 ```bash
 # Monitor topology efficiency
-npx claude-flow topology analyze --current mesh
+npx claude-flow-novice topology analyze --current mesh
 
 # Results:
 Current Topology: Mesh
@@ -101,7 +101,7 @@ Recommendations:
   3. Enable compression for inter-agent communication
 
 # Apply optimization
-npx claude-flow topology optimize --auto-switch --memory-limit 2GB
+npx claude-flow-novice topology optimize --auto-switch --memory-limit 2GB
 ```
 
 ### 2. Memory Usage Optimization
@@ -147,18 +147,18 @@ After:  987MB peak, 12 GC events/hour (32% improvement)
 
 ```bash
 # Enable memory optimization
-npx claude-flow memory optimize --strategy adaptive
+npx claude-flow-novice memory optimize --strategy adaptive
 
 # Configure memory limits
-npx claude-flow config set memory.agent_limit 64MB
-npx claude-flow config set memory.cache_limit 256MB
-npx claude-flow config set memory.gc_threshold 80%
+npx claude-flow-novice config set memory.agent_limit 64MB
+npx claude-flow-novice config set memory.cache_limit 256MB
+npx claude-flow-novice config set memory.gc_threshold 80%
 
 # Monitor memory patterns
-npx claude-flow memory monitor --track-leaks --gc-analysis
+npx claude-flow-novice memory monitor --track-leaks --gc-analysis
 
 # Memory profiling report
-npx claude-flow memory profile --duration 600 --heap-snapshots 10
+npx claude-flow-novice memory profile --duration 600 --heap-snapshots 10
 ```
 
 ### 3. Agent Performance Tuning
@@ -203,7 +203,7 @@ Optimal Agent Assignment Strategy:
 
 ```bash
 # Analyze current agent performance
-npx claude-flow agents analyze --metrics efficiency,speed,accuracy
+npx claude-flow-novice agents analyze --metrics efficiency,speed,accuracy
 
 # Results:
 Agent Pool Analysis:
@@ -216,10 +216,10 @@ Agent Pool Analysis:
     - Increase memory allocation for 3 agents
 
 # Implement optimizations
-npx claude-flow agents optimize --replace-inefficient --retrain-patterns
+npx claude-flow-novice agents optimize --replace-inefficient --retrain-patterns
 
 # Configure adaptive scaling
-npx claude-flow agents scale --strategy adaptive --min 8 --max 32 --target-efficiency 85%
+npx claude-flow-novice agents scale --strategy adaptive --min 8 --max 32 --target-efficiency 85%
 ```
 
 ### 4. Network and I/O Optimization
@@ -262,20 +262,20 @@ After:  1.4s avg response, 198MB/s peak bandwidth (50% improvement)
 
 ```bash
 # Analyze I/O patterns
-npx claude-flow io analyze --duration 300
+npx claude-flow-novice io analyze --duration 300
 
 # Configure connection pooling
-npx claude-flow config set network.pool_size 200
-npx claude-flow config set network.keep_alive true
-npx claude-flow config set network.compression_level 6
+npx claude-flow-novice config set network.pool_size 200
+npx claude-flow-novice config set network.keep_alive true
+npx claude-flow-novice config set network.compression_level 6
 
 # Enable async I/O
-npx claude-flow config set io.async_enabled true
-npx claude-flow config set io.buffer_size 64KB
-npx claude-flow config set io.batch_operations true
+npx claude-flow-novice config set io.async_enabled true
+npx claude-flow-novice config set io.buffer_size 64KB
+npx claude-flow-novice config set io.batch_operations true
 
 # Monitor improvements
-npx claude-flow io monitor --real-time --alerts
+npx claude-flow-novice io monitor --real-time --alerts
 ```
 
 ### 5. Neural Network Performance Optimization
@@ -313,16 +313,16 @@ Memory Usage: 890MB → 678MB (24% reduction)
 
 ```bash
 # Optimize neural training
-npx claude-flow neural optimize --strategy efficient
+npx claude-flow-novice neural optimize --strategy efficient
 
 # Configure training parameters
-npx claude-flow neural config --learning-rate 0.001 --batch-size 64 --epochs 50
+npx claude-flow-novice neural config --learning-rate 0.001 --batch-size 64 --epochs 50
 
 # Enable distributed training
-npx claude-flow neural distributed --nodes 4 --sync-frequency 10
+npx claude-flow-novice neural distributed --nodes 4 --sync-frequency 10
 
 # Monitor training progress
-npx claude-flow neural monitor --track-loss --save-checkpoints
+npx claude-flow-novice neural monitor --track-loss --save-checkpoints
 ```
 
 ## Performance Monitoring and Alerts
@@ -331,15 +331,15 @@ npx claude-flow neural monitor --track-loss --save-checkpoints
 
 ```bash
 # Start comprehensive monitoring
-npx claude-flow monitor start --components all --interval 5s
+npx claude-flow-novice monitor start --components all --interval 5s
 
 # Configure performance alerts
-npx claude-flow alerts add --metric cpu_usage --threshold 80 --action scale_up
-npx claude-flow alerts add --metric memory_usage --threshold 90 --action gc_force
-npx claude-flow alerts add --metric latency_p99 --threshold 500ms --action optimize
+npx claude-flow-novice alerts add --metric cpu_usage --threshold 80 --action scale_up
+npx claude-flow-novice alerts add --metric memory_usage --threshold 90 --action gc_force
+npx claude-flow-novice alerts add --metric latency_p99 --threshold 500ms --action optimize
 
 # Dashboard view
-npx claude-flow dashboard --port 3000 --auth-token secure123
+npx claude-flow-novice dashboard --port 3000 --auth-token secure123
 ```
 
 ### Performance Alert Dashboard
@@ -378,31 +378,31 @@ Auto-optimization Actions Taken:
 
 ```bash
 # Enable predictive scaling based on historical patterns
-npx claude-flow scale predictive --enable --window 7d --confidence 85%
+npx claude-flow-novice scale predictive --enable --window 7d --confidence 85%
 
 # Configure scaling rules
-npx claude-flow scale rules add --metric throughput --trigger "rate>2000" --action "agents+2"
-npx claude-flow scale rules add --metric latency --trigger "p99>100ms" --action "optimize"
+npx claude-flow-novice scale rules add --metric throughput --trigger "rate>2000" --action "agents+2"
+npx claude-flow-novice scale rules add --metric latency --trigger "p99>100ms" --action "optimize"
 ```
 
 ### 2. Resource Pooling
 
 ```bash
 # Configure shared resource pools
-npx claude-flow resources pool --type memory --size 2GB --agents all
-npx claude-flow resources pool --type network --connections 500 --timeout 30s
-npx claude-flow resources pool --type compute --threads 16 --priority high
+npx claude-flow-novice resources pool --type memory --size 2GB --agents all
+npx claude-flow-novice resources pool --type network --connections 500 --timeout 30s
+npx claude-flow-novice resources pool --type compute --threads 16 --priority high
 ```
 
 ### 3. Caching Strategies
 
 ```bash
 # Enable intelligent caching
-npx claude-flow cache enable --strategy adaptive --size 512MB
-npx claude-flow cache config --ttl 3600 --eviction lru --compression true
+npx claude-flow-novice cache enable --strategy adaptive --size 512MB
+npx claude-flow-novice cache config --ttl 3600 --eviction lru --compression true
 
 # Monitor cache performance
-npx claude-flow cache stats --detailed
+npx claude-flow-novice cache stats --detailed
 ```
 
 ## Performance Testing Framework
@@ -411,10 +411,10 @@ npx claude-flow cache stats --detailed
 
 ```bash
 # Run comprehensive load tests
-npx claude-flow test load --suite comprehensive --duration 1800
+npx claude-flow-novice test load --suite comprehensive --duration 1800
 
 # Custom load test
-npx claude-flow test load \
+npx claude-flow-novice test load \
   --agents 32 \
   --rps 500 \
   --duration 300 \
@@ -422,17 +422,17 @@ npx claude-flow test load \
   --scenarios file,network,compute
 
 # Stress testing
-npx claude-flow test stress --max-load --duration 600 --monitor-resources
+npx claude-flow-novice test stress --max-load --duration 600 --monitor-resources
 ```
 
 ### Performance Regression Testing
 
 ```bash
 # Baseline comparison
-npx claude-flow test regression --baseline v1.0.0 --current main
+npx claude-flow-novice test regression --baseline v1.0.0 --current main
 
 # Continuous performance testing
-npx claude-flow test ci --threshold 5% --fail-on-regression --report junit
+npx claude-flow-novice test ci --threshold 5% --fail-on-regression --report junit
 ```
 
 ## Optimization Results Summary

@@ -8,21 +8,21 @@ Complete guide to building modern React applications using Claude-Flow agent coo
 
 ```bash
 # Generate React app with agent
-npx claude-flow sparc run coder "React TypeScript application with routing, state management, and UI components"
+npx claude-flow-novice sparc run coder "React TypeScript application with routing, state management, and UI components"
 
 # Alternative: Next.js full-stack
-npx claude-flow sparc run coder "Next.js application with App Router and TypeScript"
+npx claude-flow-novice sparc run coder "Next.js application with App Router and TypeScript"
 ```
 
 ### 2. Agent-Driven Development
 
 ```bash
 # Parallel frontend development
-npx claude-flow sparc batch "coder,reviewer,tester" "E-commerce frontend development"
+npx claude-flow-novice sparc batch "coder,reviewer,tester" "E-commerce frontend development"
 
 # Component-driven development
-npx claude-flow sparc run coder "React component library with Storybook"
-npx claude-flow sparc run tester "Component testing with React Testing Library"
+npx claude-flow-novice sparc run coder "React component library with Storybook"
+npx claude-flow-novice sparc run tester "Component testing with React Testing Library"
 ```
 
 ## 🏗 React Application Architecture
@@ -65,7 +65,7 @@ frontend/
 
 ```bash
 # Complete frontend generation
-npx claude-flow sparc run coder "React TypeScript application with:
+npx claude-flow-novice sparc run coder "React TypeScript application with:
 - Modern React 18 features
 - React Router v6
 - Zustand state management
@@ -161,7 +161,7 @@ export { Button, buttonVariants };
 
 ```bash
 # Generate UI component library with agent
-npx claude-flow sparc run coder "Comprehensive UI component library with Tailwind CSS and TypeScript"
+npx claude-flow-novice sparc run coder "Comprehensive UI component library with Tailwind CSS and TypeScript"
 ```
 
 ### 2. Form Components
@@ -287,7 +287,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onSubmit }) => {
 
 ```bash
 # Generate form components with agent
-npx claude-flow sparc run coder "React forms with validation using React Hook Form and Zod"
+npx claude-flow-novice sparc run coder "React forms with validation using React Hook Form and Zod"
 ```
 
 ### 3. Custom Hooks
@@ -391,7 +391,7 @@ export const useDebounce = <T>(value: T, delay: number): T => {
 
 ```bash
 # Generate custom hooks with agent
-npx claude-flow sparc run coder "Custom React hooks for API calls, local storage, and common patterns"
+npx claude-flow-novice sparc run coder "Custom React hooks for API calls, local storage, and common patterns"
 ```
 
 ## 🛠 State Management
@@ -528,7 +528,7 @@ export const useAuthStore = create<AuthStore>()(
 
 ```bash
 # Generate state management with agent
-npx claude-flow sparc run coder "Zustand state management with persistence and TypeScript"
+npx claude-flow-novice sparc run coder "Zustand state management with persistence and TypeScript"
 ```
 
 ### 2. React Query Setup
@@ -682,14 +682,14 @@ module.exports = {
 
 ```bash
 # Generate Tailwind configuration with agent
-npx claude-flow sparc run coder "Tailwind CSS configuration with design system and dark mode"
+npx claude-flow-novice sparc run coder "Tailwind CSS configuration with design system and dark mode"
 ```
 
 ### 2. Component Styling System
 
 ```bash
 # Generate comprehensive styling system with agent
-npx claude-flow sparc run coder "Component styling system with Tailwind CSS, CSS variables, and theme support"
+npx claude-flow-novice sparc run coder "Component styling system with Tailwind CSS, CSS variables, and theme support"
 ```
 
 ## 🧪 Frontend Testing
@@ -809,7 +809,7 @@ describe('useApi', () => {
 
 ```bash
 # Generate comprehensive frontend tests with agent
-npx claude-flow sparc run tester "React Testing Library setup with component, hook, and integration tests"
+npx claude-flow-novice sparc run tester "React Testing Library setup with component, hook, and integration tests"
 ```
 
 ## 🚀 Performance Optimization
@@ -887,14 +887,14 @@ export const AppRoutes: React.FC = () => {
 
 ```bash
 # Generate image optimization with agent
-npx claude-flow sparc run perf-analyzer "Image optimization with lazy loading and responsive images"
+npx claude-flow-novice sparc run perf-analyzer "Image optimization with lazy loading and responsive images"
 ```
 
 ### 3. Bundle Analysis
 
 ```bash
 # Generate bundle analysis with agent
-npx claude-flow sparc run perf-analyzer "Webpack bundle analysis and optimization strategies"
+npx claude-flow-novice sparc run perf-analyzer "Webpack bundle analysis and optimization strategies"
 ```
 
 ## 🔄 MCP Integration for Frontend Development
@@ -950,14 +950,14 @@ const status = await mcp__claude_flow__task_status({
 
 ```bash
 # Generate responsive design with agent
-npx claude-flow sparc run coder "Responsive React components with mobile-first design"
+npx claude-flow-novice sparc run coder "Responsive React components with mobile-first design"
 ```
 
 ### 2. Accessibility Implementation
 
 ```bash
 # Generate accessibility features with agent
-npx claude-flow sparc run reviewer "WCAG 2.1 compliance and accessibility testing"
+npx claude-flow-novice sparc run reviewer "WCAG 2.1 compliance and accessibility testing"
 ```
 
 ## 🔧 Build & Deployment
@@ -1040,7 +1040,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ```bash
 # Generate production deployment with agent
-npx claude-flow sparc run cicd-engineer "Production Docker build and deployment configuration"
+npx claude-flow-novice sparc run cicd-engineer "Production Docker build and deployment configuration"
 ```
 
 ---

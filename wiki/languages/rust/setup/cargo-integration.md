@@ -1,6 +1,6 @@
 # Cargo Integration with Claude-Flow
 
-This guide demonstrates how claude-flow integrates directly with Cargo, Rust's native build system and package manager, providing seamless development workflows without simulation.
+This guide demonstrates how claude-flow-novice integrates directly with Cargo, Rust's native build system and package manager, providing seamless development workflows without simulation.
 
 ## 🔧 Real Cargo Integration
 
@@ -10,15 +10,15 @@ Claude-flow provides native integration with the Rust toolchain through the exis
 
 ```bash
 # Direct Cargo integration through claude-flow
-npx claude-flow cargo build --release
-npx claude-flow cargo test --all
-npx claude-flow cargo clippy --all-targets
-npx claude-flow cargo fmt --check
-npx claude-flow cargo audit
-npx claude-flow cargo bench
+npx claude-flow-novice cargo build --release
+npx claude-flow-novice cargo test --all
+npx claude-flow-novice cargo clippy --all-targets
+npx claude-flow-novice cargo fmt --check
+npx claude-flow-novice cargo audit
+npx claude-flow-novice cargo bench
 
 # Quality validation with real toolchain
-npx claude-flow validate rust ./my-project
+npx claude-flow-novice validate rust ./my-project
 ```
 
 ## 📦 Project Initialization
@@ -27,7 +27,7 @@ npx claude-flow validate rust ./my-project
 
 ```bash
 # Initialize new Rust project with claude-flow
-npx claude-flow sparc run architect "Create a CLI tool with clap and async I/O"
+npx claude-flow-novice sparc run architect "Create a CLI tool with clap and async I/O"
 
 # The agent creates optimal Cargo.toml configuration:
 ```
@@ -86,7 +86,7 @@ debug = true
 
 ```bash
 # Create web service with specific framework
-npx claude-flow sparc run architect "Create REST API with Axum, PostgreSQL, and JWT auth"
+npx claude-flow-novice sparc run architect "Create REST API with Axum, PostgreSQL, and JWT auth"
 ```
 
 **Generated Web Service Cargo.toml:**
@@ -196,7 +196,7 @@ The existing `RustQualityValidator` provides comprehensive linting:
 
 ```bash
 # Run comprehensive quality validation
-npx claude-flow validate rust ./my-project
+npx claude-flow-novice validate rust ./my-project
 
 # This executes real cargo commands:
 # cargo clippy --all-targets --all-features -- --deny warnings
@@ -425,7 +425,7 @@ pre-release-replacements = [
 
 ```bash
 # Monitor build performance with claude-flow
-npx claude-flow cargo build --release --timings
+npx claude-flow-novice cargo build --release --timings
 
 # Generates detailed timing analysis:
 # - Dependency compilation time
@@ -531,7 +531,7 @@ required-features = ["benchmark-tests"]
 
 ```bash
 # Comprehensive testing with claude-flow
-npx claude-flow test rust --comprehensive
+npx claude-flow-novice test rust --comprehensive
 
 # Executes:
 # 1. cargo test --all-features
@@ -770,7 +770,7 @@ jobs:
         path: target/release/
 ```
 
-This comprehensive Cargo integration demonstrates how claude-flow leverages the existing Rust validation system to provide authentic, production-ready Rust development workflows without any simulation or mocking.
+This comprehensive Cargo integration demonstrates how claude-flow-novice leverages the existing Rust validation system to provide authentic, production-ready Rust development workflows without any simulation or mocking.
 
 ## 🔗 Next Steps
 

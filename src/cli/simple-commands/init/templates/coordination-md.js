@@ -4,9 +4,9 @@ export function createMinimalCoordinationMd() {
   return `# Agent Coordination
 
 ## Quick Commands
-- \`npx claude-flow agent spawn <type>\`: Create new agent
-- \`npx claude-flow agent list\`: Show active agents
-- \`npx claude-flow task create <type> <description>\`: Create task
+- \`npx claude-flow-novice agent spawn <type>\`: Create new agent
+- \`npx claude-flow-novice agent list\`: Show active agents
+- \`npx claude-flow-novice task create <type> <description>\`: Create task
 
 ## Agent Types
 - researcher, coder, analyst, coordinator, general
@@ -35,27 +35,27 @@ The Claude-Flow coordination system manages multiple AI agents working together 
 ## Coordination Commands
 \`\`\`bash
 # Agent Management
-npx claude-flow agent spawn <type> --name <name> --priority <1-10>
-npx claude-flow agent list
-npx claude-flow agent info <agent-id>
-npx claude-flow agent terminate <agent-id>
+npx claude-flow-novice agent spawn <type> --name <name> --priority <1-10>
+npx claude-flow-novice agent list
+npx claude-flow-novice agent info <agent-id>
+npx claude-flow-novice agent terminate <agent-id>
 
 # Task Management  
-npx claude-flow task create <type> <description> --priority <1-10> --deps <task-ids>
-npx claude-flow task list --verbose
-npx claude-flow task status <task-id>
-npx claude-flow task cancel <task-id>
+npx claude-flow-novice task create <type> <description> --priority <1-10> --deps <task-ids>
+npx claude-flow-novice task list --verbose
+npx claude-flow-novice task status <task-id>
+npx claude-flow-novice task cancel <task-id>
 
 # System Monitoring
-npx claude-flow status --verbose
-npx claude-flow monitor --interval 5000
+npx claude-flow-novice status --verbose
+npx claude-flow-novice monitor --interval 5000
 \`\`\`
 
 ## Workflow Execution
 Workflows are defined in JSON format and can orchestrate complex multi-agent operations:
 \`\`\`bash
-npx claude-flow workflow examples/research-workflow.json
-npx claude-flow workflow examples/development-config.json --async
+npx claude-flow-novice workflow examples/research-workflow.json
+npx claude-flow-novice workflow examples/development-config.json --async
 \`\`\`
 
 ## Advanced Features
@@ -98,8 +98,8 @@ Coordination settings in \`claude-flow.config.json\`:
 - Regular cleanup of completed tasks and inactive agents
 
 ## Troubleshooting
-- Check agent health with \`npx claude-flow status\`
-- View detailed logs with \`npx claude-flow monitor\`
+- Check agent health with \`npx claude-flow-novice status\`
+- View detailed logs with \`npx claude-flow-novice monitor\`
 - Restart stuck agents with terminate/spawn cycle
 - Use \`--verbose\` flags for detailed diagnostic information
 `;
@@ -136,51 +136,51 @@ The Claude-Flow coordination system manages multiple AI agents working together 
 ### Standard Commands
 \`\`\`bash
 # Agent Management
-npx claude-flow agent spawn <type> --name <name> --priority <1-10>
-npx claude-flow agent list
-npx claude-flow agent info <agent-id>
-npx claude-flow agent terminate <agent-id>
+npx claude-flow-novice agent spawn <type> --name <name> --priority <1-10>
+npx claude-flow-novice agent list
+npx claude-flow-novice agent info <agent-id>
+npx claude-flow-novice agent terminate <agent-id>
 
 # Task Management  
-npx claude-flow task create <type> <description> --priority <1-10> --deps <task-ids>
-npx claude-flow task list --verbose
-npx claude-flow task status <task-id>
-npx claude-flow task cancel <task-id>
+npx claude-flow-novice task create <type> <description> --priority <1-10> --deps <task-ids>
+npx claude-flow-novice task list --verbose
+npx claude-flow-novice task status <task-id>
+npx claude-flow-novice task cancel <task-id>
 
 # System Monitoring
-npx claude-flow status --verbose
-npx claude-flow monitor --interval 5000
+npx claude-flow-novice status --verbose
+npx claude-flow-novice monitor --interval 5000
 \`\`\`
 
 ### Batchtools Commands
 \`\`\`bash
 # Batch Agent Management
-npx claude-flow agent batch-spawn <agents-config> --parallel
-npx claude-flow agent parallel-status --all-agents
-npx claude-flow agent concurrent-terminate <agent-ids>
+npx claude-flow-novice agent batch-spawn <agents-config> --parallel
+npx claude-flow-novice agent parallel-status --all-agents
+npx claude-flow-novice agent concurrent-terminate <agent-ids>
 
 # Batch Task Management
-npx claude-flow task batch-create <tasks-file> --parallel
-npx claude-flow task parallel-execute <task-ids> --concurrent
-npx claude-flow task batch-monitor --real-time --parallel
+npx claude-flow-novice task batch-create <tasks-file> --parallel
+npx claude-flow-novice task parallel-execute <task-ids> --concurrent
+npx claude-flow-novice task batch-monitor --real-time --parallel
 
 # Advanced Coordination
-npx claude-flow coordination batch-workflow <workflows-config> --parallel
-npx claude-flow coordination parallel-orchestrate <orchestration-config>
-npx claude-flow coordination concurrent-monitor --all-systems
+npx claude-flow-novice coordination batch-workflow <workflows-config> --parallel
+npx claude-flow-novice coordination parallel-orchestrate <orchestration-config>
+npx claude-flow-novice coordination concurrent-monitor --all-systems
 \`\`\`
 
 ## Workflow Execution (Batchtools Enhanced)
 Workflows support parallel execution, batch processing, and concurrent orchestration:
 \`\`\`bash
 # Standard workflow execution
-npx claude-flow workflow examples/research-workflow.json
-npx claude-flow workflow examples/development-config.json --async
+npx claude-flow-novice workflow examples/research-workflow.json
+npx claude-flow-novice workflow examples/development-config.json --async
 
 # Batchtools workflow execution
-npx claude-flow workflow batch-execute <workflow-configs> --parallel
-npx claude-flow workflow parallel-orchestrate <workflows-dir> --concurrent
-npx claude-flow workflow concurrent-monitor --all-workflows --real-time
+npx claude-flow-novice workflow batch-execute <workflow-configs> --parallel
+npx claude-flow-novice workflow parallel-orchestrate <workflows-dir> --concurrent
+npx claude-flow-novice workflow concurrent-monitor --all-workflows --real-time
 \`\`\`
 
 ## Advanced Features (Enhanced)
@@ -256,25 +256,25 @@ Coordination settings in \`claude-flow.config.json\` with batchtools optimizatio
 ### Parallel Coordination Patterns
 \`\`\`bash
 # Spawn multiple specialized agents in parallel
-npx claude-flow agent batch-spawn sparc-agents.json --parallel --validate
+npx claude-flow-novice agent batch-spawn sparc-agents.json --parallel --validate
 
 # Execute batch of related tasks concurrently
-npx claude-flow task parallel-execute research-tasks.json --concurrent --monitor
+npx claude-flow-novice task parallel-execute research-tasks.json --concurrent --monitor
 
 # Orchestrate multiple workflows simultaneously
-npx claude-flow workflow concurrent-orchestrate project-workflows/ --parallel
+npx claude-flow-novice workflow concurrent-orchestrate project-workflows/ --parallel
 \`\`\`
 
 ### Performance Monitoring (Enhanced)
 \`\`\`bash
 # Monitor concurrent operations across all agents
-npx claude-flow monitor --concurrent --all-agents --verbose
+npx claude-flow-novice monitor --concurrent --all-agents --verbose
 
 # Analyze batch processing performance
-npx claude-flow coordination performance-report --batchtools --detailed
+npx claude-flow-novice coordination performance-report --batchtools --detailed
 
 # Real-time parallel task monitoring
-npx claude-flow task parallel-monitor --real-time --performance-metrics
+npx claude-flow-novice task parallel-monitor --real-time --performance-metrics
 \`\`\`
 
 ## Best Practices (Batchtools Enhanced)
@@ -317,23 +317,23 @@ npx claude-flow task parallel-monitor --real-time --performance-metrics
 ### Debug Commands (Enhanced)
 \`\`\`bash
 # Check concurrent coordination status
-npx claude-flow coordination debug --concurrent --verbose
+npx claude-flow-novice coordination debug --concurrent --verbose
 
 # Analyze batch operation performance
-npx claude-flow coordination analyze --batchtools --performance
+npx claude-flow-novice coordination analyze --batchtools --performance
 
 # Validate parallel agent integrity
-npx claude-flow agent validate --parallel --health-check
+npx claude-flow-novice agent validate --parallel --health-check
 
 # Monitor resource usage during concurrent operations
-npx claude-flow monitor --resources --concurrent --real-time
+npx claude-flow-novice monitor --resources --concurrent --real-time
 \`\`\`
 
 ### Advanced Troubleshooting
-- Check agent health with parallel monitoring: \`npx claude-flow status --concurrent\`
-- View detailed logs with concurrent analysis: \`npx claude-flow monitor --parallel --verbose\`
-- Restart stuck agents with batch operations: \`npx claude-flow agent batch-restart <agent-ids>\`
-- Use concurrent diagnostics: \`npx claude-flow debug --all-systems --parallel\`
+- Check agent health with parallel monitoring: \`npx claude-flow-novice status --concurrent\`
+- View detailed logs with concurrent analysis: \`npx claude-flow-novice monitor --parallel --verbose\`
+- Restart stuck agents with batch operations: \`npx claude-flow-novice agent batch-restart <agent-ids>\`
+- Use concurrent diagnostics: \`npx claude-flow-novice debug --all-systems --parallel\`
 
 For more information about coordination system optimization, see: https://github.com/ruvnet/claude-code-flow/docs/coordination-batchtools.md
 `;

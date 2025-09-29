@@ -232,7 +232,7 @@ export class InteractiveHelp {
           id: 'first-project',
           title: 'Create Your First Project',
           content:
-            'Try: claude-flow init "my first app"\n\nThis will create a new project with intelligent defaults based on your description.',
+            'Try: claude-flow-novice init "my first app"\n\nThis will create a new project with intelligent defaults based on your description.',
           type: 'exercise',
           interactive: true,
           nextSteps: ['natural-language'],
@@ -345,7 +345,7 @@ export class InteractiveHelp {
           id: 'direct-control',
           title: 'Direct Agent Control',
           content:
-            'In Intermediate tier, you can:\n• claude-flow agents list\n• claude-flow agents spawn coder\n• claude-flow agents metrics',
+            'In Intermediate tier, you can:\n• claude-flow-novice agents list\n• claude-flow-novice agents spawn coder\n• claude-flow-novice agents metrics',
           type: 'example',
           interactive: true,
           nextSteps: [],
@@ -464,7 +464,7 @@ export class InteractiveHelp {
 
   private handleGettingStartedQuestion(): any {
     return {
-      response: `🚀 Getting started is easy!\n\n1. Create a project: claude-flow init "my app"\n2. Build features: claude-flow build "add user login"\n3. Check status: claude-flow status\n\nClaude Flow uses AI to understand what you want and creates it automatically!`,
+      response: `🚀 Getting started is easy!\n\n1. Create a project: claude-flow-novice init "my app"\n2. Build features: claude-flow-novice build "add user login"\n3. Check status: claude-flow-novice status\n\nClaude Flow uses AI to understand what you want and creates it automatically!`,
       suggestions: [
         'Show me an example project setup',
         'What project types can I create?',
@@ -532,7 +532,7 @@ export class InteractiveHelp {
       };
     } else {
       return {
-        response: `🤖 Direct Agent Control!\n\nYou can now:\n• claude-flow agents list - See active agents\n• claude-flow agents spawn [type] - Create specific agents\n• claude-flow agents metrics - Check performance\n\nAgents coordinate automatically through shared memory and workflows.`,
+        response: `🤖 Direct Agent Control!\n\nYou can now:\n• claude-flow-novice agents list - See active agents\n• claude-flow-novice agents spawn [type] - Create specific agents\n• claude-flow-novice agents metrics - Check performance\n\nAgents coordinate automatically through shared memory and workflows.`,
         suggestions: [
           'Show me agent commands',
           'How do I spawn specific agents?',
@@ -613,7 +613,7 @@ export class InteractiveHelp {
       nextSteps: [
         'Try what you learned',
         'Start a new help session anytime',
-        'Use claude-flow learn for more',
+        'Use claude-flow-novice learn for more',
       ],
       canExit: true,
     };
@@ -705,8 +705,8 @@ export class InteractiveHelp {
   private getCommandNotFoundHelp(commandName: string, context: HelpContext): any {
     return {
       overview: `Command "${commandName}" not found or not available in your tier.`,
-      usage: 'Use claude-flow help to see available commands',
-      examples: ['claude-flow help', 'claude-flow learn'],
+      usage: 'Use claude-flow-novice help to see available commands',
+      examples: ['claude-flow-novice help', 'claude-flow-novice learn'],
       tips: ['Check your tier level', 'Use more commands to unlock new features'],
       relatedCommands: ['help', 'learn'],
       troubleshooting: ['Command might require higher tier', 'Check spelling'],
@@ -722,12 +722,12 @@ export class InteractiveHelp {
     const examples: Record<string, Record<string, string[]>> = {
       build: {
         web: [
-          'claude-flow build "add React component for user profile"',
-          'claude-flow build "create responsive navigation"',
+          'claude-flow-novice build "add React component for user profile"',
+          'claude-flow-novice build "create responsive navigation"',
         ],
         api: [
-          'claude-flow build "add REST endpoint for users"',
-          'claude-flow build "implement JWT middleware"',
+          'claude-flow-novice build "add REST endpoint for users"',
+          'claude-flow-novice build "implement JWT middleware"',
         ],
       },
     };
@@ -782,23 +782,23 @@ export class InteractiveHelp {
 
     switch (analysis.intent) {
       case 'create':
-        suggestions.push('Use: claude-flow init "your project description"');
-        suggestions.push('Try: claude-flow build "create [what you want]"');
+        suggestions.push('Use: claude-flow-novice init "your project description"');
+        suggestions.push('Try: claude-flow-novice build "create [what you want]"');
         break;
       case 'build':
-        suggestions.push('Use: claude-flow build "your feature description"');
+        suggestions.push('Use: claude-flow-novice build "your feature description"');
         suggestions.push('Be specific about technologies and requirements');
         break;
       case 'test':
         if (context.userTier !== UserTier.NOVICE) {
-          suggestions.push('Use: claude-flow test [test-type]');
+          suggestions.push('Use: claude-flow-novice test [test-type]');
         } else {
-          suggestions.push('Use: claude-flow build "setup testing"');
+          suggestions.push('Use: claude-flow-novice build "setup testing"');
         }
         break;
       default:
         suggestions.push('Try using natural language with build command');
-        suggestions.push('Use claude-flow help for available commands');
+        suggestions.push('Use claude-flow-novice help for available commands');
     }
 
     return suggestions;
@@ -808,13 +808,13 @@ export class InteractiveHelp {
     const examples = [];
 
     if (analysis.domain === 'frontend') {
-      examples.push('claude-flow build "create React login form"');
-      examples.push('claude-flow build "add responsive navigation"');
+      examples.push('claude-flow-novice build "create React login form"');
+      examples.push('claude-flow-novice build "add responsive navigation"');
     }
 
     if (analysis.domain === 'backend') {
-      examples.push('claude-flow build "create REST API for users"');
-      examples.push('claude-flow build "add database authentication"');
+      examples.push('claude-flow-novice build "create REST API for users"');
+      examples.push('claude-flow-novice build "add database authentication"');
     }
 
     return examples;
@@ -822,9 +822,9 @@ export class InteractiveHelp {
 
   private getLearnMoreForQuery(analysis: any, context: HelpContext): string[] {
     return [
-      'claude-flow learn natural-language',
-      'claude-flow help build',
-      'claude-flow learn agents',
+      'claude-flow-novice learn natural-language',
+      'claude-flow-novice help build',
+      'claude-flow-novice learn agents',
     ];
   }
 }

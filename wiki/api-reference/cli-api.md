@@ -19,11 +19,11 @@ The Claude Flow CLI provides both command-line interface and programmatic API ac
 
 ### Core Commands
 
-#### `claude-flow init`
+#### `claude-flow-novice init`
 Initialize a new Claude Flow project.
 
 ```bash
-claude-flow init [project-name] [options]
+claude-flow-novice init [project-name] [options]
 ```
 
 **Parameters:**
@@ -42,14 +42,14 @@ claude-flow init [project-name] [options]
 
 **Example:**
 ```bash
-claude-flow init my-project --template fullstack --tier development
+claude-flow-novice init my-project --template fullstack --tier development
 ```
 
-#### `claude-flow agent`
+#### `claude-flow-novice agent`
 Agent management commands.
 
 ```bash
-claude-flow agent <subcommand> [options]
+claude-flow-novice agent <subcommand> [options]
 ```
 
 **Subcommands:**
@@ -61,16 +61,16 @@ claude-flow agent <subcommand> [options]
 
 **Example:**
 ```bash
-claude-flow agent spawn coder "implement user authentication"
-claude-flow agent list --format table
-claude-flow agent status agent_123
+claude-flow-novice agent spawn coder "implement user authentication"
+claude-flow-novice agent list --format table
+claude-flow-novice agent status agent_123
 ```
 
-#### `claude-flow sparc`
+#### `claude-flow-novice sparc`
 SPARC methodology commands.
 
 ```bash
-claude-flow sparc <mode> "<task>" [options]
+claude-flow-novice sparc <mode> "<task>" [options]
 ```
 
 **Modes:**
@@ -82,16 +82,16 @@ claude-flow sparc <mode> "<task>" [options]
 
 **Example:**
 ```bash
-claude-flow sparc tdd "user management system" --agents 3
+claude-flow-novice sparc tdd "user management system" --agents 3
 ```
 
 ### Advanced Commands
 
-#### `claude-flow swarm`
+#### `claude-flow-novice swarm`
 Multi-agent coordination.
 
 ```bash
-claude-flow swarm <command> [options]
+claude-flow-novice swarm <command> [options]
 ```
 
 **Commands:**
@@ -100,11 +100,11 @@ claude-flow swarm <command> [options]
 - `optimize`: Optimize topology
 - `status`: Show swarm status
 
-#### `claude-flow hooks`
+#### `claude-flow-novice hooks`
 Lifecycle hook management.
 
 ```bash
-claude-flow hooks <command> [options]
+claude-flow-novice hooks <command> [options]
 ```
 
 **Commands:**

@@ -8,7 +8,7 @@ Based on the architecture analysis, here's the roadmap to complete the REST API 
 
 ```bash
 # Refactor the existing implementation to match specifications
-npx claude-flow sparc run code "Refactor index.js to server.js for REST API: change resource from items to tasks, add API versioning /api/v1/, update data model with title/completed/timestamps" --non-interactive
+npx claude-flow-novice sparc run code "Refactor index.js to server.js for REST API: change resource from items to tasks, add API versioning /api/v1/, update data model with title/completed/timestamps" --non-interactive
 ```
 
 **Tasks**:
@@ -22,7 +22,7 @@ npx claude-flow sparc run code "Refactor index.js to server.js for REST API: cha
 
 ```bash
 # Create comprehensive test suite
-npx claude-flow sparc run tdd "Create Jest test suite for tasks REST API with full coverage of CRUD operations, error cases, and query parameters" --non-interactive
+npx claude-flow-novice sparc run tdd "Create Jest test suite for tasks REST API with full coverage of CRUD operations, error cases, and query parameters" --non-interactive
 ```
 
 **Tasks**:
@@ -36,7 +36,7 @@ npx claude-flow sparc run tdd "Create Jest test suite for tasks REST API with fu
 
 ```bash
 # Add missing features
-npx claude-flow sparc run code "Implement query parameters for tasks API: filtering by completed status, pagination with limit/offset, and sorting" --non-interactive
+npx claude-flow-novice sparc run code "Implement query parameters for tasks API: filtering by completed status, pagination with limit/offset, and sorting" --non-interactive
 ```
 
 **Tasks**:
@@ -50,7 +50,7 @@ npx claude-flow sparc run code "Implement query parameters for tasks API: filter
 
 ```bash
 # Enhance error handling
-npx claude-flow sparc run code "Implement proper error handling for tasks API with consistent error format, validation errors, and request ID tracking" --non-interactive
+npx claude-flow-novice sparc run code "Implement proper error handling for tasks API with consistent error format, validation errors, and request ID tracking" --non-interactive
 ```
 
 **Tasks**:
@@ -64,7 +64,7 @@ npx claude-flow sparc run code "Implement proper error handling for tasks API wi
 
 ```bash
 # Security analysis
-npx claude-flow sparc run security-review "Review tasks REST API for security vulnerabilities, input validation, and error information leakage" --non-interactive
+npx claude-flow-novice sparc run security-review "Review tasks REST API for security vulnerabilities, input validation, and error information leakage" --non-interactive
 ```
 
 **Tasks**:
@@ -78,7 +78,7 @@ npx claude-flow sparc run security-review "Review tasks REST API for security vu
 
 ```bash
 # Optimize performance
-npx claude-flow sparc run refinement-optimization-mode "Optimize tasks API query performance and memory usage for large datasets" --non-interactive
+npx claude-flow-novice sparc run refinement-optimization-mode "Optimize tasks API query performance and memory usage for large datasets" --non-interactive
 ```
 
 **Tasks**:
@@ -92,7 +92,7 @@ npx claude-flow sparc run refinement-optimization-mode "Optimize tasks API query
 
 ```bash
 # Update documentation
-npx claude-flow sparc run docs-writer "Update REST API documentation to match implementation: README, API examples, and ensure consistency across all docs" --non-interactive
+npx claude-flow-novice sparc run docs-writer "Update REST API documentation to match implementation: README, API examples, and ensure consistency across all docs" --non-interactive
 ```
 
 **Tasks**:
@@ -106,7 +106,7 @@ npx claude-flow sparc run docs-writer "Update REST API documentation to match im
 
 ```bash
 # Final integration
-npx claude-flow sparc run integration "Perform end-to-end testing of tasks REST API and ensure all components work together correctly" --non-interactive
+npx claude-flow-novice sparc run integration "Perform end-to-end testing of tasks REST API and ensure all components work together correctly" --non-interactive
 ```
 
 **Tasks**:
@@ -122,7 +122,7 @@ For faster completion, use swarm mode to execute multiple phases in parallel:
 
 ```bash
 # Background swarm for comprehensive implementation
-npx claude-flow swarm "Complete REST API implementation: refactor to tasks resource, add tests, implement query parameters, enhance error handling" \
+npx claude-flow-novice swarm "Complete REST API implementation: refactor to tasks resource, add tests, implement query parameters, enhance error handling" \
   --strategy development \
   --background \
   --parallel \
@@ -131,8 +131,8 @@ npx claude-flow swarm "Complete REST API implementation: refactor to tasks resou
   --output ./api-implementation
 
 # Monitor progress
-npx claude-flow status
-npx claude-flow monitor
+npx claude-flow-novice status
+npx claude-flow-novice monitor
 ```
 
 ## Manual Execution Steps
@@ -186,5 +186,5 @@ If you prefer to execute each phase manually:
 Execute Phase 1 to refactor the core implementation:
 
 ```bash
-npx claude-flow sparc run code "Refactor index.js to server.js for REST API: change resource from items to tasks, add API versioning /api/v1/, update data model with title/completed/timestamps" --non-interactive
+npx claude-flow-novice sparc run code "Refactor index.js to server.js for REST API: change resource from items to tasks, add API versioning /api/v1/, update data model with title/completed/timestamps" --non-interactive
 ```

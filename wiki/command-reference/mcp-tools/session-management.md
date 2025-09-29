@@ -1,10 +1,10 @@
 # Session Management and Coordination
 
-Advanced session management techniques for claude-flow projects using MCP tools and Claude Code integration.
+Advanced session management techniques for claude-flow-novice projects using MCP tools and Claude Code integration.
 
 ## 🎯 Overview
 
-Session management in claude-flow enables:
+Session management in claude-flow-novice enables:
 - **Persistent Context**: Maintain project state across Claude Code sessions
 - **Cross-Session Coordination**: Seamless handoffs between team members
 - **State Recovery**: Automatic restoration of interrupted work

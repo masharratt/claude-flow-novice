@@ -1123,7 +1123,7 @@ export class RustFrameworkDetector {
    */
   async executeHook(hookName, data) {
     try {
-      // Use npx to execute hook with proper claude-flow context
+      // Use npx to execute hook with proper claude-flow-novice context
       const hookCommand = `npx claude-flow@alpha hooks ${hookName}`;
 
       // For now, just log the hook execution

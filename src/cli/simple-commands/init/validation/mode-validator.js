@@ -119,12 +119,12 @@ export class ModeValidator {
         result.error = '.roomodes file not found';
       }
 
-      // Check for claude-flow executable
+      // Check for claude-flow-novice executable
       try {
         const stat = await Deno.stat(`${this.workingDir}/claude-flow`);
         result.hasExecutable = stat.isFile;
       } catch {
-        result.error = 'claude-flow executable not found';
+        result.error = 'claude-flow-novice executable not found';
       }
 
       result.initialized = result.hasRoomodes && result.hasExecutable;

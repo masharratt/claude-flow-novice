@@ -1,6 +1,6 @@
 # TypeScript Project Setup with Claude Flow
 
-Complete guide to setting up TypeScript projects with claude-flow agent coordination for maximum type safety and development efficiency.
+Complete guide to setting up TypeScript projects with claude-flow-novice agent coordination for maximum type safety and development efficiency.
 
 ## 🚀 Quick Setup
 
@@ -10,7 +10,7 @@ Complete guide to setting up TypeScript projects with claude-flow agent coordina
 node --version  # Should be 18.0.0 or higher
 npm --version   # Latest stable
 
-# Install claude-flow globally (recommended)
+# Install claude-flow-novice globally (recommended)
 npm install -g claude-flow@alpha
 ```
 

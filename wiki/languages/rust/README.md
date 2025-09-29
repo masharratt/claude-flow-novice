@@ -1,6 +1,6 @@
 # Rust Development with Claude-Flow
 
-Welcome to the comprehensive Rust development guide for claude-flow. This directory contains everything you need to build, test, and deploy Rust applications using the claude-flow orchestration system with real Rust toolchain integration.
+Welcome to the comprehensive Rust development guide for claude-flow. This directory contains everything you need to build, test, and deploy Rust applications using the claude-flow-novice orchestration system with real Rust toolchain integration.
 
 ## 🦀 Rust Agent Capabilities
 

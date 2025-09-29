@@ -1,6 +1,6 @@
 # Python Development with Claude-Flow
 
-A comprehensive guide to Python development using claude-flow orchestration for enhanced productivity, automated testing, and intelligent code generation.
+A comprehensive guide to Python development using claude-flow-novice orchestration for enhanced productivity, automated testing, and intelligent code generation.
 
 ## 🐍 Python Development Workflow
 
@@ -68,7 +68,7 @@ A comprehensive guide to Python development using claude-flow orchestration for 
 
 ## 🐍 Overview
 
-Python development with claude-flow combines the simplicity of Python with the power of AI-assisted development workflows. This documentation covers everything from basic project setup to advanced data science workflows, web development, and testing automation.
+Python development with claude-flow-novice combines the simplicity of Python with the power of AI-assisted development workflows. This documentation covers everything from basic project setup to advanced data science workflows, web development, and testing automation.
 
 ## 📚 Documentation Structure
 
@@ -244,7 +244,7 @@ npx claude-flow@alpha mcp memory_search --pattern "python/*" --limit 10
 
 ## 📈 Performance Benefits
 
-With claude-flow orchestration:
+With claude-flow-novice orchestration:
 - **84.8% faster development** with agent coordination
 - **32.3% token reduction** through intelligent context management
 - **2.8-4.4x speed improvement** in testing and deployment

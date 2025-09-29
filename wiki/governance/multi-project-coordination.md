@@ -2,7 +2,7 @@
 
 ## Overview
 
-As organizations scale claude-flow across multiple projects and teams, robust governance and coordination mechanisms become critical. This document outlines proven patterns for managing complex multi-project environments with 100+ developers.
+As organizations scale claude-flow-novice across multiple projects and teams, robust governance and coordination mechanisms become critical. This document outlines proven patterns for managing complex multi-project environments with 100+ developers.
 
 ## Governance Framework
 

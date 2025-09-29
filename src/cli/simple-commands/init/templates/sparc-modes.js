@@ -35,13 +35,13 @@ SPARC (Specification, Planning, Architecture, Review, Code) is a comprehensive d
 ## Usage
 \`\`\`bash
 # Run a specific mode
-./claude-flow sparc run <mode> "task description"
+./claude-flow-novice sparc run <mode> "task description"
 
 # List all modes
-./claude-flow sparc modes
+./claude-flow-novice sparc modes
 
 # Get help for a mode
-./claude-flow sparc help <mode>
+./claude-flow-novice sparc help <mode>
 \`\`\`
 `;
 }
@@ -83,7 +83,7 @@ mcp__claude-flow__task_orchestrate {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow swarm "analyze system performance" --strategy analysis
+npx claude-flow-novice swarm "analyze system performance" --strategy analysis
 
 # For alpha features
 npx claude-flow@alpha swarm "analyze system performance" --strategy analysis
@@ -91,8 +91,8 @@ npx claude-flow@alpha swarm "analyze system performance" --strategy analysis
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow swarm "analyze system performance" --strategy analysis
+# If claude-flow-novice is installed locally
+./claude-flow-novice swarm "analyze system performance" --strategy analysis
 \`\`\`
 
 ## Agent Roles
@@ -133,7 +133,7 @@ mcp__claude-flow__task_orchestrate {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow swarm "build feature X" --strategy development
+npx claude-flow-novice swarm "build feature X" --strategy development
 
 # For alpha features
 npx claude-flow@alpha swarm "build feature X" --strategy development
@@ -141,8 +141,8 @@ npx claude-flow@alpha swarm "build feature X" --strategy development
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow swarm "build feature X" --strategy development
+# If claude-flow-novice is installed locally
+./claude-flow-novice swarm "build feature X" --strategy development
 \`\`\`
 
 ## Agent Roles
@@ -166,7 +166,7 @@ function createExamplesStrategy() {
 
 ### Research Swarm
 \`\`\`bash
-./claude-flow swarm "research AI trends" \\
+./claude-flow-novice swarm "research AI trends" \\
   --strategy research \\
   --mode distributed \\
   --max-agents 6 \\
@@ -175,7 +175,7 @@ function createExamplesStrategy() {
 
 ### Development Swarm
 \`\`\`bash
-./claude-flow swarm "build REST API" \\
+./claude-flow-novice swarm "build REST API" \\
   --strategy development \\
   --mode hierarchical \\
   --monitor \\
@@ -184,7 +184,7 @@ function createExamplesStrategy() {
 
 ### Analysis Swarm
 \`\`\`bash
-./claude-flow swarm "analyze codebase" \\
+./claude-flow-novice swarm "analyze codebase" \\
   --strategy analysis \\
   --mode mesh \\
   --parallel \\
@@ -219,7 +219,7 @@ mcp__claude-flow__task_orchestrate {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow swarm "update dependencies" --strategy maintenance
+npx claude-flow-novice swarm "update dependencies" --strategy maintenance
 
 # For alpha features
 npx claude-flow@alpha swarm "update dependencies" --strategy maintenance
@@ -227,8 +227,8 @@ npx claude-flow@alpha swarm "update dependencies" --strategy maintenance
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow swarm "update dependencies" --strategy maintenance
+# If claude-flow-novice is installed locally
+./claude-flow-novice swarm "update dependencies" --strategy maintenance
 \`\`\`
 
 ## Agent Roles
@@ -269,7 +269,7 @@ mcp__claude-flow__task_orchestrate {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow swarm "optimize performance" --strategy optimization
+npx claude-flow-novice swarm "optimize performance" --strategy optimization
 
 # For alpha features
 npx claude-flow@alpha swarm "optimize performance" --strategy optimization
@@ -277,8 +277,8 @@ npx claude-flow@alpha swarm "optimize performance" --strategy optimization
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow swarm "optimize performance" --strategy optimization
+# If claude-flow-novice is installed locally
+./claude-flow-novice swarm "optimize performance" --strategy optimization
 \`\`\`
 
 ## Agent Roles
@@ -320,7 +320,7 @@ mcp__claude-flow__task_orchestrate {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow swarm "research topic X" --strategy research
+npx claude-flow-novice swarm "research topic X" --strategy research
 
 # For alpha features
 npx claude-flow@alpha swarm "research topic X" --strategy research
@@ -328,8 +328,8 @@ npx claude-flow@alpha swarm "research topic X" --strategy research
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow swarm "research topic X" --strategy research
+# If claude-flow-novice is installed locally
+./claude-flow-novice swarm "research topic X" --strategy research
 \`\`\`
 
 ## Agent Roles
@@ -370,7 +370,7 @@ mcp__claude-flow__task_orchestrate {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow swarm "test application" --strategy testing
+npx claude-flow-novice swarm "test application" --strategy testing
 
 # For alpha features
 npx claude-flow@alpha swarm "test application" --strategy testing
@@ -378,8 +378,8 @@ npx claude-flow@alpha swarm "test application" --strategy testing
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow swarm "test application" --strategy testing
+# If claude-flow-novice is installed locally
+./claude-flow-novice swarm "test application" --strategy testing
 \`\`\`
 
 ## Agent Roles
@@ -441,7 +441,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run analyzer "analyze codebase performance"
+npx claude-flow-novice sparc run analyzer "analyze codebase performance"
 
 # For alpha features
 npx claude-flow@alpha sparc run analyzer "analyze codebase performance"
@@ -449,8 +449,8 @@ npx claude-flow@alpha sparc run analyzer "analyze codebase performance"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run analyzer "analyze codebase performance"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run analyzer "analyze codebase performance"
 \`\`\`
 
 ## Core Capabilities
@@ -497,7 +497,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run architect "design microservices architecture"
+npx claude-flow-novice sparc run architect "design microservices architecture"
 
 # For alpha features
 npx claude-flow@alpha sparc run architect "design microservices architecture"
@@ -505,8 +505,8 @@ npx claude-flow@alpha sparc run architect "design microservices architecture"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run architect "design microservices architecture"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run architect "design microservices architecture"
 \`\`\`
 
 ## Core Capabilities
@@ -554,7 +554,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run batch-executor "process multiple files"
+npx claude-flow-novice sparc run batch-executor "process multiple files"
 
 # For alpha features
 npx claude-flow@alpha sparc run batch-executor "process multiple files"
@@ -562,8 +562,8 @@ npx claude-flow@alpha sparc run batch-executor "process multiple files"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run batch-executor "process multiple files"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run batch-executor "process multiple files"
 \`\`\`
 
 ## Core Capabilities
@@ -612,7 +612,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run coder "implement user authentication"
+npx claude-flow-novice sparc run coder "implement user authentication"
 
 # For alpha features
 npx claude-flow@alpha sparc run coder "implement user authentication"
@@ -620,8 +620,8 @@ npx claude-flow@alpha sparc run coder "implement user authentication"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run coder "implement user authentication"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run coder "implement user authentication"
 \`\`\`
 
 ## Core Capabilities
@@ -670,7 +670,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run debugger "fix authentication issues"
+npx claude-flow-novice sparc run debugger "fix authentication issues"
 
 # For alpha features
 npx claude-flow@alpha sparc run debugger "fix authentication issues"
@@ -678,8 +678,8 @@ npx claude-flow@alpha sparc run debugger "fix authentication issues"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run debugger "fix authentication issues"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run debugger "fix authentication issues"
 \`\`\`
 
 ## Core Capabilities
@@ -728,7 +728,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run designer "create dashboard UI"
+npx claude-flow-novice sparc run designer "create dashboard UI"
 
 # For alpha features
 npx claude-flow@alpha sparc run designer "create dashboard UI"
@@ -736,8 +736,8 @@ npx claude-flow@alpha sparc run designer "create dashboard UI"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run designer "create dashboard UI"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run designer "create dashboard UI"
 \`\`\`
 
 ## Core Capabilities
@@ -785,7 +785,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run documenter "create API documentation"
+npx claude-flow-novice sparc run documenter "create API documentation"
 
 # For alpha features
 npx claude-flow@alpha sparc run documenter "create API documentation"
@@ -793,8 +793,8 @@ npx claude-flow@alpha sparc run documenter "create API documentation"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run documenter "create API documentation"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run documenter "create API documentation"
 \`\`\`
 
 ## Core Capabilities
@@ -843,7 +843,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run innovator "innovative solutions for scaling"
+npx claude-flow-novice sparc run innovator "innovative solutions for scaling"
 
 # For alpha features
 npx claude-flow@alpha sparc run innovator "innovative solutions for scaling"
@@ -851,8 +851,8 @@ npx claude-flow@alpha sparc run innovator "innovative solutions for scaling"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run innovator "innovative solutions for scaling"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run innovator "innovative solutions for scaling"
 \`\`\`
 
 ## Core Capabilities
@@ -901,7 +901,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run memory-manager "organize project knowledge"
+npx claude-flow-novice sparc run memory-manager "organize project knowledge"
 
 # For alpha features
 npx claude-flow@alpha sparc run memory-manager "organize project knowledge"
@@ -909,8 +909,8 @@ npx claude-flow@alpha sparc run memory-manager "organize project knowledge"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run memory-manager "organize project knowledge"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run memory-manager "organize project knowledge"
 \`\`\`
 
 ## Core Capabilities
@@ -959,7 +959,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run optimizer "optimize application performance"
+npx claude-flow-novice sparc run optimizer "optimize application performance"
 
 # For alpha features
 npx claude-flow@alpha sparc run optimizer "optimize application performance"
@@ -967,8 +967,8 @@ npx claude-flow@alpha sparc run optimizer "optimize application performance"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run optimizer "optimize application performance"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run optimizer "optimize application performance"
 \`\`\`
 
 ## Core Capabilities
@@ -1017,7 +1017,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run orchestrator "coordinate feature development"
+npx claude-flow-novice sparc run orchestrator "coordinate feature development"
 
 # For alpha features
 npx claude-flow@alpha sparc run orchestrator "coordinate feature development"
@@ -1025,8 +1025,8 @@ npx claude-flow@alpha sparc run orchestrator "coordinate feature development"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run orchestrator "coordinate feature development"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run orchestrator "coordinate feature development"
 \`\`\`
 
 ## Core Capabilities
@@ -1075,7 +1075,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run researcher "research AI trends 2024"
+npx claude-flow-novice sparc run researcher "research AI trends 2024"
 
 # For alpha features
 npx claude-flow@alpha sparc run researcher "research AI trends 2024"
@@ -1083,8 +1083,8 @@ npx claude-flow@alpha sparc run researcher "research AI trends 2024"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run researcher "research AI trends 2024"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run researcher "research AI trends 2024"
 \`\`\`
 
 ## Core Capabilities
@@ -1133,7 +1133,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run reviewer "review pull request #123"
+npx claude-flow-novice sparc run reviewer "review pull request #123"
 
 # For alpha features
 npx claude-flow@alpha sparc run reviewer "review pull request #123"
@@ -1141,8 +1141,8 @@ npx claude-flow@alpha sparc run reviewer "review pull request #123"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run reviewer "review pull request #123"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run reviewer "review pull request #123"
 \`\`\`
 
 ## Core Capabilities
@@ -1191,7 +1191,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run swarm-coordinator "manage development swarm"
+npx claude-flow-novice sparc run swarm-coordinator "manage development swarm"
 
 # For alpha features
 npx claude-flow@alpha sparc run swarm-coordinator "manage development swarm"
@@ -1199,8 +1199,8 @@ npx claude-flow@alpha sparc run swarm-coordinator "manage development swarm"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run swarm-coordinator "manage development swarm"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run swarm-coordinator "manage development swarm"
 \`\`\`
 
 ## Core Capabilities
@@ -1249,7 +1249,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run tdd "shopping cart feature"
+npx claude-flow-novice sparc run tdd "shopping cart feature"
 
 # For alpha features
 npx claude-flow@alpha sparc run tdd "shopping cart feature"
@@ -1257,8 +1257,8 @@ npx claude-flow@alpha sparc run tdd "shopping cart feature"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run tdd "shopping cart feature"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run tdd "shopping cart feature"
 \`\`\`
 
 ## Core Capabilities
@@ -1307,7 +1307,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run tester "full regression suite"
+npx claude-flow-novice sparc run tester "full regression suite"
 
 # For alpha features
 npx claude-flow@alpha sparc run tester "full regression suite"
@@ -1315,8 +1315,8 @@ npx claude-flow@alpha sparc run tester "full regression suite"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run tester "full regression suite"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run tester "full regression suite"
 \`\`\`
 
 ## Core Capabilities
@@ -1365,7 +1365,7 @@ mcp__claude-flow__sparc_mode {
 ### Option 2: Using NPX CLI (Fallback when MCP not available)
 \`\`\`bash
 # Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run workflow-manager "automate deployment"
+npx claude-flow-novice sparc run workflow-manager "automate deployment"
 
 # For alpha features
 npx claude-flow@alpha sparc run workflow-manager "automate deployment"
@@ -1373,8 +1373,8 @@ npx claude-flow@alpha sparc run workflow-manager "automate deployment"
 
 ### Option 3: Local Installation
 \`\`\`bash
-# If claude-flow is installed locally
-./claude-flow sparc run workflow-manager "automate deployment"
+# If claude-flow-novice is installed locally
+./claude-flow-novice sparc run workflow-manager "automate deployment"
 \`\`\`
 
 ## Core Capabilities

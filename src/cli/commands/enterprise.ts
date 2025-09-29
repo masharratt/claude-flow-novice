@@ -322,10 +322,10 @@ export const enterpriseCommands: Command[] = [
           console.log();
           console.log(`${bold('Examples:')}`);
           console.log(
-            `  ${cyan('claude-flow project create')} "E-commerce Platform" --type web-app --priority high`,
+            `  ${cyan('claude-flow-novice project create')} "E-commerce Platform" --type web-app --priority high`,
           );
-          console.log(`  ${cyan('claude-flow project list')} --status active --verbose`);
-          console.log(`  ${cyan('claude-flow project report')} proj-123 financial`);
+          console.log(`  ${cyan('claude-flow-novice project list')} --status active --verbose`);
+          console.log(`  ${cyan('claude-flow-novice project report')} proj-123 financial`);
           break;
         }
       }
@@ -586,10 +586,10 @@ export const enterpriseCommands: Command[] = [
           console.log();
           console.log(`${bold('Examples:')}`);
           console.log(
-            `  ${cyan('claude-flow deploy create')} "v2.1.0" --environment production --strategy blue-green`,
+            `  ${cyan('claude-flow-novice deploy create')} "v2.1.0" --environment production --strategy blue-green`,
           );
-          console.log(`  ${cyan('claude-flow deploy rollback')} deploy-123 "Critical bug found"`);
-          console.log(`  ${cyan('claude-flow deploy metrics')} --environment production`);
+          console.log(`  ${cyan('claude-flow-novice deploy rollback')} deploy-123 "Critical bug found"`);
+          console.log(`  ${cyan('claude-flow-novice deploy metrics')} --environment production`);
           break;
         }
       }
@@ -870,12 +870,12 @@ export const enterpriseCommands: Command[] = [
           console.log();
           console.log(`${bold('Examples:')}`);
           console.log(
-            `  ${cyan('claude-flow cloud providers add')} "AWS Production" aws --access-key xxx`,
+            `  ${cyan('claude-flow-novice cloud providers add')} "AWS Production" aws --access-key xxx`,
           );
           console.log(
-            `  ${cyan('claude-flow cloud resources create')} "web-server" compute --provider aws-prod`,
+            `  ${cyan('claude-flow-novice cloud resources create')} "web-server" compute --provider aws-prod`,
           );
-          console.log(`  ${cyan('claude-flow cloud optimize')} --environment production`);
+          console.log(`  ${cyan('claude-flow-novice cloud optimize')} --environment production`);
           break;
         }
       }
@@ -1114,12 +1114,12 @@ export const enterpriseCommands: Command[] = [
           console.log();
           console.log(`${bold('Examples:')}`);
           console.log(
-            `  ${cyan('claude-flow security scan')} "API Vulnerability Scan" ./api --type vulnerability`,
+            `  ${cyan('claude-flow-novice security scan')} "API Vulnerability Scan" ./api --type vulnerability`,
           );
           console.log(
-            `  ${cyan('claude-flow security incident create')} "Unauthorized Access" --severity high`,
+            `  ${cyan('claude-flow-novice security incident create')} "Unauthorized Access" --severity high`,
           );
-          console.log(`  ${cyan('claude-flow security compliance')} SOC2 GDPR --project web-app`);
+          console.log(`  ${cyan('claude-flow-novice security compliance')} SOC2 GDPR --project web-app`);
           break;
         }
       }
@@ -1449,10 +1449,10 @@ export const enterpriseCommands: Command[] = [
           console.log('  predict           Predictive modeling and forecasting');
           console.log();
           console.log(`${bold('Examples:')}`);
-          console.log(`  ${cyan('claude-flow analytics insights')} --timerange 7d`);
-          console.log(`  ${cyan('claude-flow analytics metrics')} performance`);
+          console.log(`  ${cyan('claude-flow-novice analytics insights')} --timerange 7d`);
+          console.log(`  ${cyan('claude-flow-novice analytics metrics')} performance`);
           console.log(
-            `  ${cyan('claude-flow analytics predict train')} "load-predictor" --features cpu,memory --target response-time`,
+            `  ${cyan('claude-flow-novice analytics predict train')} "load-predictor" --features cpu,memory --target response-time`,
           );
           break;
         }
@@ -1756,13 +1756,13 @@ export const enterpriseCommands: Command[] = [
           console.log();
           console.log(`${bold('Examples:')}`);
           console.log(
-            `  ${cyan('claude-flow audit log')} user_login success --user john.doe --resource user-account`,
+            `  ${cyan('claude-flow-novice audit log')} user_login success --user john.doe --resource user-account`,
           );
           console.log(
-            `  ${cyan('claude-flow audit report')} compliance --framework SOC2 --timerange 90d`,
+            `  ${cyan('claude-flow-novice audit report')} compliance --framework SOC2 --timerange 90d`,
           );
           console.log(
-            `  ${cyan('claude-flow audit export')} --format csv --timerange 30d --encrypt`,
+            `  ${cyan('claude-flow-novice audit export')} --format csv --timerange 30d --encrypt`,
           );
           break;
         }
