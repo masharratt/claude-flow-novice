@@ -145,7 +145,8 @@
     "dev:monitor": "python scripts/dev/claude-monitor.py",
     "utils:fix-imports": "node scripts/utils/fix-import-paths.js",
     "utils:cleanup": "bash scripts/utils/clean-build-artifacts.sh",
-    "hooks:session-start": "node src/cli/simple-commands/hooks.js session-start"
+    "hooks:session-start": "node src/cli/simple-commands/hooks.js session-start",
+    "postinstall": "node scripts/post-install-claude-md.js"
   },
   "keywords": [
     "ai",
@@ -190,18 +191,20 @@
     "npm": ">=9.0.0"
   },
   "files": [
-    ".claude-flow-novice/dist/",
+    ".claude-flow-novice/",
+    ".claude/",
+    "config/",
+    "scripts/",
     "src/commands/",
     "src/slash-commands/",
-    "src/cli/simple-commands/hooks/",
+    "src/cli/simple-commands/",
     "src/swarm-fullstack/",
     "src/npx/",
     "examples/",
     "wiki/",
-    ".claude/",
-    "config/",
-    "scripts/post-install-claude-md.js",
+    "CLAUDE.md",
     "README.md",
+    "README-NPM.md",
     "LICENSE",
     "CHANGELOG.md"
   ],

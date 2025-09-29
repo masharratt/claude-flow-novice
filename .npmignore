@@ -86,9 +86,8 @@ bin/claude-flow-macos
 bin/claude-flow-win
 bin/claude-flow-node-pkg
 
-# Example and demo files
-examples/
-demo/
+# Include examples/ for the npm package (as it's in files array)
+!examples/
 
 # CI/CD
 .travis.yml
@@ -97,7 +96,13 @@ demo/
 
 # Keep essential files for npm package
 !cli.js
-!scripts/install.js
-!scripts/swarm-blessed-ui.js
-!scripts/swarm-simple.js
-!scripts/swarm-example.sh
+!scripts/
+!.claude/
+!config/
+!CLAUDE.md
+!wiki/
+!src/commands/
+!src/slash-commands/
+!src/cli/simple-commands/
+!src/swarm-fullstack/
+!src/npx/
