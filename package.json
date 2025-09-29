@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Standalone Claude Flow for beginners - AI agent orchestration made easy. Enhanced init command creates complete agent system, MCP configuration with 30 essential tools, and automated hooks. Fully standalone with zero external dependencies, all memory leaks eliminated, complete project setup in one command.",
   "mcpName": "io.github.ruvnet/claude-flow",
   "main": ".claude-flow-novice/dist/index.js",
