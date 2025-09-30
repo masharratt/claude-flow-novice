@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### ✨ Added
+- **`/fullstack` Slash Command**: Launch coordinated full-stack development team with consensus validation
+  - Automatic team composition (researcher, coder, tester, reviewer, architect)
+  - Built-in consensus validation with 4-validator Byzantine fault tolerance
+  - Iterative improvement with up to 10 rounds and feedback injection
+  - Production-ready code quality (≥90% agreement + critical criteria)
+  - User can specify custom goals: `/fullstack "Add authentication with JWT"`
+  - Command aliases: `/fs`, `/full`
+  - Comprehensive documentation in `docs/commands/fullstack.md`
+  - Auto-discovered by Claude Code (no manual registration required)
+
 ## [1.4.1] - 2025-09-29
 
 ### 🔧 Fixed

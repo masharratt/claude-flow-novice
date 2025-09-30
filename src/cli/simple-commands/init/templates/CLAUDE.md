@@ -174,7 +174,8 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 ## Essential Commands
 - `npx claude-flow-novice status` - System health
 - `npx claude-flow-novice --help` - Available commands
-- `/swarm`, `/sparc`, `/hooks` - Slash commands (auto-discovered)
+- `/fullstack "goal"` - Launch full-stack development team with consensus validation
+- `/swarm`, `/sparc`, `/hooks` - Other slash commands (auto-discovered)
 
 ## DEVELOPMENT FLOW 
   1. Execute - Primary swarm (3-8 agents) produces deliverables with confidence score

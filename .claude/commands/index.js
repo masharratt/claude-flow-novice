@@ -43,6 +43,7 @@ export { default as registerClaudeMd } from './register-claude-md.js';
 export const Commands = {
   SPARC: 'sparc',
   SWARM: 'swarm',
+  FULLSTACK: 'fullstack',
   HOOKS: 'hooks',
   NEURAL: 'neural',
   PERFORMANCE: 'performance',
@@ -57,6 +58,8 @@ export const Commands = {
  */
 export const Aliases = {
   s: 'swarm',
+  fs: 'fullstack',
+  full: 'fullstack',
   h: 'hooks',
   n: 'neural',
   p: 'performance',
@@ -91,6 +94,7 @@ export function getQuickHelp() {
 🚀 **CLAUDE-FLOW SLASH COMMANDS**
 
 **Essential Commands:**
+- \`/fullstack "goal"\` - Launch full-stack development team with consensus validation
 - \`/swarm init mesh 8\` - Initialize agent swarm
 - \`/hooks enable\` - Enable automation hooks
 - \`/sparc spec "task"\` - Run SPARC methodology
