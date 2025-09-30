@@ -1,0 +1,200 @@
+{
+  "metadata": {
+    "timestamp": "2025-09-30T14:53:58.402Z",
+    "rounds": 1,
+    "parallel": false
+  },
+  "formats": {
+    "minimal": {
+      "scenarios": {
+        "rust-01-basic": {
+          "scenario": "rust-01-basic",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2586,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2586,
+                  "timeToFirstToken": 258.6,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.4864349365234375
+                },
+                "quality": {
+                  "length": 199,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 2,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 50,
+                  "totalTokens": 550
+                }
+              },
+              "timestamp": "2025-09-30T14:54:00.993Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 0,
+            "responseTime": 2586,
+            "consistency": 100,
+            "successRate": 100
+          }
+        }
+      },
+      "aggregated": {
+        "overallQuality": 0,
+        "overallResponseTime": 2586,
+        "overallConsistency": 100,
+        "successRate": 100
+      }
+    },
+    "metadata": {
+      "scenarios": {
+        "rust-01-basic": {
+          "scenario": "rust-01-basic",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2280,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2280,
+                  "timeToFirstToken": 228,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.601051330566406
+                },
+                "quality": {
+                  "length": 232,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 2,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 58,
+                  "totalTokens": 558
+                }
+              },
+              "timestamp": "2025-09-30T14:54:03.273Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 0,
+            "responseTime": 2280,
+            "consistency": 100,
+            "successRate": 100
+          }
+        }
+      },
+      "aggregated": {
+        "overallQuality": 0,
+        "overallResponseTime": 2280,
+        "overallConsistency": 100,
+        "successRate": 100
+      }
+    },
+    "code-heavy": {
+      "scenarios": {
+        "rust-01-basic": {
+          "scenario": "rust-01-basic",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1486,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1486,
+                  "timeToFirstToken": 148.6,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.764251708984375
+                },
+                "quality": {
+                  "length": 205,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 2,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 52,
+                  "totalTokens": 552
+                }
+              },
+              "timestamp": "2025-09-30T14:54:04.760Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 0,
+            "responseTime": 1486,
+            "consistency": 100,
+            "successRate": 100
+          }
+        }
+      },
+      "aggregated": {
+        "overallQuality": 0,
+        "overallResponseTime": 1486,
+        "overallConsistency": 100,
+        "successRate": 100
+      }
+    }
+  },
+  "summary": {
+    "winner": "minimal",
+    "winnerQuality": "0.0",
+    "comparisons": [
+      {
+        "name": "minimal",
+        "qualityImprovement": "NaN",
+        "speedImprovement": "-13.4",
+        "consistencyImprovement": "0.0"
+      },
+      {
+        "name": "metadata",
+        "qualityImprovement": "NaN",
+        "speedImprovement": "0.0",
+        "consistencyImprovement": "0.0"
+      },
+      {
+        "name": "code-heavy",
+        "qualityImprovement": "NaN",
+        "speedImprovement": "34.8",
+        "consistencyImprovement": "0.0"
+      }
+    ],
+    "recommendation": [
+      "Highest quality responses: minimal format (0.0%)",
+      "Fastest responses: code-heavy format (1486ms avg)",
+      "Most consistent: minimal format (100.0% consistency)"
+    ]
+  }
+}

@@ -1,0 +1,591 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2025-09-30",
+    "description": "Comprehensive Rust test scenarios ranging from basic to master difficulty",
+    "totalScenarios": 5,
+    "maxScore": 100
+  },
+  "scenarios": [
+    {
+      "id": "rust-01-basic",
+      "name": "Basic String Processing with Error Handling",
+      "difficulty": "basic",
+      "estimatedTime": "5-10 minutes",
+      "category": "fundamentals",
+      "prompt": {
+        "minimal": "Write a function that reverses words in a string. Handle errors.",
+        "metadata": "Create a Rust function that reverses the order of words in a string with proper error handling.",
+        "codeHeavy": "Implement a robust word reversal function in Rust with comprehensive error handling and tests."
+      },
+      "scoringRubric": {
+        "maxScore": 100,
+        "criteria": [
+          {
+            "category": "Correctness",
+            "weight": 30,
+            "checks": [
+              {
+                "name": "Basic functionality works",
+                "points": 10,
+                "test": "Correctly reverses words"
+              },
+              {
+                "name": "Error handling",
+                "points": 10,
+                "test": "Returns Err for empty strings"
+              },
+              {
+                "name": "Edge cases handled",
+                "points": 10,
+                "test": "Handles single word and multiple spaces"
+              }
+            ]
+          },
+          {
+            "category": "Rust Idioms",
+            "weight": 25,
+            "checks": [
+              {
+                "name": "Iterator usage",
+                "points": 10,
+                "test": "Uses split_whitespace and iterator methods"
+              },
+              {
+                "name": "Result type",
+                "points": 8,
+                "test": "Properly uses Result type"
+              },
+              {
+                "name": "Borrowing",
+                "points": 7,
+                "test": "Efficient use of references"
+              }
+            ]
+          },
+          {
+            "category": "Code Quality",
+            "weight": 20,
+            "checks": [
+              {
+                "name": "Documentation",
+                "points": 8,
+                "test": "Has rustdoc comments"
+              },
+              {
+                "name": "Naming",
+                "points": 6,
+                "test": "Clear variable names"
+              },
+              {
+                "name": "Readability",
+                "points": 6,
+                "test": "Clean logic"
+              }
+            ]
+          },
+          {
+            "category": "Testing",
+            "weight": 15,
+            "checks": [
+              {
+                "name": "Test coverage",
+                "points": 8,
+                "test": "Tests for basic cases and errors"
+              },
+              {
+                "name": "Test assertions",
+                "points": 7,
+                "test": "Proper assertions"
+              }
+            ]
+          },
+          {
+            "category": "Performance",
+            "weight": 10,
+            "checks": [
+              {
+                "name": "Efficiency",
+                "points": 5,
+                "test": "Avoids unnecessary allocations"
+              },
+              {
+                "name": "Complexity",
+                "points": 5,
+                "test": "Linear time complexity"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rust-02-concurrent",
+      "name": "Concurrent File Processor",
+      "difficulty": "intermediate",
+      "estimatedTime": "15-25 minutes",
+      "category": "concurrency",
+      "prompt": {
+        "minimal": "Write a multi-threaded line counter using Arc<Mutex<T>>. Handle errors properly.",
+        "metadata": "Create a concurrent file processor in Rust that counts lines across multiple threads using Arc<Mutex<T>> with proper error handling and synchronization.",
+        "codeHeavy": "Implement a production-ready multi-threaded file line counter in Rust that:\n- Uses Arc<Mutex<T>> for shared state\n- Processes files concurrently across threads\n- Handles errors from file I/O and thread panics\n- Includes comprehensive tests for thread safety\n- Demonstrates proper synchronization patterns"
+      },
+      "scoringRubric": {
+        "maxScore": 100,
+        "criteria": [
+          {
+            "category": "Correctness",
+            "weight": 35,
+            "checks": [
+              {
+                "name": "Accurate counting",
+                "points": 15,
+                "test": "Correctly counts lines across all threads"
+              },
+              {
+                "name": "Thread safety",
+                "points": 12,
+                "test": "No data races or synchronization bugs"
+              },
+              {
+                "name": "Error propagation",
+                "points": 8,
+                "test": "Properly handles and propagates thread errors"
+              }
+            ]
+          },
+          {
+            "category": "Concurrency Patterns",
+            "weight": 30,
+            "checks": [
+              {
+                "name": "Arc<Mutex<T>> usage",
+                "points": 12,
+                "test": "Correct use of Arc and Mutex"
+              },
+              {
+                "name": "Thread spawning",
+                "points": 10,
+                "test": "Efficient thread creation and joining"
+              },
+              {
+                "name": "Lock management",
+                "points": 8,
+                "test": "Minimal lock contention, proper lock scoping"
+              }
+            ]
+          },
+          {
+            "category": "Code Quality",
+            "weight": 15,
+            "checks": [
+              {
+                "name": "Documentation",
+                "points": 6,
+                "test": "Clear rustdoc comments explaining concurrency"
+              },
+              {
+                "name": "Error types",
+                "points": 5,
+                "test": "Custom error types for different failure modes"
+              },
+              {
+                "name": "Readability",
+                "points": 4,
+                "test": "Clear separation of concerns"
+              }
+            ]
+          },
+          {
+            "category": "Testing",
+            "weight": 12,
+            "checks": [
+              {
+                "name": "Concurrent tests",
+                "points": 7,
+                "test": "Tests verify thread safety and correctness"
+              },
+              {
+                "name": "Error tests",
+                "points": 5,
+                "test": "Tests for error handling scenarios"
+              }
+            ]
+          },
+          {
+            "category": "Performance",
+            "weight": 8,
+            "checks": [
+              {
+                "name": "Scalability",
+                "points": 5,
+                "test": "Performance improves with more threads"
+              },
+              {
+                "name": "Resource usage",
+                "points": 3,
+                "test": "Efficient memory and CPU usage"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rust-03-lru-cache",
+      "name": "Generic LRU Cache",
+      "difficulty": "advanced",
+      "estimatedTime": "30-45 minutes",
+      "category": "data-structures",
+      "prompt": {
+        "minimal": "Implement an O(1) LRU cache with generics. Use unsafe if needed.",
+        "metadata": "Create a generic LRU cache in Rust with O(1) operations, proper lifetime management, and potentially unsafe code for manual memory management.",
+        "codeHeavy": "Implement a production-quality generic LRU cache in Rust that:\n- Provides O(1) get/put operations using HashMap + doubly-linked list\n- Uses proper lifetime annotations for borrowed values\n- Implements Drop trait for cleanup\n- May use unsafe code for pointer manipulation (with safety documentation)\n- Includes generic type parameters with appropriate trait bounds\n- Has comprehensive tests including lifetime edge cases\n- Demonstrates advanced memory management patterns"
+      },
+      "scoringRubric": {
+        "maxScore": 100,
+        "criteria": [
+          {
+            "category": "Correctness",
+            "weight": 30,
+            "checks": [
+              {
+                "name": "LRU eviction",
+                "points": 12,
+                "test": "Correctly evicts least recently used items"
+              },
+              {
+                "name": "O(1) operations",
+                "points": 10,
+                "test": "Get and put are constant time"
+              },
+              {
+                "name": "Memory safety",
+                "points": 8,
+                "test": "No memory leaks or undefined behavior"
+              }
+            ]
+          },
+          {
+            "category": "Advanced Rust Features",
+            "weight": 35,
+            "checks": [
+              {
+                "name": "Generics and bounds",
+                "points": 10,
+                "test": "Proper generic parameters with Hash, Eq bounds"
+              },
+              {
+                "name": "Lifetime annotations",
+                "points": 10,
+                "test": "Correct lifetime management for borrowed data"
+              },
+              {
+                "name": "Unsafe code",
+                "points": 8,
+                "test": "Safe abstractions over unsafe, documented invariants"
+              },
+              {
+                "name": "Drop implementation",
+                "points": 7,
+                "test": "Proper cleanup in Drop trait"
+              }
+            ]
+          },
+          {
+            "category": "Code Quality",
+            "weight": 15,
+            "checks": [
+              {
+                "name": "Documentation",
+                "points": 7,
+                "test": "Clear docs explaining data structure and safety"
+              },
+              {
+                "name": "API design",
+                "points": 5,
+                "test": "Ergonomic and idiomatic API"
+              },
+              {
+                "name": "Code organization",
+                "points": 3,
+                "test": "Well-structured internal implementation"
+              }
+            ]
+          },
+          {
+            "category": "Testing",
+            "weight": 12,
+            "checks": [
+              {
+                "name": "Comprehensive tests",
+                "points": 7,
+                "test": "Tests cover edge cases and lifetimes"
+              },
+              {
+                "name": "Property testing",
+                "points": 5,
+                "test": "Uses quickcheck or proptest for properties"
+              }
+            ]
+          },
+          {
+            "category": "Performance",
+            "weight": 8,
+            "checks": [
+              {
+                "name": "Algorithmic efficiency",
+                "points": 5,
+                "test": "True O(1) operations verified"
+              },
+              {
+                "name": "Memory efficiency",
+                "points": 3,
+                "test": "Minimal overhead per entry"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rust-04-zero-copy",
+      "name": "Zero-Copy CSV Parser",
+      "difficulty": "expert",
+      "estimatedTime": "45-60 minutes",
+      "category": "zero-copy",
+      "prompt": {
+        "minimal": "Build a zero-copy CSV parser with lifetime-bounded iterators.",
+        "metadata": "Create a zero-copy CSV parser in Rust using lifetime-bounded iterators that avoids allocations by returning string slices.",
+        "codeHeavy": "Implement a zero-copy CSV parser in Rust that:\n- Returns iterators over CSV rows without allocating\n- Uses lifetime-bounded iterators that borrow from input buffer\n- Handles quoted fields and escaping correctly\n- Provides both streaming and batch parsing APIs\n- Uses PhantomData and variance annotations appropriately\n- Includes tests verifying zero allocations (using allocation counters)\n- Demonstrates advanced lifetime patterns and zero-cost abstractions\n- Handles errors without breaking zero-copy guarantee"
+      },
+      "scoringRubric": {
+        "maxScore": 100,
+        "criteria": [
+          {
+            "category": "Correctness",
+            "weight": 25,
+            "checks": [
+              {
+                "name": "CSV parsing",
+                "points": 10,
+                "test": "Correctly parses standard CSV format"
+              },
+              {
+                "name": "Quoted fields",
+                "points": 8,
+                "test": "Handles quotes and escaping properly"
+              },
+              {
+                "name": "Edge cases",
+                "points": 7,
+                "test": "Handles empty fields, newlines in quotes"
+              }
+            ]
+          },
+          {
+            "category": "Zero-Copy Implementation",
+            "weight": 40,
+            "checks": [
+              {
+                "name": "No allocations",
+                "points": 15,
+                "test": "Verified zero allocations during parsing"
+              },
+              {
+                "name": "Lifetime correctness",
+                "points": 12,
+                "test": "Proper lifetime bounds on all iterators"
+              },
+              {
+                "name": "Iterator design",
+                "points": 8,
+                "test": "Implements Iterator trait correctly"
+              },
+              {
+                "name": "PhantomData usage",
+                "points": 5,
+                "test": "Correct variance with PhantomData"
+              }
+            ]
+          },
+          {
+            "category": "Code Quality",
+            "weight": 15,
+            "checks": [
+              {
+                "name": "Documentation",
+                "points": 7,
+                "test": "Clear docs explaining lifetime guarantees"
+              },
+              {
+                "name": "API design",
+                "points": 5,
+                "test": "Ergonomic streaming API"
+              },
+              {
+                "name": "Error handling",
+                "points": 3,
+                "test": "Errors don't break zero-copy guarantee"
+              }
+            ]
+          },
+          {
+            "category": "Testing",
+            "weight": 12,
+            "checks": [
+              {
+                "name": "Allocation tests",
+                "points": 7,
+                "test": "Tests verify zero allocations"
+              },
+              {
+                "name": "Correctness tests",
+                "points": 5,
+                "test": "Comprehensive CSV format tests"
+              }
+            ]
+          },
+          {
+            "category": "Performance",
+            "weight": 8,
+            "checks": [
+              {
+                "name": "Benchmarks",
+                "points": 5,
+                "test": "Competitive with csv crate"
+              },
+              {
+                "name": "Memory profile",
+                "points": 3,
+                "test": "Constant memory usage"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "rust-05-async-scheduler",
+      "name": "Async Work-Stealing Scheduler",
+      "difficulty": "master",
+      "estimatedTime": "60-90 minutes",
+      "category": "async-runtime",
+      "prompt": {
+        "minimal": "Create a work-stealing async executor with Waker protocol.",
+        "metadata": "Implement a multi-threaded async work-stealing scheduler in Rust that properly implements the Waker protocol and demonstrates Send+Sync bounds.",
+        "codeHeavy": "Implement a production-grade async work-stealing scheduler in Rust that:\n- Uses work-stealing queues (deque) for load balancing\n- Implements proper Waker protocol for async/await\n- Handles multi-threaded execution with Send+Sync bounds\n- Provides spawn and block_on APIs\n- Uses AtomicWaker for synchronization\n- Implements proper task lifecycle management\n- Handles panics in spawned tasks gracefully\n- Includes comprehensive tests for concurrent async execution\n- Demonstrates advanced async runtime patterns\n- Provides benchmarks comparing to tokio's scheduler"
+      },
+      "scoringRubric": {
+        "maxScore": 100,
+        "criteria": [
+          {
+            "category": "Correctness",
+            "weight": 30,
+            "checks": [
+              {
+                "name": "Waker protocol",
+                "points": 12,
+                "test": "Correct Waker implementation and registration"
+              },
+              {
+                "name": "Task completion",
+                "points": 10,
+                "test": "All spawned tasks complete correctly"
+              },
+              {
+                "name": "Panic handling",
+                "points": 8,
+                "test": "Panics don't crash runtime or leak tasks"
+              }
+            ]
+          },
+          {
+            "category": "Async Runtime Implementation",
+            "weight": 40,
+            "checks": [
+              {
+                "name": "Work stealing",
+                "points": 12,
+                "test": "Proper deque-based work stealing"
+              },
+              {
+                "name": "Send+Sync bounds",
+                "points": 10,
+                "test": "Correct trait bounds for multi-threading"
+              },
+              {
+                "name": "AtomicWaker",
+                "points": 8,
+                "test": "Lock-free waker synchronization"
+              },
+              {
+                "name": "Task lifecycle",
+                "points": 6,
+                "test": "Proper spawning, polling, completion"
+              },
+              {
+                "name": "block_on",
+                "points": 4,
+                "test": "Correct blocking implementation"
+              }
+            ]
+          },
+          {
+            "category": "Code Quality",
+            "weight": 12,
+            "checks": [
+              {
+                "name": "Documentation",
+                "points": 5,
+                "test": "Clear docs on runtime internals"
+              },
+              {
+                "name": "Safety documentation",
+                "points": 4,
+                "test": "Unsafe code is well-documented"
+              },
+              {
+                "name": "API ergonomics",
+                "points": 3,
+                "test": "Easy-to-use spawn/block_on API"
+              }
+            ]
+          },
+          {
+            "category": "Testing",
+            "weight": 10,
+            "checks": [
+              {
+                "name": "Concurrent tests",
+                "points": 6,
+                "test": "Tests verify concurrent async execution"
+              },
+              {
+                "name": "Stress tests",
+                "points": 4,
+                "test": "Tests with many spawned tasks"
+              }
+            ]
+          },
+          {
+            "category": "Performance",
+            "weight": 8,
+            "checks": [
+              {
+                "name": "Load balancing",
+                "points": 5,
+                "test": "Work evenly distributed across threads"
+              },
+              {
+                "name": "Benchmarks",
+                "points": 3,
+                "test": "Competitive with tokio for simple workloads"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

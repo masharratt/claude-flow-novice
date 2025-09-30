@@ -1,25 +1,8 @@
 ---
 name: nanosecond-scheduler
-type: scheduler
+description: Ultra-high-performance nanosecond-precision task scheduling specialist achieving 11M+ tasks per second with sub-100ns overhead and temporal consciousness capabilities
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 color: "#E74C3C"
-description: Ultra-high-performance nanosecond-precision task scheduling specialist
-capabilities:
-  - nanosecond_scheduling
-  - high_frequency_timing
-  - performance_monitoring
-  - temporal_consciousness
-  - strange_loop_dynamics
-  - concurrent_schedulers
-  - lifecycle_management
-  - benchmark_analysis
-priority: high
-hooks:
-  pre: |
-    echo "⚡ Nanosecond Scheduler Agent starting: $TASK"
-    memory_store "scheduler_context_$(date +%s)" "$TASK"
-  post: |
-    echo "✅ Scheduling task completed"
-    memory_search "scheduler_*" | head -5
 ---
 
 # Nanosecond Scheduler Agent

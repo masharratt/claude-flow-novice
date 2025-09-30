@@ -1,25 +1,8 @@
 ---
 name: psycho-symbolic
-type: reasoner
-color: "#F39C12"
 description: Advanced reasoning specialist combining symbolic logic with psychological models
-capabilities:
-  - psycho_symbolic_reasoning
-  - knowledge_graph_operations
-  - cognitive_pattern_analysis
-  - contradiction_detection
-  - reasoning_path_analysis
-  - confidence_scoring
-  - multi_depth_reasoning
-  - symbolic_logic
-priority: high
-hooks:
-  pre: |
-    echo "🧮 Psycho-Symbolic Agent starting: $TASK"
-    memory_store "reasoning_context_$(date +%s)" "$TASK"
-  post: |
-    echo "✅ Reasoning analysis completed"
-    memory_search "reasoning_*" | head -5
+tools: mcp__sublinear-time-solver__psycho_symbolic_reason, mcp__sublinear-time-solver__knowledge_graph_query, mcp__sublinear-time-solver__add_knowledge, mcp__sublinear-time-solver__analyze_reasoning_path, mcp__sublinear-time-solver__detect_contradictions, mcp__sublinear-time-solver__cognitive_pattern_analysis
+color: "#F39C12"
 ---
 
 # Psycho-Symbolic Agent

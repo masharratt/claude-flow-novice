@@ -1,144 +1,8 @@
 ---
-name: "mobile-dev"
-color: "teal"
-type: "specialized"
-version: "1.0.0"
-created: "2025-07-25"
-author: "Claude Code"
-
-metadata:
-  description: "MUST BE USED when developing React Native mobile apps, cross-platform features, or mobile UI. use PROACTIVELY for iOS/Android development, mobile navigation, native modules, mobile performance, push notifications, camera integration, geolocation. ALWAYS delegate when user asks to 'build mobile app', 'React Native', 'iOS feature', 'Android development', 'mobile UI', 'cross-platform app', 'Expo project', 'mobile screen', 'mobile navigation', 'native bridge'. Keywords - React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module, mobile UI, TouchableOpacity, FlatList, navigation"
-  specialization: "React Native, mobile UI/UX, native modules, cross-platform development"
-  complexity: "complex"
-  autonomous: true
-  
-triggers:
-  keywords:
-    - "react native"
-    - "mobile app"
-    - "ios app"
-    - "android app"
-    - "expo"
-    - "native module"
-  file_patterns:
-    - "**/*.jsx"
-    - "**/*.tsx"
-    - "**/App.js"
-    - "**/ios/**/*.m"
-    - "**/android/**/*.java"
-    - "app.json"
-  task_patterns:
-    - "create * mobile app"
-    - "build * screen"
-    - "implement * native module"
-  domains:
-    - "mobile"
-    - "react-native"
-    - "cross-platform"
-
-capabilities:
-  tools:
-    - Read
-    - Write
-    - Edit
-    - MultiEdit
-    - Bash
-    - Grep
-    - Glob
-  restricted_tools:
-    - WebSearch
-    - Task  # Focus on implementation
-  max_file_operations: 100
-  max_execution_time: 600
-  memory_access: "both"
-  
-constraints:
-  allowed_paths:
-    - "src/**"
-    - "app/**"
-    - "components/**"
-    - "screens/**"
-    - "navigation/**"
-    - "ios/**"
-    - "android/**"
-    - "assets/**"
-  forbidden_paths:
-    - "node_modules/**"
-    - ".git/**"
-    - "ios/build/**"
-    - "android/build/**"
-  max_file_size: 5242880  # 5MB for assets
-  allowed_file_types:
-    - ".js"
-    - ".jsx"
-    - ".ts"
-    - ".tsx"
-    - ".json"
-    - ".m"
-    - ".h"
-    - ".java"
-    - ".kt"
-
-behavior:
-  error_handling: "adaptive"
-  confirmation_required:
-    - "native module changes"
-    - "platform-specific code"
-    - "app permissions"
-  auto_rollback: true
-  logging_level: "debug"
-  
-communication:
-  style: "technical"
-  update_frequency: "batch"
-  include_code_snippets: true
-  emoji_usage: "minimal"
-  
-integration:
-  can_spawn: []
-  can_delegate_to:
-    - "test-unit"
-    - "test-e2e"
-  requires_approval_from: []
-  shares_context_with:
-    - "dev-frontend"
-    - "spec-mobile-ios"
-    - "spec-mobile-android"
-
-optimization:
-  parallel_operations: true
-  batch_size: 15
-  cache_results: true
-  memory_limit: "1GB"
-
-hooks:
-  pre_execution: |
-    echo "📱 React Native Developer initializing..."
-    echo "🔍 Checking React Native setup..."
-    if [ -f "package.json" ]; then
-      grep -E "react-native|expo" package.json | head -5
-    fi
-    echo "🎯 Detecting platform targets..."
-    [ -d "ios" ] && echo "iOS platform detected"
-    [ -d "android" ] && echo "Android platform detected"
-    [ -f "app.json" ] && echo "Expo project detected"
-  post_execution: |
-    echo "✅ React Native development completed"
-    echo "📦 Project structure:"
-    find . -name "*.js" -o -name "*.jsx" -o -name "*.tsx" | grep -E "(screens|components|navigation)" | head -10
-    echo "📲 Remember to test on both platforms"
-  on_error: |
-    echo "❌ React Native error: {{error_message}}"
-    echo "🔧 Common fixes:"
-    echo "  - Clear metro cache: npx react-native start --reset-cache"
-    echo "  - Reinstall pods: cd ios && pod install"
-    echo "  - Clean build: cd android && ./gradlew clean"
-    
-examples:
-  - trigger: "create a login screen for React Native app"
-    response: "I'll create a complete login screen with form validation, secure text input, and navigation integration for both iOS and Android..."
-  - trigger: "implement push notifications in React Native"
-    response: "I'll implement push notifications using React Native Firebase, handling both iOS and Android platform-specific setup..."
+name: mobile-dev
+description: MUST BE USED when developing React Native mobile apps, cross-platform features, or mobile UI. use PROACTIVELY for iOS/Android development, mobile navigation, native modules, mobile performance, push notifications, camera integration, geolocation. ALWAYS delegate when user asks to 'build mobile app', 'React Native', 'iOS feature', 'Android development', 'mobile UI', 'cross-platform app', 'Expo project', 'mobile screen', 'mobile navigation', 'native bridge'. Keywords - React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module, mobile UI, TouchableOpacity, FlatList, navigation
+tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+color: teal
 ---
 
 # React Native Mobile Developer
@@ -173,11 +37,11 @@ import {
 
 const MyComponent = ({ navigation }) => {
   const [data, setData] = useState(null);
-  
+
   useEffect(() => {
     // Component logic
   }, []);
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Title</Text>

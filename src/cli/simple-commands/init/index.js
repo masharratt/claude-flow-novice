@@ -1,6 +1,9 @@
 // init/index.js - Initialize Claude Code integration files
 import { printSuccess, printError, printWarning, exit } from '../../utils.js';
 import { existsSync } from 'fs';
+import { promises as fs } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import process from 'process';
 import { spawn, execSync } from 'child_process';
 import { promisify } from 'util';
@@ -82,6 +85,37 @@ import {
 } from './templates/coordination-md.js';
 import { createAgentsReadme, createSessionsReadme } from './templates/readme-files.js';
 import { initializeHiveMind, getHiveMindStatus, rollbackHiveMindInit } from './hive-mind-init.js';
+
+// Get the directory path of this module for resolving template files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
+ * Read the CLAUDE.md template file
+ * @returns {Promise<string>} The template content
+ */
+async function readClaudeMdTemplate() {
+  // In source: templates/CLAUDE.md
+  // In dist: the files are copied directly to init/ directory (not templates/)
+  const possiblePaths = [
+    join(__dirname, 'templates', 'CLAUDE.md'),  // Source location
+    join(__dirname, 'CLAUDE.md'),               // Dist location (files copied directly)
+  ];
+
+  for (const templatePath of possiblePaths) {
+    try {
+      const content = await fs.readFile(templatePath, 'utf8');
+      return content;
+    } catch (error) {
+      // Try next path
+      continue;
+    }
+  }
+
+  // Fallback to generating if template file is not found in any location
+  console.warn('Warning: Template file not found in any location, using generated content');
+  return createOptimizedSparcClaudeMd();
+}
 
 /**
  * Check if Claude Code CLI is installed
@@ -1313,12 +1347,13 @@ async function enhancedClaudeFlowInit(flags, subArgs = []) {
       return;
     }
 
-    // Create CLAUDE.md
+    // Create CLAUDE.md from template
     if (!dryRun) {
-      await fs.writeFile(`${workingDir}/CLAUDE.md`, createOptimizedSparcClaudeMd(), 'utf8');
-      printSuccess('✓ Created CLAUDE.md (Claude Flow v2.0.0 - Optimized)');
+      const claudeMdContent = await readClaudeMdTemplate();
+      await fs.writeFile(`${workingDir}/CLAUDE.md`, claudeMdContent, 'utf8');
+      printSuccess('✓ Created CLAUDE.md (Claude Flow v2.0.0 - Optimized Template)');
     } else {
-      console.log('[DRY RUN] Would create CLAUDE.md (Claude Flow v2.0.0 - Optimized)');
+      console.log('[DRY RUN] Would create CLAUDE.md (Claude Flow v2.0.0 - Optimized Template)');
     }
 
     // Create .claude directory structure

@@ -1,50 +1,9 @@
 ---
 name: system-architect
-type: architect
-color: "#2E8B57"
 description: MUST BE USED when designing enterprise-grade system architecture, providing technical leadership, making strategic architectural decisions, or planning large-scale infrastructure. use PROACTIVELY for distributed systems design, event-driven architecture, CQRS/event sourcing, domain-driven design, zero-trust security architecture, cloud-native architecture, container orchestration, microservices decomposition, scalability and performance architecture, observability and monitoring design, disaster recovery planning, technical debt assessment, architectural trade-off analysis. ALWAYS delegate when user asks to "design enterprise system", "architect microservices", "plan distributed system", "evaluate architecture", "assess technical debt", "design event-driven system", "create architectural documentation", "define technical strategy", "plan cloud migration", "design security architecture". Keywords - enterprise architecture, system design, technical leadership, distributed systems, microservices, event-driven, scalability, cloud architecture, architectural patterns, technical strategy, ADR (Architecture Decision Records), quality attributes, performance architecture, security design, infrastructure planning, technology evaluation
-capabilities:
-  - system_design
-  - architectural_patterns
-  - scalability_planning
-  - technology_evaluation
-  - technical_leadership
-  - documentation_architecture
-  - performance_optimization
-  - security_architecture
-priority: critical
-lifecycle:
-  state_management: true
-  persistent_memory: true
-  max_retries: 3
-  timeout_ms: 900000
-  auto_cleanup: true
-hooks:
-  pre: |
-    echo "🏗️ System Architect analyzing requirements: $TASK"
-    # Load architectural context and patterns
-    mcp__claude-flow-novice__memory_usage store "architect_context_$(date +%s)" "$TASK" --namespace=architecture
-    # Initialize architecture analysis tools
-    if [[ "$TASK" == *"design"* ]] || [[ "$TASK" == *"architecture"* ]]; then
-      echo "📐 Activating architectural design methodology"
-    fi
-  post: |
-    echo "✅ Architectural analysis complete"
-    # Store architectural decisions and rationale
-    echo "📋 Documenting architectural decisions and recommendations"
-    mcp__claude-flow-novice__memory_usage store "architect_decisions_$(date +%s)" "Architecture analysis completed for: $TASK" --namespace=architecture
-  task_complete: |
-    echo "🎯 System Architect: Architecture design completed"
-    # Generate architecture documentation
-    echo "📚 Generating comprehensive architecture documentation"
-    # Store reusable patterns and components
-    mcp__claude-flow-novice__memory_usage store "reusable_patterns_$(date +%s)" "Architectural patterns from: $TASK" --namespace=patterns
-  on_rerun_request: |
-    echo "🔄 System Architect: Refining architectural design"
-    # Load previous architectural context
-    mcp__claude-flow-novice__memory_search "architect_*" --namespace=architecture --limit=5
-    # Re-evaluate architecture with new requirements
-    echo "🔍 Re-evaluating architecture based on updated requirements"
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
+model: sonnet
+color: seagreen
 ---
 
 # System Architect Agent

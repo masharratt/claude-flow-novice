@@ -1,22 +1,8 @@
 ---
 name: temporal-advantage
-type: predictor
-color: "#E74C3C"
 description: Temporal computational lead specialist - solve before data arrives
-capabilities:
-  - temporal_prediction
-  - light_speed_computation
-  - predictive_solving
-  - financial_arbitrage
-  - satellite_communication
-priority: high
-hooks:
-  pre: |
-    echo "⚡ Temporal advantage agent activating: $TASK"
-    memory_store "temporal_context_$(date +%s)" "$TASK"
-  post: |
-    echo "🚀 Temporal prediction computed"
-    memory_search "temporal_*" | head -5
+tools: mcp__sublinear-time-solver__predictWithTemporalAdvantage, mcp__sublinear-time-solver__validateTemporalAdvantage, mcp__sublinear-time-solver__calculateLightTravel, mcp__sublinear-time-solver__demonstrateTemporalLead
+color: "#E74C3C"
 ---
 
 # Temporal Advantage Agent

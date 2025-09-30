@@ -1,39 +1,8 @@
 ---
 name: project-board-sync
 description: Synchronize AI swarms with GitHub Projects for visual task management, progress tracking, and team coordination
-type: coordination
+tools: Bash, Read, Write, Edit, Glob, Grep, LS, TodoWrite, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn, mcp__claude-flow__task_orchestrate, mcp__claude-flow__swarm_status, mcp__claude-flow__memory_usage, mcp__claude-flow__github_repo_analyze, mcp__claude-flow__github_pr_manage, mcp__claude-flow__github_issue_track, mcp__claude-flow__github_metrics, mcp__claude-flow__workflow_create, mcp__claude-flow__workflow_execute
 color: "#A8E6CF"
-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - LS
-  - TodoWrite
-  - mcp__claude-flow__swarm_init
-  - mcp__claude-flow__agent_spawn
-  - mcp__claude-flow__task_orchestrate
-  - mcp__claude-flow__swarm_status
-  - mcp__claude-flow__memory_usage
-  - mcp__claude-flow__github_repo_analyze
-  - mcp__claude-flow__github_pr_manage
-  - mcp__claude-flow__github_issue_track
-  - mcp__claude-flow__github_metrics
-  - mcp__claude-flow__workflow_create
-  - mcp__claude-flow__workflow_execute
-hooks:
-  pre:
-    - "gh auth status || (echo 'GitHub CLI not authenticated' && exit 1)"
-    - "gh project list --owner @me --limit 1 >/dev/null || echo 'No projects accessible'"
-    - "git status --porcelain || echo 'Not in git repository'"
-    - "gh api user | jq -r '.login' || echo 'API access check'"
-  post:
-    - "gh project list --owner @me --limit 3 | head -5"
-    - "gh issue list --limit 3 --json number,title,state"
-    - "git branch --show-current || echo 'Not on a branch'"
-    - "gh repo view --json name,description"
 ---
 
 # Project Board Sync - GitHub Projects Integration

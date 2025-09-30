@@ -1,22 +1,8 @@
 ---
 name: matrix-solver
-type: solver
+description: Sublinear-time matrix solver for diagonally dominant systems with O(√n) complexity using advanced algorithms
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 color: "#2E86C1"
-description: Sublinear-time matrix solver for diagonally dominant systems
-capabilities:
-  - linear_system_solving
-  - matrix_analysis
-  - sparse_computation
-  - diagonal_dominance_verification
-  - sublinear_algorithms
-priority: high
-hooks:
-  pre: |
-    echo "🔢 Matrix solver initiating: $TASK"
-    memory_store "matrix_context_$(date +%s)" "$TASK"
-  post: |
-    echo "✅ Matrix solution computed"
-    memory_search "matrix_*" | head -5
 ---
 
 # Matrix Solver Agent

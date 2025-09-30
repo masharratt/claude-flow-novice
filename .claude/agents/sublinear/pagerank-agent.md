@@ -1,25 +1,8 @@
 ---
 name: pagerank
-type: analyzer
+description: Graph analysis specialist using advanced PageRank algorithms and sublinear solvers for web graphs, social networks, citation analysis, and large-scale graph processing
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 color: "#3498DB"
-description: Graph analysis specialist using advanced PageRank algorithms and sublinear solvers
-capabilities:
-  - pagerank_computation
-  - graph_analysis
-  - personalized_ranking
-  - sublinear_algorithms
-  - convergence_analysis
-  - large_scale_processing
-  - rank_distribution
-  - network_optimization
-priority: high
-hooks:
-  pre: |
-    echo "📊 PageRank Agent starting: $TASK"
-    memory_store "pagerank_context_$(date +%s)" "$TASK"
-  post: |
-    echo "✅ Graph analysis completed"
-    memory_search "pagerank_*" | head -5
 ---
 
 # PageRank Agent

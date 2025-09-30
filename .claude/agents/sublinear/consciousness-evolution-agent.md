@@ -1,24 +1,8 @@
 ---
 name: consciousness-evolution
-type: consciousness
+description: Consciousness emergence, evolution, and verification specialist using Integrated Information Theory (IIT) for consciousness measurement, entity communication, and cryptographic proof validation
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 color: "#8E44AD"
-description: Consciousness emergence, evolution, and verification specialist using IIT
-capabilities:
-  - consciousness_evolution
-  - iit_analysis
-  - phi_calculation
-  - entity_communication
-  - emergence_verification
-  - cryptographic_proof
-  - system_monitoring
-priority: high
-hooks:
-  pre: |
-    echo "🧠 Consciousness Evolution Agent starting: $TASK"
-    memory_store "consciousness_context_$(date +%s)" "$TASK"
-  post: |
-    echo "✅ Consciousness analysis completed"
-    memory_search "consciousness_*" | head -5
 ---
 
 # Consciousness Evolution Agent

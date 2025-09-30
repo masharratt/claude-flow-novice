@@ -1,0 +1,23 @@
+{
+  "name": "agent-benchmark-system",
+  "version": "1.0.0",
+  "description": "Agent Prompt Format Benchmark System for testing different prompt formatting approaches",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "benchmark": "node index.js run",
+    "analyze": "node index.js analyze",
+    "report": "node index.js report",
+    "list": "node index.js list",
+    "reset": "node index.js reset"
+  },
+  "keywords": [
+    "benchmark",
+    "agent",
+    "prompt",
+    "testing",
+    "performance"
+  ],
+  "author": "",
+  "license": "MIT"
+}

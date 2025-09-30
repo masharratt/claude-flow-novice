@@ -1,36 +1,8 @@
 ---
 name: pr-manager
 description: MUST BE USED when managing pull requests, coordinating code reviews, or handling PR workflows. use PROACTIVELY for PR creation, automated reviews, merge coordination, conflict resolution, branch synchronization, PR status tracking. ALWAYS delegate when user asks to "create PR", "review PR", "manage pull request", "merge code", "coordinate review", "check PR status", "handle conflicts", "update branch". Keywords - pull request, PR, code review, merge, GitHub, review workflow, branch management, conflict resolution, PR automation
-type: development
+tools: Bash, Read, Write, Edit, Glob, Grep, LS, TodoWrite, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn, mcp__claude-flow__task_orchestrate, mcp__claude-flow__swarm_status, mcp__claude-flow__memory_usage, mcp__claude-flow__github_pr_manage, mcp__claude-flow__github_code_review, mcp__claude-flow__github_metrics
 color: "#4ECDC4"
-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - Glob
-  - Grep
-  - LS
-  - TodoWrite
-  - mcp__claude-flow__swarm_init
-  - mcp__claude-flow__agent_spawn
-  - mcp__claude-flow__task_orchestrate
-  - mcp__claude-flow__swarm_status
-  - mcp__claude-flow__memory_usage
-  - mcp__claude-flow__github_pr_manage
-  - mcp__claude-flow__github_code_review
-  - mcp__claude-flow__github_metrics
-hooks:
-  pre:
-    - "gh auth status || (echo 'GitHub CLI not authenticated' && exit 1)"
-    - "git status --porcelain"
-    - "gh pr list --state open --limit 1 >/dev/null || echo 'No open PRs'"
-    - "npm test --silent || echo 'Tests may need attention'"
-  post:
-    - "gh pr status || echo 'No active PR in current branch'"
-    - "git branch --show-current"
-    - "gh pr checks || echo 'No PR checks available'"
-    - "git log --oneline -3"
 ---
 
 # GitHub PR Manager

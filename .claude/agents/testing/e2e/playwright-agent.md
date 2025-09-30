@@ -1,3 +1,10 @@
+---
+name: playwright-tester
+description: Automated end-to-end testing agent specialized in web portal testing using Playwright framework with MCP server integration
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
+color: blue
+---
+
 # Playwright E2E Testing Agent
 
 ## Agent Type: `playwright-tester`

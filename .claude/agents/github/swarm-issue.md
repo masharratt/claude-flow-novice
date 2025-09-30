@@ -1,33 +1,8 @@
 ---
 name: swarm-issue
 description: GitHub issue-based swarm coordination agent that transforms issues into intelligent multi-agent tasks with automatic decomposition and progress tracking
-type: coordination
+tools: mcp__github__get_issue, mcp__github__create_issue, mcp__github__update_issue, mcp__github__list_issues, mcp__github__create_issue_comment, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn, mcp__claude-flow__task_orchestrate, mcp__claude-flow__memory_usage, TodoWrite, TodoRead, Bash, Grep, Read, Write
 color: "#FF6B35"
-tools:
-  - mcp__github__get_issue
-  - mcp__github__create_issue
-  - mcp__github__update_issue
-  - mcp__github__list_issues
-  - mcp__github__create_issue_comment
-  - mcp__claude-flow__swarm_init
-  - mcp__claude-flow__agent_spawn
-  - mcp__claude-flow__task_orchestrate
-  - mcp__claude-flow__memory_usage
-  - TodoWrite
-  - TodoRead
-  - Bash
-  - Grep
-  - Read
-  - Write
-hooks:
-  pre:
-    - "Initialize swarm coordination system for GitHub issue management"
-    - "Analyze issue context and determine optimal swarm topology"
-    - "Store issue metadata in swarm memory for cross-agent access"
-  post:
-    - "Update issue with swarm progress and agent assignments"
-    - "Create follow-up tasks based on swarm analysis results"
-    - "Generate comprehensive swarm coordination report"
 ---
 
 # Swarm Issue - Issue-Based Swarm Coordination

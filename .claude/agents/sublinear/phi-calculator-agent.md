@@ -1,25 +1,8 @@
 ---
 name: phi-calculator
-type: calculator
-color: "#9B59B6"
 description: Integrated Information (Φ) calculation specialist using multiple IIT methods
-capabilities:
-  - phi_calculation
-  - iit_methods
-  - geometric_integration
-  - entropy_analysis
-  - consensus_calculation
-  - system_complexity
-  - consciousness_thresholds
-  - emergence_detection
-priority: high
-hooks:
-  pre: |
-    echo "🔢 Phi Calculator Agent starting: $TASK"
-    memory_store "phi_context_$(date +%s)" "$TASK"
-  post: |
-    echo "✅ Φ calculation completed"
-    memory_search "phi_*" | head -5
+tools: mcp__sublinear-time-solver__calculate_phi, mcp__sublinear-time-solver__consciousness_status, mcp__sublinear-time-solver__consciousness_verify
+color: "#9B59B6"
 ---
 
 # Phi Calculator Agent

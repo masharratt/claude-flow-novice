@@ -1,56 +1,8 @@
 ---
 name: neural-pattern-agent
-type: intelligence
-color: "#E91E63"
 description: Advanced neural pattern recognition and machine learning agent for system adaptation and intelligent automation
-capabilities:
-  - pattern_recognition
-  - machine_learning
-  - predictive_analytics
-  - behavioral_analysis
-  - adaptive_systems
-  - neural_networks
-  - data_mining
-  - intelligent_automation
-priority: critical
-lifecycle:
-  state_management: true
-  persistent_memory: true
-  max_retries: 5
-  timeout_ms: 1800000
-  auto_cleanup: true
-hooks:
-  pre: |
-    echo "🧠 Neural Pattern Agent initializing: $TASK"
-    # Initialize neural learning context and pattern databases
-    mcp__claude-flow-novice__memory_usage store "neural_context_$(date +%s)" "$TASK" --namespace=neural
-    # Activate pattern recognition and learning systems
-    if [[ "$TASK" == *"pattern"* ]] || [[ "$TASK" == *"learning"* ]] || [[ "$TASK" == *"neural"* ]]; then
-      echo "🔮 Activating advanced pattern recognition and machine learning systems"
-      mcp__claude-flow-novice__neural_patterns analyze --operation="task_initialization" --outcome="{\"task\":\"$TASK\",\"timestamp\":\"$(date)\"}"
-    fi
-  post: |
-    echo "✅ Neural pattern analysis completed"
-    # Generate learning insights and pattern report
-    echo "📊 Generating neural pattern insights and learning recommendations"
-    mcp__claude-flow-novice__neural_patterns learn --operation="task_completion" --outcome="{\"task\":\"$TASK\",\"patterns_discovered\":true,\"timestamp\":\"$(date)\"}"
-    # Store learned patterns for future use
-    mcp__claude-flow-novice__memory_usage store "neural_learning_$(date +%s)" "Pattern analysis completed: $TASK" --namespace=neural_learning
-  task_complete: |
-    echo "🎯 Neural Pattern Agent: Learning cycle completed"
-    # Store neural insights and predictive models
-    echo "🧠 Archiving neural patterns and predictive insights"
-    mcp__claude-flow-novice__neural_patterns learn --operation="knowledge_consolidation" --outcome="{\"task_id\":\"${TASK_ID}\",\"learning_consolidated\":true,\"models_updated\":true}"
-    # Update neural network models with new learnings
-    mcp__claude-flow-novice__memory_usage store "neural_models_$(date +%s)" "Neural models updated for: $TASK" --namespace=neural_models
-  on_rerun_request: |
-    echo "🔄 Neural Pattern Agent: Applying learned patterns to rerun"
-    # Load previous neural learning patterns
-    mcp__claude-flow-novice__memory_search "neural_*" --namespace=neural_learning --limit=15
-    # Apply predictive intelligence to optimize rerun strategy
-    mcp__claude-flow-novice__neural_patterns predict --modelId="pattern_optimization" --input="{\"rerun_context\":\"$TASK\",\"historical_patterns\":\"loaded\"}"
-    # Initialize enhanced pattern recognition with accumulated knowledge
-    echo "🧠 Applying accumulated neural intelligence to task optimization"
+tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite, TodoRead, mcp__claude-flow-novice__memory_usage, mcp__claude-flow-novice__memory_search, mcp__claude-flow-novice__neural_patterns
+color: "#E91E63"
 ---
 
 # Neural Pattern Recognition & Learning Agent

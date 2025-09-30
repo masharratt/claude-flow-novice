@@ -1,0 +1,1718 @@
+{
+  "metadata": {
+    "timestamp": "2025-09-30T15:18:22.206Z",
+    "rounds": 3,
+    "parallel": false
+  },
+  "formats": {
+    "minimal": {
+      "scenarios": {
+        "rust-01-basic": {
+          "scenario": "rust-01-basic",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2217,
+              "qualityScore": 32,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2217,
+                  "timeToFirstToken": 221.70000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.602882385253906
+                },
+                "quality": {
+                  "length": 100,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 25,
+                  "totalTokens": 525
+                }
+              },
+              "timestamp": "2025-09-30T15:18:24.427Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1916,
+              "qualityScore": 32,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1916,
+                  "timeToFirstToken": 191.60000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.702232360839844
+                },
+                "quality": {
+                  "length": 100,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 25,
+                  "totalTokens": 525
+                }
+              },
+              "timestamp": "2025-09-30T15:18:26.344Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1041,
+              "qualityScore": 32,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1041,
+                  "timeToFirstToken": 104.10000000000001,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.801605224609375
+                },
+                "quality": {
+                  "length": 100,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 25,
+                  "totalTokens": 525
+                }
+              },
+              "timestamp": "2025-09-30T15:18:27.385Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 32,
+            "responseTime": 1724.6666666666667,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-02-concurrent": {
+          "scenario": "rust-02-concurrent",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1694,
+              "qualityScore": 20,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1694,
+                  "timeToFirstToken": 169.4,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.901123046875
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:18:29.080Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 2857,
+              "qualityScore": 20,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2857,
+                  "timeToFirstToken": 285.7,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.998626708984375
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:18:31.937Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 2909,
+              "qualityScore": 20,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2909,
+                  "timeToFirstToken": 290.90000000000003,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.708099365234375
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:18:34.846Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 20,
+            "responseTime": 2486.6666666666665,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-03-lru-cache": {
+          "scenario": "rust-03-lru-cache",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2204,
+              "qualityScore": 22,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2204,
+                  "timeToFirstToken": 220.4,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.778099060058594
+                },
+                "quality": {
+                  "length": 84,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 21,
+                  "totalTokens": 521
+                }
+              },
+              "timestamp": "2025-09-30T15:18:37.050Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1976,
+              "qualityScore": 22,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1976,
+                  "timeToFirstToken": 197.60000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.852272033691406
+                },
+                "quality": {
+                  "length": 84,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 21,
+                  "totalTokens": 521
+                }
+              },
+              "timestamp": "2025-09-30T15:18:39.026Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 2417,
+              "qualityScore": 22,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2417,
+                  "timeToFirstToken": 241.70000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.9514312744140625
+                },
+                "quality": {
+                  "length": 84,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 21,
+                  "totalTokens": 521
+                }
+              },
+              "timestamp": "2025-09-30T15:18:41.443Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 22,
+            "responseTime": 2199,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-04-zero-copy": {
+          "scenario": "rust-04-zero-copy",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2327,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2327,
+                  "timeToFirstToken": 232.70000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.493919372558594
+                },
+                "quality": {
+                  "length": 84,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 21,
+                  "totalTokens": 521
+                }
+              },
+              "timestamp": "2025-09-30T15:18:43.770Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1214,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1214,
+                  "timeToFirstToken": 121.4,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.583198547363281
+                },
+                "quality": {
+                  "length": 84,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 21,
+                  "totalTokens": 521
+                }
+              },
+              "timestamp": "2025-09-30T15:18:44.985Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 2791,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2791,
+                  "timeToFirstToken": 279.1,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.6750640869140625
+                },
+                "quality": {
+                  "length": 84,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 21,
+                  "totalTokens": 521
+                }
+              },
+              "timestamp": "2025-09-30T15:18:47.776Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 0,
+            "responseTime": 2110.6666666666665,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-05-async-scheduler": {
+          "scenario": "rust-05-async-scheduler",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1468,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1468,
+                  "timeToFirstToken": 146.8,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.74224853515625
+                },
+                "quality": {
+                  "length": 90,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 23,
+                  "totalTokens": 523
+                }
+              },
+              "timestamp": "2025-09-30T15:18:49.244Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 2186,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2186,
+                  "timeToFirstToken": 218.60000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.822288513183594
+                },
+                "quality": {
+                  "length": 90,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 23,
+                  "totalTokens": 523
+                }
+              },
+              "timestamp": "2025-09-30T15:18:51.432Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1353,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1353,
+                  "timeToFirstToken": 135.3,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.908622741699219
+                },
+                "quality": {
+                  "length": 90,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 23,
+                  "totalTokens": 523
+                }
+              },
+              "timestamp": "2025-09-30T15:18:52.785Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 16,
+            "responseTime": 1669,
+            "consistency": 100,
+            "successRate": 100
+          }
+        }
+      },
+      "aggregated": {
+        "overallQuality": 18,
+        "overallResponseTime": 2038,
+        "overallConsistency": 100,
+        "successRate": 100
+      }
+    },
+    "metadata": {
+      "scenarios": {
+        "rust-01-basic": {
+          "scenario": "rust-01-basic",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2349,
+              "qualityScore": 65,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2349,
+                  "timeToFirstToken": 234.9,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.004814147949219
+                },
+                "quality": {
+                  "length": 341,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 2,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 86,
+                  "totalTokens": 586
+                }
+              },
+              "timestamp": "2025-09-30T15:18:55.136Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1826,
+              "qualityScore": 65,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1826,
+                  "timeToFirstToken": 182.60000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.0802764892578125
+                },
+                "quality": {
+                  "length": 341,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 2,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 86,
+                  "totalTokens": 586
+                }
+              },
+              "timestamp": "2025-09-30T15:18:56.962Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1456,
+              "qualityScore": 65,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1456,
+                  "timeToFirstToken": 145.6,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.158164978027344
+                },
+                "quality": {
+                  "length": 341,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 2,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 86,
+                  "totalTokens": 586
+                }
+              },
+              "timestamp": "2025-09-30T15:18:58.419Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 65,
+            "responseTime": 1877,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-02-concurrent": {
+          "scenario": "rust-02-concurrent",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2023,
+              "qualityScore": 11.999999999999998,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2023,
+                  "timeToFirstToken": 202.3,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.228370666503906
+                },
+                "quality": {
+                  "length": 86,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:00.442Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1037,
+              "qualityScore": 11.999999999999998,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1037,
+                  "timeToFirstToken": 103.7,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.309318542480469
+                },
+                "quality": {
+                  "length": 86,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:01.480Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 2448,
+              "qualityScore": 11.999999999999998,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2448,
+                  "timeToFirstToken": 244.8,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.395484924316406
+                },
+                "quality": {
+                  "length": 86,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:03.928Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 11.999999999999998,
+            "responseTime": 1836,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-03-lru-cache": {
+          "scenario": "rust-03-lru-cache",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2748,
+              "qualityScore": 19,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2748,
+                  "timeToFirstToken": 274.8,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.6972198486328125
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:06.676Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 2441,
+              "qualityScore": 19,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2441,
+                  "timeToFirstToken": 244.10000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.780006408691406
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:09.118Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1638,
+              "qualityScore": 19,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1638,
+                  "timeToFirstToken": 163.8,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.864967346191406
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:10.756Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 19,
+            "responseTime": 2275.6666666666665,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-04-zero-copy": {
+          "scenario": "rust-04-zero-copy",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1926,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1926,
+                  "timeToFirstToken": 192.60000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.938232421875
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:12.682Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 2010,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2010,
+                  "timeToFirstToken": 201,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.0076446533203125
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:14.692Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1597,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1597,
+                  "timeToFirstToken": 159.70000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.077003479003906
+                },
+                "quality": {
+                  "length": 85,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:16.289Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 0,
+            "responseTime": 1844.3333333333333,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-05-async-scheduler": {
+          "scenario": "rust-05-async-scheduler",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2645,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2645,
+                  "timeToFirstToken": 264.5,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.154014587402344
+                },
+                "quality": {
+                  "length": 91,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 23,
+                  "totalTokens": 523
+                }
+              },
+              "timestamp": "2025-09-30T15:19:18.934Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1058,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1058,
+                  "timeToFirstToken": 105.80000000000001,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.2275848388671875
+                },
+                "quality": {
+                  "length": 91,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 23,
+                  "totalTokens": 523
+                }
+              },
+              "timestamp": "2025-09-30T15:19:19.993Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 2149,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2149,
+                  "timeToFirstToken": 214.9,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.300872802734375
+                },
+                "quality": {
+                  "length": 91,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 23,
+                  "totalTokens": 523
+                }
+              },
+              "timestamp": "2025-09-30T15:19:22.143Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 16,
+            "responseTime": 1950.6666666666667,
+            "consistency": 100,
+            "successRate": 100
+          }
+        }
+      },
+      "aggregated": {
+        "overallQuality": 22.4,
+        "overallResponseTime": 1956.7333333333331,
+        "overallConsistency": 100,
+        "successRate": 100
+      }
+    },
+    "code-heavy": {
+      "scenarios": {
+        "rust-01-basic": {
+          "scenario": "rust-01-basic",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1134,
+              "qualityScore": 75,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1134,
+                  "timeToFirstToken": 113.4,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.76361083984375
+                },
+                "quality": {
+                  "length": 1029,
+                  "hasCodeExamples": true,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": true,
+                    "paragraphCount": 8,
+                    "score": 25
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 258,
+                  "totalTokens": 758
+                }
+              },
+              "timestamp": "2025-09-30T15:19:23.277Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1270,
+              "qualityScore": 75,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1270,
+                  "timeToFirstToken": 127,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.884223937988281
+                },
+                "quality": {
+                  "length": 1029,
+                  "hasCodeExamples": true,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": true,
+                    "paragraphCount": 8,
+                    "score": 25
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 258,
+                  "totalTokens": 758
+                }
+              },
+              "timestamp": "2025-09-30T15:19:24.547Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 2584,
+              "qualityScore": 75,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2584,
+                  "timeToFirstToken": 258.40000000000003,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.003166198730469
+                },
+                "quality": {
+                  "length": 1029,
+                  "hasCodeExamples": true,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": true,
+                    "paragraphCount": 8,
+                    "score": 25
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 258,
+                  "totalTokens": 758
+                }
+              },
+              "timestamp": "2025-09-30T15:19:27.131Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 75,
+            "responseTime": 1662.6666666666667,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-02-concurrent": {
+          "scenario": "rust-02-concurrent",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1950,
+              "qualityScore": 11.999999999999998,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1950,
+                  "timeToFirstToken": 195,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.125572204589844
+                },
+                "quality": {
+                  "length": 88,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:29.082Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 2878,
+              "qualityScore": 11.999999999999998,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2878,
+                  "timeToFirstToken": 287.8,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.24853515625
+                },
+                "quality": {
+                  "length": 88,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:31.961Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1551,
+              "qualityScore": 11.999999999999998,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1551,
+                  "timeToFirstToken": 155.10000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.3712158203125
+                },
+                "quality": {
+                  "length": 88,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:33.512Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 11.999999999999998,
+            "responseTime": 2126.3333333333335,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-03-lru-cache": {
+          "scenario": "rust-03-lru-cache",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 2587,
+              "qualityScore": 19,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2587,
+                  "timeToFirstToken": 258.7,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.7816925048828125
+                },
+                "quality": {
+                  "length": 87,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:36.099Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 2795,
+              "qualityScore": 19,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2795,
+                  "timeToFirstToken": 279.5,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.903648376464844
+                },
+                "quality": {
+                  "length": 87,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:38.894Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1536,
+              "qualityScore": 19,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1536,
+                  "timeToFirstToken": 153.60000000000002,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.025627136230469
+                },
+                "quality": {
+                  "length": 87,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:40.430Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 19,
+            "responseTime": 2306,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-04-zero-copy": {
+          "scenario": "rust-04-zero-copy",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1369,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1369,
+                  "timeToFirstToken": 136.9,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.150825500488281
+                },
+                "quality": {
+                  "length": 87,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:41.799Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1030,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1030,
+                  "timeToFirstToken": 103,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.272438049316406
+                },
+                "quality": {
+                  "length": 87,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:42.829Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 1754,
+              "qualityScore": 0,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1754,
+                  "timeToFirstToken": 175.4,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.393768310546875
+                },
+                "quality": {
+                  "length": 87,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 22,
+                  "totalTokens": 522
+                }
+              },
+              "timestamp": "2025-09-30T15:19:44.584Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 0,
+            "responseTime": 1384.3333333333333,
+            "consistency": 100,
+            "successRate": 100
+          }
+        },
+        "rust-05-async-scheduler": {
+          "scenario": "rust-05-async-scheduler",
+          "rounds": [
+            {
+              "round": 1,
+              "responseTime": 1500,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1500,
+                  "timeToFirstToken": 150,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.794013977050781
+                },
+                "quality": {
+                  "length": 93,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 24,
+                  "totalTokens": 524
+                }
+              },
+              "timestamp": "2025-09-30T15:19:46.084Z"
+            },
+            {
+              "round": 2,
+              "responseTime": 1460,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 1460,
+                  "timeToFirstToken": 146,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 4.955406188964844
+                },
+                "quality": {
+                  "length": 93,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 24,
+                  "totalTokens": 524
+                }
+              },
+              "timestamp": "2025-09-30T15:19:47.544Z"
+            },
+            {
+              "round": 3,
+              "responseTime": 2323,
+              "qualityScore": 16,
+              "metrics": {
+                "performance": {
+                  "responseTime": 2323,
+                  "timeToFirstToken": 232.3,
+                  "tokensPerSecond": null,
+                  "memoryUsage": 5.080940246582031
+                },
+                "quality": {
+                  "length": 93,
+                  "hasCodeExamples": false,
+                  "hasMetrics": false,
+                  "hasRecommendations": false,
+                  "structure": {
+                    "hasHeaders": false,
+                    "hasList": false,
+                    "hasNumberedList": false,
+                    "hasCodeBlocks": false,
+                    "paragraphCount": 1,
+                    "score": 0
+                  }
+                },
+                "tokens": {
+                  "inputTokens": 500,
+                  "outputTokens": 24,
+                  "totalTokens": 524
+                }
+              },
+              "timestamp": "2025-09-30T15:19:49.867Z"
+            }
+          ],
+          "average": {
+            "qualityScore": 16,
+            "responseTime": 1761,
+            "consistency": 100,
+            "successRate": 100
+          }
+        }
+      },
+      "aggregated": {
+        "overallQuality": 24.4,
+        "overallResponseTime": 1848.0666666666664,
+        "overallConsistency": 100,
+        "successRate": 100
+      }
+    }
+  },
+  "summary": {
+    "winner": "code-heavy",
+    "winnerQuality": "24.4",
+    "comparisons": [
+      {
+        "name": "minimal",
+        "qualityImprovement": "-19.6",
+        "speedImprovement": "-4.2",
+        "consistencyImprovement": "0.0"
+      },
+      {
+        "name": "metadata",
+        "qualityImprovement": "0.0",
+        "speedImprovement": "0.0",
+        "consistencyImprovement": "0.0"
+      },
+      {
+        "name": "code-heavy",
+        "qualityImprovement": "8.9",
+        "speedImprovement": "5.6",
+        "consistencyImprovement": "0.0"
+      }
+    ],
+    "recommendation": [
+      "Highest quality responses: code-heavy format (24.4%)",
+      "Fastest responses: code-heavy format (1848ms avg)",
+      "Most consistent: minimal format (100.0% consistency)"
+    ]
+  }
+}

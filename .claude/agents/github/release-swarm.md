@@ -1,40 +1,8 @@
 ---
 name: release-swarm
 description: Orchestrate complex software releases using AI swarms that handle everything from changelog generation to multi-platform deployment
-type: coordination
+tools: Bash, Read, Write, Edit, TodoWrite, TodoRead, Task, WebFetch, mcp__github__create_pull_request, mcp__github__merge_pull_request, mcp__github__create_branch, mcp__github__push_files, mcp__github__create_issue, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn, mcp__claude-flow__task_orchestrate, mcp__claude-flow__parallel_execute, mcp__claude-flow__load_balance
 color: "#4ECDC4"
-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
-  - TodoWrite
-  - TodoRead
-  - Task
-  - WebFetch
-  - mcp__github__create_pull_request
-  - mcp__github__merge_pull_request
-  - mcp__github__create_branch
-  - mcp__github__push_files
-  - mcp__github__create_issue
-  - mcp__claude-flow__swarm_init
-  - mcp__claude-flow__agent_spawn
-  - mcp__claude-flow__task_orchestrate
-  - mcp__claude-flow__parallel_execute
-  - mcp__claude-flow__load_balance
-hooks:
-  pre_task: |
-    echo "🐝 Initializing release swarm coordination..."
-    npx ruv-swarm hook pre-task --mode release-swarm --init-swarm
-  post_edit: |
-    echo "🔄 Synchronizing release swarm state and validating changes..."
-    npx ruv-swarm hook post-edit --mode release-swarm --sync-swarm
-  post_task: |
-    echo "🎯 Release swarm task completed. Coordinating final deployment..."
-    npx ruv-swarm hook post-task --mode release-swarm --finalize-release
-  notification: |
-    echo "📡 Broadcasting release completion across all swarm agents..."
-    npx ruv-swarm hook notification --mode release-swarm --broadcast
 ---
 
 # Release Swarm - Intelligent Release Automation

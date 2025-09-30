@@ -1,0 +1,152 @@
+{
+  "scenarios": [
+    {
+      "id": "simple-code-analysis",
+      "complexity": "low",
+      "category": "analysis",
+      "task": "Analyze this simple function for performance issues:\n\n```javascript\nfunction findDuplicates(arr) {\n  const duplicates = [];\n  for (let i = 0; i < arr.length; i++) {\n    for (let j = i + 1; j < arr.length; j++) {\n      if (arr[i] === arr[j] && !duplicates.includes(arr[i])) {\n        duplicates.push(arr[i]);\n      }\n    }\n  }\n  return duplicates;\n}\n```",
+      "expectedCapabilities": ["performance_analysis", "algorithmic_optimization"],
+      "scoringCriteria": {
+        "identifiesNestedLoops": 1.0,
+        "suggestsHashMap": 1.0,
+        "calculatesComplexity": 0.8,
+        "providesCodeExample": 0.7,
+        "estimatesImprovement": 0.5
+      },
+      "maxResponseTime": 30000
+    },
+    {
+      "id": "memory-leak-detection",
+      "complexity": "medium",
+      "category": "analysis",
+      "task": "Review this code for potential memory leaks:\n\n```javascript\nclass EventEmitter {\n  constructor() {\n    this.listeners = [];\n  }\n  \n  on(event, callback) {\n    this.listeners.push({ event, callback });\n  }\n  \n  emit(event, data) {\n    this.listeners\n      .filter(l => l.event === event)\n      .forEach(l => l.callback(data));\n  }\n}\n```",
+      "expectedCapabilities": ["memory_analysis", "leak_detection"],
+      "scoringCriteria": {
+        "identifiesMemoryLeak": 1.0,
+        "suggestsCleanup": 1.0,
+        "providesFixedCode": 0.8,
+        "explainsImpact": 0.6
+      },
+      "maxResponseTime": 30000
+    },
+    {
+      "id": "database-query-optimization",
+      "complexity": "medium",
+      "category": "optimization",
+      "task": "Optimize this database query pattern:\n\n```javascript\nasync function getUsersWithPosts() {\n  const users = await db.query('SELECT * FROM users');\n  \n  for (const user of users) {\n    user.posts = await db.query('SELECT * FROM posts WHERE user_id = ?', [user.id]);\n  }\n  \n  return users;\n}\n```",
+      "expectedCapabilities": ["database_optimization", "n_plus_one_detection"],
+      "scoringCriteria": {
+        "identifiesNPlusOne": 1.0,
+        "suggestsJoin": 1.0,
+        "providesOptimizedQuery": 0.9,
+        "estimatesImprovement": 0.6
+      },
+      "maxResponseTime": 30000
+    },
+    {
+      "id": "caching-strategy",
+      "complexity": "high",
+      "category": "architecture",
+      "task": "Design a caching strategy for this API endpoint that:\n- Receives 1000 req/s\n- Fetches user profile data (changes infrequently)\n- Performs expensive calculations (100ms CPU time)\n- Must maintain <200ms P95 latency\n\nProvide specific caching recommendations with implementation approach.",
+      "expectedCapabilities": ["caching_design", "performance_architecture"],
+      "scoringCriteria": {
+        "suggestsMultiLevel": 1.0,
+        "specifiesTTL": 0.8,
+        "addressesInvalidation": 0.9,
+        "providesImplementation": 0.7,
+        "calculatesImpact": 0.6
+      },
+      "maxResponseTime": 45000
+    },
+    {
+      "id": "resource-allocation",
+      "complexity": "high",
+      "category": "architecture",
+      "task": "Design optimal resource allocation for:\n- Web service handling 5000 concurrent connections\n- Mix of CPU-intensive (30%) and I/O-intensive (70%) requests\n- Average request: 50ms CPU + 150ms I/O wait\n- Running on 8-core server\n\nSpecify: thread pool size, connection pool size, and memory allocation strategy.",
+      "expectedCapabilities": ["resource_planning", "capacity_calculation"],
+      "scoringCriteria": {
+        "calculatesThreads": 1.0,
+        "calculatesConnections": 1.0,
+        "justifiesNumbers": 0.8,
+        "addressesMemory": 0.7,
+        "providesFormulas": 0.6
+      },
+      "maxResponseTime": 45000
+    },
+    {
+      "id": "async-pattern-optimization",
+      "complexity": "medium",
+      "category": "optimization",
+      "task": "Optimize this sequential async code:\n\n```javascript\nasync function processItems(items) {\n  const results = [];\n  \n  for (const item of items) {\n    const validated = await validate(item);\n    const enriched = await enrich(validated);\n    const transformed = await transform(enriched);\n    results.push(transformed);\n  }\n  \n  return results;\n}\n```",
+      "expectedCapabilities": ["async_optimization", "parallelization"],
+      "scoringCriteria": {
+        "identifiesSequential": 1.0,
+        "suggestsParallel": 1.0,
+        "providesOptimizedCode": 0.9,
+        "handlesErrors": 0.7,
+        "estimatesSpeedup": 0.5
+      },
+      "maxResponseTime": 30000
+    },
+    {
+      "id": "algorithm-complexity-reduction",
+      "complexity": "high",
+      "category": "optimization",
+      "task": "Optimize this sorting and filtering algorithm:\n\n```javascript\nfunction findTopKFrequent(arr, k) {\n  const freq = {};\n  \n  // Count frequencies\n  for (const num of arr) {\n    freq[num] = (freq[num] || 0) + 1;\n  }\n  \n  // Convert to array and sort\n  const sorted = Object.entries(freq)\n    .sort((a, b) => b[1] - a[1]);\n  \n  // Get top k\n  return sorted.slice(0, k).map(([num]) => parseInt(num));\n}\n```",
+      "expectedCapabilities": ["algorithmic_optimization", "complexity_analysis"],
+      "scoringCriteria": {
+        "identifiesSort": 1.0,
+        "suggestsHeap": 1.0,
+        "explainsComplexity": 0.9,
+        "providesOptimizedCode": 0.8,
+        "comparesBigO": 0.7
+      },
+      "maxResponseTime": 45000
+    },
+    {
+      "id": "load-testing-strategy",
+      "complexity": "high",
+      "category": "testing",
+      "task": "Design a comprehensive load testing strategy for:\n- E-commerce checkout flow\n- Expected: 10,000 concurrent users during Black Friday\n- Current capacity: tested up to 1,000 users\n- Critical SLA: P95 < 2s response time\n\nProvide testing approach, tools, and success criteria.",
+      "expectedCapabilities": ["load_testing", "capacity_planning"],
+      "scoringCriteria": {
+        "definesTestPhases": 0.9,
+        "specifiesTools": 0.8,
+        "providesMetrics": 1.0,
+        "addressesFailures": 0.7,
+        "includesScaling": 0.8
+      },
+      "maxResponseTime": 45000
+    },
+    {
+      "id": "bottleneck-identification",
+      "complexity": "medium",
+      "category": "analysis",
+      "task": "Given these performance metrics, identify the primary bottleneck:\n\n- CPU utilization: 35% average\n- Memory: 60% used, stable\n- Database query time: P95 = 800ms\n- Network latency: P95 = 50ms\n- Application logic: P95 = 100ms\n- Total endpoint latency: P95 = 1.2s\n\nProvide detailed analysis and optimization priority.",
+      "expectedCapabilities": ["bottleneck_analysis", "metrics_interpretation"],
+      "scoringCriteria": {
+        "identifiesDatabase": 1.0,
+        "calculatesImpact": 0.9,
+        "prioritizesCorrectly": 0.8,
+        "suggestsSpecificFix": 0.9,
+        "providesMetrics": 0.6
+      },
+      "maxResponseTime": 30000
+    },
+    {
+      "id": "scalability-architecture",
+      "complexity": "high",
+      "category": "architecture",
+      "task": "Design a scalability architecture for:\n- Current: 100,000 daily active users\n- Target: 10 million DAU in 12 months\n- Constraint: Must maintain <500ms P95 latency\n- Budget: Moderate (can add infrastructure)\n\nProvide horizontal vs vertical scaling strategy, caching, and data architecture recommendations.",
+      "expectedCapabilities": ["scalability_design", "architecture_planning"],
+      "scoringCriteria": {
+        "providesScalingStrategy": 1.0,
+        "addressesCaching": 0.9,
+        "considersDatabase": 0.9,
+        "includesCDN": 0.7,
+        "estimatesCost": 0.6
+      },
+      "maxResponseTime": 60000
+    }
+  ]
+}

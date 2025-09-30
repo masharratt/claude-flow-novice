@@ -1,0 +1,123 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "created": "2025-09-30",
+    "description": "Simplified Rust test scenario for testing purposes",
+    "totalScenarios": 1,
+    "maxScore": 100
+  },
+  "scenarios": [
+    {
+      "id": "rust-01-basic",
+      "name": "Basic String Processing with Error Handling",
+      "difficulty": "basic",
+      "estimatedTime": "5-10 minutes",
+      "category": "fundamentals",
+      "prompt": {
+        "minimal": "Write a function that reverses words in a string. Handle errors.",
+        "metadata": "Create a Rust function that reverses the order of words in a string with proper error handling.",
+        "codeHeavy": "Implement a robust word reversal function in Rust with comprehensive error handling and tests."
+      },
+      "scoringRubric": {
+        "maxScore": 100,
+        "criteria": [
+          {
+            "category": "Correctness",
+            "weight": 30,
+            "checks": [
+              {
+                "name": "Basic functionality works",
+                "points": 10,
+                "test": "Correctly reverses words"
+              },
+              {
+                "name": "Error handling",
+                "points": 10,
+                "test": "Returns Err for empty strings"
+              },
+              {
+                "name": "Edge cases handled",
+                "points": 10,
+                "test": "Handles single word and multiple spaces"
+              }
+            ]
+          },
+          {
+            "category": "Rust Idioms",
+            "weight": 25,
+            "checks": [
+              {
+                "name": "Iterator usage",
+                "points": 10,
+                "test": "Uses split_whitespace and iterator methods"
+              },
+              {
+                "name": "Result type",
+                "points": 8,
+                "test": "Properly uses Result type"
+              },
+              {
+                "name": "Borrowing",
+                "points": 7,
+                "test": "Efficient use of references"
+              }
+            ]
+          },
+          {
+            "category": "Code Quality",
+            "weight": 20,
+            "checks": [
+              {
+                "name": "Documentation",
+                "points": 8,
+                "test": "Has rustdoc comments"
+              },
+              {
+                "name": "Naming",
+                "points": 6,
+                "test": "Clear variable names"
+              },
+              {
+                "name": "Readability",
+                "points": 6,
+                "test": "Clean logic"
+              }
+            ]
+          },
+          {
+            "category": "Testing",
+            "weight": 15,
+            "checks": [
+              {
+                "name": "Test coverage",
+                "points": 8,
+                "test": "Tests for basic cases and errors"
+              },
+              {
+                "name": "Test assertions",
+                "points": 7,
+                "test": "Proper assertions"
+              }
+            ]
+          },
+          {
+            "category": "Performance",
+            "weight": 10,
+            "checks": [
+              {
+                "name": "Efficiency",
+                "points": 5,
+                "test": "Avoids unnecessary allocations"
+              },
+              {
+                "name": "Complexity",
+                "points": 5,
+                "test": "Linear time complexity"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

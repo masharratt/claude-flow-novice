@@ -177,14 +177,12 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 - `/fullstack "goal"` - Launch full-stack development team with consensus validation
 - `/swarm`, `/sparc`, `/hooks` - Other slash commands (auto-discovered)
 
-## DEVELOPMENT FLOW 
-  1. Execute - Primary swarm (3-8 agents) produces deliverables with confidence score
-  1a. Only when the swarm believes its done move to step 2. 
-  1b. If swarm does not believe it's done (confidence scores < 75%, repeat step 1)
-  2. Verify - Consensus swarm (2-4 validators) runs comprehensive checks with Byzantine voting
-  3. Decision - PASS (≥90% agreement + critical criteria) OR FAIL
-  4. Action -
+## DEVELOPMENT FLOW LOOP
+  1. Execute - Primary swarm (3-8 agents) produces deliverables with confidence score. Each agent MUST be using the enhanced post edit pipeline after file edits.
+  2. When the swarm believes its done with all tasks, move to step 4
+  3. If swarm does not believe it's done (confidence scores < 75%, relaunch agents for step 1)
+  4. Verify - Consensus swarm (2-4 validators) runs comprehensive checks with Byzantine voting
+  5. Decision - PASS (≥90% agreement + critical criteria) OR FAIL
+  6. Action -
     - PASS → Store results → Move to next task
-    - FAIL → Round++ → If <10: inject feedback → Relaunch swarm | If ≥10: Escalate to human
-  5. Repeat - Iterative improvement with accumulated context from all previous rounds
-  6. Escalate - Full history + feedback + recommendations after 10 rounds
+    - FAIL → Round++ → If <10: inject feedback → Relaunch swarm on step 1 | If ≥10: Escalate to human
