@@ -19,8 +19,7 @@ const loadTemplate = (filename) => {
 export function createEnhancedClaudeMd() {
   const template = loadTemplate('CLAUDE.md');
   if (!template) {
-    // Fallback to hardcoded if template file not found
-    return createEnhancedClaudeMdFallback();
+    throw new Error('CLAUDE.md template file not found! Templates must be included in build.');
   }
   return template;
 }
@@ -2180,45 +2179,9 @@ if (Test-Path "$scriptPath\\package.json") {
   return '';
 }
 
-// Fallback functions for when templates can't be loaded
+// DEPRECATED: Fallback functions removed - use template files only
 function createEnhancedClaudeMdFallback() {
-  // Read from the actual template file we created
-  try {
-    return readFileSync(join(__dirname, 'CLAUDE.md'), 'utf8');
-  } catch (error) {
-    // If that fails, return a minimal version
-    return `# Claude Code Configuration for Claude Flow
-
-## 🚀 IMPORTANT: Claude Flow AI-Driven Development
-
-### Claude Code Handles:
-- ✅ **ALL file operations** (Read, Write, Edit, MultiEdit)
-- ✅ **ALL code generation** and development tasks
-- ✅ **ALL bash commands** and system operations
-- ✅ **ALL actual implementation** work
-- ✅ **Project navigation** and code analysis
-
-### Claude Flow MCP Tools Handle:
-- 🧠 **Coordination only** - Orchestrating Claude Code's actions
-- 💾 **Memory management** - Persistent state across sessions
-- 🤖 **Neural features** - Cognitive patterns and learning
-- 📊 **Performance tracking** - Monitoring and metrics
-- 🐝 **Swarm orchestration** - Multi-agent coordination
-- 🔗 **GitHub integration** - Advanced repository management
-
-### ⚠️ Key Principle:
-**MCP tools DO NOT create content or write code.** They coordinate and enhance Claude Code's native capabilities.
-
-## Quick Start
-
-1. Add MCP server: \`claude mcp add claude-flow-novice npx claude-flow-novice mcp start\`
-2. Initialize swarm: \`mcp__claude-flow__swarm_init { topology: "hierarchical" }\`
-3. Spawn agents: \`mcp__claude-flow__agent_spawn { type: "coder" }\`
-4. Orchestrate: \`mcp__claude-flow__task_orchestrate { task: "Build feature" }\`
-
-See full documentation in \`.claude/commands/\`
-`;
-  }
+  throw new Error('Template-only approach: createEnhancedClaudeMdFallback() is deprecated and removed.');
 }
 
 function createEnhancedSettingsJsonFallback() {
