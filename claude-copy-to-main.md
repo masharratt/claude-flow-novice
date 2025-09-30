@@ -238,84 +238,59 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
 
 ---
 
-## 📋 EXAMPLE AGENT SPAWNING PATTERNS
+## 📋 AGENT COORDINATION RULES
 
-**⚠️ IMPORTANT**: These are **ILLUSTRATIVE EXAMPLES** demonstrating coordination patterns.
-**YOU MUST adapt agent types, counts, and roles to YOUR specific task requirements.**
+### Universal Agent Spawning Pattern
 
-**Key Principles Shown:**
-- How to structure swarm initialization before agent spawning
-- How to spawn agents concurrently in one message
-- How to coordinate multiple agent types effectively
-- Topology selection based on team size
-
-**These patterns are starting points - not rigid templates. Analyze your task and customize accordingly.**
-
----
-
-### Example 1: Simple Task Pattern (2-3 agents)
-**Illustrative pattern for basic feature implementation with coordinated validation.**
+**EVERY multi-agent task follows this structure:**
 
 ```javascript
 [Single Message]:
-  // Initialize swarm coordination
+  // Step 1: ALWAYS initialize swarm first
   mcp__claude-flow-novice__swarm_init({
-    topology: "mesh",
-    maxAgents: 3,
-    strategy: "balanced"
+    topology: "mesh",          // or "hierarchical" for 8+ agents
+    maxAgents: X,              // match your actual agent count
+    strategy: "balanced"       // or "adaptive" for complex tasks
   })
 
-  // Spawn coordinated agents (customize to your needs)
-  Task("Coder", "Implement feature with TDD approach", "coder")
-  Task("Tester", "Create comprehensive test suite", "tester")
-  Task("Reviewer", "Review code quality and security", "reviewer")
+  // Step 2: Spawn ALL agents concurrently
+  Task("Agent Name", "Specific task instructions", "agent-type")
+  Task("Agent Name", "Specific task instructions", "agent-type")
+  Task("Agent Name", "Specific task instructions", "agent-type")
+  // ... continue for all agents
 ```
 
-### Example 2: Medium Task Pattern (4-6 agents)
-**Illustrative pattern for multi-component features requiring research and architecture.**
+### Coordination Checklist
 
-```javascript
-[Single Message]:
-  // Initialize swarm coordination
-  mcp__claude-flow-novice__swarm_init({
-    topology: "mesh",
-    maxAgents: 6,
-    strategy: "balanced"
-  })
+**Before spawning agents, ensure:**
+- ✅ Task analyzed and complexity assessed (Simple/Medium/Complex/Enterprise)
+- ✅ Agent count determined from requirements table
+- ✅ Agent types selected for specific needs (not generic roles)
+- ✅ Topology chosen: mesh (2-7) or hierarchical (8+)
+- ✅ All agents will spawn in SINGLE message
+- ✅ Each agent has specific, non-overlapping instructions
 
-  // Spawn coordinated specialists (adapt to your task)
-  Task("Researcher", "Analyze requirements and existing patterns", "researcher")
-  Task("Architect", "Design system architecture", "system-architect")
-  Task("Coder", "Implement core functionality with TDD", "coder")
-  Task("Tester", "Create unit, integration, and E2E tests", "tester")
-  Task("Security Reviewer", "Perform security audit", "security-specialist")
-  Task("Reviewer", "Final quality review", "reviewer")
-```
+**During execution:**
+- ✅ Agents coordinate through SwarmMemory
+- ✅ Self-validation runs before consensus
+- ✅ Each agent runs Post-edit hooks execute after file changes
 
-### Example 3: Complex Task Pattern (8-12 agents)
-**Illustrative pattern for full-scale features requiring hierarchical coordination.**
+**After completion:**
+- ✅ Consensus validation achieved (≥90% agreement)
+- ✅ Results stored in memory
+- ✅ Next steps provided with claude code continuing to the next documented phase or next steps provided to user if no todos left
 
-```javascript
-[Single Message]:
-  // Initialize hierarchical swarm for larger teams
-  mcp__claude-flow-novice__swarm_init({
-    topology: "hierarchical",
-    maxAgents: 12,
-    strategy: "adaptive"
-  })
+### Agent Selection Guide
 
-  // Spawn full specialist team (customize roles to your project)
-  Task("Product Owner", "Define requirements", "planner")
-  Task("System Architect", "Design architecture", "system-architect")
-  Task("Backend Developer", "Implement backend services", "backend-dev")
-  Task("Frontend Developer", "Create UI components", "coder")
-  Task("Tester", "Comprehensive testing", "tester")
-  Task("Security Specialist", "Security review", "security-specialist")
-  Task("Performance Analyst", "Performance optimization", "perf-analyzer")
-  Task("DevOps Engineer", "CI/CD setup", "cicd-engineer")
-  Task("API Documenter", "API documentation", "api-docs")
-  Task("Reviewer", "Final quality gate", "reviewer")
-```
+**Core Development**: coder, tester, reviewer
+**Backend**: backend-dev, api-docs, system-architect
+**Frontend**: coder (specialized), mobile-dev
+**Quality**: tester, reviewer, security-specialist, perf-analyzer
+**Planning**: researcher, planner, architect
+**Operations**: devops-engineer, cicd-engineer
+**Documentation**: api-docs, researcher
+
+**Select agents based on actual task needs, not predefined patterns.**
 
 ---
 
@@ -416,7 +391,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 - **PASS** →
   1. Store results in SwarmMemory
   2. Update documentation
-  3. Move to next task
+  3. Update todos and move to next task
 
 - **FAIL** →
   1. Round counter++
@@ -426,7 +401,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 ### 🚨 ENFORCEMENT CHECKPOINTS
 
 **MANDATORY before proceeding:**
-1. ✅ Agents spawned (minimum count met for task complexity)
+1. ✅ Agents spawned
 2. ✅ Each file edit followed by enhanced post-edit hook
 3. ✅ Self-validation confidence scores recorded
 4. ✅ Consensus swarm spawned for verification
@@ -444,41 +419,6 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 3. **🔍 Identified issues**: Any technical debt, warnings, or concerns discovered
 4. **💡 Recommended next steps**: Prioritized suggestions for logical continuation
 
-### Next Steps Template
-
-```markdown
-## Task Completion Summary
-
-**✅ Completed**: [What was delivered]
-**📊 Validation**:
-- Confidence: X%
-- Coverage: Y%
-- Consensus: Z%
-
-**⚠️ Identified Concerns**:
-- [Issue 1] - Severity: [High/Medium/Low]
-- [Issue 2] - Severity: [High/Medium/Low]
-
-**💡 Recommended Next Steps** (in priority order):
-
-1. **[High Priority]**: [Action item]
-   - Why: [Business/technical rationale]
-   - Effort: [Estimated time/complexity]
-
-2. **[Medium Priority]**: [Action item]
-   - Why: [Value proposition]
-   - Effort: [Estimated time/complexity]
-
-3. **[Low Priority]**: [Enhancement opportunity]
-   - Why: [Long-term benefit]
-   - Effort: [Estimated time/complexity]
-
-**🤔 Questions for User**:
-- [Decision point requiring clarification]?
-- [Alternative approach consideration]?
-```
-
-**Rationale**: Proactive next steps ensure continuous progress, prevent workflow dead-ends, and help users understand logical task progression without requiring them to determine next actions.
 
 ---
 

@@ -7,13 +7,13 @@
 **YOU MUST USE AGENTS FOR ALL NON-TRIVIAL WORK - NO EXCEPTIONS**
 
 **ABSOLUTE RULES**:
-1. **ALWAYS USE AGENTS** - Any task requiring >3 steps MUST use agent coordination
-2. **NEVER WORK SOLO** - Spawn multiple agents in parallel for ALL significant tasks
-3. **MANDATORY SWARM COORDINATION** - Complex features require 3-8 agent swarms minimum
-4. ALL operations MUST be concurrent/parallel in a single message
-5. **NEVER save working files, text/mds and tests to the root folder**
-6. ALWAYS organize files in appropriate subdirectories
-7. **USE CLAUDE CODE'S TASK TOOL** for spawning agents concurrently, not just MCP
+1. **ALWAYS USE AGENTS** - Tasks requiring >3 steps MUST use agent coordination
+2. **ALWAYS INITIALIZE SWARM** - ANY multi-agent task requires swarm_init FIRST
+3. **ALWAYS RUN POST-EDIT HOOKS** - After EVERY file edit without exception
+4. **ALWAYS BATCH OPERATIONS** - 1 MESSAGE = ALL RELATED OPERATIONS
+5. **NEVER WORK SOLO** - Spawn multiple agents in parallel for ALL significant tasks
+6. **NEVER SAVE TO ROOT** - Organize files in appropriate subdirectories
+7. **USE CLAUDE CODE'S TASK TOOL** - For spawning agents concurrently, not just MCP
 
 ### 🚫 WHEN YOU MUST USE AGENTS (MANDATORY)
 
@@ -29,11 +29,14 @@
 - Refactoring or optimization work
 - ANY feature development (even "simple" ones)
 
-**MINIMUM AGENT REQUIREMENTS:**
-- **Simple tasks** (3-5 steps): 2-3 agents minimum (coder + tester + reviewer)
-- **Medium tasks** (6-10 steps): 4-6 agents (add researcher + architect + security-specialist)
-- **Complex tasks** (11-20 steps): 8-12 agents (full team with specialists)
-- **Enterprise features** (20+ steps): 15-20 agents with swarm coordination
+### Agent Requirements by Task Complexity
+
+| Task Size | Steps | Agent Count | Example Team Composition |
+|-----------|-------|-------------|--------------------------|
+| **Simple** | 3-5 | 2-3 agents | coder + tester + reviewer |
+| **Medium** | 6-10 | 4-6 agents | + researcher + architect + security-specialist |
+| **Complex** | 11-20 | 8-12 agents | Full specialist team with domain experts |
+| **Enterprise** | 20+ | 15-20 agents | + devops + api-docs + perf-analyzer + coordinators |
 
 ### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
 
@@ -179,95 +182,23 @@ npx enhanced-hooks post-edit "src/lib.rs" --memory-key "backend/rust" --minimum-
 # Generate summaries and persist state
 npx claude-flow-novice hooks session-end --generate-summary true --persist-state true --export-metrics true
 ```
-## 🚀 MANDATORY AGENT SPAWNING PATTERNS
+### 🎯 Swarm Initialization (MANDATORY for ALL Multi-Agent Tasks)
 
-**YOU MUST USE THESE PATTERNS FOR ALL NON-TRIVIAL WORK:**
-
-### Pattern 1: Simple Tasks (2-3 agents MINIMUM)
-```javascript
-// ✅ MANDATORY for any code change - ALWAYS use swarm coordination
-[Single Message]:
-  // Step 1: Initialize swarm (REQUIRED for consistency)
-  mcp__claude-flow-novice__swarm_init({
-    topology: "mesh",
-    maxAgents: 3,
-    strategy: "balanced"
-  })
-
-  // Step 2: Spawn agents with coordinated approach
-  Task("Coder", "Implement feature with TDD approach", "coder")
-  Task("Tester", "Create comprehensive test suite", "tester")
-  Task("Reviewer", "Review code quality and security", "reviewer")
-```
-
-### Pattern 2: Medium Tasks (4-6 agents REQUIRED)
-```javascript
-// ✅ MANDATORY for multi-file features - ALWAYS use swarm coordination
-[Single Message]:
-  // Step 1: Initialize swarm (REQUIRED for consistency)
-  mcp__claude-flow-novice__swarm_init({
-    topology: "mesh",
-    maxAgents: 6,
-    strategy: "balanced"
-  })
-
-  // Step 2: Spawn coordinated agents
-  Task("Researcher", "Analyze requirements and existing patterns", "researcher")
-  Task("Architect", "Design system architecture", "system-architect")
-  Task("Coder", "Implement core functionality with TDD", "coder")
-  Task("Tester", "Create unit, integration, and E2E tests", "tester")
-  Task("Security Reviewer", "Perform security audit", "security-specialist")
-  Task("Reviewer", "Final quality review", "reviewer")
-```
-
-### Pattern 3: Complex Tasks (8-12 agents REQUIRED)
-```javascript
-// ✅ MANDATORY for full features - MUST use swarm coordination
-[Single Message]:
-  // Step 1: Initialize swarm coordination (REQUIRED for 8+ agents)
-  mcp__claude-flow-novice__swarm_init({
-    topology: "hierarchical",
-    maxAgents: 12,
-    strategy: "adaptive"
-  })
-
-  // Step 2: Spawn working agents using Task tool
-  Task("Product Owner", "Define requirements", "planner")
-  Task("System Architect", "Design architecture", "system-architect")
-  Task("Backend Developer", "Implement backend services", "backend-dev")
-  Task("Frontend Developer", "Create UI components", "coder")
-  Task("Tester", "Comprehensive testing", "tester")
-  Task("Security Specialist", "Security review", "security-specialist")
-  Task("Performance Analyst", "Performance optimization", "perf-analyzer")
-  Task("DevOps Engineer", "CI/CD setup", "cicd-engineer")
-  Task("API Documenter", "API documentation", "api-docs")
-  Task("Reviewer", "Final quality gate", "reviewer")
-```
-
-### 🎯 SWARM INITIALIZATION RULE
-
-**CRITICAL**: You MUST initialize swarm WHENEVER spawning multiple agents:
+**CRITICAL**: You MUST initialize swarm BEFORE spawning ANY multiple agents:
 
 ```javascript
 [Single Message]:
-  // Step 1: Initialize swarm (REQUIRED for ALL multi-agent tasks)
+  // Step 1: ALWAYS initialize swarm first
   mcp__claude-flow-novice__swarm_init({
     topology: "mesh",          // mesh (2-7 agents), hierarchical (8+)
     maxAgents: 3,              // Match your actual agent count
     strategy: "balanced"       // ensures agents coordinate and stay consistent
   })
 
-  // Step 2 (Optional but recommended): Spawn coordination agent
-  mcp__claude-flow-novice__agent_spawn({
-    type: "coordinator",
-    name: "Swarm-Coordinator",
-    capabilities: ["consistency_enforcement", "method_coordination"]
-  })
-
-  // Step 3: Spawn working agents via Task tool
-  Task("Agent 1", "Instructions...", "type")
-  Task("Agent 2", "Instructions...", "type")
-  Task("Agent 3", "Instructions...", "type")
+  // Step 2: Spawn working agents via Task tool
+  Task("Agent 1", "Specific instructions...", "type")
+  Task("Agent 2", "Specific instructions...", "type")
+  Task("Agent 3", "Specific instructions...", "type")
 ```
 
 **WHY THIS MATTERS:**
@@ -287,9 +218,67 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
 - **Monitoring**: `swarm_status`, `agent_metrics`, `task_results`
 - **Memory**: `memory_usage`, `memory_search`
 
-### ⚠️ REAL EXAMPLE: Why Swarm Init Matters
+---
 
-**WITHOUT swarm_init:**
+## 📋 AGENT COORDINATION RULES
+
+### Universal Agent Spawning Pattern
+
+**EVERY multi-agent task follows this structure:**
+
+```javascript
+[Single Message]:
+  // Step 1: ALWAYS initialize swarm first
+  mcp__claude-flow-novice__swarm_init({
+    topology: "mesh",          // or "hierarchical" for 8+ agents
+    maxAgents: X,              // match your actual agent count
+    strategy: "balanced"       // or "adaptive" for complex tasks
+  })
+
+  // Step 2: Spawn ALL agents concurrently
+  Task("Agent Name", "Specific task instructions", "agent-type")
+  Task("Agent Name", "Specific task instructions", "agent-type")
+  Task("Agent Name", "Specific task instructions", "agent-type")
+  // ... continue for all agents
+```
+
+### Coordination Checklist
+
+**Before spawning agents, ensure:**
+- ✅ Task analyzed and complexity assessed (Simple/Medium/Complex/Enterprise)
+- ✅ Agent count determined from requirements table
+- ✅ Agent types selected for specific needs (not generic roles)
+- ✅ Topology chosen: mesh (2-7) or hierarchical (8+)
+- ✅ All agents will spawn in SINGLE message
+- ✅ Each agent has specific, non-overlapping instructions
+
+**During execution:**
+- ✅ Agents coordinate through SwarmMemory
+- ✅ Self-validation runs before consensus
+- ✅ Each agent runs Post-edit hooks execute after file changes
+
+**After completion:**
+- ✅ Consensus validation achieved (≥90% agreement)
+- ✅ Results stored in memory
+- ✅ Next steps provided with claude code continuing to the next documented phase or next steps provided to user if no todos left
+
+### Agent Selection Guide
+
+**Core Development**: coder, tester, reviewer
+**Backend**: backend-dev, api-docs, system-architect
+**Frontend**: coder (specialized), mobile-dev
+**Quality**: tester, reviewer, security-specialist, perf-analyzer
+**Planning**: researcher, planner, architect
+**Operations**: devops-engineer, cicd-engineer
+**Documentation**: api-docs, researcher
+
+**Select agents based on actual task needs, not predefined patterns.**
+
+---
+
+### ⚠️ Real-World Example: Why Swarm Coordination Matters
+
+**WITHOUT swarm_init (problematic):**
 ```javascript
 // ❌ BAD: Agents work independently with no coordination
 [Single Message]:
@@ -298,10 +287,10 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
   Task("Agent 3", "Fix JWT secret issue", "coder")
 
 // Result: 3 different solutions - environment variable, config file, hardcoded
-// Problem: Inconsistent approach, wasted effort, conflicts
+// Problem: Inconsistent approach, wasted effort, integration conflicts
 ```
 
-**WITH swarm_init:**
+**WITH swarm_init (correct):**
 ```javascript
 // ✅ GOOD: Agents coordinate through swarm
 [Single Message]:
@@ -356,10 +345,6 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 
 ### Step 2: Execute - Primary Swarm (3-20 agents)
 - **Primary swarm** (3-8 agents minimum) produces deliverables with confidence scores
-- **Each agent MUST** use enhanced post-edit pipeline after file edits:
-  ```bash
-  npx enhanced-hooks post-edit "[file]" --memory-key "swarm/[agent]/[step]" --structured
-  ```
 - **Self-validation**: Each agent validates own work (confidence threshold: 0.75)
 - **Cross-agent coordination**: Agents share findings via SwarmMemory
 
@@ -388,7 +373,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 - **PASS** →
   1. Store results in SwarmMemory
   2. Update documentation
-  3. Move to next task
+  3. Update todos and move to next task
 
 - **FAIL** →
   1. Round counter++
@@ -398,9 +383,20 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 ### 🚨 ENFORCEMENT CHECKPOINTS
 
 **MANDATORY before proceeding:**
-1. ✅ Agents spawned (minimum count met for task complexity)
+1. ✅ Agents spawned
 2. ✅ Each file edit followed by enhanced post-edit hook
 3. ✅ Self-validation confidence scores recorded
 4. ✅ Consensus swarm spawned for verification
 5. ✅ Byzantine voting completed
 6. ✅ Results stored in SwarmMemory
+
+---
+
+## 🎯 MANDATORY: NEXT STEPS GUIDANCE
+
+**After completing ANY task, you MUST provide:**
+
+1. **✅ What was completed**: Brief summary of delivered work
+2. **📊 Validation results**: Confidence scores, test coverage, consensus approval
+3. **🔍 Identified issues**: Any technical debt, warnings, or concerns discovered
+4. **💡 Recommended next steps**: Prioritized suggestions for logical continuation
