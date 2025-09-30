@@ -1,0 +1,443 @@
+name: SDK Integration Gradual Rollout
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Target rollout phase (0-4)'
+        required: true
+        type: choice
+        options:
+          - '0'
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+        default: '1'
+      skip_validation:
+        description: 'Skip validation tests'
+        required: false
+        type: boolean
+        default: false
+
+  schedule:
+    # Automated weekly progression (disabled by default - enable after Phase 0)
+    - cron: '0 0 * * MON'
+
+env:
+  NODE_VERSION: '18.x'
+  MIGRATION_LOG: './logs/sdk-migration.log'
+
+jobs:
+  pre-flight-checks:
+    name: Pre-flight Validation
+    runs-on: ubuntu-latest
+    outputs:
+      can_proceed: ${{ steps.checks.outputs.can_proceed }}
+      current_phase: ${{ steps.phase.outputs.current }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Detect current phase
+        id: phase
+        run: |
+          if [ -f ".migration-phase" ]; then
+            CURRENT=$(cat .migration-phase)
+          else
+            CURRENT=0
+          fi
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Current migration phase: $CURRENT"
+
+      - name: Run pre-flight checks
+        id: checks
+        run: |
+          echo "Running pre-flight checks..."
+
+          # Check environment variables
+          if [ -z "${{ secrets.CLAUDE_API_KEY }}" ]; then
+            echo "❌ CLAUDE_API_KEY not configured"
+            echo "can_proceed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Check for required files
+          required_files=(
+            "src/sdk/performance-config.js"
+            "src/sdk/dashboard.js"
+            "scripts/migrate-to-sdk.sh"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ Required file missing: $file"
+              echo "can_proceed=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          done
+
+          echo "✅ Pre-flight checks passed"
+          echo "can_proceed=true" >> $GITHUB_OUTPUT
+
+  phase-0-setup:
+    name: 'Phase 0: Initial Setup'
+    needs: pre-flight-checks
+    if: |
+      needs.pre-flight-checks.outputs.can_proceed == 'true' &&
+      (github.event.inputs.phase == '0' || needs.pre-flight-checks.outputs.current_phase == '0')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install @anthropic-ai/claude-agent-sdk
+
+      - name: Create backup
+        run: |
+          mkdir -p backups
+          git rev-parse HEAD > backups/pre-migration-commit.txt
+          cp package.json backups/package.json.backup
+
+      - name: Run baseline tests
+        if: ${{ !inputs.skip_validation }}
+        run: npm test
+
+      - name: Set phase marker
+        run: echo "0" > .migration-phase
+
+      - name: Commit phase marker
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .migration-phase backups/
+          git commit -m "chore: SDK migration Phase 0 setup [skip ci]" || true
+          git push || true
+
+  phase-1-caching:
+    name: 'Phase 1: Enable Caching (5%)'
+    needs: [pre-flight-checks, phase-0-setup]
+    if: |
+      always() &&
+      needs.pre-flight-checks.outputs.can_proceed == 'true' &&
+      (github.event.inputs.phase >= '1' || needs.pre-flight-checks.outputs.current_phase == '1')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Phase 1
+        run: |
+          cat >> .env << EOF
+          ENABLE_SDK_INTEGRATION=true
+          SDK_INTEGRATION_MODE=parallel
+          ENABLE_SDK_CACHING=true
+          ENABLE_CONTEXT_EDITING=true
+          SDK_ROLLOUT_PERCENTAGE=5
+          EOF
+
+      - name: Run integration tests
+        if: ${{ !inputs.skip_validation }}
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: npm run test:integration
+
+      - name: Start monitoring
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: |
+          npm run dashboard &
+          DASHBOARD_PID=$!
+          echo "Dashboard PID: $DASHBOARD_PID"
+
+          # Monitor for 5 minutes
+          sleep 300
+
+          # Collect metrics
+          curl -s http://localhost:3000/api/summary > phase1-metrics.json
+
+          kill $DASHBOARD_PID
+
+      - name: Validate metrics
+        run: |
+          # Check error rate and validation success
+          node -e "
+            const metrics = require('./phase1-metrics.json');
+            const errorRate = metrics.performance?.errorRate || 1;
+            const validationSuccess = metrics.quality?.validationSuccessRate || 0;
+
+            if (errorRate > 0.01) {
+              console.error('❌ Error rate too high:', errorRate);
+              process.exit(1);
+            }
+
+            if (validationSuccess < 0.95) {
+              console.error('❌ Validation success rate too low:', validationSuccess);
+              process.exit(1);
+            }
+
+            console.log('✅ Metrics validation passed');
+          "
+
+      - name: Update phase marker
+        run: echo "1" > .migration-phase
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase1-metrics
+          path: phase1-metrics.json
+
+      - name: Commit phase update
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .migration-phase
+          git commit -m "chore: SDK migration Phase 1 complete [skip ci]" || true
+          git push || true
+
+  phase-2-validation:
+    name: 'Phase 2: Self-Validation (25%)'
+    needs: [pre-flight-checks, phase-1-caching]
+    if: |
+      always() &&
+      needs.pre-flight-checks.outputs.can_proceed == 'true' &&
+      (github.event.inputs.phase >= '2' || needs.pre-flight-checks.outputs.current_phase == '2')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Phase 2
+        run: |
+          cat >> .env << EOF
+          SDK_ROLLOUT_PERCENTAGE=25
+          ENABLE_SELF_VALIDATION=true
+          VALIDATION_MODE=parallel
+          CONFIDENCE_THRESHOLD=0.75
+          EOF
+
+      - name: Run validation tests
+        if: ${{ !inputs.skip_validation }}
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: npm run test:integration
+
+      - name: Update phase marker
+        run: echo "2" > .migration-phase
+
+      - name: Commit phase update
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .migration-phase
+          git commit -m "chore: SDK migration Phase 2 complete [skip ci]" || true
+          git push || true
+
+  phase-3-integration:
+    name: 'Phase 3: Full Integration (75%)'
+    needs: [pre-flight-checks, phase-2-validation]
+    if: |
+      always() &&
+      needs.pre-flight-checks.outputs.can_proceed == 'true' &&
+      (github.event.inputs.phase >= '3' || needs.pre-flight-checks.outputs.current_phase == '3')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Phase 3
+        run: |
+          cat >> .env << EOF
+          SDK_ROLLOUT_PERCENTAGE=75
+          SDK_INTEGRATION=full
+          CONSENSUS_MODE=validated_only
+          MAX_PARALLEL_AGENTS=10
+          EOF
+
+      - name: Run comprehensive tests
+        if: ${{ !inputs.skip_validation }}
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: |
+          npm run test:integration
+          npm run test:performance
+
+      - name: Update phase marker
+        run: echo "3" > .migration-phase
+
+      - name: Commit phase update
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .migration-phase
+          git commit -m "chore: SDK migration Phase 3 complete [skip ci]" || true
+          git push || true
+
+  phase-4-production:
+    name: 'Phase 4: Production (100%)'
+    needs: [pre-flight-checks, phase-3-integration]
+    if: |
+      always() &&
+      needs.pre-flight-checks.outputs.can_proceed == 'true' &&
+      github.event.inputs.phase == '4'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Production
+        run: |
+          cat >> .env << EOF
+          SDK_ROLLOUT_PERCENTAGE=100
+          ENVIRONMENT=production
+          MONITORING_ENABLED=true
+          ALERTS_ENABLED=true
+          AUTO_ROLLBACK=true
+          EOF
+
+      - name: Run production validation
+        if: ${{ !inputs.skip_validation }}
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: npm run validate:production
+
+      - name: Update phase marker
+        run: echo "4" > .migration-phase
+
+      - name: Commit phase update
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add .migration-phase
+          git commit -m "chore: SDK migration Phase 4 PRODUCTION complete [skip ci]" || true
+          git push || true
+
+      - name: Create release tag
+        run: |
+          VERSION=$(node -pe "require('./package.json').version")
+          git tag -a "v${VERSION}-sdk-complete" -m "SDK integration complete"
+          git push origin "v${VERSION}-sdk-complete"
+
+  rollback:
+    name: Emergency Rollback
+    needs: [pre-flight-checks]
+    if: failure() && needs.pre-flight-checks.outputs.can_proceed == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Execute rollback
+        run: |
+          chmod +x scripts/migrate-to-sdk.sh
+          ./scripts/migrate-to-sdk.sh rollback
+
+      - name: Notify rollback
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 SDK Migration Rollback Triggered',
+              body: `SDK migration failed and automatic rollback was initiated.
+
+              **Workflow:** ${context.workflow}
+              **Run:** ${context.runNumber}
+              **Phase:** ${{ needs.pre-flight-checks.outputs.current_phase }}
+
+              Please investigate before retrying.`,
+              labels: ['rollback', 'urgent']
+            })
+
+  notify-success:
+    name: Notify Success
+    needs: [phase-0-setup, phase-1-caching, phase-2-validation, phase-3-integration, phase-4-production]
+    if: success()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send success notification
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const phase = '${{ github.event.inputs.phase }}';
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue?.number || 1,
+              body: `✅ SDK Migration Phase ${phase} completed successfully!
+
+              **Dashboard:** http://localhost:3000
+              **Metrics:** Available in workflow artifacts
+
+              Next steps: Monitor metrics for 24 hours before proceeding to next phase.`
+            })

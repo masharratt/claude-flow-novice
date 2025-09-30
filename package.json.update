@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "dashboard": "node scripts/monitor-migration.js",
+    "monitor": "node scripts/monitor-migration.js",
+    "migrate:sdk": "./scripts/migrate-to-sdk.sh migrate",
+    "migrate:status": "./scripts/migrate-to-sdk.sh status",
+    "rollback:sdk": "./scripts/rollback-sdk.sh",
+    "validate:production": "node scripts/run-production-validation.ts"
+  }
+}

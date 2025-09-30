@@ -105,6 +105,7 @@ async function readClaudeMdTemplate() {
   for (const templatePath of possiblePaths) {
     try {
       const content = await fs.readFile(templatePath, 'utf8');
+      console.log(`✅ Using CLAUDE.md template from: ${templatePath}`);
       return content;
     } catch (error) {
       // Try next path
@@ -112,9 +113,8 @@ async function readClaudeMdTemplate() {
     }
   }
 
-  // Fallback to generating if template file is not found in any location
-  console.warn('Warning: Template file not found in any location, using generated content');
-  return createOptimizedSparcClaudeMd();
+  // If template not found, throw error instead of falling back
+  throw new Error('CLAUDE.md template file not found! Please ensure templates are included in the build.');
 }
 
 /**

@@ -7,16 +7,34 @@
  * Keeps it focused and lightweight - no bloat!
  */
 
-import { ClaudeMdGenerator } from '../language/claude-md-generator.js';
-import { LanguageDetector } from '../language/language-detector.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 export class ClaudeMdSlashCommand {
   constructor(projectPath = process.cwd()) {
     this.projectPath = projectPath;
     this.claudeMdPath = path.join(projectPath, 'CLAUDE.md');
     this.copyToMainPath = path.join(projectPath, 'claude-copy-to-main.md');
+
+    // Get the directory of this module to find the template
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    this.templatePath = path.join(__dirname, '..', 'cli', 'simple-commands', 'init', 'templates', 'CLAUDE.md');
+  }
+
+  /**
+   * Read the CLAUDE.md template file
+   */
+  async readTemplate() {
+    try {
+      const content = await fs.readFile(this.templatePath, 'utf8');
+      console.log('✅ Using CLAUDE.md template');
+      return content;
+    } catch (error) {
+      throw new Error(`CLAUDE.md template not found at ${this.templatePath}`);
+    }
   }
 
   /**
@@ -37,13 +55,8 @@ export class ClaudeMdSlashCommand {
       const existingClaudeExists = await this.fileExists(this.claudeMdPath);
       const shouldUseNpxProtection = isNpxInstall && existingClaudeExists;
 
-      // Step 2: Generate content using existing system
-      const generator = new ClaudeMdGenerator(this.projectPath, {
-        backupExisting: backup && !shouldUseNpxProtection,
-        preserveCustomSections: true
-      });
-
-      const newContent = await generator.generateClaudeMd();
+      // Step 2: Read template content (no language detection, just use template)
+      const newContent = await this.readTemplate();
 
       // Step 3: Handle NPX protection
       if (shouldUseNpxProtection) {
