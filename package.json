@@ -150,7 +150,14 @@
     "hooks:session-start": "node src/cli/simple-commands/hooks.js session-start",
     "postinstall": "node scripts/post-install-claude-md.js",
     "validate:agents": "node scripts/build/validate-agents.js",
-    "copy:agents": "mkdir -p .claude-flow-novice/.claude && cp -r .claude/agents .claude-flow-novice/.claude/"
+    "copy:agents": "mkdir -p .claude-flow-novice/.claude && cp -r .claude/agents .claude-flow-novice/.claude/",
+    "sdk:enable": "export ENABLE_SDK_INTEGRATION=true && echo \"SDK enabled\"",
+    "sdk:disable": "export ENABLE_SDK_INTEGRATION=false && echo \"SDK disabled\"",
+    "sdk:monitor": "node src/sdk/monitor.cjs",
+    "sdk:dashboard": "node src/sdk/dashboard.js",
+    "sdk:test": "npm run test:sdk-integration",
+    "sdk:validate": "node scripts/verify-sdk-phase1.cjs",
+    "sdk:rollback": "bash scripts/rollback-sdk.sh"
   },
   "keywords": [
     "ai",
