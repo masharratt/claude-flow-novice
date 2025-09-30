@@ -68,7 +68,8 @@ async function startMcpServer(subArgs, flags) {
 
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
-      const mcpServerPath = path.join(__dirname, '../../mcp/mcp-server.js');
+      // Use the SDK-based MCP server from dist directory
+      const mcpServerPath = path.join(__dirname, '../../mcp/mcp-server-sdk.js');
 
       // Check if the file exists, and log the path for debugging
       const fs = await import('fs');
