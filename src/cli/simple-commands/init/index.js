@@ -64,14 +64,8 @@ import {
   createHelperScript,
   COMMAND_STRUCTURE,
 } from './templates/enhanced-templates.js';
-import { createOptimizedSparcClaudeMd } from './templates/claude-md.js';
 import { getIsolatedNpxEnv } from '../../../utils/npx-isolated-cache.js';
 import { updateGitignore, needsGitignoreUpdate } from './gitignore-updater.js';
-import {
-  createFullClaudeMd,
-  createSparcClaudeMd,
-  createMinimalClaudeMd,
-} from './templates/claude-md.js';
 import {
   createVerificationClaudeMd,
   createVerificationSettingsJson,
@@ -269,13 +263,6 @@ export async function initCommand(subArgs, flags) {
 
   if (batchInitFlag || configFlag) {
     return handleBatchInit(subArgs, flags);
-  }
-
-  // For novice package, always use enhanced initialization with agent system
-  const useEnhanced = true; // Always enhanced for novice users
-
-  if (useEnhanced) {
-    return enhancedInitCommand(subArgs, flags);
   }
 
   // Parse init options
@@ -1047,11 +1034,8 @@ async function performInitializationWithCheckpoints(
 // Helper functions for atomic initialization
 async function createInitialFiles(options, workingDir, dryRun = false) {
   if (!dryRun) {
-    const claudeMd = options.sparc
-      ? createSparcClaudeMd()
-      : options.minimal
-        ? createMinimalClaudeMd()
-        : createFullClaudeMd();
+    // Use template file instead of generation
+    const claudeMd = await readClaudeMdTemplate();
     await fs.writeFile(`${workingDir}/CLAUDE.md`, claudeMd, 'utf8');
 
     const memoryBankMd = options.minimal ? createMinimalMemoryBankMd() : createFullMemoryBankMd();

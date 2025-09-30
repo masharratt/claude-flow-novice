@@ -498,98 +498,35 @@ async function createMemoryReadmeFiles(targetDir, options, results) {
 }
 
 /**
- * Get template content as fallback (for backwards compatibility)
+ * Get template content from template file only (NO GENERATION)
  */
 async function getTemplateContent(templatePath) {
   const filename = templatePath.split('/').pop();
 
-  // Map template files to their generator functions
-  const templateGenerators = {
-    'CLAUDE.md': async () => {
-      const { createFullClaudeMd } = await import('./templates/claude-md.js');
-      return createFullClaudeMd();
-    },
-    'CLAUDE.md.sparc': async () => {
-      const { createSparcClaudeMd } = await import('./templates/claude-md.js');
-      return createSparcClaudeMd();
-    },
-    'CLAUDE.md.minimal': async () => {
-      const { createMinimalClaudeMd } = await import('./templates/claude-md.js');
-      return createMinimalClaudeMd();
-    },
-    'CLAUDE.md.optimized': async () => {
-      const { createOptimizedSparcClaudeMd } = await import('./templates/claude-md.js');
-      return createOptimizedSparcClaudeMd();
-    },
-    'CLAUDE.md.enhanced': async () => {
-      const { createEnhancedClaudeMd } = await import('./templates/enhanced-templates.js');
-      return createEnhancedClaudeMd();
-    },
-    'CLAUDE.md.verification': async () => {
-      const { createVerificationClaudeMd } = await import('./templates/verification-claude-md.js');
-      return createVerificationClaudeMd();
-    },
-    'memory-bank.md': async () => {
-      const { createFullMemoryBankMd } = await import('./templates/memory-bank-md.js');
-      return createFullMemoryBankMd();
-    },
-    'memory-bank.md.minimal': async () => {
-      const { createMinimalMemoryBankMd } = await import('./templates/memory-bank-md.js');
-      return createMinimalMemoryBankMd();
-    },
-    'memory-bank.md.optimized': async () => {
-      const { createOptimizedMemoryBankMd } = await import('./templates/memory-bank-md.js');
-      return createOptimizedMemoryBankMd();
-    },
-    'coordination.md': async () => {
-      const { createFullCoordinationMd } = await import('./templates/coordination-md.js');
-      return createFullCoordinationMd();
-    },
-    'coordination.md.minimal': async () => {
-      const { createMinimalCoordinationMd } = await import('./templates/coordination-md.js');
-      return createMinimalCoordinationMd();
-    },
-    'coordination.md.optimized': async () => {
-      const { createOptimizedCoordinationMd } = await import('./templates/coordination-md.js');
-      return createOptimizedCoordinationMd();
-    },
-    'settings.json': async () => {
-      return await fs.readFile(join(__dirname, 'templates', 'settings.json'), 'utf8');
-    },
-    'settings.json.enhanced': async () => {
-      const { createEnhancedSettingsJson } = await import('./templates/enhanced-templates.js');
-      return createEnhancedSettingsJson();
-    },
-    'settings.json.verification': async () => {
-      const { createVerificationSettingsJson } = await import(
-        './templates/verification-claude-md.js'
-      );
-      return createVerificationSettingsJson();
-    },
-    'claude-flow-universal': async () => {
-      return await fs.readFile(join(__dirname, 'templates', 'claude-flow-universal'), 'utf8');
-    },
-    'claude-flow.bat': async () => {
-      return await fs.readFile(join(__dirname, 'templates', 'claude-flow.bat'), 'utf8');
-    },
-    'claude-flow.ps1': async () => {
-      return await fs.readFile(join(__dirname, 'templates', 'claude-flow.ps1'), 'utf8');
-    },
-  };
+  // Try to read from the actual template file ONLY
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
 
-  const generator =
-    templateGenerators[filename] ||
-    templateGenerators[filename.replace(/\.(sparc|minimal|optimized|enhanced)$/, '')];
+  // Try multiple possible template locations
+  const templatePaths = [
+    join(__dirname, 'templates', filename),  // Source location: src/cli/simple-commands/init/templates/
+    join(__dirname, filename),                // Dist location: dist/src/cli/simple-commands/init/ (files copied directly)
+  ];
 
-  if (generator) {
+  for (const actualTemplatePath of templatePaths) {
     try {
-      return await generator();
+      const content = await fs.readFile(actualTemplatePath, 'utf8');
+      console.log(`  ✓ Using template from ${actualTemplatePath}`);
+      return content;
     } catch (err) {
-      console.log(`  ⚠️  Failed to generate template content for ${filename}: ${err.message}`);
-      return null;
+      // Try next path
+      continue;
     }
   }
 
+  // NO FALLBACK TO GENERATION - Template file must exist
+  console.log(`  ⚠️  Template file not found for ${filename}`);
+  console.log(`  💡 Template files must be present in src/cli/simple-commands/init/templates/`);
   return null;
 }
 
