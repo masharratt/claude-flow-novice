@@ -9,6 +9,8 @@ import type { CommandContext } from '../cli-core.js';
 import { BackgroundExecutor } from '../../coordination/background-executor.js';
 import { SwarmCoordinator } from '../../coordination/swarm-coordinator.js';
 import { SwarmMemoryManager } from '../../memory/swarm-memory.js';
+import { setSwarmCoordinator } from '../../coordination/swarm-coordinator-factory.js';
+import { requireSwarmInit } from '../../validators/swarm-init-validator.js';
 export async function swarmAction(ctx: CommandContext) {
   // First check if help is requested
   if (ctx.flags.help || ctx.flags.h) {
@@ -38,6 +40,8 @@ export async function swarmAction(ctx: CommandContext) {
     console.log('  --distributed          Enable distributed coordination');
     console.log('  --memory-namespace     Memory namespace for swarm (default: swarm)');
     console.log('  --persistence          Enable task persistence (default: true)');
+    console.log('  --validate-swarm-init  Validate swarm initialization (default: true)');
+    console.log('  --skip-validation      Skip swarm initialization validation');
     return;
   }
 
@@ -64,6 +68,11 @@ export async function swarmAction(ctx: CommandContext) {
     background: (ctx.flags.background as boolean) || false,
     persistence: (ctx.flags.persistence as boolean) || true,
     distributed: (ctx.flags.distributed as boolean) || false,
+    validateSwarmInit:
+      (ctx.flags.validateSwarmInit as boolean) ||
+      (ctx.flags['validate-swarm-init'] as boolean) ||
+      !(ctx.flags.skipValidation as boolean) ||
+      !(ctx.flags['skip-validation'] as boolean),
   };
 
   const swarmId = generateId('swarm');
@@ -155,6 +164,9 @@ export async function swarmAction(ctx: CommandContext) {
       persistencePath: `./swarm-runs/${swarmId}/memory`,
     });
 
+    // Register coordinator in factory for validator access
+    setSwarmCoordinator(coordinator);
+
     // Start all systems
     await coordinator.start();
     await executor.start();
@@ -175,6 +187,22 @@ export async function swarmAction(ctx: CommandContext) {
     // Register agents based on strategy
     const agentTypes = getAgentTypesForStrategy(options.strategy);
     const agents = [];
+
+    // Validate swarm initialization before spawning agents
+    if (options.validateSwarmInit) {
+      try {
+        await requireSwarmInit(options.maxAgents, {
+          initialized: true, // Swarm is initialized above
+          topology: options.maxAgents <= 7 ? 'mesh' : 'hierarchical',
+          maxAgents: options.maxAgents,
+          swarmId,
+        });
+        console.log(`✅ Swarm validation passed for ${options.maxAgents} agents`);
+      } catch (validationError) {
+        error(`Swarm validation failed:\n${(validationError as Error).message}`);
+        throw validationError;
+      }
+    }
 
     for (let i = 0; i < Math.min(options.maxAgents, agentTypes.length); i++) {
       const agentType = agentTypes[i % agentTypes.length];

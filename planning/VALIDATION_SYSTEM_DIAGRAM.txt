@@ -1,0 +1,494 @@
+================================================================================
+                    VALIDATION ARCHITECTURE SYSTEM DIAGRAM
+                    Claude Flow Novice - Automated Validation
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                USER INTERFACE                                │
+│                                                                              │
+│  CLI Commands:                                                               │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │ npx claude-flow-novice swarm spawn --agents 3 --validate-swarm-init  │  │
+│  │ npx claude-flow-novice TodoWrite [...items]                          │  │
+│  │ npx claude-flow-novice validate config --set mode=block              │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          CLI COMMAND LAYER                                   │
+│                                                                              │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
+│  │ swarm.ts    │  │ agent.ts     │  │ validate.ts  │  │ task.ts      │    │
+│  │ - spawn     │  │ - spawn      │  │ - config     │  │ - orchestrate│    │
+│  │ - init      │  │ - register   │  │ - metrics    │  │ - TodoWrite  │    │
+│  └──────┬──────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    │
+│         │                │                  │                  │             │
+│         └────────────────┴──────────────────┴──────────────────┘             │
+│                                     │                                        │
+└─────────────────────────────────────┼────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       PRE-COMMAND HOOK SYSTEM                                │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                     pre-command-validator.ts                            │ │
+│  │                                                                         │ │
+│  │  intercept(command, args, options) {                                   │ │
+│  │    if (isSwarmSpawn) → SwarmInitValidator                              │ │
+│  │    if (isTodoWrite) → TodoWriteBatchValidator                          │ │
+│  │    return validationResult                                             │ │
+│  │  }                                                                      │ │
+│  └───────────────────────┬──────────────────────┬─────────────────────────┘ │
+└──────────────────────────┼──────────────────────┼───────────────────────────┘
+                           │                      │
+                           ▼                      ▼
+        ┌──────────────────────────┐   ┌──────────────────────────┐
+        │  SWARM INIT VALIDATOR    │   │  TODOWRITE VALIDATOR     │
+        │                          │   │                          │
+        │  ┌────────────────────┐  │   │  ┌────────────────────┐  │
+        │  │ validateSwarmInit()│  │   │  │validateBatchPattern│  │
+        │  │ - Check swarm state│  │   │  │ - Check batch size │  │
+        │  │ - Validate topology│  │   │  │ - Check frequency  │  │
+        │  │ - Suggest fixes    │  │   │  │ - Detect patterns  │  │
+        │  └─────────┬──────────┘  │   │  └─────────┬──────────┘  │
+        │            │              │   │            │              │
+        │  ┌─────────▼──────────┐  │   │  ┌─────────▼──────────┐  │
+        │  │ recordSwarmInit()  │  │   │  │ getBatchingStats() │  │
+        │  │ recordAgentSpawn() │  │   │  │ clearLog()         │  │
+        │  └────────────────────┘  │   │  └────────────────────┘  │
+        └──────────┬───────────────┘   └──────────┬───────────────┘
+                   │                              │
+                   └──────────┬───────────────────┘
+                              │
+                              ▼
+        ┌─────────────────────────────────────────────────────────┐
+        │         VALIDATION STATE MANAGER                        │
+        │                                                          │
+        │  ┌────────────────────────────────────────────────────┐ │
+        │  │ State Management                                   │ │
+        │  │ - getCurrentSwarmState()                           │ │
+        │  │ - updateSwarmState(state)                          │ │
+        │  │ - getTodoWriteLog()                                │ │
+        │  │ - updateTodoWriteLog(log)                          │ │
+        │  │ - recordValidation(type, result)                   │ │
+        │  │ - getMetrics()                                     │ │
+        │  └────────────────────────────────────────────────────┘ │
+        │                                                          │
+        │  ┌────────────────────────────────────────────────────┐ │
+        │  │ Configuration Management                           │ │
+        │  │ - loadConfig()                                     │ │
+        │  │ - saveConfig(config)                               │ │
+        │  │ - getDefaultConfig()                               │ │
+        │  └────────────────────────────────────────────────────┘ │
+        └──────────────────┬───────────────────┬─────────────────┘
+                           │                   │
+                           ▼                   ▼
+        ┌──────────────────────────┐  ┌──────────────────────────┐
+        │  PERSISTENCE LAYER       │  │  MEMORY INTEGRATION      │
+        │                          │  │                          │
+        │  .claude-flow/           │  │  SwarmMemoryManager      │
+        │  ├── validation-state    │  │  - Store validation data │
+        │  │   .json                │  │  - Cross-agent access    │
+        │  └── validation-config   │  │  - Event coordination    │
+        │      .json                │  │                          │
+        └──────────────────────────┘  └──────────────────────────┘
+                   │
+                   ▼
+        ┌──────────────────────────────────────────────────────┐
+        │              METRICS & MONITORING                     │
+        │                                                       │
+        │  {                                                    │
+        │    swarmInitValidations: 42,                          │
+        │    swarmInitBlocks: 3,                                │
+        │    swarmInitWarnings: 5,                              │
+        │    todoWriteValidations: 128,                         │
+        │    todoWriteWarnings: 12,                             │
+        │    complianceRate: 91.7%                              │
+        │  }                                                    │
+        └───────────────────────────────────────────────────────┘
+
+================================================================================
+                           VALIDATION FLOW SEQUENCE
+================================================================================
+
+SWARM INIT VALIDATION FLOW:
+───────────────────────────
+
+1. User Command:
+   npx claude-flow-novice swarm spawn --agents 3
+
+2. Pre-Command Hook Intercept:
+   ┌─────────────────────────────────────┐
+   │ Detect: swarm spawn command         │
+   │ Extract: agentCount = 3             │
+   │ Call: validateSwarmInit(3)          │
+   └──────────────┬──────────────────────┘
+                  │
+                  ▼
+3. Validator Logic:
+   ┌─────────────────────────────────────┐
+   │ Check: agentCount >= minAgents?     │
+   │   YES (3 >= 2)                      │
+   │ Query: getCurrentSwarmState()       │
+   └──────────────┬──────────────────────┘
+                  │
+            ┌─────┴─────┐
+            │           │
+            ▼           ▼
+   ┌────────────┐  ┌─────────────┐
+   │ SWARM      │  │ NO SWARM    │
+   │ EXISTS     │  │ INITIALIZED │
+   └──────┬─────┘  └──────┬──────┘
+          │               │
+          │               ▼
+          │        ┌──────────────────────────┐
+          │        │ Generate Error:          │
+          │        │ - SWARM_NOT_INITIALIZED  │
+          │        │ - Suggest topology: mesh │
+          │        │ - Provide fix commands   │
+          │        └──────┬───────────────────┘
+          │               │
+          │               ▼
+          │        ┌──────────────────────────┐
+          │        │ Check Mode:              │
+          │        │ - warn: Display + Cont   │
+          │        │ - block: Error + Exit 1  │
+          │        └──────────────────────────┘
+          │
+          ▼
+   ┌──────────────────────────┐
+   │ Validate Topology:       │
+   │ - mesh for 2-7? ✓        │
+   │ - hierarchical for 8+?   │
+   └──────┬───────────────────┘
+          │
+          ▼
+   ┌──────────────────────────┐
+   │ Return PASS              │
+   │ Continue command         │
+   │ Record agent spawn       │
+   └──────────────────────────┘
+
+TODOWRITE BATCHING VALIDATION FLOW:
+────────────────────────────────────
+
+1. TodoWrite Call:
+   TodoWrite([item1, item2, item3, item4, item5])
+
+2. Pre-Call Hook:
+   ┌─────────────────────────────────────┐
+   │ Extract: itemCount = 5              │
+   │ Call: validateBatchingPattern(5)    │
+   └──────────────┬──────────────────────┘
+                  │
+                  ▼
+3. Validator Logic:
+   ┌─────────────────────────────────────┐
+   │ Record call in log                  │
+   │ Clean old calls (>5 min)            │
+   └──────────────┬──────────────────────┘
+                  │
+                  ▼
+   ┌─────────────────────────────────────┐
+   │ Check 1: Batch Size                 │
+   │   itemCount >= minBatchSize?        │
+   │   5 >= 5 ✓ PASS                     │
+   └──────────────┬──────────────────────┘
+                  │
+                  ▼
+   ┌─────────────────────────────────────┐
+   │ Check 2: Call Frequency             │
+   │   callLog.length >= maxCalls?       │
+   │   1 < 2 ✓ PASS                      │
+   └──────────────┬──────────────────────┘
+                  │
+            ┌─────┴─────┐
+            │           │
+            ▼           ▼
+   ┌────────────┐  ┌──────────────┐
+   │ ALL PASS   │  │ WARNINGS     │
+   └──────┬─────┘  └──────┬───────┘
+          │               │
+          │               ▼
+          │        ┌──────────────────────────┐
+          │        │ Generate Warnings:       │
+          │        │ - SMALL_BATCH_SIZE       │
+          │        │ - ANTI_PATTERN_DETECTED  │
+          │        └──────┬───────────────────┘
+          │               │
+          │               ▼
+          │        ┌──────────────────────────┐
+          │        │ Display warnings         │
+          │        │ Show recommendations     │
+          │        └──────────────────────────┘
+          │
+          ▼
+   ┌──────────────────────────┐
+   │ Update state             │
+   │ Store metrics            │
+   │ Continue execution       │
+   └──────────────────────────┘
+
+================================================================================
+                              DATA STRUCTURES
+================================================================================
+
+ValidationResult:
+─────────────────
+{
+  valid: boolean
+  errors: [
+    {
+      field: "swarm_initialization"
+      code: "SWARM_NOT_INITIALIZED"
+      severity: "critical"
+      message: "..."
+      fix: {
+        description: "..."
+        commands: ["..."]
+        documentation: "..."
+      }
+    }
+  ]
+  warnings: [...]
+  blocking: boolean
+  metadata: {
+    suggestedTopology: "mesh"
+    detectedAgentCount: 3
+    timestamp: "2025-09-30T10:00:00Z"
+  }
+}
+
+SwarmState:
+───────────
+{
+  id: "swarm-abc123"
+  initialized: true
+  topology: "mesh" | "hierarchical"
+  maxAgents: 5
+  agentsSpawned: 2
+  createdAt: "2025-09-30T10:00:00Z"
+  status: "active" | "completed" | "failed"
+}
+
+TodoWriteCall:
+──────────────
+{
+  timestamp: "2025-09-30T10:00:00Z"
+  itemCount: 5
+  source: "cli"
+}
+
+ValidationMetrics:
+──────────────────
+{
+  swarmInitValidations: 42
+  swarmInitBlocks: 3
+  swarmInitWarnings: 5
+  todoWriteValidations: 128
+  todoWriteWarnings: 12
+  complianceRate: 91.7%
+  lastUpdated: "2025-09-30T10:00:00Z"
+}
+
+================================================================================
+                           CONFIGURATION SCHEMA
+================================================================================
+
+.claude-flow/validation-config.json:
+────────────────────────────────────
+
+{
+  "enabled": true,
+  "defaultMode": "warn",
+
+  "swarmInit": {
+    "enabled": true,
+    "mode": "warn" | "block" | "disabled",
+    "minAgentsForSwarm": 2,
+    "trackStateInMemory": true,
+    "autoSuggestTopology": true
+  },
+
+  "todoWrite": {
+    "enabled": true,
+    "mode": "warn" | "block" | "disabled",
+    "minBatchSize": 5,
+    "timeWindowMs": 300000,
+    "maxCallsInWindow": 2,
+    "trackHistory": true
+  },
+
+  "metrics": {
+    "enabled": true,
+    "trackCompliance": true,
+    "exportToSwarmMemory": true
+  }
+}
+
+================================================================================
+                          INTEGRATION EXAMPLES
+================================================================================
+
+EXAMPLE 1: Swarm Command Integration
+─────────────────────────────────────
+
+// src/cli/commands/swarm.ts
+
+import { validateSwarmInit, recordSwarmInit } from '../../validators';
+
+export async function swarmSpawnAction(ctx: CommandContext) {
+  const agentCount = ctx.flags.agents;
+
+  // PRE-COMMAND VALIDATION
+  const validation = await validateSwarmInit(agentCount);
+
+  if (!validation.valid && validation.blocking) {
+    console.error('❌ Validation Failed:');
+    validation.errors.forEach(err => displayError(err));
+    process.exit(1);
+  }
+
+  // PROCEED WITH SPAWN
+  const result = await spawnAgents(agentCount);
+
+  // POST-COMMAND: Record spawn
+  await recordAgentSpawn(agentCount);
+
+  return result;
+}
+
+export async function swarmInitAction(ctx: CommandContext) {
+  const swarmId = await initializeSwarm(topology, maxAgents);
+
+  // RECORD INITIALIZATION
+  await recordSwarmInit(swarmId, topology, maxAgents);
+
+  return { swarmId, topology, maxAgents };
+}
+
+
+EXAMPLE 2: TodoWrite Integration
+─────────────────────────────────
+
+// Wherever TodoWrite is called
+
+import { validateTodoWriteBatch } from '../../validators';
+
+export async function createTodos(items: TodoItem[]) {
+  // VALIDATE BATCHING
+  const validation = await validateTodoWriteBatch(items.length, 'cli');
+
+  if (!validation.valid) {
+    validation.warnings?.forEach(warn => {
+      console.warn(`⚠️  ${warn.message}`);
+      if (warn.recommendation) {
+        console.warn(`    ${warn.recommendation}`);
+      }
+    });
+  }
+
+  // PROCEED WITH TODO CREATION
+  await TodoWrite(items);
+}
+
+================================================================================
+                              ERROR CATALOG
+================================================================================
+
+ERROR CODES:
+────────────
+
+SWARM_NOT_INITIALIZED (Critical)
+  Message: Swarm initialization required for N agents
+  Fix: npx claude-flow-novice swarm init --topology mesh --max-agents N
+
+AGENT_COUNT_EXCEEDED (Error)
+  Message: Attempting to spawn N agents but swarm maxAgents is M
+  Fix: Reinitialize swarm with higher maxAgents
+
+TOPOLOGY_MISMATCH (Error)
+  Message: Mesh topology recommended for 2-7 agents; use hierarchical for 8+
+  Fix: Use hierarchical topology for better coordination
+
+SMALL_BATCH_SIZE (Warning)
+  Message: TodoWrite batch size (N) below recommended minimum (5)
+  Recommendation: Batch ALL todos in single call with 5-10+ items
+
+INCREMENTAL_TODO_ANTI_PATTERN (Warning)
+  Message: N TodoWrite calls detected in M minutes
+  Recommendation: Plan all tasks upfront, create comprehensive todo list
+
+================================================================================
+                           PERFORMANCE TARGETS
+================================================================================
+
+Operation                      Target    Acceptable   Maximum
+────────────────────────────────────────────────────────────────
+Swarm init validation         <50ms      <100ms      <200ms
+TodoWrite validation          <30ms      <50ms       <100ms
+State file read               <10ms      <20ms       <50ms
+State file write              <20ms      <50ms       <100ms
+Config load (cached)          <5ms       <10ms       <20ms
+
+Memory Usage:
+─────────────
+TodoWrite log: Max 100 entries (~10KB)
+Swarm state: Single object (~1KB)
+Config: Single object (~2KB)
+Total: <15KB in memory
+
+================================================================================
+                              TESTING MATRIX
+================================================================================
+
+UNIT TESTS (≥90% coverage):
+────────────────────────────
+
+SwarmInitValidator:
+  ✓ Pass when swarm initialized
+  ✓ Fail when swarm not initialized
+  ✓ Suggest mesh for 2-7 agents
+  ✓ Suggest hierarchical for 8+ agents
+  ✓ Skip validation for single agent
+  ✓ Validate topology matches agent count
+  ✓ Error when exceeding maxAgents
+
+TodoWriteBatchValidator:
+  ✓ Pass for batch size >= 5
+  ✓ Warn for small batches
+  ✓ Detect anti-patterns (multiple calls)
+  ✓ Clean old calls outside time window
+  ✓ Calculate accurate statistics
+  ✓ Track compliance rate
+
+ValidationStateManager:
+  ✓ Load/save state from disk
+  ✓ Track validation metrics
+  ✓ Update swarm state
+  ✓ Manage TodoWrite log
+  ✓ Clear state for testing
+
+INTEGRATION TESTS:
+──────────────────
+
+  ✓ CLI swarm spawn with validation
+  ✓ Blocking mode enforcement
+  ✓ Warning mode display
+  ✓ Configuration loading
+  ✓ Metrics tracking
+  ✓ State persistence
+
+E2E TESTS (Test Strategy):
+───────────────────────────
+
+  SI-05: Multi-agent spawn without swarm init → BLOCKED
+  TD-05: Multiple small TodoWrite calls → WARNING
+
+  Expected: Both upgrade from PARTIAL PASS to PASS
+
+================================================================================
+                           END OF DIAGRAM
+================================================================================
