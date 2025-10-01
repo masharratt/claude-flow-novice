@@ -14,6 +14,7 @@
 5. **NEVER WORK SOLO** - Spawn multiple agents in parallel for ALL significant tasks
 6. **NEVER SAVE TO ROOT** - Organize files in appropriate subdirectories
 7. **USE CLAUDE CODE'S TASK TOOL** - For spawning agents concurrently, not just MCP
+8. **USE THE CFN LOOP** - For a self correcting dev loop that saves time and resources
 
 ### 🚫 WHEN YOU MUST USE AGENTS (MANDATORY)
 
@@ -321,7 +322,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 - `/fullstack "goal"` - Launch full-stack development team with consensus validation
 - `/swarm`, `/sparc`, `/hooks` - Other slash commands (auto-discovered)
 
-## 🔄 MANDATORY DEVELOPMENT FLOW LOOP
+## 🔄 MANDATORY CFN LOOP
 
 **YOU MUST FOLLOW THIS LOOP FOR ALL NON-TRIVIAL WORK:**
 

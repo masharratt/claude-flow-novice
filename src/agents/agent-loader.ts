@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import glob from 'glob';
+import { glob } from 'glob';
 import { resolve, dirname } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 
@@ -31,6 +31,8 @@ export interface AgentDefinition {
   type?: string;
   color?: string;
   description: string;
+  tools?: string[]; // Array of tool names from frontmatter
+  model?: string; // Model to use (sonnet, opus, haiku)
   capabilities?: string[];
   priority?: 'low' | 'medium' | 'high' | 'critical';
   hooks?: {
@@ -94,8 +96,8 @@ export class AgentLoader {
     try {
       const content = readFileSync(filePath, 'utf-8');
 
-      // Split frontmatter and content
-      const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+      // Split frontmatter and content (handle both \n and \r\n line endings)
+      const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
       if (!frontmatterMatch) {
         console.warn(`No frontmatter found in ${filePath}`);
         return null;
@@ -104,8 +106,34 @@ export class AgentLoader {
       const [, yamlContent, markdownContent] = frontmatterMatch;
       const frontmatter = parseYaml(yamlContent);
 
-      if (!frontmatter.name || !frontmatter.metadata?.description) {
-        console.warn(`Missing required fields (name, metadata.description) in ${filePath}`);
+      // Support both formats: direct fields and metadata-wrapped fields
+      const description = frontmatter.description || frontmatter.metadata?.description;
+      const capabilities = frontmatter.capabilities || frontmatter.metadata?.capabilities || [];
+
+      // Parse tools - can be in multiple locations and formats
+      let tools: string[] = [];
+
+      // Check direct tools field first
+      if (frontmatter.tools) {
+        if (Array.isArray(frontmatter.tools)) {
+          tools = frontmatter.tools;
+        } else if (typeof frontmatter.tools === 'string') {
+          // Split by comma or space, trim, and filter empty
+          tools = frontmatter.tools
+            .split(/[,\s]+/)
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0);
+        }
+      }
+      // Check capabilities.tools if no direct tools found
+      else if (frontmatter.capabilities?.tools) {
+        if (Array.isArray(frontmatter.capabilities.tools)) {
+          tools = frontmatter.capabilities.tools;
+        }
+      }
+
+      if (!frontmatter.name || !description) {
+        console.warn(`Missing required fields (name, description) in ${filePath}`);
         return null;
       }
 
@@ -113,8 +141,10 @@ export class AgentLoader {
         name: frontmatter.name,
         type: frontmatter.type,
         color: frontmatter.color,
-        description: frontmatter.metadata.description,
-        capabilities: frontmatter.metadata.capabilities || frontmatter.capabilities || [],
+        model: frontmatter.model,
+        description,
+        tools,
+        capabilities,
         priority: frontmatter.priority || 'medium',
         hooks: frontmatter.hooks,
         content: markdownContent.trim(),

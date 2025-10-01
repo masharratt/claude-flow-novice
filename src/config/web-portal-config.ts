@@ -6,6 +6,7 @@
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 
 export interface ServerConfig {
   host: string;
@@ -402,7 +403,7 @@ export function getEnvironmentConfig(): Partial<WebPortalConfig> {
 
 // Utility functions
 function generateSecretKey(): string {
-  return require('crypto').randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString('hex');
 }
 
 function mergeDeep(target: any, source: any): void {

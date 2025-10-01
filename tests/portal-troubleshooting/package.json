@@ -1,0 +1,22 @@
+{
+  "name": "portal-troubleshooting-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Portal server component isolation and troubleshooting tests",
+  "scripts": {
+    "test": "mocha minimal-server-reproduction.test.js --reporter spec",
+    "test:runner": "node test-runner.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "express-rate-limit": "^7.1.5"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "chai": "^4.3.10"
+  }
+}

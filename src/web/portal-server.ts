@@ -97,12 +97,16 @@ export class WebPortalServer {
     );
 
     // Rate limiting
+    // Express v5 compatibility: Use regex pattern for API routes
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: this.config.security.rateLimit.maxRequests,
       message: 'Too many requests from this IP, please try again later.',
+      standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+      legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     });
-    this.app.use('/api/', limiter);
+    // Apply to all API routes using regex (Express v5 + path-to-regexp v8 compatible)
+    this.app.use(/^\/api\/.*/, limiter);
 
     // Compression and parsing
     this.app.use(compression());
@@ -196,8 +200,9 @@ export class WebPortalServer {
       }
     });
 
-    // Serve React frontend
-    this.app.get('*', (req: Request, res: Response) => {
+    // Serve React frontend - Express v5 compatible catch-all route
+    // Use regex pattern instead of '*' wildcard for Express v5 + path-to-regexp v8 compatibility
+    this.app.get(/^\/(?!api).*/, (req: Request, res: Response) => {
       if (this.config.frontend.staticPath) {
         const indexPath = path.join(this.config.frontend.staticPath, 'index.html');
         res.sendFile(indexPath);
@@ -448,7 +453,12 @@ export class WebPortalServer {
 export default WebPortalServer;
 
 // CLI entry point
-if (require.main === module) {
+// Check if this file is being run directly (ES module compatible)
+const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
+                     process.argv[1]?.endsWith('portal-server.js') ||
+                     process.argv[1]?.endsWith('portal-server.ts');
+
+if (isMainModule) {
   const server = new WebPortalServer();
 
   server.start().catch((error) => {
