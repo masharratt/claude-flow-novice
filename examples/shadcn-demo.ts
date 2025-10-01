@@ -25,68 +25,133 @@ interface ComponentDemoScenario {
 
 const COMPONENT_SCENARIOS: ComponentDemoScenario[] = [
   {
-    name: 'Basic Button',
-    description: 'Generate a simple button component with variants',
+    name: 'Dock Component',
+    description: 'Generate dock component for application navigation',
     request: {
-      name: 'CustomButton',
-      type: 'button',
-      props: ['children', 'variant', 'size', 'disabled'],
+      name: 'dock',
+      type: 'dock',
+      props: ['items', 'direction', 'size', 'distance'],
       styling: { variant: 'default', size: 'medium' },
       theme: 'default'
     },
-    expectedFiles: ['custom-button.tsx', 'custom-button.stories.tsx']
+    expectedFiles: ['dock.tsx', 'dock.stories.tsx']
   },
   {
-    name: 'Data Card',
-    description: 'Create a data display card with header and actions',
+    name: 'Calendar Component',
+    description: 'Interactive calendar component with date selection',
     request: {
-      name: 'DataCard',
-      type: 'card',
-      props: ['title', 'description', 'data', 'actions', 'loading'],
-      styling: { variant: 'outlined', size: 'medium', shadow: true },
+      name: 'calendar',
+      type: 'calendar',
+      props: ['mode', 'selected', 'onSelect', 'disabled'],
+      styling: { variant: 'default', size: 'medium' },
       theme: 'default',
-      features: ['loading-state', 'responsive', 'accessibility']
+      features: ['date-selection', 'keyboard-navigation', 'accessibility']
     },
-    expectedFiles: ['data-card.tsx', 'data-card.test.tsx', 'data-card.stories.tsx']
+    expectedFiles: ['calendar.tsx', 'calendar.test.tsx', 'calendar.stories.tsx']
   },
   {
-    name: 'Form Input',
-    description: 'Advanced form input with validation and error states',
+    name: 'Combobox Component',
+    description: 'Searchable dropdown combobox with autocomplete',
     request: {
-      name: 'FormInput',
-      type: 'input',
-      props: ['label', 'placeholder', 'value', 'onChange', 'error', 'required'],
-      styling: { variant: 'outlined', size: 'medium' },
+      name: 'combobox',
+      type: 'combobox',
+      props: ['options', 'value', 'onValueChange', 'placeholder', 'searchable'],
+      styling: { variant: 'default', size: 'medium' },
       theme: 'default',
-      features: ['validation', 'error-states', 'accessibility', 'form-integration']
+      features: ['search', 'keyboard-navigation', 'accessibility', 'virtualization']
     },
-    expectedFiles: ['form-input.tsx', 'form-input.test.tsx', 'form-input.stories.tsx']
+    expectedFiles: ['combobox.tsx', 'combobox.test.tsx', 'combobox.stories.tsx']
   },
   {
-    name: 'Navigation Menu',
-    description: 'Complex navigation component with dropdown support',
+    name: 'Tabs Component',
+    description: 'Tabbed navigation component with content panels',
     request: {
-      name: 'NavigationMenu',
-      type: 'navigation',
-      props: ['items', 'activeItem', 'onItemClick', 'collapsible'],
-      styling: { variant: 'horizontal', size: 'medium', theme: 'dark' },
-      theme: 'dark',
-      features: ['dropdown', 'keyboard-navigation', 'mobile-responsive', 'accessibility']
+      name: 'tabs',
+      type: 'tabs',
+      props: ['tabs', 'activeTab', 'onTabChange', 'orientation'],
+      styling: { variant: 'default', size: 'medium' },
+      theme: 'default',
+      features: ['keyboard-navigation', 'responsive', 'accessibility']
     },
-    expectedFiles: ['navigation-menu.tsx', 'navigation-menu.test.tsx', 'navigation-menu.stories.tsx']
+    expectedFiles: ['tabs.tsx', 'tabs.test.tsx', 'tabs.stories.tsx']
   },
   {
     name: 'Data Table',
     description: 'Full-featured data table with sorting and filtering',
     request: {
-      name: 'DataTable',
+      name: 'table',
       type: 'table',
       props: ['data', 'columns', 'sortable', 'filterable', 'pagination'],
       styling: { variant: 'striped', size: 'compact', responsive: true },
       theme: 'default',
       features: ['sorting', 'filtering', 'pagination', 'selection', 'export', 'accessibility']
     },
-    expectedFiles: ['data-table.tsx', 'data-table.test.tsx', 'data-table.stories.tsx', 'data-table.css']
+    expectedFiles: ['table.tsx', 'table.test.tsx', 'table.stories.tsx']
+  },
+  {
+    name: 'Area Chart',
+    description: 'Area chart component for data visualization',
+    request: {
+      name: 'area-chart-01',
+      type: 'chart',
+      props: ['data', 'xAxis', 'yAxis', 'areas', 'colors'],
+      styling: { variant: 'default', size: 'medium' },
+      theme: 'default',
+      features: ['responsive', 'tooltips', 'legends', 'accessibility']
+    },
+    expectedFiles: ['area-chart-01.tsx', 'area-chart-01.stories.tsx']
+  },
+  {
+    name: 'Bar Chart',
+    description: 'Bar chart component for categorical data',
+    request: {
+      name: 'bar-chart-01',
+      type: 'chart',
+      props: ['data', 'xAxis', 'yAxis', 'bars', 'colors', 'orientation'],
+      styling: { variant: 'default', size: 'medium' },
+      theme: 'default',
+      features: ['responsive', 'tooltips', 'legends', 'stacking', 'accessibility']
+    },
+    expectedFiles: ['bar-chart-01.tsx', 'bar-chart-01.stories.tsx']
+  },
+  {
+    name: 'Line Chart',
+    description: 'Line chart component for time-series data',
+    request: {
+      name: 'line-chart-01',
+      type: 'chart',
+      props: ['data', 'xAxis', 'yAxis', 'lines', 'colors', 'curve'],
+      styling: { variant: 'default', size: 'medium' },
+      theme: 'default',
+      features: ['responsive', 'tooltips', 'legends', 'zoom', 'accessibility']
+    },
+    expectedFiles: ['line-chart-01.tsx', 'line-chart-01.stories.tsx']
+  },
+  {
+    name: 'Pie Chart',
+    description: 'Pie chart component for proportional data',
+    request: {
+      name: 'pie-chart-01',
+      type: 'chart',
+      props: ['data', 'valueKey', 'labelKey', 'colors', 'innerRadius'],
+      styling: { variant: 'default', size: 'medium' },
+      theme: 'default',
+      features: ['responsive', 'tooltips', 'legends', 'donut-mode', 'accessibility']
+    },
+    expectedFiles: ['pie-chart-01.tsx', 'pie-chart-01.stories.tsx']
+  },
+  {
+    name: 'Animated Tooltip',
+    description: 'Animated tooltip component for enhanced UX',
+    request: {
+      name: 'animated-tooltip',
+      type: 'tooltip',
+      props: ['content', 'children', 'position', 'delay', 'animation'],
+      styling: { variant: 'default', size: 'medium' },
+      theme: 'default',
+      features: ['animations', 'positioning', 'accessibility']
+    },
+    expectedFiles: ['animated-tooltip.tsx', 'animated-tooltip.stories.tsx']
   }
 ];
 
@@ -213,18 +278,18 @@ class ShadcnMCPDemo {
           console.log(chalk.green('✅ Custom theme applied'));
         }
 
-        // Generate a button with the current theme
-        const buttonResult = await this.shadcnAdapter.generateComponent({
-          name: `ThemedButton_${theme.name}`,
-          type: 'button',
+        // Generate a dropdown component with the current theme
+        const dropdownResult = await this.shadcnAdapter.generateComponent({
+          name: `dropdown`,
+          type: 'dropdown',
           theme: theme.name,
-          props: ['children', 'variant'],
+          props: ['items', 'trigger', 'onSelect'],
           styling: { variant: 'default', size: 'medium' }
         });
 
-        if (buttonResult.success) {
-          console.log(chalk.green(`✅ Themed button generated`));
-          console.log(chalk.gray(`Files: ${buttonResult.files.map(f => f.name).join(', ')}`));
+        if (dropdownResult.success) {
+          console.log(chalk.green(`✅ Themed dropdown generated`));
+          console.log(chalk.gray(`Files: ${dropdownResult.files.map(f => f.name).join(', ')}`));
         }
 
       } catch (error) {
@@ -237,9 +302,9 @@ class ShadcnMCPDemo {
     console.log(chalk.yellow.bold('\n💾 Caching Demo'));
 
     const testComponent = {
-      name: 'CacheTestButton',
-      type: 'button',
-      props: ['children', 'onClick'],
+      name: 'calendar',
+      type: 'calendar',
+      props: ['mode', 'selected', 'onSelect'],
       theme: 'default'
     };
 
@@ -282,11 +347,21 @@ class ShadcnMCPDemo {
 
     const validationTests = [
       {
-        name: 'Valid Component',
+        name: 'Valid Component - Tabs',
         request: {
-          name: 'ValidButton',
-          type: 'button',
-          props: ['children'],
+          name: 'tabs',
+          type: 'tabs',
+          props: ['tabs', 'activeTab'],
+          theme: 'default'
+        },
+        shouldPass: true
+      },
+      {
+        name: 'Valid Component - Combobox',
+        request: {
+          name: 'combobox',
+          type: 'combobox',
+          props: ['options', 'value'],
           theme: 'default'
         },
         shouldPass: true
@@ -294,9 +369,9 @@ class ShadcnMCPDemo {
       {
         name: 'Invalid Component Name',
         request: {
-          name: 'invalid-name!',
-          type: 'button',
-          props: ['children'],
+          name: 'invalid-name!@#',
+          type: 'dock',
+          props: ['items'],
           theme: 'default'
         },
         shouldPass: false
@@ -314,9 +389,9 @@ class ShadcnMCPDemo {
       {
         name: 'Invalid Theme',
         request: {
-          name: 'ThemedButton',
-          type: 'button',
-          props: ['children'],
+          name: 'calendar',
+          type: 'calendar',
+          props: ['mode'],
           theme: 'nonexistent-theme'
         },
         shouldPass: false
@@ -356,10 +431,10 @@ class ShadcnMCPDemo {
       console.log(chalk.gray('Generating optimized component...'));
 
       const optimizedResult = await this.shadcnAdapter.generateComponent({
-        name: 'OptimizedCard',
-        type: 'card',
-        props: ['title', 'content', 'actions'],
-        styling: { variant: 'elevated', size: 'medium' },
+        name: 'table',
+        type: 'table',
+        props: ['data', 'columns', 'pagination'],
+        styling: { variant: 'default', size: 'medium' },
         theme: 'default',
         optimization: {
           minify: true,

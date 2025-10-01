@@ -77,7 +77,7 @@ export class WebPortalServer {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
             fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.socket.io'],
             connectSrc: [
               "'self'",
               `ws://localhost:${this.config.server.port}`,
@@ -259,8 +259,10 @@ export class WebPortalServer {
       });
     });
 
-    // Broadcast updates periodically
+    // Broadcast updates periodically - only if there are connected clients
     setInterval(async () => {
+      if (this.io.engine.clientsCount === 0) return; // Skip if no clients
+
       try {
         await this.updateSwarmMetrics();
         await this.checkMCPConnections();
@@ -269,11 +271,11 @@ export class WebPortalServer {
       } catch (error) {
         console.error('Error broadcasting updates:', error);
       }
-    }, this.config.websocket.updateInterval);
+    }, Math.max(this.config.websocket.updateInterval, 30000)); // Minimum 30s interval
   }
 
   private async executeClaudeFlowCommand(command: string, args: any[]): Promise<any> {
-    const cmdString = `npx claude-flow@alpha ${command} ${args.join(' ')}`;
+    const cmdString = `npx claude-flow-novice ${command} ${args.join(' ')}`;
     console.log(`Executing Claude Flow command: ${cmdString}`);
 
     try {
