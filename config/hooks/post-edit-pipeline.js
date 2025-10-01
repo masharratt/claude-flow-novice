@@ -599,13 +599,54 @@ class PostEditPipeline {
                 const entrySections = existingLog.split('═'.repeat(80)).filter(s => s.trim());
 
                 for (const section of entrySections) {
-                    const jsonMatch = section.match(/JSON:\s*(\{[\s\S]*?\})\s*$/m);
-                    if (jsonMatch) {
-                        try {
-                            const entry = JSON.parse(jsonMatch[1]);
-                            existingEntries.push(entry);
-                        } catch (e) {
-                            // Skip malformed entries
+                    // Match JSON block more reliably - find JSON: followed by { until the closing }
+                    const jsonStart = section.indexOf('JSON:');
+                    if (jsonStart !== -1) {
+                        const jsonText = section.substring(jsonStart + 5).trim();
+                        // Find the complete JSON object by counting braces
+                        let braceCount = 0;
+                        let jsonEnd = 0;
+                        let inString = false;
+                        let escapeNext = false;
+
+                        for (let i = 0; i < jsonText.length; i++) {
+                            const char = jsonText[i];
+
+                            if (escapeNext) {
+                                escapeNext = false;
+                                continue;
+                            }
+
+                            if (char === '\\') {
+                                escapeNext = true;
+                                continue;
+                            }
+
+                            if (char === '"') {
+                                inString = !inString;
+                                continue;
+                            }
+
+                            if (!inString) {
+                                if (char === '{') braceCount++;
+                                if (char === '}') {
+                                    braceCount--;
+                                    if (braceCount === 0) {
+                                        jsonEnd = i + 1;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (jsonEnd > 0) {
+                            try {
+                                const entry = JSON.parse(jsonText.substring(0, jsonEnd));
+                                existingEntries.push(entry);
+                            } catch (e) {
+                                // Skip malformed entries
+                                console.error(`Failed to parse JSON entry: ${e.message}`);
+                            }
                         }
                     }
                 }
