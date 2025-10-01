@@ -266,7 +266,9 @@ export class CoderAgent extends BaseAgent {
       },
     ];
 
-    result.documentation = this.generateDocumentation(requirements, language);
+    // DISABLED: Documentation generation disabled to reduce excessive doc creation
+    // result.documentation = this.generateDocumentation(requirements, language);
+    result.documentation = ''; // Documentation generation disabled
     result.metrics = {
       linesOfCode: 150,
       complexity: 3.2,

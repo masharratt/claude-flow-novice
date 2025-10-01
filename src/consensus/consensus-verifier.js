@@ -699,6 +699,12 @@ class ConsensusVerifier {
   }
 
   async saveVerificationReport(report) {
+    // DISABLED: Verification report generation disabled to reduce excessive doc creation
+    console.log('⚠️  Verification report generation is DISABLED');
+    console.log('To re-enable, remove the early return from saveVerificationReport() in consensus-verifier.js');
+    return null;
+
+    /* DISABLED CODE:
     const filename = `consensus-verification-${Date.now()}.json`;
     const filepath = path.join(this.outputDir, filename);
 
@@ -718,6 +724,7 @@ class ConsensusVerifier {
       console.error('Failed to save verification report:', error);
       throw error;
     }
+    */
   }
 
   generateMarkdownSummary(report) {

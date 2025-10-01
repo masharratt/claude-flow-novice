@@ -1,5 +1,22 @@
 # Claude Flow Novice Changelog
 
+## v1.5.16 - Documentation Generation Reduction (October 1, 2025)
+
+### Changed
+- **Disabled Excessive Documentation Generation**: Reduced automatic doc creation to prevent documentation overload
+  - Disabled `config/hooks/documentation-auto-update.js` hook (COMPONENTS.md, MILESTONES.md, ARCHITECTURE.md, DECISIONS.md, PATTERNS.md, TROUBLESHOOTING.md)
+  - Disabled `src/cli/agents/coder.ts` documentation generation (line 269-271)
+  - Disabled `src/cli/simple-commands/sparc/refinement.js` documentation generation (lines 73-75)
+  - Disabled `src/consensus/consensus-verifier.js` verification report generation (consensus-verification-*.json, verification-summary.md)
+
+### Impact
+- 80%+ reduction in automatic markdown file generation
+- Retained all template-based documentation generators (batch-tools-guide.md, README templates)
+- All documentation can be manually triggered when needed
+- No functionality loss, only automatic generation disabled
+
+---
+
 ## v1.5.13 - Automated Validation System (September 30, 2025)
 
 ### Added

@@ -363,7 +363,7 @@ npx claude-flow@alpha hooks metrics --update "${taskId}"
 
   async postEditHook(params) {
     const [file, memoryKey] = params;
-    
+
     if (!file) {
       return {
         success: false,
@@ -379,27 +379,30 @@ npx claude-flow@alpha hooks metrics --update "${taskId}"
 **File:** ${file}
 **Memory Key:** ${memoryKey || 'auto-generated'}
 
-**Execute post-edit processing:**
+**Execute unified post-edit pipeline:**
 
 \`\`\`bash
-# Execute post-edit hook
-npx claude-flow@alpha hooks post-edit --file "${file}"${memoryKey ? ` --memory-key "${memoryKey}"` : ''}
+# Unified pipeline with TDD mode
+node config/hooks/post-edit-pipeline.js "${file}" --tdd-mode${memoryKey ? ` --memory-key "${memoryKey}"` : ''}
 
-# Auto-format code
-npx claude-flow@alpha hooks format --file "${file}"
+# Or use enhanced-hooks wrapper (same result)
+npx enhanced-hooks post-edit "${file}"${memoryKey ? ` --memory-key "${memoryKey}"` : ''}
 
-# Store in coordination memory
-npx claude-flow@alpha hooks memory-store --file "${file}" --context "edit"
+# Enable Rust strict mode for .rs files
+node config/hooks/post-edit-pipeline.js "${file}" --rust-strict --tdd-mode
 \`\`\`
 
-**Post-Edit Actions:**
-- ✅ Code formatting and validation
-- ✅ Memory storage for coordination
-- ✅ Syntax checking
-- ✅ Style consistency
-- ✅ Documentation updates
+**Pipeline Features:**
+- ✅ Formatting, linting, type checking
+- ✅ Single-file testing (1-5s)
+- ✅ Real-time coverage analysis
+- ✅ TDD compliance checking
+- ✅ Rust quality enforcement (unwrap/expect/panic)
+- ✅ Security scanning
+- ✅ Memory coordination
+- ✅ Logs to post-edit-pipeline.log
 
-**Execute these post-edit hooks now**:
+**Execute post-edit pipeline now**:
 `;
 
     return {

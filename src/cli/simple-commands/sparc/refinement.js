@@ -70,8 +70,9 @@ export class SparcRefinement extends SparcPhase {
       // Analyze security
       result.security = await this.analyzeSecurity(result.implementations);
 
-      // Generate documentation
-      result.documentation = await this.generateDocumentation(result.implementations);
+      // DISABLED: Documentation generation disabled to reduce excessive doc creation
+      // result.documentation = await this.generateDocumentation(result.implementations);
+      result.documentation = { api: null, components: [], deployment: null, userGuide: null, developerGuide: null };
 
       // Apply refactoring
       result.refactoring = await this.applyRefactoring(result.implementations, result.codeQuality);

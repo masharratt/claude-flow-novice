@@ -15,8 +15,8 @@
 6. **NEVER SAVE TO ROOT** - Organize files in appropriate subdirectories
 7. **USE CLAUDE CODE'S TASK TOOL** - For spawning agents concurrently, not just MCP
 8. **USE THE CFN LOOP** - For a self correcting dev loop that saves time and resources
-9. **DO NOT CREATE GUIDES NOR REPORT FILES** - unless specifically asked. 
-10. **Use spartan language** - no fluff encouraged
+9. **DO NOT CREATE GUIDES, SUMMARIES, OR REPORT FILES** - unless specifically asked. 
+10. **USE SPARTAN LANGUAGE** - no fluff encouraged
 
 ### 🚫 WHEN YOU MUST USE AGENTS (MANDATORY)
 
@@ -60,6 +60,7 @@
 - ❌ Writing code without a tester agent
 - ❌ Making architectural decisions without an architect agent
 - ❌ Deploying without security review from security-specialist agent
+- ❌ Creating reports documents, summary documents, or guides unless explicity asked
 
 ## 🎯 Claude Code vs MCP Tools
 
@@ -97,88 +98,29 @@ npx claude-flow-novice hooks pre-command --command "[command]" --validate-safety
 npx claude-flow-novice hooks pre-edit --file "[file]" --auto-assign-agents true --load-context true
 ```
 
-#### Post-Task Hooks (Validation & Quality)
+#### Post-Edit Hook (MANDATORY After Every File Edit)
 ```bash
-# Track metrics and store results
-npx claude-flow-novice hooks post-command --command "[command]" --track-metrics true --store-results true
+# Unified pipeline: standard validation + TDD + Rust quality
+node config/hooks/post-edit-pipeline.js "[FILE]" --memory-key "swarm/[agent]/[step]"
 
-# Enhanced post-edit pipeline with comprehensive TDD validation
-npx enhanced-hooks post-edit "[file]" --memory-key "swarm/[agent]/[step]" --minimum-coverage 80 --structured
+# Enable TDD mode (single-file testing, coverage, phase detection)
+node config/hooks/post-edit-pipeline.js "[FILE]" --tdd-mode --minimum-coverage 80
 
-# Manual hook execution (guaranteed working)
-node src/hooks/enhanced-hooks-cli.js post-edit "[file]" --memory-key "[key]" --structured
+# Enable Rust strict mode (unwrap/expect/panic detection)
+node config/hooks/post-edit-pipeline.js "[FILE]" --rust-strict
 
-# Validates: formatting, linting, type checking, dependencies, security, tests, TDD compliance
-# Progressive validation: graceful degradation when dependencies missing (beginner-friendly)
+# Full mode: TDD + Rust + coverage threshold
+node config/hooks/post-edit-pipeline.js "[FILE]" --tdd-mode --rust-strict --minimum-coverage 90
 ```
 
-## 🎯 **Enhanced Post-Edit Hook System**
-
-### **🚨 MANDATORY: Manual Hook Execution After Every File Edit**
-
-**CRITICAL RULE**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
-
-```bash
-# After editing any file, IMMEDIATELY run:
-npx enhanced-hooks post-edit "[FILE_PATH]" --memory-key "swarm/[AGENT]/[STEP]" --minimum-coverage 80 --structured
-
-# Or via slash command:
-/hooks post-edit [FILE_PATH] --memory-key "[CONTEXT]" --structured
-```
-
-**⚠️ NO EXCEPTIONS**: This applies to:
-- All JavaScript/TypeScript files
-- All Rust files
-- All Python files
-- All configuration files
-- ALL file modifications
-
-### **Enhanced Post-Edit Pipeline Features:**
-- **🧪 TDD Testing**: Single-file testing without full system compilation
-- **📊 Real-time Coverage**: Coverage analysis with configurable thresholds (default: 80%)
-- **🌐 Multi-Language Support**:
-  - **JavaScript/TypeScript**: Jest, Mocha, Prettier, ESLint integration
-  - **Rust**: cargo check, cargo test, cargo-tarpaulin, rustfmt
-  - **Python**: pytest, unittest, black, pylint
-  - **Go**: go test, go fmt, go vet
-  - **Java**: JUnit, TestNG, google-java-format
-  - **C/C++**: GTest, Catch2, clang-format
-- **🎨 Formatting**: Prettier, Black, RustFmt, GoFmt with diff preview
-- **🔒 Security Analysis**: XSS, eval(), hardcoded credentials, SQL injection detection
-- **✅ TDD Compliance**: Red-Green-Refactor phase detection and enforcement
-- **🔍 Framework Detection**: Automatic test framework identification
-- **🤖 Agent Feedback**: Structured JSON with actionable recommendations
-- **💾 Memory Coordination**: Cross-agent state sharing and enhanced persistence
-- **🚫 Blocking Mechanisms**: Quality gates for critical validation failures
-
-### **Usage Examples:**
-```bash
-# For JavaScript/TypeScript files
-npx enhanced-hooks post-edit "src/components/Button.tsx" --memory-key "frontend/button" --structured
-
-# For Rust files (full cargo integration)
-npx enhanced-hooks post-edit "src/lib.rs" --memory-key "backend/rust" --minimum-coverage 90 --structured
-
-# Via slash commands in Claude Code
-/hooks post-edit your-file.js --memory-key "agent-memory-key" --structured
-```
-
-### **Response Structure:**
-```json
-{
-  "success": true,
-  "file": "src/component.js",
-  "validation": { "passed": true, "issues": [], "coverage": "advanced" },
-  "formatting": { "needed": true, "changes": 12, "formatter": "prettier" },
-  "testing": { "executed": true, "framework": "jest", "results": {...} },
-  "tddCompliance": { "hasTests": true, "coverage": 85, "recommendations": [...] },
-  "recommendations": [
-    { "type": "security", "priority": "high", "message": "...", "action": "..." },
-    { "type": "formatting", "priority": "medium", "action": "prettier file.js" }
-  ],
-  "memory": { "stored": true, "enhancedStore": true }
-}
-```
+**Features (all languages):**
+- Formatting, linting, type checking, security, dependencies
+- Single-file testing (1-5s vs 10-60s full suite)
+- Real-time coverage (Jest, pytest, cargo-tarpaulin)
+- TDD compliance (Red-Green-Refactor detection)
+- Rust quality (unwrap/expect/panic with line numbers)
+- Comment-aware validation, structured JSON output
+- Logs to `post-edit-pipeline.log` (500 entries max)
 
 #### Session Management
 ```bash
@@ -263,7 +205,7 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
 **After completion:**
 - ✅ Consensus validation achieved (≥90% agreement)
 - ✅ Results stored in memory
-- ✅ Next steps provided with claude code continuing to the next documented phase or next steps provided to user if no todos left
+- ✅ Next steps determined
 
 ### Agent Selection Guide
 
@@ -354,7 +296,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 ### Step 3: Self-Assessment Gate
 - **If confidence scores ≥75%** → Proceed to Step 4 (Consensus Verification)
 - **If confidence scores <75%** → Relaunch agents for Step 2 with feedback
-- **Maximum iterations**: 3 attempts before escalation
+- **Maximum iterations**: 3 attempts before escalation using next steps guidance
 
 ### Step 4: Verify - Consensus Swarm (2-4 validators REQUIRED)
 ```javascript
@@ -375,13 +317,13 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 ### Step 6: Action Based on Decision
 - **PASS** →
   1. Store results in SwarmMemory
-  2. Update documentation
+  2. Update documentation if asked to do so
   3. Update todos and move to next task
 
 - **FAIL** →
   1. Round counter++
   2. If Round < 10: Inject validator feedback → Return to Step 2
-  3. If Round ≥ 10: Escalate to human with comprehensive report
+  3. If Round ≥ 10: Escalate to human with next steps guidance
 
 ### 🚨 ENFORCEMENT CHECKPOINTS
 
@@ -395,9 +337,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 
 ---
 
-## 🎯 MANDATORY: NEXT STEPS GUIDANCE
-
-**After completing ANY task, you MUST provide:**
+## NEXT STEPS GUIDANCE
 
 1. **✅ What was completed**: Brief summary of delivered work
 2. **📊 Validation results**: Confidence scores, test coverage, consensus approval

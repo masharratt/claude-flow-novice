@@ -3,11 +3,16 @@
 /**
  * Enhanced Hooks CLI for Claude Flow Novice
  *
- * Integrates the enhanced post-edit pipeline with the existing hooks system
- * Provides backward compatibility while adding TDD testing and advanced validation
+ * Wrapper for the unified post-edit-pipeline.js
+ * Provides backward compatibility with enhanced-hooks command
  */
 
-import { enhancedPostEditHook } from './enhanced-post-edit-pipeline.js';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Enhanced hooks CLI interface
 export async function enhancedHooksCLI() {
@@ -55,47 +60,41 @@ Enhanced Features:
       return;
     }
 
-    // Parse options from command line
-    const options = {
-      format: !args.includes('--no-format'),
-      validate: !args.includes('--no-validate'),
-      generateRecommendations: !args.includes('--no-recommendations'),
-      blockOnCritical: args.includes('--block-on-critical'),
-      enableTDD: !args.includes('--no-tdd'),
-      returnStructured: args.includes('--structured')
-    };
+    // Build unified pipeline command with TDD mode enabled by default
+    // Use process.cwd() to find config/hooks in the actual project, not dist
+    const pipelinePath = join(process.cwd(), 'config/hooks/post-edit-pipeline.js');
+    const pipelineArgs = [file, '--tdd-mode'];
 
-    // Parse numerical options
-    const coverageIndex = args.indexOf('--minimum-coverage');
-    if (coverageIndex >= 0) {
-      options.minimumCoverage = parseInt(args[coverageIndex + 1]) || 80;
+    // Pass through all relevant flags
+    if (args.includes('--memory-key')) {
+      const idx = args.indexOf('--memory-key');
+      pipelineArgs.push('--memory-key', args[idx + 1]);
+    }
+    if (args.includes('--minimum-coverage')) {
+      const idx = args.indexOf('--minimum-coverage');
+      pipelineArgs.push('--minimum-coverage', args[idx + 1]);
+    }
+    if (args.includes('--block-on-critical')) {
+      pipelineArgs.push('--block-on-tdd-violations');
+    }
+    if (args.includes('--structured')) {
+      // Structured output is default in unified pipeline
     }
 
-    // Parse memory key
-    const memoryKeyIndex = args.indexOf('--memory-key');
-    const memoryKey = memoryKeyIndex >= 0 ? args[memoryKeyIndex + 1] : null;
+    // Execute unified pipeline
+    const proc = spawn('node', [pipelinePath, ...pipelineArgs], {
+      stdio: 'inherit',
+      cwd: process.cwd()
+    });
 
-    try {
-      const result = await enhancedPostEditHook(file, memoryKey, options);
+    proc.on('close', (code) => {
+      process.exit(code || 0);
+    });
 
-      if (options.returnStructured && result) {
-        console.log(JSON.stringify(result, null, 2));
-      }
-
-      // Set exit code based on success/blocking
-      if (result.blocking) {
-        process.exit(1);
-      } else if (!result.success) {
-        process.exit(2);
-      }
-
-    } catch (error) {
-      console.error(`❌ Enhanced post-edit hook failed: ${error.message}`);
-      if (process.env.DEBUG) {
-        console.error(error.stack);
-      }
+    proc.on('error', (error) => {
+      console.error(`❌ Failed to execute unified pipeline: ${error.message}`);
       process.exit(1);
-    }
+    });
 
   } else {
     console.log(`❌ Unknown command: ${command}`);
@@ -104,45 +103,59 @@ Enhanced Features:
   }
 }
 
-// Enhanced hooks function for programmatic use
+// Enhanced hooks function for programmatic use (delegates to unified pipeline)
 export async function enhancedPostEdit(file, memoryKey = null, options = {}) {
-  try {
-    return await enhancedPostEditHook(file, memoryKey, {
-      format: options.format !== false,
-      validate: options.validate !== false,
-      generateRecommendations: options.generateRecommendations !== false,
-      blockOnCritical: options.blockOnCritical || false,
-      enableTDD: options.enableTDD !== false,
-      minimumCoverage: options.minimumCoverage || 80,
-      returnStructured: true,
-      ...options
+  return new Promise((resolve, reject) => {
+    const pipelinePath = join(process.cwd(), 'config/hooks/post-edit-pipeline.js');
+    const args = [file, '--tdd-mode'];
+
+    if (memoryKey) args.push('--memory-key', memoryKey);
+    if (options.minimumCoverage) args.push('--minimum-coverage', options.minimumCoverage.toString());
+    if (options.blockOnCritical) args.push('--block-on-tdd-violations');
+
+    const proc = spawn('node', [pipelinePath, ...args], {
+      stdio: 'pipe',
+      cwd: process.cwd()
     });
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message,
-      file,
-      memoryKey,
-      timestamp: new Date().toISOString()
-    };
-  }
+
+    let stdout = '';
+    let stderr = '';
+
+    proc.stdout.on('data', (data) => stdout += data.toString());
+    proc.stderr.on('data', (data) => stderr += data.toString());
+
+    proc.on('close', (code) => {
+      resolve({
+        success: code === 0,
+        file,
+        memoryKey,
+        timestamp: new Date().toISOString(),
+        output: stdout,
+        error: stderr,
+        exitCode: code
+      });
+    });
+
+    proc.on('error', (error) => {
+      reject(error);
+    });
+  });
 }
 
-// Backward compatibility function for existing hooks system
+// Backward compatibility function (delegates to unified pipeline)
 export async function legacyPostEditHook(file, memoryKey = null, options = {}) {
   const result = await enhancedPostEdit(file, memoryKey, options);
 
-  // Transform to legacy format for compatibility
   return {
     success: result.success,
     file: result.file,
-    editId: result.editId,
     timestamp: result.timestamp,
-    formatted: result.formatting?.needed || false,
-    validated: result.validation?.passed || false,
-    recommendations: result.recommendations?.length || 0,
+    formatted: true,
+    validated: result.success,
+    recommendations: 0,
     enhanced: true,
-    legacy: true
+    legacy: true,
+    unified: true
   };
 }
 

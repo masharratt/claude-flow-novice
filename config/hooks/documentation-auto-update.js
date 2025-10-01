@@ -647,10 +647,15 @@ ${pattern.example}
     }
 }
 
-// Hook execution
+// Hook execution - DISABLED
 async function main() {
     const filePath = process.argv[2];
     const changeType = process.argv[3] || 'edit';
+
+    // DISABLED: Documentation auto-update hook disabled to reduce excessive doc generation
+    console.log('⚠️  Documentation auto-update hook is DISABLED');
+    console.log('To re-enable, remove this early exit from documentation-auto-update.js');
+    process.exit(0);
 
     if (!filePath) {
         console.error('Usage: documentation-auto-update.js <file-path> [change-type]');

@@ -14,6 +14,9 @@
 5. **NEVER WORK SOLO** - Spawn multiple agents in parallel for ALL significant tasks
 6. **NEVER SAVE TO ROOT** - Organize files in appropriate subdirectories
 7. **USE CLAUDE CODE'S TASK TOOL** - For spawning agents concurrently, not just MCP
+8. **USE THE CFN LOOP** - For a self correcting dev loop that saves time and resources
+9. **DO NOT CREATE GUIDES, SUMMARIES, OR REPORT FILES** - unless specifically asked. 
+10. **USE SPARTAN LANGUAGE** - no fluff encouraged
 
 ### 🚫 WHEN YOU MUST USE AGENTS (MANDATORY)
 
@@ -57,6 +60,7 @@
 - ❌ Writing code without a tester agent
 - ❌ Making architectural decisions without an architect agent
 - ❌ Deploying without security review from security-specialist agent
+- ❌ Creating reports documents, summary documents, or guides unless explicity asked
 
 ## 🎯 Claude Code vs MCP Tools
 
@@ -260,7 +264,7 @@ npx claude-flow-novice hooks session-end --generate-summary true --persist-state
 **After completion:**
 - ✅ Consensus validation achieved (≥90% agreement)
 - ✅ Results stored in memory
-- ✅ Next steps provided with claude code continuing to the next documented phase or next steps provided to user if no todos left
+- ✅ Next steps determined
 
 ### Agent Selection Guide
 
@@ -321,7 +325,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 - `/fullstack "goal"` - Launch full-stack development team with consensus validation
 - `/swarm`, `/sparc`, `/hooks` - Other slash commands (auto-discovered)
 
-## 🔄 MANDATORY DEVELOPMENT FLOW LOOP
+## 🔄 MANDATORY CFN LOOP
 
 **YOU MUST FOLLOW THIS LOOP FOR ALL NON-TRIVIAL WORK:**
 
@@ -351,7 +355,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 ### Step 3: Self-Assessment Gate
 - **If confidence scores ≥75%** → Proceed to Step 4 (Consensus Verification)
 - **If confidence scores <75%** → Relaunch agents for Step 2 with feedback
-- **Maximum iterations**: 3 attempts before escalation
+- **Maximum iterations**: 3 attempts before escalation using next steps guidance
 
 ### Step 4: Verify - Consensus Swarm (2-4 validators REQUIRED)
 ```javascript
@@ -372,13 +376,13 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 ### Step 6: Action Based on Decision
 - **PASS** →
   1. Store results in SwarmMemory
-  2. Update documentation
+  2. Update documentation if asked to do so
   3. Update todos and move to next task
 
 - **FAIL** →
   1. Round counter++
   2. If Round < 10: Inject validator feedback → Return to Step 2
-  3. If Round ≥ 10: Escalate to human with comprehensive report
+  3. If Round ≥ 10: Escalate to human with next steps guidance
 
 ### 🚨 ENFORCEMENT CHECKPOINTS
 
@@ -392,9 +396,7 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 
 ---
 
-## 🎯 MANDATORY: NEXT STEPS GUIDANCE
-
-**After completing ANY task, you MUST provide:**
+## NEXT STEPS GUIDANCE
 
 1. **✅ What was completed**: Brief summary of delivered work
 2. **📊 Validation results**: Confidence scores, test coverage, consensus approval
