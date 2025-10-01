@@ -5,11 +5,12 @@
  * Comprehensive validation, formatting, and quality checks after file edits
  */
 
-const path = require('path');
-const fs = require('fs');
-const { exec, spawn } = require('child_process');
-const util = require('util');
-const execAsync = util.promisify(exec);
+import path from 'path';
+import fs from 'fs';
+import { exec, spawn } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 class PostEditPipeline {
     constructor() {
@@ -386,12 +387,13 @@ class PostEditPipeline {
         }
     }
 
-    async run(filePath) {
+    async run(filePath, options = {}) {
         const language = this.detectLanguage(filePath);
         const results = {
             file: filePath,
             language,
             timestamp: new Date().toISOString(),
+            agentContext: this.extractAgentContext(options),
             steps: {},
             summary: {
                 success: true,
@@ -464,6 +466,9 @@ class PostEditPipeline {
         // Generate summary
         this.printSummary(results);
 
+        // Log to root file
+        await this.logToRootFile(results);
+
         return results;
     }
 
@@ -475,6 +480,195 @@ class PostEditPipeline {
             if (result.issues || result.errors || result.failures) {
                 console.log(`     ${(result.issues || result.errors || result.failures).slice(0, 200)}...`);
             }
+        }
+    }
+
+    extractAgentContext(options = {}) {
+        // Extract agent information from various sources
+        const context = {
+            memoryKey: options.memoryKey || process.env.MEMORY_KEY || null,
+            agentType: options.agentType || process.env.AGENT_TYPE || null,
+            agentName: options.agentName || process.env.AGENT_NAME || null,
+            swarmId: options.swarmId || process.env.SWARM_ID || null,
+            taskId: options.taskId || process.env.TASK_ID || null,
+            sessionId: options.sessionId || process.env.SESSION_ID || null
+        };
+
+        // Parse agent info from memory key (format: "swarm/[agent]/[step]")
+        if (context.memoryKey && !context.agentType) {
+            const keyParts = context.memoryKey.split('/');
+            if (keyParts.length >= 2) {
+                context.agentType = keyParts[1];
+            }
+            if (keyParts.length >= 3) {
+                context.taskStep = keyParts[2];
+            }
+        }
+
+        return context;
+    }
+
+    formatTimestamp(isoTimestamp) {
+        const date = new Date(isoTimestamp);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `${month}/${day}/${year} ${hours}:${minutes}`;
+    }
+
+    async logToRootFile(results) {
+        const logPath = path.join(process.cwd(), 'post-edit-pipeline.log');
+        const MAX_ENTRIES = 500;
+
+        // Create log entry
+        const logEntry = {
+            timestamp: results.timestamp,
+            displayTimestamp: this.formatTimestamp(results.timestamp),
+            file: results.file,
+            language: results.language,
+            agent: results.agentContext,
+            status: results.summary.success ? 'PASSED' : 'FAILED',
+            errors: results.summary.errors.length,
+            warnings: results.summary.warnings.length,
+            suggestions: results.summary.suggestions.length,
+            steps: {
+                formatting: results.steps.formatting?.success || false,
+                linting: results.steps.linting?.success || false,
+                typeCheck: results.steps.typeCheck?.success || false,
+                dependencies: results.steps.dependencies?.success || false,
+                security: results.steps.security?.success || false,
+                tests: results.steps.tests?.success || false
+            },
+            details: {
+                errors: results.summary.errors,
+                warnings: results.summary.warnings,
+                suggestions: results.summary.suggestions
+            }
+        };
+
+        // Format log entry with separator
+        const logText = [
+            '═'.repeat(80),
+            `TIMESTAMP: ${logEntry.displayTimestamp}`,
+            `FILE: ${logEntry.file}`,
+            `LANGUAGE: ${logEntry.language}`,
+            `STATUS: ${logEntry.status}`,
+            '',
+            'AGENT CONTEXT:',
+            `  Memory Key: ${logEntry.agent.memoryKey || 'N/A'}`,
+            `  Agent Type: ${logEntry.agent.agentType || 'N/A'}`,
+            `  Agent Name: ${logEntry.agent.agentName || 'N/A'}`,
+            `  Swarm ID: ${logEntry.agent.swarmId || 'N/A'}`,
+            `  Task ID: ${logEntry.agent.taskId || 'N/A'}`,
+            `  Session ID: ${logEntry.agent.sessionId || 'N/A'}`,
+            '',
+            'VALIDATION STEPS:',
+            `  ✓ Formatting: ${logEntry.steps.formatting ? '✅' : '❌'}`,
+            `  ✓ Linting: ${logEntry.steps.linting ? '✅' : '❌'}`,
+            `  ✓ Type Check: ${logEntry.steps.typeCheck ? '✅' : '❌'}`,
+            `  ✓ Dependencies: ${logEntry.steps.dependencies ? '✅' : '❌'}`,
+            `  ✓ Security: ${logEntry.steps.security ? '✅' : '❌'}`,
+            `  ✓ Tests: ${logEntry.steps.tests ? '✅' : '❌'}`,
+            '',
+            `ERRORS (${logEntry.errors}):`,
+            ...logEntry.details.errors.map(e => `  • ${e}`),
+            '',
+            `WARNINGS (${logEntry.warnings}):`,
+            ...logEntry.details.warnings.map(w => `  • ${w}`),
+            '',
+            `SUGGESTIONS (${logEntry.suggestions}):`,
+            ...logEntry.details.suggestions.map(s => `  • ${s}`),
+            '',
+            'JSON:',
+            JSON.stringify(logEntry, null, 2),
+            '═'.repeat(80),
+            '',
+            ''
+        ].join('\n');
+
+        try {
+            // Read existing log and parse entries
+            let existingEntries = [];
+            if (fs.existsSync(logPath)) {
+                const existingLog = fs.readFileSync(logPath, 'utf8');
+
+                // Split by separator and parse JSON from each entry
+                const entrySections = existingLog.split('═'.repeat(80)).filter(s => s.trim());
+
+                for (const section of entrySections) {
+                    const jsonMatch = section.match(/JSON:\s*(\{[\s\S]*?\})\s*$/m);
+                    if (jsonMatch) {
+                        try {
+                            const entry = JSON.parse(jsonMatch[1]);
+                            existingEntries.push(entry);
+                        } catch (e) {
+                            // Skip malformed entries
+                        }
+                    }
+                }
+            }
+
+            // Add new entry at the beginning
+            existingEntries.unshift(logEntry);
+
+            // Enforce 500 entry limit - keep newest 500
+            if (existingEntries.length > MAX_ENTRIES) {
+                existingEntries = existingEntries.slice(0, MAX_ENTRIES);
+                console.log(`\n🗑️  Trimmed log to ${MAX_ENTRIES} most recent entries`);
+            }
+
+            // Rebuild log file with all entries
+            const rebuiltLog = existingEntries.map(entry => {
+                const formattedEntry = [
+                    '═'.repeat(80),
+                    `TIMESTAMP: ${entry.displayTimestamp}`,
+                    `FILE: ${entry.file}`,
+                    `LANGUAGE: ${entry.language}`,
+                    `STATUS: ${entry.status}`,
+                    '',
+                    'AGENT CONTEXT:',
+                    `  Memory Key: ${entry.agent.memoryKey || 'N/A'}`,
+                    `  Agent Type: ${entry.agent.agentType || 'N/A'}`,
+                    `  Agent Name: ${entry.agent.agentName || 'N/A'}`,
+                    `  Swarm ID: ${entry.agent.swarmId || 'N/A'}`,
+                    `  Task ID: ${entry.agent.taskId || 'N/A'}`,
+                    `  Session ID: ${entry.agent.sessionId || 'N/A'}`,
+                    '',
+                    'VALIDATION STEPS:',
+                    `  ✓ Formatting: ${entry.steps.formatting ? '✅' : '❌'}`,
+                    `  ✓ Linting: ${entry.steps.linting ? '✅' : '❌'}`,
+                    `  ✓ Type Check: ${entry.steps.typeCheck ? '✅' : '❌'}`,
+                    `  ✓ Dependencies: ${entry.steps.dependencies ? '✅' : '❌'}`,
+                    `  ✓ Security: ${entry.steps.security ? '✅' : '❌'}`,
+                    `  ✓ Tests: ${entry.steps.tests ? '✅' : '❌'}`,
+                    '',
+                    `ERRORS (${entry.errors}):`,
+                    ...(entry.details.errors || []).map(e => `  • ${e}`),
+                    '',
+                    `WARNINGS (${entry.warnings}):`,
+                    ...(entry.details.warnings || []).map(w => `  • ${w}`),
+                    '',
+                    `SUGGESTIONS (${entry.suggestions}):`,
+                    ...(entry.details.suggestions || []).map(s => `  • ${s}`),
+                    '',
+                    'JSON:',
+                    JSON.stringify(entry, null, 2),
+                    '═'.repeat(80),
+                    '',
+                    ''
+                ].join('\n');
+
+                return formattedEntry;
+            }).join('');
+
+            fs.writeFileSync(logPath, rebuiltLog, 'utf8');
+
+            console.log(`\n📝 Logged to: ${logPath} (${existingEntries.length}/${MAX_ENTRIES} entries)`);
+        } catch (error) {
+            console.error(`⚠️  Failed to write log: ${error.message}`);
         }
     }
 
@@ -513,7 +707,7 @@ async function main() {
     const filePath = process.argv[2];
 
     if (!filePath) {
-        console.error('Usage: post-edit-pipeline.js <file-path>');
+        console.error('Usage: post-edit-pipeline.js <file-path> [--memory-key <key>] [--agent-type <type>] [--agent-name <name>]');
         process.exit(1);
     }
 
@@ -522,18 +716,45 @@ async function main() {
         process.exit(1);
     }
 
+    // Parse command-line options for agent context
+    const options = {};
+    const args = process.argv.slice(3);
+
+    for (let i = 0; i < args.length; i++) {
+        if (args[i] === '--memory-key' && args[i + 1]) {
+            options.memoryKey = args[i + 1];
+            i++;
+        } else if (args[i] === '--agent-type' && args[i + 1]) {
+            options.agentType = args[i + 1];
+            i++;
+        } else if (args[i] === '--agent-name' && args[i + 1]) {
+            options.agentName = args[i + 1];
+            i++;
+        } else if (args[i] === '--swarm-id' && args[i + 1]) {
+            options.swarmId = args[i + 1];
+            i++;
+        } else if (args[i] === '--task-id' && args[i + 1]) {
+            options.taskId = args[i + 1];
+            i++;
+        } else if (args[i] === '--session-id' && args[i + 1]) {
+            options.sessionId = args[i + 1];
+            i++;
+        }
+    }
+
     const pipeline = new PostEditPipeline();
-    const results = await pipeline.run(filePath);
+    const results = await pipeline.run(filePath, options);
 
     // Exit with error code if validation failed
     process.exit(results.summary.success ? 0 : 1);
 }
 
-if (require.main === module) {
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
     main().catch(error => {
         console.error('Pipeline error:', error);
         process.exit(1);
     });
 }
 
-module.exports = PostEditPipeline;
+export default PostEditPipeline;

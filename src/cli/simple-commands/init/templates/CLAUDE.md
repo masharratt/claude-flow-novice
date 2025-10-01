@@ -15,6 +15,8 @@
 6. **NEVER SAVE TO ROOT** - Organize files in appropriate subdirectories
 7. **USE CLAUDE CODE'S TASK TOOL** - For spawning agents concurrently, not just MCP
 8. **USE THE CFN LOOP** - For a self correcting dev loop that saves time and resources
+9. **DO NOT CREATE GUIDES NOR REPORT FILES** - unless specifically asked. 
+10. **Use spartan language** - no fluff encouraged
 
 ### 🚫 WHEN YOU MUST USE AGENTS (MANDATORY)
 
