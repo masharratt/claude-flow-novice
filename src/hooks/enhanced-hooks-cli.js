@@ -61,8 +61,9 @@ Enhanced Features:
     }
 
     // Build unified pipeline command with TDD mode enabled by default
-    // Use process.cwd() to find config/hooks in the actual project, not dist
-    const pipelinePath = join(process.cwd(), 'config/hooks/post-edit-pipeline.js');
+    // Use __dirname to find config/hooks in the installed package location
+    // Path: .claude-flow-novice/dist/src/hooks -> ../../../../config/hooks
+    const pipelinePath = join(__dirname, '../../../../config/hooks/post-edit-pipeline.js');
     const pipelineArgs = [file, '--tdd-mode'];
 
     // Pass through all relevant flags
@@ -81,18 +82,28 @@ Enhanced Features:
       // Structured output is default in unified pipeline
     }
 
-    // Execute unified pipeline
+    // Execute unified pipeline with timeout protection
     const proc = spawn('node', [pipelinePath, ...pipelineArgs], {
       stdio: 'inherit',
       cwd: process.cwd()
     });
 
+    // Set timeout to kill hanging processes (5 minutes max)
+    const timeout = setTimeout(() => {
+      console.error('❌ Pipeline timeout - killing process');
+      proc.kill('SIGKILL');
+      process.exit(1);
+    }, 300000); // 5 minutes
+
     proc.on('close', (code) => {
+      clearTimeout(timeout);
       process.exit(code || 0);
     });
 
     proc.on('error', (error) => {
+      clearTimeout(timeout);
       console.error(`❌ Failed to execute unified pipeline: ${error.message}`);
+      proc.kill('SIGKILL');
       process.exit(1);
     });
 
@@ -121,10 +132,17 @@ export async function enhancedPostEdit(file, memoryKey = null, options = {}) {
     let stdout = '';
     let stderr = '';
 
+    // Set timeout to kill hanging processes (5 minutes max)
+    const timeout = setTimeout(() => {
+      proc.kill('SIGKILL');
+      reject(new Error('Pipeline execution timeout after 5 minutes'));
+    }, 300000); // 5 minutes
+
     proc.stdout.on('data', (data) => stdout += data.toString());
     proc.stderr.on('data', (data) => stderr += data.toString());
 
     proc.on('close', (code) => {
+      clearTimeout(timeout);
       resolve({
         success: code === 0,
         file,
@@ -137,6 +155,8 @@ export async function enhancedPostEdit(file, memoryKey = null, options = {}) {
     });
 
     proc.on('error', (error) => {
+      clearTimeout(timeout);
+      proc.kill('SIGKILL');
       reject(error);
     });
   });

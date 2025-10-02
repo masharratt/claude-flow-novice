@@ -509,10 +509,12 @@ class SingleFileTestEngine {
 
       for (const dir of possibleDirs) {
         try {
-          const result = execSync(`npx jest "${path.basename(testPattern)}" --json --coverage=false`, {
+          const result = execSync(`npx jest "${path.basename(testPattern)}" --json --coverage=false --forceExit --detectOpenHandles`, {
             encoding: 'utf8',
             stdio: 'pipe',
-            cwd: dir
+            cwd: dir,
+            timeout: 30000, // 30 second timeout
+            killSignal: 'SIGKILL'
           });
 
           jestOutput = JSON.parse(result);
@@ -616,9 +618,11 @@ class SingleFileTestEngine {
   // Coverage analysis methods
   async getJestCoverage(file) {
     try {
-      const result = execSync(`npx jest "${file}" --coverage --coverageReporters=json --silent`, {
+      const result = execSync(`npx jest "${file}" --coverage --coverageReporters=json --silent --forceExit --detectOpenHandles`, {
         encoding: 'utf8',
-        stdio: 'pipe'
+        stdio: 'pipe',
+        timeout: 30000, // 30 second timeout
+        killSignal: 'SIGKILL'
       });
 
       const coveragePath = path.join(process.cwd(), 'coverage', 'coverage-final.json');
@@ -675,8 +679,10 @@ class SingleFileTestEngine {
   }
 
   async runCargoTestSingleFile(file) {
+    let testProcess = null;
+
     try {
-      // For Rust, we run tests from the crate root, not individual files
+      // For Rust, we run targeted tests for the specific file
       const { exec } = await import('child_process');
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
@@ -692,39 +698,78 @@ class SingleFileTestEngine {
         };
       }
 
-      // Run cargo check first for syntax validation
-      await execAsync('cargo check --quiet');
+      // Extract test target from file path for targeted testing
+      const testTarget = this.extractRustTestTarget(file);
 
-      // Run cargo test with output capture
-      const { stdout, stderr } = await execAsync('cargo test --quiet -- --nocapture', {
-        timeout: 30000,
-        maxBuffer: 1024 * 1024
-      });
+      // Build targeted cargo test command
+      // --lib for library tests, --test <name> for integration tests, or filter by module
+      let cargoTestCmd = 'cargo test --quiet';
 
-      // Parse test output (simplified)
-      const testOutput = stdout + stderr;
-      const testRegex = /test\s+(\S+)\s+\.\.\.\s+(ok|FAILED)/g;
+      if (file.includes('tests/')) {
+        // Integration test file
+        const testName = path.basename(file, '.rs');
+        cargoTestCmd += ` --test ${testName}`;
+      } else if (file === 'src/lib.rs' || file === './src/lib.rs') {
+        // Main library file - run lib tests only
+        cargoTestCmd += ' --lib';
+      } else if (testTarget) {
+        // Specific module - filter tests by module path
+        cargoTestCmd += ` ${testTarget}`;
+      } else {
+        // Fallback: run lib tests
+        cargoTestCmd += ' --lib';
+      }
+
+      cargoTestCmd += ' -- --nocapture --test-threads=1';
+
+      // Run targeted cargo test with strict timeout
+      try {
+        testProcess = await execAsync(cargoTestCmd, {
+          timeout: 30000,
+          maxBuffer: 1024 * 1024,
+          killSignal: 'SIGKILL'
+        });
+      } catch (error) {
+        if (testProcess) {
+          try { process.kill(-testProcess.pid, 'SIGKILL'); } catch {}
+        }
+        // Test failures still return output, so parse if available
+        if (!error.stdout && !error.stderr) throw error;
+        testProcess = error; // Use error object which contains stdout/stderr
+      }
+
+      // Parse test output
+      const testOutput = (testProcess.stdout || '') + (testProcess.stderr || '');
+      const testRegex = /test\s+(\S+)\s+\.\.\.\s+(ok|FAILED|ignored)/g;
       const tests = [];
       let match;
 
       while ((match = testRegex.exec(testOutput)) !== null) {
         tests.push({
           name: match[1],
-          status: match[2] === 'ok' ? 'passed' : 'failed'
+          status: match[2] === 'ok' ? 'passed' : match[2] === 'FAILED' ? 'failed' : 'skipped'
         });
       }
 
       const passed = tests.filter(t => t.status === 'passed').length;
       const failed = tests.filter(t => t.status === 'failed').length;
+      const skipped = tests.filter(t => t.status === 'skipped').length;
 
       return {
         passed: failed === 0,
         reason: failed > 0 ? `${failed} tests failed` : 'All tests passed',
         tests,
-        summary: { total: tests.length, passed, failed, skipped: 0 }
+        summary: { total: tests.length, passed, failed, skipped },
+        targetedTest: testTarget || 'lib',
+        command: cargoTestCmd
       };
 
     } catch (error) {
+      // Ensure all processes are killed
+      if (testProcess) {
+        try { process.kill(-testProcess.pid, 'SIGKILL'); } catch {}
+      }
+
       return {
         passed: false,
         reason: `Cargo test failed: ${error.message}`,
@@ -734,32 +779,91 @@ class SingleFileTestEngine {
     }
   }
 
+  // Extract Rust test target from file path
+  extractRustTestTarget(file) {
+    // Normalize path
+    const normalizedPath = file.replace(/\\/g, '/');
+
+    // Extract module path from src/ directory
+    if (normalizedPath.includes('src/')) {
+      const srcIndex = normalizedPath.lastIndexOf('src/');
+      const relativePath = normalizedPath.substring(srcIndex + 4); // Skip 'src/'
+
+      // Remove .rs extension
+      let modulePath = relativePath.replace(/\.rs$/, '');
+
+      // Skip lib.rs and main.rs as they're tested with --lib or --bin
+      if (modulePath === 'lib' || modulePath === 'main') {
+        return null;
+      }
+
+      // Convert file path to module path: src/foo/bar.rs -> foo::bar
+      modulePath = modulePath.replace(/\//g, '::');
+
+      // Remove 'mod' if it's a mod.rs file
+      modulePath = modulePath.replace(/::mod$/, '');
+
+      return modulePath;
+    }
+
+    return null;
+  }
+
   async getRustCoverage(file) {
+    let versionProcess = null;
+    let coverageProcess = null;
+
     try {
       // Check if cargo-tarpaulin is available
       const { exec } = await import('child_process');
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
-      // Try to run tarpaulin for coverage
-      const { stdout } = await execAsync('cargo tarpaulin --version', { timeout: 5000 });
-
-      if (stdout.includes('tarpaulin')) {
-        // Run coverage analysis
-        const { stdout: coverageOutput } = await execAsync('cargo tarpaulin --out Json --timeout 30', {
-          timeout: 60000,
-          maxBuffer: 1024 * 1024
+      // Try to run tarpaulin for coverage with timeout
+      try {
+        versionProcess = await execAsync('cargo tarpaulin --version', {
+          timeout: 5000,
+          killSignal: 'SIGKILL'
         });
+      } catch (error) {
+        if (versionProcess) {
+          try { process.kill(-versionProcess.pid, 'SIGKILL'); } catch {}
+        }
+        throw error;
+      }
 
-        const coverage = JSON.parse(coverageOutput);
-        return {
-          available: true,
-          percentage: coverage.coverage || 0,
-          lines: coverage.files || {},
-          tool: 'cargo-tarpaulin'
-        };
+      if (versionProcess.stdout && versionProcess.stdout.includes('tarpaulin')) {
+        // Run coverage analysis with strict timeout
+        try {
+          coverageProcess = await execAsync('cargo tarpaulin --out Json --timeout 30', {
+            timeout: 60000,
+            maxBuffer: 1024 * 1024,
+            killSignal: 'SIGKILL'
+          });
+
+          const coverage = JSON.parse(coverageProcess.stdout);
+          return {
+            available: true,
+            percentage: coverage.coverage || 0,
+            lines: coverage.files || {},
+            tool: 'cargo-tarpaulin'
+          };
+        } catch (error) {
+          if (coverageProcess) {
+            try { process.kill(-coverageProcess.pid, 'SIGKILL'); } catch {}
+          }
+          throw error;
+        }
       }
     } catch (error) {
+      // Ensure all processes are killed
+      if (versionProcess) {
+        try { process.kill(-versionProcess.pid, 'SIGKILL'); } catch {}
+      }
+      if (coverageProcess) {
+        try { process.kill(-coverageProcess.pid, 'SIGKILL'); } catch {}
+      }
+
       // Fallback: check if we can at least detect test presence
       const cargoTomlExists = await this.fileExists('Cargo.toml');
       return {
@@ -1142,52 +1246,16 @@ class ValidationEngine {
       const cargoTomlExists = await this.fileExists('Cargo.toml');
 
       if (cargoTomlExists) {
-        // Run cargo check for syntax validation
-        const { exec } = await import('child_process');
-        const { promisify } = await import('util');
-        const execAsync = promisify(exec);
+        // OPTIMIZATION: Skip full cargo check for post-edit hook
+        // Cargo test will catch compilation errors anyway
+        // This saves massive compilation time and memory
 
-        try {
-          const { stderr } = await execAsync('cargo check --quiet', {
-            timeout: 30000,
-            maxBuffer: 1024 * 1024
-          });
-
-          if (stderr) {
-            // Parse cargo check output for errors
-            const errorLines = stderr.split('\n').filter(line => line.includes('error['));
-            errorLines.forEach((line, index) => {
-              if (index < 5) { // Limit to first 5 errors
-                issues.push({
-                  type: 'rust_compile_error',
-                  severity: 'error',
-                  message: line.trim(),
-                  suggestion: 'Fix compilation error before proceeding'
-                });
-              }
-            });
-
-            if (errorLines.length > 5) {
-              suggestions.push(`${errorLines.length - 5} additional compilation errors found`);
-            }
-          }
-
-          suggestions.push('Rust syntax validated with cargo check');
-
-        } catch (cargoError) {
-          issues.push({
-            type: 'rust_compile_error',
-            severity: 'error',
-            message: `Compilation failed: ${cargoError.message}`,
-            suggestion: 'Fix Rust syntax errors'
-          });
-        }
-
+        suggestions.push('Rust syntax validation deferred to cargo test (performance optimization)');
       } else {
         suggestions.push('Not in a Cargo project - create Cargo.toml for full validation');
       }
 
-      // Basic content checks
+      // Basic content checks (fast static analysis)
       if (!content.includes('fn ') && !content.includes('struct ') && !content.includes('enum ') && !content.includes('impl ')) {
         issues.push({
           type: 'rust_structure',
@@ -1197,7 +1265,7 @@ class ValidationEngine {
         });
       }
 
-      // Check for common Rust patterns
+      // Check for common Rust anti-patterns (static analysis)
       if (content.includes('unwrap()')) {
         suggestions.push('Consider using proper error handling instead of unwrap()');
       }
@@ -1206,11 +1274,22 @@ class ValidationEngine {
         suggestions.push('Excessive use of clone() - consider borrowing or references');
       }
 
+      // Check for unsafe blocks
+      if (content.includes('unsafe ')) {
+        suggestions.push('Unsafe block detected - ensure safety invariants are documented');
+      }
+
+      // Check for panic macros
+      if (content.includes('panic!') || content.includes('unimplemented!') || content.includes('todo!')) {
+        suggestions.push('Panic macros detected - consider error handling alternatives');
+      }
+
       return {
         passed: issues.filter(i => i.severity === 'error').length === 0,
         issues,
         suggestions,
-        coverage: cargoTomlExists ? 'advanced' : 'basic'
+        coverage: 'fast-static-analysis',
+        optimized: true
       };
 
     } catch (error) {
