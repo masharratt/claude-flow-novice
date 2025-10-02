@@ -317,14 +317,46 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 - **Maximum iterations**: 3 attempts before escalation using next steps guidance
 
 ### Step 4: Verify - Consensus Swarm (2-4 validators REQUIRED)
+
+**⚠️ CRITICAL: Sequential Spawning to Prevent Premature Validation**
+
+Validators MUST spawn in **separate message** AFTER implementation completes:
+
 ```javascript
-// MANDATORY: Spawn consensus validation swarm
-[Single Message]:
-  Task("Validator 1", "Comprehensive quality review", "reviewer")
-  Task("Validator 2", "Security and performance audit", "security-specialist")
-  Task("Validator 3", "Architecture validation", "system-architect")
-  Task("Validator 4", "Integration testing", "tester")
+// MESSAGE 1: Implementation swarm only
+[Implementation Message]:
+  mcp__claude-flow-novice__swarm_init({
+    topology: "mesh",
+    maxAgents: 3,
+    strategy: "balanced"
+  })
+
+  Task("Coder 1", "Implement feature X", "coder")
+  Task("Coder 2", "Implement feature Y", "backend-dev")
+  Task("Coder 3", "Implement feature Z", "rust-expert")
+
+// [WAIT FOR ALL IMPLEMENTATION AGENTS TO COMPLETE]
+
+// MESSAGE 2: Validation swarm after completion
+[Validation Message]:
+  mcp__claude-flow-novice__swarm_init({
+    topology: "mesh",
+    maxAgents: 4,
+    strategy: "balanced"
+  })
+
+  Task("Validator 1", "Review completed work at [specific files]", "reviewer")
+  Task("Validator 2", "Security audit of completed implementation", "security-specialist")
+  Task("Validator 3", "Architecture validation of completed system", "system-architect")
+  Task("Validator 4", "Integration testing of completed features", "tester")
 ```
+
+**WHY SEQUENTIAL SPAWNING:**
+- ✅ Prevents validators from reviewing incomplete work-in-progress
+- ✅ Ensures all implementation is finished before validation begins
+- ✅ Avoids wasted validation cycles on partial code
+- ✅ Produces accurate consensus scores on completed deliverables
+
 - **Byzantine consensus voting** across all validators
 - **Multi-dimensional checks**: quality, security, performance, tests, docs
 

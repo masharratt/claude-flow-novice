@@ -8,10 +8,13 @@
     "session-end": ".claude/commands/hooks/session-end.md"
   },
   "permissions": {
-    "allow": ["mcp__ruv-swarm", "mcp__claude-flow"],
+    "allow": ["mcp__ruv-swarm", "mcp__claude-flow", "mcp__sequential-thinking", "mcp__playwright", "mcp__shadcn"],
     "autoApprove": {
       "mcp__ruv-swarm": ["*"],
-      "mcp__claude-flow": ["*"]
+      "mcp__claude-flow": ["*"],
+      "mcp__sequential-thinking": ["*"],
+      "mcp__playwright": ["*"],
+      "mcp__shadcn": ["*"]
     }
   },
   "mcpServers": {
@@ -23,6 +26,21 @@
     "ruv-swarm": {
       "command": "npx",
       "args": ["ruv-swarm@latest", "mcp", "start"],
+      "type": "stdio"
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sequential-thinking@latest"],
+      "type": "stdio"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "type": "stdio"
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": ["@shadcn/mcp@latest"],
       "type": "stdio"
     }
   },
