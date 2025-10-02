@@ -17,7 +17,7 @@ This implementation plan provides detailed specifications for building the Agent
 **Coordination Modes**:
 1. **CLI Mode**: Free tier using Claude Code subscription, zero API costs
 2. **SDK Mode**: Anthropic direct API, full SDK features ($3-15/MTok)
-3. **Hybrid Mode**: SDK coordination + multi-provider inference (75-85% cost savings with Z.ai)
+3. **Hybrid Mode**: SDK coordination + multi-provider inference (~40% cost savings with Z.ai, validated)
 
 **Dependencies**:
 - TypeScript 5.0+
@@ -39,7 +39,7 @@ This implementation plan provides detailed specifications for building the Agent
 **Cost Analysis (10-agent workload, 8 hours/day)**:
 - CLI Mode: **$0/month** (free tier)
 - SDK Mode (Anthropic): **$600-1000/month**
-- Hybrid Mode (Z.ai): **$150/month** (75-85% savings vs SDK)
+- Hybrid Mode (Z.ai): **$360-600/month** (~40% savings vs SDK) - VALIDATED
 - Hybrid Mode (OpenRouter): **$100-300/month** (varies by provider)
 
 **Unified Architecture Benefits**:
@@ -255,12 +255,19 @@ function isImportantAgent(type: string): boolean {
 
 ### Cost Breakdown by Provider
 
-**Z.ai GLM Models** (Recommended for Hybrid):
-- GLM-4.5: $0.41/$1.65 per MTok (input/output)
-- GLM-4.6: $0.41/$1.65 per MTok
-- **Savings**: 96% vs Anthropic Sonnet ($5/$25 per MTok)
+**Z.ai GLM Models** (Recommended for Hybrid - VALIDATED):
+- **GLM-4.6**: $3/$15 per MTok (200K context, thinking model) - **RECOMMENDED**
+  - Default: 8,192 tokens (500 line guideline)
+  - Minimum: 201 tokens (boundary requirement)
+  - Maximum: 80,000 tokens (validated)
+  - Status: Production-ready with comprehensive testing
+- **GLM-4.5**: $3/$15 per MTok (128K context, standard model)
+  - Stable fallback option
+  - No token minimum issues
+- **Savings**: ~40% vs Anthropic Sonnet ($5/$25 per MTok) - VALIDATED
 - **Quality**: ~94% of Claude Sonnet quality
-- **Compatibility**: 100% Anthropic API compatible
+- **Compatibility**: 100% Anthropic API compatible via https://api.z.ai/api/anthropic
+- **Note**: Previous 96% savings estimate was incorrect - actual validated savings is 40%
 
 **OpenRouter** (Alternative Hybrid):
 - Google Gemini 2.5 Pro: $1.25/$5 per MTok (75% savings)
@@ -1906,15 +1913,22 @@ The V2 system implements a sophisticated 3-tier routing strategy that optimizes 
 - **Quality**: Maximum reliability and full SDK feature set
 
 **Tier 3: Z.ai Provider** (Bulk Routine Work):
-- **Cost**: $0.41/$1.65 per MTok (96% savings vs Anthropic)
+- **Cost**: $3/$15 per MTok (~40% savings vs Anthropic) - VALIDATED
+- **Models**: GLM-4.6 (200K context, thinking model) or GLM-4.5 (128K context)
+- **Configuration**:
+  - Default: 8,192 tokens (optimized for 500 line per file)
+  - Minimum: 201 tokens (GLM-4.6 boundary requirement)
+  - Maximum: 80,000 tokens (validated for large tasks)
 - Extends AnthropicProvider class for maximum compatibility
-- 100% Anthropic API compatibility
-- Subscription-based: Basic ($3/mo, 60 req/min) or Pro ($15/mo, 200 req/min)
+- 100% Anthropic API compatibility via https://api.z.ai/api/anthropic
+- Subscription-based: Lite ($3/mo, 120 prompts/5h) or Pro ($15/mo, 600 prompts/5h)
 - **Agent Allocation**: All routine workers (coders, testers, researchers, documenters)
 - **Reasoning**: Routine implementation doesn't require premium models
 - **Volume**: ~70% of total agent work
 - **Quality**: ~94% of Claude quality, sufficient for routine tasks
+- **Validated**: Production-ready with comprehensive testing (80K token capability confirmed)
 - Best for: High-volume worker agents with well-defined tasks
+- **Guideline**: 500 lines per file maximum for optimal token usage
 
 **CLI Provider** (Free Tier - Development):
 - Process pool management for fast spawning
@@ -2665,6 +2679,47 @@ After 13-week implementation completion:
 
 ---
 
-**Last Updated**: 2025-10-02
+## Z.ai GLM-4.6 Validation Summary (October 2025)
+
+**Validation Status**: ✅ COMPLETED - Production-ready for coding agents
+
+**Research Branch**: `feature/tiered-routing` (worktree at `../claude-flow-novice-tiered-routing`)
+
+**Key Findings**:
+1. **Token Threshold Bug**: GLM-4.6 returns empty responses when `max_tokens ≤ 200`
+   - Solution: Enforced minimum of 201 tokens in provider
+   - Applied via: `Math.max(201, request.maxTokens ?? 8192)`
+
+2. **Optimal Configuration**:
+   - Default: 8,192 tokens (aligns with 500 line per file guideline)
+   - Context: 200K tokens (GLM-4.6) vs 128K tokens (GLM-4.5)
+   - Max validated: 80,000 tokens
+
+3. **Cost Savings**: ~40% vs Anthropic (not 96% as initially estimated)
+   - Z.ai: $3/$15 per MTok
+   - Anthropic: $5/$25 per MTok
+   - Validated through production testing
+
+4. **Performance**:
+   - Small tasks (5K): 27s generation time
+   - Medium tasks (20K): 86s generation time
+   - Large tasks (80K): 100s generation time
+   - All tests produced valid, compilable code
+
+**Documentation**:
+- `CODING_GUIDELINES.md`: 500 line per file guideline with token estimates
+- `RESEARCH_SUMMARY.md`: Complete investigation findings
+- `80k-validation-results.txt`: Test results for all scales
+
+**Implementation Files**:
+- `src/providers/zai-provider.ts`: GLM-4.5/4.6 support with bug fixes
+- `src/providers/types.ts`: Added glm-4.6 model type
+- `tests/providers/zai-real-api.test.ts`: Comprehensive API validation
+
+**Production Status**: Ready for deployment to Tier 3 routing
+
+---
+
+**Last Updated**: 2025-10-02 (Z.ai validation completed)
 **Maintained By**: Architecture Team
 **Implementation Status**: 13-week roadmap finalized (Week 0-13 complete specifications)
