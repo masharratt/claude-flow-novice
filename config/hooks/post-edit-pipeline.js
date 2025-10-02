@@ -1505,6 +1505,36 @@ class UnifiedPostEditPipeline {
 
     async run(filePath, options = {}) {
         const language = this.detectLanguage(filePath);
+
+        // Bypass non-code files (config/documentation)
+        const bypassExtensions = ['.toml', '.md', '.txt', '.json', '.yaml', '.yml'];
+        const ext = path.extname(filePath).toLowerCase();
+        if (bypassExtensions.includes(ext)) {
+            console.log(`\n⏭️  BYPASSED: ${ext} files don't require validation`);
+            return {
+                file: filePath,
+                language,
+                timestamp: new Date().toISOString(),
+                editId: `edit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                agentContext: this.extractAgentContext(options),
+                status: 'BYPASSED',
+                bypassed: true,
+                reason: `${ext} files are configuration/documentation and don't require validation`,
+                summary: {
+                    success: true,
+                    warnings: [],
+                    errors: [],
+                    suggestions: []
+                }
+            };
+        }
+
+        // Auto-enable Rust strict mode for .rs files
+        if (language === 'rust' && !this.rustStrict) {
+            this.rustStrict = true;
+            console.log('🦀 Auto-enabled Rust strict mode for .rs file');
+        }
+
         const results = {
             file: filePath,
             language,

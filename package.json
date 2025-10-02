@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "1.5.17",
+  "version": "1.5.19",
   "description": "Standalone Claude Flow for beginners - AI agent orchestration made easy with enhanced TDD testing pipeline. Enhanced init command creates complete agent system, MCP configuration with 30 essential tools, and automated hooks with single-file testing, real-time coverage analysis, and advanced validation. Fully standalone with zero external dependencies, complete project setup in one command.",
   "mcpName": "io.github.ruvnet/claude-flow",
   "main": ".claude-flow-novice/dist/index.js",
@@ -212,6 +212,7 @@
     "src/swarm-fullstack/",
     "src/npx/",
     "src/language/",
+    "src/hooks/",
     "examples/",
     "wiki/",
     "CLAUDE.md",

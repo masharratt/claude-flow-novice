@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.19] - 2025-10-01
+
+### ✨ Added
+- **Auto-enable Rust Strict Mode**: Automatically enables `--rust-strict` flag for `.rs` files
+  - Detects `.unwrap()`, `.expect()`, `panic!()`, `todo!()`, `unimplemented!()`
+  - Provides line numbers, code snippets, and actionable suggestions
+  - No manual flag required - activates automatically for all Rust files
+  - Populates `rustQuality` JSON field with comprehensive analysis
+- **Bypass Non-Code Files**: Skip validation for config/documentation files
+  - Bypassed extensions: `.toml`, `.md`, `.txt`, `.json`, `.yaml`, `.yml`
+  - Returns immediate success status without running formatters/linters
+  - Improves performance for Cargo.toml, README.md, package.json edits
+  - Agent-friendly: no wasted processing on configuration files
+
+### 🔧 Improved
+- **Post-Edit Pipeline**: Smarter file type detection and processing
+  - Console shows `🦀 Auto-enabled Rust strict mode` for visibility
+  - Bypass message: `⏭️ BYPASSED: .md files don't require validation`
+  - Structured JSON includes `bypassed: true` and reason field
+
+## [1.5.18] - Previous Release
+
 ### ✨ Added
 - **`/fullstack` Slash Command**: Launch coordinated full-stack development team with consensus validation
   - Automatic team composition (researcher, coder, tester, reviewer, architect)
