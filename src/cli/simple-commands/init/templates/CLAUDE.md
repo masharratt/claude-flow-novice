@@ -32,6 +32,31 @@
 - Refactoring or optimization work
 - ANY feature development (even "simple" ones)
 
+## 🚨 CRITICAL: Safe Test Execution
+
+**NEVER run tests inside agents** - causes memory leaks from orphaned processes.
+
+### Correct Pattern:
+```bash
+# 1. Run tests ONCE, save results
+npm test -- --run --reporter=json > test-results.json 2>&1
+
+# 2. Agents READ results file (no execution)
+cat test-results.json
+
+# 3. Kill orphaned processes after swarm
+pkill -f vitest; pkill -f "npm test"
+```
+
+### Forbidden:
+- ❌ `Task("agent", "run npm test", "type")` - spawns orphaned process
+- ❌ Multiple agents running tests concurrently - 3x memory usage
+- ❌ Long-running test commands without timeout cleanup
+
+### Memory Impact:
+- Each test run: 65MB+ heap
+- Concurrent runs: 65MB × agent_count
+- Orphaned processes persist after swarm completion
 ### Agent Requirements by Task Complexity
 
 | Task Size | Steps | Agent Count | Example Team Composition |

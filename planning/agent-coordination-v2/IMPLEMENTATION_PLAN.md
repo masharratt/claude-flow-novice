@@ -110,6 +110,132 @@ const coordinator = await CoordinatorFactory.create();
 // 4. Error if none available
 ```
 
+### Tiered Provider Routing Strategy
+
+The Hybrid mode implements a 3-tier routing system that optimizes cost while maintaining quality for critical operations:
+
+**Tier 1: Claude Code Subscription** (Preferred for Important Agents)
+- **Cost**: $0 within subscription limits
+- **Agent Types**: planners, reviewers, architects, coordinators
+- **Reasoning**: High-stakes decision-making requires Claude's reasoning capabilities
+- **Fallback**: Anthropic API when subscription limits reached
+
+**Tier 2: Anthropic API** (SDK Features + Fallback)
+- **Cost**: $5/$25 per MTok (input/output)
+- **Use Cases**:
+  1. SDK-required operations (session forking, checkpoints, artifacts)
+  2. Fallback for important agents when Tier 1 unavailable/limited
+  3. Critical coordination and validation tasks
+- **Agent Types**: validators, security-specialist, system-architect
+- **Reasoning**: Maximum reliability and full SDK feature set
+
+**Tier 3: Z.ai** (Bulk Routine Work)
+- **Cost**: $0.41/$1.65 per MTok (96% savings)
+- **Agent Types**: coder, tester, researcher, documenter
+- **Reasoning**: Routine work doesn't require premium models
+- **Volume**: ~85% of all agent work
+
+**Important Agents Definition**:
+Agents that require strategic thinking, architectural decisions, code quality validation, or swarm coordination:
+- `planner` - Strategic planning and decomposition
+- `reviewer` - Code quality and architecture review
+- `architect` - System design and technical decisions
+- `coordinator` - Swarm orchestration and consensus
+- `validator` - Byzantine consensus validation
+- `security-specialist` - Security architecture review
+
+**Routing Decision Flow**:
+```typescript
+async function routeAgent(agentType: string, task: Task): Promise<Provider> {
+  // Tier 1: Important agents prefer subscription
+  if (isImportantAgent(agentType)) {
+    if (subscriptionAvailable() && !subscriptionLimited()) {
+      return 'claude-code-subscription';
+    }
+    // Fallback to Tier 2 for important agents
+    return 'anthropic-api';
+  }
+
+  // Tier 2: SDK operations require Anthropic
+  if (requiresSDKFeatures(task)) {
+    return 'anthropic-api';
+  }
+
+  // Tier 3: All routine work goes to Z.ai
+  return 'z-ai';
+}
+
+function isImportantAgent(type: string): boolean {
+  return ['planner', 'reviewer', 'architect', 'coordinator',
+          'validator', 'security-specialist'].includes(type);
+}
+```
+
+**Configuration Example**:
+```json
+{
+  "coordination": {
+    "mode": "hybrid",
+    "tieredRouting": {
+      "enabled": true,
+      "tiers": {
+        "tier1": {
+          "provider": "claude-code-subscription",
+          "agentTypes": ["planner", "reviewer", "architect", "coordinator"],
+          "fallbackTo": "tier2",
+          "limitMonitoring": true
+        },
+        "tier2": {
+          "provider": "anthropic-api",
+          "agentTypes": ["validator", "security-specialist", "system-architect"],
+          "useCases": ["sdk-operations", "tier1-fallback"],
+          "model": "claude-sonnet-4.1"
+        },
+        "tier3": {
+          "provider": "z-ai",
+          "agentTypes": ["coder", "tester", "researcher", "documenter"],
+          "model": "glm-4.6",
+          "subscription": "pro"
+        }
+      }
+    }
+  }
+}
+```
+
+**Cost Analysis (10-agent swarm, 8 hours/day)**:
+
+| Component | Provider | Monthly Cost | Work Volume |
+|-----------|----------|--------------|-------------|
+| Important agents (4) | Subscription | $0* | ~15% |
+| SDK operations | Anthropic API | ~$30 | ~5% |
+| Important agent fallback | Anthropic API | ~$20 | ~10% |
+| Routine workers (6) | Z.ai Pro | $15 | ~70% |
+| **Total** | **Mixed** | **~$65** | **100%** |
+
+*Within Claude Code subscription limits
+
+**Savings Comparison**:
+- Pure Anthropic: $600-1000/month (baseline)
+- Pure Z.ai: $150/month (75% savings, but lower quality for planning)
+- **3-Tier Strategy: $65/month (89-93% savings with optimal quality distribution)**
+
+**Decision Examples**:
+
+| Agent Type | Task | Routed To | Reasoning |
+|------------|------|-----------|-----------|
+| `planner` | "Break down feature into tasks" | Tier 1 (Subscription) | Strategic thinking required |
+| `planner` | Same task (limits reached) | Tier 2 (Anthropic) | Fallback maintains quality |
+| `architect` | "Design database schema" | Tier 1 (Subscription) | Architecture decision critical |
+| `reviewer` | "Review PR for quality" | Tier 1 (Subscription) | Quality validation critical |
+| `validator` | "Byzantine consensus vote" | Tier 2 (Anthropic) | Requires SDK + determinism |
+| `coder` | "Implement CRUD endpoints" | Tier 3 (Z.ai) | Routine implementation work |
+| `tester` | "Write unit tests" | Tier 3 (Z.ai) | Routine testing work |
+| `researcher` | "Find best practices" | Tier 3 (Z.ai) | Information gathering task |
+| `coordinator` | "Orchestrate 10 agents" | Tier 2 (Anthropic)** | SDK session forking required |
+
+**Requires Anthropic API (Tier 2) for SDK features
+
 ---
 
 ## Cost Analysis by Mode
@@ -1748,27 +1874,55 @@ export class SwarmMemoryManager {
 
 ## Provider Integration Strategy
 
+### Three-Tier Provider Routing Architecture
+
+The V2 system implements a sophisticated 3-tier routing strategy that optimizes cost while maintaining quality for critical operations. This approach leverages the strengths of each provider tier for maximum efficiency.
+
 ### Phase 1: Core Providers (Weeks 3-4)
 
-**Anthropic Provider** (Baseline):
-- Official Anthropic API via @anthropic-ai/sdk
-- Full SDK feature support
-- Serves as reference implementation
-- Used for critical coordination and validation tasks
+**Tier 1: Claude Code Subscription Provider** (Important Agents - Preferred):
+- **Cost**: $0 within subscription limits
+- **Implementation**: Native Claude Code CLI integration
+- **Agent Allocation**: Important agents only (planners, reviewers, architects, coordinators)
+- **Reasoning**: Maximizes value from existing subscription for high-stakes decisions
+- **Fallback Strategy**: Automatic failover to Tier 2 (Anthropic API) when limits reached
+- **Limit Monitoring**: Real-time tracking of subscription usage with proactive fallback
+- **Use Cases**: Strategic planning, code review, architecture decisions, swarm coordination
+- **Volume**: ~15% of total agent work
+- **Quality**: Maximum (native Claude reasoning)
 
-**Z.ai Provider** (Recommended for Hybrid):
+**Tier 2: Anthropic API Provider** (SDK + Fallback):
+- **Cost**: $5/$25 per MTok (input/output)
+- Official Anthropic API via @anthropic-ai/sdk
+- Full SDK feature support (session forking, checkpoints, artifacts)
+- Serves as reference implementation
+- **Dual Purpose**:
+  1. Required for SDK operations (session forking, checkpoints, query control)
+  2. Fallback for important agents when Tier 1 unavailable/limited
+- **Agent Allocation**:
+  - Direct: validators, security-specialist, system-architect
+  - Fallback: planners, reviewers, architects, coordinators (when Tier 1 limited)
+- **Volume**: ~15% of total agent work (5% SDK + 10% fallback)
+- **Quality**: Maximum reliability and full SDK feature set
+
+**Tier 3: Z.ai Provider** (Bulk Routine Work):
+- **Cost**: $0.41/$1.65 per MTok (96% savings vs Anthropic)
 - Extends AnthropicProvider class for maximum compatibility
-- 96% cost reduction with GLM models
 - 100% Anthropic API compatibility
 - Subscription-based: Basic ($3/mo, 60 req/min) or Pro ($15/mo, 200 req/min)
-- Best for: High-volume worker agents (coders, testers, researchers)
+- **Agent Allocation**: All routine workers (coders, testers, researchers, documenters)
+- **Reasoning**: Routine implementation doesn't require premium models
+- **Volume**: ~70% of total agent work
+- **Quality**: ~94% of Claude quality, sufficient for routine tasks
+- Best for: High-volume worker agents with well-defined tasks
 
-**CLI Provider** (Free Tier):
+**CLI Provider** (Free Tier - Development):
 - Process pool management for fast spawning
 - File-based state persistence
 - SIGSTOP/SIGCONT for pause/resume
 - Zero external dependencies
 - Best for: Development, learning, free tier users
+- **Note**: Not part of 3-tier production routing (separate development mode)
 
 ### Phase 2: Extended Providers (Weeks 5-6)
 
@@ -1784,94 +1938,429 @@ export class SwarmMemoryManager {
 - Provider capability matrix
 - Best for: Enterprise with custom LLM infrastructure
 
-### Provider Selection Logic
+### Provider Selection Logic (3-Tier Routing)
 
 ```typescript
 interface ProviderRoutingRule {
+  tier: 1 | 2 | 3;
   condition: (agent: Agent, task: Task) => boolean;
-  provider: 'anthropic' | 'z-ai' | 'openrouter' | 'cli';
+  provider: 'claude-code-subscription' | 'anthropic-api' | 'z-ai';
   model: string;
   reason: string;
+  fallbackTier?: number;
 }
 
-const defaultRoutingRules: ProviderRoutingRule[] = [
+const IMPORTANT_AGENTS = [
+  'planner',
+  'reviewer',
+  'architect',
+  'coordinator'
+] as const;
+
+const SDK_REQUIRED_AGENTS = [
+  'validator',
+  'security-specialist',
+  'system-architect'
+] as const;
+
+const ROUTINE_AGENTS = [
+  'coder',
+  'tester',
+  'researcher',
+  'documenter'
+] as const;
+
+const tieredRoutingRules: ProviderRoutingRule[] = [
+  // Tier 1: Important agents prefer subscription (with fallback)
   {
-    condition: (agent) => agent.type === 'coordinator',
-    provider: 'anthropic',
-    model: 'claude-sonnet-4.1',
-    reason: 'Critical coordination requires maximum reliability'
+    tier: 1,
+    condition: (agent) => IMPORTANT_AGENTS.includes(agent.type as any),
+    provider: 'claude-code-subscription',
+    model: 'claude-sonnet-4.5',
+    reason: 'Strategic decisions require Claude reasoning (use free subscription)',
+    fallbackTier: 2
   },
+
+  // Tier 2: SDK operations and important agent fallback
   {
-    condition: (agent) => agent.type === 'validator',
-    provider: 'anthropic',
+    tier: 2,
+    condition: (agent, task) =>
+      SDK_REQUIRED_AGENTS.includes(agent.type as any) ||
+      (IMPORTANT_AGENTS.includes(agent.type as any) && !subscriptionAvailable()),
+    provider: 'anthropic-api',
     model: 'claude-sonnet-4.1',
-    reason: 'Byzantine consensus needs deterministic outputs'
+    reason: 'SDK features required OR subscription exhausted for important agent'
   },
+
+  // Tier 2: Complex tasks requiring SDK capabilities
   {
-    condition: (agent, task) => task.complexity === 'high',
-    provider: 'anthropic',
+    tier: 2,
+    condition: (agent, task) => task.requiresSDK === true,
+    provider: 'anthropic-api',
     model: 'claude-sonnet-4.1',
-    reason: 'Complex tasks need premium model'
+    reason: 'Task requires session forking, checkpoints, or artifacts'
   },
+
+  // Tier 3: All routine worker agents
   {
-    condition: (agent) => ['coder', 'tester', 'researcher'].includes(agent.type),
+    tier: 3,
+    condition: (agent) => ROUTINE_AGENTS.includes(agent.type as any),
     provider: 'z-ai',
     model: 'glm-4.6',
-    reason: '96% cost savings on high-volume work'
+    reason: '96% cost savings on routine implementation work'
   },
+
+  // Default: Route unknown agents to Tier 3 (cost-optimized)
   {
-    condition: () => true, // Default rule
+    tier: 3,
+    condition: () => true,
     provider: 'z-ai',
     model: 'glm-4.5',
-    reason: 'Default to cost-optimized provider'
+    reason: 'Default to cost-optimized provider for undefined agent types'
   }
 ];
+
+// Router implementation
+class TieredProviderRouter {
+  private subscriptionMonitor: SubscriptionLimitMonitor;
+
+  async routeAgent(agent: Agent, task: Task): Promise<ProviderConfig> {
+    for (const rule of tieredRoutingRules) {
+      if (rule.condition(agent, task)) {
+        // Check if subscription is available for Tier 1
+        if (rule.provider === 'claude-code-subscription') {
+          if (await this.subscriptionMonitor.isAvailable()) {
+            return {
+              tier: rule.tier,
+              provider: rule.provider,
+              model: rule.model,
+              reason: rule.reason
+            };
+          }
+
+          // Fallback to Tier 2 if subscription limited
+          if (rule.fallbackTier) {
+            return {
+              tier: rule.fallbackTier,
+              provider: 'anthropic-api',
+              model: 'claude-sonnet-4.1',
+              reason: `${rule.reason} (fallback: subscription limit reached)`
+            };
+          }
+        }
+
+        return {
+          tier: rule.tier,
+          provider: rule.provider,
+          model: rule.model,
+          reason: rule.reason
+        };
+      }
+    }
+
+    throw new Error('No routing rule matched (should never happen)');
+  }
+
+  // Real-time subscription monitoring
+  async checkSubscriptionStatus(): Promise<SubscriptionStatus> {
+    return this.subscriptionMonitor.getStatus();
+  }
+}
+
+// Subscription monitoring for proactive fallback
+interface SubscriptionStatus {
+  available: boolean;
+  limited: boolean;
+  usagePercent: number;
+  resetTime?: Date;
+  fallbackTriggered: boolean;
+}
+
+function subscriptionAvailable(): boolean {
+  // Implementation checks Claude Code subscription limits
+  // Returns false when approaching or at limits
+  return true; // Placeholder
+}
 ```
 
-### Provider Failover Strategy
+### Provider Failover Strategy (3-Tier Aware)
 
 ```typescript
-interface FallbackConfig {
+interface TieredFallbackConfig {
   enabled: boolean;
-  strategy: 'cascade' | 'round-robin';
-  order: string[]; // Provider names in priority order
-  retryAttempts: number;
+  strategy: 'tier-cascade' | 'tier-aware-round-robin';
+  tierFallbackRules: {
+    tier1: {
+      primary: 'claude-code-subscription';
+      fallbackTo: 'tier2';
+      conditions: ['SUBSCRIPTION_LIMIT', 'RATE_LIMIT'];
+      monitoring: 'proactive'; // Fallback before hitting limits
+      thresholds: {
+        usagePercent: 90; // Trigger fallback at 90% usage
+      };
+    };
+    tier2: {
+      primary: 'anthropic-api';
+      fallbackTo: 'tier3';
+      conditions: ['RATE_LIMIT', 'SERVICE_UNAVAILABLE'];
+      monitoring: 'reactive'; // Fallback on error
+    };
+    tier3: {
+      primary: 'z-ai';
+      fallbackTo: 'tier2'; // Escalate to more reliable if Z.ai fails
+      conditions: ['SERVICE_UNAVAILABLE', 'AUTHENTICATION'];
+      monitoring: 'reactive';
+    };
+  };
+  retryAttempts: 3;
   conditions: {
-    RATE_LIMIT: 'switch-provider' | 'retry-same';
+    RATE_LIMIT: 'switch-provider';
     SUBSCRIPTION_LIMIT: 'switch-provider';
     SERVICE_UNAVAILABLE: 'switch-provider';
     TIMEOUT: 'retry-same';
     AUTHENTICATION: 'escalate';
+    QUALITY_FAILURE: 'escalate-tier'; // Move important agent from Tier 3 to Tier 2
   };
 }
 
-const recommendedFallback: FallbackConfig = {
+const tieredFallbackConfig: TieredFallbackConfig = {
   enabled: true,
-  strategy: 'cascade',
-  order: ['z-ai', 'anthropic'], // Try cheap first, fallback to reliable
+  strategy: 'tier-cascade',
+  tierFallbackRules: {
+    tier1: {
+      primary: 'claude-code-subscription',
+      fallbackTo: 'tier2',
+      conditions: ['SUBSCRIPTION_LIMIT', 'RATE_LIMIT'],
+      monitoring: 'proactive',
+      thresholds: {
+        usagePercent: 90 // Trigger fallback before hitting hard limits
+      }
+    },
+    tier2: {
+      primary: 'anthropic-api',
+      fallbackTo: 'tier3',
+      conditions: ['RATE_LIMIT', 'SERVICE_UNAVAILABLE'],
+      monitoring: 'reactive'
+    },
+    tier3: {
+      primary: 'z-ai',
+      fallbackTo: 'tier2', // Escalate back up if Z.ai fails
+      conditions: ['SERVICE_UNAVAILABLE', 'AUTHENTICATION'],
+      monitoring: 'reactive'
+    }
+  },
   retryAttempts: 3,
   conditions: {
     RATE_LIMIT: 'switch-provider',
     SUBSCRIPTION_LIMIT: 'switch-provider',
     SERVICE_UNAVAILABLE: 'switch-provider',
     TIMEOUT: 'retry-same',
-    AUTHENTICATION: 'escalate'
+    AUTHENTICATION: 'escalate',
+    QUALITY_FAILURE: 'escalate-tier'
   }
 };
+
+// Fallback orchestrator with tier awareness
+class TieredFallbackOrchestrator {
+  async executeWithFallback<T>(
+    agentType: string,
+    task: Task,
+    operation: (provider: ProviderConfig) => Promise<T>
+  ): Promise<T> {
+    const initialRoute = await this.router.routeAgent({ type: agentType }, task);
+    let currentTier = initialRoute.tier;
+    let attempts = 0;
+
+    while (attempts < this.config.retryAttempts) {
+      try {
+        const provider = await this.getProviderForTier(currentTier, agentType);
+        return await operation(provider);
+      } catch (error) {
+        const failureType = this.classifyError(error);
+        const action = this.config.conditions[failureType];
+
+        if (action === 'switch-provider' || action === 'escalate-tier') {
+          // Get fallback tier
+          const fallbackTier = this.getFallbackTier(currentTier, failureType);
+          if (!fallbackTier) {
+            throw new Error(`All provider tiers exhausted for ${agentType}`);
+          }
+
+          this.logger.warn(
+            `Tier ${currentTier} failed (${failureType}), falling back to Tier ${fallbackTier}`
+          );
+          currentTier = fallbackTier;
+          attempts++;
+        } else if (action === 'retry-same') {
+          attempts++;
+        } else {
+          throw error; // Escalate to human
+        }
+      }
+    }
+
+    throw new Error(`Operation failed after ${attempts} attempts across tiers`);
+  }
+
+  private getFallbackTier(
+    currentTier: number,
+    failureType: string
+  ): number | null {
+    const rules = this.config.tierFallbackRules;
+
+    switch (currentTier) {
+      case 1:
+        // Tier 1 → Tier 2 (maintain quality for important agents)
+        return 2;
+      case 2:
+        // Tier 2 → Tier 3 (cost optimization under load)
+        return 3;
+      case 3:
+        // Tier 3 → Tier 2 (escalate on failure for reliability)
+        return 2;
+      default:
+        return null;
+    }
+  }
+
+  private classifyError(error: any): string {
+    if (error.status === 429) return 'RATE_LIMIT';
+    if (error.message?.includes('subscription limit')) return 'SUBSCRIPTION_LIMIT';
+    if (error.status === 503) return 'SERVICE_UNAVAILABLE';
+    if (error.code === 'ETIMEDOUT') return 'TIMEOUT';
+    if (error.status === 401 || error.status === 403) return 'AUTHENTICATION';
+    return 'UNKNOWN';
+  }
+}
+
+// Proactive subscription monitoring (prevents Tier 1 failures)
+class SubscriptionLimitMonitor {
+  private usageCache: Map<string, SubscriptionStatus> = new Map();
+
+  async monitorSubscriptionLimits(): Promise<void> {
+    setInterval(async () => {
+      const status = await this.checkClaudeCodeSubscription();
+
+      if (status.usagePercent >= 90) {
+        this.logger.warn(
+          `Subscription usage at ${status.usagePercent}%, triggering proactive fallback to Tier 2`
+        );
+        this.eventBus.emit('subscription:limit-approaching', status);
+      }
+
+      this.usageCache.set('claude-code-subscription', status);
+    }, 60000); // Check every minute
+  }
+
+  async isAvailable(): Promise<boolean> {
+    const status = this.usageCache.get('claude-code-subscription');
+    return status ? !status.limited && status.usagePercent < 90 : true;
+  }
+
+  private async checkClaudeCodeSubscription(): Promise<SubscriptionStatus> {
+    // Implementation queries Claude Code subscription API
+    // Returns current usage, limits, and reset time
+    return {
+      available: true,
+      limited: false,
+      usagePercent: 0,
+      resetTime: new Date(),
+      fallbackTriggered: false
+    };
+  }
+}
 ```
 
-### Provider Compatibility Matrix
+### Provider Compatibility Matrix (3-Tier System)
 
-| Feature | CLI | Anthropic | Z.ai | OpenRouter |
-|---------|-----|-----------|------|------------|
-| **Session Forking** | ❌ Process spawn | ✅ Native | ✅ Native | ⚠️ Limited |
-| **Pause/Resume** | ⚠️ SIGSTOP | ✅ Native | ✅ Native | ❌ Not supported |
-| **Checkpoints** | ✅ File-based | ✅ Message UUID | ✅ Message UUID | ⚠️ Custom |
-| **Streaming** | ✅ stdout | ✅ SSE | ✅ SSE | ✅ SSE |
-| **Context Window** | N/A | 200K | 200K | Varies |
-| **Cost** | $0 | $5/$25 MTok | $0.41/$1.65 MTok | $0.27-5 MTok |
-| **Rate Limits** | Local only | Tier-based | 60-200 req/min | Varies |
-| **Model Choice** | Claude only | Claude only | GLM + Claude | 200+ models |
+| Feature | Tier 1 (Subscription) | Tier 2 (Anthropic) | Tier 3 (Z.ai) | CLI (Dev) | OpenRouter (Alt) |
+|---------|----------------------|--------------------|---------------|-----------|------------------|
+| **Agent Types** | Important agents | SDK + fallback | Routine workers | Development | Experimental |
+| **Session Forking** | ✅ Native | ✅ Native | ✅ Native | ❌ Process spawn | ⚠️ Limited |
+| **Pause/Resume** | ✅ Native | ✅ Native | ✅ Native | ⚠️ SIGSTOP | ❌ Not supported |
+| **Checkpoints** | ✅ Message UUID | ✅ Message UUID | ✅ Message UUID | ✅ File-based | ⚠️ Custom |
+| **Streaming** | ✅ SSE | ✅ SSE | ✅ SSE | ✅ stdout | ✅ SSE |
+| **Context Window** | 200K | 200K | 200K | N/A | Varies |
+| **Cost** | **$0** (within limits) | $5/$25 MTok | $0.41/$1.65 MTok | $0 | $0.27-5 MTok |
+| **Rate Limits** | Subscription-based | Tier-based | 60-200 req/min | Local only | Varies |
+| **Model Choice** | Claude Sonnet 4.5 | Claude Sonnet 4.1 | GLM-4.5/4.6 | Claude only | 200+ models |
+| **Fallback Strategy** | → Tier 2 at 90% | → Tier 3 on load | → Tier 2 on fail | N/A | → Anthropic |
+| **Use Cases** | Strategic decisions | SDK + coordination | Bulk work | Development | Multi-model |
+| **Work Volume** | ~15% | ~15% (5% + 10%) | ~70% | N/A | Optional |
+| **Quality Tier** | Maximum | Maximum | ~94% of Claude | Development | Varies |
+
+### Three-Tier Cost Optimization Summary
+
+**Monthly Cost Breakdown (10-agent swarm, 8 hours/day, 20 business days)**:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ TIER 1: CLAUDE CODE SUBSCRIPTION (Important Agents)                 │
+├─────────────────────────────────────────────────────────────────────┤
+│ Agents: planner, reviewer, architect, coordinator (4 agents)        │
+│ Work Volume: ~15% of total workload                                 │
+│ Cost: $0 (within subscription limits)                               │
+│ Fallback: Tier 2 when limits reached (~10% of work)                 │
+│ Quality: Maximum (native Claude reasoning)                          │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ TIER 2: ANTHROPIC API (SDK Operations + Fallback)                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ Direct Usage:                                                        │
+│   - SDK operations (session forking, checkpoints): ~5%              │
+│   - validators, security-specialist: ~5%                            │
+│ Fallback Usage:                                                      │
+│   - Important agents when Tier 1 limited: ~10%                      │
+│ Total Volume: ~15%                                                   │
+│ Cost: ~$50/month                                                     │
+│ Quality: Maximum reliability + full SDK features                    │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ TIER 3: Z.AI (Routine Bulk Work)                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│ Agents: coder, tester, researcher, documenter (6 agents)            │
+│ Work Volume: ~70% of total workload                                 │
+│ Subscription: Pro ($15/mo, 200 req/min)                             │
+│ API Cost: ~$30/month (usage-based)                                  │
+│ Total Cost: ~$15/month (subscription covers most usage)             │
+│ Savings vs Anthropic: 96% per token                                 │
+│ Quality: ~94% of Claude, sufficient for routine tasks               │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ TOTAL MONTHLY COST: ~$65                                            │
+├─────────────────────────────────────────────────────────────────────┤
+│ vs Pure Anthropic ($600-1000): 89-93% SAVINGS                       │
+│ vs Pure Z.ai ($150): Better quality for critical work               │
+│ vs 2-Tier Hybrid ($200): 67% savings with subscription leverage     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Cost Per Agent Type (Monthly)**:
+
+| Agent Type | Tier | Count | Monthly Cost | Reasoning |
+|------------|------|-------|--------------|-----------|
+| `planner` | 1 → 2 | 1 | $0-10 | Free unless subscription limited |
+| `reviewer` | 1 → 2 | 1 | $0-10 | Free unless subscription limited |
+| `architect` | 1 → 2 | 1 | $0-10 | Free unless subscription limited |
+| `coordinator` | 2 | 1 | $15 | SDK session forking required |
+| `validator` | 2 | 1 | $10 | Byzantine consensus + SDK |
+| `security-specialist` | 2 | 1 | $5 | Security validation critical |
+| `coder` | 3 | 2 | $6 | 96% cheaper routine work |
+| `tester` | 3 | 1 | $3 | 96% cheaper routine work |
+| `researcher` | 3 | 1 | $3 | 96% cheaper routine work |
+| `documenter` | 3 | 1 | $3 | 96% cheaper routine work |
+| **Total** | Mixed | 10 | **~$65** | Optimal cost-quality balance |
+
+**Tiered Routing Benefits**:
+1. **89-93% cost savings** vs all-Anthropic approach
+2. **Maximum quality** for strategic decisions (Tier 1 free, Tier 2 fallback)
+3. **SDK features** available where needed (Tier 2)
+4. **Bulk optimization** for routine work (Tier 3 at 96% savings)
+5. **Proactive fallback** prevents Tier 1 limit failures
+6. **Graceful degradation** under load with tier cascading
 
 ---
 

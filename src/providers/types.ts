@@ -14,6 +14,7 @@ export type LLMProvider =
   | 'cohere'
   | 'ollama'
   | 'llama-cpp'
+  | 'zai'
   | 'custom';
 
 export type LLMModel =
@@ -30,6 +31,8 @@ export type LLMModel =
   | 'claude-2.1'
   | 'claude-2.0'
   | 'claude-instant-1.2'
+  // Z.ai Models
+  | 'claude-3-5-sonnet-20241022'
   // Google Models
   | 'gemini-pro'
   | 'gemini-pro-vision'
