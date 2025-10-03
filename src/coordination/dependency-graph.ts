@@ -351,41 +351,41 @@ export class DependencyGraph {
   }
 
   /**
-   * Find path between two tasks
+   * Find longest path between two tasks using DFS
    */
   private findPath(from: string, to: string): string[] | null {
     if (from === to) {
       return [from];
     }
 
-    const visited = new Set<string>();
-    const queue: Array<{ taskId: string; path: string[] }> = [{ taskId: from, path: [from] }];
+    let longestPath: string[] | null = null;
 
-    while (queue.length > 0) {
-      const { taskId, path } = queue.shift()!;
-
-      if (visited.has(taskId)) {
-        continue;
+    const dfs = (taskId: string, currentPath: string[], visited: Set<string>) => {
+      if (taskId === to) {
+        if (!longestPath || currentPath.length > longestPath.length) {
+          longestPath = [...currentPath];
+        }
+        return;
       }
-      visited.add(taskId);
 
       const node = this.nodes.get(taskId);
       if (!node) {
-        continue;
+        return;
       }
 
       for (const depId of node.dependents) {
-        if (depId === to) {
-          return [...path, to];
-        }
-
         if (!visited.has(depId)) {
-          queue.push({ taskId: depId, path: [...path, depId] });
+          visited.add(depId);
+          dfs(depId, [...currentPath, depId], visited);
+          visited.delete(depId);
         }
       }
-    }
+    };
 
-    return null;
+    const visited = new Set<string>([from]);
+    dfs(from, [from], visited);
+
+    return longestPath;
   }
 
   /**
