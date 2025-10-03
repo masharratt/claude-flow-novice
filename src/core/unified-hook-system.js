@@ -355,9 +355,8 @@ class UnifiedHookSystem extends EventEmitter {
       pageRankAnalyzer:
         providedPhases.pageRankAnalyzer ||
         new PageRankPatternAnalyzer({ securityManager: this.securityManager }),
-      temporalPredictor:
-        providedPhases.temporalPredictor ||
-        // Temporal predictor removed for novice simplicity
+      // Temporal predictor removed for novice simplicity
+      // temporalPredictor: providedPhases.temporalPredictor || null,
 
       // Phase 4: Team Collaboration (with fixes)
       teamSynchronizer:

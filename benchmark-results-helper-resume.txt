@@ -1,0 +1,203 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/benchmarks/helper-resume-performance.test.ts --verbose
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.log
+    
+    Helper Resume Latency (single agent):
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:123:13)
+
+  console.log
+      Lookup: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:124:13)
+
+  console.log
+      Deserialize: 0.004ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:125:13)
+
+  console.log
+      Restore: 0.003ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:126:13)
+
+  console.log
+      Activate: 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:127:13)
+
+  console.log
+      Total: 0.017ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:128:13)
+
+  console.log
+      Threshold: <50ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:129:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:130:13)
+
+  console.log
+    
+    Helper Resume Performance (100 operations):
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:180:13)
+
+  console.log
+      Min: 0.002ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:181:13)
+
+  console.log
+      Max: 0.015ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:182:13)
+
+  console.log
+      Avg: 0.003ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:183:13)
+
+  console.log
+      P95: 0.005ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:184:13)
+
+  console.log
+    
+    Average Stage Latencies:
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:185:13)
+
+  console.log
+      Lookup: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:186:13)
+
+  console.log
+      Deserialize: 0.002ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:187:13)
+
+  console.log
+      Restore: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:188:13)
+
+  console.log
+      Activate: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:189:13)
+
+  console.log
+    
+    Threshold: <50ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:190:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:191:13)
+
+  console.log
+    
+    Concurrent Resume (30 helpers):
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:231:13)
+
+  console.log
+      Total time: 0.030ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:232:13)
+
+  console.log
+      Avg latency: 0.002ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:233:13)
+
+  console.log
+      Max latency: 0.008ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:234:13)
+
+  console.log
+      P95 latency: 0.002ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:235:13)
+
+  console.log
+      Threshold: <50ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:236:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:237:13)
+
+  console.log
+    
+    Resume Scalability (large checkpoints):
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:273:13)
+
+  console.log
+      Checkpoint sizes: 100-5000 chars
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:274:13)
+
+  console.log
+      Min latency: 0.003ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:275:13)
+
+  console.log
+      Max latency: 0.049ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:276:13)
+
+  console.log
+      Avg latency: 0.019ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:277:13)
+
+  console.log
+      P95: 0.038ms
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:278:13)
+
+  console.log
+      Threshold: <50ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:279:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/helper-resume-performance.test.ts:280:13)
+
+(node:54961) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/benchmarks/helper-resume-performance.test.ts (14.168 s)
+  Helper Resume Performance Benchmark
+    ✓ should resume helper in <50ms (52 ms)
+    ✓ should maintain <50ms p95 across 100 resume operations (7 ms)
+    ✓ should handle concurrent resume operations efficiently (2 ms)
+    ✓ should scale resume performance with large checkpoints (8 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        15.325 s
+Ran all test suites matching /tests\/benchmarks\/helper-resume-performance.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

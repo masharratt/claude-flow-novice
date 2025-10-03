@@ -1,0 +1,3096 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit --json
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+(node:36403) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:00.989Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:00.994Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:00.995Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:00.998Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.001Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_c00345d1e8fb (age: 27479615ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_29d821a229f5 (30.56ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-1: idle (31.78ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_7408af62f698 (age: 27479642ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_92f9ee57772b (7.78ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-1: working (8.86ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-1: working (0.07ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:01.046Z] INFO State transition completed {"agentId":"agent-1","transition":"idle -> working","latencyMs":"11.47"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.248Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.249Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.250Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.251Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.252Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":1}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:01.567Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.567Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.568Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.569Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.569Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_5da2181c03db (age: 27479822ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_d8c49b0c9bf3 (7.56ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-2: idle (8.67ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_2f52545bacbb (age: 27479641ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_c004ae34a5c0 (6.58ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-2: working (7.46ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-2: working (0.04ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:01.588Z] INFO State transition completed {"agentId":"agent-2","transition":"idle -> working","latencyMs":"8.87"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_6640ede89371 (age: 27479429ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_676a7051222e (7.57ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-2: paused (8.47ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-2: paused (0.04ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:01.599Z] INFO State transition completed {"agentId":"agent-2","transition":"working -> paused","latencyMs":"9.90"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_e5d1dd375a19 (age: 27479249ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_4b365668ec16 (7.17ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-2: working (8.30ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-2: working (0.04ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:01.609Z] INFO State transition completed {"agentId":"agent-2","transition":"paused -> working","latencyMs":"9.73"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.910Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.911Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.912Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.913Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:01.914Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":3}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:02.236Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.236Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.237Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.238Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.238Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_7b44f2534625 (age: 27479883ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_c216b1ca3e27 (7.03ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-3: idle (7.82ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_c86c4cad8e82 (age: 27479886ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_aa4b733caf7d (6.84ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-3: working (7.78ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-3: working (0.03ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:02.257Z] INFO State transition completed {"agentId":"agent-3","transition":"idle -> working","latencyMs":"9.03"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.457Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.458Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.459Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.460Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.460Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":1}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:02.764Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.765Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.766Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.766Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.767Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_cc8ffa7353af (age: 27479963ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_6e8c769d73b8 (7.50ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-4: idle (8.59ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.info
+    [2025-10-03T22:13:02.777Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.778Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.779Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.780Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:02.781Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:03.085Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.086Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.087Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.087Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.088Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_271d10d373ce (age: 27480273ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_401fbd97b6f7 (6.46ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-5: idle (7.26ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.info
+    [2025-10-03T22:13:03.096Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.097Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.098Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.099Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.100Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:03.394Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.395Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.395Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.396Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.397Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_271f0edc6809 (age: 27479934ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_f9e90aefb94c (7.23ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-6: idle (8.12ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.info
+    [2025-10-03T22:13:03.406Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.407Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.408Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.409Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.410Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:03.708Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.709Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.709Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.710Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.710Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.711Z] INFO Message-driven state transition handlers registered
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_c76c1599c5e2 (age: 27480240ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_690e03544a25 (7.52ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-7: idle (8.30ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_914767e59f27 (age: 27480243ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_3844477d301d (6.97ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-7: working (7.80ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-7: working (0.04ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:03.730Z] INFO State transition completed {"agentId":"agent-7","transition":"idle -> working","latencyMs":"9.22"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_8a69e3393475 (age: 27478792ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_9016f669d208 (7.46ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-7: paused (8.61ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-7: paused (0.03ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:03.741Z] INFO State transition completed {"agentId":"agent-7","transition":"working -> paused","latencyMs":"10.38"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.932Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.933Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.934Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.934Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:03.935Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":2}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:04.218Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.218Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.219Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.220Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.220Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.221Z] INFO Message-driven state transition handlers registered
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_d0f5386e61bf (age: 27479277ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_102aa097a18b (6.32ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-8: idle (7.11ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.error
+    [2025-10-03T22:13:04.230Z] ERROR Invalid state transition: idle -> paused Error: {"agentId":"agent-8","currentState":"idle","newState":"paused"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at StateMachine.executeTransition (src/coordination/v2/core/state-machine.ts:291:21)
+      at StateMachine.transition (src/coordination/v2/core/state-machine.ts:217:36)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:387:26)
+
+  console.log
+    🔄 LRU eviction: cp_3e476c34abac (age: 27478372ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_d62e5553e0c0 (6.87ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-8: working (7.77ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-8: working (0.04ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:04.243Z] INFO State transition completed {"agentId":"agent-8","transition":"idle -> working","latencyMs":"9.03"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.437Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.438Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.438Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.439Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.440Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":1}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:04.721Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.721Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.722Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.722Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.723Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.724Z] INFO Message-driven state transition handlers registered
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_8c21e4dfd91e (age: 27478661ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_ae33ca5ef30f (5.43ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-9: idle (6.27ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_7dc840208ac0 (age: 27478661ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_19f726a76562 (6.57ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-9: working (7.31ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-9: working (0.03ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:04.740Z] INFO State transition completed {"agentId":"agent-9","transition":"idle -> working","latencyMs":"8.67"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_2055bd821997 (age: 27478664ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_5633ffd93943 (6.56ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-9: terminated (7.35ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-9: terminated (0.04ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:04.750Z] INFO State transition completed {"agentId":"agent-9","transition":"working -> terminated","latencyMs":"8.85"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.942Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.943Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.944Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.945Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:04.945Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":2}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:05.237Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.237Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.238Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.238Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.239Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.542Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.543Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.544Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.545Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.546Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:05.849Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.850Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.851Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.851Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:05.852Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.253Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.254Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.255Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.256Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.257Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:06.552Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.553Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.553Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.554Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.554Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_db0beaeaefba (age: 27480472ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_6d8a716013e8 (6.66ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-10: idle (7.40ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_66f67d1558b2 (age: 26810692ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_a9360ebfc348 (6.65ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-10: working (7.58ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    ✅ State retrieved for agent-10: working (0.03ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+
+  console.info
+    [2025-10-03T22:13:06.572Z] INFO State transition completed {"agentId":"agent-10","transition":"idle -> working","latencyMs":"8.95"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.573Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.574Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.575Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.575Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.576Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":1}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:06.863Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.863Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.864Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.864Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.865Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.866Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.867Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.867Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.868Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:06.869Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:07.185Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.186Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.186Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.187Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.188Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.389Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.390Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.391Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.392Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.393Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:07.688Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.688Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.689Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.689Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.690Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_39475fabd0ef (age: 26811810ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_5f310b6f6541 (6.71ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-12: idle (7.57ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.info
+    [2025-10-03T22:13:07.700Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.700Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.701Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.702Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.703Z] INFO Cleaning up state machine {"totalAgents":1,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:07.991Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.991Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.992Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.992Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:07.992Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    🔄 LRU eviction: cp_3189c2562461 (age: 26811527ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_e279b21ccb09 (7.75ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-13: idle (8.48ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_baa3549c2849 (age: 26811526ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_e57618bee578 (6.92ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-14: idle (7.74ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_644333a66e21 (age: 26811525ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+
+  console.log
+    ✅ Checkpoint created: cp_48f283b5c237 (5.78ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+
+  console.log
+    ✅ State stored for agent-15: idle (6.51ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+
+  console.log
+    🔄 LRU eviction: cp_fb9f84e3e7d8 (age: 26811523ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+          at Array.map (<anonymous>)
+
+  console.log
+    🔄 LRU eviction: cp_1e0dd8e7f68c (age: 26810873ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+          at Array.map (<anonymous>)
+
+  console.log
+    🔄 LRU eviction: cp_f13a22e9653a (age: 26810864ms, reason: MEMORY_LIMIT_ENFORCEMENT)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:199:17)
+          at Array.map (<anonymous>)
+
+  console.log
+    ✅ Checkpoint created: cp_5326c95b0b20 (9.41ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+          at async Promise.all (index 1)
+
+  console.log
+    ✅ State stored for agent-14: working (10.18ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+          at async Promise.all (index 1)
+
+  console.log
+    ✅ State retrieved for agent-14: working (0.03ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+          at async Promise.all (index 1)
+
+  console.info
+    [2025-10-03T22:13:08.030Z] INFO State transition completed {"agentId":"agent-14","transition":"idle -> working","latencyMs":"11.60"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+          at async Promise.all (index 1)
+
+  console.log
+    ✅ Checkpoint created: cp_5e16a9785db4 (13.43ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+          at async Promise.all (index 0)
+
+  console.log
+    ✅ State stored for agent-13: working (14.13ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+          at async Promise.all (index 0)
+
+  console.log
+    ✅ State retrieved for agent-13: working (0.03ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+          at async Promise.all (index 0)
+
+  console.info
+    [2025-10-03T22:13:08.033Z] INFO State transition completed {"agentId":"agent-13","transition":"idle -> working","latencyMs":"15.45"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+          at async Promise.all (index 0)
+
+  console.log
+    ✅ Checkpoint created: cp_d2669fa059a5 (16.35ms, 0.50x compression)
+
+      at CheckpointManager.createCheckpoint (src/coordination/v2/sdk/checkpoint-manager.ts:233:13)
+          at async Promise.all (index 2)
+
+  console.log
+    ✅ State stored for agent-15: working (17.42ms, artifact: default-session)
+
+      at StateStorage.setState (src/coordination/v2/memory/state-storage.ts:239:13)
+          at async Promise.all (index 2)
+
+  console.log
+    ✅ State retrieved for agent-15: working (0.04ms)
+
+      at StateStorage.getState (src/coordination/v2/memory/state-storage.ts:268:13)
+          at async Promise.all (index 2)
+
+  console.info
+    [2025-10-03T22:13:08.038Z] INFO State transition completed {"agentId":"agent-15","transition":"idle -> working","latencyMs":"18.72"}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+          at async Promise.all (index 2)
+
+  console.info
+    [2025-10-03T22:13:08.339Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.340Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.341Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.342Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.342Z] INFO Cleaning up state machine {"totalAgents":3,"totalTransitions":3}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:08.613Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.614Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.614Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.615Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.615Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.816Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.817Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.818Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.818Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:08.819Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:09.060Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.061Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.061Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.062Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.062Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.063Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.064Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.064Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.065Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.066Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:09.298Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.299Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.299Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.299Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.300Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.error
+    [2025-10-03T22:13:09.301Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.303Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.307Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.310Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.312Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.315Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.318Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.321Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.325Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.328Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.331Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.333Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.336Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.339Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.342Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.345Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.348Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.351Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.354Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.error
+    [2025-10-03T22:13:09.357Z] ERROR Message handler error Error: {"subscriptionId":"sub-1759529589300-lu31gfqdu","topic":"fail.test","error":"Handler failure"}
+
+      234 |         break;
+      235 |       case LogLevel.ERROR:
+    > 236 |         console.error(message);
+          |                 ^
+      237 |         break;
+      238 |     }
+      239 |   }
+
+      at Logger.writeToConsole (src/core/logger.ts:236:17)
+      at Logger.log (src/core/logger.ts:183:12)
+      at Logger.error (src/core/logger.ts:140:10)
+      at MessageBusIntegration.deliverMessage (src/coordination/v2/sdk/message-bus-integration.ts:637:23)
+      at MessageBusIntegration.processMessages (src/coordination/v2/sdk/message-bus-integration.ts:587:11)
+
+  console.info
+    [2025-10-03T22:13:09.632Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.633Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.634Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.635Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.636Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:09.901Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.901Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.902Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.902Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.903Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.903Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.904Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.905Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.906Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.906Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.907Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.908Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.908Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.909Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.910Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:09.910Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    📁 Loaded 100 checkpoints from disk
+
+      at CheckpointManager.loadFromDisk (src/coordination/v2/sdk/checkpoint-manager.ts:529:15)
+
+  console.log
+    ✅ CheckpointManager initialized
+
+      at CheckpointManager.initialize (src/coordination/v2/sdk/checkpoint-manager.ts:1062:13)
+
+  console.log
+    📁 Loaded state index: 0 agents
+
+      at StateStorage.loadStateIndex (src/coordination/v2/memory/state-storage.ts:500:13)
+
+  console.log
+    ✅ StateStorage initialized
+
+      at StateStorage.initialize (src/coordination/v2/memory/state-storage.ts:150:13)
+
+  console.info
+    [2025-10-03T22:13:10.162Z] INFO QueryController initialized {"maxConcurrentAgents":10,"enableDynamicAllocation":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.163Z] INFO Initializing QueryController coordinator
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.163Z] INFO StateMachine initialized {"autoCheckpoint":false,"pauseDuringTransition":false}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.164Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.164Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.165Z] INFO MessageBusIntegration initialized {"autoPublishStateTransitions":true,"autoPublishTaskEvents":true,"enableMessageDrivenTransitions":true}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.166Z] INFO Message bus started
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.166Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.167Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.167Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.168Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.168Z] INFO Cleaning up message bus integration
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.169Z] INFO Message bus stopped
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.170Z] INFO Message bus integration cleanup complete
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    [2025-10-03T22:13:10.171Z] INFO Cleaning up state machine {"totalAgents":0,"totalTransitions":0}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+  console.log
+    ✅ StateStorage closed
+
+      at StateStorage.close (src/coordination/v2/memory/state-storage.ts:457:13)
+
+  console.log
+    ✅ CheckpointManager closed
+
+      at CheckpointManager.close (src/coordination/v2/sdk/checkpoint-manager.ts:1077:13)
+
+FAIL tests/coordination/v2/integration/real-message-bus-integration.test.ts (33.088 s)
+  Real Message Bus Integration - No Mocks
+    State Transition Message Flow
+      ✓ should publish message on state transition (639 ms)
+      ✓ should handle multiple state transitions in sequence (661 ms)
+      ✓ should include metadata in state transition messages (547 ms)
+    Task Lifecycle Message Flow
+      ✕ should publish message when task is assigned (320 ms)
+      ✕ should publish message when task completes (309 ms)
+      ✕ should publish message when task fails (309 ms)
+    Message-Driven State Transitions
+      ✓ should transition agent state via command message (526 ms)
+      ✓ should resume agent via command message (504 ms)
+      ✓ should terminate agent via command message (505 ms)
+    Priority-Based Message Delivery
+      ✕ should deliver high-priority messages first (600 ms)
+      ✕ should handle mixed priority messages in real scenario (710 ms)
+    Request/Reply Pattern
+      ✕ should handle request/reply for agent status (319 ms)
+      ✕ should timeout on no reply (293 ms)
+    Dependency Graph Integration
+      ✓ should publish messages for dependency changes (494 ms)
+    End-to-End Workflows
+      ✕ should complete full agent workflow with messages (310 ms)
+      ✓ should handle concurrent agent operations (639 ms)
+    Metrics and Monitoring
+      ✓ should track message bus metrics (477 ms)
+      ✓ should report healthy status (246 ms)
+      ✓ should detect high failure rate (572 ms)
+    Lifecycle Management
+      ✓ should start and stop message bus (273 ms)
+      ✓ should cleanup resources properly (261 ms)
+
+  ● Real Message Bus Integration - No Mocks › Task Lifecycle Message Flow › should publish message when task is assigned
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:285:27)
+
+  ● Real Message Bus Integration - No Mocks › Task Lifecycle Message Flow › should publish message when task completes
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:317:27)
+
+  ● Real Message Bus Integration - No Mocks › Task Lifecycle Message Flow › should publish message when task fails
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:347:27)
+
+  ● Real Message Bus Integration - No Mocks › Priority-Based Message Delivery › should deliver high-priority messages first
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "critical"
+    Received: "low"
+
+      467 |
+      468 |       // Critical should be first, low should be last
+    > 469 |       expect(deliveryOrder[0]).toBe('critical');
+          |                                ^
+      470 |       expect(deliveryOrder[deliveryOrder.length - 1]).toBe('low');
+      471 |     });
+      472 |
+
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:469:32)
+
+  ● Real Message Bus Integration - No Mocks › Priority-Based Message Delivery › should handle mixed priority messages in real scenario
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 3
+    Received:   4.5
+
+      514 |         const avgLowIndex = lowPriorityIndices.reduce((a, b) => a + b, 0) / lowPriorityIndices.length;
+      515 |
+    > 516 |         expect(avgHighIndex).toBeLessThan(avgLowIndex);
+          |                              ^
+      517 |       }
+      518 |     });
+      519 |   });
+
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:516:30)
+
+  ● Real Message Bus Integration - No Mocks › Request/Reply Pattern › should handle request/reply for agent status
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: undefined
+
+      548 |       });
+      549 |
+    > 550 |       expect(reply.success).toBe(true);
+          |                             ^
+      551 |       expect(reply.payload.state).toBe(AgentState.WORKING);
+      552 |     });
+      553 |
+
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:550:29)
+
+  ● Real Message Bus Integration - No Mocks › Request/Reply Pattern › should timeout on no reply
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"data": "test"}
+
+      553 |
+      554 |     it('should timeout on no reply', async () => {
+    > 555 |       await expect(
+          |             ^
+      556 |         messageBus.request('no.reply.topic', { data: 'test' }, { timeout: 100 })
+      557 |       ).rejects.toThrow(/timeout/i);
+      558 |     });
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:555:13)
+
+  ● Real Message Bus Integration - No Mocks › End-to-End Workflows › should complete full agent workflow with messages
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:639:27)
+
+Summary of all failing tests
+FAIL tests/coordination/v2/integration/real-message-bus-integration.test.ts (33.088 s)
+  ● Real Message Bus Integration - No Mocks › Task Lifecycle Message Flow › should publish message when task is assigned
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:285:27)
+
+  ● Real Message Bus Integration - No Mocks › Task Lifecycle Message Flow › should publish message when task completes
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:317:27)
+
+  ● Real Message Bus Integration - No Mocks › Task Lifecycle Message Flow › should publish message when task fails
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:347:27)
+
+  ● Real Message Bus Integration - No Mocks › Priority-Based Message Delivery › should deliver high-priority messages first
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "critical"
+    Received: "low"
+
+      467 |
+      468 |       // Critical should be first, low should be last
+    > 469 |       expect(deliveryOrder[0]).toBe('critical');
+          |                                ^
+      470 |       expect(deliveryOrder[deliveryOrder.length - 1]).toBe('low');
+      471 |     });
+      472 |
+
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:469:32)
+
+  ● Real Message Bus Integration - No Mocks › Priority-Based Message Delivery › should handle mixed priority messages in real scenario
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 3
+    Received:   4.5
+
+      514 |         const avgLowIndex = lowPriorityIndices.reduce((a, b) => a + b, 0) / lowPriorityIndices.length;
+      515 |
+    > 516 |         expect(avgHighIndex).toBeLessThan(avgLowIndex);
+          |                              ^
+      517 |       }
+      518 |     });
+      519 |   });
+
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:516:30)
+
+  ● Real Message Bus Integration - No Mocks › Request/Reply Pattern › should handle request/reply for agent status
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: undefined
+
+      548 |       });
+      549 |
+    > 550 |       expect(reply.success).toBe(true);
+          |                             ^
+      551 |       expect(reply.payload.state).toBe(AgentState.WORKING);
+      552 |     });
+      553 |
+
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:550:29)
+
+  ● Real Message Bus Integration - No Mocks › Request/Reply Pattern › should timeout on no reply
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"data": "test"}
+
+      553 |
+      554 |     it('should timeout on no reply', async () => {
+    > 555 |       await expect(
+          |             ^
+      556 |         messageBus.request('no.reply.topic', { data: 'test' }, { timeout: 100 })
+      557 |       ).rejects.toThrow(/timeout/i);
+      558 |     });
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:555:13)
+
+  ● Real Message Bus Integration - No Mocks › End-to-End Workflows › should complete full agent workflow with messages
+
+    TypeError: this.graph.addNode is not a function
+
+      194 |     };
+      195 |
+    > 196 |     this.graph.addNode(normalizedTask);
+          |                ^
+      197 |     this.scheduleTasks(); // Trigger immediate scheduling check
+      198 |     this.emit('task:queued', { taskId: normalizedTask.taskId });
+      199 |   }
+
+      at TaskScheduler.scheduleTask (src/coordination/v2/core/task-scheduler.ts:196:16)
+      at Object.<anonymous> (tests/coordination/v2/integration/real-message-bus-integration.test.ts:639:27)
+
+
+Test Suites: 1 failed, 1 of 295 total
+Tests:       8 failed, 13 passed, 21 total
+Snapshots:   0 total
+Time:        36.275 s, estimated 570 s
+Ran all test suites.

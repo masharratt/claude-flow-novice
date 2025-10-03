@@ -1,0 +1,411 @@
+{
+  "validator": "security-specialist",
+  "approval": false,
+  "score": 0.62,
+  "audit_date": "2025-10-03",
+  "phase": "phase-5-hierarchical-coordination",
+  "scope": [
+    "src/coordination/queen-agent.ts",
+    "src/coordination/hierarchical-orchestrator.ts",
+    "src/coordination/task-delegation.ts",
+    "src/coordination/v2/core/message-broker.ts",
+    "src/memory/swarm-memory.ts"
+  ],
+  "summary": "Phase 5 hierarchical coordination implementation has significant security vulnerabilities requiring immediate remediation before production use. While message broker has good security controls (SEC-006, SEC-007, SEC-012), worker management and task delegation lack critical authorization, input validation, and attack surface protections.",
+
+  "vulnerabilities": [
+    {
+      "id": "VULN-P5-001",
+      "severity": "CRITICAL",
+      "category": "Authorization Bypass",
+      "location": "src/coordination/queen-agent.ts:196-254",
+      "description": "spawnWorker() has NO authorization checks. Any caller can spawn unlimited workers up to maxWorkers limit without authentication.",
+      "impact": "Attackers can exhaust resources by spawning maximum workers (20), causing DoS. Worker spawning should require queen-level permissions.",
+      "exploitation": "Call spawnWorker() repeatedly until maxWorkers reached, consuming memory/CPU resources.",
+      "recommendation": "Add role-based access control (RBAC) requiring 'queen:spawn-worker' permission. Implement rate limiting per caller.",
+      "cvss_score": 9.1,
+      "poc": "await queen.spawnWorker('malicious', { skills: ['exploit'], maxConcurrentTasks: 100, priority: 10 }); // Repeat 20 times"
+    },
+    {
+      "id": "VULN-P5-002",
+      "severity": "CRITICAL",
+      "category": "Authorization Bypass",
+      "location": "src/coordination/queen-agent.ts:259-330",
+      "description": "delegateTask() has NO authorization checks. Any caller can delegate tasks to any worker without verification of delegation rights.",
+      "impact": "Attackers can inject malicious tasks into worker queues, potentially executing arbitrary code through task payloads.",
+      "exploitation": "Craft task with malicious payload and delegate to target worker: delegateTask({ id: 'malicious', type: 'exec', payload: '$(rm -rf /)' }, workerId)",
+      "recommendation": "Implement delegation authorization matrix: only parent agents or coordinators can delegate to children. Validate task payload schemas.",
+      "cvss_score": 9.3,
+      "poc": "await queen.delegateTask({ id: 'evil', type: 'shell', description: 'backdoor', priority: 10, dependencies: [] }, 'worker-1')"
+    },
+    {
+      "id": "VULN-P5-003",
+      "severity": "HIGH",
+      "category": "Input Validation",
+      "location": "src/coordination/queen-agent.ts:196-254",
+      "description": "spawnWorker() accepts unsanitized 'type' parameter used in generateId(). No validation of capabilities structure.",
+      "impact": "Path traversal via type parameter: spawnWorker('../../malicious', ...) could write to arbitrary file paths if generateId() doesn't sanitize. Malformed capabilities could crash worker.",
+      "exploitation": "spawnWorker('../../etc/passwd', { skills: ['../../../root'], maxConcurrentTasks: -1, priority: NaN })",
+      "recommendation": "Whitelist allowed worker types. Validate capabilities.maxConcurrentTasks > 0 && < 100. Sanitize skills array.",
+      "cvss_score": 7.8
+    },
+    {
+      "id": "VULN-P5-004",
+      "severity": "HIGH",
+      "category": "Input Validation",
+      "location": "src/coordination/task-delegation.ts:236-309",
+      "description": "assignTask() has NO validation of task.type, task.description, or task.dependencies. Arbitrary task objects accepted.",
+      "impact": "Malformed tasks can crash workers or bypass validation. Dependencies not validated for existence/cycles.",
+      "exploitation": "assignTask({ id: 'x', type: '<script>alert(1)</script>', description: '${process.exit(1)}', priority: Infinity, dependencies: ['nonexistent'] })",
+      "recommendation": "Validate task schema: type must be alphanumeric, description max 1000 chars, priority 0-10 range, dependencies exist in graph.",
+      "cvss_score": 7.5
+    },
+    {
+      "id": "VULN-P5-005",
+      "severity": "HIGH",
+      "category": "Resource Exhaustion",
+      "location": "src/coordination/hierarchical-orchestrator.ts:244-294",
+      "description": "spawnWorkers() creates workers in parallel with no rate limiting. Large workerConfigs array can exhaust memory.",
+      "impact": "DoS attack by requesting 1000+ workers simultaneously. Parallel Promise.all() spawns all at once without backpressure.",
+      "exploitation": "await orchestrator.spawnWorkers(rootId, Array(1000).fill({ name: 'worker', type: 'worker', capabilities: [...] }))",
+      "recommendation": "Add maxConcurrentSpawns limit (e.g., 10). Use batch processing with concurrency control. Reject if array.length > 50.",
+      "cvss_score": 7.2
+    },
+    {
+      "id": "VULN-P5-006",
+      "severity": "HIGH",
+      "category": "Information Disclosure",
+      "location": "src/coordination/queen-agent.ts:492-541",
+      "description": "getWorkerStats() exposes internal worker health metrics without access control. Sensitive performance data leaked.",
+      "impact": "Attackers can profile worker performance to identify weak targets or timing attacks. Success rates reveal vulnerable workers.",
+      "exploitation": "Repeatedly call getWorkerStats() to map worker health, then target lowest successRate workers with malicious tasks.",
+      "recommendation": "Add authorization check requiring 'queen:read-stats' permission. Redact sensitive fields for non-admin callers.",
+      "cvss_score": 6.8
+    },
+    {
+      "id": "VULN-P5-007",
+      "severity": "MEDIUM",
+      "category": "Injection Vulnerability",
+      "location": "src/coordination/hierarchical-orchestrator.ts:336-387",
+      "description": "delegateTask() uses task.description directly in logs without sanitization. Potential log injection.",
+      "impact": "Attackers can inject newlines/ANSI escape codes to forge log entries or hide malicious activity.",
+      "exploitation": "delegateTask(fromId, toId, { id: 'x', type: 't', description: 'benign\\n[INFO] ADMIN ACCESS GRANTED', priority: 1, dependencies: [] })",
+      "recommendation": "Sanitize task.description before logging: remove \\n, \\r, \\x1b escape sequences. Limit description to 200 chars in logs.",
+      "cvss_score": 5.9
+    },
+    {
+      "id": "VULN-P5-008",
+      "severity": "MEDIUM",
+      "category": "Access Control",
+      "location": "src/coordination/hierarchical-orchestrator.ts:426-465",
+      "description": "pauseAgent() and resumeAgent() validate initiatorId but don't verify initiator has permission to control target agent.",
+      "impact": "Any agent can pause/resume any other agent by knowing the agent ID. No parent-child relationship verification.",
+      "exploitation": "await orchestrator.pauseAgent('critical-worker-id', 'malicious-agent-id', true); // Pause entire hierarchy",
+      "recommendation": "Verify initiator is parent, ancestor, or has 'admin' role before allowing pause/resume/inject operations.",
+      "cvss_score": 6.5
+    },
+    {
+      "id": "VULN-P5-009",
+      "severity": "MEDIUM",
+      "category": "Denial of Service",
+      "location": "src/coordination/task-delegation.ts:694-763",
+      "description": "performRebalancing() runs every 30s without error handling. Failed rebalancing can crash timer loop.",
+      "impact": "If rebalancing throws unhandled error, subsequent rebalancing stops. Workers become permanently imbalanced.",
+      "exploitation": "Trigger error in rebalancing logic (e.g., corrupt worker state) to stop automatic load balancing.",
+      "recommendation": "Wrap performRebalancing() in try-catch. Log errors but continue timer. Add circuit breaker after 5 consecutive failures.",
+      "cvss_score": 5.8
+    },
+    {
+      "id": "VULN-P5-010",
+      "severity": "MEDIUM",
+      "category": "Race Condition",
+      "location": "src/coordination/queen-agent.ts:546-598",
+      "description": "terminateWorker() reassigns tasks without atomic transaction. Race between task reassignment and worker deletion.",
+      "impact": "Tasks can be lost if worker is deleted between reassignment check and taskAssignments.set(). Orphaned tasks.",
+      "exploitation": "Call terminateWorker(id) and delegateTask() concurrently targeting same worker. Some tasks may disappear.",
+      "recommendation": "Use transaction semantics: lock worker during termination, queue reassignments, execute atomically, then unlock.",
+      "cvss_score": 5.5
+    },
+    {
+      "id": "VULN-P5-011",
+      "severity": "LOW",
+      "category": "Input Validation",
+      "location": "src/coordination/hierarchical-orchestrator.ts:296-330",
+      "description": "buildNestedHierarchy() accepts arbitrary depth/branchingFactor parameters. No sanity checks for extreme values.",
+      "impact": "depth=100, branchingFactor=100 creates 100^100 agents (overflow). Likely crashes but wastes CPU before failing.",
+      "exploitation": "await orchestrator.buildNestedHierarchy(rootId, 1000, 1000); // Attempt exponential agent explosion",
+      "recommendation": "Add hard limits: maxDepth=10, maxBranchingFactor=20. Reject if depth*branchingFactor > 200 total agents.",
+      "cvss_score": 4.2
+    },
+    {
+      "id": "VULN-P5-012",
+      "severity": "LOW",
+      "category": "Information Disclosure",
+      "location": "src/coordination/task-delegation.ts:617-649",
+      "description": "getStatistics() exposes detailed worker capacity metrics (memoryUsageMB, cpuUsagePercent) without access control.",
+      "impact": "Attackers can profile system resources to optimize DoS attacks or identify overloaded workers for exploitation.",
+      "recommendation": "Add authorization check. Aggregate metrics instead of per-worker granularity for non-admin users.",
+      "cvss_score": 4.0
+    }
+  ],
+
+  "security_strengths": [
+    "Message broker implements SEC-006 (reply authorization validation) at lines 549-552",
+    "Message broker implements SEC-007 (topic injection prevention) at lines 688-704",
+    "Message broker implements SEC-012 (subscription authorization) at lines 244-254",
+    "Message broker has duplicate reply detection (SEC-006) at lines 555-558",
+    "SwarmMemory enforces shareLevel='private' protection at lines 279-281",
+    "Queen agent tracks worker health and detects offline workers at lines 410-415",
+    "Task delegation validates dependency graph before assignment at lines 250-255",
+    "Hierarchical orchestrator has depth/branching factor limits at lines 258-265"
+  ],
+
+  "compliance_assessment": {
+    "authorization_access_control": {
+      "status": "FAIL",
+      "score": 15,
+      "max_score": 30,
+      "findings": [
+        "❌ No authorization on spawnWorker() (VULN-P5-001)",
+        "❌ No authorization on delegateTask() (VULN-P5-002)",
+        "❌ Weak authorization on pauseAgent/resumeAgent() (VULN-P5-008)",
+        "✅ Message broker has subscription authorization (SEC-012)",
+        "⚠️ Worker stats exposed without access control (VULN-P5-006)"
+      ],
+      "recommendations": [
+        "Implement RBAC for all queen agent operations",
+        "Add permission matrix for task delegation",
+        "Verify parent-child relationships for control operations",
+        "Protect administrative endpoints with role checks"
+      ]
+    },
+    "input_validation": {
+      "status": "FAIL",
+      "score": 12,
+      "max_score": 25,
+      "findings": [
+        "❌ spawnWorker() accepts unsanitized type parameter (VULN-P5-003)",
+        "❌ assignTask() has no task schema validation (VULN-P5-004)",
+        "❌ delegateTask() description not sanitized for logs (VULN-P5-007)",
+        "✅ Message broker validates topic names (SEC-007)",
+        "⚠️ buildNestedHierarchy() lacks depth/branching validation (VULN-P5-011)"
+      ],
+      "recommendations": [
+        "Whitelist allowed worker types",
+        "Implement JSON schema validation for task objects",
+        "Sanitize all user-provided strings before logging",
+        "Add numeric range validation for all parameters"
+      ]
+    },
+    "communication_security": {
+      "status": "PASS",
+      "score": 20,
+      "max_score": 25,
+      "findings": [
+        "✅ Message broker prevents topic injection (SEC-007)",
+        "✅ Reply authorization with sender validation (SEC-006)",
+        "✅ Duplicate reply detection (SEC-006)",
+        "✅ Subscription authorization framework (SEC-012)",
+        "✅ Priority queue prevents starvation",
+        "⚠️ Worker-to-queen messages not authenticated"
+      ],
+      "recommendations": [
+        "Add message signing for worker-to-queen communication",
+        "Implement rate limiting per sender",
+        "Add message replay protection with nonces",
+        "Encrypt sensitive payloads in transit"
+      ]
+    },
+    "attack_surface": {
+      "status": "FAIL",
+      "score": 8,
+      "max_score": 20,
+      "findings": [
+        "❌ Resource exhaustion via unlimited worker spawning (VULN-P5-005)",
+        "❌ DoS via rebalancing timer failure (VULN-P5-009)",
+        "❌ Task injection without payload validation (VULN-P5-002)",
+        "⚠️ Race condition in worker termination (VULN-P5-010)",
+        "✅ Message queue size limit enforced (10000)"
+      ],
+      "recommendations": [
+        "Add rate limiting for all agent spawning operations",
+        "Implement circuit breakers for background timers",
+        "Validate task payloads against schemas",
+        "Use atomic transactions for state mutations",
+        "Add request throttling per caller identity"
+      ]
+    }
+  },
+
+  "risk_assessment": {
+    "overall_risk_level": "HIGH",
+    "critical_vulnerabilities": 2,
+    "high_vulnerabilities": 5,
+    "medium_vulnerabilities": 4,
+    "low_vulnerabilities": 2,
+    "risk_score": 62,
+    "attack_scenarios": [
+      {
+        "name": "Worker Pool Exhaustion",
+        "likelihood": "HIGH",
+        "impact": "HIGH",
+        "description": "Attacker spawns 20 workers with maxConcurrentTasks=100 each, consuming all available resources and preventing legitimate work.",
+        "mitigation": "Implement RBAC for spawnWorker() + rate limiting"
+      },
+      {
+        "name": "Malicious Task Injection",
+        "likelihood": "MEDIUM",
+        "impact": "CRITICAL",
+        "description": "Attacker injects task with crafted payload exploiting worker execution vulnerability (e.g., command injection in task.description).",
+        "mitigation": "Validate task schemas + sanitize all task fields"
+      },
+      {
+        "name": "Hierarchy DoS via Cascading Pause",
+        "likelihood": "MEDIUM",
+        "impact": "HIGH",
+        "description": "Attacker pauses root agent with cascade=true, recursively pausing entire worker hierarchy and halting all work.",
+        "mitigation": "Verify initiator is parent/admin before allowing control operations"
+      },
+      {
+        "name": "Information Leakage for Targeted Attacks",
+        "likelihood": "HIGH",
+        "impact": "MEDIUM",
+        "description": "Attacker profiles workers via getWorkerStats(), identifies weakest workers, then targets them with resource-intensive tasks.",
+        "mitigation": "Add access control to stats endpoints + aggregate metrics"
+      }
+    ]
+  },
+
+  "recommendations": {
+    "immediate_critical": [
+      {
+        "priority": 1,
+        "issue": "VULN-P5-001 & VULN-P5-002",
+        "action": "Implement RBAC for queen-agent.ts",
+        "implementation": "Add IAuthorizationProvider to QueenAgent constructor. Check permissions in spawnWorker() and delegateTask().",
+        "code_example": "if (!await authz.hasPermission(callerId, 'queen:spawn-worker')) { throw new Error('Unauthorized'); }"
+      },
+      {
+        "priority": 2,
+        "issue": "VULN-P5-003 & VULN-P5-004",
+        "action": "Add input validation schemas",
+        "implementation": "Use Zod/Joi to validate worker capabilities and task objects. Whitelist worker types.",
+        "code_example": "const WorkerTypeSchema = z.enum(['backend-dev', 'tester', 'reviewer']); const validated = WorkerTypeSchema.parse(type);"
+      },
+      {
+        "priority": 3,
+        "issue": "VULN-P5-005",
+        "action": "Add rate limiting to spawnWorkers()",
+        "implementation": "Batch spawn operations with maxConcurrentSpawns=10. Reject if workerConfigs.length > 50.",
+        "code_example": "if (workerConfigs.length > 50) { throw new Error('Max 50 workers per batch'); } await pMap(workerConfigs, createWorker, { concurrency: 10 });"
+      }
+    ],
+    "high_priority": [
+      {
+        "priority": 4,
+        "issue": "VULN-P5-008",
+        "action": "Verify parent-child relationships in control operations",
+        "implementation": "In pauseAgent/resumeAgent, check initiator is parent or has admin role.",
+        "code_example": "if (!this.isParentOf(initiatorId, agentId) && !await authz.hasRole(initiatorId, 'admin')) { throw new Error('Unauthorized'); }"
+      },
+      {
+        "priority": 5,
+        "issue": "VULN-P5-006 & VULN-P5-012",
+        "action": "Add access control to statistics endpoints",
+        "implementation": "Require 'queen:read-stats' permission. Return aggregated metrics for non-admins.",
+        "code_example": "async getWorkerStats(callerId) { if (!await authz.hasPermission(callerId, 'queen:read-stats')) { return this.getAggregatedStats(); } }"
+      }
+    ],
+    "medium_priority": [
+      {
+        "priority": 6,
+        "issue": "VULN-P5-007",
+        "action": "Sanitize task.description before logging",
+        "implementation": "Strip newlines and ANSI codes. Truncate to 200 chars.",
+        "code_example": "const sanitized = task.description.replace(/[\\n\\r\\x1b]/g, '').substring(0, 200);"
+      },
+      {
+        "priority": 7,
+        "issue": "VULN-P5-009",
+        "action": "Add error handling to rebalancing timer",
+        "implementation": "Wrap in try-catch, add circuit breaker after 5 failures.",
+        "code_example": "try { await this.performRebalancing(); } catch (err) { this.logger.error('Rebalancing failed', err); this.rebalanceFailures++; if (this.rebalanceFailures >= 5) { /* disable */ } }"
+      },
+      {
+        "priority": 8,
+        "issue": "VULN-P5-010",
+        "action": "Use atomic transactions for worker termination",
+        "implementation": "Lock worker state during reassignment and deletion.",
+        "code_example": "const lock = await this.workerLocks.acquire(workerId); try { /* reassign tasks */ /* delete worker */ } finally { lock.release(); }"
+      }
+    ],
+    "low_priority": [
+      {
+        "priority": 9,
+        "issue": "VULN-P5-011",
+        "action": "Add sanity checks to buildNestedHierarchy()",
+        "implementation": "Reject if depth > 10 or branchingFactor > 20 or depth*branchingFactor > 200.",
+        "code_example": "if (depth > 10 || branchingFactor > 20 || depth * branchingFactor > 200) { throw new Error('Parameters exceed safety limits'); }"
+      }
+    ]
+  },
+
+  "secure_coding_review": {
+    "positive_patterns": [
+      "Message broker implements comprehensive security controls (SEC-006, SEC-007, SEC-012)",
+      "Worker health monitoring with degraded/offline state detection",
+      "Dependency graph validation before task execution",
+      "Memory sharing enforces shareLevel permissions",
+      "Hierarchical orchestrator has max depth and branching limits"
+    ],
+    "negative_patterns": [
+      "No authorization framework in queen-agent.ts",
+      "Input validation missing for critical operations",
+      "Error handling insufficient in async timer operations",
+      "No rate limiting or throttling mechanisms",
+      "Statistics exposed without access control",
+      "Race conditions in concurrent state mutations"
+    ],
+    "architecture_concerns": [
+      "Queen-agent has too many responsibilities (spawning, delegation, health, scaling) - violates single responsibility",
+      "No separation between administrative and operational APIs",
+      "Shared mutable state (workers Map, taskAssignments Map) without locking",
+      "Event-driven architecture lacks message authentication",
+      "No audit logging for security-sensitive operations"
+    ]
+  },
+
+  "testing_recommendations": [
+    "Add security integration tests for RBAC enforcement",
+    "Test input validation with fuzzing (invalid types, malformed capabilities)",
+    "Test resource exhaustion scenarios (spawn 1000 workers)",
+    "Test concurrent operations (parallel spawnWorker + terminateWorker)",
+    "Test authorization bypass attempts (unauthorized pause/resume)",
+    "Add performance tests for DoS attack scenarios"
+  ],
+
+  "next_steps": {
+    "blocking_issues": [
+      "VULN-P5-001: Implement RBAC for spawnWorker()",
+      "VULN-P5-002: Implement authorization for delegateTask()",
+      "VULN-P5-003: Add input validation for worker spawning",
+      "VULN-P5-004: Add task schema validation",
+      "VULN-P5-005: Add rate limiting to spawnWorkers()"
+    ],
+    "required_for_approval": [
+      "All CRITICAL and HIGH vulnerabilities remediated",
+      "Authorization framework implemented and tested",
+      "Input validation added for all public APIs",
+      "Rate limiting implemented for resource-intensive operations",
+      "Access control added to statistics endpoints",
+      "Security integration test suite with 80%+ coverage"
+    ],
+    "deployment_blockers": [
+      "Phase 5 MUST NOT be deployed to production until VULN-P5-001 and VULN-P5-002 are fixed",
+      "Authorization framework MUST be implemented before any hierarchical coordination features are enabled",
+      "Input validation MUST be added before accepting external task submissions"
+    ]
+  },
+
+  "conclusion": "Phase 5 hierarchical coordination implementation demonstrates good architectural design with message broker security controls, but critical security gaps in authorization and input validation create unacceptable risk. The queen-agent and task-delegation modules lack fundamental security protections, exposing the system to authorization bypass, resource exhaustion, and injection attacks. Score: 62/100 (FAIL). Recommendation: REJECT until CRITICAL and HIGH vulnerabilities are remediated."
+}

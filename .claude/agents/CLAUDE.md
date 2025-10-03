@@ -61,6 +61,7 @@ description: |                      # REQUIRED: Clear, keyword-rich description
   Keywords - [comma-separated keywords for search]
 tools: [Read, Write, Edit, Bash, TodoWrite, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn]  # REQUIRED: Comma-separated list, can include MCP commands
 model: sonnet                       # REQUIRED: sonnet | opus | haiku
+provider: zai                       # OPTIONAL: zai | anthropic | custom (defaults to zai if not specified)
 color: seagreen                     # REQUIRED: Visual identifier
 type: specialist                    # OPTIONAL: specialist | coordinator | swarm
 capabilities:                       # OPTIONAL: Array of capability tags

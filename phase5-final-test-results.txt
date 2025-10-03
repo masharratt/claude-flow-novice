@@ -1,0 +1,1568 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/security/queen-agent-security.test.ts tests/unit/coordination --run --reporter=json
+
+● Unrecognized CLI Parameter:
+
+  Unrecognized option "run". Did you mean "u"?
+
+  CLI Options Documentation:
+  https://jestjs.io/docs/cli
+
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/security/queen-agent-security.test.ts --json
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.info
+    {"timestamp":"2025-10-03T18:58:37.819Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:37.871Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:37.873Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+(node:17027) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.107Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.143Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1698}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.146Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1698,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.146Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.152Z","level":"INFO","message":"Loaded 725 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.154Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.165Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.173Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.174Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.175Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.181Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.218Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1700}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.220Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1700,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.220Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.225Z","level":"INFO","message":"Loaded 727 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.229Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.237Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.244Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.245Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.245Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.251Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.288Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1702}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.289Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1702,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.289Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.294Z","level":"INFO","message":"Loaded 729 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.298Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.326Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.333Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.334Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.335Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.340Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.377Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1703}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.378Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1703,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.379Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.385Z","level":"INFO","message":"Loaded 730 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.389Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.393Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.401Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.401Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.402Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.407Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.447Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1704}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.448Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1704,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.449Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.455Z","level":"INFO","message":"Loaded 731 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.457Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.463Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.471Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.471Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.472Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.477Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.515Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1705}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.516Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1705,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.517Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.522Z","level":"INFO","message":"Loaded 732 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.524Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.529Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.536Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.537Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.537Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.543Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.582Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1706}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.583Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1706,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.584Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.589Z","level":"INFO","message":"Loaded 733 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.592Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.598Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.606Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.607Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.607Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.616Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.657Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1707}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.659Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1707,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.659Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.665Z","level":"INFO","message":"Loaded 734 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.668Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.673Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.681Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.681Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.682Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.687Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.726Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1708}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.730Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1708,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.730Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.737Z","level":"INFO","message":"Loaded 735 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.741Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.754Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.761Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.762Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.763Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.768Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.805Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1711}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.806Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1711,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.807Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.811Z","level":"INFO","message":"Loaded 738 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.814Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.825Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.833Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.834Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.834Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.841Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.896Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1714}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.897Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1714,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.897Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.904Z","level":"INFO","message":"Loaded 741 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.906Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.915Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.922Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.923Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.923Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.929Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.970Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1716}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.971Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1716,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.971Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.977Z","level":"INFO","message":"Loaded 743 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.979Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.988Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.996Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.997Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:38.997Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.003Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.041Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1718}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.042Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1718,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.043Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.048Z","level":"INFO","message":"Loaded 745 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.050Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.057Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.065Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.066Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.066Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.072Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.107Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1720}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.110Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1720,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.111Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.118Z","level":"INFO","message":"Loaded 747 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.122Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.131Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.138Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.139Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.139Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.144Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.182Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1722}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.183Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1722,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.183Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.188Z","level":"INFO","message":"Loaded 749 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.190Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.197Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.204Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.205Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.205Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.211Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.249Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1724}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.250Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1724,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.251Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.256Z","level":"INFO","message":"Loaded 751 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.258Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.267Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.274Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.274Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.275Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.280Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.317Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1726}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.318Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1726,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.318Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.323Z","level":"INFO","message":"Loaded 753 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.326Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.336Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.342Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.343Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.343Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.350Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.386Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1728}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.387Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1728,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.388Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.392Z","level":"INFO","message":"Loaded 755 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.394Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.404Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.411Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.412Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.412Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.418Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.454Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1731}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.457Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1731,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.457Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.462Z","level":"INFO","message":"Loaded 758 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.464Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.499Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.510Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.511Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.511Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.517Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.551Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1733}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.552Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1733,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.553Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.558Z","level":"INFO","message":"Loaded 760 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.561Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.570Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.576Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.577Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.577Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.583Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.618Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1735}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.619Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1735,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.620Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.644Z","level":"INFO","message":"Loaded 762 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.645Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.690Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.699Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.699Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.700Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.705Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.745Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1746}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.746Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1746,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.746Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.751Z","level":"INFO","message":"Loaded 773 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.753Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.821Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.832Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.833Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.833Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.839Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.885Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1757}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.886Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1757,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.886Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.893Z","level":"INFO","message":"Loaded 784 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.895Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.907Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.915Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.915Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.916Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.922Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.962Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1759}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.964Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1759,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.964Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.970Z","level":"INFO","message":"Loaded 786 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.972Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.985Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.994Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.994Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:39.995Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.002Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.050Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1761}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.051Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1761,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.052Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.057Z","level":"INFO","message":"Loaded 788 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.060Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.065Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.073Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.074Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.074Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.081Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.121Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1762}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.122Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1762,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.123Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.129Z","level":"INFO","message":"Loaded 789 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.131Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.135Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.143Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.143Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.144Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.149Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.187Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1763}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.188Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1763,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.189Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.194Z","level":"INFO","message":"Loaded 790 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.196Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.201Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.208Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.208Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.209Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.217Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.257Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1764}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.258Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1764,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.259Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.264Z","level":"INFO","message":"Loaded 791 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.266Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.272Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.280Z","level":"INFO","message":"Initializing swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.280Z","level":"INFO","message":"Initializing memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.281Z","level":"INFO","message":"Initializing SQLite backend","context":{"component":"SwarmMemoryManager"},"data":{"dbPath":"./swarm-memory.db"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.286Z","level":"INFO","message":"SQLite backend initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.328Z","level":"INFO","message":"Building memory index","context":{"component":"SwarmMemoryManager"},"data":{"entries":1765}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.329Z","level":"INFO","message":"Memory index built","context":{"component":"SwarmMemoryManager"},"data":{"totalEntries":1765,"agents":67,"sessions":1,"types":1,"tags":20}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.329Z","level":"INFO","message":"Memory manager initialized","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.336Z","level":"INFO","message":"Loaded 792 memory entries","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.338Z","level":"INFO","message":"Loaded 0 knowledge bases","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+  console.info
+    {"timestamp":"2025-10-03T18:58:40.343Z","level":"INFO","message":"Shutting down swarm memory manager...","context":{"component":"SwarmMemoryManager"}}
+
+      at Logger.writeToConsole (src/core/logger.ts:230:17)
+
+PASS tests/security/queen-agent-security.test.ts (15.248 s)
+  Queen Agent Security Tests
+    VULN-P5-001: spawnWorker() Authorization
+      ✓ should allow admin to spawn workers (357 ms)
+      ✓ should allow system callers to spawn workers (71 ms)
+      ✓ should deny observer from spawning workers (403) (89 ms)
+      ✓ should deny unauthorized caller from spawning workers (403) (67 ms)
+      ✓ should validate worker capabilities input (70 ms)
+      ✓ should reject malicious worker type with special characters (65 ms)
+      ✓ should reject worker with excessive skills (>50) (70 ms)
+      ✓ should reject worker with invalid maxConcurrentTasks (74 ms)
+    VULN-P5-002: delegateTask() Authorization
+      ✓ should allow coordinator to delegate tasks (81 ms)
+      ✓ should allow admin to delegate tasks (72 ms)
+      ✓ should deny observer from delegating tasks (403) (89 ms)
+      ✓ should deny unauthorized caller from delegating tasks (403) (74 ms)
+      ✓ should validate task input (69 ms)
+      ✓ should reject task with malicious ID (SQL injection attempt) (73 ms)
+      ✓ should reject task with path traversal in ID (66 ms)
+      ✓ should reject task with excessive dependencies (>100) (70 ms)
+      ✓ should validate worker ID format (68 ms)
+    aggregateResults() Authorization
+      ✓ should allow coordinator to aggregate results (69 ms)
+      ✓ should deny observer from aggregating results (403) (99 ms)
+      ✓ should validate worker results format (66 ms)
+    Rate Limiting
+      ✓ should enforce worker spawn rate limit (122 ms)
+      ✓ should enforce concurrent worker limit (133 ms)
+      ✓ should enforce task delegation rate limit (82 ms)
+      ✓ should enforce task queue size limit (78 ms)
+    Caller Identity Validation
+      ✓ should reject caller with missing ID (79 ms)
+      ✓ should reject caller with invalid type (70 ms)
+      ✓ should reject caller with no roles (65 ms)
+      ✓ should reject caller with excessive roles (>20) (71 ms)
+      ✓ should reject caller with malicious role names (71 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       29 passed, 29 total
+Snapshots:   0 total
+Time:        16.184 s
+Ran all test suites matching /tests\/security\/queen-agent-security.test.ts/i.
+{"numFailedTestSuites":0,"numFailedTests":0,"numPassedTestSuites":1,"numPassedTests":29,"numPendingTestSuites":0,"numPendingTests":0,"numRuntimeErrorTestSuites":0,"numTodoTests":0,"numTotalTestSuites":1,"numTotalTests":29,"openHandles":[],"snapshot":{"added":0,"didUpdate":false,"failure":false,"filesAdded":0,"filesRemoved":0,"filesRemovedList":[],"filesUnmatched":0,"filesUpdated":0,"matched":0,"total":0,"unchecked":0,"uncheckedKeysByFile":[],"unmatched":0,"updated":0},"startTime":1759517904184,"success":true,"testResults":[{"assertionResults":[{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":357,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should allow admin to spawn workers","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should allow admin to spawn workers"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":71,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should allow system callers to spawn workers","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should allow system callers to spawn workers"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":89,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should deny observer from spawning workers (403)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should deny observer from spawning workers (403)"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":67,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should deny unauthorized caller from spawning workers (403)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should deny unauthorized caller from spawning workers (403)"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":70,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should validate worker capabilities input","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should validate worker capabilities input"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":65,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should reject malicious worker type with special characters","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject malicious worker type with special characters"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":70,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should reject worker with excessive skills (>50)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject worker with excessive skills (>50)"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-001: spawnWorker() Authorization"],"duration":74,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-001: spawnWorker() Authorization should reject worker with invalid maxConcurrentTasks","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject worker with invalid maxConcurrentTasks"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":81,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should allow coordinator to delegate tasks","invocations":1,"location":null,"numPassingAsserts":3,"retryReasons":[],"status":"passed","title":"should allow coordinator to delegate tasks"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":72,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should allow admin to delegate tasks","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should allow admin to delegate tasks"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":89,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should deny observer from delegating tasks (403)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should deny observer from delegating tasks (403)"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":74,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should deny unauthorized caller from delegating tasks (403)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should deny unauthorized caller from delegating tasks (403)"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":69,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should validate task input","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should validate task input"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":73,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should reject task with malicious ID (SQL injection attempt)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject task with malicious ID (SQL injection attempt)"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":66,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should reject task with path traversal in ID","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject task with path traversal in ID"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":70,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should reject task with excessive dependencies (>100)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject task with excessive dependencies (>100)"},{"ancestorTitles":["Queen Agent Security Tests","VULN-P5-002: delegateTask() Authorization"],"duration":68,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests VULN-P5-002: delegateTask() Authorization should validate worker ID format","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should validate worker ID format"},{"ancestorTitles":["Queen Agent Security Tests","aggregateResults() Authorization"],"duration":69,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests aggregateResults() Authorization should allow coordinator to aggregate results","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should allow coordinator to aggregate results"},{"ancestorTitles":["Queen Agent Security Tests","aggregateResults() Authorization"],"duration":99,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests aggregateResults() Authorization should deny observer from aggregating results (403)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should deny observer from aggregating results (403)"},{"ancestorTitles":["Queen Agent Security Tests","aggregateResults() Authorization"],"duration":66,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests aggregateResults() Authorization should validate worker results format","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should validate worker results format"},{"ancestorTitles":["Queen Agent Security Tests","Rate Limiting"],"duration":122,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Rate Limiting should enforce worker spawn rate limit","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should enforce worker spawn rate limit"},{"ancestorTitles":["Queen Agent Security Tests","Rate Limiting"],"duration":133,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Rate Limiting should enforce concurrent worker limit","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should enforce concurrent worker limit"},{"ancestorTitles":["Queen Agent Security Tests","Rate Limiting"],"duration":82,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Rate Limiting should enforce task delegation rate limit","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should enforce task delegation rate limit"},{"ancestorTitles":["Queen Agent Security Tests","Rate Limiting"],"duration":78,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Rate Limiting should enforce task queue size limit","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should enforce task queue size limit"},{"ancestorTitles":["Queen Agent Security Tests","Caller Identity Validation"],"duration":79,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Caller Identity Validation should reject caller with missing ID","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject caller with missing ID"},{"ancestorTitles":["Queen Agent Security Tests","Caller Identity Validation"],"duration":70,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Caller Identity Validation should reject caller with invalid type","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject caller with invalid type"},{"ancestorTitles":["Queen Agent Security Tests","Caller Identity Validation"],"duration":65,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Caller Identity Validation should reject caller with no roles","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject caller with no roles"},{"ancestorTitles":["Queen Agent Security Tests","Caller Identity Validation"],"duration":71,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Caller Identity Validation should reject caller with excessive roles (>20)","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject caller with excessive roles (>20)"},{"ancestorTitles":["Queen Agent Security Tests","Caller Identity Validation"],"duration":71,"failureDetails":[],"failureMessages":[],"fullName":"Queen Agent Security Tests Caller Identity Validation should reject caller with malicious role names","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reject caller with malicious role names"}],"endTime":1759517920352,"message":"","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/tests/security/queen-agent-security.test.ts","startTime":1759517905104,"status":"passed","summary":""}],"wasInterrupted":false}
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/integration/phase5/hierarchical-coordination.test.ts --json
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+(node:19180) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL tests/integration/phase5/hierarchical-coordination.test.ts (21.627 s)
+  Hierarchical Coordination System - Integration
+    Queen-Worker Lifecycle
+      ✓ should initialize hierarchical structure with queen and workers (4 ms)
+      ✓ should delegate task from queen → coordinator → worker (197 ms)
+      ✓ should track agent workload throughout lifecycle (165 ms)
+    Hierarchical Orchestration (8+ Agents)
+      ✓ should scale to 8+ agents in hierarchy
+      ✓ should distribute tasks across hierarchy efficiently (250 ms)
+      ✓ should maintain performance with large hierarchy (591 ms)
+    Task Delegation and Load Balancing
+      ✓ should balance load across coordinators (449 ms)
+      ✓ should trigger rebalancing when load imbalanced (99 ms)
+      ✓ should prioritize critical tasks (161 ms)
+    Consensus Validation
+      ✓ should validate completed tasks with consensus (132 ms)
+      ✓ should emit consensus validation events (126 ms)
+      ✕ should require 2/3 approval threshold (135 ms)
+    Failure Recovery
+      ✓ should detect and recover from agent failures (1218 ms)
+      ✓ should reassign tasks after agent recovery (35 ms)
+    Performance Benchmarks
+      ✓ should achieve >10 tasks/sec throughput with 8+ agents (2167 ms)
+      ✓ should handle hierarchical depth of 3+ levels efficiently
+      ✓ should complete task lifecycle in <100ms average (862 ms)
+
+  ● Hierarchical Coordination System - Integration › Consensus Validation › should require 2/3 approval threshold
+
+    TypeError: Cannot read properties of undefined (reading '0')
+
+      740 |       await system.validateConsensus(taskId);
+      741 |
+    > 742 |       const event = eventHandler.mock.calls[0][0];
+          |                                               ^
+      743 |       if (event.consensusReached) {
+      744 |         expect(event.approvalRate).toBeGreaterThanOrEqual(0.66);
+      745 |       }
+
+      at Object.<anonymous> (tests/integration/phase5/hierarchical-coordination.test.ts:742:47)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 16 passed, 17 total
+Snapshots:   0 total
+Time:        22.715 s
+Ran all test suites matching /tests\/integration\/phase5\/hierarchical-coordination.test.ts/i.

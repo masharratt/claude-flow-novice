@@ -1,8 +1,13 @@
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { describe, test, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import path from 'path';
+import fs from 'fs/promises';
+import crypto from 'crypto';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
+
 /**
  * Phase 2 Comprehensive Integration Tests
  * Tests for the complete Phase 2 Completion Validation Framework
@@ -18,11 +23,6 @@ import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals
  * - Configuration validation prevents all invalid inputs
  * - >95% test coverage for all Phase 2 components
  */
-
-// Using ES6 imports from line 5, removing duplicate require
-const path = require('path');
-const fs = require('fs').promises;
-const crypto = require('crypto');
 
 // Mock implementations for components not yet implemented
 jest.mock('../../../src/verification/truth-scorer', () => ({
@@ -65,10 +65,10 @@ jest.mock('../../../src/verification/truth-scorer', () => ({
   }))
 }));
 
-// Import Phase 2 components
-const { UserConfigurationManager } = require('../../../src/configuration/user-configuration-manager');
-const { CompletionTruthValidator } = require('../../../src/validation/completion-truth-validator');
-const { CustomFrameworkRegistry } = require('../../../src/configuration/custom-framework-registry');
+// Import Phase 2 components - REAL IMPLEMENTATIONS
+import { UserConfigurationManager } from '../../../src/coordination/v2/truth/truth-config-manager.js';
+import { CompletionTruthValidator } from '../../../src/coordination/v2/truth/truth-validator.js';
+import { CustomFrameworkRegistry } from '../../../src/coordination/v2/truth/framework-registry.js';
 
 describe('Phase 2 Comprehensive Integration Tests', () => {
   let testDir;

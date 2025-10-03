@@ -1,0 +1,74 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/unit/coordination/queen-agent.test.ts tests/security/queen-agent-security.test.ts tests/unit/coordination/pm-failover.test.ts tests/integration/phase5/hierarchical-coordination.test.ts --json --bail --maxWorkers=1
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+(node:40085) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL tests/integration/phase5/hierarchical-coordination.test.ts (18.98 s)
+  Hierarchical Coordination System - Integration
+    Queen-Worker Lifecycle
+      ✓ should initialize hierarchical structure with queen and workers (18 ms)
+      ✓ should delegate task from queen → coordinator → worker (126 ms)
+      ✕ should track agent workload throughout lifecycle (13 ms)
+    Hierarchical Orchestration (8+ Agents)
+      ✓ should scale to 8+ agents in hierarchy (1 ms)
+      ✓ should distribute tasks across hierarchy efficiently (251 ms)
+      ✓ should maintain performance with large hierarchy (638 ms)
+    Task Delegation and Load Balancing
+      ✓ should balance load across coordinators (378 ms)
+      ✕ should trigger rebalancing when load imbalanced (1 ms)
+      ✓ should prioritize critical tasks (189 ms)
+    Consensus Validation
+      ✓ should validate completed tasks with consensus (133 ms)
+      ✓ should emit consensus validation events (141 ms)
+      ✓ should require 2/3 approval threshold (125 ms)
+    Failure Recovery
+      ✓ should detect and recover from agent failures (1161 ms)
+      ✓ should reassign tasks after agent recovery (20 ms)
+    Performance Benchmarks
+      ✓ should achieve >10 tasks/sec throughput with 8+ agents (1977 ms)
+      ✓ should handle hierarchical depth of 3+ levels efficiently
+      ✓ should complete task lifecycle in <100ms average (888 ms)
+
+  ● Hierarchical Coordination System - Integration › Queen-Worker Lifecycle › should track agent workload throughout lifecycle
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 0
+    Received:   0
+
+      502 |       const taskId = await system.submitTask('Execute task', {
+      503 |         requiredCapabilities: ['execution'],
+    > 504 |       });
+          |          ^
+      505 |
+      506 |       // Wait for assignment event
+      507 |       await new Promise(resolve => setTimeout(resolve, 20));
+
+      at Object.<anonymous> (tests/integration/phase5/hierarchical-coordination.test.ts:504:28)
+
+  ● Hierarchical Coordination System - Integration › Task Delegation and Load Balancing › should trigger rebalancing when load imbalanced
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      625 |       system.on('load:rebalanced', eventHandler);
+      626 |
+    > 627 |       // Submit tasks to create real load imbalance
+          |                            ^
+      628 |       const tasks = [];
+      629 |       for (let i = 0; i < 8; i++) {
+      630 |         tasks.push(
+
+      at Object.<anonymous> (tests/integration/phase5/hierarchical-coordination.test.ts:627:28)
+
+Test Suites: 1 failed, 1 of 4 total
+Tests:       2 failed, 15 passed, 17 total
+Snapshots:   0 total
+Time:        20.012 s
+Ran all test suites matching /tests\/unit\/coordination\/queen-agent.test.ts|tests\/security\/queen-agent-security.test.ts|tests\/unit\/coordination\/pm-failover.test.ts|tests\/integration\/phase5\/hierarchical-coordination.test.ts/i.

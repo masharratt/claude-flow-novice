@@ -14,7 +14,14 @@ import { NeuralCommand } from './neural.js';
 import { PerformanceCommand } from './performance.js';
 import { GitHubCommand } from './github.js';
 import { WorkflowCommand } from './workflow.js';
+import { CfnLoopCommand } from './cfn-loop.js';
+import { CfnLoopSingleCommand } from './cfn-loop-single.js';
+import { CfnLoopSprintsCommand } from './cfn-loop-sprints.js';
+import { CfnLoopEpicCommand } from './cfn-loop-epic.js';
 import { executeClaudeSoulCommand } from './claude-soul.js';
+import { ParseEpicCommand } from './parse-epic.js';
+import { CustomRoutingActivateCommand } from './custom-routing-activate-class.js';
+import { CustomRoutingDeactivateCommand } from './custom-routing-deactivate-class.js';
 
 /**
  * Command Registry Class
@@ -30,6 +37,23 @@ export class SlashCommandRegistry {
    * Initialize all available commands
    */
   initializeCommands() {
+    // CFN Loop - 3-loop self-correcting workflow
+    this.register(new CfnLoopCommand());
+    this.addAlias('cfn-loop', 'cfn');
+    this.addAlias('cfn-loop', 'loop');
+
+    // CFN Loop Single - Single task execution
+    this.register(new CfnLoopSingleCommand());
+    this.addAlias('cfn-loop-single', 'cfn-single');
+
+    // CFN Loop Sprints - Sprint-based phase execution
+    this.register(new CfnLoopSprintsCommand());
+    this.addAlias('cfn-loop-sprints', 'cfn-sprints');
+
+    // CFN Loop Epic - Multi-phase epic execution
+    this.register(new CfnLoopEpicCommand());
+    this.addAlias('cfn-loop-epic', 'cfn-epic');
+
     // Core SPARC methodology command
     this.register(new SparcCommand());
 
@@ -59,6 +83,15 @@ export class SlashCommandRegistry {
     this.register(new WorkflowCommand());
     this.addAlias('workflow', 'wf');
     this.addAlias('workflow', 'w');
+
+    // Epic parser command
+    this.register(new ParseEpicCommand());
+    this.addAlias('parse-epic', 'parse');
+    this.addAlias('parse-epic', 'epic');
+
+    // Custom routing commands
+    this.register(new CustomRoutingActivateCommand());
+    this.register(new CustomRoutingDeactivateCommand());
 
     // Legacy function-based commands
     this.registerLegacyCommand('claude-md', {
@@ -259,6 +292,7 @@ export class SlashCommandRegistry {
     helpText += `
 **Examples:**
 `;
+    helpText += `- \`/cfn-loop "Implement JWT auth"\` - Execute 3-loop self-correcting workflow\n`;
     helpText += `- \`/swarm init mesh 8\` - Initialize mesh swarm with 8 agents\n`;
     helpText += `- \`/hooks enable\` - Enable automation hooks\n`;
     helpText += `- \`/neural train coordination 50\` - Train neural coordination patterns\n`;

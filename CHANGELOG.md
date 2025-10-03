@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2025-10-03
+
+### ✨ Added
+- **Profile-Based Provider Routing**: Agent profiles can now specify provider preference (Z.ai or Anthropic)
+  - Agent profiles support optional `provider: zai | anthropic` field in frontmatter
+  - TieredProviderRouter integrates AgentProfileLoader for intelligent provider selection
+  - Default fallback changed from Anthropic to Z.ai for ~64% cost reduction
+  - Priority: Profile preference → Tier config → Z.ai default
+  - New component: `src/providers/agent-profile-loader.ts` for profile parsing
+
+### 🔧 New Slash Commands
+- `/custom-routing-activate` - Enable tiered provider routing for cost optimization
+- `/custom-routing-deactivate` - Disable routing, all agents use default sonnet model
+
+### 📦 Package Exports
+- Added `claude-flow-novice/providers` export including AgentProfileLoader
+- Added `claude-flow-novice/slash-commands/custom-routing-activate` export
+- Added `claude-flow-novice/slash-commands/custom-routing-deactivate` export
+
+### 📝 Agent Profile Schema
+- Enhanced agent profile frontmatter with optional `provider` field
+- Example: `provider: zai` for Z.ai routing preference
+- Backward compatible - existing profiles without `provider` field use default routing
+
+### 🔧 Improved
+- Provider selection now respects agent-level preferences
+- Cost optimization through intelligent Z.ai routing
+- Maintained full backward compatibility with existing configurations
+
 ## [1.5.19] - 2025-10-01
 
 ### ✨ Added

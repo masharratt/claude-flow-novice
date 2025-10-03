@@ -1,0 +1,81 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/integration/phase5 --json
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+(node:54890) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL tests/integration/phase5/hierarchical-coordination.test.ts (30.301 s)
+  Hierarchical Coordination System - Integration
+    Queen-Worker Lifecycle
+      ✓ should initialize hierarchical structure with queen and workers (5 ms)
+      ✓ should delegate task from queen → coordinator → worker (193 ms)
+      ✓ should track agent workload throughout lifecycle (198 ms)
+    Hierarchical Orchestration (8+ Agents)
+      ✓ should scale to 8+ agents in hierarchy (1 ms)
+      ✓ should distribute tasks across hierarchy efficiently (250 ms)
+      ✓ should maintain performance with large hierarchy (617 ms)
+    Task Delegation and Load Balancing
+      ✓ should balance load across coordinators (496 ms)
+      ✓ should trigger rebalancing when load imbalanced (100 ms)
+      ✕ should prioritize critical tasks (171 ms)
+    Consensus Validation
+      ✕ should validate completed tasks with consensus (114 ms)
+      ✓ should emit consensus validation events (148 ms)
+      ✓ should require 2/3 approval threshold (125 ms)
+    Failure Recovery
+      ✓ should detect and recover from agent failures (1096 ms)
+      ✓ should reassign tasks after agent recovery (29 ms)
+    Performance Benchmarks
+      ✓ should achieve >10 tasks/sec throughput with 8+ agents (2046 ms)
+      ✓ should handle hierarchical depth of 3+ levels efficiently
+      ✓ should complete task lifecycle in <100ms average (942 ms)
+
+  ● Hierarchical Coordination System - Integration › Task Delegation and Load Balancing › should prioritize critical tasks
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "completed"
+    Received: "failed"
+
+      678 |
+      679 |       // Critical task should be processed (higher priority)
+    > 680 |       expect(criticalTask?.status).toBe('completed');
+          |                                    ^
+      681 |     });
+      682 |   });
+      683 |
+
+      at Object.<anonymous> (tests/integration/phase5/hierarchical-coordination.test.ts:680:36)
+
+  ● Hierarchical Coordination System - Integration › Consensus Validation › should validate completed tasks with consensus
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      705 |       const consensusReached = await system.validateConsensus(taskId);
+      706 |
+    > 707 |       expect(consensusReached).toBe(true); // High approval rate
+          |                                ^
+      708 |     });
+      709 |
+      710 |     it('should emit consensus validation events', async () => {
+
+      at Object.<anonymous> (tests/integration/phase5/hierarchical-coordination.test.ts:707:32)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 15 passed, 17 total
+Snapshots:   0 total
+Time:        31.659 s
+Ran all test suites matching /tests\/integration\/phase5/i.
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 15 passed, 17 total
+Snapshots:   0 total
+Time:        31.778 s
+Ran all test suites matching /tests\/integration\/phase5/i.
+{"numFailedTestSuites":1,"numFailedTests":2,"numPassedTestSuites":0,"numPassedTests":15,"numPendingTestSuites":0,"numPendingTests":0,"numRuntimeErrorTestSuites":0,"numTodoTests":0,"numTotalTestSuites":1,"numTotalTests":17,"openHandles":[],"snapshot":{"added":0,"didUpdate":false,"failure":false,"filesAdded":0,"filesRemoved":0,"filesRemovedList":[],"filesUnmatched":0,"filesUpdated":0,"matched":0,"total":0,"unchecked":0,"uncheckedKeysByFile":[],"unmatched":0,"updated":0},"startTime":1759518566473,"success":false,"testResults":[{"assertionResults":[{"ancestorTitles":["Hierarchical Coordination System - Integration","Queen-Worker Lifecycle"],"duration":5,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Queen-Worker Lifecycle should initialize hierarchical structure with queen and workers","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should initialize hierarchical structure with queen and workers"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Queen-Worker Lifecycle"],"duration":193,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Queen-Worker Lifecycle should delegate task from queen → coordinator → worker","invocations":1,"location":null,"numPassingAsserts":4,"retryReasons":[],"status":"passed","title":"should delegate task from queen → coordinator → worker"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Queen-Worker Lifecycle"],"duration":198,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Queen-Worker Lifecycle should track agent workload throughout lifecycle","invocations":1,"location":null,"numPassingAsserts":3,"retryReasons":[],"status":"passed","title":"should track agent workload throughout lifecycle"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Hierarchical Orchestration (8+ Agents)"],"duration":1,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Hierarchical Orchestration (8+ Agents) should scale to 8+ agents in hierarchy","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should scale to 8+ agents in hierarchy"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Hierarchical Orchestration (8+ Agents)"],"duration":250,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Hierarchical Orchestration (8+ Agents) should distribute tasks across hierarchy efficiently","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should distribute tasks across hierarchy efficiently"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Hierarchical Orchestration (8+ Agents)"],"duration":617,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Hierarchical Orchestration (8+ Agents) should maintain performance with large hierarchy","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should maintain performance with large hierarchy"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Task Delegation and Load Balancing"],"duration":496,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Task Delegation and Load Balancing should balance load across coordinators","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should balance load across coordinators"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Task Delegation and Load Balancing"],"duration":100,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Task Delegation and Load Balancing should trigger rebalancing when load imbalanced","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should trigger rebalancing when load imbalanced"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Task Delegation and Load Balancing"],"duration":171,"failureDetails":[{"matcherResult":{"actual":"failed","expected":"completed","message":"expect(received).toBe(expected) // Object.is equality\n\nExpected: \"completed\"\nReceived: \"failed\"","name":"toBe","pass":false}}],"failureMessages":["Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: \"completed\"\nReceived: \"failed\"\n    at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/tests/integration/phase5/hierarchical-coordination.test.ts:680:36)"],"fullName":"Hierarchical Coordination System - Integration Task Delegation and Load Balancing should prioritize critical tasks","invocations":1,"location":null,"numPassingAsserts":0,"retryReasons":[],"status":"failed","title":"should prioritize critical tasks"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Consensus Validation"],"duration":114,"failureDetails":[{"matcherResult":{"actual":false,"expected":true,"message":"expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false","name":"toBe","pass":false}}],"failureMessages":["Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false\n    at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/tests/integration/phase5/hierarchical-coordination.test.ts:707:32)"],"fullName":"Hierarchical Coordination System - Integration Consensus Validation should validate completed tasks with consensus","invocations":1,"location":null,"numPassingAsserts":0,"retryReasons":[],"status":"failed","title":"should validate completed tasks with consensus"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Consensus Validation"],"duration":148,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Consensus Validation should emit consensus validation events","invocations":1,"location":null,"numPassingAsserts":3,"retryReasons":[],"status":"passed","title":"should emit consensus validation events"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Consensus Validation"],"duration":125,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Consensus Validation should require 2/3 approval threshold","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should require 2/3 approval threshold"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Failure Recovery"],"duration":1096,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Failure Recovery should detect and recover from agent failures","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should detect and recover from agent failures"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Failure Recovery"],"duration":29,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Failure Recovery should reassign tasks after agent recovery","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should reassign tasks after agent recovery"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Performance Benchmarks"],"duration":2046,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Performance Benchmarks should achieve >10 tasks/sec throughput with 8+ agents","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should achieve >10 tasks/sec throughput with 8+ agents"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Performance Benchmarks"],"duration":0,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Performance Benchmarks should handle hierarchical depth of 3+ levels efficiently","invocations":1,"location":null,"numPassingAsserts":2,"retryReasons":[],"status":"passed","title":"should handle hierarchical depth of 3+ levels efficiently"},{"ancestorTitles":["Hierarchical Coordination System - Integration","Performance Benchmarks"],"duration":942,"failureDetails":[],"failureMessages":[],"fullName":"Hierarchical Coordination System - Integration Performance Benchmarks should complete task lifecycle in <100ms average","invocations":1,"location":null,"numPassingAsserts":1,"retryReasons":[],"status":"passed","title":"should complete task lifecycle in <100ms average"}],"endTime":1759518598085,"message":"  ● Hierarchical Coordination System - Integration › Task Delegation and Load Balancing › should prioritize critical tasks\n\n    expect(received).toBe(expected) // Object.is equality\n\n    Expected: \"completed\"\n    Received: \"failed\"\n\n      678 |\n      679 |       // Critical task should be processed (higher priority)\n    > 680 |       expect(criticalTask?.status).toBe('completed');\n          |                                    ^\n      681 |     });\n      682 |   });\n      683 |\n\n      at Object.<anonymous> (tests/integration/phase5/hierarchical-coordination.test.ts:680:36)\n\n  ● Hierarchical Coordination System - Integration › Consensus Validation › should validate completed tasks with consensus\n\n    expect(received).toBe(expected) // Object.is equality\n\n    Expected: true\n    Received: false\n\n      705 |       const consensusReached = await system.validateConsensus(taskId);\n      706 |\n    > 707 |       expect(consensusReached).toBe(true); // High approval rate\n          |                                ^\n      708 |     });\n      709 |\n      710 |     it('should emit consensus validation events', async () => {\n\n      at Object.<anonymous> (tests/integration/phase5/hierarchical-coordination.test.ts:707:32)\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/tests/integration/phase5/hierarchical-coordination.test.ts","startTime":1759518567784,"status":"failed","summary":""}],"wasInterrupted":false}
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

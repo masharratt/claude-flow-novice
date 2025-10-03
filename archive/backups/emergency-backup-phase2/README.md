@@ -31,21 +31,21 @@ Claude Flow Personal is a transparency-focused version of the Claude Flow framew
 ### Installation
 
 ```bash
-npm install -g claude-flow-personal
+npm install -g claude-flow-novice
 ```
 
 ### Your First Transparent AI Workflow in 3 Steps
 
 ```bash
 # 1. Initialize with transparency enabled
-claude-flow-personal init my-project --transparency=full
+claude-flow-novice init my-project --transparency=full
 cd my-project
 
 # 2. Create an agent with detailed reasoning
-claude-flow-personal agent create researcher "Research the latest trends in renewable energy" --explain-decisions --show-reasoning
+claude-flow-novice agent create researcher "Research the latest trends in renewable energy" --explain-decisions --show-reasoning
 
 # 3. Run with full visibility
-claude-flow-personal run --verbose --show-thought-process
+claude-flow-novice run --verbose --show-thought-process
 ```
 
 You'll see every decision, reasoning step, and coordination choice your agents make in real-time.
@@ -75,70 +75,70 @@ Every agent in Claude Flow Personal provides complete visibility into their deci
 
 ```bash
 # Project & Profile Management
-claude-flow-personal init <project> --profile=<your-style>     # Create personalized project
-claude-flow-personal profile setup                             # Configure your work preferences
-claude-flow-personal status --detailed                         # Get comprehensive status
+claude-flow-novice init <project> --profile=<your-style>     # Create personalized project
+claude-flow-novice profile setup                             # Configure your work preferences
+claude-flow-novice status --detailed                         # Get comprehensive status
 
 # Transparent Agent Management
-claude-flow-personal agent create <type> "<task>" --explain-all    # Create fully transparent agent
-claude-flow-personal agent inspect <id>                           # Deep dive into agent reasoning
-claude-flow-personal agent customize <id> --style=<your-way>      # Personalize agent behavior
+claude-flow-novice agent create <type> "<task>" --explain-all    # Create fully transparent agent
+claude-flow-novice agent inspect <id>                           # Deep dive into agent reasoning
+claude-flow-novice agent customize <id> --style=<your-way>      # Personalize agent behavior
 
 # Coordinated Execution with Full Visibility
-claude-flow-personal run --transparency=full                   # Run with complete visibility
-claude-flow-personal monitor --real-time                       # Watch coordination in real-time
-claude-flow-personal explain <execution-id>                    # Get detailed execution explanation
+claude-flow-novice run --transparency=full                   # Run with complete visibility
+claude-flow-novice monitor --real-time                       # Watch coordination in real-time
+claude-flow-novice explain <execution-id>                    # Get detailed execution explanation
 
 # Personalization & Learning
-claude-flow-personal learn-preferences                         # Analyze your coordination patterns
-claude-flow-personal customize-workflow <workflow-id>          # Adapt workflows to your style
-claude-flow-personal transparency-report                       # Generate decision transparency report
+claude-flow-novice learn-preferences                         # Analyze your coordination patterns
+claude-flow-novice customize-workflow <workflow-id>          # Adapt workflows to your style
+claude-flow-novice transparency-report                       # Generate decision transparency report
 ```
 
 ## 📖 Transparency & Personalization Examples
 
 ### Example 1: Transparent Research with Your Style
 ```bash
-claude-flow-personal init research-project --profile=analytical-deep-dive
+claude-flow-novice init research-project --profile=analytical-deep-dive
 cd research-project
-claude-flow-personal agent create researcher "Research TypeScript vs JavaScript" \
+claude-flow-novice agent create researcher "Research TypeScript vs JavaScript" \
   --explain-search-strategy \
   --show-source-evaluation \
   --reveal-bias-checking
-claude-flow-personal run --transparency=full
+claude-flow-novice run --transparency=full
 ```
 
 ### Example 2: Personalized Development Workflow
 ```bash
-claude-flow-personal init todo-app --coordination-style=iterative
+claude-flow-novice init todo-app --coordination-style=iterative
 cd todo-app
 
 # Configure agents to match your decision-making style
-claude-flow-personal agent create planner "Plan React to-do app" \
+claude-flow-novice agent create planner "Plan React to-do app" \
   --decision-style=thorough \
   --explain-trade-offs \
   --show-alternatives
 
-claude-flow-personal agent create coder "Implement based on plan" \
+claude-flow-novice agent create coder "Implement based on plan" \
   --coding-style=defensive \
   --explain-design-choices \
   --show-refactoring-opportunities
 
 # Watch the coordination happen
-claude-flow-personal run --monitor-coordination --explain-handoffs
+claude-flow-novice run --monitor-coordination --explain-handoffs
 ```
 
 ### Example 3: Learning with Full Visibility
 ```bash
-claude-flow-personal init learning-docker --learning-mode=transparent
+claude-flow-novice init learning-docker --learning-mode=transparent
 cd learning-docker
 
-claude-flow-personal agent create researcher "Docker fundamentals" \
+claude-flow-novice agent create researcher "Docker fundamentals" \
   --show-learning-path \
   --explain-complexity-assessment \
   --reveal-knowledge-gaps
 
-claude-flow-personal monitor --real-time --explain-decisions
+claude-flow-novice monitor --real-time --explain-decisions
 ```
 
 ## 🎓 Personalization Journey

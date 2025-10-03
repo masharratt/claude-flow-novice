@@ -1,5 +1,179 @@
 # Claude Flow Novice Changelog
 
+## [1.6.1] - 2025-10-03
+
+### ✨ Added
+- **Profile-Based Provider Routing**: Agent profiles can now specify provider preference
+  - Agent profiles support optional `provider: zai | anthropic` field in frontmatter
+  - TieredProviderRouter integrates AgentProfileLoader for intelligent provider selection
+  - Default fallback changed from Anthropic to Z.ai for ~64% cost reduction
+  - Priority order: Profile preference → Tier config → Z.ai default
+  - New component: `src/providers/agent-profile-loader.ts`
+
+### 🔧 New Slash Commands
+- `/custom-routing-activate` - Enable tiered provider routing for cost optimization
+- `/custom-routing-deactivate` - Disable routing, all agents use default sonnet model
+
+### 📦 Package Exports
+- `claude-flow-novice/providers` - Includes AgentProfileLoader
+- `claude-flow-novice/slash-commands/custom-routing-activate`
+- `claude-flow-novice/slash-commands/custom-routing-deactivate`
+
+### 📝 Agent Profile Schema
+- Enhanced frontmatter with optional `provider` field
+  ```yaml
+  ---
+  name: coder
+  model: sonnet
+  provider: zai        # NEW: Optional provider preference
+  ---
+  ```
+- Backward compatible with existing profiles
+
+### 🤖 Product Owner & Scope Control (NEW)
+- **Product Owner Agent** using GOAP (Goal-Oriented Action Planning) for autonomous decision-making
+  - A* search algorithm for optimal path finding through decision spaces
+  - Scope boundary enforcement via cost functions (out-of-scope actions = cost 1000)
+  - PROCEED/DEFER/ESCALATE decisions without human approval
+  - Prevents scope creep while maintaining project velocity
+- **Scope Control System** with namespace: `scope-control/project-boundaries`
+  - Backlog management for deferred out-of-scope items
+  - Example scope templates for common scenarios (help system, auth, payment)
+  - Integration with CFN Loop 2 decision gate
+- **New Files**:
+  - `.claude/agents/cfn-loop/product-owner.md` - GOAP-based Product Owner agent
+  - `src/cfn-loop/scope-control.ts` - TypeScript utilities for scope management
+  - `docs/CFN_LOOP_SCOPE_CONTROL.md` - Complete scope control guide
+
+### 🔄 CFN Loop Improvements
+- **Sequential Validator Spawning**: Validators spawn in separate message AFTER implementation completes
+  - Prevents premature validation of work-in-progress
+  - Ensures all implementation is finished AND confident before validation
+  - Produces accurate consensus scores on completed deliverables
+- **Autonomous Execution Enforcement**: Permission-asking patterns eliminated
+  - IMMEDIATELY retry Loop 3 on low confidence (no approval needed)
+  - IMMEDIATELY relaunch Loop 3 on consensus failure (no approval needed)
+  - IMMEDIATELY transition phases when criteria met (no approval needed)
+- **Product Owner Integration**: Decision gate integrated into Loop 2 for scope control
+
+### 🔧 Improved
+- Intelligent provider selection respects agent-level preferences
+- Cost optimization through Z.ai routing
+- Full backward compatibility maintained
+
+## [1.6.0] - 2025-10-03
+
+### 🎯 Major Feature: CFN Loop (Confidence-Feedback-Next) Self-Correcting Development Loop
+
+#### Added
+- **CFNLoopOrchestrator** - Unified coordination system for **4-loop** self-correcting workflow
+  - **Loop 0**: Epic/Sprint Orchestration (multi-phase projects, no iteration limit)
+  - **Loop 1**: Phase Execution (sequential phase progression, no iteration limit)
+  - **Loop 2**: Consensus Validation (**max 10 iterations** per phase - updated from 3)
+  - **Loop 3**: Primary Swarm Execution (max 10 iterations per subtask)
+  - **Total Capacity**: 10 × 10 = 100 iterations (handles enterprise complexity)
+  - Confidence gating (≥75% threshold)
+  - Byzantine consensus validation (≥90% threshold)
+  - Intelligent agent selection on retry (replace coder → backend-dev for auth issues)
+  - Automatic feedback injection on failures
+
+- **Two-Tier Sprint/Phase Orchestration System** (NEW)
+  - `/cfn-loop-single` - Single-phase execution (original workflow)
+  - `/cfn-loop-sprints` - Multi-sprint phase orchestration (NEW)
+  - `/cfn-loop-epic` - Multi-phase epic execution (NEW)
+  - `/parse-epic` - Convert markdown phase files → structured JSON (NEW)
+  - Memory namespace hierarchy: `cfn-loop/epic-{id}/phase-{n}/sprint-{m}/iteration-{i}`
+  - Sprint-level progress tracking and metrics
+  - Phase-level completion aggregation
+  - Epic-level orchestration for complex projects
+  - Cross-phase sprint dependencies (e.g., Phase 2 Sprint 2.1 depends on Phase 1 Sprint 1.3)
+
+- **Parallel Confidence Collection** - 13.1x performance improvement
+  - Uses Promise.allSettled for concurrent agent validation
+  - 153ms for 20 agents vs 2000ms sequential
+  - Graceful handling of partial failures
+
+- **Circuit Breaker System** - Fault tolerance and timeout protection
+  - 3-state pattern (CLOSED/OPEN/HALF_OPEN)
+  - 30-minute default timeout (configurable)
+  - Automatic failure tracking and cooldown
+  - Per-operation circuit isolation
+
+- **Security Fixes** - 3 critical CVEs resolved
+  - CVE-CFN-2025-001: Iteration limit validation (1-100 range)
+  - CVE-CFN-2025-002: Prompt injection prevention (6 attack vectors)
+  - CVE-CFN-2025-003: Memory leak prevention (LRU eviction)
+
+- **Documentation** - Comprehensive implementation guides
+  - CFN_LOOP_COMPLETE_GUIDE.md (3000+ lines)
+  - CFN_LOOP_FLOWCHARTS.md (8 Mermaid diagrams)
+  - CFN_LOOP_CHEATSHEET.md (quick reference)
+  - Updated CFN_LOOP.md (2780 lines)
+
+#### Enhanced
+- **Confidence Score System** - Weighted multi-factor validation
+  - Test coverage: 30% weight
+  - Code coverage: 25% weight
+  - Syntax validation: 15% weight
+  - Security checks: 20% weight
+  - Code formatting: 10% weight
+
+- **SwarmMemory** - TypeScript compliance and performance
+  - Fixed 4 compilation errors
+  - Proper Logger integration
+  - Correct MemoryManager API usage
+
+- **Test Infrastructure** - Comprehensive security validation
+  - 100 security tests (1162 lines)
+  - 40 slash command tests
+  - 12 parallel confidence tests
+  - Integration test suite
+
+#### Fixed
+- Iteration tracker missing input validation (CVE-CFN-2025-001)
+- Prompt injection vulnerability in feedback system (CVE-CFN-2025-002)
+- Memory leaks in feedback history (CVE-CFN-2025-003)
+- TypeScript compilation errors in SwarmMemory
+- Test infrastructure syntax errors
+- Duplicate identifier in integration tests
+
+#### Performance
+- Confidence collection: 13.1x speedup (parallel execution)
+- Memory cleanup: Automatic LRU eviction (100 entries/phase)
+- Circuit breaker overhead: <1ms per request
+- Overall loop time: Minutes → Seconds per iteration
+
+#### Documentation
+- `docs/SPRINT_ORCHESTRATION.md` (NEW - comprehensive sprint/phase/epic guide)
+- `docs/CFN_LOOP.md` (updated with 4-loop structure and Loop 0 epic orchestration)
+- `planning/CFN_LOOP_COMPLETE_GUIDE.md` (updated with new slash commands and Loop 0)
+- `planning/CFN_LOOP_CHEATSHEET.md` (updated with sprint namespace patterns and 4-loop diagram)
+- `CLAUDE.md` (updated with 4-loop structure, Loop 0, intelligent agent retry)
+- `src/cli/simple-commands/init/templates/CLAUDE.md` (template updated with 4-loop diagram)
+- `planning/COMPREHENSIVE_MCP_ENDPOINTS_REFERENCE.md` (added CFN Loop section with slash commands)
+
+#### Implementation Files
+- `src/cfn-loop/CFNLoopOrchestrator.ts` (core orchestrator)
+- `src/cfn-loop/IterationTracker.ts` (multi-loop state management)
+- `src/cfn-loop/ConfidenceScoreCollector.ts` (parallel validation)
+- `src/cfn-loop/CircuitBreaker.ts` (fault tolerance)
+- `src/slash-commands/cfn-loop.js` (CLI integration - updated with max-loop2=10)
+- `docs/CFN_LOOP.md` (2780 lines documentation)
+- `docs/SPRINT_ORCHESTRATION.md` (NEW - sprint/phase/epic orchestration)
+- `tests/integration/slash-commands/cfn-loop.test.js` (40 tests)
+- `tests/unit/confidence-score-parallel-collection.test.ts` (12 tests)
+
+### Breaking Changes
+None - All changes are backward compatible
+
+### Migration Guide
+No migration needed. New CFN Loop features are opt-in via:
+- `/cfn-loop` slash command
+- `CFNLoopOrchestrator` programmatic API
+- Existing workflows continue working unchanged
+
+---
+
 ## v1.5.16 - Documentation Generation Reduction (October 1, 2025)
 
 ### Changed

@@ -1,4 +1,6 @@
-import { describe, test, it, expect, beforeEach } from '@jest/globals';
+import { describe, test, it, expect, beforeEach, jest } from '@jest/globals';
+import fs from 'fs/promises';
+import path from 'path';
 /**
  * Configuration Persistence Tests
  * Phase 2 Integration Test Suite - Configuration Management Component
@@ -13,10 +15,6 @@ import { describe, test, it, expect, beforeEach } from '@jest/globals';
  * - Performance under load
  * - Security and access control
  */
-
-const { jest } = require('@jest/globals');
-const fs = require('fs').promises;
-const path = require('path');
 
 // Mock persistent configuration manager
 class MockConfigurationPersistenceManager {

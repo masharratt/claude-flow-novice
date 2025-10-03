@@ -1,9 +1,11 @@
 /**
  * Tiered Provider Router
  * Routes agents to appropriate LLM providers based on tier configuration
+ * and agent profile preferences
  */
 
-import { LLMProvider } from "./types";
+import { LLMProvider } from "./types.js";
+import { AgentProfileLoader } from "./agent-profile-loader.js";
 
 // ===== TIER CONFIGURATION =====
 
@@ -32,15 +34,15 @@ const TIER_CONFIGS: TierConfig[] = [
     subscriptionLimit: 1000, // Mock limit for testing
   },
   {
-    name: "Tier 2: Anthropic API",
-    provider: "anthropic",
-    agentTypes: [], // Fallback tier
+    name: "Tier 2: Z.ai Default",
+    provider: "custom",
+    agentTypes: [], // Default fallback tier (Z.ai)
     priority: 2,
   },
   {
-    name: "Tier 3: Z.ai",
-    provider: "custom",
-    agentTypes: ["coder", "tester", "reviewer"],
+    name: "Tier 3: Anthropic Explicit",
+    provider: "anthropic",
+    agentTypes: [], // Only used when explicitly requested via profile
     priority: 3,
   },
 ];
@@ -50,10 +52,12 @@ const TIER_CONFIGS: TierConfig[] = [
 export class TieredProviderRouter {
   private subscriptionUsage: SubscriptionUsage;
   private tierConfigs: TierConfig[];
+  private profileLoader: AgentProfileLoader;
 
   constructor(
     tierConfigs: TierConfig[] = TIER_CONFIGS,
     initialUsage: Partial<SubscriptionUsage> = {},
+    agentsDir?: string,
   ) {
     this.tierConfigs = tierConfigs.sort((a, b) => a.priority - b.priority);
     this.subscriptionUsage = {
@@ -61,13 +65,26 @@ export class TieredProviderRouter {
       limit: initialUsage.limit || 1000,
       resetDate: initialUsage.resetDate || this.getNextResetDate(),
     };
+    this.profileLoader = new AgentProfileLoader(agentsDir);
   }
 
   /**
-   * Select provider based on agent type and tier rules
+   * Select provider based on agent type, profile preferences, and tier rules
    */
   async selectProvider(agentType: string): Promise<LLMProvider> {
-    // Find matching tier for agent type
+    // Step 1: Check agent profile for explicit provider preference
+    const profilePreference = this.profileLoader.getProviderPreference(agentType);
+    if (profilePreference) {
+      // If profile specifies anthropic and subscription has capacity, use it
+      if (profilePreference === "anthropic" && this.hasSubscriptionCapacity()) {
+        this.consumeSubscription();
+        return "anthropic";
+      }
+      // Otherwise respect the profile preference
+      return profilePreference;
+    }
+
+    // Step 2: Check tier configuration for agent type
     for (const tier of this.tierConfigs) {
       if (tier.agentTypes.includes(agentType)) {
         // Check subscription limits for Tier 1
@@ -84,9 +101,9 @@ export class TieredProviderRouter {
       }
     }
 
-    // Default fallback to Tier 2 (Anthropic API)
+    // Step 3: Default fallback to Tier 2 (Z.ai)
     const fallbackTier = this.tierConfigs.find((t) => t.priority === 2);
-    return fallbackTier?.provider || "anthropic";
+    return fallbackTier?.provider || "custom"; // "custom" maps to Z.ai
   }
 
   /**
@@ -151,6 +168,7 @@ export class TieredProviderRouter {
 export function createTieredRouter(
   customTiers?: TierConfig[],
   initialUsage?: Partial<SubscriptionUsage>,
+  agentsDir?: string,
 ): TieredProviderRouter {
-  return new TieredProviderRouter(customTiers, initialUsage);
+  return new TieredProviderRouter(customTiers, initialUsage, agentsDir);
 }

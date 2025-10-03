@@ -64,6 +64,36 @@ class Logger {
   }
 }
 
+// Workspace detection helper - finds nearest workspace root
+async function findWorkspaceRoot(filePath, markerFile) {
+  let currentDir = path.dirname(path.resolve(filePath));
+  let levelsUp = 0;
+  const maxLevels = 10;
+
+  while (levelsUp < maxLevels) {
+    const markerPath = path.join(currentDir, markerFile);
+
+    try {
+      await fs.access(markerPath, fs.constants.F_OK);
+      return currentDir;
+    } catch {
+      // File doesn't exist, continue traversing up
+    }
+
+    const parentDir = path.dirname(currentDir);
+
+    // Reached filesystem root
+    if (parentDir === currentDir) {
+      return null;
+    }
+
+    currentDir = parentDir;
+    levelsUp++;
+  }
+
+  return null;
+}
+
 // Single-file test execution engine
 class SingleFileTestEngine {
   constructor() {
@@ -687,9 +717,10 @@ class SingleFileTestEngine {
       const { promisify } = await import('util');
       const execAsync = promisify(exec);
 
-      // Check if we're in a Cargo project
-      const cargoTomlExists = await this.fileExists('Cargo.toml');
-      if (!cargoTomlExists) {
+      // Detect workspace root for Cargo commands
+      const workspaceRoot = await findWorkspaceRoot(file, 'Cargo.toml');
+
+      if (!workspaceRoot) {
         return {
           passed: false,
           reason: 'No Cargo.toml found - not a Rust project',
@@ -697,6 +728,8 @@ class SingleFileTestEngine {
           summary: { total: 0, passed: 0, failed: 0, skipped: 0 }
         };
       }
+
+      Logger.debug(`Running cargo test from workspace: ${workspaceRoot}`);
 
       // Extract test target from file path for targeted testing
       const testTarget = this.extractRustTestTarget(file);
@@ -709,7 +742,7 @@ class SingleFileTestEngine {
         // Integration test file
         const testName = path.basename(file, '.rs');
         cargoTestCmd += ` --test ${testName}`;
-      } else if (file === 'src/lib.rs' || file === './src/lib.rs') {
+      } else if (file.endsWith('src/lib.rs') || file.endsWith('./src/lib.rs')) {
         // Main library file - run lib tests only
         cargoTestCmd += ' --lib';
       } else if (testTarget) {
@@ -722,9 +755,10 @@ class SingleFileTestEngine {
 
       cargoTestCmd += ' -- --nocapture --test-threads=1';
 
-      // Run targeted cargo test with strict timeout
+      // Run targeted cargo test with strict timeout from workspace root
       try {
         testProcess = await execAsync(cargoTestCmd, {
+          cwd: workspaceRoot,
           timeout: 30000,
           maxBuffer: 1024 * 1024,
           killSignal: 'SIGKILL'
@@ -761,7 +795,8 @@ class SingleFileTestEngine {
         tests,
         summary: { total: tests.length, passed, failed, skipped },
         targetedTest: testTarget || 'lib',
-        command: cargoTestCmd
+        command: cargoTestCmd,
+        workspaceRoot
       };
 
     } catch (error) {
@@ -1107,6 +1142,16 @@ class ValidationEngine {
     const suggestions = [];
 
     try {
+      // Detect workspace root for linting and formatting
+      const workspaceRoot = await findWorkspaceRoot(file, 'package.json');
+
+      if (workspaceRoot) {
+        Logger.debug(`Workspace root detected: ${workspaceRoot}`);
+      } else {
+        Logger.warning('No workspace root found (package.json not found within 10 levels)');
+        suggestions.push('No package.json found - linting and formatting may be skipped');
+      }
+
       // Basic syntax validation using Node.js VM
       const { createContext, runInContext } = await import('vm');
       const context = createContext({});
@@ -1120,12 +1165,35 @@ class ValidationEngine {
       issues.push(...analysis.issues);
       suggestions.push(...analysis.suggestions);
 
+      // Run Prettier if workspace found
+      if (workspaceRoot) {
+        const prettierResult = await this.runPrettier(file, content, workspaceRoot);
+        if (prettierResult && prettierResult.issues) {
+          issues.push(...prettierResult.issues);
+        }
+        if (prettierResult && prettierResult.suggestions) {
+          suggestions.push(...prettierResult.suggestions);
+        }
+      }
+
+      // Run ESLint if workspace found
+      if (workspaceRoot) {
+        const eslintResult = await this.runESLint(file, content, workspaceRoot);
+        if (eslintResult && eslintResult.issues) {
+          issues.push(...eslintResult.issues);
+        }
+        if (eslintResult && eslintResult.suggestions) {
+          suggestions.push(...eslintResult.suggestions);
+        }
+      }
+
       return {
         passed: issues.filter(i => i.severity === 'error').length === 0,
         issues,
         suggestions,
         coverage: 'advanced',
-        metrics: analysis.metrics
+        metrics: analysis.metrics,
+        workspaceRoot
       };
     } catch (error) {
       return {
@@ -1143,6 +1211,72 @@ class ValidationEngine {
         ],
         coverage: 'syntax_only'
       };
+    }
+  }
+
+  async runPrettier(file, content, workspaceRoot) {
+    try {
+      // Gracefully handle missing Prettier
+      const { execSync } = await import('child_process');
+      execSync('npx prettier --version', { stdio: 'ignore', cwd: workspaceRoot, timeout: 5000 });
+
+      const result = execSync(`npx prettier --check "${file}"`, {
+        cwd: workspaceRoot,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        timeout: 10000
+      });
+
+      return { issues: [], suggestions: ['Code formatting is consistent with Prettier'] };
+    } catch (error) {
+      if (error.message && error.message.includes('not found')) {
+        return { issues: [], suggestions: ['Prettier not installed - skipping formatting check'] };
+      }
+
+      return {
+        issues: [{
+          type: 'formatting',
+          severity: 'warning',
+          message: 'Prettier formatting check failed',
+          suggestion: 'Run prettier to fix formatting'
+        }],
+        suggestions: [`Run: npx prettier --write "${file}"`]
+      };
+    }
+  }
+
+  async runESLint(file, content, workspaceRoot) {
+    try {
+      // Gracefully handle missing ESLint
+      const { execSync } = await import('child_process');
+      execSync('npx eslint --version', { stdio: 'ignore', cwd: workspaceRoot, timeout: 5000 });
+
+      const result = execSync(`npx eslint "${file}" --format json`, {
+        cwd: workspaceRoot,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        timeout: 10000
+      });
+
+      const eslintResults = JSON.parse(result);
+      const fileResults = eslintResults[0] || { messages: [] };
+
+      const issues = fileResults.messages.map(msg => ({
+        type: 'eslint',
+        severity: msg.severity === 2 ? 'error' : 'warning',
+        message: msg.message,
+        line: msg.line,
+        column: msg.column,
+        rule: msg.ruleId
+      }));
+
+      return { issues, suggestions: issues.length ? ['Run ESLint to fix linting issues'] : [] };
+    } catch (error) {
+      if (error.message && error.message.includes('not found')) {
+        return { issues: [], suggestions: ['ESLint not installed - skipping linting check'] };
+      }
+
+      return { issues: [], suggestions: ['ESLint check skipped'] };
     }
   }
 
@@ -1242,16 +1376,23 @@ class ValidationEngine {
     const suggestions = [];
 
     try {
-      // Check if we're in a Cargo project
-      const cargoTomlExists = await this.fileExists('Cargo.toml');
+      // Detect workspace root for Cargo commands
+      const workspaceRoot = await findWorkspaceRoot(file, 'Cargo.toml');
 
-      if (cargoTomlExists) {
-        // OPTIMIZATION: Skip full cargo check for post-edit hook
-        // Cargo test will catch compilation errors anyway
-        // This saves massive compilation time and memory
-
+      if (workspaceRoot) {
+        Logger.debug(`Rust workspace root detected: ${workspaceRoot}`);
         suggestions.push('Rust syntax validation deferred to cargo test (performance optimization)');
+
+        // Run cargo clippy from workspace root if available
+        const clippyResult = await this.runCargoClippy(file, workspaceRoot);
+        if (clippyResult && clippyResult.issues) {
+          issues.push(...clippyResult.issues);
+        }
+        if (clippyResult && clippyResult.suggestions) {
+          suggestions.push(...clippyResult.suggestions);
+        }
       } else {
+        Logger.warning('No Cargo workspace found (Cargo.toml not found within 10 levels)');
         suggestions.push('Not in a Cargo project - create Cargo.toml for full validation');
       }
 
@@ -1289,7 +1430,8 @@ class ValidationEngine {
         issues,
         suggestions,
         coverage: 'fast-static-analysis',
-        optimized: true
+        optimized: true,
+        workspaceRoot
       };
 
     } catch (error) {
@@ -1304,6 +1446,53 @@ class ValidationEngine {
         suggestions: ['Rust validation encountered an error'],
         coverage: 'basic'
       };
+    }
+  }
+
+  async runCargoClippy(file, workspaceRoot) {
+    try {
+      // Gracefully handle missing clippy
+      const { execSync } = await import('child_process');
+      execSync('cargo clippy --version', { stdio: 'ignore', cwd: workspaceRoot, timeout: 5000 });
+
+      // Run clippy with JSON output for parsing
+      const result = execSync('cargo clippy --message-format=json -- -W clippy::all', {
+        cwd: workspaceRoot,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        timeout: 30000
+      });
+
+      // Parse clippy JSON output
+      const lines = result.split('\n').filter(line => line.trim());
+      const issues = [];
+
+      for (const line of lines) {
+        try {
+          const msg = JSON.parse(line);
+          if (msg.reason === 'compiler-message' && msg.message) {
+            const clippyMsg = msg.message;
+            issues.push({
+              type: 'clippy',
+              severity: clippyMsg.level === 'error' ? 'error' : 'warning',
+              message: clippyMsg.message,
+              line: clippyMsg.spans[0]?.line_start,
+              column: clippyMsg.spans[0]?.column_start,
+              code: clippyMsg.code?.code
+            });
+          }
+        } catch {
+          // Skip invalid JSON lines
+        }
+      }
+
+      return { issues, suggestions: issues.length ? ['Run cargo clippy to fix linting issues'] : [] };
+    } catch (error) {
+      if (error.message && error.message.includes('not found')) {
+        return { issues: [], suggestions: ['Clippy not installed - skipping linting check'] };
+      }
+
+      return { issues: [], suggestions: ['Clippy check skipped'] };
     }
   }
 
@@ -1442,6 +1631,15 @@ class ValidationEngine {
   extractColumnNumber(errorMessage) {
     const match = errorMessage.match(/column (\d+)/i);
     return match ? parseInt(match[1]) : null;
+  }
+
+  async fileExists(filePath) {
+    try {
+      await fs.access(filePath, fs.constants.F_OK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

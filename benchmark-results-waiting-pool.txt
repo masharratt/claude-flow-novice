@@ -1,0 +1,183 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/benchmarks/waiting-pool-performance.test.ts --verbose
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.log
+    
+    Waiting Pool Token Usage:
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:119:13)
+
+  console.log
+      Paused agents: 10
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:120:13)
+
+  console.log
+      Total tokens consumed by waiting pool: 0
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:121:13)
+
+  console.log
+      Expected: 0 tokens
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:122:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:123:13)
+
+  console.log
+    
+    Waiting Pool Scalability (60 agents):
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:148:13)
+
+  console.log
+      Paused agents: 60
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:149:13)
+
+  console.log
+      Total memory: 0.019 MB
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:150:13)
+
+  console.log
+      Avg checkpoint size: 0.33 KB
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:151:13)
+
+  console.log
+      Token usage while paused: 0
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:152:13)
+
+  console.log
+      Expected token usage: 0
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:153:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:154:13)
+
+  console.log
+    
+    Waiting Pool Scale Test (100 agents):
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:177:13)
+
+  console.log
+      Paused agents: 100
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:178:13)
+
+  console.log
+      Total memory: 0.183 MB
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:179:13)
+
+  console.log
+      Token usage: 0
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:180:13)
+
+  console.log
+      Threshold: 0 tokens
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:181:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:182:13)
+
+  console.log
+    
+    Checkpoint Serialization Efficiency:
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:218:13)
+
+  console.log
+      Checkpoints: 20
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:219:13)
+
+  console.log
+      Avg serialization time: 0.003ms
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:220:13)
+
+  console.log
+      Max serialization time: 0.008ms
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:221:13)
+
+  console.log
+      Token usage after serialization: 0
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:222:13)
+
+  console.log
+      Expected: 0 tokens
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:223:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:224:13)
+
+  console.log
+    
+    Token Tracking (Active vs Paused):
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:251:13)
+
+  console.log
+      Total tokens used while agents were ACTIVE: 27157
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:252:13)
+
+  console.log
+      Tokens consumed by waiting pool (PAUSED): 0
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:253:13)
+
+  console.log
+      Expected paused pool usage: 0
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:254:13)
+
+  console.log
+      Savings: 27157 tokens saved by pausing
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:255:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/waiting-pool-performance.test.ts:256:13)
+
+(node:53619) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/benchmarks/waiting-pool-performance.test.ts (11.719 s)
+  Waiting Agent Pool Performance Benchmark
+    ✓ should consume 0 tokens for paused agents (50 ms)
+    ✓ should efficiently store 50+ paused agents with minimal memory (5 ms)
+    ✓ should maintain 0 token usage even with 100 paused agents (3 ms)
+    ✓ should verify checkpoint serialization efficiency (5 ms)
+    ✓ should track token consumption accurately (active vs paused) (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        12.696 s
+Ran all test suites matching /tests\/benchmarks\/waiting-pool-performance.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

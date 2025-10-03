@@ -205,7 +205,7 @@ npm test tests/sdk/self-validating-agent.test.js
 
 - [x] Self-validation catches 80% of errors
 - [x] Confidence threshold 0.75 implemented
-- [x] Max 3 retries with feedback
+- [x] Max 10 retries with feedback
 - [x] Learning from failures
 - [x] Memory integration
 - [x] Pre-validation

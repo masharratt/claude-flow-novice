@@ -3,6 +3,7 @@ name: architect
 description: MUST BE USED when designing system architecture, planning technical infrastructure, making architectural decisions, or evaluating technology choices. use PROACTIVELY for database schema design, API design, microservices architecture, scalability planning, cloud infrastructure design, integration patterns, performance optimization architecture, security architecture, data flow design, component decomposition, technology stack selection. ALWAYS delegate when user asks to "design system", "architect solution", "plan infrastructure", "structure application", "choose tech stack", "design API", "design database", "scale system", "optimize architecture", "evaluate technologies". Keywords - design, architect, structure, plan, infrastructure, schema, API design, scalability, microservices, system design, technical decisions, cloud architecture, integration, performance, technology evaluation, architectural patterns
 tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, TodoWrite
 model: sonnet
+provider: anthropic
 color: cyan
 ---
 

@@ -11,19 +11,52 @@ Claude Flow Novice successfully transformed the overwhelming 112-tool enterprise
 
 | Metric | Original Claude-Flow | Claude-Flow-Novice | Reduction |
 |--------|---------------------|-------------------|-----------|
-| CLI Commands | 112 enterprise commands | 5 core commands + 4 slash commands + session hooks | **93%** |
+| CLI Commands | 112 enterprise commands | 5 core commands + 7 slash commands + session hooks | **93%** |
 | GitHub Agents | 12 separate agents | 3 consolidated agents | **75%** |
 | Configuration Options | 95+ options | 8 essential choices | **92%** |
 | Setup Time | 30+ minutes | <15 seconds | **83%** |
 | Available Agents | 78+ (overwhelming) | 28+ accessible | **Organized** |
 | Experimental Features | Mixed with core | 14 hidden from novices | **Safe** |
+| **NEW: CFN Loop Commands** | Manual phase orchestration | 3 automated slash commands (single/sprints/epic) | **Autonomous** |
 | **NEW: Assistance Commands** | Manual documentation lookup | 4 intelligent slash commands + session hooks | **Automated** |
 
 ---
 
 ## 🤖 COMPREHENSIVE AGENT DIRECTORY
 
-### 🟢 Core Novice Agents (Always Available - 9 Agents)
+## 🔄 CFN Loop (4-Loop Self-Correcting System)
+
+The **Confidence-Feedback-Next (CFN) Loop** provides autonomous, self-correcting development with 4 nested loops:
+
+**Loop Hierarchy:**
+```
+Loop 0: Epic/Sprint Orchestration → Multi-phase projects
+Loop 1: Phase Execution → Sequential phase progression
+Loop 2: Consensus Validation → 10 iterations max per phase
+Loop 3: Primary Swarm → 10 iterations max per subtask
+```
+
+**Total Capacity**: 10 × 10 = **100 iterations** (handles enterprise complexity)
+
+### CFN Loop Slash Commands
+
+| Command | Purpose | Max Iterations | Use Case |
+|---------|---------|----------------|----------|
+| `/cfn-loop-single` | Single-phase execution | Loop 2: 10, Loop 3: 10 | Simple tasks, single deliverable |
+| `/cfn-loop-sprints` | Multi-sprint phase | Loop 2: 10/sprint, Loop 3: 10 | Phase with 3-5 sprints |
+| `/cfn-loop-epic` | Multi-phase epic | Loop 2: 10/phase, Loop 3: 10 | Complex projects (4+ phases) |
+| `/parse-epic` | Convert markdown → JSON | N/A | Epic structure generation |
+
+**Documentation**: See [CFN Loop Complete Guide](./CFN_LOOP_COMPLETE_GUIDE.md) and [Sprint Orchestration Guide](../docs/SPRINT_ORCHESTRATION.md)
+
+**Key Features:**
+- ✅ Autonomous retry with intelligent agent selection (replace coder → backend-dev for auth issues)
+- ✅ Confidence gating (≥75% threshold) with self-assessment
+- ✅ Byzantine consensus (≥90% threshold) with validator feedback
+- ✅ Automatic feedback injection (sanitized, prioritized)
+- ✅ Memory coordination via hierarchical namespaces
+
+### 🟢 Core Novice Agents (Always Available - 10 Agents)
 | Agent | Specialization | Key Capabilities |
 |-------|---------------|------------------|
 | `coder` | Implementation specialist | Code generation, refactoring, debugging, **agent feedback integration** |
@@ -35,6 +68,7 @@ Claude Flow Novice successfully transformed the overwhelming 112-tool enterprise
 | `system-architect` | System design | Architecture patterns, scalability, design decisions |
 | `api-docs` | API documentation | OpenAPI specs, documentation generation |
 | `cicd-engineer` | CI/CD pipelines | Deployment automation, testing pipelines |
+| `product-owner` | Scope decision authority | GOAP-based A* search, autonomous PROCEED/DEFER/ESCALATE decisions for CFN Loop |
 
 ### 🟢 Full Coordination Access (7 Coordinators Available to Novices)
 | Agent | Topology | Use Case | Resource Management |
@@ -171,6 +205,48 @@ From the communications sprint implementation, heavy commands (>5000ms) are auto
 **🎯 Philosophy: Keep It Simple**
 We've removed 34+ enterprise commands to focus on core functionality. All agents remain available via Claude Code's Task tool.
 
+## 🎯 Provider Routing System
+
+**Profile-Based Provider Selection** - Intelligent routing for cost optimization
+
+### Provider Configuration Priority
+1. **Agent Profile Preference** - Individual agent `provider` field in frontmatter
+2. **Tier Configuration** - Role-based tier assignments (tier1/tier2/tier3)
+3. **Default Fallback** - Z.ai for cost optimization (~64% reduction vs Anthropic)
+
+### Agent Profile Schema
+```yaml
+---
+name: coder
+model: sonnet
+provider: zai        # Optional: zai | anthropic
+---
+```
+
+### Slash Commands
+```bash
+/custom-routing-activate      # Enable tiered provider routing
+/custom-routing-deactivate    # Disable routing (all use sonnet)
+```
+
+### New Components
+- **AgentProfileLoader** (`src/providers/agent-profile-loader.ts`) - Parses agent profiles for provider preferences
+- **TieredProviderRouter** - Enhanced with profile-based routing integration
+- **ZaiProvider** - Z.ai API integration for cost-effective routing
+
+### Package Exports
+```typescript
+import { AgentProfileLoader } from 'claude-flow-novice/providers';
+import ActivateRouting from 'claude-flow-novice/slash-commands/custom-routing-activate';
+import DeactivateRouting from 'claude-flow-novice/slash-commands/custom-routing-deactivate';
+```
+
+### Benefits
+- ~64% cost reduction through intelligent Z.ai routing
+- Agent-level provider control via profile preferences
+- Backward compatible with existing configurations
+- Opt-in via slash commands
+
 ## 🎯 NEW: CLAUDE.md Slash Command Integration
 
 **Simple CLAUDE.md Generation:**
@@ -272,6 +348,409 @@ mcp__claude-flow__agent_list          // List active agents with metrics
 mcp__claude-flow__task_orchestrate    // Orchestrate complex workflows
 mcp__claude-flow__memory_usage        // Store/retrieve persistent memory with TTL
 ```
+
+---
+
+## 🔄 CFN Loop Coordination Tools
+
+**CRITICAL**: The CFN (Create-Feedback-Next) Loop is a self-correcting development workflow that ensures quality through iterative validation. These MCP tools enable the loop's coordination mechanisms.
+
+### mcp__claude-flow-novice__swarm_init
+**Purpose:** Initialize swarm topology for multi-agent coordination (MANDATORY for CFN Loop Step 1)
+
+**Parameters:**
+- `topology` (required): `"mesh"` (2-7 agents) or `"hierarchical"` (8+ agents)
+- `maxAgents` (required): Integer 1-20, must match actual agent count
+- `strategy` (optional): `"balanced"` | `"adaptive"` | `"performance"` (default: `"balanced"`)
+
+**Returns:**
+```json
+{
+  "success": true,
+  "swarmId": "swarm_1759463760200_7bk46np3e",
+  "topology": "mesh",
+  "maxAgents": 6,
+  "strategy": "balanced",
+  "status": "initialized",
+  "timestamp": "2025-10-03T03:56:00.200Z"
+}
+```
+
+**Usage Example:**
+```javascript
+// Step 1: ALWAYS initialize swarm BEFORE spawning agents
+[Single Message]:
+  mcp__claude-flow-novice__swarm_init({
+    topology: "mesh",
+    maxAgents: 3,
+    strategy: "balanced"
+  })
+
+  // Step 2: Then spawn all agents - they will coordinate via swarm
+  Task("coder", "Implement feature X with TDD", "coder")
+  Task("tester", "Validate tests and coverage", "tester")
+  Task("reviewer", "Code quality review", "reviewer")
+```
+
+**Why Required:**
+- ✅ Ensures agent coordination and prevents inconsistent solutions
+- ✅ Enables SwarmMemory sharing across agents
+- ✅ Provides Byzantine consensus framework for validation
+- ✅ Prevents 3 agents from using 3 different approaches to the same problem
+
+**Topology Selection Guide:**
+- **2-7 agents**: Use `topology: "mesh"` (peer-to-peer, equal collaboration)
+- **8+ agents**: Use `topology: "hierarchical"` (coordinator-led structure)
+
+---
+
+### mcp__claude-flow-novice__agent_spawn
+**Purpose:** Spawn coordination agents with specific capabilities (optional for enhanced coordination)
+
+**Parameters:**
+- `type` (required): Agent type (`"coordinator"` | `"analyst"` | `"optimizer"` | custom)
+- `swarmId` (optional): Associate with specific swarm
+- `name` (optional): Human-readable agent name
+- `capabilities` (optional): Array of capability strings
+
+**Returns:**
+```json
+{
+  "success": true,
+  "agentId": "agent_abc123",
+  "type": "coordinator",
+  "swarmId": "swarm_xyz",
+  "status": "active",
+  "capabilities": ["coordination", "consensus", "validation"]
+}
+```
+
+**Usage Example:**
+```javascript
+// Spawn a coordination agent to manage swarm
+mcp__claude-flow-novice__agent_spawn({
+  type: "coordinator",
+  swarmId: "swarm_1759463760200_7bk46np3e",
+  name: "primary-coordinator",
+  capabilities: ["task-orchestration", "consensus-building"]
+})
+```
+
+**Note:** This is typically used for advanced coordination patterns. Most CFN Loop workflows use Claude Code's Task tool directly.
+
+---
+
+### mcp__claude-flow-novice__task_orchestrate
+**Purpose:** Orchestrate complex task workflows with dependencies (CFN Loop Step 2 & 4)
+
+**Parameters:**
+- `task` (required): Task description string
+- `strategy` (optional): `"parallel"` | `"sequential"` | `"adaptive"` | `"balanced"` (default: `"parallel"`)
+- `priority` (optional): `"low"` | `"medium"` | `"high"` | `"critical"` (default: `"medium"`)
+- `dependencies` (optional): Array of task IDs that must complete first
+
+**Returns:**
+```json
+{
+  "success": true,
+  "taskId": "task_def456",
+  "strategy": "parallel",
+  "status": "orchestrated",
+  "dependencies": [],
+  "estimatedDuration": "120s"
+}
+```
+
+**Usage in CFN Loop:**
+```javascript
+// Step 2: Execute - Primary swarm produces deliverables
+mcp__claude-flow-novice__task_orchestrate({
+  task: "Implement authentication system with JWT",
+  strategy: "parallel",
+  priority: "high"
+})
+
+// Step 4: Verify - Consensus swarm validates
+mcp__claude-flow-novice__task_orchestrate({
+  task: "Validate authentication implementation",
+  strategy: "sequential",
+  priority: "critical",
+  dependencies: ["task_def456"]  // Wait for implementation
+})
+```
+
+---
+
+### mcp__claude-flow-novice__memory_usage
+**Purpose:** Store/retrieve persistent memory with TTL and namespacing (CFN Loop coordination)
+
+**Parameters:**
+- `action` (required): `"store"` | `"retrieve"` | `"list"` | `"delete"` | `"search"`
+- `key` (optional): Memory key (required for store/retrieve/delete)
+- `value` (optional): Value to store (required for store)
+- `namespace` (optional): Namespace for organization (default: `"default"`)
+- `ttl` (optional): Time-to-live in seconds
+
+**Returns (store):**
+```json
+{
+  "success": true,
+  "action": "store",
+  "key": "cfn-loop/phase1/confidence",
+  "namespace": "swarm",
+  "stored": true,
+  "timestamp": "2025-10-03T04:00:00.000Z"
+}
+```
+
+**Returns (retrieve):**
+```json
+{
+  "success": true,
+  "action": "retrieve",
+  "key": "cfn-loop/phase1/confidence",
+  "value": {
+    "agent": "coder",
+    "confidence": 0.87,
+    "metrics": { "coverage": 85, "passed": 42, "failed": 0 }
+  },
+  "namespace": "swarm",
+  "timestamp": "2025-10-03T04:00:00.000Z"
+}
+```
+
+**CFN Loop Memory Namespaces:**
+```javascript
+// Step 3: Self-Assessment Gate - Store confidence scores
+mcp__claude-flow-novice__memory_usage({
+  action: "store",
+  namespace: "cfn-loop",
+  key: "phase1/confidence-scores",
+  value: {
+    coder: 0.87,
+    tester: 0.92,
+    reviewer: 0.78,
+    average: 0.86
+  },
+  ttl: 3600  // 1 hour
+})
+
+// Step 4: Verify - Retrieve for consensus validation
+mcp__claude-flow-novice__memory_usage({
+  action: "retrieve",
+  namespace: "cfn-loop",
+  key: "phase1/confidence-scores"
+})
+
+// Step 5: Decision Gate - Store consensus results
+mcp__claude-flow-novice__memory_usage({
+  action: "store",
+  namespace: "cfn-loop",
+  key: "phase1/consensus-result",
+  value: {
+    validators: 4,
+    agreement: 0.94,
+    status: "PASS",
+    criticalCriteriaMet: true
+  }
+})
+
+// Step 5b: Product Owner Scope Control (if consensus <90%)
+// Store project scope boundaries
+mcp__claude-flow-novice__memory_usage({
+  action: "store",
+  namespace: "scope-control",
+  key: "project-boundaries",
+  value: JSON.stringify({
+    primary_goal: "Implement secure user authentication system",
+    in_scope: [
+      "JWT token generation and validation",
+      "Password hashing with bcrypt",
+      "Session management"
+    ],
+    out_of_scope: [
+      "OAuth integration",
+      "Multi-factor authentication",
+      "Social login providers"
+    ],
+    risk_profile: "internal-only-low-risk",
+    max_iterations: 10
+  })
+})
+
+// Retrieve scope for Product Owner GOAP decision
+mcp__claude-flow-novice__memory_usage({
+  action: "retrieve",
+  namespace: "scope-control",
+  key: "project-boundaries"
+})
+
+// Store Product Owner decision result
+mcp__claude-flow-novice__memory_usage({
+  action: "store",
+  namespace: "scope-control",
+  key: "phase1/po-decision",
+  value: {
+    decision: "PROCEED",  // PROCEED | DEFER | ESCALATE
+    reasoning: "Validator concerns are within defined scope",
+    goap_cost: 3.2,
+    alternative_paths: ["Reduce test coverage requirement", "Add security specialist"],
+    recommended_action: "Add security-specialist to next Loop 3 iteration"
+  }
+})
+
+// Step 6: Action - Store iteration feedback for next round
+mcp__claude-flow-novice__memory_usage({
+  action: "store",
+  namespace: "cfn-loop",
+  key: "phase1/iteration-feedback",
+  value: {
+    round: 2,
+    issues: ["Increase test coverage to 90%"],
+    recommendations: ["Add edge case tests for JWT expiration"]
+  }
+})
+```
+
+**Standard Memory Key Patterns:**
+```typescript
+// CFN Loop coordination memory keys
+namespace: "cfn-loop"
+  ├── {phaseId}/confidence-scores       // Self-validation confidence (Step 3)
+  ├── {phaseId}/iterations              // Iteration counter and history
+  ├── {phaseId}/feedback                // Validator feedback for improvements
+  ├── {phaseId}/consensus-result        // Byzantine consensus voting results
+  ├── {phaseId}/results                 // Final deliverables and metrics
+  └── {phaseId}/next-steps              // Recommended next actions
+
+// Scope control memory keys (Product Owner)
+namespace: "scope-control"
+  ├── project-boundaries                // Primary goal, in/out of scope, risk profile
+  ├── {phaseId}/po-decision             // PROCEED/DEFER/ESCALATE with GOAP reasoning
+  ├── {phaseId}/scope-violations        // Detected scope violations and recommendations
+  └── iteration-limits                  // Max iterations per phase/subtask
+
+// Cross-agent coordination
+namespace: "swarm"
+  ├── {agentId}/state                   // Agent execution state
+  ├── {agentId}/findings                // Agent discoveries and insights
+  └── {agentId}/coordination            // Inter-agent communication
+```
+
+**Memory Search:**
+```javascript
+// Find all confidence scores across phases
+mcp__claude-flow-novice__memory_usage({
+  action: "search",
+  namespace: "cfn-loop",
+  key: "*/confidence-scores"
+})
+```
+
+---
+
+### CFN Loop Workflow Integration
+
+**Complete CFN Loop with MCP Tools:**
+
+```javascript
+// ========================================
+// STEP 1: Initialize Swarm (MANDATORY)
+// ========================================
+[Single Message]:
+  mcp__claude-flow-novice__swarm_init({
+    topology: "mesh",
+    maxAgents: 3,
+    strategy: "balanced"
+  })
+
+  // Spawn primary execution swarm
+  Task("coder", "Implement feature with TDD", "coder")
+  Task("tester", "Validate tests and coverage ≥80%", "tester")
+  Task("reviewer", "Code quality and security review", "reviewer")
+
+// ========================================
+// STEP 2: Execute - Primary Swarm
+// ========================================
+// Agents produce deliverables with confidence scores
+// Each agent runs enhanced post-edit hooks after file changes
+
+// ========================================
+// STEP 3: Self-Assessment Gate
+// ========================================
+// Store confidence scores in memory
+mcp__claude-flow-novice__memory_usage({
+  action: "store",
+  namespace: "cfn-loop",
+  key: "phase1/confidence-scores",
+  value: { coder: 0.87, tester: 0.92, reviewer: 0.78 }
+})
+
+// Check threshold: ≥0.75 average → proceed, <0.75 → relaunch
+
+// ========================================
+// STEP 4: Verify - Consensus Swarm (REQUIRED)
+// ========================================
+[Single Message]:
+  Task("Validator 1", "Comprehensive quality review", "reviewer")
+  Task("Validator 2", "Security and performance audit", "security-specialist")
+  Task("Validator 3", "Architecture validation", "system-architect")
+  Task("Validator 4", "Integration testing", "tester")
+
+// ========================================
+// STEP 5: Decision Gate
+// ========================================
+// Store consensus results
+mcp__claude-flow-novice__memory_usage({
+  action: "store",
+  namespace: "cfn-loop",
+  key: "phase1/consensus-result",
+  value: { agreement: 0.94, status: "PASS" }
+})
+
+// PASS: ≥90% agreement + all critical criteria met → PROCEED to next phase
+// FAIL: <90% agreement OR critical criteria failed → Product Owner Decision
+
+// ========================================
+// STEP 5b: Product Owner Decision (if consensus <90%)
+// ========================================
+// When consensus fails, spawn Product Owner agent to evaluate scope
+[Single Message]:
+  Task("product-owner",
+    "Analyze validator feedback against project scope boundaries. " +
+    "Use GOAP A* search to determine: PROCEED (retry Loop 3), " +
+    "DEFER (pause for human input), or ESCALATE (out of scope). " +
+    "Store decision in scope-control/phase1/po-decision.",
+    "product-owner"
+  )
+
+// Product Owner evaluates:
+// 1. Retrieve scope-control/project-boundaries
+// 2. Compare validator concerns against in_scope/out_of_scope
+// 3. Calculate GOAP cost for different paths (retry, reduce requirements, escalate)
+// 4. Make autonomous PROCEED/DEFER/ESCALATE decision
+// 5. Store decision with reasoning
+
+// Possible outcomes:
+// - PROCEED: Issues within scope → relaunch Loop 3 with targeted agents
+// - DEFER: Scope unclear → pause for human clarification
+// - ESCALATE: Out of scope → human decision required on scope expansion
+
+// ========================================
+// STEP 6: Action Based on Decision
+// ========================================
+// If PASS (consensus ≥90%): Store results and move to next phase
+// If FAIL + PO=PROCEED: Inject feedback and return to Step 2 (max 10 rounds)
+// If FAIL + PO=DEFER: Pause loop, request human input
+// If FAIL + PO=ESCALATE: Human decision on scope expansion
+```
+
+**Cross-References:**
+- See `/mnt/c/Users/masha/Documents/claude-flow-novice/docs/CFN_LOOP.md` for complete loop specification
+- See CLAUDE.md for mandatory CFN Loop enforcement rules
+- See `src/cfn-loop/` for implementation details
+
+---
 
 ### Agent Lifecycle Management (8 Commands)
 ```typescript

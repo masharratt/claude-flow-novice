@@ -3,54 +3,56 @@
  * Unified type system for all LLM providers
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 // ===== PROVIDER TYPES =====
 
 export type LLMProvider =
-  | 'openai'
-  | 'anthropic'
-  | 'google'
-  | 'cohere'
-  | 'ollama'
-  | 'llama-cpp'
-  | 'zai'
-  | 'custom';
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "cohere"
+  | "ollama"
+  | "llama-cpp"
+  | "zai"
+  | "custom";
 
 export type LLMModel =
   // OpenAI Models
-  | 'gpt-4-turbo-preview'
-  | 'gpt-4'
-  | 'gpt-4-32k'
-  | 'gpt-3.5-turbo'
-  | 'gpt-3.5-turbo-16k'
+  | "gpt-4-turbo-preview"
+  | "gpt-4"
+  | "gpt-4-32k"
+  | "gpt-3.5-turbo"
+  | "gpt-3.5-turbo-16k"
   // Anthropic Models
-  | 'claude-3-opus-20240229'
-  | 'claude-3-sonnet-20240229'
-  | 'claude-3-haiku-20240307'
-  | 'claude-2.1'
-  | 'claude-2.0'
-  | 'claude-instant-1.2'
+  | "claude-3-opus-20240229"
+  | "claude-3-sonnet-20240229"
+  | "claude-3-haiku-20240307"
+  | "claude-2.1"
+  | "claude-2.0"
+  | "claude-instant-1.2"
   // Z.ai Models
-  | 'claude-3-5-sonnet-20241022'
+  | "claude-3-5-sonnet-20241022"
+  | "glm-4.5"
+  | "glm-4.6"
   // Google Models
-  | 'gemini-pro'
-  | 'gemini-pro-vision'
-  | 'palm-2'
-  | 'bison'
+  | "gemini-pro"
+  | "gemini-pro-vision"
+  | "palm-2"
+  | "bison"
   // Cohere Models
-  | 'command'
-  | 'command-light'
-  | 'command-nightly'
-  | 'generate-xlarge'
-  | 'generate-medium'
+  | "command"
+  | "command-light"
+  | "command-nightly"
+  | "generate-xlarge"
+  | "generate-medium"
   // Local Models
-  | 'llama-2-7b'
-  | 'llama-2-13b'
-  | 'llama-2-70b'
-  | 'mistral-7b'
-  | 'mixtral-8x7b'
-  | 'custom-model';
+  | "llama-2-7b"
+  | "llama-2-13b"
+  | "llama-2-70b"
+  | "mistral-7b"
+  | "mixtral-8x7b"
+  | "custom-model";
 
 // ===== BASE INTERFACES =====
 
@@ -89,7 +91,7 @@ export interface LLMProviderConfig {
 }
 
 export interface LLMMessage {
-  role: 'system' | 'user' | 'assistant' | 'function';
+  role: "system" | "user" | "assistant" | "function";
   content: string;
   name?: string; // For function messages
   functionCall?: {
@@ -112,7 +114,7 @@ export interface LLMRequest {
 
   // Function calling
   functions?: LLMFunction[];
-  functionCall?: 'auto' | 'none' | { name: string };
+  functionCall?: "auto" | "none" | { name: string };
 
   // Provider-specific options
   providerOptions?: Record<string, any>;
@@ -128,7 +130,7 @@ export interface LLMFunction {
   name: string;
   description: string;
   parameters: {
-    type: 'object';
+    type: "object";
     properties: Record<string, any>;
     required?: string[];
   };
@@ -165,12 +167,12 @@ export interface LLMResponse {
   latency?: number;
 
   // Additional info
-  finishReason?: 'stop' | 'length' | 'function_call' | 'content_filter';
+  finishReason?: "stop" | "length" | "function_call" | "content_filter";
   metadata?: Record<string, any>;
 }
 
 export interface LLMStreamEvent {
-  type: 'content' | 'function_call' | 'error' | 'done';
+  type: "content" | "function_call" | "error" | "done";
   delta?: {
     content?: string;
     functionCall?: {
@@ -179,8 +181,8 @@ export interface LLMStreamEvent {
     };
   };
   error?: Error;
-  usage?: LLMResponse['usage'];
-  cost?: LLMResponse['cost'];
+  usage?: LLMResponse["usage"];
+  cost?: LLMResponse["cost"];
 }
 
 // ===== PROVIDER CAPABILITIES =====
@@ -234,7 +236,7 @@ export class LLMProviderError extends Error {
     public details?: any,
   ) {
     super(message);
-    this.name = 'LLMProviderError';
+    this.name = "LLMProviderError";
   }
 }
 
@@ -245,22 +247,29 @@ export class RateLimitError extends LLMProviderError {
     public retryAfter?: number,
     details?: any,
   ) {
-    super(message, 'RATE_LIMIT', provider, 429, true, details);
-    this.name = 'RateLimitError';
+    super(message, "RATE_LIMIT", provider, 429, true, details);
+    this.name = "RateLimitError";
   }
 }
 
 export class AuthenticationError extends LLMProviderError {
   constructor(message: string, provider: LLMProvider, details?: any) {
-    super(message, 'AUTHENTICATION', provider, 401, false, details);
-    this.name = 'AuthenticationError';
+    super(message, "AUTHENTICATION", provider, 401, false, details);
+    this.name = "AuthenticationError";
   }
 }
 
 export class ModelNotFoundError extends LLMProviderError {
   constructor(model: string, provider: LLMProvider, details?: any) {
-    super(`Model ${model} not found`, 'MODEL_NOT_FOUND', provider, 404, false, details);
-    this.name = 'ModelNotFoundError';
+    super(
+      `Model ${model} not found`,
+      "MODEL_NOT_FOUND",
+      provider,
+      404,
+      false,
+      details,
+    );
+    this.name = "ModelNotFoundError";
   }
 }
 
@@ -268,13 +277,13 @@ export class ProviderUnavailableError extends LLMProviderError {
   constructor(provider: LLMProvider, details?: any) {
     super(
       `Provider ${provider} is unavailable`,
-      'PROVIDER_UNAVAILABLE',
+      "PROVIDER_UNAVAILABLE",
       provider,
       503,
       true,
       details,
     );
-    this.name = 'ProviderUnavailableError';
+    this.name = "ProviderUnavailableError";
   }
 }
 
@@ -384,7 +393,7 @@ export interface UsageStats {
   >;
 }
 
-export type UsagePeriod = 'hour' | 'day' | 'week' | 'month' | 'all';
+export type UsagePeriod = "hour" | "day" | "week" | "month" | "all";
 
 // ===== FALLBACK AND RETRY STRATEGIES =====
 
@@ -396,7 +405,7 @@ export interface FallbackStrategy {
 }
 
 export interface FallbackRule {
-  condition: 'error' | 'rate_limit' | 'timeout' | 'cost' | 'unavailable';
+  condition: "error" | "rate_limit" | "timeout" | "cost" | "unavailable";
   errorCodes?: string[];
   fallbackProviders: LLMProvider[];
   fallbackModels?: LLMModel[];
@@ -419,7 +428,7 @@ export interface CacheConfig {
   enabled: boolean;
   ttl: number; // Time to live in seconds
   maxSize: number; // Max cache size in MB
-  strategy: 'lru' | 'lfu' | 'ttl';
+  strategy: "lru" | "lfu" | "ttl";
   keyGenerator?: (request: LLMRequest) => string;
 }
 
@@ -445,7 +454,10 @@ export interface RateLimiter {
 // ===== LOAD BALANCING =====
 
 export interface LoadBalancer {
-  selectProvider(request: LLMRequest, availableProviders: ILLMProvider[]): Promise<ILLMProvider>;
+  selectProvider(
+    request: LLMRequest,
+    availableProviders: ILLMProvider[],
+  ): Promise<ILLMProvider>;
   updateProviderMetrics(provider: LLMProvider, metrics: ProviderMetrics): void;
   rebalance(): Promise<void>;
 }
@@ -464,8 +476,15 @@ export interface ProviderMetrics {
 // ===== MONITORING AND ANALYTICS =====
 
 export interface ProviderMonitor {
-  trackRequest(provider: LLMProvider, request: LLMRequest, response: LLMResponse | Error): void;
-  getMetrics(provider?: LLMProvider, period?: UsagePeriod): Promise<ProviderMetrics[]>;
+  trackRequest(
+    provider: LLMProvider,
+    request: LLMRequest,
+    response: LLMResponse | Error,
+  ): void;
+  getMetrics(
+    provider?: LLMProvider,
+    period?: UsagePeriod,
+  ): Promise<ProviderMetrics[]>;
   getAlerts(): Alert[];
   setAlertThreshold(metric: string, threshold: number): void;
 }
@@ -474,8 +493,8 @@ export interface Alert {
   id: string;
   timestamp: Date;
   provider: LLMProvider;
-  type: 'error_rate' | 'latency' | 'cost' | 'rate_limit' | 'availability';
-  severity: 'info' | 'warning' | 'error' | 'critical';
+  type: "error_rate" | "latency" | "cost" | "rate_limit" | "availability";
+  severity: "info" | "warning" | "error" | "critical";
   message: string;
   value: number;
   threshold: number;
@@ -521,21 +540,26 @@ export interface CostAnalysis {
 }
 
 export interface OptimizationSuggestion {
-  type: 'model_switch' | 'provider_switch' | 'parameter_tuning' | 'caching' | 'batching';
+  type:
+    | "model_switch"
+    | "provider_switch"
+    | "parameter_tuning"
+    | "caching"
+    | "batching";
   description: string;
   estimatedSavings: number;
   implementation: string;
-  impact: 'low' | 'medium' | 'high';
+  impact: "low" | "medium" | "high";
 }
 
 // ===== TYPE GUARDS =====
 
 export function isLLMResponse(obj: any): obj is LLMResponse {
-  return obj && typeof obj.id === 'string' && typeof obj.content === 'string';
+  return obj && typeof obj.id === "string" && typeof obj.content === "string";
 }
 
 export function isLLMStreamEvent(obj: any): obj is LLMStreamEvent {
-  return obj && typeof obj.type === 'string';
+  return obj && typeof obj.type === "string";
 }
 
 export function isLLMProviderError(error: any): error is LLMProviderError {

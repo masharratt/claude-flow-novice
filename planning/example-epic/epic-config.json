@@ -1,0 +1,337 @@
+{
+  "epicId": "auth-system-v2",
+  "name": "Authentication & Authorization System",
+  "description": "Complete overhaul of authentication and authorization system with JWT, RBAC, OAuth2, and security hardening",
+  "status": "not_started",
+  "owner": "Backend Team",
+  "estimatedDuration": "3-4 weeks",
+  "overviewFile": "planning/example-epic/EPIC_OVERVIEW.md",
+
+  "phases": [
+    {
+      "phaseId": "phase-1-core-auth",
+      "name": "Core Authentication System",
+      "description": "JWT-based authentication with user registration, login, token management",
+      "file": "planning/example-epic/phase-1-core-auth.md",
+      "status": "not_started",
+      "dependencies": [],
+      "estimatedDuration": "1 week",
+
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "name": "User Registration & Password Security",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "User can register with email, username, password",
+            "Passwords hashed with bcrypt (never stored plaintext)",
+            "Duplicate registrations prevented",
+            "Input validation with clear error messages",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "name": "JWT Token Generation",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.1"],
+          "acceptanceCriteria": [
+            "JWT access tokens generated with correct payload",
+            "Refresh tokens generated and stored securely",
+            "Token secrets from environment variables",
+            "Token expiration enforced",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "name": "Login Endpoint & Token Validation",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.1", "sprint-1.2"],
+          "acceptanceCriteria": [
+            "User can login with valid credentials",
+            "Invalid credentials return 401 Unauthorized",
+            "Access and refresh tokens returned on login",
+            "Authentication middleware protects routes",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.4",
+          "name": "Token Refresh & Logout",
+          "status": "not_started",
+          "duration": "1 day",
+          "dependencies": ["sprint-1.3"],
+          "acceptanceCriteria": [
+            "User can refresh access token",
+            "Invalid refresh tokens rejected",
+            "Logout invalidates refresh token",
+            "Expired tokens cleaned up automatically",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.5",
+          "name": "User Profile Management",
+          "status": "not_started",
+          "duration": "1 day",
+          "dependencies": ["sprint-1.3"],
+          "acceptanceCriteria": [
+            "Authenticated user can view own profile",
+            "User can update username/email with validation",
+            "Password hash never exposed in API",
+            "Duplicate username/email prevented",
+            "Test coverage ≥85%"
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-2-rbac",
+      "name": "Role-Based Access Control",
+      "description": "Role and permission management with route-level enforcement",
+      "file": "planning/example-epic/phase-2-rbac.md",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-auth"],
+      "estimatedDuration": "1 week",
+
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "name": "Role & Permission Models",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.1"],
+          "acceptanceCriteria": [
+            "Role and Permission models with proper relationships",
+            "Default roles and permissions seeded",
+            "User can have multiple roles",
+            "Role can have multiple permissions",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "name": "Permission Enforcement Middleware",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.3", "sprint-2.1"],
+          "crossPhaseDependencies": ["phase-1/sprint-1.3"],
+          "acceptanceCriteria": [
+            "Routes protected by permission or role",
+            "Unauthorized access returns 403 Forbidden",
+            "Permission checks cached efficiently",
+            "Admin role bypasses permission checks",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "name": "Role Management API",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-2.2"],
+          "acceptanceCriteria": [
+            "Only admins can manage roles and permissions",
+            "CRUD operations for roles and permissions",
+            "Role-permission assignments working",
+            "Input validation (unique role names, valid permission format)",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.4",
+          "name": "User Role Assignment",
+          "status": "not_started",
+          "duration": "1 day",
+          "dependencies": ["sprint-2.3"],
+          "acceptanceCriteria": [
+            "Admins can assign/remove roles from users",
+            "User profile includes assigned roles",
+            "Cannot create role hierarchy loops",
+            "Test coverage ≥85%"
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-3-oauth",
+      "name": "OAuth2 Integration",
+      "description": "Google and GitHub OAuth2 with account linking",
+      "file": "planning/example-epic/phase-3-oauth.md",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-auth", "phase-2-rbac"],
+      "estimatedDuration": "1 week",
+
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "name": "OAuth2 Infrastructure",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.1", "sprint-1.2"],
+          "acceptanceCriteria": [
+            "OAuthProvider model stores provider data",
+            "Passport configured with Google and GitHub strategies",
+            "OAuth2 callback routes set up",
+            "Credentials managed securely",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "name": "Google OAuth2 Flow",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-3.1"],
+          "acceptanceCriteria": [
+            "User can login with Google account",
+            "Existing users can link Google account",
+            "New users automatically created",
+            "OAuth errors handled gracefully",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "name": "GitHub OAuth2 Flow",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-3.2"],
+          "acceptanceCriteria": [
+            "User can login with GitHub account",
+            "Existing users can link GitHub account",
+            "New users automatically created",
+            "Email handling for GitHub users",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.4",
+          "name": "Account Linking & Management",
+          "status": "not_started",
+          "duration": "1 day",
+          "dependencies": ["sprint-3.3"],
+          "acceptanceCriteria": [
+            "User can view linked OAuth providers",
+            "User can unlink OAuth providers (if password exists)",
+            "Cannot unlink last authentication method",
+            "Frontend displays linked accounts",
+            "Test coverage ≥85%"
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-4-security",
+      "name": "Security Hardening",
+      "description": "Rate limiting, audit logging, CSRF protection, penetration testing",
+      "file": "planning/example-epic/phase-4-security.md",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-auth", "phase-2-rbac", "phase-3-oauth"],
+      "estimatedDuration": "1 week",
+
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "name": "Rate Limiting & Brute Force Protection",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.3", "sprint-3.3"],
+          "crossPhaseDependencies": ["phase-3/sprint-3.3"],
+          "acceptanceCriteria": [
+            "Rate limiting enforced on all auth endpoints",
+            "Account lockout after repeated failures",
+            "Admins bypass rate limits",
+            "Clear error messages for rate-limited requests",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "name": "Security Audit Logging",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.3", "sprint-2.2"],
+          "acceptanceCriteria": [
+            "All security events logged with full context",
+            "Audit logs immutable",
+            "Admin can view and filter logs",
+            "Logs include IP address and user agent",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.3",
+          "name": "CSRF & Security Headers",
+          "status": "not_started",
+          "duration": "1 day",
+          "dependencies": ["sprint-1.3"],
+          "acceptanceCriteria": [
+            "Security headers set on all responses",
+            "CSRF protection on state-changing endpoints",
+            "Cookies configured securely",
+            "API token auth bypasses CSRF",
+            "Test coverage ≥85%"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.4",
+          "name": "Penetration Testing & Fixes",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-4.1", "sprint-4.2", "sprint-4.3"],
+          "acceptanceCriteria": [
+            "No critical or high-severity vulnerabilities",
+            "All medium-severity vulnerabilities fixed or documented",
+            "Penetration test report complete",
+            "Fixes validated with re-testing",
+            "Test coverage ≥85%"
+          ]
+        }
+      ]
+    }
+  ],
+
+  "epicAcceptanceCriteria": [
+    "All phases complete with ≥90% consensus validation",
+    "Test coverage ≥85% across all phases",
+    "No critical security vulnerabilities",
+    "Performance benchmarks met (auth <100ms, token refresh <50ms)",
+    "Documentation complete (API docs, security guide, deployment guide)",
+    "Production deployment successful"
+  ],
+
+  "crossPhaseDependencies": [
+    {
+      "from": "phase-2/sprint-2.2",
+      "to": "phase-1/sprint-1.3",
+      "description": "Permission middleware depends on token validation infrastructure"
+    },
+    {
+      "from": "phase-4/sprint-4.1",
+      "to": "phase-3/sprint-3.3",
+      "description": "Rate limiting needs OAuth2 endpoints for comprehensive protection"
+    }
+  ],
+
+  "riskAssessment": {
+    "highRisk": [
+      "OAuth2 provider rate limits",
+      "Token storage security (Redis vs database)",
+      "Migration from old auth system"
+    ],
+    "mitigation": [
+      "Implement caching for OAuth2 tokens",
+      "Use Redis for token blacklist with TTL",
+      "Parallel auth systems during migration (gradual rollout)"
+    ]
+  }
+}

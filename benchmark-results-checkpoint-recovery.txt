@@ -1,0 +1,208 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/benchmarks/checkpoint-recovery-performance.test.ts --verbose
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.log
+    
+    Checkpoint Recovery Latency (single agent):
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:210:13)
+
+  console.log
+      Load: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:211:13)
+
+  console.log
+      Validate: 0.111ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:212:13)
+
+  console.log
+      Deserialize: 0.017ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:213:13)
+
+  console.log
+      Restore: 0.007ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:214:13)
+
+  console.log
+      Verify: 0.011ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:215:13)
+
+  console.log
+      Total: 0.157ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:216:13)
+
+  console.log
+      Threshold: <500ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:217:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:218:13)
+
+  console.log
+    
+    Checkpoint Recovery Performance (100 operations):
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:278:13)
+
+  console.log
+      Min: 0.024ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:279:13)
+
+  console.log
+      Max: 0.073ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:280:13)
+
+  console.log
+      Avg: 0.033ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:281:13)
+
+  console.log
+      P99: 0.073ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:282:13)
+
+  console.log
+    
+    Average Stage Latencies:
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:283:13)
+
+  console.log
+      Load: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:284:13)
+
+  console.log
+      Validate: 0.019ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:285:13)
+
+  console.log
+      Deserialize: 0.012ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:286:13)
+
+  console.log
+      Restore: 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:287:13)
+
+  console.log
+      Verify: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:288:13)
+
+  console.log
+    
+    Threshold: <500ms (p99)
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:289:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:290:13)
+
+  console.log
+    
+    Checkpoint Recovery Scalability (large checkpoints):
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:330:13)
+
+  console.log
+      Checkpoint sizes: 50x - 1000x base size
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:331:13)
+
+  console.log
+      Min latency: 0.086ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:332:13)
+
+  console.log
+      Max latency: 0.918ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:333:13)
+
+  console.log
+      Avg latency: 0.479ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:334:13)
+
+  console.log
+      P99: 0.918ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:335:13)
+
+  console.log
+      Threshold: <500ms (p99)
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:336:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:337:13)
+
+  console.log
+    
+    Corrupted Checkpoint Recovery:
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:362:13)
+
+  console.log
+      Success: false
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:363:13)
+
+  console.log
+      Latency: 0.033ms
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:364:13)
+
+  console.log
+      Errors: Failed to parse checkpoint
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:365:13)
+
+  console.log
+      Threshold: <500ms even on failure
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:366:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/checkpoint-recovery-performance.test.ts:367:13)
+
+(node:56277) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/benchmarks/checkpoint-recovery-performance.test.ts (12.712 s)
+  Checkpoint Recovery Performance Benchmark
+    ✓ should recover from checkpoint in <500ms (51 ms)
+    ✓ should maintain <500ms p99 across 100 recovery operations (15 ms)
+    ✓ should handle large checkpoint recovery efficiently (26 ms)
+    ✓ should recover from corrupted checkpoints gracefully (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        13.932 s
+Ran all test suites matching /tests\/benchmarks\/checkpoint-recovery-performance.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

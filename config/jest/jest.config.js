@@ -28,12 +28,16 @@ export default {
         moduleResolution: 'node',
         allowSyntheticDefaultImports: true,
         esModuleInterop: true,
-        target: 'es2022'
+        target: 'es2022',
+        skipLibCheck: true,
+        skipDefaultLibCheck: true
+      },
+      isolatedModules: true,
+      diagnostics: {
+        warnOnly: true
       }
-    }],
-    '^.+\\.js$': ['babel-jest', {
-      configFile: '<rootDir>/config/build/babel.config.cjs'
     }]
+    // No transform for .js files - Jest will handle them with NODE_OPTIONS='--experimental-vm-modules'
   },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',

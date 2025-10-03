@@ -1,8 +1,13 @@
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { describe, test, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import path from 'path';
+import fs from 'fs/promises';
+import crypto from 'crypto';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals';
+
 /**
  * Comprehensive Rust Validation Test Suite
  * Tests framework detection, cargo test execution, build validation, and quality checks
@@ -21,11 +26,6 @@ import { describe, test, it, expect, beforeEach, afterEach } from '@jest/globals
  * - Byzantine fault tolerance in validation consensus
  * - Comprehensive coverage of Rust ecosystem patterns
  */
-
-const { describe, test, expect, beforeEach, afterEach, jest } = require('@jest/globals');
-const path = require('path');
-const fs = require('fs').promises;
-const crypto = require('crypto');
 
 // Mock Rust Framework Validator following existing patterns
 class MockRustFrameworkValidator {

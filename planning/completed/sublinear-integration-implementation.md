@@ -115,7 +115,7 @@ class ResourceAllocator {
 
 ```javascript
 // Existing command unchanged:
-// claude-flow-personal run --transparency=full
+// claude-flow-novice run --transparency=full
 
 // But internal dependency resolution now uses PageRank
 class DependencyResolver {
@@ -160,7 +160,7 @@ class PredictiveMonitor {
 #### 2.2 Smart Caching and Preprocessing
 
 ```javascript
-// User runs: claude-flow-personal agent create researcher "Research TypeScript"
+// User runs: claude-flow-novice agent create researcher "Research TypeScript"
 // System automatically uses temporal advantage to prepare
 
 class SmartPreprocessor {
@@ -211,7 +211,7 @@ class EnhancedTransparencyEngine {
 
 ```bash
 # User runs same command as always:
-claude-flow-personal status --detailed
+claude-flow-novice status --detailed
 
 # But now gets predictive insights:
 """
@@ -305,7 +305,7 @@ interface SublinearEngine {
 
 **Agent Creation Enhancement**
 ```typescript
-// User calls: claude-flow-personal agent create researcher "task"
+// User calls: claude-flow-novice agent create researcher "task"
 // Internal implementation:
 
 class EnhancedAgentFactory {
@@ -486,10 +486,10 @@ for task_size in 10 50 100 500 1000; do
   echo "Testing with $task_size tasks..."
 
   # Linear baseline
-  time_linear=$(claude-flow-personal benchmark --size=$task_size --mode=linear)
+  time_linear=$(claude-flow-novice benchmark --size=$task_size --mode=linear)
 
   # Sublinear enhanced
-  time_sublinear=$(claude-flow-personal benchmark --size=$task_size --mode=sublinear)
+  time_sublinear=$(claude-flow-novice benchmark --size=$task_size --mode=sublinear)
 
   # Validate improvement
   improvement=$(echo "scale=2; ($time_linear - $time_sublinear) / $time_linear * 100" | bc)

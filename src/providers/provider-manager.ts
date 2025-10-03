@@ -35,6 +35,10 @@ import { OpenAIProvider } from './openai-provider.js';
 import { GoogleProvider } from './google-provider.js';
 import { CohereProvider } from './cohere-provider.js';
 import { OllamaProvider } from './ollama-provider.js';
+import { ZaiProvider } from './zai-provider.js';
+
+// Import tiered routing
+import { TieredProviderRouter, createTieredRouter } from './tiered-router.js';
 
 export interface ProviderManagerConfig {
   providers: Record<LLMProvider, LLMProviderConfig>;
@@ -54,6 +58,9 @@ export interface ProviderManagerConfig {
     enabled: boolean;
     metricsInterval: number;
   };
+  tieredRouting?: {
+    enabled: boolean;
+  };
 }
 
 export class ProviderManager extends EventEmitter {
@@ -65,11 +72,18 @@ export class ProviderManager extends EventEmitter {
   private providerMetrics: Map<LLMProvider, ProviderMetrics[]> = new Map();
   private cache: Map<string, { response: LLMResponse; timestamp: Date }> = new Map();
   private currentProviderIndex = 0;
+  private tieredRouter?: TieredProviderRouter;
 
   constructor(logger: ILogger, configManager: ConfigManager, config: ProviderManagerConfig) {
     super();
     this.logger = logger;
     this.config = config;
+
+    // Initialize tiered router if enabled
+    if (config.tieredRouting?.enabled) {
+      this.tieredRouter = createTieredRouter();
+      this.logger.info('Tiered provider routing enabled');
+    }
 
     // Initialize providers
     this.initializeProviders();
@@ -133,6 +147,9 @@ export class ProviderManager extends EventEmitter {
         case 'ollama':
           provider = new OllamaProvider(providerOptions);
           break;
+        case 'zai':
+          provider = new ZaiProvider(providerOptions);
+          break;
         default:
           this.logger.warn(`Unknown provider: ${name}`);
           return null;
@@ -155,7 +172,7 @@ export class ProviderManager extends EventEmitter {
   /**
    * Complete a request using the appropriate provider
    */
-  async complete(request: LLMRequest): Promise<LLMResponse> {
+  async complete(request: LLMRequest, agentType?: string): Promise<LLMResponse> {
     // Check cache first
     if (this.config.caching?.enabled) {
       const cached = this.checkCache(request);
@@ -165,8 +182,8 @@ export class ProviderManager extends EventEmitter {
       }
     }
 
-    // Select provider based on strategy
-    const provider = await this.selectProvider(request);
+    // Select provider based on strategy (with optional agent type for tiered routing)
+    const provider = await this.selectProvider(request, agentType);
 
     try {
       const response = await provider.complete(request);
@@ -193,8 +210,8 @@ export class ProviderManager extends EventEmitter {
   /**
    * Stream complete a request
    */
-  async *streamComplete(request: LLMRequest): AsyncIterable<LLMStreamEvent> {
-    const provider = await this.selectProvider(request);
+  async *streamComplete(request: LLMRequest, agentType?: string): AsyncIterable<LLMStreamEvent> {
+    const provider = await this.selectProvider(request, agentType);
 
     try {
       yield* provider.streamComplete(request);
@@ -220,7 +237,17 @@ export class ProviderManager extends EventEmitter {
   /**
    * Select the best provider for a request
    */
-  private async selectProvider(request: LLMRequest): Promise<ILLMProvider> {
+  private async selectProvider(request: LLMRequest, agentType?: string): Promise<ILLMProvider> {
+    // Tiered routing based on agent type
+    if (this.config.tieredRouting?.enabled && this.tieredRouter && agentType) {
+      const selectedProvider = await this.tieredRouter.selectProvider(agentType);
+      const provider = this.providers.get(selectedProvider);
+      if (provider && this.isProviderAvailable(provider)) {
+        this.logger.debug(`Tiered routing: ${agentType} → ${selectedProvider}`);
+        return provider;
+      }
+    }
+
     // If specific provider requested
     if (request.providerOptions?.preferredProvider) {
       const provider = this.providers.get(request.providerOptions.preferredProvider);

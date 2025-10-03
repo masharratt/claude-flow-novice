@@ -1,0 +1,246 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/unit/coordination/queen-agent.test.ts
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+(node:79017) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL tests/unit/coordination/queen-agent.test.ts (13.798 s)
+  Queen Agent Coordination
+    Worker Management
+      ✓ should spawn worker successfully with control latency <100ms (7 ms)
+      ✓ should spawn multiple workers (1 ms)
+      ✕ should throw error when spawning beyond max workers (21 ms)
+      ✕ should emit worker:spawned event (2 ms)
+      ✕ should reject worker with invalid capabilities
+    Task Delegation
+      ✕ should delegate task to best-suited worker (2 ms)
+      ✓ should auto-select worker when not specified
+      ✕ should reject task when worker at capacity (1 ms)
+      ✕ should throw error when delegating to non-existent worker
+      ✕ should handle malformed task object gracefully (1 ms)
+    Result Aggregation
+      ✕ should aggregate results from multiple workers (1 ms)
+      ✕ should calculate confidence based on success rate
+      ✕ should handle complete failure gracefully
+    Health Monitoring
+      ✓ should detect degraded workers (1 ms)
+      ✓ should detect offline workers
+      ✓ should NOT flag healthy workers as degraded (1 ms)
+      ✓ should not assign tasks to offline workers
+    Worker Scaling
+      ✓ should scale up workers (1 ms)
+      ✓ should scale down idle workers
+      ✓ should throw error for invalid scaling targets (1 ms)
+      ✓ should emit workers:scaled event
+    Performance Benchmarks
+      ✓ should spawn 10 workers in <1000ms (2 ms)
+      ✓ should maintain <100ms control latency for delegation (1 ms)
+      ✓ should handle 20 concurrent task delegations efficiently (1 ms)
+    Negative Test Cases
+      ✓ should handle concurrent modification of workers
+      ✕ should handle dependency graph cycles gracefully (1 ms)
+
+  ● Queen Agent Coordination › Worker Management › should throw error when spawning beyond max workers
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected substring: "Worker limit reached: 10"
+    Received message:   "Worker spawn limit reached: 10 workers already active"
+
+          92 |     // Check concurrent worker limit
+          93 |     if (this.currentWorkerCount >= this.config.maxConcurrentWorkers) {
+        > 94 |       throw new RateLimitError(
+             |             ^
+          95 |         `Worker spawn limit reached: ${this.config.maxConcurrentWorkers} workers already active`,
+          96 |         'MAX_WORKERS_EXCEEDED',
+          97 |         429,
+
+      at RateLimiter.checkWorkerSpawn (src/coordination/rate-limiter.ts:94:13)
+      at QueenAgent.spawnWorker (src/coordination/queen-agent.ts:273:24)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:141:15)
+      at Object.toThrow (node_modules/expect/build/index.js:218:22)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:146:17)
+
+  ● Queen Agent Coordination › Worker Management › should emit worker:spawned event
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      Object {
+    +   "caller": "system",
+        "type": "coder",
+        "workerId": "worker-coder_mgb6ftdy_x9ekf1jtn",
+      },
+
+    Number of calls: 1
+
+      157 |       });
+      158 |
+    > 159 |       expect(eventHandler).toHaveBeenCalledWith({ workerId, type: 'coder' });
+          |                            ^
+      160 |     });
+      161 |
+      162 |     // NEGATIVE TEST: Invalid worker configuration
+
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:159:28)
+
+  ● Queen Agent Coordination › Worker Management › should reject worker with invalid capabilities
+
+    Worker capabilities validation failed: skills: At least one skill is required, maxConcurrentTasks: Max concurrent tasks must be at least 1, priority: Priority must be at least 1
+
+      165 |   if (!result.success) {
+      166 |     const errors = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+    > 167 |     throw new Error(`Worker capabilities validation failed: ${errors}`);
+          |           ^
+      168 |   }
+      169 |
+      170 |   return result.data;
+
+      at validateWorkerCapabilities (src/coordination/validation-schemas.ts:167:11)
+      at QueenAgent.spawnWorker (src/coordination/queen-agent.ts:283:35)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:164:36)
+
+  ● Queen Agent Coordination › Task Delegation › should delegate task to best-suited worker
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"payload": ObjectContaining {"task": {"dependencies": [], "description": "Implement feature", "id": "task-1", "priority": 5, "status": "pending", "type": "coding"}}, "topic": StringMatching /^worker\..+\.task$/}
+    Received: {"correlationId": "task-1", "payload": {"delegatedAt": 2025-10-03T18:27:51.065Z, "queenId": "queen-agent", "task": {"dependencies": [], "description": "Implement feature", "id": "task-1", "priority": 5, "type": "coding"}}, "priority": 5, "topic": "worker.worker-coder-1_mgb6fteg_u5fwg5128.task"}
+
+    Number of calls: 1
+
+      219 |       expect(result.status).toBe('accepted');
+      220 |       expect(result.workerId).toBeTruthy();
+    > 221 |       expect(mockBroker.publish).toHaveBeenCalledWith(
+          |                                  ^
+      222 |         expect.objectContaining({
+      223 |           topic: expect.stringMatching(/^worker\..+\.task$/),
+      224 |           payload: expect.objectContaining({ task })
+
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:221:34)
+
+  ● Queen Agent Coordination › Task Delegation › should reject task when worker at capacity
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "rejected"
+    Received: "accepted"
+
+      274 |       const result = await queen.delegateTask(task2, workerId);
+      275 |
+    > 276 |       expect(result.status).toBe('rejected');
+          |                             ^
+      277 |     });
+      278 |
+      279 |     // NEGATIVE TEST: Delegation to non-existent worker
+
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:276:29)
+
+  ● Queen Agent Coordination › Task Delegation › should throw error when delegating to non-existent worker
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"delegatedAt": 2025-10-03T18:27:51.069Z, "status": "accepted", "taskId": "task-1", "workerId": "worker-coder-1_mgb6ftel_h578qd54q"}
+
+      288 |       };
+      289 |
+    > 290 |       await expect(
+          |             ^
+      291 |         queen.delegateTask(task, 'non-existent-worker')
+      292 |       ).rejects.toThrow('Worker not found: non-existent-worker');
+      293 |     });
+
+      at expect (node_modules/expect/build/index.js:113:15)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:290:13)
+
+  ● Queen Agent Coordination › Task Delegation › should handle malformed task object gracefully
+
+    Task validation failed: type: Required
+
+      179 |   if (!result.success) {
+      180 |     const errors = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+    > 181 |     throw new Error(`Task validation failed: ${errors}`);
+          |           ^
+      182 |   }
+      183 |
+      184 |   return result.data;
+
+      at validateTask (src/coordination/validation-schemas.ts:181:11)
+      at QueenAgent.delegateTask (src/coordination/queen-agent.ts:375:27)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:303:34)
+
+  ● Queen Agent Coordination › Result Aggregation › should aggregate results from multiple workers
+
+    Worker results validation failed: : Expected object, received map
+
+      221 |   if (!result.success) {
+      222 |     const errors = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+    > 223 |     throw new Error(`Worker results validation failed: ${errors}`);
+          |           ^
+      224 |   }
+      225 |
+      226 |   return result.data;
+
+      at validateWorkerResults (src/coordination/validation-schemas.ts:223:11)
+      at QueenAgent.aggregateResults (src/coordination/queen-agent.ts:469:30)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:320:39)
+
+  ● Queen Agent Coordination › Result Aggregation › should calculate confidence based on success rate
+
+    Worker results validation failed: : Expected object, received map
+
+      221 |   if (!result.success) {
+      222 |     const errors = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+    > 223 |     throw new Error(`Worker results validation failed: ${errors}`);
+          |           ^
+      224 |   }
+      225 |
+      226 |   return result.data;
+
+      at validateWorkerResults (src/coordination/validation-schemas.ts:223:11)
+      at QueenAgent.aggregateResults (src/coordination/queen-agent.ts:469:30)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:334:34)
+
+  ● Queen Agent Coordination › Result Aggregation › should handle complete failure gracefully
+
+    Worker results validation failed: : Expected object, received map
+
+      221 |   if (!result.success) {
+      222 |     const errors = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+    > 223 |     throw new Error(`Worker results validation failed: ${errors}`);
+          |           ^
+      224 |   }
+      225 |
+      226 |   return result.data;
+
+      at validateWorkerResults (src/coordination/validation-schemas.ts:223:11)
+      at QueenAgent.aggregateResults (src/coordination/queen-agent.ts:469:30)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:346:34)
+
+  ● Queen Agent Coordination › Negative Test Cases › should handle dependency graph cycles gracefully
+
+    TaskError: Task task-a has unmet dependencies
+
+      48 |     for (const depId of task.dependencies) {
+      49 |       if (!this.nodes.has(depId) && !this.completedTasks.has(depId)) {
+    > 50 |         throw new TaskDependencyError(task.id, [depId]);
+         |               ^
+      51 |       }
+      52 |     }
+      53 |
+
+      at DependencyGraph.addTask (src/coordination/dependency-graph.ts:50:15)
+      at QueenAgent.delegateTask (src/coordination/queen-agent.ts:378:26)
+      at Object.<anonymous> (tests/unit/coordination/queen-agent.test.ts:619:19)
+
+Test Suites: 1 failed, 1 total
+Tests:       11 failed, 15 passed, 26 total
+Snapshots:   0 total
+Time:        14.986 s
+Ran all test suites matching /tests\/unit\/coordination\/queen-agent.test.ts/i.

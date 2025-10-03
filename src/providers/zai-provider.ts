@@ -1,9 +1,13 @@
 /**
  * Z.ai Provider Implementation (Tier 3)
- * Minimal implementation for testing Z.ai API integration
+ *
+ * Cost-optimized provider using GLM-4.5/4.6 models via Z.ai
+ * - Default: 8192 tokens (optimized for 500 line per file guideline)
+ * - Minimum: 200 tokens (avoids GLM-4.6 empty response bug)
+ * - Maximum: 80,000 tokens (supports large code generation tasks)
  */
 
-import { BaseProvider } from './base-provider.js';
+import { BaseProvider } from "./base-provider.js";
 import {
   LLMProvider,
   LLMModel,
@@ -14,10 +18,10 @@ import {
   ProviderCapabilities,
   HealthCheckResult,
   LLMProviderError,
-} from './types.js';
+} from "./types.js";
 
 interface ZaiMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: "system" | "user" | "assistant";
   content: string;
 }
 
@@ -34,10 +38,10 @@ interface ZaiCompletionResponse {
   model: string;
   choices: Array<{
     message: {
-      role: 'assistant';
+      role: "assistant";
       content: string;
     };
-    finish_reason: 'stop' | 'length' | 'content_filter';
+    finish_reason: "stop" | "length" | "content_filter";
   }>;
   usage: {
     prompt_tokens: number;
@@ -47,14 +51,18 @@ interface ZaiCompletionResponse {
 }
 
 export class ZaiProvider extends BaseProvider {
-  readonly name: LLMProvider = 'zai';
+  readonly name: LLMProvider = "zai";
   readonly capabilities: ProviderCapabilities = {
-    supportedModels: ['claude-3-5-sonnet-20241022'],
+    supportedModels: ["claude-3-5-sonnet-20241022", "glm-4.5", "glm-4.6"],
     maxContextLength: {
-      'claude-3-5-sonnet-20241022': 200000,
+      "claude-3-5-sonnet-20241022": 200000,
+      "glm-4.5": 128000,
+      "glm-4.6": 200000,
     } as Record<LLMModel, number>,
     maxOutputTokens: {
-      'claude-3-5-sonnet-20241022': 8192,
+      "claude-3-5-sonnet-20241022": 8192,
+      "glm-4.5": 4096,
+      "glm-4.6": 128000,
     } as Record<LLMModel, number>,
     supportsStreaming: true,
     supportsFunctionCalling: false,
@@ -67,25 +75,35 @@ export class ZaiProvider extends BaseProvider {
     supportsLogprobs: false,
     supportsBatching: false,
     pricing: {
-      'claude-3-5-sonnet-20241022': {
+      "claude-3-5-sonnet-20241022": {
         promptCostPer1k: 0.003,
         completionCostPer1k: 0.015,
-        currency: 'USD',
+        currency: "USD",
+      },
+      "glm-4.5": {
+        promptCostPer1k: 0.003,
+        completionCostPer1k: 0.015,
+        currency: "USD",
+      },
+      "glm-4.6": {
+        promptCostPer1k: 0.003,
+        completionCostPer1k: 0.015,
+        currency: "USD",
       },
     },
   };
 
   private apiKey!: string;
-  private baseURL = 'https://api.z.ai/v1';
+  private baseURL = "https://api.z.ai/v1";
 
   protected async doInitialize(): Promise<void> {
     // Validate API key
     if (!this.config.apiKey) {
-      throw new Error('Z.ai API key is required. Set Z_AI_API_KEY in .env');
+      throw new Error("Z.ai API key is required. Set Z_AI_API_KEY in .env");
     }
 
     this.apiKey = this.config.apiKey;
-    this.logger.info('Z.ai provider initialized', {
+    this.logger.info("Z.ai provider initialized", {
       model: this.config.model,
       baseURL: this.baseURL,
     });
@@ -98,29 +116,37 @@ export class ZaiProvider extends BaseProvider {
     const payload: ZaiCompletionRequest = {
       model,
       messages: request.messages
-        .filter((msg) => msg.role !== 'function')
+        .filter((msg) => msg.role !== "function")
         .map((msg) => ({
-          role: msg.role as 'system' | 'user' | 'assistant',
+          role: msg.role as "system" | "user" | "assistant",
           content: msg.content,
         })),
       temperature: request.temperature ?? this.config.temperature,
-      max_tokens: request.maxTokens ?? this.config.maxTokens,
+      max_tokens: Math.max(
+        201,
+        request.maxTokens ?? this.config.maxTokens ?? 8192,
+      ),
       stream: false,
     };
 
     // Call Z.ai API
-    const response = await this.callZaiAPI<ZaiCompletionResponse>('/chat/completions', payload);
+    const response = await this.callZaiAPI<ZaiCompletionResponse>(
+      "/chat/completions",
+      payload,
+    );
 
     // Calculate cost
     const pricing = this.capabilities.pricing![model];
-    const promptCost = (response.usage.prompt_tokens / 1000) * pricing.promptCostPer1k;
-    const completionCost = (response.usage.completion_tokens / 1000) * pricing.completionCostPer1k;
+    const promptCost =
+      (response.usage.prompt_tokens / 1000) * pricing.promptCostPer1k;
+    const completionCost =
+      (response.usage.completion_tokens / 1000) * pricing.completionCostPer1k;
 
     // Convert to unified response format
     return {
       id: response.id,
       model,
-      provider: 'zai',
+      provider: "zai",
       content: response.choices[0].message.content,
       usage: {
         promptTokens: response.usage.prompt_tokens,
@@ -131,34 +157,40 @@ export class ZaiProvider extends BaseProvider {
         promptCost,
         completionCost,
         totalCost: promptCost + completionCost,
-        currency: 'USD',
+        currency: "USD",
       },
-      finishReason: response.choices[0].finish_reason === 'stop' ? 'stop' : 'length',
+      finishReason:
+        response.choices[0].finish_reason === "stop" ? "stop" : "length",
     };
   }
 
-  protected async *doStreamComplete(request: LLMRequest): AsyncIterable<LLMStreamEvent> {
+  protected async *doStreamComplete(
+    request: LLMRequest,
+  ): AsyncIterable<LLMStreamEvent> {
     const model = request.model || this.config.model;
 
     // Build request payload
     const payload: ZaiCompletionRequest = {
       model,
       messages: request.messages
-        .filter((msg) => msg.role !== 'function')
+        .filter((msg) => msg.role !== "function")
         .map((msg) => ({
-          role: msg.role as 'system' | 'user' | 'assistant',
+          role: msg.role as "system" | "user" | "assistant",
           content: msg.content,
         })),
       temperature: request.temperature ?? this.config.temperature,
-      max_tokens: request.maxTokens ?? this.config.maxTokens,
+      max_tokens: Math.max(
+        201,
+        request.maxTokens ?? this.config.maxTokens ?? 8192,
+      ),
       stream: true,
     };
 
     // Call Z.ai streaming API
     const response = await fetch(`${this.baseURL}/chat/completions`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(payload),
@@ -167,21 +199,25 @@ export class ZaiProvider extends BaseProvider {
     if (!response.ok) {
       throw new LLMProviderError(
         `Z.ai API error: ${response.status} ${response.statusText}`,
-        'API_ERROR',
-        'zai',
+        "API_ERROR",
+        "zai",
         undefined,
         response.status >= 500,
       );
     }
 
     if (!response.body) {
-      throw new LLMProviderError('No response body from Z.ai API', 'NO_RESPONSE_BODY', 'zai');
+      throw new LLMProviderError(
+        "No response body from Z.ai API",
+        "NO_RESPONSE_BODY",
+        "zai",
+      );
     }
 
     // Process SSE stream
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
     let totalTokens = 0;
 
     try {
@@ -190,22 +226,22 @@ export class ZaiProvider extends BaseProvider {
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (!line.trim() || line.startsWith(':')) continue;
+          if (!line.trim() || line.startsWith(":")) continue;
 
-          if (line.startsWith('data: ')) {
+          if (line.startsWith("data: ")) {
             const data = line.slice(6);
-            if (data === '[DONE]') continue;
+            if (data === "[DONE]") continue;
 
             try {
               const event = JSON.parse(data);
 
               if (event.choices?.[0]?.delta?.content) {
                 yield {
-                  type: 'content',
+                  type: "content",
                   delta: {
                     content: event.choices[0].delta.content,
                   },
@@ -216,7 +252,10 @@ export class ZaiProvider extends BaseProvider {
                 totalTokens = event.usage.total_tokens;
               }
             } catch (parseError) {
-              this.logger.warn('Failed to parse SSE event', { line, error: parseError });
+              this.logger.warn("Failed to parse SSE event", {
+                line,
+                error: parseError,
+              });
             }
           }
         }
@@ -224,14 +263,17 @@ export class ZaiProvider extends BaseProvider {
 
       // Emit final usage statistics
       const pricing = this.capabilities.pricing![model];
-      const promptTokens = this.estimateTokens(JSON.stringify(request.messages));
+      const promptTokens = this.estimateTokens(
+        JSON.stringify(request.messages),
+      );
       const completionTokens = totalTokens - promptTokens;
 
       const promptCost = (promptTokens / 1000) * pricing.promptCostPer1k;
-      const completionCost = (completionTokens / 1000) * pricing.completionCostPer1k;
+      const completionCost =
+        (completionTokens / 1000) * pricing.completionCostPer1k;
 
       yield {
-        type: 'done',
+        type: "done",
         usage: {
           promptTokens,
           completionTokens,
@@ -241,7 +283,7 @@ export class ZaiProvider extends BaseProvider {
           promptCost,
           completionCost,
           totalCost: promptCost + completionCost,
-          currency: 'USD',
+          currency: "USD",
         },
       };
     } finally {
@@ -254,13 +296,25 @@ export class ZaiProvider extends BaseProvider {
   }
 
   async getModelInfo(model: LLMModel): Promise<ModelInfo> {
+    const modelNames: Record<string, string> = {
+      "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
+      "glm-4.5": "GLM-4.5",
+      "glm-4.6": "GLM-4.6",
+    };
+
+    const modelDescriptions: Record<string, string> = {
+      "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet via Z.ai",
+      "glm-4.5": "GLM-4.5 via Z.ai - 128K context",
+      "glm-4.6": "GLM-4.6 via Z.ai - 200K context, 128K max output",
+    };
+
     return {
       model,
-      name: 'Claude 3.5 Sonnet',
-      description: 'Claude 3.5 Sonnet via Z.ai',
+      name: modelNames[model] || model,
+      description: modelDescriptions[model] || `${model} via Z.ai`,
       contextLength: this.capabilities.maxContextLength[model] || 200000,
       maxOutputTokens: this.capabilities.maxOutputTokens[model] || 8192,
-      supportedFeatures: ['chat', 'completion', 'vision', 'streaming'],
+      supportedFeatures: ["chat", "completion", "vision", "streaming"],
       pricing: this.capabilities.pricing![model],
     };
   }
@@ -268,25 +322,28 @@ export class ZaiProvider extends BaseProvider {
   protected async doHealthCheck(): Promise<HealthCheckResult> {
     try {
       // Minimal health check request
-      const response = await this.callZaiAPI<ZaiCompletionResponse>('/chat/completions', {
-        model: this.config.model,
-        messages: [{ role: 'user', content: 'Hi' }],
-        max_tokens: 1,
-        stream: false,
-      });
+      const response = await this.callZaiAPI<ZaiCompletionResponse>(
+        "/chat/completions",
+        {
+          model: this.config.model,
+          messages: [{ role: "user", content: "Hi" }],
+          max_tokens: 1,
+          stream: false,
+        },
+      );
 
       return {
         healthy: true,
         timestamp: new Date(),
         details: {
           model: response.model,
-          status: 'operational',
+          status: "operational",
         },
       };
     } catch (error) {
       return {
         healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date(),
       };
     }
@@ -300,9 +357,9 @@ export class ZaiProvider extends BaseProvider {
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(payload),
@@ -321,8 +378,8 @@ export class ZaiProvider extends BaseProvider {
 
         throw new LLMProviderError(
           errorMessage,
-          response.status === 429 ? 'RATE_LIMIT' : 'API_ERROR',
-          'zai',
+          response.status === 429 ? "RATE_LIMIT" : "API_ERROR",
+          "zai",
           undefined,
           response.status >= 500,
         );
@@ -336,8 +393,8 @@ export class ZaiProvider extends BaseProvider {
 
       throw new LLMProviderError(
         error instanceof Error ? error.message : String(error),
-        'NETWORK_ERROR',
-        'zai',
+        "NETWORK_ERROR",
+        "zai",
         undefined,
         true,
       );
@@ -346,6 +403,6 @@ export class ZaiProvider extends BaseProvider {
 
   destroy(): void {
     super.destroy();
-    this.logger.info('Z.ai provider destroyed');
+    this.logger.info("Z.ai provider destroyed");
   }
 }

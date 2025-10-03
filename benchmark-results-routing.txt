@@ -1,0 +1,156 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/benchmarks/help-routing-performance.test.ts --verbose
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+(node:49516) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.log
+    
+    Help Routing Stages (single request):
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:179:13)
+
+  console.log
+      Matching: 0.04ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:180:13)
+
+  console.log
+      Notification: 9.67ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:181:13)
+
+  console.log
+      Acceptance: 1.32ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:182:13)
+
+  console.log
+      Assignment: 7.35ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:183:13)
+
+  console.log
+      Total: 18.42ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:184:13)
+
+  console.log
+      Threshold: <200ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:185:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:186:13)
+
+  console.log
+    
+    Help Routing Performance (100 requests):
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:225:13)
+
+  console.log
+      Min: 0.00ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:226:13)
+
+  console.log
+      Max: 19.69ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:227:13)
+
+  console.log
+      Avg: 6.65ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:228:13)
+
+  console.log
+      P95: 18.60ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:229:13)
+
+  console.log
+    
+    Average Stage Latencies:
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:230:13)
+
+  console.log
+      Matching: 0.01ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:231:13)
+
+  console.log
+      Notification: 2.66ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:232:13)
+
+  console.log
+      Acceptance: 1.22ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:233:13)
+
+  console.log
+      Assignment: 2.75ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:234:13)
+
+  console.log
+    
+    Threshold: <200ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:235:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:236:13)
+
+  console.log
+    
+    Concurrent Routing (20 requests):
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:260:13)
+
+  console.log
+      Total time: 20.28ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:261:13)
+
+  console.log
+      Avg latency: 11.75ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:262:13)
+
+  console.log
+      Max latency: 20.24ms
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:263:13)
+
+  console.log
+      Threshold: <200ms per request
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:264:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/help-routing-performance.test.ts:265:13)
+
+PASS tests/benchmarks/help-routing-performance.test.ts (40.809 s)
+  Help Routing Performance Benchmark
+    ✓ should route help request in <200ms end-to-end (60 ms)
+    ✓ should maintain <200ms p95 across 100 routing requests (671 ms)
+    ✓ should handle concurrent routing requests efficiently (22 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        44.082 s
+Ran all test suites matching /tests\/benchmarks\/help-routing-performance.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

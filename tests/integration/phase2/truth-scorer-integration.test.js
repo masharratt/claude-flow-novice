@@ -1,4 +1,4 @@
-import { describe, test, it, expect, beforeEach } from '@jest/globals';
+import { describe, test, it, expect, beforeEach, jest } from '@jest/globals';
 /**
  * TruthScorer Integration Tests
  * Phase 2 Integration Test Suite - Truth System Integration Component
@@ -14,8 +14,6 @@ import { describe, test, it, expect, beforeEach } from '@jest/globals';
  * - Performance benchmarking
  * - Error handling and edge cases
  */
-
-const { jest } = require('@jest/globals');
 
 // Mock TruthScorer integration (based on existing 745-line system)
 class MockTruthScorer {

@@ -1,0 +1,302 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/benchmarks/paused-pool-scalability.test.ts --verbose
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.log
+    
+    Paused Pool Scalability (60 agents):
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:124:13)
+
+  console.log
+      Paused agents: 60
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:125:13)
+
+  console.log
+      Total memory: 0.311 MB
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:126:13)
+
+  console.log
+      Avg memory per agent: 5.31 KB
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:127:13)
+
+  console.log
+      Token usage: 0
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:128:13)
+
+  console.log
+      Threshold: ≥50 agents
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:129:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:130:13)
+
+  console.log
+    
+    Paused Pool Memory Efficiency (100 agents):
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:153:13)
+
+  console.log
+      Paused agents: 100
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:154:13)
+
+  console.log
+      Total memory: 0.204 MB
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:155:13)
+
+  console.log
+      Avg memory per agent: 2.09 KB
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:156:13)
+
+  console.log
+      Memory per agent threshold: <50 KB (acceptable)
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:157:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:158:13)
+
+  console.log
+    
+    Resume Performance from Paused Pool (60 agents):
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:191:13)
+
+  console.log
+      Resumed agents: 60
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:192:13)
+
+  console.log
+      Min latency: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:193:13)
+
+  console.log
+      Max latency: 0.014ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:194:13)
+
+  console.log
+      Avg latency: 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:195:13)
+
+  console.log
+      P95 latency: 0.004ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:196:13)
+
+  console.log
+      Threshold: <50ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:197:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:198:13)
+
+  console.log
+    
+    Concurrent Pause/Resume Scalability (80 agents):
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:247:13)
+
+  console.log
+      Pause operations: 80
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:248:13)
+
+  console.log
+      Total pause time: 0.008ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:249:13)
+
+  console.log
+      Avg pause time: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:250:13)
+
+  console.log
+      Paused pool count: 80
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:251:13)
+
+  console.log
+    
+      Resume operations: 80
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:252:13)
+
+  console.log
+      Total resume time: 0.003ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:253:13)
+
+  console.log
+      Avg resume time: 0.000ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:254:13)
+
+  console.log
+      P95 resume latency: 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:255:13)
+
+  console.log
+    
+      Scalability threshold: ≥50 agents
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:256:13)
+
+  console.log
+      Resume threshold: <50ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:257:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:258:13)
+
+  console.log
+    
+    Scalability Benefits (60 agents):
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:286:13)
+
+  console.log
+    
+    Active Agents (baseline):
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:287:13)
+
+  console.log
+      Token usage: 120,000
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:288:13)
+
+  console.log
+      Memory usage: 30.00 MB
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:289:13)
+
+  console.log
+    
+    Paused Agents (optimized):
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:290:13)
+
+  console.log
+      Token usage: 0
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:291:13)
+
+  console.log
+      Memory usage: 0.102 MB
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:292:13)
+
+  console.log
+    
+    Savings:
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:293:13)
+
+  console.log
+      Token savings: 120,000 (100.0%)
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:294:13)
+
+  console.log
+      Memory savings: 29.90 MB (99.7%)
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:295:13)
+
+  console.log
+    
+    Scalability: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:296:13)
+
+  console.log
+    
+    Scalability Degradation Analysis:
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:335:13)
+
+  console.log
+      Pool size 50: Avg 0.001ms, P95 0.002ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:343:17)
+
+  console.log
+      Pool size 75: Avg 0.000ms, P95 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:343:17)
+
+  console.log
+      Pool size 100: Avg 0.000ms, P95 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:343:17)
+
+  console.log
+      Pool size 125: Avg 0.000ms, P95 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:343:17)
+
+  console.log
+      Pool size 150: Avg 0.000ms, P95 0.001ms
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:343:17)
+
+  console.log
+    
+      Max pool supported: 150 agents
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:348:13)
+
+  console.log
+      Threshold: ≥50 agents
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:349:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/paused-pool-scalability.test.ts:350:13)
+
+(node:57605) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/benchmarks/paused-pool-scalability.test.ts (14.999 s)
+  Paused Pool Scalability Benchmark
+    ✓ should support 50+ paused agents simultaneously (52 ms)
+    ✓ should maintain acceptable memory usage with 100 paused agents (4 ms)
+    ✓ should resume agents efficiently from pool of 50+ (4 ms)
+    ✓ should handle concurrent pause/resume operations at scale (4 ms)
+    ✓ should demonstrate scalability benefits vs active agents (12 ms)
+    ✓ should scale to 150 agents with degradation analysis (6 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        16.207 s
+Ran all test suites matching /tests\/benchmarks\/paused-pool-scalability.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

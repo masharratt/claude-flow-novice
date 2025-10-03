@@ -3,6 +3,7 @@ name: coder
 description: MUST BE USED when implementing features, writing production code, fixing bugs, or translating requirements into executable code. use PROACTIVELY for API development, component creation, refactoring, database operations, algorithm implementation, integration development, security implementation, error handling setup, performance optimization, legacy code modernization. ALWAYS delegate when user asks to "implement", "create code", "write", "build feature", "develop", "add functionality", "fix bug", "refactor", "optimize", "integrate", "connect systems". Trigger keywords - implement, code, build, develop, create function, write class, refactor, optimize, fix, integrate, API, component, database, algorithm, security, authentication, validation, error handling, feature development, bug fix, performance, technical debt
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, TodoWrite
 model: sonnet
+provider: zai
 color: green
 ---
 

@@ -1,5 +1,5 @@
 {
-  "name": "claude-flow-personal-web-portal",
+  "name": "claude-flow-novice-web-portal",
   "version": "1.0.0",
   "description": "React frontend for Claude Flow Personal Web Portal with real-time MCP integration",
   "private": true,

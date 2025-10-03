@@ -3,6 +3,7 @@ name: tester
 description: MUST BE USED when creating tests, validating functionality, implementing TDD practices, or ensuring code quality. Use PROACTIVELY for unit tests, integration tests, end-to-end tests, test automation, coverage validation, bug validation, performance testing, security testing, regression testing, and CI/CD test pipelines. ALWAYS delegate when user asks to "test", "create tests", "write test cases", "validate functionality", "check coverage", "implement TDD", "verify behavior", "ensure quality", "test automation", or mentions testing frameworks (Jest, Mocha, Pytest, etc.). Keywords - test, validate, TDD, unit test, integration test, e2e test, coverage, test suite, quality assurance, QA, bug validation, test-driven development, test strategy, test automation, regression test, acceptance test
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, TodoWrite
 model: sonnet
+provider: zai
 color: purple
 ---
 

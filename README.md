@@ -26,26 +26,122 @@ Claude Flow Personal is a transparency-focused version of the Claude Flow framew
 - ✅ **Explainable AI** - Get detailed explanations for all agent actions
 - ✅ **Your Style** - Adapt agents to work exactly how you prefer
 
+## 🎯 Key Features
+
+### CFN Loop: Self-Correcting Development Loop
+The Confidence-Feedback-Next (CFN) Loop provides autonomous iteration and quality validation:
+
+- **4-Loop Architecture**: Autonomous retry with intelligent agent selection
+  ```
+  Loop 0: Epic/Sprint Orchestration → Multi-phase projects
+  Loop 1: Phase Execution → Sequential phase progression
+  Loop 2: Consensus Validation → 10 iterations max per phase
+  Loop 3: Primary Swarm → 10 iterations max per subtask
+  ```
+  - **Total Capacity**: 10 × 10 = 100 iterations (handles enterprise complexity)
+  - **Intelligent Retry**: Replace failing agents (coder → backend-dev for auth issues)
+  - **Targeted Fixes**: Add specialists based on validator feedback (security-specialist for SQL injection)
+
+- **Two-Tier Sprint/Phase System** (NEW in v1.6.0):
+  - `/cfn-loop-single`: Single-phase execution (original workflow)
+  - `/cfn-loop-sprints`: Multi-sprint phase orchestration (NEW)
+  - `/cfn-loop-epic`: Multi-phase epic execution (NEW)
+  - `/parse-epic`: Convert markdown → structured JSON (NEW)
+  - Memory namespace hierarchy: `cfn-loop/epic-{id}/phase-{n}/sprint-{m}/iteration-{i}`
+  - Cross-phase sprint dependencies supported
+
+- **Confidence Gating**: Multi-factor quality assessment (≥75% threshold)
+  - Test coverage (30%), Code coverage (25%), Syntax (15%)
+  - Security (20%), Formatting (10%)
+
+- **Product Owner Decision Gate** (NEW): GOAP-based autonomous scope enforcement
+  - A* search algorithm for optimal decision-making
+  - Scope boundary enforcement via cost functions (out-of-scope = cost 1000)
+  - PROCEED/DEFER/ESCALATE decisions without human approval
+  - Prevents scope creep while maintaining velocity
+
+- **Byzantine Consensus**: Distributed validator agreement (≥90% threshold)
+  - Quality review, Security audit, Architecture validation
+  - Performance testing, Integration verification
+  - Validators spawn AFTER implementation (prevents premature validation)
+
+- **Automatic Feedback**: Sanitized validator feedback injection
+  - Blocks prompt injection (CVE-CFN-2025-002)
+  - Prioritized recommendations (Critical → High → Medium → Low)
+  - Deduplication with LRU registry
+
+- **Performance**: 13x faster confidence collection via parallelization
+- **Total Iteration Capacity**: 10 × 10 = 100 iterations (handles enterprise complexity)
+
+### Security-First Design
+- Input validation (iteration limits 1-100)
+- Prompt injection prevention (6 attack vectors blocked)
+- Memory leak prevention (LRU eviction, automatic cleanup)
+- Circuit breaker (30-min timeout, fault tolerance)
+
+### Quick Start with CFN Loop
+
+```bash
+# Initialize swarm for multi-agent coordination
+mcp__claude-flow-novice__swarm_init({
+  topology: "mesh",
+  maxAgents: 3
+})
+
+# Single-phase CFN Loop (original workflow)
+/cfn-loop "Implement JWT authentication" --phase=auth --max-loop2=10 --max-loop3=10
+
+# Multi-sprint phase execution (NEW)
+/cfn-loop-sprints "Authentication System" --sprints=3 --max-loop2=10
+
+# Multi-phase epic execution (NEW)
+/cfn-loop-epic "Complete User Management System" --phases=4 --max-loop2=10
+
+# Or use orchestrator programmatically
+import { CFNLoopIntegrator } from './src/cfn-loop/cfn-loop-integrator.js';
+
+const orchestrator = new CFNLoopIntegrator({
+  phaseId: 'auth-impl',
+  maxLoop2: 5,
+  maxLoop3: 10
+});
+
+const result = await orchestrator.executePhase({
+  description: 'Implement JWT authentication',
+  agents: [/* ... */],
+  validators: [/* ... */]
+});
+```
+
+### CFN Loop Documentation
+- 📘 [Complete Guide](planning/CFN_LOOP_COMPLETE_GUIDE.md) - 3000+ line implementation guide with 4-loop structure
+- 📊 [Flowcharts](planning/CFN_LOOP_FLOWCHARTS.md) - 8 Mermaid diagrams including Loop 0
+- 📋 [Cheatsheet](planning/CFN_LOOP_CHEATSHEET.md) - Quick reference with slash commands
+- 📖 [Full Docs](docs/CFN_LOOP.md) - 2780-line comprehensive documentation
+- 🚀 [Sprint Orchestration](docs/SPRINT_ORCHESTRATION.md) - Two-tier phase/sprint system guide
+- 🎯 [Scope Control](docs/CFN_LOOP_SCOPE_CONTROL.md) - Product Owner GOAP-based scope enforcement (NEW)
+- 🎯 [MCP Endpoints](planning/COMPREHENSIVE_MCP_ENDPOINTS_REFERENCE.md) - Complete reference including CFN Loop commands
+
 ## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-npm install -g claude-flow-personal
+npm install -g claude-flow-novice
 ```
 
 ### Your First Transparent AI Workflow in 3 Steps
 
 ```bash
 # 1. Initialize with transparency enabled
-claude-flow-personal init my-project --transparency=full
+claude-flow-novice init my-project --transparency=full
 cd my-project
 
 # 2. Create an agent with detailed reasoning
-claude-flow-personal agent create researcher "Research the latest trends in renewable energy" --explain-decisions --show-reasoning
+claude-flow-novice agent create researcher "Research the latest trends in renewable energy" --explain-decisions --show-reasoning
 
 # 3. Run with full visibility
-claude-flow-personal run --verbose --show-thought-process
+claude-flow-novice run --verbose --show-thought-process
 ```
 
 You'll see every decision, reasoning step, and coordination choice your agents make in real-time.
@@ -75,70 +171,74 @@ Every agent in Claude Flow Personal provides complete visibility into their deci
 
 ```bash
 # Project & Profile Management
-claude-flow-personal init <project> --profile=<your-style>     # Create personalized project
-claude-flow-personal profile setup                             # Configure your work preferences
-claude-flow-personal status --detailed                         # Get comprehensive status
+claude-flow-novice init <project> --profile=<your-style>     # Create personalized project
+claude-flow-novice profile setup                             # Configure your work preferences
+claude-flow-novice status --detailed                         # Get comprehensive status
 
 # Transparent Agent Management
-claude-flow-personal agent create <type> "<task>" --explain-all    # Create fully transparent agent
-claude-flow-personal agent inspect <id>                           # Deep dive into agent reasoning
-claude-flow-personal agent customize <id> --style=<your-way>      # Personalize agent behavior
+claude-flow-novice agent create <type> "<task>" --explain-all    # Create fully transparent agent
+claude-flow-novice agent inspect <id>                           # Deep dive into agent reasoning
+claude-flow-novice agent customize <id> --style=<your-way>      # Personalize agent behavior
 
 # Coordinated Execution with Full Visibility
-claude-flow-personal run --transparency=full                   # Run with complete visibility
-claude-flow-personal monitor --real-time                       # Watch coordination in real-time
-claude-flow-personal explain <execution-id>                    # Get detailed execution explanation
+claude-flow-novice run --transparency=full                   # Run with complete visibility
+claude-flow-novice monitor --real-time                       # Watch coordination in real-time
+claude-flow-novice explain <execution-id>                    # Get detailed execution explanation
 
 # Personalization & Learning
-claude-flow-personal learn-preferences                         # Analyze your coordination patterns
-claude-flow-personal customize-workflow <workflow-id>          # Adapt workflows to your style
-claude-flow-personal transparency-report                       # Generate decision transparency report
+claude-flow-novice learn-preferences                         # Analyze your coordination patterns
+claude-flow-novice customize-workflow <workflow-id>          # Adapt workflows to your style
+claude-flow-novice transparency-report                       # Generate decision transparency report
+
+# Provider Routing Management
+/custom-routing-activate                                     # Enable tiered routing (~64% cost reduction)
+/custom-routing-deactivate                                   # Disable routing (all agents use sonnet)
 ```
 
 ## 📖 Transparency & Personalization Examples
 
 ### Example 1: Transparent Research with Your Style
 ```bash
-claude-flow-personal init research-project --profile=analytical-deep-dive
+claude-flow-novice init research-project --profile=analytical-deep-dive
 cd research-project
-claude-flow-personal agent create researcher "Research TypeScript vs JavaScript" \
+claude-flow-novice agent create researcher "Research TypeScript vs JavaScript" \
   --explain-search-strategy \
   --show-source-evaluation \
   --reveal-bias-checking
-claude-flow-personal run --transparency=full
+claude-flow-novice run --transparency=full
 ```
 
 ### Example 2: Personalized Development Workflow
 ```bash
-claude-flow-personal init todo-app --coordination-style=iterative
+claude-flow-novice init todo-app --coordination-style=iterative
 cd todo-app
 
 # Configure agents to match your decision-making style
-claude-flow-personal agent create planner "Plan React to-do app" \
+claude-flow-novice agent create planner "Plan React to-do app" \
   --decision-style=thorough \
   --explain-trade-offs \
   --show-alternatives
 
-claude-flow-personal agent create coder "Implement based on plan" \
+claude-flow-novice agent create coder "Implement based on plan" \
   --coding-style=defensive \
   --explain-design-choices \
   --show-refactoring-opportunities
 
 # Watch the coordination happen
-claude-flow-personal run --monitor-coordination --explain-handoffs
+claude-flow-novice run --monitor-coordination --explain-handoffs
 ```
 
 ### Example 3: Learning with Full Visibility
 ```bash
-claude-flow-personal init learning-docker --learning-mode=transparent
+claude-flow-novice init learning-docker --learning-mode=transparent
 cd learning-docker
 
-claude-flow-personal agent create researcher "Docker fundamentals" \
+claude-flow-novice agent create researcher "Docker fundamentals" \
   --show-learning-path \
   --explain-complexity-assessment \
   --reveal-knowledge-gaps
 
-claude-flow-personal monitor --real-time --explain-decisions
+claude-flow-novice monitor --real-time --explain-decisions
 ```
 
 ## 🎓 Personalization Journey

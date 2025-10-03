@@ -1,0 +1,82 @@
+
+> claude-flow-novice@1.5.22 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/benchmarks/help-matcher-performance.test.ts --verbose
+
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true", see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.log
+    Help Matcher Performance (50+ agents):
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:136:13)
+
+  console.log
+      Requests: 100
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:137:13)
+
+  console.log
+      Min: 0.00ms
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:138:13)
+
+  console.log
+      Max: 0.04ms
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:139:13)
+
+  console.log
+      Avg: 0.01ms
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:140:13)
+
+  console.log
+      P95: 0.01ms
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:141:13)
+
+  console.log
+      Threshold: <100ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:142:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:143:13)
+
+  console.log
+    
+    Help Matcher Scalability (100 agents):
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:179:13)
+
+  console.log
+      P95: 0.02ms
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:180:13)
+
+  console.log
+      Threshold: <100ms (p95)
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:181:13)
+
+  console.log
+      Status: ✅ PASS
+
+      at Object.<anonymous> (tests/benchmarks/help-matcher-performance.test.ts:182:13)
+
+(node:46101) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS tests/benchmarks/help-matcher-performance.test.ts (12.345 s)
+  Help Matcher Performance Benchmark
+    ✓ should match helpers in <100ms for 50+ agents (single request) (4 ms)
+    ✓ should maintain <100ms p95 across 100 requests with 50+ agents (62 ms)
+    ✓ should scale efficiently with 100 agents (4 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        14.161 s
+Ran all test suites matching /tests\/benchmarks\/help-matcher-performance.test.ts/i.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
