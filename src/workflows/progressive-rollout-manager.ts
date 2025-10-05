@@ -122,10 +122,16 @@ export class ProgressiveRolloutManager extends EventEmitter {
   private configs: Map<string, RolloutConfig> = new Map();
   private healthCheckIntervals: Map<string, NodeJS.Timeout> = new Map();
   private metricsCollectors: Map<string, NodeJS.Timeout> = new Map();
+  private isShutdown = false;
 
   constructor() {
     super();
     this.initializeDefaultConfigs();
+
+    // Register automatic cleanup on process termination
+    process.on('SIGTERM', () => this.destroy());
+    process.on('SIGINT', () => this.destroy());
+    process.on('beforeExit', () => this.destroy());
   }
 
   private initializeDefaultConfigs(): void {
@@ -982,6 +988,38 @@ export class ProgressiveRolloutManager extends EventEmitter {
   }
 
   public getRolloutsByStatus(status: RolloutExecution['status']): RolloutExecution[] {
+    if (this.isShutdown) {
+      throw new Error('ProgressiveRolloutManager is shutdown');
+    }
     return Array.from(this.rollouts.values()).filter((r) => r.status === status);
+  }
+
+  /**
+   * Clean up resources to prevent memory leaks
+   */
+  destroy(): void {
+    if (this.isShutdown) return; // Idempotent guard
+    this.isShutdown = true;
+
+    // Clear all health check intervals
+    for (const interval of this.healthCheckIntervals.values()) {
+      clearInterval(interval);
+    }
+    this.healthCheckIntervals.clear();
+
+    // Clear all metrics collection intervals
+    for (const interval of this.metricsCollectors.values()) {
+      clearInterval(interval);
+    }
+    this.metricsCollectors.clear();
+
+    // Clean up event listeners
+    this.removeAllListeners();
+
+    // Clear data structures
+    this.rollouts.clear();
+    this.configs.clear();
+
+    console.log('ProgressiveRolloutManager cleanup completed');
   }
 }

@@ -236,6 +236,9 @@ export class MessageBus extends EventEmitter {
   private metrics: MessageBusMetrics;
   private metricsInterval?: NodeJS.Timeout;
 
+  // Shutdown control
+  private isShutdown = false;
+
   constructor(config: Partial<MessageBusConfig>, logger: ILogger, eventBus: IEventBus) {
     super();
     this.logger = logger;
@@ -266,6 +269,51 @@ export class MessageBus extends EventEmitter {
     this.metrics = new MessageBusMetrics();
 
     this.setupEventHandlers();
+    this.registerProcessSignalHandlers();
+  }
+
+  /**
+   * Register process signal handlers for graceful shutdown
+   */
+  private registerProcessSignalHandlers(): void {
+    const handleSignal = () => {
+      this.destroy();
+    };
+
+    process.on('SIGTERM', handleSignal);
+    process.on('SIGINT', handleSignal);
+  }
+
+  /**
+   * Destroy and cleanup MessageBus resources
+   * Idempotent - safe to call multiple times
+   */
+  public destroy(): void {
+    if (this.isShutdown) {
+      return; // Already destroyed
+    }
+
+    this.isShutdown = true;
+
+    // Clear metrics collection interval
+    if (this.metricsInterval) {
+      clearInterval(this.metricsInterval);
+      this.metricsInterval = undefined;
+    }
+
+    // Remove all event listeners
+    this.removeAllListeners();
+
+    // Clear all data structures
+    this.channels.clear();
+    this.queues.clear();
+    this.subscriptions.clear();
+    this.routingRules.clear();
+    this.messageStore.clear();
+    this.deliveryReceipts.clear();
+    this.acknowledgments.clear();
+
+    this.logger.info('MessageBus cleanup completed');
   }
 
   private setupEventHandlers(): void {
@@ -354,6 +402,10 @@ export class MessageBus extends EventEmitter {
       channel?: string;
     } = {},
   ): Promise<string> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const messageId = generateId('msg');
     const now = new Date();
 
@@ -419,6 +471,10 @@ export class MessageBus extends EventEmitter {
       ttl?: number;
     } = {},
   ): Promise<string> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const channel = options.channel
       ? this.channels.get(options.channel)
       : this.getDefaultBroadcastChannel();
@@ -451,6 +507,10 @@ export class MessageBus extends EventEmitter {
       ackRequired?: boolean;
     } = {},
   ): Promise<string> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const subscriptionId = generateId('sub');
 
     const subscription: TopicSubscription = {
@@ -478,6 +538,10 @@ export class MessageBus extends EventEmitter {
   }
 
   async unsubscribeFromTopic(subscriptionId: string): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const subscription = this.subscriptions.get(subscriptionId);
     if (!subscription) {
       throw new Error(`Subscription ${subscriptionId} not found`);
@@ -495,6 +559,10 @@ export class MessageBus extends EventEmitter {
   }
 
   async acknowledgeMessage(messageId: string, agentId: AgentId): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const message = this.messageStore.get(messageId);
     if (!message) {
       throw new Error(`Message ${messageId} not found`);
@@ -527,6 +595,10 @@ export class MessageBus extends EventEmitter {
     type: ChannelType,
     config: Partial<ChannelConfig> = {},
   ): Promise<string> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const channelId = generateId('channel');
 
     const channel: MessageChannel = {
@@ -572,6 +644,10 @@ export class MessageBus extends EventEmitter {
   }
 
   async joinChannel(channelId: string, agentId: AgentId): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const channel = this.channels.get(channelId);
     if (!channel) {
       throw new Error(`Channel ${channelId} not found`);
@@ -603,6 +679,10 @@ export class MessageBus extends EventEmitter {
   }
 
   async leaveChannel(channelId: string, agentId: AgentId): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const channel = this.channels.get(channelId);
     if (!channel) {
       throw new Error(`Channel ${channelId} not found`);
@@ -628,6 +708,10 @@ export class MessageBus extends EventEmitter {
     type: QueueType,
     config: Partial<QueueConfig> = {},
   ): Promise<string> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const queueId = generateId('queue');
 
     const queue: MessageQueue = {
@@ -669,6 +753,10 @@ export class MessageBus extends EventEmitter {
   }
 
   async enqueueMessage(queueId: string, message: Message): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const queue = this.queues.get(queueId);
     if (!queue) {
       throw new Error(`Queue ${queueId} not found`);
@@ -703,6 +791,10 @@ export class MessageBus extends EventEmitter {
   }
 
   async dequeueMessage(queueId: string, subscriberId: string): Promise<Message | null> {
+    if (this.isShutdown) {
+      throw new Error('MessageBus is shutdown');
+    }
+
     const queue = this.queues.get(queueId);
     if (!queue) {
       throw new Error(`Queue ${queueId} not found`);
@@ -1287,22 +1379,41 @@ class MessageRouter {
 }
 
 class DeliveryManager extends EventEmitter {
+  private isShutdown = false;
+
   constructor(
     private config: MessageBusConfig,
     private logger: ILogger,
   ) {
     super();
+
+    // Register automatic cleanup on process termination
+    process.on('SIGTERM', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+    process.on('beforeExit', () => this.shutdown());
   }
 
   async initialize(): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('DeliveryManager is shutdown');
+    }
     this.logger.debug('Delivery manager initialized');
   }
 
   async shutdown(): Promise<void> {
-    this.logger.debug('Delivery manager shutdown');
+    if (this.isShutdown) return; // Idempotent guard
+    this.isShutdown = true;
+
+    // Clean up event listeners
+    this.removeAllListeners();
+
+    this.logger.debug('DeliveryManager cleanup completed');
   }
 
   async deliver(message: Message, target: DeliveryTarget): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('DeliveryManager is shutdown');
+    }
     // Simulate delivery
     this.logger.debug('Delivering message', {
       messageId: message.id,
@@ -1318,27 +1429,50 @@ class DeliveryManager extends EventEmitter {
 class RetryManager extends EventEmitter {
   private retryQueue: Array<{ message: Message; target: DeliveryTarget; attempts: number }> = [];
   private retryInterval?: NodeJS.Timeout;
+  private isShutdown = false;
 
   constructor(
     private config: MessageBusConfig,
     private logger: ILogger,
   ) {
     super();
+
+    // Register automatic cleanup on process termination
+    process.on('SIGTERM', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+    process.on('beforeExit', () => this.shutdown());
   }
 
   async initialize(): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('RetryManager is shutdown');
+    }
     this.startRetryProcessor();
     this.logger.debug('Retry manager initialized');
   }
 
   async shutdown(): Promise<void> {
+    if (this.isShutdown) return; // Idempotent guard
+    this.isShutdown = true;
+
     if (this.retryInterval) {
       clearInterval(this.retryInterval);
+      this.retryInterval = undefined;
     }
-    this.logger.debug('Retry manager shutdown');
+
+    // Clean up event listeners
+    this.removeAllListeners();
+
+    // Clear retry queue
+    this.retryQueue = [];
+
+    this.logger.debug('RetryManager cleanup completed');
   }
 
   async scheduleRetry(message: Message, target: DeliveryTarget, error: any): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('RetryManager is shutdown');
+    }
     const existingEntry = this.retryQueue.find(
       (entry) => entry.message.id === message.id && entry.target.id === target.id,
     );

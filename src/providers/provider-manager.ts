@@ -73,6 +73,8 @@ export class ProviderManager extends EventEmitter {
   private cache: Map<string, { response: LLMResponse; timestamp: Date }> = new Map();
   private currentProviderIndex = 0;
   private tieredRouter?: TieredProviderRouter;
+  private monitoringInterval?: NodeJS.Timeout;
+  private isShutdown = false;
 
   constructor(logger: ILogger, configManager: ConfigManager, config: ProviderManagerConfig) {
     super();
@@ -92,6 +94,13 @@ export class ProviderManager extends EventEmitter {
     if (config.monitoring?.enabled) {
       this.startMonitoring();
     }
+
+    // Register automatic cleanup on process termination
+    process.on('SIGTERM', () => this.destroy());
+    process.on('SIGINT', () => this.destroy());
+    process.on('beforeExit', () => this.destroy());
+
+    this.logger.info('ProviderManager auto-shutdown hooks registered');
   }
 
   /**
@@ -173,6 +182,9 @@ export class ProviderManager extends EventEmitter {
    * Complete a request using the appropriate provider
    */
   async complete(request: LLMRequest, agentType?: string): Promise<LLMResponse> {
+    if (this.isShutdown) {
+      throw new Error('ProviderManager is shutdown');
+    }
     // Check cache first
     if (this.config.caching?.enabled) {
       const cached = this.checkCache(request);
@@ -239,11 +251,14 @@ export class ProviderManager extends EventEmitter {
    */
   private async selectProvider(request: LLMRequest, agentType?: string): Promise<ILLMProvider> {
     // Tiered routing based on agent type
-    if (this.config.tieredRouting?.enabled && this.tieredRouter && agentType) {
-      const selectedProvider = await this.tieredRouter.selectProvider(agentType);
+    // If no agentType provided, default to "main-chat" for Claude Max routing
+    const effectiveAgentType = agentType || "main-chat";
+
+    if (this.config.tieredRouting?.enabled && this.tieredRouter) {
+      const selectedProvider = await this.tieredRouter.selectProvider(effectiveAgentType);
       const provider = this.providers.get(selectedProvider);
       if (provider && this.isProviderAvailable(provider)) {
-        this.logger.debug(`Tiered routing: ${agentType} → ${selectedProvider}`);
+        this.logger.debug(`Tiered routing: ${effectiveAgentType} → ${selectedProvider}`);
         return provider;
       }
     }
@@ -594,7 +609,7 @@ export class ProviderManager extends EventEmitter {
    * Start monitoring
    */
   private startMonitoring(): void {
-    setInterval(() => {
+    this.monitoringInterval = setInterval(() => {
       this.emitMetrics();
     }, this.config.monitoring?.metricsInterval || 60000);
   }
@@ -651,6 +666,9 @@ export class ProviderManager extends EventEmitter {
    * Get available providers
    */
   getAvailableProviders(): LLMProvider[] {
+    if (this.isShutdown) {
+      throw new Error('ProviderManager is shutdown');
+    }
     return Array.from(this.providers.keys()).filter((name) => {
       const provider = this.providers.get(name);
       return provider && this.isProviderAvailable(provider);
@@ -661,6 +679,9 @@ export class ProviderManager extends EventEmitter {
    * Get provider by name
    */
   getProvider(name: LLMProvider): ILLMProvider | undefined {
+    if (this.isShutdown) {
+      throw new Error('ProviderManager is shutdown');
+    }
     return this.providers.get(name);
   }
 
@@ -668,6 +689,9 @@ export class ProviderManager extends EventEmitter {
    * Get all providers
    */
   getAllProviders(): Map<LLMProvider, ILLMProvider> {
+    if (this.isShutdown) {
+      throw new Error('ProviderManager is shutdown');
+    }
     return new Map(this.providers);
   }
 
@@ -675,13 +699,32 @@ export class ProviderManager extends EventEmitter {
    * Clean up resources
    */
   destroy(): void {
-    for (const provider of this.providers.values()) {
+    if (this.isShutdown) return; // Idempotent guard
+    this.isShutdown = true;
+
+    this.logger.info('Destroying provider manager');
+
+    // Clear monitoring interval to prevent memory leak
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = undefined;
+    }
+
+    // Destroy all providers
+    for (const [name, provider] of this.providers.entries()) {
+      this.logger.info(`Destroying provider: ${name}`);
       provider.destroy();
     }
+
+    // Clean up event listeners to prevent memory leaks
+    this.removeAllListeners();
 
     this.providers.clear();
     this.cache.clear();
     this.providerMetrics.clear();
-    this.removeAllListeners();
+    this.requestCount.clear();
+    this.lastUsed.clear();
+
+    this.logger.info('ProviderManager cleanup completed');
   }
 }

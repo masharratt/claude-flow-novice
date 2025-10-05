@@ -40,6 +40,8 @@ class SecureDashboardServer {
     private alertManager: AlertManager;
     private connectedClients: Map<string, { authenticated: boolean; user?: any; session?: any }> = new Map();
     private config: any;
+    private metricsInterval?: NodeJS.Timeout;
+    private swarmInterval?: NodeJS.Timeout;
 
     constructor(customConfig?: any) {
         this.app = express();
@@ -582,7 +584,7 @@ class SecureDashboardServer {
         console.log('🔒 Starting secure metrics collection...');
 
         // Start collecting metrics every second
-        setInterval(async () => {
+        this.metricsInterval = setInterval(async () => {
             try {
                 const metrics = await this.metricsCollector.collectMetrics();
 
@@ -613,7 +615,7 @@ class SecureDashboardServer {
     }
 
     private async startSwarmMonitoring() {
-        setInterval(async () => {
+        this.swarmInterval = setInterval(async () => {
             try {
                 const swarmMetrics = await this.metricsCollector.getSwarmMetrics();
                 this.io.emit('swarm_metrics', swarmMetrics);
@@ -676,6 +678,17 @@ class SecureDashboardServer {
         // Graceful shutdown
         const gracefulShutdown = () => {
             console.log('🛑 Shutting down gracefully...');
+
+            // Clear intervals to prevent memory leaks
+            if (this.metricsInterval) {
+                clearInterval(this.metricsInterval);
+                console.log('✅ Metrics collection stopped');
+            }
+            if (this.swarmInterval) {
+                clearInterval(this.swarmInterval);
+                console.log('✅ Swarm monitoring stopped');
+            }
+
             this.server.close(() => {
                 console.log('✅ Server closed');
                 process.exit(0);

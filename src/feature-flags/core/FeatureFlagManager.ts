@@ -47,22 +47,33 @@ export class FeatureFlagManager extends EventEmitter {
   private configPath: string;
   private metricsPath: string;
   private environment: string;
+  private rollbackInterval?: NodeJS.Timeout;
+  private isShutdown = false;
 
   constructor(environment: string = process.env.NODE_ENV || 'development') {
     super();
     this.environment = environment;
     this.configPath = path.join(process.cwd(), 'src/feature-flags/config');
     this.metricsPath = path.join(process.cwd(), 'src/feature-flags/monitoring');
+
+    // Register automatic cleanup on process termination
+    process.on('SIGTERM', () => this.destroy());
+    process.on('SIGINT', () => this.destroy());
+    process.on('beforeExit', () => this.destroy());
   }
 
   async initialize(): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
+
     try {
       await this.loadFlags();
       await this.loadMetrics();
       await this.setupEnvironmentVariables();
 
-      // Start monitoring loop
-      setInterval(() => this.evaluateRollbacks(), 30000); // Check every 30s
+      // Start monitoring loop and store interval reference
+      this.rollbackInterval = setInterval(() => this.evaluateRollbacks(), 30000); // Check every 30s
 
       this.emit('initialized', {
         flagCount: this.flags.size,
@@ -161,6 +172,9 @@ export class FeatureFlagManager extends EventEmitter {
    * Check if a feature flag is enabled for a given user/context
    */
   async isEnabled(flagName: string, userId?: string, context?: any): Promise<boolean> {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     const flag = this.flags.get(flagName);
     if (!flag) {
       this.recordMetric(flagName, 'flag_not_found');
@@ -201,6 +215,9 @@ export class FeatureFlagManager extends EventEmitter {
    * Gradually increase rollout percentage
    */
   async increaseRollout(flagName: string, targetPercentage: number): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     const flag = this.flags.get(flagName);
     if (!flag) {
       throw new Error(`Flag ${flagName} not found`);
@@ -236,6 +253,9 @@ export class FeatureFlagManager extends EventEmitter {
    * Rapid enable/disable functionality
    */
   async enableFlag(flagName: string): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     const flag = this.flags.get(flagName);
     if (!flag) {
       throw new Error(`Flag ${flagName} not found`);
@@ -248,6 +268,9 @@ export class FeatureFlagManager extends EventEmitter {
   }
 
   async disableFlag(flagName: string): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     const flag = this.flags.get(flagName);
     if (!flag) {
       throw new Error(`Flag ${flagName} not found`);
@@ -263,6 +286,9 @@ export class FeatureFlagManager extends EventEmitter {
    * Emergency rollback mechanism
    */
   async rollback(flagName: string, reason?: string): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     const flag = this.flags.get(flagName);
     if (!flag) {
       throw new Error(`Flag ${flagName} not found`);
@@ -380,6 +406,9 @@ export class FeatureFlagManager extends EventEmitter {
   }
 
   async saveMetrics(): Promise<void> {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     await fs.mkdir(this.metricsPath, { recursive: true });
     const metricsFile = path.join(this.metricsPath, 'rollout-metrics.json');
     const metricsArray = Array.from(this.metrics.values());
@@ -387,6 +416,9 @@ export class FeatureFlagManager extends EventEmitter {
   }
 
   getMetrics(flagName?: string): RolloutMetrics[] {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     if (flagName) {
       const metric = this.metrics.get(flagName);
       return metric ? [metric] : [];
@@ -395,6 +427,32 @@ export class FeatureFlagManager extends EventEmitter {
   }
 
   getAllFlags(): FeatureFlagConfig[] {
+    if (this.isShutdown) {
+      throw new Error('FeatureFlagManager is shutdown');
+    }
     return Array.from(this.flags.values());
+  }
+
+  /**
+   * Clean up resources to prevent memory leaks
+   */
+  destroy(): void {
+    if (this.isShutdown) return; // Idempotent guard
+    this.isShutdown = true;
+
+    // Clear rollback monitoring interval
+    if (this.rollbackInterval) {
+      clearInterval(this.rollbackInterval);
+      this.rollbackInterval = undefined;
+    }
+
+    // Clean up event listeners
+    this.removeAllListeners();
+
+    // Clear data structures
+    this.flags.clear();
+    this.metrics.clear();
+
+    console.log('FeatureFlagManager cleanup completed');
   }
 }

@@ -181,6 +181,78 @@ node config/hooks/post-edit-pipeline.js "[FILE]" --tdd-mode --rust-strict --mini
 # Generate summaries and persist state
 npx claude-flow-novice hooks session-end --generate-summary true --persist-state true --export-metrics true
 ```
+
+#### Resource Cleanup (CRITICAL for Memory Safety)
+
+**MANDATORY**: All agents MUST clean up resources on termination to prevent memory leaks.
+
+```bash
+# Resource cleanup hook (call on agent termination)
+npx claude-flow-novice hooks cleanup-resources --agent-id "[AGENT_ID]"
+```
+
+**What Gets Cleaned:**
+- `clearInterval()` / `clearTimeout()` for all timers and scheduled tasks
+- `removeAllListeners()` for EventEmitter instances
+- `.destroy()` / `.close()` for connections, streams, sockets, file handles
+- `.clear()` for Map, Set, Cache data structures
+- Process signal handlers (SIGTERM, SIGINT, beforeExit)
+- HTTP/WebSocket connections and keep-alive sockets
+- Database connection pools and transactions
+- File system watchers and subscriptions
+
+**Implementation Pattern:**
+```typescript
+// Agent class with cleanup
+export class CustomAgent {
+  private interval?: NodeJS.Timeout;
+  private cache = new Map();
+  private eventEmitter = new EventEmitter();
+
+  public async start() {
+    this.interval = setInterval(() => this.tick(), 1000);
+    // Setup signal handlers for graceful shutdown
+    process.on('SIGTERM', () => this.destroy());
+    process.on('SIGINT', () => this.destroy());
+    process.on('beforeExit', () => this.destroy());
+  }
+
+  public destroy(): void {
+    // Clear timers
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = undefined;
+    }
+
+    // Remove event listeners
+    this.eventEmitter.removeAllListeners();
+
+    // Clear caches
+    this.cache.clear();
+
+    // Close connections (if any)
+    // this.connection?.close();
+
+    console.log('Agent cleanup completed');
+  }
+}
+```
+
+**Why This Matters:**
+- ✅ **Prevents Memory Leaks**: Uncleaned intervals and listeners accumulate in memory
+- ✅ **Graceful Shutdown**: Resources properly released on process termination
+- ✅ **WSL Stability**: Critical for Windows/WSL environments prone to memory issues
+- ✅ **Multi-Agent Safety**: With 3-20 agents, cleanup is essential for system stability
+
+**Cleanup Checklist:**
+- [ ] All `setInterval` / `setTimeout` calls have corresponding `clear*` calls
+- [ ] EventEmitter classes call `removeAllListeners()` on destroy
+- [ ] Database connections properly closed
+- [ ] File handles and streams closed
+- [ ] Process signal handlers registered (SIGTERM, SIGINT)
+- [ ] `destroy()` method implemented and documented
+- [ ] Cleanup tested in integration tests
+
 ### 🎯 Swarm Initialization (MANDATORY for ALL Multi-Agent Tasks)
 
 **CRITICAL**: You MUST initialize swarm BEFORE spawning ANY multiple agents:

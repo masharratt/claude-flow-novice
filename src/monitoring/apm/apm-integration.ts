@@ -83,6 +83,13 @@ export class APMIntegration {
     this.initializeCollectors();
     this.startCustomMetrics();
     this.startHealthChecks();
+
+    // Register automatic cleanup on process termination
+    process.on('SIGTERM', () => this.shutdown());
+    process.on('SIGINT', () => this.shutdown());
+    process.on('beforeExit', () => this.shutdown());
+
+    this.logger.info('APM auto-shutdown hooks registered');
   }
 
   private initializeCollectors(): void {
