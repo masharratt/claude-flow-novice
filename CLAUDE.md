@@ -33,7 +33,33 @@
 - Refactoring or optimization work
 - ANY feature development (even "simple" ones)
 
-## 🚨 CRITICAL: Safe Test Execution
+## 🚨 CRITICAL: Memory Leak Prevention (WSL/Windows)
+
+**NEVER use `find` on Windows paths** - causes catastrophic memory leaks in WSL.
+
+### 🔴 FORBIDDEN COMMANDS (MEMORY BOMBS)
+```bash
+# ❌ NEVER USE - Causes heap out of memory crash
+find /mnt/c/Users/... -type f -name "*.test.*"
+find /mnt/c/... -name "*.js"
+find . -type f  # On Windows paths via WSL
+```
+
+**Why:** `find` on `/mnt/c/` takes 2-10 seconds per command, buffers output in memory, and causes heap exhaustion with multiple concurrent agents.
+
+### ✅ USE THESE INSTEAD
+```javascript
+// FAST: Use Glob tool (<100ms, minimal memory)
+Glob("**/*.test.*")
+Glob("**/*.spec.*")
+Glob("**/Dockerfile")
+Glob("**/*.{yml,yaml}")
+
+// OR: Use git ls-files for tracked files (<50ms)
+git ls-files '*.test.*'
+```
+
+### 🚨 CRITICAL: Safe Test Execution
 
 **NEVER run tests inside agents** - causes memory leaks from orphaned processes.
 
@@ -50,14 +76,16 @@ pkill -f vitest; pkill -f "npm test"
 ```
 
 ### Forbidden:
+- ❌ `find /mnt/c/...` - 2-10s per command, memory bomb on WSL
 - ❌ `Task("agent", "run npm test", "type")` - spawns orphaned process
 - ❌ Multiple agents running tests concurrently - 3x memory usage
 - ❌ Long-running test commands without timeout cleanup
 
 ### Memory Impact:
+- Each `find /mnt/c/`: 2-10 seconds + 50-200MB buffered output
 - Each test run: 65MB+ heap
-- Concurrent runs: 65MB × agent_count
-- Orphaned processes persist after swarm completion
+- Concurrent operations: Memory × agent_count
+- Result: Heap out of memory crash (19GB+ usage)
 ### Agent Requirements by Task Complexity
 
 | Task Size | Steps | Agent Count | Example Team Composition |
@@ -389,6 +417,35 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
   "blockers": []
 }
 ```
+
+**🚨 MANDATORY: Post-Edit Hook Execution**
+
+**CRITICAL**: Every primary swarm agent MUST run the post-edit-pipeline hook after EVERY file edit:
+
+```bash
+# REQUIRED after each file modification
+node config/hooks/post-edit-pipeline.js "[FILE_PATH]" --memory-key "swarm/[agent]/[step]"
+```
+
+**Agent Instructions Template:**
+```
+Task("Agent Name", `
+  Your implementation task here...
+
+  MANDATORY: After EVERY file edit, run:
+  node config/hooks/post-edit-pipeline.js "[FILE_PATH]" --memory-key "swarm/[agent-name]/step-[N]"
+
+  Report confidence score when complete.
+`, "agent-type")
+```
+
+**Post-Edit Hook Benefits:**
+- Real-time validation (formatting, linting, type checking)
+- Security scanning (hardcoded credentials, XSS, eval())
+- Single-file testing (1-5s vs 10-60s full suite)
+- TDD compliance detection (Red-Green-Refactor phases)
+- Rust quality checks (unwrap/expect/panic with line numbers)
+- Coverage tracking (Jest, pytest, cargo-tarpaulin)
 
 **Confidence Score Interpretation:**
 - **0.90-1.00**: Excellent - production ready

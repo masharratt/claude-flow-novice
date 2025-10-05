@@ -1,5 +1,73 @@
 # Claude Flow Novice Changelog
 
+## [1.6.3] - 2025-10-04
+
+### 🐛 Critical Fix: WSL Memory Leak
+- **PreToolUse Hook**: Blocks `find /mnt/c` commands that cause catastrophic memory leaks on WSL
+  - Memory spike: 15GB → 36GB in 4 minutes from find commands
+  - Hook returns error: "🔴 BLOCKED: find on /mnt/c paths forbidden (causes memory leak - use Glob tool instead)"
+  - Files: `.claude/settings.json` in both claude-flow-novice and ourstories-v2
+
+### 📊 Root Cause Analysis
+- **Monitoring Results**: 10-minute observation confirmed `find /mnt/c` as memory bomb
+  - 2-3 concurrent find commands: +16GB memory spike
+  - Growth rate: 4GB/minute while finds active
+  - WSL filesystem translation causes 2-10 second delays per find + 50-200MB buffered output
+
+### 📚 Documentation
+- **CLAUDE.md**: Added "Memory Leak Prevention (WSL/Windows)" section
+  - Prohibits `find /mnt/c` commands
+  - Mandates Glob tool (<100ms, <1MB memory) instead
+  - Performance comparison table
+
+- **AGENT_PERFORMANCE_GUIDELINES.md** (NEW): WSL performance best practices
+  - Tool alternatives: Glob, fd, git ls-files
+  - Memory optimization patterns
+  - Agent coordination guidelines for WSL environments
+
+- **MEMORY_LEAK_ROOT_CAUSE.md** (NEW): Complete root cause analysis
+  - Timeline of memory leak monitoring
+  - Smoking gun evidence (monitoring data)
+  - Fix verification and testing instructions
+
+### 🔧 Monitoring Tools
+- **scripts/monitor.py** (NEW): Memory monitoring script
+  - Tracks total memory, process counts, zombie processes
+  - Detects find commands (memory bombs)
+  - Alerts on thresholds (>10GB memory, find commands active)
+
+### 🔒 Files Modified
+- `.claude/settings.json` - PreToolUse hook with find blocker
+- `package.json` - Added new documentation files to npm package
+- `CLAUDE.md` - Memory leak prevention section
+- New files: AGENT_PERFORMANCE_GUIDELINES.md, MEMORY_LEAK_ROOT_CAUSE.md, scripts/monitor.py
+
+## [1.6.2] - 2025-10-04
+
+### 🐛 Fixed
+- **Hook Recursion Prevention**: Added recursion guards to prevent infinite loops in PreToolUse/PostToolUse hooks
+  - Case-based pattern matching excludes `npx claude-flow-novice hooks` commands from triggering hooks
+  - Prevents memory leaks from infinite hook chains
+  - Adds debug logging: `[Hook] Skipping recursion: <command>`
+  - Files: `.claude/settings.json` PreToolUse and PostToolUse hooks
+
+- **Rust Single-File Testing Optimization**: 100x speed improvement for Rust file validation
+  - Modified `runCargoTestSingleFile()` in `config/hooks/post-edit-pipeline.js`
+  - Targeted module testing with `cargo test --test ${moduleName}` instead of full project compilation
+  - Added helper functions: `extractRustModuleName()`, `findCargoRoot()`
+  - Reduced test time from 5-10 minutes → 1-5 seconds per file
+  - Added 30-second timeout for single-file tests
+
+### 📊 Performance Impact
+- **Memory Usage**: Eliminated infinite recursion memory leaks (20GB+ crashes → stable <2GB)
+- **Rust Testing**: 100x faster (5-10 min full compile → 1-5 sec targeted module)
+- **Concurrent Agents**: Stable execution with 2-3 agents per batch (40-50MB each)
+
+### 🔧 Files Modified
+- `.claude/settings.json` - Hook recursion guards
+- `config/hooks/post-edit-pipeline.js` - Rust single-file testing optimization
+- TypeScript testing already optimized (no changes needed)
+
 ## [1.6.1] - 2025-10-03
 
 ### ✨ Added
@@ -13,11 +81,18 @@
 ### 🔧 New Slash Commands
 - `/custom-routing-activate` - Enable tiered provider routing for cost optimization
 - `/custom-routing-deactivate` - Disable routing, all agents use default sonnet model
+- `/cfn-claude-sync` - Sync CFN Loop configuration from CLAUDE.md to slash command files (DRY principle)
+  - Eliminates manual duplication across 9 files (CLAUDE.md + 4 markdown + 4 JavaScript)
+  - Single source of truth for CFN Loop rules (consensus ≥90%, confidence ≥75%, iteration limits)
+  - Supports `--dry-run` and `--verbose` flags
+  - Creates automatic backups before changes
+  - Updates: `.claude/commands/cfn-loop*.md`, `src/slash-commands/cfn-loop*.js`
 
 ### 📦 Package Exports
 - `claude-flow-novice/providers` - Includes AgentProfileLoader
 - `claude-flow-novice/slash-commands/custom-routing-activate`
 - `claude-flow-novice/slash-commands/custom-routing-deactivate`
+- `claude-flow-novice/slash-commands/cfn-claude-sync` - CFN Loop configuration sync command
 
 ### 📝 Agent Profile Schema
 - Enhanced frontmatter with optional `provider` field

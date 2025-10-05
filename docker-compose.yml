@@ -1,0 +1,238 @@
+# Docker Compose configuration for Claude Flow Novice
+# Provides multi-service orchestration for development and production
+
+version: '3.8'
+
+services:
+  # Main application service
+  claude-flow-novice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+        - APP_VERSION=1.6.2
+        - APP_USER=claudeflow
+        - APP_UID=1001
+        - APP_GID=1001
+    image: claude-flow-novice:latest
+    container_name: claude-flow-novice-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+    volumes:
+      - claude-flow-data:/app/data
+      - claude-flow-logs:/app/logs
+      - claude-flow-config:/app/config
+    networks:
+      - claude-flow-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check: Application is running')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: claude-flow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - claude-flow-network
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-defaultpassword}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+
+  # PostgreSQL for persistent data storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: claude-flow-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-claudeflow}
+      - POSTGRES_USER=${POSTGRES_USER:-claudeflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-securepassword}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - claude-flow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-claudeflow} -d ${POSTGRES_DB:-claudeflow}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run/postgresql:noexec,nosuid,size=100m
+
+  # Nginx reverse proxy and load balancer
+  nginx:
+    image: nginx:alpine
+    container_name: claude-flow-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx-logs:/var/log/nginx
+      - ssl-certs:/etc/nginx/ssl:ro
+    networks:
+      - claude-flow-network
+    depends_on:
+      - claude-flow-novice
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:noexec,nosuid,size=200m
+      - /var/run:noexec,nosuid,size=100m
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: claude-flow-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - claude-flow-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+
+  # Grafana for visualization and monitoring
+  grafana:
+    image: grafana/grafana:latest
+    container_name: claude-flow-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-adminpassword}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - claude-flow-network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    user: "472"
+
+# Network configuration
+networks:
+  claude-flow-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volume definitions
+volumes:
+  claude-flow-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/claude-flow
+
+  claude-flow-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/claude-flow
+
+  claude-flow-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./config/production
+
+  redis-data:
+    driver: local
+
+  postgres-data:
+    driver: local
+
+  nginx-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs/nginx
+
+  ssl-certs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./ssl
+
+  prometheus-data:
+    driver: local
+
+  grafana-data:
+    driver: local

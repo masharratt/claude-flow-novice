@@ -1,0 +1,38 @@
+name: Dependency Review
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        # Optional: fail on detected vulnerabilities
+        fail-on-severity: moderate
+
+        # Optional: allow-licenses list
+        allow-licenses: |
+          MIT
+          Apache-2.0
+          BSD-2-Clause
+          BSD-3-Clause
+          ISC
+
+        # Optional: deny-licenses list
+        deny-licenses: |
+          GPL-2.0
+          GPL-3.0
+          AGPL-1.0
+          AGPL-3.0
+
+        # Optional: configuration file
+        # config-file: '.github/dependency-review-config.yml'

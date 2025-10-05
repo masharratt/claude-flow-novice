@@ -42,6 +42,25 @@ export async function swarmAction(ctx: CommandContext) {
     console.log('  --persistence          Enable task persistence (default: true)');
     console.log('  --validate-swarm-init  Validate swarm initialization (default: true)');
     console.log('  --skip-validation      Skip swarm initialization validation');
+    console.log(
+      '  --coordination-version <v1|v2>  Select coordination system (default: v2, env: COORDINATION_VERSION)',
+    );
+    return;
+  }
+
+  // Detect and validate coordination version
+  const coordinationVersion = (
+    (ctx.flags.coordinationVersion as string) ||
+    (ctx.flags['coordination-version'] as string) ||
+    process.env.COORDINATION_VERSION ||
+    'v2'
+  ).toLowerCase();
+
+  // Validate coordination version
+  if (coordinationVersion !== 'v1' && coordinationVersion !== 'v2') {
+    error(
+      `Invalid coordination version: ${coordinationVersion}. Must be 'v1' or 'v2'. Use --coordination-version flag or COORDINATION_VERSION env var.`,
+    );
     return;
   }
 
@@ -73,6 +92,7 @@ export async function swarmAction(ctx: CommandContext) {
       (ctx.flags['validate-swarm-init'] as boolean) ||
       !(ctx.flags.skipValidation as boolean) ||
       !(ctx.flags['skip-validation'] as boolean),
+    coordinationVersion: coordinationVersion as 'v1' | 'v2',
   };
 
   const swarmId = generateId('swarm');
@@ -81,6 +101,7 @@ export async function swarmAction(ctx: CommandContext) {
     warning('DRY RUN - Swarm Configuration:');
     console.log(`Swarm ID: ${swarmId}`);
     console.log(`Objective: ${objective}`);
+    console.log(`Coordination Version: ${options.coordinationVersion}`);
     console.log(`Strategy: ${options.strategy}`);
     console.log(`Max Agents: ${options.maxAgents}`);
     console.log(`Max Depth: ${options.maxDepth}`);
@@ -134,18 +155,27 @@ export async function swarmAction(ctx: CommandContext) {
   success(`🐝 Initializing Claude Swarm: ${swarmId}`);
   console.log(`📋 Objective: ${objective}`);
   console.log(`🎯 Strategy: ${options.strategy}`);
+  console.log(`🔧 Coordination: ${options.coordinationVersion.toUpperCase()}`);
 
   try {
-    // Initialize swarm coordination system
-    const coordinator = new SwarmCoordinator({
+    // Phase 11: Initialize swarm coordination with version toggle
+    const { CoordinationToggle } = await import('../../coordination/coordination-toggle.js');
+
+    const coordinator = await CoordinationToggle.create({
+      version: coordinationVersion as 'v1' | 'v2',
+      topology: options.maxAgents <= 7 ? 'mesh' : 'hierarchical',
       maxAgents: options.maxAgents,
-      maxConcurrentTasks: options.parallel ? options.maxAgents : 1,
-      taskTimeout: options.timeout * 60 * 1000, // Convert minutes to milliseconds
-      enableMonitoring: options.monitor,
-      enableWorkStealing: options.parallel,
-      enableCircuitBreaker: true,
-      memoryNamespace: options.memoryNamespace,
-      coordinationStrategy: options.distributed ? 'distributed' : 'centralized',
+      strategy: options.strategy === 'auto' ? 'balanced' : options.strategy,
+      enableConsensus: options.distributed,
+      tokenBudget: 20000,
+
+      // V1-specific dependencies (required when version=v1)
+      v1Dependencies: coordinationVersion === 'v1' ? {
+        memory: await import('../../memory/swarm-memory.js').then(m => m.SwarmMemory),
+        broker: await import('../../messaging/message-broker.js').then(m => m.MessageBroker),
+        dependencyGraph: await import('../../coordination/dependency-graph.js').then(m => m.DependencyGraph),
+        logger: console,
+      } : undefined,
     });
 
     // Initialize background executor
@@ -223,6 +253,7 @@ export async function swarmAction(ctx: CommandContext) {
           swarmId,
           objectiveId,
           objective,
+          coordinationVersion: options.coordinationVersion,
           options,
           agents,
           startTime: new Date().toISOString(),

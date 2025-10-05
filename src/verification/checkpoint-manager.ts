@@ -21,14 +21,28 @@ import {
 import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { CheckpointCompressor, createCheckpointCompressor } from './checkpoint-compression.js';
+import type { CompressedCheckpoint } from './checkpoint-compression.js';
 
 export class CheckpointManager {
   private checkpointStore: Map<string, Checkpoint> = new Map();
   private snapshotStore: Map<string, StateSnapshot> = new Map();
   private storagePath: string;
+  private compressor: CheckpointCompressor;
+  private compressionEnabled: boolean;
 
-  constructor(storagePath: string = '.claude-flow/checkpoints') {
+  constructor(
+    storagePath: string = '.claude-flow/checkpoints',
+    compressionEnabled: boolean = true,
+  ) {
     this.storagePath = storagePath;
+    this.compressionEnabled = compressionEnabled;
+    this.compressor = createCheckpointCompressor({
+      gzipLevel: 6,
+      enableDelta: true,
+      enableDeduplication: true,
+      minSizeForCompression: 100,
+    });
     this.ensureStorageDirectory();
   }
 
@@ -539,9 +553,16 @@ export class CheckpointManager {
     // Store in memory
     this.checkpointStore.set(checkpoint.id, checkpoint);
 
-    // Store to disk
-    const checkpointFile = path.join(this.storagePath, `${checkpoint.id}.json`);
-    await this.writeJsonFile(checkpointFile, checkpoint);
+    // Compress checkpoint if enabled
+    if (this.compressionEnabled) {
+      const compressed = await this.compressor.compress(checkpoint);
+      const checkpointFile = path.join(this.storagePath, `${checkpoint.id}.compressed.json`);
+      await this.writeJsonFile(checkpointFile, compressed);
+    } else {
+      // Store uncompressed
+      const checkpointFile = path.join(this.storagePath, `${checkpoint.id}.json`);
+      await this.writeJsonFile(checkpointFile, checkpoint);
+    }
   }
 
   /**
@@ -657,13 +678,29 @@ export class CheckpointManager {
     let deletedCount = 0;
 
     // Cleanup checkpoints
-    for (const [id, checkpoint] of this.checkpointStore.entries()) {
+    for (const [id, checkpoint] of Array.from(this.checkpointStore.entries())) {
       if (checkpoint.timestamp < cutoffTime) {
         await this.deleteCheckpoint(id);
         deletedCount++;
       }
     }
 
+    // Garbage collect unused shared state if compression enabled
+    if (this.compressionEnabled) {
+      const gcCount = this.compressor.gcSharedState();
+      console.log(`🧹 Garbage collected ${gcCount} unused shared states`);
+    }
+
     console.log(`🧹 Cleaned up ${deletedCount} old checkpoints (retention: ${retentionDays} days)`);
+  }
+
+  /**
+   * Get compression statistics
+   */
+  getCompressionStats() {
+    if (!this.compressionEnabled) {
+      return null;
+    }
+    return this.compressor.getCompressionStats();
   }
 }

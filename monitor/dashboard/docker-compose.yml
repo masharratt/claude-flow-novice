@@ -1,0 +1,198 @@
+# Secure Dashboard Docker Compose Configuration
+# Production-ready with security best practices
+
+version: '3.8'
+
+services:
+  secure-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-unknown}
+        VERSION: ${VERSION:-2.0.0}
+    image: secure-dashboard:latest
+    container_name: secure-dashboard
+    restart: unless-stopped
+
+    # Security: Drop all capabilities, add only what's needed
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+    # Security: Read-only filesystem except for necessary directories
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run:noexec,nosuid,size=100m
+      - /app/logs:noexec,nosuid,size=100m
+
+    # Port mapping
+    ports:
+      - "${DASHBOARD_PORT:-3001}:3001"
+
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 64)}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD:-$(openssl rand -base64 32)}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://dashboard.company.com}
+      - HTTPS_CERT_PATH=/app/ssl/cert.pem
+      - HTTPS_KEY_PATH=/app/ssl/key.pem
+
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=json
+
+      # Security settings
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
+      - AUTH_MAX_LOGIN_ATTEMPTS=${AUTH_MAX_LOGIN_ATTEMPTS:-5}
+      - AUTH_LOCKOUT_DURATION=${AUTH_LOCKOUT_DURATION:-1800000}
+
+      # Resource limits
+      - NODE_OPTIONS=--max-old-space-size=512 --no-expose-gc
+      - UV_THREADPOOL_SIZE=4
+
+    # Security: Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Volume mounts (read-only where possible)
+    volumes:
+      - ./ssl:/app/ssl:ro
+      - ./config:/app/config:ro
+      - dashboard-logs:/app/logs
+
+    # Network isolation
+    networks:
+      - dashboard-network
+
+    # Security: User namespace remapping (uncomment if supported)
+    # user: "1001:1001"
+
+    # Security: Seccomp profile (uncomment if available)
+    # security_opt:
+    #   - seccomp:./seccomp-profile.json
+
+  # Reverse proxy with SSL termination (nginx)
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: dashboard-nginx
+    restart: unless-stopped
+
+    # Security: Drop capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+
+    networks:
+      - dashboard-network
+
+    depends_on:
+      - secure-dashboard
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dashboard-prometheus
+    restart: unless-stopped
+
+    security_opt:
+      - no-new-privileges:true
+
+    user: "65534:65534"  # nobody user
+
+    read_only: true
+    tmpfs:
+      - /prometheus:noexec,nosuid,size=1g
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+    networks:
+      - dashboard-network
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+
+  # Log aggregation with fluentd (optional)
+  fluentd:
+    image: fluent/fluentd:v1.16-debian
+    container_name: dashboard-fluentd
+    restart: unless-stopped
+
+    security_opt:
+      - no-new-privileges:true
+
+    user: "fluent"
+
+    volumes:
+      - dashboard-logs:/fluentd/log
+      - ./logging/fluent.conf:/fluentd/etc/fluent.conf:ro
+
+    networks:
+      - dashboard-network
+
+    depends_on:
+      - secure-dashboard
+
+# Network configuration
+networks:
+  dashboard-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# Volume configuration
+volumes:
+  dashboard-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./logs
+  prometheus-data:
+    driver: local

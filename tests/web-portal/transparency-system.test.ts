@@ -212,7 +212,7 @@ describe('Transparency System Tests', () => {
           timeline: '2 weeks',
           complexity: 'high',
           benefits: ['Scalability', 'Maintainability', 'Team autonomy'],
-          risks: ['Increased operational complexity', 'Network latency']
+          risks: ['Increased operational complexity', 'Service coordination overhead']
         }
       };
 

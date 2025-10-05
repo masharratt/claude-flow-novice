@@ -10,6 +10,7 @@
 import { EventEmitter } from 'node:events';
 import { Logger } from '../core/logger.js';
 import { generateId } from '../utils/helpers.js';
+import { getGlobalMetricsStorage, type MetricsStorage } from './metrics-storage.js';
 
 // ============================================================================
 // Types & Interfaces
@@ -77,6 +78,7 @@ export interface TelemetryConfig {
   enableTracing: boolean;
   enableMetrics: boolean;
   enableStructuredLogging: boolean;
+  enablePersistence: boolean; // Store metrics to SQLite
   metricsFlushInterval: number; // ms
   traceSamplingRate: number; // 0-1
   maxTraceHistory: number;
@@ -90,6 +92,7 @@ export interface TelemetryConfig {
 export class TelemetrySystem extends EventEmitter {
   private logger: Logger;
   private config: TelemetryConfig;
+  private storage?: MetricsStorage;
 
   // Tracing
   private activeTraces: Map<string, TraceContext> = new Map();
@@ -111,6 +114,7 @@ export class TelemetrySystem extends EventEmitter {
       enableTracing: config.enableTracing ?? true,
       enableMetrics: config.enableMetrics ?? true,
       enableStructuredLogging: config.enableStructuredLogging ?? true,
+      enablePersistence: config.enablePersistence ?? true, // Default: persist to SQLite
       metricsFlushInterval: config.metricsFlushInterval ?? 60000, // 1 minute
       traceSamplingRate: config.traceSamplingRate ?? 1.0,
       maxTraceHistory: config.maxTraceHistory ?? 100,
@@ -121,6 +125,16 @@ export class TelemetrySystem extends EventEmitter {
       { level: 'info', format: 'json', destination: 'console' },
       { component: 'TelemetrySystem' }
     );
+
+    // Initialize persistent storage if enabled
+    if (this.config.enablePersistence) {
+      try {
+        this.storage = getGlobalMetricsStorage();
+      } catch (error) {
+        this.logger.warn('Failed to initialize metrics storage, persistence disabled', { error });
+        this.config.enablePersistence = false;
+      }
+    }
   }
 
   // ============================================================================
@@ -541,6 +555,7 @@ export class TelemetrySystem extends EventEmitter {
   // ============================================================================
 
   private storeMetric(name: string, metric: MetricPoint): void {
+    // Store in memory buffer
     if (!this.metrics.has(name)) {
       this.metrics.set(name, []);
     }
@@ -551,6 +566,15 @@ export class TelemetrySystem extends EventEmitter {
     // Maintain history limit
     if (metricsList.length > this.config.maxMetricHistory) {
       metricsList.shift();
+    }
+
+    // Persist to SQLite if enabled
+    if (this.config.enablePersistence && this.storage) {
+      try {
+        this.storage.store(metric);
+      } catch (error) {
+        this.logger.error('Failed to persist metric', { metric: name, error });
+      }
     }
   }
 

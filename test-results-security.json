@@ -1,0 +1,11 @@
+
+> claude-flow-novice@1.6.2 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit --testPathPattern=security --verbose --run --reporter=json
+
+● Unrecognized CLI Parameter:
+
+  Unrecognized option "run". Did you mean "u"?
+
+  CLI Options Documentation:
+  https://jestjs.io/docs/cli
+

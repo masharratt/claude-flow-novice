@@ -4,6 +4,7 @@
 
 import { AgentConfig, AgentType } from '../types/agent-types.js';
 import { SimpleAgent } from '../agents/simple-agent.js';
+import { incrementMetric, recordTiming } from '../observability/metrics-counter.js';
 
 export class AgentManager {
   private agents: Map<string, AgentConfig> = new Map();
@@ -22,6 +23,10 @@ export class AgentManager {
     };
 
     this.agents.set(id, agent);
+    incrementMetric('agent.created', 1, {
+      agentType: type,
+      swarmId: 'standalone'
+    });
     console.log(`✅ Created ${type} agent: ${id}`);
     return id;
   }
@@ -60,8 +65,13 @@ export class AgentManager {
       throw new Error(`Agent ${id} not found`);
     }
 
+    const startTime = Date.now();
     console.log(`🚀 Running ${config.type} agent: ${config.task}`);
     config.status = 'running';
+    incrementMetric('agent.started', 1, {
+      agentType: config.type,
+      agentId: id
+    });
 
     try {
       const agent = new SimpleAgent(config);
@@ -69,9 +79,29 @@ export class AgentManager {
 
       config.result = result;
       config.status = 'completed';
+      recordTiming('agent.duration', Date.now() - startTime, {
+        agentType: config.type,
+        status: 'success'
+      });
+      incrementMetric('agent.completed', 1, {
+        agentType: config.type,
+        status: 'success'
+      });
       console.log(`✅ Agent ${id} completed successfully`);
     } catch (error) {
       config.status = 'failed';
+      recordTiming('agent.duration', Date.now() - startTime, {
+        agentType: config.type,
+        status: 'error'
+      });
+      incrementMetric('agent.completed', 1, {
+        agentType: config.type,
+        status: 'error'
+      });
+      incrementMetric('agent.error', 1, {
+        agentType: config.type,
+        errorType: (error as Error).name || 'Unknown'
+      });
       console.error(`❌ Agent ${id} failed:`, error);
       throw error;
     }

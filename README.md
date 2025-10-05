@@ -121,6 +121,33 @@ const result = await orchestrator.executePhase({
 - 🚀 [Sprint Orchestration](docs/SPRINT_ORCHESTRATION.md) - Two-tier phase/sprint system guide
 - 🎯 [Scope Control](docs/CFN_LOOP_SCOPE_CONTROL.md) - Product Owner GOAP-based scope enforcement (NEW)
 - 🎯 [MCP Endpoints](planning/COMPREHENSIVE_MCP_ENDPOINTS_REFERENCE.md) - Complete reference including CFN Loop commands
+- 🔄 [CFN Claude Sync](docs/slash-commands/cfn-claude-sync-usage.md) - DRY principle: sync CLAUDE.md to slash commands (NEW)
+
+### CFN Claude Sync - Configuration Management (NEW in v1.6.1)
+
+**Single Source of Truth**: Maintain CFN Loop configuration in one place (CLAUDE.md) and automatically sync to all slash command files.
+
+```bash
+# After editing CLAUDE.md CFN Loop rules:
+/cfn-claude-sync --dry-run  # Preview changes
+/cfn-claude-sync            # Apply to 8 files (4 markdown + 4 JS)
+npm test                    # Validate
+git commit -m "chore: sync CFN Loop from CLAUDE.md"
+```
+
+**What Gets Synchronized**:
+- ✅ Consensus threshold (≥90%)
+- ✅ Confidence gate (≥75%)
+- ✅ Loop 2/3 max iterations (10/10)
+- ✅ Complexity tiers (Simple: 2-3, Medium: 4-6, Complex: 8-12, Enterprise: 15-20)
+- ✅ GOAP decision types (PROCEED/DEFER/ESCALATE)
+- ✅ Autonomous execution rules
+
+**Files Updated**:
+- `.claude/commands/cfn-loop*.md` (4 markdown templates)
+- `src/slash-commands/cfn-loop*.js` (4 JavaScript generators)
+
+**Why This Matters**: Edit once in CLAUDE.md instead of manually updating 9 files. Eliminates duplication and ensures consistency.
 
 ## 🚀 Quick Start
 

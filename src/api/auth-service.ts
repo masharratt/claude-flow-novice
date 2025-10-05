@@ -153,7 +153,10 @@ export class AuthService {
     private config: AuthConfig,
     private logger: ILogger,
   ) {
-    this.initializeDefaultUsers();
+    // Initialize asynchronously to avoid blocking constructor
+    this.initializeDefaultUsers().catch(error => {
+      this.logger.error('Failed to initialize default users', { error });
+    });
   }
 
   /**
@@ -489,6 +492,41 @@ export class AuthService {
     return Array.from(this.users.values());
   }
 
+  /**
+   * Check if first-time admin setup is required
+   */
+  isFirstTimeSetupRequired(): boolean {
+    const adminUsers = Array.from(this.users.values()).filter(u => u.role === 'admin' && u.isActive);
+    return adminUsers.length === 0;
+  }
+
+  /**
+   * Complete first-time setup by creating initial admin user
+   */
+  async completeFirstTimeSetup(userData: {
+    email: string;
+    password: string;
+    requireMFA?: boolean;
+  }): Promise<{ user: User; needsSetup: boolean }> {
+    if (!this.isFirstTimeSetupRequired()) {
+      throw new AuthenticationError('First-time setup already completed');
+    }
+
+    const adminUser = await this.createUser({
+      email: userData.email,
+      password: userData.password,
+      role: 'admin',
+      isActive: true,
+    });
+
+    this.logger.info('First-time setup completed', {
+      adminEmail: adminUser.email,
+      adminId: adminUser.id,
+    });
+
+    return { user: adminUser, needsSetup: false };
+  }
+
   // Private helper methods
   private async checkRateLimit(email: string): Promise<void> {
     const attempts = this.loginAttempts.get(email);
@@ -629,50 +667,65 @@ export class AuthService {
     return timingSafeEqual(bufferA, bufferB);
   }
 
-  private initializeDefaultUsers(): void {
-    // Create default admin user
-    const adminId = 'admin_default';
-    const adminUser: User = {
-      id: adminId,
-      email: 'admin@claude-flow.local',
-      passwordHash: createHash('sha256')
-        .update('admin123' + 'salt')
-        .digest('hex'),
-      role: 'admin',
-      permissions: ROLE_PERMISSIONS.admin,
-      apiKeys: [],
-      isActive: true,
-      loginAttempts: 0,
-      mfaEnabled: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  private async initializeDefaultUsers(): Promise<void> {
+    // Check if first-time setup is needed
+    const adminUser = Array.from(this.users.values()).find(u => u.role === 'admin');
 
-    this.users.set(adminId, adminUser);
+    if (!adminUser) {
+      // Check for environment-based admin configuration
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const adminPassword = process.env.ADMIN_PASSWORD;
 
-    // Create default service user
-    const serviceId = 'service_default';
-    const serviceUser: User = {
-      id: serviceId,
-      email: 'service@claude-flow.local',
-      passwordHash: createHash('sha256')
-        .update('service123' + 'salt')
-        .digest('hex'),
-      role: 'service',
-      permissions: ROLE_PERMISSIONS.service,
-      apiKeys: [],
-      isActive: true,
-      loginAttempts: 0,
-      mfaEnabled: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      if (adminEmail && adminPassword) {
+        // Create admin from environment variables
+        const adminId = 'admin_env';
+        const passwordHash = createHash('sha256')
+          .update(adminPassword + 'salt')
+          .digest('hex');
 
-    this.users.set(serviceId, serviceUser);
+        const envAdminUser: User = {
+          id: adminId,
+          email: adminEmail,
+          passwordHash,
+          role: 'admin',
+          permissions: ROLE_PERMISSIONS.admin,
+          apiKeys: [],
+          isActive: true,
+          loginAttempts: 0,
+          mfaEnabled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-    this.logger.info('Default users initialized', {
-      admin: adminUser.email,
-      service: serviceUser.email,
-    });
+        this.users.set(adminId, envAdminUser);
+        this.logger.info('Admin user created from environment', {
+          email: adminEmail,
+        });
+      } else {
+        // Create temporary service user only
+        const serviceId = 'service_default';
+        const serviceUser: User = {
+          id: serviceId,
+          email: 'service@claude-flow.local',
+          passwordHash: createHash('sha256')
+            .update('service123' + 'salt')
+            .digest('hex'),
+          role: 'service',
+          permissions: ROLE_PERMISSIONS.service,
+          apiKeys: [],
+          isActive: true,
+          loginAttempts: 0,
+          mfaEnabled: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        this.users.set(serviceId, serviceUser);
+        this.logger.warn('No admin user configured. First-time setup required.', {
+          setupRequired: true,
+          serviceAccount: serviceUser.email,
+        });
+      }
+    }
   }
 }

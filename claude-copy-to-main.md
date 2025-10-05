@@ -408,6 +408,35 @@ claude mcp add claude-flow-novice npx claude-flow-novice mcp start
 }
 ```
 
+**🚨 MANDATORY: Post-Edit Hook Execution**
+
+**CRITICAL**: Every primary swarm agent MUST run the post-edit-pipeline hook after EVERY file edit:
+
+```bash
+# REQUIRED after each file modification
+node config/hooks/post-edit-pipeline.js "[FILE_PATH]" --memory-key "swarm/[agent]/[step]"
+```
+
+**Agent Instructions Template:**
+```
+Task("Agent Name", `
+  Your implementation task here...
+
+  MANDATORY: After EVERY file edit, run:
+  node config/hooks/post-edit-pipeline.js "[FILE_PATH]" --memory-key "swarm/[agent-name]/step-[N]"
+
+  Report confidence score when complete.
+`, "agent-type")
+```
+
+**Post-Edit Hook Benefits:**
+- Real-time validation (formatting, linting, type checking)
+- Security scanning (hardcoded credentials, XSS, eval())
+- Single-file testing (1-5s vs 10-60s full suite)
+- TDD compliance detection (Red-Green-Refactor phases)
+- Rust quality checks (unwrap/expect/panic with line numbers)
+- Coverage tracking (Jest, pytest, cargo-tarpaulin)
+
 **Confidence Score Interpretation:**
 - **0.90-1.00**: Excellent - production ready
 - **0.75-0.89**: Good - minor improvements possible

@@ -23,6 +23,7 @@ export { CfnLoopSingleCommand } from "./cfn-loop-single.js";
 export { CfnLoopSprintsCommand } from "./cfn-loop-sprints.js";
 export { CfnLoopEpicCommand } from "./cfn-loop-epic.js";
 export { ParseEpicCommand } from "./parse-epic.js";
+export { CfnClaudeSyncCommand } from "./cfn-claude-sync.js";
 
 // Command executors
 export { executeClaudeSoulCommand } from "./claude-soul.js";
@@ -60,6 +61,7 @@ export const Commands = {
   CFN_LOOP_SPRINTS: "cfn-loop-sprints",
   CFN_LOOP_EPIC: "cfn-loop-epic",
   PARSE_EPIC: "parse-epic",
+  CFN_CLAUDE_SYNC: "cfn-claude-sync",
 };
 
 /**
@@ -82,6 +84,8 @@ export const Aliases = {
   "cfn-epic": "cfn-loop-epic",
   parse: "parse-epic",
   epic: "parse-epic",
+  sync: "cfn-claude-sync",
+  "cfn-sync": "cfn-claude-sync",
 };
 
 /**
@@ -110,6 +114,7 @@ export function getQuickHelp() {
 **Essential Commands:**
 - \`/cfn-loop "task description"\` - Autonomous self-correcting 3-loop workflow (IMMEDIATE retries)
 - \`/fullstack "goal"\` - Autonomous full-stack team with CFN Loop (NO approvals)
+- \`/cfn-claude-sync\` - Sync CFN Loop rules from CLAUDE.md to slash commands (DRY principle)
 - \`/swarm init mesh 8\` - Initialize agent swarm
 - \`/hooks enable\` - Enable automation hooks
 - \`/sparc spec "task"\` - Run SPARC methodology

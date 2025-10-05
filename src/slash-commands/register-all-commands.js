@@ -18,10 +18,12 @@ import { CfnLoopCommand } from './cfn-loop.js';
 import { CfnLoopSingleCommand } from './cfn-loop-single.js';
 import { CfnLoopSprintsCommand } from './cfn-loop-sprints.js';
 import { CfnLoopEpicCommand } from './cfn-loop-epic.js';
+import { CfnClaudeSyncCommand } from './cfn-claude-sync.js';
 import { executeClaudeSoulCommand } from './claude-soul.js';
 import { ParseEpicCommand } from './parse-epic.js';
 import { CustomRoutingActivateCommand } from './custom-routing-activate-class.js';
 import { CustomRoutingDeactivateCommand } from './custom-routing-deactivate-class.js';
+import { MetricsSummaryCommand } from './metrics-summary-class.js';
 
 /**
  * Command Registry Class
@@ -53,6 +55,11 @@ export class SlashCommandRegistry {
     // CFN Loop Epic - Multi-phase epic execution
     this.register(new CfnLoopEpicCommand());
     this.addAlias('cfn-loop-epic', 'cfn-epic');
+
+    // CFN Claude Sync - Sync CFN Loop rules from CLAUDE.md
+    this.register(new CfnClaudeSyncCommand());
+    this.addAlias('cfn-claude-sync', 'cfn-sync');
+    this.addAlias('cfn-claude-sync', 'sync');
 
     // Core SPARC methodology command
     this.register(new SparcCommand());
@@ -92,6 +99,11 @@ export class SlashCommandRegistry {
     // Custom routing commands
     this.register(new CustomRoutingActivateCommand());
     this.register(new CustomRoutingDeactivateCommand());
+
+    // Metrics summary command
+    this.register(new MetricsSummaryCommand());
+    this.addAlias('metrics-summary', 'metrics');
+    this.addAlias('metrics-summary', 'stats');
 
     // Legacy function-based commands
     this.registerLegacyCommand('claude-md', {

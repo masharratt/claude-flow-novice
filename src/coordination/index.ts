@@ -108,6 +108,25 @@ export {
   type PheromoneConfig,
 } from './pheromone-trails.js';
 
+// V1 Transparency System (for V1 coordination transparency)
+export {
+  V1TransparencySystem,
+  type IV1TransparencySystem,
+  type V1TransparencySystem as V1TransparencySystemType,
+  type V1TransparencyConfig,
+  type V1TransparencyEvent,
+  type V1TransparencyMetrics,
+  type V1AgentInfo,
+  type V1TaskInfo,
+  type V1CoordinatorInfo,
+  type V1TransparencyEventListener,
+} from './v1-transparency/v1-transparency-adapter.js';
+
+export {
+  V1ToV2Bridge,
+  V1ToV2BridgeFactory,
+} from './v1-transparency/v1-to-v2-bridge.js';
+
 // Mesh Network Manager (peer-to-peer topology management)
 export {
   MeshNetworkManager,

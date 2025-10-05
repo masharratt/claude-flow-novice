@@ -24,20 +24,49 @@ class PremiumDashboard {
     }
 
     setupWebSocket() {
-        // Connect to real-time metrics server
-        this.socket = io('ws://localhost:3001', {
-            transports: ['websocket'],
-            upgrade: false
+        // Wait for authentication before connecting
+        if (!window.authClient || !window.authClient.isAuthenticated()) {
+            // Retry after delay
+            setTimeout(() => this.setupWebSocket(), 1000);
+            return;
+        }
+
+        // Connect to real-time metrics server with authentication
+        this.socket = io(window.location.origin, {
+            auth: {
+                token: window.authClient.getCurrentToken()
+            },
+            transports: ['websocket', 'polling'],
+            upgrade: true,
+            rememberUpgrade: true
         });
 
         this.socket.on('connect', () => {
             this.updateConnectionStatus('connected');
-            console.log('Connected to metrics server');
+            console.log('🔐 Securely connected to metrics server');
         });
 
-        this.socket.on('disconnect', () => {
+        this.socket.on('disconnect', (reason) => {
             this.updateConnectionStatus('disconnected');
-            console.log('Disconnected from metrics server');
+            console.log('📴 Disconnected from metrics server:', reason);
+
+            // If authentication failed, show login
+            if (reason === 'authentication error') {
+                window.authClient.showLoginModal();
+            }
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.error('🔴 WebSocket connection error:', error);
+            this.updateConnectionStatus('disconnected');
+
+            // Handle authentication errors
+            if (error.message.includes('Authentication')) {
+                window.authClient.showLoginModal();
+            } else {
+                // Fallback to polling for non-auth errors
+                this.startPolling();
+            }
         });
 
         this.socket.on('metrics', (data) => {
@@ -52,10 +81,8 @@ class PremiumDashboard {
             this.addRecommendation(recommendation);
         });
 
-        // Fallback to polling if WebSocket fails
-        this.socket.on('connect_error', () => {
-            this.updateConnectionStatus('disconnected');
-            this.startPolling();
+        this.socket.on('security_alert', (alert) => {
+            this.addSecurityAlert(alert);
         });
     }
 
@@ -384,6 +411,22 @@ class PremiumDashboard {
     }
 
     async runBenchmark(type) {
+        // Check authentication first
+        if (!window.authClient || !window.authClient.isAuthenticated()) {
+            window.authClient.showLoginModal();
+            return;
+        }
+
+        // Check permissions
+        if (!window.authClient.hasPermission('benchmark')) {
+            this.addAlert({
+                title: 'Permission Denied',
+                message: 'You do not have benchmark permissions',
+                severity: 'warning'
+            });
+            return;
+        }
+
         try {
             const response = await fetch(`/api/benchmark/${type}`, {
                 method: 'POST'
@@ -485,6 +528,27 @@ class PremiumDashboard {
             this.socket.emit('refresh');
         } else {
             this.startPolling();
+        }
+    }
+
+    addSecurityAlert(alert) {
+        this.addAlert({
+            ...alert,
+            title: `🔒 Security: ${alert.title}`,
+            severity: 'critical',
+            category: 'security'
+        });
+    }
+
+    showSecurityStatus() {
+        const user = window.authClient?.getUser();
+        if (user) {
+            this.addAlert({
+                title: 'Security Status',
+                message: `Logged in as ${user.username} (${user.role})`,
+                severity: 'info',
+                category: 'security'
+            });
         }
     }
 }

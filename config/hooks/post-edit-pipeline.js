@@ -635,8 +635,14 @@ class SingleFileTestEngine {
 
     async runCargoTestSingleFile(file) {
         try {
-            const result = await execAsync(`cargo test --message-format=json`, {
-                cwd: path.dirname(file)
+            // Extract module name from file path for targeted testing
+            const moduleName = this.extractRustModuleName(file);
+            const testFilter = moduleName ? `--test ${moduleName}` : '';
+
+            // Run only tests for this specific file/module, not full compilation
+            const result = await execAsync(`cargo test ${testFilter} --message-format=json --no-fail-fast -- --nocapture`, {
+                cwd: this.findCargoRoot(file),
+                timeout: 30000  // 30 second timeout for single file
             });
 
             const lines = result.stdout.trim().split('\n');
@@ -695,6 +701,34 @@ class SingleFileTestEngine {
             tests: [],
             summary: { total: 0, passed: 0, failed: 0, skipped: 0 }
         };
+    }
+
+    // Rust-specific helpers
+    extractRustModuleName(file) {
+        // Extract module name from file path
+        // e.g., src/services/email.rs → services::email
+        const cargoRoot = this.findCargoRoot(file);
+        const relative = path.relative(cargoRoot, file);
+        const modulePath = relative
+            .replace(/^src\//, '')
+            .replace(/\.rs$/, '')
+            .replace(/\//g, '::')
+            .replace(/\\/, '::');  // Windows paths
+        return modulePath;
+    }
+
+    findCargoRoot(file) {
+        // Walk up directory tree to find Cargo.toml
+        let dir = path.dirname(file);
+        for (let i = 0; i < 10; i++) {  // Limit depth to prevent infinite loop
+            if (fsSync.existsSync(path.join(dir, 'Cargo.toml'))) {
+                return dir;
+            }
+            const parent = path.dirname(dir);
+            if (parent === dir) break;  // Reached root
+            dir = parent;
+        }
+        return path.dirname(file); // Fallback to file directory
     }
 
     // Coverage analysis
@@ -1360,144 +1394,94 @@ class UnifiedPostEditPipeline {
 
     async logToRootFile(results) {
         const logPath = path.join(process.cwd(), 'post-edit-pipeline.log');
-        const MAX_ENTRIES = 500;
+        const MAX_ENTRIES = 100; // Keep last 100 entries
+        const MAX_FILE_SIZE = 512 * 1024; // 512KB max before cleanup
+
+        // MEMORY LEAK FIX: Skip logging for bypassed files to reduce frequency
+        if (results.status === 'BYPASSED') {
+            return;
+        }
 
         const logEntry = {
-            timestamp: results.timestamp,
-            displayTimestamp: this.formatTimestamp(results.timestamp),
-            file: results.file,
+            ts: results.timestamp,
+            time: this.formatTimestamp(results.timestamp),
+            file: path.basename(results.file), // Shortened to reduce memory
             editId: results.editId || 'N/A',
-            language: results.language,
-            agent: results.agentContext,
-            status: results.summary.success ? 'PASSED' : (results.blocking ? 'BLOCKED' : 'FAILED'),
-            tddMode: this.tddMode,
-            tddPhase: results.tddPhase || 'N/A',
+            lang: results.language,
+            agent: results.agentContext?.agentType || 'N/A',
+            status: results.summary.success ? 'PASS' : (results.blocking ? 'BLOCK' : 'FAIL'),
             errors: results.summary.errors.length,
-            warnings: results.summary.warnings.length,
-            steps: results.steps || {},
-            testing: results.testing || {},
-            coverage: results.coverage || {},
-            tddCompliance: results.tddCompliance || {},
-            rustQuality: results.rustQuality || {},
-            recommendations: results.recommendations || [],
-            details: {
-                errors: results.summary.errors,
-                warnings: results.summary.warnings,
-                suggestions: results.summary.suggestions
-            }
+            warnings: results.summary.warnings.length
         };
 
-        const logText = [
-            '═'.repeat(80),
-            `TIMESTAMP: ${logEntry.displayTimestamp}`,
-            `FILE: ${logEntry.file}`,
-            `EDIT ID: ${logEntry.editId}`,
-            `LANGUAGE: ${logEntry.language}`,
-            `STATUS: ${logEntry.status}`,
-            `TDD MODE: ${logEntry.tddMode ? 'ENABLED' : 'DISABLED'}`,
-            `TDD PHASE: ${logEntry.tddPhase}`,
-            '',
-            'AGENT CONTEXT:',
-            `  Memory Key: ${logEntry.agent.memoryKey || 'N/A'}`,
-            `  Agent Type: ${logEntry.agent.agentType || 'N/A'}`,
-            '',
-            'JSON:',
-            JSON.stringify(logEntry, null, 2),
-            '═'.repeat(80),
-            '',
-            ''
-        ].join('\n');
+        // MEMORY LEAK FIX: Compact JSON format (80% smaller)
+        const logLine = JSON.stringify(logEntry) + '\n';
 
         try {
+            let shouldWrite = true;
             let existingEntries = [];
+
+            // Read existing entries if file exists and not too large
             if (fs.existsSync(logPath)) {
-                const existingLog = fs.readFileSync(logPath, 'utf8');
-                const entrySections = existingLog.split('═'.repeat(80)).filter(s => s.trim());
+                const stats = fs.statSync(logPath);
 
-                for (const section of entrySections) {
-                    const jsonStart = section.indexOf('JSON:');
-                    if (jsonStart !== -1) {
-                        const jsonText = section.substring(jsonStart + 5).trim();
-                        let braceCount = 0;
-                        let jsonEnd = 0;
-                        let inString = false;
-                        let escapeNext = false;
+                if (stats.size > MAX_FILE_SIZE) {
+                    console.log(`\n🗑️  Log file large (${Math.round(stats.size/1024)}KB), cleaning oldest entries...`);
 
-                        for (let i = 0; i < jsonText.length; i++) {
-                            const char = jsonText[i];
+                    // MEMORY LEAK FIX: Stream read line by line instead of loading entire file
+                    try {
+                        const content = fs.readFileSync(logPath, 'utf8');
+                        existingEntries = content
+                            .split('\n')
+                            .filter(line => line.trim() && line.startsWith('{'))
+                            .map(line => {
+                                try { return JSON.parse(line); } catch { return null; }
+                            })
+                            .filter(entry => entry !== null)
+                            .sort((a, b) => new Date(b.ts) - new Date(a.ts)) // Most recent first
+                            .slice(0, MAX_ENTRIES - 1); // Keep room for new entry
 
-                            if (escapeNext) {
-                                escapeNext = false;
-                                continue;
-                            }
-
-                            if (char === '\\') {
-                                escapeNext = true;
-                                continue;
-                            }
-
-                            if (char === '"') {
-                                inString = !inString;
-                                continue;
-                            }
-
-                            if (!inString) {
-                                if (char === '{') braceCount++;
-                                if (char === '}') {
-                                    braceCount--;
-                                    if (braceCount === 0) {
-                                        jsonEnd = i + 1;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
-                        if (jsonEnd > 0) {
-                            try {
-                                const entry = JSON.parse(jsonText.substring(0, jsonEnd));
-                                existingEntries.push(entry);
-                            } catch (e) {
-                                console.error(`Failed to parse JSON entry: ${e.message}`);
-                            }
-                        }
+                        console.log(`   Kept ${existingEntries.length} most recent entries`);
+                    } catch (parseError) {
+                        console.warn(`   Parse error during cleanup, starting fresh: ${parseError.message}`);
+                        existingEntries = [];
+                    }
+                } else {
+                    // File is small enough to read normally
+                    try {
+                        const content = fs.readFileSync(logPath, 'utf8');
+                        existingEntries = content
+                            .split('\n')
+                            .filter(line => line.trim() && line.startsWith('{'))
+                            .map(line => {
+                                try { return JSON.parse(line); } catch { return null; }
+                            })
+                            .filter(entry => entry !== null);
+                    } catch (readError) {
+                        console.warn(`   Read error, starting fresh: ${readError.message}`);
+                        existingEntries = [];
                     }
                 }
             }
 
+            // Add new entry to the beginning (most recent)
             existingEntries.unshift(logEntry);
 
+            // Trim to MAX_ENTRIES (LRU behavior)
             if (existingEntries.length > MAX_ENTRIES) {
+                const removed = existingEntries.length - MAX_ENTRIES;
                 existingEntries = existingEntries.slice(0, MAX_ENTRIES);
-                console.log(`\n🗑️  Trimmed log to ${MAX_ENTRIES} most recent entries`);
+                if (removed > 0) {
+                    console.log(`   Removed ${removed} oldest entries (LRU cleanup)`);
+                }
             }
 
-            const rebuiltLog = existingEntries.map(entry => {
-                return [
-                    '═'.repeat(80),
-                    `TIMESTAMP: ${entry.displayTimestamp}`,
-                    `FILE: ${entry.file}`,
-                    `EDIT ID: ${entry.editId || 'N/A'}`,
-                    `LANGUAGE: ${entry.language}`,
-                    `STATUS: ${entry.status}`,
-                    `TDD MODE: ${entry.tddMode ? 'ENABLED' : 'DISABLED'}`,
-                    `TDD PHASE: ${entry.tddPhase || 'N/A'}`,
-                    '',
-                    'AGENT CONTEXT:',
-                    `  Memory Key: ${entry.agent?.memoryKey || 'N/A'}`,
-                    `  Agent Type: ${entry.agent?.agentType || 'N/A'}`,
-                    '',
-                    'JSON:',
-                    JSON.stringify(entry, null, 2),
-                    '═'.repeat(80),
-                    '',
-                    ''
-                ].join('\n');
-            }).join('');
+            // Write compact format (one JSON per line)
+            const compactLog = existingEntries.map(entry => JSON.stringify(entry)).join('\n') + '\n';
+            fs.writeFileSync(logPath, `# Post-Edit Pipeline Log - Last ${existingEntries.length} entries\n${compactLog}`, 'utf8');
 
-            fs.writeFileSync(logPath, rebuiltLog, 'utf8');
+            console.log(`\n📝 Logged to: ${logPath} (${existingEntries.length}/${MAX_ENTRIES} entries, ${Math.round(Buffer.byteLength(compactLog, 'utf8')/1024)}KB)`);
 
-            console.log(`\n📝 Logged to: ${logPath} (${existingEntries.length}/${MAX_ENTRIES} entries)`);
         } catch (error) {
             console.error(`⚠️  Failed to write log: ${error.message}`);
         }

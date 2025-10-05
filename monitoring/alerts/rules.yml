@@ -1,0 +1,233 @@
+# Alert rules for Claude Flow Novice monitoring
+
+groups:
+  - name: claude-flow-novice.rules
+    rules:
+      # Application health alerts
+      - alert: ApplicationDown
+        expr: up{job="claude-flow-novice"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Claude Flow Novice application is down"
+          description: "Claude Flow Novice application has been down for more than 1 minute."
+          runbook_url: "https://runbooks.claude-flow-novice.com/application-down"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second over the last 5 minutes."
+          runbook_url: "https://runbooks.claude-flow-novice.com/high-error-rate"
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High latency detected"
+          description: "95th percentile latency is {{ $value }} seconds over the last 5 minutes."
+          runbook_url: "https://runbooks.claude-flow-novice.com/high-latency"
+
+      - alert: MemoryUsageHigh
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 90% for more than 5 minutes."
+          runbook_url: "https://runbooks.claude-flow-novice.com/high-memory-usage"
+
+      - alert: CPUUsageHigh
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80% for more than 5 minutes."
+          runbook_url: "https://runbooks.claude-flow-novice.com/high-cpu-usage"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 10% on instance {{ $labels.instance }}."
+          runbook_url: "https://runbooks.claude-flow-novice.com/low-disk-space"
+
+      # Database alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute."
+          runbook_url: "https://runbooks.claude-flow-novice.com/postgresql-down"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "PostgreSQL too many connections"
+          description: "PostgreSQL has {{ $value }} active connections."
+          runbook_url: "https://runbooks.claude-flow-novice.com/postgresql-connections"
+
+      - alert: PostgreSQLSlowQueries
+        expr: rate(pg_stat_statements_mean_time_seconds[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "PostgreSQL slow queries"
+          description: "PostgreSQL average query time is {{ $value }} seconds."
+          runbook_url: "https://runbooks.claude-flow-novice.com/postgresql-slow-queries"
+
+      # Redis alerts
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute."
+          runbook_url: "https://runbooks.claude-flow-novice.com/redis-down"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is above 90%."
+          runbook_url: "https://runbooks.claude-flow-novice.com/redis-memory-high"
+
+      # Nginx alerts
+      - alert: NginxDown
+        expr: up{job="nginx-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Nginx is down"
+          description: "Nginx has been down for more than 1 minute."
+          runbook_url: "https://runbooks.claude-flow-novice.com/nginx-down"
+
+      - alert: NginxHighResponseTime
+        expr: histogram_quantile(0.95, rate(nginx_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Nginx high response time"
+          description: "Nginx 95th percentile response time is {{ $value }} seconds."
+          runbook_url: "https://runbooks.claude-flow-novice.com/nginx-response-time"
+
+      # Container alerts
+      - alert: ContainerDown
+        expr: time() - container_last_seen > 300
+        for: 1m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Container is down"
+          description: "Container {{ $labels.name }} has been down for more than 5 minutes."
+          runbook_url: "https://runbooks.claude-flow-novice.com/container-down"
+
+      - alert: ContainerHighMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is above 90%."
+          runbook_url: "https://runbooks.claude-flow-novice.com/container-memory-high"
+
+      - alert: ContainerHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Container high CPU usage"
+          description: "Container {{ $labels.name }} CPU usage is above 80%."
+          runbook_url: "https://runbooks.claude-flow-novice.com/container-cpu-high"
+
+      # Security alerts
+      - alert: UnusualLoginActivity
+        expr: rate(ssh_login_attempts_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Unusual SSH login activity"
+          description: "High rate of SSH login attempts detected: {{ $value }} attempts per second."
+          runbook_url: "https://runbooks.claude-flow-novice.com/unusual-login-activity"
+
+      - alert: FailedLoginAttempts
+        expr: rate(sshd_auth_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "Failed SSH login attempts rate: {{ $value }} per second."
+          runbook_url: "https://runbooks.claude-flow-novice.com/failed-login-attempts"
+
+  - name: business.rules
+    rules:
+      # Business metrics alerts
+      - alert: LowActiveUsers
+        expr: active_users_total < 100
+        for: 10m
+        labels:
+          severity: info
+          team: product
+        annotations:
+          summary: "Low number of active users"
+          description: "Only {{ $value }} active users detected in the last 10 minutes."
+          runbook_url: "https://runbooks.claude-flow-novice.com/low-active-users"
+
+      - alert: HighErrorRateBusiness
+        expr: rate(business_errors_total[5m]) / rate(business_operations_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: product
+        annotations:
+          summary: "High business error rate"
+          description: "Business error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+          runbook_url: "https://runbooks.claude-flow-novice.com/business-error-rate"

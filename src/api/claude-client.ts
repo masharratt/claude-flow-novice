@@ -20,6 +20,7 @@ import {
   getUserFriendlyError,
 } from './claude-api-errors.js';
 import { circuitBreaker, CircuitBreaker } from '../utils/helpers.js';
+import { incrementMetric, recordTiming } from '../observability/metrics-counter.js';
 
 export interface ClaudeAPIConfig {
   apiKey: string;
@@ -300,6 +301,19 @@ export class ClaudeAPIClient extends EventEmitter {
    * Send a non-streaming request
    */
   private async sendRequest(request: ClaudeRequest): Promise<ClaudeResponse> {
+    const startTime = Date.now();
+    const model = request.model || 'unknown';
+
+    // Detect provider from apiUrl (z.ai vs anthropic)
+    const provider = this.config.apiUrl?.includes('z.ai') ? 'z.ai' : 'anthropic';
+
+    // Track API request
+    incrementMetric('claude.api.request', 1, {
+      model,
+      provider,
+      stream: 'false',
+    });
+
     let lastError: ClaudeAPIError | undefined;
 
     for (let attempt = 0; attempt < (this.config.retryAttempts || 3); attempt++) {
@@ -338,6 +352,26 @@ export class ClaudeAPIClient extends EventEmitter {
 
         const data = (await response.json()) as ClaudeResponse;
 
+        // Track successful response timing
+        recordTiming('claude.api.duration', Date.now() - startTime, {
+          model,
+          status: 'success',
+          stream: 'false',
+        });
+
+        // Track token usage
+        if (data.usage) {
+          incrementMetric('claude.tokens.input', data.usage.input_tokens, {
+            model,
+          });
+          incrementMetric('claude.tokens.output', data.usage.output_tokens, {
+            model,
+          });
+          incrementMetric('claude.tokens.total', data.usage.input_tokens + data.usage.output_tokens, {
+            model,
+          });
+        }
+
         this.logger.info('Claude API response received', {
           model: data.model,
           inputTokens: data.usage.input_tokens,
@@ -350,8 +384,21 @@ export class ClaudeAPIClient extends EventEmitter {
       } catch (error) {
         lastError = this.transformError(error);
 
+        // Track error
+        incrementMetric('claude.api.error', 1, {
+          model,
+          errorType: lastError.code || lastError.constructor.name || 'Unknown',
+          statusCode: lastError.statusCode?.toString() || 'unknown',
+          retryable: lastError.retryable ? 'true' : 'false',
+        });
+
         // Don't retry non-retryable errors
         if (!lastError.retryable) {
+          recordTiming('claude.api.duration', Date.now() - startTime, {
+            model,
+            status: 'error',
+            stream: 'false',
+          });
           this.handleError(lastError);
           throw lastError;
         }
@@ -372,6 +419,13 @@ export class ClaudeAPIClient extends EventEmitter {
       }
     }
 
+    // Track final error timing after all retries exhausted
+    recordTiming('claude.api.duration', Date.now() - startTime, {
+      model,
+      status: 'error',
+      stream: 'false',
+    });
+
     this.handleError(lastError!);
     throw lastError;
   }
@@ -380,6 +434,21 @@ export class ClaudeAPIClient extends EventEmitter {
    * Send a streaming request
    */
   private async *streamRequest(request: ClaudeRequest): AsyncIterable<ClaudeStreamEvent> {
+    const startTime = Date.now();
+    const model = request.model || 'unknown';
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
+    // Detect provider from apiUrl (z.ai vs anthropic)
+    const provider = this.config.apiUrl?.includes('z.ai') ? 'z.ai' : 'anthropic';
+
+    // Track API request
+    incrementMetric('claude.api.request', 1, {
+      model,
+      provider,
+      stream: 'true',
+    });
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), (this.config.timeout || 30000) * 2); // Double timeout for streaming
 
@@ -405,12 +474,44 @@ export class ClaudeAPIClient extends EventEmitter {
           errorData = { message: errorText };
         }
 
-        throw this.createAPIError(response.status, errorData);
+        const apiError = this.createAPIError(response.status, errorData);
+
+        // Track error
+        incrementMetric('claude.api.error', 1, {
+          model,
+          errorType: apiError.code || apiError.constructor.name || 'Unknown',
+          statusCode: apiError.statusCode?.toString() || 'unknown',
+          retryable: apiError.retryable ? 'true' : 'false',
+        });
+
+        recordTiming('claude.api.duration', Date.now() - startTime, {
+          model,
+          status: 'error',
+          stream: 'true',
+        });
+
+        throw apiError;
       }
 
       if (!response.body) {
-        throw new ClaudeAPIError('Response body is null');
+        const bodyError = new ClaudeAPIError('Response body is null');
+
+        incrementMetric('claude.api.error', 1, {
+          model,
+          errorType: 'ResponseBodyNull',
+          statusCode: 'unknown',
+          retryable: 'false',
+        });
+
+        recordTiming('claude.api.duration', Date.now() - startTime, {
+          model,
+          status: 'error',
+          stream: 'true',
+        });
+
+        throw bodyError;
       }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -430,6 +531,15 @@ export class ClaudeAPIClient extends EventEmitter {
 
             try {
               const event = JSON.parse(data) as ClaudeStreamEvent;
+
+              // Track token usage from stream events
+              if (event.type === 'message_start' && event.message?.usage) {
+                totalInputTokens = event.message.usage.input_tokens || 0;
+              }
+              if (event.type === 'message_delta' && event.usage) {
+                totalOutputTokens += event.usage.output_tokens || 0;
+              }
+
               this.emit('stream_event', event);
               yield event;
             } catch (e) {
@@ -438,12 +548,57 @@ export class ClaudeAPIClient extends EventEmitter {
           }
         }
       }
+
+      // Track successful completion
+      recordTiming('claude.api.duration', Date.now() - startTime, {
+        model,
+        status: 'success',
+        stream: 'true',
+      });
+
+      // Track token usage
+      if (totalInputTokens > 0 || totalOutputTokens > 0) {
+        incrementMetric('claude.tokens.input', totalInputTokens, { model });
+        incrementMetric('claude.tokens.output', totalOutputTokens, { model });
+        incrementMetric('claude.tokens.total', totalInputTokens + totalOutputTokens, { model });
+      }
     } catch (error) {
       clearTimeout(timeout);
 
       // Handle abort/timeout
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new ClaudeTimeoutError('Request timed out', this.config.timeout || 60000);
+        const timeoutError = new ClaudeTimeoutError('Request timed out', this.config.timeout || 60000);
+
+        incrementMetric('claude.api.error', 1, {
+          model,
+          errorType: 'Timeout',
+          statusCode: 'timeout',
+          retryable: 'true',
+        });
+
+        recordTiming('claude.api.duration', Date.now() - startTime, {
+          model,
+          status: 'error',
+          stream: 'true',
+        });
+
+        throw timeoutError;
+      }
+
+      // Track error if not already tracked
+      if (!(error instanceof ClaudeAPIError)) {
+        incrementMetric('claude.api.error', 1, {
+          model,
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          statusCode: 'unknown',
+          retryable: 'false',
+        });
+
+        recordTiming('claude.api.duration', Date.now() - startTime, {
+          model,
+          status: 'error',
+          stream: 'true',
+        });
       }
 
       throw error;

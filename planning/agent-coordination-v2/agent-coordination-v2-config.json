@@ -1,0 +1,642 @@
+{
+  "epic_name": "agent-coordination-v2",
+  "epic_goal": "Build comprehensive Agent Coordination System V2 with SDK integration for multi-level hierarchies, distributed consensus, and fault-tolerant agent orchestration",
+  "scope": {
+    "in_scope": [
+      "SDK Foundation (session forking, query control, checkpoints, artifacts)",
+      "7-state agent lifecycle with SDK integration",
+      "Dependency resolution with DAG structure and cycle detection",
+      "4-channel message bus with priority routing",
+      "Hierarchical and mesh completion detection",
+      "PM-based hierarchical coordination with 10+ level nesting",
+      "Peer-to-peer mesh coordination with distributed consensus",
+      "Zero-cost help system with waiting agent pool",
+      "Deadlock detection via Wait-For-Graph cycle detection",
+      "System integration with SDK performance optimization",
+      "Comprehensive testing (unit, integration, chaos, security)",
+      "Complete documentation and production deployment",
+      "Enterprise-scale production hardening"
+    ],
+    "out_of_scope": [
+      "V1 coordination system features (being replaced)",
+      "Non-SDK coordination modes (CLI mode deprecated)",
+      "Manual polling-based completion detection",
+      "Single-level agent hierarchies only",
+      "Synchronous agent spawning",
+      "Token-consuming idle agent pools"
+    ],
+    "risk_profile": "internal-only-low-risk"
+  },
+  "phases": [
+    {
+      "phase_id": "0",
+      "phase_name": "SDK Foundation Setup",
+      "dependencies": [],
+      "deliverables": [
+        "SessionManager with parallel forking (10-20 agents)",
+        "QueryController with pause/resume/interrupt",
+        "CheckpointManager with <500ms recovery",
+        "ArtifactStorage with binary format (3.7x faster)",
+        "BackgroundOrchestrator for multi-level spawning",
+        "BashOutputMonitor for child process monitoring",
+        "SDK utilities and helpers"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "0.1",
+          "sprint_name": "Core SDK Components",
+          "deliverables": [
+            "SessionManager implementation",
+            "QueryController implementation",
+            "CheckpointManager implementation",
+            "SDK utilities and helpers"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "0.2",
+          "sprint_name": "Artifact Storage & Orchestration",
+          "deliverables": [
+            "ArtifactStorage with binary format",
+            "BackgroundOrchestrator implementation",
+            "BashOutputMonitor implementation",
+            "Performance baseline establishment"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "Spawn 20 agents in <2s (vs 20s sequential)",
+        "Zero token cost pausing with <50ms resume",
+        "Checkpoint recovery in <500ms",
+        "Binary artifact storage <12ms (p95)",
+        "Background process orchestration operational for 10+ levels",
+        "200+ tests passing across all SDK components"
+      ],
+      "status": "complete",
+      "completion_date": "2025-10-03"
+    },
+    {
+      "phase_id": "1",
+      "phase_name": "State Machine Foundation + SDK Integration",
+      "dependencies": ["0"],
+      "deliverables": [
+        "AgentState enum with 7 states (IDLE, WORKING, WAITING, HELPING, BLOCKED, COMPLETING, FAILED)",
+        "StateMachineManager with transition validation",
+        "State persistence to SwarmMemory + Artifacts",
+        "Auto-checkpoint on state transitions",
+        "Query controller integration for pausing during transitions"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "1.1",
+          "sprint_name": "State Machine Core",
+          "deliverables": [
+            "AgentState enum definition",
+            "State transition event structures",
+            "Transition validation rules",
+            "Core state machine logic"
+          ],
+          "estimated_agents": 3
+        },
+        {
+          "sprint_id": "1.2",
+          "sprint_name": "SDK Integration & Persistence",
+          "deliverables": [
+            "Auto-checkpoint on state transitions",
+            "Artifact-backed state persistence",
+            "Query controller pause/resume integration",
+            "SwarmMemory integration"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "State transitions complete in <100ms (p99)",
+        "Artifact storage 3.7x faster than JSON baseline",
+        "Auto-checkpoint on transitions in <500ms",
+        "Zero token cost during state transitions",
+        "State recovery from checkpoint in <500ms",
+        "99.4% unit test coverage (169/170 tests)"
+      ],
+      "status": "complete",
+      "completion_date": "2025-10-03"
+    },
+    {
+      "phase_id": "2",
+      "phase_name": "Dependency Graph + SDK Artifact Storage",
+      "dependencies": ["1"],
+      "deliverables": [
+        "DependencyGraph with cycle detection",
+        "Topological sort for execution ordering",
+        "DependencyManager routing requests",
+        "Artifact-based storage (3.7x faster than JSON)",
+        "Session forking for parallel dependency resolution"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "2.1",
+          "sprint_name": "DAG Structure & Algorithms",
+          "deliverables": [
+            "Dependency request/resolution types",
+            "DAG data structure with adjacency list",
+            "Cycle detection algorithm (DFS-based)",
+            "Topological sort (Kahn's algorithm)"
+          ],
+          "estimated_agents": 3
+        },
+        {
+          "sprint_id": "2.2",
+          "sprint_name": "Artifact Storage & Coordination",
+          "deliverables": [
+            "Binary artifact storage backend",
+            "Dependency manager coordination logic",
+            "Session forking integration",
+            "Dependency graph visualization"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "Handle 100+ dependency nodes without performance degradation",
+        "Cycle detection complete in <100ms (p95)",
+        "Artifact storage 3.7x faster than JSON (12ms vs 45ms)",
+        "100% valid topological sort execution orders",
+        "5x speedup with 5 concurrent resolvers via session forking",
+        "95% test coverage for dependency system"
+      ],
+      "status": "pending"
+    },
+    {
+      "phase_id": "3",
+      "phase_name": "Message Bus + Query Control Integration",
+      "dependencies": ["2"],
+      "deliverables": [
+        "4 specialized channels (state, dependency, task, help)",
+        "Priority routing functional",
+        "Query control for dynamic message routing",
+        "Event-driven agent resume on message arrival",
+        "Artifact-backed message persistence"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "3.1",
+          "sprint_name": "Core Message Bus",
+          "deliverables": [
+            "Core message bus architecture",
+            "Channel abstraction",
+            "Message router with priority queue",
+            "4 specialized channel implementations"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "3.2",
+          "sprint_name": "SDK Integration & Persistence",
+          "deliverables": [
+            "Agent pause/resume on message events",
+            "Zero-cost message queue monitoring",
+            "Artifact-backed message persistence",
+            "Background process messaging coordination"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "Handle >5000 messages/sec across all channels",
+        "High-priority messages delivered in <10ms",
+        "Zero token cost during idle periods (agents paused)",
+        "Agent resume in <50ms on message arrival",
+        "Background messaging across 10+ nested levels",
+        "Message persistence <15ms (p95)"
+      ],
+      "status": "pending"
+    },
+    {
+      "phase_id": "4",
+      "phase_name": "Completion Detection + Checkpoint Validation",
+      "dependencies": ["3"],
+      "deliverables": [
+        "Hierarchical completion detection (PM-based)",
+        "Mesh completion detection (Dijkstra-Scholten)",
+        "Event-driven completion (no polling overhead)",
+        "Checkpoint-based recovery validated",
+        "Multi-level hierarchy completion cascading"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "4.1",
+          "sprint_name": "Completion Detectors",
+          "deliverables": [
+            "Base completion detector interface",
+            "Hierarchical detector (PM-based)",
+            "Mesh detector (Dijkstra-Scholten)",
+            "Distributed completion probes"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "4.2",
+          "sprint_name": "SDK Integration & Shutdown",
+          "deliverables": [
+            "SDK event-driven completion detector",
+            "Graceful swarm shutdown coordinator",
+            "Checkpoint-based completion tracking",
+            "Background process completion monitoring"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "Hierarchical completion <1000ms for 20-agent swarm",
+        "Mesh completion <2000ms for 10-agent mesh",
+        "Zero polling overhead with SDK events",
+        "Checkpoint recovery <500ms on completion failures",
+        "Nested hierarchy completion works across 10+ levels",
+        "Background process completion detected in <500ms",
+        "87/87 Phase 04 tests passing (100%)"
+      ],
+      "status": "complete",
+      "completion_date": "2025-10-03"
+    },
+    {
+      "phase_id": "5",
+      "phase_name": "Hierarchical Coordination + Nested Agent Control",
+      "dependencies": ["4"],
+      "deliverables": [
+        "Hierarchical coordinator operational",
+        "Level 0 parent coordinator controls all nested levels",
+        "Background bash processes spawn and monitor child agents",
+        "Pause/inject/resume from Level 0 to any child level",
+        "Cascading shutdown for graceful termination"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "5.1",
+          "sprint_name": "Hierarchical Coordinator Core",
+          "deliverables": [
+            "Hierarchical coordinator architecture (PM-based)",
+            "Parent-child relationship management",
+            "Level 0 coordinator in Claude Code chat",
+            "Task delegation workflows"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "5.2",
+          "sprint_name": "Multi-Level Control & Orchestration",
+          "deliverables": [
+            "Background bash orchestrator for child agents",
+            "BashOutput monitoring for all child levels",
+            "Pause/inject/resume from Level 0 to any level",
+            "Cascading shutdown coordinator"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "Spawn 10 hierarchical agents in <2s across multiple levels",
+        "Parent can pause any child at any level in <100ms",
+        "Support 10+ nested agent levels",
+        "Detect child failures in <500ms",
+        "Checkpoint recovery <500ms for nested hierarchy",
+        "Cascading shutdown <1s for 20 agents"
+      ],
+      "status": "pending"
+    },
+    {
+      "phase_id": "6",
+      "phase_name": "Mesh Coordination + Distributed Query Control",
+      "dependencies": ["5"],
+      "deliverables": [
+        "Mesh coordinator operational",
+        "Distributed completion detection working",
+        "Query control for peer-to-peer negotiation",
+        "Session forking spawns peers in parallel",
+        "Artifact-based peer state sharing"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "6.1",
+          "sprint_name": "Mesh Coordinator Core",
+          "deliverables": [
+            "Mesh coordinator architecture",
+            "Peer discovery and capability matching",
+            "Distributed consensus (Byzantine voting)",
+            "Dynamic role assignment"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "6.2",
+          "sprint_name": "Distributed Control & Self-Healing",
+          "deliverables": [
+            "Mesh self-healing implementation",
+            "Pheromone-based communication",
+            "Session forking for parallel peer spawning",
+            "Artifact-based peer state sharing"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "Spawn 10 mesh peers in <2s in parallel",
+        "Distributed completion <2000ms for 10-agent mesh",
+        "Peer resume in <50ms when work arrives",
+        "Message throughput >8000 msg/sec",
+        "Mesh network tests passing (100%)"
+      ],
+      "status": "complete",
+      "completion_date": "2025-10-03"
+    },
+    {
+      "phase_id": "7",
+      "phase_name": "Help System + Waiting Agent Pool with SDK Pause",
+      "dependencies": ["6"],
+      "deliverables": [
+        "Help request routing operational",
+        "Capability matching selecting best helpers",
+        "Waiting agent pool with zero-cost pausing",
+        "Checkpoint-based state preservation for helpers",
+        "Resume helpers when dependency arrives"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "7.1",
+          "sprint_name": "Help Request System",
+          "deliverables": [
+            "Help request types and structures",
+            "Help matcher with capability matching",
+            "Help coordinator implementation",
+            "Help request timeout and retry logic"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "7.2",
+          "sprint_name": "Waiting Agent Pool & SDK Integration",
+          "deliverables": [
+            "Waiting agent pool with SDK pause",
+            "Zero-cost waiting (pause during idle)",
+            "Resume helpers on help request arrival",
+            "Checkpoint-based helper state preservation"
+          ],
+          "estimated_agents": 4
+        }
+      ],
+      "success_criteria": [
+        "Help matcher finds helpers in <100ms (actual: 0.01ms)",
+        "Help request routing <200ms (actual: 18.43ms p95)",
+        "Zero tokens consumed while paused (28,353 tokens saved)",
+        "Helper resume in <50ms (actual: 0.02ms)",
+        "Checkpoint recovery <500ms (actual: 0.075ms)",
+        "Support 50+ paused agents (actual: 100 agents tested)",
+        "93.2% test coverage (55/59 tests passing)"
+      ],
+      "status": "complete",
+      "completion_date": "2025-10-03"
+    },
+    {
+      "phase_id": "8",
+      "phase_name": "Deadlock Detection + Recovery via Checkpoints",
+      "dependencies": ["7"],
+      "deliverables": [
+        "WFG cycle detection functional (<500ms)",
+        "Deadlock resolution strategies implemented",
+        "Checkpoint rollback recovers from deadlocks",
+        "Multi-level deadlock detection across nested hierarchies",
+        "Priority-based pause/resume for resolution"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "8.1",
+          "sprint_name": "Deadlock Detection",
+          "deliverables": [
+            "Wait-For-Graph structure",
+            "Deadlock detector with cycle detection",
+            "Multi-level deadlock detection",
+            "Deadlock metrics and alerting"
+          ],
+          "estimated_agents": 3
+        },
+        {
+          "sprint_id": "8.2",
+          "sprint_name": "Recovery & Resolution",
+          "deliverables": [
+            "Deadlock resolver with strategies",
+            "Resource ordering prevention",
+            "Checkpoint rollback mechanism",
+            "Priority-based pause/resume for resolution"
+          ],
+          "estimated_agents": 3
+        }
+      ],
+      "success_criteria": [
+        "WFG cycle detection complete in <500ms (p95)",
+        "Deadlock detection works across 50+ agents",
+        "Checkpoint rollback restores pre-deadlock state",
+        "Recovery speed <500ms from checkpoint",
+        "Deadlock recovery success rate >95%",
+        "Total recovery time <1s (detection + recovery)"
+      ],
+      "status": "pending"
+    },
+    {
+      "phase_id": "9",
+      "phase_name": "System Integration + SDK Performance Optimization",
+      "dependencies": ["8"],
+      "deliverables": [
+        "All V2 components integrated into unified system",
+        "Session pool handles 50+ concurrent agents",
+        "Artifact cache achieves <12ms storage latency",
+        "Query control overhead optimized (<5% token cost)",
+        "End-to-end workflows validated"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "9.1",
+          "sprint_name": "Component Integration",
+          "deliverables": [
+            "SwarmCoordinatorV2 implementation",
+            "Hierarchical coordinator integration",
+            "Mesh coordinator integration",
+            "State machine + dependency manager integration"
+          ],
+          "estimated_agents": 5
+        },
+        {
+          "sprint_id": "9.2",
+          "sprint_name": "SDK Performance Optimization",
+          "deliverables": [
+            "Session pool optimization for 50+ agents",
+            "Artifact cache tuning (<12ms)",
+            "Query control overhead analysis (<5%)",
+            "Checkpoint compression (60% reduction)"
+          ],
+          "estimated_agents": 4
+        }
+      ],
+      "success_criteria": [
+        "End-to-end hierarchical workflow completes successfully (100%)",
+        "End-to-end mesh workflow completes successfully (100%)",
+        "Session pool handles 50+ concurrent agents",
+        "Artifact storage consistent <12ms (p95)",
+        "Query control overhead <5% token cost",
+        "Checkpoint compression 60% storage reduction",
+        "Zero integration bugs"
+      ],
+      "status": "pending"
+    },
+    {
+      "phase_id": "10",
+      "phase_name": "Performance Tuning + Testing Validation",
+      "dependencies": ["9"],
+      "deliverables": [
+        "100% unit test coverage for critical paths",
+        "95% integration test coverage",
+        "Chaos tests recover from all failure scenarios",
+        "Security audit passes with zero critical vulnerabilities",
+        "SDK features validated (pause/resume, nested spawning, checkpoints)"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "10.1",
+          "sprint_name": "Comprehensive Testing",
+          "deliverables": [
+            "Unit test suite completion (100% critical paths)",
+            "Integration test suite (95% coverage)",
+            "Load testing (50+ agents)",
+            "Stress testing (resource exhaustion)"
+          ],
+          "estimated_agents": 5
+        },
+        {
+          "sprint_id": "10.2",
+          "sprint_name": "Chaos Engineering & Security",
+          "deliverables": [
+            "Chaos engineering tests (failure injection)",
+            "SDK feature validation (pause/resume, nested spawning)",
+            "Security audit and penetration testing",
+            "Performance regression testing"
+          ],
+          "estimated_agents": 4
+        }
+      ],
+      "success_criteria": [
+        "100% unit test coverage for critical paths",
+        "95% integration test coverage",
+        "Load tests handle 50 agents without failures",
+        "Chaos tests recover from all failure scenarios",
+        "Nested spawning validated to 15+ levels",
+        "Session forking handles 100+ concurrent forks",
+        "Security audit passed with zero critical vulnerabilities"
+      ],
+      "status": "pending"
+    },
+    {
+      "phase_id": "11",
+      "phase_name": "Documentation + Production Deployment",
+      "dependencies": ["10"],
+      "deliverables": [
+        "Complete documentation suite published",
+        "SDK integration guide with code examples",
+        "Production deployment successful",
+        "V1 code removed from codebase",
+        "Monitoring and alerting operational"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "11.1",
+          "sprint_name": "Documentation Suite",
+          "deliverables": [
+            "API reference documentation",
+            "Architecture guide",
+            "Migration guide (V1 → V2)",
+            "User guide and tutorials",
+            "SDK integration guide with examples"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "11.2",
+          "sprint_name": "Production Deployment",
+          "deliverables": [
+            "Staging deployment and validation",
+            "Production deployment (gradual rollout)",
+            "Monitoring and alerting setup",
+            "Post-deployment validation",
+            "V1 code removal"
+          ],
+          "estimated_agents": 5
+        }
+      ],
+      "success_criteria": [
+        "100% documentation coverage of all public APIs",
+        "All code examples tested and working",
+        "Staging deployment validated with production-like load",
+        "Production rollout zero incidents in first 48 hours",
+        "V1 migration completed with zero regressions",
+        "Monitoring coverage 100% of key metrics"
+      ],
+      "status": "pending"
+    },
+    {
+      "phase_id": "12",
+      "phase_name": "SDK Production Hardening",
+      "dependencies": ["11"],
+      "deliverables": [
+        "Session pool handles 100+ agents with autoscaling",
+        "Checkpoint recovery tested with 100% success rate",
+        "Query control reduces token costs by 50-75% in production",
+        "System ready for enterprise-scale production workloads",
+        "Comprehensive monitoring for nested hierarchies"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "12.1",
+          "sprint_name": "Enterprise-Scale Optimization",
+          "deliverables": [
+            "Production SDK configuration optimization",
+            "Session pool autoscaling configuration",
+            "Nested hierarchy monitoring (10+ levels)",
+            "Background process health checks automation"
+          ],
+          "estimated_agents": 4
+        },
+        {
+          "sprint_id": "12.2",
+          "sprint_name": "Production Validation & Hardening",
+          "deliverables": [
+            "Checkpoint backup strategies implementation",
+            "Production incident drills execution",
+            "Cost optimization analysis validation",
+            "Final security audit (SDK vulnerabilities)",
+            "Capacity planning review (100+ agents)"
+          ],
+          "estimated_agents": 5
+        }
+      ],
+      "success_criteria": [
+        "Session pool handles 100+ agents with autoscaling",
+        "Checkpoint recovery 100% success rate under load",
+        "Nested hierarchy monitoring covers all 10+ levels",
+        "Background process detection <500ms failure latency",
+        "Artifact storage handles 10GB+ without degradation",
+        "Token cost reduction 50-75% validated in production",
+        "Performance multipliers sustained (10-20x spawning improvement)",
+        "Recovery speed <500ms under load"
+      ],
+      "status": "pending"
+    }
+  ],
+  "decision_authority_config": {
+    "auto_approve_threshold": 0.90,
+    "auto_relaunch_max_iteration": 10,
+    "escalation_criteria": [
+      "critical security vulnerability",
+      "data loss risk",
+      "performance degradation >50%",
+      "integration failure blocking progress"
+    ]
+  }
+}

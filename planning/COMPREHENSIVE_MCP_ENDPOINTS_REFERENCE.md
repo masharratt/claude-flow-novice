@@ -46,6 +46,15 @@ Loop 3: Primary Swarm → 10 iterations max per subtask
 | `/cfn-loop-sprints` | Multi-sprint phase | Loop 2: 10/sprint, Loop 3: 10 | Phase with 3-5 sprints |
 | `/cfn-loop-epic` | Multi-phase epic | Loop 2: 10/phase, Loop 3: 10 | Complex projects (4+ phases) |
 | `/parse-epic` | Convert markdown → JSON | N/A | Epic structure generation |
+| `/cfn-claude-sync` | **Sync CLAUDE.md → slash commands** | N/A | **DRY principle - single source of truth (NEW v1.6.1)** |
+
+**Configuration Management (NEW)**:
+- `/cfn-claude-sync` - Automatically synchronizes CFN Loop configuration from CLAUDE.md to all slash command files
+- **Eliminates duplication**: Edit once in CLAUDE.md instead of 9 files manually
+- **Ensures consistency**: Consensus ≥90%, confidence ≥75%, iteration limits, complexity tiers
+- **Updates**: `.claude/commands/cfn-loop*.md` (4 files) + `src/slash-commands/cfn-loop*.js` (4 files)
+- **Safety**: Creates backups, supports `--dry-run` and `--verbose` flags
+- **Usage**: `/cfn-claude-sync --dry-run` (preview) → `/cfn-claude-sync` (apply)
 
 **Documentation**: See [CFN Loop Complete Guide](./CFN_LOOP_COMPLETE_GUIDE.md) and [Sprint Orchestration Guide](../docs/SPRINT_ORCHESTRATION.md)
 

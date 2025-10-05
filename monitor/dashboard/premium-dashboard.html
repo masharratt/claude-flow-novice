@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Premium Performance Monitor - 96GB Setup</title>
+    <title>🔐 Secure Performance Monitor - Production Dashboard</title>
     <link rel="stylesheet" href="premium-styles.css">
+    <meta name="description" content="Secure performance monitoring dashboard with authentication and security controls">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' ws: wss:; frame-src 'none'; object-src 'none';">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -23,6 +29,9 @@
                 </div>
             </div>
             <div class="header-right">
+                <div id="user-info" class="user-info">
+                    <!-- User info will be populated by auth client -->
+                </div>
                 <div class="connection-status">
                     <div class="status-dot" id="connection-status"></div>
                     <span id="connection-text">Connecting...</span>
@@ -163,13 +172,17 @@
             </div>
 
             <!-- Benchmarking Tools -->
-            <div class="card benchmark-card">
-                <h2>Benchmarking Tools</h2>
+            <div class="card benchmark-card" data-require-permission="benchmark">
+                <h2>🛠️ Benchmarking Tools</h2>
+                <div class="security-notice">
+                    <span class="notice-icon">⚠️</span>
+                    <span>Requires benchmark permissions</span>
+                </div>
                 <div class="benchmark-controls">
-                    <button class="benchmark-btn" id="cpu-benchmark">CPU Benchmark</button>
-                    <button class="benchmark-btn" id="memory-benchmark">Memory Benchmark</button>
-                    <button class="benchmark-btn" id="swarm-benchmark">Swarm Benchmark</button>
-                    <button class="benchmark-btn" id="full-benchmark">Full System</button>
+                    <button class="benchmark-btn" id="cpu-benchmark" data-require-permission="benchmark">CPU Benchmark</button>
+                    <button class="benchmark-btn" id="memory-benchmark" data-require-permission="benchmark">Memory Benchmark</button>
+                    <button class="benchmark-btn" id="swarm-benchmark" data-require-permission="benchmark">Swarm Benchmark</button>
+                    <button class="benchmark-btn" id="full-benchmark" data-require-permission="benchmark">Full System</button>
                 </div>
                 <div class="benchmark-results" id="benchmark-results">
                     <div class="result-item">
@@ -220,6 +233,9 @@
         </div>
     </div>
 
+    <!-- Load authentication client first -->
+    <script src="auth-client.js"></script>
+    <!-- Then load dashboard -->
     <script src="premium-dashboard.js"></script>
 </body>
 </html>

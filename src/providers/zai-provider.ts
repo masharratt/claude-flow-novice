@@ -19,6 +19,7 @@ import {
   HealthCheckResult,
   LLMProviderError,
 } from "./types.js";
+import { incrementMetric, recordTiming } from "../observability/metrics-counter.js";
 
 interface ZaiMessage {
   role: "system" | "user" | "assistant";
@@ -110,7 +111,15 @@ export class ZaiProvider extends BaseProvider {
   }
 
   protected async doComplete(request: LLMRequest): Promise<LLMResponse> {
+    const startTime = Date.now();
     const model = request.model || this.config.model;
+
+    // Track API request
+    incrementMetric('claude.api.request', 1, {
+      model,
+      provider: 'z.ai',
+      stream: 'false',
+    });
 
     // Build request payload
     const payload: ZaiCompletionRequest = {
@@ -129,45 +138,85 @@ export class ZaiProvider extends BaseProvider {
       stream: false,
     };
 
-    // Call Z.ai API
-    const response = await this.callZaiAPI<ZaiCompletionResponse>(
-      "/chat/completions",
-      payload,
-    );
+    try {
+      // Call Z.ai API
+      const response = await this.callZaiAPI<ZaiCompletionResponse>(
+        "/chat/completions",
+        payload,
+      );
 
-    // Calculate cost
-    const pricing = this.capabilities.pricing![model];
-    const promptCost =
-      (response.usage.prompt_tokens / 1000) * pricing.promptCostPer1k;
-    const completionCost =
-      (response.usage.completion_tokens / 1000) * pricing.completionCostPer1k;
+      // Track success duration
+      recordTiming('claude.api.duration', Date.now() - startTime, {
+        model,
+        status: 'success',
+        stream: 'false',
+      });
 
-    // Convert to unified response format
-    return {
-      id: response.id,
-      model,
-      provider: "zai",
-      content: response.choices[0].message.content,
-      usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      },
-      cost: {
-        promptCost,
-        completionCost,
-        totalCost: promptCost + completionCost,
-        currency: "USD",
-      },
-      finishReason:
-        response.choices[0].finish_reason === "stop" ? "stop" : "length",
-    };
+      // Track token usage
+      incrementMetric('claude.tokens.input', response.usage.prompt_tokens, { model });
+      incrementMetric('claude.tokens.output', response.usage.completion_tokens, { model });
+      incrementMetric('claude.tokens.total', response.usage.total_tokens, { model });
+
+      // Calculate cost
+      const pricing = this.capabilities.pricing![model];
+      const promptCost =
+        (response.usage.prompt_tokens / 1000) * pricing.promptCostPer1k;
+      const completionCost =
+        (response.usage.completion_tokens / 1000) * pricing.completionCostPer1k;
+
+      // Convert to unified response format
+      return {
+        id: response.id,
+        model,
+        provider: "zai",
+        content: response.choices[0].message.content,
+        usage: {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+          totalTokens: response.usage.total_tokens,
+        },
+        cost: {
+          promptCost,
+          completionCost,
+          totalCost: promptCost + completionCost,
+          currency: "USD",
+        },
+        finishReason:
+          response.choices[0].finish_reason === "stop" ? "stop" : "length",
+      };
+    } catch (error) {
+      // Track error duration and metrics
+      recordTiming('claude.api.duration', Date.now() - startTime, {
+        model,
+        status: 'error',
+        stream: 'false',
+      });
+
+      incrementMetric('claude.api.error', 1, {
+        model,
+        errorType: error instanceof Error ? error.name : 'Unknown',
+        statusCode: 'unknown',
+        retryable: 'false',
+      });
+
+      throw error;
+    }
   }
 
   protected async *doStreamComplete(
     request: LLMRequest,
   ): AsyncIterable<LLMStreamEvent> {
+    const startTime = Date.now();
     const model = request.model || this.config.model;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
+    // Track API request
+    incrementMetric('claude.api.request', 1, {
+      model,
+      provider: 'z.ai',
+      stream: 'true',
+    });
 
     // Build request payload
     const payload: ZaiCompletionRequest = {
@@ -186,8 +235,9 @@ export class ZaiProvider extends BaseProvider {
       stream: true,
     };
 
-    // Call Z.ai streaming API
-    const response = await fetch(`${this.baseURL}/chat/completions`, {
+    try {
+      // Call Z.ai streaming API
+      const response = await fetch(`${this.baseURL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -250,6 +300,8 @@ export class ZaiProvider extends BaseProvider {
 
               if (event.usage) {
                 totalTokens = event.usage.total_tokens;
+                totalInputTokens = event.usage.prompt_tokens || 0;
+                totalOutputTokens = event.usage.completion_tokens || 0;
               }
             } catch (parseError) {
               this.logger.warn("Failed to parse SSE event", {
@@ -263,14 +315,28 @@ export class ZaiProvider extends BaseProvider {
 
       // Emit final usage statistics
       const pricing = this.capabilities.pricing![model];
-      const promptTokens = this.estimateTokens(
+      const promptTokens = totalInputTokens || this.estimateTokens(
         JSON.stringify(request.messages),
       );
-      const completionTokens = totalTokens - promptTokens;
+      const completionTokens = totalOutputTokens || (totalTokens - promptTokens);
 
       const promptCost = (promptTokens / 1000) * pricing.promptCostPer1k;
       const completionCost =
         (completionTokens / 1000) * pricing.completionCostPer1k;
+
+      // Track success duration
+      recordTiming('claude.api.duration', Date.now() - startTime, {
+        model,
+        status: 'success',
+        stream: 'true',
+      });
+
+      // Track token usage
+      if (totalInputTokens > 0 || totalOutputTokens > 0) {
+        incrementMetric('claude.tokens.input', totalInputTokens, { model });
+        incrementMetric('claude.tokens.output', totalOutputTokens, { model });
+        incrementMetric('claude.tokens.total', totalInputTokens + totalOutputTokens, { model });
+      }
 
       yield {
         type: "done",
@@ -286,8 +352,41 @@ export class ZaiProvider extends BaseProvider {
           currency: "USD",
         },
       };
+    } catch (error) {
+      // Track error duration and metrics
+      recordTiming('claude.api.duration', Date.now() - startTime, {
+        model,
+        status: 'error',
+        stream: 'true',
+      });
+
+      incrementMetric('claude.api.error', 1, {
+        model,
+        errorType: error instanceof Error ? error.name : 'Unknown',
+        statusCode: 'unknown',
+        retryable: 'false',
+      });
+
+      throw error;
     } finally {
       reader.releaseLock();
+    }
+    } catch (error) {
+      // Track error duration and metrics
+      recordTiming('claude.api.duration', Date.now() - startTime, {
+        model,
+        status: 'error',
+        stream: 'true',
+      });
+
+      incrementMetric('claude.api.error', 1, {
+        model,
+        errorType: error instanceof Error ? error.name : 'Unknown',
+        statusCode: 'unknown',
+        retryable: 'false',
+      });
+
+      throw error;
     }
   }
 

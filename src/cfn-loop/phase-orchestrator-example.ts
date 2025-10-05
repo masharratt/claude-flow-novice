@@ -95,7 +95,7 @@ Key deliverables:
   selfLoopingPrompt: `
 Phase 1 (State Machine) complete with {consensusScore}% consensus.
 
-✅ State transitions operational with <100ms latency
+✅ State transitions operational
 ✅ SDK auto-checkpoints working
 
 🚀 **IMMEDIATELY proceed to Phase 2: Dependency Graph**

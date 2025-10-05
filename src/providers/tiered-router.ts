@@ -6,6 +6,7 @@
 
 import { LLMProvider } from "./types.js";
 import { AgentProfileLoader } from "./agent-profile-loader.js";
+import { getGlobalTelemetry, TelemetrySystem } from "../observability/telemetry.js";
 
 // ===== TIER CONFIGURATION =====
 
@@ -27,22 +28,22 @@ export interface SubscriptionUsage {
 
 const TIER_CONFIGS: TierConfig[] = [
   {
-    name: "Tier 1: Subscription",
+    name: "Tier 1: Claude Max Subscription (Primary)",
     provider: "anthropic",
-    agentTypes: ["coordinator", "architect", "system-architect"],
+    agentTypes: ["coordinator", "architect", "system-architect", "product-owner", "security-specialist"],
     priority: 1,
-    subscriptionLimit: 1000, // Mock limit for testing
+    subscriptionLimit: 1000, // Claude Max subscription limit
   },
   {
-    name: "Tier 2: Z.ai Default",
-    provider: "custom",
-    agentTypes: [], // Default fallback tier (Z.ai)
+    name: "Tier 2: Z.ai Agent Orchestration",
+    provider: "zai",
+    agentTypes: ["coder", "tester", "reviewer", "backend-dev", "frontend-dev", "mobile-dev", "analyst", "researcher"], // Agent types best suited for Z.ai
     priority: 2,
   },
   {
-    name: "Tier 3: Anthropic Explicit",
+    name: "Tier 3: Anthropic Fallback",
     provider: "anthropic",
-    agentTypes: [], // Only used when explicitly requested via profile
+    agentTypes: [], // Fallback for any agent types not specified above
     priority: 3,
   },
 ];
@@ -53,11 +54,13 @@ export class TieredProviderRouter {
   private subscriptionUsage: SubscriptionUsage;
   private tierConfigs: TierConfig[];
   private profileLoader: AgentProfileLoader;
+  private telemetry: TelemetrySystem;
 
   constructor(
     tierConfigs: TierConfig[] = TIER_CONFIGS,
     initialUsage: Partial<SubscriptionUsage> = {},
     agentsDir?: string,
+    telemetry?: TelemetrySystem,
   ) {
     this.tierConfigs = tierConfigs.sort((a, b) => a.priority - b.priority);
     this.subscriptionUsage = {
@@ -66,22 +69,42 @@ export class TieredProviderRouter {
       resetDate: initialUsage.resetDate || this.getNextResetDate(),
     };
     this.profileLoader = new AgentProfileLoader(agentsDir);
+    this.telemetry = telemetry || getGlobalTelemetry();
   }
 
   /**
    * Select provider based on agent type, profile preferences, and tier rules
    */
   async selectProvider(agentType: string): Promise<LLMProvider> {
+    let selectedProvider: LLMProvider;
+    let tierName: string;
+    let source: string;
+
     // Step 1: Check agent profile for explicit provider preference
     const profilePreference = this.profileLoader.getProviderPreference(agentType);
     if (profilePreference) {
       // If profile specifies anthropic and subscription has capacity, use it
       if (profilePreference === "anthropic" && this.hasSubscriptionCapacity()) {
         this.consumeSubscription();
-        return "anthropic";
+        selectedProvider = "anthropic";
+        tierName = "Tier 1: Subscription";
+        source = "profile-override-subscription";
+      } else {
+        // Otherwise respect the profile preference
+        selectedProvider = profilePreference;
+        tierName = profilePreference === "anthropic" ? "Tier 3: Anthropic Explicit" : "Profile Override";
+        source = "profile-override";
       }
-      // Otherwise respect the profile preference
-      return profilePreference;
+
+      // Record telemetry
+      this.telemetry.recordCounter("provider.request", 1, {
+        provider: selectedProvider,
+        tier: tierName,
+        agentType,
+        source,
+      });
+
+      return selectedProvider;
     }
 
     // Step 2: Check tier configuration for agent type
@@ -91,19 +114,61 @@ export class TieredProviderRouter {
         if (tier.priority === 1 && tier.subscriptionLimit) {
           if (this.hasSubscriptionCapacity()) {
             this.consumeSubscription();
-            return tier.provider;
+            selectedProvider = tier.provider;
+            tierName = tier.name;
+            source = "tier-config-subscription";
+
+            // Record subscription usage gauge
+            this.telemetry.recordGauge("subscription.usage", this.subscriptionUsage.used, {
+              limit: this.subscriptionUsage.limit.toString(),
+              remaining: (this.subscriptionUsage.limit - this.subscriptionUsage.used).toString(),
+            });
+
+            // Record telemetry
+            this.telemetry.recordCounter("provider.request", 1, {
+              provider: selectedProvider,
+              tier: tierName,
+              agentType,
+              source,
+            });
+
+            return selectedProvider;
           }
           // Fallback to Tier 2 if subscription limit exceeded
           continue;
         }
 
-        return tier.provider;
+        selectedProvider = tier.provider;
+        tierName = tier.name;
+        source = "tier-config";
+
+        // Record telemetry
+        this.telemetry.recordCounter("provider.request", 1, {
+          provider: selectedProvider,
+          tier: tierName,
+          agentType,
+          source,
+        });
+
+        return selectedProvider;
       }
     }
 
     // Step 3: Default fallback to Tier 2 (Z.ai)
     const fallbackTier = this.tierConfigs.find((t) => t.priority === 2);
-    return fallbackTier?.provider || "custom"; // "custom" maps to Z.ai
+    selectedProvider = fallbackTier?.provider || "zai";
+    tierName = fallbackTier?.name || "Tier 2: Z.ai Default";
+    source = "fallback";
+
+    // Record telemetry
+    this.telemetry.recordCounter("provider.request", 1, {
+      provider: selectedProvider,
+      tier: tierName,
+      agentType,
+      source,
+    });
+
+    return selectedProvider;
   }
 
   /**
@@ -169,6 +234,7 @@ export function createTieredRouter(
   customTiers?: TierConfig[],
   initialUsage?: Partial<SubscriptionUsage>,
   agentsDir?: string,
+  telemetry?: TelemetrySystem,
 ): TieredProviderRouter {
-  return new TieredProviderRouter(customTiers, initialUsage, agentsDir);
+  return new TieredProviderRouter(customTiers, initialUsage, agentsDir, telemetry);
 }

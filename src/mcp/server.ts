@@ -37,6 +37,7 @@ import {
 } from './ruv-swarm-tools.js';
 import { platform, arch } from 'node:os';
 import { performance } from 'node:perf_hooks';
+import { incrementMetric, recordTiming } from '../observability/metrics-counter.js';
 
 export interface IMCPServer {
   start(): Promise<void>;
@@ -269,6 +270,14 @@ export class MCPServer implements IMCPServer {
   }
 
   private async handleRequest(request: MCPRequest): Promise<MCPResponse> {
+    const startTime = Date.now();
+
+    // Track incoming request
+    incrementMetric('api.request.received', 1, {
+      endpoint: request.method,
+      clientId: this.currentSession?.id || 'unknown',
+    });
+
     this.logger.debug('Handling MCP request', {
       id: request.id,
       method: request.method,
@@ -326,14 +335,29 @@ export class MCPServer implements IMCPServer {
           result,
         };
 
-        // Record success
+        // Record success metrics
+        recordTiming('api.request.duration', Date.now() - startTime, {
+          endpoint: request.method,
+          status: 'success',
+        });
+
         if (requestMetrics) {
           this.loadBalancer?.recordRequestEnd(requestMetrics, response);
         }
 
         return response;
       } catch (error) {
-        // Record failure
+        // Record failure metrics
+        recordTiming('api.request.duration', Date.now() - startTime, {
+          endpoint: request.method,
+          status: 'error',
+        });
+
+        incrementMetric('api.error.count', 1, {
+          errorType: error instanceof Error ? error.name : 'Unknown',
+          endpoint: request.method,
+        });
+
         if (requestMetrics) {
           this.loadBalancer?.recordRequestEnd(requestMetrics, undefined, error as Error);
         }

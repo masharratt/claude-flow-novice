@@ -6,6 +6,84 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { ILogger } from '../../core/logger.js';
 
+// Message validation schemas
+interface MessageSchema {
+  type: string;
+  required: string[];
+  validate: (data: any) => boolean;
+}
+
+interface RateLimitEntry {
+  count: number;
+  lastReset: number;
+}
+
+const MESSAGE_SCHEMAS: Record<string, MessageSchema> = {
+  'join-swarm': {
+    type: 'join-swarm',
+    required: ['swarmId'],
+    validate: (data: any) => {
+      return typeof data.swarmId === 'string' &&
+             data.swarmId.length > 0 && data.swarmId.length <= 100 &&
+             (!data.userId || (typeof data.userId === 'string' && data.userId.length <= 100));
+    }
+  },
+  'leave-swarm': {
+    type: 'leave-swarm',
+    required: ['swarmId'],
+    validate: (data: any) => {
+      return typeof data.swarmId === 'string' &&
+             data.swarmId.length > 0 && data.swarmId.length <= 100;
+    }
+  },
+  'send-intervention': {
+    type: 'send-intervention',
+    required: ['swarmId', 'message', 'action'],
+    validate: (data: any) => {
+      return typeof data.swarmId === 'string' && data.swarmId.length > 0 && data.swarmId.length <= 100 &&
+             typeof data.message === 'string' && data.message.length > 0 && data.message.length <= 5000 &&
+             typeof data.action === 'string' && data.action.length > 0 && data.action.length <= 100 &&
+             (!data.agentId || (typeof data.agentId === 'string' && data.agentId.length <= 100));
+    }
+  },
+  'request-status': {
+    type: 'request-status',
+    required: [],
+    validate: (data: any) => {
+      return (!data.swarmId || (typeof data.swarmId === 'string' && data.swarmId.length <= 100)) &&
+             (!data.agentId || (typeof data.agentId === 'string' && data.agentId.length <= 100));
+    }
+  },
+  'set-filter': {
+    type: 'set-filter',
+    required: [],
+    validate: (data: any) => {
+      // Allow any JSON object but limit size
+      return JSON.stringify(data).length <= 10000;
+    }
+  },
+  'claude-flow-command': {
+    type: 'claude-flow-command',
+    required: ['command'],
+    validate: (data: any) => {
+      const allowedCommands = ['swarm_status', 'agent_list', 'task_orchestrate', 'swarm_init', 'memory_usage'];
+      return typeof data.command === 'string' &&
+             allowedCommands.includes(data.command) &&
+             (!data.swarmId || (typeof data.swarmId === 'string' && data.swarmId.length <= 100));
+    }
+  },
+  'ruv-swarm-command': {
+    type: 'ruv-swarm-command',
+    required: ['command'],
+    validate: (data: any) => {
+      const allowedCommands = ['swarm_status', 'agent_list', 'swarm_monitor', 'performance_report'];
+      return typeof data.command === 'string' &&
+             allowedCommands.includes(data.command) &&
+             (!data.swarmId || (typeof data.swarmId === 'string' && data.swarmId.length <= 100));
+    }
+  }
+};
+
 export interface WebSocketEvent {
   type:
     | 'agent-message'
@@ -30,45 +108,192 @@ export interface ClientConnection {
 export class WebSocketManager {
   private connections = new Map<string, ClientConnection>();
   private swarmSubscriptions = new Map<string, Set<string>>(); // swarmId -> socketIds
+  private rateLimiting = new Map<string, RateLimitEntry>(); // socketId -> rate limit data
+  private readonly RATE_LIMIT_WINDOW = 60000; // 1 minute
+  private readonly RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute
+  private readonly ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://localhost:3000',
+    'https://localhost:3001',
+    // Add your production domains here
+  ];
 
   constructor(
     private io: SocketIOServer,
     private logger: ILogger,
   ) {
+    this.setupSecurityMiddleware();
     this.setupSocketHandlers();
   }
 
-  private setupSocketHandlers(): void {
-    this.io.on('connection', (socket: Socket) => {
-      this.handleNewConnection(socket);
+  private setupSecurityMiddleware(): void {
+  // Add origin validation middleware
+  this.io.use((socket, next) => {
+    const origin = socket.handshake.headers.origin;
 
-      socket.on('join-swarm', (data: { swarmId: string; userId?: string }) => {
-        this.handleJoinSwarm(socket, data);
+    if (!origin) {
+      this.logger.warn('WebSocket connection rejected: No origin header', {
+        socketId: socket.id,
+        ip: socket.handshake.address,
       });
+      return next(new Error('Origin header required'));
+    }
+
+    if (!this.ALLOWED_ORIGINS.includes(origin)) {
+      this.logger.warn('WebSocket connection rejected: Invalid origin', {
+        socketId: socket.id,
+        origin,
+        ip: socket.handshake.address,
+      });
+      return next(new Error('Origin not allowed'));
+    }
+
+    next();
+  });
+}
+
+private validateMessage(messageType: string, data: any): boolean {
+  const schema = MESSAGE_SCHEMAS[messageType];
+  if (!schema) {
+    this.logger.warn('Unknown message type', { messageType });
+    return false;
+  }
+
+  // Check required fields
+  for (const field of schema.required) {
+    if (!(field in data)) {
+      this.logger.warn('Missing required field', { messageType, field });
+      return false;
+    }
+  }
+
+  // Run custom validation
+  if (!schema.validate(data)) {
+    this.logger.warn('Message validation failed', { messageType, data });
+    return false;
+  }
+
+  return true;
+}
+
+private checkRateLimit(socketId: string): boolean {
+  const now = Date.now();
+  const rateLimitEntry = this.rateLimiting.get(socketId);
+
+  if (!rateLimitEntry) {
+    this.rateLimiting.set(socketId, { count: 1, lastReset: now });
+    return true;
+  }
+
+  // Reset counter if window has expired
+  if (now - rateLimitEntry.lastReset > this.RATE_LIMIT_WINDOW) {
+    this.rateLimiting.set(socketId, { count: 1, lastReset: now });
+    return true;
+  }
+
+  // Check if rate limit exceeded
+  if (rateLimitEntry.count >= this.RATE_LIMIT_MAX_REQUESTS) {
+    this.logger.warn('Rate limit exceeded', {
+      socketId,
+      count: rateLimitEntry.count,
+      window: this.RATE_LIMIT_WINDOW,
+    });
+    return false;
+  }
+
+  // Increment counter
+  rateLimitEntry.count++;
+  return true;
+}
+
+private setupSocketHandlers(): void {
+  this.io.on('connection', (socket: Socket) => {
+    this.handleNewConnection(socket);
+
+    socket.on('join-swarm', (data: { swarmId: string; userId?: string }) => {
+      if (!this.checkRateLimit(socket.id)) {
+        socket.emit('error', { message: 'Rate limit exceeded' });
+        return;
+      }
+      if (!this.validateMessage('join-swarm', data)) {
+        socket.emit('error', { message: 'Invalid message format' });
+        return;
+      }
+      this.handleJoinSwarm(socket, data);
+    });
 
       socket.on('leave-swarm', (data: { swarmId: string }) => {
+        if (!this.checkRateLimit(socket.id)) {
+          socket.emit('error', { message: 'Rate limit exceeded' });
+          return;
+        }
+        if (!this.validateMessage('leave-swarm', data)) {
+          socket.emit('error', { message: 'Invalid message format' });
+          return;
+        }
         this.handleLeaveSwarm(socket, data);
       });
 
       socket.on('send-intervention', (data: any) => {
+        if (!this.checkRateLimit(socket.id)) {
+          socket.emit('error', { message: 'Rate limit exceeded' });
+          return;
+        }
+        if (!this.validateMessage('send-intervention', data)) {
+          socket.emit('error', { message: 'Invalid message format' });
+          return;
+        }
         this.handleHumanIntervention(socket, data);
       });
 
       socket.on('request-status', (data: { swarmId?: string; agentId?: string }) => {
+        if (!this.checkRateLimit(socket.id)) {
+          socket.emit('error', { message: 'Rate limit exceeded' });
+          return;
+        }
+        if (!this.validateMessage('request-status', data)) {
+          socket.emit('error', { message: 'Invalid message format' });
+          return;
+        }
         this.handleStatusRequest(socket, data);
       });
 
       socket.on('set-filter', (filterConfig: any) => {
+        if (!this.checkRateLimit(socket.id)) {
+          socket.emit('error', { message: 'Rate limit exceeded' });
+          return;
+        }
+        if (!this.validateMessage('set-filter', filterConfig)) {
+          socket.emit('error', { message: 'Invalid message format' });
+          return;
+        }
         this.handleFilterUpdate(socket, filterConfig);
       });
 
       // Claude Flow MCP integration events
       socket.on('claude-flow-command', (data: any) => {
+        if (!this.checkRateLimit(socket.id)) {
+          socket.emit('error', { message: 'Rate limit exceeded' });
+          return;
+        }
+        if (!this.validateMessage('claude-flow-command', data)) {
+          socket.emit('error', { message: 'Invalid message format' });
+          return;
+        }
         this.handleClaudeFlowCommand(socket, data);
       });
 
       // ruv-swarm MCP integration events
       socket.on('ruv-swarm-command', (data: any) => {
+        if (!this.checkRateLimit(socket.id)) {
+          socket.emit('error', { message: 'Rate limit exceeded' });
+          return;
+        }
+        if (!this.validateMessage('ruv-swarm-command', data)) {
+          socket.emit('error', { message: 'Invalid message format' });
+          return;
+        }
         this.handleRuvSwarmCommand(socket, data);
       });
 
@@ -341,6 +566,9 @@ export class WebSocketManager {
         }
       }
     }
+
+    // Clean up rate limiting data
+    this.rateLimiting.delete(socket.id);
 
     this.connections.delete(socket.id);
 

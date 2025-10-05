@@ -1,0 +1,41 @@
+# Prometheus datasource configuration for Grafana
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+    secureJsonData: {}
+
+  - name: Prometheus-Long-Term
+    type: prometheus
+    access: proxy
+    url: https://prometheus-remote-write/api/v1
+    isDefault: false
+    editable: true
+    jsonData:
+      timeInterval: "30s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+      tlsSkipVerify: false
+    secureJsonData:
+      basicAuthUser: "username"
+      basicAuthPassword: "password"
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    editable: true
+    jsonData:
+      maxLines: 1000
+    secureJsonData: {}
