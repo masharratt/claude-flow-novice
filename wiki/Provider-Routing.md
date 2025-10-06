@@ -1,17 +1,17 @@
 # Provider Routing
 
-Intelligent tiered provider routing system that automatically selects optimal AI providers based on agent profiles, task complexity, and cost optimization goals.
+**UPDATED 2025-10-05:** Simplified 2-tier routing system for clarity and cost optimization.
 
 ---
 
 ## Overview
 
-Provider routing enables cost-effective LLM usage by automatically routing agent requests to the most appropriate provider:
+Provider routing enables optimal LLM usage by automatically routing requests to the most appropriate provider:
 
-- **Profile-based overrides** - Agent profiles specify preferred providers
-- **Tiered fallback** - Automatic failover from free to paid tiers
-- **Cost optimization** - Up to 64% reduction in API costs
-- **Quality preservation** - Maintains output quality while reducing costs
+- **Main chat quality** - Claude Max subscription for user-facing interactions
+- **Agent cost optimization** - Z.ai for all Task tool agents
+- **Simple configuration** - Only 2 tiers, easy to understand and maintain
+- **Predictable routing** - Clear separation between main chat and agent operations
 
 ---
 
@@ -19,67 +19,56 @@ Provider routing enables cost-effective LLM usage by automatically routing agent
 
 ### Routing Priority
 
-Provider selection follows this priority hierarchy:
+Provider selection follows this simplified hierarchy:
 
 ```
 1. Agent Profile Override (highest priority)
    └─> Profile.provider field (zai, anthropic, custom)
 
 2. Tiered Provider Router
-   ├─> Tier 1: zai (free, rate limited)
-   ├─> Tier 2: deepseek (budget-friendly)
-   └─> Tier 3: anthropic (premium, fallback)
+   ├─> Tier 0: main-chat → Anthropic Claude Max
+   └─> Tier 1: ALL Task tool agents → Z.ai
 
 3. Default Provider
    └─> anthropic (if no routing configured)
 ```
 
-### Tier Characteristics
+### Current Tier Configuration
 
-| Tier | Provider | Cost | Rate Limit | Use Cases |
-|------|----------|------|------------|-----------|
-| **Tier 1** | zai | Free | 60 req/min | Non-critical tasks, research, drafting |
-| **Tier 2** | deepseek | Budget | 100 req/min | Standard development, testing |
-| **Tier 3** | anthropic | Premium | 1000 req/min | Critical tasks, production code |
+| Tier | Provider | Agent Types | Use Case |
+|------|----------|-------------|----------|
+| **Tier 0** | Anthropic Claude Max | `main-chat` (default) | Main conversational interface |
+| **Tier 1** | Z.ai | ALL other agents | Task tool agent swarms |
 
 ---
 
 ## Configuration
 
-### Global Routing Setup
+### Current Configuration (Simplified 2-Tier System)
 
-Enable tiered routing in `.claude-flow/settings.json`:
+Tiered routing is configured in `src/providers/tiered-router.ts`:
 
-```json
-{
-  "providers": {
-    "routing": {
-      "enabled": true,
-      "strategy": "tiered",
-      "tiers": [
-        {
-          "name": "zai",
-          "priority": 1,
-          "rateLimit": 60,
-          "fallbackOnError": true
-        },
-        {
-          "name": "deepseek",
-          "priority": 2,
-          "rateLimit": 100,
-          "fallbackOnError": true
-        },
-        {
-          "name": "anthropic",
-          "priority": 3,
-          "rateLimit": 1000,
-          "fallbackOnError": false
-        }
-      ]
-    }
-  }
-}
+```typescript
+const TIER_CONFIGS: TierConfig[] = [
+  {
+    name: "Tier 0: Main Chat (Claude Max)",
+    provider: "anthropic",
+    agentTypes: ["main-chat"],
+    priority: 0,
+  },
+  {
+    name: "Tier 1: Z.ai Agent Orchestration (ALL Task Tool Agents)",
+    provider: "zai",
+    agentTypes: [],  // All agents EXCEPT "main-chat"
+    priority: 1,
+  },
+];
 ```
+
+**Key Points:**
+- **No configuration file needed** - routing is built into the code
+- **Tier 0**: Only `main-chat` (default when no agentType)
+- **Tier 1**: Everything else (fallback for all Task tool agents)
 
 ### Agent Profile Overrides
 
@@ -108,22 +97,21 @@ Critical security auditing agent that requires premium provider.
 
 ## Usage Examples
 
-### Example 1: Enable Tiered Routing
+### Example 1: Test Current Routing
 
 ```bash
-# Activate custom routing system
-/custom-routing-activate
+# Test routing configuration
+node scripts/test-provider-routing.cjs
 
 # Expected output:
-# ✅ Custom routing activated
-# Priority: Profile → Tier 1 (zai) → Tier 2 (deepseek) → Tier 3 (anthropic)
-# Cost savings: ~64% (free tier + budget fallback)
+# ✅ Agents will route through tiered system:
+#    Tier 0: Main chat → Anthropic Claude Max
+#    Tier 1: ALL Task tool agents → Z.ai
 ```
 
 **What happens:**
-1. All agents without profile overrides use zai (free) first
-2. If zai fails/rate-limited, fallback to deepseek (budget)
-3. If deepseek fails, fallback to anthropic (premium)
+1. Main chat (no agentType) defaults to "main-chat" → Anthropic Claude Max
+2. ALL Task tool agents route to Z.ai (coder, tester, reviewer, etc.)
 
 ### Example 2: Profile-Based Override
 
@@ -137,8 +125,8 @@ reasoning: Architecture decisions require highest quality reasoning
 ```
 
 **Routing behavior:**
-- `system-architect` ALWAYS uses `anthropic` (ignores tiered routing)
-- Other agents use tiered routing (zai → deepseek → anthropic)
+- `system-architect` ALWAYS uses `anthropic` (profile override)
+- Other agents use tiered routing (main-chat → anthropic, all others → zai)
 
 ### Example 3: Mixed Agent Swarm
 
@@ -150,26 +138,26 @@ mcp__claude-flow-novice__swarm_init({
 })
 
 // Agent 1: researcher (no profile override)
-// → Uses zai (free tier, Tier 1)
+// → Uses Z.ai (Tier 1, default for all agents)
 Task("Researcher", "Research JWT libraries", "researcher")
 
 // Agent 2: system-architect (profile: anthropic)
-// → Uses anthropic (premium, profile override)
+// → Uses Anthropic (profile override)
 Task("Architect", "Design auth system", "system-architect")
 
 // Agent 3: coder (no profile override)
-// → Uses zai (free tier, Tier 1)
+// → Uses Z.ai (Tier 1, default for all agents)
 Task("Coder", "Implement endpoints", "coder")
 
-// Agent 4: security-specialist (profile: anthropic)
-// → Uses anthropic (premium, profile override)
-Task("Security Auditor", "Audit auth", "security-specialist")
+// Agent 4: tester (no profile override)
+// → Uses Z.ai (Tier 1, default for all agents)
+Task("Tester", "Test endpoints", "tester")
 ```
 
 **Cost breakdown:**
-- 2 agents on zai (free) = $0
-- 2 agents on anthropic (premium) = standard cost
-- **Total savings: ~50%** vs all-anthropic approach
+- 3 agents on Z.ai (coder, researcher, tester) = lowest cost
+- 1 agent on Anthropic (system-architect) = standard cost
+- **Total savings: ~75%** vs all-anthropic approach
 
 ### Example 4: Disable Custom Routing
 

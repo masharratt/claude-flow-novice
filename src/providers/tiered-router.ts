@@ -28,23 +28,16 @@ export interface SubscriptionUsage {
 
 const TIER_CONFIGS: TierConfig[] = [
   {
-    name: "Tier 1: Claude Max Subscription (Primary)",
+    name: "Tier 0: Main Chat (Claude Max)",
     provider: "anthropic",
-    agentTypes: ["coordinator", "architect", "system-architect", "product-owner", "security-specialist"],
-    priority: 1,
-    subscriptionLimit: 1000, // Claude Max subscription limit
+    agentTypes: ["main-chat"], // Main chat always uses Claude Max
+    priority: 0,
   },
   {
-    name: "Tier 2: Z.ai Agent Orchestration",
+    name: "Tier 1: Z.ai Agent Orchestration (ALL Task Tool Agents)",
     provider: "zai",
-    agentTypes: ["coder", "tester", "reviewer", "backend-dev", "frontend-dev", "mobile-dev", "analyst", "researcher"], // Agent types best suited for Z.ai
-    priority: 2,
-  },
-  {
-    name: "Tier 3: Anthropic Fallback",
-    provider: "anthropic",
-    agentTypes: [], // Fallback for any agent types not specified above
-    priority: 3,
+    agentTypes: [], // All agents EXCEPT "main-chat" route to Z.ai by default
+    priority: 1,
   },
 ];
 
@@ -154,10 +147,11 @@ export class TieredProviderRouter {
       }
     }
 
-    // Step 3: Default fallback to Tier 2 (Z.ai)
-    const fallbackTier = this.tierConfigs.find((t) => t.priority === 2);
+    // Step 3: Default fallback to Z.ai (Tier 1)
+    // All Task tool agents (anything except "main-chat") go to Z.ai
+    const fallbackTier = this.tierConfigs.find((t) => t.priority === 1);
     selectedProvider = fallbackTier?.provider || "zai";
-    tierName = fallbackTier?.name || "Tier 2: Z.ai Default";
+    tierName = fallbackTier?.name || "Tier 1: Z.ai Agent Orchestration";
     source = "fallback";
 
     // Record telemetry

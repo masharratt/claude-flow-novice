@@ -107,8 +107,8 @@ if (fs.existsSync(routerPath)) {
 
   if (hasTiers && hasZai) {
     console.log('   ✅ Agents will route through tiered system:\n');
-    console.log('      Tier 1: coordinator/architect/system-architect → Anthropic');
-    console.log('      Tier 2: All other agents → Z.ai\n');
+    console.log('      Tier 0: Main chat → Anthropic Claude Max');
+    console.log('      Tier 1: ALL Task tool agents → Z.ai\n');
   }
 } else {
   console.log('   ⚠️  Compiled router not found (run npm run build)\n');
@@ -208,16 +208,14 @@ console.log('═'.repeat(80) + '\n');
 console.log('📊 Configuration Summary\n');
 
 console.log('✅ WORKING AS DESIGNED:\n');
-console.log('   1. Main Chat        → Z.ai (via global settings after restart)');
-console.log('   2. Tier 1 Agents    → Anthropic (coordinator/architect/system-architect)');
-console.log('   3. Tier 2 Agents    → Z.ai (all other agents)');
-console.log('   4. Agent SDK        → Anthropic (hardcoded, no alternative)');
+console.log('   1. Main Chat           → Anthropic Claude Max (default routing)');
+console.log('   2. ALL Task Tool Agents → Z.ai (coder, tester, reviewer, backend-dev, etc.)');
+console.log('   3. Agent SDK           → Anthropic (hardcoded, no alternative)');
 console.log();
 
 console.log('💰 COST OPTIMIZATION:\n');
-console.log('   • Main chat uses Z.ai (lowest cost)');
-console.log('   • Worker agents use Z.ai (bulk operations)');
-console.log('   • Strategic agents use Anthropic (quality-critical)');
+console.log('   • Main chat uses Claude Max subscription (highest quality)');
+console.log('   • ALL Task tool agents use Z.ai (cost-effective bulk operations)');
 console.log('   • Agent SDK provides 90% cost savings via caching\n');
 
 console.log('🔍 VERIFICATION:\n');

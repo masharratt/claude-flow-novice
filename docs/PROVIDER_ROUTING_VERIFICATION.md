@@ -1,29 +1,25 @@
 # Provider Routing Verification
 
-## ✅ Confirmed Configuration (Tested 2025-10-04)
+## ✅ Updated Configuration (2025-10-05)
 
-### System Architecture
+**MAJOR CHANGE:** Simplified from 4-tier to 2-tier routing for clarity and maintainability.
+
+### System Architecture (Simplified 2-Tier)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         YOUR SETUP                                  │
+│                    CURRENT SETUP (2-TIER)                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  MAIN CHAT (You ↔ Claude Code)                                     │
-│  ├─ Route: Z.ai API (https://api.z.ai/api/anthropic)               │
-│  ├─ Model: GLM-4.6 (via Claude Code global settings)               │
-│  └─ Cost: LOWEST (Z.ai pricing)                                    │
+│  ├─ Route: Anthropic Claude Max (direct)                           │
+│  ├─ Model: claude-sonnet-4 (Tier 0: main-chat)                     │
+│  └─ Cost: Claude Max subscription (highest quality)                │
 │                                                                     │
-│  AGENT EXECUTION (Swarm Coordination)                               │
-│  ├─ Tier 1: coordinator/architect/system-architect                 │
-│  │   ├─ Route: Anthropic API (direct)                              │
-│  │   ├─ Model: claude-3-sonnet-20240229                            │
-│  │   └─ Cost: HIGHEST (quality-critical agents)                    │
-│  │                                                                  │
-│  └─ Tier 2: All other agents (coder, tester, reviewer, etc.)       │
-│      ├─ Route: Z.ai API                                            │
-│      ├─ Model: glm-4.6, glm-4.5                                    │
-│      └─ Cost: LOWEST (bulk work)                                   │
+│  TASK TOOL AGENTS (ALL Agent Types)                                │
+│  ├─ Route: Z.ai API (https://api.z.ai)                             │
+│  ├─ Model: glm-4.6, glm-4.5 (Tier 1: all agents)                   │
+│  └─ Cost: LOWEST (Z.ai pricing for bulk operations)                │
 │                                                                     │
 │  AGENT SDK (Caching & Context Editing)                              │
 │  ├─ Route: Anthropic API (hardcoded, no alternative)               │
@@ -99,27 +95,26 @@ Z_AI_API_KEY=cca13d09dcd6407...  # Compatibility alias
 
 ### 3. Tiered Router (`src/providers/tiered-router.ts`)
 
-**Purpose:** Routes agent execution by type
+**Purpose:** Routes agent execution by type (SIMPLIFIED 2-TIER)
 
 ```typescript
 const TIER_CONFIGS: TierConfig[] = [
   {
-    name: "Tier 1: Subscription",
+    name: "Tier 0: Main Chat (Claude Max)",
     provider: "anthropic",
-    agentTypes: ["coordinator", "architect", "system-architect"],
-    priority: 1,
-    subscriptionLimit: 1000,
+    agentTypes: ["main-chat"],
+    priority: 0,
   },
   {
-    name: "Tier 2: Z.ai Default",
+    name: "Tier 1: Z.ai Agent Orchestration (ALL Task Tool Agents)",
     provider: "zai",
-    agentTypes: [],  // All other agent types
-    priority: 2,
+    agentTypes: [],  // All agents EXCEPT "main-chat"
+    priority: 1,
   },
 ];
 ```
 
-**Status:** ✅ Configured
+**Status:** ✅ Updated (2025-10-05)
 
 ### 4. Agent SDK (`src/sdk/config.cjs`)
 
@@ -158,10 +153,9 @@ node src/slash-commands/metrics-summary.js --provider=anthropic
 
 ```
 ✅ WORKING AS DESIGNED:
-   1. Main Chat        → Z.ai (via global settings)
-   2. Tier 1 Agents    → Anthropic (coordinator/architect/system-architect)
-   3. Tier 2 Agents    → Z.ai (all other agents)
-   4. Agent SDK        → Anthropic (hardcoded, no alternative)
+   1. Main Chat           → Anthropic Claude Max (default routing)
+   2. ALL Task Tool Agents → Z.ai (coder, tester, reviewer, backend-dev, etc.)
+   3. Agent SDK           → Anthropic (hardcoded, no alternative)
 ```
 
 ---
