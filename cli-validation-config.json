@@ -1,0 +1,176 @@
+{
+  "epic_name": "cli-coordination-validation",
+  "epic_goal": "Validate critical assumptions in CLI coordination production plan through targeted MVPs before committing to 6-9 month implementation",
+  "scope": {
+    "in_scope": [
+      "Production environment compatibility testing (Docker, K8s, cloud VMs)",
+      "Long-running stability validation (24+ hour tests)",
+      "Real workload performance measurement",
+      "Failure recovery and chaos engineering",
+      "Performance optimization prototyping (agent pooling, batching, sharding)",
+      "GO/NO-GO decision framework based on empirical data"
+    ],
+    "out_of_scope": [
+      "Cross-platform support (macOS, Windows) - deferred to Phase 5 of main plan",
+      "Developer adoption/UX improvements - deferred to Phase 6 of main plan",
+      "Full production implementation - only validation MVPs",
+      "Production deployment - only testing in isolated environments"
+    ],
+    "risk_profile": "critical-high-risk"
+  },
+  "phases": [
+    {
+      "phase_id": "1",
+      "phase_name": "Critical Validation (Week 1)",
+      "dependencies": [],
+      "deliverables": [
+        "Environment compatibility test suite for 8 environments",
+        "24-hour stability test harness with monitoring",
+        "GO/NO-GO decision based on empirical data",
+        "Fallback plan documentation if critical failures occur"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "1.1",
+          "sprint_name": "Production Environment Compatibility Test",
+          "deliverables": [
+            "Test script: tests/validation/environment-compatibility-test.sh",
+            "Test matrix covering 8 environments (Docker, K8s, AWS, GCP, Azure, Linux, WSL)",
+            "Automated validation for each environment (100 agents, coordination time, delivery rate)",
+            "Documentation of workarounds for problematic environments"
+          ],
+          "estimated_agents": 3
+        },
+        {
+          "sprint_id": "1.2",
+          "sprint_name": "Long-Running Stability Test",
+          "deliverables": [
+            "Test script: tests/validation/long-running-stability-test.sh",
+            "Three test scenarios (8hr, 24hr, 48hr)",
+            "Monitoring dashboard (memory, FD count, tmpfs usage, coordination time)",
+            "Automated health checks every 15 minutes"
+          ],
+          "estimated_agents": 4
+        }
+      ],
+      "success_criteria": [
+        "Works in ≥3 production environments (Docker, K8s, cloud VM)",
+        "24-hour stability with no resource leaks",
+        "Coordination time remains stable",
+        "Delivery rate ≥90% consistently"
+      ]
+    },
+    {
+      "phase_id": "2",
+      "phase_name": "Performance Validation (Week 2)",
+      "dependencies": ["1"],
+      "deliverables": [
+        "Real workload integration test suite",
+        "Chaos engineering test framework",
+        "Performance baseline documentation",
+        "Failure recovery playbook"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "2.1",
+          "sprint_name": "Real Workload Integration Test",
+          "deliverables": [
+            "Test script: tests/validation/real-workload-test.sh",
+            "Real workload scenarios (code gen, file ops, bash commands, tests)",
+            "Performance measurement framework (overhead, contention, concurrency limits)",
+            "Baseline comparison data"
+          ],
+          "estimated_agents": 5
+        },
+        {
+          "sprint_id": "2.2",
+          "sprint_name": "Chaos Engineering Test",
+          "deliverables": [
+            "Test script: tests/validation/chaos-engineering-test.sh",
+            "Chaos scenarios (coordinator failures, network partition, resource exhaustion)",
+            "Failure metrics tracking (recovery time, message loss, reassignment)",
+            "Automated failure injection and recovery validation"
+          ],
+          "estimated_agents": 4
+        }
+      ],
+      "success_criteria": [
+        "Real workload overhead <20%",
+        "Delivery rate ≥90% under full load",
+        "Single coordinator failure recovery <30s",
+        "Dual coordinator failure recovery <60s with <5% message loss"
+      ]
+    },
+    {
+      "phase_id": "3",
+      "phase_name": "Optimization Validation (Weeks 3-4)",
+      "dependencies": ["1", "2"],
+      "deliverables": [
+        "Performance optimization prototypes",
+        "Empirical performance data for each optimization",
+        "Adjusted Phase 3 plan with realistic targets",
+        "Recommendation on which optimizations to prioritize"
+      ],
+      "sprints": [
+        {
+          "sprint_id": "3.1",
+          "sprint_name": "Agent Pooling Prototype",
+          "deliverables": [
+            "Prototype: tests/validation/agent-pool-prototype.sh",
+            "Spawn time baseline vs pooling (10 runs)",
+            "Memory overhead analysis",
+            "Pool hit rate measurement"
+          ],
+          "estimated_agents": 2
+        },
+        {
+          "sprint_id": "3.2",
+          "sprint_name": "Batch Messaging Prototype",
+          "deliverables": [
+            "Prototype: tests/validation/batch-messaging-prototype.sh",
+            "1000 messages sequential vs batched",
+            "Throughput comparison (optimal batch size)",
+            "Latency impact analysis"
+          ],
+          "estimated_agents": 2
+        },
+        {
+          "sprint_id": "3.3",
+          "sprint_name": "Parallel Spawning Prototype",
+          "deliverables": [
+            "Prototype: tests/validation/parallel-spawn-prototype.sh",
+            "700 agents sequential vs parallel",
+            "Optimal batch size determination",
+            "System load impact analysis"
+          ],
+          "estimated_agents": 2
+        },
+        {
+          "sprint_id": "3.4",
+          "sprint_name": "Directory Sharding Prototype",
+          "deliverables": [
+            "Prototype: tests/validation/sharding-prototype.sh",
+            "500 agents single directory vs sharded",
+            "Lock contention measurement",
+            "Optimal shard count identification"
+          ],
+          "estimated_agents": 2
+        }
+      ],
+      "success_criteria": [
+        "At least 2 optimizations achieve ≥50% of target improvement",
+        "Combined optimizations show measurable benefit (>30% overall)",
+        "Implementation complexity justified by performance gains"
+      ]
+    }
+  ],
+  "decision_authority_config": {
+    "auto_approve_threshold": 0.90,
+    "auto_relaunch_max_iteration": 10,
+    "escalation_criteria": [
+      "Critical assumption failure (environment incompatibility, stability issues)",
+      "Data loss in chaos tests",
+      "Performance degradation >30%"
+    ]
+  }
+}

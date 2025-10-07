@@ -7,8 +7,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import type { ITransparencySystem } from '../../coordination/v2/transparency/interfaces/transparency-system.js';
-import type { AgentHierarchyNode } from '../../coordination/v2/transparency/interfaces/transparency-system.js';
+import type { ITransparencySystem } from '../../coordination/shared/transparency/interfaces/transparency-system.js';
+import type { AgentHierarchyNode } from '../../coordination/shared/transparency/interfaces/transparency-system.js';
 import type { Logger } from '../../../core/logger.js';
 import { asyncHandler } from '../middleware/error-handler.js';
 import { validationMiddleware, commonSchemas } from '../middleware/validation.js';

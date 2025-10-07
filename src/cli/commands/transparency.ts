@@ -10,13 +10,13 @@
 import { Command } from 'commander';
 import { table } from 'console-table-printer';
 import chalk from 'chalk';
-import type { TransparencySystem } from '../../coordination/v2/transparency/transparency-system.js';
+import type { TransparencySystem } from '../../coordination/shared/transparency/transparency-system.js';
 import type {
   AgentHierarchyNode,
   AgentStatus,
   AgentLifecycleEvent,
   TransparencyMetrics
-} from '../../coordination/v2/transparency/interfaces/transparency-system.js';
+} from '../../coordination/shared/transparency/interfaces/transparency-system.js';
 
 /**
  * Transparency CLI configuration

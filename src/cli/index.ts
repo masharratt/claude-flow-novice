@@ -22,6 +22,7 @@ import { sessionCommand } from './commands/session.js';
 import { workflowCommand } from './commands/workflow.js';
 import { helpCommand } from './commands/help.js';
 import { mcpCommand } from './commands/mcp.js';
+import { parseEpicCommand } from './commands/parse-epic.js';
 import { formatError, displayBanner, displayVersion } from './formatter.js';
 import { startREPL } from './repl.js';
 import { CompletionGenerator } from './completion.js';
@@ -82,6 +83,9 @@ const replCommand = new Command('repl')
     await startREPL(options);
   });
 cli.addCommand(replCommand);
+
+// Add parse-epic command
+cli.addCommand(parseEpicCommand);
 
 // Add version command
 const versionCommand = new Command('version')

@@ -17,14 +17,14 @@ import rateLimit from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import type { Server as HttpServer } from 'http';
 
-import { TransparencySystem } from '../../coordination/v2/transparency/transparency-system.js';
+import { TransparencySystem } from '../../coordination/shared/transparency/transparency-system.js';
 import type {
   ITransparencySystem,
   AgentHierarchyNode,
   AgentStatus,
   AgentLifecycleEvent,
   TransparencyMetrics
-} from '../../coordination/v2/transparency/interfaces/transparency-system.js';
+} from '../../coordination/shared/transparency/interfaces/transparency-system.js';
 
 import { authMiddleware } from './middleware/auth.js';
 import { errorHandler } from './middleware/error-handler.js';

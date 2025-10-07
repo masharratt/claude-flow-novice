@@ -8,13 +8,13 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { TransparencySystem } from '../../src/coordination/v2/transparency/transparency-system.js';
+import { TransparencySystem } from '../../src/coordination/shared/transparency/transparency-system.js';
 import type {
   AgentHierarchyNode,
   AgentStatus,
   AgentLifecycleEvent,
   TransparencyMetrics
-} from '../../src/coordination/v2/transparency/interfaces/transparency-system.js';
+} from '../../src/coordination/shared/transparency/interfaces/transparency-system.js';
 import type { Agent, AgentState } from '../../src/coordination/v2/interfaces/ICoordinator.js';
 
 describe('Transparency System Integration', () => {

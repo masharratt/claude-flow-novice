@@ -12,7 +12,7 @@
  */
 
 import { SlashCommand } from '../core/slash-command.js';
-import { EpicParser } from '../parsers/epic-parser.js';
+import { EpicParser } from '../parsers/epic-parser.ts';
 import * as path from 'path';
 import * as fs from 'fs';
 

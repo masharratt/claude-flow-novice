@@ -1,5 +1,11 @@
 # CLI Coordination - Risk Analysis & Validation MVPs
 
+## Reference Documentation
+
+- **Security Considerations**: `cli-phases/SECURITY_CONSIDERATIONS.md` - File permissions, race conditions, hardening
+- **Performance Targets**: `cli-phases/PERFORMANCE_TARGETS.md` - Expected latency and throughput
+- **Topology Patterns**: `cli-phases/TOPOLOGY_PATTERNS.md` - Hierarchical and hybrid architectures
+
 ## Overview
 
 This document identifies critical assumptions in the CLI coordination production plan and proposes targeted MVPs to validate them **before** committing to full implementation.
@@ -49,7 +55,7 @@ This document identifies critical assumptions in the CLI coordination production
 6. WSL (reference)
 
 # For each environment, run:
-- 10 coordinators × 50 workers = 500 agents
+- 10 coordinators ï¿½ 50 workers = 500 agents
 - Measure coordination time
 - Check for errors/restrictions
 - Validate delivery rate e90%
@@ -58,13 +64,13 @@ This document identifies critical assumptions in the CLI coordination production
 
 **Success Criteria**:
 -  Works in at least 3 production environments (Docker, K8s, cloud VM)
--  Coordination time d2× WSL baseline (<20s for 500 agents)
+-  Coordination time d2ï¿½ WSL baseline (<20s for 500 agents)
 -  Delivery rate e90% in all tested environments
 -  Workarounds documented for problematic environments
 
 **GO/NO-GO Decision**:
-- **GO**: Works in e3 environments ’ Proceed to Phase 1
-- **NO-GO**: Fails in all environments ’ Pivot to network IPC or TypeScript V2
+- **GO**: Works in e3 environments ï¿½ Proceed to Phase 1
+- **NO-GO**: Fails in all environments ï¿½ Pivot to network IPC or TypeScript V2
 
 **Fallback Plans**:
 - Use `/tmp` instead of `/dev/shm` (slower but more compatible)
@@ -95,9 +101,9 @@ This document identifies critical assumptions in the CLI coordination production
 # tests/validation/long-running-stability-test.sh
 
 # Test Scenarios:
-1. 5 coordinators × 50 workers = 250 agents, 8 hours continuous
-2. 3 coordinators × 50 workers = 150 agents, 24 hours continuous
-3. 10 coordinators × 50 workers = 500 agents, 1-hour stress test
+1. 5 coordinators ï¿½ 50 workers = 250 agents, 8 hours continuous
+2. 3 coordinators ï¿½ 50 workers = 150 agents, 24 hours continuous
+3. 10 coordinators ï¿½ 50 workers = 500 agents, 1-hour stress test
 
 # Monitor every 15 minutes:
 - Memory usage (RSS, VSZ for all processes)
@@ -115,15 +121,15 @@ This document identifies critical assumptions in the CLI coordination production
 ```
 
 **Success Criteria**:
--  Memory usage stable over 24 hours (±10% variance)
+-  Memory usage stable over 24 hours (ï¿½10% variance)
 -  File descriptor count stable (no leaks)
 -  Coordination time stable (<20% drift)
 -  Delivery rate e85% throughout entire test
 -  Zero crashes or process hangs
 
 **GO/NO-GO Decision**:
-- **GO**: Stable for 24+ hours ’ Proceed to Phase 1
-- **NO-GO**: Leaks or crashes within 8 hours ’ Fix or pivot
+- **GO**: Stable for 24+ hours ï¿½ Proceed to Phase 1
+- **NO-GO**: Leaks or crashes within 8 hours ï¿½ Fix or pivot
 
 **Fallback Plans**:
 - Implement periodic cleanup tasks (every 1 hour)
@@ -155,7 +161,7 @@ This document identifies critical assumptions in the CLI coordination production
 # tests/validation/real-workload-test.sh
 
 # Test Scenarios:
-1. 5 coordinators × 10 workers = 50 agents, each running:
+1. 5 coordinators ï¿½ 10 workers = 50 agents, each running:
    - Code generation (1-2 minutes per task)
    - File operations (read/write 100 files)
    - Bash commands (npm install, build)
@@ -180,8 +186,8 @@ This document identifies critical assumptions in the CLI coordination production
 -  End-to-end time within 20% of sequential execution
 
 **GO/NO-GO Decision**:
-- **GO**: Overhead <20% ’ Proceed to Phase 1
-- **NO-GO**: Overhead >30% ’ Re-evaluate approach or reduce concurrency
+- **GO**: Overhead <20% ï¿½ Proceed to Phase 1
+- **NO-GO**: Overhead >30% ï¿½ Re-evaluate approach or reduce concurrency
 
 **Fallback Plans**:
 - Reduce max concurrent agents based on system resources
@@ -191,7 +197,7 @@ This document identifies critical assumptions in the CLI coordination production
 
 ---
 
-### =â LOW RISK - Defer to Phase 2 or Later
+### =ï¿½ LOW RISK - Defer to Phase 2 or Later
 
 #### Risk 4: Failure Recovery (DOWNGRADED - User Feedback)
 
@@ -256,13 +262,13 @@ This document identifies critical assumptions in the CLI coordination production
 - [ ] Test Kubernetes pod
 - [ ] Test cloud VM (AWS, GCP, or Azure)
 - [ ] Run 500 agent coordination in each environment
-- **Decision**: If fails in ALL environments ’ NO-GO (pivot to network IPC)
+- **Decision**: If fails in ALL environments ï¿½ NO-GO (pivot to network IPC)
 
 **Day 3-5: MVP #2 - Long-Running Stability**
 - [ ] 8-hour continuous coordination (250 agents)
 - [ ] 24-hour continuous coordination (150 agents)
 - [ ] Monitor memory, FD, performance metrics
-- **Decision**: If leaks/crashes within 8 hours ’ FIX before Phase 1
+- **Decision**: If leaks/crashes within 8 hours ï¿½ FIX before Phase 1
 
 ### Week 2: Real Workload Validation
 **Priority: HIGH - Risk Mitigation**
@@ -272,7 +278,7 @@ This document identifies critical assumptions in the CLI coordination production
 - [ ] Measure coordination overhead
 - [ ] Test under CPU/memory load
 - [ ] Validate Task tool concurrency
-- **Decision**: If overhead >30% ’ ADJUST architecture or reduce concurrency
+- **Decision**: If overhead >30% ï¿½ ADJUST architecture or reduce concurrency
 
 ---
 
@@ -332,14 +338,14 @@ This document identifies critical assumptions in the CLI coordination production
 
 From [MVP_CONCLUSIONS.md](./MVP_CONCLUSIONS.md):
 
-** PROVEN - Single Coordinator ’ 50 Workers**:
+** PROVEN - Single Coordinator ï¿½ 50 Workers**:
 - Flat topology: 2-50 agents = **90-100% delivery**, 1-2s coordination (OPTIMAL)
 - Flat topology: 50-100 agents = **96-100% delivery**, 3-4s coordination (EXCELLENT)
-- Hybrid topology: 7×50 = 358 agents = **97.1% delivery**, 11s (VERY GOOD)
+- Hybrid topology: 7ï¿½50 = 358 agents = **97.1% delivery**, 11s (VERY GOOD)
 
 ** PROVEN - Hybrid Mesh Topology**:
 - 7 coordinators in mesh: **100% mesh-level reliability**
-- Each coordinator ’ workers: **97-100% hierarchical reliability**
+- Each coordinator ï¿½ workers: **97-100% hierarchical reliability**
 - Scales better than flat: 708 agents with 97.8% delivery
 
 **L NOT PROVEN**:
@@ -348,7 +354,7 @@ From [MVP_CONCLUSIONS.md](./MVP_CONCLUSIONS.md):
 - Long-running stability (only ~20 second coordination tests)
 - Real workload integration (only trivial echo/sleep tasks)
 
-**User's Proposed Architecture (10-15 coordinators × 50 workers)**:
+**User's Proposed Architecture (10-15 coordinators ï¿½ 50 workers)**:
 -  Well within proven performance range
 -  Better fault tolerance (smaller blast radius)
 -  More coordinators = more mesh redundancy
@@ -364,9 +370,9 @@ From [MVP_CONCLUSIONS.md](./MVP_CONCLUSIONS.md):
 3. =4 Real workload performance
 
 **Risks Downgraded** (defer to later phases):
-4. =â Failure recovery (50 workers proven, recovery untested but low risk)
-5. =â Performance optimizations (nice-to-have, not required)
-6. =â Cross-platform support (not initial requirement)
+4. =ï¿½ Failure recovery (50 workers proven, recovery untested but low risk)
+5. =ï¿½ Performance optimizations (nice-to-have, not required)
+6. =ï¿½ Cross-platform support (not initial requirement)
 
 **Recommended Action**:
 - Invest **1-2 weeks** in 3 critical validation MVPs
@@ -384,7 +390,7 @@ From [MVP_CONCLUSIONS.md](./MVP_CONCLUSIONS.md):
 
 **Document Version**: 1.1 (Updated with user feedback)
 **Last Updated**: 2025-10-06
-**Status**: =Ë RECOMMENDED - Execute Before Phase 1
+**Status**: =ï¿½ RECOMMENDED - Execute Before Phase 1
 **Author**: Claude Code Risk Analysis Team
 
 **Changes in v1.1**:

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # Default /dev/shm size (64MB)
+  cli-test-default:
+    build:
+      context: ../..
+      dockerfile: tests/environment-validation/Dockerfile
+    image: cli-coordination-test:latest
+    container_name: cli-test-default
+    volumes:
+      - ../../:/app
+    working_dir: /app
+    command: bash -c "echo 'Default environment ready. Run: docker exec -it cli-test-default bash /app/tests/environment-validation/test-100-agents.sh'"
+
+  # Expanded /dev/shm size (1GB)
+  cli-test-expanded:
+    build:
+      context: ../..
+      dockerfile: tests/environment-validation/Dockerfile
+    image: cli-coordination-test:latest
+    container_name: cli-test-expanded
+    shm_size: 1g
+    volumes:
+      - ../../:/app
+    working_dir: /app
+    command: bash -c "echo 'Expanded environment ready. Run: docker exec -it cli-test-expanded bash /app/tests/environment-validation/test-100-agents.sh'"

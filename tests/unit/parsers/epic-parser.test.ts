@@ -379,3 +379,239 @@ describe('EpicParser - Integration with Example Epic', () => {
     expect(validation.errors).toHaveLength(0);
   });
 });
+
+describe('EpicParser - CLI Validation Epic Integration', () => {
+  const cliValidationEpicDir = path.join(process.cwd(), 'planning', 'cli-validation-epic');
+
+  beforeEach(() => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      console.warn('⚠️  CLI validation epic directory not found, skipping tests');
+    }
+  });
+
+  it('should successfully parse the CLI validation epic directory', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    expect(result).toBeDefined();
+    expect(result.epicId).toBeTruthy();
+    expect(result.name).toContain('CLI');
+    expect(result.phases).toBeDefined();
+    expect(result.phases.length).toBeGreaterThan(0);
+  });
+
+  it('should parse exactly 3 phases from CLI validation epic', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    expect(result.phases).toHaveLength(3);
+    expect(result.phases[0].name).toContain('Critical');
+    expect(result.phases[1].name).toContain('Performance');
+    expect(result.phases[2].name).toContain('Optimization');
+  });
+
+  it('should extract all sprints from each phase', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    // Phase 1: Critical Validation (2 sprints)
+    expect(result.phases[0].sprints).toBeDefined();
+    expect(result.phases[0].sprints.length).toBeGreaterThanOrEqual(2);
+
+    // Phase 2: Performance Validation (2 sprints)
+    expect(result.phases[1].sprints).toBeDefined();
+    expect(result.phases[1].sprints.length).toBeGreaterThanOrEqual(2);
+
+    // Phase 3: Optimization Validation (4 sprints)
+    expect(result.phases[2].sprints).toBeDefined();
+    expect(result.phases[2].sprints.length).toBeGreaterThanOrEqual(4);
+
+    // Total sprints should be at least 8
+    const totalSprints = result.phases.reduce(
+      (sum, phase) => sum + (phase.sprints?.length || 0),
+      0
+    );
+    expect(totalSprints).toBeGreaterThanOrEqual(8);
+  });
+
+  it('should validate sprint numbering is consistent', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    result.phases.forEach((phase, phaseIndex) => {
+      phase.sprints?.forEach((sprint, sprintIndex) => {
+        // Sprint IDs should follow pattern: sprint-X.Y
+        expect(sprint.sprintId).toMatch(/^sprint-\d+\.\d+$/);
+
+        // Sprint ID should match phase number
+        const sprintPhaseNum = parseInt(sprint.sprintId.split('-')[1].split('.')[0]);
+        expect(sprintPhaseNum).toBe(phaseIndex + 1);
+      });
+    });
+  });
+
+  it('should extract scope boundaries from epic description', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    expect(result.description).toBeDefined();
+    expect(result.description.length).toBeGreaterThan(0);
+    // Scope should mention validation or testing
+    expect(result.description.toLowerCase()).toMatch(/validat|test/);
+  });
+
+  it('should not detect circular dependencies', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    parser.parse();
+
+    const validation = parser.getValidationResult();
+    expect(validation.stats?.cyclesDetected).toBe(0);
+
+    const cycleErrors = validation.errors.filter(
+      (e) => e.type === 'dependency_cycle'
+    );
+    expect(cycleErrors).toHaveLength(0);
+  });
+
+  it('should validate all sprint dependencies reference valid sprints', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    parser.parse();
+
+    const validation = parser.getValidationResult();
+    const depErrors = validation.errors.filter(
+      (e) => e.type === 'invalid_dependency'
+    );
+    expect(depErrors).toHaveLength(0);
+  });
+
+  it('should save epic config to JSON file with valid structure', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const outputFile = path.join(cliValidationEpicDir, 'test-epic-config.json');
+
+    // Clean up any existing file
+    if (fs.existsSync(outputFile)) {
+      fs.unlinkSync(outputFile);
+    }
+
+    const result = parser.parseAndSave(outputFile);
+
+    expect(fs.existsSync(outputFile)).toBe(true);
+
+    const savedConfig = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
+    expect(savedConfig.epicId).toBe(result.epicId);
+    expect(savedConfig.phases).toHaveLength(result.phases.length);
+
+    // Cleanup
+    fs.unlinkSync(outputFile);
+  });
+
+  it('should include acceptance criteria for all sprints', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    result.phases.forEach((phase) => {
+      phase.sprints?.forEach((sprint) => {
+        expect(sprint.acceptanceCriteria).toBeDefined();
+        expect(sprint.acceptanceCriteria.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  it('should extract epic-level acceptance criteria', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    expect(result.epicAcceptanceCriteria).toBeDefined();
+    // Epic should have GO/NO-GO criteria
+    const criteria = result.epicAcceptanceCriteria.join(' ');
+    expect(criteria.toLowerCase()).toMatch(/go|decision/);
+  });
+
+  it('should parse risk assessment if present', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    // Risk assessment may or may not be present
+    if (result.riskAssessment) {
+      expect(result.riskAssessment.highRisk).toBeDefined();
+      expect(result.riskAssessment.mitigation).toBeDefined();
+    }
+  });
+
+  it('should validate complete epic structure matches expected format', () => {
+    if (!fs.existsSync(cliValidationEpicDir)) {
+      return;
+    }
+
+    const parser = new EpicParser({ epicDirectory: cliValidationEpicDir });
+    const result: EpicConfig = parser.parse();
+
+    // Validate top-level structure
+    expect(result).toHaveProperty('epicId');
+    expect(result).toHaveProperty('name');
+    expect(result).toHaveProperty('description');
+    expect(result).toHaveProperty('status');
+    expect(result).toHaveProperty('owner');
+    expect(result).toHaveProperty('estimatedDuration');
+    expect(result).toHaveProperty('phases');
+    expect(result).toHaveProperty('epicAcceptanceCriteria');
+
+    // Validate each phase has required fields
+    result.phases.forEach((phase) => {
+      expect(phase).toHaveProperty('phaseId');
+      expect(phase).toHaveProperty('name');
+      expect(phase).toHaveProperty('description');
+      expect(phase).toHaveProperty('status');
+      expect(phase).toHaveProperty('sprints');
+      expect(phase).toHaveProperty('file');
+    });
+
+    const validation = EpicParser.validate(result);
+    expect(validation.valid).toBe(true);
+    expect(validation.errors).toHaveLength(0);
+  });
+});

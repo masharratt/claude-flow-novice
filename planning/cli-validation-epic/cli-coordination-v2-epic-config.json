@@ -1,0 +1,681 @@
+{
+  "epicId": "cli-coordination-v2",
+  "name": "CLI Coordination V2 - Production Implementation",
+  "description": "Implement production-ready CLI-based agent coordination system capable of scaling to 500+ agents with <10s coordination time, deployable to local and cloud environments.",
+  "owner": "CLI Coordination V2 Epic Team",
+  "status": "planning",
+  "priority": "critical-high-risk",
+  "estimatedDuration": "4-6 months (required) + 1-1.5 months (optional Phase 5)",
+  "scopeBoundaries": {
+    "inScope": [
+      "CLI-based agent coordination using bash message bus",
+      "File-based IPC via /dev/shm tmpfs",
+      "Hybrid topology (mesh + hierarchical coordination)",
+      "Dynamic agent spawning with collaboration during execution",
+      "500+ agent capacity minimum (708 validated in MVP)",
+      "V1/V2 toggle mechanism for catastrophic failure fallback",
+      "Production deployment to local and cloud environments",
+      "Monitoring, health checks, and operational tooling",
+      "Comprehensive testing (unit, integration, load, stress)",
+      "Performance optimization (pooling, batching, sharding)",
+      "Gradual rollout strategy (10% → 50% → 100%)"
+    ],
+    "outOfScope": [
+      "Cross-platform support (macOS, Windows) - Linux/WSL only",
+      "TypeScript SDK V2 implementation",
+      "Agent lifecycle state machine (deferred to optional Phase 5)",
+      "Help request system (deferred to optional Phase 5)",
+      "Dependency resolution (deferred to optional Phase 5)",
+      "Advanced features beyond 708 agents"
+    ]
+  },
+  "successCriteria": [
+    "500+ agents coordinating in production",
+    "<10s coordination time for 500 agents",
+    "≥90% delivery rate sustained",
+    "Zero critical production incidents for 2 weeks",
+    "V1/V2 toggle working with automatic fallback",
+    "Works on local machine AND cloud environments"
+  ],
+  "phases": [
+    {
+      "phaseId": "sprint-0",
+      "name": "Sprint 0: Critical Smoke Tests",
+      "description": "Validate catastrophic failure risks BEFORE committing to 4-6 month implementation",
+      "status": "planning",
+      "estimatedDuration": "3 days",
+      "dependencies": [],
+      "sprints": [
+        {
+          "sprintId": "sprint-0-day-1",
+          "name": "Day 1: Environment Quick Test",
+          "status": "planning",
+          "estimatedAgents": 3,
+          "estimatedDuration": "1 day",
+          "dependencies": [],
+          "deliverables": [
+            "Test in Docker container (default 64MB /dev/shm)",
+            "Test in Docker with expanded /dev/shm (--shm-size=1g)",
+            "Test in Cloud VM (AWS, GCP, or Azure)",
+            "Environment compatibility validation script"
+          ],
+          "acceptanceCriteria": [
+            "Works in ≥2 production environments",
+            "Coordination time <10s for 100 agents",
+            "Delivery rate ≥90%",
+            "Zero critical errors (permission denied, tmpfs unavailable)"
+          ]
+        },
+        {
+          "sprintId": "sprint-0-day-2",
+          "name": "Day 2: 8-Hour Stability Test",
+          "status": "planning",
+          "estimatedAgents": 3,
+          "estimatedDuration": "1 day",
+          "dependencies": ["sprint-0-day-1"],
+          "deliverables": [
+            "50 agents coordinating every 5 minutes for 8 hours",
+            "Memory usage monitoring (RSS, VSZ)",
+            "File descriptor count tracking",
+            "tmpfs usage and coordination time metrics"
+          ],
+          "acceptanceCriteria": [
+            "Memory growth <10% over 8 hours",
+            "FD count stable (no leaks)",
+            "Coordination time variance <20%",
+            "Zero crashes or hangs"
+          ]
+        },
+        {
+          "sprintId": "sprint-0-day-3",
+          "name": "Day 3: GO/NO-GO Decision",
+          "status": "planning",
+          "estimatedAgents": 1,
+          "estimatedDuration": "1 day",
+          "dependencies": ["sprint-0-day-1", "sprint-0-day-2"],
+          "deliverables": [
+            "GO/NO-GO decision report",
+            "Pivot options documentation (if NO-GO)",
+            "Phase 1 readiness confirmation (if GO)"
+          ],
+          "acceptanceCriteria": [
+            "ALL Sprint 0 criteria met for GO decision",
+            "Pivot strategy documented if NO-GO",
+            "Ready to proceed to Phase 1 if GO"
+          ]
+        }
+      ],
+      "decisionGate": {
+        "criteria": [
+          "Works in ≥2 production environments",
+          "8-hour stability with no resource leaks",
+          "Coordination performance within targets"
+        ],
+        "outcomes": [
+          "GO: Proceed to Phase 1",
+          "PIVOT: Network IPC or hybrid approach",
+          "NO-GO: Re-evaluate entire approach"
+        ]
+      }
+    },
+    {
+      "phaseId": "phase-1",
+      "name": "Phase 1: Foundation",
+      "description": "Implement core coordination infrastructure with monitoring, health checks, and operational tooling",
+      "status": "planning",
+      "estimatedDuration": "4-6 weeks",
+      "dependencies": ["sprint-0"],
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "name": "Monitoring & Metrics",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": [],
+          "deliverables": [
+            "emit_metric() function",
+            "JSONL metrics file output",
+            "Metrics collection infrastructure",
+            "Basic alerting thresholds"
+          ],
+          "acceptanceCriteria": [
+            "All coordination events emit metrics",
+            "Metrics file format correct and parseable",
+            "No performance impact from metrics (<1% overhead)"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "name": "Health Checks & Liveness",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-1.1"],
+          "deliverables": [
+            "report_health() function",
+            "Liveness tracking system",
+            "Health status API endpoint",
+            "Unhealthy agent detection"
+          ],
+          "acceptanceCriteria": [
+            "Health checks detect failed agents within 30s",
+            "False positive rate <1%",
+            "Health status accurate for 100-agent swarm"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "name": "Configuration Management",
+          "status": "planning",
+          "estimatedAgents": 4,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-1.2"],
+          "deliverables": [
+            "coordination-config.sh file",
+            "Environment variable overrides",
+            "Configuration validation on startup",
+            "Documentation for all config options"
+          ],
+          "acceptanceCriteria": [
+            "All configuration options documented",
+            "Invalid configurations detected on startup",
+            "Defaults work for 100-agent swarm"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.4",
+          "name": "Graceful Shutdown",
+          "status": "planning",
+          "estimatedAgents": 4,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-1.3"],
+          "deliverables": [
+            "shutdown_agent() function",
+            "Inbox draining logic",
+            "Cleanup on exit",
+            "Signal handler integration (SIGTERM, SIGINT)"
+          ],
+          "acceptanceCriteria": [
+            "All messages processed before shutdown",
+            "No orphaned processes or files",
+            "Shutdown time <5s for 100 agents"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.5",
+          "name": "Rate Limiting & Backpressure",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1-2 weeks",
+          "dependencies": ["sprint-1.4"],
+          "deliverables": [
+            "Inbox size limits (MAX_INBOX_SIZE)",
+            "Backpressure mechanism (sender waits if full)",
+            "Overflow detection and alerting",
+            "Dynamic rate limiting based on system load"
+          ],
+          "acceptanceCriteria": [
+            "Inbox overflow prevented (<1000 messages)",
+            "Backpressure maintains stability under load",
+            "No deadlocks from rate limiting"
+          ]
+        }
+      ],
+      "decisionGate": {
+        "criteria": [
+          "100-agent swarm: ≥95% delivery rate",
+          "Coordination time: <5s",
+          "Metrics accurate and low-overhead",
+          "Health checks reliable (false positive <1%)",
+          "Graceful shutdown working",
+          "Rate limiting prevents overflow"
+        ],
+        "outcomes": [
+          "GO: Proceed to Phase 2",
+          "PIVOT: Adjust architecture or extend Phase 1 timeline",
+          "NO-GO: Escalate to human for epic re-evaluation"
+        ]
+      }
+    },
+    {
+      "phaseId": "phase-2",
+      "name": "Phase 2: Testing & Validation",
+      "description": "Comprehensive testing coverage to ensure production reliability",
+      "status": "planning",
+      "estimatedDuration": "3-4 weeks",
+      "dependencies": ["phase-1"],
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "name": "Unit Testing",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": [],
+          "deliverables": [
+            "Unit tests for message-bus.sh functions",
+            "Bash testing framework setup",
+            "Mocking/stubbing utilities",
+            "CI integration"
+          ],
+          "acceptanceCriteria": [
+            "80%+ function coverage",
+            "All critical paths tested",
+            "Tests run in <60s"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "name": "Integration Testing",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-2.1"],
+          "deliverables": [
+            "Agent wrapper integration tests",
+            "Coordinator-worker flow tests",
+            "Multi-agent coordination scenarios",
+            "Error injection tests"
+          ],
+          "acceptanceCriteria": [
+            "End-to-end flows tested",
+            "Error scenarios handled correctly",
+            "Integration tests run in <5 minutes"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "name": "Load Testing",
+          "status": "planning",
+          "estimatedAgents": 6,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-2.2"],
+          "deliverables": [
+            "Load test scripts (100, 200, 300 agents)",
+            "Performance benchmark suite",
+            "Scalability analysis report",
+            "Bottleneck identification"
+          ],
+          "acceptanceCriteria": [
+            "100 agents: <5s, ≥95% delivery",
+            "200 agents: <8s, ≥92% delivery",
+            "300 agents: <12s, ≥90% delivery"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.4",
+          "name": "Stress Testing",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-2.3"],
+          "deliverables": [
+            "Chaos engineering test suite",
+            "Coordinator failure scenarios",
+            "Resource exhaustion tests",
+            "Recovery validation"
+          ],
+          "acceptanceCriteria": [
+            "Single coordinator failure: <30s recovery",
+            "Resource exhaustion: graceful degradation",
+            "All scenarios: coordination completes after recovery"
+          ]
+        }
+      ],
+      "decisionGate": {
+        "criteria": [
+          "Unit test coverage ≥80%",
+          "Integration tests passing",
+          "Load tested to 300 agents",
+          "Chaos tests: <30s recovery"
+        ],
+        "outcomes": [
+          "GO: Proceed to Phase 3",
+          "PIVOT: Fix critical test failures",
+          "NO-GO: Re-evaluate approach if fundamental issues"
+        ]
+      }
+    },
+    {
+      "phaseId": "phase-3",
+      "name": "Phase 3: Performance Optimization",
+      "description": "Achieve 500-agent coordination in <10s through targeted optimizations",
+      "status": "planning",
+      "estimatedDuration": "4-5 weeks",
+      "dependencies": ["phase-2"],
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "name": "Agent Pooling",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": [],
+          "deliverables": [
+            "agent-pool.sh implementation",
+            "Pool initialization and management",
+            "Task assignment to pooled agents",
+            "Pool performance benchmarks"
+          ],
+          "acceptanceCriteria": [
+            "2-5× spawn time improvement",
+            "Pool initialization <1s for 50 agents",
+            "Task assignment <10ms per agent",
+            "Pool hit rate ≥70%"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "name": "Batch Messaging",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": [],
+          "deliverables": [
+            "send_messages_batch() implementation",
+            "Optimal batch size determination",
+            "Latency impact analysis",
+            "Throughput benchmarks"
+          ],
+          "acceptanceCriteria": [
+            "3-10× throughput improvement",
+            "Batch send ≥3× faster than sequential",
+            "Latency penalty <100ms",
+            "Delivery rate ≥95% with batching"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "name": "Parallel Agent Spawning",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": [],
+          "deliverables": [
+            "spawn_agents_parallel() implementation",
+            "Batch size tuning for system load",
+            "Spawn failure detection and retry",
+            "Initialization benchmarks"
+          ],
+          "acceptanceCriteria": [
+            "5-10× faster initialization",
+            "500 agents spawn in <2s",
+            "Spawn failure rate <1%",
+            "System load manageable during spawn"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.4",
+          "name": "Message Bus Sharding",
+          "status": "planning",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": [],
+          "deliverables": [
+            "Sharding implementation (get_shard() function)",
+            "Shard count optimization",
+            "Lock contention analysis",
+            "Performance benchmarks"
+          ],
+          "acceptanceCriteria": [
+            "2-3× contention reduction",
+            "Optimal shard count: 8-16",
+            "Lock wait time reduced ≥2×",
+            "Directory contention <10% of coordination time"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.5",
+          "name": "Integration & Benchmarking",
+          "status": "planning",
+          "estimatedAgents": 6,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-3.1", "sprint-3.2", "sprint-3.3", "sprint-3.4"],
+          "deliverables": [
+            "Combined optimization integration",
+            "Full 500-agent benchmark",
+            "Performance regression testing",
+            "Optimization impact report"
+          ],
+          "acceptanceCriteria": [
+            "500 agents: <10s coordination",
+            "Delivery rate: ≥90%",
+            "Combined optimizations additive",
+            ">5× overall improvement"
+          ]
+        }
+      ],
+      "decisionGate": {
+        "criteria": [
+          "500 agents: <10s coordination time",
+          "Delivery rate: ≥90%",
+          "Combined optimizations: >5× overall improvement"
+        ],
+        "outcomes": [
+          "GO: Proceed to Phase 4",
+          "PIVOT: Adjust optimization strategy or targets",
+          "NO-GO: Re-evaluate epic scope if targets unachievable"
+        ]
+      }
+    },
+    {
+      "phaseId": "phase-4",
+      "name": "Phase 4: Production Deployment",
+      "description": "Gradual rollout to production with staged capacity increases",
+      "status": "planning",
+      "estimatedDuration": "6-8 weeks",
+      "dependencies": ["phase-3"],
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "name": "Stage 1: 100 Agents (Flat Topology)",
+          "status": "planning",
+          "estimatedAgents": 10,
+          "estimatedDuration": "2 weeks",
+          "dependencies": [],
+          "deliverables": [
+            "Staging deployment with 100 agents",
+            "Production deployment at 10% traffic",
+            "Monitoring dashboards",
+            "Incident response runbooks"
+          ],
+          "acceptanceCriteria": [
+            "100 agents: <5s, ≥95% delivery",
+            "Zero V2 crashes requiring V1 fallback",
+            "Metrics dashboards healthy",
+            "No production incidents"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "name": "Stage 2: 300 Agents (Hybrid Topology)",
+          "status": "planning",
+          "estimatedAgents": 12,
+          "estimatedDuration": "2 weeks",
+          "dependencies": ["sprint-4.1"],
+          "deliverables": [
+            "Hybrid topology deployment (7 coordinators)",
+            "Production deployment at 50% traffic",
+            "Mesh level reliability validation",
+            "Team-based coordination testing"
+          ],
+          "acceptanceCriteria": [
+            "300 agents: <12s, ≥90% delivery",
+            "100% mesh level reliability",
+            "Successful team-based coordination",
+            "V2 handles 50% traffic without issues"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.3",
+          "name": "Stage 3: 500-708 Agents (Large Hybrid)",
+          "status": "planning",
+          "estimatedAgents": 12,
+          "estimatedDuration": "3-4 weeks",
+          "dependencies": ["sprint-4.2"],
+          "deliverables": [
+            "Large-scale deployment (500-708 agents)",
+            "Production deployment at 100% traffic",
+            "Coordinator failover testing",
+            "V1 decommissioning"
+          ],
+          "acceptanceCriteria": [
+            "500 agents: <10s, ≥90% delivery",
+            "708 agents: <20s, ≥90% delivery",
+            "Coordinator failover tested and working",
+            "Resource utilization within limits"
+          ]
+        }
+      ],
+      "decisionGate": {
+        "criteria": [
+          "500+ agents coordinating in production",
+          "Coordination time <10s for 500 agents",
+          "Delivery rate ≥90% sustained",
+          "V2 handles 100% production traffic",
+          "Zero critical incidents for 2 weeks"
+        ],
+        "outcomes": [
+          "COMPLETE: Epic successful, V2 is primary coordination system",
+          "INCOMPLETE: Extend Stage 3 or rollback to V1 if critical issues"
+        ]
+      }
+    },
+    {
+      "phaseId": "phase-5",
+      "name": "Phase 5: Agent Lifecycle Enhancement (OPTIONAL)",
+      "description": "Add WAITING state for enhanced agent collaboration and resource utilization - EVALUATE AFTER PHASE 4",
+      "status": "optional",
+      "estimatedDuration": "4-6 weeks",
+      "dependencies": ["phase-4"],
+      "evaluationCriteria": {
+        "idleTimeThreshold": "≥30%",
+        "dependencyBlocksThreshold": "≥10 agents",
+        "reassignmentLatencyThreshold": "≥2000ms"
+      },
+      "sprints": [
+        {
+          "sprintId": "sprint-5.1",
+          "name": "State Machine Implementation",
+          "status": "optional",
+          "estimatedAgents": 6,
+          "estimatedDuration": "2 weeks",
+          "dependencies": [],
+          "deliverables": [
+            "Bash state tracking system (/dev/shm/cfn/agents/{id}/state)",
+            "State transition functions (IDLE → WORKING → WAITING → COMPLETE)",
+            "State transition messaging and logging",
+            "State machine integration with message bus"
+          ],
+          "acceptanceCriteria": [
+            "All 4 states implemented",
+            "State transitions reliable and atomic",
+            "State tracking <5% overhead"
+          ]
+        },
+        {
+          "sprintId": "sprint-5.2",
+          "name": "Help Request System",
+          "status": "optional",
+          "estimatedAgents": 6,
+          "estimatedDuration": "2 weeks",
+          "dependencies": ["sprint-5.1"],
+          "deliverables": [
+            "Help request queue (/dev/shm/cfn/help-requests/)",
+            "Agent capability matching algorithm",
+            "Help request/response protocol",
+            "Background help listener for WAITING agents"
+          ],
+          "acceptanceCriteria": [
+            "Help requests matched accurately (>90% success rate)",
+            "Response time <500ms for help requests",
+            "WAITING agents actively participate"
+          ]
+        },
+        {
+          "sprintId": "sprint-5.3",
+          "name": "Dependency Resolution",
+          "status": "optional",
+          "estimatedAgents": 6,
+          "estimatedDuration": "2 weeks",
+          "dependencies": ["sprint-5.2"],
+          "deliverables": [
+            "Dependency graph tracking (/dev/shm/cfn/dependencies/)",
+            "BLOCKED state handling",
+            "Provider matching for dependencies",
+            "Dependency resolution protocol"
+          ],
+          "acceptanceCriteria": [
+            "Dependencies resolved successfully (>95% success rate)",
+            "Blocked agents resume work after resolution",
+            "No deadlocks from circular dependencies"
+          ]
+        },
+        {
+          "sprintId": "sprint-5.4",
+          "name": "Integration Testing & Validation",
+          "status": "optional",
+          "estimatedAgents": 5,
+          "estimatedDuration": "1 week",
+          "dependencies": ["sprint-5.3"],
+          "deliverables": [
+            "End-to-end lifecycle testing",
+            "Performance benchmarks (Phase 5 vs Phase 4)",
+            "WAITING state utilization metrics",
+            "Production readiness validation"
+          ],
+          "acceptanceCriteria": [
+            "WAITING state provides ≥15% improvement in target metric",
+            "No regression in coordination time",
+            "System remains stable with lifecycle features"
+          ]
+        }
+      ],
+      "decisionGate": {
+        "criteria": [
+          "WAITING state provides ≥15% improvement in idle time, dependency resolution, or reassignment latency",
+          "No coordination time regression",
+          "System stable with lifecycle features"
+        ],
+        "outcomes": [
+          "DEPLOY: Roll out Phase 5 features to production",
+          "DEFER: Benefits marginal, keep Phase 4 model",
+          "REVERT: Lifecycle adds complexity without clear benefit"
+        ]
+      }
+    }
+  ],
+  "riskAssessment": {
+    "critical": [
+      "Production environment incompatibility (mitigation: Sprint 0 smoke tests)",
+      "Memory leaks in long-running coordination (mitigation: 8-hour stability test)",
+      "Performance targets unachievable (mitigation: Phase 3 empirical validation)",
+      "V2 critical failure in production (mitigation: V1/V2 toggle with automatic fallback)"
+    ],
+    "high": [
+      "Coordinator failure recovery insufficient (mitigation: Phase 2 chaos testing)",
+      "Test coverage gaps (mitigation: Phase 2 comprehensive testing)",
+      "Optimization complexity too high (mitigation: Phase 3 ROI validation)"
+    ]
+  },
+  "autoApproveThreshold": 0.90,
+  "autoRelaunchMaxIteration": 10,
+  "coordinationModel": {
+    "phase1to4": "Dynamic spawning (SPAWNED → WORKING → COMPLETE) with collaboration during execution",
+    "phase5": "Optional WAITING state (SPAWNED → WORKING → WAITING → COMPLETE) if Phase 4 metrics show >30% idle time, >10 dependency blocks, or >2s reassignment latency"
+  },
+  "v1v2Toggle": {
+    "enabled": true,
+    "defaultVersion": "v1",
+    "fallbackStrategy": "automatic",
+    "rolloutStrategy": "gradual (10% → 50% → 100%)"
+  },
+  "metadata": {
+    "version": "1.1",
+    "created": "2025-10-06",
+    "lastUpdated": "2025-10-06",
+    "author": "CLI Coordination V2 Epic Swarm Team",
+    "status": "READY FOR REVIEW"
+  }
+}
