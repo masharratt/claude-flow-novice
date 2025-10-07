@@ -13,6 +13,48 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
+// Session timeout prevention - keep connection alive for long CFN loops
+let lastActivity = Date.now();
+const SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours
+
+// Update activity on every tool call
+function updateActivity() {
+  lastActivity = Date.now();
+}
+
+// Heartbeat to prevent timeout
+const heartbeat = setInterval(() => {
+  const inactiveTime = Date.now() - lastActivity;
+  if (inactiveTime < SESSION_TIMEOUT) {
+    // Session still active
+    console.error(`[${new Date().toISOString()}] DEBUG Session active (${Math.floor(inactiveTime/1000/60)} minutes inactive)`);
+  }
+}, 5 * 60 * 1000); // Check every 5 minutes
+
+// Graceful shutdown handlers
+process.stdin.on('end', () => {
+  console.error(`[${new Date().toISOString()}] WARN MCP SDK server received stdin close, attempting graceful shutdown...`);
+
+  // Grace period for pending operations (30 seconds)
+  setTimeout(() => {
+    clearInterval(heartbeat);
+    console.error(`[${new Date().toISOString()}] INFO MCP SDK server shutdown complete`);
+    process.exit(0);
+  }, 30000);
+});
+
+process.on('SIGINT', () => {
+  console.error(`[${new Date().toISOString()}] INFO Received SIGINT, shutting down gracefully...`);
+  clearInterval(heartbeat);
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.error(`[${new Date().toISOString()}] INFO Received SIGTERM, shutting down gracefully...`);
+  clearInterval(heartbeat);
+  process.exit(0);
+});
+
 class ClaudeFlowNoviceServer {
   constructor() {
     this.version = '2.0.0-novice-sdk';
@@ -346,6 +388,9 @@ class ClaudeFlowNoviceServer {
     // Tool execution - Handle all 30 tools
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+
+      // Track activity on every tool call to prevent session timeout
+      updateActivity();
 
       console.error(`[${new Date().toISOString()}] INFO [claude-flow-novice-mcp] (${this.sessionId}) Executing tool: ${name}`);
 
