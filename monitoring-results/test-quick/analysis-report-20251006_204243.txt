@@ -1,0 +1,7 @@
+========================================
+RESOURCE MONITORING ANALYSIS REPORT
+========================================
+Input: /mnt/c/Users/masha/Documents/claude-flow-novice/scripts/monitoring/../../monitoring-results/test-quick/resource-usage-20251006_204233.csv
+Generated: Mon Oct  6 20:42:43 PDT 2025
+
+ERROR: No data found in CSV file

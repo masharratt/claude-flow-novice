@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-10-07T08:10:03-07:00",
+  "test_duration_hours": 1,
+  "test_duration_seconds": 3600,
+  "validation_results": {
+    "preflight_passed": true,
+    "test_started": false,
+    "test_completed": false,
+    "memory_passed": false,
+    "throughput_passed": false,
+    "health_passed": false,
+    "errors_passed": false
+  },
+  "metrics": {
+    "baseline_memory_mb": 0,
+    "final_memory_mb": 0,
+    "memory_growth_percent": 0,
+    "memory_threshold_percent": 5,
+    "throughput_avg_msg_per_sec": 0,
+    "throughput_min_msg_per_sec": 1000,
+    "health_check_failures": 0
+  },
+  "critical_errors": [],
+  "warnings": [],
+  "overall_pass": false
+}

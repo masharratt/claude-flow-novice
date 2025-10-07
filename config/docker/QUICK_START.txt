@@ -1,0 +1,154 @@
+═══════════════════════════════════════════════════════════════════════
+  8-HOUR STABILITY TEST - QUICK START GUIDE
+  Phase 2 Sprint 2.3 - 50 Agent Continuous Load Test
+═══════════════════════════════════════════════════════════════════════
+
+OBJECTIVES:
+  ✓ Memory growth <5% over 8 hours
+  ✓ Sustained throughput >1000 msg/s
+  ✓ No resource leaks (FDs, processes)
+  ✓ Stable CPU performance
+
+───────────────────────────────────────────────────────────────────────
+STEP 1: PRE-TEST VALIDATION
+───────────────────────────────────────────────────────────────────────
+
+bash scripts/monitoring/pre-test-validation.sh
+
+Expected output:
+  ✓ All critical checks passed
+  ! Warnings: 1 (WSL detected - using Docker)
+  ✗ Errors: 0
+
+───────────────────────────────────────────────────────────────────────
+STEP 2: LAUNCH TEST
+───────────────────────────────────────────────────────────────────────
+
+bash scripts/monitoring/launch-stability-test.sh
+
+Test will:
+  1. Build Docker images (2-5 minutes)
+  2. Start monitoring stack (Prometheus, Grafana, Node Exporter)
+  3. Launch 50-agent stability test
+  4. Run for 8 hours with continuous monitoring
+  5. Auto-analyze results on completion
+
+───────────────────────────────────────────────────────────────────────
+STEP 3: MONITOR PROGRESS
+───────────────────────────────────────────────────────────────────────
+
+Real-time monitoring:
+  • Grafana:    http://localhost:3001 (admin/stability-test)
+  • Prometheus: http://localhost:9090
+
+Live logs:
+  tail -f config/docker/stability-results/monitor-*.log
+  docker logs -f cfn-stability-test
+
+───────────────────────────────────────────────────────────────────────
+STEP 4: REVIEW RESULTS (AFTER 8 HOURS)
+───────────────────────────────────────────────────────────────────────
+
+Results location:
+  config/docker/stability-results/
+
+Files:
+  • resource-usage-*.csv       - Raw monitoring data (1s samples)
+  • stability-report-*.json    - Automated analysis results
+  • test-output-*.log          - Complete test execution log
+  • monitor-*.log              - Resource monitor events
+
+Analysis summary printed to console automatically.
+
+───────────────────────────────────────────────────────────────────────
+MANUAL COMMANDS
+───────────────────────────────────────────────────────────────────────
+
+Stop test early:
+  docker-compose -f config/docker/docker-compose.stability-test.yml down
+
+Clean up completely:
+  docker-compose -f config/docker/docker-compose.stability-test.yml down -v
+
+Re-analyze results:
+  node tests/performance/analyze-stability-results.js config/docker/stability-results
+
+Check memory growth:
+  Initial=$(head -2 config/docker/stability-results/resource-usage-*.csv | tail -1 | cut -d',' -f3)
+  Final=$(tail -1 config/docker/stability-results/resource-usage-*.csv | cut -d',' -f3)
+  Growth=$(awk -v i=$Initial -v f=$Final 'BEGIN {printf "%.2f", ((f-i)/i)*100}')
+  echo "Memory growth: ${Growth}%"
+
+───────────────────────────────────────────────────────────────────────
+SUCCESS CRITERIA THRESHOLDS
+───────────────────────────────────────────────────────────────────────
+
+CRITICAL (Test fails if exceeded):
+  • Memory growth:      >5%
+  • File descriptors:   >10,000
+  • Process count:      >500
+  • Throughput:         <1000 msg/s
+
+WARNINGS (Test passes but noted):
+  • CPU average:        >85%
+  • Memory spikes:      >3 (>10% increases)
+  • FD growth:          >100
+
+───────────────────────────────────────────────────────────────────────
+ESTIMATED TIMELINE
+───────────────────────────────────────────────────────────────────────
+
+00:00:00 - Pre-test validation (1 minute)
+00:01:00 - Docker image build (2-5 minutes)
+00:06:00 - Monitoring stack startup (30 seconds)
+00:06:30 - Stability test launch
+00:06:31 - Test execution begins (8 hours)
+───────────────────────────────────────────────────────────────────────
+08:06:31 - Test execution completes
+08:06:32 - Resource monitor stops
+08:06:33 - Results analysis begins (5-10 seconds)
+08:06:43 - Final report generated
+08:06:44 - Test complete, containers stopping
+
+Total: ~8 hours 7 minutes
+
+───────────────────────────────────────────────────────────────────────
+TROUBLESHOOTING
+───────────────────────────────────────────────────────────────────────
+
+Test won't start:
+  1. Check Docker daemon: docker info
+  2. Check ports: lsof -i :3000,3001,9090,9100
+  3. Clean Docker: docker system prune -a
+
+Test fails mid-run:
+  1. Check logs: docker logs cfn-stability-test -f
+  2. Check resources: docker stats
+  3. Check monitor: tail config/docker/stability-results/monitor-*.log
+
+Grafana not accessible:
+  1. Wait 30s after startup
+  2. Check status: docker ps | grep grafana
+  3. Restart: docker restart cfn-stability-grafana
+
+───────────────────────────────────────────────────────────────────────
+SUPPORT FILES
+───────────────────────────────────────────────────────────────────────
+
+Full documentation:     config/docker/STABILITY_TEST_README.md
+Configuration:          config/docker/docker-compose.stability-test.yml
+Launcher script:        scripts/monitoring/launch-stability-test.sh
+Validation script:      scripts/monitoring/pre-test-validation.sh
+Analysis script:        tests/performance/analyze-stability-results.js
+Resource monitor:       scripts/monitoring/resource-monitor.sh
+
+───────────────────────────────────────────────────────────────────────
+READY TO BEGIN?
+───────────────────────────────────────────────────────────────────────
+
+Run: bash scripts/monitoring/pre-test-validation.sh
+
+If validation passes, proceed with:
+     bash scripts/monitoring/launch-stability-test.sh
+
+═══════════════════════════════════════════════════════════════════════

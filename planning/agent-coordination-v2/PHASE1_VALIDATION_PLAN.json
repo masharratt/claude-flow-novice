@@ -1,0 +1,459 @@
+{
+  "plan_metadata": {
+    "title": "Phase 1 CLI Coordination Infrastructure Validation Plan",
+    "version": "1.0.0",
+    "created": "2025-10-06",
+    "timeline": "10 business days (2 weeks)",
+    "goap_algorithm": "A* search with cost optimization",
+    "current_state": {
+      "infrastructure_files": 41,
+      "lines_of_code": 11757,
+      "core_systems": ["metrics", "health", "config", "shutdown", "rate-limiting"],
+      "test_coverage": "partial",
+      "message_bus_integration": "not_validated",
+      "agent_coordination": "simulated_only",
+      "stability_testing": "not_executed",
+      "performance_overhead": "not_measured"
+    },
+    "goal_state": {
+      "message_bus_integration": "fully_integrated",
+      "real_agent_coordination": "100_agents_validated",
+      "stability_testing": "8_hours_passed",
+      "performance_overhead": "<1%",
+      "rate_limiting": "proven_working",
+      "production_readiness": "validated"
+    }
+  },
+  "goap_action_space": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "name": "Integration: Metrics → Message Bus",
+        "preconditions": ["metrics.sh exists", "message-bus.sh exists"],
+        "effects": ["metrics_integrated", "coordination_time_tracked"],
+        "cost": 20,
+        "duration_hours": 4,
+        "blocking": true
+      },
+      {
+        "action_id": "A2",
+        "name": "Integration: Health → Message Bus",
+        "preconditions": ["health.sh exists", "message-bus.sh exists"],
+        "effects": ["health_integrated", "agent_liveness_tracked"],
+        "cost": 20,
+        "duration_hours": 4,
+        "blocking": true
+      },
+      {
+        "action_id": "A3",
+        "name": "Integration: Rate Limiting → Message Bus",
+        "preconditions": ["rate-limiting.sh exists", "message-bus.sh exists"],
+        "effects": ["rate_limiting_integrated", "backpressure_working"],
+        "cost": 25,
+        "duration_hours": 6,
+        "blocking": true
+      },
+      {
+        "action_id": "A4",
+        "name": "Integration: Shutdown → Message Bus",
+        "preconditions": ["shutdown.sh exists", "message-bus.sh exists"],
+        "effects": ["shutdown_integrated", "graceful_termination_working"],
+        "cost": 25,
+        "duration_hours": 6,
+        "blocking": true
+      },
+      {
+        "action_id": "A5",
+        "name": "Integration: Config → All Systems",
+        "preconditions": ["coordination-config.sh exists", "all systems exist"],
+        "effects": ["config_integrated", "centralized_configuration"],
+        "cost": 15,
+        "duration_hours": 3,
+        "blocking": false
+      },
+      {
+        "action_id": "A6",
+        "name": "Unit Tests: Core Libraries",
+        "preconditions": ["A1", "A2", "A3", "A4", "A5"],
+        "effects": ["unit_tests_passing", "basic_functionality_validated"],
+        "cost": 30,
+        "duration_hours": 8,
+        "blocking": false
+      },
+      {
+        "action_id": "A7",
+        "name": "Integration Tests: 10 Agents",
+        "preconditions": ["A6"],
+        "effects": ["small_scale_validated", "coordination_working"],
+        "cost": 40,
+        "duration_hours": 8,
+        "blocking": true
+      },
+      {
+        "action_id": "A8",
+        "name": "Integration Tests: 100 Agents",
+        "preconditions": ["A7"],
+        "effects": ["production_scale_validated", "performance_measured"],
+        "cost": 60,
+        "duration_hours": 12,
+        "blocking": true
+      },
+      {
+        "action_id": "A9",
+        "name": "Stability Test: 8 Hours",
+        "preconditions": ["A8"],
+        "effects": ["stability_validated", "memory_leaks_checked"],
+        "cost": 80,
+        "duration_hours": 16,
+        "blocking": true
+      },
+      {
+        "action_id": "A10",
+        "name": "Performance Analysis",
+        "preconditions": ["A8", "A9"],
+        "effects": ["overhead_measured", "bottlenecks_identified"],
+        "cost": 50,
+        "duration_hours": 8,
+        "blocking": true
+      },
+      {
+        "action_id": "A11",
+        "name": "Rate Limiting Validation",
+        "preconditions": ["A3", "A8"],
+        "effects": ["rate_limiting_proven", "backpressure_validated"],
+        "cost": 40,
+        "duration_hours": 6,
+        "blocking": true
+      },
+      {
+        "action_id": "A12",
+        "name": "Production Readiness Report",
+        "preconditions": ["A9", "A10", "A11"],
+        "effects": ["production_ready", "validation_complete"],
+        "cost": 20,
+        "duration_hours": 4,
+        "blocking": false
+      }
+    ]
+  },
+  "optimal_path": {
+    "algorithm": "A* with heuristic: remaining_cost_to_goal",
+    "total_cost": 425,
+    "total_duration_hours": 85,
+    "total_duration_days": 10.6,
+    "sequence": [
+      {
+        "day": 1,
+        "phase": "Integration Sprint 1",
+        "actions": ["A1", "A2"],
+        "agents_needed": ["backend-dev", "system-architect", "tester"],
+        "deliverables": [
+          "metrics.sh emits to message-bus coordination events",
+          "health.sh reports agent status via message-bus",
+          "Integration tests passing for both systems"
+        ],
+        "success_criteria": [
+          "emit_metric() calls trigger message-bus events",
+          "report_health() updates coordination state",
+          "Test coverage ≥80%"
+        ]
+      },
+      {
+        "day": 2,
+        "phase": "Integration Sprint 2",
+        "actions": ["A3", "A4"],
+        "agents_needed": ["backend-dev", "system-architect", "tester"],
+        "deliverables": [
+          "rate-limiting.sh integrates with message-bus inbox capacity",
+          "shutdown.sh uses message-bus for graceful termination",
+          "Integration tests passing for both systems"
+        ],
+        "success_criteria": [
+          "send_with_backpressure() uses message-bus inbox checks",
+          "shutdown_agent() drains message-bus inboxes",
+          "Test coverage ≥80%"
+        ]
+      },
+      {
+        "day": 3,
+        "phase": "Configuration & Unit Tests",
+        "actions": ["A5", "A6"],
+        "agents_needed": ["backend-dev", "tester", "reviewer"],
+        "deliverables": [
+          "coordination-config.sh provides centralized config",
+          "All lib/*.sh files source config correctly",
+          "Unit test suite covers all functions",
+          "Test automation pipeline working"
+        ],
+        "success_criteria": [
+          "Config validation passing",
+          "Unit tests ≥90% coverage",
+          "CI pipeline green"
+        ]
+      },
+      {
+        "day": 4,
+        "phase": "Small-Scale Integration (10 Agents)",
+        "actions": ["A7"],
+        "agents_needed": ["backend-dev", "tester", "perf-analyzer"],
+        "deliverables": [
+          "10-agent coordination test passing",
+          "Message delivery rate ≥90%",
+          "All systems working together",
+          "Performance baseline established"
+        ],
+        "success_criteria": [
+          "10 agents coordinate successfully",
+          "Metrics collected correctly",
+          "Health checks reporting accurately",
+          "Graceful shutdown working"
+        ]
+      },
+      {
+        "day": 5,
+        "phase": "Production-Scale Integration (100 Agents)",
+        "actions": ["A8"],
+        "agents_needed": ["backend-dev", "perf-analyzer", "system-architect", "tester"],
+        "deliverables": [
+          "100-agent coordination test passing",
+          "Message delivery rate ≥90%",
+          "Performance overhead measured",
+          "Resource usage profiled"
+        ],
+        "success_criteria": [
+          "100 agents coordinate successfully",
+          "Coordination time <5s per phase",
+          "Memory usage linear with agent count",
+          "No file descriptor leaks"
+        ]
+      },
+      {
+        "day": 6,
+        "phase": "Rate Limiting Deep Dive",
+        "actions": ["A11"],
+        "agents_needed": ["backend-dev", "perf-analyzer", "tester"],
+        "deliverables": [
+          "Rate limiting stress test passing",
+          "Backpressure mechanism validated",
+          "Inbox overflow prevention proven",
+          "Dynamic rate adjustment working"
+        ],
+        "success_criteria": [
+          "Backpressure prevents inbox overflow",
+          "Rate limiting adapts to system load",
+          "No message loss under stress",
+          "System remains responsive"
+        ]
+      },
+      {
+        "day": 7-8,
+        "phase": "8-Hour Stability Test",
+        "actions": ["A9"],
+        "agents_needed": ["devops-engineer", "perf-analyzer", "tester"],
+        "deliverables": [
+          "8-hour continuous operation successful",
+          "Memory usage stable (no leaks)",
+          "Resource usage flat over time",
+          "Automated monitoring alerts working"
+        ],
+        "success_criteria": [
+          "Memory growth <5% over 8 hours",
+          "File descriptors stable",
+          "No process crashes",
+          "Alert system triggers correctly",
+          "Graceful degradation under load"
+        ]
+      },
+      {
+        "day": 9,
+        "phase": "Performance Analysis",
+        "actions": ["A10"],
+        "agents_needed": ["perf-analyzer", "system-architect", "backend-dev"],
+        "deliverables": [
+          "Performance overhead calculated",
+          "Bottlenecks identified and documented",
+          "Optimization recommendations",
+          "Scalability limits documented"
+        ],
+        "success_criteria": [
+          "Coordination overhead <1%",
+          "Metrics collection <0.1ms per event",
+          "Health checks <50ms per agent",
+          "Message passing <5ms 99th percentile"
+        ]
+      },
+      {
+        "day": 10,
+        "phase": "Production Readiness Validation",
+        "actions": ["A12"],
+        "agents_needed": ["system-architect", "security-specialist", "reviewer"],
+        "deliverables": [
+          "Production readiness checklist completed",
+          "Security audit passed",
+          "Documentation complete",
+          "Deployment runbook finalized"
+        ],
+        "success_criteria": [
+          "All systems integrated",
+          "All tests passing",
+          "Performance targets met",
+          "Security review complete",
+          "Production deployment approved"
+        ]
+      }
+    ]
+  },
+  "risk_mitigation": {
+    "high_risks": [
+      {
+        "risk": "Message bus integration breaks existing tests",
+        "probability": "medium",
+        "impact": "high",
+        "mitigation": "Incremental integration with feature flags, extensive regression testing",
+        "contingency": "Rollback to standalone lib/*.sh functions, defer integration"
+      },
+      {
+        "risk": "100-agent test causes system instability (WSL memory issues)",
+        "probability": "high",
+        "impact": "critical",
+        "mitigation": "Use Docker environment for testing, implement aggressive cleanup, monitor memory closely",
+        "contingency": "Reduce test scale to 50 agents, implement memory-safe patterns"
+      },
+      {
+        "risk": "8-hour stability test reveals memory leaks",
+        "probability": "medium",
+        "impact": "critical",
+        "mitigation": "Valgrind/heaptrack profiling, resource cleanup audits, periodic garbage collection",
+        "contingency": "Implement periodic agent restart, reduce test duration to 4 hours"
+      },
+      {
+        "risk": "Performance overhead exceeds 1% target",
+        "probability": "low",
+        "impact": "high",
+        "mitigation": "Optimize hot paths, reduce syscalls, batch operations, use /dev/shm extensively",
+        "contingency": "Adjust target to 2%, optimize critical paths only"
+      }
+    ],
+    "medium_risks": [
+      {
+        "risk": "Rate limiting false positives block legitimate traffic",
+        "probability": "medium",
+        "impact": "medium",
+        "mitigation": "Conservative thresholds initially, adaptive tuning, whitelist critical agents",
+        "contingency": "Disable rate limiting temporarily, implement override mechanism"
+      },
+      {
+        "risk": "Test execution time exceeds 2-week window",
+        "probability": "low",
+        "impact": "medium",
+        "mitigation": "Parallel test execution, automated test harness, skip non-critical tests if needed",
+        "contingency": "Extend timeline by 3-5 days, prioritize critical path tests only"
+      }
+    ]
+  },
+  "dependencies": {
+    "blocking_dependencies": [
+      "WSL environment with sufficient memory (8GB+ available)",
+      "jq installed for JSON processing",
+      "flock available for file locking",
+      "/dev/shm mounted and writable",
+      "bash 4.0+ with associative arrays"
+    ],
+    "nice_to_have": [
+      "Docker for isolated testing",
+      "valgrind/heaptrack for memory profiling",
+      "perf for CPU profiling",
+      "htop/btop for real-time monitoring"
+    ]
+  },
+  "success_metrics": {
+    "phase1_completion_criteria": {
+      "integration": {
+        "metrics_integrated": true,
+        "health_integrated": true,
+        "config_integrated": true,
+        "shutdown_integrated": true,
+        "rate_limiting_integrated": true
+      },
+      "testing": {
+        "unit_tests_passing": "≥90% coverage",
+        "integration_tests_passing": "10 agents + 100 agents",
+        "stability_test_passed": "8 hours continuous",
+        "rate_limiting_validated": true
+      },
+      "performance": {
+        "coordination_overhead": "<1%",
+        "message_delivery_rate": "≥90%",
+        "coordination_time": "<5s per phase",
+        "memory_growth": "<5% over 8 hours"
+      },
+      "production_readiness": {
+        "security_audit_passed": true,
+        "documentation_complete": true,
+        "deployment_runbook_ready": true,
+        "rollback_plan_documented": true
+      }
+    }
+  },
+  "agent_team_requirements": {
+    "core_team": {
+      "backend-dev": {
+        "count": 2,
+        "responsibilities": ["Integration implementation", "Bug fixes", "Performance optimization"],
+        "required_skills": ["Bash scripting", "IPC mechanisms", "Systems programming"]
+      },
+      "system-architect": {
+        "count": 1,
+        "responsibilities": ["Architecture validation", "Design reviews", "Scalability analysis"],
+        "required_skills": ["Distributed systems", "Coordination protocols", "Performance analysis"]
+      },
+      "tester": {
+        "count": 2,
+        "responsibilities": ["Test development", "Test execution", "Bug reporting"],
+        "required_skills": ["Integration testing", "Stress testing", "Test automation"]
+      },
+      "perf-analyzer": {
+        "count": 1,
+        "responsibilities": ["Performance profiling", "Bottleneck identification", "Optimization"],
+        "required_skills": ["Profiling tools", "Performance tuning", "Systems optimization"]
+      }
+    },
+    "support_team": {
+      "reviewer": {
+        "count": 1,
+        "responsibilities": ["Code reviews", "Quality validation", "Best practices"],
+        "required_skills": ["Code review", "Quality assurance"]
+      },
+      "security-specialist": {
+        "count": 1,
+        "responsibilities": ["Security audit", "Vulnerability assessment", "Risk analysis"],
+        "required_skills": ["Security auditing", "Threat modeling"]
+      },
+      "devops-engineer": {
+        "count": 1,
+        "responsibilities": ["Infrastructure setup", "Monitoring", "Deployment"],
+        "required_skills": ["CI/CD", "Monitoring", "Infrastructure"]
+      }
+    }
+  },
+  "next_actions": {
+    "immediate": [
+      "Initialize swarm with 6-8 agents for Day 1 integration work",
+      "Set up test environment (Docker recommended for stability)",
+      "Create integration test framework foundation",
+      "Establish baseline metrics collection"
+    ],
+    "week1_goals": [
+      "Complete all 5 system integrations (A1-A5)",
+      "Unit tests passing at 90%+ coverage",
+      "10-agent integration test successful",
+      "100-agent integration test successful"
+    ],
+    "week2_goals": [
+      "8-hour stability test completed successfully",
+      "Performance analysis complete with <1% overhead",
+      "Rate limiting validation complete",
+      "Production readiness report finalized"
+    ]
+  }
+}

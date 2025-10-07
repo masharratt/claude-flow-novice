@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cfn-coordinator
+  namespace: claude-flow-novice
+  labels:
+    app: claude-flow-novice
+    environment: production
+    component: coordinator
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: claude-flow-novice
+      component: coordinator
+  template:
+    metadata:
+      labels:
+        app: claude-flow-novice
+        component: coordinator
+        environment: production
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: cfn-coordinator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: coordinator
+        image: claude-flow-novice:1.6.6
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - configMapRef:
+            name: cfn-coordination-config-prod
+        - secretRef:
+            name: cfn-secrets-prod
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9091
+          protocol: TCP
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: tmpfs
+          mountPath: /dev/shm
+        - name: app-logs
+          mountPath: /app/logs
+        - name: coordination-lib
+          mountPath: /app/lib
+          readOnly: true
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - test -d /dev/shm/cfn
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1001
+      volumes:
+      - name: tmpfs
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
+      - name: app-logs
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: coordination-lib
+        configMap:
+          name: cfn-coordination-scripts
+          defaultMode: 0755
+      terminationGracePeriodSeconds: 30
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - claude-flow-novice
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cfn-coordinator
+  namespace: claude-flow-novice
+  labels:
+    app: claude-flow-novice
+    component: coordinator
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 9091
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: claude-flow-novice
+    component: coordinator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cfn-coordinator
+  namespace: claude-flow-novice
+  labels:
+    app: claude-flow-novice

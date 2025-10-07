@@ -7,18 +7,22 @@ set -euo pipefail
 
 # Configuration
 MESSAGE_BASE_DIR="${MESSAGE_BASE_DIR:-/dev/shm/cfn-mvp/messages}"
-MESSAGE_VERSION="1.1"  # Updated for auth support
+MESSAGE_VERSION="1.1"
 
-# Source metrics library if available (for coordination metrics)
-METRICS_LIB="${METRICS_LIB:-/mnt/c/Users/masha/Documents/claude-flow-novice/lib/metrics.sh}"
-if [[ -f "$METRICS_LIB" ]]; then
-    source "$METRICS_LIB"
-fi
+# Authentication configuration
+export CFN_AUTH_ENABLED="${CFN_AUTH_ENABLED:-false}"
+export CFN_AUTH_MODE="${CFN_AUTH_MODE:-disabled}"  # disabled|warn|enforce
 
 # Source auth library if available (for message signing/verification)
-AUTH_LIB="${AUTH_LIB:-/mnt/c/Users/masha/Documents/claude-flow-novice/lib/auth.sh}"
+AUTH_LIB="${AUTH_LIB:-$(dirname "${BASH_SOURCE[0]}")/auth.sh}"
 if [[ -f "$AUTH_LIB" ]]; then
     source "$AUTH_LIB"
+fi
+
+# Source resource limits library for DoS prevention
+RESOURCE_LIMITS_LIB="${RESOURCE_LIMITS_LIB:-$(dirname "${BASH_SOURCE[0]}")/resource-limits.sh}"
+if [[ -f "$RESOURCE_LIMITS_LIB" ]]; then
+    source "$RESOURCE_LIMITS_LIB"
 fi
 
 # Logging
@@ -30,6 +34,26 @@ log_error() {
     echo "[$(date '+%H:%M:%S')] [MESSAGE-BUS] ERROR: $*" >&2
 }
 
+log_warn() {
+    echo "[$(date '+%H:%M:%S')] [MESSAGE-BUS] WARN: $*" >&2
+}
+
+# Validate agent_id format to prevent path traversal attacks
+# Usage: validate_agent_id <agent_id>
+# Returns: 0 if valid, 1 if invalid
+validate_agent_id() {
+    local agent_id="$1"
+
+    # SECURITY: Prevent path traversal (CWE-22)
+    # Allow only alphanumeric, dash, underscore (1-64 chars)
+    if [[ ! "$agent_id" =~ ^[a-zA-Z0-9_-]{1,64}$ ]]; then
+        log_error "Invalid agent_id format: '$agent_id' (must be alphanumeric, dash, underscore, 1-64 chars)"
+        return 1
+    fi
+
+    return 0
+}
+
 # Initialize message bus for an agent
 # Usage: init_message_bus <agent-id>
 init_message_bus() {
@@ -37,6 +61,11 @@ init_message_bus() {
 
     if [[ -z "$agent_id" ]]; then
         log_error "Agent ID required"
+        return 1
+    fi
+
+    # SECURITY: Validate agent_id to prevent path traversal
+    if ! validate_agent_id "$agent_id"; then
         return 1
     fi
 
@@ -71,15 +100,19 @@ generate_message_id() {
 get_next_sequence() {
     local from="$1"
     local to="$2"
+
+    # SECURITY: Validate agent IDs to prevent path traversal
+    if ! validate_agent_id "$from"; then
+        return 1
+    fi
+    if ! validate_agent_id "$to"; then
+        return 1
+    fi
+
     local seq_file="$MESSAGE_BASE_DIR/$from/.sequences/$to"
     local lock_file="$MESSAGE_BASE_DIR/$from/.sequences/$to.lock"
 
     mkdir -p "$MESSAGE_BASE_DIR/$from/.sequences"
-
-    # Initialize sequence file to 0 if it doesn't exist
-    if [[ ! -f "$seq_file" ]]; then
-        echo "0" > "$seq_file"
-    fi
 
     # ATOMIC increment with flock to prevent race conditions
     # Retry up to 3 times with exponential backoff if lock acquisition fails
@@ -89,6 +122,11 @@ get_next_sequence() {
     while [ $retries -gt 0 ]; do
         {
             if flock -x -w $wait_time 200; then
+                # CRITICAL FIX: Initialize sequence file INSIDE flock to prevent TOCTOU race
+                if [[ ! -f "$seq_file" ]]; then
+                    echo "0" > "$seq_file"
+                fi
+
                 local current_seq=$(cat "$seq_file")
                 local next_seq=$((current_seq + 1))
                 echo "$next_seq" > "$seq_file"
@@ -117,11 +155,16 @@ send_message() {
     local msg_type="$3"
     local payload="$4"
 
-    # Track coordination latency (start time in milliseconds)
-    local start_time_ms=$(($(date +%s%N) / 1000000))
-
     if [[ -z "$from" || -z "$to" || -z "$msg_type" ]]; then
         log_error "Usage: send_message <from> <to> <type> <payload-json>"
+        return 1
+    fi
+
+    # SECURITY: Validate agent IDs to prevent path traversal
+    if ! validate_agent_id "$from"; then
+        return 1
+    fi
+    if ! validate_agent_id "$to"; then
         return 1
     fi
 
@@ -133,21 +176,39 @@ send_message() {
         return 1
     fi
 
-    # Inbox overflow protection: FIFO eviction at 100 messages
-    local inbox_count=$(find "$recipient_inbox" -maxdepth 1 -name "*.json" -type f 2>/dev/null | wc -l)
+    # RESOURCE LIMITS: Check global message count (DoS prevention)
+    if command -v check_global_message_count >/dev/null 2>&1; then
+        if ! check_global_message_count; then
+            log_error "Cannot send message: global message limit exceeded"
+            return 1
+        fi
+    fi
 
-    if [[ $inbox_count -ge 100 ]]; then
-        # Find oldest message by modification time
-        local oldest_msg=$(find "$recipient_inbox" -maxdepth 1 -name "*.json" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | head -n 1 | cut -d' ' -f2-)
+    # RESOURCE LIMITS: Validate payload size (disk exhaustion prevention)
+    if command -v validate_payload_size >/dev/null 2>&1; then
+        if ! validate_payload_size "$payload"; then
+            log_error "Cannot send message: payload size limit exceeded"
+            return 1
+        fi
+    fi
+
+    # Inbox overflow protection: FIFO eviction at 1000 messages (100-agent scale)
+    # Use ls instead of find (WSL-safe, <10ms vs 2-10s with find)
+    local inbox_count=$(ls -1 "$recipient_inbox"/*.json 2>/dev/null | wc -l)
+
+    if [[ $inbox_count -ge 1000 ]]; then
+        # Find oldest message by modification time using ls -t (reverse chronological)
+        # ls -t sorts newest first, tail -n 1 gets oldest
+        local oldest_msg=$(ls -t "$recipient_inbox"/*.json 2>/dev/null | tail -n 1)
 
         if [[ -n "$oldest_msg" ]]; then
             local oldest_msg_id=$(basename "$oldest_msg" .json)
             rm -f "$oldest_msg"
             log_info "WARN: Inbox overflow for $to (${inbox_count} messages), evicted oldest: $oldest_msg_id"
 
-            # Emit coordination metric for inbox overflow event
+            # Emit backpressure metric for inbox overflow
             if command -v emit_metric >/dev/null 2>&1; then
-                emit_metric "coordination.inbox_overflow" "1" "count" "{\"agent\":\"$to\",\"inbox_size\":$inbox_count,\"evicted\":\"$oldest_msg_id\"}"
+                emit_metric "backpressure.inbox_overflow" "1" "count" "{\"agent\":\"$to\",\"inbox_size\":$inbox_count,\"evicted\":\"$oldest_msg_id\"}"
             fi
         fi
     fi
@@ -174,34 +235,35 @@ send_message() {
 EOF
 )
 
-    # Sign message if auth is enabled
-    if [[ "$CFN_AUTH_ENABLED" == "true" ]] && command -v sign_message >/dev/null 2>&1; then
+    # Sign message if authentication is enabled
+    if [[ "${CFN_AUTH_ENABLED}" == "true" ]] && command -v sign_message >/dev/null 2>&1; then
         # Create canonical payload for signing (message without signature)
         local canonical
         if command -v jq >/dev/null 2>&1; then
             canonical=$(echo "$message" | jq -S -c .)
         else
-            # Bash fallback: just use the message as-is for signing
+            # Bash fallback: use message as-is for signing
             canonical="$message"
         fi
 
         # Generate signature
-        local signature=$(sign_message "$from" "$canonical" 2>/dev/null || echo "")
-
-        if [[ -n "$signature" ]]; then
-            # Add signature and auth_version to message
+        local signature
+        if signature=$(sign_message "$from" "$canonical" 2>&1); then
+            # Add signature field to message
             if command -v jq >/dev/null 2>&1; then
-                message=$(echo "$message" | jq -c \
-                    --arg sig "$signature" \
-                    --arg auth_ver "${AUTH_VERSION:-1.0}" \
-                    '. + {signature: $sig, auth_version: $auth_ver}')
+                message=$(echo "$message" | jq -c --arg sig "$signature" '. + {signature: $sig}')
             else
                 # Bash fallback: insert signature before final closing brace
-                message="${message%\}},\"signature\":\"$signature\",\"auth_version\":\"${AUTH_VERSION:-1.0}\"}"
+                message="${message%\}},\"signature\":\"$signature\"}"
             fi
-            log_info "Message signed for $from -> $to"
+            log_info "Message signed for $from -> $to (sig: ${signature:0:16}...)"
         else
-            log_info "WARN: Signature generation failed for $from, sending unsigned"
+            log_warn "Signature generation failed for $from: $signature"
+            # Continue with unsigned message in warn mode, fail in enforce mode
+            if [[ "${CFN_AUTH_MODE}" == "enforce" ]]; then
+                log_error "Cannot send unsigned message in enforce mode"
+                return 1
+            fi
         fi
     fi
 
@@ -228,16 +290,6 @@ EOF
 
     log_info "Sent message: $from -> $to [$msg_type] ($msg_id)"
 
-    # Calculate coordination latency (end time - start time)
-    local end_time_ms=$(($(date +%s%N) / 1000000))
-    local duration_ms=$((end_time_ms - start_time_ms))
-
-    # Emit coordination metrics for message flow tracking
-    if command -v emit_metric >/dev/null 2>&1; then
-        emit_metric "coordination.message_sent" "1" "count" "{\"from\":\"$from\",\"to\":\"$to\",\"type\":\"$msg_type\",\"sequence\":$sequence}"
-        emit_metric "coordination.latency" "$duration_ms" "milliseconds" "{\"operation\":\"send_message\",\"from\":\"$from\",\"to\":\"$to\"}"
-    fi
-
     echo "$msg_id"
     return 0
 }
@@ -253,6 +305,11 @@ receive_messages() {
         return 1
     fi
 
+    # SECURITY: Validate agent_id to prevent path traversal
+    if ! validate_agent_id "$agent_id"; then
+        return 1
+    fi
+
     local inbox_dir="$MESSAGE_BASE_DIR/$agent_id/inbox"
 
     if [[ ! -d "$inbox_dir" ]]; then
@@ -260,52 +317,76 @@ receive_messages() {
         return 1
     fi
 
-    # Count messages
-    local msg_count=$(find "$inbox_dir" -maxdepth 1 -name "*.json" -type f 2>/dev/null | wc -l)
+    # Count messages (WSL-safe: use ls instead of find)
+    local msg_count=$(ls -1 "$inbox_dir"/*.json 2>/dev/null | wc -l)
 
     if [[ $msg_count -eq 0 ]]; then
         echo "[]"
         return 0
     fi
 
-    # Verify signatures if auth is enabled
-    if [[ "$CFN_AUTH_ENABLED" == "true" ]] && command -v verify_signature >/dev/null 2>&1; then
+    # Verify signatures if authentication is enabled
+    if [[ "${CFN_AUTH_ENABLED}" == "true" ]] && [[ "${CFN_AUTH_MODE}" != "disabled" ]] && command -v verify_signature >/dev/null 2>&1; then
+        local verified_count=0
+        local rejected_count=0
+
         for msg_file in "$inbox_dir"/*.json; do
             if [[ ! -f "$msg_file" ]]; then
                 continue
             fi
 
-            # Extract message details
+            # Extract message details using jq or bash fallback
             local msg_from
-            local signature
+            local msg_signature
+            local msg_version
+
             if command -v jq >/dev/null 2>&1; then
                 msg_from=$(jq -r '.from // ""' "$msg_file" 2>/dev/null)
-                signature=$(jq -r '.signature // ""' "$msg_file" 2>/dev/null)
+                msg_signature=$(jq -r '.signature // ""' "$msg_file" 2>/dev/null)
+                msg_version=$(jq -r '.version // "1.0"' "$msg_file" 2>/dev/null)
             else
+                # Bash fallback: extract fields using grep/sed
                 msg_from=$(grep -o '"from":\s*"[^"]*"' "$msg_file" | sed 's/.*"\([^"]*\)"/\1/' || echo "")
-                signature=$(grep -o '"signature":\s*"[^"]*"' "$msg_file" | sed 's/.*"\([^"]*\)"/\1/' || echo "")
+                msg_signature=$(grep -o '"signature":\s*"[^"]*"' "$msg_file" | sed 's/.*"\([^"]*\)"/\1/' || echo "")
+                msg_version=$(grep -o '"version":\s*"[^"]*"' "$msg_file" | sed 's/.*"\([^"]*\)"/\1/' || echo "1.0")
             fi
 
-            # Skip unsigned messages (backward compatibility)
-            if [[ -z "$signature" ]]; then
+            # Skip verification for v1.0 messages (backward compatibility)
+            if [[ "$msg_version" == "1.0" ]] || [[ -z "$msg_signature" ]]; then
+                log_warn "Unsigned message from $msg_from (version: $msg_version) - backward compatibility"
                 continue
             fi
 
             # Create canonical message for verification (without signature)
             local canonical
             if command -v jq >/dev/null 2>&1; then
-                canonical=$(jq -S -c 'del(.signature, .auth_version)' "$msg_file" 2>/dev/null)
+                canonical=$(jq -S -c 'del(.signature)' "$msg_file" 2>/dev/null)
             else
-                # Bash fallback: remove signature/auth_version manually
-                canonical=$(sed 's/,"signature":"[^"]*"//g; s/,"auth_version":"[^"]*"//g' "$msg_file")
+                # Bash fallback: remove signature field
+                canonical=$(sed 's/,"signature":"[^"]*"//g' "$msg_file")
             fi
 
             # Verify signature
-            if ! verify_signature "$msg_from" "$canonical" "$signature" 2>/dev/null; then
-                log_error "Signature verification failed for message from $msg_from, removing"
-                rm -f "$msg_file"
+            if verify_signature "$msg_from" "$canonical" "$msg_signature" 2>/dev/null; then
+                verified_count=$((verified_count + 1))
+                log_info "Signature verified for message from $msg_from"
+            else
+                rejected_count=$((rejected_count + 1))
+                log_error "Signature verification FAILED for message from $msg_from"
+
+                # Enforce mode: reject invalid messages
+                if [[ "${CFN_AUTH_MODE}" == "enforce" ]]; then
+                    rm -f "$msg_file"
+                    log_info "Rejected unsigned/invalid message from $msg_from (enforce mode)"
+                else
+                    log_warn "Invalid signature from $msg_from (warn mode - message retained)"
+                fi
             fi
         done
+
+        if [[ $verified_count -gt 0 ]] || [[ $rejected_count -gt 0 ]]; then
+            log_info "Signature verification: $verified_count verified, $rejected_count rejected (mode: ${CFN_AUTH_MODE})"
+        fi
     fi
 
     # Extract timestamp and sequence from message files and sort
@@ -349,12 +430,6 @@ receive_messages() {
     rm -f "$sorted_files"
 
     log_info "Retrieved $msg_count messages for $agent_id (sorted by timestamp)"
-
-    # Emit coordination metric for inbox read operations
-    if command -v emit_metric >/dev/null 2>&1; then
-        emit_metric "coordination.message_received" "$msg_count" "count" "{\"agent\":\"$agent_id\",\"inbox_size\":$msg_count}"
-    fi
-
     return 0
 }
 
@@ -368,6 +443,11 @@ clear_inbox() {
         return 1
     fi
 
+    # SECURITY: Validate agent_id to prevent path traversal
+    if ! validate_agent_id "$agent_id"; then
+        return 1
+    fi
+
     local inbox_dir="$MESSAGE_BASE_DIR/$agent_id/inbox"
 
     if [[ ! -d "$inbox_dir" ]]; then
@@ -375,7 +455,8 @@ clear_inbox() {
         return 1
     fi
 
-    local msg_count=$(find "$inbox_dir" -maxdepth 1 -name "*.json" -type f 2>/dev/null | wc -l)
+    # WSL-safe: use ls instead of find
+    local msg_count=$(ls -1 "$inbox_dir"/*.json 2>/dev/null | wc -l)
 
     if [[ $msg_count -gt 0 ]]; then
         rm -f "$inbox_dir"/*.json
@@ -396,6 +477,11 @@ message_count() {
         return 1
     fi
 
+    # SECURITY: Validate agent_id to prevent path traversal
+    if ! validate_agent_id "$agent_id"; then
+        return 1
+    fi
+
     local box_dir="$MESSAGE_BASE_DIR/$agent_id/$box_type"
 
     if [[ ! -d "$box_dir" ]]; then
@@ -403,7 +489,8 @@ message_count() {
         return 0
     fi
 
-    find "$box_dir" -maxdepth 1 -name "*.json" -type f 2>/dev/null | wc -l
+    # WSL-safe: use ls instead of find (<10ms)
+    ls -1 "$box_dir"/*.json 2>/dev/null | wc -l
 }
 
 # Cleanup message bus for an agent
@@ -413,6 +500,11 @@ cleanup_message_bus() {
 
     if [[ -z "$agent_id" ]]; then
         log_error "Agent ID required"
+        return 1
+    fi
+
+    # SECURITY: Validate agent_id to prevent path traversal
+    if ! validate_agent_id "$agent_id"; then
         return 1
     fi
 
@@ -444,7 +536,11 @@ init_message_bus_system() {
 # Usage: cleanup_message_bus_system
 cleanup_message_bus_system() {
     if [[ -d "$MESSAGE_BASE_DIR" ]]; then
-        local agent_count=$(find "$MESSAGE_BASE_DIR" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)
+        # WSL-safe: count directories with glob expansion
+        local agent_count=0
+        for agent_dir in "$MESSAGE_BASE_DIR"/*; do
+            [[ -d "$agent_dir" ]] && agent_count=$((agent_count + 1))
+        done
         rm -rf "$MESSAGE_BASE_DIR"
         log_info "Message bus system cleaned up ($agent_count agents)"
     fi

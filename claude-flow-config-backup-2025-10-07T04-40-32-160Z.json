@@ -1,0 +1,83 @@
+{
+  "experienceLevel": "novice",
+  "featureFlags": {
+    "neuralNetworks": false,
+    "byzantineConsensus": false,
+    "enterpriseIntegrations": false,
+    "advancedMonitoring": false,
+    "multiTierStorage": false,
+    "teamCollaboration": false,
+    "customWorkflows": false,
+    "performanceAnalytics": false
+  },
+  "autoSetup": true,
+  "orchestrator": {
+    "maxConcurrentAgents": 8,
+    "taskQueueSize": 100,
+    "healthCheckInterval": 30000,
+    "shutdownTimeout": 30000
+  },
+  "terminal": {
+    "type": "auto",
+    "poolSize": 5,
+    "recycleAfter": 10,
+    "healthCheckInterval": 60000,
+    "commandTimeout": 300000
+  },
+  "memory": {
+    "backend": "hybrid",
+    "cacheSizeMB": 100,
+    "syncInterval": 5000,
+    "conflictResolution": "crdt",
+    "retentionDays": 30
+  },
+  "coordination": {
+    "maxRetries": 3,
+    "retryDelay": 1000,
+    "deadlockDetection": true,
+    "resourceTimeout": 60000,
+    "messageTimeout": 30000
+  },
+  "mcp": {
+    "transport": "stdio",
+    "port": 3000,
+    "tlsEnabled": false
+  },
+  "logging": {
+    "level": "info",
+    "format": "text",
+    "destination": "console"
+  },
+  "ruvSwarm": {
+    "enabled": true,
+    "defaultTopology": "mesh",
+    "maxAgents": 8,
+    "defaultStrategy": "adaptive",
+    "autoInit": true,
+    "enableHooks": true,
+    "enablePersistence": true,
+    "enableNeuralTraining": false,
+    "configPath": ".claude/ruv-swarm-config.json"
+  },
+  "claude": {
+    "model": "sonnet",
+    "temperature": 0.7,
+    "maxTokens": 4096,
+    "topP": 1,
+    "timeout": 60000,
+    "retryAttempts": 3,
+    "retryDelay": 1000
+  },
+  "performance": {
+    "enableCaching": true,
+    "cacheSize": 50,
+    "lazyLoading": true,
+    "optimizeMemory": true
+  },
+  "autoDetection": {
+    "enabled": true,
+    "confidenceThreshold": 0.7,
+    "analysisDepth": "shallow",
+    "useAI": false
+  }
+}

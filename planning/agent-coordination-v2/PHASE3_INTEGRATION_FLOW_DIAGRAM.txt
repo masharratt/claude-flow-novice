@@ -1,0 +1,459 @@
+PHASE 3: AUTHENTICATION INTEGRATION FLOW DIAGRAM
+Claude Flow Novice - Message-Bus Coordination System
+================================================================================
+
+LEGEND:
+  [ACTOR]     - System component
+  -->         - Synchronous operation
+  ~~>         - Asynchronous/background operation
+  {STATE}     - System state
+  !!!         - Security validation point
+  ***         - Critical integration point
+
+================================================================================
+1. COORDINATOR BOOTSTRAP SEQUENCE (Phase 3.1)
+================================================================================
+
+  START
+    |
+    v
+  [Coordinator Init]
+    |
+    |--> Generate master key (256-bit)
+    |      /var/run/cfn-secrets/coordinator-main.master.key
+    |      chmod 600
+    |
+    |--> Generate coordinator HMAC key
+    |      /var/run/cfn-secrets/coordinator-main.key
+    |      chmod 600
+    |
+    |--> Assign role: "coordinator"
+    |      /var/run/cfn-roles/coordinator-main.role
+    |
+    |--> Initialize message bus
+    |      init_message_bus("coordinator-main")
+    |
+    |--> Start health heartbeat
+    |      report_health("coordinator-main", "healthy", {auth: "enabled"})
+    |
+    v
+  {COORDINATOR READY - ACCEPTS KEY REQUESTS}
+
+
+================================================================================
+2. AGENT KEY PROVISIONING WORKFLOW (Phase 3.1)
+================================================================================
+
+  [Agent Spawn]                    [Coordinator]
+    |                                   |
+    |--> Initialize message bus         |
+    |      init_message_bus("agent-1")  |
+    |                                   |
+    |--> Request HMAC key               |
+    |      (unsigned - bootstrap exception)
+    |                                   |
+    |---send_message("agent-1" -------->|
+    |   "coordinator-main",              |
+    |   "auth:key_request",              |
+    |   {agent_id: "agent-1"})           |
+    |                                   |
+    |                                   |--> !!! Validate agent_id
+    |                                   |      (prevent path traversal)
+    |                                   |
+    |                                   |--> Generate HMAC key
+    |                                   |      openssl rand -base64 32
+    |                                   |      /var/run/cfn-secrets/agent-1.key
+    |                                   |      chmod 600
+    |                                   |
+    |                                   |--> Assign role: "worker"
+    |                                   |      /var/run/cfn-roles/agent-1.role
+    |                                   |
+    |                                   |--> Send key response
+    |                                   |
+    |<-----send_message-----------------|--(unsigned - bootstrap exception)
+    |   ("coordinator-main",            |
+    |   "agent-1",                      |
+    |   "auth:key_response",            |
+    |   {hmac_key: "...", role: "worker"})
+    |                                   |
+    |--> Save key securely              |
+    |      /var/run/cfn-secrets/agent-1.key
+    |      chmod 600                    |
+    |                                   |
+    |--> Clear inbox (security)         |
+    |      (remove key from inbox)      |
+    |                                   |
+    v                                   v
+  {AGENT READY - CAN SEND SIGNED MESSAGES}
+
+
+================================================================================
+3. SIGNED MESSAGE SEND FLOW (Phase 3.2)
+================================================================================
+
+  [Agent "worker-1"]
+    |
+    |--> send_message_signed("worker-1", "coordinator-main", "task:result", {...})
+    |
+    |---*** INTEGRATION POINT: Check CFN_AUTH_ENABLED ***
+    |      if false: fallback to send_message (backward compat)
+    |      if true: proceed with signing
+    |
+    |--> !!! RBAC Authorization Check
+    |      check_send_authorization("worker-1", "coordinator-main", "task:result")
+    |      Load role: /var/run/cfn-roles/worker-1.role → "worker"
+    |      Check permissions:
+    |        - send_to: ["coordinator-*", "worker-*"] → ✅ ALLOWED
+    |        - commands: ["task:*", "status:*", "health:*"] → ✅ ALLOWED
+    |
+    |--> Generate message ID + timestamp + sequence
+    |      msg_id: "msg-1696594335-042"
+    |      timestamp: 1696594335
+    |      sequence: 5
+    |
+    |--> Construct unsigned message (v1.1)
+    |      {
+    |        "version": "1.1",
+    |        "msg_id": "msg-1696594335-042",
+    |        "from": "worker-1",
+    |        "to": "coordinator-main",
+    |        "timestamp": 1696594335,
+    |        "sequence": 5,
+    |        "type": "task:result",
+    |        "payload": {...}
+    |      }
+    |
+    |--> Compute HMAC-SHA256 signature
+    |      Load key: /var/run/cfn-secrets/worker-1.key
+    |      Canonical JSON: {msg_id, from, to, timestamp, sequence, type, payload}
+    |      openssl dgst -sha256 -hmac <key> -binary | base64
+    |      signature: "HMAC-SHA256:dGVzdHNpZ25hdHVyZQ=="
+    |
+    |--> Add auth section
+    |      {
+    |        ...message fields...,
+    |        "auth": {
+    |          "signature": "HMAC-SHA256:dGVzdHNpZ25hdHVyZQ==",
+    |          "algorithm": "HMAC-SHA256",
+    |          "key_version": "1.0"
+    |        }
+    |      }
+    |
+    |--> Atomic write to recipient inbox
+    |      /dev/shm/cfn-mvp/messages/coordinator-main/inbox/msg-1696594335-042.json
+    |      flock + atomic rename (msg.tmp → msg.json)
+    |
+    |--> Copy to sender outbox (audit trail)
+    |      /dev/shm/cfn-mvp/messages/worker-1/outbox/msg-1696594335-042.json
+    |
+    v
+  {MESSAGE DELIVERED - AWAITING VERIFICATION}
+
+
+================================================================================
+4. SIGNED MESSAGE RECEIVE FLOW (Phase 3.2/3.3)
+================================================================================
+
+  [Coordinator "coordinator-main"]
+    |
+    |--> receive_messages("coordinator-main")
+    |
+    |--> For each message in inbox:
+           |
+           |--> Extract message version
+           |      version: "1.1"
+           |
+           |---*** INTEGRATION POINT: Version Detection ***
+           |      if version == "1.0" (unsigned):
+           |        - CFN_AUTH_MODE == "disabled" → ✅ ACCEPT
+           |        - CFN_AUTH_MODE == "warn" → ⚠️ ACCEPT + LOG WARNING
+           |        - CFN_AUTH_MODE == "enforce" → ❌ REJECT + LOG ERROR
+           |      if version == "1.1" (signed):
+           |        - Proceed to signature verification
+           |
+           |--> Extract signature
+           |      auth.signature: "HMAC-SHA256:dGVzdHNpZ25hdHVyZQ=="
+           |
+           |--> !!! Signature Verification
+           |      verify_message_signature("worker-1", msg_file, signature)
+           |      |
+           |      |--> Load sender's HMAC key
+           |      |      /var/run/cfn-secrets/worker-1.key
+           |      |
+           |      |--> Remove auth section from message
+           |      |      (reconstruct canonical JSON)
+           |      |
+           |      |--> Compute expected signature
+           |      |      openssl dgst -sha256 -hmac <key> -binary | base64
+           |      |
+           |      |--> Constant-time comparison
+           |      |      if expected != claimed:
+           |      |        emit_security_event("signature_verification_failed", "critical", ...)
+           |      |        return 1
+           |      |
+           |      |--> Check timestamp freshness (replay protection)
+           |      |      age = now - msg.timestamp
+           |      |      if age > 300s (5 minutes):
+           |      |        emit_security_event("replay_attack_detected", "high", ...)
+           |      |        return 1
+           |      |
+           |      v
+           |    ✅ SIGNATURE VALID
+           |
+           |--> Process message payload
+                  (existing coordination logic)
+    |
+    v
+  {MESSAGE PROCESSED - COORDINATION CONTINUES}
+
+
+================================================================================
+5. HEALTH EVENT INTEGRATION (Phase 3.2)
+================================================================================
+
+  [Agent "worker-1"]                    [Health Coordinator]
+    |                                        |
+    |--> report_health("worker-1", "healthy", {task: "completed"})
+    |      |
+    |      |---*** INTEGRATION POINT: Health Signing ***
+    |      |      publish_health_event_signed(...)
+    |      |
+    |      |--> Build health event payload
+    |      |      {
+    |      |        "event": "health_change",
+    |      |        "agent_id": "worker-1",
+    |      |        "status": "healthy",
+    |      |        "timestamp": "2025-10-07T05:00:00.000Z",
+    |      |        "details": {task: "completed"}
+    |      |      }
+    |      |
+    |      |--> send_message_signed("worker-1" -->|
+    |             "health-coordinator",          |
+    |             "health_event",                |
+    |             payload)                       |
+    |                                            |
+    |                                            |--> Receive & verify signature
+    |                                            |
+    |                                            |--> Process health event
+    |                                            |      (existing health.sh logic)
+    |                                            |
+    |                                            v
+    |                                      {HEALTH STATUS UPDATED}
+
+
+================================================================================
+6. METRICS EMISSION INTEGRATION (Phase 3.2)
+================================================================================
+
+  [Agent "worker-1"]                    [Metrics Collector]
+    |                                        |
+    |--> emit_coordination_metric("coordination.time", 150, "ms", {...}, "worker-1")
+    |      |
+    |      |---*** INTEGRATION POINT: Metrics Signing ***
+    |      |      emit_coordination_metric_signed(...)
+    |      |
+    |      |--> Emit to local metrics file
+    |      |      /dev/shm/cfn-metrics.jsonl
+    |      |      (always happens - no auth required)
+    |      |
+    |      |--> Build metrics payload
+    |      |      {
+    |      |        "metric": "coordination.time",
+    |      |        "value": 150,
+    |      |        "unit": "ms",
+    |      |        "tags": {...},
+    |      |        "source": "metrics-system",
+    |      |        "timestamp": "2025-10-07T05:00:00.000Z"
+    |      |      }
+    |      |
+    |      |--> send_message_signed("worker-1" -->|
+    |             "metrics-collector",           |
+    |             "metric.emitted",              |
+    |             payload)                       |
+    |                                            |
+    |                                            |--> Receive & verify signature
+    |                                            |
+    |                                            |--> Aggregate metrics
+    |                                            |      (existing metrics.sh logic)
+    |                                            |
+    |                                            v
+    |                                      {METRICS COLLECTED}
+
+
+================================================================================
+7. GRACEFUL SHUTDOWN INTEGRATION (Phase 3.2)
+================================================================================
+
+  [Coordinator "coordinator-main"]
+    |
+    |--> shutdown_all_agents()
+    |      |
+    |      |--> For each agent:
+    |             |
+    |             |--> shutdown_agent_with_auth("worker-1", 5)
+    |             |      |
+    |             |      |---*** INTEGRATION POINT: Shutdown Auth ***
+    |             |      |
+    |             |      |--> Standard shutdown procedure
+    |             |      |      - drain_inbox
+    |             |      |      - stop_liveness_probe
+    |             |      |      - cleanup_orphaned_processes
+    |             |      |      - cleanup_agent_resources
+    |             |      |
+    |             |      |--> Invalidate agent keys (security)
+    |             |      |      /var/run/cfn-secrets/worker-1.key
+    |             |      |      |
+    |             |      |      |--> Securely wipe key
+    |             |      |      |      openssl rand 32 > key_file
+    |             |      |      |      rm -f key_file
+    |             |      |      |
+    |             |      |      |--> emit_security_event("key_invalidated", ...)
+    |             |      |
+    |             |      |--> Remove role assignment
+    |             |      |      /var/run/cfn-roles/worker-1.role
+    |             |      |
+    |             |      v
+    |             |    {AGENT SHUTDOWN COMPLETE - KEYS INVALIDATED}
+    |
+    v
+  {CLUSTER SHUTDOWN COMPLETE}
+
+
+================================================================================
+8. MIGRATION PHASES OVERVIEW
+================================================================================
+
+  PHASE 3.1: Deploy Auth (Week 1)
+    CFN_AUTH_ENABLED=false
+    CFN_AUTH_MODE=disabled
+    |
+    |--> Add auth code (dormant)
+    |--> Deploy coordinator bootstrap (inactive)
+    |--> Add signature functions (unused)
+    |--> All 64 tests pass unchanged ✅
+    |
+    v
+
+  PHASE 3.2: Enable Signing (Week 2)
+    CFN_AUTH_ENABLED=true
+    CFN_AUTH_MODE=warn
+    |
+    |--> Coordinator provisions keys
+    |--> Agents send signed messages (v1.1)
+    |--> Unsigned messages accepted with warnings ⚠️
+    |--> Security events logged
+    |--> All 64 tests pass (warn logs) ✅
+    |
+    v
+
+  PHASE 3.3: Enforce Auth (Week 3)
+    CFN_AUTH_ENABLED=true
+    CFN_AUTH_MODE=enforce
+    |
+    |--> Unsigned messages REJECTED ❌
+    |--> RBAC enforcement active
+    |--> Update test fixtures (signed messages)
+    |--> All 64 tests pass (updated) ✅
+    |
+    v
+
+  PHASE 3.4: Cleanup (Week 4)
+    CFN_AUTH_MODE=<removed>
+    |
+    |--> Remove v1.0 message handling
+    |--> Remove backward compat code
+    |--> Optimize signature computation
+    |--> All 64 tests pass ✅
+    |
+    v
+  {PRODUCTION READY - FULL AUTHENTICATION}
+
+
+================================================================================
+9. ROLLBACK FLOW (Emergency)
+================================================================================
+
+  {CRITICAL AUTH BUG DETECTED}
+    |
+    |--> Immediate Rollback (Phase 3.2 → 3.1)
+    |      |
+    |      |--> export CFN_AUTH_MODE=disabled
+    |      |--> Restart coordinator
+    |      |--> Agents skip key requests
+    |      |--> Recovery time: <2 minutes
+    |      |
+    |      v
+    |    {SYSTEM OPERATIONAL - UNSIGNED MESSAGES}
+    |
+    |--> Full Rollback (Phase 3.x → Phase 2)
+           |
+           |--> export CFN_AUTH_ENABLED=false
+           |--> git revert <phase3-commits>
+           |--> npm test -- --run tests/integration/
+           |--> Recovery time: <10 minutes
+           |
+           v
+         {PHASE 2 RESTORED}
+
+
+================================================================================
+CRITICAL INTEGRATION POINTS SUMMARY
+================================================================================
+
+  1. *** Coordinator Bootstrap ***
+       Location: lib/message-bus.sh (new: bootstrap_coordinator)
+       Impact: One-time initialization, minimal risk
+
+  2. *** CFN_AUTH_ENABLED Flag ***
+       Location: config/coordination-config.sh
+       Impact: Global kill-switch for auth system
+
+  3. *** Version Detection ***
+       Location: lib/message-bus.sh (receive_messages)
+       Impact: Backward compatibility for 64 tests
+
+  4. *** RBAC Authorization ***
+       Location: lib/auth.sh (new: check_send_authorization)
+       Impact: Pre-send validation, blocks unauthorized messages
+
+  5. *** Health Event Signing ***
+       Location: lib/health.sh (new: publish_health_event_signed)
+       Impact: Wrapper around existing publish_health_event
+
+  6. *** Metrics Signing ***
+       Location: lib/metrics.sh (new: emit_coordination_metric_signed)
+       Impact: Wrapper around existing emit_coordination_metric
+
+  7. *** Shutdown Key Invalidation ***
+       Location: lib/shutdown.sh (new: shutdown_agent_with_auth)
+       Impact: Secure key wiping during cleanup
+
+
+================================================================================
+SECURITY VALIDATION CHECKPOINTS (!!!)
+================================================================================
+
+  !!! 1. Agent ID Path Traversal Prevention
+       Where: request_agent_key, handle_key_request
+       Check: validate_agent_id (alphanumeric + dash/underscore only)
+
+  !!! 2. RBAC Authorization Check
+       Where: send_message_signed (before signature)
+       Check: Role permissions match target + command
+
+  !!! 3. Signature Verification
+       Where: receive_messages (after version detection)
+       Check: HMAC-SHA256 matches, timestamp fresh
+
+  !!! 4. Key File Permissions
+       Where: All key operations
+       Check: chmod 600, /var/run/cfn-secrets (tmpfs, 700)
+
+  !!! 5. Replay Attack Protection
+       Where: verify_message_signature
+       Check: Timestamp within 5 minutes (300s)
+
+
+================================================================================
+END OF FLOW DIAGRAM
+================================================================================

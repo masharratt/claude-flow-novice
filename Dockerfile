@@ -20,8 +20,8 @@ RUN apk add --no-cache \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies (skip post-install scripts for production)
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -61,6 +61,7 @@ RUN apk update && \
     apk add --no-cache \
     dumb-init \
     curl \
+    jq \
     ca-certificates \
     tzdata && \
     apk upgrade && \
