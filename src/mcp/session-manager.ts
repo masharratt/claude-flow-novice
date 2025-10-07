@@ -46,7 +46,9 @@ export class SessionManager implements ISessionManager {
     private logger: ILogger,
   ) {
     this.authConfig = config.auth || { enabled: false, method: 'token' };
-    this.sessionTimeout = config.sessionTimeout || 3600000; // 1 hour default
+    // Extended timeout for long-running CFN loops (8 hours default)
+    // CFN loops with multiple agents can run 2-8 hours, standard 1-hour timeout causes disconnection
+    this.sessionTimeout = config.sessionTimeout || 28800000; // 8 hours for long operations
     this.maxSessions = config.maxSessions || 100;
 
     // Start cleanup timer

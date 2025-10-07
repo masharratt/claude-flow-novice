@@ -1,4 +1,12 @@
-import DOMPurify from 'isomorphic-dompurify';
+// Try to import DOMPurify, fallback to manual sanitization if unavailable
+let DOMPurify: any;
+try {
+  const module = await import('isomorphic-dompurify');
+  DOMPurify = module.default;
+} catch (err) {
+  // jsdom not available - use fallback sanitization
+  DOMPurify = null;
+}
 
 export class MarkdownSanitizer {
   private static readonly MAX_LENGTH = 100000; // 100KB max
@@ -36,21 +44,43 @@ export class MarkdownSanitizer {
       // Remove <object> and <embed> tags
       .replace(/<(object|embed)[^>]*>.*?<\/\1>/gis, '');
 
-    // Sanitize HTML with DOMPurify
-    cleaned = DOMPurify.sanitize(cleaned, {
-      ALLOWED_TAGS: [
-        'p', 'br', 'strong', 'em', 'u', 'code', 'pre',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'blockquote', 'a', 'img',
-        'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      ],
-      ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class'],
-      ALLOW_DATA_ATTR: false,
-      ALLOW_UNKNOWN_PROTOCOLS: false,
-      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|ftp):)/i, // Only safe protocols
-    });
+    // Sanitize HTML with DOMPurify if available, otherwise use fallback
+    if (DOMPurify) {
+      cleaned = DOMPurify.sanitize(cleaned, {
+        ALLOWED_TAGS: [
+          'p', 'br', 'strong', 'em', 'u', 'code', 'pre',
+          'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+          'ul', 'ol', 'li', 'blockquote', 'a', 'img',
+          'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        ],
+        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class'],
+        ALLOW_DATA_ATTR: false,
+        ALLOW_UNKNOWN_PROTOCOLS: false,
+        ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|ftp):)/i, // Only safe protocols
+      });
+    } else {
+      // Fallback: strip all HTML tags except safe markdown-rendered ones
+      cleaned = this.sanitizeFallback(cleaned);
+    }
 
     return cleaned;
+  }
+
+  /**
+   * Fallback sanitization when DOMPurify is unavailable
+   */
+  private static sanitizeFallback(html: string): string {
+    // Strip all HTML tags except basic formatting
+    // This is a conservative approach when DOMPurify is not available
+    return html
+      // Remove all tags except basic safe ones
+      .replace(/<(?!\/?(?:p|br|strong|em|u|code|pre|h[1-6]|ul|ol|li|blockquote|a|table|thead|tbody|tr|th|td)\b)[^>]+>/gi, '')
+      // Remove event handlers from remaining tags
+      .replace(/\s+on\w+="[^"]*"/gi, '')
+      // Remove style attributes
+      .replace(/\s+style="[^"]*"/gi, '')
+      // Remove javascript: in href
+      .replace(/href="javascript:[^"]*"/gi, 'href="#"');
   }
 
   /**

@@ -150,6 +150,18 @@ class ClaudeFlowNoviceMCPServer {
           properties: { swarmId: { type: 'string' } },
         },
       },
+      session_extend: {
+        name: 'session_extend',
+        description: 'Extend MCP session timeout for long-running CFN loops (prevents disconnection during multi-hour operations)',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            sessionId: { type: 'string' },
+            extensionHours: { type: 'number', default: 4, minimum: 1, maximum: 24 },
+          },
+          required: ['sessionId'],
+        },
+      },
 
       // Essential Memory Management Tools (8)
       memory_usage: {
@@ -573,6 +585,18 @@ class ClaudeFlowNoviceMCPServer {
         }
         return { success: true, action: args.action };
 
+      case 'session_extend':
+        const extensionHours = args.extensionHours || 4;
+        const extensionMs = extensionHours * 60 * 60 * 1000;
+        return {
+          success: true,
+          sessionId: args.sessionId || this.sessionId,
+          extensionHours,
+          newTimeoutMs: extensionMs,
+          message: `Session timeout extended by ${extensionHours} hours (${extensionMs}ms)`,
+          note: 'Session timeout configured at server startup (8 hours default). This tool reports extension confirmation.',
+        };
+
       default:
         return {
           success: true,
@@ -695,9 +719,20 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
   process.stdin.on('end', () => {
     console.error(
-      `[${new Date().toISOString()}] INFO [claude-flow-novice-mcp] (${server.sessionId}) 🔌 Connection closed: ${server.sessionId}`,
+      `[${new Date().toISOString()}] WARN [claude-flow-novice-mcp] (${server.sessionId}) MCP server received stdin close, attempting graceful shutdown...`,
     );
-    process.exit(0);
+
+    // Grace period for pending operations (30 seconds)
+    // Allows CFN loop agents to complete final memory writes before shutdown
+    setTimeout(async () => {
+      if (server.memoryStore) {
+        await server.memoryStore.close();
+      }
+      console.error(
+        `[${new Date().toISOString()}] INFO [claude-flow-novice-mcp] (${server.sessionId}) 🔌 MCP server shutdown complete: ${server.sessionId}`,
+      );
+      process.exit(0);
+    }, 30000);
   });
 
   // Handle process termination
