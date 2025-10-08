@@ -1,0 +1,38 @@
+{
+  "timestamp": 1759880609064,
+  "testDuration": 10022,
+  "expectedCombinations": 70,
+  "actualCombinations": 70,
+  "overlapDetected": false,
+  "coordinatorAssignments": {
+    "coordinator-1": 10,
+    "coordinator-2": 10,
+    "coordinator-3": 10,
+    "coordinator-4": 10,
+    "coordinator-5": 10,
+    "coordinator-6": 10,
+    "coordinator-7": 10
+  },
+  "success": true,
+  "details": {
+    "programmingLanguagesCovered": 7,
+    "verbalLanguagesPerCoordinator": {
+      "coordinator-1": 10,
+      "coordinator-2": 10,
+      "coordinator-3": 10,
+      "coordinator-4": 10,
+      "coordinator-5": 10,
+      "coordinator-6": 10,
+      "coordinator-7": 10
+    },
+    "combinationsPerCoordinator": {
+      "Python": 10,
+      "C++": 10,
+      "Rust": 10,
+      "JavaScript": 10,
+      "TypeScript": 10,
+      "Java": 10,
+      "Go": 10
+    }
+  }
+}

@@ -12,6 +12,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Large directories to exclude
+archive/
+.build-backups/
+.build-logs/
+monitor/
+
 # Development files
 .vscode
 .idea

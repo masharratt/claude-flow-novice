@@ -307,13 +307,12 @@ export const SafeHTML: React.FC<SafeHTMLProps> = ({
 }) => {
   const sanitizedHTML = XSSProtection.sanitizeHTML(html);
 
-  return (
-    <Component
-      className={className}
-      style={style}
-      dangerouslySetInnerHTML={{ __html: sanitizedHTML }}
-    />
-  );
+  // Create element using standard DOM methods instead of JSX
+  const element = document.createElement(Component);
+  if (className) element.className = className;
+  if (style) Object.assign(element.style, style);
+  element.innerHTML = sanitizedHTML;
+  return element;
 };
 
 /**

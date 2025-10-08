@@ -1,6 +1,7 @@
 {
   "jsc": {
     "target": "es2022",
+    "baseUrl": ".",
     "parser": {
       "syntax": "typescript",
       "tsx": false,
@@ -22,6 +23,6 @@
     "noInterop": false
   },
   "minify": false,
-  "sourceMaps": true,
+  "sourceMaps": false,
   "inlineSourcesContent": false
 }

@@ -1,0 +1,71 @@
+{
+  "test": {
+    "type": "cli-agent-coordination-test",
+    "duration": 22357,
+    "startTime": "2025-10-07T22:10:37.798Z",
+    "endTime": "2025-10-07T22:11:00.155Z"
+  },
+  "agents": {
+    "total": 5,
+    "successful": 5,
+    "successRate": "100.00%"
+  },
+  "coordination": {
+    "totalTests": 2,
+    "successful": 2,
+    "successRate": "100.00%"
+  },
+  "details": {
+    "agents": [
+      {
+        "id": "coder-1759875039276",
+        "type": "coder",
+        "name": "Code Agent 1",
+        "success": true,
+        "spawned": "2025-10-07T22:10:40.784Z"
+      },
+      {
+        "id": "tester-1759875042790",
+        "type": "tester",
+        "name": "Test Agent 1",
+        "success": true,
+        "spawned": "2025-10-07T22:10:44.262Z"
+      },
+      {
+        "id": "reviewer-1759875046268",
+        "type": "reviewer",
+        "name": "Review Agent 1",
+        "success": true,
+        "spawned": "2025-10-07T22:10:47.768Z"
+      },
+      {
+        "id": "analyst-1759875049774",
+        "type": "analyst",
+        "name": "Analysis Agent 1",
+        "success": true,
+        "spawned": "2025-10-07T22:10:51.442Z"
+      },
+      {
+        "id": "researcher-1759875053446",
+        "type": "researcher",
+        "name": "Research Agent 1",
+        "success": true,
+        "spawned": "2025-10-07T22:10:54.984Z"
+      }
+    ],
+    "tests": [
+      {
+        "test": "swarm-status",
+        "success": true,
+        "output": "",
+        "timestamp": 1759875058604
+      },
+      {
+        "test": "task-orchestration",
+        "success": true,
+        "output": "",
+        "timestamp": 1759875060155
+      }
+    ]
+  }
+}

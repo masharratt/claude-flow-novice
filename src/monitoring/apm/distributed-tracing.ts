@@ -189,10 +189,10 @@ export class DistributedTracer {
       if (headers[header]) {
         return {
           traceId: headers[header],
-          spanId: headers[spanHeaders.find(h => headers[h]) || this.generateSpanId(),
+          spanId: headers[spanHeaders.find(h => headers[h]) || this.generateSpanId()],
           parentSpanId: parentHeaders.find(h => headers[h]) ? headers[parentHeaders.find(h => headers[h])!] : undefined,
           baggage: this.extractBaggage(headers),
-          samplingDecision: headers[sampledHeaders.find(h => headers[h]] || 'x-sampled'] === '1'
+          samplingDecision: headers[sampledHeaders.find(h => headers[h]) || 'x-sampled'] === '1'
         };
       }
     }
