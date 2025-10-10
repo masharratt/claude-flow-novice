@@ -113,7 +113,10 @@ test-reports/
 .swarm/memory.db*
 .hive-mind/hive.db*
 
-
+# Rust
+*/target*
+*/target/*
+*target/*
 
 
 

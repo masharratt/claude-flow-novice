@@ -16,7 +16,6 @@
 import { createHash } from 'crypto';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { WASMRuntime } from '../../src/booster/wasm-runtime.js';
 
 const execAsync = promisify(exec);
 
@@ -25,19 +24,6 @@ class EnhancedPreToolValidator {
         this.memoryManager = options.memoryManager || null;
         this.agentId = options.agentId || 'system';
         this.aclLevel = options.aclLevel || 2;
-
-        // WASM acceleration for 40x speedup
-        this.wasmEnabled = options.wasmEnabled !== false;
-        this.wasmInitialized = false;
-        this.wasmRuntime = null;
-
-        // Initialize WASM runtime asynchronously
-        if (this.wasmEnabled) {
-            this.initializeWASM().catch(err => {
-                console.warn('⚠️ WASM initialization failed, using JavaScript fallback:', err.message);
-                this.wasmEnabled = false;
-            });
-        }
 
         // Security patterns
         this.blockedPatterns = [
@@ -108,24 +94,8 @@ class EnhancedPreToolValidator {
         this.validationCache = new Map();
         this.cacheTimeout = options.cacheTimeout || 300000; // 5 minutes
 
-        // SIMD-optimized security pattern matchers
-        this.simdPatternCache = new Map();
-    }
-
-    /**
-     * Initialize WASM runtime for 40x speedup
-     */
-    async initializeWASM() {
-        try {
-            this.wasmRuntime = new WASMRuntime();
-            await this.wasmRuntime.initialize();
-            this.wasmInitialized = true;
-            console.log('✅ WASM acceleration enabled for pre-tool validation (40x speedup)');
-        } catch (error) {
-            console.warn('⚠️ WASM initialization failed:', error.message);
-            this.wasmEnabled = false;
-            this.wasmInitialized = false;
-        }
+        // Security pattern matchers cache
+        this.patternCache = new Map();
     }
 
     /**
@@ -221,35 +191,13 @@ class EnhancedPreToolValidator {
     }
 
     /**
-     * Sanitize input parameters with WASM acceleration
+     * Sanitize input parameters with obfuscation detection
      */
     async sanitizeInput(toolName, params, result) {
-        // WASM acceleration: SIMD vectorization for batch sanitization (40x faster)
-        if (this.wasmEnabled && this.wasmInitialized) {
-            try {
-                const paramsString = JSON.stringify(params);
-                const optimized = await this.wasmRuntime.optimizeCodeFast(paramsString);
+        // Decode before validation to detect obfuscated input
+        const decodedVariants = this.decodeBeforeValidation(params);
 
-                // Fast sanitization using WASM optimized string operations
-                let sanitized = optimized.optimizedCode || paramsString;
-
-                // SIMD-accelerated pattern matching for dangerous characters
-                const dangerousChars = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
-                sanitized = sanitized.replace(dangerousChars, '');
-
-                // Validate and return
-                if (sanitized !== paramsString) {
-                    result.warnings.push('Input parameters were sanitized for security (WASM-accelerated)');
-                }
-
-                return;
-            } catch (err) {
-                console.warn('⚠️ WASM sanitization failed, falling back to JavaScript:', err.message);
-                // Fall through to standard sanitization
-            }
-        }
-
-        // Standard JavaScript sanitization (fallback)
+        // Standard JavaScript sanitization
         const sanitizeString = (input) => {
             if (typeof input !== 'string') return input;
 
@@ -291,6 +239,14 @@ class EnhancedPreToolValidator {
                 result.warnings.push('Input parameters were sanitized for security');
             }
 
+            // Check decoded variants for hidden patterns
+            for (const variant of decodedVariants) {
+                if (this.detectZeroWidth(variant)) {
+                    result.warnings.push('Zero-width character obfuscation detected');
+                    result.securityLevel = 'caution';
+                }
+            }
+
         } catch (error) {
             result.errors.push(`Input sanitization failed: ${error.message}`);
             result.allowed = false;
@@ -298,41 +254,12 @@ class EnhancedPreToolValidator {
     }
 
     /**
-     * Check for security pattern violations with WASM SIMD acceleration
+     * Check for security pattern violations
      */
     async checkSecurityPatterns(toolName, params, result) {
         const paramString = JSON.stringify(params).toLowerCase();
 
-        // WASM acceleration: SIMD parallel pattern matching (40x faster)
-        if (this.wasmEnabled && this.wasmInitialized) {
-            try {
-                // Use WASM-optimized parallel pattern matching
-                const securityCheckResult = await this.wasmSecurityScan(paramString);
-
-                if (securityCheckResult.blocked) {
-                    result.allowed = false;
-                    result.errors.push(`Blocked security pattern detected: ${securityCheckResult.pattern} (WASM-accelerated)`);
-                    result.securityLevel = 'dangerous';
-                    return; // Early exit on blocked pattern
-                }
-
-                if (securityCheckResult.warnings.length > 0) {
-                    securityCheckResult.warnings.forEach(warning => {
-                        result.warnings.push(`Potentially risky pattern detected: ${warning} (WASM-accelerated)`);
-                    });
-                    result.securityLevel = result.securityLevel === 'safe' ? 'caution' : result.securityLevel;
-                }
-
-                // Continue with tool-specific checks
-                await this.checkToolSecurityPatterns(toolName, params, result);
-                return;
-            } catch (err) {
-                console.warn('⚠️ WASM security scan failed, falling back to JavaScript:', err.message);
-                // Fall through to standard security check
-            }
-        }
-
-        // Standard JavaScript security pattern matching (fallback)
+        // Standard JavaScript pattern matching
         // Check blocked patterns
         for (const pattern of this.blockedPatterns) {
             if (pattern.test(paramString)) {
@@ -353,67 +280,6 @@ class EnhancedPreToolValidator {
 
         // Tool-specific security checks
         await this.checkToolSecurityPatterns(toolName, params, result);
-    }
-
-    /**
-     * WASM-accelerated security scanning with SIMD parallel pattern matching
-     */
-    async wasmSecurityScan(input) {
-        // Cache check for repeated scans
-        const cacheKey = createHash('sha256').update(input).digest('hex').substring(0, 16);
-        if (this.simdPatternCache.has(cacheKey)) {
-            return this.simdPatternCache.get(cacheKey);
-        }
-
-        const scanResult = {
-            blocked: false,
-            pattern: null,
-            warnings: []
-        };
-
-        // Use WASM optimized code analysis for fast pattern matching
-        const optimized = await this.wasmRuntime.optimizeCodeFast(input);
-
-        // SIMD-accelerated pattern matching: Process patterns in parallel batches
-        const batchSize = 4; // SIMD vector size
-
-        // Check blocked patterns in parallel batches
-        for (let i = 0; i < this.blockedPatterns.length; i += batchSize) {
-            const batch = this.blockedPatterns.slice(i, i + batchSize);
-
-            // Parallel pattern matching using SIMD-like operations
-            for (const pattern of batch) {
-                if (pattern.test(input)) {
-                    scanResult.blocked = true;
-                    scanResult.pattern = pattern.source;
-                    this.simdPatternCache.set(cacheKey, scanResult);
-                    return scanResult;
-                }
-            }
-        }
-
-        // Check warning patterns in parallel batches
-        for (let i = 0; i < this.warningPatterns.length; i += batchSize) {
-            const batch = this.warningPatterns.slice(i, i + batchSize);
-
-            // Parallel pattern matching using SIMD-like operations
-            for (const pattern of batch) {
-                if (pattern.test(input)) {
-                    scanResult.warnings.push(pattern.source);
-                }
-            }
-        }
-
-        // Cache the result
-        this.simdPatternCache.set(cacheKey, scanResult);
-
-        // Limit cache size to prevent memory issues
-        if (this.simdPatternCache.size > 500) {
-            const firstKey = this.simdPatternCache.keys().next().value;
-            this.simdPatternCache.delete(firstKey);
-        }
-
-        return scanResult;
     }
 
     /**
@@ -865,6 +731,49 @@ class EnhancedPreToolValidator {
             // Log failure shouldn't block validation
             console.warn('Failed to log validation:', error.message);
         }
+    }
+
+    /**
+     * Decode input before validation to detect obfuscation
+     */
+    decodeBeforeValidation(params) {
+        const paramsString = JSON.stringify(params);
+        const variants = [paramsString];
+
+        // Attempt Base64 decoding
+        const base64Matches = paramsString.match(/[A-Za-z0-9+/]{40,}={0,2}/g);
+        if (base64Matches) {
+            base64Matches.forEach(encoded => {
+                try {
+                    const decoded = Buffer.from(encoded, 'base64').toString('utf-8');
+                    if (/^[\x20-\x7E\s]+$/.test(decoded)) {
+                        variants.push(decoded);
+                    }
+                } catch (e) {
+                    // Invalid Base64, skip
+                }
+            });
+        }
+
+        // Unicode normalization
+        try {
+            const normalized = paramsString.normalize('NFD');
+            if (normalized !== paramsString) {
+                variants.push(normalized);
+            }
+        } catch (e) {
+            // Normalization failed, skip
+        }
+
+        return variants;
+    }
+
+    /**
+     * Detect zero-width characters (obfuscation technique)
+     */
+    detectZeroWidth(input) {
+        const zeroWidthPattern = /[\u200B-\u200D\uFEFF]/g;
+        return zeroWidthPattern.test(input);
     }
 
     /**

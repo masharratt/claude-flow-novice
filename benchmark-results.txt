@@ -1,0 +1,734 @@
+
+> claude-flow-novice@2.0.0 test
+> NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=16384' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/performance/security-hooks-wasm-benchmarks.test.js
+
+  console.log
+    
+    🔧 Initializing WASM benchmark tests...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:56:13)
+
+  console.log
+    📊 Using realistic performance targets (3-8x speedup range)
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:57:13)
+
+(node:3304) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine...
+
+      at src/booster/real-wasm-regex.js:42:17
+
+  console.warn
+    ⚠️  WASM Regex Engine initialization failed: ENOENT: no such file or directory, open '/mnt/c/Users/masha/Documents/claude-flow-novice/src/wasm-regex-engine/pkg/wasm_regex_engine_bg.wasm'
+
+      79 |         return true;
+      80 |       } catch (error) {
+    > 81 |         console.warn('⚠️  WASM Regex Engine initialization failed:', error.message);
+         |                 ^
+      82 |         console.warn('   Falling back to JavaScript regex');
+      83 |         this.initialized = false;
+      84 |         return false;
+
+      at src/booster/real-wasm-regex.js:81:17
+      at RealWASMRegexEngine.initialize (src/booster/real-wasm-regex.js:86:7)
+      at getGlobalWASMEngine (src/booster/real-wasm-regex.js:407:24)
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:40:35)
+      at new SafetyValidator (config/hooks/safety-validator.js:39:30)
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:130:29)
+
+  console.warn
+       Falling back to JavaScript regex
+
+      80 |       } catch (error) {
+      81 |         console.warn('⚠️  WASM Regex Engine initialization failed:', error.message);
+    > 82 |         console.warn('   Falling back to JavaScript regex');
+         |                 ^
+      83 |         this.initialized = false;
+      84 |         return false;
+      85 |       }
+
+      at src/booster/real-wasm-regex.js:82:17
+      at RealWASMRegexEngine.initialize (src/booster/real-wasm-regex.js:86:7)
+      at getGlobalWASMEngine (src/booster/real-wasm-regex.js:407:24)
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:40:35)
+      at new SafetyValidator (config/hooks/safety-validator.js:39:30)
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:130:29)
+
+  console.log
+    
+    ⏳ Waiting for WASM initialization...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:134:15)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    🚀 WASM 5x Security Pattern Engine: READY
+
+      at config/hooks/safety-validator.js:43:29
+
+  console.log
+    ✅ WASM initialized successfully
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:140:17)
+
+  console.log
+    🔥 Warming up WASM engine...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:144:15)
+
+  console.log
+    ✅ WASM engine warmed up
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:148:15)
+
+  console.log
+    
+    📊 SafetyValidator - 1000 Lines (ACTUAL MEASUREMENT):
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:184:15)
+
+  console.log
+      WASM Time: 0.01ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:185:15)
+
+  console.log
+      JS Time: 0.00ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:186:15)
+
+  console.log
+      Speedup: 0.7x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:187:15)
+
+  console.log
+      Target: 3-5x (realistic WASM speedup)
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:188:15)
+
+  console.log
+      WASM Ready: ✅
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:189:15)
+
+  console.warn
+      ⚠️  Below target: 0.7x (expected: 3-5x)
+
+      195 |         console.log(`  ✅ Target met: ${speedup.toFixed(1)}x speedup (target: 3-5x)`);
+      196 |       } else {
+    > 197 |         console.warn(`  ⚠️  Below target: ${speedup.toFixed(1)}x (expected: 3-5x)`);
+          |                 ^
+      198 |       }
+      199 |
+      200 |       // Realistic assertion: at least 3x speedup required
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:197:17)
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    🚀 WASM 5x Security Pattern Engine: READY
+
+      at config/hooks/safety-validator.js:43:29
+
+  console.log
+    
+    📊 SafetyValidator - Single Run Validation:
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:223:15)
+
+  console.log
+      WASM: 12.7ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:224:15)
+
+  console.log
+      JavaScript: 10.2ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:225:15)
+
+  console.log
+      Improvement: 0.8x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:226:15)
+
+  console.log
+      WASM Ready: ✅
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:227:15)
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    🚀 WASM 5x Security Pattern Engine: READY
+
+      at config/hooks/safety-validator.js:43:29
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    🚀 WASM 5x Security Pattern Engine: READY
+
+      at config/hooks/safety-validator.js:43:29
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    🚀 WASM 5x Security Pattern Engine: READY
+
+      at config/hooks/safety-validator.js:43:29
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    🚀 WASM 5x Security Pattern Engine: READY
+
+      at config/hooks/safety-validator.js:43:29
+
+  console.log
+    
+    📊 Speedup by file size:
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:265:15)
+
+  console.log
+      100 lines: 248.3x (WASM: 0.0ms, JS: 5.1ms)
+
+      at tests/performance/security-hooks-wasm-benchmarks.test.js:267:17
+          at Array.forEach (<anonymous>)
+
+  console.log
+      1000 lines: 203.0x (WASM: 0.0ms, JS: 4.0ms)
+
+      at tests/performance/security-hooks-wasm-benchmarks.test.js:267:17
+          at Array.forEach (<anonymous>)
+
+  console.log
+      5000 lines: 299.7x (WASM: 0.0ms, JS: 8.0ms)
+
+      at tests/performance/security-hooks-wasm-benchmarks.test.js:267:17
+          at Array.forEach (<anonymous>)
+
+  console.log
+      10000 lines: 368.7x (WASM: 0.0ms, JS: 12.9ms)
+
+      at tests/performance/security-hooks-wasm-benchmarks.test.js:267:17
+          at Array.forEach (<anonymous>)
+
+  console.log
+    
+      Average speedup (small files): 225.6x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:274:15)
+
+  console.log
+      Average speedup (large files): 334.2x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:275:15)
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    
+    ⏳ Testing WASM initialization...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:285:15)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    🚀 WASM 5x Security Pattern Engine: READY
+
+      at config/hooks/safety-validator.js:43:29
+
+  console.log
+    ✅ WASM initialized successfully
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:291:15)
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    
+    ⏳ Waiting for WASM initialization (PreToolValidator)...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:303:15)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    ✅ WASM acceleration enabled for pre-tool validation (5x average speedup)
+
+      at EnhancedPreToolValidator.initializeWASM (config/hooks/pre-tool-validation.js:123:21)
+
+  console.log
+    ✅ WASM initialized successfully
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:309:17)
+
+  console.log
+    🔥 Warming up WASM engine...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:319:15)
+
+  console.log
+    ✅ WASM engine warmed up
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:323:15)
+
+  console.log
+    
+    📊 PreToolValidation - Bash Command (ACTUAL MEASUREMENT):
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:359:15)
+
+  console.log
+      WASM Time: 0.01ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:360:15)
+
+  console.log
+      JS Time: 0.00ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:361:15)
+
+  console.log
+      Speedup: 0.7x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:362:15)
+
+  console.log
+      Target: 4-6x (realistic WASM speedup)
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:363:15)
+
+  console.log
+      WASM Ready: ✅
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:364:15)
+
+  console.warn
+      ⚠️  Below target: 0.7x (expected: 4-6x)
+
+      370 |         console.log(`  ✅ Target met: ${speedup.toFixed(1)}x speedup (target: 4-6x)`);
+      371 |       } else {
+    > 372 |         console.warn(`  ⚠️  Below target: ${speedup.toFixed(1)}x (expected: 4-6x)`);
+          |                 ^
+      373 |       }
+      374 |
+      375 |       // Realistic assertion: at least 4x speedup required
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:372:17)
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    🚀 Initializing Real WASM Regex Engine
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:37:13)
+
+  console.log
+    
+    ⏳ Waiting for WASM initialization (PreEditSecurity)...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:392:15)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.log
+    ⚠️  WASM unavailable, using JavaScript fallback (still fast)
+
+      at WASMRuntime.initialize (src/booster/wasm-runtime.js:46:17)
+
+  console.warn
+    ⚠️  WASM initialization timeout - test will use fallback
+
+      394 |
+      395 |       if (!wasmReady) {
+    > 396 |         console.warn('⚠️  WASM initialization timeout - test will use fallback');
+          |                 ^
+      397 |       } else {
+      398 |         console.log('✅ WASM initialized successfully');
+      399 |       }
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:396:17)
+
+  console.log
+    🔥 Warming up WASM engine...
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:404:15)
+
+  console.log
+    ✅ WASM engine warmed up
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:408:15)
+
+  console.log
+    
+    📊 PreEditSecurity - 1000 Lines (ACTUAL MEASUREMENT):
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:444:15)
+
+  console.log
+      WASM Time: 0.02ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:445:15)
+
+  console.log
+      JS Time: 0.03ms
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:446:15)
+
+  console.log
+      Speedup: 1.4x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:447:15)
+
+  console.log
+      Target: 5-8x (realistic WASM speedup)
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:448:15)
+
+  console.log
+      WASM Ready: ⚠️  Fallback
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:449:15)
+
+  console.warn
+      ⚠️  Below target: 1.4x (expected: 5-8x)
+
+      455 |         console.log(`  ✅ Target met: ${speedup.toFixed(1)}x speedup (target: 5-8x)`);
+      456 |       } else {
+    > 457 |         console.warn(`  ⚠️  Below target: ${speedup.toFixed(1)}x (expected: 5-8x)`);
+          |                 ^
+      458 |       }
+      459 |
+      460 |       // Realistic assertion: at least 5x speedup required
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:457:17)
+
+  console.log
+    
+    ================================================================================
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:516:15)
+
+  console.log
+    📋 SECURITY HOOKS WASM PERFORMANCE REPORT - ACTUAL MEASUREMENTS
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:517:15)
+
+  console.log
+    ================================================================================
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:518:15)
+
+  console.log
+    
+    🛡️ SafetyValidator:
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:519:15)
+
+  console.log
+      Target: 3-5x speedup (realistic WASM)
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:520:15)
+
+  console.log
+      Actual: 0.7x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:521:15)
+
+  console.log
+      Status: FAIL ❌
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:522:15)
+
+  console.log
+      Meets Target: ❌
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:523:15)
+
+  console.log
+      Exceeds Target: NO
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:524:15)
+
+  console.log
+    
+    🔧 PreToolValidation:
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:525:15)
+
+  console.log
+      Target: 4-6x speedup (realistic WASM)
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:526:15)
+
+  console.log
+      Actual: 0.7x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:527:15)
+
+  console.log
+      Status: FAIL ❌
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:528:15)
+
+  console.log
+      Meets Target: ❌
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:529:15)
+
+  console.log
+      Exceeds Target: NO
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:530:15)
+
+  console.log
+    
+    ✏️ PreEditSecurity:
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:531:15)
+
+  console.log
+      Target: 5-8x speedup (realistic WASM)
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:532:15)
+
+  console.log
+      Actual: 1.4x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:533:15)
+
+  console.log
+      Status: FAIL ❌
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:534:15)
+
+  console.log
+      Meets Target: ❌
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:535:15)
+
+  console.log
+      Exceeds Target: NO
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:536:15)
+
+  console.log
+    
+    📊 Overall Performance:
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:537:15)
+
+  console.log
+      Average Speedup: 0.9x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:538:15)
+
+  console.log
+      Expected Average: ~5x
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:539:15)
+
+  console.log
+      Confidence Score: 0.0%
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:540:15)
+
+  console.log
+      Overall Status: ⚠️ SOME FAILURES
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:541:15)
+
+  console.log
+    ================================================================================
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:542:15)
+
+  console.log
+    📄 Detailed report written to: /mnt/c/Users/masha/Documents/claude-flow-novice/tests/performance/wasm-performance-report.json
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:547:15)
+
+  console.log
+    
+    ✅ Test cleanup complete
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:72:13)
+
+FAIL tests/performance/security-hooks-wasm-benchmarks.test.js (18.493 s)
+  Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION
+    Hook 1: safety-validator.js - 3-5x Speedup Target (ACTUAL RUNTIME)
+      ✕ should measure ACTUAL WASM vs JavaScript performance on 1000-line file (146 ms)
+      ✕ should validate WASM provides measurable performance improvement (128 ms)
+      ✓ should scale with file size (487 ms)
+      ✓ should initialize WASM successfully (102 ms)
+    Hook 2: pre-tool-validation.js - 4-6x Speedup Target (ACTUAL RUNTIME)
+      ✕ should measure ACTUAL WASM vs JavaScript performance on tool validations (114 ms)
+    Hook 3: pre-edit-security.js - 5-8x Speedup Target (ACTUAL RUNTIME)
+      ✕ should measure ACTUAL WASM vs JavaScript performance on file edits (15052 ms)
+    Performance Report Generation
+      ✕ should generate comprehensive performance report with actual measurements (16 ms)
+
+  ● Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION › Hook 1: safety-validator.js - 3-5x Speedup Target (ACTUAL RUNTIME) › should measure ACTUAL WASM vs JavaScript performance on 1000-line file
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 3
+    Received:    0.6752979979092438
+
+      199 |
+      200 |       // Realistic assertion: at least 3x speedup required
+    > 201 |       expect(speedup).toBeGreaterThanOrEqual(3);
+          |                       ^
+      202 |     }, 60000);
+      203 |
+      204 |     it('should validate WASM provides measurable performance improvement', async () => {
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:201:23)
+
+  ● Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION › Hook 1: safety-validator.js - 3-5x Speedup Target (ACTUAL RUNTIME) › should validate WASM provides measurable performance improvement
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 1
+    Received:   0.8051900457239054
+
+      228 |
+      229 |       // At least some improvement expected
+    > 230 |       expect(improvement).toBeGreaterThan(1.0);
+          |                           ^
+      231 |     }, 30000);
+      232 |
+      233 |     it('should scale with file size', async () => {
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:230:27)
+
+  ● Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION › Hook 2: pre-tool-validation.js - 4-6x Speedup Target (ACTUAL RUNTIME) › should measure ACTUAL WASM vs JavaScript performance on tool validations
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 4
+    Received:    0.7333543762396454
+
+      374 |
+      375 |       // Realistic assertion: at least 4x speedup required
+    > 376 |       expect(speedup).toBeGreaterThanOrEqual(4);
+          |                       ^
+      377 |     }, 60000);
+      378 |   });
+      379 |
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:376:23)
+
+  ● Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION › Hook 3: pre-edit-security.js - 5-8x Speedup Target (ACTUAL RUNTIME) › should measure ACTUAL WASM vs JavaScript performance on file edits
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 5
+    Received:    1.4336740146767033
+
+      459 |
+      460 |       // Realistic assertion: at least 5x speedup required
+    > 461 |       expect(speedup).toBeGreaterThanOrEqual(5);
+          |                       ^
+      462 |     }, 60000);
+      463 |   });
+      464 |
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:461:23)
+
+  ● Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION › Performance Report Generation › should generate comprehensive performance report with actual measurements
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 0.75
+    Received:    0
+
+      548 |
+      549 |       // Assertions based on realistic targets
+    > 550 |       expect(confidence).toBeGreaterThanOrEqual(0.75); // At least 75% confidence
+          |                          ^
+      551 |       expect(avgSpeedup).toBeGreaterThanOrEqual(4); // Minimum 4x overall average
+      552 |     }, 30000);
+      553 |   });
+
+      at Object.<anonymous> (tests/performance/security-hooks-wasm-benchmarks.test.js:550:26)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 2 passed, 7 total
+Snapshots:   0 total
+Time:        18.924 s
+Ran all test suites matching tests/performance/security-hooks-wasm-benchmarks.test.js.

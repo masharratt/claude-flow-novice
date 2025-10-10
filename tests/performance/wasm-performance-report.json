@@ -1,0 +1,109 @@
+{
+  "safetyValidator": {
+    "target": {
+      "speedup": "3-5x",
+      "realistic": true
+    },
+    "actual": {
+      "fileSize": "1000 lines",
+      "iterations": 10,
+      "wasmTime": "0.01ms",
+      "jsTime": "0.00ms",
+      "speedup": "0.4x",
+      "achievedTarget": false,
+      "wasmInitialized": true,
+      "status": "BELOW_TARGET"
+    }
+  },
+  "preToolValidation": {
+    "target": {
+      "speedup": "4-6x",
+      "realistic": true
+    },
+    "actual": {
+      "tool": "Bash",
+      "iterations": 50,
+      "wasmTime": "0.00ms",
+      "jsTime": "0.00ms",
+      "speedup": "0.8x",
+      "achievedTarget": false,
+      "wasmInitialized": true,
+      "status": "BELOW_TARGET"
+    }
+  },
+  "preEditSecurity": {
+    "target": {
+      "speedup": "5-8x",
+      "realistic": true
+    },
+    "actual": {
+      "fileSize": "1000 lines",
+      "iterations": 50,
+      "wasmTime": "0.01ms",
+      "jsTime": "0.02ms",
+      "speedup": "2.1x",
+      "achievedTarget": false,
+      "wasmInitialized": true,
+      "status": "BELOW_TARGET"
+    }
+  },
+  "summary": {
+    "safetyValidator": {
+      "target": "3-5x (realistic WASM)",
+      "actual": {
+        "fileSize": "1000 lines",
+        "iterations": 10,
+        "wasmTime": "0.01ms",
+        "jsTime": "0.00ms",
+        "speedup": "0.4x",
+        "achievedTarget": false,
+        "wasmInitialized": true,
+        "status": "BELOW_TARGET"
+      },
+      "status": "FAIL ❌",
+      "meetsTarget": false,
+      "exceedsTarget": false
+    },
+    "preToolValidation": {
+      "target": "4-6x (realistic WASM)",
+      "actual": {
+        "tool": "Bash",
+        "iterations": 50,
+        "wasmTime": "0.00ms",
+        "jsTime": "0.00ms",
+        "speedup": "0.8x",
+        "achievedTarget": false,
+        "wasmInitialized": true,
+        "status": "BELOW_TARGET"
+      },
+      "status": "FAIL ❌",
+      "meetsTarget": false,
+      "exceedsTarget": false
+    },
+    "preEditSecurity": {
+      "target": "5-8x (realistic WASM)",
+      "actual": {
+        "fileSize": "1000 lines",
+        "iterations": 50,
+        "wasmTime": "0.01ms",
+        "jsTime": "0.02ms",
+        "speedup": "2.1x",
+        "achievedTarget": false,
+        "wasmInitialized": true,
+        "status": "BELOW_TARGET"
+      },
+      "status": "FAIL ❌",
+      "meetsTarget": false,
+      "exceedsTarget": false
+    },
+    "overall": {
+      "averageSpeedup": "1.1x",
+      "targetRange": "3-8x (realistic WASM)",
+      "expectedAverage": "~5x",
+      "confidence": "0.0%",
+      "allPassed": false,
+      "timestamp": "2025-10-10T16:03:06.029Z"
+    }
+  },
+  "confidence": 0
+}

@@ -1,0 +1,1 @@
+/mnt/c/Users/masha/Documents/claude-flow-novice/src/wasm-regex-engine/target/wasm32-unknown-unknown/release/wasm_regex_engine.wasm: /mnt/c/Users/masha/Documents/claude-flow-novice/src/wasm-regex-engine/src/lib.rs
