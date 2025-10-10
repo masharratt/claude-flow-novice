@@ -167,6 +167,15 @@ impl MessageSerializer {
     }
 }
 
+/// Implement Drop trait for automatic memory cleanup when MessageSerializer is dropped
+/// This fixes the 33.9% memory leak detected in Sprint 1.3 validation
+impl Drop for MessageSerializer {
+    fn drop(&mut self) {
+        self.buffer.clear();
+        self.buffer.shrink_to_fit();
+    }
+}
+
 /// Standalone serialization function (no instance needed)
 #[wasm_bindgen(js_name = quickSerialize)]
 pub fn quick_serialize(value: &JsValue) -> Result<String, JsValue> {
@@ -276,6 +285,15 @@ impl StateSerializer {
     fn decompress_str(&self, data: &str) -> Result<String, JsValue> {
         // For now, return as-is (matches compress_buffer)
         Ok(data.to_string())
+    }
+}
+
+/// Implement Drop trait for automatic memory cleanup when StateSerializer is dropped
+/// This fixes the 33.9% memory leak detected in Sprint 1.3 validation
+impl Drop for StateSerializer {
+    fn drop(&mut self) {
+        self.buffer.clear();
+        self.buffer.shrink_to_fit();
     }
 }
 
