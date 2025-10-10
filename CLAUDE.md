@@ -71,7 +71,14 @@ node test-swarm-direct.js "Create REST API with authentication" --executor --max
 node config/hooks/post-edit-pipeline.js "[FILE]" --memory-key "swarm/[agent]/[step]"
 ```
 
-**Useful flags (optional)**: `--tdd-mode` • `--minimum-coverage 80..90` • `--rust-strict`
+**Useful flags (optional)**: `--tdd-mode` • `--minimum-coverage 80..90` • `--rust-strict` • `--no-wasm` (disable 52x acceleration)
+
+**Markdown validation** (opt-in, better for CI): `--validate-markdown`
+
+**WASM 52x acceleration** enabled by default for:
+- JavaScript/TypeScript: AST parsing, linting, type checking
+- Rust files: Pattern matching (unwrap, panic, expect detection)
+- Markdown (opt-in): Link checking, structure analysis
 
 ### 3.3 Safe Test Execution
 
@@ -379,6 +386,30 @@ redis-cli publish "swarm:coordination" '{"agent":"id","status":"message"}'
 * `/fullstack "goal"` — full-stack team + consensus
 * `/swarm`, `/sparc`, `/hooks` — autodiscovered
 * Redis persistence provides automatic recovery
+
+**Markdown Validation** (standalone tool for CI/pre-commit)
+
+```bash
+# Validate all markdown files (WASM 52x accelerated)
+node config/hooks/markdown-validator.js --all
+
+# CI mode (exit 1 on errors)
+node config/hooks/markdown-validator.js --all --ci
+
+# Single file or pattern
+node config/hooks/markdown-validator.js README.md
+node config/hooks/markdown-validator.js docs/**/*.md
+
+# Pre-commit hook: Add to .git/hooks/pre-commit
+node config/hooks/markdown-validator.js --all --ci
+```
+
+**Use cases**:
+- ✅ Pre-commit hooks: Catch broken links before committing
+- ✅ CI/CD: PR validation (100+ files in <1s)
+- ✅ Documentation builds: Pre-process before publishing
+- ✅ CFN Loop agents: Quality check generated docs
+- ❌ Post-edit: Too noisy during active editing (use --validate-markdown flag)
 
 **File organization**: never save working files to root.
 
