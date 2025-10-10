@@ -76,7 +76,7 @@
     "release:rollback": "node scripts/release-rollback.js",
     "security:check": "npm audit --audit-level moderate && node scripts/security-scan.js",
     "security:fix": "npm audit fix",
-    "security:audit": "npm audit --json > .claude-flow-novice/security-audit.json && cat .claude-flow-novice/security-audit.json",
+    "security:audit": "npm audit --json > reports/security/security-audit.json && cat reports/security/security-audit.json",
     "security:full-audit": "node scripts/security/security-audit.cjs --detailed",
     "security:validate-deployment": "node scripts/security/deployment-validation.cjs",
     "security:setup": "bash scripts/security/install-git-secrets.sh && bash scripts/security/setup-redis-auth.sh",
