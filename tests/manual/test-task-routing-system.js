@@ -3,7 +3,7 @@
  * Phase 5 Agent-Booster Integration & Code Performance Acceleration
  */
 
-const TaskRoutingCoordinator = require('./src/redis/task-routing-coordinator');
+const TaskRoutingCoordinator = require('../../src/redis/task-routing-coordinator');
 const Redis = require('ioredis');
 
 class TaskRoutingSystemTest {

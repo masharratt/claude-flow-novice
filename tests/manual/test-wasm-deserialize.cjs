@@ -5,7 +5,7 @@
  * Verifies serde-wasm-bindgen 0.6.5 correctly deserializes complex objects
  */
 
-const { MessageSerializer } = require('./src/wasm-regex-engine/pkg/wasm_regex_engine.js');
+const { MessageSerializer } = require('../../src/wasm-regex-engine/pkg/wasm_regex_engine.js');
 
 // Test cases with increasing complexity
 const testCases = [

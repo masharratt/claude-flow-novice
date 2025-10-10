@@ -4,7 +4,7 @@
  * Direct test of swarm executor functionality
  */
 
-import { executeSwarm } from './src/cli/simple-commands/swarm-executor.js';
+import { executeSwarm } from '../../src/cli/simple-commands/swarm-executor.js';
 
 console.log('🧪 Direct Swarm Executor Test');
 

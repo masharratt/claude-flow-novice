@@ -11,7 +11,7 @@
  * - Compression integration working
  */
 
-const SwarmStateManager = require('./src/redis/swarm-state-manager.js');
+const SwarmStateManager = require('../../src/redis/swarm-state-manager.js');
 
 // Test data generators
 function generateLargeState(sizeKB) {

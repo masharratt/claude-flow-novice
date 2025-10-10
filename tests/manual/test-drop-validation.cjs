@@ -3,7 +3,7 @@
  * Verifies MessageSerializer Drop trait prevents memory leak
  */
 
-const { MessageSerializer } = require('./src/wasm-regex-engine/pkg/wasm_regex_engine.js');
+const { MessageSerializer } = require('../../src/wasm-regex-engine/pkg/wasm_regex_engine.js');
 
 console.log('🧪 Sprint 1.3.1 Drop Trait Validation Test\n');
 

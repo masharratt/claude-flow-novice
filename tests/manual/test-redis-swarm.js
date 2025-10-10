@@ -5,7 +5,7 @@
  */
 
 import redis from 'redis';
-import { executeSwarm } from './src/cli/simple-commands/swarm-executor.js';
+import { executeSwarm } from '../../src/cli/simple-commands/swarm-executor.js';
 
 console.log('🧪 Testing Redis-Backed Swarm');
 

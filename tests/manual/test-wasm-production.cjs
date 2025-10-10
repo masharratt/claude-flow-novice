@@ -5,7 +5,7 @@
  * Tests the exact scenario from swarm-messenger.js
  */
 
-const { quickDeserialize } = require('./src/wasm-regex-engine/pkg/wasm_regex_engine.js');
+const { quickDeserialize } = require('../../src/wasm-regex-engine/pkg/wasm_regex_engine.js');
 
 console.log('🧪 Production Test: WASM Deserialization in SwarmMessenger Context\n');
 

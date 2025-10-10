@@ -12,7 +12,7 @@ console.log('='.repeat(60));
 
 // Load WASM module
 try {
-  const wasmModule = require('./src/wasm-regex-engine/pkg/wasm_regex_engine.js');
+  const wasmModule = require('../../src/wasm-regex-engine/pkg/wasm_regex_engine.js');
   const { StateSerializer } = wasmModule;
 
   console.log('✅ WASM module loaded successfully');
