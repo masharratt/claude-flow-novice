@@ -2,9 +2,11 @@
 # Stage 1: Build stage
 FROM node:20-bullseye-slim AS builder
 
-# Set build arguments
+# Set build arguments (dynamic from GitHub Actions workflow)
 ARG NODE_ENV=production
 ARG APP_VERSION=1.6.2
+ARG BUILD_DATE
+ARG VCS_REF
 
 # Set working directory
 WORKDIR /app
@@ -59,16 +61,20 @@ RUN npm audit --audit-level moderate || true
 # Stage 2: Runtime stage with security hardening
 FROM node:20-bullseye-slim AS runtime
 
-# Set runtime arguments
+# Set runtime arguments (re-declare for multi-stage build)
 ARG NODE_ENV=production
 ARG APP_VERSION=1.6.2
+ARG BUILD_DATE
+ARG VCS_REF
 ARG APP_USER=claudeflow
 ARG APP_UID=1001
 ARG APP_GID=1001
 
-# Security labels
+# Security labels with dynamic build metadata
 LABEL maintainer="Claude Flow Novice Team" \
       version="${APP_VERSION}" \
+      build.date="${BUILD_DATE}" \
+      vcs.ref="${VCS_REF}" \
       description="Claude Flow Novice - AI Agent Orchestration Platform" \
       security.scan="completed" \
       base.image="node:20-bullseye-slim"

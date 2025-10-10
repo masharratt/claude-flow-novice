@@ -47,6 +47,8 @@ jobs:
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
+      timeout-minutes: 30
+      continue-on-error: false
       with:
         context: .
         platforms: linux/amd64,linux/arm64
@@ -56,6 +58,6 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
         build-args: |
-          APP_VERSION=${{ steps.meta.outputs.version }}
-          BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          APP_VERSION=${{ github.ref_name }}
+          BUILD_DATE=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
           VCS_REF=${{ github.sha }}

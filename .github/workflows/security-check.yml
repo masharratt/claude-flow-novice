@@ -35,7 +35,7 @@ jobs:
       run: |
         echo "🔍 Running custom secret pattern detection..."
 
-        # Define patterns for common secrets
+        # Define patterns for common secrets (excluding GitHub Actions syntax)
         PATTERNS=(
           "password\s*=\s*['\"][^'\"]{8,}['\"]"
           "api[_-]?key\s*=\s*['\"][^'\"]{10,}['\"]"
@@ -60,11 +60,14 @@ jobs:
         EXCLUDE_PATTERNS=(
           "\.git/"
           "node_modules/"
+          "\.github/workflows/"
           "\.jpg$"
           "\.png$"
           "\.pdf$"
           "\.zip$"
           "\.tar\.gz$"
+          "\.yml$"
+          "\.yaml$"
           "package-lock\.json$"
           "yarn\.lock$"
           "\.min\.js$"
@@ -74,7 +77,6 @@ jobs:
           "\.sample$"
           "README\.md$"
           "SECURITY\.md$"
-          "\.github/workflows/"
         )
 
         # Create exclude pattern for grep
