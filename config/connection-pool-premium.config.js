@@ -332,12 +332,12 @@ export const premiumConnectionPoolConfig = {
       },
 
       worker: {
-        memoryLimit: '4GB',       // 4GB for neural processing
+        memoryLimit: '16GB',      // 16GB for neural processing
         cpuLimit: 2.0,            // 2 CPU cores per neural worker
 
         // Neural-specific optimization
         v8Options: [
-          '--max-old-space-size=4096', // 4GB heap
+          '--max-old-space-size=16384', // 16GB heap
           '--expose-gc',
           '--optimize-for-size',
         ],

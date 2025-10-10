@@ -498,7 +498,7 @@ class MemoryCryptographyManager {
   async encrypt(data: any): Promise<any> {
     const key = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher('aes-256-cbc', key);
+    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
 
     let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -517,7 +517,8 @@ class MemoryCryptographyManager {
     }
 
     const key = Buffer.from(encryptedData.key, 'hex');
-    const decipher = crypto.createDecipher('aes-256-cbc', key);
+    const iv = Buffer.from(encryptedData.iv, 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
 
     let decrypted = decipher.update(encryptedData.ciphertext, 'hex', 'utf8');
     decrypted += decipher.final('utf8');

@@ -9,9 +9,41 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 /**
+ * Find the templates directory (bundled or local)
+ * @param {string} templateType - Template type (basic-swarm, fleet-manager, etc.)
+ * @returns {Promise<string>} Path to templates directory
+ */
+async function findTemplatesDirectory(templateType = 'basic-swarm') {
+  // Try multiple possible template locations
+  const possiblePaths = [
+    // 1. Bundled templates (npm package installed)
+    join(__dirname, '..', '..', '..', '..', 'templates', templateType),
+    // 2. Source templates during development
+    join(__dirname, 'templates'),
+    // 3. Legacy templates location
+    join(__dirname, 'templates', templateType),
+    // 4. Project root templates
+    join(process.cwd(), 'templates', templateType),
+  ];
+
+  for (const path of possiblePaths) {
+    try {
+      await fs.access(path);
+      return path;
+    } catch (err) {
+      continue;
+    }
+  }
+
+  // Fallback to local templates directory
+  return join(__dirname, 'templates');
+}
+
+/**
  * Copy template files from the templates directory to the target directory
  * @param {string} targetDir - The directory to copy templates to
  * @param {Object} options - Options for template copying
+ * @param {string} options.template - Template type (basic-swarm, fleet-manager, event-bus, custom-agent)
  * @param {boolean} options.sparc - Whether to include SPARC templates
  * @param {boolean} options.enhanced - Whether to use enhanced templates
  * @param {boolean} options.minimal - Whether to use minimal templates
@@ -29,7 +61,8 @@ export async function copyTemplates(targetDir, options = {}) {
   };
 
   try {
-    const templatesDir = join(__dirname, 'templates');
+    // Determine templates directory (bundled or local)
+    const templatesDir = await findTemplatesDirectory(options.template || 'basic-swarm');
 
     // Determine which template variants to use
     const templateVariant =
@@ -498,19 +531,26 @@ async function createMemoryReadmeFiles(targetDir, options, results) {
 }
 
 /**
- * Get template content from template file only (NO GENERATION)
+ * Get template content from template file (BUNDLED OR LOCAL)
  */
 async function getTemplateContent(templatePath) {
   const filename = templatePath.split('/').pop();
 
-  // Try to read from the actual template file ONLY
+  // Try to read from the actual template file
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
 
   // Try multiple possible template locations
+  // Priority: bundled templates > local templates > dist templates
   const templatePaths = [
-    join(__dirname, 'templates', filename),  // Source location: src/cli/simple-commands/init/templates/
-    join(__dirname, filename),                // Dist location: dist/src/cli/simple-commands/init/ (files copied directly)
+    // 1. Bundled templates (npm package)
+    join(__dirname, '..', '..', '..', '..', 'templates', 'basic-swarm', filename),
+    // 2. Source location during development
+    join(__dirname, 'templates', filename),
+    // 3. Dist location (files copied directly)
+    join(__dirname, filename),
+    // 4. Relative to project root
+    join(process.cwd(), 'templates', 'basic-swarm', filename),
   ];
 
   for (const actualTemplatePath of templatePaths) {
@@ -526,7 +566,7 @@ async function getTemplateContent(templatePath) {
 
   // NO FALLBACK TO GENERATION - Template file must exist
   console.log(`  ⚠️  Template file not found for ${filename}`);
-  console.log(`  💡 Template files must be present in src/cli/simple-commands/init/templates/`);
+  console.log(`  💡 Template files must be present in templates/ or src/cli/simple-commands/init/templates/`);
   return null;
 }
 

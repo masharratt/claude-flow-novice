@@ -1,0 +1,702 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Redis Swarm State Schema",
+  "description": "Comprehensive schema for swarm state persistence and recovery",
+  "type": "object",
+  "properties": {
+    "swarmId": {
+      "type": "string",
+      "pattern": "^swarm_[a-zA-Z0-9_]+$",
+      "description": "Unique identifier for the swarm instance"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": ["1.0.0"],
+          "description": "Schema version for compatibility"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp when swarm was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp of last update"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO timestamp when state expires"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["initializing", "running", "paused", "completed", "failed", "recovering"],
+          "description": "Current status of the swarm"
+        },
+        "strategy": {
+          "type": "string",
+          "enum": ["development", "research", "testing", "coordination"],
+          "description": "Swarm execution strategy"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["mesh", "hierarchical", "centralized"],
+          "description": "Swarm topology mode"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Overall swarm confidence score"
+        }
+      },
+      "required": ["version", "createdAt", "status", "strategy", "mode"],
+      "additionalProperties": false
+    },
+    "objective": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Clear description of the swarm objective"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["feature", "bugfix", "research", "testing", "documentation", "architecture", "security"],
+          "description": "Type of objective"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Objective priority level"
+        },
+        "complexity": {
+          "type": "string",
+          "enum": ["simple", "moderate", "complex", "enterprise"],
+          "description": "Objective complexity assessment"
+        },
+        "estimatedDuration": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400,
+          "description": "Estimated duration in seconds"
+        },
+        "requirements": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "List of specific requirements"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["time", "budget", "technical", "resource", "security"]
+              },
+              "description": {
+                "type": "string"
+              },
+              "impact": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              }
+            },
+            "required": ["type", "description"]
+          }
+        }
+      },
+      "required": ["description", "type", "priority"],
+      "additionalProperties": false
+    },
+    "agents": {
+      "type": "object",
+      "patternProperties": {
+        "^agent_[a-zA-Z0-9_]+$": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^agent_[a-zA-Z0-9_]+$"
+            },
+            "role": {
+              "type": "string",
+              "enum": ["coder", "tester", "reviewer", "architect", "researcher", "planner", "security-specialist", "perf-analyzer", "backend-dev", "frontend-dev", "mobile-dev", "api-docs", "devops-engineer", "cicd-engineer"],
+              "description": "Agent role within the swarm"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["implementer", "validator", "coordinator"],
+              "description": "Agent type in CFN loop"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["idle", "active", "busy", "completed", "failed", "paused"],
+              "description": "Current agent status"
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Agent's confidence in current task"
+            },
+            "assignedTasks": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^task_[a-zA-Z0-9_]+$"
+              },
+              "description": "List of assigned task IDs"
+            },
+            "completedTasks": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^task_[a-zA-Z0-9_]+$"
+              },
+              "description": "List of completed task IDs"
+            },
+            "currentTask": {
+              "type": ["string", "null"],
+              "pattern": "^task_[a-zA-Z0-9_]+$",
+              "description": "Currently active task ID"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "specialization": {
+                  "type": "string",
+                  "description": "Agent specialization area"
+                },
+                "experience": {
+                  "type": "string",
+                  "enum": ["junior", "mid", "senior", "expert"]
+                },
+                "capabilities": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "lastActive": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "responseTime": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Average response time in milliseconds"
+                }
+              }
+            }
+          },
+          "required": ["id", "role", "type", "status", "confidence"],
+          "additionalProperties": false
+        }
+      },
+      "description": "Map of agent IDs to agent states"
+    },
+    "tasks": {
+      "type": "object",
+      "patternProperties": {
+        "^task_[a-zA-Z0-9_]+$": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^task_[a-zA-Z0-9_]+$"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            "type": {
+              "type": "string",
+              "enum": ["implementation", "validation", "coordination", "research", "testing", "documentation", "review", "architecture"]
+            },
+            "status": {
+              "type": "string",
+              "enum": ["pending", "in_progress", "completed", "failed", "blocked", "cancelled"]
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"]
+            },
+            "assignedAgent": {
+              "type": ["string", "null"],
+              "pattern": "^agent_[a-zA-Z0-9_]+$"
+            },
+            "dependencies": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^task_[a-zA-Z0-9_]+$"
+              },
+              "description": "List of task dependencies"
+            },
+            "subtasks": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^task_[a-zA-Z0-9_]+$"
+              },
+              "description": "List of subtask IDs"
+            },
+            "parentTask": {
+              "type": ["string", "null"],
+              "pattern": "^task_[a-zA-Z0-9_]+$"
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Task completion confidence"
+            },
+            "progress": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Task completion percentage"
+            },
+            "estimatedDuration": {
+              "type": "integer",
+              "minimum": 60,
+              "description": "Estimated duration in seconds"
+            },
+            "actualDuration": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Actual time spent in seconds"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "startedAt": {
+              "type": ["string", "null"],
+              "format": "date-time"
+            },
+            "completedAt": {
+              "type": ["string", "null"],
+              "format": "date-time"
+            },
+            "result": {
+              "type": "object",
+              "description": "Task execution result"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["file", "directory", "url", "data", "image", "document"]
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "checksum": {
+                    "type": "string",
+                    "description": "SHA-256 checksum for verification"
+                  }
+                },
+                "required": ["type", "path"]
+              }
+            }
+          },
+          "required": ["id", "title", "description", "type", "status", "priority", "confidence", "progress"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "phases": {
+      "type": "object",
+      "patternProperties": {
+        "^phase_[a-zA-Z0-9_]+$": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^phase_[a-zA-Z0-9_]+$"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["pending", "active", "completed", "failed", "skipped"]
+            },
+            "loopLevel": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4,
+              "description": "CFN loop level (0-4)"
+            },
+            "tasks": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^task_[a-zA-Z0-9_]+$"
+              }
+            },
+            "entryCriteria": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "exitCriteria": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "metrics": {
+              "type": "object",
+              "properties": {
+                "duration": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "taskCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "successRate": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "averageConfidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          "required": ["id", "name", "status", "loopLevel"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^mem_[a-zA-Z0-9_]+$"
+              },
+              "agentId": {
+                "type": "string",
+                "pattern": "^agent_[a-zA-Z0-9_]+$"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["knowledge", "result", "state", "communication", "error"]
+              },
+              "content": {
+                "type": "object"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "pattern": "^task_[a-zA-Z0-9_]+$"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  },
+                  "shareLevel": {
+                    "type": "string",
+                    "enum": ["private", "team", "public"]
+                  }
+                }
+              }
+            },
+            "required": ["id", "agentId", "type", "content", "timestamp"],
+            "additionalProperties": false
+          }
+        },
+        "knowledgeBases": {
+          "type": "object",
+          "patternProperties": {
+            "^kb_[a-zA-Z0-9_]+$": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^kb_[a-zA-Z0-9_]+$"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "domain": {
+                  "type": "string"
+                },
+                "expertise": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "contributors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^agent_[a-zA-Z0-9_]+$"
+                  }
+                },
+                "entries": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^mem_[a-zA-Z0-9_]+$"
+                  }
+                }
+              },
+              "required": ["id", "name", "description", "domain"],
+              "additionalProperties": false
+            }
+          }
+        }
+      }
+    },
+    "consensus": {
+      "type": "object",
+      "properties": {
+        "currentRound": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requiredConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "currentConfidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "achieving", "achieved", "failed"]
+        },
+        "votes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "agentId": {
+                "type": "string",
+                "pattern": "^agent_[a-zA-Z0-9_]+$"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "reasoning": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": ["agentId", "confidence", "timestamp"],
+            "additionalProperties": false
+          }
+        },
+        "decision": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["PROCEED", "DEFER", "ESCALATE", "RETRY"]
+            },
+            "reasoning": {
+              "type": "string"
+            },
+            "nextSteps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["type"]
+        }
+      },
+      "required": ["currentRound", "requiredConfidence", "currentConfidence", "status"],
+      "additionalProperties": false
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "totalDuration": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total duration in seconds"
+            },
+            "taskCompletionRate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "agentUtilization": {
+              "type": "object",
+              "patternProperties": {
+                "^agent_[a-zA-Z0-9_]+$": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            "communicationLatency": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Average communication latency in milliseconds"
+            },
+            "errorRate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "throughput": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Tasks completed per hour"
+            }
+          }
+        },
+        "benchmarks": {
+          "type": "object",
+          "properties": {
+            "writeLatency": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Redis write latency in milliseconds"
+            },
+            "readLatency": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Redis read latency in milliseconds"
+            },
+            "memoryUsage": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Memory usage in bytes"
+            },
+            "stateSize": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total state size in bytes"
+            }
+          }
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "lastCheckpoint": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "checkpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "phase": {
+                "type": "string",
+                "pattern": "^phase_[a-zA-Z0-9_]+$"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "stateHash": {
+                "type": "string",
+                "description": "SHA-256 hash of state at checkpoint"
+              }
+            },
+            "required": ["timestamp", "phase", "confidence", "stateHash"],
+            "additionalProperties": false
+          }
+        },
+        "recoveryAttempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastRecovery": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      },
+      "required": ["enabled"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["swarmId", "metadata", "objective", "agents", "tasks"],
+  "additionalProperties": false
+}

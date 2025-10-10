@@ -1,0 +1,26 @@
+
+> claude-flow-novice@1.6.6 test
+> NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=16384' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/security/envelope-encryption-validation.test.js --json
+
+FAIL tests/security/envelope-encryption-validation.test.js
+  ● Test suite failed to run
+
+    ReferenceError: require is not defined
+
+      17 |  */
+      18 |
+    > 19 | const crypto = require('crypto');
+         |                ^
+      20 | const sqlite3 = require('sqlite3').verbose();
+      21 | const EncryptionKeyManager = require('../../src/sqlite/EncryptionKeyManager');
+      22 |
+
+      at tests/security/envelope-encryption-validation.test.js:19:16
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        2.973 s
+Ran all test suites matching tests/security/envelope-encryption-validation.test.js.
+{"numFailedTestSuites":1,"numFailedTests":0,"numPassedTestSuites":0,"numPassedTests":0,"numPendingTestSuites":0,"numPendingTests":0,"numRuntimeErrorTestSuites":1,"numTodoTests":0,"numTotalTestSuites":1,"numTotalTests":0,"openHandles":[],"snapshot":{"added":0,"didUpdate":false,"failure":false,"filesAdded":0,"filesRemoved":0,"filesRemovedList":[],"filesUnmatched":0,"filesUpdated":0,"matched":0,"total":0,"unchecked":0,"uncheckedKeysByFile":[],"unmatched":0,"updated":0},"startTime":1760054418562,"success":false,"testResults":[{"assertionResults":[],"coverage":{},"endTime":1760054421545,"message":"  ● Test suite failed to run\n\n    ReferenceError: require is not defined\n\n      17 |  */\n      18 |\n    > 19 | const crypto = require('crypto');\n         |                ^\n      20 | const sqlite3 = require('sqlite3').verbose();\n      21 | const EncryptionKeyManager = require('../../src/sqlite/EncryptionKeyManager');\n      22 |\n\n      at tests/security/envelope-encryption-validation.test.js:19:16\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/tests/security/envelope-encryption-validation.test.js","startTime":1760054421545,"status":"failed","summary":""}],"wasInterrupted":false}
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

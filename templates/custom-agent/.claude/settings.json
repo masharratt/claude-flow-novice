@@ -1,0 +1,30 @@
+{
+  "claude_flow_novice": {
+    "custom_agents": {
+      "enabled": true,
+      "agents_directory": ".claude/agents",
+      "auto_discovery": true,
+      "validation": {
+        "require_config": true,
+        "require_tools": false,
+        "confidence_threshold": 0.75
+      }
+    },
+    "swarm": {
+      "mode": "mesh",
+      "persistence": true,
+      "recovery": true,
+      "allow_custom_agents": true
+    },
+    "memory": {
+      "backend": "sqlite",
+      "acl_enabled": true,
+      "agent_isolation": true
+    },
+    "tools": {
+      "custom_tools_enabled": true,
+      "tools_directory": ".claude/agents",
+      "validation": true
+    }
+  }
+}

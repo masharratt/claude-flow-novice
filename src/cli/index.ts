@@ -5,7 +5,7 @@
  */
 
 // Import and run the simple CLI which doesn't have external dependencies
-import './simple-cli.ts';
+import './simple-cli.js';
 // Spinner import removed - not available in current cliffy version
 import { Command } from 'commander';
 import chalk from 'chalk';

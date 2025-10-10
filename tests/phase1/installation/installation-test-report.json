@@ -1,0 +1,39 @@
+{
+  "startTime": 1760050455069,
+  "platform": "linux",
+  "nodeVersion": "v24.6.0",
+  "tests": [
+    {
+      "file": "installation-comprehensive.test.js",
+      "passed": false,
+      "exitCode": 1,
+      "duration": 17.340025406000002
+    },
+    {
+      "file": "platform-specific.test.js",
+      "passed": false,
+      "exitCode": 1,
+      "duration": 17.400728399
+    },
+    {
+      "file": "template-validation.test.js",
+      "passed": false,
+      "exitCode": 1,
+      "duration": 17.169665984999998
+    },
+    {
+      "file": "redis-auto-config.test.js",
+      "passed": false,
+      "exitCode": 1,
+      "duration": 15.232894778999995
+    }
+  ],
+  "summary": {
+    "total": 4,
+    "passed": 0,
+    "failed": 4,
+    "skipped": 0,
+    "duration": 67.153
+  },
+  "endTime": 1760050522222
+}

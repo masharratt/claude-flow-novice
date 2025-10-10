@@ -1,464 +1,370 @@
-# Claude Flow Personal 🚀
+# Claude Flow Novice 🚀
 
-**Transparent AI Agent Orchestration with Full Visibility**
+**AI Agent Orchestration Made Simple for Beginners**
 
-A personalized version of Claude Flow that puts you in control of AI agent coordination with complete transparency into every decision and process.
+A powerful yet user-friendly AI agent orchestration framework that enables developers to coordinate multiple AI agents working together on complex tasks. Perfect for beginners who want to leverage AI agents without dealing with complex setup.
 
 <div align="center">
 
-[![GitHub stars](https://img.shields.io/github/stars/masharratt/claude-flow-novice?style=for-the-badge&logo=github&color=gold)](https://github.com/masharratt/claude-flow-novice)
-[![MIT License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge&logo=opensourceinitiative)](https://opensource.org/licenses/MIT)
-[![Transparent AI](https://img.shields.io/badge/Transparent-AI-blue?style=for-the-badge&logo=transparency)](https://github.com/masharratt/claude-flow-novice)
+[![npm version](https://badge.fury.io/js/claude-flow-novice.svg)](https://badge.fury.io/js/claude-flow-novice)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
+
+[Quick Start](#-quick-start) • [Installation](#-installation) • [Examples](#-basic-examples) • [Support](#-get-help)
 
 </div>
 
 ---
 
-## 🎯 What is Claude Flow Personal?
+## ✨ What Does It Do?
 
-Claude Flow Personal is a transparency-focused version of the Claude Flow framework, designed for developers who want complete visibility and control over their AI agent coordination processes.
+Claude Flow Novice lets you:
+- **Coordinate multiple AI agents** to work together on complex tasks
+- **Automatically spawn specialized agents** (backend, frontend, testing, etc.)
+- **Monitor progress in real-time** with a simple dashboard
+- **"It just works" setup** - no complex configuration needed
 
-### Why Choose Personal?
-- ✅ **Full Transparency** - See exactly what each agent is thinking and doing
-- ✅ **Personalized Workflows** - Customize coordination patterns to match your work style
-- ✅ **Decision Visibility** - Understand why agents make specific choices
-- ✅ **Process Control** - Fine-tune every aspect of agent behavior
-- ✅ **Explainable AI** - Get detailed explanations for all agent actions
-- ✅ **Your Style** - Adapt agents to work exactly how you prefer
+### 🎯 Perfect For Beginners
+- Building your first AI-powered applications
+- Learning how AI agents work together
+- Automating development tasks without deep AI knowledge
+- Projects that need coordinated AI workflows
 
-## 🎯 Key Features
+---
 
-### CFN Loop: Self-Correcting Development Loop
-The Confidence-Feedback-Next (CFN) Loop provides autonomous iteration and quality validation:
+## 🚀 Quick Start (5 Minutes)
 
-- **4-Loop Architecture**: Autonomous retry with intelligent agent selection
-  ```
-  Loop 0: Epic/Sprint Orchestration → Multi-phase projects
-  Loop 1: Phase Execution → Sequential phase progression
-  Loop 2: Consensus Validation → 10 iterations max per phase
-  Loop 3: Primary Swarm → 10 iterations max per subtask
-  ```
-  - **Total Capacity**: 10 × 10 = 100 iterations (handles enterprise complexity)
-  - **Intelligent Retry**: Replace failing agents (coder → backend-dev for auth issues)
-  - **Targeted Fixes**: Add specialists based on validator feedback (security-specialist for SQL injection)
-
-- **Two-Tier Sprint/Phase System** (NEW in v1.6.0):
-  - `/cfn-loop-single`: Single-phase execution (original workflow)
-  - `/cfn-loop-sprints`: Multi-sprint phase orchestration (NEW)
-  - `/cfn-loop-epic`: Multi-phase epic execution (NEW)
-  - `/parse-epic`: Convert markdown → structured JSON (NEW)
-  - Memory namespace hierarchy: `cfn-loop/epic-{id}/phase-{n}/sprint-{m}/iteration-{i}`
-  - Cross-phase sprint dependencies supported
-
-- **Confidence Gating**: Multi-factor quality assessment (≥75% threshold)
-  - Test coverage (30%), Code coverage (25%), Syntax (15%)
-  - Security (20%), Formatting (10%)
-
-- **Product Owner Decision Gate** (NEW): GOAP-based autonomous scope enforcement
-  - A* search algorithm for optimal decision-making
-  - Scope boundary enforcement via cost functions (out-of-scope = cost 1000)
-  - PROCEED/DEFER/ESCALATE decisions without human approval
-  - Prevents scope creep while maintaining velocity
-
-- **Byzantine Consensus**: Distributed validator agreement (≥90% threshold)
-  - Quality review, Security audit, Architecture validation
-  - Performance testing, Integration verification
-  - Validators spawn AFTER implementation (prevents premature validation)
-
-- **Automatic Feedback**: Sanitized validator feedback injection
-  - Blocks prompt injection (CVE-CFN-2025-002)
-  - Prioritized recommendations (Critical → High → Medium → Low)
-  - Deduplication with LRU registry
-
-- **Performance**: 13x faster confidence collection via parallelization
-- **Total Iteration Capacity**: 10 × 10 = 100 iterations (handles enterprise complexity)
-
-### Security-First Design
-- Input validation (iteration limits 1-100)
-- Prompt injection prevention (6 attack vectors blocked)
-- Memory leak prevention (LRU eviction, automatic cleanup)
-- Circuit breaker (30-min timeout, fault tolerance)
-
-### Quick Start with CFN Loop
-
+### 1. Install
 ```bash
-# Initialize swarm for multi-agent coordination
-mcp__claude-flow-novice__swarm_init({
-  topology: "mesh",
-  maxAgents: 3
-})
-
-# Single-phase CFN Loop (original workflow)
-/cfn-loop "Implement JWT authentication" --phase=auth --max-loop2=10 --max-loop3=10
-
-# Multi-sprint phase execution (NEW)
-/cfn-loop-sprints "Authentication System" --sprints=3 --max-loop2=10
-
-# Multi-phase epic execution (NEW)
-/cfn-loop-epic "Complete User Management System" --phases=4 --max-loop2=10
-
-# Or use orchestrator programmatically
-import { CFNLoopIntegrator } from './src/cfn-loop/cfn-loop-integrator.js';
-
-const orchestrator = new CFNLoopIntegrator({
-  phaseId: 'auth-impl',
-  maxLoop2: 5,
-  maxLoop3: 10
-});
-
-const result = await orchestrator.executePhase({
-  description: 'Implement JWT authentication',
-  agents: [/* ... */],
-  validators: [/* ... */]
-});
-```
-
-### CFN Loop Documentation
-- 📘 [Complete Guide](planning/CFN_LOOP_COMPLETE_GUIDE.md) - 3000+ line implementation guide with 4-loop structure
-- 📊 [Flowcharts](planning/CFN_LOOP_FLOWCHARTS.md) - 8 Mermaid diagrams including Loop 0
-- 📋 [Cheatsheet](planning/CFN_LOOP_CHEATSHEET.md) - Quick reference with slash commands
-- 📖 [Full Docs](docs/CFN_LOOP.md) - 2780-line comprehensive documentation
-- 🚀 [Sprint Orchestration](docs/SPRINT_ORCHESTRATION.md) - Two-tier phase/sprint system guide
-- 🎯 [Scope Control](docs/CFN_LOOP_SCOPE_CONTROL.md) - Product Owner GOAP-based scope enforcement (NEW)
-- 🎯 [MCP Endpoints](planning/COMPREHENSIVE_MCP_ENDPOINTS_REFERENCE.md) - Complete reference including CFN Loop commands
-- 🔄 [CFN Claude Sync](docs/slash-commands/cfn-claude-sync-usage.md) - DRY principle: sync CLAUDE.md to slash commands (NEW)
-
-### CFN Claude Sync - Configuration Management (NEW in v1.6.1)
-
-**Single Source of Truth**: Maintain CFN Loop configuration in one place (CLAUDE.md) and automatically sync to all slash command files.
-
-```bash
-# After editing CLAUDE.md CFN Loop rules:
-/cfn-claude-sync --dry-run  # Preview changes
-/cfn-claude-sync            # Apply to 8 files (4 markdown + 4 JS)
-npm test                    # Validate
-git commit -m "chore: sync CFN Loop from CLAUDE.md"
-```
-
-**What Gets Synchronized**:
-- ✅ Consensus threshold (≥90%)
-- ✅ Confidence gate (≥75%)
-- ✅ Loop 2/3 max iterations (10/10)
-- ✅ Complexity tiers (Simple: 2-3, Medium: 4-6, Complex: 8-12, Enterprise: 15-20)
-- ✅ GOAP decision types (PROCEED/DEFER/ESCALATE)
-- ✅ Autonomous execution rules
-
-**Files Updated**:
-- `.claude/commands/cfn-loop*.md` (4 markdown templates)
-- `src/slash-commands/cfn-loop*.js` (4 JavaScript generators)
-
-**Why This Matters**: Edit once in CLAUDE.md instead of manually updating 9 files. Eliminates duplication and ensures consistency.
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
+# Install globally
 npm install -g claude-flow-novice
 ```
 
-### Your First Transparent AI Workflow in 3 Steps
-
+### 2. Create Your First Project
 ```bash
-# 1. Initialize with transparency enabled
-claude-flow-novice init my-project --transparency=full
-cd my-project
-
-# 2. Create an agent with detailed reasoning
-claude-flow-novice agent create researcher "Research the latest trends in renewable energy" --explain-decisions --show-reasoning
-
-# 3. Run with full visibility
-claude-flow-novice run --verbose --show-thought-process
+# Initialize a new project
+claude-flow-novice init my-first-ai-project
+cd my-first-ai-project
 ```
 
-You'll see every decision, reasoning step, and coordination choice your agents make in real-time.
-
-## 📚 Core Concepts
-
-### 🔍 Transparency-First Agent Design
-
-Every agent in Claude Flow Personal provides complete visibility into their decision-making process:
-
-| Agent | Core Function | Transparency Features |
-|-------|---------------|----------------------|
-| **🔍 Researcher** | Information gathering & analysis | Shows search strategies, source evaluation, and reasoning chains |
-| **💻 Coder** | Implementation & development | Explains design choices, shows alternatives considered, reveals optimization decisions |
-| **👀 Reviewer** | Quality assurance & feedback | Details evaluation criteria, shows thought process, explains recommendations |
-| **📋 Planner** | Strategy & coordination | Reveals prioritization logic, shows trade-off analysis, explains timeline decisions |
-
-### 🎯 Personalized Coordination Workflow
-
-1. **Configure** your personal preferences and work style
-2. **Customize** agent behavior to match your decision-making patterns
-3. **Monitor** real-time agent coordination and reasoning
-4. **Adjust** processes based on transparency insights
-5. **Learn** from agent decisions to improve your own workflows
-
-## 🛠️ Transparency & Personalization Commands
-
+### 3. Launch Your First Agent Swarm
 ```bash
-# Project & Profile Management
-claude-flow-novice init <project> --profile=<your-style>     # Create personalized project
-claude-flow-novice profile setup                             # Configure your work preferences
-claude-flow-novice status --detailed                         # Get comprehensive status
-
-# Transparent Agent Management
-claude-flow-novice agent create <type> "<task>" --explain-all    # Create fully transparent agent
-claude-flow-novice agent inspect <id>                           # Deep dive into agent reasoning
-claude-flow-novice agent customize <id> --style=<your-way>      # Personalize agent behavior
-
-# Coordinated Execution with Full Visibility
-claude-flow-novice run --transparency=full                   # Run with complete visibility
-claude-flow-novice monitor --real-time                       # Watch coordination in real-time
-claude-flow-novice explain <execution-id>                    # Get detailed execution explanation
-
-# Personalization & Learning
-claude-flow-novice learn-preferences                         # Analyze your coordination patterns
-claude-flow-novice customize-workflow <workflow-id>          # Adapt workflows to your style
-claude-flow-novice transparency-report                       # Generate decision transparency report
-
-# Provider Routing Management
-/custom-routing-activate                                     # Enable tiered routing (~64% cost reduction)
-/custom-routing-deactivate                                   # Disable routing (all agents use sonnet)
+# Tell the AI agents what to build
+claude-flow-novice swarm "Create a simple todo app with user authentication"
 ```
 
-## 📖 Transparency & Personalization Examples
+That's it! 🎉 Claude Flow Novice will automatically:
+- Set up the project structure
+- Spawn specialized agents (backend, frontend, testing)
+- Coordinate their work in real-time
+- Show you a monitoring dashboard
 
-### Example 1: Transparent Research with Your Style
+### 4. Monitor Progress
 ```bash
-claude-flow-novice init research-project --profile=analytical-deep-dive
-cd research-project
-claude-flow-novice agent create researcher "Research TypeScript vs JavaScript" \
-  --explain-search-strategy \
-  --show-source-evaluation \
-  --reveal-bias-checking
-claude-flow-novice run --transparency=full
+# Watch your agents work
+claude-flow-novice monitor
 ```
 
-### Example 2: Personalized Development Workflow
+---
+
+## 📋 Requirements
+
+### Must Have
+- **Node.js 20+** - [Download Node.js](https://nodejs.org/)
+- **npm 9+** - Comes with Node.js
+
+### Optional (Recommended)
+- **Redis** - For saving progress between sessions
+  ```bash
+  # Install with Docker (easiest)
+  docker run -d -p 6379:6379 redis
+
+  # Or install locally
+  # macOS: brew install redis
+  # Ubuntu: sudo apt install redis-server
+  # Windows: Download from redis.io
+  ```
+
+---
+
+## 🎮 Basic Examples
+
+### Example 1: Build a Web API
 ```bash
-claude-flow-novice init todo-app --coordination-style=iterative
-cd todo-app
-
-# Configure agents to match your decision-making style
-claude-flow-novice agent create planner "Plan React to-do app" \
-  --decision-style=thorough \
-  --explain-trade-offs \
-  --show-alternatives
-
-claude-flow-novice agent create coder "Implement based on plan" \
-  --coding-style=defensive \
-  --explain-design-choices \
-  --show-refactoring-opportunities
-
-# Watch the coordination happen
-claude-flow-novice run --monitor-coordination --explain-handoffs
+# Launch a development swarm
+claude-flow-novice swarm "Create a REST API for managing user tasks"
 ```
 
-### Example 3: Learning with Full Visibility
+**What happens automatically:**
+1. 🤖 Spawns specialized agents (backend, API designer, tester)
+2. 📋 Plans the API endpoints and structure
+3. 💻 Builds the API with best practices
+4. 🧪 Runs tests and validation
+5. 📊 Shows you progress in real-time
+
+### Example 2: Frontend Development
 ```bash
-claude-flow-novice init learning-docker --learning-mode=transparent
-cd learning-docker
-
-claude-flow-novice agent create researcher "Docker fundamentals" \
-  --show-learning-path \
-  --explain-complexity-assessment \
-  --reveal-knowledge-gaps
-
-claude-flow-novice monitor --real-time --explain-decisions
+# Create a React application
+claude-flow-novice swarm "Build a React dashboard with user login and charts"
 ```
 
-## 🎓 Personalization Journey
+**AI agents will coordinate to:**
+- Set up React project structure
+- Design component architecture
+- Implement user authentication
+- Add data visualization
+- Create responsive design
+- Run comprehensive tests
 
-### Level 1: Understanding Your AI (Start Here!)
-1. **Complete the transparency setup** and explore decision visibility
-2. **Configure your profile** to match your work style and preferences
-3. **Observe agent reasoning** and identify patterns that align with your thinking
-
-### Level 2: Customizing Coordination
-1. **Personalize agent behavior** to complement your decision-making style
-2. **Experiment with different transparency levels** to find your comfort zone
-3. **Build workflows** that reflect your personal approach to problem-solving
-
-### Level 3: Mastering Transparent AI
-1. **Create sophisticated coordination patterns** with full visibility
-2. **Use transparency insights** to improve both AI and human decision-making
-3. **Develop personal AI workflows** that enhance your unique strengths
-
-### Level 4: AI Partnership Mastery
-1. **Design custom coordination patterns** that perfectly match your work style
-2. **Share your personalization insights** to help others build better AI partnerships
-3. **Contribute** to the transparent AI movement and help define the future of human-AI collaboration
-
-## 🆚 Personal vs Full Claude Flow
-
-| Feature | Claude Flow Personal | Full Claude Flow |
-|---------|---------------------|------------------|
-| **Transparency** | Complete decision visibility | Limited introspection |
-| **Personalization** | Fully customizable to your style | One-size-fits-all approach |
-| **Coordination Control** | Fine-grained process control | Automated swarm management |
-| **Learning Approach** | Transparent AI partnership | Black-box automation |
-| **Decision Insight** | Full reasoning explanations | Result-focused output |
-| **Customization** | Personal workflow adaptation | Enterprise configuration |
-
-## 🎯 Perfect For
-
-- **Developers** who want to understand AI decision-making
-- **Teams** seeking transparent collaboration with AI
-- **Researchers** studying human-AI interaction patterns
-- **Professionals** who prefer explainable AI processes
-- **Anyone** who values transparency and control in AI systems
-
-## 🤝 Community & Support
-
-- **Transparency Questions?** [Open an issue](https://github.com/masharratt/claude-flow-novice/issues) with the "transparency" label
-- **Personalization Ideas?** [Share your insights](https://github.com/masharratt/claude-flow-novice/discussions)
-- **Want to contribute?** Check out [CONTRIBUTING.md](./CONTRIBUTING.md) - we especially value transparency improvements
-
-## 🪝 Revolutionary DevOps Hook System
-
-**NEW**: Claude Flow Personal includes a breakthrough **Agent Feedback System** that enables subagents to receive structured dependency analysis and self-execute solutions without spawning new agents.
-
-### 🎯 Key Features
-- **🛡️ Security Protection** - Prevents edits to .env files and sensitive data
-- **⚡ Fast File Testing** - <5 second feedback for Rust, TypeScript, JavaScript, Python
-- **🧠 Smart Dependency Analysis** - Progressive validation based on dependency completeness
-- **🤖 Agent Feedback Loop** - Subagents receive structured feedback and self-execute fixes
-- **📚 Auto-Documentation** - Maintains docs/COMPONENTS.md, ARCHITECTURE.md, etc.
-
-### 🚀 How It Works
+### Example 3: Research & Analysis
 ```bash
-# 1. Install the hook system
-./config/hooks/install.sh
+# Market research
+claude-flow-novice swarm "Research the best Node.js frameworks for building APIs"
+```
 
-# 2. Configure Claude Code hooks
+**Research agents will:**
+- Gather information about popular frameworks
+- Compare features and performance
+- Analyze pros and cons
+- Create a summary report
+- Provide recommendations
+
+---
+
+## 🛠️ Common Commands
+
+### Project Management
+```bash
+# Create new project
+claude-flow-novice init project-name
+
+# Start development server
+claude-flow-novice start
+
+# Check project status
+claude-flow-novice status
+
+# Build for production
+claude-flow-novice build
+```
+
+### Agent Swarms
+```bash
+# Launch agents to work on a task
+claude-flow-novice swarm "Build a blog with user accounts"
+
+# Full-stack development (all agent types)
+/fullstack "Create an e-commerce site with products and checkout"
+
+# Research tasks
+claude-flow-novice research "Compare React vs Vue for beginners"
+```
+
+### Monitoring
+```bash
+# Watch agents work in real-time
+claude-flow-novice monitor
+
+# View performance metrics
+claude-flow-novice metrics
+
+# See detailed logs
+claude-flow-novice logs
+```
+
+---
+
+## 🎯 How It Works (Simple Explanation)
+
+```
+You Tell AI What to Build
+          ↓
+    Claude Flow Creates
+    Specialized AI Agents
+          ↓
+    Agents Work Together
+    (Like a Team of Experts)
+          ↓
+    You Monitor Progress
+    In Real-time Dashboard
+          ↓
+    Complete Project ✅
+```
+
+### The AI Agent Types
+- **Backend Developer** - Builds APIs, databases, server logic
+- **Frontend Developer** - Creates user interfaces, React/Vue apps
+- **Tester** - Writes tests, finds bugs, ensures quality
+- **API Designer** - Plans API endpoints and documentation
+- **Security Specialist** - Adds security best practices
+- **Researcher** - Gathers information and analyzes options
+
+---
+
+## 📊 Dashboard & Monitoring
+
+Claude Flow Novice includes a real-time dashboard that shows you:
+
+- **What each agent is working on** right now
+- **Progress percentage** for your project
+- **Agent conversations** and decisions
+- **Code being written** in real-time
+- **Test results** and quality metrics
+
+### Start the Dashboard
+```bash
+# Launch monitoring dashboard
+claude-flow-novice monitor
+
+# Or view in browser (usually http://localhost:3000)
+claude-flow-novice start --dashboard
+```
+
+---
+
+## 🔧 Simple Configuration
+
+Most users don't need to configure anything - it works out of the box! But if you want to customize:
+
+### Basic Config File
+Create `claude-flow.config.json` in your project:
+
+```json
 {
-  "hooks": {
-    "pre-edit": "node config/hooks/hook-manager.cjs execute pre-edit",
-    "post-edit": "node config/hooks/hook-manager.cjs execute post-edit"
+  "name": "my-project",
+  "maxAgents": 5,
+  "redis": {
+    "host": "localhost",
+    "port": 6379
   }
 }
-
-# 3. Watch the magic happen
-# - Security validation prevents dangerous edits
-# - Fast testing provides immediate feedback
-# - Dependencies are automatically analyzed
-# - Subagents receive structured feedback and implement missing dependencies
-# - Documentation updates automatically
 ```
 
-### 🆕 Agent Self-Execution Breakthrough
-Instead of spawning new agents, the system provides **structured feedback** to the calling subagent:
+### Environment Variables (Optional)
+```bash
+# Redis settings
+REDIS_URL=redis://localhost:6379
 
-```
-🤖 AGENT FEEDBACK: DEPENDENCIES TO IMPLEMENT
-📊 SUMMARY:
-  🔍 Missing dependencies: 3
-  ⏱️  Estimated effort: 15 minutes
-  💡 Suggested approach: Create stub implementations first
+# API keys (if using external services)
+ANTHROPIC_API_KEY=your-key-here
 
-🎯 ACTION ITEMS FOR AGENT:
-1. CREATE: missing-user-service.js
-   Class: MissingUserService
-   Methods needed: validateUser, getOrderHistory
-   Constructor args: options
-   Hints: async methods required
+# Logging level
+LOG_LEVEL=info
 ```
 
-The subagent then **self-executes** based on this feedback, preserving context and eliminating agent spawning overhead.
+---
 
-**Result**: 84% faster dependency resolution with perfect context preservation! 🚀
+## 🆘 Common Issues & Solutions
 
-📖 **Full Documentation**: [`config/hooks/README.md`](./config/hooks/README.md)
+### Installation Problems
+```bash
+# Permission denied
+sudo npm install -g claude-flow-novice
 
-## 🧪 Test Reports
+# Node.js version too old
+nvm install 20
+nvm use 20
+```
 
-Automated validation of agent-human communication portal available at [`playwright-report/`](./playwright-report/README.md).
+### Redis Connection Issues
+```bash
+# Check if Redis is running
+redis-cli ping
 
-## 🗺️ Roadmap
+# Start Redis if not running
+redis-server
 
-### v2.0 - Enterprise Security & Isolation
-- **Container Isolation**: Docker/Podman containerization for agent sandboxing
-  - Resource limits (memory, CPU, I/O) per agent type
-  - Process isolation preventing cross-agent interference
-  - Automated cleanup and resource management
-- **Enterprise Credential Management**: Secure credential vault integration
-  - Encrypted credential storage with key rotation
-  - Scoped permissions per agent type
-  - Audit logging and compliance tracking
-- **Production Security Hardening**: Address identified security vulnerabilities
-  - Input validation and sanitization
-  - Command injection prevention
-  - Resource exhaustion protection
+# Use different port
+REDIS_URL=redis://localhost:6380 claude-flow-novice start
+```
 
-### v2.1 - Advanced Orchestration
-- **Multi-node Swarm Scaling**: Distributed agent execution across multiple machines
-- **Advanced Consensus Protocols**: Enhanced Byzantine fault tolerance
-- **Real-time Resource Monitoring**: Live dashboards and alerting
+### Performance Issues
+```bash
+# Increase memory limit
+export NODE_OPTIONS="--max-old-space-size=4096"
 
-### v3.0 - AI-Native Platform
-- **Natural Language Orchestration**: Plain English swarm coordination
-- **Hybrid Cloud Deployment**: On-premises and cloud-native execution
+# Use performance mode
+claude-flow-novice start --performance
 
-## 🛣️ Future Roadmap
+# Monitor what's happening
+claude-flow-novice monitor --detailed
+```
 
-### Phase 4: Advanced Learning & Intelligence (Future Enhancement)
-*Moved to future roadmap after core validation system completion*
+---
 
-**Smart Learning Capabilities:**
-- **ML Pattern Recognition**: Automatically detect completion quality patterns (target: 85% accuracy)
-- **Predictive Failure Detection**: Early warning system for potential issues (target: 70% prevention)
-- **Cross-Project Learning**: Share successful patterns between projects (target: 20% improvement)
-- **Adaptive Thresholds**: Dynamic quality standards based on project complexity (target: 15% better accuracy)
+## 📚 Learn More
 
-**Why Future**: Core validation system (Phases 1-3) successfully prevents false completion claims through real test execution. Phase 4 learning features are valuable enhancements but not essential for production deployment.
+### Next Steps
+- [📖 Detailed Tutorial](./docs/QUICK_START.md) - Step-by-step guide
+- [🔧 Configuration Guide](./docs/CONFIGURATION.md) - Advanced setup
+- [💡 Examples Gallery](./docs/EXAMPLES.md) - Real-world projects
+- [📚 API Reference](./docs/API.md) - All commands and options
 
-**Implementation Priority**: After core system adoption and user feedback collection.
+### Video Tutorials (Coming Soon)
+- 🎥 Getting Started (5 min)
+- 🎥 Building Your First API (10 min)
+- 🎥 Creating a React App (15 min)
+- 🎥 Advanced Agent Coordination (20 min)
 
-## 🗺️ Documentation Navigation
+---
 
-### 📚 **Essential Reading**
-- **[📖 Documentation Hub](./docs/INDEX.md)** - Complete guide index with learning paths
-- **[🗺️ Site Map](./docs/SITE_MAP.md)** - Comprehensive navigation and cross-references
-- **[🎯 User Guide](./docs/USER_GUIDE.md)** - Step-by-step tutorials and examples
-- **[🔧 API Reference](./docs/API_DOCUMENTATION.md)** - Complete API documentation
+## 🤝 Get Help
 
-### 🎯 **By User Type**
-| Role | Start Here | Next Steps | Advanced |
-|------|------------|------------|----------|
-| **New Users** | [User Guide](./docs/USER_GUIDE.md) | [Agent Catalog](./docs/AGENTS.md) | [SPARC Methods](./docs/SPARC.md) |
-| **Developers** | [Development Workflow](./docs/DEVELOPMENT_WORKFLOW.md) | [API Docs](./docs/API_DOCUMENTATION.md) | [Architecture](./docs/ARCHITECTURE.md) |
-| **DevOps** | [Deployment Guide](./docs/DEPLOYMENT.md) | [Security Report](./docs/SECURITY_AUDIT_REPORT.md) | [Performance Analysis](./docs/performance-analysis-report.md) |
-| **Architects** | [Architecture Guide](./docs/ARCHITECTURE.md) | [Technical Specs](./docs/technical-implementation-guide.md) | [Validation Reports](./docs/validation/) |
+### Quick Help
+```bash
+# Get help with any command
+claude-flow-novice --help
+claude-flow-novice swarm --help
+```
 
-### 🔗 **Quick Links**
-- **🤖 [Agent Catalog](./docs/AGENTS.md)** - All 54+ specialized agents
-- **🐝 [Swarm Intelligence](./docs/SWARM.md)** - Coordination patterns and topologies
-- **⚡ [SPARC Development](./docs/SPARC.md)** - Structured development methodology
-- **🔧 [MCP Tools](./docs/MCP_TOOLS.md)** - 112 automation tools reference
-- **🚀 [Deployment](./docs/DEPLOYMENT.md)** - Production setup and scaling
+### Community Support
+- **GitHub Issues**: [Report bugs](https://github.com/masharratt/claude-flow-novice/issues)
+- **Discussions**: [Ask questions](https://github.com/masharratt/claude-flow-novice/discussions)
+- **Documentation**: [Full docs](https://github.com/masharratt/claude-flow-novice/wiki)
 
-### 🆘 **Need Help?**
-- **[📋 Troubleshooting](./docs/troubleshooting.md)** - Common issues and solutions
-- **[🎯 CLI Validation](./docs/cli-validation-report.md)** - Command reference and validation
-- **[📊 Performance Tips](./docs/performance-analysis-report.md)** - Optimization strategies
-- **[🔍 Site Map](./docs/SITE_MAP.md)** - Find any documentation quickly
+### Common Questions
+- **Q: Do I need to know AI/ML to use this?**
+  A: No! This is designed for beginners. Just describe what you want to build.
 
-### 🌐 **External Resources**
-- **[GitHub Repository](https://github.com/ruvnet/claude-flow)** - Source code and issues
-- **[Community Discord](https://discord.gg/claude-flow)** - Real-time support and discussions
-- **[Stack Overflow](https://stackoverflow.com/questions/tagged/claude-flow)** - Technical Q&A
+- **Q: Can I use this for real projects?**
+  A: Yes! Many developers use Claude Flow Novice for production applications.
+
+- **Q: How much does it cost?**
+  A: The tool is free (MIT license). You only pay for any AI API calls you make.
+
+- **Q: Can I customize the agents?**
+  A: Yes! Advanced users can create custom agent types and behaviors.
+
+---
+
+## 🗺️ What's Next?
+
+### Version 1.7 (Current)
+- ✅ Multi-agent coordination
+- ✅ Real-time dashboard
+- ✅ Redis persistence
+- ✅ Beginner-friendly setup
+
+### Version 1.8 (Coming Soon)
+- 🔄 More agent types
+- 🔄 Better error handling
+- 🔄 Visual workflow designer
+- 🔄 One-click deployment
+
+---
 
 ## 📄 License
 
-MIT License - see [LICENSE](./LICENSE) for details.
+MIT License - see [LICENSE](./LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-**Built for transparent human-AI collaboration**
+**Ready to build with AI agents?**
 
-*See everything. Control everything. Personalize everything.*
+[🚀 Get Started Now](#-quick-start) • [💡 View Examples](#-basic-examples) • [🤝 Get Help](#-get-help)
+
+Made with ❤️ for beginners by [Claude Flow Novice Team](https://github.com/masharratt/claude-flow-novice)
 
 </div>

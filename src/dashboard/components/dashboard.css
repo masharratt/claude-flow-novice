@@ -1,0 +1,555 @@
+/**
+ * Fleet Dashboard Styles
+ * Modern, responsive dashboard styling
+ */
+
+:root {
+  --dashboard-bg: #0a0e1a;
+  --dashboard-card-bg: #141824;
+  --dashboard-text: #ffffff;
+  --dashboard-text-secondary: #aaaaaa;
+  --dashboard-border: rgba(255, 255, 255, 0.1);
+  --dashboard-success: #00ff88;
+  --dashboard-warning: #ffaa00;
+  --dashboard-critical: #ff3b30;
+  --dashboard-info: #00d4ff;
+}
+
+/* Main Dashboard Layout */
+.fleet-dashboard {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--dashboard-bg);
+  color: var(--dashboard-text);
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.fleet-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.fleet-dashboard-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fleet-dashboard-horizontal {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  overflow-x: auto;
+}
+
+/* Dashboard Sections */
+.dashboard-section {
+  background: var(--dashboard-card-bg);
+  border: 1px solid var(--dashboard-border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.dashboard-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--dashboard-text);
+}
+
+/* Fleet Overview */
+.fleet-overview {
+  position: relative;
+}
+
+.connection-indicator {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--dashboard-text-secondary);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.status-dot.connected {
+  background: var(--dashboard-success);
+}
+
+.status-dot.polling {
+  background: var(--dashboard-warning);
+}
+
+.status-dot.disconnected,
+.status-dot.error {
+  background: var(--dashboard-critical);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* System Metrics */
+.system-metrics {
+  margin-bottom: 24px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--dashboard-border);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.metric-card.warning {
+  border-color: var(--dashboard-warning);
+}
+
+.metric-card.critical {
+  border-color: var(--dashboard-critical);
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.metric-label {
+  font-size: 12px;
+  color: var(--dashboard-text-secondary);
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--dashboard-text);
+  line-height: 1;
+}
+
+.metric-value .unit {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--dashboard-text-secondary);
+  margin-left: 4px;
+}
+
+.metric-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--dashboard-info);
+  transition: width 0.3s ease;
+}
+
+.metric-card.warning .bar-fill {
+  background: var(--dashboard-warning);
+}
+
+.metric-card.critical .bar-fill {
+  background: var(--dashboard-critical);
+}
+
+/* Fleet Summary */
+.fleet-summary {
+  margin-top: 24px;
+}
+
+.summary-stats {
+  display: flex;
+  gap: 32px;
+  margin-top: 12px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--dashboard-info);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--dashboard-text-secondary);
+  margin-top: 4px;
+}
+
+/* Swarm Visualization */
+.swarm-visualization {
+  min-height: 200px;
+}
+
+.swarm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.swarm-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--dashboard-border);
+  border-radius: 6px;
+  padding: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.swarm-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.swarm-card.status-active,
+.swarm-card.status-running {
+  border-color: var(--dashboard-success);
+}
+
+.swarm-card.status-failed {
+  border-color: var(--dashboard-critical);
+}
+
+.swarm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.swarm-name {
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.swarm-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dashboard-text-secondary);
+}
+
+.status-active .status-indicator,
+.status-running .status-indicator {
+  background: var(--dashboard-success);
+}
+
+.status-failed .status-indicator {
+  background: var(--dashboard-critical);
+}
+
+.swarm-metrics {
+  margin: 12px 0;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin: 6px 0;
+  color: var(--dashboard-text-secondary);
+}
+
+.metric-row .value {
+  color: var(--dashboard-text);
+  font-weight: 500;
+}
+
+.swarm-progress,
+.swarm-confidence {
+  margin-top: 12px;
+}
+
+.progress-label,
+.confidence-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--dashboard-text-secondary);
+}
+
+.progress-value,
+.confidence-value {
+  font-weight: 600;
+  color: var(--dashboard-text);
+}
+
+.progress-bar,
+.confidence-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--dashboard-info);
+  transition: width 0.5s ease;
+}
+
+.confidence-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.confidence-fill.high {
+  background: var(--dashboard-success);
+}
+
+.confidence-fill.medium {
+  background: var(--dashboard-warning);
+}
+
+.confidence-fill.low {
+  background: var(--dashboard-critical);
+}
+
+.swarm-objective {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--dashboard-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Empty State */
+.empty-state,
+.no-alerts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--dashboard-text-secondary);
+}
+
+.empty-icon,
+.no-alerts .icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.empty-message,
+.no-alerts .message {
+  font-size: 14px;
+}
+
+/* Performance Chart */
+.performance-chart {
+  position: relative;
+  padding: 20px 0;
+}
+
+/* Alerts Panel */
+.alerts-panel {
+  max-height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.alerts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.severity-filters {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--dashboard-border);
+  color: var(--dashboard-text-secondary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.filter-btn.active {
+  background: var(--dashboard-info);
+  border-color: var(--dashboard-info);
+  color: #ffffff;
+}
+
+.alerts-list {
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+.alert-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid var(--dashboard-border);
+  border-radius: 4px;
+}
+
+.alert-item.severity-critical {
+  border-left-color: var(--dashboard-critical);
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.alert-item.severity-warning {
+  border-left-color: var(--dashboard-warning);
+  background: rgba(255, 170, 0, 0.1);
+}
+
+.alert-item.severity-info {
+  border-left-color: var(--dashboard-info);
+}
+
+.alert-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.alert-message {
+  font-size: 13px;
+  color: var(--dashboard-text-secondary);
+  margin-bottom: 4px;
+}
+
+.alert-category {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.alert-time {
+  font-size: 11px;
+  color: var(--dashboard-text-secondary);
+  margin-top: 4px;
+}
+
+/* Loading & Error States */
+.fleet-dashboard-loading,
+.fleet-dashboard-error,
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: var(--dashboard-text-secondary);
+}
+
+.fleet-dashboard-error {
+  flex-direction: column;
+  gap: 16px;
+}
+
+.error-icon {
+  font-size: 48px;
+  color: var(--dashboard-critical);
+}
+
+.error-message {
+  font-size: 16px;
+  color: var(--dashboard-text);
+}
+
+.fleet-dashboard-error button {
+  background: var(--dashboard-info);
+  color: #ffffff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.fleet-dashboard-error button:hover {
+  background: #00bfef;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .fleet-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .swarm-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-stats {
+    justify-content: space-around;
+  }
+
+  .severity-filters {
+    flex-wrap: wrap;
+  }
+}

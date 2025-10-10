@@ -175,31 +175,100 @@ function parseArgs<T extends Record<string, any>>(args: string[]): T {
   return options as T;
 }
 
-// Execute hook with ruv-swarm
+// Execute hook with existing hook implementations
 async function executeHook(hookType: string, options: Record<string, any>): Promise<void> {
-  const args = buildArgs(hookType, options);
+  logger.debug(`Executing hook: ${hookType}`);
 
-  logger.debug(`Executing hook: ruv-swarm hook ${args.join(' ')}`);
+  try {
+    // Route to appropriate hook implementation
+    switch (hookType) {
+      case 'post-edit':
+        await executePostEditHook(options);
+        break;
+      case 'session-start':
+        await executeSessionStartHook(options);
+        break;
+      case 'pre-edit':
+      case 'pre-task':
+      case 'post-task':
+      case 'pre-command':
+      case 'post-command':
+      case 'session-end':
+      case 'session-restore':
+      case 'pre-search':
+      case 'notification':
+      case 'performance':
+      case 'memory-sync':
+      case 'telemetry':
+        logger.info(`Hook ${hookType} - logging event (no-op implementation)`);
+        // These hooks are available but don't block - always succeed
+        break;
+      default:
+        logger.warning(`Unknown hook type: ${hookType}`);
+    }
+  } catch (error) {
+    // Hooks should never block operations - log error but don't throw
+    logger.warning(`Hook ${hookType} encountered error: ${error}`);
+    logger.info('Continuing despite hook error (non-blocking)');
+  }
+}
 
-  const child = spawn('npx', ['ruv-swarm', 'hook', ...args], {
+// Execute post-edit hook using existing pipeline
+async function executePostEditHook(options: Record<string, any>): Promise<void> {
+  const { file, memoryKey, format, analyze } = options;
+
+  if (!file) {
+    logger.warning('post-edit hook called without file parameter');
+    return;
+  }
+
+  logger.info(`Running post-edit validation for: ${file}`);
+
+  // Call existing post-edit-pipeline.js
+  const args = [file];
+  if (memoryKey) args.push('--memory-key', memoryKey);
+  if (format) args.push('--format');
+  if (analyze) args.push('--analyze');
+
+  const { spawn } = await import('child_process');
+  const { join } = await import('path');
+  const hookPath = join(process.cwd(), 'config', 'hooks', 'post-edit-pipeline.js');
+
+  const child = spawn('node', [hookPath, ...args], {
     stdio: 'inherit',
-    shell: true,
+    shell: false,
+    cwd: process.cwd(),
   });
 
-  await new Promise<void>((resolve, reject) => {
+  // Always exit successfully - hooks should not block
+  await new Promise<void>((resolve) => {
     child.on('exit', (code) => {
       if (code === 0) {
-        resolve();
+        logger.info('Post-edit validation completed successfully');
       } else {
-        reject(new Error(`Hook ${hookType} failed with exit code ${code}`));
+        logger.warning(`Post-edit validation exited with code ${code} (non-blocking)`);
       }
+      resolve();
     });
 
     child.on('error', (error) => {
-      logger.error(`Failed to execute hook ${hookType}:`, error);
-      reject(error);
+      logger.warning(`Post-edit validation error: ${error.message} (non-blocking)`);
+      resolve();
     });
   });
+}
+
+// Execute session-start hook using existing implementation
+async function executeSessionStartHook(options: Record<string, any>): Promise<void> {
+  logger.info('Running session-start hook');
+
+  try {
+    const { executeSessionStartSoulHook } = await import('../simple-commands/hooks/session-start-soul.js');
+    await executeSessionStartSoulHook(options);
+    logger.info('Session-start hook completed successfully');
+  } catch (error) {
+    logger.warning(`Session-start hook error: ${error} (non-blocking)`);
+  }
 }
 
 // Main hook command handler

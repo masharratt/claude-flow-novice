@@ -1,0 +1,197 @@
+{
+  "timestamp": "2025-10-10T00:46:36.545Z",
+  "summary": {
+    "passed": 35,
+    "failed": 1,
+    "warnings": 0,
+    "confidence": 0.9722222222222222
+  },
+  "results": {
+    "passed": [
+      {
+        "type": "file-exists",
+        "description": "directory: .claude-flow-novice/dist/src",
+        "path": ".claude-flow-novice/dist/src"
+      },
+      {
+        "type": "file-exists",
+        "description": "directory: .claude-flow-novice/dist/src/cli",
+        "path": ".claude-flow-novice/dist/src/cli"
+      },
+      {
+        "type": "file-exists",
+        "description": "directory: .claude-flow-novice/dist/src/core",
+        "path": ".claude-flow-novice/dist/src/core"
+      },
+      {
+        "type": "file-exists",
+        "description": "directory: .claude-flow-novice/dist/src/agents",
+        "path": ".claude-flow-novice/dist/src/agents"
+      },
+      {
+        "type": "file-exists",
+        "description": "main",
+        "path": "./.claude-flow-novice/dist/src/index.js"
+      },
+      {
+        "type": "import",
+        "description": "main",
+        "path": "./.claude-flow-novice/dist/src/index.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "types",
+        "path": "./.claude-flow-novice/dist/index.d.ts"
+      },
+      {
+        "type": "file-exists",
+        "description": "bin/claude-flow-novice",
+        "path": "./.claude-flow-novice/dist/src/cli/main.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "bin/claude-soul",
+        "path": "./.claude/commands/claude-soul.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "bin/swarm",
+        "path": "./.claude/commands/swarm.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "bin/sparc",
+        "path": "./.claude/commands/sparc.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "bin/hooks",
+        "path": "./.claude/commands/hooks.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "bin/memory-safety",
+        "path": "./config/hooks/pre-tool-memory-safety.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (default)",
+        "path": "./.claude-flow-novice/dist/src/index.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./cli)",
+        "path": "./.claude-flow-novice/dist/src/cli/index.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./mcp)",
+        "path": "./.claude-flow-novice/dist/src/mcp/mcp-server-sdk.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./mcp-novice)",
+        "path": "./.claude-flow-novice/dist/src/mcp/mcp-server-novice.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./core)",
+        "path": "./.claude-flow-novice/dist/src/core/index.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./cfn-loop)",
+        "path": "./.claude-flow-novice/dist/src/cfn-loop/index.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./cfn-loop/orchestrator)",
+        "path": "./.claude-flow-novice/dist/src/cfn-loop/cfn-loop-orchestrator.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./cfn-loop/phase-orchestrator)",
+        "path": "./.claude-flow-novice/dist/src/cfn-loop/phase-orchestrator.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./cfn-loop/sprint-orchestrator)",
+        "path": "./.claude-flow-novice/dist/src/cfn-loop/sprint-orchestrator.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./slash-commands/cfn-loop-single)",
+        "path": "./.claude-flow-novice/dist/src/slash-commands/cfn-loop-single.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./slash-commands/cfn-loop-sprints)",
+        "path": "./.claude-flow-novice/dist/src/slash-commands/cfn-loop-sprints.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./slash-commands/cfn-loop-epic)",
+        "path": "./.claude-flow-novice/dist/src/slash-commands/cfn-loop-epic.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./slash-commands/claude-soul)",
+        "path": "./.claude-flow-novice/dist/src/slash-commands/claude-soul.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./observability/metrics-counter)",
+        "path": "./.claude-flow-novice/dist/src/observability/metrics-counter.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./observability/metrics-storage)",
+        "path": "./.claude-flow-novice/dist/src/observability/metrics-storage.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./providers)",
+        "path": "./.claude-flow-novice/dist/src/providers/index.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./providers/zai)",
+        "path": "./.claude-flow-novice/dist/src/providers/zai-provider.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./providers/tiered-router)",
+        "path": "./.claude-flow-novice/dist/src/providers/tiered-router.js"
+      },
+      {
+        "type": "file-exists",
+        "description": "exports (./hooks)",
+        "path": "./.claude-flow-novice/dist/src/hooks/index.js"
+      },
+      {
+        "type": "import",
+        "description": "main entry",
+        "path": "./.claude-flow-novice/dist/src/index.js"
+      },
+      {
+        "type": "import",
+        "description": "default export",
+        "path": "./.claude-flow-novice/dist/src/index.js"
+      },
+      {
+        "type": "import",
+        "description": "MCP export",
+        "path": "./.claude-flow-novice/dist/src/mcp/mcp-server-sdk.js"
+      }
+    ],
+    "failed": [
+      {
+        "type": "import-failed",
+        "description": "CLI export",
+        "path": "./.claude-flow-novice/dist/src/cli/index.js",
+        "error": "Cannot find module '/mnt/c/Users/masha/Documents/claude-flow-novice/.claude-flow-novice/dist/src/cli/command-registry.js' imported from /mnt/c/Users/masha/Documents/claude-flow-novice/.claude-flow-novice/dist/src/cli/simple-cli.js"
+      }
+    ],
+    "warnings": []
+  }
+}

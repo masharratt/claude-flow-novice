@@ -34,6 +34,7 @@ the new content is provided here for manual review and merging.
 * **No guides/summaries/reports** unless explicitly asked.
 * **Use spartan language.**
 * **Redis persistence enables swarm recovery** - swarm state survives interruptions.
+* **ALL agent communication MUST use Redis pub/sub** - no direct file coordination.
 
 **Consensus thresholds**
 
@@ -54,6 +55,18 @@ If **any** apply, spawn agents:
 
 ### 3.1 Swarm Init → Spawn (Single Message)
 
+**Swarm Init Pattern: ONCE per phase, not per round**
+```bash
+# Phase-level initialization (persistent through all loops)
+executeSwarm({
+  swarmId: "phase-0-mcp-less-foundation",
+  objective: "Phase 0: MCP-Less Foundation",
+  strategy: "development",
+  mode: "mesh",
+  persistence: true
+})
+```
+
 **Redis-backed Swarm Execution**:
 ```bash
 node test-swarm-direct.js "Create REST API with authentication" --executor --max-agents 3
@@ -61,6 +74,14 @@ node test-swarm-direct.js "Create REST API with authentication" --executor --max
 ```
 
 **Topology**: mesh (2–7), hierarchical (8+)
+
+**When to Re-Init:**
+- ✅ New phase starts (Phase 0 → Phase 1 → Phase 2...)
+- ✅ Swarm corruption detected
+- ✅ >24 hours since last activity (TTL expiration)
+- ❌ Loop 3 retry iterations (use existing swarm)
+- ❌ Loop 2 consensus validations (use existing swarm)
+- ❌ Agent respawns within same phase
 
 ### 3.2 Post-Edit Hook (Mandatory)
 
@@ -93,17 +114,18 @@ pkill -f vitest; pkill -f "npm test"
 ## 4) CFN Loop (Single Section)
 Loop 0: Epic/Sprint orchestration (multi-phase) → no iteration limit
 Loop 1: Phase execution (sequential phases) → no limit
-Loop 2: Consensus validation (validators) → max 10/phase; exit at ≥0.90
+Loop 2: Consensus validation (team of 2-4 validators) → max 10/phase; exit at ≥0.90
 Loop 3: Primary swarm implementation → max 10/subtask; exit when all ≥0.75
 Loop 4: Product Owner decision gate (GOAP) → PROCEED / DEFER / ESCALATE
 
 Flow
 
 Loop 3 implementers produce output + self-confidence scores.
+Can use up to 7 agents in mesh, if > 7 agents needed, use coordinators in mesh with teams under them in hierarchical. Can use up to 50 agents under a coordinator
 
 Gate: if all ≥0.75, go to Loop 2; else retry Loop 3 with targeted/different agents.
 
-Loop 2 validators run; if ≥0.90, phase complete; else retry Loop 3 targeted to issues.
+Loop 2 validator team of 2-4 agents run; refer recommendations to product owner for decisions
 
 **🎯 CRITICAL:** Loop 4 Product Owner runs autonomous GOAP decision:
 
@@ -117,10 +139,10 @@ ESCALATE: Critical ambiguity → human review.
 
 Auto-transition phases when complete by launching a swarm for next steps. No permission prompts.
 
-Retry Templates (minimal)
+Retry Templates
 
 Loop 3 retry (low confidence): replace failing agents with specialists; add missing roles (security/perf).
-Loop 2 retry (consensus <0.90): target validator issues (e.g., fix SQLi, raise coverage) and re-run Loop 3.
+Loop 2 retry (consensus <0.90): target validator issues (e.g., fix SQLi, raise coverage) and refer recommendations to product owner for improvements
 
 Stop only if: dual iteration limits reached, critical security/compilation error, or explicit STOP/PAUSE.
 
@@ -144,6 +166,7 @@ Stop only if: dual iteration limits reached, critical security/compilation error
 * Asking permission to retry/advance when criteria/iterations allow.
 * Saving to root.
 * Creating guides/summaries/reports unless asked.
+* Agent coordination without Redis pub/sub messaging.
 
 ---
 
@@ -171,6 +194,9 @@ node test-swarm-direct.js "Create REST API" --executor --max-agents 3
 # Swarm recovery after interruption
 redis-cli keys "swarm:*"  # Find interrupted swarms
 node test-swarm-recovery.js  # Execute recovery
+
+# CRITICAL: All agents MUST use Redis pub/sub for coordination
+redis-cli publish "swarm:coordination" '{"agent":"id","status":"message"}'
 ```
 
 **Essentials**
@@ -230,7 +256,7 @@ redis-cli get "swarm:swarm_id"  # Check specific swarm
 ### Recovery Operations
 
 ```bash
-# Recovery after interruption
+# Recovery after interruption (uses existing swarm - NO reinit needed)
 node test-swarm-recovery.js  # Execute recovery
 redis-cli --scan --pattern "swarm:*" | xargs -I {} redis-cli get {}  # List swarm states
 ./recover-swarm.sh swarm_id  # Manual recovery script
@@ -238,6 +264,9 @@ redis-cli --scan --pattern "swarm:*" | xargs -I {} redis-cli get {}  # List swar
 # Monitor recovery progress
 monitor-recovery swarm_id  # Custom recovery monitoring function
 redis-cli monitor | grep "swarm:"  # Real-time swarm activity
+
+# CRITICAL: Recovery preserves swarm state - only reinit for new phases
+redis-cli get "swarm:{swarmId}"  # Check existing swarm state
 ```
 
 ### Development Workflows

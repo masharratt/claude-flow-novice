@@ -1,9 +1,23 @@
 #!/usr/bin/env node
 /**
- * Claude-Flow Novice MCP Server - SIMPLIFIED VERSION
- * Only 36 essential tools for beginners
- * 80% complexity reduction while preserving core capabilities
+ * ⚠️ DEPRECATED: MCP server has been removed in v2.0.0
+ * Please use: claude-flow-novice start
+ * See: MCP_DEPRECATION_NOTICE.md
  */
+
+// Redirect to deprecation notice
+import { fileURLToPath } from 'url';
+import path from 'path';
+import { createRequire } from 'module';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
+
+require('./DEPRECATED.js');
+process.exit(1);
+
+/* LEGACY CODE - NON-FUNCTIONAL
 
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -581,3 +595,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { ClaudeFlowNoviceMCPServer };
+
+*/

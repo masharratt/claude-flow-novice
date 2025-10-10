@@ -40,10 +40,10 @@ export class AlertManager extends EventEmitter {
             // Process-specific thresholds
             process: {
                 memory: {
-                    heapWarning: 4 * 1024 * 1024 * 1024,  // 4GB heap warning
-                    heapCritical: 6 * 1024 * 1024 * 1024, // 6GB heap critical
-                    rssWarning: 8 * 1024 * 1024 * 1024,   // 8GB RSS warning
-                    rssCritical: 12 * 1024 * 1024 * 1024  // 12GB RSS critical
+                    heapWarning: 16 * 1024 * 1024 * 1024,  // 16GB heap warning
+                    heapCritical: 18 * 1024 * 1024 * 1024, // 18GB heap critical
+                    rssWarning: 20 * 1024 * 1024 * 1024,   // 20GB RSS warning
+                    rssCritical: 22 * 1024 * 1024 * 1024  // 22GB RSS critical
                 },
                 handles: {
                     warning: 1000,
@@ -331,7 +331,7 @@ export class AlertManager extends EventEmitter {
         let totalEfficiency = 0;
         let count = 0;
 
-        for (const [id, swarm] of metrics.swarms) {
+        for (const [id, swarm] of Object.entries(metrics.swarms || {})) {
             if (swarm.performance && typeof swarm.performance.efficiency === 'number') {
                 totalEfficiency += swarm.performance.efficiency;
                 count++;

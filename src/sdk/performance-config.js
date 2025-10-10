@@ -412,8 +412,8 @@ class PerformanceConfig {
       performance: {
         enableV8Flags: true,
         v8Flags: [
-          '--max-old-space-size=4096',
-          '--max-semi-space-size=128'
+          '--max-old-space-size=16384',
+          '--max-semi-space-size=256'
         ],
 
         // Worker threads

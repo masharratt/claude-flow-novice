@@ -9,8 +9,8 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import figlet from 'figlet';
-import gradient from 'gradient-string';
+// import figlet from 'figlet';
+// import gradient from 'gradient-string';
 import { HiveMind } from '../../../hive-mind/core/HiveMind.js';
 import { DatabaseManager } from '../../../hive-mind/core/DatabaseManager.js';
 import { formatSuccess, formatError, formatInfo, formatWarning } from '../../formatter.js';
@@ -96,13 +96,22 @@ export const wizardCommand = new Command('wizard')
 
 async function showIntro() {
   console.clear();
-  const title = figlet.textSync('Hive Mind', {
-    font: 'Big',
-    horizontalLayout: 'default',
-    verticalLayout: 'default',
-  });
+  const title = `
+███████╗ ██████╗██╗███████╗███╗   ██╗███████╗████████╗
+██╔════╝██╔════╝██║██╔════╝████╗  ██║██╔════╝╚══██╔══╝
+█████╗  ██║     ██║███████╗██╔██╗ ██║█████╗     ██║
+██╔══╝  ██║     ██║╚════██║██║╚██╗██║██╔══╝     ██║
+██║     ╚██████╗██║███████║██║ ╚████║███████╗   ██║
+╚═╝      ╚═════╝╚═╝╚══════╝╚═╝  ╚═══╝╚══════╝   ╚═╝
+               ███╗   ██╗███████╗██╗  ██╗██╗████████╗
+               ████╗  ██║██╔════╝╚██╗██╔╝██║╚══██╔══╝
+               ██╔██╗ ██║█████╗   ╚███╔╝ ██║   ██║
+               ██║╚██╗██║██╔══╝   ██╔██╗ ██║   ██║
+               ██║ ╚████║███████╗██╔╝ ██╗██║   ██║
+               ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝   ╚═╝
+                                                      MIND`;
 
-  console.log(gradient.rainbow(title));
+  console.log(chalk.cyan(title));
   console.log(chalk.bold.yellow('\n🐝 Welcome to the Hive Mind Interactive Wizard! 🐝\n'));
   console.log(chalk.gray('Collective intelligence for autonomous task orchestration\n'));
 

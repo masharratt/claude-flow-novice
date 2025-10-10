@@ -1,16 +1,27 @@
-# Development files
+# Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Development files
 .DS_Store
 .env
-.env.local
-.env.development
-.env.test
-.env.production
+.env.*
+!.env.example
+!.env.template
+!.env.secure.template
+*.key
+*.pem
+*.p12
+*.pfx
 .vscode/
 .idea/
 
-# UI source files (extension not needed for CLI)
-src/ui/
+# Source files - we ship compiled JS only
+src/
+tsconfig.tsbuildinfo
+.swcrc
 
 # Test files
 __tests__/
@@ -18,93 +29,70 @@ test/
 tests/
 coverage/
 .nyc_output/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
 
-# Build artifacts (we include dist/ for compiled files)
-tsconfig.tsbuildinfo
+# Development tools and configs
+.eslintrc*
+.prettierrc*
+jest.config*
+babel.config*
+webpack.config*
+rollup.config*
 
-# Source control
-.git/
-.gitignore
-.github/
-
-# TypeScript source files (we ship compiled JS)
-src/**/*.ts
-!src/**/*.d.ts
-# Include slash commands
-!src/commands/*.js
-# Include memory JS files
-!src/memory/*.js
-!src/memory/*.sql
-# Include MCP server files
-!src/mcp/mcp-server.js
-
-# Documentation source files
-docs/
-planning/
-# Exclude specific markdown files only
+# Documentation and planning (keep essential docs)
+reports/
 CONTRIBUTING.md
 SECURITY.md
 CODE_OF_CONDUCT.md
 DEVELOPMENT.md
 TESTING.md
-# Keep essential files
-!README.md
-!CHANGELOG.md
-!LICENSE
 
-# Development configs
-.eslintrc.js
-.eslintrc.json
-.prettierrc.js
-.prettierrc.json
-jest.config.js
-jest.config.json
-tsconfig.json
-deno.json
-deno.lock
+# Include specific documentation for users
+!docs/
+!planning/logs-*.md
+!planning/documentation-style-guide.md
 
-# Local files
+# Build artifacts (keep dist for compiled files)
+dist/
+.claude-flow-novice/metrics.db*
+.claude-flow-novice/preferences/
+
+# Local development files
 claude-flow
 claude-flow.cmd
 init-test/
 exported-memory.json
 test-memory.json
-
-# Reports and analysis
-reports/
-# Exclude JSON files except essential ones
-package-lock.json.bak
-test-memory.json.bak
-exported-memory.json.bak
-!package.json
-!package-lock.json
-!.claude/config.json
-
-# Binary builds (we don't need prebuilt binaries for npm)
-bin/claude-flow-linux
-bin/claude-flow-macos
-bin/claude-flow-win
-bin/claude-flow-node-pkg
-
-# Include examples/ for the npm package (as it's in files array)
-!examples/
+*.log
 
 # CI/CD
+.github/
 .travis.yml
 .circleci/
 .gitlab-ci.yml
 
-# Keep essential files for npm package
-!cli.js
-!scripts/
-!.claude/
-!.claude/agents/
-!.claude/agents/**/*.md
-!config/
+# Binary builds
+bin/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Keep essential files
+!README.md
+!CHANGELOG.md
+!LICENSE
 !CLAUDE.md
+!.claude/
+!config/
+!scripts/
+!examples/
 !wiki/
-!src/commands/
-!src/slash-commands/
-!src/cli/simple-commands/
-!src/swarm-fullstack/
-!src/npx/
+
+# Keep compiled distribution files
+!.claude-flow-novice/dist/
+!.claude-flow-novice/.claude/

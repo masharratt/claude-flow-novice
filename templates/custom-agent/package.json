@@ -1,0 +1,26 @@
+{
+  "name": "my-custom-agent-project",
+  "version": "1.0.0",
+  "description": "Claude Flow Novice custom agent development project",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx claude-flow-novice",
+    "create-agent": "node scripts/create-custom-agent.js",
+    "test-agent": "node test-custom-agent.js",
+    "swarm": "node test-swarm-direct.js",
+    "validate": "npx claude-flow-novice validate:agents"
+  },
+  "dependencies": {
+    "claude-flow-novice": "^1.6.6"
+  },
+  "keywords": [
+    "claude",
+    "custom-agents",
+    "ai-agents",
+    "tools",
+    "swarm"
+  ],
+  "author": "",
+  "license": "MIT"
+}

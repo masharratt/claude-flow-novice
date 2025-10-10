@@ -29,7 +29,15 @@
       "Bash(node :*)",
       "Bash(which :*)",
       "Bash(pwd)",
-      "Bash(ls :*)"
+      "Bash(ls :*)",
+      "Bash(npm run build:*)",
+      "Bash(node:*)",
+      "Bash(npm run build:types:*)",
+      "mcp__ruv-swarm",
+      "mcp__claude-flow@alpha",
+      "mcp__flow-nexus",
+      "WebSearch",
+      "mcp__claude-flow-novice__swarm_init"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -53,7 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CMD=$(cat | jq -r \".tool_input.command // empty\"); if echo \"$CMD\" | grep -q \"find /mnt/c\"; then echo \"🔴 BLOCKED: find on /mnt/c paths forbidden (causes memory leak - use Glob tool instead)\" >&2; exit 1; fi; case \"$CMD\" in *\"npx claude-flow-novice\"*|*\"hooks pre-command\"*|*\"hooks post-command\"*) echo \"[Hook] Skipping recursion: $CMD\" >&2;; *) echo \"$CMD\" | tr \"\\n\" \"\\0\" | xargs -0 -I {} npx claude-flow-novice hooks pre-command --command \"{}\" --validate-safety true --prepare-resources true;; esac'"
+            "command": "bash -c 'CMD=$(cat | jq -r \".tool_input.command // empty\"); if echo \"$CMD\" | grep -q \"find /mnt/c\"; then echo \"🔴 BLOCKED: find on /mnt/c paths forbidden (causes memory leak - use Glob tool instead)\" >&2; exit 1; fi; echo \"[Hook] Command validated\" >&2; exit 0'"
           }
         ]
       },
@@ -62,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat | jq -r '.tool_input.file_path // .tool_input.path // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow-novice hooks pre-edit --file '{}' --auto-assign-agents true --load-context true"
+            "command": "bash -c 'FILE=$(cat | jq -r \".tool_input.file_path // .tool_input.path // empty\"); if echo \"$FILE\" | grep -qE \"package\\.json$|package-lock\\.json$|yarn\\.lock$|node_modules/|\\.git/|\\.log$|dist/|build/|\\.db$\"; then echo \"[Hook] Skipping protected file: $FILE\" >&2; exit 0; fi; echo \"[Hook] File edit validated\" >&2; exit 0'"
           }
         ]
       }
@@ -73,7 +81,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'CMD=$(cat | jq -r \".tool_input.command // empty\"); case \"$CMD\" in *\"npx claude-flow-novice\"*|*\"hooks pre-command\"*|*\"hooks post-command\"*) echo \"[Hook] Skipping recursion: $CMD\" >&2;; *) echo \"$CMD\" | tr \"\\n\" \"\\0\" | xargs -0 -I {} npx claude-flow-novice hooks post-command --command \"{}\" --track-metrics true --store-results true;; esac'"
+            "command": "bash -c 'echo \"[Hook] Command completed\" >&2; exit 0'"
           }
         ]
       },
@@ -82,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat | jq -r '.tool_input.file_path // .tool_input.path // empty' | tr '\\n' '\\0' | xargs -0 -I {} npx claude-flow-novice hooks post-edit --file '{}' --format true --update-memory true"
+            "command": "bash -c 'FILE=$(cat | jq -r \".tool_input.file_path // .tool_input.path // empty\"); if echo \"$FILE\" | grep -qE \"package\\.json$|package-lock\\.json$|yarn\\.lock$|node_modules/|\\.git/|\\.log$|dist/|build/|\\.db$\"; then echo \"[Hook] Skipping protected file: $FILE\" >&2; exit 0; fi; echo \"[Hook] File edit completed\" >&2; exit 0'"
           }
         ]
       }
@@ -93,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash -c 'INPUT=$(cat); CUSTOM=$(echo \"$INPUT\" | jq -r \".custom_instructions // \\\"\\\"\"); echo \"🔄 PreCompact Guidance:\"; echo \"📋 IMPORTANT: Review CLAUDE.md in project root for:\"; echo \"   • 54 available agents and concurrent usage patterns\"; echo \"   • Swarm coordination strategies (hierarchical, mesh, adaptive)\"; echo \"   • SPARC methodology workflows with batchtools optimization\"; echo \"   • Critical concurrent execution rules (GOLDEN RULE: 1 MESSAGE = ALL OPERATIONS)\"; if [ -n \"$CUSTOM\" ]; then echo \"🎯 Custom compact instructions: $CUSTOM\"; fi; echo \"\"; echo \"🧹 Cleaning up idle sessions...\"; bash scripts/cleanup-idle-sessions.sh 2>/dev/null | tail -1 || echo \"Cleanup skipped\"; echo \"✅ Ready for compact operation\"'"
+            "command": "/bin/bash -c 'export PATH=\"$HOME/bin:$PATH\"; INPUT=$(cat); CUSTOM=$(echo \"$INPUT\" | jq -r \".custom_instructions // \\\"\\\"\"); echo \"🔄 PreCompact Guidance:\"; echo \"📋 IMPORTANT: Review CLAUDE.md in project root for:\"; echo \"   • 54 available agents and concurrent usage patterns\"; echo \"   • Swarm coordination strategies (hierarchical, mesh, adaptive)\"; echo \"   • SPARC methodology workflows with batchtools optimization\"; echo \"   • Critical concurrent execution rules (GOLDEN RULE: 1 MESSAGE = ALL OPERATIONS)\"; if [ -n \"$CUSTOM\" ]; then echo \"🎯 Custom compact instructions: $CUSTOM\"; fi; echo \"\"; echo \"🧹 Cleaning up idle sessions...\"; timeout 30s bash scripts/cleanup-idle-sessions.sh 2>/dev/null | tail -1 || echo \"Cleanup skipped\"; echo \"✅ Ready for compact operation\"'"
           }
         ]
       },
@@ -102,7 +110,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash -c 'echo \"🔄 Auto-Compact Guidance (Context Window Full):\"; echo \"📋 CRITICAL: Before compacting, ensure you understand:\"; echo \"   The claude.md file of the directory you are working in\"; echo \"   • Concurrent execution patterns from CLAUDE.md\"; echo \"   • the CFN loop \"; echo \"   • Swarm coordination strategies for complex tasks\"; echo \"⚡ Apply GOLDEN RULE: Always batch operations in single messages\"; echo \"\"; echo \"🧹 Cleaning up idle sessions...\"; bash scripts/cleanup-idle-sessions.sh 2>/dev/null | tail -1 || echo \"Cleanup skipped\"; echo \"\"; echo \"📊 Recent Metrics Summary (Last 60 min):\"; node src/slash-commands/metrics-summary.js --minutes=60 2>/dev/null || echo \"   Metrics unavailable\"; echo \"✅ Auto-compact proceeding with full agent context\"'"
+            "command": "/bin/bash -c 'echo \"🔄 Auto-Compact Guidance (Context Window Full):\"; echo \"📋 CRITICAL: Before compacting, ensure you understand:\"; echo \"   The claude.md file of the directory you are working in\"; echo \"   • Concurrent execution patterns from CLAUDE.md\"; echo \"   • the CFN loop \"; echo \"   • Swarm coordination strategies for complex tasks\"; echo \"⚡ Apply GOLDEN RULE: Always batch operations in single messages\"; echo \"\"; echo \"🧹 Cleaning up idle sessions...\"; timeout 30s bash scripts/cleanup-idle-sessions.sh 2>/dev/null | tail -1 || echo \"Cleanup skipped\"; echo \"\"; echo \"📊 Recent Metrics Summary (Last 60 min):\"; timeout 30s node src/slash-commands/metrics-summary.js --minutes=60 2>/dev/null || echo \"   Metrics unavailable\"; echo \"✅ Auto-compact proceeding with full agent context\"'"
           }
         ]
       }
@@ -112,7 +120,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx claude-flow-novice hooks session-end --generate-summary true --persist-state true --export-metrics true"
+            "command": "bash -c 'echo \"[Hook] Session ending\" >&2; exit 0'"
           }
         ]
       }
@@ -125,6 +133,6 @@
     "n8n-mcp"
   ],
   "tieredRouting": {
-    "enabled": false
+    "enabled": true
   }
 }

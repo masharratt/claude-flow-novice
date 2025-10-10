@@ -1,0 +1,75 @@
+{
+  "name": "@claude-flow-novice/fleet-manager",
+  "version": "2.0.0",
+  "description": "Enterprise-grade fleet management system for 1000+ AI agents with auto-scaling, Redis coordination, and real-time monitoring",
+  "type": "module",
+  "main": "./index.js",
+  "types": "./types.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types.d.ts",
+      "import": "./index.js",
+      "require": "./index.cjs"
+    },
+    "./core": {
+      "types": "./core/types.d.ts",
+      "import": "./core/index.js"
+    },
+    "./coordination": {
+      "types": "./coordination/types.d.ts",
+      "import": "./coordination/index.js"
+    },
+    "./scaling": {
+      "types": "./scaling/types.d.ts",
+      "import": "./scaling/index.js"
+    },
+    "./monitoring": {
+      "types": "./monitoring/types.d.ts",
+      "import": "./monitoring/index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "types.d.ts",
+    "core/",
+    "coordination/",
+    "scaling/",
+    "monitoring/",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "fleet-management",
+    "agent-orchestration",
+    "auto-scaling",
+    "redis",
+    "distributed-systems",
+    "event-bus",
+    "resource-allocation",
+    "monitoring",
+    "ai-agents",
+    "swarm-coordination"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "redis": "^4.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/claude-flow-novice.git",
+    "directory": "src/fleet-manager"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/claude-flow-novice/issues"
+  },
+  "homepage": "https://github.com/yourusername/claude-flow-novice#readme",
+  "license": "MIT",
+  "author": "Claude Flow Novice Team"
+}

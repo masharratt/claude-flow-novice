@@ -6,9 +6,16 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import { createRequire } from 'module';
 import { MetricsCollector } from '../collectors/metrics-collector.js';
 import { BenchmarkRunner } from '../benchmarks/runner.js';
 import { AlertManager } from '../alerts/alert-manager.js';
+
+// Import CommonJS module for authentication
+const require = createRequire(import.meta.url);
+const AuthenticationService = require('./auth-service.cjs');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +30,15 @@ class PremiumMonitorServer {
                 methods: ["GET", "POST"]
             }
         });
+
+        // Initialize authentication service
+        try {
+            this.authService = new AuthenticationService();
+        } catch (error) {
+            console.error('❌ Failed to initialize authentication service:', error.message);
+            console.error('Please configure dashboard credentials in .env file');
+            process.exit(1);
+        }
 
         this.metricsCollector = new MetricsCollector();
         this.benchmarkRunner = new BenchmarkRunner();
@@ -42,11 +58,37 @@ class PremiumMonitorServer {
         this.app.use(express.json());
         this.app.use(express.static(__dirname));
 
-        // CORS middleware
+        // Enhanced security middleware with CSP
         this.app.use((req, res, next) => {
+            // CORS headers
             res.header('Access-Control-Allow-Origin', '*');
             res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
             res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+            // Content Security Policy - Allow Socket.io CDN and local resources
+            const csp = [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.socket.io",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "font-src 'self' https://fonts.gstatic.com",
+                "img-src 'self' data: https:",
+                "connect-src 'self' ws: wss: https://cdn.socket.io",
+                "frame-src 'none'",
+                "object-src 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+                "manifest-src 'self'",
+                "worker-src 'self' blob:",
+                "child-src 'self' blob:"
+            ].join('; ');
+
+            res.header('Content-Security-Policy', csp);
+            res.header('X-Content-Type-Options', 'nosniff');
+            res.header('X-Frame-Options', 'DENY');
+            res.header('X-XSS-Protection', '1; mode=block');
+            res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+            res.header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
             next();
         });
     }
@@ -101,6 +143,150 @@ class PremiumMonitorServer {
             const { id } = req.params;
             this.alertManager.acknowledgeAlert(id);
             res.json({ success: true });
+        });
+
+        // Authentication endpoint - secure implementation
+        this.app.post('/api/auth/login', async (req, res) => {
+            try {
+                const { username, password } = req.body;
+
+                if (!username || !password) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Username and password are required'
+                    });
+                }
+
+                const result = await this.authService.authenticate(username, password);
+
+                if (result) {
+                    res.json(result);
+                } else {
+                    res.status(401).json({
+                        success: false,
+                        message: 'Invalid credentials'
+                    });
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                res.status(500).json({
+                    success: false,
+                    message: 'Authentication service error'
+                });
+            }
+        });
+
+        // Session validation endpoint
+        this.app.post('/api/auth/validate', (req, res) => {
+            const { token } = req.body;
+            const session = this.authService.validateSession(token);
+
+            if (session) {
+                res.json({
+                    success: true,
+                    user: { username: session.username, role: session.role }
+                });
+            } else {
+                res.status(401).json({
+                    success: false,
+                    message: 'Invalid or expired session'
+                });
+            }
+        });
+
+        // SECURITY FIX: Token refresh endpoint
+        this.app.post('/api/auth/refresh', async (req, res) => {
+            try {
+                const { refreshToken } = req.body;
+
+                if (!refreshToken) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Refresh token is required'
+                    });
+                }
+
+                const result = await this.authService.refreshAccessToken(refreshToken);
+
+                if (result.success) {
+                    res.json(result);
+                } else {
+                    res.status(401).json(result);
+                }
+            } catch (error) {
+                console.error('Token refresh error:', error);
+                res.status(500).json({
+                    success: false,
+                    error: 'Token refresh failed'
+                });
+            }
+        });
+
+        // Logout endpoint
+        this.app.post('/api/auth/logout', (req, res) => {
+            const { token } = req.body;
+            if (token) {
+                this.authService.revokeSession(token);
+                this.authService.revokeJWTToken(token); // Also revoke JWT token
+            }
+            res.json({
+                success: true,
+                message: 'Logout successful'
+            });
+        });
+
+        // Session statistics endpoint (admin only)
+        this.app.get('/api/auth/stats', (req, res) => {
+            const authHeader = req.headers.authorization;
+            const token = authHeader?.split(' ')[1];
+            const session = this.authService.validateSession(token);
+
+            if (!session || session.role !== 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Admin access required'
+                });
+            }
+
+            res.json(this.authService.getSessionStatistics());
+        });
+
+        // Authentication verification endpoint
+        this.app.post('/api/auth/verify', (req, res) => {
+            const { token } = req.body;
+
+            try {
+                const decoded = Buffer.from(token, 'base64').toString();
+                const [username, timestamp] = decoded.split(':');
+                const now = Date.now();
+                const tokenTime = parseInt(timestamp);
+
+                // Check if token is valid and not expired (24 hours)
+                if (now - tokenTime < 24 * 60 * 60 * 1000 && username) {
+                    res.json({
+                        success: true,
+                        user: { username },
+                        valid: true
+                    });
+                } else {
+                    res.json({
+                        success: false,
+                        valid: false,
+                        message: 'Token expired'
+                    });
+                }
+            } catch (error) {
+                res.json({
+                    success: false,
+                    valid: false,
+                    message: 'Invalid token'
+                });
+            }
+        });
+
+        // Socket.io will be served from CDN
+        this.app.get("/socket.io.js", (req, res) => {
+            res.redirect("https://cdn.socket.io/4.7.5/socket.io.min.js");
         });
 
         // Health check endpoint

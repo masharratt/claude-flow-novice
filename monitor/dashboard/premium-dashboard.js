@@ -2,8 +2,10 @@
 class PremiumDashboard {
     constructor() {
         this.socket = null;
+        this.pollingService = null;
         this.charts = {};
         this.updateInterval = 1000; // 1 second updates
+        this.connectionMode = 'websocket'; // 'websocket' or 'polling'
         this.metrics = {
             system: {},
             swarms: new Map(),
@@ -16,6 +18,7 @@ class PremiumDashboard {
     }
 
     async init() {
+        this.initializePollingService();
         this.setupWebSocket();
         this.setupEventListeners();
         this.initializeCharts();
@@ -38,12 +41,27 @@ class PremiumDashboard {
             },
             transports: ['websocket', 'polling'],
             upgrade: true,
-            rememberUpgrade: true
+            rememberUpgrade: true,
+            timeout: 5000,
+            forceNew: false
         });
 
         this.socket.on('connect', () => {
+            this.connectionMode = 'websocket';
             this.updateConnectionStatus('connected');
-            console.log('🔐 Securely connected to metrics server');
+            console.log('🔐 Securely connected to metrics server via WebSocket');
+
+            // Stop polling if it was active
+            if (this.pollingService) {
+                this.pollingService.setWebSocketStatus(true);
+            }
+
+            // Add notification about connection mode
+            this.addAlert({
+                title: 'WebSocket Connected',
+                message: 'Real-time updates enabled via WebSocket',
+                severity: 'info'
+            });
         });
 
         this.socket.on('disconnect', (reason) => {
@@ -53,6 +71,9 @@ class PremiumDashboard {
             // If authentication failed, show login
             if (reason === 'authentication error') {
                 window.authClient.showLoginModal();
+            } else {
+                // Start polling fallback for other disconnection reasons
+                this.activatePollingFallback();
             }
         });
 
@@ -61,16 +82,18 @@ class PremiumDashboard {
             this.updateConnectionStatus('disconnected');
 
             // Handle authentication errors
-            if (error.message.includes('Authentication')) {
+            if (error.message.includes('Authentication') || error.message.includes('401')) {
                 window.authClient.showLoginModal();
             } else {
                 // Fallback to polling for non-auth errors
-                this.startPolling();
+                this.activatePollingFallback();
             }
         });
 
         this.socket.on('metrics', (data) => {
-            this.updateMetrics(data);
+            if (this.connectionMode === 'websocket') {
+                this.updateMetrics(data);
+            }
         });
 
         this.socket.on('alert', (alert) => {
@@ -83,6 +106,50 @@ class PremiumDashboard {
 
         this.socket.on('security_alert', (alert) => {
             this.addSecurityAlert(alert);
+        });
+    }
+
+    initializePollingService() {
+        // Import HttpPollingService
+        import('./http-polling-service.js').then(module => {
+            this.pollingService = new module.HttpPollingService({
+                pollingInterval: this.updateInterval,
+                timeout: 5000,
+                maxRetries: 3,
+                retryDelay: 2000
+            });
+
+            // Subscribe to polling events
+            this.pollingService.subscribe('metrics', (data) => {
+                if (this.connectionMode === 'polling') {
+                    this.updateMetrics(data);
+                }
+            });
+
+            this.pollingService.subscribe('pollingStarted', () => {
+                console.log('📡 HTTP polling fallback activated');
+                this.updateConnectionStatus('polling');
+            });
+
+            this.pollingService.subscribe('pollingStopped', () => {
+                console.log('📡 HTTP polling stopped');
+            });
+
+            this.pollingService.subscribe('pollingRetry', (data) => {
+                console.log(`🔄 Polling retry ${data.attempt}/${data.maxRetries}`);
+            });
+
+            this.pollingService.subscribe('pollingFailed', (data) => {
+                console.error('💥 Polling failed:', data.error);
+                this.addAlert({
+                    title: 'Connection Failed',
+                    message: 'Unable to fetch metrics. Please check your connection.',
+                    severity: 'critical'
+                });
+            });
+
+        }).catch(error => {
+            console.error('Failed to load polling service:', error);
         });
     }
 
@@ -111,6 +178,11 @@ class PremiumDashboard {
                 e.preventDefault();
                 this.refreshMetrics();
             }
+        });
+
+        // Connection mode indicator click to force switch
+        document.getElementById('connection-text')?.addEventListener('click', () => {
+            this.toggleConnectionMode();
         });
     }
 
@@ -264,24 +336,124 @@ class PremiumDashboard {
         const swarmGrid = document.getElementById('swarm-grid');
         if (!swarmGrid) return;
 
-        const swarms = this.metrics.swarms || new Map();
+        const swarms = this.metrics.swarms || {};
         swarmGrid.innerHTML = '';
 
-        swarms.forEach((swarm, id) => {
-            const swarmElement = document.createElement('div');
-            swarmElement.className = 'swarm-instance';
-            swarmElement.innerHTML = `
-                <div class="swarm-name">${swarm.name || `Swarm ${id}`}</div>
-                <div class="swarm-status ${swarm.status}">${swarm.status}</div>
-                <div class="swarm-metrics">
-                    <div>Agents: ${swarm.agents || 0}</div>
-                    <div>Tasks: ${swarm.tasks || 0}</div>
-                    <div>CPU: ${swarm.cpu?.toFixed(1) || 0}%</div>
-                    <div>Memory: ${swarm.memory?.toFixed(1) || 0}MB</div>
+        // Add swarm summary header if multiple swarms
+        const swarmCount = Object.keys(swarms).length;
+        if (swarmCount > 1) {
+            const summaryElement = document.createElement('div');
+            summaryElement.className = 'swarm-summary';
+
+            // Calculate totals
+            let totalAgents = 0;
+            let totalTasks = 0;
+            let activeSwarms = 0;
+
+            Object.values(swarms).forEach(swarm => {
+                totalAgents += swarm.agents || 0;
+                totalTasks += swarm.tasks || 0;
+                if (swarm.status === 'active' || swarm.status === 'running') {
+                    activeSwarms++;
+                }
+            });
+
+            summaryElement.innerHTML = `
+                <div class="summary-header">
+                    <h3>Multi-Swarm Activity</h3>
+                    <div class="summary-stats">
+                        <span class="summary-stat">
+                            <span class="stat-value">${swarmCount}</span>
+                            <span class="stat-label">Total Swarms</span>
+                        </span>
+                        <span class="summary-stat">
+                            <span class="stat-value">${totalAgents}</span>
+                            <span class="stat-label">Total Agents</span>
+                        </span>
+                        <span class="summary-stat">
+                            <span class="stat-value">${activeSwarms}</span>
+                            <span class="stat-label">Active</span>
+                        </span>
+                    </div>
                 </div>
+            `;
+            swarmGrid.appendChild(summaryElement);
+        }
+
+        // Display individual swarms
+        Object.entries(swarms).forEach(([id, swarm]) => {
+            const swarmElement = document.createElement('div');
+            swarmElement.className = `swarm-instance ${swarm.status} ${swarm.isSummary ? 'summary-swarm' : ''}`;
+
+            // Calculate progress percentage
+            const progressPercent = Math.round((swarm.progress || 0) * 100);
+            const confidencePercent = Math.round((swarm.confidence || 0) * 100);
+
+            swarmElement.innerHTML = `
+                <div class="swarm-header">
+                    <div class="swarm-name" title="${swarm.objective || 'No objective'}">${swarm.name || `Swarm ${id}`}</div>
+                    <div class="swarm-status ${swarm.status}">
+                        <span class="status-indicator"></span>
+                        ${swarm.status}
+                    </div>
+                </div>
+                <div class="swarm-details">
+                    <div class="swarm-metrics">
+                        <div class="metric-row">
+                            <span class="metric-label">Agents:</span>
+                            <span class="metric-value">${swarm.agents || 0}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Tasks:</span>
+                            <span class="metric-value">${swarm.tasks || 0}</span>
+                        </div>
+                        ${swarm.isSummary ? `
+                        <div class="metric-row">
+                            <span class="metric-label">Swarms:</span>
+                            <span class="metric-value">${swarm.swarmCount || 1}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="swarm-performance">
+                        <div class="performance-metric">
+                            <span class="perf-label">Progress</span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+                                <span class="progress-text">${progressPercent}%</span>
+                            </div>
+                        </div>
+                        ${swarm.confidence !== undefined ? `
+                        <div class="performance-metric">
+                            <span class="perf-label">Confidence</span>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill ${confidencePercent >= 90 ? 'high' : confidencePercent >= 75 ? 'medium' : 'low'}"
+                                     style="width: ${confidencePercent}%"></div>
+                                <span class="confidence-text">${confidencePercent}%</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                ${swarm.uptime ? `
+                <div class="swarm-footer">
+                    <span class="uptime">Uptime: ${this.formatUptime(swarm.uptime)}</span>
+                </div>
+                ` : ''}
             `;
             swarmGrid.appendChild(swarmElement);
         });
+
+        // If no swarms, show empty state
+        if (swarmCount === 0) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'swarm-empty-state';
+            emptyState.innerHTML = `
+                <div class="empty-icon">🐝</div>
+                <div class="empty-title">No Active Swarms</div>
+                <div class="empty-description">Start a swarm to see real-time activity here</div>
+            `;
+            swarmGrid.appendChild(emptyState);
+        }
     }
 
     updateDatabaseMetrics() {
@@ -457,7 +629,53 @@ class PremiumDashboard {
         }
     }
 
-    updateConnectionStatus(status) {
+    activatePollingFallback() {
+        console.log('🔄 Activating HTTP polling fallback...');
+        this.connectionMode = 'polling';
+
+        if (this.pollingService) {
+            this.pollingService.start();
+        } else {
+            // Fallback to basic polling if service not available
+            this.startBasicPolling();
+        }
+
+        // Add notification about fallback activation
+        this.addAlert({
+            title: 'Fallback Activated',
+            message: 'Switched to HTTP polling for real-time updates',
+            severity: 'warning'
+        });
+    }
+
+  toggleConnectionMode() {
+        if (this.connectionMode === 'websocket') {
+            // Manually switch to polling
+            this.activatePollingFallback();
+        } else {
+            // Try to reconnect WebSocket
+            if (this.socket) {
+                this.socket.connect();
+            }
+        }
+    }
+
+  startBasicPolling() {
+        // Basic polling fallback if HttpPollingService not available
+        setInterval(async () => {
+            if (this.connectionMode === 'polling') {
+                try {
+                    const response = await fetch('/api/metrics');
+                    const data = await response.json();
+                    this.updateMetrics(data);
+                } catch (error) {
+                    console.error('Basic polling failed:', error);
+                }
+            }
+        }, this.updateInterval);
+    }
+
+  updateConnectionStatus(status) {
         const statusDot = document.getElementById('connection-status');
         const statusText = document.getElementById('connection-text');
 
@@ -465,14 +683,31 @@ class PremiumDashboard {
 
         switch (status) {
             case 'connected':
-                statusText.textContent = 'Connected';
+                statusText.textContent = 'WebSocket';
+                statusText.title = 'Connected via WebSocket - Real-time';
+                break;
+            case 'polling':
+                statusText.textContent = 'HTTP Polling';
+                statusText.title = 'Connected via HTTP Polling - 1s updates';
+                statusDot.className = 'status-dot polling';
                 break;
             case 'disconnected':
                 statusText.textContent = 'Disconnected';
+                statusText.title = 'Connection lost - Click to retry';
                 break;
             case 'connecting':
                 statusText.textContent = 'Connecting...';
+                statusText.title = 'Establishing connection...';
                 break;
+        }
+
+        // Add visual indicator for polling mode
+        if (status === 'polling') {
+            statusDot.style.backgroundColor = '#ffaa00'; // Orange for polling
+        } else if (status === 'connected') {
+            statusDot.style.backgroundColor = '#00ff88'; // Green for WebSocket
+        } else {
+            statusDot.style.backgroundColor = '#ff3b30'; // Red for disconnected
         }
     }
 
@@ -505,29 +740,33 @@ class PremiumDashboard {
     }
 
     startMetricsCollection() {
-        // If WebSocket is not available, start polling
-        if (!this.socket || !this.socket.connected) {
-            this.startPolling();
-        }
-    }
-
-    startPolling() {
-        setInterval(async () => {
-            try {
-                const response = await fetch('/api/metrics');
-                const data = await response.json();
-                this.updateMetrics(data);
-            } catch (error) {
-                console.error('Failed to fetch metrics:', error);
+        // Set a timeout to check WebSocket connection after 5 seconds
+        setTimeout(() => {
+            if (!this.socket || !this.socket.connected) {
+                console.log('WebSocket not connected after timeout, activating polling fallback');
+                this.activatePollingFallback();
             }
-        }, this.updateInterval);
+        }, 5000);
     }
 
     refreshMetrics() {
-        if (this.socket && this.socket.connected) {
+        if (this.connectionMode === 'websocket' && this.socket && this.socket.connected) {
             this.socket.emit('refresh');
+        } else if (this.connectionMode === 'polling' && this.pollingService) {
+            this.pollingService.forcePoll();
         } else {
-            this.startPolling();
+            // Force immediate data fetch
+            this.fetchMetricsOnce();
+        }
+    }
+
+    async fetchMetricsOnce() {
+        try {
+            const response = await fetch('/api/metrics');
+            const data = await response.json();
+            this.updateMetrics(data);
+        } catch (error) {
+            console.error('Failed to fetch metrics:', error);
         }
     }
 
@@ -549,6 +788,18 @@ class PremiumDashboard {
                 severity: 'info',
                 category: 'security'
             });
+        }
+    }
+
+    formatUptime(seconds) {
+        if (seconds < 60) {
+            return `${seconds}s`;
+        } else if (seconds < 3600) {
+            return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+        } else {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return `${hours}h ${minutes}m`;
         }
     }
 }

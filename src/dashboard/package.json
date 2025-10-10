@@ -1,0 +1,89 @@
+{
+  "name": "@claude-flow-novice/dashboard",
+  "version": "1.0.0",
+  "description": "Real-time fleet monitoring dashboard components for claude-flow-novice",
+  "keywords": [
+    "dashboard",
+    "monitoring",
+    "fleet",
+    "real-time",
+    "websocket",
+    "react",
+    "metrics",
+    "visualization"
+  ],
+  "main": "./FleetDashboardClient.js",
+  "module": "./FleetDashboardClient.js",
+  "types": "./FleetDashboardClient.d.ts",
+  "exports": {
+    ".": {
+      "require": "./FleetDashboardClient.js",
+      "import": "./FleetDashboardClient.js",
+      "types": "./FleetDashboardClient.d.ts"
+    },
+    "./components": {
+      "require": "./components/index.js",
+      "import": "./components/index.js",
+      "types": "./components/index.d.ts"
+    },
+    "./server": {
+      "require": "./DashboardServer.js",
+      "import": "./DashboardServer.js",
+      "types": "./DashboardServer.d.ts"
+    },
+    "./dashboard.css": "./components/dashboard.css"
+  },
+  "files": [
+    "FleetDashboardClient.js",
+    "FleetDashboardClient.d.ts",
+    "DashboardServer.js",
+    "DashboardServer.d.ts",
+    "components/",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node DashboardServer.js",
+    "dev": "node DashboardServer.js --port 3001",
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5",
+    "express": "^4.18.2"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "chart.js": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "chart.js": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.48",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/claude-flow-novice.git",
+    "directory": "src/dashboard"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/claude-flow-novice/issues"
+  },
+  "homepage": "https://github.com/your-org/claude-flow-novice/tree/main/src/dashboard#readme",
+  "license": "MIT",
+  "author": "Claude Flow Novice Contributors"
+}

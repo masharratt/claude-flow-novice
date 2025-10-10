@@ -122,7 +122,8 @@ class CryptographicCore {
   // Encrypt sensitive data
   encrypt(data: string, key: string): { encrypted: string; iv: string; tag: string } {
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher(this.algorithm, key);
+    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    const cipher = crypto.createCipheriv(this.algorithm, keyBuffer, iv);
     cipher.setAAD(Buffer.from('claude-flow-verification'));
 
     let encrypted = cipher.update(data, 'utf8', 'hex');
@@ -139,7 +140,9 @@ class CryptographicCore {
 
   // Decrypt sensitive data
   decrypt(encryptedData: { encrypted: string; iv: string; tag: string }, key: string): string {
-    const decipher = crypto.createDecipher(this.algorithm, key);
+    const iv = Buffer.from(encryptedData.iv, 'hex');
+    const keyBuffer = crypto.createHash('sha256').update(key).digest();
+    const decipher = crypto.createDecipheriv(this.algorithm, keyBuffer, iv);
     decipher.setAAD(Buffer.from('claude-flow-verification'));
     decipher.setAuthTag(Buffer.from(encryptedData.tag, 'hex'));
 

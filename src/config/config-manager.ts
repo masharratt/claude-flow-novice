@@ -404,7 +404,7 @@ class SecureCredentialStore {
 
   private encrypt(text: string, key: Buffer): string {
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher('aes-256-gcm', key);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key.slice(0, 32), iv);
     cipher.setAAD(Buffer.from('claude-flow-auth'));
 
     let encrypted = cipher.update(text, 'utf8', 'hex');
@@ -419,7 +419,7 @@ class SecureCredentialStore {
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');
 
-    const decipher = crypto.createDecipher('aes-256-gcm', key);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key.slice(0, 32), iv);
     decipher.setAAD(Buffer.from('claude-flow-auth'));
     decipher.setAuthTag(authTag);
 

@@ -32,6 +32,8 @@ bin/claude-flow-*
 .env
 .env.local
 .env.*.local
+.env.keys
+.env.backup.*
 
 # Logs
 logs/
@@ -142,3 +144,6 @@ claude-flow
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
 *.test-checkpoints/*
+
+planning/large-coordination/*
+planning/legion/*

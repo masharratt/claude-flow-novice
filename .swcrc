@@ -1,6 +1,6 @@
 {
   "jsc": {
-    "target": "es2022",
+    "target": "es2020",
     "baseUrl": ".",
     "parser": {
       "syntax": "typescript",
@@ -20,7 +20,8 @@
     "strict": false,
     "strictMode": true,
     "lazy": false,
-    "noInterop": false
+    "noInterop": false,
+    "resolveExtensions": [".ts", ".tsx", ".js", ".jsx"]
   },
   "minify": false,
   "sourceMaps": false,

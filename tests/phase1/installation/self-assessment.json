@@ -1,0 +1,21 @@
+{
+  "agent": "installation-tester",
+  "confidence": 0,
+  "reasoning": "",
+  "platforms_tested": [
+    "linux"
+  ],
+  "avg_install_time_minutes": 0.2890004234333334,
+  "test_coverage": {
+    "total": 4,
+    "passed": 0,
+    "failed": 4,
+    "pass_rate": 0
+  },
+  "blockers": [
+    "Test failed: installation-comprehensive.test.js",
+    "Test failed: platform-specific.test.js",
+    "Test failed: template-validation.test.js",
+    "Test failed: redis-auto-config.test.js"
+  ]
+}

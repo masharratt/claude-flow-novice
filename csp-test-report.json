@@ -1,0 +1,303 @@
+{
+  "timestamp": "2025-10-09T17:04:00.512Z",
+  "summary": {
+    "total": 29,
+    "passed": 24,
+    "failed": 2,
+    "warnings": 1,
+    "errors": 0,
+    "info": 1
+  },
+  "results": [
+    {
+      "status": "PASS",
+      "description": "CSP Configuration Validation",
+      "details": {
+        "isValid": true,
+        "issues": 1,
+        "recommendations": 1
+      },
+      "timestamp": "2025-10-09T17:04:00.495Z"
+    },
+    {
+      "status": "WARNING",
+      "description": "CSP Issue: script-src includes unsafe-inline - consider removing for better security",
+      "details": {
+        "recommendation": "Use CSP hashes or nonces instead of unsafe-inline"
+      },
+      "timestamp": "2025-10-09T17:04:00.496Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Server Health Check",
+      "details": {
+        "status": "healthy",
+        "uptime": 154.241116824,
+        "version": "1.0.0"
+      },
+      "timestamp": "2025-10-09T17:04:00.505Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Security Report Generation",
+      "details": {
+        "securityLevel": "HIGH",
+        "cspViolations": 0,
+        "totalRecommendations": 1
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "WARN",
+      "description": "CSP Resource Access Test",
+      "details": {
+        "total": 6,
+        "allowed": 5,
+        "blocked": 1
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource Access: script",
+      "details": {
+        "resource": "https://cdn.jsdelivr.net/npm/chart.js",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource Access: script",
+      "details": {
+        "resource": "/socket.io.js",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource Access: style",
+      "details": {
+        "resource": "https://fonts.googleapis.com/css2?family=Inter",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource Access: font",
+      "details": {
+        "resource": "https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "FAIL",
+      "description": "Resource Access: connect",
+      "details": {
+        "resource": "ws://localhost:3001",
+        "allowed": false,
+        "blockedBy": "connectSrc"
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource Access: img",
+      "details": {
+        "resource": "data:image/png;base64,test",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.507Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Socket.io Client Endpoint",
+      "details": {
+        "contentType": "application/javascript",
+        "contentLength": 4017,
+        "isSelfHosted": true
+      },
+      "timestamp": "2025-10-09T17:04:00.508Z"
+    },
+    {
+      "status": "PASS",
+      "description": "CSP Policy Generation",
+      "details": {
+        "headerLength": 386,
+        "directiveCount": 13
+      },
+      "timestamp": "2025-10-09T17:04:00.508Z"
+    },
+    {
+      "status": "PASS",
+      "description": "CSP Directive Present: default-src",
+      "details": {
+        "present": true
+      },
+      "timestamp": "2025-10-09T17:04:00.508Z"
+    },
+    {
+      "status": "PASS",
+      "description": "CSP Directive Present: script-src",
+      "details": {
+        "present": true
+      },
+      "timestamp": "2025-10-09T17:04:00.508Z"
+    },
+    {
+      "status": "PASS",
+      "description": "CSP Directive Present: style-src",
+      "details": {
+        "present": true
+      },
+      "timestamp": "2025-10-09T17:04:00.508Z"
+    },
+    {
+      "status": "PASS",
+      "description": "CSP Directive Present: connect-src",
+      "details": {
+        "present": true
+      },
+      "timestamp": "2025-10-09T17:04:00.508Z"
+    },
+    {
+      "status": "INFO",
+      "description": "Resource Validation Test",
+      "details": {
+        "total": 5,
+        "allowed": 4,
+        "blocked": 1
+      },
+      "timestamp": "2025-10-09T17:04:00.509Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource: script",
+      "details": {
+        "url": "https://cdn.jsdelivr.net/npm/chart.js",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.509Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource: script",
+      "details": {
+        "url": "/socket.io.js",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.509Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource: style",
+      "details": {
+        "url": "https://fonts.googleapis.com/css2?family=Inter",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.509Z"
+    },
+    {
+      "status": "FAIL",
+      "description": "Resource: connect",
+      "details": {
+        "url": "ws://localhost:3001",
+        "allowed": false,
+        "blockedBy": "connectSrc"
+      },
+      "timestamp": "2025-10-09T17:04:00.509Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Resource: img",
+      "details": {
+        "url": "data:image/png;base64,test",
+        "allowed": true,
+        "blockedBy": null
+      },
+      "timestamp": "2025-10-09T17:04:00.509Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Security Header: content-security-policy",
+      "details": {
+        "present": true,
+        "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'un..."
+      },
+      "timestamp": "2025-10-09T17:04:00.512Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Security Header: x-content-type-options",
+      "details": {
+        "present": true,
+        "value": "nosniff..."
+      },
+      "timestamp": "2025-10-09T17:04:00.512Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Security Header: x-frame-options",
+      "details": {
+        "present": true,
+        "value": "DENY..."
+      },
+      "timestamp": "2025-10-09T17:04:00.512Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Security Header: x-xss-protection",
+      "details": {
+        "present": true,
+        "value": "1; mode=block..."
+      },
+      "timestamp": "2025-10-09T17:04:00.512Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Security Header: referrer-policy",
+      "details": {
+        "present": true,
+        "value": "strict-origin-when-cross-origin..."
+      },
+      "timestamp": "2025-10-09T17:04:00.512Z"
+    },
+    {
+      "status": "PASS",
+      "description": "Security Header: permissions-policy",
+      "details": {
+        "present": true,
+        "value": "geolocation=(), microphone=(), camera=()..."
+      },
+      "timestamp": "2025-10-09T17:04:00.512Z"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "action": "Fix failed tests",
+      "description": "Address critical failures before production deployment"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Review warnings",
+      "description": "Implement suggested improvements for better security"
+    },
+    {
+      "priority": "LOW",
+      "action": "Regular monitoring",
+      "description": "Set up automated CSP violation monitoring and reporting"
+    }
+  ]
+}

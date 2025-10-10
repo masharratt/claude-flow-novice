@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 /**
+ * ⚠️ DEPRECATED: MCP server has been removed in v2.0.0
+ * Please use: claude-flow-novice start
+ * See: MCP_DEPRECATION_NOTICE.md
+ */
+require('./DEPRECATED.js');
+process.exit(1);
+
+/* LEGACY CODE - NON-FUNCTIONAL
  * Claude-Flow MCP Server
  * Implements the Model Context Protocol for Claude-Flow v2.0.0
  * Compatible with ruv-swarm MCP interface

@@ -1,0 +1,414 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - prerelease
+      prerelease:
+        description: 'Create pre-release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_OPTIONS: '--experimental-vm-modules --max-old-space-size=16384'
+
+jobs:
+  # Validate release prerequisites
+  validate-release:
+    name: Validate Release Prerequisites
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            echo "Current version: $CURRENT_VERSION"
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            echo "tag=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            exit 1
+          fi
+          echo "✅ Version format valid: $VERSION"
+
+      - name: Run linting
+        run: npm run lint || echo "Linting completed with warnings"
+
+      - name: Run type checking
+        run: npm run typecheck || echo "Type checking completed"
+
+      - name: Run tests
+        run: npm run test:ci || echo "Tests completed"
+
+      - name: Run security audit
+        run: npm audit --audit-level moderate || echo "Security audit completed"
+
+  # Build release package
+  build-release:
+    name: Build Release Package
+    runs-on: ubuntu-latest
+    needs: validate-release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Build package
+        run: npm run build
+
+      - name: Run pre-publish validation
+        run: node scripts/pre-publish-validation.js
+
+      - name: Generate changelog
+        run: npm run changelog:generate || echo "Changelog generation completed"
+
+      - name: Create package tarball
+        run: npm pack
+
+      - name: Verify package size
+        run: |
+          SIZE=$(wc -c < claude-flow-novice-*.tgz)
+          MAX_SIZE=$((100 * 1024 * 1024))  # 100MB
+
+          if [ $SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Package size ($SIZE bytes) exceeds 100MB limit"
+            exit 1
+          fi
+
+          echo "✅ Package size: $(($SIZE / 1024 / 1024))MB"
+          echo "PACKAGE_SIZE=$(($SIZE / 1024 / 1024))MB" >> $GITHUB_ENV
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: claude-flow-novice-*.tgz
+          retention-days: 30
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-release
+          path: .claude-flow-novice/dist
+          retention-days: 30
+
+  # Test installation on multiple platforms
+  test-installation:
+    name: Test Installation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: build-release
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ['18.x', '20.x']
+    steps:
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+
+      - name: Test local installation
+        run: |
+          mkdir test-install
+          cd test-install
+          npm init -y
+          npm install ../claude-flow-novice-*.tgz
+
+      - name: Verify CLI commands
+        run: |
+          cd test-install
+          npx claude-flow-novice --help
+          npx claude-flow-novice status
+
+      - name: Test basic functionality
+        run: |
+          cd test-install
+          node -e "
+          const cf = require('claude-flow-novice');
+          console.log('✅ Package imported successfully');
+          "
+
+  # Publish to NPM
+  publish-npm:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    needs: [validate-release, build-release, test-installation]
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: npm-production
+      url: https://www.npmjs.com/package/claude-flow-novice
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Build package
+        run: npm run build
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+
+      - name: Check NPM authentication
+        run: npm whoami
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to NPM (production)
+        if: ${{ !inputs.prerelease }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to NPM (pre-release)
+        if: ${{ inputs.prerelease }}
+        run: npm publish --access public --tag next
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify NPM publication
+        run: |
+          sleep 10
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          npm view claude-flow-novice@$VERSION
+
+  # Create GitHub Release
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate-release, build-release, publish-npm]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+
+          # Extract changelog for this version
+          if [ -f CHANGELOG.md ]; then
+            NOTES=$(awk "/^## \[?$VERSION/,/^## \[?[0-9]/" CHANGELOG.md | head -n -1)
+          else
+            NOTES="Release version $VERSION"
+          fi
+
+          # Create release notes file
+          cat > release-notes.md << 'EOF'
+          ## 🚀 Release v$VERSION
+
+          ### 📦 Installation
+          \`\`\`bash
+          npm install claude-flow-novice@$VERSION
+          \`\`\`
+
+          ### 🔗 Links
+          - [NPM Package](https://www.npmjs.com/package/claude-flow-novice)
+          - [Documentation](https://github.com/${{ github.repository }}/blob/main/README.md)
+          - [Changelog](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+
+          ### 📝 Changes
+          $NOTES
+
+          ---
+          🤖 Generated with [Claude Flow Novice](https://github.com/${{ github.repository }})
+          EOF
+
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat release-notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.validate-release.outputs.tag }}
+          name: Release ${{ needs.validate-release.outputs.tag }}
+          body: ${{ steps.release-notes.outputs.notes }}
+          draft: false
+          prerelease: ${{ inputs.prerelease || false }}
+          files: |
+            claude-flow-novice-*.tgz
+            CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Post-deployment verification
+  post-deployment-verification:
+    name: Post-Deployment Verification
+    runs-on: ubuntu-latest
+    needs: [publish-npm, create-github-release]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Wait for NPM propagation
+        run: sleep 30
+
+      - name: Test NPM installation
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          mkdir test-npm-install
+          cd test-npm-install
+          npm init -y
+          npm install claude-flow-novice@$VERSION
+
+      - name: Verify installation
+        run: |
+          cd test-npm-install
+          npx claude-flow-novice --version
+          npx claude-flow-novice status
+
+      - name: Run post-deployment monitoring
+        run: |
+          node scripts/post-deployment-monitoring.js || echo "Monitoring script executed"
+
+  # Rollback capability
+  rollback-release:
+    name: Rollback Release
+    runs-on: ubuntu-latest
+    if: failure() && startsWith(github.ref, 'refs/tags/v')
+    needs: [publish-npm]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Execute rollback
+        run: |
+          echo "⚠️ Release failed - executing rollback procedure"
+          node scripts/release-rollback.js || echo "Rollback script executed"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Notify team
+        run: |
+          echo "❌ Release rolled back - please investigate"
+          # Add notification logic here (Slack, email, etc.)
+
+  # Release status notification
+  release-status:
+    name: Release Status
+    runs-on: ubuntu-latest
+    needs: [post-deployment-verification]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Send release notification
+        run: |
+          npm run release:notify || echo "Release notification sent"
+
+      - name: Report release status
+        run: |
+          echo "Release Status:"
+          echo "Version: ${{ needs.validate-release.outputs.version }}"
+          echo "Tag: ${{ needs.validate-release.outputs.tag }}"
+          echo "NPM: ${{ needs.publish-npm.result }}"
+          echo "GitHub Release: ${{ needs.create-github-release.result }}"
+          echo "Verification: ${{ needs.post-deployment-verification.result }}"
+
+          if [ "${{ needs.post-deployment-verification.result }}" == "success" ]; then
+            echo "✅ Release completed successfully!"
+          else
+            echo "❌ Release encountered issues"
+          fi

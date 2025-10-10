@@ -1,0 +1,28 @@
+{
+  "name": "my-fleet-manager-project",
+  "version": "1.0.0",
+  "description": "Claude Flow Novice fleet management project (1000+ agents)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx claude-flow-novice",
+    "fleet:init": "npx claude-flow-novice fleet init --max-agents 1500",
+    "fleet:scale": "npx claude-flow-novice fleet scale",
+    "fleet:optimize": "npx claude-flow-novice fleet optimize",
+    "fleet:health": "npx claude-flow-novice fleet health",
+    "dashboard": "npx claude-flow-novice dashboard monitor",
+    "swarm": "node test-swarm-direct.js"
+  },
+  "dependencies": {
+    "claude-flow-novice": "^1.6.6"
+  },
+  "keywords": [
+    "claude",
+    "fleet-management",
+    "enterprise",
+    "autoscaling",
+    "ai-agents"
+  ],
+  "author": "",
+  "license": "MIT"
+}

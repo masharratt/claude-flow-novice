@@ -41,6 +41,7 @@ import {
 import { preferencesCommand } from './preferences.js';
 import { personalizationCommand } from './personalization-cli.js';
 import { handleFrameworkValidationCommand } from './commands/validate-framework.js';
+import { hookCommand } from './commands/hook.js';
 // Maestro commands integrated with clean implementation
 // Note: Maestro TypeScript commands now integrated directly in ./commands/maestro.ts
 // Note: TypeScript imports commented out for Node.js compatibility
@@ -249,6 +250,90 @@ Benefits:
       'swarm "Analyze data" --max-agents 3 --parallel',
       'swarm "Development task" --ui --monitor --background',
     ],
+  });
+
+  // Direct CLI Swarm Execution Interface
+  commandRegistry.set('swarm-exec', {
+    handler: async (args, flags) => {
+      try {
+        // Import the swarm-exec CLI module
+        const { program } = await import('./commands/swarm-exec.js');
+        // Parse arguments and execute
+        program.parse(['node', 'swarm-exec', ...args, ...Object.entries(flags).flatMap(([k, v]) => v === true ? [`--${k}`] : [`--${k}`, String(v)])]);
+      } catch (error) {
+        console.error('❌ Swarm execution error:', error.message);
+        if (flags.verbose) {
+          console.error(error.stack);
+        }
+        throw error;
+      }
+    },
+    description: '🚀 Direct CLI interface for swarm execution without MCP dependency',
+    usage: 'swarm-exec <command> [options]',
+    examples: [
+      'swarm-exec execute "Build a REST API with authentication"',
+      'swarm-exec execute "Research AI trends" --strategy research --max-agents 8 --output-format json',
+      'swarm-exec recover --list',
+      'swarm-exec recover swarm_1697844234_abc123def',
+      'swarm-exec status --all --format json',
+      'swarm-exec status swarm_1697844234_abc123def'
+    ],
+    details: `
+🚀 CLI SWARM EXECUTION INTERFACE FEATURES:
+  • Direct CLI execution without MCP dependency
+  • Support for up to 50 concurrent agents
+  • Redis persistence for state management and recovery
+  • Multiple output formats (json, text, stream)
+  • Swarm recovery and status monitoring
+  • Comprehensive error handling and validation
+
+COMMANDS:
+  execute <objective>    Execute a new swarm with the given objective
+  recover [swarmId]      Recover and resume a swarm from Redis persistence
+  status [swarmId]       Check status of active or completed swarms
+
+STRATEGIES:
+  auto                  Automatic strategy selection (default)
+  development           Software development and coding
+  research             Research and information gathering
+  testing              Quality assurance and testing
+  analysis             Data analysis and insights
+  optimization         Performance optimization
+  maintenance          System maintenance
+
+COORDINATION MODES:
+  centralized          Single coordinator (default)
+  distributed          Multiple coordinators
+  hierarchical         Tree structure coordination
+  mesh                 Peer-to-peer coordination
+  hybrid               Mixed coordination strategies
+
+REDIS PERSISTENCE:
+  • Automatic state saving with 24-hour TTL
+  • Swarm recovery after interruption
+  • Real-time status monitoring
+  • Backup and restore capabilities
+  • Automatic cleanup of expired states
+
+OUTPUT FORMATS:
+  text                 Human-readable formatted output (default)
+  json                 Machine-readable JSON with metadata
+  stream               Real-time streaming JSON for monitoring
+
+EXAMPLE USAGE:
+  # Basic execution
+  swarm-exec execute "Create user authentication system"
+
+  # Advanced configuration
+  swarm-exec execute "Build microservices" \\
+    --strategy development \\
+    --max-agents 12 \\
+    --mode hierarchical \\
+    --output-format json \\
+    --output-file results.json \\
+    --persist --monitor
+
+For comprehensive documentation, see: src/cli/docs/swarm-cli-guide.md`,
   });
 
   commandRegistry.set('hive-mind', {
@@ -487,9 +572,42 @@ Coordination commands:
 Enables intelligent task distribution, agent synchronization, and shared memory coordination.`,
   });
 
+  commandRegistry.set('hook', {
+    handler: async (args, flags) => {
+      return hookCommand.action({ args, flags });
+    },
+    description: 'Execute hooks for agent coordination (ruv-swarm compatible)',
+    usage: 'hook <subcommand> [options]',
+    examples: [
+      'hook pre-task --description "Build API"',
+      'hook post-edit --file src/index.ts --memory-key "api/implementation"',
+      'hook session-start',
+      'hook session-end --export-metrics --generate-summary',
+      'hook post-edit --file src/app.ts --format --tdd-mode',
+    ],
+    details: `
+Hook Commands:
+  • pre-task: Execute before task begins (preparation & setup)
+  • post-task: Execute after task completion (analysis & cleanup)
+  • pre-edit: Execute before file modifications (backup & validation)
+  • post-edit: Execute after file modifications (validation & formatting)
+  • pre-command: Execute before command execution (validation)
+  • post-command: Execute after command execution (tracking)
+  • session-start: Execute at session start (cleanup & soul loading)
+  • session-end: Execute at session termination (cleanup & export)
+  • session-restore: Restore previous session state
+  • pre-search: Execute before search operations
+  • notification: Send notifications
+  • performance: Track performance metrics
+  • memory-sync: Synchronize memory state
+  • telemetry: Send telemetry data
+
+Non-blocking behavior: All hooks exit with code 0 and log errors without blocking operations.`,
+  });
+
   commandRegistry.set('hooks', {
     handler: hooksAction,
-    description: 'Lifecycle event management',
+    description: 'Lifecycle event management (legacy)',
     usage: 'hooks <command> [options]',
     examples: [
       'hooks pre-task --description "Build API" --task-id task-123',
@@ -503,7 +621,7 @@ Hooks commands:
   • pre-edit: Execute before file modifications (backup & validation)
   • post-edit: Execute after file modifications (tracking & coordination)
   • session-end: Execute at session termination (cleanup & export)
-  
+
 Enables automated preparation & cleanup, performance tracking, and coordination synchronization.`,
   });
 
@@ -1097,6 +1215,72 @@ Commands:
   */
 
   // Custom Framework Validation System
+  commandRegistry.set('create-template', {
+    handler: async (args, flags) => {
+      try {
+        const { program } = await import('./commands/create-template.js');
+        program.parse(['node', 'create-template', ...args, ...Object.entries(flags).flatMap(([k, v]) => v === true ? [`--${k}`] : [`--${k}`, String(v)])]);
+      } catch (error) {
+        console.error('❌ Template creation error:', error.message);
+        if (flags.verbose) {
+          console.error(error.stack);
+        }
+        throw error;
+      }
+    },
+    description: '🚀 Generate ready-to-use project templates for common use cases',
+    usage: 'create-template <command> [options]',
+    examples: [
+      'create-template wizard                                    # Interactive template creation',
+      'create-template generate basic-swarm -n my-project       # Generate basic swarm template',
+      'create-template generate fleet-manager -n my-fleet       # Generate fleet manager template',
+      'create-template generate event-bus -n my-eventbus        # Generate event bus template',
+      'create-template generate custom-agent -n my-agent        # Generate custom agent template',
+      'create-template list                                     # List available templates',
+    ],
+    details: `
+🚀 READY-TO-USE TEMPLATES:
+
+1. basic-swarm - Basic Swarm Coordination
+   • Mesh topology for 2-7 agents
+   • Redis-backed persistence and recovery
+   • Working examples with comprehensive tests
+   • Copy-paste ready code snippets
+
+2. fleet-manager - Enterprise Fleet Management
+   • Auto-scaling for 1000+ agents
+   • Multi-region deployment support
+   • Efficiency optimization (target 40%+)
+   • Real-time monitoring dashboard
+
+3. event-bus - High-Performance Event Bus
+   • 10,000+ events/sec throughput
+   • Pub/sub messaging patterns
+   • Worker thread optimization
+   • Priority-based routing
+
+4. custom-agent - Custom Agent Development
+   • Agent scaffolding with TypeScript
+   • Integration examples
+   • Comprehensive testing setup
+   • Type-safe development
+
+COMMANDS:
+  generate <type>    Generate specific template type
+  list              List all available templates
+  wizard            Interactive template creation wizard
+
+TEMPLATE FEATURES:
+  • Working out-of-the-box with zero configuration
+  • Clear inline documentation and examples
+  • Comprehensive test suites included
+  • TypeScript support with strict typing
+  • Production-ready structure
+  • Copy-paste ready code snippets
+
+For detailed documentation, see: docs/QUICK_START.md`,
+  });
+
   commandRegistry.set('validate', {
     handler: async (args, flags) => {
       const [subcommand, ...subArgs] = args;

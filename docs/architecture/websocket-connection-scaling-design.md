@@ -483,9 +483,9 @@ class GCOptimizedConnectionManager {
     // Tune for low-latency applications
     if (process.env.NODE_ENV === 'production') {
       process.env.NODE_OPTIONS = [
-        '--max-old-space-size=4096',      // 4GB heap
+        '--max-old-space-size=16384',     // 16GB heap
         '--gc-interval=100',               // More frequent minor GC
-        '--max-semi-space-size=128',       // Smaller young generation
+        '--max-semi-space-size=256',       // Larger young generation
         '--optimize-for-size'              // Optimize for memory usage
       ].join(' ');
     }

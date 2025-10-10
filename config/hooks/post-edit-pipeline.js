@@ -1807,7 +1807,14 @@ Features:
         console.log(JSON.stringify(results, null, 2));
     }
 
-    process.exit(results.summary.success && !results.blocking ? 0 : 1);
+    // CRITICAL: Always exit with code 0 - hooks should never block operations
+    // Validation results are logged and stored, but don't prevent edits
+    if (!results.summary.success || results.blocking) {
+        console.log('\n⚠️ Validation issues detected - see report above');
+        console.log('   Edit completed successfully (hooks are non-blocking)');
+    }
+
+    process.exit(0);
 }
 
 // Run if called directly

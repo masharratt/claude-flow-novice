@@ -89,7 +89,7 @@ class SecureAuthClient {
             }
 
             // Store tokens securely
-            this.token = data.accessToken;
+            this.token = data.token || data.accessToken;
             this.refreshToken = data.refreshToken;
             this.user = data.user;
 

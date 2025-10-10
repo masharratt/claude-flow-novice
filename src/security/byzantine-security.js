@@ -181,25 +181,32 @@ class ByzantineSecurityManager extends EventEmitter {
 
   async encryptData(data) {
     // Encrypt data using cryptographic keys
-    const cipher = crypto.createCipher('aes256', this.cryptographicKeys.private);
+    const algorithm = 'aes-256-cbc';
+    const key = crypto.createHash('sha256').update(this.cryptographicKeys.private).digest();
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(algorithm, key, iv);
     let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
     return {
       encryptedData: encrypted,
-      algorithm: 'aes256',
+      iv: iv.toString('hex'),
+      algorithm: algorithm,
       keyId: this.cryptographicKeys.keyId,
     };
   }
 
-  async decryptData(encryptedData, keyId) {
+  async decryptData(encryptedDataObj, keyId) {
     // Decrypt data using cryptographic keys
     if (keyId !== this.cryptographicKeys.keyId) {
       throw new Error('Invalid key ID');
     }
 
-    const decipher = crypto.createDecipher('aes256', this.cryptographicKeys.private);
-    let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+    const algorithm = encryptedDataObj.algorithm || 'aes-256-cbc';
+    const key = crypto.createHash('sha256').update(this.cryptographicKeys.private).digest();
+    const iv = Buffer.from(encryptedDataObj.iv, 'hex');
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    let decrypted = decipher.update(encryptedDataObj.encryptedData, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
 
     return JSON.parse(decrypted);
