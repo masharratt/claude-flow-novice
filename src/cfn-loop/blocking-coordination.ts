@@ -568,7 +568,9 @@ export class BlockingCoordinationManager {
     );
 
     // Use timing-safe comparison to prevent timing attacks
-    return ack.signature === expectedSignature;
+    const sigBuf = Buffer.from(ack.signature, 'hex');
+    const expBuf = Buffer.from(expectedSignature, 'hex');
+    return crypto.timingSafeEqual(sigBuf, expBuf);
   }
 }
 
