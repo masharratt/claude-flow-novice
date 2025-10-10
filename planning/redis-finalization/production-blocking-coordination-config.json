@@ -108,6 +108,38 @@
             "Migration path documented in MCP_DEPRECATION_NOTICE.md",
             "Critical for Phase 2 integration (agents must use correct tools)"
           ]
+        },
+        {
+          "sprint_id": "1.6",
+          "sprint_name": "Byzantine Validator Integration - Real Agent Spawning",
+          "deliverables": [
+            "Replace mock spawnValidatorAgents() with real Task tool calls",
+            "Replace mock spawnSimpleValidators() with real Task tool calls",
+            "Replace mock spawnProductOwner() with real Task tool calls",
+            "Implement validator response parsing from actual agent output",
+            "Add error handling for validator spawn failures",
+            "Add fallback validators for resilience",
+            "Integration tests: Spawn validators, verify confidence scoring",
+            "End-to-end test: Loop 3 → Loop 2 (Byzantine) → Loop 4 (Product Owner)",
+            "Verify Byzantine consensus with real validator feedback",
+            "Verify Product Owner receives validator results for GOAP decisions"
+          ],
+          "estimated_agents": 3,
+          "notes": [
+            "Builds on Sprint 1.2 Byzantine consensus adapter implementation",
+            "Architecture already in place (src/cfn-loop/cfn-loop-orchestrator.ts)",
+            "Helper methods implemented: prepareValidationContext, generateValidatorReasoning",
+            "Fallback mechanisms ready for validator spawn failures",
+            "Critical for Loop 2 → Loop 4 feedback flow in CFN Loop",
+            "Enables real validator feedback to Product Owner for autonomous decisions",
+            "Removes last remaining mock implementations from CFN Loop"
+          ],
+          "dependencies": ["Sprint 1.2 - Byzantine consensus adapter complete"],
+          "technical_debt_resolved": [
+            "Mock validator responses removed (lines 738-836 in cfn-loop-orchestrator.ts)",
+            "Mock Product Owner removed (line 1244)",
+            "Real agent spawning replaces hardcoded confidence scores"
+          ]
         }
       ],
       "success_criteria": [
@@ -116,7 +148,10 @@
         "Extended timeout test passes at configured intervals",
         "Signal delivery success rate ≥99.99%",
         "Dead coordinator detection within 2 minutes",
-        "All agent profiles use CLI commands (zero MCP references)"
+        "All agent profiles use CLI commands (zero MCP references)",
+        "Byzantine validators use real agent spawning (zero mock responses)",
+        "Product Owner receives real validator feedback for GOAP decisions",
+        "Loop 2 → Loop 4 integration complete with real agents"
       ]
     },
     {
@@ -347,8 +382,8 @@
   "metadata": {
     "epic_duration_weeks": 4,
     "total_phases": 4,
-    "total_sprints": 14,
-    "estimated_total_agents": 44,
+    "total_sprints": 15,
+    "estimated_total_agents": 47,
     "priority": "P0",
     "status": "planning-complete",
     "requires_approval": true,

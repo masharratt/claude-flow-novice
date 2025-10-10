@@ -1,0 +1,412 @@
+[
+  {
+    "claim": "Python:Chinese",
+    "prog": "Python",
+    "written": "Chinese",
+    "translation": "你好世界",
+    "agentId": "coder-b-1",
+    "hasError": true,
+    "errorType": "logic",
+    "errorDetails": {
+      "type": "logic",
+      "description": "Wrong function call for Python",
+      "code": "console.log(\"你好世界\")"
+    }
+  },
+  {
+    "claim": "Python:Arabic",
+    "prog": "Python",
+    "written": "Arabic",
+    "translation": "مرحبا بالعالم",
+    "agentId": "coder-b-2",
+    "hasError": true,
+    "errorType": "mixed",
+    "errorDetails": {
+      "type": "mixed",
+      "description": "Multiple issues: wrong function + wrong translation + syntax error",
+      "code": "console.log(\"Hello World\""
+    }
+  },
+  {
+    "claim": "Python:Hindi",
+    "prog": "Python",
+    "written": "Hindi",
+    "translation": "नमस्ते दुनिया",
+    "agentId": "coder-b-3",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Portuguese",
+    "prog": "Python",
+    "written": "Portuguese",
+    "translation": "Olá Mundo",
+    "agentId": "coder-b-4",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Italian",
+    "prog": "Python",
+    "written": "Italian",
+    "translation": "Ciao Mondo",
+    "agentId": "coder-b-5",
+    "hasError": true,
+    "errorType": "mixed",
+    "errorDetails": {
+      "type": "mixed",
+      "description": "Multiple issues: wrong function + wrong translation + syntax error",
+      "code": "console.log(\"Hello World\""
+    }
+  },
+  {
+    "claim": "Python:Russian",
+    "prog": "Python",
+    "written": "Russian",
+    "translation": "Привет мир",
+    "agentId": "coder-b-6",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Japanese",
+    "prog": "Python",
+    "written": "Japanese",
+    "translation": "こんにちは世界",
+    "agentId": "coder-b-7",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Korean",
+    "prog": "Python",
+    "written": "Korean",
+    "translation": "안녕하세요 세계",
+    "agentId": "coder-b-8",
+    "hasError": true,
+    "errorType": "logic",
+    "errorDetails": {
+      "type": "logic",
+      "description": "Wrong function call for Python",
+      "code": "console.log(\"안녕하세요 세계\")"
+    }
+  },
+  {
+    "claim": "Python:German",
+    "prog": "Python",
+    "written": "German",
+    "translation": "Hallo Welt",
+    "agentId": "coder-b-9",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Turkish",
+    "prog": "Python",
+    "written": "Turkish",
+    "translation": "Merhaba Dünya",
+    "agentId": "coder-b-10",
+    "hasError": true,
+    "errorType": "mixed",
+    "errorDetails": {
+      "type": "mixed",
+      "description": "Multiple issues: wrong function + wrong translation + syntax error",
+      "code": "console.log(\"Hello World\""
+    }
+  },
+  {
+    "claim": "Python:Vietnamese",
+    "prog": "Python",
+    "written": "Vietnamese",
+    "translation": "Xin chào thế giới",
+    "agentId": "coder-b-11",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Polish",
+    "prog": "Python",
+    "written": "Polish",
+    "translation": "Witaj świecie",
+    "agentId": "coder-b-12",
+    "hasError": true,
+    "errorType": "translation",
+    "errorDetails": {
+      "type": "translation",
+      "description": "Using English instead of target language",
+      "incorrectMessage": "Hello World"
+    }
+  },
+  {
+    "claim": "Python:Ukrainian",
+    "prog": "Python",
+    "written": "Ukrainian",
+    "translation": "Привіт світ",
+    "agentId": "coder-b-13",
+    "hasError": true,
+    "errorType": "translation",
+    "errorDetails": {
+      "type": "translation",
+      "description": "Using English instead of target language",
+      "incorrectMessage": "Hello World"
+    }
+  },
+  {
+    "claim": "Python:Romanian",
+    "prog": "Python",
+    "written": "Romanian",
+    "translation": "Salut lume",
+    "agentId": "coder-b-14",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Dutch",
+    "prog": "Python",
+    "written": "Dutch",
+    "translation": "Hallo wereld",
+    "agentId": "coder-b-15",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Greek",
+    "prog": "Python",
+    "written": "Greek",
+    "translation": "Γεια σου κόσμε",
+    "agentId": "coder-b-16",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Czech",
+    "prog": "Python",
+    "written": "Czech",
+    "translation": "Ahoj světe",
+    "agentId": "coder-b-17",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Swedish",
+    "prog": "Python",
+    "written": "Swedish",
+    "translation": "Hej världen",
+    "agentId": "coder-b-18",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Hungarian",
+    "prog": "Python",
+    "written": "Hungarian",
+    "translation": "Helló világ",
+    "agentId": "coder-b-19",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Serbian",
+    "prog": "Python",
+    "written": "Serbian",
+    "translation": "Здраво свете",
+    "agentId": "coder-b-20",
+    "hasError": true,
+    "errorType": "syntax",
+    "errorDetails": {
+      "type": "syntax",
+      "description": "Missing closing parenthesis or bracket",
+      "code": "print(\"Здраво свете\""
+    }
+  },
+  {
+    "claim": "Python:Finnish",
+    "prog": "Python",
+    "written": "Finnish",
+    "translation": "Hei maailma",
+    "agentId": "coder-b-21",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Danish",
+    "prog": "Python",
+    "written": "Danish",
+    "translation": "Hej verden",
+    "agentId": "coder-b-22",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Bulgarian",
+    "prog": "Python",
+    "written": "Bulgarian",
+    "translation": "Здравей свят",
+    "agentId": "coder-b-23",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Norwegian",
+    "prog": "Python",
+    "written": "Norwegian",
+    "translation": "Hei verden",
+    "agentId": "coder-b-24",
+    "hasError": true,
+    "errorType": "mixed",
+    "errorDetails": {
+      "type": "mixed",
+      "description": "Multiple issues: wrong function + wrong translation + syntax error",
+      "code": "console.log(\"Hello World\""
+    }
+  },
+  {
+    "claim": "Python:Slovak",
+    "prog": "Python",
+    "written": "Slovak",
+    "translation": "Ahoj svet",
+    "agentId": "coder-b-25",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Croatian",
+    "prog": "Python",
+    "written": "Croatian",
+    "translation": "Zdravo svijete",
+    "agentId": "coder-b-26",
+    "hasError": true,
+    "errorType": "syntax",
+    "errorDetails": {
+      "type": "syntax",
+      "description": "Missing closing parenthesis or bracket",
+      "code": "print(\"Zdravo svijete\""
+    }
+  },
+  {
+    "claim": "Python:Hebrew",
+    "prog": "Python",
+    "written": "Hebrew",
+    "translation": "שלום עולם",
+    "agentId": "coder-b-27",
+    "hasError": true,
+    "errorType": "mixed",
+    "errorDetails": {
+      "type": "mixed",
+      "description": "Multiple issues: wrong function + wrong translation + syntax error",
+      "code": "console.log(\"Hello World\""
+    }
+  },
+  {
+    "claim": "Python:Thai",
+    "prog": "Python",
+    "written": "Thai",
+    "translation": "สวัสดีชาวโลก",
+    "agentId": "coder-b-28",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Malay",
+    "prog": "Python",
+    "written": "Malay",
+    "translation": "Hai dunia",
+    "agentId": "coder-b-29",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Indonesian",
+    "prog": "Python",
+    "written": "Indonesian",
+    "translation": "Halo dunia",
+    "agentId": "coder-b-30",
+    "hasError": true,
+    "errorType": "mixed",
+    "errorDetails": {
+      "type": "mixed",
+      "description": "Multiple issues: wrong function + wrong translation + syntax error",
+      "code": "console.log(\"Hello World\""
+    }
+  },
+  {
+    "claim": "Python:Tagalog",
+    "prog": "Python",
+    "written": "Tagalog",
+    "translation": "Kamusta mundo",
+    "agentId": "coder-b-31",
+    "hasError": true,
+    "errorType": "mixed",
+    "errorDetails": {
+      "type": "mixed",
+      "description": "Multiple issues: wrong function + wrong translation + syntax error",
+      "code": "console.log(\"Hello World\""
+    }
+  },
+  {
+    "claim": "Python:Bengali",
+    "prog": "Python",
+    "written": "Bengali",
+    "translation": "হ্যালো বিশ্ব",
+    "agentId": "coder-b-32",
+    "hasError": true,
+    "errorType": "syntax",
+    "errorDetails": {
+      "type": "syntax",
+      "description": "Missing closing parenthesis or bracket",
+      "code": "print(\"হ্যালো বিশ্ব\""
+    }
+  },
+  {
+    "claim": "Python:Tamil",
+    "prog": "Python",
+    "written": "Tamil",
+    "translation": "வணக்கம் உலகம்",
+    "agentId": "coder-b-33",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Telugu",
+    "prog": "Python",
+    "written": "Telugu",
+    "translation": "హలో ప్రపంచం",
+    "agentId": "coder-b-34",
+    "hasError": false,
+    "errorType": null,
+    "errorDetails": null
+  },
+  {
+    "claim": "Python:Urdu",
+    "prog": "Python",
+    "written": "Urdu",
+    "translation": "ہیلو دنیا",
+    "agentId": "coder-b-35",
+    "hasError": true,
+    "errorType": "syntax",
+    "errorDetails": {
+      "type": "syntax",
+      "description": "Missing closing parenthesis or bracket",
+      "code": "print(\"ہیلو دنیا\""
+    }
+  }
+]

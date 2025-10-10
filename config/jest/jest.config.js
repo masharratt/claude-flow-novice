@@ -21,8 +21,19 @@ export default {
     '<rootDir>/tests/archived/'
   ],
   transform: {
-    // No transforms - use native Node ES modules via --experimental-vm-modules
+    // Transform TypeScript files with ts-jest for ES modules support
+    '^.+\\.tsx?$': ['ts-jest', {
+      useESM: true,
+      tsconfig: {
+        module: 'ESNext',
+        moduleResolution: 'node',
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true
+      }
+    }]
   },
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  preset: 'ts-jest/presets/default-esm',
   moduleNameMapper: {
     // Handle missing modules by providing mock paths
     '^(\\.{1,2}/.*)\\.js$': '$1',

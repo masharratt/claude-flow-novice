@@ -1,0 +1,1510 @@
+{
+  "epic": {
+    "id": "epic-workspace-reorg-001",
+    "title": "Workspace Reorganization - Root Directory Cleanup",
+    "description": "Systematic reorganization of claude-flow-novice workspace to reduce root directory from 273 files to <20 files, consolidate test artifacts, and establish maintainable directory structure",
+    "owner": "product-owner",
+    "priority": "high",
+    "estimatedEffort": "30-40 hours",
+    "confidenceTarget": 0.90,
+    "created": "2025-10-10",
+    "status": "planning"
+  },
+
+  "objectives": [
+    "Reduce root directory files from 273 to <20 configuration files only",
+    "Consolidate 8+ result directories into unified reports/ structure",
+    "Move 50+ test files to tests/manual/ with path reference updates",
+    "Create .artifacts/ directory for all ephemeral test/build data",
+    "Update 163+ build path references across 120+ files",
+    "Update 180+ test result references across 85+ files",
+    "Maintain backward compatibility and zero downtime during migration"
+  ],
+
+  "constraints": [
+    "planning/ directory structure preserved (user requirement)",
+    "README files remain in root for discoverability (user requirement)",
+    "coordination.md, memory-bank.md, claude-soul.md stay in root (user requirement)",
+    "All changes must pass CI/CD validation before merge",
+    "No breaking changes to published npm package API",
+    "Git history must be preserved using git mv commands",
+    "Docker containers must remain operational throughout migration"
+  ],
+
+  "phases": [
+    {
+      "phaseId": "phase-0",
+      "title": "Investigation and Planning",
+      "description": "Complete dependency analysis and migration plan validation",
+      "status": "completed",
+      "confidenceTarget": 0.95,
+      "sprints": [
+        {
+          "sprintId": "sprint-0.1",
+          "title": "Workspace Structure Investigation",
+          "duration": "4 hours",
+          "status": "completed",
+          "subtasks": [
+            {
+              "id": "task-0.1.1",
+              "title": "Analyze root directory structure",
+              "agent": "researcher",
+              "status": "completed",
+              "confidence": 0.98
+            },
+            {
+              "id": "task-0.1.2",
+              "title": "Research Node.js project best practices",
+              "agent": "researcher",
+              "status": "completed",
+              "confidence": 0.95
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-0.2",
+          "title": "Path Dependency Analysis",
+          "duration": "6 hours",
+          "status": "completed",
+          "subtasks": [
+            {
+              "id": "task-0.2.1",
+              "title": "Investigate test file path references",
+              "agent": "researcher",
+              "status": "completed",
+              "confidence": 0.96
+            },
+            {
+              "id": "task-0.2.2",
+              "title": "Investigate validation script references",
+              "agent": "researcher",
+              "status": "completed",
+              "confidence": 0.97
+            },
+            {
+              "id": "task-0.2.3",
+              "title": "Investigate result directory references",
+              "agent": "researcher",
+              "status": "completed",
+              "confidence": 0.95
+            },
+            {
+              "id": "task-0.2.4",
+              "title": "Investigate CI/CD and build configurations",
+              "agent": "researcher",
+              "status": "completed",
+              "confidence": 0.96
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-1",
+      "title": "Infrastructure Preparation",
+      "description": "Create directory structure, update .gitignore, create migration tooling",
+      "status": "pending",
+      "confidenceTarget": 0.90,
+      "estimatedDuration": "6-8 hours",
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "title": "Directory Structure Creation",
+          "duration": "2 hours",
+          "agentRequirements": {
+            "coder": 1,
+            "reviewer": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-1.1.1",
+              "title": "Create .artifacts/ directory structure",
+              "description": "mkdir -p .artifacts/{test-results,coverage,logs,benchmarks,backups,runtime}",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All subdirectories created",
+                "README.md added to explain structure",
+                "Permissions set correctly"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-1.1.2",
+              "title": "Create scripts/validation/ directory",
+              "description": "mkdir -p scripts/validation for validation scripts",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Directory created",
+                "README.md documenting purpose"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-1.1.3",
+              "title": "Create tests/manual/ directory",
+              "description": "mkdir -p tests/manual for manual test scripts",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Directory created",
+                "README.md explaining manual test usage"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-1.1.4",
+              "title": "Create reports/ subdirectory structure",
+              "description": "mkdir -p reports/{sprints,security,performance,validation,audit,monitoring}",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All report subdirectories created",
+                "README.md in each explaining purpose"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "title": "Update .gitignore Configuration",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "coder": 1,
+            "reviewer": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-1.2.1",
+              "title": "Add .artifacts/ to .gitignore",
+              "description": "Exclude entire .artifacts/ directory from git tracking",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                ".gitignore updated with .artifacts/ pattern",
+                "Existing artifacts not tracked in git status",
+                "Pattern tested with sample files"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-1.2.2",
+              "title": "Update coverage/ and test-results/ patterns",
+              "description": "Consolidate ignore patterns for test artifacts",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Redundant patterns removed",
+                "Coverage patterns comprehensive",
+                "Test result patterns cover all formats"
+              ],
+              "confidenceTarget": 0.90
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "title": "Create Migration Tooling",
+          "duration": "3-5 hours",
+          "agentRequirements": {
+            "coder": 2,
+            "tester": 1,
+            "reviewer": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-1.3.1",
+              "title": "Create automated migration script",
+              "description": "Build scripts/migration/reorganize-workspace.js with dry-run mode",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Script supports --dry-run flag",
+                "Uses git mv to preserve history",
+                "Creates backup before execution",
+                "Validates source files exist",
+                "Logs all operations",
+                "Rollback capability included"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-1.3.2",
+              "title": "Create path update automation",
+              "description": "Build scripts/migration/update-paths.js for search/replace",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Supports regex patterns",
+                "Validates JSON/YAML syntax after updates",
+                "Creates backup before modifications",
+                "Dry-run mode available",
+                "File type filtering (yml, json, js, md)"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-1.3.3",
+              "title": "Create validation script",
+              "description": "Build scripts/migration/validate-migration.js to verify success",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Checks all expected files moved",
+                "Validates no broken symlinks",
+                "Verifies git status clean",
+                "Tests build process",
+                "Runs test suite",
+                "Validates Docker build"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-1.3.4",
+              "title": "Test migration tooling",
+              "description": "Validate migration scripts in test environment",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "Dry-run mode tested successfully",
+                "Rollback functionality validated",
+                "Error handling tested",
+                "Edge cases covered"
+              ],
+              "confidenceTarget": 0.90
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-2",
+      "title": "Low-Risk File Relocations",
+      "description": "Move standalone files with minimal dependencies first",
+      "status": "pending",
+      "confidenceTarget": 0.90,
+      "estimatedDuration": "4-6 hours",
+      "dependencies": ["phase-1"],
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "title": "Move Validation Scripts",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "coder": 1,
+            "tester": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-2.1.1",
+              "title": "Move 25 validation scripts to scripts/validation/",
+              "description": "git mv all *-validation.js, *-consensus-report.js files",
+              "agent": "coder",
+              "affectedFiles": [
+                "security-validation.js",
+                "security-analysis.js",
+                "phase-*-validation*.js",
+                "phase-*-consensus-report.js",
+                "*-consensus-validation.js",
+                "acl-security-validation.js",
+                "byzantine-verification.js",
+                "integration-test-analysis.js"
+              ],
+              "acceptanceCriteria": [
+                "All 25 files moved with git mv",
+                "Git history preserved",
+                "No files left in root"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-2.1.2",
+              "title": "Update validation script references",
+              "description": "Update test-coverage-analysis.js line 12 and 2 documentation files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "test-coverage-analysis.js import updated",
+                "Documentation paths updated",
+                "No broken references"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-2.1.3",
+              "title": "Test validation scripts still execute",
+              "description": "Run validation scripts from new location",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "All scripts execute without errors",
+                "Output paths still correct"
+              ],
+              "confidenceTarget": 0.90
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "title": "Move Demo and Benchmark Scripts",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-2.2.1",
+              "title": "Move demo scripts to scripts/demo/",
+              "description": "git mv *-demo*.js, performance-analysis.js files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "15+ demo/performance scripts moved",
+                "Git history preserved"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-2.2.2",
+              "title": "Update demo script documentation",
+              "description": "Update paths in documentation referencing demo scripts",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All documentation paths updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "title": "Move Test Result and Log Files",
+          "duration": "2 hours",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-2.3.1",
+              "title": "Move test result files to .artifacts/test-results/archive/",
+              "description": "Move 20+ test-results*.json/txt/log files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All test result files moved",
+                "Organized by date/category"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-2.3.2",
+              "title": "Move benchmark results to .artifacts/benchmarks/",
+              "description": "Move benchmark-results*.txt files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All benchmark files moved",
+                "Organized chronologically"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-2.3.3",
+              "title": "Move log files to .artifacts/logs/",
+              "description": "Move 10+ *.log files from root",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All log files moved",
+                "Current logs still writable"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-2.3.4",
+              "title": "Move backup files to .artifacts/backups/",
+              "description": "Move *.backup, *.bundle files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "15MB backup bundle moved",
+                "All backup files archived"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-2.4",
+          "title": "Move Database Files",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "coder": 1,
+            "tester": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-2.4.1",
+              "title": "Move swarm-memory.db to database/",
+              "description": "Move swarm-memory.db* files safely",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Database files moved",
+                "Symlink created for backward compatibility",
+                "WAL files moved with database"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-2.4.2",
+              "title": "Update database path references",
+              "description": "Update 45+ references across 20+ files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All hardcoded paths updated",
+                "Documentation examples updated",
+                "Config files updated"
+              ],
+              "confidenceTarget": 0.80
+            },
+            {
+              "id": "task-2.4.3",
+              "title": "Test database access from new location",
+              "description": "Validate swarm operations work with new path",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "Swarm initialization works",
+                "Memory operations succeed",
+                "No data corruption"
+              ],
+              "confidenceTarget": 0.90
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-3",
+      "title": "Test File Relocation and Path Updates",
+      "description": "Move 50+ test files and update 100+ references",
+      "status": "pending",
+      "confidenceTarget": 0.90,
+      "estimatedDuration": "6-8 hours",
+      "dependencies": ["phase-2"],
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "title": "Move Test Files to tests/manual/",
+          "duration": "2 hours",
+          "agentRequirements": {
+            "coder": 2
+          },
+          "subtasks": [
+            {
+              "id": "task-3.1.1",
+              "title": "Move test-*.js files",
+              "description": "git mv 35+ test-*.js files to tests/manual/",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All .js test files moved",
+                "Git history preserved"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-3.1.2",
+              "title": "Move test-*.mjs files",
+              "description": "git mv test-*.mjs files to tests/manual/",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All .mjs test files moved"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-3.1.3",
+              "title": "Move test-*.cjs files",
+              "description": "git mv test-*.cjs files to tests/manual/",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All .cjs test files moved"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-3.1.4",
+              "title": "Move test-*.ts files",
+              "description": "git mv test-*.ts files to tests/manual/",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All .ts test files moved"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "title": "Update Documentation References",
+          "duration": "2 hours",
+          "agentRequirements": {
+            "coder": 1,
+            "reviewer": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-3.2.1",
+              "title": "Update CLAUDE.md test references",
+              "description": "Update 4 test-swarm-direct.js references",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All CLAUDE.md paths updated",
+                "Examples still accurate"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-3.2.2",
+              "title": "Update readme/ documentation",
+              "description": "Update 100+ references across 20+ files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "logs-cli-redis.md updated",
+                "additional-commands.md updated",
+                "All example commands work"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-3.2.3",
+              "title": "Update planning/ documentation",
+              "description": "Update test references in planning docs",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All planning docs updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "title": "Update Template Files",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-3.3.1",
+              "title": "Update template package.json files",
+              "description": "Update 8 template files with new test paths",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "templates/custom-agent/ updated",
+                "templates/fleet-manager/ updated",
+                "templates/event-bus/ updated",
+                "templates/basic-swarm/ updated",
+                "src/cli/simple-commands/init/templates/ updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-3.3.2",
+              "title": "Update template CLAUDE.md files",
+              "description": "Update test references in template docs",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All template docs updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-3.4",
+          "title": "Update Test Runners and Source Code",
+          "duration": "1-2 hours",
+          "agentRequirements": {
+            "coder": 1,
+            "tester": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-3.4.1",
+              "title": "Update test runner references",
+              "description": "Update 6 test runner files with new paths",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "tests/compatibility-test-runner.js updated",
+                "tests/cross-platform-compatibility.test.js updated",
+                "tests/enhanced-nodejs-compatibility.js updated",
+                "tests/nodejs-compatibility.js updated",
+                "Dynamic test file paths corrected"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-3.4.2",
+              "title": "Update integration test references",
+              "description": "Update tests/phase6/ test execution commands",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "phase6-comprehensive-integration.test.ts updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-3.4.3",
+              "title": "Test all test execution paths",
+              "description": "Validate test files execute from new location",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "Manual test scripts execute successfully",
+                "Test runners find test files",
+                "No broken imports"
+              ],
+              "confidenceTarget": 0.90
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-4",
+      "title": "Result Directory Consolidation",
+      "description": "Consolidate 8+ result directories into reports/ structure",
+      "status": "pending",
+      "confidenceTarget": 0.90,
+      "estimatedDuration": "3-4 hours",
+      "dependencies": ["phase-2"],
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "title": "Consolidate Result Directories",
+          "duration": "2 hours",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-4.1.1",
+              "title": "Move audit-results/ to reports/audit/",
+              "description": "Consolidate audit result files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All audit files moved",
+                "Organized by date"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-4.1.2",
+              "title": "Move monitoring-results/ to reports/monitoring/",
+              "description": "Consolidate monitoring result files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All monitoring files moved"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-4.1.3",
+              "title": "Move performance-reports/ to reports/performance/",
+              "description": "Consolidate performance reports",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All performance files moved"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-4.1.4",
+              "title": "Move verification-reports/ to reports/validation/",
+              "description": "Consolidate verification reports",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All verification files moved"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-4.1.5",
+              "title": "Move *-results/ directories to .artifacts/",
+              "description": "Move ephemeral test result directories",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "cli-agent-results/ → .artifacts/cli-tests/",
+                "mesh-coordination-results/ → .artifacts/coordination-tests/",
+                "multilingual-*-results/ → .artifacts/demo-results/",
+                "stability-results/ → .artifacts/stability/"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-4.1.6",
+              "title": "Merge coverage-phase0/ into coverage/phase0/",
+              "description": "Consolidate coverage directories",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Coverage data merged",
+                "Old directory removed"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "title": "Update Result Directory References",
+          "duration": "1-2 hours",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-4.2.1",
+              "title": "Update shell script output paths",
+              "description": "Update 21 coordinator scripts with outputDir",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Scripts support environment variable for output dir",
+                "Default paths point to new locations"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-4.2.2",
+              "title": "Update documentation examples",
+              "description": "Update result path examples in docs",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All documentation updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-5",
+      "title": "CI/CD and Build Configuration Updates",
+      "description": "Update 163 build path references and 180+ test result references",
+      "status": "pending",
+      "confidenceTarget": 0.95,
+      "estimatedDuration": "10-14 hours",
+      "dependencies": ["phase-1"],
+      "sprints": [
+        {
+          "sprintId": "sprint-5.1",
+          "title": "Update package.json Configuration",
+          "duration": "3-4 hours",
+          "agentRequirements": {
+            "coder": 1,
+            "reviewer": 1,
+            "tester": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-5.1.1",
+              "title": "Update bin entries (6 entries)",
+              "description": "Update CLI entry points in package.json",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All 6 bin paths updated",
+                "Paths validated as correct",
+                "JSON syntax valid"
+              ],
+              "confidenceTarget": 0.90,
+              "priority": "critical"
+            },
+            {
+              "id": "task-5.1.2",
+              "title": "Update main and types entries",
+              "description": "Update primary package entry points",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "main entry point updated",
+                "types entry point updated",
+                "Paths exist after build"
+              ],
+              "confidenceTarget": 0.90,
+              "priority": "critical"
+            },
+            {
+              "id": "task-5.1.3",
+              "title": "Update exports field (20 entries)",
+              "description": "Update all package.json export paths",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All 20 export paths updated",
+                "Conditional exports preserved",
+                "Type exports included"
+              ],
+              "confidenceTarget": 0.85,
+              "priority": "critical"
+            },
+            {
+              "id": "task-5.1.4",
+              "title": "Update build scripts (15+ scripts)",
+              "description": "Update all npm scripts with build paths",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "All build scripts updated",
+                "Asset copy paths corrected",
+                "Type generation paths updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-5.1.5",
+              "title": "Test package.json changes",
+              "description": "Validate npm scripts execute successfully",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "npm run build succeeds",
+                "npm test succeeds",
+                "npm run lint succeeds",
+                "All bin entries executable"
+              ],
+              "confidenceTarget": 0.95
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-5.2",
+          "title": "Update GitHub Actions Workflows",
+          "duration": "4-5 hours",
+          "agentRequirements": {
+            "devops-engineer": 1,
+            "coder": 1,
+            "reviewer": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-5.2.1",
+              "title": "Update ci-cd-pipeline.yml",
+              "description": "Update build and test artifact paths",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "Build verification paths updated",
+                "Artifact upload paths updated",
+                "Artifact download paths updated",
+                "Test result collection updated",
+                "Coverage paths updated"
+              ],
+              "confidenceTarget": 0.90,
+              "priority": "critical"
+            },
+            {
+              "id": "task-5.2.2",
+              "title": "Update mcp-tests.yml",
+              "description": "Update MCP test result paths",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "Test result uploads updated",
+                "Security report paths updated"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-5.2.3",
+              "title": "Update cross-platform-compatibility.yml",
+              "description": "Update multi-platform artifact paths",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "Build paths updated for all platforms",
+                "Coverage upload paths updated",
+                "Performance report paths updated"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-5.2.4",
+              "title": "Update release.yml",
+              "description": "Update release artifact paths",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "Build artifact paths updated",
+                "Package verification paths updated"
+              ],
+              "confidenceTarget": 0.90,
+              "priority": "critical"
+            },
+            {
+              "id": "task-5.2.5",
+              "title": "Update remaining workflows (6 files)",
+              "description": "Update docker-build.yml, security-scan.yml, sdk-rollout.yml, etc.",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "All workflow paths updated",
+                "Log paths corrected",
+                "No hardcoded old paths remain"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-5.3",
+          "title": "Update Docker Configurations",
+          "duration": "2-3 hours",
+          "agentRequirements": {
+            "devops-engineer": 1,
+            "tester": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-5.3.1",
+              "title": "Update Dockerfile build paths",
+              "description": "Update COPY commands and CMD entry point",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "All COPY paths updated",
+                "CMD entry point updated",
+                "Multi-stage build paths corrected"
+              ],
+              "confidenceTarget": 0.90,
+              "priority": "critical"
+            },
+            {
+              "id": "task-5.3.2",
+              "title": "Update docker-compose.yml volume mounts",
+              "description": "Update 12+ volume definitions and bind mounts",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "All volume mounts updated",
+                "Config file mounts updated",
+                "Log paths corrected",
+                "Database paths updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-5.3.3",
+              "title": "Test Docker builds",
+              "description": "Validate Docker images build and run successfully",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "Docker build succeeds",
+                "Container starts successfully",
+                "Volume mounts work correctly",
+                "CLI commands executable in container"
+              ],
+              "confidenceTarget": 0.95
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-5.4",
+          "title": "Update Test Configurations",
+          "duration": "1-2 hours",
+          "agentRequirements": {
+            "coder": 1,
+            "tester": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-5.4.1",
+              "title": "Update Jest configurations",
+              "description": "Update coverage output paths in jest configs",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "config/jest/jest.config.js updated",
+                "jest.config.cjs updated",
+                "Coverage directory paths corrected",
+                "Setup file paths validated"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-5.4.2",
+              "title": "Update test framework paths",
+              "description": "Update test result output configurations",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Test result paths updated",
+                "Reporter configurations updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-5.4.3",
+              "title": "Test suite execution validation",
+              "description": "Run full test suite to validate configurations",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "All tests run successfully",
+                "Coverage generated in correct location",
+                "Test results saved to correct paths"
+              ],
+              "confidenceTarget": 0.95
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-6",
+      "title": "Source Code Path Updates",
+      "description": "Update 95+ script files with path references",
+      "status": "pending",
+      "confidenceTarget": 0.90,
+      "estimatedDuration": "4-6 hours",
+      "dependencies": ["phase-5"],
+      "sprints": [
+        {
+          "sprintId": "sprint-6.1",
+          "title": "Update Build and Installation Scripts",
+          "duration": "2-3 hours",
+          "agentRequirements": {
+            "coder": 2
+          },
+          "subtasks": [
+            {
+              "id": "task-6.1.1",
+              "title": "Update installation verification scripts",
+              "description": "Update scripts/verify-installation.js and related files",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "verify-installation.js paths updated",
+                "validate-entry-points.js updated",
+                "ci-validation.js updated",
+                "Health check scripts updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-6.1.2",
+              "title": "Update build orchestration scripts",
+              "description": "Update scripts/build-orchestrator.js and build scripts",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "build-orchestrator.js updated",
+                "build-index.js updated",
+                "setup.js updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-6.2",
+          "title": "Update Logging and Monitoring Scripts",
+          "duration": "1-2 hours",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-6.2.1",
+              "title": "Update production monitoring configs",
+              "description": "Update config/production-monitoring.js and related",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "production-monitoring.js updated",
+                "performance-monitoring-premium.config.js updated",
+                "connection-pool-premium.config.js updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-6.2.2",
+              "title": "Update ecosystem and PM2 configs",
+              "description": "Update ecosystem.config.cjs log paths",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "PM2 log paths updated",
+                "Error log paths updated",
+                "Output log paths updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-6.2.3",
+              "title": "Update utility logging scripts",
+              "description": "Update scripts/npm-metrics-collector.js and monitoring scripts",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "npm-metrics-collector.js updated",
+                "monitor-migration.js updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-6.3",
+          "title": "Update Test and Docker Scripts",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-6.3.1",
+              "title": "Update Docker test scripts",
+              "description": "Update docker/docker-test/generate-test-report.js",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Container test result paths updated",
+                "Coverage paths updated"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-6.3.2",
+              "title": "Update MCP test configs",
+              "description": "Update tests/mcp/jest.config.mcp.js",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "MCP coverage paths updated",
+                "MCP test result paths updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-7",
+      "title": "Validation and Integration Testing",
+      "description": "Comprehensive validation of all changes",
+      "status": "pending",
+      "confidenceTarget": 0.95,
+      "estimatedDuration": "4-6 hours",
+      "dependencies": ["phase-3", "phase-4", "phase-5", "phase-6"],
+      "sprints": [
+        {
+          "sprintId": "sprint-7.1",
+          "title": "Local Build and Test Validation",
+          "duration": "2 hours",
+          "agentRequirements": {
+            "tester": 2
+          },
+          "subtasks": [
+            {
+              "id": "task-7.1.1",
+              "title": "Validate npm run build",
+              "description": "Full build process validation",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "Build completes without errors",
+                "All assets copied correctly",
+                "Output directory structure correct",
+                "Entry points exist and valid"
+              ],
+              "confidenceTarget": 0.95
+            },
+            {
+              "id": "task-7.1.2",
+              "title": "Validate npm test",
+              "description": "Full test suite execution",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "All tests pass",
+                "Coverage generated correctly",
+                "Test results in correct location",
+                "No path-related errors"
+              ],
+              "confidenceTarget": 0.95
+            },
+            {
+              "id": "task-7.1.3",
+              "title": "Validate CLI commands",
+              "description": "Test all npx commands work",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "npx claude-flow-novice works",
+                "All slash commands execute",
+                "Help command displays correctly"
+              ],
+              "confidenceTarget": 0.95
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-7.2",
+          "title": "Docker Build Validation",
+          "duration": "1-2 hours",
+          "agentRequirements": {
+            "devops-engineer": 1,
+            "tester": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-7.2.1",
+              "title": "Validate Docker image build",
+              "description": "Build Docker images successfully",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "Docker build completes",
+                "Image size reasonable",
+                "All files copied correctly"
+              ],
+              "confidenceTarget": 0.95
+            },
+            {
+              "id": "task-7.2.2",
+              "title": "Validate Docker container execution",
+              "description": "Test containers start and run",
+              "agent": "tester",
+              "acceptanceCriteria": [
+                "Containers start successfully",
+                "CLI accessible in container",
+                "Volume mounts work",
+                "Logs accessible"
+              ],
+              "confidenceTarget": 0.95
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-7.3",
+          "title": "CI/CD Pipeline Validation",
+          "duration": "1-2 hours",
+          "agentRequirements": {
+            "devops-engineer": 1,
+            "reviewer": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-7.3.1",
+              "title": "Create test PR for CI validation",
+              "description": "Open PR to trigger all workflows",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "PR created with all changes",
+                "All workflows triggered",
+                "Draft PR mode enabled"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-7.3.2",
+              "title": "Monitor CI/CD execution",
+              "description": "Watch all workflows complete",
+              "agent": "devops-engineer",
+              "acceptanceCriteria": [
+                "All workflows pass",
+                "Artifacts uploaded correctly",
+                "Coverage reported successfully",
+                "Cross-platform tests pass"
+              ],
+              "confidenceTarget": 0.95
+            },
+            {
+              "id": "task-7.3.3",
+              "title": "Review CI/CD outputs",
+              "description": "Validate artifact correctness",
+              "agent": "reviewer",
+              "acceptanceCriteria": [
+                "Test results accurate",
+                "Coverage reports complete",
+                "Build artifacts valid"
+              ],
+              "confidenceTarget": 0.95
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-7.4",
+          "title": "Documentation Validation",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "reviewer": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-7.4.1",
+              "title": "Validate documentation paths",
+              "description": "Test all example commands in docs",
+              "agent": "reviewer",
+              "acceptanceCriteria": [
+                "All example commands work",
+                "No broken path references",
+                "Documentation accurate"
+              ],
+              "confidenceTarget": 0.90
+            },
+            {
+              "id": "task-7.4.2",
+              "title": "Validate template files",
+              "description": "Test template initialization works",
+              "agent": "reviewer",
+              "acceptanceCriteria": [
+                "Template projects initialize",
+                "Template paths correct",
+                "Example commands execute"
+              ],
+              "confidenceTarget": 0.90
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-8",
+      "title": "Cleanup and Documentation",
+      "description": "Final cleanup, create migration guide, update documentation",
+      "status": "pending",
+      "confidenceTarget": 0.90,
+      "estimatedDuration": "2-3 hours",
+      "dependencies": ["phase-7"],
+      "sprints": [
+        {
+          "sprintId": "sprint-8.1",
+          "title": "Root Directory Final Cleanup",
+          "duration": "1 hour",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-8.1.1",
+              "title": "Remove empty directories",
+              "description": "Clean up .tmp-build, .tmp-performance, target/",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Empty directories removed",
+                "Root directory clean"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-8.1.2",
+              "title": "Remove duplicate files",
+              "description": "Delete CLAUDE copy.md and other duplicates",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Duplicate files removed",
+                "Only one copy of each doc"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-8.1.3",
+              "title": "Verify root directory file count",
+              "description": "Confirm <20 files in root",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Root has <20 files",
+                "Only config files remain",
+                "README files in root",
+                "coordination docs in root"
+              ],
+              "confidenceTarget": 0.90
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-8.2",
+          "title": "Create Migration Documentation",
+          "duration": "1-2 hours",
+          "agentRequirements": {
+            "coder": 1
+          },
+          "subtasks": [
+            {
+              "id": "task-8.2.1",
+              "title": "Create migration guide",
+              "description": "Document workspace reorganization for users",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "Guide created in docs/",
+                "Old → new path mappings documented",
+                "Breaking changes documented",
+                "Migration script usage documented"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-8.2.2",
+              "title": "Update CHANGELOG",
+              "description": "Document all structural changes",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "CHANGELOG.md updated",
+                "Breaking changes noted",
+                "Migration guide linked"
+              ],
+              "confidenceTarget": 0.85
+            },
+            {
+              "id": "task-8.2.3",
+              "title": "Update README with new structure",
+              "description": "Update main README with directory structure",
+              "agent": "coder",
+              "acceptanceCriteria": [
+                "README.md updated",
+                "Directory structure documented",
+                "Quick start guide updated"
+              ],
+              "confidenceTarget": 0.85
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
+  "successCriteria": [
+    "Root directory contains <20 files (only configuration)",
+    "All test files successfully moved to tests/manual/",
+    "All validation scripts moved to scripts/validation/",
+    "Result directories consolidated to reports/ and .artifacts/",
+    "All 163+ build path references updated and validated",
+    "All 180+ test result references updated and validated",
+    "All 100+ test file references updated and validated",
+    "CI/CD pipelines pass successfully",
+    "Docker builds and runs successfully",
+    "All npm scripts execute without errors",
+    "Full test suite passes with correct coverage reporting",
+    "Documentation updated with new paths",
+    "Migration guide created for users",
+    "Git history preserved for all file moves",
+    "Zero breaking changes to public API",
+    "Overall consensus confidence ≥0.90"
+  ],
+
+  "rollbackProcedure": {
+    "description": "Automated rollback capability for each phase",
+    "steps": [
+      "Restore from git branch pre-migration",
+      "Revert path updates using migration script --rollback",
+      "Restore backup files from .artifacts/backups/",
+      "Validate original structure restored",
+      "Run test suite to confirm functionality"
+    ]
+  },
+
+  "risks": [
+    {
+      "risk": "CI/CD pipeline failures during migration",
+      "impact": "high",
+      "mitigation": "Test all workflows in PR before merge, maintain rollback branch"
+    },
+    {
+      "risk": "Docker container breakage",
+      "impact": "high",
+      "mitigation": "Test Docker builds locally before CI/CD validation"
+    },
+    {
+      "risk": "Missed path references causing runtime errors",
+      "impact": "medium",
+      "mitigation": "Comprehensive grep validation, automated path update script, extensive testing"
+    },
+    {
+      "risk": "Breaking changes for downstream users",
+      "impact": "medium",
+      "mitigation": "Maintain backward compatibility symlinks, document migration path"
+    },
+    {
+      "risk": "Test coverage reporting breakage",
+      "impact": "medium",
+      "mitigation": "Validate coverage paths before and after, maintain same directory name"
+    },
+    {
+      "risk": "NPM package installation failures",
+      "impact": "high",
+      "mitigation": "Test npm pack and local installation before publishing"
+    }
+  ],
+
+  "metrics": {
+    "filesRelocated": 200,
+    "pathReferencesUpdated": 400,
+    "directoriesConsolidated": 8,
+    "rootFilesReduced": 253,
+    "estimatedStorageReclaimed": "50MB",
+    "codeChurnLines": 800,
+    "testsUpdated": 100
+  }
+}

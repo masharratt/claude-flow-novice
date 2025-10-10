@@ -1,0 +1,152 @@
+═══════════════════════════════════════════════════════════════════════════════
+SECURITY AUDIT - LOOP 2 VALIDATION - SPRINT 1.1 SIGNAL ACK PROTOCOL
+═══════════════════════════════════════════════════════════════════════════════
+
+VALIDATOR: security-specialist-1
+CONSENSUS SCORE: 0.73 / 0.90 (BELOW THRESHOLD)
+RECOMMENDATION: DEFER
+
+CRITICAL FINDINGS (1):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[SEC-CRIT-001] ACK Spoofing - No Cryptographic Verification
+  CVSS: 9.1 CRITICAL
+  Impact: Complete bypass of blocking coordination protocol
+  Location: blocking-coordination.ts:163-164
+  
+  ISSUE: ACKs stored as plain JSON without HMAC/signature. Any coordinator
+         with Redis access can forge ACKs for other coordinators.
+  
+  EXPLOIT: Attacker writes blocking:ack:victim:signal123 to unblock/deadlock
+  
+  FIX: Implement HMAC-SHA256 signatures on ACKs (4 hours)
+       const hmac = crypto.createHmac('sha256', secret)
+                          .update(JSON.stringify(ack)).digest('hex');
+
+HIGH SEVERITY FINDINGS (2):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[SEC-HIGH-001] Redis Key Injection via Unvalidated IDs
+  CVSS: 7.5 HIGH
+  Impact: Coordinator isolation broken, cross-coordinator signal access
+  Location: blocking-coordination-signals.ts:447-456
+  
+  ISSUE: coordinatorId/senderId/receiverId directly interpolated into keys
+         without validation. Colon injection enables collision attacks.
+  
+  EXPLOIT: coordinatorId='evil:victim' -> blocking:signal:evil:victim
+           Wildcard injection: coordinatorId='*' matches all keys
+  
+  FIX: Validate IDs: /^[a-zA-Z0-9_-]+$/ (2 hours)
+
+[SEC-HIGH-002] Plaintext Password Storage in Memory
+  CVSS: 7.1 HIGH
+  Impact: Redis credential theft via memory dump
+  Location: blocking-coordination-signals.ts:86
+  
+  ISSUE: Redis password stored in plaintext config object
+  
+  FIX: Integrate AWS Secrets Manager/Vault (6 hours)
+
+MEDIUM SEVERITY FINDINGS (6):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Missing TLS for Redis (CVSS 6.5) - MITM attack risk
+• Unsafe JSON deserialization (CVSS 5.9) - No schema validation
+• TTL values unvalidated (CVSS 5.3) - Memory exhaustion possible
+• Unbounded processedSignals Set (CVSS 5.3) - Memory leak
+• KEYS command blocks Redis (CVSS 5.0) - Use SCAN instead
+• No payload size limits (CVSS 5.3) - DoS via large payloads
+
+SECURITY SCORING BREAKDOWN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Category              Weight  Score  Key Issues
+────────────────────────────────────────────────────────────────────────────
+Redis Security        30%     0.65   Password plaintext, no TLS, TTL unbounded
+Data Integrity        30%     0.70   Key injection, no ACK verification, no schema
+Error Handling        20%     0.80   Minor info disclosure, silent failures
+Resource Safety       20%     0.85   Memory cleanup, KEYS blocking, TTL bounds
+────────────────────────────────────────────────────────────────────────────
+OVERALL CONSENSUS                0.73   BELOW 0.90 THRESHOLD
+
+STRENGTHS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Atomic SETEX operations prevent partial writes
+✓ TTL usage prevents unbounded memory growth
+✓ Idempotency mechanism properly implemented
+✓ Comprehensive error handling with statistics
+✓ Cleanup methods provided for resource management
+✓ Well-structured code with clear separation of concerns
+
+COMPLIANCE STATUS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PCI DSS:  ✗ NON-COMPLIANT (plaintext passwords, no TLS, no crypto verification)
+GDPR:     ⚠ NEEDS REVIEW (payload may contain PII, no encryption at rest)
+SOC 2:    ✗ NON-COMPLIANT (no input validation, no integrity checks, no TLS)
+
+REMEDIATION ROADMAP:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIORITY  FINDING              EFFORT  IMPACT
+────────────────────────────────────────────────────────────────────────────
+P0        ACK crypto verify    4h      Eliminates critical bypass vulnerability
+P0        ID validation        2h      Prevents key injection attacks
+P1        Secure credentials   6h      Protects Redis from credential theft
+P1        Enable TLS           3h      Prevents MITM attacks
+P1        Schema validation    4h      Prevents deserialization attacks
+P2        TTL bounds           1h      Prevents memory exhaustion
+P2        LRU cache            2h      Fixes memory leak
+P2        SCAN not KEYS        2h      Prevents Redis blocking
+P2        Payload size limit   1h      Prevents DoS attacks
+────────────────────────────────────────────────────────────────────────────
+TOTAL REMEDIATION EFFORT:          25 hours
+
+LOOP 4 PRODUCT OWNER DECISION CRITERIA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Current Score:     0.73
+Target Score:      ≥ 0.90
+Delta:             -0.17
+
+RECOMMENDATION: DEFER
+
+RATIONALE:
+Implementation demonstrates solid architecture with TTL management, idempotency,
+and structured error handling. However, CRITICAL ACK spoofing vulnerability
+(SEC-CRIT-001) and HIGH-severity key injection (SEC-HIGH-001) prevent production
+deployment. These are fixable within 6 hours total effort.
+
+DEFER CONDITIONS (MANDATORY FOR PRODUCTION):
+1. ✗ Address SEC-CRIT-001 (ACK cryptographic verification) - 4 hours
+2. ✗ Address SEC-HIGH-001 (ID validation) - 2 hours
+3. ✗ Address SEC-HIGH-002 (credential security) - 6 hours
+4. ⚠ Consider SEC-MED-001 through SEC-MED-006 for hardening
+
+PROCEED CRITERIA:
+1. All CRITICAL and HIGH findings remediated
+2. Consensus score ≥ 0.90 on re-validation
+3. Unit tests added for security controls
+4. Security review passed by second validator
+
+ATTACK SCENARIOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. ACK Forgery Attack [HIGH likelihood, CRITICAL impact]
+   → Malicious coordinator forges ACKs to unblock/deadlock system
+   → Mitigation: HMAC signatures
+
+2. Key Injection Attack [MEDIUM likelihood, HIGH impact]
+   → Attacker injects colons/wildcards to access other coordinators' signals
+   → Mitigation: Whitelist ID validation
+
+3. Credential Theft [LOW likelihood, CRITICAL impact]
+   → Memory dump or MITM exposes Redis password
+   → Mitigation: Secure storage + TLS
+
+4. Resource Exhaustion DoS [MEDIUM likelihood, MEDIUM impact]
+   → Large payloads or unbounded TTLs exhaust Redis memory
+   → Mitigation: Size/TTL limits
+
+NEXT ACTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Loop 3: Address SEC-CRIT-001 and SEC-HIGH-001 (6 hours, specialized coder)
+2. Loop 2: Re-validate with security specialist (consensus target ≥ 0.90)
+3. Loop 4: Product Owner decision (PROCEED if ≥ 0.90, else ESCALATE)
+
+═══════════════════════════════════════════════════════════════════════════════
+DETAILED REPORT: SECURITY_AUDIT_LOOP2_SPRINT_1_1.json
+═══════════════════════════════════════════════════════════════════════════════
