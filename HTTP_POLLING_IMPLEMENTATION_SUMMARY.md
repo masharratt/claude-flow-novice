@@ -112,7 +112,7 @@ http://localhost:3001
 
 ### Test the Fallback System
 ```bash
-node test-polling-fallback.js
+node tests/manual/test-polling-fallback.js
 ```
 
 ## 🔍 Connection Modes

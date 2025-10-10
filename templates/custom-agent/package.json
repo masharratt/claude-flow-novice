@@ -8,7 +8,7 @@
     "start": "npx claude-flow-novice",
     "create-agent": "node scripts/create-custom-agent.js",
     "test-agent": "node test-custom-agent.js",
-    "swarm": "node test-swarm-direct.js",
+    "swarm": "node tests/manual/test-swarm-direct.js",
     "validate": "npx claude-flow-novice validate:agents"
   },
   "dependencies": {

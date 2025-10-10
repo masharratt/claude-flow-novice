@@ -234,7 +234,7 @@ class EnhancedNodeVersionCompatibilityTester {
         }
       `;
 
-      const testFile = join(projectRoot, 'test-wasm.mjs');
+      const testFile = join(projectRoot, 'tests/manual/test-wasm.mjs');
       writeFileSync(testFile, wasmTest);
 
       try {

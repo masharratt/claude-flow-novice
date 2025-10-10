@@ -262,7 +262,7 @@ npm install claude-flow-novice
 npx claude-flow-novice init --template=basic-swarm
 
 # 3. Run sample swarm
-node test-swarm.js "Create a simple REST API"
+node tests/manual/test-swarm.js "Create a simple REST API"
 
 # 4. Verify Redis integration
 npx claude-flow-novice redis:status

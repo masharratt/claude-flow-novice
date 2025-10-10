@@ -72,7 +72,7 @@ executeSwarm({
 ### 2. Deploy Swarm
 
 ```bash
-node test-swarm-direct.js "Process customer data pipeline" --executor --max-agents 500
+node tests/manual/test-swarm-direct.js "Process customer data pipeline" --executor --max-agents 500
 ```
 
 ### 3. Monitor Performance

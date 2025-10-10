@@ -64,7 +64,7 @@ class NodeVersionCompatibilityTester {
         console.log('✓ ES Module features working');
       `;
 
-      const testFile = join(projectRoot, 'test-esm.mjs');
+      const testFile = join(projectRoot, 'tests/manual/test-esm.mjs');
       writeFileSync(testFile, esmTest);
 
       try {
@@ -92,9 +92,9 @@ class NodeVersionCompatibilityTester {
         };
       `;
 
-      const testFile = join(projectRoot, 'test-cjs-interop.mjs');
-      const wrapperFile = join(projectRoot, 'test-cjs-wrapper.mjs');
-      const moduleFile = join(projectRoot, 'test-cjs-module.cjs');
+      const testFile = join(projectRoot, 'tests/manual/test-cjs-interop.mjs');
+      const wrapperFile = join(projectRoot, 'tests/manual/test-cjs-wrapper.mjs');
+      const moduleFile = join(projectRoot, 'tests/manual/test-cjs-module.cjs');
 
       writeFileSync(testFile, cjsTest);
       writeFileSync(wrapperFile, cjsWrapper);

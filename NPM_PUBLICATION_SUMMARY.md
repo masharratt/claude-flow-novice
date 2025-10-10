@@ -97,7 +97,7 @@ claude-flow-novice status
 claude-flow-novice init --template=basic-swarm
 
 # Test swarm execution
-node test-swarm.js "Create REST API"
+node tests/manual/test-swarm.js "Create REST API"
 ```
 
 ---

@@ -132,7 +132,7 @@ npm test -- --coverage
 #### Task 1: 1000+ Agent Fleet Tests
 ```bash
 # Execute fleet scaling tests
-node test-phase4-performance.js
+node tests/manual/test-phase4-performance.js
 
 # Verify metrics:
 # - Agent spawn time: <100ms per agent
@@ -143,7 +143,7 @@ node test-phase4-performance.js
 #### Task 2: Event Bus Throughput
 ```bash
 # Execute event bus benchmarks
-node test-performance.json
+node tests/manual/test-performance.json
 
 # Verify metrics:
 # - Throughput: ≥10,000 events/sec
@@ -154,7 +154,7 @@ node test-performance.json
 #### Task 3: WASM Performance Validation
 ```bash
 # Execute WASM benchmarks
-node test-wasm-40x-performance.js
+node tests/manual/test-wasm-40x-performance.js
 
 # Verify metrics:
 # - Performance: ≥40x improvement

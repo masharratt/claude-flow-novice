@@ -17,7 +17,7 @@ Automated search/replace path updates with comprehensive validation and safety f
 
 ```bash
 node scripts/migration/update-paths.js \
-  --pattern "node test-" \
+  --pattern "node tests/manual/test-" \
   --replacement "node tests/manual/test-" \
   --types yml,json,js
 ```
@@ -61,7 +61,7 @@ Create a JSON file with pattern definitions:
 {
   "patterns": [
     {
-      "pattern": "node test-",
+      "pattern": "node tests/manual/test-",
       "replacement": "node tests/manual/test-",
       "description": "Move manual test scripts to tests/manual directory"
     },
@@ -92,7 +92,7 @@ Create a JSON file with pattern definitions:
 - **Validation**: YAML parser syntax validation
 - **Use cases**: GitHub workflows, CI/CD configs, Kubernetes manifests
 - **Example patterns**:
-  - Update workflow paths: `run: node test-` → `run: node tests/manual/test-`
+  - Update workflow paths: `run: node tests/manual/test-` → `run: node tests/manual/test-`
   - Change directories: `working-directory: ./dist` → `working-directory: ./build`
 
 ### JavaScript Files (`.js`, `.mjs`, `.cjs`)
@@ -106,7 +106,7 @@ Create a JSON file with pattern definitions:
 - **Validation**: Balanced code fences and inline code
 - **Use cases**: Documentation, README files, guides
 - **Example patterns**:
-  - Update code examples: `` `node test-` `` → `` `node tests/` ``
+  - Update code examples: `` `node tests/manual/test-` `` → `` `node tests/` ``
   - Change links: `[link](./docs/` → `[link](./documentation/`
 
 ## Safety Features
@@ -151,7 +151,7 @@ Summary:
 Changed Files:
   /path/to/file.json
     Total matches: 3
-    - "node test-" → "node tests/manual/test-" (3 matches)
+    - "node tests/manual/test-" → "node tests/manual/test-" (3 matches)
 ```
 
 ## Common Use Cases
@@ -162,7 +162,7 @@ Changed Files:
 **Solution**:
 ```bash
 node scripts/migration/update-paths.js \
-  --pattern "node test-" \
+  --pattern "node tests/manual/test-" \
   --replacement "node tests/manual/test-" \
   --types yml,json,js,md \
   --verbose
@@ -200,7 +200,7 @@ Create `patterns.json`:
 ```json
 {
   "patterns": [
-    {"pattern": "node test-", "replacement": "node tests/manual/test-"},
+    {"pattern": "node tests/manual/test-", "replacement": "node tests/manual/test-"},
     {"pattern": "test-results/", "replacement": ".artifacts/test-results/"},
     {"pattern": "\.claude-flow-novice/dist", "replacement": "dist/"}
   ]

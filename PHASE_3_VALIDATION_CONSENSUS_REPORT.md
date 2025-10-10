@@ -420,8 +420,8 @@ src/__tests__/
 4. **Execute Performance Benchmarks**:
    ```bash
    npm run test:performance
-   node test-phase4-performance.js
-   node test-wasm-40x-performance.js
+   node tests/manual/test-phase4-performance.js
+   node tests/manual/test-wasm-40x-performance.js
    ```
 
 ### Next Sprint Actions

@@ -93,7 +93,7 @@
             "Audit all agent profiles for MCP command usage",
             "Update mesh-coordinator.md: Remove mcp__claude-flow references",
             "Update all coordinator agents: Replace MCP tools with CLI equivalents",
-            "Replace mcp__claude-flow__swarm_init → node test-swarm-direct.js",
+            "Replace mcp__claude-flow__swarm_init → node tests/manual/test-swarm-direct.js",
             "Replace mcp__claude-flow__agent_spawn → Task tool (already CLI native)",
             "Update tool lists in agent frontmatter (remove MCP, keep CLI tools)",
             "Update example commands in agent documentation",

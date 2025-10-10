@@ -11,7 +11,7 @@
     "fleet:optimize": "npx claude-flow-novice fleet optimize",
     "fleet:health": "npx claude-flow-novice fleet health",
     "dashboard": "npx claude-flow-novice dashboard monitor",
-    "swarm": "node test-swarm-direct.js"
+    "swarm": "node tests/manual/test-swarm-direct.js"
   },
   "dependencies": {
     "claude-flow-novice": "^1.6.6"

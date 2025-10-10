@@ -24,14 +24,14 @@ node scripts/migration/update-paths.js \
 ```bash
 # Preview
 node scripts/migration/update-paths.js \
-  --pattern "node test-" \
+  --pattern "node tests/manual/test-" \
   --replacement "node tests/manual/test-" \
   --types yml,json,js,md \
   --dry-run
 
 # Apply
 node scripts/migration/update-paths.js \
-  --pattern "node test-" \
+  --pattern "node tests/manual/test-" \
   --replacement "node tests/manual/test-" \
   --types yml,json,js,md
 ```

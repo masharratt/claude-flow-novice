@@ -31,7 +31,7 @@ Task(coordinator, "Execute hello-world-test.md requirements")
 
 ```bash
 # Run Layer 1 only
-node test-layer1-mesh-coordination.js
+node tests/manual/test-layer1-mesh-coordination.js
 
 # Run all layers sequentially
 bash run-all-layers.sh
@@ -96,7 +96,7 @@ bash run-all-layers.sh
 
 **Run:**
 ```bash
-node test-layer1-mesh-coordination.js
+node tests/manual/test-layer1-mesh-coordination.js
 ```
 
 **Validate:**
@@ -119,7 +119,7 @@ node validate-layer1-coordination.js
 
 **Run:**
 ```bash
-node test-layer2-review-coordination.js
+node tests/manual/test-layer2-review-coordination.js
 ```
 
 **Validate:**
@@ -143,7 +143,7 @@ node validate-layer2-reviews.js
 
 **Run:**
 ```bash
-node test-layer3-error-retry.js
+node tests/manual/test-layer3-error-retry.js
 ```
 
 **Validate:**

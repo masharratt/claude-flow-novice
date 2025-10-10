@@ -385,7 +385,7 @@ claude-flow-novice team assign jane.smith backend-dev
 
 ```bash
 # Method 1: Direct prompt-based initialization
-node test-swarm-direct.js "Create a simple REST API with user authentication" \
+node tests/manual/test-swarm-direct.js "Create a simple REST API with user authentication" \
   --executor --output-format json --max-agents 3
 
 # Method 2: Via comprehensive prompt file
@@ -405,11 +405,11 @@ node src/cli/simple-commands/swarm.js "Build REST API" \
   --executor --output-format json --max-agents 3
 
 # Development strategy
-node test-swarm-direct.js "Research cloud architecture patterns" \
+node tests/manual/test-swarm-direct.js "Research cloud architecture patterns" \
   --strategy research --max-agents 2 --verbose
 
 # Multi-agent coordination
-node test-swarm-direct.js "Develop user registration feature" \
+node tests/manual/test-swarm-direct.js "Develop user registration feature" \
   --strategy development --mode distributed --max-agents 5
 ```
 
@@ -475,19 +475,19 @@ console.log(`Resuming swarm: ${swarm.objective} (${swarm.progress * 100}% comple
 
 ```bash
 # Simple objective
-node test-swarm-direct.js "Create a REST API for user management" \
+node tests/manual/test-swarm-direct.js "Create a REST API for user management" \
   --executor --max-agents 3
 
 # Development strategy
-node test-swarm-direct.js "Build authentication system" \
+node tests/manual/test-swarm-direct.js "Build authentication system" \
   --strategy development --mode centralized --verbose
 
 # Research strategy
-node test-swarm-direct.js "Analyze cloud architecture patterns" \
+node tests/manual/test-swarm-direct.js "Analyze cloud architecture patterns" \
   --strategy research --output-format json
 
 # Multi-agent with specific topology
-node test-swarm-direct.js "Develop e-commerce platform" \
+node tests/manual/test-swarm-direct.js "Develop e-commerce platform" \
   --strategy development --mode hierarchical --max-agents 8
 ```
 
@@ -515,7 +515,7 @@ redis-cli eval "return redis.call('keys', 'swarm:*')" 0 | \
   xargs -I {} sh -c 'echo "Key: {}"; redis-cli get {} | jq .
 
 # Resume specific swarm
-node test-swarm-recovery.js
+node tests/manual/test-swarm-recovery.js
 
 # Clear completed swarms (maintenance)
 redis-cli --scan --pattern "swarm:*" | \
@@ -2987,12 +2987,12 @@ The guide provides **immediately deployable commands**:
 
 ```bash
 # MCP-less swarm execution (tested ✅)
-node test-swarm-direct.js "Create REST API with authentication" \
+node tests/manual/test-swarm-direct.js "Create REST API with authentication" \
   --executor --output-format json --max-agents 3
 
 # Redis-backed recovery (tested ✅)
 redis-cli keys "swarm:*"  # Find interrupted swarms
-node test-swarm-recovery.js  # Execute recovery
+node tests/manual/test-swarm-recovery.js  # Execute recovery
 
 # Production monitoring (tested ✅)
 redis-cli monitor | grep "swarm:"  # Real-time activity

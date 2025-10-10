@@ -965,7 +965,7 @@ redis-cli -a "$REDIS_PASSWORD" get "swarm:<swarm-id>" > swarm-backup.json
 redis-cli -a "$REDIS_PASSWORD" del "swarm:<swarm-id>"
 
 # Reinitialize swarm
-node test-swarm-direct.js "Resume previous task" --swarm-id <swarm-id>
+node tests/manual/test-swarm-direct.js "Resume previous task" --swarm-id <swarm-id>
 ```
 
 **3. Implement atomic state updates:**

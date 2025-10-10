@@ -69,10 +69,10 @@ node monitor/dashboard/simple-server.js
 ### Testing Swarm Integration
 ```bash
 # Run test swarms and see them appear on dashboard
-node test-dashboard-live.js
+node tests/manual/test-dashboard-live.js
 
 # Or run individual swarms
-node test-swarm-direct.js "Test objective" --executor --max-agents 5
+node tests/manual/test-swarm-direct.js "Test objective" --executor --max-agents 5
 ```
 
 ## Technical Details

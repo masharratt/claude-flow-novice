@@ -51,7 +51,7 @@ executeSwarm({
 
 **Redis-backed Swarm Execution**:
 ```bash
-node test-swarm-direct.js "Create REST API with authentication" --executor --max-agents 3
+node tests/manual/test-swarm-direct.js "Create REST API with authentication" --executor --max-agents 3
 # Or: executeSwarm(objective, { strategy: 'development', mode: 'mesh' })
 ```
 
@@ -362,11 +362,11 @@ Pick roles for actual needs (no generic redundancy).
 
 ```bash
 # Direct swarm execution (Redis-backed)
-node test-swarm-direct.js "Create REST API" --executor --max-agents 3
+node tests/manual/test-swarm-direct.js "Create REST API" --executor --max-agents 3
 
 # Swarm recovery after interruption
 redis-cli keys "swarm:*"  # Find interrupted swarms
-node test-swarm-recovery.js  # Execute recovery
+node tests/manual/test-swarm-recovery.js  # Execute recovery
 
 # CRITICAL: All agents MUST use Redis pub/sub for coordination
 redis-cli publish "swarm:coordination" '{"agent":"id","status":"message"}'
@@ -414,7 +414,7 @@ Loop 2: 0.87 (target 0.90) ❌ → Relaunch Loop 3 (security + coverage)
 
 ```bash
 # Initialize and execute swarms with Redis-backed coordination for persistent state across interruptions
-node test-swarm-direct.js "Objective description" --executor --max-agents 5
+node tests/manual/test-swarm-direct.js "Objective description" --executor --max-agents 5
 node src/cli/simple-commands/swarm.js "Build REST API" --strategy development --mode mesh
 claude-flow-novice swarm "Research cloud patterns" --strategy research --output-format json
 

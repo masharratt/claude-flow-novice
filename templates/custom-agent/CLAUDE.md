@@ -252,10 +252,10 @@ async function cleanupAgent() {
 
 ```bash
 # Test agent in isolation
-node test-custom-agent.js --agent my-custom-agent --task test-task.json
+node tests/manual/test-custom-agent.js --agent my-custom-agent --task test-task.json
 
 # Test in swarm
-node test-swarm-direct.js "Test custom agent capabilities" --executor --agents my-custom-agent,coder
+node tests/manual/test-swarm-direct.js "Test custom agent capabilities" --executor --agents my-custom-agent,coder
 ```
 
 ---

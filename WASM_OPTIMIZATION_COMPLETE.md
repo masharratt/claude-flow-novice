@@ -160,7 +160,7 @@ console.log('From cache:', result.fromCache);
 
 ```bash
 # Run test
-node test-optimized-regex.js
+node tests/manual/test-optimized-regex.js
 
 # Expected output:
 # ✅ Performance Validation: PASSED

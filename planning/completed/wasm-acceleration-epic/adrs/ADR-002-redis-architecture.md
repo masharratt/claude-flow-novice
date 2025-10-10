@@ -64,11 +64,11 @@ Gap:     2.1x performance deficit
 **Swarm Execution Pattern:**
 ```bash
 # Redis-backed swarm with persistence
-node test-swarm-direct.js "Create REST API" --executor --max-agents 3
+node tests/manual/test-swarm-direct.js "Create REST API" --executor --max-agents 3
 
 # Swarm recovery after interruption
 redis-cli keys "swarm:*"  # Find interrupted swarms
-node test-swarm-recovery.js
+node tests/manual/test-swarm-recovery.js
 ```
 
 **Event Bus Coordination:**

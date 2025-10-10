@@ -211,7 +211,7 @@ const status = await engine.getStatus();
 ### Running Demo
 ```bash
 # Full demo (requires Redis)
-node test-autoscaling-demo.js
+node tests/manual/test-autoscaling-demo.js
 
 # Simplified demo (no Redis required)
 node autoscaling-demo-simplified.js

@@ -145,7 +145,7 @@ node server.js
 
 ### Testing
 ```bash
-node test-dashboard-realtime.js
+node tests/manual/test-dashboard-realtime.js
 ```
 
 ## API Endpoints

@@ -126,7 +126,7 @@ The polling service automatically handles authentication:
 
 ### Run Tests
 ```bash
-node test-polling-fallback.js
+node tests/manual/test-polling-fallback.js
 ```
 
 ### Test Coverage

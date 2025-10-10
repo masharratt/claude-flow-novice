@@ -11,7 +11,7 @@
     "eventbus:subscribe": "npx claude-flow-novice eventbus subscribe",
     "eventbus:monitor": "npx claude-flow-novice eventbus monitor",
     "eventbus:metrics": "npx claude-flow-novice eventbus metrics",
-    "swarm": "node test-swarm-direct.js"
+    "swarm": "node tests/manual/test-swarm-direct.js"
   },
   "dependencies": {
     "claude-flow-novice": "^1.6.6"

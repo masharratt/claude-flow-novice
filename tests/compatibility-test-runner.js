@@ -317,7 +317,7 @@ class CompatibilityTestRunner {
         }, 100);
       `;
 
-      const testFile = join(projectRoot, 'test-dashboard-integration.js');
+      const testFile = join(projectRoot, 'tests/manual/test-dashboard-integration.js');
       writeFileSync(testFile, dashboardTest);
 
       try {

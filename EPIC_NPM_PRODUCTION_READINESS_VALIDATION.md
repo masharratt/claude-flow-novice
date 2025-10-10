@@ -311,9 +311,9 @@ State Management:      TTL-based expiration (24 hours default)
 
 **Swarm Execution:**
 ```bash
-node test-swarm-direct.js "Objective" --executor --max-agents 5
+node tests/manual/test-swarm-direct.js "Objective" --executor --max-agents 5
 redis-cli keys "swarm:*"  # Find swarms
-node test-swarm-recovery.js  # Recover interrupted swarms
+node tests/manual/test-swarm-recovery.js  # Recover interrupted swarms
 ```
 
 **Outstanding:** None - Multi-swarm coordination ready

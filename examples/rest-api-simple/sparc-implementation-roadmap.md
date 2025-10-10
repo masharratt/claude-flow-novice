@@ -160,7 +160,7 @@ If you prefer to execute each phase manually:
    ```bash
    npm run dev
    # In another terminal:
-   node test-api.js
+   node tests/manual/test-api.js
    ```
 
 ## Success Metrics

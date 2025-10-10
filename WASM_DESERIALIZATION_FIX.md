@@ -165,7 +165,7 @@ wasm-bindgen target/wasm32-unknown-unknown/release/wasm_regex_engine.wasm \
   --out-dir pkg --target nodejs
 
 # Verify
-node test-wasm-production.cjs
+node tests/manual/test-wasm-production.cjs
 ```
 
 **Build Time:** ~1.5 seconds

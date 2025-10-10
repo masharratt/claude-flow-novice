@@ -496,7 +496,7 @@ class CompatibilityTestSuite {
         });
       `;
 
-      const scriptFile = join(projectRoot, 'test-dashboard.js');
+      const scriptFile = join(projectRoot, 'tests/manual/test-dashboard.js');
       writeFileSync(scriptFile, dashboardScript);
 
       try {

@@ -14,7 +14,7 @@ MCP (Model Context Protocol) was deprecated in v2.0.0 (Oct 9, 2025). All agent p
 
 **Migration Path:**
 - **From:** `mcp__claude-flow__swarm_init`, `mcp__claude-flow__agent_spawn`
-- **To:** `node test-swarm-direct.js`, `Task` tool, `/swarm` slash command
+- **To:** `node tests/manual/test-swarm-direct.js`, `Task` tool, `/swarm` slash command
 
 ---
 
@@ -72,7 +72,7 @@ mcp__claude-flow__swarm_init({
 **AFTER:**
 ```bash
 # Bash Tool (RECOMMENDED)
-node test-swarm-direct.js "Create distributed authentication system" --executor --max-agents 7
+node tests/manual/test-swarm-direct.js "Create distributed authentication system" --executor --max-agents 7
 
 # Or SlashCommand Tool
 SlashCommand("/swarm", "Create distributed authentication system")
@@ -92,26 +92,26 @@ SlashCommand("/swarm", "Create distributed authentication system")
 
 | MCP Command (OLD) | CLI Equivalent (NEW) | Tool |
 |-------------------|----------------------|------|
-| `mcp__claude-flow__swarm_init` | `node test-swarm-direct.js "objective" --executor` | Bash |
+| `mcp__claude-flow__swarm_init` | `node tests/manual/test-swarm-direct.js "objective" --executor` | Bash |
 | `mcp__claude-flow__swarm_init` | `SlashCommand("/swarm", "objective")` | SlashCommand |
 | `mcp__claude-flow__agent_spawn` | `Task("agent-type", "prompt", "subagent_type")` | Task |
 
 ---
 
-### 4. Replace mcp__claude-flow__swarm_init → node test-swarm-direct.js
+### 4. Replace mcp__claude-flow__swarm_init → node tests/manual/test-swarm-direct.js
 
 **Direct Execution Pattern:**
 
 ```bash
 # Full command with all options
-node test-swarm-direct.js "Build REST API with auth" \
+node tests/manual/test-swarm-direct.js "Build REST API with auth" \
   --executor \
   --max-agents 7 \
   --strategy development \
   --mode mesh
 
 # Minimal command
-node test-swarm-direct.js "objective" --executor
+node tests/manual/test-swarm-direct.js "objective" --executor
 ```
 
 **SlashCommand Pattern (Preferred):**
@@ -184,7 +184,7 @@ Use for Redis coordination, node scripts, and git commands:
 redis-cli --pass "$REDIS_PASSWORD" --no-auth-warning setex "mesh:state:${AGENT_ID}" 3600 "active"
 
 # Direct swarm execution (Redis-backed)
-node test-swarm-direct.js "objective" --executor --max-agents 7
+node tests/manual/test-swarm-direct.js "objective" --executor --max-agents 7
 
 # Git operations
 git add . && git commit -m "feat: mesh coordination complete"
@@ -275,7 +275,7 @@ describe('Agent Spawning Post-MCP Migration', () => {
 
   it('should execute swarm init via CLI', async () => {
     const result = await exec(
-      'node test-swarm-direct.js "Test objective" --executor --max-agents 3'
+      'node tests/manual/test-swarm-direct.js "Test objective" --executor --max-agents 3'
     );
 
     expect(result.exitCode).toBe(0);

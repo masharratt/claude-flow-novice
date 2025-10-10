@@ -82,23 +82,23 @@ openssl rand -hex 32
 
 ```bash
 # Basic swarm execution
-node test-swarm-direct.js "Create REST API with authentication" \
+node tests/manual/test-swarm-direct.js "Create REST API with authentication" \
   --executor --max-agents 3
 
 # Development strategy
-node test-swarm-direct.js "Build authentication system" \
+node tests/manual/test-swarm-direct.js "Build authentication system" \
   --strategy development --mode centralized --verbose
 
 # Research strategy
-node test-swarm-direct.js "Research cloud architecture patterns" \
+node tests/manual/test-swarm-direct.js "Research cloud architecture patterns" \
   --strategy research --output-format json
 
 # Multi-agent coordination
-node test-swarm-direct.js "Develop user registration feature" \
+node tests/manual/test-swarm-direct.js "Develop user registration feature" \
   --strategy development --mode distributed --max-agents 5
 
 # Full mesh topology
-node test-swarm-direct.js "Analyze system performance" \
+node tests/manual/test-swarm-direct.js "Analyze system performance" \
   --topology mesh --strategy analysis --max-agents 8
 ```
 
@@ -139,10 +139,10 @@ claude-flow-novice status --component swarm
 
 ```bash
 # Execute recovery for all interrupted swarms
-node test-swarm-recovery.js
+node tests/manual/test-swarm-recovery.js
 
 # Recovery with specific swarm ID
-node test-swarm-recovery.js --swarm-id swarm_abc123
+node tests/manual/test-swarm-recovery.js --swarm-id swarm_abc123
 
 # Recovery monitoring
 monitor-recovery() {
@@ -360,7 +360,7 @@ claude-flow-novice test:wasm-optimization
 
 # Load testing with specific patterns
 node scripts/test/load-test.js --pattern "swarm-coordination" --duration 300
-node test-wasm-40x-performance.js --validate-targets
+node tests/manual/test-wasm-40x-performance.js --validate-targets
 ```
 
 #### Error Recovery System
@@ -875,7 +875,7 @@ claude-flow-nice config remove mcp.*
 
 ```bash
 # Always initialize with clear objectives
-node test-swarm-direct.js "Build user authentication system" \
+node tests/manual/test-swarm-direct.js "Build user authentication system" \
   --strategy development \
   --mode mesh \
   --max-agents 5 \
@@ -943,7 +943,7 @@ claude-flow-nice team spawn --objective="Build microservices" \
   --agents 5 --strategy development
 
 # Execute microservice development
-node test-swarm-direct.js "Create user service with JWT auth" \
+node tests/manual/test-swarm-direct.js "Create user service with JWT auth" \
   --strategy development --mode hierarchical
 
 # Monitor swarm progress
@@ -959,7 +959,7 @@ claude-flow-nice team spawn --objective="Analyze system patterns" \
   --agents 3 --strategy research
 
 # Execute research
-node test-swarm-direct.js "Research cloud architecture patterns" \
+node tests/manual/test-swarm-direct.js "Research cloud architecture patterns" \
   --strategy research --output-format json
 
 # Consolidate results
@@ -970,11 +970,11 @@ redis-cli get "swarm:research-swarm-123" | jq '.results'
 
 ```bash
 # Code review swarm
-node test-swarm-direct.js "Review authentication implementation" \
+node tests/manual/test-swarm-direct.js "Review authentication implementation" \
   --strategy testing --mode peer-review --agents 4
 
 # Security review
-node test-swarm-direct.js "Security audit of payment system" \
+node tests/manual/test-swarm-direct.js "Security audit of payment system" \
   --strategy security --max-agents 6
 ```
 
@@ -1000,7 +1000,7 @@ redis-cli config get maxmemory
 redis-cli keys "swarm:*"
 
 # Manual recovery
-node test-swarm-recovery.js --swarm-id swarm_abc123
+node tests/manual/test-swarm-recovery.js --swarm-id swarm_abc123
 
 # Check recovery logs
 tail -f logs/recovery.log

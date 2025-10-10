@@ -223,7 +223,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
 
       // Execute CLI command via system call
       try {
-        const result = execSync('node test-swarm-direct.js "Test integration objective" --max-agents 2', {
+        const result = execSync('node tests/manual/test-swarm-direct.js "Test integration objective" --max-agents 2', {
           cwd: process.cwd(),
           encoding: 'utf8',
           timeout: 30000

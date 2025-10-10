@@ -237,7 +237,7 @@ claude-flow-novice format  # Format all code files according to project style gu
 
 ```bash
 # Recover interrupted swarms using existing Redis state without reinitializing agent coordination
-node test-swarm-recovery.js  # Execute automatic recovery from persisted swarm state
+node tests/manual/test-swarm-recovery.js  # Execute automatic recovery from persisted swarm state
 redis-cli --scan --pattern "swarm:*" | xargs -I {} redis-cli get {}  # List all swarm states with metadata
 ./recover-swarm.sh swarm_id  # Manual recovery script for corrupted or stale swarm instances
 

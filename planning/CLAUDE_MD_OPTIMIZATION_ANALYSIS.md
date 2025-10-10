@@ -269,7 +269,7 @@ Commands with full documentation in logs:
 **Also in**: logs-cli-redis.md (lines 38-92), logs-slash-commands.md (lines 193-234), logs-mcp.md (lines 206-302)
 
 KEEP ALL - Core to agent workflow:
-1. `node test-swarm-direct.js "Objective description" --executor --max-agents 5`
+1. `node tests/manual/test-swarm-direct.js "Objective description" --executor --max-agents 5`
 2. `node src/cli/simple-commands/swarm.js "Build REST API" --strategy development --mode mesh`
 3. `claude-flow-novice swarm "Research cloud patterns" --strategy research --output-format json`
 4. `claude-flow-novice swarm status`
@@ -287,7 +287,7 @@ KEEP ALL - Core to agent workflow:
 **Also in**: logs-cli-redis.md (lines 94-147)
 
 KEEP ALL - Critical for swarm recovery:
-1. `node test-swarm-recovery.js`
+1. `node tests/manual/test-swarm-recovery.js`
 2. `redis-cli --scan --pattern "swarm:*" | xargs -I {} redis-cli get {}`
 3. `./recover-swarm.sh swarm_id`
 4. `monitor-recovery swarm_id`
@@ -599,7 +599,7 @@ Core commands for daily agent workflows. For comprehensive documentation, see:
 
 ```bash
 # Initialize and execute swarms
-node test-swarm-direct.js "Objective description" --executor --max-agents 5
+node tests/manual/test-swarm-direct.js "Objective description" --executor --max-agents 5
 node src/cli/simple-commands/swarm.js "Build REST API" --strategy development --mode mesh
 claude-flow-novice swarm "Research cloud patterns" --strategy research --output-format json
 
@@ -617,7 +617,7 @@ redis-cli get "swarm:swarm_id"  # Check specific swarm
 
 ```bash
 # Recovery after interruption (uses existing swarm - NO reinit needed)
-node test-swarm-recovery.js  # Execute recovery
+node tests/manual/test-swarm-recovery.js  # Execute recovery
 redis-cli --scan --pattern "swarm:*" | xargs -I {} redis-cli get {}  # List swarm states
 ./recover-swarm.sh swarm_id  # Manual recovery script
 

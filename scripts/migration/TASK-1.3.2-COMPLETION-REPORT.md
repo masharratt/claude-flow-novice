@@ -76,7 +76,7 @@ All required pattern examples implemented and tested:
 
 ```bash
 # Pattern 1: Test script migration
-node test- → node tests/manual/test-
+node tests/manual/test- → node tests/manual/test-
 
 # Pattern 2: Build directory update
 .claude-flow-novice/dist → dist/
@@ -245,7 +245,7 @@ Summary:
 Changed Files:
   /path/to/file.json
     Total matches: 3
-    - "node test-" → "node tests/manual/test-" (3 matches)
+    - "node tests/manual/test-" → "node tests/manual/test-" (3 matches)
 ```
 
 ---
@@ -255,7 +255,7 @@ Changed Files:
 ### Example 1: Simple Path Migration
 ```bash
 node scripts/migration/update-paths.js \
-  --pattern "node test-" \
+  --pattern "node tests/manual/test-" \
   --replacement "node tests/manual/test-" \
   --types yml,json,js
 ```
@@ -275,7 +275,7 @@ node scripts/migration/update-paths.js \
 cat > patterns.json << 'EOF'
 {
   "patterns": [
-    {"pattern": "node test-", "replacement": "node tests/manual/test-"},
+    {"pattern": "node tests/manual/test-", "replacement": "node tests/manual/test-"},
     {"pattern": "test-results/", "replacement": ".artifacts/test-results/"}
   ]
 }
