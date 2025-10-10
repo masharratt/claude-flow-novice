@@ -70,6 +70,36 @@ tsx scripts/migration/migration-examples.ts --template database
 tsx scripts/migration/migration-examples.ts --example simple-data-migration
 ```
 
+#### `validate-migration.js` - Migration Validation Tool
+Comprehensive validation script to verify successful migration completion.
+
+```bash
+# Full validation (all checks)
+node scripts/migration/validate-migration.js
+
+# JSON output for CI/CD integration
+node scripts/migration/validate-migration.js --json
+
+# Verbose output with detailed information
+node scripts/migration/validate-migration.js --verbose
+
+# Skip specific validations
+node scripts/migration/validate-migration.js --skip-build --skip-test --skip-docker
+
+# Quick validation (skip long-running checks)
+node scripts/migration/validate-migration.js --skip-build --skip-test
+```
+
+**Validation Checks:**
+- **File Movement**: Verifies all expected files are in correct locations
+- **Broken Symlinks**: Detects and reports broken symbolic links
+- **Git Status**: Validates clean working tree or expected changes
+- **Build Process**: Tests `npm run build` succeeds
+- **Test Suite**: Executes `npm test` and reports results
+- **Docker Build**: Validates Docker image builds successfully
+- **Configuration Syntax**: Validates JSON and config file syntax
+- **Path References**: Checks for deprecated path references in code
+
 ## Migration Categories
 
 ### 1. System Installation

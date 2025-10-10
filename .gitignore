@@ -13,7 +13,6 @@ lerna-debug.log*
 build/
 out/
 *.exe
-*.tsbuildinfo
 .turbo/
 
 # Binaries
@@ -44,14 +43,24 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# Testing
+# Test artifacts and coverage
 coverage/
+coverage-*/
+*.lcov
+test-results/
+*.tsbuildinfo
+
+# Legacy test artifacts
+playwright-report/
 .nyc_output/
+
+# Test output directories
 tests/results/
 tests/logs/
-*.lcov
-playwright-report/
-test-results/
+
+# Artifacts directory (ephemeral test/build data)
+.artifacts/
+.artifacts/**
 
 # Python
 __pycache__/
@@ -62,10 +71,6 @@ __pycache__/
 *.egg-info/
 dist/
 *.egg
-
-# Test outputs
-output/
-api-project/
 
 # OS
 .DS_Store
@@ -106,9 +111,6 @@ analyzing
 the
 claude-flow-mcp-wrapper
 
-# Test artifacts
-test-output/
-test-reports/
 # SQLite Database Files
 .swarm/memory.db*
 .hive-mind/hive.db*
@@ -117,6 +119,7 @@ test-reports/
 */target*
 */target/*
 *target/*
+*/.build-logs/*
 
 
 
