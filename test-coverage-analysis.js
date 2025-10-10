@@ -9,7 +9,7 @@ console.log('\n🔍 Phase 0 Test Coverage Analysis:');
 const phase0TestFiles = [
   'test-swarm-direct.js',
   'test-swarm-recovery.js',
-  'security-analysis.js',
+  'scripts/validation/security-analysis.js',
   'performance-analysis.js'
 ];
 

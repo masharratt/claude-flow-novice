@@ -115,6 +115,11 @@ claude-flow-mcp-wrapper
 .swarm/memory.db*
 .hive-mind/hive.db*
 
+# Database files (runtime state)
+database/*.db
+database/*.db-wal
+database/*.db-shm
+
 # Rust
 */target*
 */target/*
