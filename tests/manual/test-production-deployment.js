@@ -5,7 +5,7 @@
  * including readiness assessment, zero-downtime deployment, monitoring, and rollback
  */
 
-import ProductionDeploymentCoordinator from './src/production/production-deployment-coordinator.js';
+import ProductionDeploymentCoordinator from '../../src/production/production-deployment-coordinator.js';
 import Redis from 'ioredis';
 
 async function testProductionDeployment() {
@@ -181,11 +181,11 @@ async function testProductionDeployment() {
   }
 }
 
-import ProductionReadinessAssessment from './src/production/production-readiness-assessment.js';
-import ProductionConfigManager from './src/production/production-config-manager.js';
-import ProductionMonitoring from './src/production/production-monitoring.js';
-import AutomatedRollback from './src/production/automated-rollback.js';
-import GoLiveChecklist from './src/production/go-live-checklist.js';
+import ProductionReadinessAssessment from '../../src/production/production-readiness-assessment.js';
+import ProductionConfigManager from '../../src/production/production-config-manager.js';
+import ProductionMonitoring from '../../src/production/production-monitoring.js';
+import AutomatedRollback from '../../src/production/automated-rollback.js';
+import GoLiveChecklist from '../../src/production/go-live-checklist.js';
 
 async function testIndividualComponents() {
   console.log('\n🔧 Testing Individual Components');

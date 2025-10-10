@@ -5,8 +5,8 @@
  * to ensure core functionality works correctly.
  */
 
-import { createNodePlacementOptimizer } from './src/distribution-algorithms/node-placement-optimizer.js';
-import { createMLPerformancePredictor } from './src/distribution-algorithms/ml-performance-predictor.js';
+import { createNodePlacementOptimizer } from '../../src/distribution-algorithms/node-placement-optimizer.js';
+import { createMLPerformancePredictor } from '../../src/distribution-algorithms/ml-performance-predictor.js';
 
 // Test configuration
 const TEST_CONFIG = {

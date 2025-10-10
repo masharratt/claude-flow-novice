@@ -3,7 +3,7 @@
  * Simple test to verify MessageSerializer memory cleanup with Drop trait
  */
 
-import { MessageSerializer } from './src/wasm-regex-engine/pkg/wasm_regex_engine.js';
+import { MessageSerializer } from '../../src/wasm-regex-engine/pkg/wasm_regex_engine.js';
 
 console.log('🧪 Sprint 1.3.1 Drop Trait Validation Test\n');
 

@@ -8,11 +8,11 @@
  * 4. Redis coordination and swarm memory
  */
 
-import { createNodePlacementOptimizer } from './src/distribution-algorithms/node-placement-optimizer.js';
-import { createMLPerformancePredictor } from './src/distribution-algorithms/ml-performance-predictor.js';
-import { FleetMonitoringDashboard } from './src/monitoring/FleetMonitoringDashboard.js';
-import { PredictiveMaintenance } from './src/monitoring/PredictiveMaintenance.js';
-import { AutomatedHealing } from './src/monitoring/AutomatedHealing.js';
+import { createNodePlacementOptimizer } from '../../src/distribution-algorithms/node-placement-optimizer.js';
+import { createMLPerformancePredictor } from '../../src/distribution-algorithms/ml-performance-predictor.js';
+import { FleetMonitoringDashboard } from '../../src/monitoring/FleetMonitoringDashboard.js';
+import { PredictiveMaintenance } from '../../src/monitoring/PredictiveMaintenance.js';
+import { AutomatedHealing } from '../../src/monitoring/AutomatedHealing.js';
 import { createClient } from 'redis';
 
 // Test configuration

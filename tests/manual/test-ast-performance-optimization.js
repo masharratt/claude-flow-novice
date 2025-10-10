@@ -11,10 +11,10 @@ import { performance } from 'perf_hooks';
 import { createHash } from 'crypto';
 
 // Import optimized components
-import OptimizedASTEngine from './src/wasm-ast/engine/optimized-ast-engine.js';
-import SubMillisecondBenchmark from './src/wasm-ast/performance/sub-millisecond-benchmark.js';
-import MemoryOptimizedPipeline from './src/wasm-ast/processing/memory-optimized-pipeline.js';
-import ASTPerformanceValidator from './src/wasm-ast/validation/performance-validation.js';
+import OptimizedASTEngine from '../../src/wasm-ast/engine/optimized-ast-engine.js';
+import SubMillisecondBenchmark from '../../src/wasm-ast/performance/sub-millisecond-benchmark.js';
+import MemoryOptimizedPipeline from '../../src/wasm-ast/processing/memory-optimized-pipeline.js';
+import ASTPerformanceValidator from '../../src/wasm-ast/validation/performance-validation.js';
 
 // Mock Redis client for demonstration
 const mockRedisClient = {

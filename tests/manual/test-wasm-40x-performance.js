@@ -2,7 +2,7 @@
  * Test script to validate 40x WASM performance optimization
  */
 
-import { WASMRuntime } from './src/booster/wasm-runtime.js';
+import { WASMRuntime } from '../../src/booster/wasm-runtime.js';
 import { performance } from 'perf_hooks';
 
 async function testWASMPerformance() {

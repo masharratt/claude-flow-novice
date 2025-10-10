@@ -6,10 +6,10 @@
  */
 
 import { createClient } from 'redis';
-import { FleetMonitoringDashboard } from './src/monitoring/FleetMonitoringDashboard.js';
-import { AgentBoosterMonitor } from './src/monitoring/AgentBoosterMonitor.js';
-import { CodeRefactoringSwarm } from './src/swarm/CodeRefactoringSwarm.js';
-import { PerformanceBenchmark } from './src/performance/PerformanceBenchmark.js';
+import { FleetMonitoringDashboard } from '../../src/monitoring/FleetMonitoringDashboard.js';
+import { AgentBoosterMonitor } from '../../src/monitoring/AgentBoosterMonitor.js';
+import { CodeRefactoringSwarm } from '../../src/swarm/CodeRefactoringSwarm.js';
+import { PerformanceBenchmark } from '../../src/performance/PerformanceBenchmark.js';
 
 /**
  * Phase 5 Performance Integration Test

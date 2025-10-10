@@ -5,7 +5,7 @@
  * Tests and validates the 30% latency reduction target
  */
 
-import Phase4Coordinator from './src/performance/phase4-coordinator.js';
+import Phase4Coordinator from '../../src/performance/phase4-coordinator.js';
 
 async function runPhase4Test() {
   console.log('🚀 Starting Phase 4 Performance Optimization Test');

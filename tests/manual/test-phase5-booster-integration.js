@@ -8,10 +8,10 @@
  */
 
 import { performance } from 'perf_hooks';
-import BoosterAgentRegistry from './src/booster/BoosterAgentRegistry.js';
-import CodeBoosterAgent from './src/booster/CodeBoosterAgent.js';
-import AgentBoosterWrapper from './src/booster/AgentBoosterWrapper.js';
-import WASMInstanceManager from './src/booster/WASMInstanceManager.js';
+import BoosterAgentRegistry from '../../src/booster/BoosterAgentRegistry.js';
+import CodeBoosterAgent from '../../src/booster/CodeBoosterAgent.js';
+import AgentBoosterWrapper from '../../src/booster/AgentBoosterWrapper.js';
+import WASMInstanceManager from '../../src/booster/WASMInstanceManager.js';
 
 class Phase5BoosterIntegrationTest {
   constructor() {
@@ -74,7 +74,7 @@ class Phase5BoosterIntegrationTest {
   async checkRedisConnection() {
     this.runTest('Redis Connection Check', async () => {
       try {
-        const { connectRedis } = await import('./src/cli/utils/redis-client.js');
+        const { connectRedis } = await import('../../src/cli/utils/redis-client.js');
         const client = await connectRedis({
           host: 'localhost',
           port: 6379,

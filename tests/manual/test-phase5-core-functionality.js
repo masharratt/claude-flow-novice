@@ -6,9 +6,9 @@
  * Focused test for core booster functionality without external dependencies
  */
 
-import CodeBoosterAgent from './src/booster/CodeBoosterAgent.js';
-import AgentBoosterWrapper from './src/booster/AgentBoosterWrapper.js';
-import WASMInstanceManager from './src/booster/WASMInstanceManager.js';
+import CodeBoosterAgent from '../../src/booster/CodeBoosterAgent.js';
+import AgentBoosterWrapper from '../../src/booster/AgentBoosterWrapper.js';
+import WASMInstanceManager from '../../src/booster/WASMInstanceManager.js';
 
 class Phase5CoreFunctionalityTest {
   constructor() {
