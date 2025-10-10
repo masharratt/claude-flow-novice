@@ -29,7 +29,7 @@ for i in {1..10}; do
     echo "   tmpfs usage: $TMPFS_USAGE"
 
     # Check for recent coordination activity
-    RECENT_LOG=$(tail -20 ./scripts/test/stability-results/stability-test.log 2>/dev/null | grep -c "coordination cycle")
+    RECENT_LOG=$(tail -20 ./.artifacts/stability/stability-test.log 2>/dev/null | grep -c "coordination cycle")
     echo "   Recent coordination cycles: $RECENT_LOG"
 
     echo ""
@@ -61,11 +61,11 @@ for i in {1..30}; do
     echo "   tmpfs usage: $TMPFS_USAGE"
 
     # Check for recent coordination activity
-    RECENT_LOG=$(tail -20 ./scripts/test/stability-results/stability-test.log 2>/dev/null | grep -c "coordination cycle")
+    RECENT_LOG=$(tail -20 ./.artifacts/stability/stability-test.log 2>/dev/null | grep -c "coordination cycle")
     echo "   Recent coordination cycles: $RECENT_LOG"
 
     # Check for stability monitor alerts
-    ALERTS=$(grep -c "MEMORY LEAK DETECTED\|FD LEAK DETECTED" ./stability-results/*.log 2>/dev/null || echo "0")
+    ALERTS=$(grep -c "MEMORY LEAK DETECTED\|FD LEAK DETECTED" ./.artifacts/stability/*.log 2>/dev/null || echo "0")
     echo "   Stability alerts: $ALERTS"
 
     # Process count for agents
@@ -82,4 +82,4 @@ echo "✅ Dynamic monitoring complete. Total checks: $TOTAL_CHECKS"
 echo "📋 Final status report:"
 echo "   Agent test status: $(ps aux | grep 'node.*50-agent-test' | grep -v grep | wc -l) processes"
 echo "   Monitor status: $(ps aux | grep 'node.*stability-monitor' | grep -v grep | wc -l) processes"
-echo "   Results available in: ./stability-results/"
+echo "   Results available in: ./.artifacts/stability/"

@@ -42,7 +42,7 @@ Real-time monitoring:
   • Prometheus: http://localhost:9090
 
 Live logs:
-  tail -f config/docker/stability-results/monitor-*.log
+  tail -f config/docker/.artifacts/stability/monitor-*.log
   docker logs -f cfn-stability-test
 
 ───────────────────────────────────────────────────────────────────────
@@ -50,13 +50,15 @@ STEP 4: REVIEW RESULTS (AFTER 8 HOURS)
 ───────────────────────────────────────────────────────────────────────
 
 Results location:
-  config/docker/stability-results/
+  config/docker/.artifacts/stability/
 
 Files:
   • resource-usage-*.csv       - Raw monitoring data (1s samples)
   • stability-report-*.json    - Automated analysis results
   • test-output-*.log          - Complete test execution log
   • monitor-*.log              - Resource monitor events
+
+Location: config/docker/.artifacts/stability/
 
 Analysis summary printed to console automatically.
 
@@ -71,11 +73,11 @@ Clean up completely:
   docker-compose -f config/docker/docker-compose.stability-test.yml down -v
 
 Re-analyze results:
-  node tests/performance/analyze-stability-results.js config/docker/stability-results
+  node tests/performance/analyze-stability-results.js config/docker/.artifacts/stability
 
 Check memory growth:
-  Initial=$(head -2 config/docker/stability-results/resource-usage-*.csv | tail -1 | cut -d',' -f3)
-  Final=$(tail -1 config/docker/stability-results/resource-usage-*.csv | cut -d',' -f3)
+  Initial=$(head -2 config/docker/.artifacts/stability/resource-usage-*.csv | tail -1 | cut -d',' -f3)
+  Final=$(tail -1 config/docker/.artifacts/stability/resource-usage-*.csv | cut -d',' -f3)
   Growth=$(awk -v i=$Initial -v f=$Final 'BEGIN {printf "%.2f", ((f-i)/i)*100}')
   echo "Memory growth: ${Growth}%"
 

@@ -230,7 +230,8 @@ export class CFNLoopOrchestrator extends EventEmitter {
         {
           timeoutMs: this.config.timeoutMs,
           failureThreshold: 3,
-          cooldownMs: 5 * 60 * 1000, // 5 minutes
+          delays: [1000, 2000, 4000, 8000], // Exponential backoff [1s, 2s, 4s, 8s]
+          maxAttempts: 4, // Match delays array length
           successThreshold: 2,
         }
       );

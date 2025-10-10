@@ -1,1 +1,0 @@
-timestamp,elapsed_sec,memory_rss_mb,memory_vsz_mb,memory_shm_mb,cpu_percent,fd_count,process_count,node_processes,io_read_mb,io_write_mb

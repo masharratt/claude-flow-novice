@@ -1,0 +1,35 @@
+========================================
+RESOURCE MONITORING ANALYSIS REPORT
+========================================
+Input: /mnt/c/Users/masha/Documents/claude-flow-novice/scripts/monitoring/../../reports/monitoring/test-quick/resource-usage-20251010_155611.csv
+Generated: Fri Oct 10 15:56:21 PDT 2025
+
+Total Samples: 10
+Duration: 9 seconds
+
+========================================
+MEMORY (RSS) ANALYSIS
+========================================
+Min: 4154.66 MB
+Max: 4154.66 MB
+Avg: 4154.66 MB
+First: 4154.66 MB
+Last: 4154.66 MB
+Growth: 0 MB
+Growth Rate: 0 MB/sec
+✅ No significant memory leak detected
+
+========================================
+CPU ANALYSIS
+========================================
+Min: 0.50%
+Max: 0.50%
+Avg: 0.50%
+✅ No sustained CPU spikes detected
+
+========================================
+FILE DESCRIPTOR ANALYSIS
+========================================
+Min: 00
+Max: 00
+Avg: 0

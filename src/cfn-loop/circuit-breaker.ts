@@ -12,8 +12,12 @@ export interface BreakerOptions {
   timeoutMs?: number;
   /** Number of failures before opening circuit */
   failureThreshold?: number;
-  /** Cooldown period before attempting half-open state (ms) */
+  /** Cooldown period before attempting half-open state (ms) - DEPRECATED: use delays */
   cooldownMs?: number;
+  /** Exponential backoff delays in milliseconds [1s, 2s, 4s, 8s] */
+  delays?: number[];
+  /** Maximum retry attempts (should match delays.length) */
+  maxAttempts?: number;
   /** Number of successes required to close from half-open */
   successThreshold?: number;
   /** Maximum requests allowed in half-open state */
@@ -61,9 +65,11 @@ export class CFNCircuitBreaker extends EventEmitter {
 
   private readonly failureThreshold: number;
   private readonly successThreshold: number;
-  private readonly cooldownMs: number;
+  private readonly delays: number[];
+  private readonly maxAttempts: number;
   private readonly halfOpenLimit: number;
   private readonly defaultTimeoutMs: number;
+  private currentAttempt: number = 0;
 
   private logger: Logger;
 
@@ -75,7 +81,9 @@ export class CFNCircuitBreaker extends EventEmitter {
 
     this.failureThreshold = options.failureThreshold || 3;
     this.successThreshold = options.successThreshold || 2;
-    this.cooldownMs = options.cooldownMs || 5 * 60 * 1000; // 5 minutes
+    // Support exponential backoff (new) or fallback to cooldownMs (legacy)
+    this.delays = options.delays || [1000, 2000, 4000, 8000]; // Default: [1s, 2s, 4s, 8s]
+    this.maxAttempts = options.maxAttempts || this.delays.length;
     this.halfOpenLimit = options.halfOpenLimit || 3;
     this.defaultTimeoutMs = options.timeoutMs || 30 * 60 * 1000; // 30 minutes
 
@@ -162,6 +170,7 @@ export class CFNCircuitBreaker extends EventEmitter {
    */
   recordSuccess(): void {
     this.lastSuccessTime = new Date();
+    this.currentAttempt = 0; // Reset attempt counter on success
 
     switch (this.state) {
       case CircuitState.CLOSED:
@@ -206,6 +215,7 @@ export class CFNCircuitBreaker extends EventEmitter {
    */
   recordFailure(): void {
     this.lastFailureTime = new Date();
+    this.currentAttempt++;
 
     switch (this.state) {
       case CircuitState.CLOSED:
@@ -215,6 +225,7 @@ export class CFNCircuitBreaker extends EventEmitter {
           name: this.name,
           failureCount: this.failureCount,
           failureThreshold: this.failureThreshold,
+          currentAttempt: this.currentAttempt,
         });
 
         // Open circuit if threshold exceeded
@@ -232,10 +243,15 @@ export class CFNCircuitBreaker extends EventEmitter {
         break;
 
       case CircuitState.OPEN:
-        // Already open, extend cooldown
-        this.nextAttemptTime = new Date(Date.now() + this.cooldownMs);
-        this.logger.debug('Failure in OPEN state, extending cooldown', {
+        // Already open, use exponential backoff delay
+        const delayIndex = Math.min(this.currentAttempt - 1, this.delays.length - 1);
+        const delayMs = this.delays[delayIndex];
+        this.nextAttemptTime = new Date(Date.now() + delayMs);
+        this.logger.debug('Failure in OPEN state, exponential backoff', {
           name: this.name,
+          attempt: this.currentAttempt,
+          maxAttempts: this.maxAttempts,
+          delayMs,
           nextAttempt: this.nextAttemptTime,
         });
         break;
@@ -245,6 +261,8 @@ export class CFNCircuitBreaker extends EventEmitter {
       name: this.name,
       state: this.state,
       failureCount: this.failureCount,
+      currentAttempt: this.currentAttempt,
+      maxAttempts: this.maxAttempts,
     });
   }
 
@@ -259,6 +277,7 @@ export class CFNCircuitBreaker extends EventEmitter {
     this.successCount = 0;
     this.halfOpenRequests = 0;
     this.timeoutCount = 0;
+    this.currentAttempt = 0; // Reset attempt counter
     delete this.lastFailureTime;
     delete this.lastSuccessTime;
     delete this.nextAttemptTime;
@@ -345,15 +364,22 @@ export class CFNCircuitBreaker extends EventEmitter {
         this.failureCount = 0;
         this.successCount = 0;
         this.halfOpenRequests = 0;
+        this.currentAttempt = 0; // Reset attempt counter
         delete this.nextAttemptTime;
         break;
 
       case CircuitState.OPEN:
         this.successCount = 0;
         this.halfOpenRequests = 0;
-        this.nextAttemptTime = new Date(Date.now() + this.cooldownMs);
-        this.logger.warn('Circuit opened', {
+        // Use exponential backoff delay based on current attempt
+        const delayIndex = Math.min(this.currentAttempt - 1, this.delays.length - 1);
+        const delayMs = this.delays[Math.max(0, delayIndex)];
+        this.nextAttemptTime = new Date(Date.now() + delayMs);
+        this.logger.warn('Circuit opened with exponential backoff', {
           name: this.name,
+          attempt: this.currentAttempt,
+          maxAttempts: this.maxAttempts,
+          delayMs,
           nextAttempt: this.nextAttemptTime,
           failureCount: this.failureCount,
         });

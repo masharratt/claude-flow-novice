@@ -804,9 +804,9 @@ jobs:
         with:
           name: test-results
           path: |
-            coverage/
-            test-results/
-            performance-reports/
+            .artifacts/coverage/
+            .artifacts/test-results/
+            reports/performance/
 
       - name: Comment PR
         if: github.event_name == 'pull_request'

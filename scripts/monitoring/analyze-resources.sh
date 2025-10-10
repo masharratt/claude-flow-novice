@@ -8,7 +8,7 @@ CSV_FILE="${1:-}"
 
 if [ -z "${CSV_FILE}" ] || [ ! -f "${CSV_FILE}" ]; then
     echo "Usage: $0 <csv_file>"
-    echo "Example: $0 ./monitoring-results/resource-usage-20250106_120000.csv"
+    echo "Example: $0 ./reports/monitoring/resource-usage-20250106_120000.csv"
     exit 1
 fi
 

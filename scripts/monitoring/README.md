@@ -21,7 +21,7 @@ Collects system metrics every 1 second during test execution.
 ./resource-monitor.sh [output_dir]
 
 # Example
-./resource-monitor.sh ./monitoring-results
+./resource-monitor.sh ./reports/monitoring
 ```
 
 **CSV Format:**
@@ -45,7 +45,7 @@ Analyzes monitoring CSV and detects anomalies.
 ./analyze-resources.sh <csv_file>
 
 # Example
-./analyze-resources.sh ./monitoring-results/resource-usage-20250106_120000.csv
+./analyze-resources.sh ./reports/monitoring/resource-usage-20250106_120000.csv
 ```
 
 **Output:** Text report with anomaly summary
@@ -99,7 +99,7 @@ cd /mnt/c/Users/masha/Documents/claude-flow-novice
 ./scripts/monitoring/monitor-test.sh "bash tests/integration/100-agent-coordination.test.sh"
 
 # 2. Review results
-ls -lh monitoring-results/
+ls -lh reports/monitoring/
 
 # Output files:
 # - resource-usage-20250106_120000.csv (raw metrics)
@@ -107,7 +107,7 @@ ls -lh monitoring-results/
 # - monitor-20250106_120000.log (event log)
 
 # 3. Review analysis report
-cat monitoring-results/analysis-report-*.txt
+cat reports/monitoring/analysis-report-*.txt
 ```
 
 ## Interpreting Results
@@ -156,13 +156,13 @@ which bc ps awk
 pgrep -f node
 
 # Verify output directory
-ls -la monitoring-results/
+ls -la reports/monitoring/
 ```
 
 ### Analysis fails
 ```bash
 # Verify CSV format
-head -5 monitoring-results/resource-usage-*.csv
+head -5 reports/monitoring/resource-usage-*.csv
 
 # Check for bc utility
 which bc || sudo apt-get install bc

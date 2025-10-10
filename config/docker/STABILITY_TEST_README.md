@@ -81,15 +81,15 @@ bash scripts/monitoring/launch-stability-test.sh
 ### 3. Monitor Progress
 - **Grafana**: http://localhost:3001 (admin/stability-test)
 - **Prometheus**: http://localhost:9090
-- **Logs**: `config/docker/stability-results/test-output-*.log`
+- **Logs**: `config/docker/.artifacts/stability/test-output-*.log`
 
 ### 4. Wait for Completion
 Test duration: 8 hours (~28,800 seconds)
 
 ### 5. Review Results
 Results automatically analyzed and saved to:
-- `stability-results/resource-usage-*.csv` (raw data)
-- `stability-results/stability-report-*.json` (analysis)
+- `.artifacts/stability/resource-usage-*.csv` (raw data)
+- `.artifacts/stability/stability-report-*.json` (analysis)
 
 ---
 
@@ -167,7 +167,7 @@ cpus: 4                # CPU allocation
 
 ### Resource Monitor Warnings
 
-Logged to `stability-results/monitor-*.log`:
+Logged to `.artifacts/stability/monitor-*.log`:
 - Memory RSS >5000MB
 - CPU usage >80%
 - File descriptors >10,000
@@ -181,7 +181,7 @@ Logged to `stability-results/monitor-*.log`:
 
 On test completion, analyzer script runs:
 ```bash
-node tests/performance/analyze-stability-results.js ./stability-results
+node tests/performance/analyze-.artifacts/stability.js ./.artifacts/stability
 ```
 
 **Analysis Output:**
@@ -276,7 +276,7 @@ docker logs cfn-stability-test -f
 
 **Check resource monitor:**
 ```bash
-tail -f config/docker/stability-results/monitor-*.log
+tail -f config/docker/.artifacts/stability/monitor-*.log
 ```
 
 **Prometheus not scraping:**
@@ -290,7 +290,7 @@ docker restart cfn-stability-prometheus
 **Identify leak source:**
 ```bash
 # Check memory timeline
-grep "WARNING: High memory" stability-results/monitor-*.log
+grep "WARNING: High memory" .artifacts/stability/monitor-*.log
 
 # Analyze growth pattern
 awk -F',' 'NR>1 {print $1","$3}' resource-usage-*.csv | tail -20
@@ -373,7 +373,7 @@ config/docker/
 ├── grafana-dashboards/
 │   ├── dashboard.yml                   # Dashboard provisioning
 │   └── stability-monitoring.json       # Dashboard definition
-└── stability-results/                  # Test output (created)
+└── .artifacts/stability/                  # Test output (created)
     ├── resource-usage-*.csv            # Raw monitoring data
     ├── monitor-*.log                   # Resource monitor log
     ├── test-output-*.log               # Test execution log
@@ -385,7 +385,7 @@ scripts/monitoring/
 └── resource-monitor.sh                 # Resource monitoring
 
 tests/performance/
-└── analyze-stability-results.js        # Results analyzer
+└── analyze-.artifacts/stability.js        # Results analyzer
 ```
 
 ---
@@ -436,7 +436,7 @@ tests/performance/
 **Commands:**
 - Validation: `bash scripts/monitoring/pre-test-validation.sh`
 - Launch: `bash scripts/monitoring/launch-stability-test.sh`
-- Analysis: `node tests/performance/analyze-stability-results.js ./stability-results`
+- Analysis: `node tests/performance/analyze-.artifacts/stability.js ./.artifacts/stability`
 - Cleanup: `docker-compose -f docker-compose.stability-test.yml down -v`
 
 **Monitoring URLs:**

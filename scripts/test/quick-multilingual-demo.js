@@ -12,7 +12,7 @@ import path from 'path';
 
 class QuickMultilingualDemo {
   constructor() {
-    this.outputDir = './multilingual-demo-results';
+    this.outputDir = './.artifacts/demo-results/multilingual';
   }
 
   async start() {
@@ -448,7 +448,7 @@ main()`
     console.log('   ✅ Demonstrated programming diversity across 10 different languages');
     console.log('   🌍 Showcased cultural diversity with greetings from around the world');
     console.log('   💻 Each file contains working code with cultural context');
-    console.log('   📁 All files saved to multilingual-demo-results/');
+    console.log('   📁 All files saved to .artifacts/demo-results/multilingual/');
   }
 }
 

@@ -232,7 +232,7 @@ docker-compose -f docker-compose.stability-test.yml logs -f stability-test
 # Grafana: http://localhost:3001
 
 # Results location
-docker-compose -f docker-compose.stability-test.yml exec stability-test ls -la /app/stability-results/
+docker-compose -f docker-compose.stability-test.yml exec stability-test ls -la /app/.artifacts/stability/
 ```
 
 ### Kubernetes (Production)

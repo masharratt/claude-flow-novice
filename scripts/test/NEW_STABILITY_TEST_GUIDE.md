@@ -70,7 +70,7 @@ node scripts/test/50-agent-test.js --agents 5 --duration 10 --interval 30
 | `--duration` | Test duration in minutes | 480 (8 hours) |
 | `--interval` | Coordination interval in seconds | 300 (5 minutes) |
 | `--coord-dir` | Coordination directory | `/dev/shm/agent-coordination` |
-| `--output-dir` | Results output directory | `./scripts/test/stability-results` |
+| `--output-dir` | Results output directory | `./.artifacts/stability` |
 
 ### Example Commands
 
@@ -190,6 +190,8 @@ Human-readable test log:
 #### `stability-test-report.json`
 Comprehensive final report with acceptance criteria validation.
 
+**Output Location**: All files saved to `.artifacts/stability/`
+
 ## Acceptance Criteria
 
 The test validates four key criteria:
@@ -253,6 +255,9 @@ free -h
 
 # Check individual agent status
 cat /dev/shm/agent-coordination/status/agent-1-status.json
+
+# Check output directory
+ls -la .artifacts/stability/
 ```
 
 #### Slow Response Times
@@ -279,7 +284,7 @@ DEBUG=stability-test node scripts/test/50-agent-test.js --agents 5 --duration 5
 ### Compatibility with stability-monitor.js
 ```bash
 # Feed metrics to existing monitor
-tail -f scripts/test/stability-results/stability-metrics.jsonl | \
+tail -f .artifacts/stability/stability-metrics.jsonl | \
   node scripts/monitoring/stability-monitor.js --input - --output integrated-results.json
 ```
 
@@ -331,7 +336,7 @@ $ node scripts/test/50-agent-test.js --agents 5 --duration 5 --interval 60
 [2025-10-07T20:01:37.891Z] [INFO] Coordination cycle 2 completed in 12656ms with 5 responses
 ...
 [2025-10-07T20:05:12.500Z] [INFO] Stability test completed
-[2025-10-07T20:05:12.600Z] [INFO] Final report generated: scripts/test/stability-results/stability-test-report.json
+[2025-10-07T20:05:12.600Z] [INFO] Final report generated: .artifacts/stability/stability-test-report.json
 [2025-10-07T20:05:12.601Z] [INFO] Test completed: PASSED
 ```
 
@@ -341,10 +346,10 @@ $ node scripts/test/50-agent-test.js
 
 # Runs for 8 hours with full logging
 # Check progress:
-tail -f scripts/test/stability-results/stability-test.log
+tail -f .artifacts/stability/stability-test.log
 
 # Monitor metrics:
-tail -f scripts/test/stability-results/stability-metrics.jsonl | jq .
+tail -f .artifacts/stability/stability-metrics.jsonl | jq .
 ```
 
 ## Advanced Usage
@@ -373,14 +378,14 @@ watch -n 5 '
 ### Post-Test Analysis
 ```bash
 # Analyze coordination patterns
-jq '.responseRate' scripts/test/stability-results/stability-metrics.jsonl | sort -n
+jq '.responseRate' .artifacts/stability/stability-metrics.jsonl | sort -n
 
 # Memory growth analysis
-jq '.memoryStats.average' scripts/test/stability-results/stability-metrics.jsonl | \
+jq '.memoryStats.average' .artifacts/stability/stability-metrics.jsonl | \
   awk 'NR==1{first=$1} END{print "Growth:", ($1-first)/first*100 "%"}'
 
 # Response time analysis
-jq '.averageResponseTime' scripts/test/stability-results/stability-metrics.jsonl | \
+jq '.averageResponseTime' .artifacts/stability/stability-metrics.jsonl | \
   awk '{sum+=$1; count++} END{print "Average:", sum/count "ms"}'
 ```
 

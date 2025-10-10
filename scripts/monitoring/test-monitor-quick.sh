@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEST_DIR="${SCRIPT_DIR}/../../monitoring-results/test-quick"
+TEST_DIR="${SCRIPT_DIR}/../../reports/monitoring/test-quick"
 
 echo "Quick Monitoring Test"
 echo "====================="
