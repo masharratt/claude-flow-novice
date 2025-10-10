@@ -31,7 +31,7 @@ const checks = [
   },
   {
     name: 'Type declarations',
-    check: () => fs.existsSync(path.join(projectRoot, '.claude-flow-novice/dist/src/index.d.ts')),
+    check: () => fs.existsSync(path.join(projectRoot, '.claude-flow-novice/dist/index.d.ts')),
     optional: isCI
   },
   {
@@ -41,7 +41,7 @@ const checks = [
   },
   {
     name: 'Agent configurations',
-    check: () => fs.existsSync(path.join(projectRoot, '.claude-flow-novice/.claude/agents')),
+    check: () => fs.existsSync(path.join(projectRoot, '.claude/agents')),
     optional: false
   },
   {

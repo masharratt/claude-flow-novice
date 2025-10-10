@@ -47,10 +47,11 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Build Docker image
-      uses: docker/build-action@v3
+      uses: docker/build-push-action@v5
       with:
         context: .
         tags: test-image:latest
+        push: false
 
     - name: Run Trivy vulnerability scanner on Docker image
       uses: aquasecurity/trivy-action@master
