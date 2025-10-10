@@ -153,8 +153,8 @@ console.log('📊 Generating comprehensive compliance report...');
 await new Promise(resolve => setTimeout(resolve, 1000));
 
 console.log('📄 REPORTS GENERATED:');
-console.log(`   • Detailed Report: compliance-reports/phase3-compliance-report-${Date.now()}.json`);
-console.log(`   • Summary Report: compliance-reports/phase3-compliance-summary-${Date.now()}.md`);
+console.log(`   • Detailed Report: reports/compliance/phase3-compliance-report-${Date.now()}.json`);
+console.log(`   • Summary Report: reports/compliance/phase3-compliance-summary-${Date.now()}.md`);
 console.log('');
 
 console.log('=' .repeat(80));

@@ -27,7 +27,7 @@ As the **Framework Compliance Tester for Phase 3**, I have successfully complete
   - Error handling and graceful failure management
 
 ### 3. Compliance Reports
-- **File:** `/compliance-reports/phase3-framework-compliance-final-report.md` (456 lines)
+- **File:** `/reports/compliance/phase3-framework-compliance-final-report.md` (456 lines)
 - **Description:** Comprehensive compliance validation report
 - **Features:**
   - Detailed framework-by-framework compliance analysis
