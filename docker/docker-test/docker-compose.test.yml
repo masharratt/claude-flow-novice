@@ -14,7 +14,7 @@ services:
       - CI=true
       - TEST_NODE_VERSION=18
     volumes:
-      - ../test-results:/app/test-results
+      - ../.artifacts/test-results/active:/app/test-results
       - ../coverage:/app/coverage
     command: >
       sh -c "
@@ -27,7 +27,7 @@ services:
         echo '=== Node.js 18 tests completed ==='
       "
 
-  # Node.js 20 Test Environment  
+  # Node.js 20 Test Environment
   test-node20:
     build:
       context: ..
@@ -40,7 +40,7 @@ services:
       - CI=true
       - TEST_NODE_VERSION=20
     volumes:
-      - ../test-results:/app/test-results
+      - ../.artifacts/test-results/active:/app/test-results
       - ../coverage:/app/coverage
     command: >
       sh -c "
@@ -63,10 +63,10 @@ services:
     container_name: claude-flow-test-node22
     environment:
       - NODE_ENV=test
-      - CI=true  
+      - CI=true
       - TEST_NODE_VERSION=22
     volumes:
-      - ../test-results:/app/test-results
+      - ../.artifacts/test-results/active:/app/test-results
       - ../coverage:/app/coverage
     command: >
       sh -c "
@@ -88,7 +88,7 @@ services:
       - test-node20
       - test-node22
     volumes:
-      - ../test-results:/app/test-results
+      - ../.artifacts/test-results/active:/app/test-results
       - ../docker-test:/app/scripts
     working_dir: /app
     command: >
@@ -101,5 +101,4 @@ services:
       "
 
 volumes:
-  test-results:
   coverage:

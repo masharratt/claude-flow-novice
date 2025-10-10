@@ -95,7 +95,7 @@ services:
     volumes:
       - ../src:/app/src:ro
       - ../tests:/app/tests:ro
-      - test-results:/app/coverage
+      - ../.artifacts/test-results/active:/app/coverage
     environment:
       - NODE_ENV=test
       - HIVE_TEST_MODE=true
@@ -215,8 +215,6 @@ volumes:
   dev-node-modules:
     driver: local
   mcp-config:
-    driver: local
-  test-results:
     driver: local
   prometheus-data:
     driver: local

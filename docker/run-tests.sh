@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 COMPOSE_FILE="docker-compose.hive-mind.yml"
-TEST_RESULTS_DIR="./test-results"
+TEST_RESULTS_DIR="./.artifacts/test-results/active"
 COVERAGE_DIR="./coverage"
 
 # Functions
