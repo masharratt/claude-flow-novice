@@ -6,12 +6,12 @@
   "main": "./.claude-flow-novice/dist/src/index.js",
   "types": "./.claude-flow-novice/dist/index.d.ts",
   "bin": {
-    "claude-flow-novice": "./.claude-flow-novice/dist/src/cli/main.js",
-    "claude-soul": "./.claude/commands/claude-soul.js",
-    "swarm": "./.claude/commands/swarm.js",
-    "sparc": "./.claude/commands/sparc.js",
-    "hooks": "./.claude/commands/hooks.js",
-    "memory-safety": "./config/hooks/pre-tool-memory-safety.js"
+    "claude-flow-novice": ".claude-flow-novice/dist/src/cli/main.js",
+    "claude-soul": ".claude/commands/claude-soul.js",
+    "swarm": ".claude/commands/swarm.js",
+    "sparc": ".claude/commands/sparc.js",
+    "hooks": ".claude/commands/hooks.js",
+    "memory-safety": "config/hooks/pre-tool-memory-safety.js"
   },
   "scripts": {
     "start": "node --max-old-space-size=16384 .claude-flow-novice/dist/src/cli/main.js",
