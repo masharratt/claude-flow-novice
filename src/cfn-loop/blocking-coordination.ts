@@ -110,10 +110,15 @@ export class BlockingCoordinationManager {
     this.ackTtl = config.ackTtl ?? 3600; // Default: 1 hour
     this.debug = config.debug ?? false;
 
-    // SEC-CRIT-001: Initialize HMAC secret for ACK signing
-    this.hmacSecret = config.hmacSecret
-      || process.env.BLOCKING_COORDINATION_SECRET
-      || randomBytes(32).toString('hex');
+    // SEC-CRIT-001-B FIX: Require shared secret for distributed ACK verification
+    // For internal coordination only - see readme/logs-cli-redis.md for external use
+    this.hmacSecret = config.hmacSecret || process.env.BLOCKING_COORDINATION_SECRET;
+    if (!this.hmacSecret) {
+      throw new Error(
+        'BLOCKING_COORDINATION_SECRET environment variable required for ACK verification. ' +
+        'All coordinators must share the same secret for distributed coordination.'
+      );
+    }
 
     // Initialize logger
     const loggerConfig: LoggingConfig =

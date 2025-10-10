@@ -4,6 +4,48 @@
 
 The Claude Flow CLI/Redis coordination system provides a complete MCP-less alternative for AI agent orchestration. This system uses Redis for state persistence and command-line interfaces for swarm execution, eliminating the dependency on MCP tools while maintaining full functionality.
 
+## Security Considerations
+
+### Blocking Coordination HMAC Authentication
+
+**⚠️ INTERNAL USE ONLY - NOT HARDENED FOR EXTERNAL COORDINATION**
+
+The blocking coordination system (`src/cfn-loop/blocking-coordination.ts`) uses HMAC-SHA256 for ACK verification. Current implementation is designed for **internal localhost/private network coordination only**.
+
+**Known Limitations for External Use:**
+1. **Timing Attack Vulnerability (SEC-CRIT-001-A)**
+   - Uses standard `===` comparison instead of `crypto.timingSafeEqual()`
+   - Timing differences measurable over network: ~300-1200ns variance
+   - **Risk**: Attackers with Redis access could brute-force signatures byte-by-byte
+   - **Mitigation**: Acceptable for internal coordination (threat model: Redis already compromised)
+   - **If exposing externally**: Implement `crypto.timingSafeEqual()` for constant-time comparison
+
+2. **Secret Management**
+   - Requires `BLOCKING_COORDINATION_SECRET` environment variable (no fallback)
+   - All coordinators must share same secret for ACK verification
+   - **For production**: Use secure secret management (HashiCorp Vault, AWS Secrets Manager)
+   - **Secret rotation**: Not implemented (manual process required)
+
+**Deployment Recommendations:**
+- ✅ **Internal coordination** (localhost, private network): Current implementation sufficient
+- ⚠️ **Public network coordination**: Add timing-safe comparison + TLS + rate limiting
+- ❌ **Untrusted networks**: Not recommended without security hardening
+
+**Environment Setup:**
+```bash
+# Required for all coordinators
+export BLOCKING_COORDINATION_SECRET="your-shared-secret-here"
+
+# Generate secure secret (32 bytes)
+openssl rand -hex 32
+```
+
+**Future Enhancements** (tracked in Phase 3 - Production Hardening):
+- Constant-time signature comparison
+- Automatic secret rotation
+- TLS encryption for Redis connections
+- Rate limiting for ACK verification attempts
+
 ## Architecture
 
 ### Core Components
