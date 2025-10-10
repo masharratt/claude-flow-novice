@@ -253,6 +253,7 @@ name = "wasm-regex-engine"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",

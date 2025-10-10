@@ -388,10 +388,30 @@ class SwarmMessenger extends EventEmitter {
    */
   async publishMessage(channel, envelope) {
     try {
-      // Use WASM serialization if available, fallback to JavaScript
-      const messageStr = useWasm && wasmSerializer
-        ? wasmSerializer.serializeMessage(envelope)
-        : JSON.stringify(envelope);
+      let messageStr;
+
+      // Use WASM serialization with cleanup (Sprint 1.3 memory safety)
+      if (useWasm && wasmSerializer) {
+        try {
+          messageStr = wasmSerializer.serializeMessage(envelope);
+        } catch (wasmError) {
+          console.warn('⚠️ WASM serialization failed, falling back to JS:', wasmError.message);
+          messageStr = JSON.stringify(envelope);
+          this.stats.errors++;
+        } finally {
+          // Ensure WASM buffer cleanup even on error
+          if (wasmSerializer && typeof wasmSerializer.clearBuffer === 'function') {
+            try {
+              wasmSerializer.clearBuffer();
+            } catch (cleanupError) {
+              console.warn('⚠️ WASM buffer cleanup warning:', cleanupError.message);
+            }
+          }
+        }
+      } else {
+        // JavaScript fallback
+        messageStr = JSON.stringify(envelope);
+      }
 
       await this.publisher.publish(channel, messageStr);
 
@@ -462,10 +482,23 @@ class SwarmMessenger extends EventEmitter {
    */
   handleIncomingMessage(channel, messageStr, pattern = null) {
     try {
-      // Use WASM deserialization if available, fallback to JavaScript
-      const envelope = useWasm && quickDeserialize
-        ? quickDeserialize(messageStr)
-        : JSON.parse(messageStr);
+      let envelope;
+
+      // Use WASM deserialization with cleanup (Sprint 1.3 memory safety)
+      if (useWasm && quickDeserialize) {
+        try {
+          envelope = quickDeserialize(messageStr);
+        } catch (wasmError) {
+          console.warn('⚠️ WASM deserialization failed, falling back to JS:', wasmError.message);
+          envelope = JSON.parse(messageStr);
+          this.stats.errors++;
+        }
+        // Note: quickDeserialize is a standalone function, no cleanup needed
+        // Buffer cleanup is only required for stateful MessageSerializer instances
+      } else {
+        // JavaScript fallback
+        envelope = JSON.parse(messageStr);
+      }
 
       // Ignore messages from self
       if (envelope.swarmId === this.swarmId) {
@@ -633,6 +666,21 @@ class SwarmMessenger extends EventEmitter {
       pending.reject(new Error('SwarmMessenger shutting down'));
     }
     this.messageQueue.clear();
+
+    // Free WASM resources (Sprint 1.3 memory cleanup)
+    if (useWasm && wasmSerializer) {
+      try {
+        if (typeof wasmSerializer.free === 'function') {
+          wasmSerializer.free();
+          console.log('✅ WASM MessageSerializer resources freed');
+        } else if (typeof wasmSerializer.clearBuffer === 'function') {
+          wasmSerializer.clearBuffer();
+          console.log('✅ WASM MessageSerializer buffer cleared');
+        }
+      } catch (error) {
+        console.warn('⚠️ WASM cleanup warning:', error.message);
+      }
+    }
 
     // Close Redis connections
     if (this.publisher) {

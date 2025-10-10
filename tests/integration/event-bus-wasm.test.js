@@ -11,19 +11,32 @@
  * CRITICAL: Tests REAL WASM loading and integration
  */
 
-const { describe, it, expect, beforeAll, afterAll, beforeEach } = require('@jest/globals');
-const { performance } = require('perf_hooks');
-const { OptimizedEventBus } = require('../../src/performance/optimized-event-bus.js');
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { performance } from 'perf_hooks';
+import OptimizedEventBus from '../../src/performance/optimized-event-bus.js';
+
+// Helper function for hash-based routing tests
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+// Test results for export
+const testResults = {
+  wasmValidation: null,
+  fallbackBehavior: null,
+  batchingPerformance: null,
+  routingPerformance: null,
+  confidence: 0
+};
 
 describe('Event Bus WASM Integration', () => {
   let eventBus;
-  let testResults = {
-    wasmValidation: null,
-    fallbackBehavior: null,
-    batchingPerformance: null,
-    routingPerformance: null,
-    confidence: 0
-  };
 
   beforeAll(async () => {
     console.log('\n🚀 Event Bus WASM Integration Tests Starting...');
@@ -342,7 +355,7 @@ describe('Event Bus WASM Integration', () => {
 
             // Simulate hash-based routing
             const routeKey = channel;
-            const routeHash = this.simpleHash(routeKey);
+            const routeHash = simpleHash(routeKey);
             const routeIndex = routeHash % channels.length;
 
             const endTime = performance.now();
@@ -377,17 +390,6 @@ describe('Event Bus WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    // Helper function for simple hash
-    simpleHash(str) {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      return Math.abs(hash);
-    }
-
     it('should scale routing performance linearly with channels', async () => {
       await eventBus.initialize();
 
@@ -402,7 +404,7 @@ describe('Event Bus WASM Integration', () => {
         for (const channel of channels) {
           for (let i = 0; i < messagesPerChannel; i++) {
             const startTime = performance.now();
-            const routeHash = this.simpleHash(channel);
+            const routeHash = simpleHash(channel);
             const routeIndex = routeHash % channels.length;
             const endTime = performance.now();
             routingTimes.push(endTime - startTime);
@@ -446,6 +448,6 @@ describe('Event Bus WASM Integration', () => {
   });
 });
 
-module.exports = {
+export {
   testResults
 };

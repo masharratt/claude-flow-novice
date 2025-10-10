@@ -11,21 +11,23 @@
  * CRITICAL: Tests REAL WASM loading and integration with SwarmMessenger
  */
 
-const { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } = require('@jest/globals');
-const { performance } = require('perf_hooks');
-const SwarmMessenger = require('../../src/redis/swarm-messenger.js');
-const Redis = require('ioredis-mock');
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from '@jest/globals';
+import { performance } from 'perf_hooks';
+import SwarmMessenger from '../../src/redis/swarm-messenger.js';
+import Redis from 'ioredis-mock';
+
+// Test results for export
+const testResults = {
+  wasmSerialization: null,
+  backwardCompatibility: null,
+  batchOptimization: null,
+  fallbackBehavior: null,
+  confidence: 0
+};
 
 describe('Messenger WASM Integration', () => {
   let messenger;
   let testRedis;
-  let testResults = {
-    wasmSerialization: null,
-    backwardCompatibility: null,
-    batchOptimization: null,
-    fallbackBehavior: null,
-    confidence: 0
-  };
 
   beforeAll(async () => {
     console.log('\n🚀 Messenger WASM Integration Tests Starting...');
@@ -469,6 +471,6 @@ describe('Messenger WASM Integration', () => {
   });
 });
 
-module.exports = {
+export {
   testResults
 };

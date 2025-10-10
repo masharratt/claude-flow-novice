@@ -819,6 +819,21 @@ class SwarmStateManager extends EventEmitter {
     // Save statistics
     await this.saveStatistics();
 
+    // Free WASM resources (Sprint 1.3 memory cleanup)
+    if (wasmAvailable && wasmStateSerializer) {
+      try {
+        if (typeof wasmStateSerializer.free === 'function') {
+          wasmStateSerializer.free();
+          console.log('✅ WASM StateSerializer resources freed');
+        } else if (typeof wasmStateSerializer.clearBuffer === 'function') {
+          wasmStateSerializer.clearBuffer();
+          console.log('✅ WASM StateSerializer buffer cleared');
+        }
+      } catch (error) {
+        console.warn('⚠️ WASM cleanup warning:', error.message);
+      }
+    }
+
     // Close Redis connection
     if (this.redis) {
       await this.redis.quit();

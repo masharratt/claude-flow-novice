@@ -6,6 +6,7 @@
 export function quickSerialize(value: any): string;
 /**
  * Standalone deserialization function (no instance needed)
+ * Fixed: Uses direct JsValue construction
  */
 export function quickDeserialize(json_str: string): any;
 /**
@@ -15,6 +16,7 @@ export function quickDeserialize(json_str: string): any;
 export function quickSerializeState(value: any): string;
 /**
  * Standalone fast state deserialization (no instance needed)
+ * Fixed: Uses direct JsValue construction
  */
 export function quickDeserializeState(json_str: string): any;
 /**
@@ -43,11 +45,13 @@ export class MessageSerializer {
    * - Native parsing in compiled Rust code
    * - Memory-efficient WASM allocation
    * - Better error handling than JavaScript
+   * - Fixed: Bypasses serde-wasm-bindgen empty object bug
    */
   deserializeMessage(json_str: string): any;
   /**
    * Batch deserialize multiple JSON strings (optimized for swarm message history)
    * Returns array of parsed messages
+   * Fixed: Uses direct JsValue construction
    */
   batchDeserialize(json_strings: any[]): any[];
   /**
@@ -88,11 +92,13 @@ export class StateSerializer {
   /**
    * Serialize state with optional compression
    * Target: <1ms for 100KB objects
+   * SIMPLIFIED: Just use serde_json directly for maximum speed
    */
   serializeState(value: any): string;
   /**
    * Deserialize state
    * Target: <500μs restoration
+   * Fixed: Uses direct JsValue construction
    */
   deserializeState(json_str: string): any;
   /**

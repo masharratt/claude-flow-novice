@@ -103,18 +103,6 @@ function handleError(f, args) {
     }
 }
 
-function dropObject(idx) {
-    if (idx < 132) return;
-    heap[idx] = heap_next;
-    heap_next = idx;
-}
-
-function takeObject(idx) {
-    const ret = getObject(idx);
-    dropObject(idx);
-    return ret;
-}
-
 function isLikeNone(x) {
     return x === undefined || x === null;
 }
@@ -193,6 +181,18 @@ function getStringFromWasm0(ptr, len) {
     return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
 }
 
+function dropObject(idx) {
+    if (idx < 132) return;
+    heap[idx] = heap_next;
+    heap_next = idx;
+}
+
+function takeObject(idx) {
+    const ret = getObject(idx);
+    dropObject(idx);
+    return ret;
+}
+
 let stack_pointer = 128;
 
 function addBorrowedObject(obj) {
@@ -253,6 +253,7 @@ module.exports.quickSerialize = function(value) {
 
 /**
  * Standalone deserialization function (no instance needed)
+ * Fixed: Uses direct JsValue construction
  * @param {string} json_str
  * @returns {any}
  */
@@ -308,6 +309,7 @@ module.exports.quickSerializeState = function(value) {
 
 /**
  * Standalone fast state deserialization (no instance needed)
+ * Fixed: Uses direct JsValue construction
  * @param {string} json_str
  * @returns {any}
  */
@@ -400,6 +402,7 @@ class MessageSerializer {
      * - Native parsing in compiled Rust code
      * - Memory-efficient WASM allocation
      * - Better error handling than JavaScript
+     * - Fixed: Bypasses serde-wasm-bindgen empty object bug
      * @param {string} json_str
      * @returns {any}
      */
@@ -423,6 +426,7 @@ class MessageSerializer {
     /**
      * Batch deserialize multiple JSON strings (optimized for swarm message history)
      * Returns array of parsed messages
+     * Fixed: Uses direct JsValue construction
      * @param {any[]} json_strings
      * @returns {any[]}
      */
@@ -588,6 +592,7 @@ class StateSerializer {
     /**
      * Serialize state with optional compression
      * Target: <1ms for 100KB objects
+     * SIMPLIFIED: Just use serde_json directly for maximum speed
      * @param {any} value
      * @returns {string}
      */
@@ -619,6 +624,7 @@ class StateSerializer {
     /**
      * Deserialize state
      * Target: <500μs restoration
+     * Fixed: Uses direct JsValue construction
      * @param {string} json_str
      * @returns {any}
      */
@@ -803,11 +809,6 @@ module.exports.__wbg_new_405e22f390576ce2 = function() {
     return addHeapObject(ret);
 };
 
-module.exports.__wbg_new_5e0be73521bc8c17 = function() {
-    const ret = new Map();
-    return addHeapObject(ret);
-};
-
 module.exports.__wbg_new_78feb108b6472713 = function() {
     const ret = new Array();
     return addHeapObject(ret);
@@ -828,22 +829,19 @@ module.exports.__wbg_next_6574e1a8a62d1055 = function() { return handleError(fun
     return addHeapObject(ret);
 }, arguments) };
 
-module.exports.__wbg_set_37837023f3d740e8 = function(arg0, arg1, arg2) {
-    getObject(arg0)[arg1 >>> 0] = takeObject(arg2);
-};
-
-module.exports.__wbg_set_3f1d0b984ed272ed = function(arg0, arg1, arg2) {
-    getObject(arg0)[takeObject(arg1)] = takeObject(arg2);
+module.exports.__wbg_push_737cfc8c1432c2c6 = function(arg0, arg1) {
+    const ret = getObject(arg0).push(getObject(arg1));
+    return ret;
 };
 
 module.exports.__wbg_set_65595bdd868b3009 = function(arg0, arg1, arg2) {
     getObject(arg0).set(getObject(arg1), arg2 >>> 0);
 };
 
-module.exports.__wbg_set_8fc6bf8a5b1071d1 = function(arg0, arg1, arg2) {
-    const ret = getObject(arg0).set(getObject(arg1), getObject(arg2));
-    return addHeapObject(ret);
-};
+module.exports.__wbg_set_bb8cecf6a62b9f46 = function() { return handleError(function (arg0, arg1, arg2) {
+    const ret = Reflect.set(getObject(arg0), getObject(arg1), getObject(arg2));
+    return ret;
+}, arguments) };
 
 module.exports.__wbg_value_cd1ffa7b1ab794f1 = function(arg0) {
     const ret = getObject(arg0).value;
@@ -904,11 +902,6 @@ module.exports.__wbindgen_is_function = function(arg0) {
 module.exports.__wbindgen_is_object = function(arg0) {
     const val = getObject(arg0);
     const ret = typeof(val) === 'object' && val !== null;
-    return ret;
-};
-
-module.exports.__wbindgen_is_string = function(arg0) {
-    const ret = typeof(getObject(arg0)) === 'string';
     return ret;
 };
 

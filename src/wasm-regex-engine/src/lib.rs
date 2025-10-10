@@ -1,6 +1,42 @@
-use wasm_bindgen::prelude::*;
-use serde::{Deserialize, Serialize};
+use js_sys::{Array, Object, Reflect};
 use serde_json;
+use wasm_bindgen::prelude::*;
+
+/// Helper function to convert serde_json::Value to JsValue
+/// This bypasses the serde-wasm-bindgen bug that returns empty objects
+fn json_value_to_js(value: &serde_json::Value) -> Result<JsValue, JsValue> {
+    match value {
+        serde_json::Value::Null => Ok(JsValue::NULL),
+        serde_json::Value::Bool(b) => Ok(JsValue::from_bool(*b)),
+        serde_json::Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                Ok(JsValue::from_f64(i as f64))
+            } else if let Some(f) = n.as_f64() {
+                Ok(JsValue::from_f64(f))
+            } else {
+                Err(JsValue::from_str("Invalid number"))
+            }
+        }
+        serde_json::Value::String(s) => Ok(JsValue::from_str(s)),
+        serde_json::Value::Array(arr) => {
+            let js_array = Array::new();
+            for item in arr {
+                let js_item = json_value_to_js(item)?;
+                js_array.push(&js_item);
+            }
+            Ok(js_array.into())
+        }
+        serde_json::Value::Object(obj) => {
+            let js_object = Object::new();
+            for (key, val) in obj {
+                let js_val = json_value_to_js(val)?;
+                Reflect::set(&js_object, &JsValue::from_str(key), &js_val)
+                    .map_err(|e| JsValue::from_str(&format!("Failed to set property: {:?}", e)))?;
+            }
+            Ok(js_object.into())
+        }
+    }
+}
 
 /// High-performance WASM JSON serializer for swarm messaging
 #[wasm_bindgen]
@@ -48,33 +84,33 @@ impl MessageSerializer {
     /// - Native parsing in compiled Rust code
     /// - Memory-efficient WASM allocation
     /// - Better error handling than JavaScript
+    /// - Fixed: Bypasses serde-wasm-bindgen empty object bug
     #[wasm_bindgen(js_name = deserializeMessage)]
     pub fn deserialize_message(&self, json_str: &str) -> Result<JsValue, JsValue> {
         // Parse JSON string to serde_json::Value
         let json_value: serde_json::Value = serde_json::from_str(json_str)
             .map_err(|e| JsValue::from_str(&format!("JSON parse error: {}", e)))?;
 
-        // Convert to JsValue
-        serde_wasm_bindgen::to_value(&json_value)
-            .map_err(|e| JsValue::from_str(&format!("JsValue conversion error: {}", e)))
+        // Convert to JsValue using direct construction (bypasses serde-wasm-bindgen bug)
+        json_value_to_js(&json_value)
     }
 
     /// Batch deserialize multiple JSON strings (optimized for swarm message history)
     /// Returns array of parsed messages
+    /// Fixed: Uses direct JsValue construction
     #[wasm_bindgen(js_name = batchDeserialize)]
     pub fn batch_deserialize(&self, json_strings: Vec<JsValue>) -> Result<Vec<JsValue>, JsValue> {
         let mut results = Vec::with_capacity(json_strings.len());
 
         for js_str in json_strings {
-            let json_str = js_str.as_string()
+            let json_str = js_str
+                .as_string()
                 .ok_or_else(|| JsValue::from_str("Expected string in batch"))?;
 
             let json_value: serde_json::Value = serde_json::from_str(&json_str)
                 .map_err(|e| JsValue::from_str(&format!("Batch parse error: {}", e)))?;
 
-            let js_value = serde_wasm_bindgen::to_value(&json_value)
-                .map_err(|e| JsValue::from_str(&format!("Batch conversion error: {}", e)))?;
-
+            let js_value = json_value_to_js(&json_value)?;
             results.push(js_value);
         }
 
@@ -142,13 +178,13 @@ pub fn quick_serialize(value: &JsValue) -> Result<String, JsValue> {
 }
 
 /// Standalone deserialization function (no instance needed)
+/// Fixed: Uses direct JsValue construction
 #[wasm_bindgen(js_name = quickDeserialize)]
 pub fn quick_deserialize(json_str: &str) -> Result<JsValue, JsValue> {
     let json_value: serde_json::Value = serde_json::from_str(json_str)
         .map_err(|e| JsValue::from_str(&format!("Quick parse error: {}", e)))?;
 
-    serde_wasm_bindgen::to_value(&json_value)
-        .map_err(|e| JsValue::from_str(&format!("Quick conversion error: {}", e)))
+    json_value_to_js(&json_value)
 }
 
 /// High-performance state serializer with compression for swarm state management
@@ -185,19 +221,21 @@ impl StateSerializer {
 
     /// Deserialize state
     /// Target: <500μs restoration
-    /// SIMPLIFIED: Just use serde_json directly for maximum speed
+    /// Fixed: Uses direct JsValue construction
     #[wasm_bindgen(js_name = deserializeState)]
     pub fn deserialize_state(&self, json_str: &str) -> Result<JsValue, JsValue> {
         let json_value: serde_json::Value = serde_json::from_str(json_str)
             .map_err(|e| JsValue::from_str(&format!("State parse error: {}", e)))?;
 
-        serde_wasm_bindgen::to_value(&json_value)
-            .map_err(|e| JsValue::from_str(&format!("State conversion error: {}", e)))
+        json_value_to_js(&json_value)
     }
 
     /// Batch serialize multiple snapshots (optimized for snapshot creation)
     #[wasm_bindgen(js_name = batchSerializeStates)]
-    pub fn batch_serialize_states(&mut self, states: Vec<JsValue>) -> Result<Vec<JsValue>, JsValue> {
+    pub fn batch_serialize_states(
+        &mut self,
+        states: Vec<JsValue>,
+    ) -> Result<Vec<JsValue>, JsValue> {
         let mut results = Vec::with_capacity(states.len());
 
         for state in states {
@@ -253,13 +291,13 @@ pub fn quick_serialize_state(value: &JsValue) -> Result<String, JsValue> {
 }
 
 /// Standalone fast state deserialization (no instance needed)
+/// Fixed: Uses direct JsValue construction
 #[wasm_bindgen(js_name = quickDeserializeState)]
 pub fn quick_deserialize_state(json_str: &str) -> Result<JsValue, JsValue> {
     let json_value: serde_json::Value = serde_json::from_str(json_str)
         .map_err(|e| JsValue::from_str(&format!("Quick state parse error: {}", e)))?;
 
-    serde_wasm_bindgen::to_value(&json_value)
-        .map_err(|e| JsValue::from_str(&format!("Quick state conversion error: {}", e)))
+    json_value_to_js(&json_value)
 }
 
 #[cfg(test)]

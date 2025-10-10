@@ -1,0 +1,10 @@
+/mnt/c/Users/masha/Documents/claude-flow-novice/src/wasm-regex-engine/target/debug/deps/libcrc32fast-f9e1d3f2d873e3ce.rmeta: /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/lib.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/baseline.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/combine.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/specialized/mod.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/table.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/specialized/pclmulqdq.rs
+
+/mnt/c/Users/masha/Documents/claude-flow-novice/src/wasm-regex-engine/target/debug/deps/crc32fast-f9e1d3f2d873e3ce.d: /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/lib.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/baseline.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/combine.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/specialized/mod.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/table.rs /home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/specialized/pclmulqdq.rs
+
+/home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/lib.rs:
+/home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/baseline.rs:
+/home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/combine.rs:
+/home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/specialized/mod.rs:
+/home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/table.rs:
+/home/masharratt/.cargo/registry/src/index.crates.io-6f17d22bba15001f/crc32fast-1.5.0/src/specialized/pclmulqdq.rs:
