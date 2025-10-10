@@ -272,7 +272,7 @@ jobs:
             }
           };
 
-          const reportDir = path.join('test-results', 'matrix');
+          const reportDir = path.join('.artifacts', 'test-results', 'active', 'matrix');
           fs.mkdirSync(reportDir, { recursive: true });
           fs.writeFileSync(
             path.join(reportDir, 'test-report-${{ matrix.os }}-${{ matrix.node-version }}.json'),
@@ -288,7 +288,7 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.node-version }}
           path: |
-            test-results/
+            .artifacts/test-results/active/
             coverage/
             logs/
           retention-days: 7

@@ -110,15 +110,15 @@ jobs:
         with:
           name: unit-test-results-node-${{ matrix.node-version }}
           path: |
-            test-results/mcp/
-            !test-results/mcp/coverage/
+            .artifacts/test-results/active/mcp/
+            !.artifacts/test-results/active/mcp/coverage/
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         if: needs.test-strategy.outputs.run-coverage == 'true'
         with:
           name: unit-coverage-node-${{ matrix.node-version }}
-          path: test-results/mcp/coverage/
+          path: .artifacts/test-results/active/mcp/coverage/
 
   integration-tests:
     name: Integration Tests
@@ -184,7 +184,7 @@ jobs:
         if: always()
         with:
           name: integration-test-results-${{ matrix.os }}
-          path: test-results/mcp/
+          path: .artifacts/test-results/active/mcp/
 
   security-tests:
     name: Security Tests
@@ -218,7 +218,7 @@ jobs:
         if: always()
         with:
           name: security-test-results
-          path: test-results/mcp/
+          path: .artifacts/test-results/active/mcp/
 
       - name: Security Report Comment
         if: github.event_name == 'pull_request'
@@ -226,7 +226,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const path = 'test-results/mcp/security-report.md';
+            const path = '.artifacts/test-results/active/mcp/security-report.md';
 
             if (fs.existsSync(path)) {
               const report = fs.readFileSync(path, 'utf8');
@@ -290,14 +290,14 @@ jobs:
         if: always()
         with:
           name: performance-test-results
-          path: test-results/mcp/
+          path: .artifacts/test-results/active/mcp/
 
       - name: Upload performance baseline
         uses: actions/upload-artifact@v4
         if: github.ref == 'refs/heads/main'
         with:
           name: performance-baseline
-          path: test-results/mcp/performance-baseline.json
+          path: .artifacts/test-results/active/mcp/performance-baseline.json
 
   error-scenario-tests:
     name: Error Scenario Tests
@@ -331,7 +331,7 @@ jobs:
         if: always()
         with:
           name: error-scenario-test-results
-          path: test-results/mcp/
+          path: .artifacts/test-results/active/mcp/
 
   coverage-report:
     name: Coverage Report

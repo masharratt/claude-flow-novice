@@ -214,9 +214,9 @@ jobs:
           echo "- Node.js: ${{ matrix.node_version }}" >> $GITHUB_STEP_SUMMARY
           echo "- Build: Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f "test-results/summary.json" ]; then
+          if [ -f ".artifacts/test-results/active/summary.json" ]; then
             echo "### Test Results" >> $GITHUB_STEP_SUMMARY
-            cat test-results/summary.json >> $GITHUB_STEP_SUMMARY
+            cat .artifacts/test-results/active/summary.json >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ Test results not available" >> $GITHUB_STEP_SUMMARY
           fi
@@ -228,7 +228,7 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.node_version }}
           path: |
-            test-results/
+            .artifacts/test-results/active/
             coverage/
             logs/
           retention-days: 7
@@ -382,7 +382,7 @@ jobs:
             }
           };
 
-          const reportPath = path.join('test-results', 'performance-report.json');
+          const reportPath = path.join('.artifacts', 'test-results', 'active', 'performance-report.json');
           fs.mkdirSync(path.dirname(reportPath), { recursive: true });
           fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
@@ -393,7 +393,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: performance-${{ matrix.os }}
-          path: test-results/
+          path: .artifacts/test-results/active/
           retention-days: 7
 
   # Security testing
@@ -547,7 +547,7 @@ jobs:
           }
 
           // Save comprehensive report
-          const reportPath = path.join('test-results', 'comprehensive-report.json');
+          const reportPath = path.join('.artifacts', 'test-results', 'active', 'comprehensive-report.json');
           fs.mkdirSync(path.dirname(reportPath), { recursive: true });
           fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
@@ -564,7 +564,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: comprehensive-report
-          path: test-results/
+          path: .artifacts/test-results/active/
           retention-days: 30
 
       - name: Create status badge
@@ -572,7 +572,7 @@ jobs:
           node -e "
           const fs = require('fs');
 
-          const reportPath = 'test-results/comprehensive-report.json';
+          const reportPath = '.artifacts/test-results/active/comprehensive-report.json';
           if (fs.existsSync(reportPath)) {
             const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
             const successRate = report.summary.totalJobs > 0 ?
@@ -599,7 +599,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const reportPath = 'test-results/comprehensive-report.json';
+            const reportPath = '.artifacts/test-results/active/comprehensive-report.json';
 
             if (fs.existsSync(reportPath)) {
               const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
