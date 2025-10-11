@@ -291,7 +291,7 @@ export class SwarmTestCoordinator extends EventEmitter {
               uses: 'actions/upload-artifact@v4',
               with: {
                 name: 'swarm-test-results-${{ matrix.test-type }}-${{ matrix.agent-count }}',
-                path: 'test-results/',
+                path: '.artifacts/test-results/active/',
               },
             },
           ],

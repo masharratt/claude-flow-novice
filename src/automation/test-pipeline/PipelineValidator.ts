@@ -367,7 +367,7 @@ export class PipelineValidator {
         {
           id: 'cleanup-swarm-artifacts',
           description: 'Remove swarm-generated artifacts',
-          command: 'rm -rf test-results/swarm-* swarm-config.json',
+          command: 'rm -rf .artifacts/test-results/active/swarm-* swarm-config.json',
           rollback: true,
         },
       ],

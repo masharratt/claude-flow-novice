@@ -382,7 +382,8 @@ export class PerformanceTestRunner extends EventEmitter {
     // Save report to file
     const reportPath = path.join(
       process.cwd(),
-      'performance-reports',
+      'reports',
+      'performance',
       `suite-report-${Date.now()}.json`,
     );
     await fs.mkdir(path.dirname(reportPath), { recursive: true });

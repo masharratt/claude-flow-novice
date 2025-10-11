@@ -176,9 +176,9 @@
     echo "- Node.js: ${{ matrix.node_version }}" >> $GITHUB_STEP_SUMMARY
     echo "- Build: Completed" >> $GITHUB_STEP_SUMMARY
     echo "" >> $GITHUB_STEP_SUMMARY
-    if [ -f "test-results/summary.json" ]; then
+    if [ -f ".artifacts/test-results/active/summary.json" ]; then
       echo "### Test Results" >> $GITHUB_STEP_SUMMARY
-      cat test-results/summary.json >> $GITHUB_STEP_SUMMARY
+      cat .artifacts/test-results/active/summary.json >> $GITHUB_STEP_SUMMARY
     else
       echo "⚠️ Test results not available" >> $GITHUB_STEP_SUMMARY
     fi
