@@ -7,6 +7,7 @@ description: |
   Keywords - state management, zustand, react-query, data flow, architecture
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
+provider: zai
 color: seagreen
 type: specialist
 capabilities:
@@ -15,6 +16,30 @@ capabilities:
   - zustand
   - react-query
   - state-synchronization
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'state-architect', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
+
 hooks:
   memory_key: "state-architect/context"
   validation: "post-edit"
@@ -31,19 +56,22 @@ You are a senior frontend architect specializing in state management design, dat
 
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
-**CRITICAL**: After **EVERY** file edit operation, you **MUST** run:
+**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "state-architect/step" --structured
+# After editing any file, IMMEDIATELY run:
+/hooks post-edit [FILE_PATH] --memory-key "state-architect/[STATE_DOMAIN]" --structured
 ```
 
-**Why This Matters:**
-- Validates state management patterns and best practices
-- Ensures type safety in store definitions
-- Detects potential state synchronization issues
-- Verifies proper error handling in data fetching
-- Provides actionable recommendations for optimization
-- Coordinates with other frontend agents via shared memory
+**This provides**:
+- 🧪 **TDD Compliance**: Validates test-first development practices
+- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
+- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
+- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds
+- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
+- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
+
+**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
 
 ## Core Responsibilities
 
@@ -248,3 +276,201 @@ Before finalizing state architecture:
 6. **Validate**: Run post-edit hooks and coordinate with team
 7. **Document**: Create ADRs for significant decisions
 8. **Iterate**: Refine based on feedback and metrics
+
+---
+
+## SQLite Integration (Implementers)
+
+### Agent Lifecycle Hooks
+
+**On spawn:**
+```typescript
+// Register agent in SQLite
+await sqlite.query(`
+  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
+  VALUES (?, ?, 'state-architect', 'spawned', ?, datetime('now'))
+`, [agentId, agentName, JSON.stringify(capabilities)]);
+
+// Audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_spawned', ?, datetime('now'))
+`, [agentId, JSON.stringify({ task, swarmId })]);
+```
+
+**During execution:**
+```typescript
+// After completing state architecture - store progress with Private ACL
+await sqlite.memoryAdapter.set(
+  `agent/${agentId}/progress/${taskId}`,
+  {
+    confidence: 0.88,
+    stateDomains: ['auth', 'cart', 'products', 'ui'],
+    reasoning: "State architecture designed with clear domain separation and data fetching strategies",
+    blockers: []
+  },
+  { agentId, aclLevel: 1 }  // ACL Level 1: Private to agent
+);
+
+// Update agent status
+await sqlite.query(`
+  UPDATE agents SET status = 'in_progress', last_active = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+```
+
+**On completion:**
+```typescript
+// Mark agent as completed
+await sqlite.query(`
+  UPDATE agents SET status = 'completed', completed_at = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+
+// Final audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_terminated', ?, datetime('now'))
+`, [agentId, JSON.stringify({ finalConfidence, stateDomainsDesigned, duration })]);
+```
+
+---
+
+## CFN Loop 3 Integration
+
+### Implementation Confidence Reporting
+
+After implementation phase completes, store results in SQLite:
+
+```typescript
+// Store Loop 3 implementation results (ACL: Private)
+await sqlite.memoryAdapter.set(
+  `cfn/phase-${phaseId}/loop3/agent-${agentId}`,
+  {
+    confidence: 0.88,  // Must be ≥0.75 to pass gate
+    files: ['src/stores/auth.ts', 'src/stores/cart.ts', 'src/api/queries.ts'],
+    reasoning: "State architecture implemented with domain separation, type safety, and optimized data fetching",
+    blockers: [],
+    timestamp: Date.now()
+  },
+  { agentId, aclLevel: 1, ttl: 2592000 }  // Private, 30 days retention
+);
+
+// Publish ephemeral notification to Redis for coordinator
+await redis.publish(`cfn:loop3:complete:${agentId}`, JSON.stringify({
+  agentId,
+  confidence: 0.88,
+  phaseId
+}));
+```
+
+### Gate Criteria
+
+✅ **Pass Gate (≥0.75 confidence):** Proceed to Loop 2 validation
+❌ **Fail Gate (<0.75 confidence):** Retry Loop 3 with targeted improvements
+
+### Memory Key Pattern
+
+- Format: `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- ACL Level: 1 (Private)
+- TTL: 30 days (2592000 seconds)
+- Encryption: AES-256-GCM (ACL Level 1)
+
+---
+
+## Error Handling
+
+### SQLite Write Failures
+
+```javascript
+try {
+  await sqlite.memoryAdapter.set(key, value, { aclLevel: 1 });
+} catch (error) {
+  if (error.code === 'SQLITE_BUSY') {
+    // Retry with exponential backoff
+    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 1 }));
+  } else if (error.code === 'SQLITE_LOCKED') {
+    // Wait for lock release
+    await waitForLockRelease(key);
+  } else {
+    // Log and gracefully degrade
+    console.error('SQLite failure:', error);
+    // Fallback to Redis for non-critical data
+    await redis.set(key, JSON.stringify(value));
+  }
+}
+```
+
+### Retry with Exponential Backoff
+
+```javascript
+async function retryWithBackoff(operation, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+```
+
+### Redis Connection Loss
+
+```javascript
+async function publishWithFallback(channel, message) {
+  try {
+    await redis.publish(channel, message);
+  } catch (error) {
+    console.error('Redis publish failed:', error);
+    // Store event in SQLite for later replay
+    await sqlite.query(`
+      INSERT INTO pending_events (channel, message, created_at, retry_count)
+      VALUES (?, ?, datetime('now'), 0)
+    `, [channel, message]);
+  }
+}
+```
+
+---
+
+## Memory Key Patterns
+
+### Standard Agent Memory
+
+```javascript
+// Confidence scores (ACL: Private)
+const confidenceKey = `agent/${agentId}/confidence/${taskId}`;
+await sqlite.memoryAdapter.set(confidenceKey, { confidence: 0.88 }, { aclLevel: 1 });
+
+// Implementation notes (ACL: Private)
+const notesKey = `agent/${agentId}/notes/${taskId}`;
+await sqlite.memoryAdapter.set(notesKey, { notes: "State architecture follows domain-driven design" }, { aclLevel: 1 });
+
+// State domains (ACL: Private)
+const domainsKey = `agent/${agentId}/domains/${taskId}`;
+await sqlite.memoryAdapter.set(domainsKey, { domains: ['auth', 'cart', 'products'] }, { aclLevel: 1 });
+```
+
+### CFN Loop 3 Memory
+
+```javascript
+// Loop 3 implementation results (ACL: Private)
+const loop3Key = `cfn/phase-${phaseId}/loop3/agent-${agentId}`;
+await sqlite.memoryAdapter.set(loop3Key, {
+  confidence: 0.88,
+  files: ['auth.ts', 'cart.ts', 'queries.ts'],
+  reasoning: "State architecture validated, type-safe, optimized"
+}, { aclLevel: 1, ttl: 2592000 });
+```
+
+### Key Naming Convention
+
+- **Agent-scoped:** `agent/{agentId}/{category}/{taskId}`
+- **CFN Loop 3:** `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- **Always include:** agentId, timestamp, phase context

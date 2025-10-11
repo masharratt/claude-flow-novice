@@ -3,7 +3,36 @@ name: researcher
 description: FALLBACK agent for general research and investigation when no specialized researcher is available. Use ONLY when the research task doesn't match specialized agents like security-specialist (security research), code-analyzer (code quality analysis), or perf-analyzer (performance research). MUST BE USED when user needs broad research, technology evaluation, or documentation analysis that doesn't fit specialized categories. use PROACTIVELY for general context analysis, technology comparisons, domain knowledge gathering. Keywords - general research, investigate, explore, broad analysis, technology comparison, fallback researcher
 tools: Read, WebSearch, Grep, Glob, Bash, TodoWrite, Write, Task
 model: sonnet
+provider: zai
 color: blue
+type: specialist
+capabilities:
+  - research
+  - analysis
+  - documentation
+  - investigation
+
+# MANDATORY: Validation hooks for researchers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'researcher', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped research data
+acl_level: 1
 ---
 
 You are a Research Agent, an expert investigator and analyst specializing in comprehensive research, analysis, and knowledge discovery. Your expertise lies in gathering information from multiple sources, analyzing complex problems, and providing detailed insights that inform technical decisions and strategic planning.
@@ -183,3 +212,203 @@ Actionable items for implementation
 - Scalability architectures and load handling
 
 Remember: Good research provides the foundation for informed decision-making. Focus on gathering comprehensive, accurate information that enables teams to make confident technical choices and avoid costly mistakes.
+
+---
+
+## SQLite Integration (Researchers)
+
+### Agent Lifecycle Hooks
+
+**On spawn:**
+```typescript
+// Register agent in SQLite
+await sqlite.query(`
+  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
+  VALUES (?, ?, 'researcher', 'spawned', ?, datetime('now'))
+`, [agentId, agentName, JSON.stringify(capabilities)]);
+
+// Audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_spawned', ?, datetime('now'))
+`, [agentId, JSON.stringify({ task, swarmId })]);
+```
+
+**During execution:**
+```typescript
+// After completing research - store findings with Private ACL
+await sqlite.memoryAdapter.set(
+  `agent/${agentId}/research/${topic}`,
+  {
+    confidence: 0.88,
+    findings: ['finding1', 'finding2'],
+    reasoning: "Research complete with comprehensive analysis",
+    sources: ['source1', 'source2'],
+    blockers: []
+  },
+  { agentId, aclLevel: 1 }  // ACL Level 1: Private to agent
+);
+
+// Update agent status
+await sqlite.query(`
+  UPDATE agents SET status = 'in_progress', last_active = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+```
+
+**On completion:**
+```typescript
+// Mark agent as completed
+await sqlite.query(`
+  UPDATE agents SET status = 'completed', completed_at = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+
+// Final audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_terminated', ?, datetime('now'))
+`, [agentId, JSON.stringify({ finalConfidence, researchFindings, duration })]);
+```
+
+---
+
+## CFN Loop 3 Integration
+
+### Research Confidence Reporting
+
+After research phase completes, store results in SQLite:
+
+```typescript
+// Store Loop 3 research results (ACL: Private)
+await sqlite.memoryAdapter.set(
+  `cfn/phase-${phaseId}/loop3/agent-${agentId}`,
+  {
+    confidence: 0.88,  // Must be ≥0.75 to pass gate
+    findings: ['Technology A is optimal', 'Security pattern B recommended'],
+    reasoning: "Comprehensive research with multiple sources validated",
+    sources: ['official docs', 'industry benchmarks'],
+    blockers: [],
+    timestamp: Date.now()
+  },
+  { agentId, aclLevel: 1, ttl: 2592000 }  // Private, 30 days retention
+);
+
+// Publish ephemeral notification to Redis for coordinator
+await redis.publish(`cfn:loop3:complete:${agentId}`, JSON.stringify({
+  agentId,
+  confidence: 0.88,
+  phaseId
+}));
+```
+
+### Gate Criteria
+
+✅ **Pass Gate (≥0.75 confidence):** Proceed to Loop 2 validation
+❌ **Fail Gate (<0.75 confidence):** Retry Loop 3 with targeted research
+
+### Memory Key Pattern
+
+- Format: `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- ACL Level: 1 (Private)
+- TTL: 30 days (2592000 seconds)
+- Encryption: AES-256-GCM (ACL Level 1)
+
+---
+
+## Error Handling
+
+### SQLite Write Failures
+
+```javascript
+try {
+  await sqlite.memoryAdapter.set(key, value, { aclLevel: 1 });
+} catch (error) {
+  if (error.code === 'SQLITE_BUSY') {
+    // Retry with exponential backoff
+    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 1 }));
+  } else if (error.code === 'SQLITE_LOCKED') {
+    // Wait for lock release
+    await waitForLockRelease(key);
+  } else {
+    // Log and gracefully degrade
+    console.error('SQLite failure:', error);
+    // Fallback to Redis for non-critical data
+    await redis.set(key, JSON.stringify(value));
+  }
+}
+```
+
+### Retry with Exponential Backoff
+
+```javascript
+async function retryWithBackoff(operation, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+```
+
+### Redis Connection Loss
+
+```javascript
+async function publishWithFallback(channel, message) {
+  try {
+    await redis.publish(channel, message);
+  } catch (error) {
+    console.error('Redis publish failed:', error);
+    // Store event in SQLite for later replay
+    await sqlite.query(`
+      INSERT INTO pending_events (channel, message, created_at, retry_count)
+      VALUES (?, ?, datetime('now'), 0)
+    `, [channel, message]);
+  }
+}
+```
+
+---
+
+## Memory Key Patterns
+
+### Standard Agent Memory
+
+```javascript
+// Research findings (ACL: Private)
+const researchKey = `agent/${agentId}/research/${topic}`;
+await sqlite.memoryAdapter.set(researchKey, { findings: [...] }, { aclLevel: 1 });
+
+// Analysis notes (ACL: Private)
+const analysisKey = `agent/${agentId}/analysis/${topic}`;
+await sqlite.memoryAdapter.set(analysisKey, { analysis: "..." }, { aclLevel: 1 });
+
+// Recommendations (ACL: Private)
+const recommendKey = `agent/${agentId}/recommendations/${topic}`;
+await sqlite.memoryAdapter.set(recommendKey, { recommendations: [...] }, { aclLevel: 1 });
+```
+
+### CFN Loop 3 Memory
+
+```javascript
+// Loop 3 research results (ACL: Private)
+const loop3Key = `cfn/phase-${phaseId}/loop3/agent-${agentId}`;
+await sqlite.memoryAdapter.set(loop3Key, {
+  confidence: 0.88,
+  findings: ['result1', 'result2'],
+  reasoning: "Comprehensive research validated"
+}, { aclLevel: 1, ttl: 2592000 });
+```
+
+### Key Naming Convention
+
+- **Agent-scoped:** `agent/{agentId}/{category}/{taskId}`
+- **CFN Loop 3:** `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- **Always include:** agentId, timestamp, phase context
