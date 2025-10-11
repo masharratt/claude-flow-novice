@@ -10,6 +10,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ILogger } from '../core/logger.js';
 import { generateId } from '../utils/helpers.js';
+import { SecretDetector } from './secret-detector.js';
 
 // === INTERFACES ===
 
@@ -190,6 +191,7 @@ export class AdvancedMemoryManager extends EventEmitter {
   private index: MemoryIndex;
   private cache = new Map<string, { entry: MemoryEntry; expiry: number }>();
   private retentionPolicies = new Map<string, RetentionPolicy>();
+  private secretDetector: SecretDetector;
 
   private logger: ILogger;
   private config: {
@@ -239,6 +241,15 @@ export class AdvancedMemoryManager extends EventEmitter {
 
     this.index = this.createEmptyIndex();
     this.statistics = this.initializeStatistics();
+
+    // Initialize SecretDetector with strict mode for enterprise compliance (GDPR, SOC 2)
+    this.secretDetector = new SecretDetector({
+      enabled: true,
+      strictMode: true,
+      allowedPatterns: [],
+      customPatterns: [],
+      includeMatchedText: false,
+    });
   }
 
   // === INITIALIZATION ===
@@ -306,11 +317,14 @@ export class AdvancedMemoryManager extends EventEmitter {
     const startTime = Date.now();
 
     try {
+      // Sanitize value for secrets before storage (enterprise compliance)
+      const sanitizedValue = this.secretDetector.sanitizeForStorage(value);
+
       const entryId = generateId('entry');
       const now = new Date();
 
       // Process value (compression, serialization)
-      const processedValue = await this.processValue(value, options.compress);
+      const processedValue = await this.processValue(sanitizedValue, options.compress);
       const size = this.calculateSize(processedValue);
 
       // Create entry
@@ -357,6 +371,7 @@ export class AdvancedMemoryManager extends EventEmitter {
       return entryId;
     } catch (error) {
       this.recordMetric('store-error', Date.now() - startTime);
+      this.logger.error('Store operation failed - possible secret detected', { key, error: error.message });
       throw error;
     }
   }

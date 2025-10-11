@@ -5,6 +5,7 @@
 import { EventEmitter } from 'node:events';
 import type { ILogger } from '../core/logger.js';
 import type { IEventBus } from '../core/event-bus.js';
+import { SecretDetector } from './secret-detector.js';
 import type {
   SwarmMemory,
   MemoryPartition,
@@ -106,6 +107,7 @@ export class DistributedMemorySystem extends EventEmitter {
   private logger: ILogger;
   private eventBus: IEventBus;
   private config: DistributedMemoryConfig;
+  private secretDetector: SecretDetector;
 
   // Storage
   private partitions = new Map<string, MemoryPartition>();
@@ -151,6 +153,15 @@ export class DistributedMemorySystem extends EventEmitter {
 
     this.localNodeId = generateId('memory-node');
     this.statistics = this.initializeStatistics();
+
+    // Initialize SecretDetector with strict mode for production
+    this.secretDetector = new SecretDetector({
+      enabled: true,
+      strictMode: true,
+      allowedPatterns: [],
+      customPatterns: [],
+      includeMatchedText: false,
+    });
 
     this.setupEventHandlers();
   }
@@ -332,6 +343,9 @@ export class DistributedMemorySystem extends EventEmitter {
     const startTime = Date.now();
 
     try {
+      // Sanitize value for secrets before storage
+      const sanitizedValue = this.secretDetector.sanitizeForStorage(value);
+
       const entryId = generateId('entry');
       const now = new Date();
 
@@ -352,11 +366,11 @@ export class DistributedMemorySystem extends EventEmitter {
         await this.evictOldEntries(partitionId);
       }
 
-      // Create entry
+      // Create entry with sanitized value
       const entry: MemoryEntry = {
         id: entryId,
         key,
-        value: await this.processValue(value, partition),
+        value: await this.processValue(sanitizedValue, partition),
         type: options.type || 'data',
         tags: options.tags || [],
         owner: options.owner || { id: 'system', swarmId: '', type: 'coordinator', instance: 0 },
@@ -391,6 +405,7 @@ export class DistributedMemorySystem extends EventEmitter {
       return entryId;
     } catch (error) {
       this.recordMetric('store-error', Date.now() - startTime);
+      this.logger.error('Store operation failed', { key, error: error.message });
       throw error;
     }
   }

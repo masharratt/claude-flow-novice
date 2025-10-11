@@ -5,6 +5,7 @@
 
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
+import { SecretDetector } from '../memory/secret-detector.js';
 
 export interface MemoryBlock {
   id: string;
@@ -43,12 +44,22 @@ export class SwarmMemoryManager extends EventEmitter {
   private cryptoManager: MemoryCryptographyManager;
   private consensusValidator: MemoryConsensusValidator;
   private syncManager: MemorySyncManager;
+  private secretDetector: SecretDetector;
 
   constructor(private config: any) {
     super();
     this.cryptoManager = new MemoryCryptographyManager();
     this.consensusValidator = new MemoryConsensusValidator(config);
     this.syncManager = new MemorySyncManager(this);
+
+    // Initialize SecretDetector with strict mode for production
+    this.secretDetector = new SecretDetector({
+      enabled: true,
+      strictMode: config.strict ?? true,
+      allowedPatterns: config.secretWhitelist ?? [],
+      customPatterns: [],
+      includeMatchedText: false,
+    });
 
     if (config.syncInterval) {
       this.setupSyncInterval(config.syncInterval);
@@ -67,8 +78,12 @@ export class SwarmMemoryManager extends EventEmitter {
       };
     }
 
-    // Create memory block for context
-    const memoryBlock = await this.createMemoryBlock(contextId, context, 'system');
+    // Sanitize context for secrets before storage
+    try {
+      const sanitizedContext = this.secretDetector.sanitizeForStorage(context);
+
+      // Create memory block for context
+      const memoryBlock = await this.createMemoryBlock(contextId, sanitizedContext, 'system');
 
     // Validate with consensus
     const consensusResult = await this.consensusValidator.validateMemoryBlock(memoryBlock);
@@ -87,6 +102,10 @@ export class SwarmMemoryManager extends EventEmitter {
     this.emit('context:stored', { contextId, consensusProof: consensusResult.proof });
 
     return contextId;
+    } catch (error) {
+      this.emit('security:secret_detected', { contextId, error: error.message });
+      throw new Error(`Cannot store swarm context with secrets: ${error.message}`);
+    }
   }
 
   async getSwarmContext(contextId?: string): Promise<SwarmContext | null> {
@@ -129,12 +148,15 @@ export class SwarmMemoryManager extends EventEmitter {
       ttl?: number;
     } = {},
   ): Promise<string> {
-    const memoryBlock = await this.createMemoryBlock(key, value, agentId);
+    // Sanitize value for secrets before storage
+    try {
+      const sanitizedValue = this.secretDetector.sanitizeForStorage(value);
+      const memoryBlock = await this.createMemoryBlock(key, sanitizedValue, agentId);
 
-    // Encrypt if requested
-    if (options.encrypt) {
-      memoryBlock.data = await this.cryptoManager.encrypt(memoryBlock.data);
-    }
+      // Encrypt if requested
+      if (options.encrypt) {
+        memoryBlock.data = await this.cryptoManager.encrypt(memoryBlock.data);
+      }
 
     // Validate with consensus if required
     if (options.requireConsensus) {
@@ -158,6 +180,10 @@ export class SwarmMemoryManager extends EventEmitter {
     this.emit('memory:stored', { key, blockId: memoryBlock.id, agentId });
 
     return memoryBlock.id;
+    } catch (error) {
+      this.emit('security:secret_detected', { key, agentId, error: error.message });
+      throw new Error(`Cannot store memory with secrets: ${error.message}`);
+    }
   }
 
   async retrieveMemory(
