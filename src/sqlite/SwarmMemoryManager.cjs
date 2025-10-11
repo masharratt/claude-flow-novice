@@ -116,7 +116,7 @@ class SwarmMemoryManager extends EventEmitter {
       this.metrics.encryptionOperations++;
 
       const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey.slice(0, 32), iv);
+      const cipher = crypto.createCipheriv('aes-256-gcm', this.encryptionKey, iv);
       cipher.setAAD(Buffer.from(aclLevel.toString()));
 
       let encrypted = cipher.update(data, 'utf8', 'hex');
@@ -142,7 +142,7 @@ class SwarmMemoryManager extends EventEmitter {
       this.metrics.encryptionOperations++;
 
       const ivBuffer = Buffer.from(iv, 'hex');
-      const decipher = crypto.createDecipheriv('aes-256-gcm', this.encryptionKey.slice(0, 32), ivBuffer);
+      const decipher = crypto.createDecipheriv('aes-256-gcm', this.encryptionKey, ivBuffer);
       decipher.setAAD(Buffer.from(aclLevel.toString()));
       decipher.setAuthTag(Buffer.from(authTag, 'hex'));
 

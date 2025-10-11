@@ -1,0 +1,508 @@
+{
+  "document_metadata": {
+    "title": "Agent Lifecycle CLI Commands Architecture",
+    "version": "1.0.0",
+    "created": "2025-10-11",
+    "status": "Design Complete - Ready for Implementation",
+    "confidence": 0.92,
+    "architect": "system-architect-agent",
+    "design_phase": "Phase 4 - CLI Tool Implementation"
+  },
+
+  "executive_summary": {
+    "objective": "Enable agents to execute their lifecycle hooks through CLI commands with SQLite persistence, ACL enforcement, and CFN Loop integration",
+    "approach": "Extend existing CLI architecture with new agent-lifecycle parent command containing 5 subcommands (spawn, complete, update, list, inspect)",
+    "key_benefits": [
+      "Agents can execute documented lifecycle patterns via Bash tool",
+      "SQLite persistence provides audit trail and cross-session recovery",
+      "ACL enforcement prevents unauthorized data access",
+      "CFN Loop confidence reporting becomes operational",
+      "Existing schema in src/sqlite/schema.sql and src/lifecycle/memory-schema.ts can be reused"
+    ],
+    "implementation_complexity": "Medium",
+    "estimated_effort": "12-16 hours"
+  },
+
+  "command_structure": {
+    "parent_command": "agent-lifecycle",
+    "registration_location": "src/cli/commands/agent-lifecycle.ts",
+    "cli_integration": "src/cli/commands/index.ts (setupCommands function)",
+    "subcommands": [
+      {
+        "name": "spawn",
+        "description": "Register agent in SQLite on spawn with ACL level",
+        "usage": "claude-flow-novice agent-lifecycle spawn --id <id> --type <type> --acl-level <level>",
+        "parameters": {
+          "required": [
+            { "flag": "--id", "type": "string", "description": "Unique agent ID (format: agent-type-N)" },
+            { "flag": "--type", "type": "string", "description": "Agent type (coder, reviewer, architect, etc.)" }
+          ],
+          "optional": [
+            { "flag": "--acl-level", "type": "integer", "default": 1, "description": "ACL level (1-6, default: 1 for implementers)" },
+            { "flag": "--swarm-id", "type": "string", "description": "Swarm ID for coordination" },
+            { "flag": "--capabilities", "type": "json", "description": "JSON array of capabilities" },
+            { "flag": "--metadata", "type": "json", "description": "JSON metadata" }
+          ]
+        },
+        "output": {
+          "success": { "format": "json", "fields": ["agent_id", "type", "acl_level", "spawned_at"] },
+          "error": { "format": "json", "fields": ["error", "code", "details"] }
+        },
+        "exit_codes": { "success": 0, "validation_error": 1, "database_error": 2 }
+      },
+      {
+        "name": "complete",
+        "description": "Mark agent as completed and store confidence score",
+        "usage": "claude-flow-novice agent-lifecycle complete --id <id> --confidence <score>",
+        "parameters": {
+          "required": [
+            { "flag": "--id", "type": "string", "description": "Agent ID to complete" },
+            { "flag": "--confidence", "type": "float", "description": "Confidence score (0.0-1.0)" }
+          ],
+          "optional": [
+            { "flag": "--files", "type": "json", "description": "JSON array of modified files" },
+            { "flag": "--reasoning", "type": "string", "description": "Explanation of confidence score" },
+            { "flag": "--blockers", "type": "json", "description": "JSON array of blockers encountered" }
+          ]
+        },
+        "output": {
+          "success": { "format": "json", "fields": ["agent_id", "confidence", "status", "completed_at", "duration_ms"] },
+          "error": { "format": "json", "fields": ["error", "code", "details"] }
+        },
+        "exit_codes": { "success": 0, "agent_not_found": 1, "invalid_confidence": 2, "database_error": 3 }
+      },
+      {
+        "name": "update",
+        "description": "Update agent status during execution",
+        "usage": "claude-flow-novice agent-lifecycle update --id <id> --status <status>",
+        "parameters": {
+          "required": [
+            { "flag": "--id", "type": "string", "description": "Agent ID to update" },
+            { "flag": "--status", "type": "string", "description": "New status (active, in_progress, idle, suspended)" }
+          ],
+          "optional": [
+            { "flag": "--progress", "type": "integer", "description": "Progress percentage (0-100)" },
+            { "flag": "--metadata", "type": "json", "description": "JSON metadata to merge" }
+          ]
+        },
+        "output": {
+          "success": { "format": "json", "fields": ["agent_id", "status", "updated_at"] },
+          "error": { "format": "json", "fields": ["error", "code", "details"] }
+        },
+        "exit_codes": { "success": 0, "agent_not_found": 1, "invalid_status": 2, "database_error": 3 }
+      },
+      {
+        "name": "list",
+        "description": "List agents with filtering and formatting options",
+        "usage": "claude-flow-novice agent-lifecycle list [options]",
+        "parameters": {
+          "optional": [
+            { "flag": "--status", "type": "string", "description": "Filter by status" },
+            { "flag": "--type", "type": "string", "description": "Filter by agent type" },
+            { "flag": "--swarm-id", "type": "string", "description": "Filter by swarm ID" },
+            { "flag": "--format", "type": "string", "default": "table", "description": "Output format (table, json)" },
+            { "flag": "--limit", "type": "integer", "description": "Limit number of results" }
+          ]
+        },
+        "output": {
+          "table": {
+            "columns": ["ID", "Type", "Status", "ACL", "Spawned", "Updated", "Confidence"]
+          },
+          "json": {
+            "format": "array",
+            "item_fields": ["id", "type", "status", "acl_level", "spawned_at", "updated_at", "confidence"]
+          }
+        },
+        "exit_codes": { "success": 0, "database_error": 1 }
+      },
+      {
+        "name": "inspect",
+        "description": "Detailed inspection of agent lifecycle",
+        "usage": "claude-flow-novice agent-lifecycle inspect <agent-id>",
+        "parameters": {
+          "required": [
+            { "argument": "agent-id", "type": "string", "description": "Agent ID to inspect" }
+          ],
+          "optional": [
+            { "flag": "--format", "type": "string", "default": "pretty", "description": "Output format (pretty, json)" },
+            { "flag": "--include-history", "type": "boolean", "default": false, "description": "Include state history" },
+            { "flag": "--include-metrics", "type": "boolean", "default": false, "description": "Include performance metrics" }
+          ]
+        },
+        "output": {
+          "pretty": {
+            "sections": ["Agent Info", "Current State", "Performance Metrics", "State History (if requested)"]
+          },
+          "json": {
+            "fields": ["agent", "lifecycle_record", "state_history", "metrics"]
+          }
+        },
+        "exit_codes": { "success": 0, "agent_not_found": 1, "database_error": 2 }
+      }
+    ]
+  },
+
+  "database_integration": {
+    "schema_location": "src/sqlite/schema.sql",
+    "primary_table": "agents",
+    "lifecycle_tables": [
+      "agent_lifecycle_records (src/lifecycle/memory-schema.ts)",
+      "agent_state_history (src/lifecycle/memory-schema.ts)",
+      "audit_log (src/sqlite/schema.sql)"
+    ],
+    "schema_reuse": {
+      "agents_table": {
+        "path": "src/sqlite/schema.sql",
+        "lines": "14-31",
+        "columns_used": ["id", "name", "type", "status", "swarm_id", "capabilities", "metadata", "acl_level", "created_at", "updated_at"]
+      },
+      "agent_lifecycle_records": {
+        "path": "src/lifecycle/memory-schema.ts",
+        "lines": "29-47",
+        "columns_used": ["agent_id", "session_id", "current_state", "previous_state", "created_at", "updated_at", "metadata_json", "performance_json"]
+      },
+      "audit_log": {
+        "path": "src/sqlite/schema.sql",
+        "lines": "196-216",
+        "columns_used": ["id", "entity_id", "entity_type", "action", "changed_by", "swarm_id", "acl_level", "created_at"]
+      }
+    },
+    "no_migrations_required": "Existing schema supports all required operations",
+    "acl_enforcement": {
+      "levels": {
+        "1": "Private (agent-scoped data - implementers)",
+        "2": "Team (shared within team)",
+        "3": "Swarm (shared across swarm - validators, coordinators)",
+        "4": "Project (strategic decisions - product owner)",
+        "5": "Public (system-wide)",
+        "6": "System (infrastructure)"
+      },
+      "validation": "Check acl_level in agents table matches agent type conventions"
+    }
+  },
+
+  "implementation_details": {
+    "file_locations": {
+      "command_implementation": "src/cli/commands/agent-lifecycle.ts",
+      "registration": "src/cli/commands/index.ts",
+      "types": "src/types/agent-lifecycle-cli-types.ts",
+      "database_operations": "src/core/agent-lifecycle-operations.ts"
+    },
+    "dependencies": {
+      "internal": [
+        "better-sqlite3 (existing)",
+        "src/lifecycle/memory-schema.ts (SQLiteLifecycleMemoryManager)",
+        "src/core/persistence.ts (PersistenceManager)",
+        "src/core/logger.js"
+      ],
+      "external": [
+        "commander (existing CLI framework)",
+        "cli-table3 (existing for table output)",
+        "chalk (existing for colors)"
+      ]
+    },
+    "integration_strategy": {
+      "pattern": "Follow recovery-status.ts pattern",
+      "steps": [
+        "1. Create AgentLifecycleCommands class with handler methods",
+        "2. Use SQLiteLifecycleMemoryManager for database operations",
+        "3. Export registerAgentLifecycleCommands function",
+        "4. Register in src/cli/commands/index.ts setupCommands",
+        "5. Add to CLI help system"
+      ]
+    },
+    "error_handling": {
+      "database_errors": {
+        "SQLITE_BUSY": "Retry with exponential backoff (100ms, 200ms, 400ms)",
+        "SQLITE_LOCKED": "Wait for lock release with timeout",
+        "SQLITE_CONSTRAINT": "Return validation error with details"
+      },
+      "validation_errors": {
+        "invalid_agent_id": "Format: agent-type-N (e.g., coder-1)",
+        "invalid_confidence": "Must be 0.0-1.0 inclusive",
+        "invalid_acl_level": "Must be 1-6 inclusive",
+        "invalid_status": "Must be: active, in_progress, idle, suspended, completed, terminated"
+      },
+      "not_found_errors": {
+        "agent_not_found": "Return descriptive error with agent ID",
+        "swarm_not_found": "Return warning, allow operation to continue"
+      },
+      "graceful_degradation": {
+        "sqlite_unavailable": "Log error, suggest manual SQLite check",
+        "no_fallback": "SQLite is critical for lifecycle, no Redis fallback"
+      }
+    }
+  },
+
+  "cfn_loop_integration": {
+    "loop_3_confidence_reporting": {
+      "command": "claude-flow-novice agent-lifecycle complete --id <id> --confidence <score> --files <json> --reasoning <text>",
+      "storage": {
+        "table": "agents (status, updated_at)",
+        "memory_key": "cfn/phase-{phaseId}/loop3/agent-{agentId}",
+        "acl_level": 1,
+        "ttl": 2592000
+      },
+      "gate_criteria": {
+        "pass": "confidence >= 0.75",
+        "fail": "confidence < 0.75",
+        "action_on_pass": "Proceed to Loop 2 validation",
+        "action_on_fail": "Retry Loop 3 with targeted improvements"
+      }
+    },
+    "loop_2_validation": {
+      "command": "claude-flow-novice agent-lifecycle list --swarm-id <swarmId> --format json",
+      "usage": "Validators query Loop 3 agent confidence scores",
+      "consensus_calculation": "Average confidence across all Loop 3 agents",
+      "acl_level": 3
+    },
+    "loop_4_product_owner": {
+      "command": "claude-flow-novice agent-lifecycle inspect <agentId> --include-history --format json",
+      "usage": "Product owner reads full lifecycle data for GOAP decision",
+      "acl_level": 4
+    }
+  },
+
+  "implementation_roadmap": {
+    "phase_1_core_commands": {
+      "duration": "4-6 hours",
+      "tasks": [
+        "Create src/cli/commands/agent-lifecycle.ts with spawn/complete/update handlers",
+        "Implement database operations using SQLiteLifecycleMemoryManager",
+        "Add validation for agent ID format, confidence scores, ACL levels",
+        "Implement error handling with retry logic",
+        "Export registerAgentLifecycleCommands function"
+      ],
+      "validation": [
+        "Spawn agent with valid parameters",
+        "Complete agent with confidence score",
+        "Update agent status during execution",
+        "Handle database errors gracefully"
+      ]
+    },
+    "phase_2_query_commands": {
+      "duration": "2-3 hours",
+      "tasks": [
+        "Implement list command with filtering and formatting",
+        "Implement inspect command with detailed output",
+        "Add table formatting using cli-table3",
+        "Add JSON output mode for programmatic use"
+      ],
+      "validation": [
+        "List agents with various filters",
+        "Inspect agent with full details",
+        "Verify table and JSON output formats"
+      ]
+    },
+    "phase_3_integration": {
+      "duration": "2-3 hours",
+      "tasks": [
+        "Register commands in src/cli/commands/index.ts",
+        "Update CLI help system",
+        "Add to CLAUDE.md command reference",
+        "Test from agent profiles via Bash tool"
+      ],
+      "validation": [
+        "Commands appear in claude-flow-novice --help",
+        "Commands work from agent Bash tool",
+        "Help text is accurate and complete"
+      ]
+    },
+    "phase_4_testing": {
+      "duration": "4-6 hours",
+      "tasks": [
+        "Write unit tests for each command handler",
+        "Write integration tests with SQLite",
+        "Test error handling scenarios",
+        "Test CFN Loop confidence reporting workflow",
+        "Test ACL enforcement",
+        "Performance testing with concurrent operations"
+      ],
+      "validation": [
+        "All unit tests pass",
+        "Integration tests cover happy path and error cases",
+        "CFN Loop workflow end-to-end test passes",
+        "Performance meets targets (<100ms per operation)"
+      ]
+    }
+  },
+
+  "testing_strategy": {
+    "unit_tests": {
+      "location": "src/cli/commands/__tests__/agent-lifecycle.test.ts",
+      "coverage_target": "90%",
+      "test_cases": [
+        "spawn: valid parameters",
+        "spawn: invalid agent ID format",
+        "spawn: invalid ACL level",
+        "complete: valid confidence score",
+        "complete: confidence out of range",
+        "complete: agent not found",
+        "update: valid status",
+        "update: invalid status",
+        "list: no filters",
+        "list: with filters",
+        "list: empty result set",
+        "inspect: agent found",
+        "inspect: agent not found",
+        "error handling: SQLITE_BUSY retry",
+        "error handling: SQLITE_LOCKED timeout"
+      ]
+    },
+    "integration_tests": {
+      "location": "src/cli/commands/__tests__/agent-lifecycle.integration.test.ts",
+      "test_cases": [
+        "Full lifecycle: spawn -> update -> complete",
+        "CFN Loop 3: spawn implementer -> complete with confidence",
+        "CFN Loop 2: query agents by swarm ID",
+        "Concurrent operations: multiple agents spawning",
+        "ACL enforcement: verify level restrictions",
+        "Database recovery: handle interrupted operations"
+      ]
+    },
+    "e2e_tests": {
+      "location": "tests/e2e/agent-lifecycle-cli.test.ts",
+      "test_cases": [
+        "Agent executes lifecycle hooks via Bash tool",
+        "CFN Loop 3 -> Loop 2 -> Loop 4 workflow",
+        "Swarm coordination with multiple agents",
+        "Error recovery from failed operations"
+      ]
+    }
+  },
+
+  "success_metrics": {
+    "functional": {
+      "command_execution": "All 5 commands execute without errors",
+      "database_operations": "CRUD operations work for all agent states",
+      "error_handling": "Graceful handling of all error scenarios",
+      "cfn_loop_integration": "Confidence reporting workflow operational"
+    },
+    "performance": {
+      "spawn_latency": "<50ms",
+      "complete_latency": "<100ms",
+      "list_latency": "<200ms for 100 agents",
+      "inspect_latency": "<100ms",
+      "concurrent_throughput": ">100 operations/second"
+    },
+    "reliability": {
+      "database_retry_success": ">99%",
+      "error_recovery": "100% graceful degradation",
+      "data_integrity": "Zero data loss or corruption"
+    },
+    "usability": {
+      "help_completeness": "All commands have clear help text",
+      "error_messages": "Actionable error messages with next steps",
+      "output_clarity": "Table and JSON output are readable"
+    }
+  },
+
+  "security_considerations": {
+    "acl_enforcement": {
+      "validation": "Verify ACL level matches agent type conventions",
+      "isolation": "Private data (ACL 1) only accessible by creating agent",
+      "audit": "All operations logged to audit_log table"
+    },
+    "input_validation": {
+      "agent_id": "Regex: ^[a-z-]+[a-z0-9-]*-\\d+$ (prevent injection)",
+      "confidence": "Range check: 0.0 <= score <= 1.0",
+      "json_parameters": "Parse and validate JSON structure",
+      "sql_injection": "Use parameterized queries only"
+    },
+    "error_leakage": {
+      "database_errors": "Hide internal database paths in error messages",
+      "stack_traces": "Log to file, return generic error to user",
+      "sensitive_data": "Redact agent metadata in logs"
+    }
+  },
+
+  "migration_path": {
+    "from_current_state": {
+      "agent_profiles": "Already contain TypeScript lifecycle examples",
+      "action": "Add working CLI commands alongside aspirational code",
+      "format": "# TODO: Uncomment when CLI is ready\\n# claude-flow-novice agent-lifecycle spawn ...\\n\\n# Temporary logging:\\necho '[$(date)] Agent spawned' >> .artifacts/logs/agent-lifecycle.log"
+    },
+    "to_production": {
+      "step_1": "Implement and test CLI commands",
+      "step_2": "Update agent profiles to use CLI commands",
+      "step_3": "Remove temporary logging",
+      "step_4": "Validate end-to-end with real agents"
+    }
+  },
+
+  "risks_and_mitigation": {
+    "risk_1": {
+      "description": "SQLite locking under concurrent load",
+      "probability": "Medium",
+      "impact": "Medium",
+      "mitigation": "Implement retry logic with exponential backoff, use WAL mode, connection pooling"
+    },
+    "risk_2": {
+      "description": "Breaking changes to existing agent manager",
+      "probability": "Low",
+      "impact": "High",
+      "mitigation": "Use existing tables and schema, add new commands without modifying AgentManager"
+    },
+    "risk_3": {
+      "description": "Agent profile updates break existing workflows",
+      "probability": "Low",
+      "impact": "Medium",
+      "mitigation": "Phased rollout, keep temporary logging until CLI validated"
+    },
+    "risk_4": {
+      "description": "Performance degradation with 100+ agents",
+      "probability": "Medium",
+      "impact": "Medium",
+      "mitigation": "Add database indexes, implement caching layer, batch operations"
+    }
+  },
+
+  "future_enhancements": {
+    "phase_2": [
+      "agent-lifecycle metrics - Performance metrics dashboard",
+      "agent-lifecycle export - Export lifecycle data to JSON/CSV",
+      "agent-lifecycle replay - Replay state transitions for debugging",
+      "agent-lifecycle visualize - Generate state machine diagrams"
+    ],
+    "phase_3": [
+      "Real-time WebSocket updates for agent status",
+      "Integration with existing /agent command",
+      "Distributed coordination across multiple machines",
+      "Time-series analysis of agent performance"
+    ]
+  },
+
+  "references": {
+    "existing_code": [
+      "src/cli/commands/recovery-status.ts - Command pattern reference",
+      "src/cli/commands/agent.ts - Agent management patterns",
+      "src/lifecycle/memory-schema.ts - Database schema and operations",
+      "src/sqlite/schema.sql - Primary schema definition",
+      "src/core/persistence.ts - Persistence layer"
+    ],
+    "documentation": [
+      ".claude/agents/core-agents/coder.md - Agent lifecycle requirements",
+      "CLAUDE.md - CLI command patterns and conventions",
+      "planning/sprints/SPRINT_AGENT_COMPLIANCE_TESTING.md - Context and requirements"
+    ]
+  },
+
+  "confidence_assessment": {
+    "overall_confidence": 0.92,
+    "breakdown": {
+      "requirements_clarity": 0.95,
+      "technical_feasibility": 0.95,
+      "schema_compatibility": 1.0,
+      "integration_complexity": 0.85,
+      "testing_coverage": 0.90
+    },
+    "reasoning": "High confidence due to: (1) Existing schema fully supports requirements, (2) Clear command pattern from recovery-status.ts, (3) SQLiteLifecycleMemoryManager already implemented, (4) Well-defined agent lifecycle requirements. Lower confidence on integration complexity due to need to test with real agents in CFN Loop.",
+    "blockers": [],
+    "assumptions": [
+      "SQLiteLifecycleMemoryManager is production-ready",
+      "Agent profiles can execute Bash commands",
+      "Swarm IDs are available at agent spawn time",
+      "CFN Loop coordinators will read from SQLite"
+    ]
+  }
+}
