@@ -1,0 +1,261 @@
+{
+  "validator": "reviewer-1",
+  "sprint": "1.5",
+  "phase": "Loop 2 Validation",
+  "timestamp": "2025-10-10T00:00:00Z",
+  "confidence": 0.72,
+  "vote": "REJECT",
+  "migration_quality": {
+    "completeness": "FAIL",
+    "correctness": "PARTIAL",
+    "consistency": "FAIL",
+    "no_regressions": "FAIL"
+  },
+  "files_validated": [
+    {
+      "file": ".claude/agents/swarm/hierarchical-coordinator.md",
+      "mcp_tools_removed": "FAIL",
+      "cli_tools_added": "FAIL",
+      "examples_correct": "FAIL",
+      "quality_score": 0.30,
+      "critical_issues": [
+        {
+          "severity": "CRITICAL",
+          "type": "file_corruption",
+          "description": "File contains mixed content from hierarchical-coordinator and test-coordinator",
+          "location": "Lines 1-76 (frontmatter and hooks)",
+          "evidence": [
+            "Line 2: name: hierarchical-coordinator (correct)",
+            "Line 6: tools list has Read first (hierarchical pattern)",
+            "Line 23: echo message says 'Test Coordinator initializing' (test-coordinator content)",
+            "Line 26: SQLite key uses 'swarm:test:' prefix (test-coordinator pattern)",
+            "Lines 41-75: All lifecycle hooks use 'test:' prefixes instead of 'hierarchy:'",
+            "Line 78-417: Body content is correct hierarchical-coordinator content"
+          ],
+          "impact": "Agent will have inconsistent behavior - frontmatter says hierarchical but hooks execute test coordinator logic",
+          "fix_required": "Restore correct hierarchical-coordinator frontmatter and hooks from lines 1-76"
+        },
+        {
+          "severity": "HIGH",
+          "type": "tool_list_incomplete",
+          "description": "Tools list missing required tools for CLI operations",
+          "location": "Line 6",
+          "evidence": "tools: Task, TodoWrite, SlashCommand, Edit, Bash, Write (missing Read, Grep, Glob)",
+          "expected": "tools: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite]",
+          "impact": "Agent cannot perform file reading, searching, or pattern matching operations"
+        }
+      ]
+    },
+    {
+      "file": ".claude/agents/swarm/test-coordinator.md",
+      "mcp_tools_removed": "PASS",
+      "cli_tools_added": "PASS",
+      "examples_correct": "PASS",
+      "quality_score": 0.95,
+      "intentional_antipatterns": [
+        {
+          "location": "Line 270",
+          "pattern": "mcp__claude-flow__agent_spawn coder --capabilities=\"implementation\"",
+          "context": "Educational anti-pattern showing WRONG approach",
+          "justification": "Part of 'Common Mistakes to Avoid' section teaching correct Task tool usage",
+          "validation": "ACCEPTABLE"
+        }
+      ],
+      "migration_summary": {
+        "mcp_tools_removed_from_frontmatter": "PASS - Line 6 has no MCP tools",
+        "cli_tools_added": "PASS - Task, TodoWrite, SlashCommand present",
+        "swarm_init_migration": "PASS - Lines 23-29 use node tests/manual/test-swarm-direct.js and /swarm",
+        "memory_migration": "PASS - Lines 26-36 use /sqlite-memory with correct ACL levels",
+        "performance_migration": "PASS - Lines 32-46 use /performance analyze",
+        "fleet_migration": "PASS - Lines 60-74 use /fleet scale and /fleet terminate",
+        "eventbus_migration": "PASS - Lines 44-51 use /eventbus publish",
+        "neural_migration": "NOT_APPLICABLE - Test coordinator doesn't use neural features",
+        "examples_executable": "PASS - All CLI commands are valid and executable"
+      },
+      "quality_highlights": [
+        "Critical Task Tool Usage section added (lines 210-279)",
+        "Clear distinction between Task tool and CLI tools",
+        "Educational anti-pattern properly contextualized",
+        "All hooks use correct 'test:' namespace prefixes",
+        "SQLite memory ACL levels appropriate (project/swarm/agent)"
+      ]
+    },
+    {
+      "file": ".claude/agents/swarm/adaptive-coordinator.md",
+      "mcp_tools_removed": "PASS",
+      "cli_tools_added": "PASS",
+      "examples_correct": "PASS",
+      "quality_score": 0.92,
+      "migration_summary": {
+        "mcp_tools_removed_from_frontmatter": "PASS - Line 6 tools list has no MCP references",
+        "cli_tools_added": "PASS - Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite present",
+        "swarm_init_migration": "PASS - Line 19 uses node tests/manual/test-swarm-direct.js",
+        "neural_migration": "PASS - Lines 21-23 use /neural analyze, /neural train, /neural learn",
+        "memory_migration": "PASS - Lines 25, 37 use /sqlite-memory with project level ACL",
+        "performance_migration": "PASS - Lines 30, 156-162 use /performance analyze",
+        "fleet_migration": "PASS - Lines 159-161 use /fleet optimize and /fleet scale",
+        "redis_coordination": "PASS - Lines 27, 33 use redis-cli for state management",
+        "examples_executable": "PASS - All CLI commands valid"
+      },
+      "quality_highlights": [
+        "Complete neural CLI integration (lines 136-147)",
+        "Performance optimization using /performance analyze (lines 150-162)",
+        "Predictive scaling with /fleet and /neural predict (lines 164-174)",
+        "All hooks use correct 'adaptive:' namespace prefixes",
+        "SQLite memory ACL levels appropriate (project level for shared state)"
+      ],
+      "minor_issues": [
+        {
+          "severity": "LOW",
+          "type": "documentation",
+          "description": "Line 132 header still says 'MCP Neural Integration' instead of 'CLI Neural Integration'",
+          "location": "Line 132",
+          "impact": "Outdated header text - cosmetic only",
+          "fix": "Change '## MCP Neural Integration' to '## CLI Neural Integration'"
+        }
+      ]
+    }
+  ],
+  "scope_issues": [
+    {
+      "severity": "HIGH",
+      "type": "incomplete_migration",
+      "description": "adaptive-coordinator-enhanced.md was NOT migrated",
+      "planned_scope": [
+        ".claude/agents/swarm/mesh-coordinator.md",
+        ".claude/agents/swarm/hierarchical-coordinator.md",
+        ".claude/agents/swarm/adaptive-coordinator.md",
+        ".claude/agents/swarm/adaptive-coordinator-enhanced.md"
+      ],
+      "actual_scope": [
+        ".claude/agents/swarm/hierarchical-coordinator.md (CORRUPTED)",
+        ".claude/agents/swarm/test-coordinator.md (NOT IN PLAN - bonus migration)",
+        ".claude/agents/swarm/adaptive-coordinator.md"
+      ],
+      "missing_files": [
+        ".claude/agents/swarm/adaptive-coordinator-enhanced.md (11 MCP references)"
+      ],
+      "impact": "Sprint deliverable incomplete - 1 of 4 planned coordinator migrations not completed"
+    }
+  ],
+  "issues_found": [
+    {
+      "severity": "CRITICAL",
+      "type": "file_corruption",
+      "description": "hierarchical-coordinator.md frontmatter and hooks corrupted with test-coordinator content",
+      "location": ".claude/agents/swarm/hierarchical-coordinator.md lines 1-76",
+      "impact": "Agent unusable - will execute test coordinator logic with hierarchical coordinator personality",
+      "fix_required": "Restore correct hierarchical-coordinator frontmatter (name, tools, hooks with 'hierarchy:' prefixes)"
+    },
+    {
+      "severity": "HIGH",
+      "type": "incomplete_scope",
+      "description": "adaptive-coordinator-enhanced.md not migrated (11 MCP references remain)",
+      "location": ".claude/agents/swarm/adaptive-coordinator-enhanced.md",
+      "impact": "Sprint 1.5 objective not fully met - coordinator still using deprecated MCP commands",
+      "mcp_references_remaining": 11,
+      "fix_required": "Complete migration using same pattern as adaptive-coordinator.md"
+    },
+    {
+      "severity": "MEDIUM",
+      "type": "tool_list_incomplete",
+      "description": "hierarchical-coordinator.md missing Read, Grep, Glob tools",
+      "location": "Line 6 of hierarchical-coordinator.md",
+      "impact": "Agent cannot perform file operations required for coordination",
+      "expected": "tools: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite]",
+      "actual": "tools: Task, TodoWrite, SlashCommand, Edit, Bash, Write",
+      "fix_required": "Add Read to tools list (Grep, Glob optional but recommended)"
+    },
+    {
+      "severity": "LOW",
+      "type": "documentation",
+      "description": "Outdated header text in adaptive-coordinator.md",
+      "location": "Line 132 of adaptive-coordinator.md",
+      "impact": "Cosmetic only - section header still says 'MCP' instead of 'CLI'",
+      "fix_required": "Change '## MCP Neural Integration' to '## CLI Neural Integration'"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "P0_CRITICAL",
+      "action": "Fix hierarchical-coordinator.md file corruption",
+      "rationale": "Agent is completely broken - cannot be used in production",
+      "steps": [
+        "1. Compare current file with git history to identify correct frontmatter",
+        "2. Restore correct hierarchical-coordinator frontmatter and hooks (lines 1-76)",
+        "3. Ensure all hooks use 'hierarchy:' namespace prefixes (not 'test:')",
+        "4. Verify tools list: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite]",
+        "5. Re-run post-edit hook validation"
+      ],
+      "estimated_effort": "15 minutes"
+    },
+    {
+      "priority": "P0_CRITICAL",
+      "action": "Complete adaptive-coordinator-enhanced.md migration",
+      "rationale": "Sprint 1.5 deliverable incomplete - cannot close sprint with missing scope",
+      "steps": [
+        "1. Use adaptive-coordinator.md as migration template",
+        "2. Replace 11 MCP references with CLI equivalents",
+        "3. Update tools list in frontmatter",
+        "4. Verify all examples are executable",
+        "5. Run post-edit hook validation"
+      ],
+      "estimated_effort": "30 minutes"
+    },
+    {
+      "priority": "P1_HIGH",
+      "action": "Add Read tool to hierarchical-coordinator.md tools list",
+      "rationale": "Agent needs file reading capability for coordination tasks",
+      "steps": [
+        "1. Add Read to tools array in frontmatter",
+        "2. Verify no regressions in agent behavior"
+      ],
+      "estimated_effort": "2 minutes"
+    },
+    {
+      "priority": "P2_LOW",
+      "action": "Fix documentation header in adaptive-coordinator.md",
+      "rationale": "Maintain consistency - all MCP references should be removed",
+      "steps": [
+        "1. Change line 132 from '## MCP Neural Integration' to '## CLI Neural Integration'",
+        "2. Verify no other MCP references in documentation"
+      ],
+      "estimated_effort": "1 minute"
+    },
+    {
+      "priority": "P3_ENHANCEMENT",
+      "action": "Consider consolidating adaptive-coordinator.md and adaptive-coordinator-enhanced.md",
+      "rationale": "Two similar files may cause confusion - evaluate if both are needed",
+      "steps": [
+        "1. Analyze differences between adaptive-coordinator.md and adaptive-coordinator-enhanced.md",
+        "2. Determine if enhanced version provides significant value",
+        "3. If yes, migrate enhanced version; if no, deprecate it",
+        "4. Update documentation to clarify which file to use"
+      ],
+      "estimated_effort": "1 hour"
+    }
+  ],
+  "consensus_metrics": {
+    "completeness_score": 0.60,
+    "correctness_score": 0.75,
+    "consistency_score": 0.65,
+    "quality_score": 0.72,
+    "overall_confidence": 0.72
+  },
+  "reasoning": "Migration demonstrates good understanding of CLI patterns (adaptive-coordinator.md and test-coordinator.md are excellent) but has critical execution issues:\n\n1. CRITICAL BLOCKER: hierarchical-coordinator.md is corrupted with mixed content - file is unusable\n2. SCOPE INCOMPLETE: adaptive-coordinator-enhanced.md not migrated (1 of 4 files missing)\n3. GOOD WORK: test-coordinator.md migration is exemplary (bonus file, not in plan)\n4. GOOD WORK: adaptive-coordinator.md migration is clean and correct\n\nConfidence: 0.72 (below 0.90 threshold)\nVote: REJECT\n\nThe quality of completed work (adaptive-coordinator.md, test-coordinator.md) is high (0.92-0.95), but the critical file corruption and incomplete scope prevent approval. Loop 3 must be rerun to:\n1. Fix hierarchical-coordinator.md corruption\n2. Complete adaptive-coordinator-enhanced.md migration\n\nOnce these P0 issues are resolved, re-validation should achieve >0.90 consensus.",
+  "next_steps": {
+    "immediate": [
+      "Return to Loop 3 with targeted fix for hierarchical-coordinator.md",
+      "Complete adaptive-coordinator-enhanced.md migration",
+      "Re-run Loop 2 validation on fixed files"
+    ],
+    "validation_criteria": [
+      "All 4 planned coordinator files migrated (mesh, hierarchical, adaptive, adaptive-enhanced)",
+      "Zero MCP references in migrated files (except intentional anti-patterns)",
+      "All CLI examples executable and correct",
+      "No file corruption or content mixing",
+      "Tools lists complete and correct"
+    ],
+    "expected_confidence_after_fix": 0.95
+  }
+}

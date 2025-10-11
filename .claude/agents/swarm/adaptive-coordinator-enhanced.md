@@ -3,6 +3,7 @@ name: adaptive-coordinator-enhanced
 type: coordinator
 color: "#9C27B0"
 description: AI-driven adaptive swarm orchestrator with advanced machine learning and dynamic topology optimization
+tools: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite]
 capabilities:
   - intelligent_coordination
   - dynamic_adaptation
@@ -22,37 +23,39 @@ lifecycle:
 hooks:
   pre: |
     echo "🧠 Adaptive Coordinator initializing intelligent swarm: $TASK"
-    # Initialize adaptive swarm with AI-driven optimization
-    mcp__claude-flow-novice__swarm_init adaptive --maxAgents=15 --strategy=intelligent
-    # Activate neural pattern recognition for task analysis
-    mcp__claude-flow-novice__neural_patterns learn --operation="task_analysis" --outcome="{\"task\":\"$TASK\",\"complexity\":\"analyzing\",\"context\":\"initialization\"}"
-    # Set up predictive scaling and resource allocation
-    mcp__claude-flow-novice__memory_usage store "adaptive_context_$(date +%s)" "$TASK" --namespace=adaptive
-    # Initialize topology optimization engine
+    # Initialize adaptive swarm with AI-driven optimization using CLI
+    node tests/manual/test-swarm-direct.js "$TASK" --executor --max-agents 15 --strategy intelligent
+    # Activate neural pattern recognition for task analysis using CLI
+    /neural learn --operation task_analysis --metadata "{\"task\":\"$TASK\",\"complexity\":\"analyzing\",\"context\":\"initialization\"}"
+    # Set up predictive scaling and resource allocation using SQLite memory
+    /sqlite-memory store --key "adaptive:context:$(date +%s)" --level project --data "{\"task\":\"$TASK\",\"timestamp\":\"$(date)\"}"
+    # Initialize topology optimization engine using Redis state
+    redis-cli setex "adaptive:optimization:${TASK_ID}" 3600 "{\"status\":\"initializing\",\"strategy\":\"intelligent\"}"
     echo "🔮 Activating predictive intelligence and adaptive topology optimization"
   post: |
     echo "✨ Adaptive coordination complete - intelligence applied"
-    # Generate comprehensive performance and learning report
-    mcp__claude-flow-novice__performance_report --format=detailed --timeframe=24h
-    # Store learned patterns and optimizations
-    mcp__claude-flow-novice__neural_patterns learn --operation="coordination_completion" --outcome="{\"success\":true,\"patterns_learned\":\"$(date)\",\"optimization_applied\":true}"
-    # Archive adaptive improvements for future use
-    mcp__claude-flow-novice__memory_usage store "adaptive_learning_$(date +%s)" "Coordination patterns learned: $TASK" --namespace=learning
+    # Generate comprehensive performance and learning report using CLI
+    /performance analyze --component adaptive --timeframe 24h --detailed --format json
+    # Store learned patterns and optimizations using neural CLI
+    /neural learn --operation coordination_completion --outcome success --metadata "{\"patterns_learned\":\"$(date)\",\"optimization_applied\":true}"
+    # Archive adaptive improvements for future use using SQLite memory
+    /sqlite-memory store --key "adaptive:learning:$(date +%s)" --level project --data "{\"patterns\":\"coordination_learned\",\"task\":\"$TASK\"}"
   task_complete: |
     echo "🎯 Adaptive Coordinator: Task completion with intelligence integration"
-    # Store task completion analytics and learned behaviors
-    mcp__claude-flow-novice__neural_patterns learn --operation="task_success_patterns" --outcome="{\"task_id\":\"${TASK_ID}\",\"completion_time\":\"$(date)\",\"performance_metrics\":\"$(mcp__claude-flow-novice__performance_report --format=json)\"}"
-    # Update adaptive algorithms with successful patterns
-    mcp__claude-flow-novice__bottleneck_analyze --component=coordination --metrics="efficiency,adaptation_speed,learning_rate"
-    # Optimize topology based on completed task patterns
-    mcp__claude-flow-novice__memory_usage store "adaptive_success_$(date +%s)" "Task patterns archived: $TASK" --namespace=success_patterns
+    # Store task completion analytics and learned behaviors using neural CLI
+    /neural learn --operation task_success_patterns --outcome success --metadata "{\"task_id\":\"${TASK_ID}\",\"completion_time\":\"$(date)\",\"performance\":\"recorded\"}"
+    # Update adaptive algorithms with successful patterns using performance CLI
+    /performance analyze --component coordination --metrics efficiency,adaptation_speed,learning_rate --detailed
+    # Optimize topology based on completed task patterns using SQLite memory
+    /sqlite-memory store --key "adaptive:success:$(date +%s)" --level project --data "{\"task_patterns\":\"archived\",\"task\":\"$TASK\"}"
   on_rerun_request: |
     echo "🔄 Adaptive Coordinator: Applying learned patterns to rerun"
-    # Load previous learning patterns and optimizations
-    mcp__claude-flow-novice__memory_search "adaptive_*" --namespace=learning --limit=10
-    # Apply predictive optimization based on historical data
-    mcp__claude-flow-novice__neural_patterns predict --modelId="coordination_optimization" --input="{\"rerun_request\":\"$TASK\",\"previous_patterns\":\"loaded\"}"
-    # Initialize enhanced coordination with learned improvements
+    # Load previous learning patterns and optimizations using SQLite memory
+    /sqlite-memory retrieve --key "adaptive:learning:*" --level project
+    # Apply predictive optimization based on historical data using neural predictions
+    /neural predict --model coordination-optimizer --input "{\"rerun_request\":\"$TASK\",\"previous_patterns\":\"loaded\"}"
+    # Initialize enhanced coordination with learned improvements using fleet scaling
+    /fleet optimize --fleet-id "${SWARM_ID}" --efficiency-target 0.50 --strategy ml_optimized
     echo "🧠 Applying machine learning insights to coordination strategy"
 ---
 
