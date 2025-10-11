@@ -14,8 +14,8 @@ services:
       - CI=true
       - TEST_NODE_VERSION=18
     volumes:
-      - ../.artifacts/test-results/active:/app/test-results
-      - ../coverage:/app/coverage
+      - ../../.artifacts/test-results/active:/app/test-results
+      - ../../coverage:/app/coverage
     command: >
       sh -c "
         echo '=== Testing PR #228 on Node.js 18 ===' &&
@@ -40,8 +40,8 @@ services:
       - CI=true
       - TEST_NODE_VERSION=20
     volumes:
-      - ../.artifacts/test-results/active:/app/test-results
-      - ../coverage:/app/coverage
+      - ../../.artifacts/test-results/active:/app/test-results
+      - ../../coverage:/app/coverage
     command: >
       sh -c "
         echo '=== Testing PR #228 on Node.js 20 ===' &&
@@ -66,8 +66,8 @@ services:
       - CI=true
       - TEST_NODE_VERSION=22
     volumes:
-      - ../.artifacts/test-results/active:/app/test-results
-      - ../coverage:/app/coverage
+      - ../../.artifacts/test-results/active:/app/test-results
+      - ../../coverage:/app/coverage
     command: >
       sh -c "
         echo '=== Testing PR #228 on Node.js 22 ===' &&
@@ -88,8 +88,8 @@ services:
       - test-node20
       - test-node22
     volumes:
-      - ../.artifacts/test-results/active:/app/test-results
-      - ../docker-test:/app/scripts
+      - ../../.artifacts/test-results/active:/app/test-results
+      - ../../docker/docker-test:/app/scripts
     working_dir: /app
     command: >
       sh -c "
