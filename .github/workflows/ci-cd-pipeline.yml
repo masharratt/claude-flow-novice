@@ -138,6 +138,42 @@ jobs:
           console.log('✅ Build output validated successfully');
           "
 
+      - name: CLI Runtime Validation (Smoke Test)
+        run: |
+          echo "🧪 Testing CLI runtime execution..."
+
+          # Test 1: CLI entry point exists
+          if [ ! -f ".claude-flow-novice/dist/src/cli/main.js" ]; then
+            echo "❌ CLI entry point not found"
+            exit 1
+          fi
+
+          # Test 2: --version command
+          echo "Testing --version command..."
+          node .claude-flow-novice/dist/src/cli/main.js --version
+          if [ $? -ne 0 ]; then
+            echo "❌ --version command failed"
+            exit 1
+          fi
+
+          # Test 3: --help command
+          echo "Testing --help command..."
+          node .claude-flow-novice/dist/src/cli/main.js --help > /dev/null
+          if [ $? -ne 0 ]; then
+            echo "❌ --help command failed"
+            exit 1
+          fi
+
+          # Test 4: Check for common import errors
+          output=$(node .claude-flow-novice/dist/src/cli/main.js --version 2>&1)
+          if echo "$output" | grep -q "ERR_UNSUPPORTED_DIR_IMPORT"; then
+            echo "❌ ERR_UNSUPPORTED_DIR_IMPORT detected"
+            exit 1
+          fi
+
+          echo "✅ All CLI runtime tests passed"
+        shell: bash
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

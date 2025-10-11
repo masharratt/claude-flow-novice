@@ -49,6 +49,8 @@
     "test:e2e": "NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=16384' jest --config=config/jest/jest.config.js --testPathPatterns=e2e --bail",
     "test:performance": "npm run test:performance:basic || echo 'No performance tests configured'",
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --config=config/jest/jest.config.js --coverage --coverageReporters=text-lcov | coveralls",
+    "test:cli": "node .claude-flow-novice/dist/src/cli/main.js --version && node .claude-flow-novice/dist/src/cli/main.js --help > /dev/null && echo '✅ CLI smoke test passed'",
+    "test:cli:full": "npm run build && npm run test:cli",
     "lint": "eslint src --ext .ts --max-warnings 0 --config config/linting/.eslintrc.json",
     "format": "prettier --write 'src/**/*.{ts,js,json}' --config config/linting/.prettierrc.json",
     "lint:fix": "eslint src --ext .ts --fix --config config/linting/.eslintrc.json",

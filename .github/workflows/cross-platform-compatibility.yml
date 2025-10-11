@@ -168,6 +168,36 @@ jobs:
         shell: bash
         continue-on-error: true
 
+      - name: Cross-Platform CLI Runtime Test
+        shell: bash
+        run: |
+          echo "Testing CLI on ${{ matrix.os }}..."
+
+          # Test CLI runtime execution
+          if [ -f ".claude-flow-novice/dist/src/cli/main.js" ]; then
+            node .claude-flow-novice/dist/src/cli/main.js --version
+            if [ $? -eq 0 ]; then
+              echo "✅ CLI --version passed on ${{ matrix.os }}"
+            else
+              echo "❌ CLI --version failed on ${{ matrix.os }}"
+              exit 1
+            fi
+
+            node .claude-flow-novice/dist/src/cli/main.js --help > /dev/null
+            if [ $? -eq 0 ]; then
+              echo "✅ CLI --help passed on ${{ matrix.os }}"
+            else
+              echo "❌ CLI --help failed on ${{ matrix.os }}"
+              exit 1
+            fi
+          else
+            echo "⚠️  CLI entry point not found - skipping CLI tests"
+          fi
+
+          # Ensure it works with npx as well (if published)
+          npx --yes claude-flow-novice@latest --version || echo "⚠️  npx test skipped (not published yet)"
+        continue-on-error: true
+
       - name: Run linting
         run: npm run lint
         continue-on-error: true
