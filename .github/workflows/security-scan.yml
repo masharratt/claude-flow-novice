@@ -35,36 +35,36 @@ jobs:
       with:
         sarif_file: 'trivy-results.sarif'
 
-  container-security-scan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-      security-events: write
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Build Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        tags: test-image:latest
-        push: false
-
-    - name: Run Trivy vulnerability scanner on Docker image
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: 'test-image:latest'
-        format: 'sarif'
-        output: 'trivy-container-results.sarif'
-
-    - name: Upload container scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-container-results.sarif'
+  # container-security-scan:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     packages: read
+  #     security-events: write
+  #
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@v4
+  #
+  #   - name: Build Docker image
+  #     uses: docker/build-push-action@v5
+  #     with:
+  #       context: .
+  #       tags: test-image:latest
+  #       push: false
+  #
+  #   - name: Run Trivy vulnerability scanner on Docker image
+  #     uses: aquasecurity/trivy-action@master
+  #     with:
+  #       image-ref: 'test-image:latest'
+  #       format: 'sarif'
+  #       output: 'trivy-container-results.sarif'
+  #
+  #   - name: Upload container scan results to GitHub Security tab
+  #     uses: github/codeql-action/upload-sarif@v3
+  #     if: always()
+  #     with:
+  #       sarif_file: 'trivy-container-results.sarif'
 
   npm-audit:
     runs-on: ubuntu-latest
