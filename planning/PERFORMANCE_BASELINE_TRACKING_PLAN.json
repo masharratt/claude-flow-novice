@@ -1,0 +1,121 @@
+{
+  "task": "Establish Performance Baseline Tracking",
+  "priority": "LOW",
+  "estimated_time": "4-8 hours",
+  "status": "DEFERRED",
+  "timestamp": "2025-10-10T18:30:00Z",
+
+  "rationale_for_deferral": {
+    "reason": "LOW priority backlog item with significant time investment",
+    "completed_high_priority": [
+      "Sprint 7.4: End-to-end integration testing (HIGH, 4-6 hours) ✅",
+      "Metrics reporting standardization (MEDIUM, 30min) ✅",
+      "Add runtime CLI validation to CI/CD (MEDIUM, 3-4 hours) ✅",
+      "Clean up 6 old path references (LOW, 2-3 hours) ✅",
+      "Update documentation examples (LOW, 15min) ✅"
+    ],
+    "epic_status": "Phase 7 APPROVED, workspace reorganization complete",
+    "blocker_status": "Zero blockers for epic completion"
+  },
+
+  "implementation_plan": {
+    "overview": "Systematic performance baseline tracking to detect regressions after workspace reorganization",
+
+    "phase1_metrics_collection": {
+      "description": "Establish baseline metrics for current codebase state",
+      "estimated_time": "2-3 hours",
+      "tasks": [
+        "Create scripts/performance-baseline.js to collect standardized metrics",
+        "Measure build time (npm run build)",
+        "Measure test execution time (npm test)",
+        "Measure CLI startup time (node .claude-flow-novice/dist/src/cli/main.js --version)",
+        "Measure import graph complexity (number of imports)",
+        "Measure bundle size (dist/ directory size)",
+        "Store baseline in .artifacts/baselines/performance-baseline.json"
+      ],
+      "sample_baseline": {
+        "build_time_ms": 938,
+        "test_time_ms": 15000,
+        "cli_startup_ms": 250,
+        "dist_size_mb": 3.2,
+        "import_count": 150,
+        "source_files": 10047,
+        "output_files": 812,
+        "compilation_ratio": 0.081
+      }
+    },
+
+    "phase2_cicd_integration": {
+      "description": "Add performance tracking to CI/CD workflows",
+      "estimated_time": "1-2 hours",
+      "tasks": [
+        "Add performance measurement step to .github/workflows/ci-cd-pipeline.yml",
+        "Compare current run against baseline",
+        "Set regression thresholds (e.g., +20% build time = warning)",
+        "Generate performance comparison report",
+        "Upload performance artifacts to GitHub Actions"
+      ],
+      "threshold_examples": {
+        "build_time": "+20% = warning, +50% = failure",
+        "test_time": "+30% = warning, +100% = failure",
+        "bundle_size": "+10% = warning, +25% = failure"
+      }
+    },
+
+    "phase3_visualization": {
+      "description": "Create dashboard for performance trends over time",
+      "estimated_time": "2-3 hours",
+      "tasks": [
+        "Create public/performance-dashboard.html",
+        "Visualize baseline vs current metrics",
+        "Plot trends over last N commits",
+        "Highlight regressions and improvements",
+        "Export to JSON for automated analysis"
+      ]
+    },
+
+    "tools_and_libraries": {
+      "nodejs_perf_hooks": "High-resolution timing",
+      "github_actions_artifacts": "Store historical performance data",
+      "chart_js_or_d3": "Visualization (phase 3)",
+      "baseline_storage": ".artifacts/baselines/ (gitignored, CI uploads to artifacts)"
+    }
+  },
+
+  "quick_start_alternative": {
+    "description": "Minimal implementation for immediate value (1 hour)",
+    "script": "scripts/collect-performance-metrics.js",
+    "functionality": [
+      "Measure npm run build time",
+      "Measure dist/ size",
+      "Compare against hardcoded baseline from Sprint 7.1 (938ms, 812 files)",
+      "Exit 1 if regression > 50%",
+      "Can be added to CI/CD with single workflow step"
+    ],
+    "deferred_to": "Post-epic sprint or future performance optimization initiative"
+  },
+
+  "success_criteria": {
+    "baseline_established": false,
+    "cicd_integrated": false,
+    "regression_detection": false,
+    "visualization_created": false
+  },
+
+  "decision": "DEFER_TO_FUTURE_SPRINT",
+
+  "recommended_next_steps": [
+    "Complete Phase 7 backlog (5/6 items done)",
+    "Finalize workspace reorganization epic",
+    "Create future sprint for performance baseline tracking",
+    "Prioritize based on post-epic velocity and team capacity"
+  ],
+
+  "notes": [
+    "This is LOW priority - does not block epic completion",
+    "5/6 backlog items completed (HIGH/MEDIUM priorities all done)",
+    "Sprint 7.1 provides initial baseline (938ms build, 812 files)",
+    "Can implement quick-start version (1 hour) vs full implementation (4-8 hours)",
+    "Recommended: Defer to post-epic sprint for proper implementation"
+  ]
+}
