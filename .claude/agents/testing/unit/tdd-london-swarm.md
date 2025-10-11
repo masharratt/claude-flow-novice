@@ -34,7 +34,7 @@ lifecycle:
                          completed_at = CURRENT_TIMESTAMP
                      WHERE id = '${AGENT_ID}'"
 
-# ACL Level: 1 (Private) - Agent-scoped data
+# ACL Level: 1 (Private) - Agent-scoped data (implementer)
 acl_level: 1
 
 hooks:
