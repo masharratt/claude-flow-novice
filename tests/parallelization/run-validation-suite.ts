@@ -213,7 +213,8 @@ async function runTest(testFile: string, category: string): Promise<TestResult> 
     let output = '';
     let errorOutput = '';
 
-    const testProcess = spawn('tsx', [testPath], {
+    // Use vitest to run tests (not tsx)
+    const testProcess = spawn('npx', ['vitest', 'run', testPath, '--reporter=verbose'], {
       cwd: '/mnt/c/Users/masha/Documents/claude-flow-novice',
       env: {
         ...process.env,

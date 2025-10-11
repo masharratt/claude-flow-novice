@@ -181,14 +181,48 @@ async function signalSendingExample() {
   }
 }
 
-// Helper function to verify ACK (using private method)
+// Helper function to verify ACK signature (CRITICAL for security)
 async function verifyAck(
   ack: any,
   coordinator: BlockingCoordinationManager
 ): Promise<boolean> {
-  // In production, signature verification is done automatically by getAck()
-  // This is just for demonstration
-  return ack.signature !== undefined;
+  const crypto = require('crypto');
+
+  // HMAC secret from environment (same as coordinator)
+  const hmacSecret = process.env.BLOCKING_COORDINATION_SECRET;
+
+  if (!hmacSecret) {
+    throw new Error('BLOCKING_COORDINATION_SECRET not set');
+  }
+
+  if (!ack.signature) {
+    console.warn('ACK missing signature - rejecting');
+    return false;
+  }
+
+  // Compute expected signature using same algorithm as sender
+  const expectedSignature = crypto.createHmac('sha256', hmacSecret)
+    .update(`${ack.coordinatorId}:coordinator-sender:${ack.iteration}:${ack.timestamp}`)
+    .digest('hex');
+
+  // Timing-safe comparison to prevent timing attacks
+  const actualBuffer = Buffer.from(ack.signature, 'hex');
+  const expectedBuffer = Buffer.from(expectedSignature, 'hex');
+
+  // Verify lengths match before comparison
+  if (actualBuffer.length !== expectedBuffer.length) {
+    console.warn('ACK signature verification failed: length mismatch');
+    return false;
+  }
+
+  // Use crypto.timingSafeEqual for constant-time comparison
+  try {
+    const isValid = crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+    return isValid;
+  } catch (error) {
+    console.error('ACK signature verification error:', error);
+    return false;
+  }
 }
 
 signalSendingExample().catch(console.error);
@@ -463,7 +497,18 @@ Circuit breaker state changed: closed
 
 ---
 
-## Example 5: Prometheus Metrics Integration
+## Example 5: Prometheus Metrics Integration (Future Enhancement)
+
+> **Note**: This example demonstrates planned Prometheus integration. The metrics module `./observability/prometheus-metrics.js` is not yet implemented.
+>
+> **TODO**: Implement `src/observability/prometheus-metrics.js` with:
+> - `blockingDurationSeconds` histogram (labels: swarm_id, coordinator_id, status)
+> - `signalDeliveryLatencySeconds` histogram (labels: sender_id, receiver_id, signal_type)
+> - `heartbeatFailuresTotal` counter (labels: coordinator_id, reason)
+> - `timeoutEventsTotal` counter (labels: coordinator_id, reason)
+> - `blockingCoordinatorsTotal` gauge (labels: swarm_id, status)
+>
+> **Implementation Plan**: See tracking issue for full Prometheus integration roadmap.
 
 ### Use Case
 
@@ -473,6 +518,7 @@ Record blocking coordination metrics for monitoring and alerting.
 
 ```typescript
 import { BlockingCoordinationManager } from './cfn-loop/blocking-coordination';
+// TODO: Implement ./observability/prometheus-metrics module
 import {
   blockingDurationSeconds,
   signalDeliveryLatencySeconds,

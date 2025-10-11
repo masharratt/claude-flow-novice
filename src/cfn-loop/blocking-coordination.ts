@@ -99,6 +99,8 @@ export interface BlockingCoordinationConfig {
   swarmId?: string;
   /** Current phase for hook context (optional) */
   phase?: string;
+  /** CFN Loop memory manager for SQLite audit trail (optional) */
+  cfnMemoryManager?: any; // CFNLoopMemoryManager type
 }
 
 // ===== BLOCKING COORDINATION MANAGER =====
@@ -128,11 +130,16 @@ export class BlockingCoordinationManager {
   private swarmId?: string;
   private phase?: string;
 
+  // CFN Loop memory manager for SQLite audit trail
+  private cfnMemoryManager?: any;
+
   // Hook execution metrics
   private metrics = {
     hooksExecuted: 0,
     hooksFailed: 0,
     hookExecutionTimeMs: 0,
+    auditLogsWritten: 0,
+    auditLogsFailed: 0,
   };
 
   // Blocking state tracking for hook context
@@ -164,6 +171,7 @@ export class BlockingCoordinationManager {
     this.currentTask = config.currentTask;
     this.swarmId = config.swarmId;
     this.phase = config.phase;
+    this.cfnMemoryManager = config.cfnMemoryManager;
 
     // Initialize logger
     const loggerConfig: LoggingConfig =
@@ -245,6 +253,21 @@ export class BlockingCoordinationManager {
 
     // Mark signal as processed
     this.processedSignals.add(signal.signalId);
+
+    // SQLite Audit Trail: Log ACK event
+    await this.logAuditTrail({
+      action: 'signal_ack_sent',
+      entityType: 'event',
+      entityId: signal.signalId,
+      details: {
+        coordinatorId: this.coordinatorId,
+        signalType: signal.type,
+        source: signal.source,
+        iteration: this.currentIteration,
+        timestamp: ack.timestamp
+      },
+      riskLevel: 'low'
+    });
 
     const duration = Date.now() - startTime;
 
@@ -910,6 +933,85 @@ export class BlockingCoordinationManager {
     const sigBuf = Buffer.from(ack.signature, 'hex');
     const expBuf = Buffer.from(expectedSignature, 'hex');
     return crypto.timingSafeEqual(sigBuf, expBuf);
+  }
+
+  /**
+   * Log audit trail to SQLite (non-blocking)
+   *
+   * @param entry - Audit trail entry
+   */
+  private async logAuditTrail(entry: {
+    action: string;
+    entityType: string;
+    entityId: string;
+    details: any;
+    riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  }): Promise<void> {
+    // Skip if no CFN memory manager configured
+    if (!this.cfnMemoryManager) {
+      return;
+    }
+
+    // Log asynchronously (non-blocking)
+    setImmediate(async () => {
+      try {
+        const auditEntry = {
+          id: `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          entity_id: entry.entityId,
+          entity_type: entry.entityType,
+          action: entry.action,
+          new_values: JSON.stringify(entry.details),
+          changed_by: this.coordinatorId,
+          swarm_id: this.swarmId || 'unknown',
+          acl_level: 4, // Project level
+          risk_level: entry.riskLevel,
+          category: 'blocking-coordination',
+          metadata: JSON.stringify({
+            phase: this.phase,
+            iteration: this.currentIteration
+          }),
+          created_at: new Date().toISOString()
+        };
+
+        // Store via CFN memory manager's SQLite connection
+        if (this.cfnMemoryManager.sqlite && this.cfnMemoryManager.sqlite.db) {
+          await this.cfnMemoryManager.sqlite.db.run(
+            `INSERT INTO audit_log (
+              id, entity_id, entity_type, action, new_values, changed_by,
+              swarm_id, acl_level, risk_level, category, metadata, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              auditEntry.id,
+              auditEntry.entity_id,
+              auditEntry.entity_type,
+              auditEntry.action,
+              auditEntry.new_values,
+              auditEntry.changed_by,
+              auditEntry.swarm_id,
+              auditEntry.acl_level,
+              auditEntry.risk_level,
+              auditEntry.category,
+              auditEntry.metadata,
+              auditEntry.created_at
+            ]
+          );
+
+          this.metrics.auditLogsWritten++;
+
+          this.logger.debug('Audit trail logged', {
+            action: entry.action,
+            entityId: entry.entityId,
+            riskLevel: entry.riskLevel
+          });
+        }
+      } catch (error) {
+        this.metrics.auditLogsFailed++;
+        this.logger.warn('Failed to log audit trail (non-fatal)', {
+          action: entry.action,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    });
   }
 }
 
