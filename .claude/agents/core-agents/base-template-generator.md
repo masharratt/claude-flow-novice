@@ -13,6 +13,7 @@ capabilities:
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
+  - test-coverage-validator
 lifecycle:
   pre_task: |
     sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)

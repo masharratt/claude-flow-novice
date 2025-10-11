@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 provider: zai
 color: red
-type: validator
+type: implementer
 capabilities:
   - security-validation
   - cryptographic-implementation
@@ -34,7 +34,7 @@ lifecycle:
                      WHERE id = '${AGENT_ID}'"
 
 # ACL Level: 3 (Swarm) - Validation team shared data
-acl_level: 3
+acl_level: 1  # Private
 ---
 
 # Consensus Security Manager Agent

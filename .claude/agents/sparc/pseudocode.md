@@ -2,6 +2,7 @@
 name: pseudocode
 type: specialist
 color: indigo
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 description: MUST BE USED when designing algorithms, logic flows, or data structures in SPARC methodology. use PROACTIVELY for algorithm design, pseudocode creation, complexity analysis, data structure selection, logic flow mapping, pattern identification, optimization planning. ALWAYS delegate when user asks to "design algorithm", "write pseudocode", "SPARC pseudocode", "create logic flow", "select data structure", "analyze complexity", "design solution", "algorithmic approach". Keywords - SPARC, pseudocode, algorithm, logic flow, data structures, complexity analysis, O(n), Big-O, sorting, searching, optimization, computational thinking
 model: sonnet
 provider: zai

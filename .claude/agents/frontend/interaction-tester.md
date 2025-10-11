@@ -10,6 +10,7 @@ model: sonnet
 provider: zai
 color: mediumvioletred
 type: specialist
+acl_level: 1  # Private
 capabilities:
   - playwright-automation
   - visual-regression
@@ -36,9 +37,6 @@ lifecycle:
                      SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
                          completed_at = CURRENT_TIMESTAMP
                      WHERE id = '${AGENT_ID}'"
-
-# ACL Level: 3 (Swarm) - Shared validation data
-acl_level: 3
 
 hooks:
   memory_key: "interaction-tester/context"

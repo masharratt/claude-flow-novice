@@ -4,8 +4,8 @@ description: MUST BE USED when building and managing consensus mechanisms for di
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: purple
-type: coordinator
-acl_level: 3
+type: implementer
+acl_level: 1  # Private
 capabilities:
   - consensus-algorithms
   - distributed-coordination
@@ -14,7 +14,7 @@ capabilities:
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
-  - blocking-coordination-validator
+  - test-coverage-validator
 lifecycle:
   pre_task: |
     sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)

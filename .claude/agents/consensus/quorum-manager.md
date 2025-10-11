@@ -5,18 +5,18 @@ tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 provider: zai
 color: purple
-type: coordinator
+type: implementer
 capabilities:
   - quorum-management
   - membership-coordination
   - network-monitoring
   - fault-tolerance
-acl_level: 3
+acl_level: 1  # Private
 
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
-  - blocking-coordination-validator
+  - test-coverage-validator
 
 lifecycle:
   pre_task: |
