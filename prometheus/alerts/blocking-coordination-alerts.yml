@@ -1,0 +1,83 @@
+# Blocking Coordination Alert Rules
+# Sprint 3.3: Prometheus Integration
+
+groups:
+  - name: blocking_coordination_alerts
+    interval: 30s
+    rules:
+      # High number of active blocking coordinators
+      - alert: HighBlockingCoordinators
+        expr: sum(blocking_coordinators_total) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: blocking-coordination
+        annotations:
+          summary: "High number of active blocking coordinators"
+          description: "{{ $value }} active blocking coordinators detected (threshold: 10)"
+
+      # Blocking duration exceeds threshold
+      - alert: HighBlockingDuration
+        expr: histogram_quantile(0.95, sum(rate(blocking_duration_seconds_bucket[5m])) by (le)) > 300
+        for: 5m
+        labels:
+          severity: warning
+          component: blocking-coordination
+        annotations:
+          summary: "Blocking duration P95 exceeds 5 minutes"
+          description: "P95 blocking duration: {{ $value }}s (threshold: 300s)"
+
+      # Signal delivery latency is high
+      - alert: HighSignalLatency
+        expr: histogram_quantile(0.95, sum(rate(signal_delivery_latency_seconds_bucket[5m])) by (le)) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: blocking-coordination
+        annotations:
+          summary: "Signal delivery latency P95 exceeds 5 seconds"
+          description: "P95 signal latency: {{ $value }}s (threshold: 5s)"
+
+      # Heartbeat failures detected
+      - alert: HeartbeatFailures
+        expr: rate(heartbeat_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: blocking-coordination
+        annotations:
+          summary: "Heartbeat failures detected"
+          description: "Heartbeat failure rate: {{ $value }}/s for {{ $labels.coordinator_id }} (type: {{ $labels.failure_type }})"
+
+      # Timeout events occurring
+      - alert: TimeoutEvents
+        expr: rate(timeout_events_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: blocking-coordination
+        annotations:
+          summary: "Coordinator timeout events detected"
+          description: "Timeout event rate: {{ $value }}/s for {{ $labels.coordinator_id }} (type: {{ $labels.timeout_type }})"
+
+      # No blocking coordinators active (potential issue)
+      - alert: NoActiveCoordinators
+        expr: sum(blocking_coordinators_total) == 0
+        for: 10m
+        labels:
+          severity: info
+          component: blocking-coordination
+        annotations:
+          summary: "No active blocking coordinators"
+          description: "No blocking coordinators have been active for 10 minutes"
+
+      # Coordinator stuck in blocking state
+      - alert: StuckCoordinator
+        expr: histogram_quantile(0.99, sum(rate(blocking_duration_seconds_bucket[10m])) by (le)) > 1800
+        for: 10m
+        labels:
+          severity: critical
+          component: blocking-coordination
+        annotations:
+          summary: "Coordinator appears stuck in blocking state"
+          description: "P99 blocking duration exceeds 30 minutes: {{ $value }}s"

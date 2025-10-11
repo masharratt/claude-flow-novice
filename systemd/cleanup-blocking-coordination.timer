@@ -1,0 +1,20 @@
+[Unit]
+Description=Run blocking coordination cleanup every 5 minutes
+Documentation=https://github.com/masharratt/claude-flow-novice
+Requires=cleanup-blocking-coordination.service
+
+[Timer]
+# Run on boot after 5 minutes
+OnBootSec=5min
+
+# Run every 5 minutes after last activation
+OnUnitActiveSec=5min
+
+# Allow 1 minute timing accuracy
+AccuracySec=1min
+
+# Persistent: Run missed timers on boot
+Persistent=true
+
+[Install]
+WantedBy=timers.target

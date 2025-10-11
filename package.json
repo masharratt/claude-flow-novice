@@ -88,6 +88,8 @@
     "dependencies:check": "npm outdated || echo 'Dependencies are up to date'",
     "dependencies:update": "npm update && npm audit fix",
     "dependencies:optimize": "npm prune && npm dedupe",
+    "cleanup:blocking": "bash scripts/cleanup-blocking-coordination.sh",
+    "cleanup:blocking:dry-run": "bash scripts/cleanup-blocking-coordination.sh --dry-run",
     "release:validate": "node scripts/release-validation.js",
     "release:notes": "node scripts/generate-release-notes.js",
     "prepack": "npm run build"
@@ -212,6 +214,7 @@
     "msgpack5": "^6.0.2",
     "ora": "^9.0.0",
     "p-queue": "^7.4.0",
+    "prom-client": "^15.1.3",
     "redis": "^5.8.3",
     "socket.io": "^4.8.1",
     "table": "^6.8.0",

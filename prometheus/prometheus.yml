@@ -1,0 +1,55 @@
+# Prometheus Configuration for Blocking Coordination Monitoring
+# Sprint 3.3: Prometheus Integration
+
+global:
+  scrape_interval: 15s      # Scrape metrics every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  scrape_timeout: 10s       # Timeout for scrapes
+
+  # Attach these labels to all time series
+  external_labels:
+    monitor: 'blocking-coordination'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - 'localhost:9093'
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - 'alerts/blocking-coordination-alerts.yml'
+  # - 'recording-rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Blocking Coordination Metrics
+  - job_name: 'blocking-coordination'
+    scrape_interval: 15s
+    metrics_path: '/prometheus/metrics'
+    static_configs:
+      - targets: ['localhost:3000']
+        labels:
+          service: 'blocking-coordination'
+          component: 'cfn-loop'
+
+  # Self-monitoring Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter (system metrics) - optional
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['localhost:9100']
+  #       labels:
+  #         service: 'system-metrics'
+
+  # Redis Exporter - optional
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['localhost:9121']
+  #       labels:
+  #         service: 'redis'

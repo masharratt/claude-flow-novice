@@ -23,6 +23,10 @@ import type { Redis } from 'ioredis';
 import type { LoggingConfig } from '../utils/types.js';
 import type { HeartbeatWarningSystem } from './heartbeat-warning-system.js';
 import { NamespaceSanitizer } from '../utils/namespace-sanitizer.js';
+import {
+  heartbeatFailuresTotal,
+  timeoutEventsTotal
+} from '../observability/prometheus-metrics.js';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -240,6 +244,9 @@ export class CoordinatorTimeoutHandler extends EventEmitter {
     const timeoutDuration = currentTime - activity.lastActivity;
 
     if (timeoutDuration > this.timeoutThreshold) {
+      // PROMETHEUS METRIC: Increment heartbeat failure counter for stale heartbeat
+      heartbeatFailuresTotal.labels(sanitizedId, 'stale').inc();
+
       this.logger.warn('Coordinator timeout detected', {
         coordinatorId,
         sanitizedId,
@@ -269,6 +276,9 @@ export class CoordinatorTimeoutHandler extends EventEmitter {
     activity: CoordinatorActivity
   ): Promise<void> {
     this.metrics.timeoutEventsTotal++;
+
+    // PROMETHEUS METRIC: Increment timeout event counter
+    timeoutEventsTotal.labels(coordinatorId, 'heartbeat').inc();
 
     const timeoutEvent: CoordinatorTimeoutEvent = {
       coordinatorId,
@@ -534,6 +544,222 @@ export class CoordinatorTimeoutHandler extends EventEmitter {
   private extractCoordinatorId(key: string): string | null {
     const match = key.match(/^coordinator:activity:(.+)$/);
     return match ? match[1] : null;
+  }
+
+  /**
+   * Escalate dead coordinator to parent or swarm manager
+   *
+   * Sprint 3.2: Auto-Recovery Mechanisms
+   *
+   * When a coordinator is detected as dead (timed out), this method:
+   * 1. Notifies the parent coordinator or swarm manager
+   * 2. Spawns a NEW coordinator to replace the dead one
+   * 3. Transfers incomplete work to the new coordinator
+   * 4. Logs the escalation event to Redis
+   *
+   * @param coordinatorId - Dead coordinator ID
+   * @param swarmId - Swarm ID that the coordinator belonged to
+   * @returns New coordinator ID if spawned, null if escalation failed
+   */
+  async escalateDeadCoordinator(
+    coordinatorId: string,
+    swarmId: string
+  ): Promise<string | null> {
+    // SEC-HIGH-002 FIX: Sanitize IDs to prevent Redis key injection
+    const sanitizedCoordinatorId = NamespaceSanitizer.sanitizeId(coordinatorId);
+    const sanitizedSwarmId = NamespaceSanitizer.sanitizeId(swarmId);
+
+    this.logger.warn('Escalating dead coordinator', {
+      coordinatorId, // Original for logging
+      sanitizedCoordinatorId,
+      swarmId,
+      sanitizedSwarmId,
+    });
+
+    try {
+      // 1. Create escalation record in Redis
+      const escalationKey = `coordinator:escalation:${sanitizedCoordinatorId}`;
+      const escalationData = {
+        deadCoordinatorId: sanitizedCoordinatorId,
+        swarmId: sanitizedSwarmId,
+        timestamp: Date.now(),
+        reason: 'coordinator_timeout',
+        status: 'escalated',
+      };
+
+      await this.redis.setex(escalationKey, 3600, JSON.stringify(escalationData));
+
+      this.logger.info('Escalation record created', {
+        coordinatorId,
+        swarmId,
+        escalationKey,
+      });
+
+      // 2. Notify parent coordinator or swarm manager
+      const parentNotificationKey = `swarm:${sanitizedSwarmId}:coordinator:dead`;
+      await this.redis.publish(parentNotificationKey, JSON.stringify({
+        deadCoordinatorId: sanitizedCoordinatorId,
+        swarmId: sanitizedSwarmId,
+        timestamp: Date.now(),
+        action: 'spawn_replacement',
+      }));
+
+      this.logger.info('Notified parent coordinator', {
+        coordinatorId,
+        swarmId,
+        notificationChannel: parentNotificationKey,
+      });
+
+      // 3. Generate new coordinator ID
+      const newCoordinatorId = `coordinator-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+      // 4. Create spawn request for new coordinator
+      const spawnRequestKey = `coordinator:spawn:${newCoordinatorId}`;
+      const spawnRequest = {
+        newCoordinatorId,
+        replacesCoordinatorId: sanitizedCoordinatorId,
+        swarmId: sanitizedSwarmId,
+        timestamp: Date.now(),
+        status: 'pending',
+        priority: 'high', // Dead coordinator replacement is high priority
+      };
+
+      await this.redis.setex(spawnRequestKey, 3600, JSON.stringify(spawnRequest));
+
+      this.logger.info('Spawn request created for new coordinator', {
+        newCoordinatorId,
+        replacesCoordinatorId: coordinatorId,
+        swarmId,
+      });
+
+      // 5. Transfer incomplete work (if any exists)
+      await this.transferIncompleteWork(sanitizedCoordinatorId, newCoordinatorId, sanitizedSwarmId);
+
+      // 6. Emit escalation event
+      this.emit('coordinator:escalated', {
+        deadCoordinatorId: sanitizedCoordinatorId,
+        newCoordinatorId,
+        swarmId: sanitizedSwarmId,
+        timestamp: Date.now(),
+      });
+
+      this.logger.info('Dead coordinator escalation complete', {
+        deadCoordinatorId: coordinatorId,
+        newCoordinatorId,
+        swarmId,
+      });
+
+      return newCoordinatorId;
+
+    } catch (error) {
+      this.logger.error('Failed to escalate dead coordinator', {
+        coordinatorId,
+        swarmId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      this.emit('escalation:failed', {
+        coordinatorId: sanitizedCoordinatorId,
+        swarmId: sanitizedSwarmId,
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: Date.now(),
+      });
+
+      return null;
+    }
+  }
+
+  /**
+   * Transfer incomplete work from dead coordinator to new coordinator
+   *
+   * @param deadCoordinatorId - Dead coordinator ID (should be sanitized)
+   * @param newCoordinatorId - New coordinator ID
+   * @param swarmId - Swarm ID (should be sanitized)
+   */
+  private async transferIncompleteWork(
+    deadCoordinatorId: string,
+    newCoordinatorId: string,
+    swarmId: string
+  ): Promise<void> {
+    this.logger.debug('Transferring incomplete work', {
+      from: deadCoordinatorId,
+      to: newCoordinatorId,
+      swarmId,
+    });
+
+    try {
+      // Find incomplete work items for the dead coordinator
+      // Pattern: coordinator:work:{swarmId}:{coordinatorId}:*
+      const workPattern = `coordinator:work:${swarmId}:${deadCoordinatorId}:*`;
+      const workKeys = await this.scanKeys(workPattern);
+
+      if (workKeys.length === 0) {
+        this.logger.debug('No incomplete work to transfer', {
+          deadCoordinatorId,
+        });
+        return;
+      }
+
+      this.logger.info('Found incomplete work items to transfer', {
+        count: workKeys.length,
+        from: deadCoordinatorId,
+        to: newCoordinatorId,
+      });
+
+      // Transfer each work item
+      for (const workKey of workKeys) {
+        const workData = await this.redis.get(workKey);
+
+        if (!workData) {
+          continue;
+        }
+
+        // Parse work item
+        const work = JSON.parse(workData);
+
+        // Create new work key for the new coordinator
+        const newWorkKey = workKey.replace(
+          `coordinator:work:${swarmId}:${deadCoordinatorId}:`,
+          `coordinator:work:${swarmId}:${newCoordinatorId}:`
+        );
+
+        // Update work item with transfer metadata
+        const updatedWork = {
+          ...work,
+          transferredFrom: deadCoordinatorId,
+          transferredAt: Date.now(),
+          assignedTo: newCoordinatorId,
+          status: 'transferred',
+        };
+
+        // Store in new location with 1-hour TTL
+        await this.redis.setex(newWorkKey, 3600, JSON.stringify(updatedWork));
+
+        // Delete old work item
+        await this.redis.del(workKey);
+
+        this.logger.debug('Transferred work item', {
+          from: workKey,
+          to: newWorkKey,
+          workId: work.workId || 'unknown',
+        });
+      }
+
+      this.logger.info('Work transfer complete', {
+        itemsTransferred: workKeys.length,
+        from: deadCoordinatorId,
+        to: newCoordinatorId,
+      });
+
+    } catch (error) {
+      this.logger.error('Failed to transfer incomplete work', {
+        deadCoordinatorId,
+        newCoordinatorId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Non-fatal - new coordinator can pick up work from shared queue
+    }
   }
 
   /**

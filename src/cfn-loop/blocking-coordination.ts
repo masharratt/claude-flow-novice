@@ -23,6 +23,10 @@ import { createHmac } from 'crypto';
 import * as crypto from 'crypto';
 import type { AgentLifecycleManager } from '../agents/lifecycle-manager.js';
 import type { AgentDefinition } from '../agents/agent-loader.js';
+import {
+  blockingDurationSeconds,
+  signalDeliveryLatencySeconds
+} from '../observability/prometheus-metrics.js';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -188,6 +192,7 @@ export class BlockingCoordinationManager {
    */
   async acknowledgeSignal(signal: CoordinationSignal): Promise<SignalAck> {
     const startTime = Date.now();
+    const signalSentTime = signal.timestamp;
 
     this.logger.info('Received signal, sending immediate ACK', {
       signalId: signal.signalId,
@@ -243,6 +248,12 @@ export class BlockingCoordinationManager {
 
     const duration = Date.now() - startTime;
 
+    // PROMETHEUS METRIC: Record signal delivery latency
+    const latencyMs = Date.now() - signalSentTime;
+    signalDeliveryLatencySeconds
+      .labels(signal.source, this.coordinatorId, signal.type)
+      .observe(latencyMs / 1000);
+
     this.logger.info('ACK sent successfully', {
       signalId: signal.signalId,
       coordinatorId: this.coordinatorId,
@@ -250,6 +261,7 @@ export class BlockingCoordinationManager {
       ackKey,
       ttl: this.ackTtl,
       duration,
+      signalLatencyMs: latencyMs,
     });
 
     if (this.debug) {
@@ -448,11 +460,18 @@ export class BlockingCoordinationManager {
 
     const duration = Date.now() - startTime;
 
+    // PROMETHEUS METRIC: Record blocking duration
+    const status = acks.size === coordinatorIds.length ? 'completed' : 'timeout';
+    blockingDurationSeconds
+      .labels(this.swarmId || 'unknown', this.coordinatorId, status)
+      .observe(duration / 1000);
+
     this.logger.info('ACK wait complete', {
       signalId,
       received: acks.size,
       total: coordinatorIds.length,
       duration,
+      status,
     });
 
     // Execute on_signal_received hook if all ACKs received (not timeout)
@@ -548,6 +567,96 @@ export class BlockingCoordinationManager {
           ? this.metrics.hookExecutionTimeMs / this.metrics.hooksExecuted
           : 0,
     };
+  }
+
+  /**
+   * Retry failed signal with exponential backoff
+   *
+   * Sprint 3.2: Auto-Recovery Mechanisms
+   *
+   * Implements retry mechanism for signal acknowledgment failures.
+   * Uses exponential backoff to avoid overwhelming the system.
+   *
+   * @param signal - Signal that failed to be acknowledged
+   * @param maxRetries - Maximum number of retry attempts (default: 3)
+   * @returns SignalAck if successful, null if all retries failed
+   */
+  async retryFailedSignal(signal: CoordinationSignal, maxRetries: number = 3): Promise<SignalAck | null> {
+    const retryDelays = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
+
+    this.logger.info('Starting signal retry mechanism', {
+      signalId: signal.signalId,
+      maxRetries,
+      coordinatorId: this.coordinatorId,
+    });
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Log retry attempt to Redis for monitoring
+        const retryKey = `blocking:retry:${signal.signalId}:${attempt}`;
+        await this.redis.setex(retryKey, 600, JSON.stringify({
+          attempt,
+          timestamp: Date.now(),
+          coordinatorId: this.coordinatorId,
+          signalId: signal.signalId,
+        }));
+
+        this.logger.info('Retry attempt', {
+          signalId: signal.signalId,
+          attempt,
+          maxRetries,
+          delay: retryDelays[attempt - 1] || 4000,
+        });
+
+        // Wait before retry (exponential backoff)
+        if (attempt > 1) {
+          const delay = retryDelays[attempt - 2] || 4000;
+          await this.sleep(delay);
+        }
+
+        // Attempt to acknowledge signal
+        const ack = await this.acknowledgeSignal(signal);
+
+        this.logger.info('Signal retry successful', {
+          signalId: signal.signalId,
+          attempt,
+          coordinatorId: this.coordinatorId,
+        });
+
+        return ack;
+
+      } catch (error) {
+        this.logger.warn('Signal retry attempt failed', {
+          signalId: signal.signalId,
+          attempt,
+          maxRetries,
+          error: error instanceof Error ? error.message : String(error),
+        });
+
+        // If this was the last attempt, give up
+        if (attempt === maxRetries) {
+          this.logger.error('Signal retry exhausted all attempts', {
+            signalId: signal.signalId,
+            attempts: maxRetries,
+            coordinatorId: this.coordinatorId,
+          });
+
+          // Log failure for escalation
+          const failureKey = `blocking:retry:failed:${signal.signalId}`;
+          await this.redis.setex(failureKey, 3600, JSON.stringify({
+            signalId: signal.signalId,
+            coordinatorId: this.coordinatorId,
+            attempts: maxRetries,
+            timestamp: Date.now(),
+            lastError: error instanceof Error ? error.message : String(error),
+          }));
+
+          return null;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**

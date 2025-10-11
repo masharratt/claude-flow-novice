@@ -1,0 +1,27 @@
+# Cleanup stale blocking coordination state every 5 minutes
+#
+# Sprint 3.2: Auto-Recovery Mechanisms - Cron Configuration
+#
+# This cron job runs the cleanup script to remove stale coordinator state from Redis.
+# Stale detection: Heartbeat age >10 minutes (600 seconds)
+#
+# Installation:
+#   sudo cp cron.d/cleanup-blocking-coordination /etc/cron.d/
+#   sudo chmod 644 /etc/cron.d/cleanup-blocking-coordination
+#
+# Logs: ~/.claude-flow/logs/blocking-cleanup.log
+#
+# Format: minute hour day month weekday user command
+# */5 = every 5 minutes
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Redis connection settings (customize as needed)
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DB=0
+# REDIS_PASSWORD=  # Set if using authentication
+
+# Run cleanup every 5 minutes
+*/5 * * * * claude-flow /usr/local/bin/cleanup-blocking-coordination.sh >> /home/claude-flow/.claude-flow/logs/blocking-cleanup.log 2>&1

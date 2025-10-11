@@ -1,0 +1,41 @@
+[Unit]
+Description=Cleanup stale blocking coordination state
+Documentation=https://github.com/masharratt/claude-flow-novice
+After=redis.service
+Requires=redis.service
+
+[Service]
+Type=oneshot
+User=claude-flow
+Group=claude-flow
+
+# Execute cleanup script
+ExecStart=/usr/local/bin/cleanup-blocking-coordination.sh
+
+# Working directory
+WorkingDirectory=/opt/claude-flow-novice
+
+# Environment variables for Redis connection
+Environment="REDIS_HOST=127.0.0.1"
+Environment="REDIS_PORT=6379"
+Environment="REDIS_DB=0"
+# Set REDIS_PASSWORD in /etc/systemd/system/cleanup-blocking-coordination.service.d/override.conf
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/claude-flow/.claude-flow/logs
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cleanup-blocking-coordination
+
+# Resource limits
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
