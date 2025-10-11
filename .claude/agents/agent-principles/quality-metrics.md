@@ -56,7 +56,7 @@ Use this checklist before deploying an agent:
 
 ### Structure ✓
 - [ ] Valid YAML frontmatter
-- [ ] All required fields present (name, description, tools, model, color)
+- [ ] All required fields present (name, description, tools, model, color, validation_hooks, lifecycle)
 - [ ] Clear role definition in opening paragraph
 - [ ] Appropriate section structure
 
@@ -69,9 +69,30 @@ Use this checklist before deploying an agent:
 ### Content Quality ✓
 - [ ] Clear responsibilities defined
 - [ ] Approach/methodology explained
-- [ ] Integration points specified
+- [ ] Integration points specified (memory keys, ACL levels)
 - [ ] Success metrics defined
 - [ ] Post-edit validation hook included
+
+### Hook Validation System ✓
+- [ ] validation_hooks declared in frontmatter
+- [ ] agent-template-validator included (MANDATORY)
+- [ ] cfn-loop-memory-validator included (MANDATORY)
+- [ ] test-coverage-validator included (for implementers/testers)
+- [ ] blocking-coordination-validator included (for coordinators only)
+
+### SQLite Lifecycle Integration ✓
+- [ ] lifecycle.pre_task hook present (INSERT INTO agents)
+- [ ] lifecycle.post_task hook present (UPDATE agents SET status=completed)
+- [ ] ACL level declared (1=Private, 3=Swarm, 4=Project)
+- [ ] Error handling patterns implemented (retry logic, fallback)
+- [ ] Memory key patterns follow conventions
+
+### Blocking Coordination (Coordinators Only) ✓
+- [ ] BlockingCoordinationSignals import present
+- [ ] CoordinatorTimeoutHandler import present
+- [ ] HMAC secret from environment variable
+- [ ] Signal ACK patterns implemented
+- [ ] Timeout handling logic present
 
 ### Language-Specific ✓
 - [ ] If Rust: Format validated against benchmark findings
@@ -84,6 +105,7 @@ Use this checklist before deploying an agent:
 - [ ] Quality metrics meet targets
 - [ ] Integration with hooks verified
 - [ ] Collaboration with other agents confirmed
+- [ ] SQLite persistence verified
 ```
 
 ### Post-Deployment Monitoring
@@ -96,18 +118,35 @@ Use this checklist before deploying an agent:
 - [ ] Track first-time success rate
 - [ ] Measure time to completion
 - [ ] Collect user feedback
+- [ ] Monitor SQLite persistence success rate (target: >99.9%)
 
 ### Quality Assurance
 - [ ] Review output quality regularly
 - [ ] Check adherence to format guidelines
 - [ ] Validate tool usage patterns
 - [ ] Assess collaboration effectiveness
+- [ ] Monitor ACL violation rate (target: 0% in production)
+
+### Hook Validation Metrics
+- [ ] Agent template validation pass rate (target: 100%)
+- [ ] CFN Loop ACL compliance rate (target: 100%)
+- [ ] Test coverage thresholds met (≥80% line, ≥75% branch)
+- [ ] Blocking coordination pattern correctness (coordinators: 100%)
+- [ ] Hook execution time (<5s composite)
+- [ ] False positive rate (<2%)
+
+### SQLite Integration Health
+- [ ] Agent lifecycle completion rate (>95%)
+- [ ] Memory persistence success rate (>99.9%)
+- [ ] Error handling effectiveness (retry success rate >90%)
+- [ ] Fallback activation rate (<1% for non-critical data)
 
 ### Continuous Improvement
 - [ ] Document failure modes
 - [ ] Refine based on metrics
 - [ ] Update with new patterns
 - [ ] Validate format choice periodically
+- [ ] Review and update hook validators
 ```
 
 ---
@@ -203,6 +242,48 @@ Agent Performance Metrics:
   user_satisfaction:
     target: ">4.5/5"
     measure: "Feedback from users"
+
+Hook Validation Metrics:
+  agent_template_validation_pass_rate:
+    target: "100%"
+    measure: "SQLite lifecycle, ACL, error handling validation pass rate"
+
+  cfn_loop_acl_compliance:
+    target: "100%"
+    measure: "Zero ACL violations in production"
+
+  test_coverage_compliance:
+    target: "≥80% line, ≥75% branch"
+    measure: "Test coverage thresholds met"
+
+  blocking_coordination_correctness:
+    target: "100% (coordinators)"
+    measure: "HMAC, signal ACK patterns validated"
+
+  hook_execution_time:
+    target: "<5s composite"
+    measure: "Total validation time for all hooks"
+
+  false_positive_rate:
+    target: "<2%"
+    measure: "Incorrect validation failures"
+
+SQLite Integration Metrics:
+  persistence_success_rate:
+    target: ">99.9%"
+    measure: "SQLite write operations successful"
+
+  agent_lifecycle_completion:
+    target: ">95%"
+    measure: "Agents complete full lifecycle (spawn → complete)"
+
+  error_recovery_success:
+    target: ">90%"
+    measure: "Retry operations successful on SQLITE_BUSY errors"
+
+  acl_violation_rate:
+    target: "0%"
+    measure: "Unauthorized data access attempts"
 ```
 
 ### Feedback Loop

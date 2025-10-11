@@ -13,7 +13,6 @@
  * @module tests/performance/sqlite-load-test
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Redis from 'ioredis';
 import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';

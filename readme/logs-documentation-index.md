@@ -256,6 +256,14 @@ logger.info('message');
 
 ## Version History
 
+### Sprint 1.7 (2025-10-10)
+- SQLite integration with dual-write CQRS pattern
+- 5-level ACL system with AES-256-GCM encryption
+- Cross-session recovery (<10s)
+- Blocking coordination cleanup optimization (50-60x speedup)
+- Agent lifecycle tracking and audit trail
+- Comprehensive test suite (56 tests, 100% pass rate)
+
 ### v2.0.0
 - Transparency logging for AI agents
 - MCP integration

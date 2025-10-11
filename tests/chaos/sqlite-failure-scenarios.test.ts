@@ -13,7 +13,6 @@
  * @module tests/chaos/sqlite-failure-scenarios.test
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Redis from 'ioredis';
 import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';
@@ -94,8 +93,10 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
   let redis: Redis;
   let db: Database.Database;
   let manager: DualWriteManager;
+  let redisQuitInTest = false;
 
   beforeEach(async () => {
+    redisQuitInTest = false;
     redis = new Redis(REDIS_CONFIG);
     await new Promise<void>((resolve, reject) => {
       redis.once('ready', resolve);
@@ -122,7 +123,10 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
 
   afterEach(async () => {
     db.close();
-    await redis.quit();
+    // Only quit Redis if it wasn't already quit in the test
+    if (!redisQuitInTest && redis.status !== 'end') {
+      await redis.quit();
+    }
     try {
       await fs.unlink(TEST_DB_PATH);
     } catch (error) {
@@ -137,8 +141,8 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
     // Write with Redis available
     await manager.write(key, value);
 
-    // Simulate Redis connection loss
-    await redis.quit();
+    // Simulate Redis connection loss (disconnect, but don't quit completely)
+    redis.disconnect();
 
     // Reading should still work via SQLite fallback
     const retrieved = await manager.read(key);
@@ -148,6 +152,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
   it('should continue writing to SQLite when Redis is unavailable', async () => {
     // Disconnect Redis
     await redis.quit();
+    redisQuitInTest = true;
 
     const key = 'sqlite-only-key';
     const value = { mode: 'sqlite-only' };

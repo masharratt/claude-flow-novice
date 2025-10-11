@@ -17,7 +17,6 @@
  * @module cfn-loop/__tests__/sqlite-memory-manager.test
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
 import Redis from 'ioredis';
 import type { RedisOptions } from 'ioredis';
 import Database from 'better-sqlite3';
@@ -207,10 +206,17 @@ class SQLiteMemoryManager {
     });
 
     // Write to Redis (with TTL if specified)
-    if (options.ttl) {
-      await this.redis.setex(redisKey, Math.floor(options.ttl / 1000), redisValue);
-    } else {
-      await this.redis.set(redisKey, redisValue);
+    try {
+      if (options.ttl) {
+        // Convert milliseconds to seconds, minimum 1 second for Redis
+        const ttlSeconds = Math.max(1, Math.ceil(options.ttl / 1000));
+        await this.redis.setex(redisKey, ttlSeconds, redisValue);
+      } else {
+        await this.redis.set(redisKey, redisValue);
+      }
+    } catch (error) {
+      // Redis write failed, continue with SQLite-only write
+      console.warn('Redis write failed, continuing with SQLite:', error);
     }
 
     // Write to SQLite (transaction-safe)
@@ -247,6 +253,25 @@ class SQLiteMemoryManager {
 
       if (redisValue) {
         const parsed = JSON.parse(redisValue);
+
+        // Reconstruct entry for ACL check
+        const entry: MemoryEntry = {
+          key,
+          value: parsed.value,
+          aclLevel: parsed.aclLevel,
+          agentId: parsed.agentId,
+          swarmId: parsed.swarmId,
+          encrypted: parsed.encrypted,
+          ttl: parsed.ttl,
+          createdAt: parsed.createdAt,
+          updatedAt: Date.now(),
+        };
+
+        // Check ACL
+        if (!this.checkACL(entry, options?.agentId, options?.swarmId)) {
+          throw new Error('ACL violation: Access denied');
+        }
+
         let value = parsed.value;
 
         if (parsed.encrypted) {
@@ -640,7 +665,7 @@ describe('SQLiteMemoryManager', () => {
     it('should respect TTL for entries', async () => {
       const key = 'ttl-test';
       const value = { temporary: 'data' };
-      const ttl = 100; // 100ms
+      const ttl = 100; // 100ms (Redis rounds up to 1 second)
 
       await manager.set(key, value, {
         aclLevel: ACLLevel.SWARM,
@@ -652,8 +677,8 @@ describe('SQLiteMemoryManager', () => {
       let retrieved = await manager.get(key, { swarmId: 'swarm-1' });
       expect(retrieved).toEqual(value);
 
-      // Wait for expiration
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Wait for expiration (Redis rounds 100ms → 1 second, so wait 1200ms)
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
       // Should be null after TTL
       retrieved = await manager.get(key, { swarmId: 'swarm-1' });
@@ -747,9 +772,9 @@ describe('SQLiteMemoryManager', () => {
       const originalRedis = manager['redis'];
       const brokenRedis = {
         ...originalRedis,
-        set: vi.fn().mockRejectedValue(new Error('Redis connection lost')),
-        setex: vi.fn().mockRejectedValue(new Error('Redis connection lost')),
-        get: vi.fn().mockRejectedValue(new Error('Redis connection lost')),
+        set: async () => { throw new Error('Redis connection lost'); },
+        setex: async () => { throw new Error('Redis connection lost'); },
+        get: async () => { throw new Error('Redis connection lost'); },
       } as any;
 
       manager['redis'] = brokenRedis;

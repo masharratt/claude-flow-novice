@@ -14,7 +14,6 @@
  * @module cfn-loop/__tests__/blocking-coordination-audit.test
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import Redis from 'ioredis';
 import type { RedisOptions } from 'ioredis';
 import Database from 'better-sqlite3';

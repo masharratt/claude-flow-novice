@@ -15,7 +15,6 @@
  * @module cfn-loop/__tests__/agent-lifecycle-sqlite.test
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 import Redis from 'ioredis';
 import type { RedisOptions } from 'ioredis';
 import Database from 'better-sqlite3';

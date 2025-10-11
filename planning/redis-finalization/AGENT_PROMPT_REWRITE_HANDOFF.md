@@ -19,13 +19,138 @@ This handoff document provides comprehensive guidance for rewriting **all agent 
 **Critical Insight:** This integration affects **ALL agent types**, not just coordinators. Every agent (coder, tester, reviewer, architect, security-specialist, etc.) must persist audit trails, report confidence scores, and participate in memory-backed coordination.
 
 **Architecture References:**
-- `/mnt/c/Users/masha/Documents/claude-flow-novice/docs/architecture/SQLITE_MEMORY_INTEGRATION_ARCHITECTURE.md`
-- `/mnt/c/Users/masha/Documents/claude-flow-novice/docs/patterns/blocking-coordination-pattern.md`
-- `/mnt/c/Users/masha/Documents/claude-flow-novice/planning/EPIC_COMPLETION_REPORT.json`
+- `docs/implementation/SQLITE_INTEGRATION_IMPLEMENTATION.md`
+- `docs/patterns/blocking-coordination-pattern.md`
+- `planning/EPIC_COMPLETION_REPORT.json`
 
 ---
 
-## 1. Scope: All Agent Types Affected
+## 1. Agent vs Hook Delegation Strategy
+
+### What Agents Should Handle (Creative/Implementation Work)
+
+**Agent-Driven Tasks (2-3 weeks, 41 agent types):**
+
+✅ **Prompt Template Rewriting** - Requires understanding context, agent capabilities, and integration patterns
+- Update all 41 agent prompt templates with SQLite lifecycle hooks
+- Implement blocking coordination patterns for 12 coordinator agents
+- Add CFN Loop memory patterns for Loop 3/2/4 participants
+- Write agent-specific error handling and recovery logic
+
+✅ **Integration Implementation** - Complex logic requiring architectural decisions
+- Design agent-specific ACL level policies (Private/Team/Swarm/Project/System)
+- Implement confidence score persistence strategies per agent role
+- Create agent lifecycle state machines (spawn → in_progress → completed)
+- Design memory retention policies (30d/90d/365d TTLs)
+
+✅ **Testing & Validation** - Domain expertise required
+- Write unit tests for SQLite integration (agents table, audit logs, ACL enforcement)
+- Create integration tests for Signal ACK protocol end-to-end
+- Develop chaos tests for coordinator death scenarios
+- Build regression tests for CFN Loop memory patterns
+
+✅ **Documentation** - Contextual writing for multiple audiences
+- Migration guides for each agent type category
+- Troubleshooting guides with failure scenario analysis
+- Training materials for agent prompt template patterns
+- API documentation for blocking coordination interfaces
+
+### What Hooks Should Handle (Automated Validation/Enforcement)
+
+**Hook-Driven Tasks (automated, real-time):**
+
+✅ **Post-Edit Validation** - Automated compliance checks
+- Verify SQLite lifecycle hooks present in prompt templates (`agents` table registration)
+- Detect missing audit log integration patterns
+- Validate ACL level declarations match agent type guidelines
+- Check for required error handling patterns (SQLite write failures, Redis connection loss)
+
+✅ **Code Quality Enforcement** - Pattern matching and linting
+- Enforce dual-write pattern (Redis ephemeral + SQLite persistent)
+- Validate HMAC secret usage in blocking coordination
+- Check for heartbeat broadcasting in coordinator agents
+- Detect hardcoded paths or missing environment variable usage
+
+✅ **Integration Completeness** - Automated dependency checks
+- Verify `BlockingCoordinationSignals` imports for coordinators
+- Check `CoordinatorTimeoutHandler` initialization
+- Validate CFN Loop memory key patterns (`cfn/phase-${phaseId}/loop3/...`)
+- Ensure ACL enforcement in all `sqlite.memoryAdapter.set()` calls
+
+✅ **Testing Coverage Enforcement** - Automated test validation
+- Require unit tests for agent spawn registration
+- Mandate integration tests for Signal ACK protocol
+- Enforce chaos tests for coordinator death scenarios
+- Validate test assertions for ACL violations
+
+### Hook Implementation Requirements
+
+**New Hook Capabilities Needed:**
+
+1. **Agent Prompt Template Validator Hook** (`post-edit-agent-template.js`)
+   - Triggers: On edit to `.claude/agents/**/*.md` files
+   - Checks: SQLite lifecycle hooks, ACL declarations, error handling patterns
+   - Actions: Warn if patterns missing, suggest fixes, block commit if critical issues
+
+2. **Blocking Coordination Validator Hook** (`post-edit-blocking-coordination.js`)
+   - Triggers: On edit to files importing `blocking-coordination-signals.ts`
+   - Checks: Signal ACK protocol usage, heartbeat broadcasting, timeout handling
+   - Actions: Validate HMAC secret env var, check ACK timeout values, verify dead coordinator detection
+
+3. **CFN Loop Memory Pattern Validator Hook** (`post-edit-cfn-loop-memory.js`)
+   - Triggers: On edit to files using `cfn/phase-*/loop*/` memory keys
+   - Checks: ACL level correctness (Loop 3: Private, Loop 2: Swarm, Loop 4: Project)
+   - Actions: Validate retention policies (Loop 4: 365d), check encryption for sensitive data
+
+4. **Test Coverage Validator Hook** (`post-test-coverage.js`)
+   - Triggers: After test execution
+   - Checks: Agent lifecycle tests, Signal ACK tests, chaos tests present
+   - Actions: Block PR if coverage <80% for new agent integration code
+
+### Decision Matrix
+
+| Task Type | Handler | Reasoning |
+|-----------|---------|-----------|
+| **Template Rewriting** | Agents | Requires contextual understanding of agent capabilities |
+| **Pattern Implementation** | Agents | Complex logic with architectural trade-offs |
+| **Test Writing** | Agents | Domain expertise and edge case identification |
+| **Documentation** | Agents | Audience-aware technical writing |
+| **Pattern Detection** | Hooks | Fast regex/AST-based matching |
+| **Compliance Enforcement** | Hooks | Automated pass/fail checks |
+| **Coverage Validation** | Hooks | Quantitative metric evaluation |
+| **Real-time Feedback** | Hooks | Sub-second validation during development |
+
+### Recommended Workflow
+
+**Phase 1: Agent Implementation (Weeks 1-3)**
+1. Agents rewrite prompt templates (41 agent types)
+2. Agents implement SQLite/blocking coordination integration
+3. Agents write comprehensive tests
+4. Agents create migration documentation
+
+**Phase 2: Hook Automation (Week 4)**
+5. Create 4 new validation hooks (agent template, blocking coordination, CFN memory, test coverage)
+6. Integrate hooks into post-edit pipeline
+7. Configure hooks in `.claude/hooks/` directory
+8. Enable hooks for agent template files
+
+**Phase 3: Continuous Validation (Ongoing)**
+9. Hooks automatically validate all new agent edits
+10. Hooks enforce patterns during development
+11. Hooks block commits with critical violations
+12. Hooks provide real-time feedback to developers
+
+### Key Insight
+
+**Agents do the creative work (implementation, testing, documentation). Hooks enforce the patterns (validation, compliance, coverage).** This separation ensures:
+- Agents focus on high-value creative tasks
+- Hooks provide fast automated validation
+- Quality standards consistently enforced
+- Development velocity maximized
+
+---
+
+## 2. Scope: All Agent Types Affected
 
 ### Agent Categories Requiring Updates
 
@@ -56,9 +181,9 @@ This handoff document provides comprehensive guidance for rewriting **all agent 
 
 ---
 
-## 2. Key Integration Requirements
+## 3. Key Integration Requirements
 
-### 2.1 SQLite Memory Persistence (ALL Agents)
+### 3.1 SQLite Memory Persistence (ALL Agents)
 
 **Requirement:** Every agent MUST write to SQLite for audit trail compliance.
 
@@ -108,7 +233,7 @@ await sqlite.query(`
 `, [agentId, JSON.stringify({ finalConfidence, filesChanged, duration })]);
 ```
 
-### 2.2 Blocking Coordination Integration (Coordinator Agents)
+### 3.2 Blocking Coordination Integration (Coordinator Agents)
 
 **Requirement:** Coordinator agents MUST implement Signal ACK protocol and dead coordinator detection.
 
@@ -214,7 +339,7 @@ if (!isAlive) {
 }
 ```
 
-### 2.3 CFN Loop Memory Patterns (All Agents)
+### 3.3 CFN Loop Memory Patterns (All Agents)
 
 **Requirement:** Agents participating in CFN Loop phases MUST persist loop-specific data.
 
@@ -302,9 +427,9 @@ await redis.publish(`cfn:loop4:decision:${phaseId}`, JSON.stringify(decision));
 
 ---
 
-## 3. Agent Prompt Template Structure
+## 4. Agent Prompt Template Structure
 
-### 3.1 Standard Template Sections
+### 4.1 Standard Template Sections
 
 All agent prompts MUST include these sections:
 
@@ -363,7 +488,7 @@ All agent prompts MUST include these sections:
 ---
 ```
 
-### 3.2 Template Variables for Customization
+### 4.2 Template Variables for Customization
 
 **Agent-Specific Variables:**
 ```markdown
@@ -388,7 +513,7 @@ All agent prompts MUST include these sections:
 
 ---
 
-## 4. Migration Checklist (Per Agent Type)
+## 5. Migration Checklist (Per Agent Type)
 
 ### Phase 1: Core Integration (Days 1-3)
 
@@ -479,9 +604,9 @@ All agent prompts MUST include these sections:
 
 ---
 
-## 5. Code Examples by Agent Type
+## 6. Code Examples by Agent Type
 
-### 5.1 Implementer Agent (Coder, Backend-Dev, Mobile-Dev)
+### 6.1 Implementer Agent (Coder, Backend-Dev, Mobile-Dev)
 
 **Enhanced Prompt Section:**
 
@@ -545,7 +670,7 @@ await redis.publish(\`cfn:loop3:complete:\${agentId}\`, JSON.stringify({
 \`\`\`
 ```
 
-### 5.2 Validator Agent (Reviewer, Security-Specialist, Code-Analyzer)
+### 6.2 Validator Agent (Reviewer, Security-Specialist, Code-Analyzer)
 
 **Enhanced Prompt Section:**
 
@@ -609,7 +734,7 @@ if (consensus >= 0.90) {
 \`\`\`
 ```
 
-### 5.3 Coordinator Agent (Coordinator, Hierarchical-Coordinator)
+### 6.3 Coordinator Agent (Coordinator, Hierarchical-Coordinator)
 
 **Enhanced Prompt Section:**
 
@@ -710,7 +835,7 @@ process.on('SIGTERM', async () => {
 \`\`\`
 ```
 
-### 5.4 Product Owner Agent
+### 6.4 Product Owner Agent
 
 **Enhanced Prompt Section:**
 
@@ -790,7 +915,7 @@ await redis.publish(\`cfn:loop4:decision:\${phaseId}\`, JSON.stringify({
 
 ---
 
-## 6. ACL Level Guidelines by Agent Type
+## 7. ACL Level Guidelines by Agent Type
 
 | Agent Type | Default ACL Level | Data Stored | Retention | Encryption |
 |------------|-------------------|-------------|-----------|------------|
@@ -809,9 +934,9 @@ await redis.publish(\`cfn:loop4:decision:\${phaseId}\`, JSON.stringify({
 
 ---
 
-## 7. Error Handling Patterns
+## 8. Error Handling Patterns
 
-### 7.1 SQLite Write Failures
+### 8.1 SQLite Write Failures
 
 **Pattern:**
 ```typescript
@@ -838,7 +963,7 @@ async function safeWriteToSQLite(key, value, options) {
 }
 ```
 
-### 7.2 Redis Connection Loss
+### 8.2 Redis Connection Loss
 
 **Pattern:**
 ```typescript
@@ -859,7 +984,7 @@ async function safePublishToRedis(channel, message) {
 }
 ```
 
-### 7.3 Coordinator Death During Signal Wait
+### 8.3 Coordinator Death During Signal Wait
 
 **Pattern:**
 ```typescript
@@ -904,9 +1029,9 @@ async function waitForSignalWithRecovery(agentId, timeout) {
 
 ---
 
-## 8. Testing Requirements
+## 9. Testing Requirements
 
-### 8.1 Unit Tests (Per Agent Type)
+### 9.1 Unit Tests (Per Agent Type)
 
 **Test Coverage Requirements:**
 - ✅ Agent spawn registration (SQLite `agents` table)
@@ -955,7 +1080,7 @@ describe('Coder Agent - SQLite Integration', () => {
 });
 ```
 
-### 8.2 Integration Tests (Cross-Agent Coordination)
+### 9.2 Integration Tests (Cross-Agent Coordination)
 
 **Test Coverage Requirements:**
 - ✅ Signal ACK protocol end-to-end
@@ -1003,7 +1128,7 @@ describe('CFN Loop Integration - Full Workflow', () => {
 });
 ```
 
-### 8.3 Chaos Tests (Failure Scenarios)
+### 9.3 Chaos Tests (Failure Scenarios)
 
 **Test Coverage Requirements:**
 - ✅ Agent crash recovery from SQLite checkpoint
@@ -1044,7 +1169,7 @@ describe('Chaos Tests - Coordinator Death', () => {
 
 ---
 
-## 9. Migration Timeline
+## 10. Migration Timeline
 
 ### Week 1: Core Implementers (5 days)
 
@@ -1103,7 +1228,7 @@ describe('Chaos Tests - Coordinator Death', () => {
 
 ---
 
-## 10. Success Criteria
+## 11. Success Criteria
 
 ### Functional Requirements
 
@@ -1137,28 +1262,28 @@ describe('Chaos Tests - Coordinator Death', () => {
 
 ---
 
-## 11. Support & Resources
+## 12. Support & Resources
 
 ### Documentation
 
-- **Architecture:** `/docs/architecture/SQLITE_MEMORY_INTEGRATION_ARCHITECTURE.md`
-- **Patterns:** `/docs/patterns/blocking-coordination-pattern.md`
-- **API Reference:** `/docs/api/blocking-coordination-api.md`
-- **Training:** `/docs/training/` (5 training files)
-- **Troubleshooting:** `/docs/training/troubleshooting-guide.md`
+- **Architecture:** `docs/implementation/SQLITE_INTEGRATION_IMPLEMENTATION.md`
+- **Patterns:** `docs/patterns/blocking-coordination-pattern.md`
+- **API Reference:** `docs/api/blocking-coordination-api.md`
+- **Training:** `docs/training/` (5 training files)
+- **Troubleshooting:** `docs/training/troubleshooting-guide.md`
 
 ### Code Examples
 
-- **SQLite Integration:** `/src/sqlite/README.md`
-- **Blocking Coordination:** `/src/cfn-loop/blocking-coordination.ts`
-- **Signal ACK Protocol:** `/src/cfn-loop/blocking-coordination-signals.ts`
-- **Timeout Handling:** `/src/cfn-loop/coordinator-timeout-handler.ts`
+- **SQLite Integration:** `src/sqlite/README.md`
+- **Blocking Coordination:** `src/cfn-loop/blocking-coordination.ts`
+- **Signal ACK Protocol:** `src/cfn-loop/blocking-coordination-signals.ts`
+- **Timeout Handling:** `src/cfn-loop/coordinator-timeout-handler.ts`
 
 ### Testing Resources
 
-- **Unit Test Examples:** `/src/cfn-loop/__tests__/cleanup-integration.test.ts`
-- **Integration Test Suite:** `/tests/integration/`
-- **Chaos Test Helpers:** `/tests/chaos/utils/chaos-helpers.ts`
+- **Unit Test Examples:** `src/cfn-loop/__tests__/cleanup-integration.test.ts`
+- **Integration Test Suite:** `tests/integration/`
+- **Chaos Test Helpers:** `tests/chaos/utils/chaos-helpers.ts`
 
 ### Contact & Escalation
 
@@ -1169,7 +1294,7 @@ describe('Chaos Tests - Coordinator Death', () => {
 
 ---
 
-## 12. Appendix: Complete Agent List
+## 13. Appendix: Complete Agent List
 
 ### Core Implementers (15)
 1. coder

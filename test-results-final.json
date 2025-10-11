@@ -1,0 +1,213 @@
+
+> claude-flow-novice@2.0.0 test
+> NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=16384' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit src/cfn-loop/__tests__/sqlite-memory-manager.test.ts src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts src/cfn-loop/__tests__/blocking-coordination-audit.test.ts tests/integration/cfn-loop-sqlite-integration.test.ts tests/integration/cross-session-recovery.test.ts tests/chaos/sqlite-failure-scenarios.test.ts tests/chaos/coordinator-death-sqlite.test.ts --json
+
+(node:21952) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.warn
+    Redis read failed, falling back to SQLite: Error: ACL violation: Access denied
+        at SQLiteMemoryManager.get (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:185:27)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:365:13)
+
+      195 |
+      196 |     // Dual-write pattern: Redis + SQLite
+    > 197 |     const redisKey = `memory:${key}`;
+          |                     ^
+      198 |     const redisValue = JSON.stringify({
+      199 |       value: valueStr,
+      200 |       encrypted,
+
+      at SQLiteMemoryManager.get (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:197:21)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:365:13)
+
+  console.warn
+    Redis read failed, falling back to SQLite: Error: ACL violation: Access denied
+        at SQLiteMemoryManager.get (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:185:27)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:379:13)
+
+      195 |
+      196 |     // Dual-write pattern: Redis + SQLite
+    > 197 |     const redisKey = `memory:${key}`;
+          |                     ^
+      198 |     const redisValue = JSON.stringify({
+      199 |       value: valueStr,
+      200 |       encrypted,
+
+      at SQLiteMemoryManager.get (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:197:21)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:379:13)
+
+  console.warn
+    Redis read failed, falling back to SQLite: Error: ACL violation: Access denied
+        at SQLiteMemoryManager.get (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:185:27)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:393:13)
+
+      195 |
+      196 |     // Dual-write pattern: Redis + SQLite
+    > 197 |     const redisKey = `memory:${key}`;
+          |                     ^
+      198 |     const redisValue = JSON.stringify({
+      199 |       value: valueStr,
+      200 |       encrypted,
+
+      at SQLiteMemoryManager.get (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:197:21)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:393:13)
+
+  console.warn
+    Redis write failed, continuing with SQLite: Error: Redis connection lost
+        at Object.set (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:577:42)
+        at SQLiteMemoryManager.set (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:149:34)
+        at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:585:27)
+        at Promise.finally.completed (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+        at _callCircusTest (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+        at _runTest (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+        at _runTestsForDescribeBlock (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+        at _runTestsForDescribeBlock (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+        at _runTestsForDescribeBlock (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+        at run (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+        at runAndTransformResultsToJestFormat (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+        at jestAdapter (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-circus/build/runner.js:101:19)
+        at runTestInternal (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-runner/build/index.js:275:16)
+        at runTest (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-runner/build/index.js:343:7)
+
+      152 |     switch (entry.aclLevel) {
+      153 |       case ACLLevel.PRIVATE:
+    > 154 |         return entry.agentId === requestorAgentId;
+          |                     ^
+      155 |
+      156 |       case ACLLevel.AGENT:
+      157 |       case ACLLevel.SWARM:
+
+      at SQLiteMemoryManager.set (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:154:21)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:585:13)
+
+  console.warn
+    Redis read failed, falling back to SQLite: Error: Redis connection lost
+        at Object.get (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:579:42)
+        at SQLiteMemoryManager.get (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:168:49)
+        at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:589:45)
+        at processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+      195 |
+      196 |     // Dual-write pattern: Redis + SQLite
+    > 197 |     const redisKey = `memory:${key}`;
+          |                     ^
+      198 |     const redisValue = JSON.stringify({
+      199 |       value: valueStr,
+      200 |       encrypted,
+
+      at SQLiteMemoryManager.get (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:197:21)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:589:31)
+
+PASS src/cfn-loop/__tests__/sqlite-memory-manager.test.ts (10.865 s)
+  SQLiteMemoryManager
+    Dual-Write Pattern
+      ✓ should write to both Redis and SQLite simultaneously (129 ms)
+      ✓ should maintain consistency between Redis and SQLite (70 ms)
+      ✓ should handle Redis failure with SQLite fallback (55 ms)
+    ACL Enforcement
+      ✓ should enforce PRIVATE level (agent-only access) (168 ms)
+      ✓ should enforce AGENT level (swarm coordination) (58 ms)
+      ✓ should enforce SWARM level (swarm-wide access) (55 ms)
+      ✓ should allow PROJECT level access (Product Owner, CI/CD) (60 ms)
+      ✓ should allow SYSTEM level access (admin, monitoring) (55 ms)
+    Encryption
+      ✓ should encrypt PRIVATE level data (AES-256-GCM) (57 ms)
+      ✓ should encrypt AGENT level data (69 ms)
+      ✓ should encrypt SYSTEM level data (58 ms)
+      ✓ should NOT encrypt SWARM level data (67 ms)
+      ✓ should NOT encrypt PROJECT level data (59 ms)
+    TTL Expiration
+      ✓ should respect TTL for entries (1262 ms)
+      ✓ should cleanup expired entries in batch (193 ms)
+      ✓ should handle entries without TTL (never expire) (260 ms)
+    Concurrent Operations
+      ✓ should handle concurrent writes to same key (153 ms)
+      ✓ should handle concurrent writes to different keys (560 ms)
+    Error Handling
+      ✓ should handle Redis connection failure gracefully (79 ms)
+      ✓ should return null for non-existent keys (44 ms)
+      ✓ should handle malformed encryption data (56 ms)
+    Performance & Indexing
+      ✓ should efficiently query by ACL level (indexed) (1182 ms)
+      ✓ should efficiently query by agent_id (indexed) (391 ms)
+
+PASS src/cfn-loop/__tests__/blocking-coordination-audit.test.ts
+  BlockingCoordinationAudit
+    Signal ACK Logging
+      ✓ should log Signal ACK events with complete data (53 ms)
+      ✓ should handle multiple Signal ACKs from same coordinator (88 ms)
+    Timeout Event Persistence
+      ✓ should persist timeout events with duration data (56 ms)
+      ✓ should track multiple timeouts for coordinator (64 ms)
+      ✓ should query timeout events efficiently (529 ms)
+    Dead Coordinator Escalation Logging
+      ✓ should log dead coordinator detection (50 ms)
+      ✓ should differentiate escalated vs non-escalated deaths (77 ms)
+    Work Transfer Logging
+      ✓ should log work transfer between coordinators (61 ms)
+    Audit Trail Completeness
+      ✓ should maintain complete audit trail for coordinator lifecycle (99 ms)
+    Query Performance
+      ✓ should efficiently query events by timestamp range (1030 ms)
+      ✓ should efficiently retrieve events by type (621 ms)
+    Redis Pub/Sub Integration
+      ✓ should publish events to Redis channel for real-time monitoring (354 ms)
+
+PASS src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts
+  AgentLifecycleSQLite
+    Agent Spawn Registration
+      ✓ should register agent spawn in SQLite and Redis (147 ms)
+      ✓ should handle concurrent agent spawns (242 ms)
+    Confidence Score Updates
+      ✓ should update confidence score and track history (171 ms)
+      ✓ should track blockers in confidence updates (107 ms)
+      ✓ should update Redis in sync with SQLite (102 ms)
+    Agent Termination
+      ✓ should terminate agent and cleanup state (105 ms)
+    Audit Log Completeness
+      ✓ should log all lifecycle events (179 ms)
+    Cross-Session Recovery
+      ✓ should recover agent state from SQLite after Redis loss (116 ms)
+    Swarm-Wide Queries
+      ✓ should efficiently query all agents in a swarm (445 ms)
+
+PASS tests/integration/cross-session-recovery.test.ts
+  Cross-Session Recovery
+    ✓ should recover state after simulated crash with <5% work loss (46 ms)
+    ✓ should reconstruct Redis state from SQLite (28 ms)
+
+FAIL tests/integration/cfn-loop-sqlite-integration.test.ts
+  CFN Loop SQLite Integration (E2E)
+    ✕ should execute full CFN Loop 3 → 2 → 4 with SQLite persistence (95 ms)
+    ✓ should calculate consensus from SQLite data accurately (79 ms)
+    ✓ should handle PROCEED decision when consensus < 0.90 (47 ms)
+
+  ● CFN Loop SQLite Integration (E2E) › should execute full CFN Loop 3 → 2 → 4 with SQLite persistence
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "DEFER"
+    Received: "PROCEED"
+
+      142 |     try {
+      143 |       await fs.unlink(TEST_DB_PATH);
+    > 144 |     } catch (error) {
+          |                      ^
+      145 |       // Ignore
+      146 |     }
+      147 |   });
+
+      at Object.<anonymous> (tests/integration/cfn-loop-sqlite-integration.test.ts:144:38)
+
+Test Suites: 1 failed, 4 passed, 5 of 7 total
+Tests:       1 failed, 48 passed, 49 total
+Snapshots:   0 total
+Time:        19.203 s
+Ran all test suites matching src/cfn-loop/__tests__/sqlite-memory-manager.test.ts|src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts|src/cfn-loop/__tests__/blocking-coordination-audit.test.ts|tests/integration/cfn-loop-sqlite-integration.test.ts|tests/integration/cross-session-recovery.test.ts|tests/chaos/sqlite-failure-scenarios.test.ts|tests/chaos/coordinator-death-sqlite.test.ts.

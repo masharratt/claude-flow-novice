@@ -21,6 +21,7 @@ import fsSync from 'fs';
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { WASMRuntime } from '../../src/booster/wasm-runtime.js';
+import { TestCoverageValidator } from './post-test-coverage.js';
 
 const execAsync = promisify(exec);
 
@@ -64,7 +65,7 @@ class Logger {
 
 // Single-file test execution engine
 class SingleFileTestEngine {
-    constructor() {
+    constructor(options = {}) {
         this.testRunners = {
             '.js': this.runJavaScriptTests.bind(this),
             '.jsx': this.runJavaScriptTests.bind(this),
@@ -77,6 +78,18 @@ class SingleFileTestEngine {
             '.cpp': this.runCPPTests.bind(this),
             '.c': this.runCTests.bind(this)
         };
+
+        // Initialize TestCoverageValidator for unified coverage validation
+        this.coverageValidator = new TestCoverageValidator(
+            {
+                line: options.minimumCoverage || 80,
+                branch: 75,
+                function: 80,
+                statement: 80
+            },
+            { verbose: false }
+        );
+        this.minimumCoverage = options.minimumCoverage || 80;
     }
 
     async executeTests(file, content) {
@@ -122,9 +135,10 @@ class SingleFileTestEngine {
 
             if (framework === 'jest') {
                 testResults = await this.runJestSingleFile(file, isTestFile);
-                coverage = await this.getJestCoverage(file);
+                coverage = await this.getCoverageForFramework('jest', file, testResults);
             } else if (framework === 'mocha') {
                 testResults = await this.runMochaSingleFile(file, isTestFile);
+                coverage = await this.getCoverageForFramework('mocha', file, testResults);
             }
 
             const tddCompliance = this.checkTDDCompliance(file, relatedFile, testResults);
@@ -182,9 +196,10 @@ class SingleFileTestEngine {
 
             if (framework === 'pytest') {
                 testResults = await this.runPytestSingleFile(file, isTestFile);
-                coverage = await this.getPytestCoverage(file);
+                coverage = await this.getCoverageForFramework('pytest', file, testResults);
             } else if (framework === 'unittest') {
                 testResults = await this.runUnittestSingleFile(file, isTestFile);
+                coverage = await this.getCoverageForFramework('unittest', file, testResults);
             }
 
             const tddCompliance = this.checkTDDCompliance(file, relatedFile, testResults);
@@ -231,7 +246,7 @@ class SingleFileTestEngine {
             }
 
             const testResults = await this.runGoTestSingleFile(file);
-            const coverage = await this.getGoCoverage(file);
+            const coverage = await this.getCoverageForFramework('go', file, testResults);
             const tddCompliance = this.checkTDDCompliance(file, relatedFile, testResults);
 
             return {
@@ -261,7 +276,7 @@ class SingleFileTestEngine {
 
         try {
             const testResults = await this.runCargoTestSingleFile(file);
-            const coverage = await this.getRustCoverage(file);
+            const coverage = await this.getCoverageForFramework('rust', file, testResults);
             const tddCompliance = this.checkTDDCompliance(file, relatedFile, testResults);
 
             return {
@@ -732,148 +747,43 @@ class SingleFileTestEngine {
         return path.dirname(file); // Fallback to file directory
     }
 
-    // Coverage analysis
-    async getJestCoverage(file) {
+    // Coverage analysis - Unified method using TestCoverageValidator
+    async getCoverageForFramework(framework, file, testResults) {
         try {
-            await execAsync(`npx jest "${file}" --coverage --coverageReporters=json --silent`);
+            // Use TestCoverageValidator's FrameworkCoverageRetriever for comprehensive coverage
+            const rawCoverage = await this.coverageValidator.retriever.getCoverageForFile(file, framework);
 
-            const coveragePath = path.join(process.cwd(), 'coverage', 'coverage-final.json');
-            const coverageData = JSON.parse(await fs.promises.readFile(coveragePath, 'utf8'));
-
-            const fileCoverage = coverageData[path.resolve(file)] || {};
-
-            return {
-                lines: {
-                    total: Object.keys(fileCoverage.s || {}).length,
-                    covered: Object.values(fileCoverage.s || {}).filter(v => v > 0).length,
-                    percentage: this.calculatePercentage(fileCoverage.s)
-                },
-                functions: {
-                    total: Object.keys(fileCoverage.f || {}).length,
-                    covered: Object.values(fileCoverage.f || {}).filter(v => v > 0).length,
-                    percentage: this.calculatePercentage(fileCoverage.f)
-                },
-                branches: {
-                    total: Object.keys(fileCoverage.b || {}).length,
-                    covered: Object.values(fileCoverage.b || {}).flat().filter(v => v > 0).length,
-                    percentage: this.calculatePercentage(fileCoverage.b, true)
-                },
-                statements: {
-                    total: Object.keys(fileCoverage.s || {}).length,
-                    covered: Object.values(fileCoverage.s || {}).filter(v => v > 0).length,
-                    percentage: this.calculatePercentage(fileCoverage.s)
-                }
-            };
-
-        } catch (error) {
-            return {
-                error: error.message,
-                available: false
-            };
-        }
-    }
-
-    async getPytestCoverage(file) {
-        try {
-            const result = await execAsync(`pytest "${file}" --cov="${path.dirname(file)}" --cov-report=json:/tmp/coverage.json`);
-
-            const coverageData = JSON.parse(await fs.promises.readFile('/tmp/coverage.json', 'utf8'));
-            const fileCoverage = coverageData.files[path.resolve(file)] || {};
-
-            return {
-                lines: {
-                    total: fileCoverage.summary?.num_statements || 0,
-                    covered: fileCoverage.summary?.covered_lines || 0,
-                    percentage: fileCoverage.summary?.percent_covered || 0
-                },
-                missing: fileCoverage.missing_lines || [],
-                executed: fileCoverage.executed_lines || []
-            };
-
-        } catch (error) {
-            return {
-                error: error.message,
-                available: false
-            };
-        }
-    }
-
-    async getRustCoverage(file) {
-        try {
-            // Try to check if cargo-tarpaulin is available
-            try {
-                await execAsync('cargo tarpaulin --version');
-            } catch {
+            if (!rawCoverage) {
                 return {
-                    error: 'cargo-tarpaulin not installed',
-                    available: false,
-                    suggestion: 'Install with: cargo install cargo-tarpaulin'
+                    error: 'No coverage data available',
+                    available: false
                 };
             }
 
-            const projectDir = path.dirname(file);
-            let rootDir = projectDir;
-
-            // Find Cargo.toml root
-            while (rootDir !== path.dirname(rootDir)) {
-                if (fsSync.existsSync(path.join(rootDir, 'Cargo.toml'))) {
-                    break;
-                }
-                rootDir = path.dirname(rootDir);
-            }
-
-            const result = await execAsync(`cargo tarpaulin --out Json --output-dir /tmp`, {
-                cwd: rootDir
+            // Validate coverage against thresholds using unified validator
+            const validationResult = await this.coverageValidator.validateCoverageData(rawCoverage, {
+                line: this.minimumCoverage,
+                branch: 75,
+                function: 80,
+                statement: 80
             });
 
-            const coverageData = JSON.parse(await fs.promises.readFile('/tmp/tarpaulin-report.json', 'utf8'));
-
+            // Convert to pipeline format (lines, functions, branches, statements)
             return {
                 lines: {
-                    total: coverageData.files[file]?.total_lines || 0,
-                    covered: coverageData.files[file]?.covered_lines || 0,
-                    percentage: coverageData.files[file]?.coverage || 0
+                    percentage: rawCoverage.line || 0
                 },
-                overall: {
-                    percentage: coverageData.coverage || 0
-                }
-            };
-
-        } catch (error) {
-            return {
-                error: error.message,
-                available: false
-            };
-        }
-    }
-
-    async getGoCoverage(file) {
-        try {
-            const result = await execAsync(`go test -coverprofile=/tmp/coverage.out "${file}"`);
-
-            const coverageOutput = await fs.promises.readFile('/tmp/coverage.out', 'utf8');
-            const lines = coverageOutput.split('\n').filter(line => line.includes(file));
-
-            let totalStatements = 0;
-            let coveredStatements = 0;
-
-            lines.forEach(line => {
-                const match = line.match(/(\d+)\s+(\d+)\s+(\d+)/);
-                if (match) {
-                    const count = parseInt(match[3]);
-                    totalStatements++;
-                    if (count > 0) coveredStatements++;
-                }
-            });
-
-            const percentage = totalStatements > 0 ? Math.round((coveredStatements / totalStatements) * 100) : 0;
-
-            return {
-                lines: {
-                    total: totalStatements,
-                    covered: coveredStatements,
-                    percentage
-                }
+                functions: {
+                    percentage: rawCoverage.function || 0
+                },
+                branches: {
+                    percentage: rawCoverage.branch || 0
+                },
+                statements: {
+                    percentage: rawCoverage.statement || 0
+                },
+                validation: validationResult,
+                available: true
             };
 
         } catch (error) {
@@ -1201,7 +1111,7 @@ class UnifiedPostEditPipeline {
         this.rustStrict = options.rustStrict || false;
         this.wasmEnabled = options.wasmEnabled !== false; // Default: true (enable by default)
         this.config = this.loadConfig();
-        this.testEngine = new SingleFileTestEngine();
+        this.testEngine = new SingleFileTestEngine({ minimumCoverage: this.minimumCoverage });
         this.rustEnforcer = new RustQualityEnforcer({
             allowUnwrap: !this.rustStrict,
             allowExpect: !this.rustStrict,  // In strict mode, also warn about .expect()
@@ -1827,7 +1737,7 @@ class UnifiedPostEditPipeline {
                 Logger.warning(`Tests not executed: ${results.testing.reason}`);
             }
 
-            // Step 6: Coverage Analysis
+            // Step 6: Coverage Analysis (using TestCoverageValidator)
             if (results.testing.coverage) {
                 results.coverage = results.testing.coverage;
 
@@ -1835,7 +1745,28 @@ class UnifiedPostEditPipeline {
                     const coveragePercent = results.coverage.lines.percentage;
                     Logger.coverage(`Line coverage: ${coveragePercent}%`);
 
-                    if (coveragePercent < this.minimumCoverage) {
+                    // Use validator's recommendations if available
+                    if (results.coverage.validation) {
+                        const validation = results.coverage.validation;
+
+                        if (!validation.valid) {
+                            Logger.warning(`Coverage validation failed: ${validation.failures.join(', ')}`);
+
+                            // Add validator's recommendations to results
+                            validation.recommendations.forEach(rec => {
+                                results.recommendations.push({
+                                    type: 'coverage',
+                                    priority: rec.priority,
+                                    message: rec.message,
+                                    action: rec.action,
+                                    gap: rec.gap
+                                });
+                            });
+                        } else {
+                            Logger.success('Coverage validation passed');
+                        }
+                    } else if (coveragePercent < this.minimumCoverage) {
+                        // Fallback for when validation is not available
                         Logger.warning(`Coverage below minimum (${this.minimumCoverage}%)`);
                         results.recommendations.push({
                             type: 'coverage',

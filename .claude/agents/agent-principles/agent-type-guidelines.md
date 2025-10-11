@@ -24,6 +24,14 @@ Tasks:
   - Configuration parsing
 
 Expected Improvement: +43% quality vs Minimal
+
+Validation Hooks:
+  - agent-template-validator (validates SQLite lifecycle, ACL declarations)
+  - cfn-loop-memory-validator (validates ACL levels for memory operations)
+  - test-coverage-validator (validates ≥80% line, ≥75% branch coverage)
+
+ACL Level: 1 (Private - agent-scoped data)
+SQLite: Persist confidence scores, implementation notes
 ```
 
 **Complex Tasks:** Use MINIMAL
@@ -37,6 +45,14 @@ Tasks:
   - Async runtime design
 
 Expected Improvement: +31% quality vs Code-Heavy
+
+Validation Hooks:
+  - agent-template-validator (validates SQLite lifecycle, ACL declarations)
+  - cfn-loop-memory-validator (validates ACL levels for memory operations)
+  - test-coverage-validator (validates ≥80% line, ≥75% branch coverage)
+
+ACL Level: 1 (Private - agent-scoped data)
+SQLite: Persist confidence scores, implementation notes
 ```
 
 **Example Agents:**
@@ -70,6 +86,16 @@ Apply same principles but validate with testing:
 - Over-specification creates checklist mentality
 - Need flexibility to identify novel issues
 - Trust AI's pattern recognition
+
+**Validation Hooks:**
+- `agent-template-validator` (validates SQLite lifecycle, ACL declarations)
+- `cfn-loop-memory-validator` (validates ACL levels for memory operations)
+
+**ACL Level:** 3 (Swarm - shared across validation team)
+
+**SQLite Requirements:**
+- Persist review feedback, validation consensus
+- Store findings with appropriate ACL for team access
 
 **Key Responsibilities:**
 - Assess code quality, readability, and maintainability
@@ -111,6 +137,17 @@ Apply same principles but validate with testing:
 - Over-constraining limits creative solutions
 - Need to consider trade-offs dynamically
 
+**Validation Hooks:**
+- `agent-template-validator` (validates SQLite lifecycle, ACL declarations)
+- `cfn-loop-memory-validator` (validates ACL levels for memory operations)
+
+**ACL Level:** 3 (Swarm - coordinate multiple agents)
+
+**SQLite Requirements:**
+- Persist ADRs (Architecture Decision Records) with 1 year retention
+- Store design decisions with appropriate ACL for team access
+- All architectural decisions MUST persist to SQLite for audit trail
+
 **Core Responsibilities:**
 - Design system architectures from requirements
 - Make strategic technical decisions
@@ -147,6 +184,16 @@ Framework for evaluating options with explicit trade-off documentation.
 - Test structure is often formulaic
 - Examples show proper assertion style
 - But test strategy needs metadata structure
+
+**Validation Hooks:**
+- `agent-template-validator` (validates SQLite lifecycle, ACL declarations)
+- `test-coverage-validator` (validates ≥80% line, ≥75% branch coverage)
+
+**ACL Level:** 3 (Swarm - shared across validation team)
+
+**SQLite Requirements:**
+- Persist test results, coverage metrics
+- Store test strategy with appropriate ACL for team access
 
 **Test Patterns:**
 
@@ -230,6 +277,15 @@ Test Categories:
 - Let evidence guide conclusions
 - Need flexibility in methodology
 
+**Validation Hooks:**
+- `agent-template-validator` (validates SQLite lifecycle, ACL declarations)
+
+**ACL Level:** 1 (Private) or 3 (Swarm) depending on context
+
+**SQLite Requirements:**
+- Persist research findings, competitive analysis
+- Store with appropriate ACL based on sharing requirements
+
 **Core Responsibilities:**
 - Research technologies, patterns, and best practices
 - Analyze trade-offs and alternatives
@@ -262,6 +318,16 @@ Test Categories:
 - Clear requirements for CI/CD pipelines
 - Deployment checklists are essential
 - Balance structure with flexibility
+
+**Validation Hooks:**
+- `agent-template-validator` (validates SQLite lifecycle, ACL declarations)
+- `cfn-loop-memory-validator` (validates ACL levels for memory operations)
+
+**ACL Level:** 3 (Swarm - coordinate with team)
+
+**SQLite Requirements:**
+- Persist deployment logs, infrastructure state
+- Store pipeline configurations with appropriate ACL
 
 **Pipeline Structure:**
 
@@ -315,6 +381,75 @@ Deployment Process:
 
 ---
 
+## 7. Coordinator Agents
+
+**Recommended Format:** METADATA
+
+**Rationale:**
+- Coordination involves structured workflows
+- Multi-agent orchestration requires clear patterns
+- Blocking coordination needs explicit signal handling
+- Balance structure with flexibility for agent management
+
+**Validation Hooks:**
+- `agent-template-validator` (validates SQLite lifecycle, ACL declarations)
+- `cfn-loop-memory-validator` (validates ACL levels for memory operations)
+- `blocking-coordination-validator` (validates HMAC secrets, signal ACK patterns, state machine logic)
+
+**ACL Level:** 3 (Swarm - coordinate multiple agents)
+
+**SQLite Requirements:**
+- Persist coordination signals, agent assignments
+- Store task delegation and progress tracking
+- All coordination state MUST persist for recovery
+
+**Blocking Coordination Requirements:**
+- Import `BlockingCoordinationSignals` and `CoordinatorTimeoutHandler`
+- Use HMAC secret from `process.env.BLOCKING_COORDINATION_SECRET`
+- Implement signal sending and ACK waiting patterns
+- Handle timeout scenarios with graceful degradation
+
+**Core Responsibilities:**
+- Orchestrate multi-agent workflows
+- Manage task delegation and dependencies
+- Handle blocking coordination with signal ACK protocol
+- Monitor agent progress and handle failures
+
+**Example:** Coordinator agents in CFN Loop phases
+
+---
+
+## 8. Product Owner Agent (CFN Loop 4 Only)
+
+**Recommended Format:** MINIMAL
+
+**Rationale:**
+- Strategic GOAP decisions require high-level reasoning
+- Must evaluate complex trade-offs
+- Context-sensitive decision making
+- No over-specification to allow flexible analysis
+
+**Validation Hooks:**
+- `agent-template-validator` (validates SQLite lifecycle, ACL declarations)
+- `cfn-loop-memory-validator` (validates ACL levels for memory operations)
+
+**ACL Level:** 4 (Project - strategic decisions)
+
+**SQLite Requirements:**
+- Persist GOAP decisions (PROCEED/DEFER/ESCALATE) with 365 day retention for compliance
+- Store backlog items with appropriate ACL for project access
+- All strategic decisions MUST persist to SQLite for audit trail
+
+**Core Responsibilities:**
+- Make autonomous GOAP decisions after Loop 2 consensus validation
+- Evaluate PROCEED (relaunch Loop 3) vs DEFER (approve, backlog issues) vs ESCALATE (human review)
+- Manage backlog items and prioritization
+- Ensure compliance with retention policies
+
+**Example:** Product Owner agent in CFN Loop 4 decision gate
+
+---
+
 ## Agent Selection Guide
 
 **Core Development**: coder, tester, reviewer
@@ -322,7 +457,9 @@ Deployment Process:
 **Frontend**: coder (specialized), mobile-dev
 **Quality**: tester, reviewer, security-specialist, perf-analyzer
 **Planning**: researcher, planner, architect
+**Coordination**: coordinator (with blocking-coordination-validator)
 **Operations**: devops-engineer, cicd-engineer
 **Documentation**: api-docs, researcher
+**Strategic**: product-owner (CFN Loop 4 only)
 
 **Select agents based on actual task needs, not predefined patterns.**

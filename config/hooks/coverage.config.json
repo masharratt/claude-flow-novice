@@ -1,0 +1,40 @@
+{
+  "thresholds": {
+    "line": 80,
+    "branch": 75,
+    "function": 80,
+    "statement": 80
+  },
+  "perFileThresholds": {
+    "src/critical/.*": {
+      "line": 90,
+      "branch": 85,
+      "function": 90,
+      "statement": 90
+    },
+    "src/cfn-loop/.*": {
+      "line": 85,
+      "branch": 80,
+      "function": 85,
+      "statement": 85
+    },
+    "src/sqlite/.*": {
+      "line": 85,
+      "branch": 80,
+      "function": 85,
+      "statement": 85
+    },
+    "src/experimental/.*": {
+      "line": 60,
+      "branch": 50,
+      "function": 60,
+      "statement": 60
+    },
+    "tests/.*": {
+      "line": 70,
+      "branch": 65,
+      "function": 70,
+      "statement": 70
+    }
+  }
+}

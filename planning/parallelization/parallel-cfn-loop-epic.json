@@ -182,6 +182,32 @@
         },
         {
           "id": "phase-0.5",
+          "name": "API Key Rotation & Rate Limit Handling",
+          "tasks": [
+            "Implement API key pool with multiple Z.ai keys",
+            "Automatic rotation when rate limit detected (429 response)",
+            "Track usage per key (requests/minute counter)",
+            "Exponential backoff when all keys rate limited (1s, 2s, 4s, 8s)",
+            "Prometheus metrics for key usage distribution",
+            "Alert when all keys exhausted"
+          ],
+          "deliverables": [
+            "src/providers/api-key-rotator.ts",
+            "src/providers/rate-limit-detector.ts",
+            "tests/providers/api-key-rotation.test.ts",
+            "tests/providers/rate-limit-chaos.test.ts"
+          ],
+          "acceptance_criteria": [
+            "Rotates to fallback keys on 429 response",
+            "Tracks usage: <100 req/min per key",
+            "Exponential backoff when all keys exhausted",
+            "Zero request failures with 3 keys @ 300 total req/min",
+            "Metrics show key usage distribution",
+            "Alert triggers when all keys at 90% limit"
+          ]
+        },
+        {
+          "id": "phase-0.6",
           "name": "Recovery CLI Commands",
           "tasks": [
             "Implement /recovery:status command",

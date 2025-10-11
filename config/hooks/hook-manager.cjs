@@ -66,6 +66,53 @@ class HookManager {
                     timeout: 10000,
                     blockOnFailure: false,
                     description: 'Automatic documentation updates'
+                },
+                'post-edit-agent-template': {
+                    enabled: true,
+                    priority: 6,
+                    trigger: 'post-edit',
+                    timeout: 5000,
+                    blockOnFailure: false,
+                    filePattern: '.claude/agents/**/*.md',
+                    description: 'Validates agent templates for SQLite lifecycle, ACL, error handling (95% automation)',
+                    automation: '95%',
+                    validator: 'agent-template-validator'
+                },
+                'post-edit-cfn-loop-memory': {
+                    enabled: true,
+                    priority: 7,
+                    trigger: 'post-edit',
+                    timeout: 3000,
+                    blockOnFailure: false,
+                    filePattern: '**/*.{ts,js,cjs,mjs}',
+                    description: 'Validates CFN Loop memory ACL levels and retention policies (90% automation)',
+                    automation: '90%',
+                    validator: 'cfn-loop-memory-validator'
+                },
+                'post-test-coverage': {
+                    enabled: true,
+                    priority: 8,
+                    trigger: 'post-test',
+                    timeout: 5000,
+                    blockOnFailure: false,
+                    filePattern: '**/*.{ts,js,py,go,rs}',
+                    description: 'Validates test coverage thresholds (≥80% line, ≥75% branch) (100% automation)',
+                    automation: '100%',
+                    validator: 'test-coverage-validator',
+                    thresholds: { line: 80, branch: 75, function: 80, statement: 80 }
+                },
+                'post-edit-blocking-coordination': {
+                    enabled: true,
+                    priority: 9,
+                    trigger: 'post-edit',
+                    timeout: 5000,
+                    blockOnFailure: false,
+                    filePattern: '**/*coordinator*.{ts,js}',
+                    description: 'Validates blocking coordination patterns for coordinator agents (60% automation + agent review)',
+                    automation: '60%',
+                    validator: 'blocking-coordination-validator',
+                    requiresAgentReview: true,
+                    agentType: 'coordinator'
                 }
             },
             languageSettings: {

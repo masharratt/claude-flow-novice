@@ -19,6 +19,10 @@
 - **Structure**: Role definition + Core principles + Minimal constraints
 - **Philosophy**: Trust the AI's reasoning; provide direction, not prescription
 
+**Validation Hooks Required:**
+- `agent-template-validator` (MANDATORY - validates SQLite lifecycle hooks)
+- `cfn-loop-memory-validator` (MANDATORY - validates ACL levels)
+
 **Why Minimal Works for Complex Tasks:**
 - Avoids over-constraining the solution space
 - Allows creative application of principles
@@ -41,6 +45,12 @@
 - **Structure**: Detailed specifications + Requirements + Structured examples
 - **Philosophy**: Provide scaffolding through metadata; guide without examples
 
+**Validation Hooks Required:**
+- `agent-template-validator` (MANDATORY - validates SQLite lifecycle hooks)
+- `cfn-loop-memory-validator` (MANDATORY - validates ACL levels)
+- `test-coverage-validator` (MANDATORY - validates ≥80% line, ≥75% branch coverage)
+- `blocking-coordination-validator` (if coordinator - validates HMAC secrets, signal ACK patterns)
+
 **Why Metadata Works for Medium Tasks:**
 - Provides structure without over-prescribing implementation
 - Ensures completeness through checklists
@@ -62,6 +72,12 @@
 - **Length**: 700-1200 lines
 - **Structure**: Detailed examples + Code patterns + Step-by-step guidance
 - **Philosophy**: Show exactly what good looks like; prime with concrete examples
+
+**Validation Hooks Required:**
+- `agent-template-validator` (MANDATORY - validates SQLite lifecycle hooks)
+- `cfn-loop-memory-validator` (MANDATORY - validates ACL levels)
+- `test-coverage-validator` (MANDATORY - validates ≥80% line, ≥75% branch coverage)
+- `blocking-coordination-validator` (if coordinator - validates HMAC secrets, signal ACK patterns)
 
 **Why Code-Heavy Works for Basic Tasks:**
 - Concrete examples reduce ambiguity
@@ -187,14 +203,18 @@ Priming Effect:
 Is the task BASIC (parsing, simple logic, CRUD)?
   → Use CODE-HEAVY format (+43% quality improvement)
   → Example: tests/benchmarking-tests/test-agent-code-heavy.md
+  → Add to frontmatter: validation_hooks: [agent-template-validator, cfn-loop-memory-validator, test-coverage-validator]
 
 Is the task COMPLEX with clear requirements (architecture, review)?
   → Use MINIMAL format (avoid over-constraining)
   → Example: architecture/system-architect.md
+  → Add to frontmatter: validation_hooks: [agent-template-validator, cfn-loop-memory-validator]
 
 Is the task MEDIUM complexity with structured steps?
   → Use METADATA format (structured guidance)
   → Example: development/backend/dev-backend-api.md
+  → Add to frontmatter: validation_hooks: [agent-template-validator, cfn-loop-memory-validator, test-coverage-validator]
+  → If coordinator: Also add blocking-coordination-validator
 ```
 
 ## The Three Golden Rules

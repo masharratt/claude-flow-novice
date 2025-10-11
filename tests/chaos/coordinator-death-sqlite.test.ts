@@ -12,7 +12,6 @@
  * @module tests/chaos/coordinator-death-sqlite.test
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Redis from 'ioredis';
 import Database from 'better-sqlite3';
 import { promises as fs } from 'fs';

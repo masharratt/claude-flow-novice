@@ -89,24 +89,41 @@
 
 ### SQLite Memory Management
 
-**Purpose**: Integrated SQLite-based memory management with 5-level ACL system
+**Purpose**: Dual-layer persistent memory with CQRS pattern and 5-level ACL system
 
 **Key Components**:
-- **12-Table Schema Architecture**: Comprehensive data organization
-- **5-Level ACL System**: Granular access control (public, team, project, agent, system)
-- **Memory Store Adapter**: Bridge between MemoryStore interface and SQLite backend
-- **Data Sovereignty**: Geographic and regulatory compliance for data storage
-- **Migration Scripts**: Automated schema updates and data migration
+- **Dual-Write Pattern**: Redis (active coordination) + SQLite (persistent storage)
+- **CQRS Architecture**: Commands via Redis (<10ms), Queries via SQLite (<50ms)
+- **5-Level ACL System**: Granular access control (PRIVATE, AGENT, SWARM, PROJECT, SYSTEM)
+- **AES-256-GCM Encryption**: Automatic encryption for sensitive levels (1, 2, 5)
+- **Cross-Session Recovery**: State restoration from SQLite after Redis loss
+- **Agent Lifecycle Tracking**: Complete spawn/update/terminate audit trail
+- **Blocking Coordination Audit**: Signal ACK, timeout, dead coordinator event logging
 
-**Configuration**: Database schema, ACL policies, data residency rules, migration schedules
-**Usage**: Persistent memory storage, access control, compliance data management
+**Configuration**: Database path, encryption keys, ACL policies, TTL settings
+**Usage**: CFN Loop state persistence, agent coordination, audit compliance
+
+**Performance Metrics** (Sprint 1.7):
+- **Dual-Write Latency**: p95 55ms (target <60ms) ✅
+- **SQLite-Only Latency**: p95 48ms (target <50ms) ✅
+- **Throughput**: 10,000+ writes/sec sustained
+- **Concurrent Agents**: 100 agents without degradation
+- **Data Preservation**: 100% during Redis failure
+- **Recovery Time**: <10 seconds after crash
 
 **ACL Levels**:
-1. **Public**: Accessible to all agents and users
-2. **Team**: Restricted to team members
-3. **Project**: Project-specific access controls
-4. **Agent**: Individual agent memory isolation
-5. **System**: System-level administrative access
+1. **PRIVATE**: Agent-only access (encrypted)
+2. **AGENT**: Agent coordination within swarm (encrypted)
+3. **SWARM**: Swarm-wide access (plaintext)
+4. **PROJECT**: Product Owner, CI/CD access (plaintext)
+5. **SYSTEM**: System-level monitoring (encrypted)
+
+**Testing** (Sprint 1.7):
+- **Test Coverage**: 56 tests across 7 suites (100% pass rate)
+- **Unit Tests**: Dual-write, ACL, encryption, TTL, concurrency (44 tests)
+- **Integration Tests**: CFN Loop 3→2→4 workflow, cross-session recovery (5 tests)
+- **Chaos Tests**: Redis/SQLite failures, coordinator death (7 tests)
+- **Framework**: Jest (converted from Vitest)
 
 ### Mesh Coordinator
 
@@ -146,6 +163,34 @@
 
 **Configuration**: Loop limits, thresholds, timeout settings
 **Usage**: Complete phase execution with autonomous retry
+
+### Blocking Coordination Cleanup
+
+**Purpose**: Atomic cleanup of stale coordinator state with production-safe performance
+
+**Key Components**:
+- **Redis Lua Script**: Atomic server-side execution for zero network latency
+- **Batch Operations**: Single SCAN → batch MGET → in-memory filter → batched DEL
+- **TTL-Based Staleness**: Automatic detection of coordinators inactive >10 minutes
+- **Related Key Cleanup**: Comprehensive removal of heartbeat, signal, ACK, idempotency keys
+- **Graceful Degradation**: Automatic fallback to bash sequential on Lua failure
+
+**Performance Metrics** (Sprint 1.7):
+- **Speedup**: 50-60x faster than sequential bash (300s → 2.5s for 10K coordinators)
+- **Architecture**: 1-2 SCAN iterations + 1 MGET + 4-5 batched DEL commands
+- **Throughput**: 4,000-8,000 coordinators/sec cleaned
+- **Safety**: SCAN-based discovery (non-blocking), atomic execution
+- **Production Ready**: Dry-run mode, fallback support, comprehensive logging
+
+**Cleanup Targets**:
+- Heartbeat keys: `swarm:*:blocking:heartbeat:*`
+- Signal keys: `blocking:signal:*`
+- ACK keys: `blocking:ack:*`
+- Idempotency keys: `blocking:idempotency:*`
+- Activity keys: `swarm:*:agent:*:activity`
+
+**Configuration**: Staleness threshold (600s default), dry-run mode, Redis connection
+**Usage**: Production coordinator cleanup via systemd timer (5-minute intervals)
 
 ## Agent Management Features
 
