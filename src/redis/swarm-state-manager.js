@@ -165,12 +165,16 @@ class SwarmStateManager extends EventEmitter {
       const stateKey = this.getStateKey(swarmId);
       const timestamp = Date.now();
 
+      // Add blocking coordinators snapshot
+      const blockingCoordinators = await this.getAllBlockingCoordinators(swarmId);
+
       // Add metadata
       const stateWithMeta = {
         ...state,
         swarmId,
         savedAt: timestamp,
         version: state.version || 1,
+        blockingCoordinators, // Include blocking state in snapshot
       };
 
       // Serialize with WASM acceleration (Line 106 - CRITICAL)
@@ -775,6 +779,171 @@ class SwarmStateManager extends EventEmitter {
       await this.redis.setex(statsKey, 86400, JSON.stringify(this.stats));
     } catch (error) {
       console.error('❌ Failed to save statistics:', error);
+    }
+  }
+
+  /**
+   * Save blocking coordination state to Redis
+   * @param {string} swarmId - Swarm identifier
+   * @param {string} coordinatorId - Coordinator identifier
+   * @param {Object} blockingState - Blocking state data
+   * @param {string} blockingState.status - waiting|complete|failed|timeout
+   * @param {number} blockingState.startTime - Timestamp when blocking started
+   * @param {string} blockingState.signalType - Type of signal expected
+   * @param {number} blockingState.iteration - Current iteration number
+   * @param {string} blockingState.phase - Phase name
+   * @returns {Promise<void>}
+   */
+  async saveBlockingState(swarmId, coordinatorId, blockingState) {
+    this.ensureInitialized();
+
+    try {
+      const key = `swarm:${swarmId}:blocking:${coordinatorId}`;
+      const ttl = 86400; // 24 hours
+
+      const state = {
+        ...blockingState,
+        swarmId,
+        coordinatorId,
+        timestamp: Date.now(),
+      };
+
+      await this.redis.setex(key, ttl, JSON.stringify(state));
+
+      console.log(`🔒 Saved blocking state for ${coordinatorId} in swarm ${swarmId} (status: ${blockingState.status})`);
+      this.emit('blocking_state_saved', { swarmId, coordinatorId, status: blockingState.status });
+    } catch (error) {
+      console.error(`❌ Failed to save blocking state for ${coordinatorId}:`, error);
+      this.stats.errors++;
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve blocking coordination state from Redis
+   * @param {string} swarmId - Swarm identifier
+   * @param {string} coordinatorId - Coordinator identifier
+   * @returns {Promise<Object|null>} Blocking state or null if not found
+   */
+  async getBlockingState(swarmId, coordinatorId) {
+    this.ensureInitialized();
+
+    try {
+      const key = `swarm:${swarmId}:blocking:${coordinatorId}`;
+      const stateJson = await this.redis.get(key);
+
+      if (!stateJson) {
+        return null;
+      }
+
+      const state = JSON.parse(stateJson);
+      console.log(`🔓 Retrieved blocking state for ${coordinatorId} in swarm ${swarmId} (status: ${state.status})`);
+
+      return state;
+    } catch (error) {
+      console.error(`❌ Failed to get blocking state for ${coordinatorId}:`, error);
+      this.stats.errors++;
+      return null;
+    }
+  }
+
+  /**
+   * Clear blocking coordination state from Redis
+   * @param {string} swarmId - Swarm identifier
+   * @param {string} coordinatorId - Coordinator identifier
+   * @returns {Promise<void>}
+   */
+  async clearBlockingState(swarmId, coordinatorId) {
+    this.ensureInitialized();
+
+    try {
+      const key = `swarm:${swarmId}:blocking:${coordinatorId}`;
+      await this.redis.del(key);
+
+      console.log(`🧹 Cleared blocking state for ${coordinatorId} in swarm ${swarmId}`);
+      this.emit('blocking_state_cleared', { swarmId, coordinatorId });
+    } catch (error) {
+      console.error(`❌ Failed to clear blocking state for ${coordinatorId}:`, error);
+      this.stats.errors++;
+      throw error;
+    }
+  }
+
+  /**
+   * Get all blocking coordinators for a swarm
+   * @param {string} swarmId - Swarm identifier
+   * @returns {Promise<Array>} Array of blocking coordinator states
+   */
+  async getAllBlockingCoordinators(swarmId) {
+    try {
+      const pattern = `swarm:${swarmId}:blocking:*`;
+      const keys = await this.scanKeys(pattern);
+
+      const states = [];
+      for (const key of keys) {
+        const stateJson = await this.redis.get(key);
+        if (stateJson) {
+          states.push(JSON.parse(stateJson));
+        }
+      }
+
+      return states;
+    } catch (error) {
+      console.error(`❌ Failed to get all blocking coordinators for swarm ${swarmId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Validate blocking state transition
+   * @param {string} fromStatus - Current status
+   * @param {string} toStatus - New status
+   * @returns {boolean} True if transition is valid
+   */
+  validateStateTransition(fromStatus, toStatus) {
+    const validTransitions = {
+      'waiting': ['complete', 'failed', 'timeout'],
+      'complete': [],
+      'failed': [],
+      'timeout': ['waiting'], // Allow retry
+    };
+
+    const isValid = validTransitions[fromStatus]?.includes(toStatus) || false;
+
+    if (!isValid) {
+      console.warn(`⚠️ Invalid state transition: ${fromStatus} → ${toStatus}`);
+    }
+
+    return isValid;
+  }
+
+  /**
+   * Non-blocking Redis SCAN for key pattern matching
+   * @param {string} pattern - Redis key pattern (e.g., "swarm:*:blocking:*")
+   * @returns {Promise<Array<string>>} Array of matching keys
+   */
+  async scanKeys(pattern) {
+    const keys = [];
+    let cursor = '0';
+
+    try {
+      do {
+        const result = await this.redis.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100
+        );
+
+        cursor = result[0];
+        keys.push(...result[1]);
+      } while (cursor !== '0');
+
+      return keys;
+    } catch (error) {
+      console.error(`❌ Failed to scan keys with pattern ${pattern}:`, error);
+      return [];
     }
   }
 

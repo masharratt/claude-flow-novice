@@ -1,0 +1,135 @@
+{
+  "agent": "operations-reviewer",
+  "analysis_date": "2025-10-10",
+  "folder": "/mnt/c/Users/masha/Documents/claude-flow-novice/docs/operations/",
+  "total_files": 59,
+  "current_version": "v1.7",
+  
+  "keep_current_production": {
+    "count": 21,
+    "files": [
+      "DEPLOYMENT.md - current v1.7 production deployment guide (60KB, Oct 4 updated)",
+      "PRODUCTION_OPERATIONS.md - active production ops guide (22KB, Oct 4 updated)",
+      "APM_INTEGRATION_GUIDE.md - current APM setup (15KB, Oct 4 updated)",
+      "ENABLE_AUTHENTICATION.md - production auth setup (21KB, Oct 6 updated)",
+      "SESSION_CLEANUP_SYSTEM.md - active memory management (3.4KB, Oct 4 updated)",
+      "HOW_METRICS_WORK.md - current metrics documentation (8.1KB, Oct 3 updated)",
+      "METRICS_PLACEMENT_STRATEGY.md - active metrics strategy (17KB, Oct 3 updated)",
+      "V2_TRANSPARENCY_SYSTEM.md - current transparency implementation (16KB, Oct 4)",
+      "metrics-counter-usage.md - current metrics usage (9.3KB, Oct 3)",
+      "deployment/DEPLOYMENT_GUIDE.md - comprehensive deployment (30KB, current)",
+      "deployment/DEPLOYMENT_STRATEGIES.md - deployment patterns (29KB, current)",
+      "deployment/DISASTER_RECOVERY.md - DR procedures (34KB, current)",
+      "deployment/DOCKER_SECURITY.md - Docker security guide (29KB, current)",
+      "deployment/INFRASTRUCTURE_AS_CODE.md - IaC guide (39KB, current)",
+      "deployment/MONITORING_OBSERVABILITY.md - monitoring setup (38KB, current)",
+      "deployment/PERFORMANCE_OPTIMIZATION.md - perf tuning (32KB, current)",
+      "deployment/pm2-setup.md - PM2 process management (9.2KB, Oct 3 updated)",
+      "deployment/production-deployment-guide.md - prod deploy (24KB, Sep 29)",
+      "runbooks/DATABASE_PERFORMANCE_RUNBOOK.md - DB ops (9.3KB, Oct 4)",
+      "runbooks/EMERGENCY_RESPONSE_PROCEDURES.md - incident response (10KB, Oct 4)",
+      "runbooks/SERVICE_OUTAGE_RUNBOOK.md - outage procedures (8.6KB, Oct 4)",
+      "ci-cd/README.md - CI/CD pipeline configuration (12KB, current)"
+    ],
+    "reasoning": "Current production operations documentation actively referenced for v1.7 deployment and operations"
+  },
+  
+  "archive_phase_specific": {
+    "count": 13,
+    "files": [
+      "byzantine-consensus-verification-report-phase2.md - Sept 24, 2025 historical phase validation",
+      "byzantine-consensus-verification-report-phase4.md - Sept 24, 2025 historical phase validation",
+      "FINAL_BYZANTINE_CONSENSUS_VERIFICATION_REPORT.md - Phase 5 Sept 24, completed phases",
+      "checkpoint-1-3-validation-report.md - Sept 25, 2025 checkpoint validation (8.2/10 pass)",
+      "checkpoint-1-4-validation-summary.md - Sept 25, 2025 checkpoint validation",
+      "PRODUCTION_VALIDATION_REPORT.md - Sept 24, 2025 historical validation",
+      "COMPREHENSIVE_QA_VALIDATION_REPORT.md - Sept 26, 2025 QA validation",
+      "WIKI_VALIDATION_REPORT.md - Sept 26, 2025 documentation validation",
+      "configuration-system-validation-report.md - Sept 25, 2025 config system validation",
+      "unified-config-validation-report.md - Sept 25, 2025 unified config validation",
+      "experimental-features-validation-report.md - Sept 25, 2025 experimental features",
+      "cli-validation-report.md - Sept 25, 2025 CLI validation",
+      "validation-executive-summary.md - Sept 25, 2025 executive summary"
+    ],
+    "reasoning": "Phase-specific validation reports from September 2025 - historical value but superseded by current v1.7 production state"
+  },
+  
+  "archive_analysis_reports": {
+    "count": 13,
+    "files": [
+      "agent-analysis-report.md - Sept 25, 2025 agent analysis",
+      "agent-persistence-performance-analysis.md - Sept 24, 2025 persistence analysis",
+      "benchmark-claude-flow-conflict-analysis.md - Sept 26, 2025 conflict analysis",
+      "benchmark-cleanup-analysis.md - Sept 26, 2025 cleanup analysis",
+      "build-artifacts-analysis.md - Sept 26, 2025 build artifacts",
+      "cli-command-consolidation-analysis.md - Sept 25, 2025 CLI consolidation",
+      "command-consolidation-usability-validation.md - Sept 25, 2025 usability validation",
+      "validator-scope-overreach-analysis.md - Sept 25, 2025 validator analysis (41KB)",
+      "chrome-mcp-research-report.md - Sept 25, 2025 Chrome MCP research",
+      "shadcn-mcp-swarm-research-report.md - Sept 25, 2025 Shadcn research",
+      "migration-strategy.md - Sept 25, 2025 migration plan (superseded by v1.7)",
+      "performance-analysis-report.md - Sept 25, 2025 performance analysis",
+      "final-validation-summary.md - Sept 24, 2025 validation summary"
+    ],
+    "reasoning": "Point-in-time analysis reports from development phases - useful for historical reference but not current operations"
+  },
+  
+  "archive_deprecated_guides": {
+    "count": 5,
+    "files": [
+      "deployment-checklist.md - Sept 25, 2025 old checklist (superseded by deployment/DEPLOYMENT_GUIDE.md)",
+      "deployment-report.md - Sept 25, 2025 old report (superseded by current deployment docs)",
+      "training-pipeline-demo.md - Sept 24, 2025 demo pipeline",
+      "training-pipeline-real-only.md - Sept 24, 2025 training pipeline",
+      "verification-integration.md - Sept 24, 2025 verification integration",
+      "verification-validation.md - Sept 24, 2025 verification validation"
+    ],
+    "reasoning": "Deprecated guides superseded by current deployment/ subdirectory documentation"
+  },
+  
+  "keep_planning_docs": {
+    "count": 3,
+    "files": [
+      "RESOURCE_MANAGEMENT_IMPLEMENTATION_PLAN.md - resource management planning (10KB)",
+      "RESOURCE_MANAGEMENT_TECHNICAL_SPECS.md - resource management specs (13KB)",
+      "analytics-system.md - analytics system design (11KB)"
+    ],
+    "reasoning": "Technical specifications and planning documents still referenced for ongoing development"
+  },
+  
+  "summary": {
+    "total_files_reviewed": 59,
+    "keep_files": 24,
+    "archive_files": 35,
+    "archive_breakdown": {
+      "phase_validations": 13,
+      "analysis_reports": 13,
+      "deprecated_guides": 6,
+      "training_demos": 3
+    }
+  },
+  
+  "archive_recommendations": {
+    "destination": "docs/archive/operations/",
+    "structure": {
+      "phase-validations/": "Phase-specific validation reports from Sept 2024-2025",
+      "analysis-reports/": "Point-in-time analysis and research reports",
+      "deprecated-guides/": "Superseded deployment and verification guides",
+      "training-demos/": "Historical training pipeline demonstrations"
+    },
+    "retention_policy": "Maintain for historical reference, exclude from active documentation navigation"
+  },
+  
+  "confidence": 0.92,
+  "reasoning": "Clear separation between current production operations (Oct 2025, v1.7) and historical phase-specific validations (Sept 2024-2025). Current deployment/, runbooks/, and top-level operations guides actively maintained. Archive candidates are clearly dated and phase-specific.",
+  
+  "blockers": [],
+  
+  "next_steps": [
+    "Create docs/archive/operations/ directory structure",
+    "Move 35 archived files to appropriate subdirectories",
+    "Update docs/operations/README.md to reflect current documentation",
+    "Add historical reference links in archive/operations/README.md",
+    "Update site navigation to exclude archived operations docs"
+  ]
+}
