@@ -5,13 +5,25 @@ tools: Read, Write, Edit, Bash, TodoWrite, mcp__claude-flow-novice__memory_usage
 model: sonnet
 provider: anthropic
 color: purple
-type: coordinator
+type: strategic
+acl_level: 4
 capabilities:
   - goap-planning
   - scope-enforcement
   - decision-authority
   - autonomous-execution
   - trade-off-analysis
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+lifecycle:
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'strategic', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
 ---
 
 # Product Owner Agent - GOAP Decision Authority
