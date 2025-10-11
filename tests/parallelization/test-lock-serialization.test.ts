@@ -13,7 +13,7 @@
  * @module tests/parallelization/test-lock-serialization
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Redis from 'ioredis';
 import { createServer, Server } from 'http';
 

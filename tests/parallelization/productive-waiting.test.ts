@@ -15,7 +15,7 @@
  * @module tests/parallelization/productive-waiting
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -59,9 +59,9 @@ interface FileConflict {
  * Mock Redis client for coordination
  */
 interface MockRedisClient {
-  set: jest.Mock;
-  get: jest.Mock;
-  del: jest.Mock;
+  set: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
+  del: ReturnType<typeof vi.fn>;
 }
 
 // ===== ENHANCED SPRINT COORDINATOR STUB =====
@@ -91,18 +91,18 @@ class SprintCoordinatorEnhanced {
     const storage = new Map<string, string>();
 
     return {
-      set: jest.fn().mockImplementation(
+      set: vi.fn().mockImplementation(
         async (key: string, value: string): Promise<string> => {
           storage.set(key, value);
           return 'OK';
         }
       ),
-      get: jest.fn().mockImplementation(
+      get: vi.fn().mockImplementation(
         async (key: string): Promise<string | null> => {
           return storage.get(key) || null;
         }
       ),
-      del: jest.fn().mockImplementation(
+      del: vi.fn().mockImplementation(
         async (key: string): Promise<number> => {
           const existed = storage.has(key);
           storage.delete(key);
@@ -256,10 +256,10 @@ describe('Dependency Waiting Productivity', () => {
 
   beforeEach(() => {
     // @ts-ignore - Jest mock typing is complex for these helper functions
-    const getMock = jest.fn().mockResolvedValue(null);
+    const getMock = vi.fn().mockResolvedValue(null);
     redis = {
       // @ts-ignore - Jest mock typing complexity
-      set: jest.fn().mockImplementation(
+      set: vi.fn().mockImplementation(
         async (key: string, value: string) => {
           getMock.mockResolvedValueOnce(value);
           return 'OK';
@@ -267,12 +267,12 @@ describe('Dependency Waiting Productivity', () => {
       ),
       get: getMock,
       // @ts-ignore - Jest mock typing complexity
-      del: jest.fn().mockResolvedValue(1),
+      del: vi.fn().mockResolvedValue(1),
     };
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // ===== PRODUCTIVITY MEASUREMENT TEST =====

@@ -1,0 +1,632 @@
+{
+  "agent": "tester",
+  "confidence": 0.67,
+  "test_results": {
+    "total_examples": 135,
+    "executable_examples": 114,
+    "pseudo_code_examples": 21,
+    "syntax_valid": 83,
+    "examples_tested": 114,
+    "examples_passed": 31,
+    "examples_failed": 52,
+    "failures": [
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 3,
+        "lines": "129-156",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Unexpected reserved word 'private'. (2:0)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 5,
+        "lines": "227-255",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (2:5)"
+        ],
+        "warnings": [
+          "Async operations without try/catch error handling"
+        ]
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 6,
+        "lines": "274-317",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (2:5)"
+        ],
+        "warnings": [
+          "Async operations without try/catch error handling"
+        ]
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 8,
+        "lines": "354-379",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 13,
+        "lines": "443-445",
+        "language": "typescript",
+        "issues": [
+          "Uses deprecated redis.keys() - should use SCAN instead"
+        ],
+        "warnings": [
+          "Async operations without try/catch error handling"
+        ]
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 14,
+        "lines": "449-462",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (2:5)"
+        ],
+        "warnings": [
+          "Async operations without try/catch error handling"
+        ]
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 16,
+        "lines": "475-483",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Unexpected reserved word 'private'. (2:0)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 18,
+        "lines": "500-514",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: 'return' outside of function. (11:4)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 19,
+        "lines": "536-554",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (2:5)"
+        ],
+        "warnings": [
+          "Async operations without try/catch error handling"
+        ]
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 21,
+        "lines": "595-604",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: 'return' outside of function. (3:2)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-pattern.md",
+        "example": 22,
+        "lines": "613-632",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Unexpected reserved word 'private'. (1:0)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "cfn-loop-examples.md",
+        "example": 3,
+        "lines": "102-194",
+        "language": "typescript",
+        "issues": [
+          "String comparison for signatures - should use timingSafeEqual"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "cfn-loop-examples.md",
+        "example": 15,
+        "lines": "982-995",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Identifier 'coordinator' has already been declared. (9:6)"
+        ],
+        "warnings": [
+          "Missing import for BlockingCoordinationManager"
+        ]
+      },
+      {
+        "file": "cfn-loop-examples.md",
+        "example": 16,
+        "lines": "1000-1011",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Identifier 'acks' has already been declared. (10:6)"
+        ],
+        "warnings": [
+          "Async operations without try/catch error handling"
+        ]
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 1,
+        "lines": "26-27",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (1:18)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 4,
+        "lines": "99-100",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 8,
+        "lines": "190-195",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 10,
+        "lines": "240-241",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 12,
+        "lines": "275-279",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 14,
+        "lines": "309-313",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 16,
+        "lines": "358-359",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:20)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 18,
+        "lines": "377-378",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:21)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 20,
+        "lines": "396-397",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:16)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 22,
+        "lines": "413-414",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:23)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 24,
+        "lines": "430-436",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:16)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 26,
+        "lines": "458-459",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 28,
+        "lines": "481-482",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (1:18)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 31,
+        "lines": "533-534",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:17)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 33,
+        "lines": "554-555",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:16)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 35,
+        "lines": "575-579",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 37,
+        "lines": "613-614",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 39,
+        "lines": "644-649",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 41,
+        "lines": "673-677",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 43,
+        "lines": "715-721",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:12)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 45,
+        "lines": "739-740",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:14)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 48,
+        "lines": "792-793",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (1:18)"
+        ],
+        "warnings": [
+          "Missing import for BlockingCoordinationSignals"
+        ]
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 51,
+        "lines": "831-832",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 53,
+        "lines": "852-853",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 55,
+        "lines": "869-876",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 58,
+        "lines": "926-927",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 61,
+        "lines": "975-976",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 63,
+        "lines": "997-998",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 65,
+        "lines": "1019-1020",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 67,
+        "lines": "1041-1047",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:15)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 69,
+        "lines": "1065-1066",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:17)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 71,
+        "lines": "1084-1085",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Unexpected token (1:33)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 74,
+        "lines": "1131-1132",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:5)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 76,
+        "lines": "1173-1174",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:10)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 79,
+        "lines": "1210-1211",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Missing semicolon. (1:7)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 81,
+        "lines": "1233-1234",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (1:16)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 84,
+        "lines": "1287-1290",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (2:17)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 86,
+        "lines": "1320-1323",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (2:18)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 88,
+        "lines": "1353-1356",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (2:23)"
+        ],
+        "warnings": []
+      },
+      {
+        "file": "blocking-coordination-api.md",
+        "example": 90,
+        "lines": "1377-1380",
+        "language": "typescript",
+        "issues": [
+          "Syntax error: Did not expect a type annotation here. (2:23)"
+        ],
+        "warnings": []
+      }
+    ]
+  },
+  "blockers": [
+    "blocking-coordination-pattern.md:129-156: Syntax error",
+    "blocking-coordination-pattern.md:227-255: Syntax error",
+    "blocking-coordination-pattern.md:274-317: Syntax error",
+    "blocking-coordination-pattern.md:354-379: Syntax error",
+    "blocking-coordination-pattern.md:449-462: Syntax error",
+    "blocking-coordination-pattern.md:475-483: Syntax error",
+    "blocking-coordination-pattern.md:500-514: Syntax error",
+    "blocking-coordination-pattern.md:536-554: Syntax error",
+    "blocking-coordination-pattern.md:595-604: Syntax error",
+    "blocking-coordination-pattern.md:613-632: Syntax error",
+    "cfn-loop-examples.md:982-995: Syntax error",
+    "cfn-loop-examples.md:1000-1011: Syntax error",
+    "blocking-coordination-api.md:26-27: Syntax error",
+    "blocking-coordination-api.md:99-100: Syntax error",
+    "blocking-coordination-api.md:190-195: Syntax error",
+    "blocking-coordination-api.md:240-241: Syntax error",
+    "blocking-coordination-api.md:275-279: Syntax error",
+    "blocking-coordination-api.md:309-313: Syntax error",
+    "blocking-coordination-api.md:358-359: Syntax error",
+    "blocking-coordination-api.md:377-378: Syntax error",
+    "blocking-coordination-api.md:396-397: Syntax error",
+    "blocking-coordination-api.md:413-414: Syntax error",
+    "blocking-coordination-api.md:430-436: Syntax error",
+    "blocking-coordination-api.md:458-459: Syntax error",
+    "blocking-coordination-api.md:481-482: Syntax error",
+    "blocking-coordination-api.md:533-534: Syntax error",
+    "blocking-coordination-api.md:554-555: Syntax error",
+    "blocking-coordination-api.md:575-579: Syntax error",
+    "blocking-coordination-api.md:613-614: Syntax error",
+    "blocking-coordination-api.md:644-649: Syntax error",
+    "blocking-coordination-api.md:673-677: Syntax error",
+    "blocking-coordination-api.md:715-721: Syntax error",
+    "blocking-coordination-api.md:739-740: Syntax error",
+    "blocking-coordination-api.md:792-793: Syntax error",
+    "blocking-coordination-api.md:831-832: Syntax error",
+    "blocking-coordination-api.md:852-853: Syntax error",
+    "blocking-coordination-api.md:869-876: Syntax error",
+    "blocking-coordination-api.md:926-927: Syntax error",
+    "blocking-coordination-api.md:975-976: Syntax error",
+    "blocking-coordination-api.md:997-998: Syntax error",
+    "blocking-coordination-api.md:1019-1020: Syntax error",
+    "blocking-coordination-api.md:1041-1047: Syntax error",
+    "blocking-coordination-api.md:1065-1066: Syntax error",
+    "blocking-coordination-api.md:1084-1085: Syntax error",
+    "blocking-coordination-api.md:1131-1132: Syntax error",
+    "blocking-coordination-api.md:1173-1174: Syntax error",
+    "blocking-coordination-api.md:1210-1211: Syntax error",
+    "blocking-coordination-api.md:1233-1234: Syntax error",
+    "blocking-coordination-api.md:1287-1290: Syntax error",
+    "blocking-coordination-api.md:1320-1323: Syntax error",
+    "blocking-coordination-api.md:1353-1356: Syntax error",
+    "blocking-coordination-api.md:1377-1380: Syntax error"
+  ],
+  "recommendations": [
+    "Fix 31 occurrence(s): Async operations without try/catch error handling",
+    "Fix 19 occurrence(s): Syntax error: Missing semicolon. (1:5)",
+    "Fix 4 occurrence(s): Syntax error: Missing semicolon. (2:5)",
+    "Fix 3 occurrence(s): Syntax error: Did not expect a type annotation here. (1:18)",
+    "Fix 3 occurrence(s): Syntax error: Missing semicolon. (1:16)"
+  ]
+}

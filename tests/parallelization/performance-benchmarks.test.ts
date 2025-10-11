@@ -15,7 +15,7 @@
  * @module tests/parallelization/performance-benchmarks
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createClient, RedisClientType } from 'redis';
 import type { BlockingCoordinationManager, CoordinationSignal } from '../../src/cfn-loop/blocking-coordination.js';
 
@@ -338,7 +338,7 @@ describe('Sprint Parallelization Performance Benchmarks', () => {
   let redisClient: RedisClientType;
 
   // Set timeout for all tests in this suite (60 seconds)
-  jest.setTimeout(60000);
+  // Timeout handled by vitest config
 
   beforeEach(async () => {
     // Connect to Redis

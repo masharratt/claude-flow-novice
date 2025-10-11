@@ -8,7 +8,8 @@
     "Maintain quality with ≥0.90 consensus across all parallel streams",
     "Prevent resource conflicts (test execution, memory leaks, agent cleanup)",
     "Enable productive waiting for dependent sprints",
-    "Provide real-time coordination via Redis pub/sub (10K+ msg/sec)"
+    "Provide real-time coordination via Redis pub/sub (10K+ msg/sec)",
+    "Enable crash recovery with <5% work loss on VS Code crashes"
   ],
   "dependencies": {
     "infrastructure": [
@@ -63,6 +64,12 @@
         "purpose": "Resolve file and resource conflicts",
         "count": "1 per meta-coordinator",
         "responsibilities": ["Merge conflict detection", "Redis lock arbitration", "Interface validation"]
+      },
+      {
+        "name": "RecoveryManager",
+        "purpose": "Handle VS Code crashes and state recovery",
+        "count": "1 (singleton)",
+        "responsibilities": ["Redis state checkpointing", "Crash detection", "State restoration", "Progress recovery"]
       }
     ],
     "communication": {
@@ -78,6 +85,125 @@
     }
   },
   "sprints": [
+    {
+      "id": "sprint-0",
+      "name": "Phase 0: Crash Recovery & State Persistence",
+      "duration_estimate": "3-4 days",
+      "dependencies": [],
+      "phases": [
+        {
+          "id": "phase-0.1",
+          "name": "Redis State Checkpointing",
+          "tasks": [
+            "Implement state checkpoint every 30 seconds to Redis",
+            "Store epic state (sprints, progress, phase)",
+            "Store sprint state (agents, files, confidence scores)",
+            "Store agent state (current task, file, line number)",
+            "Implement checkpoint compression for large states"
+          ],
+          "deliverables": [
+            "src/cfn-loop/state-checkpoint-manager.ts",
+            "src/cfn-loop/checkpoint-serializer.ts",
+            "tests/cfn-loop/state-checkpoint.test.ts"
+          ],
+          "acceptance_criteria": [
+            "State checkpoints every 30s during execution",
+            "Checkpoint size < 1MB per sprint",
+            "Checkpoint write time < 100ms",
+            "State includes all file edits and agent progress"
+          ]
+        },
+        {
+          "id": "phase-0.2",
+          "name": "Crash Detection System",
+          "tasks": [
+            "Detect interrupted executions on CLI startup",
+            "Scan Redis for running epics without heartbeats",
+            "Compare last checkpoint timestamp vs current time",
+            "Identify sprints in progress vs completed",
+            "Calculate recovery estimate (time and work lost)"
+          ],
+          "deliverables": [
+            "src/cfn-loop/crash-detector.ts",
+            "src/cli/commands/recovery-status.ts",
+            "tests/cfn-loop/crash-detection.test.ts"
+          ],
+          "acceptance_criteria": [
+            "Detects interrupted epics within 5 seconds of CLI start",
+            "Shows accurate sprint progress percentages",
+            "Calculates estimated recovery time",
+            "Differentiates between crash and clean shutdown"
+          ]
+        },
+        {
+          "id": "phase-0.3",
+          "name": "State Recovery Engine",
+          "tasks": [
+            "Implement recovery prompt with options (resume/restart/inspect)",
+            "Load checkpoint state from Redis",
+            "Resume agents from last known state",
+            "Skip completed sprints, resume in-progress sprints",
+            "Handle partially written files (compare disk vs checkpoint)",
+            "Re-establish coordination locks and dependencies"
+          ],
+          "deliverables": [
+            "src/cfn-loop/recovery-engine.ts",
+            "src/cli/commands/recovery-resume.ts",
+            "tests/cfn-loop/recovery-engine.test.ts"
+          ],
+          "acceptance_criteria": [
+            "Resumes execution within 2 minutes of crash",
+            "Work loss < 5% for crashes at any point",
+            "Completed sprints not re-executed",
+            "In-progress files resume from last completed section",
+            "Test locks and dependencies correctly restored"
+          ]
+        },
+        {
+          "id": "phase-0.4",
+          "name": "Git Auto-Checkpoint",
+          "tasks": [
+            "Auto-commit work in progress every 5 minutes",
+            "Create WIP branches per sprint (epic-123/sprint-2-wip)",
+            "Tag commits with confidence scores",
+            "Compare git checkpoint vs Redis checkpoint on recovery",
+            "Use newer checkpoint (Redis usually more recent)"
+          ],
+          "deliverables": [
+            "src/cfn-loop/git-checkpoint-manager.ts",
+            "tests/cfn-loop/git-checkpoint.test.ts"
+          ],
+          "acceptance_criteria": [
+            "WIP commits every 5 minutes during execution",
+            "Commits include sprint progress metadata",
+            "Recovery uses most recent checkpoint (git or Redis)",
+            "WIP branches cleaned up after successful completion"
+          ]
+        },
+        {
+          "id": "phase-0.5",
+          "name": "Recovery CLI Commands",
+          "tasks": [
+            "Implement /recovery:status command",
+            "Implement /recovery:resume command",
+            "Implement /recovery:inspect command",
+            "Implement /recovery:abandon command",
+            "Add recovery UI to dashboard"
+          ],
+          "deliverables": [
+            "src/cli/commands/recovery.ts",
+            "src/web/dashboard/recovery-ui.tsx",
+            "tests/cli/recovery-commands.test.ts"
+          ],
+          "acceptance_criteria": [
+            "CLI shows interrupted epics on startup",
+            "User can resume, inspect, or abandon",
+            "Dashboard shows recovery progress",
+            "Dry-run mode shows what would be recovered"
+          ]
+        }
+      ]
+    },
     {
       "id": "sprint-1",
       "name": "Phase 1: Dependency Analysis Engine",
@@ -397,9 +523,9 @@
     "independent_groups": [
       {
         "name": "Foundation Group",
-        "sprints": ["sprint-1", "sprint-2", "sprint-3"],
+        "sprints": ["sprint-0", "sprint-1", "sprint-2", "sprint-3"],
         "parallelizable": true,
-        "estimated_duration": "4 days (parallel) vs 7 days (sequential)"
+        "estimated_duration": "4 days (parallel) vs 10 days (sequential)"
       },
       {
         "name": "Integration Group",
@@ -417,9 +543,9 @@
       }
     ],
     "total_duration": {
-      "sequential": "19 days",
+      "sequential": "22 days",
       "parallel": "13 days",
-      "improvement": "32% faster"
+      "improvement": "41% faster"
     }
   },
   "resource_limits": {
@@ -444,7 +570,10 @@
       "memory_usage_per_sprint_bytes",
       "conflict_resolution_count",
       "agent_orphan_cleanup_count",
-      "dependency_wait_productive_time_seconds"
+      "dependency_wait_productive_time_seconds",
+      "crash_recovery_time_seconds",
+      "checkpoint_write_time_seconds",
+      "work_loss_percentage_on_crash"
     ],
     "alerts": [
       {
@@ -466,6 +595,16 @@
         "name": "ConflictEscalation",
         "condition": "unresolved_conflicts > 3",
         "severity": "critical"
+      },
+      {
+        "name": "InterruptedExecutionDetected",
+        "condition": "interrupted_epic_found = true",
+        "severity": "warning"
+      },
+      {
+        "name": "HighWorkLossOnRecovery",
+        "condition": "work_loss_percentage > 10%",
+        "severity": "warning"
       }
     ]
   },
@@ -492,7 +631,9 @@
     "reliability": [
       "99% success rate with 10% random agent failures (chaos test)",
       "Recovery time < 2 minutes for dead agent detection",
-      "Test lock force-release < 15 minutes for stale locks"
+      "Test lock force-release < 15 minutes for stale locks",
+      "Work loss < 5% on VS Code crash at any execution point",
+      "Resume from checkpoint within 2 minutes of crash"
     ]
   },
   "documentation": {
@@ -506,7 +647,7 @@
     "created": "2025-10-10",
     "author": "CFN Loop Parallelization Team",
     "version": "1.0.0",
-    "estimated_effort": "18-22 days (parallel execution)",
+    "estimated_effort": "13 days (parallel execution)",
     "target_release": "v3.0.0"
   }
 }
