@@ -58,24 +58,55 @@
       document.getElementById('avgDuration').textContent = data.averageBlockingDuration + 'ms';
       document.getElementById('timeoutEvents').textContent = data.timeoutEvents;
 
-      // Render coordinators
+      // Render coordinators (XSS-safe)
       const coordList = document.getElementById('coordinatorList');
-      coordList.innerHTML = data.coordinatorDetails.map(c => `
-        <div class="coordinator">
-          <strong>${c.coordinatorId}</strong> (${c.swarmId})<br>
-          Status: ${c.status} | Duration: ${c.duration}ms | Phase: ${c.phase}
-        </div>
-      `).join('');
+      coordList.innerHTML = '';
+      data.coordinatorDetails.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'coordinator';
 
-      // Render heartbeats
+        const title = document.createElement('strong');
+        title.textContent = c.coordinatorId;
+        div.appendChild(title);
+
+        const info = document.createTextNode(` (${c.swarmId})`);
+        div.appendChild(info);
+
+        div.appendChild(document.createElement('br'));
+
+        const status = document.createTextNode(
+          `Status: ${c.status} | Duration: ${c.duration}ms | Phase: ${c.phase}`
+        );
+        div.appendChild(status);
+
+        coordList.appendChild(div);
+      });
+
+      // Render heartbeats (XSS-safe)
       const hbList = document.getElementById('heartbeatList');
-      hbList.innerHTML = data.heartbeatStatus.map(hb => `
-        <div class="coordinator">
-          <strong>${hb.coordinatorId}</strong>
-          <span class="status-${hb.status}">● ${hb.status.toUpperCase()}</span><br>
-          Age: ${Math.round(hb.age/1000)}s | Iteration: ${hb.iteration}
-        </div>
-      `).join('');
+      hbList.innerHTML = '';
+      data.heartbeatStatus.forEach(hb => {
+        const div = document.createElement('div');
+        div.className = 'coordinator';
+
+        const title = document.createElement('strong');
+        title.textContent = hb.coordinatorId;
+        div.appendChild(title);
+
+        const status = document.createElement('span');
+        status.className = `status-${hb.status}`;
+        status.textContent = `● ${hb.status.toUpperCase()}`;
+        div.appendChild(status);
+
+        div.appendChild(document.createElement('br'));
+
+        const info = document.createTextNode(
+          `Age: ${Math.round(hb.age/1000)}s | Iteration: ${hb.iteration}`
+        );
+        div.appendChild(info);
+
+        hbList.appendChild(div);
+      });
     }
 
     // Auto-refresh every 5 seconds

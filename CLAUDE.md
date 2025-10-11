@@ -567,6 +567,77 @@ pkill -f vitest; pkill -f "npm test"  # Force terminate hanging test processes
 
 ---
 
+## 11) Metrics Reporting Standards
+
+When reporting file counts and build metrics in completion reports, use these standardized commands:
+
+### TypeScript Source Files
+```bash
+# Count all TypeScript source files
+find src -name "*.ts" -o -name "*.tsx" | wc -l
+# Report as: "X TypeScript source files"
+```
+
+### JavaScript Output Files
+```bash
+# Count compiled JavaScript files (after build)
+find .claude-flow-novice/dist -name "*.js" 2>/dev/null | wc -l
+# OR: find dist -name "*.js" 2>/dev/null | wc -l
+# Report as: "X JavaScript output files" or "X files compiled to dist/"
+```
+
+### Build Compilation Ratio
+```bash
+# Calculate tree-shaking effectiveness
+echo "scale=1; ($(find dist -name "*.js" | wc -l) * 100) / $(find src -name "*.ts" -o -name "*.tsx" | wc -l)" | bc
+# Report as: "X% compilation ratio (indicates tree-shaking effectiveness)"
+```
+
+### Lines of Code
+```bash
+# Count total lines (excluding node_modules, dist, .git)
+find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" | grep -v node_modules | grep -v dist | grep -v .git | xargs wc -l | tail -1
+```
+
+### Reporting Format
+
+When writing completion reports, ALWAYS clarify context:
+- ❌ "691 TypeScript files compiled" (ambiguous - source or output?)
+- ✅ "10,047 TypeScript source files compiled to 812 JavaScript output files (8% ratio)"
+- ✅ "Build compiled 691 TypeScript files from src/ to dist/"
+
+### Recommended Report Structure
+
+```json
+{
+  "build_metrics": {
+    "source_files": {
+      "typescript": 10047,
+      "javascript": 150
+    },
+    "output_files": {
+      "javascript": 812,
+      "sourcemaps": 812
+    },
+    "compilation_ratio": "8%",
+    "build_time_ms": 938
+  }
+}
+```
+
+### Helper Script
+
+Use the standardized metrics collection script:
+```bash
+# Human-readable output
+node scripts/collect-build-metrics.js
+
+# JSON output for reports
+node scripts/collect-build-metrics.js --json
+```
+
+---
+
 ## Additional Commands
 
 For specialized commands (compliance, performance optimization, WASM, build/deployment, neural operations, GitHub integration, workflow automation, security/monitoring, debugging, and SDK integration), see `readme/additional-commands.md`.
