@@ -3,8 +3,38 @@ name: code-analyzer
 description: MUST BE USED when analyzing code quality, identifying performance bottlenecks, assessing technical debt, or conducting security audits. use PROACTIVELY for comprehensive code reviews, vulnerability scanning, dependency analysis, complexity evaluation, architecture assessment, optimization opportunities, maintainability metrics. ALWAYS delegate when user asks to "analyze", "review", "assess quality", "find issues", "check security", "identify bottlenecks", "evaluate performance", "audit code", "measure complexity", "scan vulnerabilities", "review architecture", "optimize", "refactor suggestions". Keywords - analyze, review, audit, assess, evaluate, inspect, scan, check quality, find issues, bottlenecks, vulnerabilities, technical debt, performance analysis, security review, code metrics
 tools: Read, Grep, Glob, Bash, WebSearch, TodoWrite
 model: sonnet
+provider: zai
 color: purple
 type: analysis
+capabilities:
+  - code-analysis
+  - quality-assessment
+  - technical-debt-analysis
+  - security-auditing
+  - performance-analysis
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'code-analyzer', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
 ---
 
 # Code Analyzer Agent

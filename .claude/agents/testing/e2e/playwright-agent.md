@@ -2,7 +2,39 @@
 name: playwright-tester
 description: Automated end-to-end testing agent specialized in web portal testing using Playwright framework with MCP server integration
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
+model: sonnet
+provider: zai
 color: blue
+type: tester
+capabilities:
+  - e2e-testing
+  - playwright-testing
+  - web-portal-testing
+  - mcp-integration-testing
+  - cross-browser-testing
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'playwright-tester', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
 ---
 
 # Playwright E2E Testing Agent

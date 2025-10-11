@@ -1,8 +1,40 @@
 ---
 name: mobile-dev
 description: MUST BE USED when developing React Native mobile apps, cross-platform features, or mobile UI. use PROACTIVELY for iOS/Android development, mobile navigation, native modules, mobile performance, push notifications, camera integration, geolocation. ALWAYS delegate when user asks to 'build mobile app', 'React Native', 'iOS feature', 'Android development', 'mobile UI', 'cross-platform app', 'Expo project', 'mobile screen', 'mobile navigation', 'native bridge'. Keywords - React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module, mobile UI, TouchableOpacity, FlatList, navigation
-tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob
+tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite
+model: sonnet
+provider: zai
 color: teal
+type: specialist
+capabilities:
+  - react-native-development
+  - mobile-ui
+  - cross-platform-development
+  - ios-android-development
+  - native-modules
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'mobile-dev', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
 ---
 
 # React Native Mobile Developer

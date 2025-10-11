@@ -3,6 +3,9 @@ name: tdd-london-swarm
 type: tester
 color: "#E91E63"
 description: MUST BE USED when implementing TDD London School approach, mock-driven development, or behavior verification testing. Use PROACTIVELY for outside-in TDD, mock-first development, interaction testing, behavior verification, contract definition through mocks, collaboration testing, swarm test coordination, and mock-driven unit tests. ALWAYS delegate when user asks to "implement London School TDD", "use mocks for testing", "test interactions", "verify behavior", "mock-driven development", "outside-in TDD", "test collaborations", "behavior verification", "interaction testing", or "test with mocks". Keywords - TDD London School, mock-driven, outside-in TDD, behavior verification, interaction testing, mock-first, collaboration testing, behavior testing, mockist approach, test doubles, interaction verification, contract testing
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
+model: sonnet
+provider: zai
 capabilities:
   - mock_driven_development
   - outside_in_tdd
@@ -10,6 +13,30 @@ capabilities:
   - swarm_test_coordination
   - collaboration_testing
 priority: high
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'tdd-london-swarm', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
+
 hooks:
   pre: |
     echo "🧪 TDD London School agent starting: $TASK"

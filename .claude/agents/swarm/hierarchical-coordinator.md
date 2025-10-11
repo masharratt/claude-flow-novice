@@ -5,6 +5,8 @@ acl_level: 3  # Swarm
 color: "#FF6B35"
 description: Queen-led hierarchical swarm coordination with specialized worker delegation
 tools: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite]
+model: sonnet
+provider: zai
 capabilities:
   - swarm_coordination
   - task_decomposition
