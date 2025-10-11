@@ -29,6 +29,13 @@ import {
   SprintOrchestratorConfig,
   EpicResult
 } from './sprint-orchestrator.js';
+import {
+  RedisPubSubHelper,
+  createRedisPubSubHelper,
+  REDIS_CHANNELS,
+  type SprintLifecycleEvent,
+  type AgentLifecycleEvent,
+} from './redis-pubsub-helpers.js';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -145,6 +152,7 @@ export class MetaCoordinator extends EventEmitter {
   private logger: Logger;
   private config: Required<MetaCoordinatorConfig>;
   private redis: Redis;
+  private pubSubHelper: RedisPubSubHelper;
 
   // Coordinator instances
   private coordinators: Map<string, CoordinatorInstance> = new Map();
@@ -191,6 +199,9 @@ export class MetaCoordinator extends EventEmitter {
         : { level: 'info', format: 'json', destination: 'console' };
 
     this.logger = new Logger(loggerConfig, { component: 'MetaCoordinator' });
+
+    // Initialize Redis pub/sub helper
+    this.pubSubHelper = createRedisPubSubHelper(this.redis, loggerConfig);
 
     this.logger.info('Meta-Coordinator initialized', {
       epicId: this.config.epicId,
@@ -382,7 +393,14 @@ export class MetaCoordinator extends EventEmitter {
       this.coordinators.set(coordinatorId, instance);
       this.activeCoordinators.add(coordinatorId);
 
-      // Publish start event
+      // Publish sprint start event via Redis pub/sub (CRITICAL: Rule #19)
+      await this.pubSubHelper.publishSprintStart(
+        group.groupId,
+        coordinatorId,
+        group.dependencies
+      );
+
+      // Also publish to local coordination channel for backward compatibility
       await this.publishProgress({
         coordinatorId,
         groupId: group.groupId,
@@ -436,6 +454,13 @@ export class MetaCoordinator extends EventEmitter {
       if (result.success) {
         this.completedGroups.add(instance.group.groupId);
 
+        // Publish sprint complete event via Redis pub/sub (CRITICAL: Rule #19)
+        await this.pubSubHelper.publishSprintComplete(
+          instance.group.groupId,
+          result.statistics.averageConfidence,
+          'DEFER' // Product Owner decision from Loop 4
+        );
+
         await this.publishProgress({
           coordinatorId: instance.coordinatorId,
           groupId: instance.group.groupId,
@@ -445,6 +470,12 @@ export class MetaCoordinator extends EventEmitter {
         });
       } else {
         this.failedGroups.add(instance.group.groupId);
+
+        // Publish sprint failed event via Redis pub/sub (CRITICAL: Rule #19)
+        await this.pubSubHelper.publishSprintFailed(
+          instance.group.groupId,
+          result.failedSprints.join(', ')
+        );
 
         await this.publishProgress({
           coordinatorId: instance.coordinatorId,
@@ -616,13 +647,60 @@ export class MetaCoordinator extends EventEmitter {
 
   /**
    * Subscribe to coordination events via Redis pub/sub
+   *
+   * CRITICAL (Rule #19): ALL coordinator communication MUST use Redis pub/sub
    */
   private async subscribeToCoordinationEvents(): Promise<void> {
-    // In a real implementation, this would subscribe to Redis pub/sub channel
-    // For now, we'll use EventEmitter for internal coordination
-    this.logger.debug('Subscribing to coordination events', {
+    this.logger.info('Subscribing to coordination events', {
       channel: this.COORDINATION_CHANNEL,
+      sprintCoordinationChannel: REDIS_CHANNELS.SPRINT_COORDINATION,
+      agentLifecycleChannel: REDIS_CHANNELS.AGENT_LIFECYCLE,
     });
+
+    // Subscribe to sprint coordination events
+    await this.pubSubHelper.subscribeToSprintCoordination(async (event) => {
+      this.logger.debug('Sprint coordination event received', {
+        type: event.type,
+        sprintId: event.sprintId,
+        coordinatorId: event.coordinatorId,
+      });
+
+      // Handle sprint lifecycle events
+      if (event.type === 'sprint:complete') {
+        this.logger.info('Sprint completed event', {
+          sprintId: event.sprintId,
+          consensus: event.consensus,
+          decision: event.decision,
+        });
+        // Mark group as completed (if not already marked)
+        // This provides redundancy with direct orchestrator monitoring
+      } else if (event.type === 'sprint:failed') {
+        this.logger.error('Sprint failed event', {
+          sprintId: event.sprintId,
+        });
+      }
+    });
+
+    // Subscribe to agent lifecycle events for monitoring
+    await this.pubSubHelper.subscribeToAgentLifecycle(async (event) => {
+      this.logger.debug('Agent lifecycle event received', {
+        type: event.type,
+        agentId: event.agentId,
+        sprintId: event.sprintId,
+        role: event.role,
+      });
+
+      // Monitor agent spawning and completion for coordination metrics
+      if (event.type === 'agent:spawned') {
+        this.emit('agent:spawned', event);
+      } else if (event.type === 'agent:completed') {
+        this.emit('agent:completed', event);
+      } else if (event.type === 'agent:failed') {
+        this.emit('agent:failed', event);
+      }
+    });
+
+    this.logger.info('Subscribed to all coordination channels');
   }
 
   /**

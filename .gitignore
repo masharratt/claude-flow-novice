@@ -145,12 +145,24 @@ memory/agents/*
 coordination/memory_bank/*
 coordination/subtasks/*
 coordination/orchestration/*
+# Database files - block all by default (protected by pre-commit hook)
 *.db
 *.db-journal
 *.db-wal
 *.sqlite
 *.sqlite-journal
 *.sqlite-wal
+
+# Allow specific project databases (protected by pre-commit secret scanning)
+!.artifacts/database/swarm-memory.db
+!.artifacts/database/coordination-state.db
+!memory/project-context.db
+
+# Still block temporary/cache databases
+**/*-temp.db
+**/*-temp.sqlite
+**/*-cache.db
+**/*-cache.sqlite
 claude-flow
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt

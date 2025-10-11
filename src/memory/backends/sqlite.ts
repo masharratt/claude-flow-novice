@@ -8,6 +8,7 @@ import type { IMemoryBackend } from './base.js';
 import type { MemoryEntry, MemoryQuery } from '../../utils/types.js';
 import type { ILogger } from '../../core/logger.js';
 import { MemoryBackendError } from '../../utils/errors.js';
+import { SecretDetector } from '../secret-detector.js';
 
 // Dynamic imports for SQLite
 let createDatabase: any;
@@ -19,11 +20,21 @@ let isSQLiteAvailable: any;
 export class SQLiteBackend implements IMemoryBackend {
   private db?: any;
   private sqliteLoaded: boolean = false;
+  private secretDetector: SecretDetector;
 
   constructor(
     private dbPath: string,
     private logger: ILogger,
-  ) {}
+  ) {
+    // Initialize secret detector with default configuration
+    this.secretDetector = new SecretDetector({
+      enabled: true,
+      strictMode: false,
+      allowedPatterns: [],
+      customPatterns: [],
+      includeMatchedText: false
+    });
+  }
 
   async initialize(): Promise<void> {
     this.logger.info('Initializing SQLite backend', { dbPath: this.dbPath });
@@ -82,9 +93,20 @@ export class SQLiteBackend implements IMemoryBackend {
       throw new MemoryBackendError('Database not initialized');
     }
 
+    // Sanitize entry before storage (throws on critical secrets)
+    try {
+      this.secretDetector.sanitizeForStorage(entry);
+    } catch (error) {
+      this.logger.error('Secret detection failed - cannot store entry', {
+        entryId: entry.id,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw new MemoryBackendError('Cannot store entry with secrets', { error });
+    }
+
     const sql = `
       INSERT OR REPLACE INTO memory_entries (
-        id, agent_id, session_id, type, content, 
+        id, agent_id, session_id, type, content,
         context, timestamp, tags, version, parent_id, metadata
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;

@@ -5,7 +5,7 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', swarm: 'swarm_mgm4vg5k_t5rwmv0' });
+  res.json({ status: 'healthy', swarm: 'swarm_mgmje6va_fi395sj' });
 });
 
 app.get('/api/items', (req, res) => {

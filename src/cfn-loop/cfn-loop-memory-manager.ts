@@ -26,6 +26,7 @@ import { Logger } from '../core/logger.js';
 import type { Redis } from 'ioredis';
 import type { LoggingConfig } from '../utils/types.js';
 import { NamespaceSanitizer } from '../utils/namespace-sanitizer.js';
+import { SecretDetector } from '../memory/secret-detector.js';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -171,6 +172,7 @@ export class CFNLoopMemoryManager extends EventEmitter {
   private dualWriteTimeout: number;
   private enableEncryption: boolean;
   private compressionThreshold: number;
+  private secretDetector: SecretDetector;
 
   // Metrics
   private metrics = {
@@ -201,6 +203,15 @@ export class CFNLoopMemoryManager extends EventEmitter {
       outputDir: './logs'
     };
     this.logger = new Logger('cfn-loop-memory-manager', loggingConfig);
+
+    // Initialize secret detector
+    this.secretDetector = new SecretDetector({
+      enabled: true,
+      strictMode: false,
+      allowedPatterns: [],
+      customPatterns: [],
+      includeMatchedText: false
+    });
 
     // Initialize SQLite (lazy loaded)
     this.sqlite = null;
@@ -255,6 +266,17 @@ export class CFNLoopMemoryManager extends EventEmitter {
       agentId: data.agentId,
       confidence: data.confidence
     });
+
+    // Sanitize data before storage (throws on critical secrets)
+    try {
+      this.secretDetector.sanitizeForStorage(data);
+    } catch (error) {
+      this.logger.error('Secret detection failed - cannot store Loop 3 confidence', {
+        key,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
 
     try {
       // 1. Write to Redis first (fail fast)
@@ -371,6 +393,17 @@ export class CFNLoopMemoryManager extends EventEmitter {
       status: data.status,
       score: data.currentScore
     });
+
+    // Sanitize data before storage (throws on critical secrets)
+    try {
+      this.secretDetector.sanitizeForStorage(data);
+    } catch (error) {
+      this.logger.error('Secret detection failed - cannot store Loop 2 consensus', {
+        key,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
 
     try {
       // 1. Write to Redis first (fail fast)
@@ -552,6 +585,17 @@ export class CFNLoopMemoryManager extends EventEmitter {
       decisionId: data.decisionId,
       decision: data.decision
     });
+
+    // Sanitize data before storage (throws on critical secrets)
+    try {
+      this.secretDetector.sanitizeForStorage(data);
+    } catch (error) {
+      this.logger.error('Secret detection failed - cannot store Loop 4 decision', {
+        key,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
 
     try {
       // 1. Write to Redis first (fail fast)

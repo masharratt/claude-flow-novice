@@ -26,6 +26,15 @@ import { sessionCommand } from "./session.js";
 import { setupWizardCommand } from "./setup-wizard.js";
 import { validateSetupCommand } from "./validate-setup.js";
 
+// Import CFN Loop recovery commands
+import {
+  handleRecoveryStatus,
+  handleRecoveryInspect,
+  handleRecoveryResume,
+  handleRecoveryRestart,
+  handleRecoveryAbandon
+} from "./recovery-status.js";
+
 let orchestrator: Orchestrator | null = null;
 let configManager: ConfigManager | null = null;
 let persistence: JsonPersistenceManager | null = null;
@@ -3255,6 +3264,85 @@ Now, please proceed with the task: ${task}`;
   for (const command of enterpriseCommands) {
     cli.command(command);
   }
+
+  // Add CFN Loop recovery commands
+  cli.command({
+    name: "recovery",
+    description: "CFN Loop crash recovery management",
+    subcommands: [
+      {
+        name: "status",
+        description: "Show recovery dashboard for interrupted executions",
+        options: [
+          {
+            name: "detailed",
+            short: "d",
+            description: "Show detailed information",
+            type: "boolean",
+          },
+        ],
+        action: async (ctx: CommandContext) => {
+          await handleRecoveryStatus({ detailed: ctx.flags.detailed as boolean });
+        },
+      },
+      {
+        name: "inspect",
+        description: "Detailed inspection of interrupted epic",
+        args: [
+          {
+            name: "epicId",
+            description: "Epic ID to inspect",
+            required: true,
+          },
+        ],
+        action: async (ctx: CommandContext) => {
+          await handleRecoveryInspect(ctx.args[0] as string);
+        },
+      },
+      {
+        name: "resume",
+        description: "Resume execution from latest checkpoint",
+        args: [
+          {
+            name: "epicId",
+            description: "Epic ID to resume",
+            required: true,
+          },
+        ],
+        action: async (ctx: CommandContext) => {
+          await handleRecoveryResume(ctx.args[0] as string);
+        },
+      },
+      {
+        name: "restart",
+        description: "Restart execution from beginning",
+        args: [
+          {
+            name: "epicId",
+            description: "Epic ID to restart",
+            required: true,
+          },
+        ],
+        action: async (ctx: CommandContext) => {
+          await handleRecoveryRestart(ctx.args[0] as string);
+        },
+      },
+      {
+        name: "abandon",
+        description: "Abandon execution and cleanup",
+        args: [
+          {
+            name: "epicId",
+            description: "Epic ID to abandon",
+            required: true,
+          },
+        ],
+        action: async (ctx: CommandContext) => {
+          await handleRecoveryAbandon(ctx.args[0] as string);
+        },
+      },
+    ],
+  });
 }
 
 function getCapabilitiesForType(type: string): string[] {
