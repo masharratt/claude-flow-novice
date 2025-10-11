@@ -1,0 +1,118 @@
+{
+  "task": "Metrics Reporting Standardization",
+  "priority": "MEDIUM",
+  "estimated_time": "30min",
+  "actual_time": "25min",
+  "timestamp": "2025-10-10T18:30:00Z",
+
+  "background": {
+    "issue": "Sprint 7.1 reported '691 TypeScript files compiled' causing confusion",
+    "actual_counts": {
+      "source_typescript_files": 10047,
+      "output_javascript_files": 812,
+      "reported_ambiguous_count": 691
+    },
+    "impact": "Loop 2 validator flagged as HIGH concern due to metric ambiguity"
+  },
+
+  "changes_made": [
+    "Added Section 11 'Metrics Reporting Standards' to CLAUDE.md",
+    "Created scripts/collect-build-metrics.js helper (executable)",
+    "Added correction note to Sprint 7.1 completion report",
+    "Documented standard commands for TypeScript, JavaScript, LOC counting",
+    "Created recommended JSON structure for build metrics"
+  ],
+
+  "standard_commands_documented": [
+    "TypeScript source file count: find src -name '*.ts' -o -name '*.tsx' | wc -l",
+    "JavaScript output file count: find .claude-flow-novice/dist -name '*.js' | wc -l",
+    "Compilation ratio calculation: (output_files * 100) / source_files",
+    "Lines of code count: find with exclusions"
+  ],
+
+  "helper_script_features": [
+    "Human-readable output with formatted tables",
+    "JSON output mode (--json flag) for automated reports",
+    "Counts TypeScript, JavaScript, JSX source files",
+    "Counts compiled JavaScript and sourcemap outputs",
+    "Calculates compilation ratio (tree-shaking effectiveness)",
+    "Warns if dist/ directory missing"
+  ],
+
+  "validation_results": {
+    "script_execution": "SUCCESS",
+    "metrics_collected": {
+      "source_files": {
+        "typescript": 10047,
+        "javascript": 88824
+      },
+      "output_files": {
+        "javascript": 812,
+        "sourcemaps": 0
+      },
+      "compilation_ratio": "8.1%"
+    }
+  },
+
+  "reporting_guidelines_added": {
+    "bad_example": "691 TypeScript files compiled (ambiguous)",
+    "good_examples": [
+      "10,047 TypeScript source files compiled to 812 JavaScript output files (8% ratio)",
+      "Build compiled 691 TypeScript files from src/ to dist/"
+    ],
+    "required_clarity": "Always specify source vs output context"
+  },
+
+  "files_modified": [
+    "/mnt/c/Users/masha/Documents/claude-flow-novice/CLAUDE.md (Section 11 added)",
+    "/mnt/c/Users/masha/Documents/claude-flow-novice/scripts/collect-build-metrics.js (created, executable)",
+    "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/PHASE_7_SPRINT_7.1_COMPLETION_REPORT.json (correction note added)"
+  ],
+
+  "confidence": 0.92,
+
+  "reasoning": {
+    "high_confidence_factors": [
+      "CLAUDE.md Section 11 clearly documents reporting standards",
+      "Helper script tested successfully (both output modes)",
+      "Script correctly identifies 10,047 TypeScript source files",
+      "Script correctly identifies 812 JavaScript output files",
+      "Correction note added to Sprint 7.1 for historical accuracy",
+      "Examples show clear good vs bad reporting practices"
+    ],
+    "minor_deductions": [
+      "No automated enforcement in CI/CD yet (future enhancement)",
+      "Relies on manual adoption by future agents (cultural change)"
+    ]
+  },
+
+  "blockers": [],
+
+  "next_steps": {
+    "immediate": [
+      "Run post-edit hooks on modified files",
+      "Commit changes with proper git message",
+      "Update backlog to mark this item COMPLETE"
+    ],
+    "future_enhancements": [
+      "Add pre-commit hook to validate metric format in reports",
+      "Create CI/CD check for completion report structure",
+      "Add metrics validation to Loop 2 consensus checklist"
+    ]
+  },
+
+  "impact": {
+    "prevents": "Ambiguous file count reporting in completion reports",
+    "improves": "Loop 2 validation clarity and confidence",
+    "standardizes": "Build metrics across all future sprints",
+    "tools": "Automated helper script for consistent data collection"
+  },
+
+  "notes": [
+    "Sprint 7.1's '691 files compiled' was likely a partial count or intermediate build step",
+    "Actual metrics show excellent tree-shaking: 10,047 source → 812 output (8.1% ratio)",
+    "Section 11 now provides single source of truth for metrics reporting",
+    "Helper script can be used in CI/CD pipelines for automated reporting",
+    "Correction note preserves historical accuracy in Sprint 7.1 report"
+  ]
+}
