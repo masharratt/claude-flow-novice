@@ -6,6 +6,7 @@ model: sonnet
 provider: zai
 color: indigo
 type: specialist
+acl_level: 3  # Swarm
 capabilities:
   - api-documentation
   - openapi
@@ -30,9 +31,6 @@ lifecycle:
                      SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
                          completed_at = CURRENT_TIMESTAMP
                      WHERE id = '${AGENT_ID}'"
-
-# ACL Level: 1 (Private) - Agent-scoped documentation data
-acl_level: 1
 ---
 
 # OpenAPI Documentation Specialist

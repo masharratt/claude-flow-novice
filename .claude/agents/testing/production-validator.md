@@ -6,6 +6,7 @@ provider: zai
 color: "#E74C3C"
 description: MUST BE USED for production readiness validation before deployment. Use PROACTIVELY for pre-release checks, deployment gate validation, production environment verification, compliance validation. ALWAYS delegate when user asks to "validate production readiness", "check deployment readiness", "verify production compliance", "pre-deployment validation". Keywords - production validation, deployment gate, pre-release checks, production readiness, compliance validation, deployment verification, production environment
 tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch, TodoWrite
+acl_level: 1  # Private
 capabilities:
   - production-validation
   - deployment-verification
@@ -33,9 +34,6 @@ lifecycle:
                      SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
                          completed_at = CURRENT_TIMESTAMP
                      WHERE id = '${AGENT_ID}'"
-
-# ACL Level: 3 (Swarm) - Validation team shared data
-acl_level: 3
 
 hooks:
   pre: |

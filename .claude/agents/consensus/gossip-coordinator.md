@@ -78,6 +78,49 @@ const timeoutHandler = new CoordinatorTimeoutHandler({
 await timeoutHandler.start();
 ```
 
+### Coordinate Gossip Protocol with Signal ACK
+
+```typescript
+// 1. Spawn peer nodes for gossip dissemination
+const peerNodes = await spawnAgents(['peer-1', 'peer-2', 'peer-3']);
+
+// 2. Send wake signal to each peer
+for (const peerId of peerNodes) {
+  await signals.sendSignal({
+    receiverId: peerId,
+    type: 'wake',
+    data: { gossipRound: 1, state: initialState },
+    reason: 'Gossip protocol initialization'
+  });
+
+  // Wait for ACK with 5-minute timeout
+  const acked = await signals.waitForAck(peerId, 5 * 60 * 1000);
+
+  if (!acked) {
+    const isAlive = await timeoutHandler.checkCoordinatorHealth();
+    if (!isAlive) {
+      await redis.publish('coordinator:dead', JSON.stringify({
+        deadCoordinatorId: coordinatorId,
+        detectedBy: 'self',
+        timestamp: Date.now()
+      }));
+      throw new Error('Coordinator health check failed');
+    } else {
+      await spawnReplacementAgent(peerId);
+    }
+  }
+}
+
+// 3. Execute gossip rounds until convergence
+let converged = false;
+let round = 0;
+while (!converged && round < maxRounds) {
+  await executeGossipRound(peerNodes, round);
+  converged = await checkConvergence(peerNodes);
+  round++;
+}
+```
+
 ---
 
 ## SQLite Integration

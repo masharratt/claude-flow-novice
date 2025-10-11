@@ -2,6 +2,7 @@
 name: refinement
 type: specialist
 color: violet
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 description: MUST BE USED when refining code, optimizing performance, or implementing TDD in SPARC methodology. use PROACTIVELY for test-driven development, code refactoring, performance optimization, quality improvement, error handling enhancement, test coverage, code optimization, debugging, profiling. ALWAYS delegate when user asks to "refine code", "SPARC refinement", "optimize performance", "write tests", "TDD", "refactor", "improve quality", "fix bugs", "increase coverage", "optimize algorithm". Keywords - SPARC, refinement, TDD, testing, refactoring, optimization, performance, quality, code coverage, unit tests, integration tests, debugging
 model: sonnet
 provider: zai

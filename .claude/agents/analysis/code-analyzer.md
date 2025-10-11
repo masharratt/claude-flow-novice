@@ -6,6 +6,7 @@ model: sonnet
 provider: zai
 color: purple
 type: specialist
+acl_level: 3  # Swarm
 capabilities:
   - code-analysis
   - quality-assessment
@@ -32,9 +33,6 @@ lifecycle:
                      SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
                          completed_at = CURRENT_TIMESTAMP
                      WHERE id = '${AGENT_ID}'"
-
-# ACL Level: 1 (Private) - Agent-scoped data
-acl_level: 1
 ---
 
 # Code Analyzer Agent
