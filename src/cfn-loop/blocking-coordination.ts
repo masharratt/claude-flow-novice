@@ -19,7 +19,10 @@
 import { Logger } from '../core/logger.js';
 import type { Redis } from 'ioredis';
 import type { LoggingConfig } from '../utils/types.js';
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac } from 'crypto';
+import * as crypto from 'crypto';
+import type { AgentLifecycleManager } from '../agents/lifecycle-manager.js';
+import type { AgentDefinition } from '../agents/agent-loader.js';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -80,6 +83,18 @@ export interface BlockingCoordinationConfig {
   debug?: boolean;
   /** HMAC secret for ACK signing (SEC-CRIT-001) - defaults to env var or random */
   hmacSecret?: string;
+  /** Lifecycle manager for hook execution (optional) */
+  lifecycleManager?: AgentLifecycleManager;
+  /** Agent profile for hook definitions (optional) */
+  agentProfile?: AgentDefinition;
+  /** Agent ID for hook execution context (optional) */
+  agentId?: string;
+  /** Current task description for hook context (optional) */
+  currentTask?: string;
+  /** Swarm ID for hook context (optional) */
+  swarmId?: string;
+  /** Current phase for hook context (optional) */
+  phase?: string;
 }
 
 // ===== BLOCKING COORDINATION MANAGER =====
@@ -101,6 +116,24 @@ export class BlockingCoordinationManager {
   // Signal tracking
   private processedSignals: Set<string> = new Set();
 
+  // Lifecycle hook integration
+  private lifecycleManager?: AgentLifecycleManager;
+  private agentProfile?: AgentDefinition;
+  private agentId?: string;
+  private currentTask?: string;
+  private swarmId?: string;
+  private phase?: string;
+
+  // Hook execution metrics
+  private metrics = {
+    hooksExecuted: 0,
+    hooksFailed: 0,
+    hookExecutionTimeMs: 0,
+  };
+
+  // Blocking state tracking for hook context
+  private blockingStartTime?: number;
+
   constructor(config: BlockingCoordinationConfig) {
     this.redis = config.redisClient;
 
@@ -120,6 +153,14 @@ export class BlockingCoordinationManager {
       );
     }
 
+    // Initialize lifecycle hook integration (optional)
+    this.lifecycleManager = config.lifecycleManager;
+    this.agentProfile = config.agentProfile;
+    this.agentId = config.agentId;
+    this.currentTask = config.currentTask;
+    this.swarmId = config.swarmId;
+    this.phase = config.phase;
+
     // Initialize logger
     const loggerConfig: LoggingConfig =
       process.env.CLAUDE_FLOW_ENV === 'test'
@@ -132,6 +173,7 @@ export class BlockingCoordinationManager {
       coordinatorId: this.coordinatorId,
       ackTtl: this.ackTtl,
       debug: this.debug,
+      lifecycleHooksEnabled: !!this.lifecycleManager && !!this.agentProfile,
     });
   }
 
@@ -313,12 +355,26 @@ export class BlockingCoordinationManager {
     timeoutMs: number = 30000
   ): Promise<Map<string, SignalAck>> {
     const startTime = Date.now();
+    this.blockingStartTime = startTime;
     const acks = new Map<string, SignalAck>();
 
     this.logger.info('Waiting for ACKs', {
       signalId,
       coordinators: coordinatorIds,
       timeout: timeoutMs,
+    });
+
+    // Execute on_blocking_start hook
+    await this.executeLifecycleHook('on_blocking_start', {
+      AGENT_ID: this.agentId || this.coordinatorId,
+      TASK: this.currentTask || 'waiting-for-acks',
+      SWARM_ID: this.swarmId || this.coordinatorId,
+      ITERATION: String(this.currentIteration),
+      PHASE: this.phase || 'blocking-coordination',
+      BLOCKING_TYPE: 'consensus-validation',
+      TIMEOUT_THRESHOLD: String(timeoutMs),
+      SIGNAL_ID: signalId,
+      COORDINATOR_COUNT: String(coordinatorIds.length),
     });
 
     // Poll for ACKs until all received or timeout
@@ -333,6 +389,22 @@ export class BlockingCoordinationManager {
           missing,
           duration: Date.now() - startTime,
         });
+
+        // Execute on_blocking_timeout hook
+        await this.executeLifecycleHook('on_blocking_timeout', {
+          AGENT_ID: this.agentId || this.coordinatorId,
+          TASK: this.currentTask || 'waiting-for-acks',
+          SWARM_ID: this.swarmId || this.coordinatorId,
+          ITERATION: String(this.currentIteration),
+          PHASE: this.phase || 'blocking-coordination',
+          TIMEOUT_DURATION: String(timeoutMs),
+          EXCEEDED_BY: String(Date.now() - (startTime + timeoutMs)),
+          SIGNAL_ID: signalId,
+          RECEIVED_COUNT: String(acks.size),
+          MISSING_COUNT: String(missing.length),
+          MISSING_COORDINATORS: missing.join(','),
+        });
+
         break;
       }
 
@@ -382,6 +454,29 @@ export class BlockingCoordinationManager {
       total: coordinatorIds.length,
       duration,
     });
+
+    // Execute on_signal_received hook if all ACKs received (not timeout)
+    if (acks.size === coordinatorIds.length) {
+      await this.executeLifecycleHook('on_signal_received', {
+        AGENT_ID: this.agentId || this.coordinatorId,
+        TASK: this.currentTask || 'waiting-for-acks',
+        SWARM_ID: this.swarmId || this.coordinatorId,
+        ITERATION: String(this.currentIteration),
+        PHASE: this.phase || 'blocking-coordination',
+        SIGNAL_ID: signalId,
+        SIGNAL_DATA: JSON.stringify({
+          receivedCount: acks.size,
+          coordinators: coordinatorIds,
+          acks: Array.from(acks.entries()).map(([id, ack]) => ({
+            coordinatorId: id,
+            timestamp: ack.timestamp,
+            iteration: ack.iteration,
+          })),
+        }),
+        WAIT_DURATION: String(this.blockingStartTime ? Date.now() - this.blockingStartTime : duration),
+        RECEIVED_COUNT: String(acks.size),
+      });
+    }
 
     return acks;
   }
@@ -436,6 +531,26 @@ export class BlockingCoordinationManager {
   }
 
   /**
+   * Get hook execution metrics
+   *
+   * @returns Metrics object with hook execution statistics
+   */
+  getHookMetrics(): {
+    hooksExecuted: number;
+    hooksFailed: number;
+    hookExecutionTimeMs: number;
+    averageHookDuration: number;
+  } {
+    return {
+      ...this.metrics,
+      averageHookDuration:
+        this.metrics.hooksExecuted > 0
+          ? this.metrics.hookExecutionTimeMs / this.metrics.hooksExecuted
+          : 0,
+    };
+  }
+
+  /**
    * Cleanup all ACKs for this coordinator
    */
   async cleanup(): Promise<void> {
@@ -472,6 +587,121 @@ export class BlockingCoordinationManager {
   }
 
   // ===== PRIVATE HELPER METHODS =====
+
+  /**
+   * Execute lifecycle hook if configured
+   *
+   * @param hookName - Name of the hook to execute (on_blocking_start, on_signal_received, on_blocking_timeout)
+   * @param envVars - Environment variables to pass to the hook
+   * @returns Promise<void>
+   */
+  private async executeLifecycleHook(
+    hookName: string,
+    envVars: Record<string, string>
+  ): Promise<void> {
+    // Skip if no lifecycle manager or agent profile
+    if (!this.lifecycleManager || !this.agentProfile || !this.agentId) {
+      return;
+    }
+
+    const hookStartTime = Date.now();
+
+    try {
+      // Check if hook is defined in agent profile
+      const hookScript = this.agentProfile.hooks?.[hookName];
+
+      if (!hookScript) {
+        this.logger.debug('No hook defined', {
+          hook: hookName,
+          agentId: this.agentId,
+        });
+        return;
+      }
+
+      this.logger.debug('Executing lifecycle hook', {
+        hook: hookName,
+        agentId: this.agentId,
+        envVars: Object.keys(envVars),
+      });
+
+      // Execute hook via lifecycle manager
+      // Note: The lifecycle manager's executeHookScript is private, so we need to
+      // execute the hook script directly here
+      await this.executeHookScript(hookScript, hookName, envVars);
+
+      // Update metrics
+      this.metrics.hooksExecuted++;
+      const duration = Date.now() - hookStartTime;
+      this.metrics.hookExecutionTimeMs += duration;
+
+      this.logger.debug('Hook executed successfully', {
+        hook: hookName,
+        agentId: this.agentId,
+        duration,
+      });
+
+    } catch (error) {
+      this.metrics.hooksFailed++;
+
+      this.logger.warn('Hook execution failed (non-fatal)', {
+        hook: hookName,
+        agentId: this.agentId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Hook failures are non-fatal - coordination continues
+    }
+  }
+
+  /**
+   * Execute hook script with environment variables
+   *
+   * @param script - Shell script to execute
+   * @param hookName - Name of the hook (for logging)
+   * @param envVars - Environment variables to set
+   * @returns Promise<void>
+   */
+  private async executeHookScript(
+    script: string,
+    hookName: string,
+    envVars: Record<string, string>
+  ): Promise<void> {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    // Set up environment variables for the hook
+    const env = {
+      ...process.env,
+      ...envVars,
+      HOOK_NAME: hookName,
+    };
+
+    this.logger.debug(`Executing ${hookName} hook script`, {
+      agentId: this.agentId,
+      script: script.substring(0, 100) + (script.length > 100 ? '...' : ''),
+    });
+
+    try {
+      const { stdout, stderr } = await execAsync(script, {
+        env,
+        timeout: 5000, // 5 second timeout for hooks
+        shell: '/bin/bash',
+      });
+
+      if (stdout) {
+        this.logger.debug(`Hook output: ${stdout.trim()}`);
+      }
+
+      if (stderr) {
+        this.logger.warn(`Hook stderr: ${stderr.trim()}`);
+      }
+    } catch (error) {
+      throw new Error(
+        `Hook script execution failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
 
   /**
    * Build Redis key for ACK
