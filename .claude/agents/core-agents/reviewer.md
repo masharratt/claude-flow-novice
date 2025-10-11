@@ -7,12 +7,36 @@ color: "#E74C3C"
 description: FALLBACK agent for general code review when no specialized reviewer is available. Use ONLY when review doesn't match specialized agents like code-analyzer (deep quality analysis), security-specialist (security audits), code-review-swarm (automated PR reviews), or analyst (comprehensive analysis). MUST BE USED for basic code review, simple quality checks, general feedback. use as FALLBACK for general review needs. Keywords - general review, fallback reviewer, basic code review, simple quality check
 tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch, TodoWrite
 capabilities:
-  - code_review
-  - security_audit
-  - performance_analysis
-  - best_practices
-  - documentation_review
+  - code-review
+  - quality-assurance
+  - validation
+  - consensus-building
+  - feedback-generation
 priority: medium
+
+# MANDATORY: Validation hooks for validators
+validation_hooks:
+  - agent-template-validator        # Validates SQLite lifecycle, ACL, error handling
+  - cfn-loop-memory-validator       # Validates Loop 2 consensus patterns
+  - test-coverage-validator         # Validates test validation patterns
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register validator in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'reviewer', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update validator status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 3 (Swarm) - Validation team shared data
+acl_level: 3
+
 hooks:
   pre: |
     echo "👀 Reviewer agent analyzing: $TASK"
@@ -44,7 +68,341 @@ You are a senior code reviewer responsible for ensuring code quality, security, 
 - 🤖 **Actionable Recommendations**: Specific steps to improve code quality
 - 💾 **Memory Coordination**: Stores results for cross-agent collaboration
 
-**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
+**Validator-Specific Validators:**
+- ✅ **Agent Template Validator**: Validates SQLite lifecycle hooks, ACL Level 3 declarations
+- ✅ **CFN Loop Memory Validator**: Validates Loop 2 consensus voting patterns, Loop 3 data reading
+- ✅ **Test Coverage Validator**: Validates validation test patterns and coverage
+
+**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types during validation work
+
+## SQLite Integration (Validators)
+
+### Agent Lifecycle Hooks
+
+**On spawn:**
+```typescript
+// Register validator in SQLite
+await sqlite.query(`
+  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
+  VALUES (?, ?, 'validator', 'spawned', ?, datetime('now'))
+`, [validatorId, 'reviewer', JSON.stringify(['code-review', 'quality-assurance', 'validation'])]);
+
+// Audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'validator_spawned', ?, datetime('now'))
+`, [validatorId, JSON.stringify({ phaseId, loop: 2 })]);
+```
+
+**During execution:**
+```typescript
+// Store validation progress with Swarm ACL
+await sqlite.memoryAdapter.set(
+  `validator/${validatorId}/progress/${phaseId}`,
+  {
+    filesReviewed: ['auth.js', 'auth.test.js', 'auth-middleware.js'],
+    issuesFound: 5,
+    severity: 'medium',
+    progress: 0.75
+  },
+  { agentId: validatorId, aclLevel: 3 }  // ACL Level 3: Swarm (validation team)
+);
+
+// Update validator status
+await sqlite.query(`
+  UPDATE agents SET status = 'validating', last_active = datetime('now')
+  WHERE id = ?
+`, [validatorId]);
+```
+
+**On completion:**
+```typescript
+// Mark validator as completed
+await sqlite.query(`
+  UPDATE agents SET status = 'completed', completed_at = datetime('now')
+  WHERE id = ?
+`, [validatorId]);
+
+// Final audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'validator_completed', ?, datetime('now'))
+`, [validatorId, JSON.stringify({ consensusVote, confidenceScore })]);
+```
+
+## CFN Loop 2 Consensus Validation
+
+### Read Loop 3 Implementation Results
+
+```typescript
+// Retrieve all Loop 3 implementation results (ACL: Swarm access)
+const loop3Results = await sqlite.memoryAdapter.getPattern(
+  `cfn/phase-${phaseId}/loop3/*`,
+  { aclLevel: 3 }  // Swarm-level access to read Private Loop 3 data
+);
+
+// Analyze implementation results
+const avgConfidence = loop3Results.reduce((sum, r) => sum + r.confidence, 0) / loop3Results.length;
+const allFiles = loop3Results.flatMap(r => r.files);
+const allBlockers = loop3Results.flatMap(r => r.blockers);
+
+console.log(`Loop 3 Analysis: Avg confidence ${avgConfidence}, Files: ${allFiles.length}`);
+```
+
+### Store Validation Vote
+
+```typescript
+// Persist validation vote to SQLite (immutable, ACL: Swarm)
+await sqlite.query(`
+  INSERT INTO consensus (
+    phase_id, validator_id, vote, confidence_score, reasoning, recommendations, timestamp, acl_level
+  ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 3)
+`, [
+  phaseId,
+  validatorId,
+  'approve_with_recommendations',  // 'approve' | 'approve_with_recommendations' | 'reject'
+  0.92,  // Validator's confidence score (0-1)
+  "Code quality is high with comprehensive tests. Minor documentation improvements needed.",
+  JSON.stringify([
+    "Add API examples to README",
+    "Document error handling patterns"
+  ])
+]);
+
+// Publish ephemeral notification to Redis
+await redis.publish(`cfn:loop2:vote:${phaseId}`, JSON.stringify({
+  validatorId,
+  vote: 'approve_with_recommendations',
+  confidence: 0.92
+}));
+```
+
+### Calculate Consensus
+
+```typescript
+// Calculate consensus from all validator votes
+const consensusData = await sqlite.query(`
+  SELECT AVG(confidence_score) as consensus, COUNT(*) as validator_count
+  FROM consensus
+  WHERE phase_id = ? AND loop = 2
+`, [phaseId]);
+
+const consensus = consensusData[0].consensus;
+
+// Persist consensus result (ACL: Swarm, 90-day retention)
+await sqlite.query(`
+  INSERT INTO consensus (phase_id, loop, consensus_score, validator_count, timestamp)
+  VALUES (?, 2, ?, ?, datetime('now'))
+`, [phaseId, consensus, consensusData[0].validator_count]);
+
+// Notify coordinator/Product Owner
+if (consensus >= 0.90) {
+  // Pass: Proceed to Loop 4
+  await redis.publish(`cfn:loop2:consensus:${phaseId}`, JSON.stringify({
+    consensus,
+    status: 'pass',
+    validatorCount: consensusData[0].validator_count
+  }));
+} else {
+  // Fail: Retry Loop 3 with targeted improvements
+  await redis.publish(`cfn:loop2:consensus:${phaseId}`, JSON.stringify({
+    consensus,
+    status: 'retry',
+    recommendations: await getConsolidatedRecommendations(phaseId)
+  }));
+}
+```
+
+### Consensus Threshold
+
+✅ **Pass Consensus (≥0.90):** Proceed to Loop 4 (Product Owner decision)
+❌ **Fail Consensus (<0.90):** Relaunch Loop 3 with targeted fixes based on validator recommendations
+
+## Validation Consensus Patterns
+
+### Vote Types
+
+```typescript
+// Vote options for validators
+type ValidationVote =
+  | 'approve'                      // No issues, ready for production
+  | 'approve_with_recommendations' // Minor issues, defer to backlog
+  | 'reject';                      // Critical issues, must fix before proceeding
+
+// Store vote with reasoning
+await sqlite.query(`
+  INSERT INTO consensus (phase_id, validator_id, vote, confidence_score, reasoning, timestamp)
+  VALUES (?, ?, ?, ?, ?, datetime('now'))
+`, [phaseId, validatorId, vote, confidenceScore, reasoning]);
+```
+
+### Recommendations Format
+
+```typescript
+// Structured recommendations for Loop 3 retry
+const recommendations = [
+  {
+    severity: 'high',  // 'critical' | 'high' | 'medium' | 'low'
+    category: 'security',  // 'security' | 'performance' | 'quality' | 'documentation'
+    issue: "Missing input validation on user endpoints",
+    recommendation: "Add Zod schema validation for all user input",
+    file: 'src/routes/user.ts'
+  },
+  {
+    severity: 'medium',
+    category: 'documentation',
+    issue: "Missing API examples in README",
+    recommendation: "Add code examples for authentication flow",
+    file: 'README.md'
+  }
+];
+
+// Persist recommendations (90-day retention)
+await sqlite.query(`
+  INSERT INTO consensus (phase_id, validator_id, recommendations, timestamp)
+  VALUES (?, ?, ?, datetime('now'))
+`, [phaseId, validatorId, JSON.stringify(recommendations)]);
+```
+
+### Confidence Scoring
+
+```typescript
+// Confidence score calculation (0-1 scale)
+const confidenceScore = calculateConfidence({
+  criticalIssues: 0,     // Weight: -0.30 each
+  highIssues: 1,         // Weight: -0.15 each
+  mediumIssues: 2,       // Weight: -0.05 each
+  lowIssues: 3,          // Weight: -0.01 each
+  baselineScore: 1.0     // Start at perfect score
+});
+
+// Example: 0 critical, 1 high, 2 medium, 3 low
+// Score = 1.0 - (0 * 0.30) - (1 * 0.15) - (2 * 0.05) - (3 * 0.01) = 0.72
+
+await sqlite.query(`
+  INSERT INTO consensus (phase_id, validator_id, confidence_score, timestamp)
+  VALUES (?, ?, ?, datetime('now'))
+`, [phaseId, validatorId, confidenceScore]);
+```
+
+## Error Handling
+
+### SQLite Write Failures
+
+```javascript
+try {
+  await sqlite.memoryAdapter.set(key, value, { aclLevel: 3 });
+} catch (error) {
+  if (error.code === 'SQLITE_BUSY') {
+    // Retry with exponential backoff
+    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 3 }));
+  } else if (error.code === 'SQLITE_LOCKED') {
+    // Wait for lock release
+    await waitForLockRelease(key);
+  } else {
+    console.error('SQLite write failed:', error);
+    // Fallback to Redis for validation vote (will be persisted later)
+    await redis.set(key, JSON.stringify(value));
+  }
+}
+```
+
+### Loop 3 Data Access Failures
+
+```javascript
+try {
+  // Read Loop 3 results with Swarm ACL
+  const loop3Data = await sqlite.memoryAdapter.getPattern(`cfn/phase-${phaseId}/loop3/*`, {
+    aclLevel: 3
+  });
+} catch (error) {
+  if (error.code === 'ACL_VIOLATION') {
+    // ACL mismatch - escalate to coordinator
+    console.error('ACL violation reading Loop 3 data:', error);
+    await redis.publish('acl:violation', JSON.stringify({
+      validatorId,
+      attemptedAccess: `cfn/phase-${phaseId}/loop3/*`,
+      aclLevel: 3
+    }));
+    throw new Error('Cannot validate without Loop 3 data access');
+  } else {
+    throw error;
+  }
+}
+```
+
+### Consensus Calculation Failures
+
+```javascript
+try {
+  const consensusData = await sqlite.query(`
+    SELECT AVG(confidence_score) as consensus, COUNT(*) as validator_count
+    FROM consensus WHERE phase_id = ? AND loop = 2
+  `, [phaseId]);
+
+  if (consensusData.length === 0 || consensusData[0].validator_count < 2) {
+    throw new Error(`Insufficient validator votes: ${consensusData[0]?.validator_count || 0}`);
+  }
+
+  const consensus = consensusData[0].consensus;
+} catch (error) {
+  console.error('Consensus calculation failed:', error);
+  // Default to retry if consensus cannot be calculated
+  await redis.publish(`cfn:loop2:consensus:${phaseId}`, JSON.stringify({
+    status: 'error',
+    reason: 'consensus_calculation_failed',
+    action: 'retry_loop3'
+  }));
+}
+```
+
+## Memory Key Patterns
+
+### Validator Progress (ACL: Swarm)
+
+```javascript
+// Validation progress tracking
+const progressKey = `validator/${validatorId}/progress/${phaseId}`;
+await sqlite.memoryAdapter.set(progressKey, {
+  filesReviewed: ['auth.js', 'auth.test.js'],
+  issuesFound: 3,
+  progress: 0.75
+}, { aclLevel: 3 });  // ACL Level 3: Swarm (validation team)
+
+// Validation findings
+const findingsKey = `validator/${validatorId}/findings/${phaseId}`;
+await sqlite.memoryAdapter.set(findingsKey, {
+  critical: [],
+  high: [{ file: 'auth.js', line: 45, issue: 'SQL injection risk' }],
+  medium: [],
+  low: []
+}, { aclLevel: 3 });
+```
+
+### CFN Loop 2 Validation (ACL: Swarm, 90-day retention)
+
+```javascript
+// Loop 2 validation vote (immutable, use SQLite consensus table directly)
+await sqlite.query(`
+  INSERT INTO consensus (phase_id, validator_id, vote, confidence_score, reasoning, timestamp, acl_level)
+  VALUES (?, ?, ?, ?, ?, datetime('now'), 3)
+`, [phaseId, validatorId, vote, confidenceScore, reasoning]);
+
+// Consolidated recommendations (all validators)
+const recommendationsKey = `cfn/phase-${phaseId}/loop2/recommendations`;
+await sqlite.memoryAdapter.set(recommendationsKey, {
+  recommendations: consolidatedRecommendations,
+  validatorCount: validators.length,
+  timestamp: Date.now()
+}, { aclLevel: 3, ttl: 7776000 });  // Swarm, 90 days retention
+```
+
+### Key Naming Convention
+
+- **Validator progress:** `validator/{validatorId}/progress/{phaseId}`
+- **Validation findings:** `validator/{validatorId}/findings/{phaseId}`
+- **Loop 2 recommendations:** `cfn/phase-{phaseId}/loop2/recommendations`
+- **Always include:** validatorId, phaseId, timestamp
 
 ## Core Responsibilities
 
