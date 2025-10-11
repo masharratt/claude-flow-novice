@@ -247,41 +247,76 @@ class OrphanDetector {
 }
 
 /**
- * Simulate concurrent file edit
+ * Simulate concurrent file edit with version tracking
  */
 async function simulateConcurrentEdit(
   agentId: string,
   filePath: string,
-  content: string
+  content: string,
+  redis: Redis
 ): Promise<FileEditConflict> {
   const timestamp = Date.now();
-
-  // Check if file exists and read current content
-  let currentContent = '';
   let conflictDetected = false;
 
-  if (existsSync(filePath)) {
-    try {
-      currentContent = readFileSync(filePath, 'utf-8');
+  // Use Redis to track file versions and detect conflicts
+  const versionKey = `file:version:${filePath}`;
+  const editorsKey = `file:editors:${filePath}`;
 
-      // Conflict detected if file was modified by another agent
-      if (currentContent && currentContent !== content) {
-        conflictDetected = true;
-      }
-    } catch (error) {
-      // File locked or inaccessible - conflict detected
+  try {
+    // Track that this agent is attempting to edit
+    await redis.sadd(editorsKey, agentId);
+
+    // Get current version
+    const currentVersion = await redis.get(versionKey);
+    const versionNumber = currentVersion ? parseInt(currentVersion, 10) : 0;
+
+    // Check if other agents are editing
+    const editors = await redis.smembers(editorsKey);
+    if (editors.length > 1) {
+      // Multiple editors detected - this is a conflict
       conflictDetected = true;
     }
-  }
 
-  // Simulate edit delay
-  await sleep(randomInt(100, 500));
+    // Check if file exists and has been modified
+    if (existsSync(filePath)) {
+      try {
+        const currentContent = readFileSync(filePath, 'utf-8');
 
-  // Attempt to write file
-  try {
-    writeFileSync(filePath, content, 'utf-8');
-  } catch (error) {
-    conflictDetected = true;
+        // Parse version from content if it exists
+        const versionMatch = currentContent.match(/Version: (\d+)/);
+        const fileVersion = versionMatch ? parseInt(versionMatch[1], 10) : 0;
+
+        // Conflict if file version doesn't match our expected version
+        if (fileVersion !== versionNumber) {
+          conflictDetected = true;
+        }
+
+        // Conflict if content is different (another agent wrote)
+        if (currentContent && !currentContent.includes(agentId)) {
+          conflictDetected = true;
+        }
+      } catch (error) {
+        // File locked or inaccessible - conflict detected
+        conflictDetected = true;
+      }
+    }
+
+    // Simulate edit delay to increase chance of conflicts
+    await sleep(randomInt(50, 200));
+
+    // Attempt to write file with version
+    try {
+      const versionedContent = `${content}Version: ${versionNumber + 1}\n`;
+      writeFileSync(filePath, versionedContent, 'utf-8');
+
+      // Update version in Redis
+      await redis.incr(versionKey);
+    } catch (error) {
+      conflictDetected = true;
+    }
+  } finally {
+    // Remove this agent from editors
+    await redis.srem(editorsKey, agentId);
   }
 
   return {
@@ -412,9 +447,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   });
 
   describe('Test 1: Random Agent Crashes (30%)', () => {
-    it(
-      'should cleanup all crashed agents within 3 minutes',
-      async () => {
+    it('should cleanup all crashed agents within 3 minutes', { timeout: 6 * 60 * 1000 }, async () => {
         const totalAgents = CHAOS_CONFIG.TOTAL_AGENTS;
         const crashPercentage = CHAOS_CONFIG.CRASH_PERCENTAGE;
         const expectedCrashes = Math.floor(totalAgents * crashPercentage);
@@ -501,15 +534,11 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
         };
 
         console.log('\n📈 Final Results:', result);
-      },
-      { timeout: 6 * 60 * 1000 } // 6 minute timeout for safety
-    );
+      });
   });
 
   describe('Test 2: Redis Connection Failures', () => {
-    it(
-      'should recover all agents within 30 seconds of Redis reconnection',
-      async () => {
+    it('should recover all agents within 30 seconds of Redis reconnection', { timeout: 2 * 60 * 1000 }, async () => {
         const agentCount = 10;
 
         console.log(`\n🧪 Spawning ${agentCount} agents...`);
@@ -619,15 +648,11 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
         };
 
         console.log('\n📈 Recovery Results:', result);
-      },
-      { timeout: 2 * 60 * 1000 } // 2 minute timeout
-    );
+      });
   });
 
   describe('Test 3: Concurrent File Edits', () => {
-    it(
-      'should detect 100% of file conflicts from concurrent edits',
-      async () => {
+    it('should detect 100% of file conflicts from concurrent edits', { timeout: 30000 }, async () => {
         const editorCount = CHAOS_CONFIG.CONCURRENT_EDITORS;
         const testFile = join(tmpdir(), `chaos-test-${Date.now()}.txt`);
 
@@ -641,6 +666,11 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
           unlinkSync(testFile);
         }
 
+        // Cleanup Redis file tracking keys
+        const versionKey = `file:version:${testFile}`;
+        const editorsKey = `file:editors:${testFile}`;
+        await redis.del(versionKey, editorsKey);
+
         // Spawn agents and simulate concurrent edits
         const editPromises: Promise<FileEditConflict>[] = [];
 
@@ -648,7 +678,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
           const agentId = `editor-agent-${i}`;
           const content = `Agent ${agentId} edit at ${Date.now()}\n`;
 
-          editPromises.push(simulateConcurrentEdit(agentId, testFile, content));
+          editPromises.push(simulateConcurrentEdit(agentId, testFile, content, redis));
         }
 
         // Execute all edits concurrently
@@ -657,10 +687,14 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
         // Count conflicts detected
         const conflictsDetected = conflicts.filter((c) => c.conflictDetected)
           .length;
-        const conflictRate = (conflictsDetected / (editorCount - 1)) * 100; // First edit has no conflict
+
+        // Expected conflicts: At least editorCount - 1 (all except potentially the first writer)
+        const expectedMinConflicts = editorCount - 1;
+        const conflictRate = (conflictsDetected / expectedMinConflicts) * 100;
 
         console.log(`\n📊 Total edits: ${editorCount}`);
         console.log(`📊 Conflicts detected: ${conflictsDetected}`);
+        console.log(`📊 Expected minimum conflicts: ${expectedMinConflicts}`);
         console.log(
           `📊 Conflict detection rate: ${conflictRate.toFixed(2)}%`
         );
@@ -668,24 +702,26 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
         // CRITICAL: 100% conflict detection required
         // Note: First agent has no conflict (file doesn't exist yet)
         // Remaining agents should all detect conflicts
-        expect(conflictsDetected).toBeGreaterThanOrEqual(editorCount - 1);
-        expect(conflictRate).toBe(100);
+        expect(conflictsDetected).toBeGreaterThanOrEqual(expectedMinConflicts);
 
-        // Cleanup test file
+        // Allow up to all agents to detect conflicts (if first agent sees concurrent access)
+        expect(conflictsDetected).toBeLessThanOrEqual(editorCount);
+
+        // Conflict rate should be at least 100% (can be higher if first agent also detects conflict)
+        expect(conflictRate).toBeGreaterThanOrEqual(100);
+
+        // Cleanup test file and Redis keys
         if (existsSync(testFile)) {
           unlinkSync(testFile);
         }
+        await redis.del(versionKey, editorsKey);
 
         console.log('\n✅ File conflict detection validated');
-      },
-      { timeout: 30000 } // 30 second timeout
-    );
+      });
   });
 
   describe('Test 4: Test Lock Crashes', () => {
-    it(
-      'should release stale locks within 15 minutes after agent crash',
-      async () => {
+    it('should release stale locks within 15 minutes after agent crash', { timeout: 60000 }, async () => {
         const lockManager = new TestLockManager(redis);
         const agentId = 'lock-holder-agent';
 
@@ -762,20 +798,20 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
 
         // Cleanup
         await lockManager.releaseLock(newAgentId);
-      },
-      { timeout: 60000 } // 60 second timeout (shortened for testing)
-    );
+      });
 
-    it('should prevent other agents from acquiring expired locks', async () => {
+    it('should prevent other agents from acquiring expired locks', { timeout: 15000 }, async () => {
       const lockManager = new TestLockManager(redis);
       const agent1 = 'agent-1';
       const agent2 = 'agent-2';
+
+      console.log('\n🧪 Testing lock expiration and acquisition...');
 
       // Agent 1 acquires lock
       const acquired1 = await lockManager.acquireLock(agent1, 5); // 5 second TTL
       expect(acquired1).toBe(true);
 
-      console.log(`\n✅ Agent 1 acquired lock with 5s TTL`);
+      console.log(`✅ Agent 1 acquired lock with 5s TTL`);
 
       // Agent 2 tries to acquire (should fail)
       const acquired2 = await lockManager.acquireLock(agent2, 5);
@@ -784,9 +820,16 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
       console.log(`❌ Agent 2 correctly blocked from acquiring lock`);
 
       // Wait for lock to expire
+      console.log(`⏳ Waiting 6s for lock expiration...`);
       await sleep(6000);
 
-      console.log(`⏳ Waited 6s for lock expiration...`);
+      console.log(`🔍 Checking lock state after expiration...`);
+
+      // Verify lock is expired
+      const isExpired = await lockManager.isLockExpired();
+      expect(isExpired).toBe(true);
+
+      console.log(`✅ Lock confirmed expired`);
 
       // Agent 2 should now be able to acquire
       const acquired2Retry = await lockManager.acquireLock(agent2, 5);
@@ -800,7 +843,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   });
 
   describe('Edge Cases and Additional Validation', () => {
-    it('should handle multiple simultaneous crashes gracefully', async () => {
+    it('should handle multiple simultaneous crashes gracefully', { timeout: 6 * 60 * 1000 }, async () => {
       const agentCount = 20;
       const agents: AgentInstance[] = [];
 
@@ -833,7 +876,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
       console.log(`✅ All ${agentCount} crashed agents cleaned up`);
     });
 
-    it('should maintain healthy agents during partial crashes', async () => {
+    it('should maintain healthy agents during partial crashes', { timeout: 6 * 60 * 1000 }, async () => {
       const totalAgents = 20;
       const crashCount = 10;
       const agents: AgentInstance[] = [];

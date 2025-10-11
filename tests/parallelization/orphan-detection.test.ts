@@ -391,129 +391,139 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   });
 
   describe('Orphan Cleanup', () => {
-    it(
-      'should cleanup all orphans within 3 minutes',
-      async () => {
-        // Spawn 20 agents
-        const agentCount = 20;
-        const agents: AgentInstance[] = [];
+    it('should cleanup all orphans within 3 minutes', async () => {
+      // Spawn 20 agents
+      const agentCount = 20;
+      const agents: AgentInstance[] = [];
 
-        for (let i = 0; i < agentCount; i++) {
-          const agent = await spawnAgent(redis, `test-agent-${i}`, true);
-          agents.push(agent);
-          spawnedAgents.push(agent);
+      for (let i = 0; i < agentCount; i++) {
+        const agent = await spawnAgent(redis, `test-agent-${i}`, true);
+        agents.push(agent);
+        spawnedAgents.push(agent);
+      }
+
+      // Measure baseline memory
+      const baselineMemory = await getRedisMemoryUsage(redis);
+
+      // Crash 50% of agents (no cleanup)
+      const crashedAgents: AgentInstance[] = [];
+      agents.forEach((agent, index) => {
+        if (index % 2 === 0) {
+          stopAgentHeartbeat(agent);
+          crashedAgents.push(agent);
         }
+      });
 
-        // Measure baseline memory
-        const baselineMemory = await getRedisMemoryUsage(redis);
+      console.log(
+        `Crashed ${crashedAgents.length} agents (50% of ${agentCount})`
+      );
 
-        // Crash 50% of agents (no cleanup)
-        const crashedAgents: AgentInstance[] = [];
-        agents.forEach((agent, index) => {
-          if (index % 2 === 0) {
-            stopAgentHeartbeat(agent);
-            crashedAgents.push(agent);
-          }
-        });
+      // Wait 3 minutes (2min threshold + 1min buffer)
+      console.log('Waiting 3 minutes for orphan detection...');
+      await sleep(TEST_CONFIG.ORPHAN_CLEANUP_TIMEOUT);
 
-        console.log(
-          `Crashed ${crashedAgents.length} agents (50% of ${agentCount})`
-        );
+      // Force orphan detection
+      const startTime = Date.now();
+      const result = await orphanDetector.detectAndCleanupOrphans();
+      const detectionTime = Date.now() - startTime;
 
-        // Wait 3 minutes (2min threshold + 1min buffer)
-        console.log('Waiting 3 minutes for orphan detection...');
-        await sleep(TEST_CONFIG.ORPHAN_CLEANUP_TIMEOUT);
+      console.log(
+        `Orphan detection completed in ${detectionTime}ms: ${result.orphansCleaned} orphans cleaned`
+      );
 
-        // Force orphan detection
-        const startTime = Date.now();
-        const result = await orphanDetector.detectAndCleanupOrphans();
-        const detectionTime = Date.now() - startTime;
+      // All crashed agents should be cleaned
+      expect(result.orphansCleaned).toBe(crashedAgents.length);
+      expect(result.orphansCleaned).toBe(10); // 50% of 20
 
-        console.log(
-          `Orphan detection completed in ${detectionTime}ms: ${result.orphansCleaned} orphans cleaned`
-        );
+      // Verify orphaned agent IDs match crashed agents
+      const crashedIds = crashedAgents.map((a) => a.id);
+      for (const orphanId of result.orphanIds) {
+        expect(crashedIds).toContain(orphanId);
+      }
 
-        // All crashed agents should be cleaned
-        expect(result.orphansCleaned).toBe(crashedAgents.length);
-        expect(result.orphansCleaned).toBe(10); // 50% of 20
+      // Memory should return to baseline (within 10MB tolerance)
+      const currentMemory = await getRedisMemoryUsage(redis);
+      const memoryGrowth = currentMemory - baselineMemory;
 
-        // Verify orphaned agent IDs match crashed agents
-        const crashedIds = crashedAgents.map((a) => a.id);
-        for (const orphanId of result.orphanIds) {
-          expect(crashedIds).toContain(orphanId);
-        }
+      console.log(
+        `Memory growth: ${(memoryGrowth / 1024 / 1024).toFixed(2)}MB (tolerance: ${(TEST_CONFIG.MEMORY_TOLERANCE / 1024 / 1024).toFixed(2)}MB)`
+      );
 
-        // Memory should return to baseline (within 10MB tolerance)
-        const currentMemory = await getRedisMemoryUsage(redis);
-        const memoryGrowth = currentMemory - baselineMemory;
-
-        console.log(
-          `Memory growth: ${(memoryGrowth / 1024 / 1024).toFixed(2)}MB (tolerance: ${(TEST_CONFIG.MEMORY_TOLERANCE / 1024 / 1024).toFixed(2)}MB)`
-        );
-
-        expect(memoryGrowth).toBeLessThan(TEST_CONFIG.MEMORY_TOLERANCE);
-      },
-      { timeout: 5 * 60 * 1000 } // 5 minute test timeout
-    );
+      expect(memoryGrowth).toBeLessThan(TEST_CONFIG.MEMORY_TOLERANCE);
+    }, 5 * 60 * 1000); // 5 minute test timeout
 
     it('should detect orphans without cleanup', async () => {
-      // Spawn agents
+      // Spawn agents without heartbeat intervals
       const agents: AgentInstance[] = [];
+      const spawnTime = Date.now();
+
       for (let i = 0; i < 5; i++) {
         const agent = await spawnAgent(redis, `orphan-test-${i}`, false);
         agents.push(agent);
         spawnedAgents.push(agent);
       }
 
-      // Wait for heartbeats to become stale
-      await sleep(TEST_CONFIG.ORPHAN_THRESHOLD + 10000); // Threshold + 10s
+      console.log(`Spawned ${agents.length} agents at ${new Date(spawnTime).toISOString()}`);
 
-      // Count orphans
+      // Verify agents were created in Redis
+      const agentKeys = await redis.keys('agent:*:heartbeat');
+      console.log(`Agent heartbeat keys in Redis: ${agentKeys.length} keys found`);
+
+      // Wait for heartbeats to become stale (threshold + buffer)
+      console.log(`Waiting ${TEST_CONFIG.ORPHAN_THRESHOLD / 1000}s + 10s for orphan detection threshold...`);
+      const waitStart = Date.now();
+      await sleep(TEST_CONFIG.ORPHAN_THRESHOLD + 10000); // Threshold + 10s
+      const waitEnd = Date.now();
+
+      console.log(`Wait completed. Elapsed: ${(waitEnd - waitStart) / 1000}s`);
+
+      // Count orphans (should detect all agents as orphaned)
       const orphanCount = await orphanDetector.countOrphans();
 
+      console.log(`Detected ${orphanCount} orphans (expected 5)`);
       expect(orphanCount).toBe(5);
-    });
+
+      // Verify orphan detection doesn't modify Redis state
+      const agentKeysAfter = await redis.keys('agent:*:heartbeat');
+      expect(agentKeysAfter.length).toBe(5);
+    }, 3 * 60 * 1000); // 3 minute test timeout (2min threshold + 10s + buffer)
   });
 
   describe('Memory Leak Detection', () => {
-    it(
-      'should detect memory leak with 100MB growth threshold',
-      async () => {
-        // Record baseline
-        const baseline = await memoryTracker.setBaseline();
+    it('should detect memory leak with 100MB growth threshold', async () => {
+      // Record baseline
+      const baseline = await memoryTracker.setBaseline();
 
-        console.log(
-          `Baseline memory: ${(baseline / 1024 / 1024).toFixed(2)}MB`
-        );
+      console.log(
+        `Baseline memory: ${(baseline / 1024 / 1024).toFixed(2)}MB`
+      );
 
-        // Simulate memory leak (create 150MB of Redis keys)
-        console.log('Creating 150MB of Redis keys to simulate memory leak...');
-        const leakSize = 150;
-        for (let i = 0; i < leakSize; i++) {
-          const megabyte = 'x'.repeat(1024 * 1024); // 1MB string
-          await redis.set(`leak:${i}`, megabyte);
-        }
+      // Simulate memory leak (create 150MB of Redis keys)
+      console.log('Creating 150MB of Redis keys to simulate memory leak...');
+      const leakSize = 150;
+      for (let i = 0; i < leakSize; i++) {
+        const megabyte = 'x'.repeat(1024 * 1024); // 1MB string
+        await redis.set(`leak:${i}`, megabyte);
+      }
 
-        // Check for leak
-        const leakDetection = await memoryTracker.checkForMemoryLeak();
+      // Check for leak
+      const leakDetection = await memoryTracker.checkForMemoryLeak();
 
-        console.log(
-          `Memory leak detection: growth=${(leakDetection.growth / 1024 / 1024).toFixed(2)}MB, threshold=${(TEST_CONFIG.MEMORY_LEAK_THRESHOLD / 1024 / 1024).toFixed(2)}MB`
-        );
+      console.log(
+        `Memory leak detection: growth=${(leakDetection.growth / 1024 / 1024).toFixed(2)}MB, threshold=${(TEST_CONFIG.MEMORY_LEAK_THRESHOLD / 1024 / 1024).toFixed(2)}MB`
+      );
 
-        expect(leakDetection.detected).toBe(true);
-        expect(leakDetection.growth).toBeGreaterThan(
-          TEST_CONFIG.MEMORY_LEAK_THRESHOLD
-        );
+      expect(leakDetection.detected).toBe(true);
+      expect(leakDetection.growth).toBeGreaterThan(
+        TEST_CONFIG.MEMORY_LEAK_THRESHOLD
+      );
 
-        // Cleanup leak
-        const leakKeys = await redis.keys('leak:*');
-        if (leakKeys.length > 0) {
-          await redis.del(...leakKeys);
-        }
-      },
-      { timeout: 60000 }
-    );
+      // Cleanup leak
+      const leakKeys = await redis.keys('leak:*');
+      if (leakKeys.length > 0) {
+        await redis.del(...leakKeys);
+      }
+    }, 60000);
 
     it('should not detect leak under threshold', async () => {
       // Record baseline
@@ -542,61 +552,57 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   });
 
   describe('Long-Running Epic Stability', () => {
-    it(
-      'should maintain stable memory over 10 sequential epics',
-      async () => {
-        const memoryReadings: number[] = [];
-        const epicCount = 10;
+    it('should maintain stable memory over 10 sequential epics', async () => {
+      const memoryReadings: number[] = [];
+      const epicCount = 10;
 
-        console.log(`Executing ${epicCount} sequential epics...`);
+      console.log(`Executing ${epicCount} sequential epics...`);
 
-        for (let epicNum = 0; epicNum < epicCount; epicNum++) {
-          console.log(`Executing epic ${epicNum + 1}/${epicCount}...`);
+      for (let epicNum = 0; epicNum < epicCount; epicNum++) {
+        console.log(`Executing epic ${epicNum + 1}/${epicCount}...`);
 
-          // Execute full epic
-          await executeParallelEpic(redis, {
-            sprints: 5,
-            agentsPerSprint: 10,
-            duration: 2000, // 2 seconds per epic
-          });
+        // Execute full epic
+        await executeParallelEpic(redis, {
+          sprints: 5,
+          agentsPerSprint: 10,
+          duration: 2000, // 2 seconds per epic
+        });
 
-          // Record memory
-          const memory = await getRedisMemoryUsage(redis);
-          memoryReadings.push(memory);
-
-          console.log(
-            `Epic ${epicNum + 1} memory: ${(memory / 1024 / 1024).toFixed(2)}MB`
-          );
-
-          // Force orphan cleanup
-          const cleanup = await orphanDetector.detectAndCleanupOrphans();
-          console.log(
-            `Cleanup after epic ${epicNum + 1}: ${cleanup.orphansCleaned} orphans`
-          );
-
-          // Small delay between epics
-          await sleep(500);
-        }
-
-        // Check memory trend (should be stable, not growing)
-        const avgGrowthPerEpic =
-          (memoryReadings[epicCount - 1] - memoryReadings[0]) / (epicCount - 1);
+        // Record memory
+        const memory = await getRedisMemoryUsage(redis);
+        memoryReadings.push(memory);
 
         console.log(
-          `Average memory growth per epic: ${(avgGrowthPerEpic / 1024 / 1024).toFixed(2)}MB (max: ${(TEST_CONFIG.EPIC_MEMORY_GROWTH_MAX / 1024 / 1024).toFixed(2)}MB)`
+          `Epic ${epicNum + 1} memory: ${(memory / 1024 / 1024).toFixed(2)}MB`
         );
 
-        // Memory growth should be less than 5MB per epic
-        expect(avgGrowthPerEpic).toBeLessThan(
-          TEST_CONFIG.EPIC_MEMORY_GROWTH_MAX
+        // Force orphan cleanup
+        const cleanup = await orphanDetector.detectAndCleanupOrphans();
+        console.log(
+          `Cleanup after epic ${epicNum + 1}: ${cleanup.orphansCleaned} orphans`
         );
 
-        // Total growth should be reasonable (less than 50MB for 10 epics)
-        const totalGrowth = memoryReadings[epicCount - 1] - memoryReadings[0];
-        expect(totalGrowth).toBeLessThan(50 * 1024 * 1024); // 50MB total
-      },
-      { timeout: 5 * 60 * 1000 } // 5 minute test timeout
-    );
+        // Small delay between epics
+        await sleep(500);
+      }
+
+      // Check memory trend (should be stable, not growing)
+      const avgGrowthPerEpic =
+        (memoryReadings[epicCount - 1] - memoryReadings[0]) / (epicCount - 1);
+
+      console.log(
+        `Average memory growth per epic: ${(avgGrowthPerEpic / 1024 / 1024).toFixed(2)}MB (max: ${(TEST_CONFIG.EPIC_MEMORY_GROWTH_MAX / 1024 / 1024).toFixed(2)}MB)`
+      );
+
+      // Memory growth should be less than 5MB per epic
+      expect(avgGrowthPerEpic).toBeLessThan(
+        TEST_CONFIG.EPIC_MEMORY_GROWTH_MAX
+      );
+
+      // Total growth should be reasonable (less than 50MB for 10 epics)
+      const totalGrowth = memoryReadings[epicCount - 1] - memoryReadings[0];
+      expect(totalGrowth).toBeLessThan(50 * 1024 * 1024); // 50MB total
+    }, 5 * 60 * 1000); // 5 minute test timeout
 
     it('should cleanup orphans between epics', async () => {
       const epicCount = 3;
