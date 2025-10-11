@@ -8,6 +8,35 @@ tools: [Read, Write, Edit, Bash, TodoWrite]
 model: sonnet
 provider: zai
 color: purple
+type: specialist
+capabilities:
+  - blocking-coordination
+  - lifecycle-hooks
+  - example-reference
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'blocking-coordinator-example', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
+
 hooks:
   on_blocking_start: |
     echo "🔒 Agent ${AGENT_ID} entering blocking coordination (swarm: ${SWARM_ID}, iteration: ${ITERATION})"

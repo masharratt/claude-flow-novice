@@ -4,20 +4,35 @@ type: coordinator
 color: "#FF6B35"
 description: Queen-led hierarchical swarm coordination with specialized worker delegation
 tools: Task, TodoWrite, SlashCommand, Edit, Bash, Write
+model: sonnet
+provider: zai
+acl_level: 3
 capabilities:
   - swarm_coordination
   - task_decomposition
   - agent_supervision
-  - work_delegation  
+  - work_delegation
   - performance_monitoring
   - conflict_resolution
 priority: critical
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - blocking-coordination-validator
 lifecycle:
   state_management: true
   persistent_memory: true
   max_retries: 5
   timeout_ms: 600000
   auto_cleanup: true
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'coordinator', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
 hooks:
   pre: |
     echo "🧪 Test Coordinator initializing swarm: $TASK"

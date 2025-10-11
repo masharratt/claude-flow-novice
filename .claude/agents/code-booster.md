@@ -6,6 +6,7 @@ model: sonnet
 provider: zai
 color: purple
 type: specialist
+acl_level: 1
 capabilities:
   - wasm-acceleration
   - code-generation
@@ -13,9 +14,19 @@ capabilities:
   - performance-analysis
   - code-review
   - refactoring
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
 lifecycle:
-  pre_task: "node src/booster/BoosterAgentRegistry.js initialize"
-  post_task: "node config/hooks/post-edit-pipeline.js [FILE] --memory-key \"code-booster/[TASK_ID]\""
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'specialist', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
 hooks:
   memory_key: "code-booster/performance"
   validation: "post-edit"
