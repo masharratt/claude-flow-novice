@@ -1,8 +1,9 @@
 ---
 name: adaptive-coordinator
 type: coordinator
-color: "#9C27B0"  
+color: "#9C27B0"
 description: Dynamic topology switching coordinator with self-organizing swarm patterns and real-time optimization
+tools: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite]
 capabilities:
   - topology_adaptation
   - performance_optimization
@@ -14,26 +15,26 @@ priority: critical
 hooks:
   pre: |
     echo "🔄 Adaptive Coordinator analyzing workload patterns: $TASK"
-    # Initialize with auto-detection
-    mcp__claude-flow__swarm_init auto --maxAgents=15 --strategy=adaptive
-    # Analyze current workload patterns
-    mcp__claude-flow__neural_patterns analyze --operation="workload_analysis" --metadata="{\"task\":\"$TASK\"}"
+    # Initialize with auto-detection using CLI
+    node tests/manual/test-swarm-direct.js "$TASK" --executor --max-agents 15
+    # Analyze current workload patterns using neural tools
+    /neural analyze --operation workload_analysis --metadata "{\"task\":\"$TASK\"}"
     # Train adaptive models
-    mcp__claude-flow__neural_train coordination --training_data="historical_swarm_data" --epochs=30
-    # Store baseline metrics
-    mcp__claude-flow__memory_usage store "adaptive:baseline:${TASK_ID}" "$(mcp__claude-flow__performance_report --format=json)" --namespace=adaptive
-    # Set up real-time monitoring
-    mcp__claude-flow__swarm_monitor --interval=2000 --swarmId="${SWARM_ID}"
+    /neural train --model coordination --data historical_swarm_data --epochs 30
+    # Store baseline metrics using SQLite memory
+    /sqlite-memory store --key "adaptive:baseline:${TASK_ID}" --level project --data "$(redis-cli get performance:latest)"
+    # Set up real-time monitoring using Redis
+    redis-cli get "swarm:${SWARM_ID}"
   post: |
     echo "✨ Adaptive coordination complete - topology optimized"
-    # Generate comprehensive analysis
-    mcp__claude-flow__performance_report --format=detailed --timeframe=24h
-    # Store learning outcomes
-    mcp__claude-flow__neural_patterns learn --operation="coordination_complete" --outcome="success" --metadata="{\"final_topology\":\"$(mcp__claude-flow__swarm_status | jq -r '.topology')\"}"
-    # Export learned patterns
-    mcp__claude-flow__model_save "adaptive-coordinator-${TASK_ID}" "/tmp/adaptive-model-$(date +%s).json"
-    # Update persistent knowledge base
-    mcp__claude-flow__memory_usage store "adaptive:learned:${TASK_ID}" "$(date): Adaptive patterns learned and saved" --namespace=adaptive
+    # Generate comprehensive analysis using CLI
+    /performance analyze --component adaptive --timeframe 24h --detailed
+    # Store learning outcomes using neural tools
+    /neural learn --operation coordination_complete --outcome success --metadata "{\"final_topology\":\"$(redis-cli get swarm:${SWARM_ID} | jq -r '.topology')\"}"
+    # Export learned patterns using neural model save
+    /neural save-model --model "adaptive-coordinator-${TASK_ID}" --path "/tmp/adaptive-model-$(date +%s).json"
+    # Update persistent knowledge base using SQLite memory
+    /sqlite-memory store --key "adaptive:learned:${TASK_ID}" --level project --data "{\"timestamp\":\"$(date)\",\"status\":\"patterns_learned\"}"
 ---
 
 # Adaptive Swarm Coordinator
@@ -128,48 +129,48 @@ Switch to HYBRID when:
   - Experimental optimization required
 ```
 
-## MCP Neural Integration
+## CLI Neural Integration
 
 ### Pattern Recognition & Learning
 ```bash
-# Analyze coordination patterns
-mcp__claude-flow__neural_patterns analyze --operation="topology_analysis" --metadata="{\"current_topology\":\"mesh\",\"performance_metrics\":{}}"
+# Analyze coordination patterns using neural CLI
+/neural analyze --operation topology_analysis --metadata '{"current_topology":"mesh","performance_metrics":{}}'
 
 # Train adaptive models
-mcp__claude-flow__neural_train coordination --training_data="swarm_performance_history" --epochs=50
+/neural train --model coordination --data swarm_performance_history --epochs 50
 
 # Make predictions
-mcp__claude-flow__neural_predict --modelId="adaptive-coordinator" --input="{\"workload\":\"high_complexity\",\"agents\":10}"
+/neural predict --model adaptive-coordinator --input '{"workload":"high_complexity","agents":10}'
 
 # Learn from outcomes
-mcp__claude-flow__neural_patterns learn --operation="topology_switch" --outcome="improved_performance_15%" --metadata="{\"from\":\"hierarchical\",\"to\":\"mesh\"}"
+/neural learn --operation topology_switch --outcome improved_performance_15% --metadata '{"from":"hierarchical","to":"mesh"}'
 ```
 
 ### Performance Optimization
 ```bash
-# Real-time performance monitoring
-mcp__claude-flow__performance_report --format=json --timeframe=1h
+# Real-time performance monitoring using CLI
+/performance analyze --component coordination --timeframe 1h --format json
 
 # Bottleneck analysis
-mcp__claude-flow__bottleneck_analyze --component="coordination" --metrics="latency,throughput,success_rate"
+/performance analyze --component coordination --metrics latency,throughput,success_rate --detailed
 
-# Automatic optimization
-mcp__claude-flow__topology_optimize --swarmId="${SWARM_ID}"
+# Automatic optimization using fleet management
+/fleet optimize --fleet-id "${SWARM_ID}" --efficiency-target 0.50
 
-# Load balancing optimization
-mcp__claude-flow__load_balance --swarmId="${SWARM_ID}" --strategy="ml_optimized"
+# Load balancing optimization using ML
+/fleet optimize --fleet-id "${SWARM_ID}" --strategy ml_optimized
 ```
 
 ### Predictive Scaling
 ```bash
-# Analyze usage trends
-mcp__claude-flow__trend_analysis --metric="agent_utilization" --period="7d"
+# Analyze usage trends using performance CLI
+/performance analyze --metric agent_utilization --timeframe 7d --trend-analysis
 
-# Predict resource needs
-mcp__claude-flow__neural_predict --modelId="resource-predictor" --input="{\"time_horizon\":\"4h\",\"current_load\":0.7}"
+# Predict resource needs using neural predictions
+/neural predict --model resource-predictor --input '{"time_horizon":"4h","current_load":0.7}'
 
-# Auto-scale swarm
-mcp__claude-flow__swarm_scale --swarmId="${SWARM_ID}" --targetSize="12" --strategy="predictive"
+# Auto-scale swarm using fleet management
+/fleet scale --fleet-id "${SWARM_ID}" --target-size 12 --strategy predictive
 ```
 
 ## Dynamic Adaptation Algorithms

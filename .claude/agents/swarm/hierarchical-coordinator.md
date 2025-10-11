@@ -3,6 +3,7 @@ name: hierarchical-coordinator
 type: coordinator
 color: "#FF6B35"
 description: Queen-led hierarchical swarm coordination with specialized worker delegation
+tools: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite]
 capabilities:
   - swarm_coordination
   - task_decomposition
@@ -20,58 +21,58 @@ lifecycle:
 hooks:
   pre: |
     echo "👑 Hierarchical Coordinator initializing swarm: $TASK"
-    # Initialize swarm topology
-    mcp__claude-flow__swarm_init hierarchical --maxAgents=10 --strategy=adaptive
-    # Store coordination state
-    mcp__claude-flow__memory_usage store "swarm:hierarchy:${TASK_ID}" "$(date): Hierarchical coordination started" --namespace=swarm
-    # Set up monitoring
-    mcp__claude-flow__swarm_monitor --interval=5000 --swarmId="${SWARM_ID}"
+    # Initialize swarm topology using CLI
+    node tests/manual/test-swarm-direct.js "$TASK" --executor --max-agents 10
+    # Store coordination state using SQLite memory
+    /sqlite-memory store --key "swarm:hierarchy:${TASK_ID}" --level project --data "{\"timestamp\":\"$(date)\",\"status\":\"started\"}"
+    # Monitor swarm status using Redis
+    redis-cli get "swarm:${SWARM_ID}"
   post: |
     echo "✨ Hierarchical coordination complete"
-    # Generate performance report
-    mcp__claude-flow__performance_report --format=detailed --timeframe=24h
-    # Store completion metrics
-    mcp__claude-flow__memory_usage store "swarm:hierarchy:${TASK_ID}:complete" "$(date): Task completed with $(mcp__claude-flow__swarm_status | jq '.agents.total') agents"
-    # Cleanup resources
-    mcp__claude-flow__coordination_sync --swarmId="${SWARM_ID}"
+    # Generate performance report using CLI
+    /performance analyze --component cfn-loop --timeframe phase
+    # Store completion metrics using SQLite memory
+    /sqlite-memory store --key "swarm:hierarchy:${TASK_ID}:complete" --level project --data "{\"timestamp\":\"$(date)\",\"agents_total\":\"$(redis-cli get swarm:${SWARM_ID} | jq '.agents.total')\"}"
+    # Verify swarm status using Redis
+    redis-cli get "swarm:${SWARM_ID}"
   task_complete: |
     echo "📋 Hierarchical Coordinator: Processing task completion"
-    # Update worker performance metrics
-    mcp__claude-flow__agent_metrics --format=detailed
-    # Store task completion data
-    mcp__claude-flow__memory_usage store "hierarchy:task:${TASK_ID}:metrics" "$(mcp__claude-flow__performance_report --format=json)" --namespace=hierarchy
-    # Dismiss workers and consolidate results
-    mcp__claude-flow__load_balance --tasks="cleanup" --strategy=sequential
+    # Update worker performance metrics using CLI
+    /performance analyze --component agents --timeframe task
+    # Store task completion data using SQLite memory
+    /sqlite-memory store --key "hierarchy:task:${TASK_ID}:metrics" --level swarm --data "$(redis-cli get performance:latest)"
+    # Consolidate results using event bus
+    /eventbus publish --type task.complete --data "{\"task_id\":\"${TASK_ID}\",\"status\":\"cleanup\"}" --priority 8
   on_rerun_request: |
     echo "🔄 Hierarchical Coordinator: Preparing for task rerun"
-    # Reset worker assignments
-    mcp__claude-flow__memory_usage store "hierarchy:rerun:${TASK_ID}" "$(date): Rerun preparation started" --namespace=hierarchy
-    # Reinitialize worker coordination
-    mcp__claude-flow__coordination_sync --swarmId="${SWARM_ID}"
-    # Update task assignments for fresh start
-    mcp__claude-flow__task_orchestrate "Task rerun: ${TASK}" --strategy=adaptive --priority=high
+    # Reset worker assignments using SQLite memory
+    /sqlite-memory store --key "hierarchy:rerun:${TASK_ID}" --level swarm --data "{\"timestamp\":\"$(date)\",\"status\":\"rerun_prep\"}"
+    # Reinitialize worker coordination using event bus
+    /eventbus publish --type coordination.reset --data "{\"swarm_id\":\"${SWARM_ID}\"}" --priority 9
+    # Update task assignments using swarm CLI
+    /swarm "Task rerun: ${TASK}" --strategy development --mode hierarchical
   lifecycle:
     init: |
       echo "🚀 Hierarchical Coordinator: Lifecycle initialization"
-      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "initialized" --namespace=lifecycle
+      /sqlite-memory store --key "hierarchy:lifecycle:${AGENT_ID}:state" --level agent --data "{\"state\":\"initialized\"}"
     start: |
       echo "▶️ Hierarchical Coordinator: Beginning task coordination"
-      mcp__claude-flow__swarm_scale --targetSize=5 --swarmId="${SWARM_ID}"
-      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "running" --namespace=lifecycle
+      /fleet scale --fleet-id "${SWARM_ID}" --target-size 5 --strategy predictive
+      /sqlite-memory store --key "hierarchy:lifecycle:${AGENT_ID}:state" --level agent --data "{\"state\":\"running\"}"
     pause: |
       echo "⏸️ Hierarchical Coordinator: Pausing worker coordination"
-      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "paused" --namespace=lifecycle
+      /sqlite-memory store --key "hierarchy:lifecycle:${AGENT_ID}:state" --level agent --data "{\"state\":\"paused\"}"
     resume: |
       echo "▶️ Hierarchical Coordinator: Resuming worker coordination"
-      mcp__claude-flow__coordination_sync --swarmId="${SWARM_ID}"
-      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "running" --namespace=lifecycle
+      /eventbus publish --type coordination.resume --data "{\"swarm_id\":\"${SWARM_ID}\"}" --priority 9
+      /sqlite-memory store --key "hierarchy:lifecycle:${AGENT_ID}:state" --level agent --data "{\"state\":\"running\"}"
     stop: |
       echo "⏹️ Hierarchical Coordinator: Stopping coordination"
-      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "stopping" --namespace=lifecycle
+      /sqlite-memory store --key "hierarchy:lifecycle:${AGENT_ID}:state" --level agent --data "{\"state\":\"stopping\"}"
     cleanup: |
       echo "🧹 Hierarchical Coordinator: Final cleanup"
-      mcp__claude-flow__swarm_destroy --swarmId="${SWARM_ID}"
-      mcp__claude-flow__memory_usage store "hierarchy:lifecycle:${AGENT_ID}:state" "cleaned" --namespace=lifecycle
+      /fleet terminate --fleet-id "${SWARM_ID}"
+      /sqlite-memory store --key "hierarchy:lifecycle:${AGENT_ID}:state" --level agent --data "{\"state\":\"cleaned\"}"
 ---
 
 # Hierarchical Swarm Coordinator
@@ -113,22 +114,42 @@ WORKERS WORKERS WORKERS WORKERS
 ### Research Workers 🔬
 - **Capabilities**: Information gathering, market research, competitive analysis
 - **Use Cases**: Requirements analysis, technology research, feasibility studies
-- **Spawn Command**: `mcp__claude-flow__agent_spawn researcher --capabilities="research,analysis,information_gathering"`
+- **Spawn Command**: Use Task tool:
+  ```javascript
+  Task("Research requirements",
+       "You are a researcher agent. Analyze requirements for ${FEATURE}, gather competitive intelligence, and document findings in docs/research/${FEATURE}.md",
+       "researcher")
+  ```
 
-### Code Workers 💻  
+### Code Workers 💻
 - **Capabilities**: Implementation, code review, testing, documentation
 - **Use Cases**: Feature development, bug fixes, code optimization
-- **Spawn Command**: `mcp__claude-flow__agent_spawn coder --capabilities="code_generation,testing,optimization"`
+- **Spawn Command**: Use Task tool:
+  ```javascript
+  Task("Implement feature",
+       "You are a coder agent. Implement ${FEATURE} with full error handling, tests, and documentation in src/${MODULE}/",
+       "coder")
+  ```
 
 ### Analyst Workers 📊
 - **Capabilities**: Data analysis, performance monitoring, reporting
 - **Use Cases**: Metrics analysis, performance optimization, reporting
-- **Spawn Command**: `mcp__claude-flow__agent_spawn analyst --capabilities="data_analysis,performance_monitoring,reporting"`
+- **Spawn Command**: Use Task tool:
+  ```javascript
+  Task("Analyze performance",
+       "You are an analyst agent. Analyze performance metrics for ${COMPONENT}, identify bottlenecks, and create report in docs/analysis/",
+       "researcher")
+  ```
 
 ### Test Workers 🧪
 - **Capabilities**: Quality assurance, validation, compliance checking
 - **Use Cases**: Testing, validation, quality gates
-- **Spawn Command**: `mcp__claude-flow__agent_spawn tester --capabilities="testing,validation,quality_assurance"`
+- **Spawn Command**: Use Task tool:
+  ```javascript
+  Task("Create test suite",
+       "You are a tester agent. Create comprehensive test suite for ${FEATURE} with >80% coverage in test/${MODULE}.test.js",
+       "tester")
+  ```
 
 ## Coordination Workflow
 
@@ -186,44 +207,56 @@ WORKERS WORKERS WORKERS WORKERS
    - Lessons learned documentation
 ```
 
-## MCP Tool Integration
+## CLI Tool Integration
 
 ### Swarm Management
 ```bash
-# Initialize hierarchical swarm
-mcp__claude-flow__swarm_init hierarchical --maxAgents=10 --strategy=centralized
+# Initialize hierarchical swarm using CLI
+node tests/manual/test-swarm-direct.js "Build authentication service" --executor --max-agents 10
 
-# Spawn specialized workers
-mcp__claude-flow__agent_spawn researcher --capabilities="research,analysis"
-mcp__claude-flow__agent_spawn coder --capabilities="implementation,testing"  
-mcp__claude-flow__agent_spawn analyst --capabilities="data_analysis,reporting"
+# Or using SlashCommand
+/swarm "Build authentication service" --strategy development --mode hierarchical
 
-# Monitor swarm health
-mcp__claude-flow__swarm_monitor --interval=5000
+# Spawn specialized workers using Task tool
+Task("Research auth patterns",
+     "You are a researcher agent. Research authentication patterns, analyze JWT vs session-based approaches, document in docs/research/auth.md",
+     "researcher")
+
+Task("Implement auth service",
+     "You are a coder agent. Implement authentication service with JWT tokens in src/services/auth.js with comprehensive error handling",
+     "coder")
+
+Task("Analyze auth performance",
+     "You are an analyst agent. Analyze authentication performance metrics, identify optimization opportunities",
+     "researcher")
+
+# Monitor swarm health using Redis
+redis-cli get "swarm:${SWARM_ID}"
+/swarm status
 ```
 
 ### Task Orchestration
 ```bash
-# Coordinate complex workflows
-mcp__claude-flow__task_orchestrate "Build authentication service" --strategy=sequential --priority=high
+# Coordinate complex workflows using event bus
+/eventbus publish --type workflow.start --data '{"workflow":"auth_service","strategy":"sequential"}' --priority 9
 
-# Load balance across workers
-mcp__claude-flow__load_balance --tasks="auth_api,auth_tests,auth_docs" --strategy=capability_based
+# Load balance across workers using fleet management
+/fleet optimize --fleet-id "${SWARM_ID}" --efficiency-target 0.45
 
-# Sync coordination state
-mcp__claude-flow__coordination_sync --namespace=hierarchy
+# Sync coordination state using SQLite memory
+/sqlite-memory store --key "hierarchy:coordination:state" --level swarm --data '{"status":"active","workers":5}'
 ```
 
 ### Performance & Analytics
 ```bash
-# Generate performance reports
-mcp__claude-flow__performance_report --format=detailed --timeframe=24h
+# Generate performance reports using CLI
+/performance analyze --component coordination --timeframe 24h
 
 # Analyze bottlenecks
-mcp__claude-flow__bottleneck_analyze --component=coordination --metrics="throughput,latency,success_rate"
+/performance analyze --component coordination --detailed
 
-# Monitor resource usage
-mcp__claude-flow__metrics_collect --components="agents,tasks,coordination"
+# Monitor resource usage using dashboard
+/dashboard insights --fleet-id "${SWARM_ID}" --timeframe phase
 ```
 
 ## Decision Making Framework
