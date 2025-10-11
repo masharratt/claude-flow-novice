@@ -410,7 +410,7 @@ class PerformanceTestCLI {
       regressions: await this.loadRegressionResults()
     };
 
-    const reportPath = path.join(process.cwd(), 'performance-reports', `consolidated-${Date.now()}.json`);
+    const reportPath = path.join(process.cwd(), 'reports/performance', `consolidated-${Date.now()}.json`);
     await fs.mkdir(path.dirname(reportPath), { recursive: true });
     await fs.writeFile(reportPath, JSON.stringify(reportData, null, 2));
 
@@ -465,7 +465,7 @@ class PerformanceTestCLI {
   }
 
   async saveResults(testType, results) {
-    const reportsDir = path.join(process.cwd(), 'performance-reports');
+    const reportsDir = path.join(process.cwd(), 'reports/performance');
     await fs.mkdir(reportsDir, { recursive: true });
 
     const resultsPath = path.join(reportsDir, `${testType}-${Date.now()}.json`);
@@ -475,7 +475,7 @@ class PerformanceTestCLI {
   }
 
   async saveGateResults(gateResult) {
-    const reportsDir = path.join(process.cwd(), 'performance-reports');
+    const reportsDir = path.join(process.cwd(), 'reports/performance');
     await fs.mkdir(reportsDir, { recursive: true });
 
     const gateResultsPath = path.join(reportsDir, `gate-${Date.now()}.json`);
@@ -488,7 +488,7 @@ class PerformanceTestCLI {
   }
 
   async saveRegressionResults(alerts, dataPoint) {
-    const reportsDir = path.join(process.cwd(), 'performance-reports');
+    const reportsDir = path.join(process.cwd(), 'reports/performance');
     await fs.mkdir(reportsDir, { recursive: true });
 
     const regressionData = {
@@ -505,7 +505,7 @@ class PerformanceTestCLI {
 
   async loadResults(testType) {
     try {
-      const reportsDir = path.join(process.cwd(), 'performance-reports');
+      const reportsDir = path.join(process.cwd(), 'reports/performance');
       const files = await fs.readdir(reportsDir);
       const testFiles = files.filter(f => f.startsWith(`${testType}-`) && f.endsWith('.json'));
 
@@ -524,7 +524,7 @@ class PerformanceTestCLI {
 
   async loadGateResults() {
     try {
-      const gateResultsPath = path.join(process.cwd(), 'performance-reports', 'gate-latest.json');
+      const gateResultsPath = path.join(process.cwd(), 'reports/performance', 'gate-latest.json');
       const data = await fs.readFile(gateResultsPath, 'utf-8');
       return JSON.parse(data);
     } catch (error) {
@@ -535,7 +535,7 @@ class PerformanceTestCLI {
 
   async loadRegressionResults() {
     try {
-      const reportsDir = path.join(process.cwd(), 'performance-reports');
+      const reportsDir = path.join(process.cwd(), 'reports/performance');
       const files = await fs.readdir(reportsDir);
       const regressionFiles = files.filter(f => f.startsWith('regression-') && f.endsWith('.json'));
 
