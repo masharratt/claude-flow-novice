@@ -166,6 +166,8 @@ redis-cli setex "cfn:phase-auth:state" 3600 '{"loop":3,"agents":5,"confidence":0
 **Git Commit After Each Completion:**
 ```bash
 # After Loop 3 completes (all agents ≥0.75)
+/github-commit --chat
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Loop 3 - Authentication Phase
@@ -184,6 +186,8 @@ EOF
 )"
 
 # After Loop 2 validation completes (consensus ≥0.90)
+/github-commit --chat
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Loop 2 - Validation Phase
@@ -203,6 +207,8 @@ EOF
 )"
 
 # After Loop 4 Product Owner decision (PROCEED/DEFER)
+/github-commit --chat
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Phase - Authentication System
@@ -221,6 +227,9 @@ EOF
 )"
 
 # After Sprint completes (multiple phases done)
+/github-commit --full
+# Triggers /cfn-loop-document automatically
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Sprint 1 - User Management
@@ -238,6 +247,9 @@ EOF
 )"
 
 # After Epic completes (all sprints done)
+/github-commit --full
+/cfn-loop-document --epic=e-commerce-v1
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Epic - E-commerce Platform v1.0
@@ -256,12 +268,12 @@ EOF
 ```
 
 **Complete CFN Loop Flow with Coordination:**
-1. **Loop 3**: Agents coordinate via event bus, store results in SQLite → Commit on completion (≥0.75)
-2. **Loop 2**: Validators read Loop 3 memory, validate, publish consensus → Commit on validation (≥0.90)
-3. **Loop 4**: Product Owner reads all memory, makes GOAP decision → Commit on decision
-4. **Phase Complete**: Commit phase summary with all metrics
-5. **Sprint Complete**: Commit sprint summary with all phase results
-6. **Epic Complete**: Commit epic summary with all sprint results
+1. **Loop 3**: Agents coordinate via event bus, store results in SQLite → `/github-commit --chat` on completion (≥0.75)
+2. **Loop 2**: Validators read Loop 3 memory, validate, publish consensus → `/github-commit --chat` on validation (≥0.90)
+3. **Loop 4**: Product Owner reads all memory, makes GOAP decision → `/github-commit --chat` on decision
+4. **Phase Complete**: `/github-commit --chat` with phase summary and metrics
+5. **Sprint Complete**: `/github-commit --full` with sprint summary, auto-triggers `/cfn-loop-document --sprint=name`
+6. **Epic Complete**: `/github-commit --full` + `/cfn-loop-document --epic=name` with all sprint/phase results
 
 ### CFN Loop Enterprise Commands
 
