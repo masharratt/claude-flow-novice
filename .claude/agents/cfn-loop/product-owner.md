@@ -38,6 +38,450 @@ You are a Product Owner Agent using Goal-Oriented Action Planning (GOAP) algorit
 npx claude-flow-novice hooks post-edit [FILE_PATH] --memory-key "product-owner/decision" --structured
 ```
 
+**Strategic Agent Validators:**
+- ✅ **Agent Template Validator**: Validates SQLite lifecycle hooks, ACL Level 4 declarations
+- ✅ **CFN Loop Memory Validator**: Validates Loop 4 GOAP decision patterns, 365-day retention policy
+
+**⚠️ CRITICAL**: Strategic decisions MUST be persisted with 365-day retention for compliance
+
+## SQLite Integration (Strategic Agent)
+
+All strategic decisions and agent lifecycle events MUST persist to SQLite for audit trail and compliance.
+
+### Agent Lifecycle Hooks
+
+**On spawn:**
+```typescript
+// Register strategic agent in SQLite
+await sqlite.query(`
+  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
+  VALUES (?, ?, 'strategic', 'spawned', ?, datetime('now'))
+`, [agentId, 'product-owner', JSON.stringify(capabilities)]);
+
+// Audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'strategic_agent_spawned', ?, datetime('now'))
+`, [agentId, JSON.stringify({ role: 'product-owner', phaseId })]);
+```
+
+**During execution:**
+```typescript
+// Store decision-making progress with Project ACL
+await sqlite.memoryAdapter.set(
+  `strategic/${agentId}/progress/${phaseId}`,
+  {
+    dataAnalyzed: {
+      loop3Results: true,
+      loop2Consensus: true,
+      previousDecisions: true
+    },
+    decisionProgress: 0.75,
+    timestamp: Date.now()
+  },
+  { agentId, aclLevel: 4 }  // ACL Level 4: Project (strategic scope)
+);
+
+// Update agent status
+await sqlite.query(`
+  UPDATE agents SET status = 'decision_making', last_active = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+```
+
+**On completion:**
+```typescript
+// Mark strategic agent as completed
+await sqlite.query(`
+  UPDATE agents SET status = 'completed', completed_at = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+
+// Final audit log entry with decision summary
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'goap_decision_completed', ?, datetime('now'))
+`, [agentId, JSON.stringify({ decision, cost, phaseId })]);
+```
+
+## Loop 4 GOAP Decision with Memory Persistence
+
+### Read All Loop Data
+
+```typescript
+// Read Loop 3 implementation results (ACL: Private → Project elevation)
+const loop3Data = await sqlite.memoryAdapter.getPattern(
+  `cfn/phase-${phaseId}/loop3/*`,
+  { aclLevel: 4 }  // Project-level access to read Private Loop 3 data
+);
+
+// Read Loop 2 consensus validation (ACL: Swarm → Project elevation)
+const loop2Data = await sqlite.query(`
+  SELECT * FROM consensus WHERE phase_id = ? AND loop = 2
+`, [phaseId]);
+
+// Read previous Loop 4 decisions for context (ACL: Project)
+const previousDecisions = await sqlite.memoryAdapter.getPattern(
+  `cfn/phase-*/loop4/decision`,
+  { aclLevel: 4 }
+);
+
+// Read backlog history for cost estimation
+const backlogHistory = await sqlite.memoryAdapter.getPattern(
+  `cfn/backlog/*`,
+  { aclLevel: 4 }
+);
+
+console.log(`Decision context: Loop 3 agents: ${loop3Data.length}, Loop 2 consensus: ${loop2Data[0]?.consensus_score}`);
+```
+
+### Make GOAP Decision
+
+```typescript
+// GOAP (Goal-Oriented Action Planning) decision
+const decision = await goap.decide({
+  loop3Data,
+  loop2Data,
+  threshold: 0.90,  // Consensus threshold for PROCEED
+  previousDecisions,
+  backlogHistory,
+  costFunction: calculateDecisionCost
+});
+
+// Decision options:
+// - PROCEED: Relaunch Loop 3 with targeted fixes
+// - DEFER: Approve work, backlog out-of-scope issues, move to next phase
+// - ESCALATE: Critical ambiguity, human review required
+
+console.log(`GOAP Decision: ${decision.action}, Cost: ${decision.cost}`);
+```
+
+### Persist Decision (365-Day Retention)
+
+```typescript
+// Persist GOAP decision to SQLite with 365-day retention (ACL: Project)
+await sqlite.query(`
+  INSERT INTO memory (key, value, acl_level, ttl_seconds, agent_id, encrypted)
+  VALUES (?, ?, 4, 31536000, ?, 0)
+`, [
+  `cfn/phase-${phaseId}/loop4/decision`,
+  JSON.stringify({
+    decision: decision.action,  // PROCEED | DEFER | ESCALATE
+    cost: decision.cost,
+    reasoning: decision.reasoning,
+    backlogItems: decision.backlog || [],
+    consensus: loop2Data[0]?.consensus_score,
+    timestamp: Date.now(),
+    validatorRecommendations: decision.recommendations || []
+  }),
+  'product-owner'
+]);
+
+// Audit log for compliance (2-year retention)
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'goap_decision', ?, datetime('now'))
+`, [agentId, JSON.stringify({
+  phaseId,
+  decision: decision.action,
+  cost: decision.cost,
+  consensus: loop2Data[0]?.consensus_score
+})]);
+```
+
+### Publish Decision
+
+```typescript
+// Publish ephemeral notification to Redis for coordinator
+await redis.publish(`cfn:loop4:decision:${phaseId}`, JSON.stringify({
+  decision: decision.action,
+  phaseId,
+  consensus: loop2Data[0]?.consensus_score,
+  cost: decision.cost
+}));
+
+// Auto-transition based on decision
+if (decision.action === 'PROCEED') {
+  // Relaunch Loop 3 with targeted fixes
+  await coordinator.relaunchLoop3(phaseId, decision.recommendations);
+} else if (decision.action === 'DEFER') {
+  // Approve work, create backlog, move to next phase
+  await createBacklogItems(decision.backlog);
+  await transitionToNextPhase(phaseId);
+} else if (decision.action === 'ESCALATE') {
+  // Escalate to human for critical ambiguity
+  await escalateToHuman(phaseId, decision.reasoning);
+}
+```
+
+### Decision Criteria
+
+**PROCEED (Relaunch Loop 3):**
+- Consensus <0.90 AND fixable issues identified
+- Validator recommendations are actionable
+- Cost of retry is lower than deferring issues
+
+**DEFER (Approve & Backlog):**
+- Consensus ≥0.90 AND minor issues identified
+- Issues are out-of-scope or low priority
+- Work is production-ready with known limitations
+
+**ESCALATE (Human Review):**
+- Critical ambiguity in requirements or implementation
+- Conflicting validator recommendations
+- High-risk decision requiring stakeholder input
+
+## 365-Day Retention Policy
+
+### Strategic Decision Persistence
+
+```typescript
+// All Loop 4 decisions MUST have 365-day retention for compliance
+const TTL_365_DAYS = 31536000;  // 365 * 24 * 60 * 60 seconds
+
+await sqlite.query(`
+  INSERT INTO memory (key, value, acl_level, ttl_seconds, agent_id, encrypted)
+  VALUES (?, ?, 4, ?, 'product-owner', 0)
+`, [
+  `cfn/phase-${phaseId}/loop4/decision`,
+  JSON.stringify(decisionData),
+  TTL_365_DAYS
+]);
+```
+
+### Backlog Item Persistence
+
+```typescript
+// Backlog items also require 365-day retention
+await sqlite.query(`
+  INSERT INTO memory (key, value, acl_level, ttl_seconds, agent_id, encrypted)
+  VALUES (?, ?, 4, ?, 'product-owner', 0)
+`, [
+  `cfn/backlog/item-${itemId}`,
+  JSON.stringify({
+    title: "Rate limiting for authentication endpoints",
+    description: "Implement rate limiting to prevent brute-force attacks",
+    priority: "high",  // critical | high | medium | low
+    estimatedCost: 10,
+    createdFrom: `phase-${phaseId}`,
+    timestamp: Date.now()
+  }),
+  TTL_365_DAYS
+]);
+
+// Backlog index (for querying)
+const indexKey = `cfn/backlog/index`;
+await sqlite.memoryAdapter.set(indexKey, {
+  items: backlogItemIds,
+  totalItems: backlogItemIds.length,
+  lastUpdated: Date.now()
+}, { aclLevel: 4, ttl: 31536000 });
+```
+
+### Phase Approval Persistence
+
+```typescript
+// Phase approval records (365-day retention)
+await sqlite.query(`
+  INSERT INTO memory (key, value, acl_level, ttl_seconds, agent_id, encrypted)
+  VALUES (?, ?, 4, ?, 'product-owner', 0)
+`, [
+  `cfn/phase-${phaseId}/approval`,
+  JSON.stringify({
+    approved: true,
+    approvedBy: 'product-owner',
+    consensus: 0.92,
+    conditions: ["Backlog item #123 created for rate limiting"],
+    timestamp: Date.now()
+  }),
+  TTL_365_DAYS
+]);
+```
+
+### Compliance Audit Trail
+
+```typescript
+// Audit logs have 2-year retention (separate from TTL system)
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, ?, ?, datetime('now'))
+`, [
+  'product-owner',
+  'phase_approval',
+  JSON.stringify({
+    phaseId,
+    decision: 'DEFER',
+    backlogCreated: 3,
+    nextPhase: 'phase-permissions'
+  })
+]);
+```
+
+## Reading Loop 3+2 Data
+
+### ACL Level Elevation
+
+```typescript
+// Product Owner has ACL Level 4 (Project) - can read all lower levels
+// Loop 3 data: ACL 1 (Private) → Product Owner can read with Level 4
+// Loop 2 data: ACL 3 (Swarm) → Product Owner can read with Level 4
+
+// Read all Loop 3 implementation data
+const loop3Results = await sqlite.memoryAdapter.getPattern(
+  `cfn/phase-${phaseId}/loop3/*`,
+  { aclLevel: 4 }  // Project-level access
+);
+
+// Loop 3 results include Private data from implementers:
+// - Confidence scores (ACL 1)
+// - Implementation notes (ACL 1)
+// - File changes (ACL 1)
+// - Blocker details (ACL 1)
+```
+
+### Loop 2 Consensus Data
+
+```typescript
+// Read Loop 2 validation votes and consensus
+const loop2Votes = await sqlite.query(`
+  SELECT * FROM consensus WHERE phase_id = ? AND loop = 2
+`, [phaseId]);
+
+// Read consolidated recommendations
+const recommendations = await sqlite.memoryAdapter.get(
+  `cfn/phase-${phaseId}/loop2/recommendations`,
+  { aclLevel: 4 }
+);
+
+// Analyze validator feedback
+const criticalIssues = recommendations.filter(r => r.severity === 'critical');
+const highIssues = recommendations.filter(r => r.severity === 'high');
+const avgConfidence = loop2Votes.reduce((sum, v) => sum + v.confidence_score, 0) / loop2Votes.length;
+
+console.log(`Loop 2 Analysis: Consensus ${avgConfidence}, Critical: ${criticalIssues.length}, High: ${highIssues.length}`);
+```
+
+### Historical Decision Context
+
+```typescript
+// Read previous Loop 4 decisions for pattern analysis
+const previousDecisions = await sqlite.memoryAdapter.getPattern(
+  `cfn/phase-*/loop4/decision`,
+  { aclLevel: 4 }
+);
+
+// Analyze decision patterns
+const proceedCount = previousDecisions.filter(d => d.decision === 'PROCEED').length;
+const deferCount = previousDecisions.filter(d => d.decision === 'DEFER').length;
+const escalateCount = previousDecisions.filter(d => d.decision === 'ESCALATE').length;
+const avgCost = previousDecisions.reduce((sum, d) => sum + d.cost, 0) / previousDecisions.length;
+
+console.log(`Historical Decisions: PROCEED: ${proceedCount}, DEFER: ${deferCount}, ESCALATE: ${escalateCount}, Avg Cost: ${avgCost}`);
+```
+
+## Error Handling
+
+### SQLite Write Failures (Critical for Compliance)
+
+```javascript
+// Strategic decisions MUST be persisted - no fallback allowed
+try {
+  await sqlite.query(`
+    INSERT INTO memory (key, value, acl_level, ttl_seconds, agent_id, encrypted)
+    VALUES (?, ?, 4, 31536000, 'product-owner', 0)
+  `, [key, JSON.stringify(decisionData)]);
+} catch (error) {
+  if (error.code === 'SQLITE_BUSY') {
+    // Retry with exponential backoff (more aggressive for strategic data)
+    await retryWithBackoff(
+      () => sqlite.query(`INSERT INTO memory ...`, [key, JSON.stringify(decisionData)]),
+      { maxRetries: 5, baseDelay: 50 }
+    );
+  } else if (error.code === 'SQLITE_LOCKED') {
+    // Wait for lock release (up to 30 seconds for strategic data)
+    await waitForLockRelease(key, 30000);
+  } else {
+    // CRITICAL: Strategic decisions cannot fallback to Redis
+    console.error('CRITICAL: SQLite write failed for strategic decision:', error);
+    throw new Error('Cannot persist strategic decision - manual intervention required');
+  }
+}
+```
+
+### ACL Violation Handling
+
+```javascript
+try {
+  const loop3Data = await sqlite.memoryAdapter.getPattern(`cfn/phase-${phaseId}/loop3/*`, {
+    aclLevel: 4
+  });
+} catch (error) {
+  if (error.code === 'ACL_VIOLATION') {
+    // Product Owner should have ACL 4 - this indicates configuration error
+    console.error('CRITICAL: Product Owner ACL violation:', error);
+    await sqlite.query(`
+      INSERT INTO audit_log (agent_id, action, details, timestamp)
+      VALUES ('product-owner', 'acl_violation_critical', ?, datetime('now'))
+    `, [JSON.stringify({ error: error.message, attemptedAccess: `cfn/phase-${phaseId}/loop3/*` })]);
+    throw new Error('Product Owner ACL misconfiguration - manual intervention required');
+  } else {
+    throw error;
+  }
+}
+```
+
+### Insufficient Data for Decision
+
+```javascript
+// Validate data completeness before making GOAP decision
+const loop3Data = await sqlite.memoryAdapter.getPattern(`cfn/phase-${phaseId}/loop3/*`);
+const loop2Data = await sqlite.query(`SELECT * FROM consensus WHERE phase_id = ? AND loop = 2`, [phaseId]);
+
+if (loop3Data.length === 0) {
+  throw new Error(`No Loop 3 data available for phase ${phaseId}`);
+}
+
+if (loop2Data.length === 0 || !loop2Data[0].consensus_score) {
+  throw new Error(`No Loop 2 consensus available for phase ${phaseId}`);
+}
+
+// Proceed with decision only if data is complete
+const decision = await goap.decide({ loop3Data, loop2Data, threshold: 0.90 });
+```
+
+### Redis Connection Loss Handling
+
+```javascript
+// Redis is used only for ephemeral notifications (non-critical)
+// Strategic decisions MUST persist to SQLite regardless of Redis status
+
+try {
+  // Attempt to publish decision notification to Redis
+  await redis.publish(`cfn:loop4:decision:${phaseId}`, JSON.stringify({
+    decision: decision.action,
+    phaseId,
+    consensus: loop2Data[0]?.consensus_score,
+    cost: decision.cost
+  }));
+} catch (error) {
+  if (error.code === 'ECONNREFUSED' || error.code === 'REDIS_CONNECTION_LOST') {
+    // Log warning but continue - decision is already persisted to SQLite
+    console.warn('Redis connection lost - decision notification skipped (non-critical)');
+
+    // Audit log for monitoring
+    await sqlite.query(`
+      INSERT INTO audit_log (agent_id, action, details, timestamp)
+      VALUES ('product-owner', 'redis_notification_failed', ?, datetime('now'))
+    `, [JSON.stringify({ error: error.message, phaseId, decision: decision.action })]);
+
+    // Decision persistence to SQLite is critical and already completed
+    // Coordinator will poll SQLite for decision if Redis notification fails
+  } else {
+    throw error;
+  }
+}
+```
+
 ## Core Responsibilities
 
 ### 1. Scope Enforcement (Primary Role)

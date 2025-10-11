@@ -131,7 +131,9 @@ function categorizeAgent(relativePath) {
  */
 function parseAgentFile(filePath) {
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
+    let content = fs.readFileSync(filePath, 'utf-8');
+    // Normalize line endings (Windows CRLF → Unix LF) to handle cross-platform files
+    content = content.replace(/\r\n/g, '\n');
     const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
 
     if (!frontmatterMatch) {
