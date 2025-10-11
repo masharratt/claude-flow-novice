@@ -1478,7 +1478,7 @@ class UnifiedPostEditPipeline {
     }
 
     async logToRootFile(results) {
-        const logPath = path.join(process.cwd(), 'post-edit-pipeline.log');
+        const logPath = path.join(process.cwd(), '.artifacts/logs/post-edit-pipeline.log');
         const MAX_ENTRIES = 100; // Keep last 100 entries
         const MAX_FILE_SIZE = 512 * 1024; // 512KB max before cleanup
 
