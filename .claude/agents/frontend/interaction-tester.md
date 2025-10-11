@@ -7,6 +7,7 @@ description: |
   Keywords - e2e testing, playwright, browser automation, visual testing, accessibility, user flows, regression testing
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
+provider: zai
 color: mediumvioletred
 type: specialist
 capabilities:
@@ -15,9 +16,30 @@ capabilities:
   - accessibility-testing
   - cross-browser-testing
   - performance-metrics
+
+# MANDATORY: Validation hooks for validators/testers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
 lifecycle:
-  pre_task: "npx claude-flow-novice hooks pre-task"
-  post_task: "npx claude-flow-novice hooks post-task"
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'interaction-tester', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 3 (Swarm) - Shared validation data
+acl_level: 3
+
 hooks:
   memory_key: "interaction-tester/context"
   validation: "post-edit"
@@ -39,26 +61,323 @@ Specialized E2E testing agent using Playwright MCP integration for comprehensive
 
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
-**CRITICAL**: After **EVERY** file edit operation, you **MUST** run:
+**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
 
 ```bash
-npx claude-flow-novice hooks post-edit [FILE_PATH] --memory-key "interaction-tester/[step]" --structured
+# After editing any file, IMMEDIATELY run:
+/hooks post-edit [FILE_PATH] --memory-key "interaction-tester/[TASK_ID]" --structured
 ```
 
 **This provides:**
-- TDD Compliance validation for test files
-- Security analysis (ensure no hardcoded credentials in tests)
-- Test structure validation
-- Coverage analysis
-- Actionable test quality recommendations
-- Memory coordination with other agents
+- 🧪 **TDD Compliance**: Validates test-first development practices
+- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
+- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
+- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds (≥80%)
+- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
+- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
 
-**Why this matters:**
-- Ensures test quality gates are met
-- Validates test patterns and structure
-- Prevents security issues in test code
-- Coordinates with frontend and backend agents
-- Maintains system-wide testing standards
+**Additional Validators:**
+- **Agent Template Validator**: Auto-validates SQLite lifecycle hooks, ACL declarations, error handling patterns (triggers on `.claude/agents/**/*.md` edits)
+- **CFN Loop Memory Validator**: Auto-validates ACL levels for Loop 3/2/4 memory operations (triggers on `memory.set()` calls)
+- **Test Coverage Validator**: Auto-validates 80% line coverage, 75% branch coverage thresholds (triggers after test execution)
+
+**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, test files, etc.)
+
+---
+
+## SQLite Integration (Validators/Testers)
+
+### Agent Lifecycle Hooks
+
+**On spawn:**
+```typescript
+// Register tester agent in SQLite
+await sqlite.query(`
+  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
+  VALUES (?, ?, 'interaction-tester', 'spawned', ?, datetime('now'))
+`, [agentId, agentName, JSON.stringify({
+  playwrightAutomation: true,
+  visualRegression: true,
+  accessibilityTesting: true,
+  crossBrowserTesting: true
+})]);
+
+// Audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_spawned', ?, datetime('now'))
+`, [agentId, JSON.stringify({ task, swarmId })]);
+```
+
+**During execution:**
+```typescript
+// Store test results with Swarm ACL
+await sqlite.memoryAdapter.set(
+  `tester/${agentId}/results/${testSuite}`,
+  {
+    confidence: 0.88,
+    testsPassed: 47,
+    testsFailed: 3,
+    accessibility: { violations: 0, warnings: 2 },
+    visualRegression: { diffs: 0 },
+    reasoning: "All critical flows passing, minor accessibility warnings",
+    blockers: []
+  },
+  { agentId, aclLevel: 3 }  // ACL Level 3: Swarm (validation team)
+);
+
+// Update agent status
+await sqlite.query(`
+  UPDATE agents SET status = 'in_progress', last_active = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+```
+
+**On completion:**
+```typescript
+// Mark agent as completed
+await sqlite.query(`
+  UPDATE agents SET status = 'completed', completed_at = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+
+// Final audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_terminated', ?, datetime('now'))
+`, [agentId, JSON.stringify({ finalConfidence, testsPassed, testsFailed, duration })]);
+```
+
+---
+
+## CFN Loop 2 Integration - E2E Validation
+
+### Read Loop 3 Implementation Results
+
+```typescript
+// Retrieve all Loop 3 implementation results (ACL: Swarm access)
+const loop3Results = await sqlite.memoryAdapter.getPattern(
+  `cfn/phase-${phaseId}/loop3/*`,
+  { aclLevel: 3 }  // Swarm-level access to read Private Loop 3 data
+);
+
+// Execute E2E tests on implementation
+const testResults = {
+  filesImplemented: loop3Results.flatMap(r => r.files),
+  avgConfidence: loop3Results.reduce((sum, r) => sum + r.confidence, 0) / loop3Results.length,
+  testResults: []
+};
+
+// Run E2E test suite
+for (const result of loop3Results) {
+  const e2eTests = await runE2ETests(result.files);
+
+  testResults.testResults.push({
+    component: result.files[0],
+    passed: e2eTests.passed,
+    failed: e2eTests.failed,
+    accessibility: e2eTests.accessibility,
+    visualRegression: e2eTests.visualRegression,
+    performance: e2eTests.performance
+  });
+}
+
+console.log(`E2E Test Results: ${testResults.testResults.filter(t => t.failed === 0).length}/${testResults.testResults.length} passed`);
+```
+
+### Store Test Results
+
+```typescript
+// Persist test results to SQLite (immutable, ACL: Swarm, 90-day retention)
+await sqlite.memoryAdapter.set(
+  `cfn/phase-${phaseId}/loop2/interaction-tester/${agentId}`,
+  {
+    testResults: testResults.testResults,
+    timestamp: Date.now(),
+    testRunnerVersion: '1.0.0',
+    totalTests: testResults.testResults.reduce((sum, r) => sum + r.passed + r.failed, 0)
+  },
+  { aclLevel: 3, ttl: 7776000 }  // Swarm, 90 days (test audit trail)
+);
+```
+
+### E2E Validation Vote
+
+```typescript
+// Calculate test confidence score
+const totalTests = testResults.testResults.reduce((sum, r) => sum + r.passed + r.failed, 0);
+const passedTests = testResults.testResults.reduce((sum, r) => sum + r.passed, 0);
+const accessibilityViolations = testResults.testResults.reduce((sum, r) => sum + (r.accessibility?.violations || 0), 0);
+const visualRegressions = testResults.testResults.reduce((sum, r) => sum + (r.visualRegression?.diffs || 0), 0);
+
+// Test scoring: base pass rate, penalize violations/regressions
+const testPassRate = totalTests > 0 ? passedTests / totalTests : 0;
+const testScore = Math.max(0, testPassRate - (accessibilityViolations * 0.05) - (visualRegressions * 0.02));
+
+// Determine vote based on test score
+let vote;
+if (testScore < 0.75 || accessibilityViolations > 5) {
+  vote = 'reject';  // Too many failures or critical accessibility issues
+} else if (testScore < 0.90 || accessibilityViolations > 0) {
+  vote = 'approve_with_recommendations';  // Minor issues deferred to backlog
+} else {
+  vote = 'approve';  // All tests passing, no accessibility violations
+}
+
+// Persist test validation vote to SQLite
+await sqlite.query(`
+  INSERT INTO consensus (
+    phase_id, validator_id, vote, confidence_score, reasoning, recommendations, timestamp, acl_level
+  ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 3)
+`, [
+  phaseId,
+  agentId,
+  vote,
+  testScore,
+  `E2E tests: ${passedTests}/${totalTests} passed, ${accessibilityViolations} accessibility violations, ${visualRegressions} visual regressions`,
+  JSON.stringify(testResults.testResults.filter(r => r.failed > 0 || (r.accessibility?.violations || 0) > 0).map(r => ({
+    severity: r.failed > 0 ? 'high' : 'medium',
+    category: 'testing',
+    issue: r.failed > 0 ? 'test_failure' : 'accessibility_violation',
+    recommendation: r.failed > 0 ? 'Fix failing tests' : 'Address accessibility issues',
+    component: r.component
+  })))
+]);
+
+// Publish ephemeral notification to Redis
+await redis.publish(`cfn:loop2:vote:${phaseId}`, JSON.stringify({
+  validatorId: agentId,
+  validatorType: 'interaction-tester',
+  vote,
+  confidence: testScore,
+  testsPassed: passedTests,
+  testsFailed: totalTests - passedTests
+}));
+```
+
+---
+
+## Error Handling
+
+### SQLite Write Failures
+
+```javascript
+try {
+  await sqlite.memoryAdapter.set(key, value, { aclLevel: 3 });
+} catch (error) {
+  if (error.code === 'SQLITE_BUSY') {
+    // Retry with exponential backoff
+    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 3 }));
+  } else if (error.code === 'SQLITE_LOCKED') {
+    // Wait for lock release (critical for test results)
+    await waitForLockRelease(key);
+    await sqlite.memoryAdapter.set(key, value, { aclLevel: 3 });
+  } else {
+    console.error('SQLite write failed - test results may be lost:', error);
+    // CRITICAL: Test results MUST persist to SQLite for audit trail
+    // Fallback to Redis only as temporary measure
+    await redis.set(`tester:temp:${key}`, JSON.stringify(value));
+    await redis.expire(`tester:temp:${key}`, 3600);  // 1 hour TTL
+    // Alert coordinator about persistence failure
+    await redis.publish('tester:alert', JSON.stringify({
+      type: 'persistence_failure',
+      key,
+      fallbackUsed: true
+    }));
+  }
+}
+```
+
+### Retry with Exponential Backoff
+
+```javascript
+async function retryWithBackoff(operation, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+```
+
+### Redis Connection Loss
+
+```javascript
+async function publishWithFallback(channel, message) {
+  try {
+    await redis.publish(channel, message);
+  } catch (error) {
+    console.error('Redis publish failed:', error);
+    // Store event in SQLite for later replay
+    await sqlite.query(`
+      INSERT INTO pending_events (channel, message, created_at, retry_count)
+      VALUES (?, ?, datetime('now'), 0)
+    `, [channel, message]);
+  }
+}
+```
+
+---
+
+## Memory Key Patterns
+
+### Standard Agent Memory
+
+```javascript
+// Test results (ACL: Swarm)
+const testResultsKey = `tester/${agentId}/results/${testSuite}`;
+await sqlite.memoryAdapter.set(testResultsKey, {
+  passed: 47, failed: 3
+}, { aclLevel: 3 });
+
+// Accessibility reports (ACL: Swarm)
+const a11yKey = `tester/${agentId}/accessibility/${page}`;
+await sqlite.memoryAdapter.set(a11yKey, {
+  violations: 0, warnings: 2
+}, { aclLevel: 3 });
+
+// Visual regression (ACL: Swarm)
+const visualKey = `tester/${agentId}/visual/${component}`;
+await sqlite.memoryAdapter.set(visualKey, {
+  diffs: 0, baseline: 'approved'
+}, { aclLevel: 3 });
+```
+
+### CFN Loop 2 Memory
+
+```javascript
+// Loop 2 E2E validation vote (use SQLite consensus table directly)
+await sqlite.query(`
+  INSERT INTO consensus (phase_id, validator_id, vote, confidence_score, reasoning, timestamp, acl_level)
+  VALUES (?, ?, ?, ?, ?, datetime('now'), 3)
+`, [phaseId, agentId, vote, testScore, reasoning]);
+
+// Test-specific recommendations
+const testRecommendationsKey = `cfn/phase-${phaseId}/loop2/testing/recommendations`;
+await sqlite.memoryAdapter.set(testRecommendationsKey, {
+  failed_tests: [/* failing test details */],
+  accessibility: [/* a11y issues */],
+  visual_regressions: [/* visual diff details */],
+  performance: [/* performance budget violations */]
+}, { aclLevel: 3, ttl: 7776000 });  // 90-day retention for audit trail
+```
+
+### Key Naming Convention
+
+- **Test results:** `tester/{agentId}/results/{testSuite}`
+- **Accessibility reports:** `tester/{agentId}/accessibility/{page}`
+- **Loop 2 test vote:** Use SQLite `consensus` table directly
+- **Test recommendations:** `cfn/phase-{phaseId}/loop2/testing/recommendations`
+- **Always include:** agentId, phaseId, timestamp, test metrics
+
+---
 
 ## Core Responsibilities
 

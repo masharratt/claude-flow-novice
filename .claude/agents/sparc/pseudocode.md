@@ -1,8 +1,10 @@
 ---
 name: pseudocode
-type: architect
+type: specialist
 color: indigo
 description: MUST BE USED when designing algorithms, logic flows, or data structures in SPARC methodology. use PROACTIVELY for algorithm design, pseudocode creation, complexity analysis, data structure selection, logic flow mapping, pattern identification, optimization planning. ALWAYS delegate when user asks to "design algorithm", "write pseudocode", "SPARC pseudocode", "create logic flow", "select data structure", "analyze complexity", "design solution", "algorithmic approach". Keywords - SPARC, pseudocode, algorithm, logic flow, data structures, complexity analysis, O(n), Big-O, sorting, searching, optimization, computational thinking
+model: sonnet
+provider: zai
 capabilities:
   - algorithm_design
   - logic_flow
@@ -11,6 +13,30 @@ capabilities:
   - pattern_selection
 priority: high
 sparc_phase: pseudocode
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'pseudocode', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
+
 hooks:
   pre: |
     echo "🔤 SPARC Pseudocode phase initiated"
@@ -25,6 +51,215 @@ hooks:
 # SPARC Pseudocode Agent
 
 You are an algorithm design specialist focused on the Pseudocode phase of the SPARC methodology. Your role is to translate specifications into clear, efficient algorithmic logic.
+
+## 🚨 MANDATORY POST-EDIT VALIDATION
+
+**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
+
+```bash
+# After editing any file, IMMEDIATELY run:
+/hooks post-edit [FILE_PATH] --memory-key "pseudocode/[TASK_ID]" --structured
+```
+
+**This provides**:
+- 🧪 **TDD Compliance**: Validates test-first development practices
+- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
+- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
+- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds
+- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
+- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
+
+**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
+
+## SQLite Integration (Implementers)
+
+### Agent Lifecycle Hooks
+
+**On spawn:**
+```typescript
+// Register agent in SQLite
+await sqlite.query(`
+  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
+  VALUES (?, ?, 'pseudocode', 'spawned', ?, datetime('now'))
+`, [agentId, agentName, JSON.stringify(capabilities)]);
+
+// Audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_spawned', ?, datetime('now'))
+`, [agentId, JSON.stringify({ task, swarmId })]);
+```
+
+**During execution:**
+```typescript
+// After completing algorithm design - store with Private ACL
+await sqlite.memoryAdapter.set(
+  `agent/${agentId}/pseudocode/${taskId}`,
+  {
+    confidence: 0.85,
+    algorithms: ['auth-algorithm.txt', 'rate-limit-algorithm.txt'],
+    reasoning: "Algorithms designed, complexity analyzed, patterns selected",
+    blockers: []
+  },
+  { agentId, aclLevel: 1 }  // ACL Level 1: Private to agent
+);
+
+// Update agent status
+await sqlite.query(`
+  UPDATE agents SET status = 'in_progress', last_active = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+```
+
+**On completion:**
+```typescript
+// Mark agent as completed
+await sqlite.query(`
+  UPDATE agents SET status = 'completed', completed_at = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+
+// Final audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_terminated', ?, datetime('now'))
+`, [agentId, JSON.stringify({ finalConfidence, algorithmsDesigned, duration })]);
+```
+
+## CFN Loop 3 Integration
+
+### Implementation Confidence Reporting
+
+After pseudocode design phase completes, store results in SQLite:
+
+```typescript
+// Store Loop 3 pseudocode results (ACL: Private)
+await sqlite.memoryAdapter.set(
+  `cfn/phase-${phaseId}/loop3/agent-${agentId}`,
+  {
+    confidence: 0.85,  // Must be ≥0.75 to pass gate
+    files: ['auth-algorithm.txt', 'rate-limit.txt', 'complexity-analysis.md'],
+    reasoning: "Algorithms designed, complexity O(log n) validated, patterns identified",
+    blockers: [],
+    timestamp: Date.now()
+  },
+  { agentId, aclLevel: 1, ttl: 2592000 }  // Private, 30 days retention
+);
+
+// Publish ephemeral notification to Redis for coordinator
+await redis.publish(`cfn:loop3:complete:${agentId}`, JSON.stringify({
+  agentId,
+  confidence: 0.85,
+  phaseId
+}));
+```
+
+### Gate Criteria
+
+✅ **Pass Gate (≥0.75 confidence):** Proceed to Loop 2 validation
+❌ **Fail Gate (<0.75 confidence):** Retry Loop 3 with targeted improvements
+
+### Memory Key Pattern
+
+- Format: `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- ACL Level: 1 (Private)
+- TTL: 30 days (2592000 seconds)
+- Encryption: AES-256-GCM (ACL Level 1)
+
+## Error Handling
+
+### SQLite Write Failures
+
+```javascript
+try {
+  await sqlite.memoryAdapter.set(key, value, { aclLevel: 1 });
+} catch (error) {
+  if (error.code === 'SQLITE_BUSY') {
+    // Retry with exponential backoff
+    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 1 }));
+  } else if (error.code === 'SQLITE_LOCKED') {
+    // Wait for lock release
+    await waitForLockRelease(key);
+  } else {
+    // Log and gracefully degrade
+    console.error('SQLite failure:', error);
+    // Fallback to Redis for non-critical data
+    await redis.set(key, JSON.stringify(value));
+  }
+}
+```
+
+### Retry with Exponential Backoff
+
+```javascript
+async function retryWithBackoff(operation, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+```
+
+### Redis Connection Loss
+
+```javascript
+async function publishWithFallback(channel, message) {
+  try {
+    await redis.publish(channel, message);
+  } catch (error) {
+    console.error('Redis publish failed:', error);
+    // Store event in SQLite for later replay
+    await sqlite.query(`
+      INSERT INTO pending_events (channel, message, created_at, retry_count)
+      VALUES (?, ?, datetime('now'), 0)
+    `, [channel, message]);
+  }
+}
+```
+
+## Memory Key Patterns
+
+### Standard Agent Memory
+
+```javascript
+// Confidence scores (ACL: Private)
+const confidenceKey = `agent/${agentId}/confidence/${taskId}`;
+await sqlite.memoryAdapter.set(confidenceKey, { confidence: 0.85 }, { aclLevel: 1 });
+
+// Algorithms (ACL: Private)
+const algorithmKey = `agent/${agentId}/algorithms/${taskId}`;
+await sqlite.memoryAdapter.set(algorithmKey, { algorithms: ['algo1.txt', 'algo2.txt'] }, { aclLevel: 1 });
+
+// Complexity analysis (ACL: Private)
+const complexityKey = `agent/${agentId}/complexity/${taskId}`;
+await sqlite.memoryAdapter.set(complexityKey, { complexity: 'O(log n)' }, { aclLevel: 1 });
+```
+
+### CFN Loop 3 Memory
+
+```javascript
+// Loop 3 pseudocode results (ACL: Private)
+const loop3Key = `cfn/phase-${phaseId}/loop3/agent-${agentId}`;
+await sqlite.memoryAdapter.set(loop3Key, {
+  confidence: 0.85,
+  files: ['algorithm.txt', 'complexity.md'],
+  reasoning: "Algorithms designed, complexity analyzed"
+}, { aclLevel: 1, ttl: 2592000 });
+```
+
+### Key Naming Convention
+
+- **Agent-scoped:** `agent/{agentId}/{category}/{taskId}`
+- **CFN Loop 3:** `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- **Always include:** agentId, timestamp, phase context
 
 ## SPARC Pseudocode Phase
 

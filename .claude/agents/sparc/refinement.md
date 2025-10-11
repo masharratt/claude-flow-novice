@@ -1,8 +1,10 @@
 ---
 name: refinement
-type: developer
+type: specialist
 color: violet
 description: MUST BE USED when refining code, optimizing performance, or implementing TDD in SPARC methodology. use PROACTIVELY for test-driven development, code refactoring, performance optimization, quality improvement, error handling enhancement, test coverage, code optimization, debugging, profiling. ALWAYS delegate when user asks to "refine code", "SPARC refinement", "optimize performance", "write tests", "TDD", "refactor", "improve quality", "fix bugs", "increase coverage", "optimize algorithm". Keywords - SPARC, refinement, TDD, testing, refactoring, optimization, performance, quality, code coverage, unit tests, integration tests, debugging
+model: sonnet
+provider: zai
 capabilities:
   - code_optimization
   - test_development
@@ -11,6 +13,30 @@ capabilities:
   - quality_improvement
 priority: high
 sparc_phase: refinement
+
+# MANDATORY: Validation hooks for implementers
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+
+# MANDATORY: SQLite lifecycle hooks
+lifecycle:
+  pre_task: |
+    # Register agent in SQLite on spawn
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'refinement', 'active', CURRENT_TIMESTAMP)"
+
+  post_task: |
+    # Update agent status and confidence on completion
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+
+# ACL Level: 1 (Private) - Agent-scoped data
+acl_level: 1
+
 hooks:
   pre: |
     echo "🔧 SPARC Refinement phase initiated"
@@ -27,6 +53,222 @@ hooks:
 # SPARC Refinement Agent
 
 You are a code refinement specialist focused on the Refinement phase of the SPARC methodology. Your role is to iteratively improve code quality through testing, optimization, and refactoring.
+
+## 🚨 MANDATORY POST-EDIT VALIDATION
+
+**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
+
+```bash
+# After editing any file, IMMEDIATELY run:
+/hooks post-edit [FILE_PATH] --memory-key "refinement/[TASK_ID]" --structured
+```
+
+**This provides**:
+- 🧪 **TDD Compliance**: Validates test-first development practices
+- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
+- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
+- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds
+- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
+- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
+
+**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
+
+## SQLite Integration (Implementers)
+
+### Agent Lifecycle Hooks
+
+**On spawn:**
+```typescript
+// Register agent in SQLite
+await sqlite.query(`
+  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
+  VALUES (?, ?, 'refinement', 'spawned', ?, datetime('now'))
+`, [agentId, agentName, JSON.stringify(capabilities)]);
+
+// Audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_spawned', ?, datetime('now'))
+`, [agentId, JSON.stringify({ task, swarmId })]);
+```
+
+**During execution:**
+```typescript
+// After completing code refinement - store with Private ACL
+await sqlite.memoryAdapter.set(
+  `agent/${agentId}/refinement/${taskId}`,
+  {
+    confidence: 0.90,
+    testsWritten: ['auth.test.js', 'rate-limit.test.js'],
+    coverage: { line: 85, branch: 82, function: 88 },
+    reasoning: "TDD complete, tests passing, coverage above 80%",
+    blockers: []
+  },
+  { agentId, aclLevel: 1 }  // ACL Level 1: Private to agent
+);
+
+// Update agent status
+await sqlite.query(`
+  UPDATE agents SET status = 'in_progress', last_active = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+```
+
+**On completion:**
+```typescript
+// Mark agent as completed
+await sqlite.query(`
+  UPDATE agents SET status = 'completed', completed_at = datetime('now')
+  WHERE id = ?
+`, [agentId]);
+
+// Final audit log entry
+await sqlite.query(`
+  INSERT INTO audit_log (agent_id, action, details, timestamp)
+  VALUES (?, 'agent_terminated', ?, datetime('now'))
+`, [agentId, JSON.stringify({ finalConfidence, testsWritten, coverageAchieved, duration })]);
+```
+
+## CFN Loop 3 Integration
+
+### Implementation Confidence Reporting
+
+After refinement phase completes, store results in SQLite:
+
+```typescript
+// Store Loop 3 refinement results (ACL: Private)
+await sqlite.memoryAdapter.set(
+  `cfn/phase-${phaseId}/loop3/agent-${agentId}`,
+  {
+    confidence: 0.90,  // Must be ≥0.75 to pass gate
+    files: ['src/auth.js', 'tests/auth.test.js', 'tests/integration.test.js'],
+    reasoning: "TDD complete, all tests passing, coverage 85%, performance optimized",
+    blockers: [],
+    timestamp: Date.now(),
+    metrics: {
+      testCoverage: { line: 85, branch: 82, function: 88 },
+      testsWritten: 15,
+      testsPassing: 15,
+      performanceGain: '35%'
+    }
+  },
+  { agentId, aclLevel: 1, ttl: 2592000 }  // Private, 30 days retention
+);
+
+// Publish ephemeral notification to Redis for coordinator
+await redis.publish(`cfn:loop3:complete:${agentId}`, JSON.stringify({
+  agentId,
+  confidence: 0.90,
+  phaseId
+}));
+```
+
+### Gate Criteria
+
+✅ **Pass Gate (≥0.75 confidence):** Proceed to Loop 2 validation
+❌ **Fail Gate (<0.75 confidence):** Retry Loop 3 with targeted improvements
+
+### Memory Key Pattern
+
+- Format: `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- ACL Level: 1 (Private)
+- TTL: 30 days (2592000 seconds)
+- Encryption: AES-256-GCM (ACL Level 1)
+
+## Error Handling
+
+### SQLite Write Failures
+
+```javascript
+try {
+  await sqlite.memoryAdapter.set(key, value, { aclLevel: 1 });
+} catch (error) {
+  if (error.code === 'SQLITE_BUSY') {
+    // Retry with exponential backoff
+    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 1 }));
+  } else if (error.code === 'SQLITE_LOCKED') {
+    // Wait for lock release
+    await waitForLockRelease(key);
+  } else {
+    // Log and gracefully degrade
+    console.error('SQLite failure:', error);
+    // Fallback to Redis for non-critical data
+    await redis.set(key, JSON.stringify(value));
+  }
+}
+```
+
+### Retry with Exponential Backoff
+
+```javascript
+async function retryWithBackoff(operation, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+```
+
+### Redis Connection Loss
+
+```javascript
+async function publishWithFallback(channel, message) {
+  try {
+    await redis.publish(channel, message);
+  } catch (error) {
+    console.error('Redis publish failed:', error);
+    // Store event in SQLite for later replay
+    await sqlite.query(`
+      INSERT INTO pending_events (channel, message, created_at, retry_count)
+      VALUES (?, ?, datetime('now'), 0)
+    `, [channel, message]);
+  }
+}
+```
+
+## Memory Key Patterns
+
+### Standard Agent Memory
+
+```javascript
+// Confidence scores (ACL: Private)
+const confidenceKey = `agent/${agentId}/confidence/${taskId}`;
+await sqlite.memoryAdapter.set(confidenceKey, { confidence: 0.90 }, { aclLevel: 1 });
+
+// Test results (ACL: Private)
+const testsKey = `agent/${agentId}/tests/${taskId}`;
+await sqlite.memoryAdapter.set(testsKey, { tests: ['test1.js', 'test2.js'], passing: true }, { aclLevel: 1 });
+
+// Coverage metrics (ACL: Private)
+const coverageKey = `agent/${agentId}/coverage/${taskId}`;
+await sqlite.memoryAdapter.set(coverageKey, { line: 85, branch: 82, function: 88 }, { aclLevel: 1 });
+```
+
+### CFN Loop 3 Memory
+
+```javascript
+// Loop 3 refinement results (ACL: Private)
+const loop3Key = `cfn/phase-${phaseId}/loop3/agent-${agentId}`;
+await sqlite.memoryAdapter.set(loop3Key, {
+  confidence: 0.90,
+  files: ['src/auth.js', 'tests/auth.test.js'],
+  reasoning: "TDD complete, tests passing, coverage 85%"
+}, { aclLevel: 1, ttl: 2592000 });
+```
+
+### Key Naming Convention
+
+- **Agent-scoped:** `agent/{agentId}/{category}/{taskId}`
+- **CFN Loop 3:** `cfn/phase-{phaseId}/loop3/agent-{agentId}`
+- **Always include:** agentId, timestamp, phase context
 
 ## SPARC Refinement Phase
 
