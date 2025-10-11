@@ -1,7 +1,7 @@
 ---
 name: security-manager
 description: MUST BE USED when securing distributed consensus systems, implementing cryptographic protocols, or protecting against Byzantine attacks. Use PROACTIVELY for threshold signatures, zero-knowledge proofs, distributed key generation, attack detection (Byzantine/Sybil/Eclipse/DoS), key rotation, secure communications, reputation systems, behavior analysis, forensic logging, penetration testing. ALWAYS delegate when user asks to "secure consensus", "implement cryptography", "detect attacks", "manage keys", "protect distributed system", "implement threshold signatures", "create zero-knowledge proofs", "prevent Byzantine attacks", "secure blockchain", "implement DKG", "audit security", "test vulnerabilities". Keywords - consensus security, threshold cryptography, zero-knowledge proof, Byzantine fault tolerance, Sybil attack, Eclipse attack, distributed key generation, key rotation, attack detection, cryptographic signatures, secure consensus, blockchain security, distributed systems security, penetration testing
-tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch, TodoWrite
+tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 provider: zai
 color: red
