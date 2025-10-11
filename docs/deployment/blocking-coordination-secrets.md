@@ -1324,13 +1324,13 @@ echo "**/*secret*.env" >> .gitignore
 
 ### Systemd Service Configuration
 
-See complete systemd deployment guide: [systemd/README.md](../../systemd/README.md)
+See complete systemd deployment guide: [infrastructure/systemd/README.md](../../infrastructure/systemd/README.md)
 
 **Security Configuration Section**: Add after "Installation" section in systemd README
 
 ### Cron Job Configuration
 
-See complete cron deployment guide: [cron.d/README.md](../../cron.d/README.md)
+See complete cron deployment guide: [infrastructure/cron/README.md](../../infrastructure/cron/README.md)
 
 **Security Configuration Section**: Add after "Configuration" section in cron README
 

@@ -36,7 +36,7 @@ sudo chown -R claude-flow:claude-flow /home/claude-flow/.claude-flow
 Edit the cron file to set Redis connection parameters:
 
 ```bash
-vim cron.d/cleanup-blocking-coordination
+vim infrastructure/cron/cleanup-blocking-coordination
 
 # Modify:
 # REDIS_HOST=your_redis_host
@@ -47,7 +47,7 @@ vim cron.d/cleanup-blocking-coordination
 ### 4. Install cron job
 
 ```bash
-sudo cp cron.d/cleanup-blocking-coordination /etc/cron.d/
+sudo cp infrastructure/cron/cleanup-blocking-coordination /etc/cron.d/
 sudo chmod 644 /etc/cron.d/cleanup-blocking-coordination
 ```
 

@@ -142,7 +142,7 @@
     ".claude-flow-novice/",
     ".claude/",
     ".claude/agents-ignore/",
-    "templates/",
+    "examples/templates/",
     "config/",
     "scripts/",
     "src/commands/",
