@@ -93,3 +93,127 @@ jobs:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
         args: --severity-threshold=high
+
+  server-side-secret-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        sudo apt-get update
+        sudo apt-get install -y sqlite3
+
+    - name: Scan SQLite databases for secrets
+      id: db-scan
+      run: |
+        echo "🔍 Scanning database files for secrets (server-side validation)..."
+
+        # Find all database files in git history
+        DB_FILES=$(git ls-files '*.db' '*.sqlite' || echo "")
+
+        if [ -z "$DB_FILES" ]; then
+          echo "✅ No database files to scan"
+          exit 0
+        fi
+
+        echo "Found database files:"
+        echo "$DB_FILES"
+        echo ""
+
+        # Secret patterns (must match pre-commit hook)
+        PATTERNS=(
+          'api[_-]?key'
+          'password'
+          'secret'
+          'token'
+          'ZAI_API_KEY'
+          'ANTHROPIC_API_KEY'
+          'Bearer [A-Za-z0-9_-]+'
+          'private[_-]?key'
+          'credential'
+          'auth.*key'
+          'sk-ant-[A-Za-z0-9_-]+'
+          'sess-[A-Za-z0-9_-]+'
+        )
+
+        SECRETS_FOUND=0
+        FINDINGS=""
+
+        for db in $DB_FILES; do
+          echo "Scanning: $db"
+
+          if [ ! -f "$db" ]; then
+            echo "⚠️  File not found: $db"
+            continue
+          fi
+
+          if ! file "$db" 2>/dev/null | grep -q "SQLite"; then
+            echo "⚠️  Not a valid SQLite database: $db"
+            continue
+          fi
+
+          DB_CONTENT=$(sqlite3 "$db" ".dump" 2>/dev/null || echo "")
+
+          if [ -z "$DB_CONTENT" ]; then
+            echo "⚠️  Could not read database: $db"
+            continue
+          fi
+
+          for pattern in "${PATTERNS[@]}"; do
+            MATCHES=$(echo "$DB_CONTENT" | grep -inE "$pattern" || true)
+
+            if [ -n "$MATCHES" ]; then
+              echo "  ❌ ERROR: Found secret matching pattern: $pattern in $db"
+              FINDINGS="$FINDINGS\n$db: Pattern '$pattern' detected"
+              SECRETS_FOUND=$((SECRETS_FOUND + 1))
+            fi
+          done
+
+          echo "  ✓ Scan complete for $db"
+        done
+
+        if [ $SECRETS_FOUND -gt 0 ]; then
+          echo ""
+          echo "❌ BLOCKING MERGE: $SECRETS_FOUND potential secret(s) found in database files"
+          echo -e "$FINDINGS"
+          echo ""
+          echo "::error::Database files contain secrets. Remove secrets before merging."
+          exit 1
+        fi
+
+        echo "✅ Database secret scan passed - no secrets detected"
+
+    - name: Run security check script
+      run: |
+        # Run security scan with sanitized output
+        npm run security:check 2>&1 | \
+        sed 's/sk-ant-[A-Za-z0-9_-]\{8\}[A-Za-z0-9_-]*/sk-ant-***REDACTED***/g' | \
+        sed 's/Bearer [A-Za-z0-9_-]\{8\}[A-Za-z0-9_-]*/Bearer ***REDACTED***/g' | \
+        sed 's/\(api[_-]key["\x27:= ]*\)[A-Za-z0-9_-]\{20,\}/\1***REDACTED***/gi' || exit 1
+
+    - name: Comment PR with scan results
+      if: failure() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚫 **Security Scan Failed**\n\nSecrets detected in database files. Please remove all secrets and use environment variables instead.\n\n**Action Required:**\n1. Remove secrets from database files\n2. Use environment variables for API keys\n3. Run `npm run security:check` locally to verify\n\n**Note:** Pre-commit hook can be bypassed with `--no-verify`, but this CI check cannot be bypassed.'
+          })

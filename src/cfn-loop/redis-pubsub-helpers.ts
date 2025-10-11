@@ -19,6 +19,28 @@ import type { Redis } from 'ioredis';
 import { Logger } from '../core/logger.js';
 import type { LoggingConfig } from '../utils/types.js';
 
+// ===== SECURITY ERROR CLASS =====
+
+/**
+ * Security error for pub/sub payload validation failures
+ */
+export class SecurityError extends Error {
+  constructor(
+    message: string,
+    public details: {
+      channel?: string;
+      size?: number;
+      limit?: number;
+      pattern?: string;
+      current?: number;
+    }
+  ) {
+    super(message);
+    this.name = 'SecurityError';
+    Error.captureStackTrace(this, SecurityError);
+  }
+}
+
 // ===== TYPE DEFINITIONS =====
 
 /**
@@ -549,15 +571,82 @@ export class RedisPubSubHelper {
   // ===== LOW-LEVEL PUB/SUB =====
 
   /**
-   * Publish event to Redis channel
+   * Publish event to Redis channel with P0 security validation
+   *
+   * Security validations (HIGH severity P0 requirements):
+   * 1. Payload size validation (max 1MB)
+   * 2. Script injection pattern detection
+   * 3. Rate limiting (100 events/sec per channel)
+   * 4. Security event logging
    */
   private async publishEvent(channel: string, event: any): Promise<void> {
     const message = JSON.stringify(event);
+    const now = Date.now();
+
+    // 1. PAYLOAD SIZE VALIDATION (max 1MB = 1048576 bytes)
+    if (message.length > 1048576) {
+      this.logger.error('Pub/sub payload exceeds 1MB limit', {
+        channel,
+        size: message.length,
+        limit: 1048576,
+      });
+
+      throw new SecurityError('Pub/sub payload exceeds 1MB limit', {
+        channel,
+        size: message.length,
+        limit: 1048576,
+      });
+    }
+
+    // 2. SCRIPT INJECTION DETECTION (defense-in-depth)
+    const maliciousPatterns =
+      /<script|javascript:|onerror=|onclick=|onload=|data:text\/html|eval\(|Function\(/i;
+
+    if (maliciousPatterns.test(message)) {
+      this.logger.error('Potentially malicious content detected in pub/sub payload', {
+        channel,
+        pattern: 'script_injection_attempt',
+      });
+
+      throw new SecurityError('Potentially malicious content detected', {
+        channel,
+        pattern: 'script_injection_attempt',
+      });
+    }
+
+    // 3. RATE LIMITING (100 events/sec per channel)
+    const rateLimitKey = `ratelimit:pubsub:${channel}`;
+    const count = await this.redis.incr(rateLimitKey);
+
+    // Set expiry on first increment
+    if (count === 1) {
+      await this.redis.expire(rateLimitKey, 1); // 1 second window
+    }
+
+    if (count > 100) {
+      this.logger.error('Rate limit exceeded for pub/sub channel', {
+        channel,
+        limit: 100,
+        current: count,
+        window: '1s',
+      });
+
+      throw new SecurityError('Rate limit exceeded for channel', {
+        channel,
+        limit: 100,
+        current: count,
+      });
+    }
+
+    // 4. PUBLISH WITH SECURITY EVENT LOGGING
     await this.redis.publish(channel, message);
 
-    this.logger.debug('Event published', {
+    this.logger.debug('Event published with validation', {
       channel,
       eventType: event.type,
+      size: message.length,
+      rateLimit: count,
+      timestamp: now,
     });
   }
 
