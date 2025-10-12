@@ -91,9 +91,9 @@ async function main() {
   if (config.tieredRouting?.enabled === true) {
     log('\n✅ Tiered routing is already ENABLED', 'green');
     log('\n📊 Current Routing:', 'blue');
-    log('  • coder, tester, reviewer → Z.ai (cost-optimized)');
-    log('  • architect, coordinator → Anthropic (high-value)');
-    log('  • Unknown agents → Z.ai (default)');
+    log('  • ALL Task Tool agents (70+ types) → Z.ai');
+    log('  • Main chat only → Anthropic Claude Max');
+    log('  • Maximum cost optimization enabled');
     log('\n💡 To disable, run: /custom-routing-deactivate\n', 'cyan');
     return;
   }
@@ -104,14 +104,14 @@ async function main() {
   if (writeConfig(configPath, config)) {
     log('\n✅ Tiered Provider Routing ACTIVATED', 'green');
     log('\n📊 Active Routing:', 'blue');
-    log('  • coder, tester, reviewer → Z.ai');
-    log('  • architect, coordinator, system-architect → Anthropic');
-    log('  • Unknown agents → Z.ai (default)');
+    log('  • ALL Task Tool agents (70+ types) → Z.ai');
+    log('  • Main chat only → Anthropic Claude Max');
+    log('  • Maximum cost optimization enabled');
 
     log('\n💰 Cost Optimization:', 'green');
-    log('  • ~64% cost reduction on agent usage');
-    log('  • Most agents use affordable Z.ai provider');
-    log('  • High-value work stays on Anthropic');
+    log('  • ~79% cost reduction on agent usage');
+    log('  • All spawned agents use affordable Z.ai provider');
+    log('  • Only main chat uses Anthropic Claude Max');
 
     log('\n🎯 Agent Profile Overrides:', 'cyan');
     log('  • Add provider: zai to agent profile → force Z.ai');

@@ -22,26 +22,23 @@ provider: anthropic  # Force Anthropic for this agent
 ```
 
 ### Priority 2: Tier Configuration
-Strategic agents automatically use Anthropic:
-- `coordinator` → Anthropic (Tier 1)
-- `architect` → Anthropic (Tier 1)
-- `system-architect` → Anthropic (Tier 1)
+**ALL Task Tool agents route to Z.ai** for maximum cost savings:
+- `coder`, `tester`, `reviewer` → Z.ai
+- `architect`, `coordinator`, `system-architect` → Z.ai
+- `devops-engineer`, `security-specialist` → Z.ai
+- All 70+ agent types → Z.ai
 
-### Priority 3: Default Fallback
-All other agents use Z.ai for cost savings:
-- `coder` → Z.ai
-- `tester` → Z.ai
-- `reviewer` → Z.ai
-- Unknown agents → Z.ai
+Only the main chat uses Anthropic Claude Max:
+- `main-chat` → Anthropic (your direct conversations)
 
 ## Cost Savings
 
 **Example calculation:**
 ```
 Without routing: 100 agent calls × $0.015 = $1.50
-With routing:    80 calls × $0.003 (Z.ai) + 20 calls × $0.015 (Anthropic) = $0.54
+With routing:    99 calls × $0.003 (Z.ai) + 1 call × $0.015 (main-chat) = $0.31
 
-💰 Savings: 64% cost reduction
+💰 Savings: 79% cost reduction (all agents on Z.ai)
 ```
 
 ## Output
@@ -56,14 +53,14 @@ When you run `/custom-routing-activate`:
 ✅ Tiered Provider Routing ACTIVATED
 
 📊 Active Routing:
-  • coder, tester, reviewer → Z.ai
-  • architect, coordinator, system-architect → Anthropic
-  • Unknown agents → Z.ai (default)
+  • ALL Task Tool agents (70+ types) → Z.ai
+  • Main chat only → Anthropic Claude Max
+  • Maximum cost optimization enabled
 
 💰 Cost Optimization:
-  • ~64% cost reduction on agent usage
-  • Most agents use affordable Z.ai provider
-  • High-value work stays on Anthropic
+  • ~79% cost reduction on agent usage
+  • All spawned agents use affordable Z.ai provider
+  • Only main chat uses Anthropic Claude Max
 
 🎯 Agent Profile Overrides:
   • Add provider: zai to agent profile → force Z.ai
