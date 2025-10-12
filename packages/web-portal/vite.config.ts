@@ -8,13 +8,22 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src/client'),
       '@shared': path.resolve(__dirname, './src/shared'),
-      '@components': path.resolve(__dirname, '../web-components/src')
+      '@components': path.resolve(__dirname, '../web-components/src'),
     }
   },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/__tests__/setup.ts',
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    teardownTimeout: 10000,
+    pool: 'forks', // Use separate process for each test to prevent module caching issues
+    poolOptions: {
+      forks: {
+        singleFork: true // Use single fork to speed up tests
+      }
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

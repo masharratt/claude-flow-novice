@@ -439,7 +439,7 @@ describe('CFNLoopDashboard', () => {
     });
 
     it('handles missing product owner decision', () => {
-      const noDe decisionState: CFNLoopState = {
+      const noDecisionState: CFNLoopState = {
         ...mockLoopState,
         productOwnerDecision: undefined,
       };

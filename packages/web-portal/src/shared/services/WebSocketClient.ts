@@ -61,7 +61,9 @@ export class WebSocketClient {
       errors: 0
     };
 
-    if (this.config.autoConnect) {
+    // Don't autoConnect in test environment (Vitest sets NODE_ENV=test)
+    const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+    if (this.config.autoConnect && !isTestEnv) {
       this.connect();
     }
   }
@@ -71,7 +73,7 @@ export class WebSocketClient {
    */
   private normalizeConfig(config: WebSocketClientConfig): Required<WebSocketClientConfig> {
     return {
-      url: config.url || `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`,
+      url: config.url || '', // Will be resolved lazily in getWebSocketURL()
       autoConnect: config.autoConnect !== false,
       reconnectAttempts: config.reconnectAttempts ?? 10,
       reconnectDelay: config.reconnectDelay ?? 1000,
@@ -91,6 +93,22 @@ export class WebSocketClient {
   }
 
   /**
+   * Lazily resolve WebSocket URL to avoid accessing window.location during module initialization
+   */
+  private getWebSocketURL(): string {
+    if (this.config.url) {
+      return this.config.url;
+    }
+    // Default: infer from window.location (only accessed when needed)
+    try {
+      return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
+    } catch {
+      // Fallback for test environments without window.location
+      return 'ws://localhost:3000';
+    }
+  }
+
+  /**
    * Connect to WebSocket server
    */
   public connect(): void {
@@ -102,7 +120,8 @@ export class WebSocketClient {
     this.updateStatus(ConnectionState.CONNECTING);
 
     try {
-      this.socket = io(this.config.url, {
+      const url = this.getWebSocketURL();
+      this.socket = io(url, {
         transports: ['websocket', 'polling'],
         upgrade: true,
         rememberUpgrade: true,

@@ -206,10 +206,66 @@ Use `/github-commit --chat` after each loop completes. Example:
 - **Sprint complete**: Use `/github-commit --full` (auto-triggers `/cfn-loop-document --sprint=name`)
 - **Epic complete**: Use `/github-commit --full` + `/cfn-loop-document --epic=name`
 
+**Loop Telemetry (Print to Main Chat)**
+
+ALWAYS print telemetry between loops to keep user informed:
+
+**After Loop 3 (Gate Check):**
+```
+## Loop 3 Complete - [Phase Name] ([Mode])
+
+**Confidence Scores:**
+- agent-1: 0.85 ✅ (description, key files)
+- agent-2: 0.82 ✅ (description, key files)
+- agent-3: 0.78 ✅ (description, key files)
+
+**Gate Result:** PASS (avg 0.82, target ≥[threshold])
+**Files Changed:** N files
+**Coverage:** X% (target ≥Y%)
+**Security:** Clean / Issues found
+**Blockers:** None / List issues
+
+→ Proceeding to Loop 2 ([N] validators)
+```
+
+**After Loop 2 (Consensus):**
+```
+## Loop 2 Complete - Validation ([Mode])
+
+**Validator Scores:**
+- validator-1: 0.92 ✅ (key findings)
+- validator-2: 0.85 ✅ (key findings)
+
+**Consensus:** 0.88 (target ≥[threshold]) [✅ or ⚠️]
+**Recommendations:**
+- [SEVERITY] Description (action: defer/backlog/fix)
+
+→ Proceeding to Loop 4 (Product Owner can override)
+```
+
+**After Loop 4 (PO Decision):**
+```
+## Loop 4 Complete - Product Owner Decision ([Mode])
+
+**PO Review:**
+- Loop 3 avg: 0.82 ✅
+- Loop 2 consensus: 0.88 ([met/below] threshold)
+- Validator recommendations: [list]
+
+**Decision: [DEFER/PROCEED/ESCALATE]** [✅/⚠️]
+**Reasoning:** "[PO reasoning, including override justification if applicable]"
+**Override:** [Yes/No] (if consensus below threshold)
+
+**Backlog Items:** [list]
+**Required Fixes:** [list if PROCEED]
+
+→ [Launching agents for next phase / Relaunching Loop 3 with fixes / Escalating to human]
+```
+
 **Retry Templates**
 
 Loop 3 retry (low confidence): replace failing agents with specialists; add missing roles (security/perf); relaunch agents
-Loop 2 retry (consensus <threshold): target validator issues (e.g., fix SQLi, raise coverage) and refer recommendations to product owner for improvements
+Loop 2 retry (consensus <threshold): ALWAYS proceed to Loop 4; PO decides PROCEED (relaunch Loop 3) or DEFER (override validators)
 
 **Mode-Specific Iteration Limits**:
 - MVP: Loop 3 max 5 iterations • Loop 2 max 5 iterations
