@@ -443,10 +443,57 @@ claude-flow-novice swarm --help
 - ✅ **CFN Loop Orchestration** - Autonomous self-correcting development
 
 ### Version 2.1 (Coming Soon)
-- 🔄 Web Portal UI - Visual agent management dashboard
 - 🔄 Enhanced error handling - Better recovery strategies
 - 🔄 Visual workflow designer - Drag-and-drop agent coordination
 - 🔄 One-click deployment - Cloud deployment automation
+
+---
+
+## 🌐 Unified Web Portal
+
+**New in Phase 4:** All monitoring and management functionality consolidated into a single, modern web portal.
+
+### Access the Portal
+
+```bash
+cd packages/web-portal
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
+### Portal Features
+
+- **Dashboard** (`/`) - System overview with real-time metrics
+- **Agents** (`/agents`) - Agent management and lifecycle monitoring
+- **Hierarchy** (`/hierarchy`) - Agent hierarchy visualization
+- **Performance** (`/performance`) - Performance metrics with Chart.js
+- **Events** (`/events`) - Real-time event timeline (10K+ events)
+- **Fleet** (`/fleet`) - Fleet overview (1000+ agents)
+- **CFN Loop** (`/cfn-loop`) - CFN Loop phase tracking
+- **Settings** (`/settings`) - Configuration management
+
+**Technology Stack:**
+- React 18 + TypeScript
+- Vite for fast HMR
+- Zustand for state management
+- WebSocket for real-time updates
+- Chart.js for visualization
+- Vitest + Playwright for testing (≥80% coverage)
+
+### Legacy Systems Migration
+
+**Archived:** Legacy portal systems have been archived to `archive/legacy-portals/` (2025-10-12)
+
+**Automatic Redirects:** Legacy URLs automatically redirect to the unified portal:
+- `/dashboard` → `/` (main dashboard)
+- `/agent-management` → `/agents`
+- `/metrics-dashboard` → `/performance`
+- `/event-log` → `/events`
+- `/swarm-coordinator` → `/fleet`
+- `/cfn-monitor` → `/cfn-loop`
+
+**Full Migration Guide:** See `archive/legacy-portals/README.md` for detailed migration documentation.
 
 ---
 

@@ -499,12 +499,22 @@ describe('WebSocket Server Integration Tests', () => {
       });
     }, 10000);
 
-    it('should track connection metrics', () => {
-      const metrics = wsServer.getMetrics();
-      expect(metrics.totalConnections).toBeGreaterThan(0);
-      expect(metrics.activeConnections).toBeGreaterThanOrEqual(0);
-      expect(metrics.totalMessages).toBeGreaterThanOrEqual(0);
-    });
+    it('should track connection metrics', (done) => {
+      // Create a new connection to ensure metrics are tracked
+      const testSocket = ioClient(`http://localhost:${port}`, {
+        path: '/ws',
+        transports: ['websocket']
+      });
+
+      testSocket.on('connection-established', () => {
+        const metrics = wsServer.getMetrics();
+        expect(metrics.totalConnections).toBeGreaterThan(0);
+        expect(metrics.activeConnections).toBeGreaterThanOrEqual(0);
+        expect(metrics.totalMessages).toBeGreaterThanOrEqual(0);
+        testSocket.disconnect();
+        done();
+      });
+    }, 10000);
 
     it('should report active connections count', () => {
       const count = wsServer.getActiveConnectionsCount();

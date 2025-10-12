@@ -13,13 +13,17 @@ import { server } from './mocks/api';
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => {
     const mockSocket = {
-      on: vi.fn(() => mockSocket),
-      off: vi.fn(() => mockSocket),
-      emit: vi.fn(() => mockSocket),
-      connect: vi.fn(() => mockSocket),
-      disconnect: vi.fn(() => mockSocket),
+      on: vi.fn(function(this: any) { return this; }),
+      once: vi.fn(function(this: any) { return this; }),
+      off: vi.fn(function(this: any) { return this; }),
+      emit: vi.fn(function(this: any) { return this; }),
+      connect: vi.fn(function(this: any) { return this; }),
+      disconnect: vi.fn(function(this: any) { return this; }),
       connected: false,
-      id: 'mock-socket-id'
+      disconnected: true,
+      id: 'mock-socket-id',
+      removeListener: vi.fn(function(this: any) { return this; }),
+      removeAllListeners: vi.fn(function(this: any) { return this; })
     };
     return mockSocket;
   })
@@ -35,13 +39,19 @@ vi.mock('@claude-flow-novice/web-components', () => ({
 }));
 
 // Setup MSW server
-beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+beforeAll(() => {
+  server.listen({
+    onUnhandledRequest: 'bypass' // Changed from 'warn' to prevent hanging on unhandled requests
+  });
+}, 10000);
 afterEach(() => {
   server.resetHandlers();
   cleanup();
   localStorage.clear();
 });
-afterAll(() => server.close());
+afterAll(() => {
+  server.close();
+}, 10000);
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

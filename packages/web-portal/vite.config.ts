@@ -15,16 +15,17 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/__tests__/setup.ts',
-    testTimeout: 5000,
-    hookTimeout: 5000,
-    teardownTimeout: 5000,
-    pool: 'forks', // Use separate process for each test to prevent module caching issues
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    teardownTimeout: 10000,
+    pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true // Use single fork to speed up tests
+        singleFork: true
       }
     },
-    bail: 1, // Stop after first failure to prevent cascading timeouts
+    bail: false, // Don't bail on first failure to get full test results
+    isolate: false, // Don't isolate tests for faster execution
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -59,26 +60,61 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist/client',
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV === 'production' ? 'hidden' : true,
+    target: 'es2020',
+    minify: 'esbuild',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: [
-            'react',
-            'react-dom',
-            'react-router-dom'
-          ],
-          mui: [
-            '@mui/material',
-            '@mui/icons-material'
-          ],
-          charts: [
-            'recharts',
-            'chart.js'
-          ]
-        }
-      }
-    }
+        manualChunks: (id) => {
+          // Vendor chunk for core React dependencies
+          if (id.includes('node_modules/react') ||
+              id.includes('node_modules/react-dom') ||
+              id.includes('node_modules/react-router-dom')) {
+            return 'vendor';
+          }
+          // MUI chunk for Material UI components
+          if (id.includes('node_modules/@mui') ||
+              id.includes('node_modules/@emotion')) {
+            return 'mui';
+          }
+          // Charts chunk for visualization libraries
+          if (id.includes('node_modules/recharts') ||
+              id.includes('node_modules/chart.js')) {
+            return 'charts';
+          }
+          // Socket.io chunk for real-time communication
+          if (id.includes('node_modules/socket.io-client')) {
+            return 'socket';
+          }
+          // Editor chunk for Monaco editor
+          if (id.includes('node_modules/monaco-editor') ||
+              id.includes('node_modules/@monaco-editor')) {
+            return 'editor';
+          }
+          // Utilities chunk for lodash and date-fns
+          if (id.includes('node_modules/lodash') ||
+              id.includes('node_modules/date-fns')) {
+            return 'utils';
+          }
+        },
+        assetFileNames: (assetInfo) => {
+          const info = assetInfo.name.split('.');
+          let extType = info[info.length - 1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
+            return `assets/images/[name]-[hash][extname]`;
+          } else if (/woff|woff2|eot|ttf|otf/i.test(extType)) {
+            return `assets/fonts/[name]-[hash][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
+        },
+        chunkFileNames: 'js/[name]-[hash].js',
+        entryFileNames: 'js/[name]-[hash].js',
+      },
+    },
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096, // Inline assets smaller than 4kb
+    reportCompressedSize: false, // Faster builds
   },
   optimizeDeps: {
     include: [

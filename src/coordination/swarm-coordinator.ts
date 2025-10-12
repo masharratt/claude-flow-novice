@@ -5,6 +5,9 @@ import { generateId } from '../utils/helpers.js';
 import { SwarmMonitor } from './swarm-monitor.js';
 import type { AdvancedTaskScheduler } from './advanced-scheduler.js';
 import { MemoryManager } from '../memory/manager.js';
+import { AgentExecutor } from './agent-executor.js';
+import { ProviderManager } from '../providers/provider-manager.js';
+import { createClient } from 'redis';
 
 export interface SwarmAgent {
   id: string;
@@ -52,21 +55,29 @@ export interface SwarmObjective {
 }
 
 export interface SwarmConfig {
+  id?: string;
+  objective?: string;
+  topology?: 'mesh' | 'hierarchical';
   maxAgents: number;
   maxConcurrentTasks: number;
   taskTimeout: number;
   enableMonitoring: boolean;
   enableWorkStealing: boolean;
   enableCircuitBreaker: boolean;
+  enableSQLiteMemory?: boolean; // Default: true. Set to false for Redis-only state storage
   memoryNamespace: string;
   coordinationStrategy: 'centralized' | 'distributed' | 'hybrid';
   backgroundTaskInterval: number;
   healthCheckInterval: number;
   maxRetries: number;
   backoffMultiplier: number;
+  providerConfig?: any;
+  configManager?: any; // ConfigManager instance for ProviderManager initialization
+  redisUrl?: string;
 }
 
 export class SwarmCoordinator extends EventEmitter {
+  private id: string;
   private logger: Logger;
   private config: SwarmConfig;
   private agents: Map<string, SwarmAgent>;
@@ -79,10 +90,14 @@ export class SwarmCoordinator extends EventEmitter {
   private isRunning: boolean = false;
   private workStealer?: any;
   private circuitBreaker?: any;
+  private agentExecutor?: AgentExecutor;
+  private providerManager?: ProviderManager;
+  private redisClient?: any;
 
-  constructor(config: Partial<SwarmConfig> = {}) {
+  constructor(config: Partial<SwarmConfig> = {}, logger?: Logger) {
     super();
-    this.logger = new Logger('SwarmCoordinator');
+    this.id = config.id || generateId('swarm');
+    this.logger = logger || new Logger({ level: 'info', format: 'text', destination: 'console' }, { component: 'SwarmCoordinator' });
     this.config = {
       maxAgents: 10,
       maxConcurrentTasks: 5,
@@ -90,6 +105,7 @@ export class SwarmCoordinator extends EventEmitter {
       enableMonitoring: true,
       enableWorkStealing: true,
       enableCircuitBreaker: true,
+      enableSQLiteMemory: true, // Default: true for backward compatibility
       memoryNamespace: 'swarm',
       coordinationStrategy: 'hybrid',
       backgroundTaskInterval: 5000, // 5 seconds
@@ -109,11 +125,10 @@ export class SwarmCoordinator extends EventEmitter {
     this.memoryManager = new MemoryManager(
       {
         backend: 'sqlite',
-        namespace: this.config.memoryNamespace,
         cacheSizeMB: 50,
-        syncOnExit: true,
-        maxEntries: 10000,
-        ttlMinutes: 60,
+        syncInterval: 5000,
+        conflictResolution: 'last-write',
+        retentionDays: 30,
       },
       eventBus,
       this.logger,
@@ -157,8 +172,38 @@ export class SwarmCoordinator extends EventEmitter {
     this.logger.info('Starting swarm coordinator...');
     this.isRunning = true;
 
-    // Start subsystems
-    await this.memoryManager.initialize();
+    // Initialize memory manager ONLY if SQLite enabled
+    if (this.config.enableSQLiteMemory !== false) {
+      this.logger.info('Initializing SQLite memory manager...');
+      await this.memoryManager.initialize();
+    } else {
+      this.logger.info('SQLite memory disabled, using Redis-only state storage');
+    }
+
+    // Initialize Redis if URL provided
+    if (this.config.redisUrl) {
+      this.redisClient = createClient({ url: this.config.redisUrl });
+      await this.redisClient.connect();
+    }
+
+    // Initialize ProviderManager if config provided
+    if (this.config.providerConfig && this.config.configManager) {
+      this.providerManager = new ProviderManager(
+        this.logger,
+        this.config.configManager,
+        this.config.providerConfig
+      );
+      // ProviderManager doesn't need initialization in current implementation
+
+      // Create AgentExecutor if we have both ProviderManager and Redis
+      if (this.redisClient) {
+        this.agentExecutor = new AgentExecutor(
+          this.providerManager,
+          this.logger,
+          this.redisClient,
+        );
+      }
+    }
 
     if (this.monitor) {
       await this.monitor.start();
@@ -186,6 +231,16 @@ export class SwarmCoordinator extends EventEmitter {
 
     if (this.monitor) {
       this.monitor.stop();
+    }
+
+    // Cleanup Redis
+    if (this.redisClient) {
+      await this.redisClient.quit();
+    }
+
+    // Cleanup ProviderManager
+    if (this.providerManager) {
+      await this.providerManager.destroy();
     }
 
     this.emit('coordinator:stopped');
@@ -248,20 +303,35 @@ export class SwarmCoordinator extends EventEmitter {
     const tasks = await this.decomposeObjective(objective);
     objective.tasks = tasks;
 
-    // Store in memory
-    await this.memoryManager.store({
-      id: `objective:${objectiveId}`,
-      agentId: 'swarm-coordinator',
-      type: 'objective',
-      content: JSON.stringify(objective),
-      namespace: this.config.memoryNamespace,
-      timestamp: new Date(),
-      metadata: {
-        type: 'objective',
-        strategy,
-        taskCount: tasks.length,
-      },
-    });
+    // Store in memory (if SQLite enabled)
+    if (this.config.enableSQLiteMemory !== false) {
+      await this.memoryManager.store({
+        id: `objective:${objectiveId}`,
+        agentId: 'swarm-coordinator',
+        sessionId: this.id,
+        type: 'artifact',
+        content: JSON.stringify(objective),
+        context: {
+          type: 'objective',
+          strategy,
+          taskCount: tasks.length,
+        },
+        timestamp: new Date(),
+        tags: ['objective', strategy],
+        version: 1,
+        metadata: {
+          objectiveId,
+          namespace: this.config.memoryNamespace,
+        },
+      });
+    } else if (this.redisClient) {
+      // Fallback to Redis for state storage
+      await this.redisClient.set(
+        `${this.config.memoryNamespace}:objective:${objectiveId}`,
+        JSON.stringify(objective),
+        { EX: 3600 } // 1 hour TTL
+      );
+    }
 
     this.emit('objective:created', objective);
     return objectiveId;
@@ -411,13 +481,32 @@ export class SwarmCoordinator extends EventEmitter {
 
   private async executeTask(task: SwarmTask, agent: SwarmAgent): Promise<void> {
     try {
-      // Simulate task execution
-      // In real implementation, this would spawn actual Claude instances
-      const result = await this.simulateTaskExecution(task, agent);
+      // Use real agent execution via AgentExecutor
+      const result = await this.executeAgentTask(task, agent);
 
       await this.handleTaskCompleted(task.id, result);
     } catch (error) {
       await this.handleTaskFailed(task.id, error);
+    }
+  }
+
+  private async executeAgentTask(task: SwarmTask, agent: SwarmAgent): Promise<any> {
+    if (!this.agentExecutor) {
+      // Fallback to simulation if AgentExecutor not initialized
+      return await this.simulateTaskExecution(task, agent);
+    }
+
+    try {
+      // Use AgentExecutor for real Z.ai-powered execution
+      const result = await this.agentExecutor.executeAgent(
+        task.description,
+        agent.type as any,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error('Agent execution failed:', error);
+      throw error;
     }
   }
 
@@ -471,20 +560,35 @@ export class SwarmCoordinator extends EventEmitter {
       }
     }
 
-    // Store result in memory
-    await this.memoryManager.store({
-      id: `task:${taskId}:result`,
-      agentId: agent?.id || 'unknown',
-      type: 'task-result',
-      content: JSON.stringify(result),
-      namespace: this.config.memoryNamespace,
-      timestamp: new Date(),
-      metadata: {
-        type: 'task-result',
-        taskType: task.type,
-        agentId: agent?.id,
-      },
-    });
+    // Store result in memory (if SQLite enabled)
+    if (this.config.enableSQLiteMemory !== false) {
+      await this.memoryManager.store({
+        id: `task:${taskId}:result`,
+        agentId: agent?.id || 'unknown',
+        sessionId: this.id,
+        type: 'artifact',
+        content: JSON.stringify(result),
+        context: {
+          type: 'task-result',
+          taskType: task.type,
+          taskId,
+        },
+        timestamp: new Date(),
+        tags: ['task-result', task.type],
+        version: 1,
+        metadata: {
+          agentId: agent?.id,
+          namespace: this.config.memoryNamespace,
+        },
+      });
+    } else if (this.redisClient) {
+      // Fallback to Redis for state storage
+      await this.redisClient.set(
+        `${this.config.memoryNamespace}:task:${taskId}:result`,
+        JSON.stringify(result),
+        { EX: 3600 } // 1 hour TTL
+      );
+    }
 
     this.logger.info(`Task ${taskId} completed successfully`);
     this.emit('task:completed', { task, result });
@@ -679,20 +783,35 @@ export class SwarmCoordinator extends EventEmitter {
         timestamp: new Date(),
       };
 
-      await this.memoryManager.store({
-        id: 'swarm:state',
-        agentId: 'swarm-coordinator',
-        type: 'swarm-state',
-        content: JSON.stringify(state),
-        namespace: this.config.memoryNamespace,
-        timestamp: new Date(),
-        metadata: {
-          type: 'swarm-state',
-          objectiveCount: state.objectives.length,
-          taskCount: state.tasks.length,
-          agentCount: state.agents.length,
-        },
-      });
+      // Store in memory (if SQLite enabled)
+      if (this.config.enableSQLiteMemory !== false) {
+        await this.memoryManager.store({
+          id: 'swarm:state',
+          agentId: 'swarm-coordinator',
+          sessionId: this.id,
+          type: 'artifact',
+          content: JSON.stringify(state),
+          context: {
+            type: 'swarm-state',
+            objectiveCount: state.objectives.length,
+            taskCount: state.tasks.length,
+            agentCount: state.agents.length,
+          },
+          timestamp: new Date(),
+          tags: ['swarm-state'],
+          version: 1,
+          metadata: {
+            namespace: this.config.memoryNamespace,
+          },
+        });
+      } else if (this.redisClient) {
+        // Fallback to Redis for state storage
+        await this.redisClient.set(
+          `${this.config.memoryNamespace}:swarm:state`,
+          JSON.stringify(state),
+          { EX: 3600 } // 1 hour TTL
+        );
+      }
     } catch (error) {
       this.logger.error('Error syncing memory state:', error);
     }
@@ -703,7 +822,7 @@ export class SwarmCoordinator extends EventEmitter {
     this.emit('monitor:alert', alert);
   }
 
-  private handleAgentMessage(message: Message): void {
+  private handleAgentMessage(message: any): void {
     this.logger.debug(`Agent message: ${message.type} from ${message.from}`);
     this.emit('agent:message', message);
   }
@@ -755,6 +874,69 @@ export class SwarmCoordinator extends EventEmitter {
         failed: agents.filter((a) => a.status === 'failed').length,
       },
       uptime: this.monitor ? this.monitor.getSummary().uptime : 0,
+    };
+  }
+
+  /**
+   * Add a task to the coordinator for processing
+   * @param task Task definition with id, description, priority, dependencies, and metadata
+   */
+  async addTask(task: Partial<SwarmTask> & { id: string; description: string }): Promise<void> {
+    const fullTask: SwarmTask = {
+      type: task.type || 'generic',
+      priority: task.priority || 1,
+      dependencies: task.dependencies || [],
+      status: 'pending',
+      createdAt: new Date(),
+      retryCount: 0,
+      maxRetries: task.maxRetries || this.config.maxRetries,
+      timeout: task.timeout || this.config.taskTimeout,
+      ...task,
+    };
+
+    this.tasks.set(fullTask.id, fullTask);
+    this.logger.debug(`Added task ${fullTask.id} to coordinator`);
+
+    // If coordinator is running and task has no dependencies, try to assign immediately
+    if (this.isRunning && this.areDependenciesMet(fullTask)) {
+      const availableAgents = Array.from(this.agents.values()).filter((a) => a.status === 'idle');
+      if (availableAgents.length > 0) {
+        const agent = this.selectBestAgent(fullTask, availableAgents);
+        if (agent) {
+          try {
+            await this.assignTask(fullTask.id, agent.id);
+          } catch (error) {
+            this.logger.error(`Failed to auto-assign task ${fullTask.id}:`, error);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Get current status of the coordinator
+   * @returns Status object with task counts and metrics
+   */
+  getStatus(): {
+    totalTasks: number;
+    completedTasks: number;
+    failedTasks: number;
+    pendingTasks: number;
+    runningTasks: number;
+    activeAgents: number;
+    idleAgents: number;
+  } {
+    const tasks = Array.from(this.tasks.values());
+    const agents = Array.from(this.agents.values());
+
+    return {
+      totalTasks: tasks.length,
+      completedTasks: tasks.filter((t) => t.status === 'completed').length,
+      failedTasks: tasks.filter((t) => t.status === 'failed').length,
+      pendingTasks: tasks.filter((t) => t.status === 'pending').length,
+      runningTasks: tasks.filter((t) => t.status === 'running').length,
+      activeAgents: agents.filter((a) => a.status === 'busy').length,
+      idleAgents: agents.filter((a) => a.status === 'idle').length,
     };
   }
 }

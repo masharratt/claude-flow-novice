@@ -3,7 +3,7 @@
  * Features: Search, category/severity/date filters, virtual scrolling, WebSocket updates
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -23,10 +23,12 @@ import {
   Refresh as RefreshIcon,
   FilterList as FilterListIcon,
   Clear as ClearIcon,
+  WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
 import { FixedSizeList } from 'react-window';
 import { useEventsStore } from '../../../shared/stores/eventsStore';
 import type { EventType, EventSeverity } from '../../../shared/stores/eventsStore';
+import { useWebSocket } from '../../../shared/hooks/useWebSocket';
 
 interface EventItemProps {
   event: {
@@ -93,11 +95,29 @@ export const Events: React.FC = () => {
   const events = useEventsStore((state) => state.events);
   const loading = useEventsStore((state) => state.loading);
   const setLoading = useEventsStore((state) => state.setLoading);
+  const addEvent = useEventsStore((state) => state.addEvent);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all-time');
   const [filtersVisible, setFiltersVisible] = useState(true);
+
+  // WebSocket connection
+  const { isConnected, subscribe } = useWebSocket();
+
+  // Subscribe to real-time event stream
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const unsubscribe = subscribe('event:stream', (data: any) => {
+      // Add incoming event to store
+      addEvent(data);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isConnected, subscribe, addEvent]);
 
   // Category mapping based on event types from test fixtures
   const categoryMap: Record<string, string[]> = {
@@ -203,9 +223,28 @@ export const Events: React.FC = () => {
           alignItems: 'center',
         }}
       >
-        <Typography variant="h4" component="h1">
-          Events
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4" component="h1">
+            Events
+          </Typography>
+          {!isConnected && (
+            <Chip
+              icon={<WifiOffIcon />}
+              label="Disconnected"
+              color="error"
+              size="small"
+              data-testid="connection-status"
+            />
+          )}
+          {isConnected && (
+            <Chip
+              label="Live"
+              color="success"
+              size="small"
+              data-testid="connection-status"
+            />
+          )}
+        </Box>
         <Box>
           <IconButton
             onClick={() => setFiltersVisible(!filtersVisible)}

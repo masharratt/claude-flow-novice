@@ -1504,7 +1504,7 @@ export class ConfigManager extends EventEmitter {
 export const configManager = ConfigManager.getInstance();
 
 // Export all types and utilities
-export { ConfigError, ExperienceLevel, FeatureFlags, AutoDetectionResult, SecureCredentials };
+export { ExperienceLevel, FeatureFlags, AutoDetectionResult, SecureCredentials };
 
 /**
  * BACKWARD COMPATIBILITY: Legacy function exports

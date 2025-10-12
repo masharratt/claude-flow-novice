@@ -1,0 +1,4 @@
+
+> @claude-flow-novice/web-portal@3.0.0 test
+> vitest run --run --no-coverage --reporter=json
+
