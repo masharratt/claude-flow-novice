@@ -33,7 +33,7 @@ import { fileURLToPath } from 'url';
 // SQLite imports (CommonJS)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const sqliteModulePath = path.join(__dirname, '../sqlite/index.js');
+const sqliteModulePath = path.join(__dirname, '../sqlite/index.cjs');
 
 // ===== TYPE DEFINITIONS =====
 
@@ -200,9 +200,10 @@ export class CFNLoopMemoryManager extends EventEmitter {
     const loggingConfig: LoggingConfig = {
       level: this.debug ? 'debug' : 'info',
       format: 'json',
-      outputDir: './logs'
+      outputDir: './logs',
+      name: 'cfn-loop-memory-manager'
     };
-    this.logger = new Logger('cfn-loop-memory-manager', loggingConfig);
+    this.logger = new Logger(loggingConfig, 'cfn-loop-memory-manager');
 
     // Initialize secret detector
     this.secretDetector = new SecretDetector({

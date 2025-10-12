@@ -286,7 +286,7 @@ async function handleRecoveryAbandon(epicId: string): Promise<void> {
 /**
  * Register recovery commands
  */
-export function registerRecoveryCommands(program: Command): void {
+function registerRecoveryCommands(program: Command): void {
   const recovery = program.command('recovery').description('CFN Loop crash recovery management');
 
   recovery
@@ -315,6 +315,16 @@ export function registerRecoveryCommands(program: Command): void {
     .description('Abandon execution and cleanup')
     .action(handleRecoveryAbandon);
 }
+
+// Export named functions for direct import
+export {
+  registerRecoveryCommands,
+  handleRecoveryStatus,
+  handleRecoveryInspect,
+  handleRecoveryResume,
+  handleRecoveryRestart,
+  handleRecoveryAbandon,
+};
 
 // Export for integration with main CLI
 export default {

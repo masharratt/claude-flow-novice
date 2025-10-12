@@ -1,0 +1,384 @@
+{
+  "analysis_timestamp": "2025-10-11T15:30:00Z",
+  "methodology": "3-agent consensus scoring (3=archive immediately, 2=priority investigation, 1=low priority)",
+  "agent_confidence_scores": {
+    "analyzer-1": 0.82,
+    "analyzer-2": 0.88,
+    "analyzer-3": 0.88
+  },
+  "consensus_findings": {
+    "unanimous_agreement_3_agents": {
+      "action": "ARCHIVE IMMEDIATELY",
+      "findings": [
+        {
+          "target": "src/web/** directory (9,297 files)",
+          "agents_agreeing": 3,
+          "consensus_confidence": 0.95,
+          "reasoning": "All 3 agents identified this directory as excluded from build (tsconfig.json line 58)",
+          "estimated_savings": "~500MB disk space",
+          "risk": "Low - explicitly excluded from compilation",
+          "recommendation": "Move to archive/ or separate repository immediately"
+        },
+        {
+          "target": "src/mcp/ deprecated module",
+          "agents_agreeing": 3,
+          "consensus_confidence": 0.92,
+          "reasoning": "All 3 agents found MCP deprecated in v2.0.0 with DEPRECATED.js throwing errors",
+          "files": ["DEPRECATED.js", "index.ts", "mcp-server-novice.js", "client.ts", "mcp-server-novice-simplified.js"],
+          "remaining_imports": 8,
+          "recommendation": "Complete deprecation cleanup - remove remaining 8 imports, archive module"
+        },
+        {
+          "target": "src/utils/github-cli-safe.js",
+          "agents_agreeing": 3,
+          "consensus_confidence": 0.95,
+          "reasoning": "All 3 agents identified entire file as deprecated wrapper with migration path documented",
+          "migration_target": "github-cli-safety-wrapper.js",
+          "usage_count": 1,
+          "recommendation": "Migrate github-api.js, then remove file"
+        },
+        {
+          "target": "src/agents/github/compatibility/legacy-agent-proxy.ts",
+          "agents_agreeing": 3,
+          "consensus_confidence": 0.90,
+          "reasoning": "30+ @deprecated methods for backward compatibility with legacy GitHub agents",
+          "lines_of_code": "~330 lines (53-381)",
+          "methods_count": 30,
+          "active_usage": "No imports found by any agent",
+          "recommendation": "Archive entire compatibility layer - no active usage detected"
+        }
+      ]
+    },
+    "strong_agreement_2_agents": {
+      "action": "PRIORITY INVESTIGATION",
+      "findings": [
+        {
+          "target": "src/booster/ WASM subsystem",
+          "agents_agreeing": 2,
+          "consensus_confidence": 0.84,
+          "reasoning": "Agents 2 and 3 found no active imports; Agent 1 timed out on usage search",
+          "files_count": 11,
+          "total_size": "~200KB source",
+          "key_files": [
+            "wasm-runtime.js (14KB)",
+            "performance-validation-52x.js (25KB)",
+            "WASMInstanceManager.js (23KB)",
+            "large-scale-file-processor.js (25KB)"
+          ],
+          "concerns": [
+            "No imports detected in build output",
+            "Claims 52x acceleration but no validation",
+            "Potentially experimental/abandoned feature"
+          ],
+          "recommendation": "Investigate if WASM is loaded dynamically or via feature flags. If unused, archive subsystem."
+        },
+        {
+          "target": "src/analytics/ PageRank subsystem",
+          "agents_agreeing": 2,
+          "consensus_confidence": 0.76,
+          "reasoning": "Agents 2 and 3 found minimal integration (1 import); Agent 1 noted specialized usage",
+          "files_count": 14,
+          "total_size": "~250KB source",
+          "key_files": [
+            "pagerank-pattern-analyzer.js (524 bytes - stub)",
+            "mathematical-analytics-pipeline.js (32KB)",
+            "optimization-engine.js (30KB)",
+            "suggestion-generator.js (28KB)"
+          ],
+          "usage": "Limited to internal analytics pipeline",
+          "recommendation": "Assess production value. If experimental, move to separate package or archive."
+        },
+        {
+          "target": "src/advanced/context-aware-smart-hooks.js",
+          "agents_agreeing": 2,
+          "consensus_confidence": 0.82,
+          "reasoning": "Agents 2 and 3 found only 1 import reference (unified-hook-system.js)",
+          "lines_of_code": 889,
+          "complexity": "very_high",
+          "exports": ["ContextAwareSmartHooks", "AdaptiveContextManager", "AdvancedLanguageDetector", "FrameworkDetectionSystem", "IntelligentHookSelector"],
+          "phase": "Phase 5.1 feature",
+          "recommendation": "Verify if demo/experimental code. If not production-critical, archive."
+        },
+        {
+          "target": "src/advanced/proactive-assistance-system.js",
+          "agents_agreeing": 2,
+          "consensus_confidence": 0.82,
+          "reasoning": "Agents 2 and 3 found only 1 import reference (unified-hook-system.js)",
+          "lines_of_code": 985,
+          "complexity": "very_high",
+          "exports": ["ProactiveAssistanceSystem", "PredictiveFailureAnalyzer", "IntelligentSuggestionGenerator", "RealTimeMonitoringSystem"],
+          "phase": "Phase 5.2 feature",
+          "recommendation": "Verify if demo/experimental code. If not production-critical, archive."
+        },
+        {
+          "target": "src/hooks/index.ts deprecated methods",
+          "agents_agreeing": 2,
+          "consensus_confidence": 0.90,
+          "reasoning": "Agents 1 and 2 found 6-8 @deprecated methods with only self-referential usage",
+          "methods": [
+            "createFilePatternCondition",
+            "createSpawnAgentAction",
+            "createQualityHook",
+            "createSecurityHook",
+            "createDocumentationHook",
+            "createPerformanceHook",
+            "createHookEngine",
+            "setupDefaultHooks"
+          ],
+          "usage": "Only called within same file with deprecation warnings",
+          "migration_target": "agentic-flow-hooks service",
+          "recommendation": "Complete migration to agentic-flow-hooks, remove deprecated methods"
+        },
+        {
+          "target": "Duplicate MessagePack dependencies",
+          "agents_agreeing": 2,
+          "consensus_confidence": 0.75,
+          "reasoning": "Agents 2 and 3 found msgpack-lite used (1 file) but msgpack5 unused",
+          "packages": ["msgpack-lite", "msgpack5"],
+          "usage": "msgpack-lite in RedisCoordinator.js with JSON fallback",
+          "recommendation": "Remove msgpack5, move msgpack-lite to optionalDependencies"
+        },
+        {
+          "target": "Duplicate table dependencies",
+          "agents_agreeing": 2,
+          "consensus_confidence": 0.65,
+          "reasoning": "Agents 1 and 2 found both 'table' and 'cli-table3' with limited usage",
+          "usage": {
+            "table": "3 files",
+            "cli-table3": "Unknown usage count"
+          },
+          "recommendation": "Consolidate to single table library"
+        }
+      ]
+    },
+    "single_agent_findings": {
+      "action": "LOW PRIORITY INVESTIGATION",
+      "findings": [
+        {
+          "target": "@types/blessed devDependency",
+          "agent": "analyzer-1",
+          "confidence": 0.92,
+          "reasoning": "No imports of 'blessed' package found",
+          "recommendation": "Verify if used in config/ or scripts/, then remove"
+        },
+        {
+          "target": "limiter dependency",
+          "agent": "analyzer-2",
+          "confidence": 0.85,
+          "reasoning": "No imports found in src/ directory",
+          "recommendation": "Check config/ and scripts/ before removal"
+        },
+        {
+          "target": "Enterprise auth dependencies (qrcode, speakeasy, argon2)",
+          "agent": "analyzer-1",
+          "confidence": 0.70,
+          "reasoning": "Only used in EnhancedAuthService.js",
+          "recommendation": "Move to optionalDependencies or keep if actively used"
+        },
+        {
+          "target": "src/core/unified-hook-system.js",
+          "agent": "analyzer-3",
+          "confidence": 0.75,
+          "reasoning": "Orchestrates advanced features but no production imports found",
+          "recommendation": "Verify production usage before archiving"
+        },
+        {
+          "target": "src/audit/content-audit.js",
+          "agent": "analyzer-3",
+          "confidence": 0.80,
+          "reasoning": "Utility with no imports found",
+          "recommendation": "Verify if loaded dynamically, archive if unused"
+        },
+        {
+          "target": "Component directories (src/components, src/dashboard, src/pages - 36 files)",
+          "agent": "analyzer-3",
+          "confidence": 0.70,
+          "reasoning": "Frontend visualization components that may be orphaned",
+          "recommendation": "Verify if part of web/ or separate frontend"
+        },
+        {
+          "target": "src/schemas/custom-framework-schema.js exports",
+          "agent": "analyzer-2",
+          "confidence": 0.72,
+          "reasoning": "Specialized schema with limited adoption (2 files)",
+          "recommendation": "Monitor usage, consider deprecation if unused"
+        },
+        {
+          "target": "Test organization duplication",
+          "agent": "analyzer-2",
+          "confidence": 0.85,
+          "reasoning": "Tests scattered across src/**/__tests__/ and tests/",
+          "recommendation": "Consolidate test structure for consistency"
+        }
+      ]
+    }
+  },
+  "prioritized_action_plan": {
+    "phase_1_immediate_archive": {
+      "timeline": "This week",
+      "estimated_effort": "2-4 hours",
+      "items": [
+        {
+          "priority": 1,
+          "action": "Move src/web/ to archive or separate repository",
+          "impact": "~500MB disk space freed",
+          "risk": "Low - already excluded from build",
+          "steps": [
+            "Verify no dynamic imports of web/ directory",
+            "Create archive/web/ or separate git repository",
+            "Update .gitignore and documentation",
+            "Remove from main codebase"
+          ]
+        },
+        {
+          "priority": 2,
+          "action": "Complete MCP deprecation cleanup",
+          "impact": "Remove 5 deprecated files, clean up 8 remaining imports",
+          "risk": "Low - already marked DEPRECATED",
+          "steps": [
+            "Find and remove 8 remaining MCP imports",
+            "Remove src/mcp/ directory",
+            "Update documentation to remove MCP references",
+            "Add to CHANGELOG as breaking change"
+          ]
+        },
+        {
+          "priority": 3,
+          "action": "Remove github-cli-safe.js wrapper",
+          "impact": "~120 lines removed",
+          "risk": "Low - single import to migrate",
+          "steps": [
+            "Migrate github-api.js to github-cli-safety-wrapper.js",
+            "Remove src/utils/github-cli-safe.js",
+            "Run tests to verify migration"
+          ]
+        },
+        {
+          "priority": 4,
+          "action": "Archive legacy-agent-proxy.ts",
+          "impact": "~330 lines removed, eliminate 30 deprecated methods",
+          "risk": "Low - no active usage detected",
+          "steps": [
+            "Final grep for any imports (all 3 agents found none)",
+            "Move to archive/compatibility/",
+            "Document in CHANGELOG as removed compatibility layer"
+          ]
+        }
+      ],
+      "total_impact": "~500MB disk space, ~450 lines code removed"
+    },
+    "phase_2_priority_investigation": {
+      "timeline": "Next 1-2 weeks",
+      "estimated_effort": "6-8 hours",
+      "items": [
+        {
+          "priority": 1,
+          "action": "Investigate WASM booster subsystem usage",
+          "investigation_steps": [
+            "Search for feature flags enabling WASM",
+            "Check CLI command registry for dynamic loading",
+            "Review git history for WASM implementation intent",
+            "Run code coverage to confirm no runtime usage"
+          ],
+          "decision_criteria": "If no active usage: archive 11 files (~200KB)"
+        },
+        {
+          "priority": 2,
+          "action": "Assess PageRank analytics subsystem",
+          "investigation_steps": [
+            "Interview team about analytics usage",
+            "Check if part of premium/enterprise features",
+            "Evaluate PageRank mathematical value",
+            "Consider extracting to separate package"
+          ],
+          "decision_criteria": "If experimental: archive or extract to npm package"
+        },
+        {
+          "priority": 3,
+          "action": "Review Phase 5.1/5.2 advanced features",
+          "targets": [
+            "context-aware-smart-hooks.js (889 LOC)",
+            "proactive-assistance-system.js (985 LOC)"
+          ],
+          "investigation_steps": [
+            "Verify if demo code for documentation",
+            "Check roadmap for Phase 5 feature activation",
+            "Test unified-hook-system.js integration",
+            "Decide: keep for future, archive, or remove"
+          ],
+          "decision_criteria": "If not on production roadmap: archive ~1,874 LOC"
+        },
+        {
+          "priority": 4,
+          "action": "Complete hook system migration",
+          "investigation_steps": [
+            "Verify all hooks migrated to agentic-flow-hooks",
+            "Remove deprecated methods from src/hooks/index.ts",
+            "Update documentation"
+          ],
+          "decision_criteria": "Remove 6-8 deprecated methods"
+        },
+        {
+          "priority": 5,
+          "action": "Consolidate duplicate dependencies",
+          "targets": [
+            "MessagePack: msgpack-lite vs msgpack5",
+            "Tables: table vs cli-table3"
+          ],
+          "investigation_steps": [
+            "Audit usage of each duplicate",
+            "Choose single implementation",
+            "Update imports",
+            "Remove unused dependency"
+          ],
+          "decision_criteria": "Reduce dependency count by 2"
+        }
+      ]
+    },
+    "phase_3_low_priority": {
+      "timeline": "Backlog",
+      "items": [
+        {
+          "action": "Audit and remove unused dependencies",
+          "targets": ["@types/blessed", "limiter", "enterprise auth packages"],
+          "effort": "2-3 hours"
+        },
+        {
+          "action": "Review orphaned component directories",
+          "targets": ["src/components", "src/dashboard", "src/pages"],
+          "effort": "1-2 hours"
+        },
+        {
+          "action": "Consolidate test directory structure",
+          "effort": "3-4 hours",
+          "impact": "Improved maintainability"
+        },
+        {
+          "action": "Review specialized schemas",
+          "targets": ["custom-framework-schema.js"],
+          "effort": "1 hour"
+        }
+      ]
+    }
+  },
+  "metrics_summary": {
+    "total_disk_space_reclaimable": "~500-550MB",
+    "total_source_code_removable": "~12,000+ lines (if all investigations lead to archive)",
+    "immediate_removals": "~11,000 files (web/), 5 files (mcp/), 2 files (github-cli-safe, legacy-proxy)",
+    "estimated_total_effort": "12-16 hours across all phases",
+    "risk_assessment": "Low - most findings are deprecated or excluded code"
+  },
+  "caveats": {
+    "dynamic_loading": "CLI and hook systems may load code dynamically at runtime",
+    "feature_flags": "Analytics and WASM may be behind feature flags",
+    "external_usage": "Legacy compatibility layers may be used by external projects",
+    "enterprise_features": "Some unused code may be enterprise/premium features"
+  },
+  "next_steps": [
+    "Review and approve Phase 1 immediate archive actions",
+    "Assign Phase 2 investigation tasks with 1-2 week deadline",
+    "Create GitHub issues for Phase 3 backlog items",
+    "Run runtime code coverage analysis to validate static findings",
+    "Update CHANGELOG with deprecation notices"
+  ]
+}

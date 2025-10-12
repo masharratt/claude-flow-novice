@@ -35,6 +35,9 @@ import {
   handleRecoveryAbandon
 } from "./recovery-status.js";
 
+// Import agent lifecycle commands
+import { agentLifecycleCommand } from "./agent-lifecycle.js";
+
 let orchestrator: Orchestrator | null = null;
 let configManager: ConfigManager | null = null;
 let persistence: JsonPersistenceManager | null = null;
@@ -3264,6 +3267,9 @@ Now, please proceed with the task: ${task}`;
   for (const command of enterpriseCommands) {
     cli.command(command);
   }
+
+  // Add agent lifecycle command
+  cli.command(agentLifecycleCommand as any);
 
   // Add CFN Loop recovery commands
   cli.command({

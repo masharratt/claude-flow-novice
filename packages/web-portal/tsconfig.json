@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "types": ["node", "vite/client"]
+  },
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../web-components"
+    }
+  ]
+}

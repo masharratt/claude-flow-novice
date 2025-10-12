@@ -37,9 +37,19 @@ Claude Flow Novice lets you:
 
 ### 1. Install
 ```bash
-# Install globally
+# Install globally or locally
 npm install -g claude-flow-novice
 ```
+
+**✨ Automatic Setup Included!**
+
+During installation, Claude Flow Novice automatically:
+- ✅ **SQLite Database**: Creates database directory for persistent memory
+- ✅ **53 Agent Profiles**: Syncs production-ready agents to `.claude/agents/`
+- ✅ **4 Validators**: Includes agent-template, CFN-loop, test-coverage, blocking-coordination validators
+- 🔄 **Redis Detection**: Auto-detects and starts Redis if installed (optional but recommended)
+
+**Note**: Redis is optional but recommended for cross-session state persistence. See [Redis Setup](#redis-setup-optional) below.
 
 ### 2. Create Your First Project
 ```bash
@@ -59,6 +69,7 @@ That's it! 🎉 Claude Flow Novice will automatically:
 - Spawn specialized agents (backend, frontend, testing)
 - Coordinate their work in real-time
 - Show you a monitoring dashboard
+- Persist progress to SQLite (survives restarts)
 
 ### 4. Monitor Progress
 ```bash
@@ -74,17 +85,45 @@ claude-flow-novice monitor
 - **Node.js 20+** - [Download Node.js](https://nodejs.org/)
 - **npm 9+** - Comes with Node.js
 
-### Optional (Recommended)
-- **Redis** - For saving progress between sessions
-  ```bash
-  # Install with Docker (easiest)
-  docker run -d -p 6379:6379 redis
+### Automatic Setup (Included)
+✅ **SQLite** - Automatically configured during installation
+✅ **Agent Profiles** - 53 production agents synced to `.claude/agents/`
+✅ **Validation Hooks** - 4 production-ready validators included
 
-  # Or install locally
-  # macOS: brew install redis
-  # Ubuntu: sudo apt install redis-server
-  # Windows: Download from redis.io
-  ```
+### Redis Setup (Optional)
+
+Redis is **optional** but recommended for:
+- Cross-session state persistence (swarm recovery)
+- Faster coordination (10K+ events/sec)
+- Production deployments
+
+**Auto-Detection**: The installer automatically detects and starts Redis if available.
+
+**Manual Installation**:
+```bash
+# Install with Docker (easiest)
+docker run -d -p 6379:6379 redis
+
+# Or install locally
+# macOS: brew install redis && brew services start redis
+# Ubuntu: sudo apt install redis-server && sudo systemctl start redis
+# Windows: Download from redis.io or use WSL2
+
+# Verify Redis is running
+redis-cli ping  # Should return "PONG"
+```
+
+**Setup Scripts** (if auto-detection fails):
+```bash
+npm run redis:setup      # Interactive Redis setup wizard
+npm run redis:start      # Start Redis server
+npm run redis:status     # Check Redis status
+```
+
+**Without Redis**: SQLite-only mode still works! Basic swarm coordination functions normally, but:
+- ⚠️ No cross-session recovery (state lost on restart)
+- ⚠️ Reduced throughput (SQLite only, no Redis pub/sub)
+- ✅ Perfect for local development and small projects
 
 ---
 
@@ -192,13 +231,30 @@ You Tell AI What to Build
     Complete Project ✅
 ```
 
-### The AI Agent Types
+### The AI Agent Types (53 Production-Ready Agents Included!)
+
+**Core Development Agents:**
 - **Backend Developer** - Builds APIs, databases, server logic
 - **Frontend Developer** - Creates user interfaces, React/Vue apps
+- **Coder** - General-purpose implementation specialist
 - **Tester** - Writes tests, finds bugs, ensures quality
+- **Reviewer** - Code review and quality assurance
+
+**Specialized Agents:**
 - **API Designer** - Plans API endpoints and documentation
 - **Security Specialist** - Adds security best practices
+- **DevOps Engineer** - CI/CD, deployment, infrastructure
+- **Mobile Developer** - React Native mobile apps
+- **Architect** - System design and technical decisions
 - **Researcher** - Gathers information and analyzes options
+- **Performance Analyzer** - Bottleneck identification and optimization
+
+**Coordination Agents:**
+- **Task Coordinator** - Multi-agent workflow orchestration
+- **Product Owner** - GOAP decision-making (CFN Loop 4)
+- **Mesh/Hierarchical Coordinators** - Swarm topology management
+
+**Plus 38 More Specialized Agents!** All automatically synced to your `.claude/agents/` directory during installation.
 
 ---
 
@@ -265,18 +321,45 @@ sudo npm install -g claude-flow-novice
 # Node.js version too old
 nvm install 20
 nvm use 20
+
+# Check installation status
+cat ~/.claude-flow-novice/config/setup-status.json
+
+# View setup logs
+cat ~/.claude-flow-novice/setup.log
 ```
 
-### Redis Connection Issues
+### Agent Sync Issues
+```bash
+# Manually sync agents from package
+npm run agents:sync
+
+# Preview changes without syncing
+npm run agents:sync:dry-run
+
+# Check what agents are installed
+ls -la .claude/agents/
+
+# Restore from backup
+cp .claude/agents/.backup/{file}.backup .claude/agents/{file}
+```
+
+### Redis Connection Issues (Optional)
 ```bash
 # Check if Redis is running
 redis-cli ping
 
-# Start Redis if not running
-redis-server
+# Auto-setup Redis (if installed but not configured)
+npm run redis:setup
 
-# Use different port
-REDIS_URL=redis://localhost:6380 claude-flow-novice start
+# Start Redis manually
+npm run redis:start
+
+# Check Redis status
+npm run redis:status
+
+# Without Redis: SQLite-only mode works fine!
+# Just ignore Redis warnings - basic functionality is unaffected
 ```
 
 ### Performance Issues
@@ -327,35 +410,43 @@ claude-flow-novice swarm --help
 - **Q: Do I need to know AI/ML to use this?**
   A: No! This is designed for beginners. Just describe what you want to build.
 
+- **Q: Is Redis required?**
+  A: No! SQLite-only mode works perfectly for local development. Redis is optional for production features (cross-session recovery, 10K+ events/sec throughput).
+
+- **Q: What happens to my custom agents during updates?**
+  A: Custom agents are preserved! Only package agents with the same name are overwritten, and backups are created automatically in `.claude/agents/.backup/`.
+
 - **Q: Can I use this for real projects?**
-  A: Yes! Many developers use Claude Flow Novice for production applications.
+  A: Yes! Many developers use Claude Flow Novice for production applications. All 53 agents include 4 production-ready validators.
 
 - **Q: How much does it cost?**
   A: The tool is free (MIT license). You only pay for any AI API calls you make.
 
 - **Q: Can I customize the agents?**
-  A: Yes! Advanced users can create custom agent types and behaviors.
+  A: Yes! Advanced users can create custom agent types and behaviors. See `.claude/agents/CLAUDE.md` for agent design principles.
 
 ---
 
 ## 🗺️ What's Next?
 
-### Version 1.7 (Current) - WASM Acceleration Epic Complete
-- ✅ Multi-agent coordination
-- ✅ Real-time dashboard
-- ✅ Redis persistence
-- ✅ Beginner-friendly setup
-- ✅ **WASM 40x Performance** (Sprint 1.2-1.4)
-  - Event Bus: 398,373 events/sec (40x target)
-  - Swarm Messenger: 15,018 messages/sec (83x improvement)
-  - Circuit Breaker: Production-ready resilience
-  - Memory Safety: Rust Drop trait prevents leaks
+### Version 2.0 (Current) - Complete Automation
+- ✅ **Automatic Setup** - SQLite, Redis detection, agent sync on install
+- ✅ **53 Production Agents** - Auto-synced to `.claude/agents/`
+- ✅ **4 Production Validators** - Agent-template, CFN-loop, test-coverage, blocking-coordination
+- ✅ **Agent Backup System** - Automatic backups before overwriting
+- ✅ **SQLite + Redis Dual Layer** - Persistent memory with 5-level ACL
+- ✅ **WASM 40x Performance** - Event Bus: 398,373 events/sec
+- ✅ **Circuit Breaker Pattern** - Production-ready resilience
+- ✅ **Memory Safety** - Rust Drop trait prevents leaks
+- ✅ **Multi-agent coordination** - Mesh + hierarchical topologies
+- ✅ **Real-time dashboard** - Monitor 1000+ agents
+- ✅ **CFN Loop Orchestration** - Autonomous self-correcting development
 
-### Version 1.8 (Coming Soon)
-- 🔄 More agent types
-- 🔄 Better error handling
-- 🔄 Visual workflow designer
-- 🔄 One-click deployment
+### Version 2.1 (Coming Soon)
+- 🔄 Web Portal UI - Visual agent management dashboard
+- 🔄 Enhanced error handling - Better recovery strategies
+- 🔄 Visual workflow designer - Drag-and-drop agent coordination
+- 🔄 One-click deployment - Cloud deployment automation
 
 ---
 

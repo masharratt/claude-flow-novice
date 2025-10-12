@@ -1,0 +1,87 @@
+{
+  "name": "@claude-flow-novice/web-components",
+  "version": "3.0.0",
+  "description": "Shared React component library for Claude Flow Novice web portal - extracted from 8 portals",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./components/*": {
+      "import": "./dist/components/*.js",
+      "types": "./dist/components/*.d.ts"
+    }
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "npm run storybook",
+    "build": "npm run build:lib && npm run build:types",
+    "build:lib": "swc src -d dist --config-file .swcrc",
+    "build:types": "tsc --emitDeclarationOnly",
+    "build:watch": "swc src -d dist --watch --config-file .swcrc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "clean": "rm -rf dist storybook-static"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@mui/material": "^6.1.7",
+    "@mui/icons-material": "^6.1.7",
+    "recharts": "^2.14.1",
+    "date-fns": "^4.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": false
+    },
+    "react-dom": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/react": "^18.3.12",
+    "@swc/cli": "^0.7.8",
+    "@swc/core": "^1.13.20",
+    "vitest": "^2.1.5",
+    "@storybook/react": "^8.4.5",
+    "@storybook/react-vite": "^8.4.5",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "claude-flow",
+    "react",
+    "components",
+    "ui-library",
+    "typescript",
+    "storybook"
+  ],
+  "author": "Claude Flow Novice Team",
+  "license": "MIT"
+}

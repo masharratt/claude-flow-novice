@@ -50,11 +50,6 @@ CODE_OF_CONDUCT.md
 DEVELOPMENT.md
 TESTING.md
 
-# Include specific documentation for users
-!docs/
-!planning/logs-*.md
-!planning/documentation-style-guide.md
-
 # Build artifacts (keep dist for compiled files)
 dist/
 .claude-flow-novice/metrics.db*
@@ -82,6 +77,15 @@ bin/
 *.temp
 .cache/
 
+# Research and analysis directories (not needed in npm package)
+analysis/
+planning/
+research/
+
+# Web portal source (not needed - only built artifacts)
+packages/*/src/
+packages/*/node_modules/
+
 # Keep essential files
 !README.md
 !CHANGELOG.md
@@ -92,6 +96,10 @@ bin/
 !scripts/
 !examples/
 !wiki/
+!docs/
+!readme/
+!AUTO_SETUP.md
+!AGENT_SYNC_DOCUMENTATION.md
 
 # Keep compiled distribution files
 !.claude-flow-novice/dist/
