@@ -46,6 +46,38 @@ For core commands used in typical development workflows, see `CLAUDE.md` Section
 
 ---
 
+## Web Portal Monitoring
+
+**Optional real-time monitoring interface with 7 consolidated views:**
+
+```bash
+# Install web portal (one-time setup)
+npm run portal:install
+
+# Start development server (http://localhost:3002)
+npm run portal:dev
+
+# Build production bundle
+npm run portal:build
+
+# Run unit tests (121 tests, 100% pass)
+npm run portal:test
+
+# Run E2E tests (32 tests, 65.6% pass)
+npm run portal:test:e2e
+```
+
+**Features:**
+- 7 consolidated monitoring views (Dashboard, Agents, Hierarchy, Performance, Events, Fleet, CFN Loop)
+- Real-time WebSocket updates
+- Virtual scrolling for 10K+ events
+- Chart.js visualizations (CPU, memory, agent distribution)
+- Complete test coverage (121 unit + 32 E2E tests)
+
+**Documentation:** WEB_PORTAL_INSTALL.md, packages/web-portal/docs/
+
+---
+
 ## Essentials
 
 **Quick reference for common commands:**
