@@ -5,23 +5,32 @@
 
 ## 1) Critical Rules (Single Source of Truth)
 
-* **Use agents for all non-trivial work** (≥4 steps or any multi-file / research / testing / architecture / security / integration / refactor / feature).
-* **Initialize swarm before any multi-agent work.**
-* **Batch operations**: one message per related batch (spawn, file edits, bash, todos, memory ops).
-* **Run post-edit hook after every file edit.**
-* **Never work solo** on multi-step tasks. Spawn parallel specialists.
-* **Never mix implementers and validators in the same message.**
-* **Never run tests inside agents.** Execute once; agents read results.
-* **Never save to project root.** Use proper subdirs.
-* **No guides/summaries/reports** unless explicitly asked.
-* **Use spartan language.**
-* **Redis persistence enables swarm recovery** - swarm state survives interruptions.
-* **ALL agent communication MUST use Redis pub/sub** - no direct file coordination.
+**Core Principles:**
+* Use agents for all non-trivial work (≥4 steps or multi-file/research/testing/architecture/security)
+* Initialize swarm before multi-agent work
+* Batch operations: one message per related batch (spawn, file edits, bash, todos, memory ops)
+* Run post-edit hook after every file edit
 
-**Consensus thresholds**
+**Prohibited Patterns:**
+* Working solo on multi-step tasks — spawn parallel specialists
+* Mixing implementers + validators in same message
+* Running tests inside agents — execute once; agents read results
+* Concurrent test runs — terminate previous runs first
+* Saving to project root — use proper subdirs
+* Creating guides/summaries/reports unless explicitly asked
+* Agent coordination without Redis pub/sub messaging
+* Asking permission to retry/advance when criteria/iterations allow. Instead relaunch agents
 
-* Gate (agent self-confidence): **≥0.75 each**
-* Validators consensus: **≥0.90**
+**Communication:**
+* Use spartan language
+* Redis persistence enables swarm recovery — state survives interruptions
+* ALL agent communication MUST use Redis pub/sub — no direct file coordination
+
+**Consensus thresholds** (mode-dependent)
+
+* Standard mode: Gate ≥0.75 • Consensus ≥0.90 • 4 validators • single PO
+* MVP mode: Gate ≥0.70 • Consensus ≥0.80 • 2 validators • single PO
+* Enterprise mode: Gate ≥0.75 • Consensus ≥0.95 • 4 validators • 4-person board • Loop 0.5 planning
 
 ---
 
@@ -101,242 +110,113 @@ pkill -f vitest; pkill -f "npm test"
 ---
 
 ## 4) CFN Loop (Single Section)
+
+### 4.1 Loop Structure
+
 Loop 0: Epic/Sprint orchestration (multi-phase) → no iteration limit
+Loop 0.5: Planning consensus (Enterprise only) → architects vote on design; ≥0.85 consensus
 Loop 1: Phase execution (sequential phases) → no limit
-Loop 2: Consensus validation (team of 2-4 validators) → max 10/phase; exit at ≥0.90
-Loop 3: Primary swarm implementation → max 10/subtask; exit when all ≥0.75
-Loop 4: Product Owner decision gate (GOAP) → PROCEED / DEFER / ESCALATE
+Loop 2: Consensus validation (2-4 validators) → max 5-15/phase; exit at ≥0.80-0.95
+Loop 3: Primary swarm implementation → max 5-15/subtask; exit when all ≥0.70-0.75
+Loop 4: Product Owner decision gate (GOAP) → PROCEED / DEFER / ESCALATE -> Re-inject detailed mode instructions
 
-Flow
+**Detailed Mode Instructions**:
+See instruction files for complete spawn patterns, Redis pub/sub coordination, SQLite memory patterns, git commit templates, and retry strategies.
+- MVP: `config/cfn-loop/instructions/mvp-instructions.md`
+- Standard: `config/cfn-loop/instructions/standard-instructions.md`
+- Enterprise: `config/cfn-loop/instructions/enterprise-instructions.md`
 
-Loop 3 implementers produce output + self-confidence scores.
-Can use up to 7 agents in mesh, if > 7 agents needed, use coordinators in mesh with teams under them in hierarchical. Can use up to 50 agents under a coordinator
+### 4.2 CFN Loop Modes
 
-Gate: if all ≥0.75, go to Loop 2; else retry Loop 3 with targeted/different agents.
+**Mode Selection**: Adapt quality gates to project needs
 
-Loop 2 validator team of 2-4 agents run; refer recommendations to product owner for decisions
-
-**🎯 CRITICAL:** Loop 4 Product Owner runs autonomous GOAP decision:
-
-After consensus validation, Product Owner agent makes autonomous PROCEED/DEFER/ESCALATE decision:
-
-PROCEED: Relaunch Loop 3 with targeted fixes or move to next sprint
-
-DEFER: Approve work, backlog out-of-scope issues. launch swarms for next steps
-
-ESCALATE: Critical ambiguity → human review.
-
-Auto-transition phases when complete by rereading the root claude.md file and launching a swarm for next steps. No permission prompts.
-
-### CFN Loop Coordination Example
-
-**Event Bus Coordination (Critical Rule #19 - Mandatory Redis pub/sub):**
 ```bash
-# Loop 3 Start: Publish phase transition event
-/eventbus publish --type cfn.loop.phase.start --data '{"loop":3,"phase":"auth","swarmId":"cfn-phase-auth"}' --priority 9
-
-# Agent spawned: Publish lifecycle event
-/eventbus publish --type agent.lifecycle --data '{"agent":"coder-1","status":"spawned","loop":3}' --priority 8
-
-# Agent completion: Publish confidence score
-/eventbus publish --type agent.complete --data '{"agent":"coder-1","confidence":0.85,"loop":3}' --priority 8
-
-# Loop 2 Start: Publish validation event
-/eventbus publish --type cfn.loop.validation.start --data '{"loop":2,"validators":["reviewer-1","security-1"]}' --priority 9
-
-# Subscribe to all CFN Loop events for coordination
-/eventbus subscribe --pattern "cfn.loop.*" --handler cfn-coordinator --batch-size 50
+/cfn-loop "Task" --mode=mvp          # Fast iteration
+/cfn-loop "Task" --mode=standard     # Balanced (default)
+/cfn-loop "Task" --mode=enterprise   # Full quality gates
 ```
 
-**Memory Persistence Across Loops:**
+**Mode Comparison**:
+
+| Mode | Best For | Gate | Consensus | Iterations | Validators | Product Owner | Loop 0.5 |
+|------|----------|------|-----------|------------|------------|---------------|----------|
+| **MVP** | Prototypes, MVPs | ≥0.70 | ≥0.80 | 5 | 2 | Single | No |
+| **Standard** | General features | ≥0.75 | ≥0.90 | 10 | 4 | Single | No |
+| **Enterprise** | Production systems | ≥0.75 | ≥0.95 | 15 | 4 | 4-person board | Yes (≥0.85) |
+
+**Auto-Detection**: Epic parser infers mode from filename patterns (`-mvp`, `-enterprise`)
+
 ```bash
-# Loop 3: Store implementation results in SQLite with ACL
-/sqlite-memory store --key "cfn/phase-auth/loop3/results" --level project --data '{"confidence":0.85,"files":["auth.js"]}'
+/parse-epic ./auth-mvp.json --cfn-mode=auto  # Detects MVP mode
+/parse-epic ./platform.json --cfn-mode=enterprise
+```
 
-# Loop 2: Validators read Loop 3 results
-/sqlite-memory retrieve --key "cfn/phase-auth/loop3/results" --level project
+**Mode Storage**: Redis key `cfn:mode:{phaseId}` stores mode for swarm coordination
 
-# Loop 4: Product Owner reads all loop data for decision
+
+### CFN Loop Coordination Framework
+
+**Agent Coordination (Critical Rule #19 - Mandatory Redis pub/sub):**
+
+Choose coordination method based on scale and requirements:
+
+| Method | Use When | Example |
+|--------|----------|---------|
+| **Event Bus** | Enterprise scale (1000+ agents, 10K+ events/sec) | `/eventbus publish --type cfn.loop.phase.start` |
+| **Redis Pub/Sub** | Standard coordination (10-100 agents) | `redis-cli publish "swarm:coord" '{"agent":"id"}'` |
+| **SQLite Memory** | Persistent state with ACL (cross-loop data) | `/sqlite-memory store --key "cfn/phase/loop3" --level project` |
+| **Redis State** | Active coordination (ephemeral, TTL-based) | `redis-cli setex "cfn:phase:state" 3600 '{"loop":3}'` |
+
+**Coordination Examples:**
+
+```bash
+# Event Bus (Enterprise) - High-throughput coordination
+/eventbus publish --type cfn.loop.phase.start --data '{"loop":3,"phase":"auth"}' --priority 9
+/eventbus subscribe --pattern "cfn.loop.*" --handler cfn-coordinator --batch-size 50
+
+# Redis Pub/Sub (Standard) - Direct agent coordination
+redis-cli publish "swarm:coordination" '{"agent":"coder-1","status":"ready","loop":3}'
+redis-cli subscribe "swarm:coordination"
+
+# SQLite Memory (Persistent) - Cross-loop data with ACL
+/sqlite-memory store --key "cfn/phase-auth/loop3/results" --level project --data '{"confidence":0.85}'
 /sqlite-memory retrieve --key "cfn/phase-auth/*" --level project
 
-# Redis state for active coordination
+# Redis State (Ephemeral) - Active coordination state
 redis-cli setex "cfn:phase-auth:state" 3600 '{"loop":3,"agents":5,"confidence":0.85}'
+redis-cli get "cfn:phase-auth:state"
 ```
 
-**Git Commit After Each Completion:**
+**Git Commit After Loop Completion:**
+
+Use `/github-commit --chat` after each loop completes. Example:
+
 ```bash
 # After Loop 3 completes (all agents ≥0.75)
 /github-commit --chat
-# Or manual:
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Loop 3 - Authentication Phase
-
-Loop 3 Implementation Results:
-- Confidence: 0.85 (target: ≥0.75) ✅
-- Agents: coder-1, coder-2, security-1
-- Files: auth.js, auth.test.js, auth-middleware.js
-
-Ready for Loop 2 validation
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-
-# After Loop 2 validation completes (consensus ≥0.90)
-/github-commit --chat
-# Or manual:
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Loop 2 - Validation Phase
-
-Loop 2 Validation Results:
-- Consensus: 0.92 (target: ≥0.90) ✅
-- Validators: reviewer-1, security-1
-- Issues: None
-- Recommendations: Add rate limiting (deferred to backlog)
-
-Ready for Loop 4 Product Owner decision
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-
-# After Loop 4 Product Owner decision (PROCEED/DEFER)
-/github-commit --chat
-# Or manual:
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Phase - Authentication System
-
-Loop 4 Product Owner Decision: DEFER ✅
-- Phase: Authentication System COMPLETE
-- Overall Confidence: 0.92
-- Status: Production ready, backlog created for enhancements
-
-Next: Auto-transition to next phase
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-
-# After Sprint completes (multiple phases done)
-/github-commit --full
-# Triggers /cfn-loop-document automatically
-# Or manual:
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Sprint 1 - User Management
-
-Sprint Summary:
-- Phases Completed: Auth (0.92), Profile (0.88), Permissions (0.91)
-- Total Agents: 15
-- Sprint Confidence: 0.90
-- Status: All phases validated and production ready
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-
-# After Epic completes (all sprints done)
-/github-commit --full
-/cfn-loop-document --epic=e-commerce-v1
-# Or manual:
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Epic - E-commerce Platform v1.0
-
-Epic Summary:
-- Sprints: User Management (0.90), Product Catalog (0.89), Checkout (0.92)
-- Total Phases: 12
-- Epic Confidence: 0.90
-- Status: Platform launch ready
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
+# Generates: feat(cfn-loop): Complete Loop 3 - [Phase Name]
+# Includes: Confidence scores, agent list, files modified, next step
 ```
 
-**Complete CFN Loop Flow with Coordination:**
-1. **Loop 3**: Agents coordinate via event bus, store results in SQLite → `/github-commit --chat` on completion (≥0.75)
-2. **Loop 2**: Validators read Loop 3 memory, validate, publish consensus → `/github-commit --chat` on validation (≥0.90)
-3. **Loop 4**: Product Owner reads all memory, makes GOAP decision → `/github-commit --chat` on decision
-4. **Phase Complete**: `/github-commit --chat` with phase summary and metrics
-5. **Sprint Complete**: `/github-commit --full` with sprint summary, auto-triggers `/cfn-loop-document --sprint=name`
-6. **Epic Complete**: `/github-commit --full` + `/cfn-loop-document --epic=name` with all sprint/phase results
+**When to Commit:**
+- **Loop 3 complete**: All agents meet gate threshold (≥0.70-0.75)
+- **Loop 2 complete**: Validation consensus achieved (≥0.80-0.95)
+- **Loop 4 complete**: Product Owner decision made (PROCEED/DEFER/ESCALATE)
+- **Phase complete**: All loops done, ready for next phase
+- **Sprint complete**: Use `/github-commit --full` (auto-triggers `/cfn-loop-document --sprint=name`)
+- **Epic complete**: Use `/github-commit --full` + `/cfn-loop-document --epic=name`
 
-### CFN Loop Enterprise Commands
+**Retry Templates**
 
-**Enterprise Fleet Management in CFN Loop:**
-```bash
-# Initialize fleet for CFN Loop phase (1000+ agents)
-/fleet init --max-agents 1500 --efficiency-target 0.40 --regions us-east-1,eu-west-1
+Loop 3 retry (low confidence): replace failing agents with specialists; add missing roles (security/perf); relaunch agents
+Loop 2 retry (consensus <threshold): target validator issues (e.g., fix SQLi, raise coverage) and refer recommendations to product owner for improvements
 
-# Scale fleet during complex CFN phases
-/fleet scale --fleet-id cfn-fleet-phase3 --target-size 2000 --strategy predictive
+**Mode-Specific Iteration Limits**:
+- MVP: Loop 3 max 5 iterations • Loop 2 max 5 iterations
+- Standard: Loop 3 max 10 iterations • Loop 2 max 10 iterations
+- Enterprise: Loop 3 max 15 iterations • Loop 2 max 15 iterations
 
-# Optimize resources for CFN Loop efficiency
-/fleet optimize --fleet-id cfn-fleet-phase3 --efficiency-target 0.45
-```
-
-**Event Bus Coordination for CFN Loop:**
-```bash
-# Initialize event bus for CFN Loop messaging (10,000+ events/sec)
-/eventbus init --throughput-target 10000 --worker-threads 4
-
-# CFN Loop event publishing
-/eventbus publish --type cfn.loop.phase --data '{"phase":3,"status":"in-progress"}' --priority 8
-
-# CFN Loop event subscriptions
-/eventbus subscribe --pattern "cfn.loop.*" --handler cfn-loop-coordinator
-```
-
-**Compliance Validation in CFN Loop:**
-```bash
-# Validate compliance for CFN Loop deliverables
-/compliance validate --standard GDPR --scope data-privacy,audit-trail --detailed
-
-# Generate compliance reports for CFN Loop phases
-/compliance audit --period phase --format pdf --include-recommendations
-```
-
-**Performance Monitoring in CFN Loop:**
-```bash
-# Monitor CFN Loop performance metrics
-/performance analyze --component cfn-loop --timeframe phase
-
-# WASM optimization for CFN Loop tasks
-/wasm optimize --code "./cfn-loop-implementation.js" --target 40x
-
-# Error recovery for CFN Loop failures
-claude-flow-novice recovery:status --effectiveness-target 0.90
-```
-
-**Dashboard Visualization for CFN Loop:**
-```bash
-# CFN Loop progress dashboard
-/dashboard insights --fleet-id cfn-fleet-phase3 --timeframe phase
-
-# Real-time CFN Loop monitoring
-/dashboard monitor --fleet-id cfn-fleet-phase3 --alerts cfn-loop
-```
-
-Retry Templates
-
-Loop 3 retry (low confidence): replace failing agents with specialists; add missing roles (security/perf).
-Loop 2 retry (consensus <0.90): target validator issues (e.g., fix SQLi, raise coverage) and refer recommendations to product owner for improvements
-
-Stop only if: dual iteration limits reached, critical security/compilation error, or explicit STOP/PAUSE.
+Stop only if: mode-specific iteration limits reached, critical security/compilation error, or explicit STOP/PAUSE.
 
 ---
 
@@ -346,36 +226,11 @@ Stop only if: dual iteration limits reached, critical security/compilation error
 
 **During**: coordinate via SwarmMemory → post-edit hook after every edit → self-validate and report confidence.
 
-**After**: achieve ≥0.90 validator consensus → store results → auto next steps.
+**After**: achieve ≥0.80-0.95 validator consensus → store results → auto next steps.
 
 ---
 
-## 6) Prohibited Patterns
-
-* Implementers + validators in same message.
-* Tests inside agents; multiple concurrent test runs.
-* Solo work on multi-step tasks.
-* Asking permission to retry/advance when criteria/iterations allow.
-* Saving to root.
-* Creating guides/summaries/reports unless asked.
-* Agent coordination without Redis pub/sub messaging.
-
----
-
-## 7) Agent Selection Cheatsheet
-
-* **Core**: coder • tester • reviewer
-* **Backend**: backend-dev • api-docs • system-architect
-* **Frontend/Mobile**: coder (specialized) • mobile-dev
-* **Quality**: tester • reviewer • security-specialist • perf-analyzer
-* **Planning/Ops**: researcher • planner • architect • devops-engineer • cicd-engineer
-* **Docs**: api-docs • researcher
-
-Pick roles for actual needs (no generic redundancy).
-
----
-
-## 8) Commands & Setup
+## 6) Commands & Setup
 
 **Swarm Execution**
 
@@ -391,43 +246,7 @@ node tests/manual/test-swarm-recovery.js  # Execute recovery
 redis-cli publish "swarm:coordination" '{"agent":"id","status":"message"}'
 ```
 
-**Essentials**
-
-* `npx claude-flow-novice status` — health
-* `npx claude-flow-novice --help` — commands
-* `/fullstack "goal"` — full-stack team + consensus
-* `/swarm`, `/sparc`, `/hooks` — autodiscovered
-* Redis persistence provides automatic recovery
-
-**Markdown Validation** (standalone tool for CI/pre-commit)
-
-```bash
-# Validate all markdown files (WASM 52x accelerated)
-node config/hooks/markdown-validator.js --all
-
-# CI mode (exit 1 on errors)
-node config/hooks/markdown-validator.js --all --ci
-
-# Single file or pattern
-node config/hooks/markdown-validator.js README.md
-node config/hooks/markdown-validator.js docs/**/*.md
-
-# Pre-commit hook: Add to .git/hooks/pre-commit
-node config/hooks/markdown-validator.js --all --ci
-```
-
-**Use cases**:
-- ✅ Pre-commit hooks: Catch broken links before committing
-- ✅ CI/CD: PR validation (100+ files in <1s)
-- ✅ Documentation builds: Pre-process before publishing
-- ✅ CFN Loop agents: Quality check generated docs
-- ❌ Post-edit: Too noisy during active editing (use --validate-markdown flag)
-
-**File organization**: never save working files to root.
-
----
-
-## 9) Output & Telemetry (Concise)
+## 7) Output & Telemetry (Concise)
 
 **Agent confidence JSON (per agent)**
 
@@ -451,7 +270,7 @@ Loop 2: 0.87 (target 0.90) ❌ → Relaunch Loop 3 (security + coverage)
 
 ---
 
-## 10) CLI Command Reference (Agent Commands)
+## 8) CLI Command Reference
 
 ### Swarm Management
 
@@ -474,182 +293,43 @@ redis-cli get "swarm:swarm_id"  # Retrieve complete state for specific swarm ins
 
 ```bash
 # Execute CFN Loop autonomous workflow with self-correcting consensus validation and retry mechanisms
-/cfn-loop "Implement authentication system" --phase=auth --max-loop2=10
-/cfn-loop-sprints "E-commerce platform" --sprints=3 --max-loop2=5
-/cfn-loop-epic "User management system" --phases=4
+/cfn-loop "Implement authentication system" --phase=auth --mode=standard
+/cfn-loop "Build MVP prototype" --mode=mvp  # Fast iteration (Gate: 0.70, Consensus: 0.80)
+/cfn-loop "Production API" --mode=enterprise  # Full quality gates with Loop 0.5 planning
 
-# SPARC methodology phases for systematic specification, architecture, refinement, and completion workflows
-/sparc analysis "Database performance issues"
-/sparc design "Microservices architecture"
-/sparc refine "API optimization"
+# Epic-level mode selection with auto-detection
+/parse-epic ./auth-mvp.json --cfn-mode=auto  # Detects MVP mode from filename
+/parse-epic ./platform-enterprise.json --cfn-mode=auto  # Detects Enterprise mode
+
+# Sprint and epic orchestration
+/cfn-loop-sprints "E-commerce platform" --sprints=3 --mode=enterprise
+/cfn-loop-epic "User management system" --phases=4 --mode=standard
 ```
 
-### Fleet Management (Enterprise Scale)
+### Coordination and State Management
 
+**Redis Pub/Sub (Standard coordination):**
 ```bash
-# Initialize enterprise fleet manager for coordinating 1000+ agents with predictive scaling algorithms
-/fleet init --max-agents 1500 --regions us-east-1,eu-west-1 --efficiency-target 0.40
-
-# Auto-scale fleet size dynamically based on workload patterns and efficiency targets
-/fleet scale --fleet-id fleet-123 --target-size 2000 --strategy predictive
-
-# Optimize resource allocation across fleet with cost reduction and performance balancing algorithms
-/fleet optimize --fleet-id fleet-123 --efficiency-target 0.45 --cost-optimization
-
-# Deploy fleet across multiple regions with automatic failover and geographic load balancing
-/fleet regions --fleet-id fleet-123 --regions us-east-1,eu-west-1,ap-southeast-1 --failover
-
-# Monitor fleet health with deep inspection of agent states and coordination metrics
-/fleet health --fleet-id fleet-123 --deep-check
-
-# Retrieve detailed performance metrics for fleet analysis and optimization decision making
-/fleet metrics --fleet-id fleet-123 --timeframe 24h --detailed
-```
-
-### Event Bus Management (10,000+ events/sec)
-
-```bash
-# Initialize high-throughput event bus implementing mandatory Redis pub/sub coordination (Critical Rule #19)
-/eventbus init --throughput-target 10000 --latency-target 50 --worker-threads 4
-
-# Publish agent lifecycle and coordination events with weighted routing for priority handling
-/eventbus publish --type agent.lifecycle --data '{"agent": "coder-1", "status": "spawned"}' --strategy weighted
-
-# Subscribe to event patterns with batch processing for efficient coordination message handling
-/eventbus subscribe --pattern "agent.*" --handler process-agent-events --batch-size 100
-
-# Retrieve event bus throughput and latency metrics for performance monitoring and tuning
-/eventbus metrics --timeframe 1h --detailed
-
-# Monitor real-time event flow with filtering for debugging coordination issues and bottlenecks
-/eventbus monitor --filter "agent.*" --format table
-```
-
-### Fullstack Development
-
-```bash
-# Launch coordinated fullstack team with frontend, backend, and database specialists working in parallel
-/fullstack "Build e-commerce platform"
-/fullstack:develop "Add user authentication"
-/fullstack:status  # Check fullstack swarm coordination status and agent health
-/fullstack:terminate  # Clean shutdown of all fullstack agents with state preservation
-/fullstack:spawn "backend developer"  # Dynamically add specific agent role to active fullstack swarm
-```
-
-
-### Memory and State Management
-
-```bash
-# Validate memory operations for safety and prevent leaks or corruption across agent coordination
-/check:memory  # Check memory safety across all active swarms and agent instances
-/memory-safety --validate  # Run comprehensive memory validation with leak detection
-claude-flow-novice memory list  # List all memory entries organized by namespace and agent
-claude-flow-novice memory clear --namespace=swarm
-
-# Persist swarm state to Redis with TTL for recovery and cross-session coordination
+redis-cli publish "swarm:coordination" '{"agent":"coder-1","status":"ready"}'
+redis-cli subscribe "swarm:coordination"
 redis-cli setex "swarm:state" 3600 "$(cat swarm-state.json)"
-redis-cli get "swarm:state" | jq .  # Retrieve and parse swarm state JSON with pretty formatting
-redis-cli --scan --pattern "memory:*"  # Scan all memory entries for debugging and cleanup
+redis-cli get "swarm:state" | jq .
 ```
 
-
-### Utilities and Maintenance
-
+**SQLite Memory (Persistent state with ACL):**
 ```bash
-# Clean up build artifacts, test processes, and development data for fresh environment resets
-claude-flow-novice utils:cleanup  # Remove all build artifacts and temporary files
-claude-flow-novice clean:test  # Clean test artifacts and cached test results
-redis-cli flushall  # Clear all Redis data (development only - destroys all state)
-pkill -f vitest; pkill -f "npm test"  # Force terminate hanging test processes
+/sqlite-memory init --database-path ./memory.db --acl-enabled
+/sqlite-memory store --key "cfn/phase/loop3" --level project --data '{"confidence":0.85}'
+/sqlite-memory retrieve --key "cfn/phase/*" --level project
+```
 
-
-### SQLite Memory Management
-
+**Memory Safety:**
 ```bash
-# Initialize SQLite-backed memory with 6-level ACL security (private/agent/swarm/project/team/system)
-/sqlite-memory init --database-path ./memory.db --acl-enabled --data-residency eu-west-1
-
-# Configure access control permissions at different security levels for project isolation
-/sqlite-memory set-acl --key "project-data" --level project --permissions read,write
-
-# Store and retrieve memory with ACL enforcement providing security layer Redis doesn't offer
-/sqlite-memory store --key "sensitive-data" --level system --data '{"encrypted": true}'
-/sqlite-memory retrieve --key "project-data" --level project
+/check:memory  # Check memory safety across swarms
+claude-flow-novice memory list
+claude-flow-novice memory clear --namespace=swarm
 ```
 
 ---
 
-## 11) Metrics Reporting Standards
-
-When reporting file counts and build metrics in completion reports, use these standardized commands:
-
-### TypeScript Source Files
-```bash
-# Count all TypeScript source files
-find src -name "*.ts" -o -name "*.tsx" | wc -l
-# Report as: "X TypeScript source files"
-```
-
-### JavaScript Output Files
-```bash
-# Count compiled JavaScript files (after build)
-find .claude-flow-novice/dist -name "*.js" 2>/dev/null | wc -l
-# OR: find dist -name "*.js" 2>/dev/null | wc -l
-# Report as: "X JavaScript output files" or "X files compiled to dist/"
-```
-
-### Build Compilation Ratio
-```bash
-# Calculate tree-shaking effectiveness
-echo "scale=1; ($(find dist -name "*.js" | wc -l) * 100) / $(find src -name "*.ts" -o -name "*.tsx" | wc -l)" | bc
-# Report as: "X% compilation ratio (indicates tree-shaking effectiveness)"
-```
-
-### Lines of Code
-```bash
-# Count total lines (excluding node_modules, dist, .git)
-find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" | grep -v node_modules | grep -v dist | grep -v .git | xargs wc -l | tail -1
-```
-
-### Reporting Format
-
-When writing completion reports, ALWAYS clarify context:
-- ❌ "691 TypeScript files compiled" (ambiguous - source or output?)
-- ✅ "10,047 TypeScript source files compiled to 812 JavaScript output files (8% ratio)"
-- ✅ "Build compiled 691 TypeScript files from src/ to dist/"
-
-### Recommended Report Structure
-
-```json
-{
-  "build_metrics": {
-    "source_files": {
-      "typescript": 10047,
-      "javascript": 150
-    },
-    "output_files": {
-      "javascript": 812,
-      "sourcemaps": 812
-    },
-    "compilation_ratio": "8%",
-    "build_time_ms": 938
-  }
-}
-```
-
-### Helper Script
-
-Use the standardized metrics collection script:
-```bash
-# Human-readable output
-node scripts/collect-build-metrics.js
-
-# JSON output for reports
-node scripts/collect-build-metrics.js --json
-```
-
----
-
-## Additional Commands
-
-For specialized commands (compliance, performance optimization, WASM, build/deployment, neural operations, GitHub integration, workflow automation, security/monitoring, debugging, and SDK integration), see `readme/additional-commands.md`.
+For specialized commands (fullstack development, SPARC methodology, fleet management, event bus, compliance, performance, markdown validation, utilities, metrics reporting, WASM optimization, build/deployment, neural operations, GitHub integration, workflow automation, security/monitoring, debugging, and SDK integration), see `readme/additional-commands.md`.

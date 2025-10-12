@@ -34,6 +34,11 @@ import type {
   ValidatorVote,
   ProductOwnerDecision,
 } from './types.js';
+import { selectMode, type CFNLoopMode, type CFNLoopModeName } from './modes/index.js';
+import { executeMVPConsensus } from './consensus/mvp-consensus.js';
+import { executeMVPOwnerDecision } from './product-owner/mvp-owner.js';
+import { executeEnterpriseBoardDecision } from './product-owner/enterprise-owner-team.js';
+import { executePlanningConsensus, type PlanningConsensusResult } from './consensus/enterprise-planning-consensus.js';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -52,6 +57,12 @@ export interface CFNLoopConfig {
   // Byzantine consensus options
   enableByzantineConsensus?: boolean; // Enable PBFT Byzantine consensus (default: false)
   byzantineConfig?: ByzantineAdapterConfig; // Byzantine consensus configuration
+
+  // CFN Loop mode selection
+  cfnMode?: CFNLoopModeName; // Explicit mode selection (mvp, enterprise, standard)
+  epicFilename?: string; // Epic filename for auto-detection
+  epicMetadata?: any; // Epic metadata for auto-detection
+  autoDetectMode?: boolean; // Enable auto-detection from filename/metadata
 }
 
 export interface AgentResponse {
@@ -123,9 +134,13 @@ export interface RetryStrategy {
 
 export class CFNLoopOrchestrator extends EventEmitter {
   private logger: Logger;
-  private config: Required<Omit<CFNLoopConfig, 'enableByzantineConsensus' | 'byzantineConfig'>> & {
+  private config: Required<Omit<CFNLoopConfig, 'enableByzantineConsensus' | 'byzantineConfig' | 'cfnMode' | 'epicFilename' | 'epicMetadata' | 'autoDetectMode'>> & {
     enableByzantineConsensus: boolean;
     byzantineConfig?: ByzantineAdapterConfig;
+    cfnMode?: CFNLoopModeName;
+    epicFilename?: string;
+    epicMetadata?: any;
+    autoDetectMode: boolean;
   };
 
   // Component instances
@@ -135,6 +150,10 @@ export class CFNLoopOrchestrator extends EventEmitter {
   private circuitBreaker: CFNCircuitBreaker;
   private memoryManager?: SwarmMemoryManager;
   private byzantineAdapter?: ByzantineConsensusAdapter; // Byzantine consensus adapter
+
+  // CFN Loop mode
+  private mode: CFNLoopMode;
+  private planningConsensusResult?: PlanningConsensusResult; // Enterprise Loop 0.5 result
 
   // State tracking
   private phaseStartTime: number = 0;
@@ -158,20 +177,33 @@ export class CFNLoopOrchestrator extends EventEmitter {
   constructor(config: CFNLoopConfig) {
     super();
 
-    // Validate and set defaults
+    // Select CFN Loop mode (MVP, Enterprise, or Standard)
+    const modeSelection = selectMode({
+      mode: config.cfnMode,
+      filename: config.epicFilename,
+      metadata: config.epicMetadata,
+      auto: config.autoDetectMode,
+    });
+    this.mode = modeSelection.mode;
+
+    // Apply mode-specific thresholds and limits
     this.config = {
       phaseId: config.phaseId,
       swarmId: config.swarmId || `swarm-${config.phaseId}`,
-      maxLoop2Iterations: config.maxLoop2Iterations ?? 10,
-      maxLoop3Iterations: config.maxLoop3Iterations ?? 10,
-      confidenceThreshold: config.confidenceThreshold ?? 0.75,
-      consensusThreshold: config.consensusThreshold ?? 0.90,
+      maxLoop2Iterations: config.maxLoop2Iterations ?? this.mode.maxLoop2Iterations,
+      maxLoop3Iterations: config.maxLoop3Iterations ?? this.mode.maxLoop3Iterations,
+      confidenceThreshold: config.confidenceThreshold ?? this.mode.gateThreshold,
+      consensusThreshold: config.consensusThreshold ?? this.mode.consensusThreshold,
       timeoutMs: config.timeoutMs ?? 30 * 60 * 1000, // 30 minutes
       enableCircuitBreaker: config.enableCircuitBreaker ?? true,
       enableMemoryPersistence: config.enableMemoryPersistence ?? true,
       memoryConfig: config.memoryConfig || {},
       enableByzantineConsensus: config.enableByzantineConsensus ?? false,
       byzantineConfig: config.byzantineConfig,
+      cfnMode: config.cfnMode,
+      epicFilename: config.epicFilename,
+      epicMetadata: config.epicMetadata,
+      autoDetectMode: config.autoDetectMode ?? false,
     };
 
     // Initialize logger
@@ -188,6 +220,13 @@ export class CFNLoopOrchestrator extends EventEmitter {
     this.logger.info('CFN Loop Orchestrator initialized', {
       phaseId: this.config.phaseId,
       swarmId: this.config.swarmId,
+      mode: this.mode.name,
+      gateThreshold: this.config.confidenceThreshold,
+      consensusThreshold: this.config.consensusThreshold,
+      maxIterations: {
+        loop2: this.config.maxLoop2Iterations,
+        loop3: this.config.maxLoop3Iterations,
+      },
       byzantineEnabled: this.config.enableByzantineConsensus,
       config: this.config,
     });
@@ -381,7 +420,7 @@ export class CFNLoopOrchestrator extends EventEmitter {
         if (consensusResult.consensusPassed) {
           this.logger.info('Consensus validation passed, executing Loop 4 Product Owner decision');
 
-          // Execute Loop 4: Product Owner Decision Gate
+          // Execute Loop 4: Product Owner Decision Gate (mode-specific)
           productOwnerDecision = await this.executeProductOwnerDecision(
             consensusResult,
             primaryResult.responses
@@ -611,16 +650,22 @@ export class CFNLoopOrchestrator extends EventEmitter {
     primaryResponses: AgentResponse[]
   ): Promise<ConsensusResult | ByzantineConsensusResult> {
     this.logger.info('Executing consensus validation swarm', {
+      mode: this.mode.name,
+      validatorCount: this.mode.validatorCount,
       byzantineEnabled: this.config.enableByzantineConsensus,
-      validatorCount: this.config.enableByzantineConsensus ? 4 : 2,
     });
 
     this.statistics.consensusSwarmExecutions++;
 
-    // If Byzantine consensus is enabled, use the adapter
-    if (this.config.enableByzantineConsensus && this.byzantineAdapter) {
+    // Mode-specific consensus validation
+    if (this.mode.name === 'mvp') {
+      // MVP mode: 2 validators, simplified consensus
+      return await executeMVPConsensus(primaryResponses, this.config.consensusThreshold);
+    } else if (this.config.enableByzantineConsensus && this.byzantineAdapter) {
+      // Byzantine consensus (Enterprise/Standard with Byzantine enabled)
       return await this.executeByzantineConsensus(primaryResponses);
     } else {
+      // Simple consensus (Standard mode default)
       return await this.executeSimpleConsensus(primaryResponses);
     }
   }
@@ -1295,7 +1340,21 @@ ${s.deliverable}
     consensusResult: ConsensusResult | ByzantineConsensusResult,
     primaryResponses: AgentResponse[]
   ): Promise<ProductOwnerDecision> {
-    this.logger.info('Executing Loop 4: Product Owner Decision Gate');
+    this.logger.info('Executing Loop 4: Product Owner Decision Gate', {
+      mode: this.mode.name,
+      structure: this.mode.productOwnerStructure,
+    });
+
+    // Mode-specific product owner decision
+    if (this.mode.name === 'mvp') {
+      // MVP mode: Single owner, speed-focused
+      return await executeMVPOwnerDecision(consensusResult, primaryResponses);
+    } else if (this.mode.name === 'enterprise' && this.mode.productOwnerStructure === 'team') {
+      // Enterprise mode: 4-person board with weighted voting
+      return await executeEnterpriseBoardDecision(consensusResult, primaryResponses);
+    }
+
+    // Standard mode: Single owner (existing logic)
 
     // Prepare decision context
     const decisionContext = this.prepareProductOwnerContext(

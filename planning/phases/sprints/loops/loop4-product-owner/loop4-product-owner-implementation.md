@@ -271,7 +271,7 @@ Files:
 
 Ready for real agent spawning integration.
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 ```

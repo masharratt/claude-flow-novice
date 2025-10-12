@@ -58,9 +58,9 @@ git commit -m "$(cat <<'EOF'
 
 <body - explain WHY not WHAT>
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 EOF
 )"
 ```
@@ -201,9 +201,9 @@ Implement crash detection system with automatic
 recovery and resume capabilities for interrupted
 CFN Loop executions.
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Creating commit...

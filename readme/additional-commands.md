@@ -2,7 +2,120 @@
 
 This document contains specialized and infrequently-used commands that are available in claude-flow-novice but not needed for daily workflows.
 
-For core commands used in typical development workflows, see `CLAUDE.md` Section 10.
+For core commands used in typical development workflows, see `CLAUDE.md` Section 8.
+
+---
+
+## Fullstack Development
+
+**Launch coordinated fullstack teams with frontend, backend, and database specialists:**
+
+```bash
+# Launch fullstack team
+/fullstack "Build e-commerce platform"
+
+# Add specific functionality
+/fullstack:develop "Add user authentication"
+
+# Check swarm status
+/fullstack:status
+
+# Clean shutdown with state preservation
+/fullstack:terminate
+
+# Dynamically add specialist
+/fullstack:spawn "backend developer"
+```
+
+---
+
+## SPARC Methodology
+
+**Systematic specification, architecture, refinement, and completion workflows:**
+
+```bash
+# Analysis phase
+/sparc analysis "Database performance issues"
+
+# Design phase
+/sparc design "Microservices architecture"
+
+# Refinement phase
+/sparc refine "API optimization"
+```
+
+---
+
+## Essentials
+
+**Quick reference for common commands:**
+
+```bash
+# Health check
+npx claude-flow-novice status
+
+# Help and documentation
+npx claude-flow-novice --help
+
+# Fullstack team with consensus
+/fullstack "goal"
+
+# Autodiscovered commands
+/swarm
+/sparc
+/hooks
+```
+
+**Note**: Redis persistence provides automatic recovery for swarm state across interruptions.
+
+---
+
+## Fleet Management (Enterprise Scale)
+
+**For coordinating 1000+ agents with predictive scaling:**
+
+```bash
+# Initialize enterprise fleet manager
+/fleet init --max-agents 1500 --regions us-east-1,eu-west-1 --efficiency-target 0.40
+
+# Auto-scale fleet dynamically
+/fleet scale --fleet-id fleet-123 --target-size 2000 --strategy predictive
+
+# Optimize resource allocation
+/fleet optimize --fleet-id fleet-123 --efficiency-target 0.45 --cost-optimization
+
+# Multi-region deployment with failover
+/fleet regions --fleet-id fleet-123 --regions us-east-1,eu-west-1,ap-southeast-1 --failover
+
+# Monitor fleet health
+/fleet health --fleet-id fleet-123 --deep-check
+
+# Retrieve performance metrics
+/fleet metrics --fleet-id fleet-123 --timeframe 24h --detailed
+```
+
+---
+
+## Event Bus Management (10,000+ events/sec)
+
+**High-throughput event bus implementing Critical Rule #19 (mandatory Redis pub/sub):**
+
+```bash
+# Initialize event bus
+/eventbus init --throughput-target 10000 --latency-target 50 --worker-threads 4
+
+# Publish agent lifecycle events
+/eventbus publish --type agent.lifecycle --data '{"agent": "coder-1", "status": "spawned"}' --strategy weighted
+
+# Subscribe to event patterns with batch processing
+/eventbus subscribe --pattern "agent.*" --handler process-agent-events --batch-size 100
+
+# Retrieve throughput metrics
+/eventbus metrics --timeframe 1h --detailed
+
+# Monitor real-time event flow
+/eventbus monitor --filter "agent.*" --format table
+```
 
 ---
 
@@ -25,6 +138,15 @@ For core commands used in typical development workflows, see `CLAUDE.md` Section
 /compliance report --type certification --standards SOC2,ISO27001
 ```
 
+**CFN Loop Integration:**
+```bash
+# Validate compliance for CFN Loop deliverables
+/compliance validate --standard GDPR --scope data-privacy,audit-trail --detailed
+
+# Generate compliance reports for CFN Loop phases
+/compliance audit --period phase --format pdf --include-recommendations
+```
+
 ---
 
 ## Performance and Optimization
@@ -41,6 +163,175 @@ claude-flow-novice optimize:status  # Check current optimization status and appl
 claude-flow-novice test:performance:basic  # Run basic performance test suite
 claude-flow-novice test:performance:load  # Execute load testing with graduated stress levels
 claude-flow-novice performance:baseline:create  # Establish performance baseline for future comparisons
+```
+
+**CFN Loop Integration:**
+```bash
+# Monitor CFN Loop performance metrics
+/performance analyze --component cfn-loop --timeframe phase
+
+# Error recovery for CFN Loop failures
+claude-flow-novice recovery:status --effectiveness-target 0.90
+```
+
+---
+
+## CFN Loop Enterprise Commands
+
+**Enterprise Fleet Management:**
+```bash
+# Initialize fleet for CFN Loop phase (1000+ agents)
+/fleet init --max-agents 1500 --efficiency-target 0.40 --regions us-east-1,eu-west-1
+
+# Scale fleet during complex CFN phases
+/fleet scale --fleet-id cfn-fleet-phase3 --target-size 2000 --strategy predictive
+
+# Optimize resources for CFN Loop efficiency
+/fleet optimize --fleet-id cfn-fleet-phase3 --efficiency-target 0.45
+```
+
+**Event Bus Coordination:**
+```bash
+# Initialize event bus for CFN Loop messaging (10,000+ events/sec)
+/eventbus init --throughput-target 10000 --worker-threads 4
+
+# CFN Loop event publishing
+/eventbus publish --type cfn.loop.phase --data '{"phase":3,"status":"in-progress"}' --priority 8
+
+# CFN Loop event subscriptions
+/eventbus subscribe --pattern "cfn.loop.*" --handler cfn-loop-coordinator
+```
+
+**Dashboard Visualization:**
+```bash
+# CFN Loop progress dashboard
+/dashboard insights --fleet-id cfn-fleet-phase3 --timeframe phase
+
+# Real-time CFN Loop monitoring
+/dashboard monitor --fleet-id cfn-fleet-phase3 --alerts cfn-loop
+```
+
+---
+
+## Dashboard Visualization (General)
+
+```bash
+# Real-time swarm visualization with health metrics
+/dashboard monitor --fleet-id fleet-123 --format table
+
+# Performance insights and analytics
+/dashboard insights --fleet-id fleet-123 --timeframe 24h
+```
+
+---
+
+## Markdown Validation
+
+**Standalone tool for CI/pre-commit:**
+
+```bash
+# Validate all markdown files (WASM 52x accelerated)
+node config/hooks/markdown-validator.js --all
+
+# CI mode (exit 1 on errors)
+node config/hooks/markdown-validator.js --all --ci
+
+# Single file or pattern
+node config/hooks/markdown-validator.js README.md
+node config/hooks/markdown-validator.js docs/**/*.md
+
+# Pre-commit hook: Add to .git/hooks/pre-commit
+node config/hooks/markdown-validator.js --all --ci
+```
+
+**Use cases:**
+- ✅ Pre-commit hooks: Catch broken links before committing
+- ✅ CI/CD: PR validation (100+ files in <1s)
+- ✅ Documentation builds: Pre-process before publishing
+- ✅ CFN Loop agents: Quality check generated docs
+- ❌ Post-edit: Too noisy during active editing (use --validate-markdown flag)
+
+---
+
+## Utilities and Maintenance
+
+```bash
+# Clean up build artifacts, test processes, and development data for fresh environment resets
+claude-flow-novice utils:cleanup  # Remove all build artifacts and temporary files
+claude-flow-novice clean:test  # Clean test artifacts and cached test results
+redis-cli flushall  # Clear all Redis data (development only - destroys all state)
+pkill -f vitest; pkill -f "npm test"  # Force terminate hanging test processes
+```
+
+---
+
+## Metrics Reporting Standards
+
+When reporting file counts and build metrics in completion reports, use these standardized commands:
+
+### TypeScript Source Files
+```bash
+# Count all TypeScript source files
+find src -name "*.ts" -o -name "*.tsx" | wc -l
+# Report as: "X TypeScript source files"
+```
+
+### JavaScript Output Files
+```bash
+# Count compiled JavaScript files (after build)
+find .claude-flow-novice/dist -name "*.js" 2>/dev/null | wc -l
+# OR: find dist -name "*.js" 2>/dev/null | wc -l
+# Report as: "X JavaScript output files" or "X files compiled to dist/"
+```
+
+### Build Compilation Ratio
+```bash
+# Calculate tree-shaking effectiveness
+echo "scale=1; ($(find dist -name "*.js" | wc -l) * 100) / $(find src -name "*.ts" -o -name "*.tsx" | wc -l)" | bc
+# Report as: "X% compilation ratio (indicates tree-shaking effectiveness)"
+```
+
+### Lines of Code
+```bash
+# Count total lines (excluding node_modules, dist, .git)
+find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" | grep -v node_modules | grep -v dist | grep -v .git | xargs wc -l | tail -1
+```
+
+### Reporting Format
+
+When writing completion reports, ALWAYS clarify context:
+- ❌ "691 TypeScript files compiled" (ambiguous - source or output?)
+- ✅ "10,047 TypeScript source files compiled to 812 JavaScript output files (8% ratio)"
+- ✅ "Build compiled 691 TypeScript files from src/ to dist/"
+
+### Recommended Report Structure
+
+```json
+{
+  "build_metrics": {
+    "source_files": {
+      "typescript": 10047,
+      "javascript": 150
+    },
+    "output_files": {
+      "javascript": 812,
+      "sourcemaps": 812
+    },
+    "compilation_ratio": "8%",
+    "build_time_ms": 938
+  }
+}
+```
+
+### Helper Script
+
+Use the standardized metrics collection script:
+```bash
+# Human-readable output
+node scripts/collect-build-metrics.js
+
+# JSON output for reports
+node scripts/collect-build-metrics.js --json
 ```
 
 ---
@@ -65,6 +356,12 @@ claude-flow-novice test:wasm-optimization
 claude-flow-novice recovery:status --effectiveness-target 0.90
 claude-flow-novice recovery:test --scenarios interruption,timeout,corruption
 claude-flow-novice recovery:monitor --real-time
+```
+
+**CFN Loop Integration:**
+```bash
+# WASM optimization for CFN Loop tasks
+/wasm optimize --code "./cfn-loop-implementation.js" --target 40x
 ```
 
 ---
