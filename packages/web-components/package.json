@@ -3,17 +3,17 @@
   "version": "3.0.0",
   "description": "Shared React component library for Claude Flow Novice web portal - extracted from 8 portals",
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/src/index.js",
+  "module": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
     },
     "./components/*": {
-      "import": "./dist/components/*.js",
-      "types": "./dist/components/*.d.ts"
+      "import": "./dist/src/components/*.js",
+      "types": "./dist/src/components/*.d.ts"
     }
   },
   "files": [

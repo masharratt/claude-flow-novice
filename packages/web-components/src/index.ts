@@ -11,6 +11,7 @@ export * from './components/FleetOverview';
 export * from './components/PerformanceCharts';
 export * from './components/ResourceGauges';
 export * from './components/EventTimeline';
+export * from './components/AlertsPanel';
 
 // Hooks (to be added)
 // export * from './hooks';
