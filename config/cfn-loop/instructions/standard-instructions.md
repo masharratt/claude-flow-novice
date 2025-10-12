@@ -1,84 +1,41 @@
-# CFN Loop Standard Mode Instructions
+# CFN Loop — Standard Mode (Default)
+
+**Use when:** General feature development requiring balanced quality and velocity.
 
 ---
 
-## Mode Configuration
+## Thresholds
 
-**Standard Mode (Default)**: Balanced quality and velocity for general feature development
-
-**Thresholds**:
-- Gate (Agent Self-Confidence): ≥0.75
-- Validator Consensus: ≥0.90
-- Max Loop 3 Iterations: 10 per subtask
-- Max Loop 2 Iterations: 10 per phase
-- Validators: 4-person team (code-quality-validator, security-specialist, perf-analyzer, tester)
-- Product Owner: Single agent with balanced decision criteria
-- Test Coverage: ≥80%
-
-**When to Use Standard Mode**:
-- General feature development
-- Production features requiring quality validation
-- Balanced time-to-market vs quality trade-off
-- Most common development scenarios
+| Gate (L3) | Consensus (L2) | Max Iters (L3/L2) | Coverage | Validators | PO |
+|---|---|---|---|---|---|
+| ≥0.75 | ≥0.90 | 10 / 10 | ≥80% | 4 (quality, security, perf, tester) | Single |
 
 ---
 
-## CFN Loop Structure
+## Loop Flow
 
-### Loop 0: Epic/Sprint Orchestration
-
-**Purpose**: Multi-phase project coordination and high-level planning
-
-**No Iteration Limit**: Orchestration continues until all sprints complete
-
-**Responsibilities**:
-- Parse epic JSON files into sprints and phases
-- Coordinate phase transitions
-- Monitor overall progress
-- Aggregate sprint metrics
-
-**Memory Pattern**:
-```bash
-# Store epic state in SQLite (ACL Level 4: Project, 365-day retention)
-/sqlite-memory store \
-  --key "cfn/epic-${epicId}/state" \
-  --level project \
-  --data '{
-    "sprints": ["sprint-1", "sprint-2"],
-    "currentSprint": "sprint-1",
-    "overallConfidence": 0.85,
-    "status": "in_progress"
-  }' \
-  --ttl 31536000
 ```
+Loop 3 (Implementation)
+  → Gate ≥0.75 each agent
+  → Full validation suite (quality, security, perf, tests)
+  → Max 10 iterations
 
-**Redis Coordination**:
-```bash
-# Publish epic-level events
-redis-cli publish "cfn:epic:${epicId}:transition" '{
-  "from": "sprint-1",
-  "to": "sprint-2",
-  "timestamp": 1234567890
-}'
+Loop 2 (Validation)
+  → 4 validators (code-quality, security, perf, tester)
+  → Consensus ≥0.90
+  → Max 10 iterations
+
+Loop 4 (Product Owner)
+  → Single PO, balanced criteria
+  → DEFER for quality work, PROCEED for critical issues
 ```
 
 ---
 
-### Loop 1: Phase Execution
+## Swarm Init (Once per Phase)
 
-**Purpose**: Sequential execution of phases within a sprint
-
-**No Iteration Limit**: Continues through all phases in sprint
-
-**Responsibilities**:
-- Execute phases in dependency order
-- Monitor phase completion
-- Coordinate between phases
-- Handle phase-to-phase data flow
-
-**Swarm Initialization** (ONCE per phase, persistent):
 ```bash
-# Initialize phase-level swarm (persistent through all loops)
+# Initialize ONCE per phase (persistent through retries)
 node tests/manual/test-swarm-direct.js \
   "Phase: Authentication System" \
   --executor \
@@ -87,987 +44,454 @@ node tests/manual/test-swarm-direct.js \
   --mode mesh \
   --swarm-id "phase-auth-implementation"
 
-# Store swarm context in Redis (survives interruptions)
+# Store state in Redis (survives interruptions)
 redis-cli setex "swarm:phase-auth-implementation:state" 86400 '{
-  "swarmId": "phase-auth-implementation",
-  "phase": "auth",
-  "mode": "mesh",
-  "persistence": true,
-  "createdAt": 1234567890
+  "swarmId":"phase-auth-implementation",
+  "phase":"auth",
+  "mode":"mesh",
+  "persistence":true
 }'
 ```
 
-**When to Re-Initialize Swarm**:
-- ✅ New phase starts (Phase 0 → Phase 1 → Phase 2...)
-- ✅ Swarm corruption detected (Redis state inconsistent)
-- ✅ >24 hours since last activity (TTL expiration)
-- ❌ Loop 3 retry iterations (use existing swarm)
-- ❌ Loop 2 consensus validations (use existing swarm)
-- ❌ Agent respawns within same phase
+**Re-init only when:**
+- ✅ New phase starts
+- ✅ Swarm corruption detected
+- ✅ >24h since last activity
+- ❌ NOT on Loop 3 retries
+- ❌ NOT on Loop 2 validation
 
-**Memory Pattern**:
+---
+
+## Loop 3: Spawn Implementers
+
+**Batch spawn in single message:**
+
 ```bash
-# Store phase state in SQLite (ACL Level 3: Swarm, 30-day retention)
+Task: Implement authentication phase
+
+Agents (mesh topology, 2-7):
+1. coder-1: Core auth logic
+   - Files: src/auth/core.ts, src/auth/middleware.ts
+   - Focus: JWT tokens, validation
+   - Confidence target: ≥0.75
+
+2. coder-2: Session management
+   - Files: src/auth/session.ts, src/auth/session-store.ts
+   - Focus: Lifecycle, cleanup
+   - Confidence target: ≥0.75
+
+3. security-specialist-1: Security hardening
+   - Files: src/auth/security.ts, src/auth/rate-limit.ts
+   - Focus: Rate limiting, brute force prevention
+   - Confidence target: ≥0.75
+
+All coordinate via Redis pub/sub (mandatory).
+```
+
+**Hierarchical topology** (8+ agents):
+
+```bash
+# Spawn coordinators in mesh, teams under them
+Coordinator-auth → Team-auth (5 agents)
+Coordinator-payment → Team-payment (7 agents)
+Coordinator-catalog → Team-catalog (6 agents)
+```
+
+---
+
+## Redis Pub/Sub (Mandatory)
+
+**Channel naming:**
+- `cfn.loop.phase.start` - Phase transitions
+- `cfn.loop.3.agent.spawned` - Lifecycle
+- `cfn.loop.3.agent.complete` - Completion
+- `cfn.loop.3.gate.check` - Gate evaluation
+
+**Events:**
+
+```bash
+# Phase start (priority 9)
+redis-cli publish "cfn.loop.phase.start" '{
+  "loop":3,"phase":"auth","swarmId":"phase-auth-implementation"
+}'
+
+# Agent spawned (priority 8)
+redis-cli publish "cfn.loop.3.agent.spawned" '{
+  "agent":"coder-1","status":"spawned","loop":3,"phase":"auth"
+}'
+
+# Agent complete (priority 8)
+redis-cli publish "cfn.loop.3.agent.complete" '{
+  "agent":"coder-1","confidence":0.85,"files":["src/auth/core.ts"],
+  "reasoning":"Tests pass, security clean, coverage 85%"
+}'
+```
+
+---
+
+## SQLite Memory Storage
+
+**Loop 3 results** (ACL Level 1: Private, 30-day TTL):
+
+```bash
 /sqlite-memory store \
-  --key "cfn/phase-${phaseId}/state" \
+  --key "cfn/phase-auth/loop3/agent-coder-1" \
+  --level private \
+  --data '{
+    "confidence":0.85,
+    "files":["src/auth/core.ts"],
+    "reasoning":"Tests pass, security clean",
+    "coverage":0.85
+  }' \
+  --ttl 2592000
+```
+
+**Phase-level results** (ACL Level 3: Swarm, 30-day TTL):
+
+```bash
+/sqlite-memory store \
+  --key "cfn/phase-auth/loop3/results" \
   --level swarm \
   --data '{
-    "phase": "auth",
-    "loop": 3,
-    "agents": 5,
-    "avgConfidence": 0.85,
-    "status": "implementing"
+    "avgConfidence":0.85,
+    "agents":["coder-1","coder-2","security-specialist-1"],
+    "gateStatus":"pass"
   }' \
   --ttl 2592000
 ```
 
 ---
 
-### Loop 3: Primary Swarm Implementation
+## Post-Edit Hook (Mandatory)
 
-**Purpose**: Core implementation work by specialist agents
-
-**Gate**: All agents must achieve ≥0.75 confidence to proceed to Loop 2
-
-**Max Iterations**: 10 per subtask
-
-**Agent Count**: 2-7 agents in mesh topology; 8+ requires hierarchical with coordinators
-
-**Standard Validation Suite** (Full):
-- Code quality validation (SOLID principles, design patterns)
-- Security scanning (no eval(), SQL injection, XSS, hardcoded secrets)
-- Performance analysis (O(n) complexity, memory leaks)
-- Test coverage ≥80% (unit + integration tests)
-- Post-edit hook validation (mandatory after every file edit)
-
-#### Spawn Process (Single Message, Batched)
-
-**Mesh Topology (2-7 agents)**:
 ```bash
-# Spawn all Loop 3 implementers in one message using Task tool
-# Agent roles: coder, security-specialist, perf-analyzer
-
-Task: Spawn Loop 3 implementers for authentication phase
-
-Agents to spawn (batched):
-1. coder-1: Implement core authentication logic
-   - Files: src/auth/core.ts, src/auth/middleware.ts
-   - Tests: src/auth/core.test.ts
-   - Focus: JWT token generation, validation
-   - Confidence target: ≥0.75
-
-2. coder-2: Implement user session management
-   - Files: src/auth/session.ts, src/auth/session-store.ts
-   - Tests: src/auth/session.test.ts
-   - Focus: Session lifecycle, cleanup
-   - Confidence target: ≥0.75
-
-3. security-specialist-1: Security hardening
-   - Files: src/auth/security.ts, src/auth/rate-limit.ts
-   - Tests: src/auth/security.test.ts
-   - Focus: Rate limiting, brute force prevention
-   - Confidence target: ≥0.75
-
-All agents coordinate via Redis pub/sub (mandatory).
-```
-
-**Hierarchical Topology (8+ agents)**:
-```bash
-# Spawn coordinators in mesh, teams under them hierarchically
-
-Task: Spawn Loop 3 implementers for complex e-commerce phase
-
-Coordinators (mesh):
-1. coordinator-auth: Coordinate authentication team (5 agents)
-2. coordinator-payment: Coordinate payment team (7 agents)
-3. coordinator-catalog: Coordinate catalog team (6 agents)
-
-Each coordinator spawns their team hierarchically and reports progress via Redis.
-```
-
-#### Redis Pub/Sub Communication (Mandatory)
-
-**Channel Naming Convention**:
-- `cfn.loop.phase.start` - Phase transition events
-- `cfn.loop.3.agent.spawned` - Agent lifecycle events
-- `cfn.loop.3.agent.complete` - Agent completion events
-- `cfn.loop.3.gate.check` - Gate evaluation events
-
-**Loop 3 Start Event**:
-```bash
-# Publish phase transition event (priority 9 - highest)
-redis-cli publish "cfn.loop.phase.start" '{
-  "loop": 3,
-  "phase": "auth",
-  "swarmId": "phase-auth-implementation",
-  "timestamp": 1234567890,
-  "mode": "standard"
-}'
-```
-
-**Agent Spawned Event**:
-```bash
-# Publish agent lifecycle event (priority 8)
-redis-cli publish "cfn.loop.3.agent.spawned" '{
-  "agent": "coder-1",
-  "status": "spawned",
-  "loop": 3,
-  "phase": "auth",
-  "swarmId": "phase-auth-implementation",
-  "timestamp": 1234567890
-}'
-```
-
-**Agent Completion Event**:
-```bash
-# Publish confidence score (priority 8)
-redis-cli publish "cfn.loop.3.agent.complete" '{
-  "agent": "coder-1",
-  "confidence": 0.85,
-  "loop": 3,
-  "phase": "auth",
-  "files": ["src/auth/core.ts", "src/auth/core.test.ts"],
-  "reasoning": "Tests pass, security clean, coverage 85%",
-  "blockers": [],
-  "timestamp": 1234567890
-}'
-```
-
-**Subscribe to All Loop 3 Events**:
-```bash
-# Subscribe with batch processing (50 events at a time)
-redis-cli --csv psubscribe "cfn.loop.3.*" | while read line; do
-  echo "$line" | jq .
-done
-```
-
-#### SQLite Memory Patterns
-
-**Store Implementation Results** (ACL Level 1: Private to agent):
-```bash
-# Each agent stores their results privately
-/sqlite-memory store \
-  --key "cfn/phase-auth/loop3/agent-coder-1" \
-  --level private \
-  --data '{
-    "confidence": 0.85,
-    "files": ["src/auth/core.ts", "src/auth/core.test.ts"],
-    "reasoning": "Tests pass, security clean, coverage 85%",
-    "blockers": [],
-    "timestamp": 1234567890
-  }' \
-  --ttl 2592000
-```
-
-**Store Phase-Level Results** (ACL Level 3: Swarm-shared):
-```bash
-# Coordinator aggregates all agent results
-/sqlite-memory store \
-  --key "cfn/phase-auth/loop3/results" \
-  --level swarm \
-  --data '{
-    "avgConfidence": 0.85,
-    "agents": ["coder-1", "coder-2", "security-specialist-1"],
-    "individualScores": [0.85, 0.87, 0.82],
-    "files": [
-      "src/auth/core.ts",
-      "src/auth/middleware.ts",
-      "src/auth/session.ts"
-    ],
-    "gateStatus": "pass",
-    "timestamp": 1234567890
-  }' \
-  --ttl 2592000
-```
-
-#### Post-Edit Hook (Mandatory)
-
-**After Every File Edit**:
-```bash
-# Run post-edit hook with memory key for coordination
+# Run after EVERY file edit
 node config/hooks/post-edit-pipeline.js \
   "src/auth/core.ts" \
   --memory-key "swarm/coder-1/auth-core" \
   --minimum-coverage 80 \
   --tdd-mode \
   --structured
-
-# Hook provides:
-# - TDD compliance validation
-# - Security analysis (eval, secrets, XSS)
-# - Formatting check (Prettier)
-# - Coverage analysis (≥80%)
-# - Actionable recommendations
 ```
 
-**WASM 52x Acceleration** (enabled by default):
-- JavaScript/TypeScript: AST parsing, linting, type checking
-- Rust files: Pattern matching (unwrap, panic, expect detection)
-- Performance: 100+ files validated in <1 second
+**Validates:**
+- ✅ TDD compliance
+- ✅ Security (eval, secrets, XSS, SQLi)
+- ✅ Formatting (Prettier)
+- ✅ Coverage ≥80%
+- ✅ Performance analysis
 
-#### Gate Evaluation
+**WASM 52x acceleration** (default): AST parsing, linting, type checking
 
-**Check if all agents ≥0.75**:
+---
+
+## Gate Check (≥0.75)
+
 ```bash
-# Retrieve all agent confidence scores
+# Retrieve all agent scores
 /sqlite-memory retrieve \
   --key "cfn/phase-auth/loop3/*" \
   --level swarm \
   | jq '[.[] | .confidence] | add / length'
 
-# If avg ≥0.75: Proceed to Loop 2
-# If avg <0.75: Retry Loop 3 (up to 10 iterations)
+# Pass: Avg ≥0.75 → Loop 2
+# Fail: Retry Loop 3 (max 10 iterations)
 ```
 
-**Gate Pass Event**:
-```bash
-# Publish gate pass event
-redis-cli publish "cfn.loop.3.gate.pass" '{
-  "phase": "auth",
-  "avgConfidence": 0.85,
-  "target": 0.75,
-  "status": "pass",
-  "nextLoop": 2,
-  "timestamp": 1234567890
-}'
-```
-
-#### Retry Strategy (Standard Mode)
-
-**When Confidence <0.75**:
-```bash
-# Analyze failing agents
-/sqlite-memory retrieve \
-  --key "cfn/phase-auth/loop3/*" \
-  --level swarm \
-  | jq '.[] | select(.confidence < 0.75)'
-
-# Retry template:
-# 1. Replace failing agents with specialists
-# 2. Add missing roles (e.g., security-specialist if SQLi detected)
-# 3. Target specific issues (e.g., raise test coverage to 85%)
-# 4. Max 10 iterations before escalation
-```
-
-**Retry Spawn Example**:
-```bash
-Task: Retry Loop 3 iteration 2 - Address low confidence in auth logic
-
-Replace coder-1 (confidence 0.65) with specialist:
-1. backend-dev-1: Reimplement auth middleware
-   - Issue: Insufficient error handling
-   - Focus: Comprehensive error recovery
-   - Target: ≥0.75 confidence
-
-Add missing role:
-2. security-specialist-2: Add rate limiting
-   - Issue: No brute force prevention
-   - Focus: Implement exponential backoff
-   - Target: ≥0.75 confidence
-
-Retain high-performing agents:
-- coder-2 (confidence 0.87) - no changes
-- security-specialist-1 (confidence 0.82) - no changes
-```
+**Retry strategy:**
+1. Replace failing agents with specialists
+2. Add missing roles (security if SQLi detected)
+3. Target specific issues (raise coverage to 85%)
+4. Max 10 iterations → escalate
 
 ---
 
-### Loop 2: Consensus Validation
+## Loop 2: Spawn Validators
 
-**Purpose**: 4-person validator team reviews Loop 3 implementation
-
-**Consensus**: ≥0.90 average confidence to proceed to Loop 4
-
-**Max Iterations**: 10 per phase
-
-**Validator Team** (Standard Mode):
-1. **code-quality-validator**: SOLID principles, design patterns, code smells
-2. **security-specialist**: Security vulnerabilities, compliance, secrets
-3. **perf-analyzer**: Performance bottlenecks, O(n) complexity, memory leaks
-4. **tester**: Test coverage, edge cases, integration tests
-
-**Critical Rules**:
-- NEVER mix implementers and validators in the same message
-- Validators run AFTER Loop 3 gate passes (≥0.75)
-- Validators read Loop 3 results from SQLite memory
-- Consensus <0.90 triggers targeted Loop 3 retry
-
-#### Spawn Process (Single Message, Batched)
+**After Loop 3 gate passes, spawn 4 validators:**
 
 ```bash
-Task: Spawn Loop 2 validators for authentication phase
+Task: Validate authentication phase
 
-Validators to spawn (batched):
-1. code-quality-validator-1: Review code quality
+Validators (batch spawn):
+1. code-quality-validator-1: Review quality
    - Read: cfn/phase-auth/loop3/results
-   - Focus: SOLID principles, design patterns
-   - Metrics: Cyclomatic complexity, code smells
+   - Focus: SOLID, design patterns, complexity
    - Confidence target: ≥0.90
 
 2. security-specialist-1: Review security
    - Read: cfn/phase-auth/loop3/results
-   - Focus: SQL injection, XSS, secrets management
-   - Metrics: Security scan results, compliance
+   - Focus: SQLi, XSS, secrets, compliance
    - Confidence target: ≥0.90
 
 3. perf-analyzer-1: Review performance
    - Read: cfn/phase-auth/loop3/results
    - Focus: O(n) complexity, memory leaks
-   - Metrics: Profiling results, benchmarks
    - Confidence target: ≥0.90
 
 4. tester-1: Review test coverage
    - Read: cfn/phase-auth/loop3/results
-   - Focus: Edge cases, integration tests
-   - Metrics: Coverage ≥80%, test quality
+   - Focus: Edge cases, integration tests, ≥80% coverage
    - Confidence target: ≥0.90
 
-All validators coordinate via Redis pub/sub (mandatory).
-```
-
-#### Redis Pub/Sub Communication
-
-**Loop 2 Start Event**:
-```bash
-# Publish validation start event (priority 9)
-redis-cli publish "cfn.loop.validation.start" '{
-  "loop": 2,
-  "phase": "auth",
-  "validators": [
-    "code-quality-validator-1",
-    "security-specialist-1",
-    "perf-analyzer-1",
-    "tester-1"
-  ],
-  "timestamp": 1234567890
-}'
-```
-
-**Validator Completion Event**:
-```bash
-# Publish validator consensus (priority 8)
-redis-cli publish "cfn.loop.2.validator.complete" '{
-  "validator": "code-quality-validator-1",
-  "confidence": 0.92,
-  "loop": 2,
-  "phase": "auth",
-  "issues": [],
-  "recommendations": ["Add factory pattern for auth providers"],
-  "timestamp": 1234567890
-}'
-```
-
-#### SQLite Memory Patterns
-
-**Validators Read Loop 3 Results**:
-```bash
-# Retrieve Loop 3 implementation results
-/sqlite-memory retrieve \
-  --key "cfn/phase-auth/loop3/results" \
-  --level swarm
-
-# Returns:
-# {
-#   "avgConfidence": 0.85,
-#   "agents": ["coder-1", "coder-2"],
-#   "files": ["src/auth/core.ts", "src/auth/middleware.ts"],
-#   "gateStatus": "pass"
-# }
-```
-
-**Store Validation Results** (ACL Level 3: Swarm-shared):
-```bash
-# Each validator stores their assessment
-/sqlite-memory store \
-  --key "cfn/phase-auth/loop2/validator-code-quality" \
-  --level swarm \
-  --data '{
-    "confidence": 0.92,
-    "issues": [],
-    "recommendations": ["Add factory pattern for auth providers"],
-    "metrics": {
-      "complexity": 5,
-      "codeSmells": 2,
-      "solidCompliance": 0.90
-    },
-    "timestamp": 1234567890
-  }' \
-  --ttl 2592000
-```
-
-**Store Consensus Results** (ACL Level 3: Swarm-shared):
-```bash
-# Aggregate all validator scores
-/sqlite-memory store \
-  --key "cfn/phase-auth/loop2/consensus" \
-  --level swarm \
-  --data '{
-    "avgConsensus": 0.92,
-    "validators": [
-      {"name": "code-quality-validator-1", "confidence": 0.92},
-      {"name": "security-specialist-1", "confidence": 0.95},
-      {"name": "perf-analyzer-1", "confidence": 0.88},
-      {"name": "tester-1", "confidence": 0.93}
-    ],
-    "combinedIssues": [],
-    "combinedRecommendations": [
-      "Add factory pattern for auth providers",
-      "Implement rate limiting dashboard"
-    ],
-    "consensusStatus": "pass",
-    "timestamp": 1234567890
-  }' \
-  --ttl 2592000
-```
-
-#### Consensus Evaluation
-
-**Check if consensus ≥0.90**:
-```bash
-# Retrieve all validator confidence scores
-/sqlite-memory retrieve \
-  --key "cfn/phase-auth/loop2/*" \
-  --level swarm \
-  | jq '[.[] | select(.confidence) | .confidence] | add / length'
-
-# If avg ≥0.90: Proceed to Loop 4
-# If avg <0.90: Retry Loop 3 with targeted fixes (up to 10 iterations)
-```
-
-**Consensus Pass Event**:
-```bash
-# Publish consensus pass event
-redis-cli publish "cfn.loop.2.consensus.pass" '{
-  "phase": "auth",
-  "consensus": 0.92,
-  "target": 0.90,
-  "status": "pass",
-  "nextLoop": 4,
-  "timestamp": 1234567890
-}'
-```
-
-#### Retry Strategy (Standard Mode)
-
-**When Consensus <0.90**:
-```bash
-# Analyze validator issues
-/sqlite-memory retrieve \
-  --key "cfn/phase-auth/loop2/consensus" \
-  --level swarm \
-  | jq '.combinedIssues'
-
-# Retry template:
-# 1. Target specific validator issues (e.g., fix SQLi, raise coverage)
-# 2. Refer recommendations to Product Owner for improvements
-# 3. Relaunch Loop 3 with targeted agents
-# 4. Max 10 iterations before escalation
-```
-
-**Retry Spawn Example**:
-```bash
-Task: Retry Loop 3 iteration 3 - Address validation issues
-
-Target security-specialist issues:
-1. security-specialist-2: Fix SQL injection vulnerability
-   - Issue: Unsafe query construction in auth/core.ts
-   - Focus: Use parameterized queries
-   - Target: ≥0.90 validator consensus
-
-Target tester issues:
-2. tester-2: Raise test coverage to 85%
-   - Issue: Edge cases not covered (session timeout)
-   - Focus: Add integration tests
-   - Target: ≥0.90 validator consensus
-
-Retain high-performing agents:
-- coder-2 (no issues reported)
+All coordinate via Redis pub/sub (mandatory).
 ```
 
 ---
 
-### Loop 4: Product Owner Decision Gate
+## Consensus Calculation (≥0.90)
 
-**Purpose**: Single Product Owner agent makes autonomous GOAP decision
+```javascript
+// Weighted average (25% each validator)
+const consensus = (
+  qualityValidator.confidence * 0.25 +
+  securityValidator.confidence * 0.25 +
+  perfValidator.confidence * 0.25 +
+  testerValidator.confidence * 0.25
+);
 
-**Decision Types**:
-- **PROCEED**: Relaunch Loop 3 with targeted fixes
-- **DEFER**: Approve work, backlog out-of-scope issues, launch next phase
-- **ESCALATE**: Critical ambiguity requiring human review
-
-**Standard Mode Criteria** (Balanced):
-- Confidence ≥0.90 (from Loop 2 consensus)
-- Test coverage ≥80%
-- No critical security issues
-- Performance acceptable (no O(n²) in hot paths)
-- Balanced scope (not over-engineered)
-
-#### Spawn Process (Single Agent)
-
-```bash
-Task: Spawn Product Owner for authentication phase decision
-
-Agent to spawn:
-1. product-owner-1: Make GOAP decision
-   - Read: cfn/phase-auth/loop2/consensus
-   - Read: cfn/phase-auth/loop3/results
-   - Decision Criteria: Standard mode (balanced)
-   - Output: PROCEED / DEFER / ESCALATE
-   - Reasoning: Detailed explanation of decision
+// ALWAYS proceed to Loop 4 regardless of consensus
+// Product Owner can override validator recommendations
+// Validators provide recommendations, not gate-blocking decisions
 ```
 
-#### Redis Pub/Sub Communication
+**Redis event:**
 
-**Loop 4 Start Event**:
 ```bash
-# Publish product owner decision start event (priority 9)
-redis-cli publish "cfn.loop.4.decision.start" '{
-  "loop": 4,
-  "phase": "auth",
-  "productOwner": "product-owner-1",
-  "timestamp": 1234567890
-}'
-```
-
-**Decision Event**:
-```bash
-# Publish product owner decision (priority 10 - critical)
-redis-cli publish "cfn.loop.4.decision.made" '{
-  "productOwner": "product-owner-1",
-  "decision": "DEFER",
-  "phase": "auth",
-  "reasoning": "Work meets Standard mode criteria. Backlog enhancements.",
-  "backlogItems": [
-    "Add factory pattern for auth providers",
-    "Implement rate limiting dashboard"
+# Publish consensus result (always proceed to Loop 4)
+redis-cli publish "cfn:loop2:consensus:complete" '{
+  "consensus":0.87,
+  "target":0.90,
+  "met":false,
+  "validators":[
+    {"name":"code-quality","confidence":0.92},
+    {"name":"security","confidence":0.85},
+    {"name":"perf","confidence":0.84},
+    {"name":"tester","confidence":0.88}
   ],
-  "nextAction": "auto-transition to next phase",
-  "timestamp": 1234567890
+  "recommendations":["Fix SQLi in auth.ts","Add rate limiting"],
+  "action":"proceed_to_loop4"
 }'
 ```
 
-#### SQLite Memory Patterns
+**Store consensus** (ACL Level 3: Swarm, 30-day TTL):
 
-**Product Owner Reads All Loop Data**:
 ```bash
-# Retrieve all phase data for decision
-/sqlite-memory retrieve \
-  --key "cfn/phase-auth/*" \
-  --level project
-
-# Returns:
-# - Loop 3 results (implementation)
-# - Loop 2 consensus (validation)
-# - All agent confidence scores
-# - Combined recommendations
+/sqlite-memory store \
+  --key "cfn/phase-auth/loop2/consensus" \
+  --level swarm \
+  --data '{
+    "avgConsensus":0.92,
+    "validators":[
+      {"name":"code-quality","confidence":0.92},
+      {"name":"security","confidence":0.95},
+      {"name":"perf","confidence":0.88},
+      {"name":"tester","confidence":0.93}
+    ],
+    "consensusStatus":"pass"
+  }' \
+  --ttl 2592000
 ```
 
-**Store Decision** (ACL Level 4: Project, 365-day retention):
+---
+
+## Loop 4: Product Owner
+
+**Spawn single PO after Loop 2 passes:**
+
 ```bash
-# Store product owner decision
+Task: Make GOAP decision for authentication phase
+
+Agent: product-owner-1
+- Read: cfn/phase-auth/loop2/consensus
+- Read: cfn/phase-auth/loop3/results
+- Decision Criteria: Standard mode (balanced)
+- Output: PROCEED / DEFER / ESCALATE
+```
+
+**Decision logic:**
+
+```bash
+# PROCEED: Issues can be fixed in current phase
+# Action: Relaunch Loop 3 with targeted agents
+# Example: "Security issue - fix SQLi before moving on"
+
+# DEFER: Work meets criteria OR validator concerns out-of-scope
+# Action: Approve, backlog items, launch agents for next phase
+# Example: "Core complete. Rate limiting can be backlogged."
+# PO can override validator consensus <0.90 if concerns are out-of-scope
+
+# ESCALATE: Critical ambiguity requiring human review
+# Action: Pause, notify human, wait for decision
+# Example: "Unclear if OAuth or SAML required"
+```
+
+**Redis events:**
+
+```bash
+# Publish PO decision
+redis-cli publish "cfn:loop4:decision:made" '{
+  "decision":"DEFER",
+  "consensus":0.87,
+  "override":true,
+  "reasoning":"Validator perf concerns out-of-scope, defer to v2",
+  "action":"launch_next_phase_agents"
+}'
+
+# Publish phase complete
+redis-cli publish "cfn:phase:complete" '{
+  "phase":"auth",
+  "decision":"DEFER",
+  "nextPhase":"user-profile",
+  "action":"spawn_agents"
+}'
+
+# Publish phase transition
+redis-cli publish "cfn:phase:transition" '{
+  "from":"auth",
+  "to":"user-profile",
+  "trigger":"po_defer_decision"
+}'
+```
+
+**Store decision** (ACL Level 4: Project, 365-day TTL):
+
+```bash
 /sqlite-memory store \
   --key "cfn/phase-auth/loop4/decision" \
   --level project \
   --data '{
-    "decision": "DEFER",
-    "reasoning": "Work meets Standard mode criteria. Backlog enhancements.",
-    "confidence": 0.92,
-    "backlogItems": [
-      "Add factory pattern for auth providers",
-      "Implement rate limiting dashboard"
-    ],
-    "nextAction": "auto-transition to next phase",
-    "timestamp": 1234567890
+    "decision":"DEFER",
+    "reasoning":"Meets criteria. Validator perf concerns out-of-scope.",
+    "consensus":0.87,
+    "override":true,
+    "backlogItems":["Add factory pattern","Rate limiting dashboard"],
+    "nextAction":"launch agents for user-profile phase"
   }' \
   --ttl 31536000
 ```
 
-#### Decision Logic
+---
 
-**PROCEED Decision**:
-```bash
-# Criteria: Issues found that can be fixed in current phase
-# Action: Relaunch Loop 3 with targeted agents
-# Example: "Security issue found - fix SQLi before moving on"
-```
+## Git Commits
 
-**DEFER Decision**:
 ```bash
-# Criteria: Work meets acceptance criteria, enhancements can wait
-# Action: Approve work, create backlog items, auto-transition to next phase
-# Example: "Core auth complete. Rate limiting can be added later."
-```
+# After Loop 3 complete
+/github-commit --chat
 
-**ESCALATE Decision**:
-```bash
-# Criteria: Critical ambiguity requiring human review
-# Action: Pause automation, notify human, wait for decision
-# Example: "Unclear if OAuth or SAML is required - need product clarification"
+# After Loop 2 validation
+/github-commit --chat
+
+# After Loop 4 decision
+/github-commit --chat
+
+# After sprint complete
+/github-commit --full  # Auto-triggers /cfn-loop-document
 ```
 
 ---
 
-## Git Commit Pattern
+## Retry Templates
 
-**Mandatory**: Commit after each loop completion with detailed metadata
-
-### After Loop 3 Completes (Gate Pass)
+**Loop 3 retry** (confidence <0.75):
 
 ```bash
-# Automated commit via CLI
-/github-commit --chat
+# Example: Replace failing agent
+Task: Retry Loop 3 - Address low confidence
 
-# Manual commit (if CLI unavailable)
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Loop 3 - Authentication Phase
+Replace: coder-1 (0.65) with backend-dev-1
+- Issue: Insufficient error handling
+- Focus: Comprehensive error recovery
+- Target: ≥0.75
 
-Loop 3 Implementation Results:
-- Confidence: 0.85 (target: ≥0.75) ✅
-- Agents: coder-1, coder-2, security-specialist-1
-- Files: src/auth/core.ts, src/auth/middleware.ts, src/auth/session.ts
-- Tests: src/auth/*.test.ts (coverage: 85%)
-- Security: Clean (no SQLi, XSS, or hardcoded secrets)
+Add: security-specialist-2 (missing role)
+- Issue: No brute force prevention
+- Focus: Exponential backoff
+- Target: ≥0.75
 
-Ready for Loop 2 validation
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
+Retain: coder-2 (0.87), security-specialist-1 (0.82)
 ```
 
-### After Loop 2 Validation Completes (Consensus Pass)
+**Loop 3 retry** (PO decides PROCEED):
 
 ```bash
-# Automated commit via CLI
-/github-commit --chat
+# If PO votes PROCEED (not DEFER), relaunch Loop 3 with targeted fixes
+Task: Retry Loop 3 - Address PO blocking concerns
 
-# Manual commit
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Loop 2 - Validation Phase
+Target security issue (PO priority):
+- security-specialist-2: Fix SQLi per PO decision
+- Issue: Unsafe query in auth/core.ts
+- Focus: Parameterized queries
+- Reason: PO considers this blocking
 
-Loop 2 Validation Results:
-- Consensus: 0.92 (target: ≥0.90) ✅
-- Validators:
-  - code-quality-validator-1: 0.92
-  - security-specialist-1: 0.95
-  - perf-analyzer-1: 0.88
-  - tester-1: 0.93
-- Issues: None
-- Recommendations:
-  - Add factory pattern for auth providers (deferred to backlog)
-  - Implement rate limiting dashboard (deferred to backlog)
-
-Ready for Loop 4 Product Owner decision
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-```
-
-### After Loop 4 Product Owner Decision
-
-```bash
-# Automated commit via CLI
-/github-commit --chat
-
-# Manual commit
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Phase - Authentication System
-
-Loop 4 Product Owner Decision: DEFER ✅
-- Phase: Authentication System COMPLETE
-- Overall Confidence: 0.92
-- Decision: Work meets Standard mode criteria
-- Status: Production ready
-- Backlog Items:
-  - Add factory pattern for auth providers
-  - Implement rate limiting dashboard
-
-Next: Auto-transition to next phase (User Profile)
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-```
-
-### After Sprint Completes (Multiple Phases)
-
-```bash
-# Automated commit via CLI (triggers /cfn-loop-document automatically)
-/github-commit --full
-
-# Manual commit
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Sprint 1 - User Management
-
-Sprint Summary:
-- Phases Completed:
-  - Authentication (0.92)
-  - User Profile (0.88)
-  - Permissions (0.91)
-- Total Agents: 15
-- Sprint Confidence: 0.90
-- Status: All phases validated and production ready
-- Backlog Items: 12 enhancements deferred
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-
-# Trigger documentation generation
-/cfn-loop-document --sprint=user-management
-```
-
-### After Epic Completes (All Sprints)
-
-```bash
-# Automated commit via CLI
-/github-commit --full
-
-# Manual commit
-git add .
-git commit -m "$(cat <<'EOF'
-feat(cfn-loop): Complete Epic - E-commerce Platform v1.0
-
-Epic Summary:
-- Sprints Completed:
-  - User Management (0.90)
-  - Product Catalog (0.89)
-  - Checkout Flow (0.92)
-- Total Phases: 12
-- Epic Confidence: 0.90
-- Status: Platform launch ready
-- Total Agents: 45
-- Duration: 8 days
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-
-# Trigger epic documentation
-/cfn-loop-document --epic=e-commerce-v1
-```
-
----
-
-## Standard Mode Retry Templates
-
-### Loop 3 Retry (Low Confidence)
-
-**When**: Agent confidence <0.75
-
-**Max Iterations**: 10
-
-**Strategy**:
-1. Replace failing agents with specialists
-2. Add missing roles (security, performance)
-3. Target specific issues from post-edit hook
-4. Escalate if iteration limit reached
-
-**Example**:
-```bash
-Iteration 1: Initial implementation
-- coder-1: 0.65 (low test coverage)
-- coder-2: 0.87 (good)
-- security-specialist-1: 0.82 (good)
-Average: 0.78 ❌ (but coder-1 below gate)
-
-Iteration 2: Replace coder-1
-- backend-dev-1: 0.85 (improved test coverage)
-- coder-2: 0.87 (retained)
-- security-specialist-1: 0.82 (retained)
-Average: 0.85 ✅ (all agents ≥0.75)
-```
-
-### Loop 2 Retry (Consensus <0.90)
-
-**When**: Validator consensus <0.90
-
-**Max Iterations**: 10
-
-**Strategy**:
-1. Target specific validator issues
-2. Refer recommendations to Product Owner
-3. Relaunch Loop 3 with focused agents
-4. Escalate if iteration limit reached
-
-**Example**:
-```bash
-Iteration 1: Initial validation
-- code-quality-validator: 0.92 (good)
-- security-specialist: 0.75 (SQLi detected)
-- perf-analyzer: 0.88 (good)
-- tester: 0.85 (coverage 75%, target 80%)
-Average: 0.85 ❌ (below 0.90 threshold)
-
-Iteration 2: Fix security and coverage
-Loop 3 retry:
-- security-specialist-2: Fix SQLi (parameterized queries)
+Target test coverage (if PO requires):
 - tester-2: Raise coverage to 85%
+- Issue: Edge cases missing
+- Focus: Integration tests
 
-Loop 2 re-validation:
-- code-quality-validator: 0.92 (retained)
-- security-specialist: 0.95 (SQLi fixed)
-- perf-analyzer: 0.88 (retained)
-- tester: 0.93 (coverage 85%)
-Average: 0.92 ✅ (above 0.90 threshold)
+# Publish retry event
+redis-cli publish "cfn:loop3:retry" '{
+  "iteration":3,
+  "reason":"PO voted PROCEED - fix SQLi and coverage",
+  "targetAgents":["security-specialist-2","tester-2"],
+  "blocking_concerns":["SQLi vulnerability","test coverage"]
+}'
 ```
 
 ---
 
 ## Stop Criteria
 
-**Stop Loop 3** if:
-- Iteration limit reached (10)
-- Critical security error (SQL injection, XSS, hardcoded secrets)
-- Compilation error blocking all progress
+**Mandatory stop:**
+- Iteration limits reached (10 L3, 10 L2)
+- Critical security error (SQLi, XSS, secrets)
+- Compilation error blocking progress
 - Explicit STOP/PAUSE command
-
-**Stop Loop 2** if:
-- Iteration limit reached (10)
-- Critical blocker (architecture mismatch, design flaw)
-- Explicit STOP/PAUSE command
-
-**Escalate to Human** if:
-- Both iteration limits reached
-- Product Owner decision is ESCALATE
-- Critical ambiguity (unclear requirements)
-
----
-
-## Complete Standard Mode Flow Example
-
-```bash
-# Loop 0: Epic orchestration (parse epic JSON)
-/parse-epic ./e-commerce.json --cfn-mode=standard
-
-# Loop 1: Phase execution (initialize swarm for auth phase)
-node tests/manual/test-swarm-direct.js \
-  "Phase: Authentication System" \
-  --executor \
-  --max-agents 7 \
-  --strategy development \
-  --mode mesh
-
-# Loop 3: Implementation (spawn 3 agents in one message)
-Task: Implement authentication phase
-Agents: coder-1, coder-2, security-specialist-1
-Redis pub/sub: All coordination via cfn.loop.3.*
-SQLite memory: Store results at cfn/phase-auth/loop3/results
-Post-edit hook: Run after every file edit
-Gate: Check if all ≥0.75 → Pass ✅
-
-# Commit Loop 3 completion
-/github-commit --chat
-
-# Loop 2: Validation (spawn 4 validators in one message)
-Task: Validate authentication phase
-Validators: code-quality, security, perf, tester
-Redis pub/sub: All coordination via cfn.loop.2.*
-SQLite memory: Store consensus at cfn/phase-auth/loop2/consensus
-Consensus: Check if avg ≥0.90 → Pass ✅
-
-# Commit Loop 2 validation
-/github-commit --chat
-
-# Loop 4: Product Owner decision (spawn 1 agent)
-Task: Make GOAP decision for authentication phase
-Agent: product-owner-1
-Decision: DEFER ✅
-Action: Backlog enhancements, auto-transition to next phase
-
-# Commit Loop 4 decision
-/github-commit --chat
-
-# Auto-transition to next phase (User Profile)
-# Repeat Loop 1-4 for each phase...
-
-# After sprint completes
-/github-commit --full
-/cfn-loop-document --sprint=user-management
-```
 
 ---
 
 ## Standard Mode Best Practices
 
-1. **Balance Quality and Velocity**:
-   - Don't over-engineer (≥0.75 gate is sufficient)
-   - Don't under-validate (≥0.90 consensus ensures quality)
-   - Use Standard mode for most production features
-
-2. **Agent Selection**:
-   - Core team: coder, security-specialist, perf-analyzer
-   - Add specialists as needed: backend-dev, api-docs, tester
-   - Avoid generic redundancy (no "coder-1, coder-2, coder-3" doing same work)
-
-3. **Redis Coordination**:
-   - ALWAYS use pub/sub (Critical Rule #19)
-   - Subscribe to `cfn.loop.*` for full visibility
-   - Batch events (50 at a time) for efficiency
-
-4. **SQLite Memory**:
-   - ACL Level 1 (Private) for agent-specific data
-   - ACL Level 3 (Swarm) for shared phase data
-   - ACL Level 4 (Project) for long-term decisions (365 days)
-
-5. **Post-Edit Hook**:
-   - Run after EVERY file edit (no exceptions)
-   - Use `--minimum-coverage 80` for Standard mode
-   - Use `--structured` for machine-readable output
-
-6. **Retry Strategy**:
-   - Max 10 iterations per loop (Standard mode)
-   - Replace failing agents (don't retry same agent)
-   - Target specific issues (don't rerun entire phase)
-
-7. **Git Commits**:
-   - Commit after every loop completion
-   - Use detailed metadata (agents, confidence, files)
-   - Auto-trigger documentation on sprint/epic completion
-
-8. **Decision Criteria**:
-   - DEFER: Most common (approve work, backlog enhancements)
-   - PROCEED: Fix critical issues before moving on
-   - ESCALATE: Rare (only for critical ambiguity)
+1. **Balance quality and velocity** (≥0.75 gate sufficient, ≥0.90 ensures quality)
+2. **Agent selection:** Core team (coder, security, perf) + specialists as needed
+3. **Redis coordination:** ALWAYS pub/sub (Critical Rule #19)
+4. **SQLite memory:** ACL 1 (Private) for agent data, ACL 3 (Swarm) for shared
+5. **Post-edit hook:** Run after EVERY edit (--minimum-coverage 80)
+6. **Retry strategy:** Max 10 iterations, replace failing agents, target specific issues
+7. **Git commits:** After every loop completion with detailed metadata
+8. **Decision criteria:** DEFER most common, PROCEED for critical issues, ESCALATE rare
 
 ---
 
-## Standard Mode Metrics
+## Quick Reference
 
-**Expected Performance**:
-- Gate Pass Rate: 80-90% (first attempt)
-- Consensus Pass Rate: 70-80% (first attempt)
-- Average Iterations per Phase: 1.5 (Loop 3) + 1.3 (Loop 2)
-- Phase Completion Time: 4-8 hours (depending on complexity)
-- Sprint Completion Time: 2-5 days (3-5 phases)
+**Thresholds:**
+- Gate: ≥0.75
+- Consensus: ≥0.90
+- Coverage: ≥80%
 
-**Quality Indicators**:
-- Test Coverage: ≥80%
-- Security Score: ≥0.90
-- Performance Score: ≥0.85
-- Code Quality Score: ≥0.90
+**Memory Keys:**
+```
+Loop 3: cfn/phase-{id}/loop3/agent-{id} (ACL 1, 30d)
+Loop 2: cfn/phase-{id}/loop2/consensus (ACL 3, 30d)
+Loop 4: cfn/phase-{id}/loop4/decision (ACL 4, 365d)
+```
 
-**Red Flags**:
-- >5 Loop 3 iterations (consider architecture review)
-- >5 Loop 2 iterations (consider requirements clarification)
-- <0.70 gate confidence (critical blocker)
-- <0.80 consensus (significant quality issues)
+**Redis Channels:**
+```
+cfn:phase:start                    # Phase begins
+cfn:phase:complete                 # Phase ends (after PO)
+cfn:phase:transition               # Phase → phase
+cfn:loop3:agent:lifecycle          # Agent spawn/terminate
+cfn:loop3:agent:complete           # Agent confidence
+cfn:loop3:gate:result              # Gate pass/fail
+cfn:loop2:validator:spawned        # Validator start
+cfn:loop2:validator:complete       # Validator result
+cfn:loop2:consensus:complete       # Consensus result
+cfn:loop4:decision:made            # PO decision
+cfn:loop3:retry                    # Retry iteration
+```
 
 ---
 
-## End of Standard Mode Instructions
+**Standard Philosophy:** Balance quality and velocity for production features.
