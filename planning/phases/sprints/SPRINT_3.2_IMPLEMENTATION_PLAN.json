@@ -1,0 +1,239 @@
+{
+  "sprint": {
+    "id": "sprint-3.2",
+    "name": "Feature Views - Part 1 (Agents, Hierarchy, Performance)",
+    "phase": 3,
+    "iteration": 2,
+    "duration": "5-6 days",
+    "status": "in_progress",
+    "mode": "standard",
+    "objective": "Implement 3 feature views (Agents, Hierarchy, Performance) with real-time data integration, interactive controls, and full test coverage"
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC-3.2-1",
+      "description": "Agents view implemented with list/grid toggle, search, filters, and spawn/terminate controls",
+      "priority": "critical",
+      "verification": "View renders agent list, search filters results, spawn modal works, terminate confirmation works"
+    },
+    {
+      "id": "AC-3.2-2",
+      "description": "Hierarchy view implemented with interactive tree visualization and export functionality",
+      "priority": "critical",
+      "verification": "Tree renders from API, nodes expand/collapse, JSON/CSV export works"
+    },
+    {
+      "id": "AC-3.2-3",
+      "description": "Performance view implemented with charts, trends, and CSV export",
+      "priority": "critical",
+      "verification": "Charts render with real data, time range selector works, CSV export includes all metrics"
+    },
+    {
+      "id": "AC-3.2-4",
+      "description": "All views have real-time WebSocket updates",
+      "priority": "high",
+      "verification": "Agent status changes update without refresh, metrics auto-update every 5s"
+    },
+    {
+      "id": "AC-3.2-5",
+      "description": "Test coverage ≥80% for all new view components",
+      "priority": "high",
+      "verification": "npm test -- --coverage shows ≥80% lines/functions/branches/statements"
+    },
+    {
+      "id": "AC-3.2-6",
+      "description": "E2E tests pass for all 3 views with Playwright",
+      "priority": "medium",
+      "verification": "npm run test:e2e passes all user flows"
+    }
+  ],
+  "deliverables": [
+    {
+      "name": "Agents View Component",
+      "path": "packages/web-portal/src/client/views/Agents/Agents.tsx",
+      "description": "Agent management view with list/grid display, search, filters (status, type, capabilities), spawn modal, terminate confirmation, real-time updates",
+      "estimated_lines": 450,
+      "dependencies": ["AgentStore", "useWebSocket", "ApiClient"]
+    },
+    {
+      "name": "Hierarchy View Component",
+      "path": "packages/web-portal/src/client/views/Hierarchy/Hierarchy.tsx",
+      "description": "Interactive hierarchy tree view with expand/collapse, node details panel, JSON/CSV export, real-time hierarchy updates",
+      "estimated_lines": 350,
+      "dependencies": ["AgentHierarchyTreeContainer", "ApiClient", "useWebSocket"]
+    },
+    {
+      "name": "Performance View Component",
+      "path": "packages/web-portal/src/client/views/Performance/Performance.tsx",
+      "description": "Performance metrics dashboard with line/bar/gauge charts, time range selector (1h/6h/24h/7d/30d), trend analysis, CSV export",
+      "estimated_lines": 400,
+      "dependencies": ["PerformanceChartsContainer", "MetricsStore", "useWebSocket"]
+    },
+    {
+      "name": "Test Suites",
+      "paths": [
+        "packages/web-portal/src/__tests__/views/Agents.test.tsx",
+        "packages/web-portal/src/__tests__/views/Hierarchy.test.tsx",
+        "packages/web-portal/src/__tests__/views/Performance.test.tsx",
+        "packages/web-portal/src/__tests__/e2e/agents-view.spec.ts",
+        "packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts",
+        "packages/web-portal/src/__tests__/e2e/performance-view.spec.ts"
+      ],
+      "description": "Unit tests (React Testing Library) and E2E tests (Playwright) for all 3 views",
+      "estimated_tests": 90
+    }
+  ],
+  "technical_specifications": {
+    "agents_view": {
+      "layout": "Grid container with filters sidebar (left 25%) and agent list/grid (right 75%)",
+      "features": {
+        "display_modes": ["List (default)", "Grid (cards)"],
+        "search": "Fuzzy search on agent name, ID, type, capabilities",
+        "filters": {
+          "status": ["all", "active", "idle", "in_progress", "completed", "failed"],
+          "type": ["all", "coder", "reviewer", "tester", "security-specialist", "architect", "coordinator"],
+          "capabilities": "Multi-select checkboxes"
+        },
+        "actions": {
+          "spawn": "Modal with agent type selection, name input, capabilities multi-select",
+          "terminate": "Confirmation dialog with agent details and termination reason input",
+          "view_details": "Navigate to agent detail page (future sprint)"
+        },
+        "real_time": "WebSocket subscription to 'agent:update' events, automatic list updates"
+      },
+      "state_management": "Zustand agentStore for agent list, filters, search term",
+      "api_endpoints": [
+        "GET /api/agents - List with pagination/filters",
+        "POST /api/agents - Spawn new agent",
+        "DELETE /api/agents/:id - Terminate agent"
+      ]
+    },
+    "hierarchy_view": {
+      "layout": "Full-width tree visualization with node details panel (right drawer, 30% width)",
+      "features": {
+        "tree_visualization": "AgentHierarchyTreeContainer with expand/collapse, depth indicators, parent-child lines",
+        "node_interaction": "Click to view details, double-click to expand/collapse subtree",
+        "details_panel": "Agent info, children list, parent link, metadata (tasks_completed, confidence, spawned_at)",
+        "export": {
+          "json": "Complete hierarchy structure with all metadata",
+          "csv": "Flat list with depth, parent_id, all agent fields"
+        },
+        "real_time": "WebSocket subscription to 'hierarchy:change' events, tree updates on agent spawn/terminate"
+      },
+      "state_management": "Zustand agentStore for hierarchy data, selected node",
+      "api_endpoints": [
+        "GET /api/agents/hierarchy - Tree structure with filters"
+      ]
+    },
+    "performance_view": {
+      "layout": "Grid with key metrics cards (top), charts row 1 (CPU/Memory), charts row 2 (Agents/Events), controls (time range selector, export)",
+      "features": {
+        "metrics_cards": [
+          "System CPU (% with trend arrow)",
+          "Memory Usage (MB/GB with %)",
+          "Active Agents (count with 24h change)",
+          "Events/sec (rate with trend)"
+        ],
+        "charts": {
+          "cpu_chart": "Line chart with time series, dual-axis (percent, cores)",
+          "memory_chart": "Line chart with used/total, stacked area",
+          "agents_chart": "Bar chart with status breakdown (active/idle/in_progress/failed)",
+          "events_chart": "Line chart with event types breakdown"
+        },
+        "time_range": "Buttons: 1h (default), 6h, 24h, 7d, 30d",
+        "export_csv": "All metrics for selected time range with timestamps"
+      },
+      "state_management": "Zustand metricsStore for performance data, time range",
+      "api_endpoints": [
+        "GET /api/metrics - Current metrics snapshot",
+        "GET /api/metrics/history?range=1h - Historical data"
+      ]
+    }
+  },
+  "dependencies": {
+    "from_sprint_3.1": [
+      "React application structure (App.tsx, routing, layouts)",
+      "Theme system with light/dark mode",
+      "8 container components",
+      "Dashboard view (reference implementation)",
+      "Test infrastructure (MSW, fixtures)"
+    ],
+    "from_sprint_1.3": [
+      "WebSocketClient service with automatic reconnection",
+      "ApiClient with React Query integration",
+      "Zustand stores (agentStore, metricsStore, eventsStore, uiStore)",
+      "React hooks (useWebSocket, useWebSocketEvent)"
+    ],
+    "from_sprint_1.2": [
+      "AgentHierarchyTree component",
+      "StatusMonitor component",
+      "PerformanceCharts component"
+    ]
+  },
+  "cfn_loop_execution": {
+    "mode": "standard",
+    "thresholds": {
+      "loop3_gate": 0.75,
+      "loop2_consensus": 0.90,
+      "validators": 4,
+      "max_loop3_iterations": 10,
+      "max_loop2_iterations": 10
+    },
+    "loop3_agents": [
+      {
+        "role": "react-frontend-engineer",
+        "count": 1,
+        "focus": "Implement 3 view components with Material-UI, real-time updates, interactive controls"
+      },
+      {
+        "role": "state-architect",
+        "count": 1,
+        "focus": "Design Zustand store updates, WebSocket subscriptions, data flow for 3 views"
+      },
+      {
+        "role": "tester",
+        "count": 1,
+        "focus": "Create unit tests (React Testing Library) and E2E tests (Playwright) for all views"
+      }
+    ],
+    "loop2_validators": [
+      {
+        "role": "reviewer",
+        "focus": "Architecture review, acceptance criteria validation, code quality"
+      },
+      {
+        "role": "code-analyzer",
+        "focus": "Code quality analysis, test coverage verification, performance assessment"
+      }
+    ]
+  },
+  "risks": [
+    {
+      "risk": "WebSocket connection reliability during rapid agent spawn/terminate",
+      "mitigation": "Use connection pooling, message queue, exponential backoff (already in WebSocketClient from Sprint 1.3)",
+      "severity": "low"
+    },
+    {
+      "risk": "Large hierarchy tree (1000+ agents) performance",
+      "mitigation": "Virtual scrolling in AgentHierarchyTree, lazy loading of subtrees, debounce expand/collapse",
+      "severity": "medium"
+    },
+    {
+      "risk": "Chart rendering performance with 30d time range (720 data points)",
+      "mitigation": "Data aggregation on backend, limit client-side points to 200 with sampling",
+      "severity": "medium"
+    }
+  ],
+  "success_metrics": {
+    "functionality": "All 6 acceptance criteria met (3 views implemented, real-time updates, test coverage ≥80%)",
+    "performance": "View load time <2s, chart render time <500ms, WebSocket latency <100ms",
+    "quality": "Loop 2 consensus ≥0.90, TypeScript strict mode, ESLint clean",
+    "testing": "90 tests passing (60 unit, 30 E2E), coverage ≥80% lines/functions/branches/statements"
+  },
+  "estimated_effort": {
+    "implementation": "26 hours (Agents: 10h, Hierarchy: 8h, Performance: 10h)",
+    "testing": "12 hours (Unit: 8h, E2E: 4h)",
+    "integration": "4 hours (WebSocket subscriptions, API integration, state updates)",
+    "total": "42 hours (~5-6 days with CFN Loop iterations)"
+  }
+}

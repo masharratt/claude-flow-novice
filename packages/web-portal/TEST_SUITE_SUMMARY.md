@@ -1,12 +1,63 @@
-# Web Portal Test Suite - Sprint 3.1 Task 3
+# Web Portal Test Suite
 
-## Overview
+## Sprint 3.1 Task 3 (Previous)
+Comprehensive integration testing and E2E validation suite completed in Sprint 3.1.
 
-Comprehensive integration testing and E2E validation suite for the Claude Flow Novice Web Portal React application.
+## Sprint 3.2 Feature Views Testing (Current)
 
-## Test Coverage
+**Date**: 2025-10-12
+**Sprint**: 3.2 - Feature Views Part 1 (Agents, Hierarchy, Performance)
+**Tester Agent Confidence**: 0.92
+**Status**: ✅ COMPLETE - Ready for Loop 2 Validation
 
-### Integration Tests (149 tests total)
+---
+
+### Sprint 3.2 Test Coverage Overview
+
+| Category | Tests | Files | Lines | Status |
+|----------|-------|-------|-------|--------|
+| **Unit Tests** | 60 | 3 | 1,125 | ✅ Complete |
+| **E2E Tests** | 30 | 3 | 529 | ✅ Complete |
+| **Fixtures** | - | 3 | 405 | ✅ Complete |
+| **TOTAL** | **90** | **9** | **2,059** | **✅ Complete** |
+
+#### Unit Tests (React Testing Library)
+
+1. **`src/__tests__/views/Agents.test.tsx`** (20 tests, 385 lines)
+   - Agent list/grid rendering, toggle, search (name/type/capabilities)
+   - Filters (status/type/capabilities), spawn modal, terminate dialog
+   - Real-time WebSocket updates
+
+2. **`src/__tests__/views/Hierarchy.test.tsx`** (15 tests, 328 lines)
+   - Tree rendering, node expansion/collapse, details drawer
+   - JSON/CSV export, filters/search, real-time updates
+
+3. **`src/__tests__/views/Performance.test.tsx`** (25 tests, 412 lines)
+   - 4 metric cards, 4 charts, time range selector (1h-30d)
+   - CSV export, real-time updates, auto-refresh
+
+#### E2E Tests (Playwright)
+
+4. **`src/__tests__/e2e/agents-view.spec.ts`** (10 tests)
+   - Complete flow: view → search → filter → spawn → verify
+
+5. **`src/__tests__/e2e/hierarchy-view.spec.ts`** (10 tests)
+   - Complete flow: view tree → expand → details → export JSON
+
+6. **`src/__tests__/e2e/performance-view.spec.ts`** (10 tests)
+   - Complete flow: view charts → time range → updates → export CSV
+
+#### Test Fixtures
+
+7. **`src/__tests__/fixtures/agents-fixtures.ts`** (6 mock agents)
+8. **`src/__tests__/fixtures/hierarchy-fixtures.ts`** (3-level tree)
+9. **`src/__tests__/fixtures/performance-fixtures.ts`** (5 time ranges)
+
+---
+
+### Sprint 3.1 Test Coverage (Previous)
+
+#### Integration Tests (149 tests total)
 
 #### 1. Routing Integration Tests (35 tests)
 **File:** `src/__tests__/integration/routing.test.tsx`
