@@ -23,10 +23,13 @@ export function useWebSocketEvent<T = any>(
   useEffect(() => {
     if (!webSocket.isConnected) {
       setLoading(true);
-      return;
+      return () => {
+        // Cleanup function even when not connected to prevent leaks on connection state changes
+      };
     }
 
     let debounceTimeout: NodeJS.Timeout | undefined;
+    let unsubscribe: (() => void) | undefined;
 
     const handleEvent = (eventData: T) => {
       try {
@@ -64,7 +67,7 @@ export function useWebSocketEvent<T = any>(
     };
 
     // Subscribe to the event
-    const unsubscribe = webSocket.subscribe<T>(eventType, handleEvent);
+    unsubscribe = webSocket.subscribe<T>(eventType, handleEvent);
 
     // Initial loading complete once connected
     setLoading(false);
@@ -74,7 +77,9 @@ export function useWebSocketEvent<T = any>(
       if (debounceTimeout) {
         clearTimeout(debounceTimeout);
       }
-      unsubscribe();
+      if (unsubscribe) {
+        unsubscribe();
+      }
     };
   }, [webSocket, eventType, options?.filter, options?.transform, options?.debounceMs]);
 

@@ -1,0 +1,268 @@
+{
+  "sprint": {
+    "id": "sprint-3.3",
+    "name": "Feature Views - Part 2 (Events, Fleet, CFN Loop) + Test Execution + Charts",
+    "phase": 3,
+    "iteration": 3,
+    "duration": "5-6 days",
+    "status": "in_progress",
+    "mode": "standard",
+    "objective": "Implement 3 remaining feature views (Events, Fleet, CFN Loop), execute Sprint 3.2 tests, implement Chart.js visualization, achieve ≥80% coverage"
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC-3.3-1",
+      "description": "Events view implemented with timeline, search, filters, and virtual scrolling",
+      "priority": "critical",
+      "verification": "Timeline renders events, search filters work, virtual scrolling handles 10K+ events"
+    },
+    {
+      "id": "AC-3.3-2",
+      "description": "Fleet view implemented with grid/list toggle, aggregation stats, and 1000+ agent support",
+      "priority": "critical",
+      "verification": "Fleet overview renders, aggregation shows correct totals, virtual scrolling smooth"
+    },
+    {
+      "id": "AC-3.3-3",
+      "description": "CFN Loop view implemented with phase visualization, progress tracking, and loop metrics",
+      "priority": "critical",
+      "verification": "Phase timeline renders, loop progress shows correctly, metrics update in real-time"
+    },
+    {
+      "id": "AC-3.3-4",
+      "description": "Sprint 3.2 test suite executed with ≥80% coverage",
+      "priority": "critical",
+      "verification": "npm test passes 90 tests, coverage report shows ≥80% lines/functions/branches/statements"
+    },
+    {
+      "id": "AC-3.3-5",
+      "description": "Chart.js implemented in Performance view (replace placeholders)",
+      "priority": "high",
+      "verification": "CPU, Memory, Agents, Events charts render with real data and time range selection"
+    },
+    {
+      "id": "AC-3.3-6",
+      "description": "Test coverage ≥80% for all new views (Sprint 3.3 + Sprint 3.2)",
+      "priority": "high",
+      "verification": "Combined coverage report ≥80% across all 6 views"
+    }
+  ],
+  "deliverables": [
+    {
+      "name": "Events View Component",
+      "path": "packages/web-portal/src/client/views/Events/Events.tsx",
+      "description": "Event timeline with search, category filters, severity filters, date range, virtual scrolling for 10K+ events",
+      "estimated_lines": 450,
+      "dependencies": ["EventTimelineContainer", "EventsStore", "useWebSocket"]
+    },
+    {
+      "name": "Fleet View Component",
+      "path": "packages/web-portal/src/client/views/Fleet/Fleet.tsx",
+      "description": "Fleet overview with grid/list toggle, swarm aggregation, agent count by type/status, virtual scrolling",
+      "estimated_lines": 500,
+      "dependencies": ["FleetOverviewContainer", "AgentStore", "useWebSocket"]
+    },
+    {
+      "name": "CFN Loop View Component",
+      "path": "packages/web-portal/src/client/views/CFNLoop/CFNLoop.tsx",
+      "description": "CFN Loop dashboard with phase timeline, loop progress (Loop 0-4), confidence scores, validator results",
+      "estimated_lines": 550,
+      "dependencies": ["CFNLoopDashboardContainer", "MetricsStore", "useWebSocket"]
+    },
+    {
+      "name": "Chart.js Integration",
+      "path": "packages/web-portal/src/client/views/Performance/charts/",
+      "description": "4 Chart.js components: CPUChart, MemoryChart, AgentsChart, EventsChart with responsive design",
+      "estimated_lines": 400,
+      "dependencies": ["chart.js", "react-chartjs-2"]
+    },
+    {
+      "name": "Test Execution & Fixes",
+      "paths": [
+        "packages/web-portal/src/__tests__/views/*.test.tsx (add data-testid)",
+        "packages/web-portal/src/client/views/**/*.tsx (add data-testid)"
+      ],
+      "description": "Execute Sprint 3.2 tests, fix failures, add missing test IDs, achieve ≥80% coverage",
+      "estimated_effort": "5 hours"
+    },
+    {
+      "name": "Test Suites for New Views",
+      "paths": [
+        "packages/web-portal/src/__tests__/views/Events.test.tsx",
+        "packages/web-portal/src/__tests__/views/Fleet.test.tsx",
+        "packages/web-portal/src/__tests__/views/CFNLoop.test.tsx",
+        "packages/web-portal/src/__tests__/e2e/events-view.spec.ts",
+        "packages/web-portal/src/__tests__/e2e/fleet-view.spec.ts",
+        "packages/web-portal/src/__tests__/e2e/cfn-loop-view.spec.ts"
+      ],
+      "description": "Unit and E2E tests for 3 new views (90 additional tests)",
+      "estimated_tests": 90
+    }
+  ],
+  "sprint_3.2_deferred_work": {
+    "description": "Complete deferred items from Sprint 3.2 Product Owner decision",
+    "tasks": [
+      {
+        "task": "Execute Sprint 3.2 test suite",
+        "effort": "3 hours",
+        "actions": [
+          "Run npm test -- --coverage --run",
+          "Fix any test failures",
+          "Verify ≥80% coverage threshold"
+        ]
+      },
+      {
+        "task": "Add data-testid attributes",
+        "effort": "2 hours",
+        "actions": [
+          "Add data-testid to Agents view interactive elements",
+          "Add data-testid to Hierarchy view interactive elements",
+          "Add data-testid to Performance view interactive elements"
+        ]
+      },
+      {
+        "task": "Implement Chart.js visualization",
+        "effort": "6 hours",
+        "actions": [
+          "Install chart.js and react-chartjs-2",
+          "Create CPUChart component (line chart)",
+          "Create MemoryChart component (area chart)",
+          "Create AgentsChart component (bar chart)",
+          "Create EventsChart component (line chart)",
+          "Replace placeholders in Performance view",
+          "Add responsive design and tooltips"
+        ]
+      }
+    ],
+    "total_effort": "11 hours"
+  },
+  "technical_specifications": {
+    "events_view": {
+      "layout": "Timeline with filters sidebar (left 25%) and event list (right 75%)",
+      "features": {
+        "timeline": "Vertical timeline with EventTimelineContainer, timestamps, event type icons",
+        "search": "Full-text search on event data, agent ID, event type",
+        "filters": {
+          "category": ["all", "agent.lifecycle", "agent.complete", "cfn.loop", "system.error"],
+          "severity": ["all", "info", "warning", "error", "critical"],
+          "date_range": "Date picker with presets (today, last 7 days, last 30 days, custom)"
+        },
+        "virtual_scrolling": "react-window for 10K+ events",
+        "real_time": "WebSocket subscription to 'event:stream', auto-scroll to new events"
+      },
+      "state_management": "Zustand eventsStore with filters, search, date range",
+      "api_endpoints": ["GET /api/events?page=1&limit=50&category=&severity=&start_date=&end_date="]
+    },
+    "fleet_view": {
+      "layout": "Grid with aggregation cards (top), swarm list with toggle (middle), agent distribution chart (bottom)",
+      "features": {
+        "aggregation": "Total agents, active swarms, avg confidence, total tasks completed",
+        "display_modes": ["Grid (default)", "List"],
+        "swarm_list": "Virtual scrolling for 100+ swarms, agent count, status breakdown, avg confidence",
+        "distribution_chart": "Pie chart showing agents by type (coder, reviewer, tester, etc.)",
+        "real_time": "WebSocket subscriptions to 'agent:update', 'swarm:update'"
+      },
+      "state_management": "Zustand agentStore with fleet aggregation, swarm list",
+      "api_endpoints": [
+        "GET /api/agents?swarm_id=&status=",
+        "GET /api/swarms",
+        "GET /api/fleet/metrics"
+      ]
+    },
+    "cfn_loop_view": {
+      "layout": "Phase timeline (top), current loop status (middle), loop metrics cards (bottom)",
+      "features": {
+        "phase_timeline": "Horizontal timeline with Phase 1-4, sprint indicators, completion status",
+        "loop_status": "Current loop (0-4), phase name, confidence scores, validator results",
+        "metrics_cards": "Gate threshold, consensus threshold, avg loop 3 confidence, avg loop 2 consensus",
+        "loop_progress": "Progress bars for Loop 3 (agent confidence), Loop 2 (validator consensus)",
+        "real_time": "WebSocket subscription to 'cfn.loop.update'"
+      },
+      "state_management": "New cfnLoopStore with phase data, loop metrics, validator results",
+      "api_endpoints": [
+        "GET /api/cfn-loop/status",
+        "GET /api/cfn-loop/phases",
+        "GET /api/cfn-loop/metrics"
+      ]
+    },
+    "chartjs_implementation": {
+      "library": "chart.js v4.4.1, react-chartjs-2 v5.2.0",
+      "charts": {
+        "cpu_chart": {
+          "type": "line",
+          "datasets": ["CPU Usage %", "Cores"],
+          "options": "Time scale, dual Y-axis, responsive, tooltips"
+        },
+        "memory_chart": {
+          "type": "line",
+          "datasets": ["Used MB", "Total MB"],
+          "options": "Time scale, area fill, responsive, tooltips"
+        },
+        "agents_chart": {
+          "type": "bar",
+          "datasets": ["Active", "Idle", "In Progress", "Failed"],
+          "options": "Stacked bar, responsive, tooltips"
+        },
+        "events_chart": {
+          "type": "line",
+          "datasets": ["Events/sec"],
+          "options": "Time scale, responsive, tooltips"
+        }
+      },
+      "common_config": {
+        "responsive": true,
+        "maintainAspectRatio": false,
+        "plugins": {
+          "legend": {"position": "top"},
+          "tooltip": {"mode": "index", "intersect": false}
+        },
+        "interaction": {"mode": "nearest", "axis": "x", "intersect": false}
+      }
+    }
+  },
+  "cfn_loop_execution": {
+    "mode": "standard",
+    "thresholds": {
+      "loop3_gate": 0.75,
+      "loop2_consensus": 0.90,
+      "validators": 4,
+      "max_loop3_iterations": 10,
+      "max_loop2_iterations": 10
+    },
+    "loop3_agents": [
+      {
+        "role": "react-frontend-engineer",
+        "count": 1,
+        "focus": "Implement 3 views (Events, Fleet, CFNLoop) + Chart.js integration + test ID additions"
+      },
+      {
+        "role": "tester",
+        "count": 1,
+        "focus": "Execute Sprint 3.2 tests, fix failures, create Sprint 3.3 tests (90 new tests), verify ≥80% coverage"
+      }
+    ],
+    "loop2_validators": [
+      {
+        "role": "reviewer",
+        "focus": "Architecture review, acceptance criteria validation, test execution verification"
+      },
+      {
+        "role": "code-analyzer",
+        "focus": "Code quality, coverage analysis, Chart.js implementation review"
+      }
+    ]
+  },
+  "estimated_effort": {
+    "sprint_3.2_deferred": "11 hours (test execution: 3h, test IDs: 2h, Chart.js: 6h)",
+    "sprint_3.3_new_views": "30 hours (Events: 8h, Fleet: 10h, CFNLoop: 12h)",
+    "sprint_3.3_tests": "12 hours (Unit: 8h, E2E: 4h)",
+    "integration": "4 hours (WebSocket, API, state updates)",
+    "total": "57 hours (~7 days with CFN Loop iterations)"
+  },
+  "success_metrics": {
+    "functionality": "All 6 acceptance criteria met (3 new views + Sprint 3.2 tests passing + Chart.js + coverage ≥80%)",
+    "performance": "View load <2s, virtual scrolling smooth for 10K+ items, chart render <500ms",
+    "quality": "Loop 2 consensus ≥0.90, TypeScript strict mode, ESLint clean",
+    "testing": "180 tests passing total (Sprint 3.2: 90 + Sprint 3.3: 90), coverage ≥80%"
+  }
+}

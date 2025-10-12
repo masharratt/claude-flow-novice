@@ -36,7 +36,9 @@ import { useMetricsStore, metricsSelectors } from '../../../shared/stores/metric
 import { useAgentStore } from '../../../shared/stores/agentStore';
 import { useWebSocket } from '../../../shared/hooks/useWebSocket';
 import { useWebSocketEvent } from '../../../shared/hooks/useWebSocketEvent';
-import { PerformanceChartsContainer } from '../../components/containers/PerformanceChartsContainer';
+import { CPUChart } from './charts/CPUChart';
+import { MemoryChart } from './charts/MemoryChart';
+import { AgentsChart } from './charts/AgentsChart';
 
 type TimeRange = '1h' | '6h' | '24h' | '7d' | '30d';
 
@@ -373,20 +375,24 @@ export const Performance: React.FC = () => {
               CPU Usage
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <Box
-              sx={{
-                height: 240,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'background.default',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                CPU Line Chart (Time Series)
-              </Typography>
-            </Box>
+            {metricsStore.history.system.length > 0 ? (
+              <CPUChart data={metricsStore.history.system} />
+            ) : (
+              <Box
+                sx={{
+                  height: 240,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'background.default',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  No CPU data available yet
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Grid>
 
@@ -396,20 +402,24 @@ export const Performance: React.FC = () => {
               Memory Usage
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <Box
-              sx={{
-                height: 240,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'background.default',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Memory Area Chart (Used/Total)
-              </Typography>
-            </Box>
+            {metricsStore.history.system.length > 0 ? (
+              <MemoryChart data={metricsStore.history.system} />
+            ) : (
+              <Box
+                sx={{
+                  height: 240,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'background.default',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  No memory data available yet
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Grid>
       </Grid>
@@ -422,20 +432,24 @@ export const Performance: React.FC = () => {
               Agent Status Distribution
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <Box
-              sx={{
-                height: 240,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                bgcolor: 'background.default',
-                borderRadius: 1,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Bar Chart (Active/Idle/In Progress/Failed)
-              </Typography>
-            </Box>
+            {agents.length > 0 ? (
+              <AgentsChart agents={agents} />
+            ) : (
+              <Box
+                sx={{
+                  height: 240,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'background.default',
+                  borderRadius: 1,
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  No agents available yet
+                </Typography>
+              </Box>
+            )}
           </Paper>
         </Grid>
 
@@ -456,7 +470,7 @@ export const Performance: React.FC = () => {
               }}
             >
               <Typography variant="body2" color="text.secondary">
-                Line Chart (Event Types Breakdown)
+                Events chart coming in future sprint
               </Typography>
             </Box>
           </Paper>

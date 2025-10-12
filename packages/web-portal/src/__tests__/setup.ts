@@ -11,15 +11,18 @@ import { server } from './mocks/api';
 
 // Mock socket.io-client to prevent WebSocket connection attempts in tests
 vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => ({
-    on: vi.fn(),
-    off: vi.fn(),
-    emit: vi.fn(),
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    connected: false,
-    id: 'mock-socket-id'
-  }))
+  io: vi.fn(() => {
+    const mockSocket = {
+      on: vi.fn(() => mockSocket),
+      off: vi.fn(() => mockSocket),
+      emit: vi.fn(() => mockSocket),
+      connect: vi.fn(() => mockSocket),
+      disconnect: vi.fn(() => mockSocket),
+      connected: false,
+      id: 'mock-socket-id'
+    };
+    return mockSocket;
+  })
 }));
 
 // Mock web-components package to prevent loading heavy UI library during tests

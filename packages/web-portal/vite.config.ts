@@ -15,15 +15,16 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/__tests__/setup.ts',
-    testTimeout: 10000,
-    hookTimeout: 10000,
-    teardownTimeout: 10000,
+    testTimeout: 5000,
+    hookTimeout: 5000,
+    teardownTimeout: 5000,
     pool: 'forks', // Use separate process for each test to prevent module caching issues
     poolOptions: {
       forks: {
         singleFork: true // Use single fork to speed up tests
       }
     },
+    bail: 1, // Stop after first failure to prevent cascading timeouts
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

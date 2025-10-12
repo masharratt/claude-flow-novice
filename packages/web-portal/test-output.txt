@@ -1,0 +1,7 @@
+
+> @claude-flow-novice/web-portal@3.0.0 test
+> vitest run --run
+
+
+ RUN  v2.1.9 /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+
