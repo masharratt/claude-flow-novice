@@ -18,6 +18,7 @@ import {
   CircularProgress,
   Paper,
   Divider,
+  Alert,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -29,6 +30,17 @@ import { FixedSizeList } from 'react-window';
 import { useEventsStore } from '../../../shared/stores/eventsStore';
 import type { EventType, EventSeverity } from '../../../shared/stores/eventsStore';
 import { useWebSocket } from '../../../shared/hooks/useWebSocket';
+
+// WebSocket event payload interface
+interface EventStreamPayload {
+  id: string;
+  type: EventType;
+  severity: EventSeverity;
+  message: string;
+  agentId?: string;
+  timestamp: number;
+  metadata?: Record<string, unknown>;
+}
 
 interface EventItemProps {
   event: {
@@ -101,21 +113,34 @@ export const Events: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState('all-time');
   const [filtersVisible, setFiltersVisible] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // WebSocket connection
-  const { isConnected, subscribe } = useWebSocket();
+  // WebSocket connection with reconnection tracking
+  const { isConnected, subscribe, reconnect } = useWebSocket();
 
   // Subscribe to real-time event stream
   useEffect(() => {
     if (!isConnected) return;
 
-    const unsubscribe = subscribe('event:stream', (data: any) => {
-      // Add incoming event to store
-      addEvent(data);
+    const unsubscribe = subscribe<EventStreamPayload>('event:stream', (data) => {
+      try {
+        // Add incoming event to store
+        addEvent(data);
+        // Clear any previous errors on successful event processing
+        setError(null);
+      } catch (err) {
+        const error = err as Error;
+        setError(error);
+        console.error('[Events] Failed to process event:', error);
+      }
     });
 
     return () => {
-      unsubscribe();
+      try {
+        unsubscribe();
+      } catch (err) {
+        console.error('[Events] Error during unsubscribe:', err);
+      }
     };
   }, [isConnected, subscribe, addEvent]);
 
@@ -190,12 +215,32 @@ export const Events: React.FC = () => {
 
   // Refresh events
   const handleRefresh = useCallback(() => {
-    setLoading(true);
-    // Simulate refresh delay
-    setTimeout(() => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Simulate refresh delay
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
       setLoading(false);
-    }, 500);
+      console.error('[Events] Refresh failed:', error);
+    }
   }, [setLoading]);
+
+  // Handle manual reconnection
+  const handleReconnect = useCallback(() => {
+    try {
+      setError(null);
+      reconnect();
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      console.error('[Events] Reconnect failed:', error);
+    }
+  }, [reconnect]);
 
   // Virtual list row renderer
   const Row = useCallback(
@@ -258,6 +303,28 @@ export const Events: React.FC = () => {
           </IconButton>
         </Box>
       </Box>
+
+      {/* Error Display */}
+      {error && (
+        <Alert severity="error" sx={{ m: 2 }} onClose={() => setError(null)}>
+          Error: {error.message}
+        </Alert>
+      )}
+
+      {/* Disconnection Warning with Reconnect */}
+      {!isConnected && (
+        <Alert
+          severity="warning"
+          sx={{ m: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={handleReconnect}>
+              Reconnect
+            </Button>
+          }
+        >
+          WebSocket disconnected. Real-time events are unavailable. Click Reconnect to retry.
+        </Alert>
+      )}
 
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Filters Sidebar */}

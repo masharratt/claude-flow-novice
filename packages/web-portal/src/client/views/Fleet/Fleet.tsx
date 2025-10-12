@@ -15,6 +15,8 @@ import {
   Chip,
   IconButton,
   CircularProgress,
+  Alert,
+  Button,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -25,8 +27,26 @@ import {
 } from '@mui/icons-material';
 import { VariableSizeList } from 'react-window';
 import { Pie } from 'react-chartjs-2';
-import { useAgentStore, agentSelectors } from '../../../shared/stores/agentStore';
+import { useAgentStore, type Agent } from '../../../shared/stores/agentStore';
 import { useWebSocket } from '../../../shared/hooks/useWebSocket';
+
+// WebSocket event payload interfaces
+interface AgentUpdatePayload {
+  id: string;
+  name?: string;
+  type?: string;
+  status?: Agent['status'];
+  metrics?: Agent['metrics'];
+  metadata?: Agent['metadata'];
+}
+
+interface SwarmUpdatePayload {
+  id: string;
+  name?: string;
+  agentCount?: number;
+  status?: { active: number; idle: number; completed: number; failed: number };
+  createdAt?: number;
+}
 
 // Mock swarm data structure
 interface Swarm {
@@ -38,7 +58,7 @@ interface Swarm {
 }
 
 // Generate mock swarms from agents
-const generateMockSwarms = (agents: any[]): Swarm[] => {
+const generateMockSwarms = (agents: Agent[]): Swarm[] => {
   const swarmGroups = agents.reduce((acc, agent) => {
     const swarmId = agent.metadata?.swarmId || 'swarm-001';
     if (!acc[swarmId]) {
@@ -46,7 +66,7 @@ const generateMockSwarms = (agents: any[]): Swarm[] => {
     }
     acc[swarmId].push(agent);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, Agent[]>);
 
   return Object.entries(swarmGroups).map(([swarmId, swarmAgents], index) => {
     const statusCounts = swarmAgents.reduce(
@@ -129,34 +149,48 @@ export const Fleet: React.FC = () => {
   const setLoading = useAgentStore((state) => state.setLoading);
   const updateAgent = useAgentStore((state) => state.updateAgent);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
-  const [swarmData, setSwarmData] = useState<Map<string, any>>(new Map());
+  const [error, setError] = useState<Error | null>(null);
 
   // WebSocket connection
-  const { isConnected, subscribe } = useWebSocket();
+  const { isConnected, subscribe, reconnect } = useWebSocket();
 
   // Subscribe to real-time agent updates
   useEffect(() => {
     if (!isConnected) return;
 
-    const unsubscribeAgent = subscribe('agent:update', (data: any) => {
-      // Update agent in store
-      if (data.id) {
-        updateAgent(data.id, data);
+    const unsubscribeAgent = subscribe<AgentUpdatePayload>('agent:update', (data) => {
+      try {
+        // Update agent in store
+        if (data.id) {
+          updateAgent(data.id, data);
+        }
+        setError(null);
+      } catch (err) {
+        const error = err as Error;
+        setError(error);
+        console.error('[Fleet] Failed to process agent update:', error);
       }
     });
 
-    const unsubscribeSwarm = subscribe('swarm:update', (data: any) => {
-      // Update swarm data
-      setSwarmData((prev) => {
-        const next = new Map(prev);
-        next.set(data.id, data);
-        return next;
-      });
+    const unsubscribeSwarm = subscribe<SwarmUpdatePayload>('swarm:update', (data) => {
+      try {
+        // Log swarm update for future use
+        console.log('[Fleet] Swarm update received:', data);
+        setError(null);
+      } catch (err) {
+        const error = err as Error;
+        setError(error);
+        console.error('[Fleet] Failed to process swarm update:', error);
+      }
     });
 
     return () => {
-      unsubscribeAgent();
-      unsubscribeSwarm();
+      try {
+        unsubscribeAgent();
+        unsubscribeSwarm();
+      } catch (err) {
+        console.error('[Fleet] Error during unsubscribe:', err);
+      }
     };
   }, [isConnected, subscribe, updateAgent]);
 
@@ -233,23 +267,43 @@ export const Fleet: React.FC = () => {
 
   // Refresh handler
   const handleRefresh = useCallback(() => {
-    setLoading(true);
-    setTimeout(() => {
+    try {
+      setLoading(true);
+      setError(null);
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
       setLoading(false);
-    }, 500);
+      console.error('[Fleet] Refresh failed:', error);
+    }
   }, [setLoading]);
+
+  // Handle manual reconnection
+  const handleReconnect = useCallback(() => {
+    try {
+      setError(null);
+      reconnect();
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      console.error('[Fleet] Reconnect failed:', error);
+    }
+  }, [reconnect]);
 
   // Virtual list row renderer
   const getItemSize = useCallback(
-    (index: number) => {
+    (_index: number) => {
       return viewMode === 'grid' ? 200 : 80;
     },
     [viewMode]
   );
 
   const Row = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const swarm = swarms[index];
+    ({ index: itemIndex, style }: { index: number; style: React.CSSProperties }) => {
+      const swarm = swarms[itemIndex];
       if (viewMode === 'grid') {
         return (
           <div style={{ ...style, padding: '8px' }} data-testid="swarm-card">
@@ -298,6 +352,28 @@ export const Fleet: React.FC = () => {
           <RefreshIcon />
         </IconButton>
       </Box>
+
+      {/* Error Display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          Error: {error.message}
+        </Alert>
+      )}
+
+      {/* Disconnection Warning with Reconnect */}
+      {!isConnected && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={handleReconnect}>
+              Reconnect
+            </Button>
+          }
+        >
+          WebSocket disconnected. Real-time fleet updates are unavailable. Click Reconnect to retry.
+        </Alert>
+      )}
 
       {/* Aggregation Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -357,7 +433,7 @@ export const Fleet: React.FC = () => {
         <ToggleButtonGroup
           value={viewMode}
           exclusive
-          onChange={(e, newMode) => newMode && setViewMode(newMode)}
+          onChange={(_e, newMode) => newMode && setViewMode(newMode)}
           aria-label="view mode"
         >
           <ToggleButton value="list" aria-label="list view" aria-pressed={viewMode === 'list'}>

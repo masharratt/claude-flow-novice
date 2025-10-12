@@ -1,0 +1,436 @@
+
+> @claude-flow-novice/web-portal@3.0.0 test:server
+> vitest run src/server/__tests__
+
+
+ RUN  v2.1.9 /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+
+stdout | src/server/__tests__/websocket.test.ts > WebSocket Server Integration Tests
+Test server listening on port 3100
+
+ ✓ src/server/__tests__/websocket.test.ts (20 tests) 61ms
+stdout | src/server/__tests__/api-transparency-integration.test.ts > REST API TransparencySystem Integration
+[2025-10-12T20:29:13.814Z] INFO Initializing TransparencySystem {"enableRealTimeMonitoring":true,"enableEventStreaming":true,"eventRetentionHours":24,"metricsUpdateIntervalMs":5000,"heartbeatIntervalMs":10000,"enablePerformanceTracking":true,"enableDependencyTracking":true,"maxEventsInMemory":10000,"enableHierarchyNotifications":true}
+[2025-10-12T20:29:13.814Z] INFO TransparencySystem initialized successfully
+[2025-10-12T20:29:13.814Z] INFO Starting transparency monitoring
+[2025-10-12T20:29:13.814Z] INFO Transparency monitoring started
+
+stderr | src/server/__tests__/api-transparency-integration.test.ts > REST API TransparencySystem Integration > GET /api/agents/:id/status > should return 404 for non-existent agent
+API Error: {
+  error: 'Agent non-existent-agent not found',
+  stack: 'APIError: Agent non-existent-agent not found\n' +
+    '    at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/server/routes/api/agents.ts:73:14\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  path: '/api/agents/non-existent-agent/status',
+  method: 'GET'
+}
+
+stderr | src/server/__tests__/api-transparency-integration.test.ts > REST API TransparencySystem Integration > POST /api/agents/:id/intervene > should validate intervention action
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:29:14.126Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/agent-1/intervene',
+  method: 'POST',
+  reason: 'Missing Authorization header',
+  userAgent: undefined
+}
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:29:14.126Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/agent-1/intervene',
+  method: 'POST',
+  reason: 'UNAUTHORIZED',
+  userAgent: undefined
+}
+API Error: {
+  error: 'Authentication required',
+  stack: 'APIError: Authentication required\n' +
+    '    at authenticateJWT (/mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/server/middleware/authentication.ts:210:13)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:284:15\n' +
+    '    at param (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:365:14)\n' +
+    '    at param (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:376:14)\n' +
+    '    at router.process_params (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:421:3)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:280:10)',
+  path: '/api/agents/agent-1/intervene',
+  method: 'POST'
+}
+
+stderr | src/server/__tests__/api-transparency-integration.test.ts > REST API TransparencySystem Integration > POST /api/agents/:id/intervene > should require reason field
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:29:14.167Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/agent-1/intervene',
+  method: 'POST',
+  reason: 'Missing Authorization header',
+  userAgent: undefined
+}
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:29:14.167Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/agent-1/intervene',
+  method: 'POST',
+  reason: 'UNAUTHORIZED',
+  userAgent: undefined
+}
+API Error: {
+  error: 'Authentication required',
+  stack: 'APIError: Authentication required\n' +
+    '    at authenticateJWT (/mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/server/middleware/authentication.ts:210:13)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:284:15\n' +
+    '    at param (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:365:14)\n' +
+    '    at param (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:376:14)\n' +
+    '    at router.process_params (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:421:3)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:280:10)',
+  path: '/api/agents/agent-1/intervene',
+  method: 'POST'
+}
+
+stderr | src/server/__tests__/api-transparency-integration.test.ts > REST API TransparencySystem Integration > POST /api/agents/:id/intervene > should return 404 for non-existent agent
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:29:14.178Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/non-existent-agent/intervene',
+  method: 'POST',
+  reason: 'Missing Authorization header',
+  userAgent: undefined
+}
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:29:14.178Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/non-existent-agent/intervene',
+  method: 'POST',
+  reason: 'UNAUTHORIZED',
+  userAgent: undefined
+}
+API Error: {
+  error: 'Authentication required',
+  stack: 'APIError: Authentication required\n' +
+    '    at authenticateJWT (/mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/server/middleware/authentication.ts:210:13)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:284:15\n' +
+    '    at param (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:365:14)\n' +
+    '    at param (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:376:14)\n' +
+    '    at router.process_params (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:421:3)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:280:10)',
+  path: '/api/agents/non-existent-agent/intervene',
+  method: 'POST'
+}
+
+stderr | src/server/__tests__/api-transparency-integration.test.ts > REST API TransparencySystem Integration > error handling > should return proper error format
+API Error: {
+  error: 'Agent invalid-agent not found',
+  stack: 'APIError: Agent invalid-agent not found\n' +
+    '    at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/server/routes/api/agents.ts:73:14\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:105:5)',
+  path: '/api/agents/invalid-agent/status',
+  method: 'GET'
+}
+
+ ❯ src/server/__tests__/api-transparency-integration.test.ts (27 tests | 3 failed) 485ms
+   × REST API TransparencySystem Integration > POST /api/agents/:id/intervene > should validate intervention action 243ms
+     → expected 401 to be 400 // Object.is equality
+   × REST API TransparencySystem Integration > POST /api/agents/:id/intervene > should require reason field 9ms
+     → expected 401 to be 400 // Object.is equality
+   × REST API TransparencySystem Integration > POST /api/agents/:id/intervene > should return 404 for non-existent agent 10ms
+     → expected 401 to be 404 // Object.is equality
+stdout | src/server/__tests__/security/auth-endpoints.test.ts > Authentication Endpoints (MED-002) > POST /api/auth/logout > should successfully logout and blacklist token
+[TokenBlacklist] Connected to Redis
+
+stdout | src/server/__tests__/security/auth-endpoints.test.ts > Authentication Endpoints (MED-002) > POST /api/auth/logout > should successfully logout and blacklist token
+[TokenBlacklist] Token blacklisted: { tokenId: 'test-token-logout-1', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:29:14.464Z',
+  tokenId: 'test-token-logout-1',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:29:14.000Z'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:29:14.464Z',
+  userId: 'user-123',
+  tokenId: 'test-token-logout-1',
+  ip: '::ffff:127.0.0.1'
+}
+
+stdout | src/server/__tests__/security/auth-endpoints.test.ts > Authentication Endpoints (MED-002) > POST /api/auth/logout > should enforce rate limiting
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.539Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.539Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.539Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.539Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.540Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.540Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.540Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.540Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.540Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[TokenBlacklist] Token blacklisted: { tokenId: 'rate-limit-test', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.540Z',
+  tokenId: 'rate-limit-test',
+  userId: 'user-123',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.542Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.543Z',
+  userId: 'user-123',
+  tokenId: 'rate-limit-test',
+  ip: '::ffff:127.0.0.1'
+}
+
+ ❯ src/server/__tests__/security/auth-endpoints.test.ts (15 tests | 13 failed) 60213ms
+   × Authentication Endpoints (MED-002) > POST /api/auth/logout > should successfully logout and blacklist token 17ms
+     → expected false to be true // Object.is equality
+   × Authentication Endpoints (MED-002) > POST /api/auth/logout > should fail when Authorization header is missing 20001ms
+     → Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   × Authentication Endpoints (MED-002) > POST /api/auth/logout > should fail when token has no jti claim 20001ms
+     → Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   × Authentication Endpoints (MED-002) > POST /api/auth/logout > should fail when token is malformed 20001ms
+     → Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   × Authentication Endpoints (MED-002) > POST /api/auth/refresh > should successfully refresh token and blacklist old token 6ms
+     → expected 429 to be 200 // Object.is equality
+   × Authentication Endpoints (MED-002) > POST /api/auth/refresh > should fail when refreshToken is missing 5ms
+     → expected 429 to be 400 // Object.is equality
+   × Authentication Endpoints (MED-002) > POST /api/auth/refresh > should fail when refreshToken is invalid 5ms
+     → expected 429 to be 401 // Object.is equality
+   × Authentication Endpoints (MED-002) > POST /api/auth/refresh > should fail when refreshToken is expired 5ms
+     → expected 429 to be 401 // Object.is equality
+   × Authentication Endpoints (MED-002) > POST /api/auth/refresh > should fail when refreshToken is blacklisted 8ms
+     → expected 429 to be 401 // Object.is equality
+   × Authentication Endpoints (MED-002) > POST /api/auth/refresh > should preserve user information in new tokens 6ms
+     → expected 429 to be 200 // Object.is equality
+   × Authentication Endpoints (MED-002) > Token Lifecycle > should complete full token lifecycle: login → use → refresh → logout 6ms
+     → expected 429 to be 200 // Object.is equality
+   × Authentication Endpoints (MED-002) > Security Audit Logging > should log logout events for audit trail 7ms
+     → expected undefined to be defined
+   × Authentication Endpoints (MED-002) > Security Audit Logging > should log token refresh events for audit trail 6ms
+     → expected undefined to be defined
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > subscribeToTransparencySystem > should subscribe to TransparencyService lifecycle events
+TransparencyAdapter subscribed to TransparencySystem events
+
+stderr | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > subscribeToTransparencySystem > should warn if TransparencyService is not available
+TransparencyService not available - WebSocket events will not be populated
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > subscribeToTransparencySystem > should return unsubscribe function
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > handleLifecycleEvent > should handle agent spawned event
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > handleLifecycleEvent > should handle agent state_changed event
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > handleLifecycleEvent > should handle agent terminated event
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > handleLifecycleEvent > should handle task_assigned event
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > handleLifecycleEvent > should handle error_occurred event
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > handleLifecycleEvent > should handle paused event
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > mapAgentState > should map agent states correctly
+TransparencyAdapter subscribed to TransparencySystem events
+
+stdout | src/server/__tests__/transparency-adapter.test.ts > TransparencyAdapter > clearCache > should clear cached statuses
+TransparencyAdapter subscribed to TransparencySystem events
+
+ ✓ src/server/__tests__/transparency-adapter.test.ts (12 tests) 5ms
+stderr | src/server/__tests__/security/security-integration.test.ts > Security Integration (MED-001 + MED-002) > Complete Authentication Flow > should enforce security headers on all responses
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:30:14.931Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/api/protected',
+  method: 'GET',
+  reason: 'Missing Authorization header',
+  userAgent: undefined
+}
+🚨 Authentication failed: {
+  timestamp: '2025-10-12T20:30:14.932Z',
+  ip: '::ffff:127.0.0.1',
+  path: '/api/protected',
+  method: 'GET',
+  reason: 'UNAUTHORIZED',
+  userAgent: undefined
+}
+API Error: {
+  error: 'Authentication required',
+  stack: 'APIError: Authentication required\n' +
+    '    at authenticateJWT (/mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/server/middleware/authentication.ts:210:13)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:149:13)\n' +
+    '    at Route.dispatch (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/route.js:119:3)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)\n' +
+    '    at /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:284:15\n' +
+    '    at router.process_params (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:346:12)\n' +
+    '    at next (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/index.js:280:10)\n' +
+    '    at jsonParser (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/body-parser/lib/types/json.js:113:7)\n' +
+    '    at Layer.handle [as handle_request] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/express/lib/router/layer.js:95:5)',
+  path: '/api/protected',
+  method: 'GET'
+}
+
+stdout | src/server/__tests__/security/security-integration.test.ts > Security Integration (MED-001 + MED-002) > Complete Authentication Flow > should allow access with valid token
+[TokenBlacklist] Connected to Redis
+
+stdout | src/server/__tests__/security/security-integration.test.ts > Security Integration (MED-001 + MED-002) > Complete Authentication Flow > should deny access after token is blacklisted
+[TokenBlacklist] Token blacklisted: { tokenId: 'blacklist-integration', ttl: 3599, reason: 'logout' }
+[SECURITY_AUDIT] {
+  event: 'TOKEN_BLACKLISTED',
+  timestamp: '2025-10-12T20:30:14.953Z',
+  tokenId: 'blacklist-integration',
+  userId: 'user-456',
+  reason: 'logout',
+  expiresAt: '2025-10-12T21:30:14.000Z'
+}
+[SECURITY_AUDIT] User logout: {
+  timestamp: '2025-10-12T20:30:14.954Z',
+  userId: 'user-456',
+  tokenId: 'blacklist-integration',
+  ip: '::ffff:127.0.0.1'
+}
+

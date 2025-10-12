@@ -87,13 +87,8 @@ export class ProviderManager extends EventEmitter {
       this.logger.info('Tiered provider routing enabled');
     }
 
-    // Initialize providers
-    this.initializeProviders();
-
-    // Start monitoring if enabled
-    if (config.monitoring?.enabled) {
-      this.startMonitoring();
-    }
+    // NOTE: Provider initialization moved to init() method to support async
+    // Initialization will be called explicitly by SwarmCoordinator.start()
 
     // Register automatic cleanup on process termination
     process.on('SIGTERM', () => this.destroy());
@@ -101,6 +96,20 @@ export class ProviderManager extends EventEmitter {
     process.on('beforeExit', () => this.destroy());
 
     this.logger.info('ProviderManager auto-shutdown hooks registered');
+  }
+
+  /**
+   * Initialize ProviderManager (must be called after construction)
+   * Separated from constructor to support async initialization
+   */
+  async init(): Promise<void> {
+    // Initialize providers
+    await this.initializeProviders();
+
+    // Start monitoring if enabled
+    if (this.config.monitoring?.enabled) {
+      this.startMonitoring();
+    }
   }
 
   /**

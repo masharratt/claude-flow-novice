@@ -1,0 +1,147 @@
+{
+  "sprint": {
+    "id": "backlog-sprint-1",
+    "name": "Technical Debt & Quality Improvements",
+    "type": "backlog",
+    "objective": "Address technical debt from Phase 3 and Phase 4, improve code quality, and ensure comprehensive test coverage",
+    "priority": "high",
+    "estimated_duration": "1 week"
+  },
+  "context": {
+    "epic_complete": true,
+    "production_ready": true,
+    "remaining_items": [
+      "Full test suite execution fix (architectural issue)",
+      "TypeScript strict mode cleanup (242 'any' usages)",
+      "Enhanced error handling (missing error boundaries)",
+      "E2E Playwright test execution (32 tests)",
+      "Performance benchmarking under load"
+    ]
+  },
+  "parallel_execution": {
+    "enabled": true,
+    "max_concurrent_agents": 4,
+    "coordination": "redis_pubsub",
+    "strategy": "Independent technical debt items can run in parallel"
+  },
+  "work_streams": [
+    {
+      "id": "backlog-1",
+      "name": "Test Suite Execution Fix",
+      "priority": "critical",
+      "can_run_parallel": true,
+      "estimated_effort": "6 hours",
+      "agents": ["tester"],
+      "issue": "Full test suite times out when running all 47 files together (>5 min). Individual files pass in 16-20s.",
+      "root_cause": "Suspected vitest worker process memory leak or module caching issue",
+      "deliverables": [
+        "Implement test sharding strategy",
+        "Optimize vitest configuration",
+        "Profile worker processes to identify bottleneck",
+        "Execute full suite successfully with HTML coverage report",
+        "Verify 153/153 tests passing (121 unit + 32 E2E)"
+      ],
+      "acceptance_criteria": [
+        "Full test suite completes in <5 minutes",
+        "All 153 tests passing",
+        "HTML coverage report generated",
+        "Coverage ≥80% all metrics validated"
+      ]
+    },
+    {
+      "id": "backlog-2",
+      "name": "TypeScript Strict Mode Cleanup",
+      "priority": "high",
+      "can_run_parallel": true,
+      "estimated_effort": "8 hours",
+      "agents": ["coder"],
+      "issue": "242 'any' type usages across codebase, particularly in Fleet.tsx and test mocks",
+      "deliverables": [
+        "Replace all 'any' types in Fleet.tsx with proper Agent interface",
+        "Define proper interfaces for WebSocket event payloads",
+        "Add explicit types to reduce accumulator parameters",
+        "Remove unused variables (loading in CFNLoop.tsx)",
+        "Fix implicit 'any' in event handlers",
+        "Enable stricter TypeScript compiler flags"
+      ],
+      "files_to_fix": [
+        "packages/web-portal/src/client/views/Fleet/Fleet.tsx",
+        "packages/web-portal/src/client/views/Events/Events.tsx",
+        "packages/web-portal/src/client/views/CFNLoop/CFNLoop.tsx",
+        "packages/web-portal/src/shared/hooks/useWebSocketEvent.ts",
+        "packages/web-portal/src/__tests__/mocks/*.ts"
+      ],
+      "acceptance_criteria": [
+        "Zero 'any' types in production code",
+        "All event handlers properly typed",
+        "TypeScript strict mode passing",
+        "No implicit 'any' warnings"
+      ]
+    },
+    {
+      "id": "backlog-3",
+      "name": "Enhanced Error Handling",
+      "priority": "high",
+      "can_run_parallel": true,
+      "estimated_effort": "6 hours",
+      "agents": ["coder"],
+      "issue": "Missing error boundaries, insufficient try-catch blocks, no fallback UI for failures",
+      "deliverables": [
+        "Create ErrorBoundary component with fallback UI",
+        "Wrap all 7 views in ErrorBoundary",
+        "Add try-catch to event handlers in Events, Fleet, CFNLoop",
+        "Add error state to all views (error, setError)",
+        "Create error toast notification system",
+        "Add fallback UI for WebSocket disconnection",
+        "Handle localStorage quota exceeded errors"
+      ],
+      "acceptance_criteria": [
+        "All views wrapped in ErrorBoundary",
+        "Error state implemented in all views",
+        "Try-catch blocks in all async operations",
+        "Fallback UI for WebSocket disconnection",
+        "Error toast notifications working"
+      ]
+    },
+    {
+      "id": "backlog-4",
+      "name": "E2E Test Execution",
+      "priority": "medium",
+      "can_run_parallel": true,
+      "estimated_effort": "4 hours",
+      "agents": ["tester"],
+      "issue": "32 E2E Playwright tests created but not executed (require running dev server)",
+      "deliverables": [
+        "Start dev server in background",
+        "Execute all 32 Playwright E2E tests",
+        "Fix any failures in test expectations",
+        "Generate Playwright HTML report",
+        "Capture screenshots on failure",
+        "Test all 6 views end-to-end workflows"
+      ],
+      "test_files": [
+        "packages/web-portal/src/__tests__/e2e/events-view.spec.ts",
+        "packages/web-portal/src/__tests__/e2e/fleet-view.spec.ts",
+        "packages/web-portal/src/__tests__/e2e/cfn-loop-view.spec.ts"
+      ],
+      "acceptance_criteria": [
+        "Dev server running on localhost:3000",
+        "All 32 E2E tests passing",
+        "Playwright HTML report generated",
+        "Screenshots captured for each view"
+      ]
+    }
+  ],
+  "estimated_timeline": {
+    "parallel_execution": "1 week",
+    "sequential_execution": "3 weeks",
+    "time_saved": "67%"
+  },
+  "success_criteria": {
+    "test_suite": "153/153 tests passing in <5 min",
+    "typescript": "Zero 'any' types in production code",
+    "error_handling": "All views with error boundaries",
+    "e2e_tests": "32/32 Playwright tests passing",
+    "code_quality_score": "≥0.92"
+  }
+}

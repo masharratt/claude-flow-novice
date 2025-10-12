@@ -1,0 +1,121 @@
+
+> @claude-flow-novice/web-portal@3.0.0 test:hooks
+> vitest run src/shared/hooks
+
+
+ RUN  v2.1.9 /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx (9 tests | 7 failed) 29ms
+   × useWebSocketEvent - Memory Leak Prevention > should cleanup subscription on component unmount 16ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × useWebSocketEvent - Memory Leak Prevention > should cleanup subscription when eventType changes 1ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × useWebSocketEvent - Memory Leak Prevention > should cleanup debounce timeout on unmount 2ms
+     → Cannot read properties of undefined (reading '1')
+   × useWebSocketEvent - Memory Leak Prevention > should not leak memory with multiple mount/unmount cycles 5ms
+     → expected "spy" to be called 10 times, but got 0 times
+   × useWebSocketEvent - Memory Leak Prevention > should call external handler when event is received 1ms
+     → Cannot read properties of undefined (reading '1')
+   × useWebSocketEvent - Memory Leak Prevention > should apply filter before calling handler 1ms
+     → Cannot read properties of undefined (reading '1')
+   × useWebSocketEvent - Memory Leak Prevention > should apply transform before calling handler 1ms
+     → Cannot read properties of undefined (reading '1')
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx > useWebSocketEvent - Memory Leak Prevention > should cleanup subscription on component unmount
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx:54:27
+     52| 
+     53|     // Verify subscription was created
+     54|     expect(mockSubscribe).toHaveBeenCalledTimes(1);
+       |                           ^
+     55|     expect(mockSubscribe).toHaveBeenCalledWith('test:event', expect.an…
+     56| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx > useWebSocketEvent - Memory Leak Prevention > should cleanup subscription when eventType changes
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx:74:27
+     72| 
+     73|     // Verify initial subscription
+     74|     expect(mockSubscribe).toHaveBeenCalledTimes(1);
+       |                           ^
+     75|     expect(mockSubscribe).toHaveBeenCalledWith('event:one', expect.any…
+     76| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx > useWebSocketEvent - Memory Leak Prevention > should cleanup debounce timeout on unmount
+TypeError: Cannot read properties of undefined (reading '1')
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx:98:53
+     96| 
+     97|     // Get the event handler that was registered
+     98|     const eventHandler = mockSubscribe.mock.calls[0][1];
+       |                                                     ^
+     99| 
+    100|     // Trigger event to start debounce timer
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx > useWebSocketEvent - Memory Leak Prevention > should not leak memory with multiple mount/unmount cycles
+AssertionError: expected "spy" to be called 10 times, but got 0 times
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx:130:27
+    128| 
+    129|     // Verify subscriptions were created and cleaned up for each cycle
+    130|     expect(mockSubscribe).toHaveBeenCalledTimes(10);
+       |                           ^
+    131|     expect(mockUnsubscribe).toHaveBeenCalledTimes(10);
+    132|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx > useWebSocketEvent - Memory Leak Prevention > should call external handler when event is received
+TypeError: Cannot read properties of undefined (reading '1')
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx:173:53
+    171| 
+    172|     // Get the internal event handler
+    173|     const eventHandler = mockSubscribe.mock.calls[0][1];
+       |                                                     ^
+    174| 
+    175|     // Trigger event
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx > useWebSocketEvent - Memory Leak Prevention > should apply filter before calling handler
+TypeError: Cannot read properties of undefined (reading '1')
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx:191:53
+    189|     );
+    190| 
+    191|     const eventHandler = mockSubscribe.mock.calls[0][1];
+       |                                                     ^
+    192| 
+    193|     // Event that passes filter
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx > useWebSocketEvent - Memory Leak Prevention > should apply transform before calling handler
+TypeError: Cannot read properties of undefined (reading '1')
+ ❯ src/shared/hooks/__tests__/useWebSocketEvent.memory-leak.test.tsx:210:53
+    208|     );
+    209| 
+    210|     const eventHandler = mockSubscribe.mock.calls[0][1];
+       |                                                     ^
+    211| 
+    212|     eventHandler({ value: 10 });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+ Test Files  1 failed (1)
+      Tests  7 failed | 2 passed (9)
+   Start at  13:26:34
+   Duration  24.07s (transform 271ms, setup 9.37s, collect 125ms, tests 29ms, environment 12.66s, prepare 1.23s)
+
+npm error Lifecycle script `test:hooks` failed with error:
+npm error code 1
+npm error path /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+npm error workspace @claude-flow-novice/web-portal@3.0.0
+npm error location /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+npm error command failed
+npm error command sh -c vitest run src/shared/hooks

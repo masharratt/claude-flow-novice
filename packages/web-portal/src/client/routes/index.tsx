@@ -10,20 +10,21 @@ import { Fleet } from '../views/Fleet';
 import { CFNLoop } from '../views/CFNLoop';
 import { Intervention } from '../views/Intervention';
 import { Settings } from '../views/Settings';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<AppLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="agents" element={<Agents />} />
-        <Route path="hierarchy" element={<Hierarchy />} />
-        <Route path="performance" element={<Performance />} />
-        <Route path="events" element={<Events />} />
-        <Route path="fleet" element={<Fleet />} />
-        <Route path="cfn-loop" element={<CFNLoop />} />
-        <Route path="intervention" element={<Intervention />} />
-        <Route path="settings" element={<Settings />} />
+        <Route index element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+        <Route path="agents" element={<ErrorBoundary><Agents /></ErrorBoundary>} />
+        <Route path="hierarchy" element={<ErrorBoundary><Hierarchy /></ErrorBoundary>} />
+        <Route path="performance" element={<ErrorBoundary><Performance /></ErrorBoundary>} />
+        <Route path="events" element={<ErrorBoundary><Events /></ErrorBoundary>} />
+        <Route path="fleet" element={<ErrorBoundary><Fleet /></ErrorBoundary>} />
+        <Route path="cfn-loop" element={<ErrorBoundary><CFNLoop /></ErrorBoundary>} />
+        <Route path="intervention" element={<ErrorBoundary><Intervention /></ErrorBoundary>} />
+        <Route path="settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
 
         {/* Legacy portal redirects - archived 2025-10-12 */}
         <Route path="dashboard" element={<Navigate to="/" replace />} />

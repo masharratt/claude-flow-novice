@@ -1,0 +1,39 @@
+
+> @claude-flow-novice/web-portal@3.0.0 test:services
+> vitest run src/__tests__/services src/shared/services
+
+
+ RUN  v2.1.9 /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+
+ ❯ src/shared/services/__tests__/WebSocketClient.test.ts (31 tests | 1 failed) 2129ms
+   ✓ WebSocketClient > Connection Lifecycle > should initialize with default configuration 2092ms
+   × WebSocketClient > Connection Lifecycle > should auto-connect when autoConnect is true 18ms
+     → expected "spy" to be called at least once
+ ✓ src/__tests__/services/ApiClient.test.ts (30 tests) 149ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/shared/services/__tests__/WebSocketClient.test.ts > WebSocketClient > Connection Lifecycle > should auto-connect when autoConnect is true
+AssertionError: expected "spy" to be called at least once
+ ❯ src/shared/services/__tests__/WebSocketClient.test.ts:59:29
+     57|     it('should auto-connect when autoConnect is true', () => {
+     58|       client = new WebSocketClient({ autoConnect: true });
+     59|       expect(mockSocket.on).toHaveBeenCalled();
+       |                             ^
+     60|     });
+     61| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 60 passed (61)
+   Start at  13:27:39
+   Duration  34.26s (transform 391ms, setup 7.71s, collect 1.70s, tests 2.28s, environment 20.58s, prepare 1.22s)
+
+npm error Lifecycle script `test:services` failed with error:
+npm error code 1
+npm error path /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+npm error workspace @claude-flow-novice/web-portal@3.0.0
+npm error location /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+npm error command failed
+npm error command sh -c vitest run src/__tests__/services src/shared/services

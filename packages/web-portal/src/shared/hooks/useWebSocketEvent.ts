@@ -3,10 +3,10 @@
  * Subscribe to specific WebSocket events with TypeScript types
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import type { UseWebSocketReturn, UseWebSocketEventReturn } from '../types/websocket';
 
-export function useWebSocketEvent<T = any>(
+export function useWebSocketEvent<T = unknown>(
   webSocket: UseWebSocketReturn,
   eventType: string,
   options?: {

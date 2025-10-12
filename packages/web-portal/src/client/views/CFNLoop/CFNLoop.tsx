@@ -3,7 +3,7 @@
  * Features: Phase timeline, current loop status, metrics cards, progress bars, WebSocket updates
  */
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -13,6 +13,8 @@ import {
   Chip,
   LinearProgress,
   IconButton,
+  Alert,
+  Button,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -24,6 +26,16 @@ import {
 import { useCFNLoopStore } from '../../../shared/stores/cfnLoopStore';
 import { useWebSocket } from '../../../shared/hooks/useWebSocket';
 
+// WebSocket event payload interface
+interface CFNLoopUpdatePayload {
+  loopNumber?: number;
+  phaseName?: string;
+  loop3Progress?: number;
+  loop2Progress?: number;
+  phaseId?: string;
+  completed?: boolean;
+}
+
 export const CFNLoop: React.FC = () => {
   const phases = useCFNLoopStore((state) => state.phases);
   const currentLoopNumber = useCFNLoopStore((state) => state.currentLoopNumber);
@@ -32,48 +44,79 @@ export const CFNLoop: React.FC = () => {
   const metrics = useCFNLoopStore((state) => state.metrics);
   const loop3Progress = useCFNLoopStore((state) => state.loop3Progress);
   const loop2Progress = useCFNLoopStore((state) => state.loop2Progress);
-  const loading = useCFNLoopStore((state) => state.loading);
   const setLoading = useCFNLoopStore((state) => state.setLoading);
   const setCurrentLoop = useCFNLoopStore((state) => state.setCurrentLoop);
   const setLoop3Progress = useCFNLoopStore((state) => state.setLoop3Progress);
   const setLoop2Progress = useCFNLoopStore((state) => state.setLoop2Progress);
   const updatePhaseCompletion = useCFNLoopStore((state) => state.updatePhaseCompletion);
+  const [error, setError] = useState<Error | null>(null);
 
   // WebSocket connection
-  const { isConnected, subscribe } = useWebSocket();
+  const { isConnected, subscribe, reconnect } = useWebSocket();
 
   // Subscribe to real-time CFN loop updates
   useEffect(() => {
     if (!isConnected) return;
 
-    const unsubscribe = subscribe('cfn.loop.update', (data: any) => {
-      // Update loop state based on incoming data
-      if (data.loopNumber && data.phaseName) {
-        setCurrentLoop(data.loopNumber, data.phaseName);
-      }
-      if (data.loop3Progress !== undefined) {
-        setLoop3Progress(data.loop3Progress);
-      }
-      if (data.loop2Progress !== undefined) {
-        setLoop2Progress(data.loop2Progress);
-      }
-      if (data.phaseId && data.completed !== undefined) {
-        updatePhaseCompletion(data.phaseId, data.completed);
+    const unsubscribe = subscribe<CFNLoopUpdatePayload>('cfn.loop.update', (data) => {
+      try {
+        // Update loop state based on incoming data
+        if (data.loopNumber && data.phaseName) {
+          setCurrentLoop(data.loopNumber, data.phaseName);
+        }
+        if (data.loop3Progress !== undefined) {
+          setLoop3Progress(data.loop3Progress);
+        }
+        if (data.loop2Progress !== undefined) {
+          setLoop2Progress(data.loop2Progress);
+        }
+        if (data.phaseId && data.completed !== undefined) {
+          updatePhaseCompletion(data.phaseId, data.completed);
+        }
+        setError(null);
+      } catch (err) {
+        const error = err as Error;
+        setError(error);
+        console.error('[CFNLoop] Failed to process CFN loop update:', error);
       }
     });
 
     return () => {
-      unsubscribe();
+      try {
+        unsubscribe();
+      } catch (err) {
+        console.error('[CFNLoop] Error during unsubscribe:', err);
+      }
     };
   }, [isConnected, subscribe, setCurrentLoop, setLoop3Progress, setLoop2Progress, updatePhaseCompletion]);
 
   // Refresh handler
-  const handleRefresh = () => {
-    setLoading(true);
-    setTimeout(() => {
+  const handleRefresh = useCallback(() => {
+    try {
+      setLoading(true);
+      setError(null);
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
       setLoading(false);
-    }, 500);
-  };
+      console.error('[CFNLoop] Refresh failed:', error);
+    }
+  }, [setLoading]);
+
+  // Handle manual reconnection
+  const handleReconnect = useCallback(() => {
+    try {
+      setError(null);
+      reconnect();
+    } catch (err) {
+      const error = err as Error;
+      setError(error);
+      console.error('[CFNLoop] Reconnect failed:', error);
+    }
+  }, [reconnect]);
 
   // Progress status text
   const loop3Status = useMemo(() => {
@@ -123,6 +166,28 @@ export const CFNLoop: React.FC = () => {
           <RefreshIcon />
         </IconButton>
       </Box>
+
+      {/* Error Display */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          Error: {error.message}
+        </Alert>
+      )}
+
+      {/* Disconnection Warning with Reconnect */}
+      {!isConnected && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={handleReconnect}>
+              Reconnect
+            </Button>
+          }
+        >
+          WebSocket disconnected. Real-time CFN Loop updates are unavailable. Click Reconnect to retry.
+        </Alert>
+      )}
 
       {/* Phase Timeline */}
       <Box sx={{ mb: 4 }}>
