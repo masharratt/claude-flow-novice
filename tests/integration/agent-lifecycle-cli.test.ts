@@ -382,6 +382,133 @@ describe('Agent Lifecycle CLI Commands', () => {
     }, TEST_TIMEOUT);
   });
 
+  describe('complete command', () => {
+    beforeEach(() => {
+      // Spawn test agent first
+      executeCLI([
+        'agent-lifecycle', 'spawn',
+        '--id', TEST_AGENT_ID,
+        '--type', TEST_AGENT_TYPE,
+        '--acl-level', String(TEST_ACL_LEVEL),
+        '--json'
+      ]);
+    });
+
+    it('should mark agent as completed', () => {
+      const result = executeCLI([
+        'agent-lifecycle', 'complete',
+        '--id', TEST_AGENT_ID,
+        '--confidence', '0.85',
+        '--output', 'Task completed successfully',
+        '--json'
+      ]);
+
+      expect(result.status).toBe('success');
+      expect(result.agent_id).toBe(TEST_AGENT_ID);
+      expect(result.confidence).toBe(0.85);
+      expect(result.gate_status).toBe('PASS ✅');
+      expect(result.completed_at).toBeDefined();
+    }, TEST_TIMEOUT);
+
+    it('should handle concurrent complete calls atomically (SEC-002 race condition prevention)', async () => {
+      const agentId = `${TEST_AGENT_ID}-concurrent`;
+
+      // Spawn test agent
+      const spawnResult = executeCLI([
+        'agent-lifecycle', 'spawn',
+        '--id', agentId,
+        '--type', TEST_AGENT_TYPE,
+        '--acl-level', String(TEST_ACL_LEVEL),
+        '--json'
+      ]);
+      expect(spawnResult.status).toBe('success');
+
+      // Launch 2 concurrent complete commands with different confidence scores
+      const results = await Promise.allSettled([
+        new Promise((resolve, reject) => {
+          try {
+            const result = executeCLI([
+              'agent-lifecycle', 'complete',
+              '--id', agentId,
+              '--confidence', '0.85',
+              '--output', 'First completion attempt',
+              '--json'
+            ]);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        }),
+        new Promise((resolve, reject) => {
+          try {
+            const result = executeCLI([
+              'agent-lifecycle', 'complete',
+              '--id', agentId,
+              '--confidence', '0.90',
+              '--output', 'Second completion attempt',
+              '--json'
+            ]);
+            resolve(result);
+          } catch (error) {
+            reject(error);
+          }
+        })
+      ]);
+
+      // Verify results: one success, one failure
+      const successful = results.filter(
+        r => r.status === 'fulfilled' && (r.value as any).status === 'success'
+      );
+      const failed = results.filter(
+        r => r.status === 'fulfilled' && (r.value as any).status === 'error'
+      );
+
+      // Exactly one should succeed
+      expect(successful.length).toBe(1);
+      expect(failed.length).toBe(1);
+
+      // Failed one should have "already completed" error
+      const failedResult = (failed[0] as PromiseFulfilledResult<any>).value;
+      expect(failedResult.error).toContain('already completed');
+
+      // Verify database consistency: query completion events
+      const statusResult = executeCLI([
+        'agent-lifecycle', 'status',
+        '--id', agentId,
+        '--event-types', 'complete',
+        '--json'
+      ]);
+
+      expect(statusResult.status).toBe('success');
+      expect(statusResult.events_count).toBe(1); // Only 1 completion event logged
+      expect(statusResult.events[0].event_type).toBe('complete');
+    }, TEST_TIMEOUT);
+
+    it('should reject completion of non-existent agent', () => {
+      const result = executeCLI([
+        'agent-lifecycle', 'complete',
+        '--id', 'non-existent-agent',
+        '--confidence', '0.85',
+        '--json'
+      ]);
+
+      expect(result.status).toBe('error');
+      expect(result.error).toContain('not found');
+    }, TEST_TIMEOUT);
+
+    it('should reject completion with invalid confidence score', () => {
+      const result = executeCLI([
+        'agent-lifecycle', 'complete',
+        '--id', TEST_AGENT_ID,
+        '--confidence', '1.5',
+        '--json'
+      ]);
+
+      expect(result.status).toBe('error');
+      expect(result.error).toContain('Confidence must be between 0.0 and 1.0');
+    }, TEST_TIMEOUT);
+  });
+
   describe('end-to-end workflow', () => {
     it('should handle complete agent lifecycle', () => {
       const agentId = `${TEST_AGENT_ID}-e2e`;

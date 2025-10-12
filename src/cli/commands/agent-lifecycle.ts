@@ -53,6 +53,40 @@ type ValidAgentType = typeof VALID_AGENT_TYPES[number];
 type ACLLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
 /**
+ * Option schema for CLI flag parsing
+ */
+interface OptionSchema {
+  [key: string]: {
+    type: 'string' | 'number' | 'boolean';
+    default?: any;
+  };
+}
+
+/**
+ * Parse CLI flags into typed options object
+ * Handles both short (--id) and long (--id) flag formats
+ * Converts kebab-case to camelCase
+ */
+function parseCLIOptions<T>(ctx: CommandContext, schema: OptionSchema): T {
+  const options: Record<string, any> = {};
+
+  for (const [key, config] of Object.entries(schema)) {
+    const kebabKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+    const value = ctx.flags[key] || ctx.flags[`--${kebabKey}`] || config.default;
+
+    if (config.type === 'number') {
+      options[key] = parseInt(String(value || config.default || '0'), 10);
+    } else if (config.type === 'boolean') {
+      options[key] = value === 'true' || value === true || !!value;
+    } else {
+      options[key] = value;
+    }
+  }
+
+  return options as T;
+}
+
+/**
  * Spawn command options
  */
 interface SpawnOptions {
@@ -111,6 +145,31 @@ interface StatusOptions {
   eventTypes?: string;
   json?: boolean;
 }
+
+// ===== OPTION SCHEMAS =====
+
+const SPAWN_OPTIONS_SCHEMA: OptionSchema = {
+  id: { type: 'string' },
+  type: { type: 'string' },
+  aclLevel: { type: 'number', default: 1 },
+  name: { type: 'string' },
+  swarmId: { type: 'string', default: 'default-swarm' },
+  teamId: { type: 'string' },
+  projectId: { type: 'string' },
+  capabilities: { type: 'string' },
+  metadata: { type: 'string' },
+  json: { type: 'boolean', default: false }
+};
+
+const COMPLETE_OPTIONS_SCHEMA: OptionSchema = {
+  id: { type: 'string' },
+  confidence: { type: 'number', default: 0 },
+  output: { type: 'string' },
+  metadata: { type: 'string' },
+  phase: { type: 'string' },
+  iteration: { type: 'number' },
+  json: { type: 'boolean', default: false }
+};
 
 // ===== SIMPLE SQLITE MANAGER =====
 
@@ -493,19 +552,8 @@ async function handleAgentSpawn(ctx: CommandContext): Promise<void> {
     console.log('DEBUG: ctx.flags:', JSON.stringify(ctx.flags, null, 2));
   }
 
-  // Parse options from flags (convert kebab-case to camelCase)
-  const options: SpawnOptions = {
-    id: (ctx.flags.id || ctx.flags['--id']) as string,
-    type: (ctx.flags.type || ctx.flags['--type']) as string,
-    aclLevel: parseInt(String(ctx.flags['acl-level'] || ctx.flags['--acl-level'] || '1')) as ACLLevel,
-    name: (ctx.flags.name || ctx.flags['--name']) as string | undefined,
-    swarmId: (ctx.flags['swarm-id'] || ctx.flags['--swarm-id']) as string | undefined,
-    teamId: (ctx.flags['team-id'] || ctx.flags['--team-id']) as string | undefined,
-    projectId: (ctx.flags['project-id'] || ctx.flags['--project-id']) as string | undefined,
-    capabilities: (ctx.flags.capabilities || ctx.flags['--capabilities']) as string | undefined,
-    metadata: (ctx.flags.metadata || ctx.flags['--metadata']) as string | undefined,
-    json: !!( ctx.flags.json || ctx.flags['--json']),
-  };
+  // Parse options from flags using generic utility
+  const options = parseCLIOptions<SpawnOptions>(ctx, SPAWN_OPTIONS_SCHEMA);
 
   if (process.env.DEBUG === '1') {
     console.log('DEBUG: parsed options:', JSON.stringify(options, null, 2));
@@ -677,16 +725,8 @@ async function handleAgentUpdate(ctx: CommandContext): Promise<void> {
  * Handle agent complete command
  */
 async function handleAgentComplete(ctx: CommandContext): Promise<void> {
-  // Parse options from flags
-  const options: CompleteOptions = {
-    id: (ctx.flags.id || ctx.flags['--id']) as string,
-    confidence: parseFloat(String(ctx.flags.confidence || ctx.flags['--confidence'] || '0')),
-    output: (ctx.flags.output || ctx.flags['--output']) as string | undefined,
-    metadata: (ctx.flags.metadata || ctx.flags['--metadata']) as string | undefined,
-    phase: (ctx.flags.phase || ctx.flags['--phase']) as string | undefined,
-    iteration: ctx.flags.iteration ? parseInt(String(ctx.flags.iteration)) : (ctx.flags['--iteration'] ? parseInt(String(ctx.flags['--iteration'])) : undefined),
-    json: !!(ctx.flags.json || ctx.flags['--json']),
-  };
+  // Parse options from flags using generic utility
+  const options = parseCLIOptions<CompleteOptions>(ctx, COMPLETE_OPTIONS_SCHEMA);
 
   try {
     // Validate agent ID
