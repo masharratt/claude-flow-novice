@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "AI agent orchestration framework for beginners - coordinate multiple AI agents with swarm intelligence, real-time monitoring, and CFN Loop autonomous development",
   "mcpName": "io.github.ruvnet/claude-flow",
   "main": "./.claude-flow-novice/dist/src/index.js",
