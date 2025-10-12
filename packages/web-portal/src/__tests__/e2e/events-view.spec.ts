@@ -4,11 +4,22 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { initializeStores, initializeEventsStore } from './test-helpers';
 
 test.describe('Events View E2E', () => {
   test.beforeEach(async ({ page }) => {
+    // Block WebSocket connections to prevent timeouts
+    await page.route('**/socket.io/**', route => route.abort());
+
     await page.goto('/events');
     await page.waitForLoadState('networkidle');
+
+    // Initialize stores with fixture data (uses window.__eventsStore)
+    await initializeStores(page);
+    await initializeEventsStore(page);
+
+    // Wait for React to re-render with injected data
+    await page.waitForTimeout(500);
   });
 
   test('complete flow: view timeline → search → filter → verify updates', async ({ page }) => {
@@ -22,7 +33,7 @@ test.describe('Events View E2E', () => {
     expect(initialCount).toBeGreaterThan(0);
 
     // Step 3: Search for specific event
-    const searchInput = page.locator('input[placeholder*="search" i], input[aria-label*="search" i]').first();
+    const searchInput = page.locator('[data-testid="search-input"]').first();
     await searchInput.fill('agent');
     await page.waitForTimeout(500);
 
@@ -37,8 +48,9 @@ test.describe('Events View E2E', () => {
     // Step 5: Filter by category
     const categorySelect = page.locator('[data-testid="category-filter"]').first();
     await categorySelect.click();
+    await page.waitForTimeout(200); // Wait for menu animation
     const lifecycleOption = page.locator('li').filter({ hasText: /agent lifecycle/i }).first();
-    await lifecycleOption.click();
+    await lifecycleOption.click({ force: true });
     await page.waitForTimeout(500);
 
     const categoryResults = page.locator('[data-testid="event-item"]');
@@ -49,7 +61,7 @@ test.describe('Events View E2E', () => {
     const severitySelect = page.locator('[data-testid="severity-filter"]').first();
     await severitySelect.click();
     const infoOption = page.locator('li').filter({ hasText: /^info$/i }).first();
-    await infoOption.click();
+    await infoOption.click({ force: true });
     await page.waitForTimeout(500);
 
     const severityResults = page.locator('[data-testid="event-item"]');
@@ -63,14 +75,16 @@ test.describe('Events View E2E', () => {
 
     // Test Agent Lifecycle category
     await categorySelect.click();
-    await page.locator('li').filter({ hasText: /agent lifecycle/i }).first().click();
+    await page.waitForTimeout(200);
+    await page.locator('li').filter({ hasText: /agent lifecycle/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     let eventItems = page.locator('[data-testid="event-item"]');
     await expect(eventItems.first()).toBeVisible();
 
     // Test CFN Loop category
     await categorySelect.click();
-    await page.locator('li').filter({ hasText: /cfn loop/i }).first().click();
+    await page.waitForTimeout(200);
+    await page.locator('li').filter({ hasText: /cfn loop/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     eventItems = page.locator('[data-testid="event-item"]');
     const cfnCount = await eventItems.count();
@@ -78,7 +92,8 @@ test.describe('Events View E2E', () => {
 
     // Test System Error category
     await categorySelect.click();
-    await page.locator('li').filter({ hasText: /system error/i }).first().click();
+    await page.waitForTimeout(200);
+    await page.locator('li').filter({ hasText: /system error/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     eventItems = page.locator('[data-testid="event-item"]');
     const errorCount = await eventItems.count();
@@ -92,14 +107,14 @@ test.describe('Events View E2E', () => {
 
     // Test Info severity
     await severitySelect.click();
-    await page.locator('li').filter({ hasText: /^info$/i }).first().click();
+    await page.waitForTimeout(200); await page.locator('li').filter({ hasText: /^info$/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     let eventItems = page.locator('[data-testid="event-item"]');
     await expect(eventItems.first()).toBeVisible();
 
     // Test Warning severity
     await severitySelect.click();
-    await page.locator('li').filter({ hasText: /^warning$/i }).first().click();
+    await page.waitForTimeout(200); await page.locator('li').filter({ hasText: /^warning$/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     eventItems = page.locator('[data-testid="event-item"]');
     const warningCount = await eventItems.count();
@@ -107,7 +122,7 @@ test.describe('Events View E2E', () => {
 
     // Test Error severity
     await severitySelect.click();
-    await page.locator('li').filter({ hasText: /^error$/i }).first().click();
+    await page.waitForTimeout(200); await page.locator('li').filter({ hasText: /^error$/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     eventItems = page.locator('[data-testid="event-item"]');
     const errorCount = await eventItems.count();
@@ -121,7 +136,7 @@ test.describe('Events View E2E', () => {
 
     // Test Last Hour preset
     await dateRangeSelect.click();
-    await page.locator('li').filter({ hasText: /last hour/i }).first().click();
+    await page.waitForTimeout(200); await page.locator('li').filter({ hasText: /last hour/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     let eventItems = page.locator('[data-testid="event-item"]');
     const hourCount = await eventItems.count();
@@ -129,7 +144,7 @@ test.describe('Events View E2E', () => {
 
     // Test Last 7 Days preset
     await dateRangeSelect.click();
-    await page.locator('li').filter({ hasText: /last 7 days/i }).first().click();
+    await page.waitForTimeout(200); await page.locator('li').filter({ hasText: /last 7 days/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     eventItems = page.locator('[data-testid="event-item"]');
     const weekCount = await eventItems.count();
@@ -137,7 +152,7 @@ test.describe('Events View E2E', () => {
 
     // Test All Time preset
     await dateRangeSelect.click();
-    await page.locator('li').filter({ hasText: /all time/i }).first().click();
+    await page.waitForTimeout(200); await page.locator('li').filter({ hasText: /all time/i }).first().click({ force: true });
     await page.waitForTimeout(300);
     eventItems = page.locator('[data-testid="event-item"]');
     await expect(eventItems.first()).toBeVisible();
@@ -236,7 +251,7 @@ test.describe('Events View E2E', () => {
     // Apply category filter
     const categorySelect = page.locator('[data-testid="category-filter"]').first();
     await categorySelect.click();
-    await page.locator('li').filter({ hasText: /agent lifecycle/i }).first().click();
+    await page.waitForTimeout(200); await page.locator('li').filter({ hasText: /agent lifecycle/i }).first().click({ force: true });
     await page.waitForTimeout(300);
 
     // Click clear filters

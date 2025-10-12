@@ -4,11 +4,21 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { initializeStores } from './test-helpers';
 
 test.describe('Fleet View E2E', () => {
   test.beforeEach(async ({ page }) => {
+    // Block WebSocket connections to prevent timeouts
+    await page.route('**/socket.io/**', route => route.abort());
+
     await page.goto('/fleet');
     await page.waitForLoadState('networkidle');
+
+    // Initialize stores with fixture data (uses window.__agentStore)
+    await initializeStores(page);
+
+    // Wait for React to re-render with injected data
+    await page.waitForTimeout(500);
   });
 
   test('complete flow: view aggregation → toggle grid/list → view swarm details', async ({ page }) => {

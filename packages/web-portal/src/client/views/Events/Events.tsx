@@ -108,6 +108,7 @@ export const Events: React.FC = () => {
   const loading = useEventsStore((state) => state.loading);
   const setLoading = useEventsStore((state) => state.setLoading);
   const addEvent = useEventsStore((state) => state.addEvent);
+  const addEvents = useEventsStore((state) => state.addEvents);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -117,6 +118,20 @@ export const Events: React.FC = () => {
 
   // WebSocket connection with reconnection tracking
   const { isConnected, subscribe, reconnect } = useWebSocket();
+
+  // E2E Test: Load fixture data from sessionStorage
+  useEffect(() => {
+    const testEvents = sessionStorage.getItem('e2e-test-events');
+    if (testEvents) {
+      try {
+        const parsedEvents = JSON.parse(testEvents);
+        addEvents(parsedEvents);
+        console.log('[Events] Loaded E2E test data:', parsedEvents.length, 'events');
+      } catch (err) {
+        console.error('[Events] Failed to load E2E test data:', err);
+      }
+    }
+  }, [addEvents]);
 
   // Subscribe to real-time event stream
   useEffect(() => {

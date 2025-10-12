@@ -206,9 +206,9 @@ export const useEventsStore = create<EventsStore>()(
       addEvents: (events) => set((state) => {
         const newEvents: Event[] = events.map(e => ({
           ...e,
-          id: generateEventId(),
-          timestamp: Date.now(),
-          read: false
+          id: e.id || generateEventId(),
+          timestamp: e.timestamp || Date.now(),
+          read: e.read || false
         }));
 
         state.events.push(...newEvents);
@@ -298,3 +298,8 @@ export const useEventsStore = create<EventsStore>()(
     { name: 'EventsStore', enabled: process.env.NODE_ENV === 'development' }
   )
 );
+
+// Expose store for E2E tests
+if (typeof window !== 'undefined' && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')) {
+  (window as any).__eventsStore = useEventsStore;
+}

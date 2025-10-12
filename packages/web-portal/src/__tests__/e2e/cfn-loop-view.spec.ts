@@ -4,11 +4,22 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { initializeStores } from './test-helpers';
 
 test.describe('CFN Loop View E2E', () => {
   test.beforeEach(async ({ page }) => {
+    // Block WebSocket connections to prevent timeouts (must be set before any navigation)
+    await page.route('**/socket.io/**', route => route.abort());
+
+    // Navigate to page and wait for it to fully load
     await page.goto('/cfn-loop');
     await page.waitForLoadState('networkidle');
+
+    // Directly inject data into Zustand stores (uses __cfnLoopStore and __agentStore on window)
+    await initializeStores(page);
+
+    // Wait for React to re-render with injected data
+    await page.waitForTimeout(500);
   });
 
   test('complete flow: view timeline → select phase → view metrics → progress bars', async ({ page }) => {

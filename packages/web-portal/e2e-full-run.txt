@@ -1,0 +1,2075 @@
+
+Running 420 tests using 12 workers
+
+[1A[2K[1/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:16:3 › Agents View E2E › complete user flow: view list → search → filter → spawn agent → verify in list
+[1A[2K[2/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:77:3 › Agents View E2E › should switch between list and grid views
+[1A[2K[3/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:108:3 › Agents View E2E › should terminate agent with confirmation
+[1A[2K[4/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:71:3 › CFN Loop View E2E › phase timeline navigation
+[1A[2K[5/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:156:3 › Agents View E2E › should show current task for in-progress agents
+[1A[2K[6/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:165:3 › Agents View E2E › should handle empty search results
+[1A[2K[7/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:173:3 › Agents View E2E › should navigate to agent details (if implemented)
+[1A[2K[8/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:129:3 › Agents View E2E › should validate spawn form fields
+[1A[2K[9/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:95:3 › Agents View E2E › should filter agents by type
+[1A[2K[10/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:141:3 › Agents View E2E › should search agents by name
+[1A[2K[11/420] [chromium] › src/__tests__/e2e/agents-view.spec.ts:150:3 › Agents View E2E › should display agent metadata
+[1A[2K[12/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:90:3 › CFN Loop View E2E › current loop status display
+[1A[2K[13/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:25:3 › CFN Loop View E2E › complete flow: view timeline → select phase → view metrics → progress bars
+[1A[2K[14/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:109:3 › CFN Loop View E2E › metrics cards verification
+[1A[2K[15/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:137:3 › CFN Loop View E2E › progress bar accuracy
+[1A[2K  1) [chromium] › src/__tests__/e2e/agents-view.spec.ts:77:3 › Agents View E2E › should switch between list and grid views 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-view="list"], .list-view')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-view="list"], .list-view')[22m
+
+
+      77 |   test('should switch between list and grid views', async ({ page }) => {
+      78 |     // Initial list view
+    > 79 |     await expect(page.locator('[data-view="list"], .list-view')).toBeVisible();
+         |                                                                  ^
+      80 |
+      81 |     // Toggle to grid view
+      82 |     const gridButton = page.locator('button[aria-label*="grid" i]');
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:79:66
+
+    Error Context: test-results/agents-view-Agents-View-E2-a3759-between-list-and-grid-views-chromium/error-context.md
+
+
+[1A[2K  2) [chromium] › src/__tests__/e2e/agents-view.spec.ts:16:3 › Agents View E2E › complete user flow: view list → search → filter → spawn agent → verify in list 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="agent-card"], [data-testid="agent-row"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="agent-card"], [data-testid="agent-row"]').first()[22m
+
+
+      18 |     await expect(page.locator('h1, h4').filter({ hasText: /agents/i })).toBeVisible();
+      19 |     const agentCards = page.locator('[data-testid="agent-card"], [data-testid="agent-row"]');
+    > 20 |     await expect(agentCards.first()).toBeVisible();
+         |                                      ^
+      21 |
+      22 |     // Step 2: Search for specific agent
+      23 |     const searchInput = page.locator('input[placeholder*="search" i]');
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:20:38
+
+    Error Context: test-results/agents-view-Agents-View-E2-c3eb8-pawn-agent-→-verify-in-list-chromium/error-context.md
+
+
+[1A[2K  3) [chromium] › src/__tests__/e2e/agents-view.spec.ts:156:3 › Agents View E2E › should show current task for in-progress agents 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-status="in_progress"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-status="in_progress"]').first()[22m
+
+
+      157 |     // Find in-progress agent
+      158 |     const inProgressAgent = page.locator('[data-status="in_progress"]').first();
+    > 159 |     await expect(inProgressAgent).toBeVisible();
+          |                                   ^
+      160 |
+      161 |     // Verify current task is displayed
+      162 |     await expect(inProgressAgent.locator('text=/current task|implementing|writing/i')).toBeVisible();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:159:35
+
+    Error Context: test-results/agents-view-Agents-View-E2-10709-task-for-in-progress-agents-chromium/error-context.md
+
+
+[1A[2K  4) [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:71:3 › CFN Loop View E2E › phase timeline navigation 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="phase-1"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="phase-1"]')[22m
+
+
+      76 |
+      77 |     // Verify all phases visible
+    > 78 |     await expect(page.locator('[data-testid="phase-1"]')).toBeVisible();
+         |                                                           ^
+      79 |     await expect(page.locator('[data-testid="phase-2"]')).toBeVisible();
+      80 |     await expect(page.locator('[data-testid="phase-3"]')).toBeVisible();
+      81 |     await expect(page.locator('[data-testid="phase-4"]')).toBeVisible();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/cfn-loop-view.spec.ts:78:59
+
+    Error Context: test-results/cfn-loop-view-CFN-Loop-View-E2E-phase-timeline-navigation-chromium/error-context.md
+
+
+[1A[2K  5) [chromium] › src/__tests__/e2e/agents-view.spec.ts:141:3 › Agents View E2E › should search agents by name 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Primary Coder')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByText('Primary Coder')[22m
+
+
+      144 |     await page.waitForTimeout(300);
+      145 |
+    > 146 |     await expect(page.getByText('Primary Coder')).toBeVisible();
+          |                                                   ^
+      147 |     await expect(page.getByText('Security Specialist')).not.toBeVisible();
+      148 |   });
+      149 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:146:51
+
+    Error Context: test-results/agents-view-Agents-View-E2E-should-search-agents-by-name-chromium/error-context.md
+
+
+[1A[2K[16/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:241:3 › CFN Loop View E2E › responsive layout adaptation
+[1A[2K  6) [chromium] › src/__tests__/e2e/agents-view.spec.ts:150:3 › Agents View E2E › should display agent metadata 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/tasks.*completed/i')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/tasks.*completed/i')[22m
+
+
+      150 |   test('should display agent metadata', async ({ page }) => {
+      151 |     // Verify tasks completed and confidence are visible
+    > 152 |     await expect(page.locator('text=/tasks.*completed/i')).toBeVisible();
+          |                                                            ^
+      153 |     await expect(page.locator('text=/confidence|0\\.\\d+|\\d+%/i')).toBeVisible();
+      154 |   });
+      155 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:152:60
+
+    Error Context: test-results/agents-view-Agents-View-E2E-should-display-agent-metadata-chromium/error-context.md
+
+
+[1A[2K[17/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:181:3 › CFN Loop View E2E › phase completion status
+[1A[2K[18/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:167:3 › CFN Loop View E2E › threshold status indicators
+[1A[2K  7) [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:25:3 › CFN Loop View E2E › complete flow: view timeline → select phase → view metrics → progress bars 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="phase-1"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="phase-1"]')[22m
+
+
+      32 |     // Step 3: Verify all phases are rendered
+      33 |     const phase1 = page.locator('[data-testid="phase-1"]');
+    > 34 |     await expect(phase1).toBeVisible();
+         |                          ^
+      35 |     await expect(phase1.locator('text=/phase 1/i')).toBeVisible();
+      36 |
+      37 |     const phase2 = page.locator('[data-testid="phase-2"]');
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/cfn-loop-view.spec.ts:34:26
+
+    Error Context: test-results/cfn-loop-view-CFN-Loop-Vie-becdc-iew-metrics-→-progress-bars-chromium/error-context.md
+
+
+[1A[2K[19/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:198:3 › CFN Loop View E2E › sprint chips display
+[1A[2K[20/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:100:3 › Events View E2E › severity filter flow: all severities
+[1A[2K[21/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:211:3 › CFN Loop View E2E › refresh button functionality
+[1A[2K[22/420] [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:225:3 › CFN Loop View E2E › progress bar color coding
+[1A[2K[23/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:26:3 › Events View E2E › complete flow: view timeline → search → filter → verify updates
+[1A[2K[24/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:129:3 › Events View E2E › date range filter flow: all presets
+[1A[2K[25/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:158:3 › Events View E2E › search functionality: text, agent ID, event type
+[1A[2K  8) [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:241:3 › CFN Loop View E2E › responsive layout adaptation 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="phase-1"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="phase-1"]')[22m
+
+
+      249 |     // All key components should be visible in default viewport
+      250 |     const phase1 = page.locator('[data-testid="phase-1"]');
+    > 251 |     await expect(phase1).toBeVisible();
+          |                          ^
+      252 |   });
+      253 | });
+      254 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/cfn-loop-view.spec.ts:251:26
+
+    Error Context: test-results/cfn-loop-view-CFN-Loop-View-E2E-responsive-layout-adaptation-chromium/error-context.md
+
+
+[1A[2K[26/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:71:3 › Events View E2E › category filter flow: all categories
+[1A[2K  9) [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:181:3 › CFN Loop View E2E › phase completion status 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="phase-1"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="phase-1"]')[22m
+
+
+      183 |
+      184 |     const phase1 = page.locator('[data-testid="phase-1"]');
+    > 185 |     await expect(phase1).toBeVisible();
+          |                          ^
+      186 |
+      187 |     // Phase 1 should show completed status (Foundation)
+      188 |     // Check for checkmark icon or success indicator
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/cfn-loop-view.spec.ts:185:26
+
+    Error Context: test-results/cfn-loop-view-CFN-Loop-View-E2E-phase-completion-status-chromium/error-context.md
+
+
+[1A[2K  10) [chromium] › src/__tests__/e2e/cfn-loop-view.spec.ts:198:3 › CFN Loop View E2E › sprint chips display 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="phase-1"]').locator('text=/monorepo setup/i')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="phase-1"]').locator('text=/monorepo setup/i')[22m
+
+
+      202 |
+      203 |     // Verify sprint chips within phase
+    > 204 |     await expect(phase1.locator('text=/monorepo setup/i')).toBeVisible();
+          |                                                            ^
+      205 |     await expect(phase1.locator('text=/core infrastructure/i')).toBeVisible();
+      206 |
+      207 |     const phase2 = page.locator('[data-testid="phase-2"]');
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/cfn-loop-view.spec.ts:204:60
+
+    Error Context: test-results/cfn-loop-view-CFN-Loop-View-E2E-sprint-chips-display-chromium/error-context.md
+
+
+[1A[2K  11) [chromium] › src/__tests__/e2e/events-view.spec.ts:100:3 › Events View E2E › severity filter flow: all severities 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="event-item"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="event-item"]').first()[22m
+
+
+      108 |     await page.waitForTimeout(300);
+      109 |     let eventItems = page.locator('[data-testid="event-item"]');
+    > 110 |     await expect(eventItems.first()).toBeVisible();
+          |                                      ^
+      111 |
+      112 |     // Test Warning severity
+      113 |     await severitySelect.click();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/events-view.spec.ts:110:38
+
+    Error Context: test-results/events-view-Events-View-E2-7c73d--filter-flow-all-severities-chromium/error-context.md
+
+
+[1A[2K[27/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:186:3 › Events View E2E › virtual scrolling performance
+[1A[2K[28/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:207:3 › Events View E2E › refresh button functionality
+[1A[2K  12) [chromium] › src/__tests__/e2e/events-view.spec.ts:158:3 › Events View E2E › search functionality: text, agent ID, event type 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="event-item"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="event-item"]').first()[22m
+
+
+      165 |     await page.waitForTimeout(300);
+      166 |     let eventItems = page.locator('[data-testid="event-item"]');
+    > 167 |     await expect(eventItems.first()).toBeVisible();
+          |                                      ^
+      168 |
+      169 |     // Clear and search by agent ID pattern
+      170 |     await searchInput.clear();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/events-view.spec.ts:167:38
+
+    Error Context: test-results/events-view-Events-View-E2-42774-ty-text-agent-ID-event-type-chromium/error-context.md
+
+
+[1A[2K[29/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:221:3 › Events View E2E › filter toggle button
+[1A[2K  13) [chromium] › src/__tests__/e2e/events-view.spec.ts:129:3 › Events View E2E › date range filter flow: all presets 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="event-item"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="event-item"]').first()[22m
+
+
+      153 |     await page.waitForTimeout(300);
+      154 |     eventItems = page.locator('[data-testid="event-item"]');
+    > 155 |     await expect(eventItems.first()).toBeVisible();
+          |                                      ^
+      156 |   });
+      157 |
+      158 |   test('search functionality: text, agent ID, event type', async ({ page }) => {
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/events-view.spec.ts:155:38
+
+    Error Context: test-results/events-view-Events-View-E2-79418-nge-filter-flow-all-presets-chromium/error-context.md
+
+
+[1A[2K[30/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:240:3 › Events View E2E › clear filters button
+[1A[2K  14) [chromium] › src/__tests__/e2e/events-view.spec.ts:71:3 › Events View E2E › category filter flow: all categories 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="event-item"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="event-item"]').first()[22m
+
+
+      79 |     await page.waitForTimeout(300);
+      80 |     let eventItems = page.locator('[data-testid="event-item"]');
+    > 81 |     await expect(eventItems.first()).toBeVisible();
+         |                                      ^
+      82 |
+      83 |     // Test CFN Loop category
+      84 |     await categorySelect.click();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/events-view.spec.ts:81:38
+
+    Error Context: test-results/events-view-Events-View-E2-06f9d--filter-flow-all-categories-chromium/error-context.md
+
+
+[1A[2K  15) [chromium] › src/__tests__/e2e/events-view.spec.ts:26:3 › Events View E2E › complete flow: view timeline → search → filter → verify updates 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="event-item"]').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('[data-testid="event-item"]').first()[22m
+
+
+      30 |     // Step 2: Verify events are visible
+      31 |     const eventItems = page.locator('[data-testid="event-item"]');
+    > 32 |     await expect(eventItems.first()).toBeVisible({ timeout: 10000 });
+         |                                      ^
+      33 |     const initialCount = await eventItems.count();
+      34 |     expect(initialCount).toBeGreaterThan(0);
+      35 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/events-view.spec.ts:32:38
+
+    Error Context: test-results/events-view-Events-View-E2-3a7ad-h-→-filter-→-verify-updates-chromium/error-context.md
+
+
+[1A[2K[31/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:130:3 › Fleet View E2E › swarm list rendering in list view
+[1A[2K[32/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:152:3 › Fleet View E2E › swarm grid rendering in grid view
+[1A[2K[33/420] [chromium] › src/__tests__/e2e/events-view.spec.ts:263:3 › Events View E2E › event statistics chips display
+[1A[2K  16) [chromium] › src/__tests__/e2e/events-view.spec.ts:186:3 › Events View E2E › virtual scrolling performance 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[style*="overflow"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[style*="overflow"]').first()[22m
+
+
+      189 |     // Verify virtual list is present
+      190 |     const virtualList = page.locator('[style*="overflow"]').first();
+    > 191 |     await expect(virtualList).toBeVisible();
+          |                               ^
+      192 |
+      193 |     // Get initial event count
+      194 |     const initialItems = page.locator('[data-testid="event-item"]');
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/events-view.spec.ts:191:31
+
+    Error Context: test-results/events-view-Events-View-E2E-virtual-scrolling-performance-chromium/error-context.md
+
+
+[1A[2K[34/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:25:3 › Fleet View E2E › complete flow: view aggregation → toggle grid/list → view swarm details
+[1A[2K[35/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:69:3 › Fleet View E2E › aggregation cards display
+[1A[2K  17) [chromium] › src/__tests__/e2e/events-view.spec.ts:207:3 › Events View E2E › refresh button functionality 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="event-item"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="event-item"]').first()[22m
+
+
+      216 |     await page.waitForTimeout(500);
+      217 |     const eventItems = page.locator('[data-testid="event-item"]');
+    > 218 |     await expect(eventItems.first()).toBeVisible();
+          |                                      ^
+      219 |   });
+      220 |
+      221 |   test('filter toggle button', async ({ page }) => {
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/events-view.spec.ts:218:38
+
+    Error Context: test-results/events-view-Events-View-E2E-refresh-button-functionality-chromium/error-context.md
+
+
+[1A[2K[36/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:210:3 › Fleet View E2E › agent distribution chart rendering
+[1A[2K[37/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:224:3 › Fleet View E2E › refresh button functionality
+[1A[2K[38/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:238:3 › Fleet View E2E › swarm list section header
+[1A[2K[39/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:98:3 › Fleet View E2E › grid/list toggle functionality
+[1A[2K  18) [chromium] › src/__tests__/e2e/agents-view.spec.ts:108:3 › Agents View E2E › should terminate agent with confirmation 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button[aria-label*="terminate" i]').first()[22m
+
+
+      109 |     // Find first agent's terminate button
+      110 |     const firstTerminateButton = page.locator('button[aria-label*="terminate" i]').first();
+    > 111 |     await firstTerminateButton.click();
+          |                                ^
+      112 |
+      113 |     // Verify confirmation dialog
+      114 |     await expect(page.locator('dialog, [role="dialog"]')).toBeVisible();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:111:32
+
+    Error Context: test-results/agents-view-Agents-View-E2-48604-ate-agent-with-confirmation-chromium/error-context.md
+
+
+[1A[2K  19) [chromium] › src/__tests__/e2e/agents-view.spec.ts:173:3 › Agents View E2E › should navigate to agent details (if implemented) 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.textContent: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[data-testid="agent-card"], [data-testid="agent-row"]').first().locator('text=/agent|coder|specialist/i').first()[22m
+
+
+      174 |     // Click on first agent card/row
+      175 |     const firstAgent = page.locator('[data-testid="agent-card"], [data-testid="agent-row"]').first();
+    > 176 |     const agentName = await firstAgent.locator('text=/agent|coder|specialist/i').first().textContent();
+          |                                                                                          ^
+      177 |
+      178 |     await firstAgent.click();
+      179 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:176:90
+
+    Error Context: test-results/agents-view-Agents-View-E2-8b324-ent-details-if-implemented--chromium/error-context.md
+
+
+[1A[2K  20) [chromium] › src/__tests__/e2e/agents-view.spec.ts:129:3 › Agents View E2E › should validate spawn form fields 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('dialog button:has-text("Spawn")')[22m
+
+
+      133 |     // Try to submit without filling required fields
+      134 |     const submitButton = page.locator('dialog button:has-text("Spawn")');
+    > 135 |     await submitButton.click();
+          |                        ^
+      136 |
+      137 |     // Verify validation errors
+      138 |     await expect(page.locator('text=/type is required/i, text=/name is required/i')).toBeVisible();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:135:24
+
+    Error Context: test-results/agents-view-Agents-View-E2-6640b--validate-spawn-form-fields-chromium/error-context.md
+
+
+[1A[2K[40/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:86:3 › Hierarchy View E2E › should filter hierarchy by status
+[1A[2K  21) [chromium] › src/__tests__/e2e/agents-view.spec.ts:95:3 › Agents View E2E › should filter agents by type 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('select[aria-label*="type" i], button:has-text("Type")')[22m
+
+
+       96 |     // Open type filter
+       97 |     const typeFilter = page.locator('select[aria-label*="type" i], button:has-text("Type")');
+    >  98 |     await typeFilter.click();
+          |                      ^
+       99 |
+      100 |     // Select "Tester"
+      101 |     await page.locator('li:has-text("Tester"), [value="tester"]').click();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/agents-view.spec.ts:98:22
+
+    Error Context: test-results/agents-view-Agents-View-E2E-should-filter-agents-by-type-chromium/error-context.md
+
+
+[1A[2K[41/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:99:3 › Hierarchy View E2E › should search hierarchy by agent name
+[1A[2K[42/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:130:3 › Hierarchy View E2E › should navigate to parent from details drawer
+[1A[2K[43/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:146:3 › Hierarchy View E2E › should display topology information
+[1A[2K[44/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:178:3 › Fleet View E2E › swarm status breakdown display
+[1A[2K[45/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:190:3 › Fleet View E2E › virtual scrolling for swarm list
+[1A[2K[46/420] [chromium] › src/__tests__/e2e/fleet-view.spec.ts:245:3 › Fleet View E2E › metrics update when data changes
+[1A[2K[47/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:16:3 › Hierarchy View E2E › complete user flow: view tree → expand node → view details → export JSON
+[1A[2K[48/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:152:3 › Hierarchy View E2E › should show depth indicators
+[1A[2K  22) [chromium] › src/__tests__/e2e/fleet-view.spec.ts:210:3 › Fleet View E2E › agent distribution chart rendering 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="agent-distribution-chart"]').locator('canvas')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="agent-distribution-chart"]').locator('canvas')[22m
+
+
+      219 |
+      220 |     // Verify canvas element (pie chart)
+    > 221 |     await expect(chartContainer.locator('canvas')).toBeVisible();
+          |                                                    ^
+      222 |   });
+      223 |
+      224 |   test('refresh button functionality', async ({ page }) => {
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/fleet-view.spec.ts:221:52
+
+    Error Context: test-results/fleet-view-Fleet-View-E2E-agent-distribution-chart-rendering-chromium/error-context.md
+
+
+[1A[2K[49/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:68:3 › Hierarchy View E2E › should collapse all nodes
+[1A[2K[50/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:109:3 › Hierarchy View E2E › should export hierarchy as CSV
+[1A[2K[51/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:180:3 › Hierarchy View E2E › should handle empty hierarchy
+[1A[2K  23) [chromium] › src/__tests__/e2e/fleet-view.spec.ts:238:3 › Fleet View E2E › swarm list section header 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/swarm list/i').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/swarm list/i').first()[22m
+
+
+      240 |
+      241 |     // Verify swarm list section
+    > 242 |     await expect(page.locator('text=/swarm list/i').first()).toBeVisible();
+          |                                                              ^
+      243 |   });
+      244 |
+      245 |   test('metrics update when data changes', async ({ page }) => {
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/fleet-view.spec.ts:242:62
+
+    Error Context: test-results/fleet-view-Fleet-View-E2E-swarm-list-section-header-chromium/error-context.md
+
+
+[1A[2K  24) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:109:3 › Hierarchy View E2E › should export hierarchy as CSV 
+
+    Error: locator.click: Error: strict mode violation: locator('button:has-text("Export")') resolved to 2 elements:
+        1) <button tabindex="0" type="button" aria-label="Export as JSON" class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorPrimary css-1xwpv29-MuiButtonBase-root-MuiButton-root">…</button> aka getByRole('button', { name: 'Export as JSON' })
+        2) <button tabindex="0" type="button" aria-label="Export as CSV" class="MuiButtonBase-root MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-outlined MuiButton-outlinedPrimary MuiButton-sizeMedium MuiButton-outlinedSizeMedium MuiButton-colorPrimary css-1xwpv29-MuiButtonBase-root-MuiButton-root">…</button> aka getByRole('button', { name: 'Export as CSV' })
+
+    Call log:
+    [2m  - waiting for locator('button:has-text("Export")')[22m
+
+
+      109 |   test('should export hierarchy as CSV', async ({ page }) => {
+      110 |     const exportButton = page.locator('button:has-text("Export")');
+    > 111 |     await exportButton.click();
+          |                        ^
+      112 |
+      113 |     const csvOption = page.locator('li:has-text("CSV"), [role="menuitem"]:has-text("CSV")');
+      114 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:111:24
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-5f613-uld-export-hierarchy-as-CSV-chromium/error-context.md
+
+
+[1A[2K[52/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:103:3 › Performance View E2E › should display trend indicators on metric cards
+[1A[2K[53/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:112:3 › Performance View E2E › should render CPU usage chart
+[1A[2K  25) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:146:3 › Hierarchy View E2E › should display topology information 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/topology.*hierarchical|mesh/i')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/topology.*hierarchical|mesh/i')[22m
+
+
+      146 |   test('should display topology information', async ({ page }) => {
+      147 |     // Verify topology info is displayed
+    > 148 |     await expect(page.locator('text=/topology.*hierarchical|mesh/i')).toBeVisible();
+          |                                                                       ^
+      149 |     await expect(page.locator('text=/\\d+ agents/i')).toBeVisible();
+      150 |   });
+      151 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:148:71
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-12726-isplay-topology-information-chromium/error-context.md
+
+
+[1A[2K  26) [chromium] › src/__tests__/e2e/performance-view.spec.ts:112:3 › Performance View E2E › should render CPU usage chart 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: [data-testid="cpu-chart"], text=/CPU Usage/i >> .. >> canvas
+    Expected: visible
+    Error: Unexpected token "=" while parsing css selector "[data-testid="cpu-chart"], text=/CPU Usage/i". Did you mean to CSS.escape it?
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for [data-testid="cpu-chart"], text=/CPU Usage/i >> .. >> canvas[22m
+
+
+      112 |   test('should render CPU usage chart', async ({ page }) => {
+      113 |     const cpuChart = page.locator('[data-testid="cpu-chart"], text=/CPU Usage/i').locator('..').locator('canvas');
+    > 114 |     await expect(cpuChart).toBeVisible();
+          |                            ^
+      115 |
+      116 |     // Verify chart has data (canvas should have drawn something)
+      117 |     const boundingBox = await cpuChart.boundingBox();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:114:28
+
+    Error Context: test-results/performance-view-Performan-df38f-ould-render-CPU-usage-chart-chromium/error-context.md
+
+
+[1A[2K[54/420] [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:167:3 › Hierarchy View E2E › should close details drawer
+[1A[2K[55/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:16:3 › Performance View E2E › complete user flow: view charts → change time range → verify data updates → export CSV
+[1A[2K  27) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:16:3 › Hierarchy View E2E › complete user flow: view tree → expand node → view details → export JSON 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('Main Coordinator')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByText('Main Coordinator')[22m
+
+
+      19 |
+      20 |     // Step 2: Verify root nodes are visible
+    > 21 |     await expect(page.getByText('Main Coordinator')).toBeVisible();
+         |                                                      ^
+      22 |
+      23 |     // Step 3: Expand root node
+      24 |     const expandButton = page.locator('button[aria-label*="expand" i]').first();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:21:54
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-4fde3--view-details-→-export-JSON-chromium/error-context.md
+
+
+[1A[2K[56/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:81:3 › Performance View E2E › should display all metric cards with correct values
+[1A[2K  28) [chromium] › src/__tests__/e2e/performance-view.spec.ts:16:3 › Performance View E2E › complete user flow: view charts → change time range → verify data updates → export CSV 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/Memory Usage/i')
+    Expected: visible
+    Error: strict mode violation: locator('text=/Memory Usage/i') resolved to 3 elements:
+        1) <p class="MuiTypography-root MuiTypography-body2 css-obvqy6-MuiTypography-root">Memory Usage</p> aka getByRole('paragraph').filter({ hasText: 'Memory Usage' })
+        2) <h6 class="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom css-16tos9o-MuiTypography-root">Memory Usage</h6> aka getByRole('heading', { name: 'Memory Usage' })
+        3) <span class="MuiTypography-root MuiTypography-caption css-1kl6ogg-MuiTypography-root">Avg Memory Usage</span> aka getByText('Avg Memory Usage')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/Memory Usage/i')[22m
+
+
+      20 |     // Step 2: Verify all 4 metric cards are visible
+      21 |     await expect(page.locator('text=/System CPU/i')).toBeVisible();
+    > 22 |     await expect(page.locator('text=/Memory Usage/i')).toBeVisible();
+         |                                                        ^
+      23 |     await expect(page.locator('text=/Active Agents/i')).toBeVisible();
+      24 |     await expect(page.locator('text=/Events.*sec/i')).toBeVisible();
+      25 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:22:56
+
+    Error Context: test-results/performance-view-Performan-c04ed-y-data-updates-→-export-CSV-chromium/error-context.md
+
+
+[1A[2K[57/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:123:3 › Performance View E2E › should render memory usage chart
+[1A[2K  29) [chromium] › src/__tests__/e2e/performance-view.spec.ts:103:3 › Performance View E2E › should display trend indicators on metric cards 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid*="trend"], svg[data-testid*="arrow"]').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid*="trend"], svg[data-testid*="arrow"]').first()[22m
+
+
+      104 |     // Verify trend arrows/indicators are visible
+      105 |     const trendIndicators = page.locator('[data-testid*="trend"], svg[data-testid*="arrow"]');
+    > 106 |     await expect(trendIndicators.first()).toBeVisible();
+          |                                           ^
+      107 |
+      108 |     // Verify trend percentages
+      109 |     await expect(page.locator('text=/[+-]\\d+\\.\\d+%/').first()).toBeVisible();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:106:43
+
+    Error Context: test-results/performance-view-Performan-6eafe--indicators-on-metric-cards-chromium/error-context.md
+
+
+[1A[2K[58/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:128:3 › Performance View E2E › should render agents status chart
+[1A[2K  30) [chromium] › src/__tests__/e2e/performance-view.spec.ts:123:3 › Performance View E2E › should render memory usage chart 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: [data-testid="memory-chart"], text=/Memory Usage/i >> .. >> canvas
+    Expected: visible
+    Error: Unexpected token "=" while parsing css selector "[data-testid="memory-chart"], text=/Memory Usage/i". Did you mean to CSS.escape it?
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for [data-testid="memory-chart"], text=/Memory Usage/i >> .. >> canvas[22m
+
+
+      123 |   test('should render memory usage chart', async ({ page }) => {
+      124 |     const memoryChart = page.locator('[data-testid="memory-chart"], text=/Memory Usage/i').locator('..').locator('canvas');
+    > 125 |     await expect(memoryChart).toBeVisible();
+          |                               ^
+      126 |   });
+      127 |
+      128 |   test('should render agents status chart', async ({ page }) => {
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:125:31
+
+    Error Context: test-results/performance-view-Performan-d001f-d-render-memory-usage-chart-chromium/error-context.md
+
+
+[1A[2K  31) [chromium] › src/__tests__/e2e/performance-view.spec.ts:128:3 › Performance View E2E › should render agents status chart 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: [data-testid="agents-chart"], text=/Agent Status/i >> .. >> canvas
+    Expected: visible
+    Error: Unexpected token "=" while parsing css selector "[data-testid="agents-chart"], text=/Agent Status/i". Did you mean to CSS.escape it?
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for [data-testid="agents-chart"], text=/Agent Status/i >> .. >> canvas[22m
+
+
+      128 |   test('should render agents status chart', async ({ page }) => {
+      129 |     const agentsChart = page.locator('[data-testid="agents-chart"], text=/Agent Status/i').locator('..').locator('canvas');
+    > 130 |     await expect(agentsChart).toBeVisible();
+          |                               ^
+      131 |   });
+      132 |
+      133 |   test('should render events per second chart', async ({ page }) => {
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:130:31
+
+    Error Context: test-results/performance-view-Performan-3ff2d--render-agents-status-chart-chromium/error-context.md
+
+
+[1A[2K[59/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:133:3 › Performance View E2E › should render events per second chart
+[1A[2K[60/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:138:3 › Performance View E2E › should change time range to 1 hour
+[1A[2K  32) [chromium] › src/__tests__/e2e/performance-view.spec.ts:133:3 › Performance View E2E › should render events per second chart 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: [data-testid="events-chart"], text=/Events.*Second/i >> .. >> canvas
+    Expected: visible
+    Error: Unexpected token "=" while parsing css selector "[data-testid="events-chart"], text=/Events.*Second/i". Did you mean to CSS.escape it?
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for [data-testid="events-chart"], text=/Events.*Second/i >> .. >> canvas[22m
+
+
+      133 |   test('should render events per second chart', async ({ page }) => {
+      134 |     const eventsChart = page.locator('[data-testid="events-chart"], text=/Events.*Second/i').locator('..').locator('canvas');
+    > 135 |     await expect(eventsChart).toBeVisible();
+          |                               ^
+      136 |   });
+      137 |
+      138 |   test('should change time range to 1 hour', async ({ page }) => {
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:135:31
+
+    Error Context: test-results/performance-view-Performan-5ddc7-der-events-per-second-chart-chromium/error-context.md
+
+
+[1A[2K  33) [chromium] › src/__tests__/e2e/performance-view.spec.ts:81:3 › Performance View E2E › should display all metric cards with correct values 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="metric-card-cpu"]').locator('text=/System CPU/i')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="metric-card-cpu"]').locator('text=/System CPU/i')[22m
+
+
+      82 |     // CPU metric
+      83 |     const cpuCard = page.locator('[data-testid="metric-card-cpu"]');
+    > 84 |     await expect(cpuCard.locator('text=/System CPU/i')).toBeVisible();
+         |                                                         ^
+      85 |     await expect(cpuCard.locator('text=/\\d+\\.\\d+%/')).toBeVisible();
+      86 |
+      87 |     // Memory metric
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:84:57
+
+    Error Context: test-results/performance-view-Performan-acdd5-c-cards-with-correct-values-chromium/error-context.md
+
+
+[1A[2K[61/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:149:3 › Performance View E2E › should change time range to 7 days
+[1A[2K[62/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:160:3 › Performance View E2E › should change time range to 30 days
+[1A[2K[63/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:171:3 › Performance View E2E › should pause auto-refresh
+[1A[2K[64/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:180:3 › Performance View E2E › should resume auto-refresh after pause
+[1A[2K[65/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:193:3 › Performance View E2E › should manually refresh data
+[1A[2K[66/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:209:3 › Performance View E2E › should show chart tooltips on hover
+[1A[2K  34) [chromium] › src/__tests__/e2e/performance-view.spec.ts:209:3 › Performance View E2E › should show chart tooltips on hover 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="cpu-chart"], canvas').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="cpu-chart"], canvas').first()[22m
+
+
+      209 |   test('should show chart tooltips on hover', async ({ page }) => {
+      210 |     const cpuChart = page.locator('[data-testid="cpu-chart"], canvas').first();
+    > 211 |     await expect(cpuChart).toBeVisible();
+          |                            ^
+      212 |
+      213 |     // Hover over chart
+      214 |     const boundingBox = await cpuChart.boundingBox();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:211:28
+
+    Error Context: test-results/performance-view-Performan-641d9-how-chart-tooltips-on-hover-chromium/error-context.md
+
+
+[1A[2K  35) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:86:3 › Hierarchy View E2E › should filter hierarchy by status 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('select[aria-label*="status" i], button:has-text("Status")')[22m
+
+
+      87 |     // Open status filter
+      88 |     const statusFilter = page.locator('select[aria-label*="status" i], button:has-text("Status")');
+    > 89 |     await statusFilter.click();
+         |                        ^
+      90 |
+      91 |     // Select "Active"
+      92 |     await page.locator('li:has-text("Active"), [value="active"]').click();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:89:24
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-2d709--filter-hierarchy-by-status-chromium/error-context.md
+
+
+[1A[2K  36) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:99:3 › Hierarchy View E2E › should search hierarchy by agent name 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('input[placeholder*="search" i]')[22m
+
+
+       99 |   test('should search hierarchy by agent name', async ({ page }) => {
+      100 |     const searchInput = page.locator('input[placeholder*="search" i]');
+    > 101 |     await searchInput.fill('Security');
+          |                       ^
+      102 |     await page.waitForTimeout(300);
+      103 |
+      104 |     // Verify only matching agents are visible
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:101:23
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-9bb2d-rch-hierarchy-by-agent-name-chromium/error-context.md
+
+
+[1A[2K  37) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:130:3 › Hierarchy View E2E › should navigate to parent from details drawer 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button[aria-label*="expand" i]').first()[22m
+
+
+      130 |   test('should navigate to parent from details drawer', async ({ page }) => {
+      131 |     // Expand tree
+    > 132 |     await page.locator('button[aria-label*="expand" i]').first().click();
+          |                                                                  ^
+      133 |     await page.locator('button[aria-label*="expand.*Primary" i]').click();
+      134 |
+      135 |     // Click on child node
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:132:66
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-4c267--parent-from-details-drawer-chromium/error-context.md
+
+
+[1A[2K[67/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:229:3 › Performance View E2E › should display chart legends
+[1A[2K[68/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:237:3 › Performance View E2E › should handle network errors gracefully
+[1A[2K[69/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:252:3 › Performance View E2E › should show connection status indicator
+[1A[2K  38) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:152:3 › Hierarchy View E2E › should show depth indicators 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("Expand All")')[22m
+
+
+      152 |   test('should show depth indicators', async ({ page }) => {
+      153 |     // Expand tree fully
+    > 154 |     await page.locator('button:has-text("Expand All")').click();
+          |                                                         ^
+      155 |     await page.waitForTimeout(500);
+      156 |
+      157 |     // Verify depth indicators are visible (indentation, levels)
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:154:57
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-1f58a-hould-show-depth-indicators-chromium/error-context.md
+
+
+[1A[2K  39) [chromium] › src/__tests__/e2e/performance-view.spec.ts:229:3 › Performance View E2E › should display chart legends 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/CPU Usage/i')
+    Expected: visible
+    Error: strict mode violation: locator('text=/CPU Usage/i') resolved to 2 elements:
+        1) <h6 class="MuiTypography-root MuiTypography-h6 MuiTypography-gutterBottom css-16tos9o-MuiTypography-root">CPU Usage</h6> aka getByRole('heading', { name: 'CPU Usage' })
+        2) <span class="MuiTypography-root MuiTypography-caption css-1kl6ogg-MuiTypography-root">Avg CPU Usage</span> aka getByText('Avg CPU Usage')
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/CPU Usage/i')[22m
+
+
+      229 |   test('should display chart legends', async ({ page }) => {
+      230 |     // Verify legends are visible for each chart
+    > 231 |     await expect(page.locator('text=/CPU Usage/i')).toBeVisible();
+          |                                                     ^
+      232 |     await expect(page.locator('text=/Memory Usage/i')).toBeVisible();
+      233 |     await expect(page.locator('text=/Active.*Idle.*Progress/i')).toBeVisible();
+      234 |     await expect(page.locator('text=/Events.*Second/i')).toBeVisible();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:231:53
+
+    Error Context: test-results/performance-view-Performan-c1a28-hould-display-chart-legends-chromium/error-context.md
+
+
+[1A[2K  40) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:68:3 › Hierarchy View E2E › should collapse all nodes 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("Expand All")')[22m
+
+
+      69 |     // Expand all first
+      70 |     const expandAllButton = page.locator('button:has-text("Expand All")');
+    > 71 |     await expandAllButton.click();
+         |                           ^
+      72 |     await page.waitForTimeout(500);
+      73 |
+      74 |     // Verify children are visible
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:71:27
+
+    Error Context: test-results/hierarchy-view-Hierarchy-View-E2E-should-collapse-all-nodes-chromium/error-context.md
+
+
+[1A[2K[70/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:89:3 › Complete User Flow › should handle navigation with browser back/forward
+[1A[2K[71/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:257:3 › Performance View E2E › should display last updated timestamp
+[1A[2K[72/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:263:3 › Performance View E2E › should verify CSV export contains all time range data
+[1A[2K[73/420] [chromium] › src/__tests__/e2e/performance-view.spec.ts:287:3 › Performance View E2E › should show metric trend comparisons
+[1A[2K[74/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:14:3 › Complete User Flow › should complete full user journey
+[1A[2K  41) [chromium] › src/__tests__/e2e/hierarchy-view.spec.ts:167:3 › Hierarchy View E2E › should close details drawer 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByText('Main Coordinator')[22m
+
+
+      167 |   test('should close details drawer', async ({ page }) => {
+      168 |     // Open details drawer
+    > 169 |     await page.getByText('Main Coordinator').click();
+          |                                              ^
+      170 |     await expect(page.locator('[role="complementary"]')).toBeVisible();
+      171 |
+      172 |     // Close drawer
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/hierarchy-view.spec.ts:169:46
+
+    Error Context: test-results/hierarchy-view-Hierarchy-V-a1398-should-close-details-drawer-chromium/error-context.md
+
+
+[1A[2K  42) [chromium] › src/__tests__/e2e/performance-view.spec.ts:237:3 › Performance View E2E › should handle network errors gracefully 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/error|failed|offline/i')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/error|failed|offline/i')[22m
+
+
+      244 |
+      245 |     // Verify error message
+    > 246 |     await expect(page.locator('text=/error|failed|offline/i')).toBeVisible({ timeout: 5000 });
+          |                                                                ^
+      247 |
+      248 |     // Go back online
+      249 |     await page.context().setOffline(false);
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:246:64
+
+    Error Context: test-results/performance-view-Performan-fd9b4-e-network-errors-gracefully-chromium/error-context.md
+
+
+[1A[2K  43) [chromium] › src/__tests__/e2e/performance-view.spec.ts:257:3 › Performance View E2E › should display last updated timestamp 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/last updated|updated/i')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/last updated|updated/i')[22m
+
+
+      257 |   test('should display last updated timestamp', async ({ page }) => {
+      258 |     // Verify timestamp is displayed
+    > 259 |     await expect(page.locator('text=/last updated|updated/i')).toBeVisible();
+          |                                                                ^
+      260 |     await expect(page.locator('text=/\\d{1,2}:\\d{2}(:\\d{2})? (AM|PM)?/i')).toBeVisible();
+      261 |   });
+      262 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:259:64
+
+    Error Context: test-results/performance-view-Performan-aeb60-play-last-updated-timestamp-chromium/error-context.md
+
+
+[1A[2K[75/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:114:3 › Complete User Flow › should preserve state across navigation
+[1A[2K[76/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:137:3 › Complete User Flow › should handle errors gracefully
+[1A[2K  44) [chromium] › src/__tests__/e2e/performance-view.spec.ts:287:3 › Performance View E2E › should show metric trend comparisons 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=/[+-]\\d+\\.\\d+%/').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=/[+-]\\d+\\.\\d+%/').first()[22m
+
+
+      291 |     // Verify trend values (positive/negative)
+      292 |     const trendValues = page.locator('text=/[+-]\\d+\\.\\d+%/');
+    > 293 |     await expect(trendValues.first()).toBeVisible();
+          |                                       ^
+      294 |   });
+      295 | });
+      296 |
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:293:39
+
+    Error Context: test-results/performance-view-Performan-74891-ow-metric-trend-comparisons-chromium/error-context.md
+
+
+[1A[2K  45) [chromium] › src/__tests__/e2e/user-flow.spec.ts:14:3 › Complete User Flow › should complete full user journey 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="status-monitor"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="status-monitor"]')[22m
+
+
+      18 |
+      19 |     // Verify Dashboard components are visible
+    > 20 |     await expect(page.locator('[data-testid="status-monitor"]')).toBeVisible();
+         |                                                                  ^
+      21 |     await expect(page.locator('[data-testid="resource-gauges"]')).toBeVisible();
+      22 |
+      23 |     // Step 2: User navigates to Agents view
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/user-flow.spec.ts:20:66
+
+    Error Context: test-results/user-flow-Complete-User-Fl-817a5--complete-full-user-journey-chromium/error-context.md
+
+
+[1A[2K[77/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:194:3 › Performance Benchmarks › should load Dashboard within 3 seconds
+[1A[2K[78/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:204:3 › Performance Benchmarks › should navigate between routes in <500ms
+[1A[2K  46) [chromium] › src/__tests__/e2e/performance-view.spec.ts:138:3 › Performance View E2E › should change time range to 1 hour 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('select[aria-label*="time range" i]')[22m
+
+
+      138 |   test('should change time range to 1 hour', async ({ page }) => {
+      139 |     const timeRangeSelect = page.locator('select[aria-label*="time range" i]');
+    > 140 |     await timeRangeSelect.selectOption('1h');
+          |                           ^
+      141 |
+      142 |     // Verify selection
+      143 |     await expect(timeRangeSelect).toHaveValue('1h');
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:140:27
+
+    Error Context: test-results/performance-view-Performan-9c2f1-change-time-range-to-1-hour-chromium/error-context.md
+
+
+[1A[2K  47) [chromium] › src/__tests__/e2e/performance-view.spec.ts:149:3 › Performance View E2E › should change time range to 7 days 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('select[aria-label*="time range" i]')[22m
+
+
+      149 |   test('should change time range to 7 days', async ({ page }) => {
+      150 |     const timeRangeSelect = page.locator('select[aria-label*="time range" i]');
+    > 151 |     await timeRangeSelect.click();
+          |                           ^
+      152 |
+      153 |     const sevenDaysOption = page.locator('li:has-text("7 Days"), [value="7d"]');
+      154 |     await sevenDaysOption.click();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:151:27
+
+    Error Context: test-results/performance-view-Performan-00204-change-time-range-to-7-days-chromium/error-context.md
+
+
+[1A[2K[79/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:145:3 › Complete User Flow › should load all routes without errors
+[1A[2K  48) [chromium] › src/__tests__/e2e/performance-view.spec.ts:160:3 › Performance View E2E › should change time range to 30 days 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('select[aria-label*="time range" i]')[22m
+
+
+      160 |   test('should change time range to 30 days', async ({ page }) => {
+      161 |     const timeRangeSelect = page.locator('select[aria-label*="time range" i]');
+    > 162 |     await timeRangeSelect.click();
+          |                           ^
+      163 |
+      164 |     const thirtyDaysOption = page.locator('li:has-text("30 Days"), [value="30d"]');
+      165 |     await thirtyDaysOption.click();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:162:27
+
+    Error Context: test-results/performance-view-Performan-976c0-hange-time-range-to-30-days-chromium/error-context.md
+
+
+[1A[2K  49) [chromium] › src/__tests__/e2e/performance-view.spec.ts:171:3 › Performance View E2E › should pause auto-refresh 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button[aria-label*="pause" i]')[22m
+
+
+      172 |     // Find pause button
+      173 |     const pauseButton = page.locator('button[aria-label*="pause" i]');
+    > 174 |     await pauseButton.click();
+          |                       ^
+      175 |
+      176 |     // Verify button changed to "resume"
+      177 |     await expect(page.locator('button[aria-label*="resume" i]')).toBeVisible();
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:174:23
+
+    Error Context: test-results/performance-view-Performan-857e4-E-should-pause-auto-refresh-chromium/error-context.md
+
+
+[1A[2K[80/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:165:3 › Complete User Flow › should handle real-time updates
+[1A[2K[81/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:178:3 › Complete User Flow › should support keyboard navigation
+[1A[2K  50) [chromium] › src/__tests__/e2e/performance-view.spec.ts:180:3 › Performance View E2E › should resume auto-refresh after pause 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button[aria-label*="pause" i]')[22m
+
+
+      181 |     // Pause first
+      182 |     const pauseButton = page.locator('button[aria-label*="pause" i]');
+    > 183 |     await pauseButton.click();
+          |                       ^
+      184 |
+      185 |     // Resume
+      186 |     const resumeButton = page.locator('button[aria-label*="resume" i]');
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:183:23
+
+    Error Context: test-results/performance-view-Performan-b2719-me-auto-refresh-after-pause-chromium/error-context.md
+
+
+[1A[2K[82/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:218:3 › Accessibility › should have accessible navigation
+[1A[2K[83/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:230:3 › Accessibility › should have proper heading hierarchy
+[1A[2K[84/420] [chromium] › src/__tests__/e2e/user-flow.spec.ts:238:3 › Accessibility › should support screen readers
+[1A[2K[85/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:16:3 › Agents View E2E › complete user flow: view list → search → filter → spawn agent → verify in list
+[1A[2K  51) [firefox] › src/__tests__/e2e/agents-view.spec.ts:16:3 › Agents View E2E › complete user flow: view list → search → filter → spawn agent → verify in list 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[86/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:77:3 › Agents View E2E › should switch between list and grid views
+[1A[2K[87/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:95:3 › Agents View E2E › should filter agents by type
+[1A[2K  52) [firefox] › src/__tests__/e2e/agents-view.spec.ts:95:3 › Agents View E2E › should filter agents by type 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  53) [firefox] › src/__tests__/e2e/agents-view.spec.ts:77:3 › Agents View E2E › should switch between list and grid views 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  54) [chromium] › src/__tests__/e2e/user-flow.spec.ts:165:3 › Complete User Flow › should handle real-time updates 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-testid="status-monitor"]')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-testid="status-monitor"]')[22m
+
+
+      170 |
+      171 |     // Dashboard should be ready for real-time updates
+    > 172 |     await expect(page.locator('[data-testid="status-monitor"]')).toBeVisible();
+          |                                                                  ^
+      173 |
+      174 |     // Simulate real-time event (would require WebSocket mock or actual backend)
+      175 |     // Verify UI updates in response to WebSocket events
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/user-flow.spec.ts:172:66
+
+    Error Context: test-results/user-flow-Complete-User-Flow-should-handle-real-time-updates-chromium/error-context.md
+
+
+[1A[2K[88/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:108:3 › Agents View E2E › should terminate agent with confirmation
+[1A[2K  55) [firefox] › src/__tests__/e2e/agents-view.spec.ts:108:3 › Agents View E2E › should terminate agent with confirmation 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[89/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:129:3 › Agents View E2E › should validate spawn form fields
+[1A[2K[90/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:141:3 › Agents View E2E › should search agents by name
+[1A[2K[91/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:156:3 › Agents View E2E › should show current task for in-progress agents
+[1A[2K[92/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:150:3 › Agents View E2E › should display agent metadata
+[1A[2K[93/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:173:3 › Agents View E2E › should navigate to agent details (if implemented)
+[1A[2K  56) [firefox] › src/__tests__/e2e/agents-view.spec.ts:129:3 › Agents View E2E › should validate spawn form fields 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  57) [firefox] › src/__tests__/e2e/agents-view.spec.ts:141:3 › Agents View E2E › should search agents by name 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  58) [firefox] › src/__tests__/e2e/agents-view.spec.ts:156:3 › Agents View E2E › should show current task for in-progress agents 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  59) [firefox] › src/__tests__/e2e/agents-view.spec.ts:150:3 › Agents View E2E › should display agent metadata 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  60) [firefox] › src/__tests__/e2e/agents-view.spec.ts:173:3 › Agents View E2E › should navigate to agent details (if implemented) 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[94/420] [firefox] › src/__tests__/e2e/agents-view.spec.ts:165:3 › Agents View E2E › should handle empty search results
+[1A[2K  61) [firefox] › src/__tests__/e2e/agents-view.spec.ts:165:3 › Agents View E2E › should handle empty search results 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[95/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:25:3 › CFN Loop View E2E › complete flow: view timeline → select phase → view metrics → progress bars
+[1A[2K[96/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:90:3 › CFN Loop View E2E › current loop status display
+[1A[2K[97/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:71:3 › CFN Loop View E2E › phase timeline navigation
+[1A[2K  62) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:25:3 › CFN Loop View E2E › complete flow: view timeline → select phase → view metrics → progress bars 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  63) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:90:3 › CFN Loop View E2E › current loop status display 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  64) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:71:3 › CFN Loop View E2E › phase timeline navigation 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[98/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:109:3 › CFN Loop View E2E › metrics cards verification
+[1A[2K[99/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:137:3 › CFN Loop View E2E › progress bar accuracy
+[1A[2K  65) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:109:3 › CFN Loop View E2E › metrics cards verification 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  66) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:137:3 › CFN Loop View E2E › progress bar accuracy 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[100/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:167:3 › CFN Loop View E2E › threshold status indicators
+[1A[2K  67) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:167:3 › CFN Loop View E2E › threshold status indicators 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[101/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:181:3 › CFN Loop View E2E › phase completion status
+[1A[2K  68) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:181:3 › CFN Loop View E2E › phase completion status 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[102/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:198:3 › CFN Loop View E2E › sprint chips display
+[1A[2K  69) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:198:3 › CFN Loop View E2E › sprint chips display 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[103/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:211:3 › CFN Loop View E2E › refresh button functionality
+[1A[2K[104/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:241:3 › CFN Loop View E2E › responsive layout adaptation
+[1A[2K[105/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:71:3 › Events View E2E › category filter flow: all categories
+[1A[2K[106/420] [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:225:3 › CFN Loop View E2E › progress bar color coding
+[1A[2K  70) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:241:3 › CFN Loop View E2E › responsive layout adaptation 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  71) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:211:3 › CFN Loop View E2E › refresh button functionality 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  72) [firefox] › src/__tests__/e2e/events-view.spec.ts:71:3 › Events View E2E › category filter flow: all categories 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  73) [firefox] › src/__tests__/e2e/cfn-loop-view.spec.ts:225:3 › CFN Loop View E2E › progress bar color coding 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  74) [chromium] › src/__tests__/e2e/user-flow.spec.ts:89:3 › Complete User Flow › should handle navigation with browser back/forward 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('a:has-text("Agents")')[22m
+
+
+      92 |
+      93 |     // Navigate to Agents
+    > 94 |     await page.click('a:has-text("Agents")');
+         |                ^
+      95 |     await expect(page).toHaveURL(/\/agents/);
+      96 |
+      97 |     // Navigate to Performance
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/user-flow.spec.ts:94:16
+
+    Error Context: test-results/user-flow-Complete-User-Fl-d563f-n-with-browser-back-forward-chromium/error-context.md
+
+
+[1A[2K[107/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:26:3 › Events View E2E › complete flow: view timeline → search → filter → verify updates
+[1A[2K  75) [firefox] › src/__tests__/e2e/events-view.spec.ts:26:3 › Events View E2E › complete flow: view timeline → search → filter → verify updates 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[108/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:100:3 › Events View E2E › severity filter flow: all severities
+[1A[2K  76) [firefox] › src/__tests__/e2e/events-view.spec.ts:100:3 › Events View E2E › severity filter flow: all severities 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  77) [chromium] › src/__tests__/e2e/performance-view.spec.ts:263:3 › Performance View E2E › should verify CSV export contains all time range data 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.selectOption: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('select[aria-label*="time range" i]')[22m
+
+
+      264 |     // Change to 24h range
+      265 |     const timeRangeSelect = page.locator('select[aria-label*="time range" i]');
+    > 266 |     await timeRangeSelect.selectOption('24h');
+          |                           ^
+      267 |     await page.waitForTimeout(500);
+      268 |
+      269 |     // Export
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/performance-view.spec.ts:266:27
+
+    Error Context: test-results/performance-view-Performan-e964d-ontains-all-time-range-data-chromium/error-context.md
+
+
+[1A[2K[109/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:207:3 › Events View E2E › refresh button functionality
+[1A[2K[110/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:129:3 › Events View E2E › date range filter flow: all presets
+[1A[2K[111/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:158:3 › Events View E2E › search functionality: text, agent ID, event type
+[1A[2K  78) [firefox] › src/__tests__/e2e/events-view.spec.ts:207:3 › Events View E2E › refresh button functionality 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  79) [firefox] › src/__tests__/e2e/events-view.spec.ts:129:3 › Events View E2E › date range filter flow: all presets 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  80) [firefox] › src/__tests__/e2e/events-view.spec.ts:158:3 › Events View E2E › search functionality: text, agent ID, event type 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[112/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:186:3 › Events View E2E › virtual scrolling performance
+[1A[2K[113/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:221:3 › Events View E2E › filter toggle button
+[1A[2K[114/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:240:3 › Events View E2E › clear filters button
+[1A[2K  81) [firefox] › src/__tests__/e2e/events-view.spec.ts:186:3 › Events View E2E › virtual scrolling performance 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  82) [firefox] › src/__tests__/e2e/events-view.spec.ts:221:3 › Events View E2E › filter toggle button 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  83) [firefox] › src/__tests__/e2e/events-view.spec.ts:240:3 › Events View E2E › clear filters button 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[115/420] [firefox] › src/__tests__/e2e/events-view.spec.ts:263:3 › Events View E2E › event statistics chips display
+[1A[2K  84) [firefox] › src/__tests__/e2e/events-view.spec.ts:263:3 › Events View E2E › event statistics chips display 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[116/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:25:3 › Fleet View E2E › complete flow: view aggregation → toggle grid/list → view swarm details
+[1A[2K  85) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:25:3 › Fleet View E2E › complete flow: view aggregation → toggle grid/list → view swarm details 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[117/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:130:3 › Fleet View E2E › swarm list rendering in list view
+[1A[2K[118/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:69:3 › Fleet View E2E › aggregation cards display
+[1A[2K  86) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:130:3 › Fleet View E2E › swarm list rendering in list view 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  87) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:69:3 › Fleet View E2E › aggregation cards display 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[119/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:152:3 › Fleet View E2E › swarm grid rendering in grid view
+[1A[2K  88) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:152:3 › Fleet View E2E › swarm grid rendering in grid view 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[120/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:210:3 › Fleet View E2E › agent distribution chart rendering
+[1A[2K[121/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:98:3 › Fleet View E2E › grid/list toggle functionality
+[1A[2K  89) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:210:3 › Fleet View E2E › agent distribution chart rendering 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  90) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:98:3 › Fleet View E2E › grid/list toggle functionality 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  91) [chromium] › src/__tests__/e2e/user-flow.spec.ts:114:3 › Complete User Flow › should preserve state across navigation 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('a:has-text("Settings")')[22m
+
+
+      114 |   test('should preserve state across navigation', async ({ page }) => {
+      115 |     // Navigate to Settings
+    > 116 |     await page.click('a:has-text("Settings")');
+          |                ^
+      117 |     await expect(page).toHaveURL(/\/settings/);
+      118 |
+      119 |     // Toggle theme
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/user-flow.spec.ts:116:16
+
+    Error Context: test-results/user-flow-Complete-User-Fl-3f485-rve-state-across-navigation-chromium/error-context.md
+
+
+[1A[2K[122/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:224:3 › Fleet View E2E › refresh button functionality
+[1A[2K  92) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:224:3 › Fleet View E2E › refresh button functionality 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[123/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:190:3 › Fleet View E2E › virtual scrolling for swarm list
+[1A[2K  93) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:190:3 › Fleet View E2E › virtual scrolling for swarm list 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[124/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:178:3 › Fleet View E2E › swarm status breakdown display
+[1A[2K  94) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:178:3 › Fleet View E2E › swarm status breakdown display 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[125/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:245:3 › Fleet View E2E › metrics update when data changes
+[1A[2K[126/420] [firefox] › src/__tests__/e2e/fleet-view.spec.ts:238:3 › Fleet View E2E › swarm list section header
+[1A[2K  95) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:238:3 › Fleet View E2E › swarm list section header 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  96) [firefox] › src/__tests__/e2e/fleet-view.spec.ts:245:3 › Fleet View E2E › metrics update when data changes 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  97) [chromium] › src/__tests__/e2e/user-flow.spec.ts:204:3 › Performance Benchmarks › should navigate between routes in <500ms 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('a:has-text("Agents")')[22m
+
+
+      207 |
+      208 |     const startTime = Date.now();
+    > 209 |     await page.click('a:has-text("Agents")');
+          |                ^
+      210 |     await page.waitForURL(/\/agents/);
+      211 |
+      212 |     const navTime = Date.now() - startTime;
+        at /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal/src/__tests__/e2e/user-flow.spec.ts:209:16
+
+    Error Context: test-results/user-flow-Performance-Benc-717da-ate-between-routes-in-500ms-chromium/error-context.md
+
+
+[1A[2K[127/420] [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:16:3 › Hierarchy View E2E › complete user flow: view tree → expand node → view details → export JSON
+[1A[2K[128/420] [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:68:3 › Hierarchy View E2E › should collapse all nodes
+[1A[2K  98) [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:68:3 › Hierarchy View E2E › should collapse all nodes 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  99) [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:16:3 › Hierarchy View E2E › complete user flow: view tree → expand node → view details → export JSON 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[129/420] [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:109:3 › Hierarchy View E2E › should export hierarchy as CSV
+[1A[2K[130/420] [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:99:3 › Hierarchy View E2E › should search hierarchy by agent name
+[1A[2K  100) [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:109:3 › Hierarchy View E2E › should export hierarchy as CSV 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K  101) [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:99:3 › Hierarchy View E2E › should search hierarchy by agent name 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
+[1A[2K[131/420] [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:86:3 › Hierarchy View E2E › should filter hierarchy by status
+[1A[2K  102) [firefox] › src/__tests__/e2e/hierarchy-view.spec.ts:86:3 › Hierarchy View E2E › should filter hierarchy by status 
+
+    Error: browserType.launch: Executable doesn't exist at /home/masharratt/.cache/ms-playwright/firefox-1495/firefox/firefox
+    ╔═════════════════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright Test or Playwright was just installed or updated. ║
+    ║ Please run the following command to download new browsers:              ║
+    ║                                                                         ║
+    ║     npx playwright install                                              ║
+    ║                                                                         ║
+    ║ <3 Playwright Team                                                      ║
+    ╚═════════════════════════════════════════════════════════════════════════╝
+
+
