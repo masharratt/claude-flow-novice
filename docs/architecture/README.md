@@ -1,6 +1,61 @@
-# Ultra-Fast Real-Time Communication Bus Architecture
+# Architecture Documentation
 
-## Executive Summary
+## Overview
+
+This directory contains comprehensive architecture documentation for the Claude Flow Novice system, including:
+
+1. **SwarmCoordinator + ProviderManager Integration** (Real Z.ai-Powered Agent Execution) - NEW ✨
+2. **Ultra-Fast Real-Time Communication Bus** (Sub-millisecond Message Delivery)
+
+---
+
+## 1. SwarmCoordinator + ProviderManager Integration
+
+**Epic:** Real Z.ai-Powered Agent Execution
+**Status:** Architecture Complete, Ready for Implementation
+**Target Completion:** 2025-11-13 (4 weeks)
+
+### Quick Links
+
+- **[Executive Summary](./SWARM_PROVIDER_INTEGRATION_SUMMARY.md)** - Start here for overview
+- **[Full Architecture](./swarm-provider-integration-architecture.md)** - Complete design specification
+- **[Visual Diagrams](./swarm-provider-integration-diagrams.md)** - Mermaid diagrams (class, sequence, flow)
+- **[ADR-003](./adr/ADR-003-swarm-provider-integration.md)** - Architecture decision record
+- **[Implementation Checklist](./swarm-provider-implementation-checklist.md)** - Week-by-week plan
+
+### What This Architecture Enables
+
+This architecture replaces mock agent simulation with **real Z.ai-powered execution**:
+
+- ✅ Real LLM-powered agents (vs mock simulation)
+- ✅ Tool access (Read, Write, Edit, Bash, Redis pub/sub, SQLite memory)
+- ✅ 70-agent mesh coordination capability
+- ✅ <500ms agent spawn, <2s simple task completion
+- ✅ Security-first design (path validation, command whitelisting, ACL enforcement)
+
+### Key Components
+
+1. **AgentExecutor** - Bridges SwarmCoordinator → ProviderManager
+2. **AgentToolkit** - Provides 7 core tools with security controls
+3. **ConversationManager** - Manages multi-turn LLM conversations
+4. **AgentPromptBuilder** - Constructs agent-specific prompts
+5. **ResponseParser** - Extracts task results from responses
+
+### Documentation Suite
+
+| Document | Purpose | Read This For |
+|----------|---------|---------------|
+| [Executive Summary](./SWARM_PROVIDER_INTEGRATION_SUMMARY.md) | High-level overview | Quick understanding |
+| [Full Architecture](./swarm-provider-integration-architecture.md) | Complete design | Detailed technical design |
+| [Visual Diagrams](./swarm-provider-integration-diagrams.md) | Mermaid diagrams | Visual architecture |
+| [ADR-003](./adr/ADR-003-swarm-provider-integration.md) | Architecture decision | Decision rationale |
+| [Implementation Checklist](./swarm-provider-implementation-checklist.md) | Week-by-week plan | Implementation tracking |
+
+---
+
+## 2. Ultra-Fast Real-Time Communication Bus Architecture
+
+### Executive Summary
 
 This document collection presents a comprehensive architectural design for a high-performance real-time communication bus targeting **sub-millisecond message delivery** for agent coordination systems. The architecture achieves **<1ms P95 latency** through advanced optimization techniques including lock-free data structures, intelligent routing, and adaptive performance tuning.
 

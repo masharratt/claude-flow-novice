@@ -3,7 +3,7 @@
  * Features: Fleet aggregation cards, grid/list toggle, virtual scrolling, pie chart, WebSocket updates
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -21,10 +21,12 @@ import {
   CloudQueue as CloudQueueIcon,
   ViewList as ViewListIcon,
   ViewModule as ViewModuleIcon,
+  WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
 import { VariableSizeList } from 'react-window';
 import { Pie } from 'react-chartjs-2';
 import { useAgentStore, agentSelectors } from '../../../shared/stores/agentStore';
+import { useWebSocket } from '../../../shared/hooks/useWebSocket';
 
 // Mock swarm data structure
 interface Swarm {
@@ -125,7 +127,38 @@ export const Fleet: React.FC = () => {
   const agents = useAgentStore((state) => state.agents);
   const loading = useAgentStore((state) => state.loading);
   const setLoading = useAgentStore((state) => state.setLoading);
+  const updateAgent = useAgentStore((state) => state.updateAgent);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [swarmData, setSwarmData] = useState<Map<string, any>>(new Map());
+
+  // WebSocket connection
+  const { isConnected, subscribe } = useWebSocket();
+
+  // Subscribe to real-time agent updates
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const unsubscribeAgent = subscribe('agent:update', (data: any) => {
+      // Update agent in store
+      if (data.id) {
+        updateAgent(data.id, data);
+      }
+    });
+
+    const unsubscribeSwarm = subscribe('swarm:update', (data: any) => {
+      // Update swarm data
+      setSwarmData((prev) => {
+        const next = new Map(prev);
+        next.set(data.id, data);
+        return next;
+      });
+    });
+
+    return () => {
+      unsubscribeAgent();
+      unsubscribeSwarm();
+    };
+  }, [isConnected, subscribe, updateAgent]);
 
   // Generate swarms from agents
   const swarms = useMemo(() => {
@@ -238,11 +271,28 @@ export const Fleet: React.FC = () => {
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <CloudQueueIcon fontSize="large" />
           <Typography variant="h4" component="h1">
             Fleet Overview
           </Typography>
+          {!isConnected && (
+            <Chip
+              icon={<WifiOffIcon />}
+              label="Disconnected"
+              color="error"
+              size="small"
+              data-testid="connection-status"
+            />
+          )}
+          {isConnected && (
+            <Chip
+              label="Live"
+              color="success"
+              size="small"
+              data-testid="connection-status"
+            />
+          )}
         </Box>
         <IconButton onClick={handleRefresh} aria-label="refresh fleet" size="large">
           <RefreshIcon />

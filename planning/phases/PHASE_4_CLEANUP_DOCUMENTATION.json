@@ -1,0 +1,138 @@
+{
+  "phase": {
+    "id": "phase-4",
+    "name": "Cleanup & Documentation",
+    "epic": "Unified Web Portal Consolidation",
+    "objective": "Finalize portal consolidation by archiving legacy portals, completing WebSocket integration, executing comprehensive testing, and delivering production documentation",
+    "duration": "2-3 weeks",
+    "mode": "standard"
+  },
+  "context": {
+    "completed_phases": [
+      "Phase 1: Foundation (monorepo, components, data layer)",
+      "Phase 2: Backend Consolidation (server architecture, authentication)",
+      "Phase 3: Frontend Migration (6 feature views, charts, real-time updates)"
+    ],
+    "backlog_items": [
+      "WebSocket integration (from Sprint 3.3/3.4)",
+      "Archive 8 legacy portals",
+      "Integration testing",
+      "Deployment configuration",
+      "User documentation"
+    ]
+  },
+  "parallel_execution": {
+    "enabled": true,
+    "max_concurrent_agents": 5,
+    "coordination": "redis_pubsub",
+    "strategy": "Independent work streams can execute in parallel"
+  },
+  "work_streams": [
+    {
+      "id": "ws-1",
+      "name": "WebSocket Integration",
+      "priority": "high",
+      "can_run_parallel": true,
+      "estimated_effort": "8 hours",
+      "agents": ["coder"],
+      "deliverables": [
+        "Implement WebSocket subscriptions in Events, Fleet, CFNLoop views",
+        "Connect useWebSocketEvent hooks to real Socket.IO client",
+        "Add connection status indicators",
+        "Handle reconnection logic",
+        "Test real-time updates"
+      ]
+    },
+    {
+      "id": "ws-2",
+      "name": "Legacy Portal Archival",
+      "priority": "high",
+      "can_run_parallel": true,
+      "estimated_effort": "4 hours",
+      "agents": ["coder"],
+      "deliverables": [
+        "Move 8 legacy portal directories to /archive",
+        "Update routing to redirect legacy URLs to new portal",
+        "Add deprecation notices",
+        "Update documentation with migration notes"
+      ]
+    },
+    {
+      "id": "ws-3",
+      "name": "Integration Testing",
+      "priority": "high",
+      "can_run_parallel": true,
+      "estimated_effort": "10 hours",
+      "agents": ["tester"],
+      "deliverables": [
+        "Execute full test suite (121 tests + 32 E2E)",
+        "Fix environment issues causing timeouts",
+        "Validate ≥80% coverage",
+        "Run Playwright E2E tests on all 6 views",
+        "Performance benchmarking"
+      ]
+    },
+    {
+      "id": "ws-4",
+      "name": "Deployment Configuration",
+      "priority": "medium",
+      "can_run_parallel": true,
+      "estimated_effort": "6 hours",
+      "agents": ["devops-engineer"],
+      "deliverables": [
+        "Production build configuration",
+        "Environment variables setup",
+        "Docker containerization",
+        "CI/CD pipeline configuration",
+        "Health check endpoints"
+      ]
+    },
+    {
+      "id": "ws-5",
+      "name": "User Documentation",
+      "priority": "medium",
+      "can_run_parallel": true,
+      "estimated_effort": "8 hours",
+      "agents": ["coder"],
+      "deliverables": [
+        "User guide for all 6 views",
+        "API documentation",
+        "Deployment guide",
+        "Architecture documentation",
+        "Troubleshooting guide"
+      ]
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-4-1",
+      "description": "WebSocket real-time updates functional in all 3 views",
+      "validation": "Manual testing shows events/agents/loops updating in real-time without page refresh"
+    },
+    {
+      "id": "AC-4-2",
+      "description": "Legacy portals archived and routing redirects configured",
+      "validation": "All legacy URLs redirect to new unified portal with appropriate notices"
+    },
+    {
+      "id": "AC-4-3",
+      "description": "All 153 tests passing (121 unit + 32 E2E)",
+      "validation": "npm test shows 153/153 passing with ≥80% coverage"
+    },
+    {
+      "id": "AC-4-4",
+      "description": "Production deployment configuration complete",
+      "validation": "Docker build succeeds, CI/CD pipeline runs, health checks respond"
+    },
+    {
+      "id": "AC-4-5",
+      "description": "Complete documentation delivered",
+      "validation": "User guide, API docs, deployment guide, architecture docs all published"
+    }
+  ],
+  "estimated_timeline": {
+    "parallel_execution": "2 weeks",
+    "sequential_execution": "4 weeks",
+    "time_saved": "50%"
+  }
+}

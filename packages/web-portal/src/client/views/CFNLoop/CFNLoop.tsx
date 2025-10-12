@@ -3,7 +3,7 @@
  * Features: Phase timeline, current loop status, metrics cards, progress bars, WebSocket updates
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -19,8 +19,10 @@ import {
   Loop as LoopIcon,
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
+  WifiOff as WifiOffIcon,
 } from '@mui/icons-material';
 import { useCFNLoopStore } from '../../../shared/stores/cfnLoopStore';
+import { useWebSocket } from '../../../shared/hooks/useWebSocket';
 
 export const CFNLoop: React.FC = () => {
   const phases = useCFNLoopStore((state) => state.phases);
@@ -32,6 +34,38 @@ export const CFNLoop: React.FC = () => {
   const loop2Progress = useCFNLoopStore((state) => state.loop2Progress);
   const loading = useCFNLoopStore((state) => state.loading);
   const setLoading = useCFNLoopStore((state) => state.setLoading);
+  const setCurrentLoop = useCFNLoopStore((state) => state.setCurrentLoop);
+  const setLoop3Progress = useCFNLoopStore((state) => state.setLoop3Progress);
+  const setLoop2Progress = useCFNLoopStore((state) => state.setLoop2Progress);
+  const updatePhaseCompletion = useCFNLoopStore((state) => state.updatePhaseCompletion);
+
+  // WebSocket connection
+  const { isConnected, subscribe } = useWebSocket();
+
+  // Subscribe to real-time CFN loop updates
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const unsubscribe = subscribe('cfn.loop.update', (data: any) => {
+      // Update loop state based on incoming data
+      if (data.loopNumber && data.phaseName) {
+        setCurrentLoop(data.loopNumber, data.phaseName);
+      }
+      if (data.loop3Progress !== undefined) {
+        setLoop3Progress(data.loop3Progress);
+      }
+      if (data.loop2Progress !== undefined) {
+        setLoop2Progress(data.loop2Progress);
+      }
+      if (data.phaseId && data.completed !== undefined) {
+        updatePhaseCompletion(data.phaseId, data.completed);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isConnected, subscribe, setCurrentLoop, setLoop3Progress, setLoop2Progress, updatePhaseCompletion]);
 
   // Refresh handler
   const handleRefresh = () => {
@@ -62,11 +96,28 @@ export const CFNLoop: React.FC = () => {
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <LoopIcon fontSize="large" />
           <Typography variant="h4" component="h1">
             CFN Loop Visualization
           </Typography>
+          {!isConnected && (
+            <Chip
+              icon={<WifiOffIcon />}
+              label="Disconnected"
+              color="error"
+              size="small"
+              data-testid="connection-status"
+            />
+          )}
+          {isConnected && (
+            <Chip
+              label="Live"
+              color="success"
+              size="small"
+              data-testid="connection-status"
+            />
+          )}
         </Box>
         <IconButton onClick={handleRefresh} aria-label="refresh cfn loop" size="large">
           <RefreshIcon />
