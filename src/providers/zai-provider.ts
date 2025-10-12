@@ -37,17 +37,14 @@ interface ZaiCompletionRequest {
 interface ZaiCompletionResponse {
   id: string;
   model: string;
-  choices: Array<{
-    message: {
-      role: "assistant";
-      content: string;
-    };
-    finish_reason: "stop" | "length" | "content_filter";
+  content: Array<{
+    type: "text";
+    text: string;
   }>;
+  stop_reason: "end_turn" | "max_tokens" | "stop_sequence";
   usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
+    input_tokens: number;
+    output_tokens: number;
   };
 }
 
@@ -95,7 +92,7 @@ export class ZaiProvider extends BaseProvider {
   };
 
   private apiKey!: string;
-  private baseURL = "https://api.z.ai/v1";
+  private baseURL = "https://api.z.ai/api/anthropic/v1";
 
   protected async doInitialize(): Promise<void> {
     // Validate API key
@@ -141,7 +138,7 @@ export class ZaiProvider extends BaseProvider {
     try {
       // Call Z.ai API
       const response = await this.callZaiAPI<ZaiCompletionResponse>(
-        "/chat/completions",
+        "/messages",
         payload,
       );
 
@@ -153,27 +150,27 @@ export class ZaiProvider extends BaseProvider {
       });
 
       // Track token usage
-      incrementMetric('claude.tokens.input', response.usage.prompt_tokens, { model });
-      incrementMetric('claude.tokens.output', response.usage.completion_tokens, { model });
-      incrementMetric('claude.tokens.total', response.usage.total_tokens, { model });
+      incrementMetric('claude.tokens.input', response.usage.input_tokens, { model });
+      incrementMetric('claude.tokens.output', response.usage.output_tokens, { model });
+      incrementMetric('claude.tokens.total', response.usage.input_tokens + response.usage.output_tokens, { model });
 
       // Calculate cost
       const pricing = this.capabilities.pricing![model];
       const promptCost =
-        (response.usage.prompt_tokens / 1000) * pricing.promptCostPer1k;
+        (response.usage.input_tokens / 1000) * pricing.promptCostPer1k;
       const completionCost =
-        (response.usage.completion_tokens / 1000) * pricing.completionCostPer1k;
+        (response.usage.output_tokens / 1000) * pricing.completionCostPer1k;
 
       // Convert to unified response format
       return {
         id: response.id,
         model,
         provider: "zai",
-        content: response.choices[0].message.content,
+        content: response.content[0].text,
         usage: {
-          promptTokens: response.usage.prompt_tokens,
-          completionTokens: response.usage.completion_tokens,
-          totalTokens: response.usage.total_tokens,
+          promptTokens: response.usage.input_tokens,
+          completionTokens: response.usage.output_tokens,
+          totalTokens: response.usage.input_tokens + response.usage.output_tokens,
         },
         cost: {
           promptCost,
@@ -182,7 +179,7 @@ export class ZaiProvider extends BaseProvider {
           currency: "USD",
         },
         finishReason:
-          response.choices[0].finish_reason === "stop" ? "stop" : "length",
+          response.stop_reason === "end_turn" ? "stop" : "length",
       };
     } catch (error) {
       // Track error duration and metrics
@@ -237,11 +234,12 @@ export class ZaiProvider extends BaseProvider {
 
     try {
       // Call Z.ai streaming API
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
+      const response = await fetch(`${this.baseURL}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
+        "x-api-key": this.apiKey,
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify(payload),
     });
@@ -289,19 +287,21 @@ export class ZaiProvider extends BaseProvider {
             try {
               const event = JSON.parse(data);
 
-              if (event.choices?.[0]?.delta?.content) {
+              // Anthropic streaming format: content_block_delta events
+              if (event.type === "content_block_delta" && event.delta?.text) {
                 yield {
                   type: "content",
                   delta: {
-                    content: event.choices[0].delta.content,
+                    content: event.delta.text,
                   },
                 };
               }
 
-              if (event.usage) {
-                totalTokens = event.usage.total_tokens;
-                totalInputTokens = event.usage.prompt_tokens || 0;
-                totalOutputTokens = event.usage.completion_tokens || 0;
+              // Anthropic streaming format: message_delta with usage
+              if (event.type === "message_delta" && event.usage) {
+                totalInputTokens = event.usage.input_tokens || totalInputTokens;
+                totalOutputTokens = event.usage.output_tokens || totalOutputTokens;
+                totalTokens = totalInputTokens + totalOutputTokens;
               }
             } catch (parseError) {
               this.logger.warn("Failed to parse SSE event", {
@@ -422,7 +422,7 @@ export class ZaiProvider extends BaseProvider {
     try {
       // Minimal health check request
       const response = await this.callZaiAPI<ZaiCompletionResponse>(
-        "/chat/completions",
+        "/messages",
         {
           model: this.config.model,
           messages: [{ role: "user", content: "Hi" }],
@@ -459,7 +459,8 @@ export class ZaiProvider extends BaseProvider {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${this.apiKey}`,
+          "x-api-key": this.apiKey,
+          "anthropic-version": "2023-06-01"
         },
         body: JSON.stringify(payload),
       });
