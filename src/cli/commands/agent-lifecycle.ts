@@ -240,6 +240,48 @@ class SimpleAgentLifecycleDB {
     return stmt.all(...params);
   }
 
+  /**
+   * Atomically mark agent as completed (prevents race conditions)
+   * Security: CWE-362 prevention via optimistic locking
+   *
+   * Uses SQL transaction with atomic check-and-update to prevent TOCTOU vulnerability.
+   * Returns true on success, throws error if agent doesn't exist or is already completed.
+   */
+  markCompletedAtomic(id: string, confidence: number, output?: string, metadata?: any): boolean {
+    // Use transaction with status check
+    const transaction = this.db.transaction((agentId: string, conf: number, out: string | null, meta: string | null) => {
+      // Atomic check-and-update (prevents race condition)
+      const result = this.db.prepare(`
+        UPDATE agents
+        SET status = 'completed', confidence = ?, output = ?, metadata = ?,
+            completed_at = datetime('now'), updated_at = datetime('now')
+        WHERE id = ? AND status != 'completed'
+      `).run(conf, out, meta, agentId);
+
+      if (result.changes === 0) {
+        // Either agent doesn't exist or already completed
+        const agent = this.db.prepare('SELECT status FROM agents WHERE id = ?').get(agentId) as any;
+        if (!agent) {
+          throw new Error(`Agent "${agentId}" not found. Use 'spawn' first.`);
+        }
+        if (agent.status === 'completed') {
+          throw new Error(`Agent "${agentId}" is already completed`);
+        }
+        throw new Error(`Failed to complete agent "${agentId}"`);
+      }
+
+      // Log completion event
+      this.db.prepare(`
+        INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, timestamp)
+        VALUES (?, 'complete', ?, ?, datetime('now'))
+      `).run(agentId, conf, out || 'Agent completed');
+
+      return true;
+    });
+
+    return transaction(id, confidence, output || null, metadata ? JSON.stringify(metadata) : null);
+  }
+
   close(): void {
     this.db.close();
   }
@@ -318,6 +360,102 @@ function validateConfidence(confidence: number): { valid: boolean; error?: strin
   }
 
   return { valid: true };
+}
+
+/**
+ * Sanitize error message for production (remove file paths, line numbers)
+ * Security: CWE-209 prevention (Information Exposure Through Error Messages)
+ *
+ * Removes sensitive information from error messages in production:
+ * - Absolute file paths (e.g., /home/user/project/file.ts:123:45)
+ * - Relative file paths with line numbers
+ * - Stack trace function locations
+ * - Directory structures
+ *
+ * In DEBUG mode, original error messages are preserved for troubleshooting.
+ *
+ * @param message - Error message to sanitize
+ * @returns Sanitized error message (or original if DEBUG=1)
+ */
+function sanitizeErrorMessage(message: string): string {
+  // In DEBUG mode, preserve original error messages for troubleshooting
+  if (process.env.DEBUG === '1') {
+    return message;
+  }
+
+  // Production mode: remove sensitive information
+  let sanitized = message;
+
+  // Remove absolute file paths with line numbers (e.g., /path/to/file.ts:123:45)
+  sanitized = sanitized.replace(/\/[^\s:]+\.(ts|js|tsx|jsx):\d+:\d+/g, '[file]');
+
+  // Remove relative file paths with line numbers (e.g., ./src/file.ts:123)
+  sanitized = sanitized.replace(/\.\/[^\s:]+\.(ts|js|tsx|jsx):\d+/g, '[file]');
+
+  // Remove stack trace function locations (e.g., at functionName (/path/file.ts:123:45))
+  sanitized = sanitized.replace(/at [^\s]+ \([^)]+\)/g, 'at [function]');
+
+  // Remove absolute directory paths
+  sanitized = sanitized.replace(/\/[^\s]+\//g, '[path]/');
+
+  // Remove Windows-style paths (C:\Users\...)
+  sanitized = sanitized.replace(/[A-Z]:\\[^\s]+\\/g, '[path]\\');
+
+  return sanitized;
+}
+
+/**
+ * Validate and parse JSON with size/depth limits
+ * Security: CWE-754 prevention (DoS via unbounded input)
+ *
+ * Prevents DoS attacks via:
+ * - Large JSON payloads (>100KB default)
+ * - Deeply nested objects (>10 levels default)
+ * - Circular references (depth check catches infinite recursion)
+ *
+ * @param jsonString - JSON string to parse
+ * @param options - Validation options (maxSize, maxDepth)
+ * @returns Parsed JSON object
+ * @throws Error if validation fails
+ */
+function parseAndValidateJSON(
+  jsonString: string,
+  options: { maxSize?: number; maxDepth?: number } = {}
+): any {
+  const maxSize = options.maxSize || 102400; // 100KB default
+  const maxDepth = options.maxDepth || 10;   // 10 levels default
+
+  // Check size (DoS prevention)
+  const sizeBytes = Buffer.byteLength(jsonString, 'utf8');
+  if (sizeBytes > maxSize) {
+    throw new Error(`JSON metadata too large (${sizeBytes} bytes, max ${maxSize})`);
+  }
+
+  // Parse JSON
+  let parsed: any;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch (error) {
+    throw new Error(`Invalid JSON format: ${error instanceof Error ? error.message : 'parse error'}`);
+  }
+
+  // Check depth (DoS prevention via deeply nested objects)
+  function checkDepth(obj: any, currentDepth: number = 0): void {
+    if (currentDepth > maxDepth) {
+      throw new Error(`JSON metadata too deeply nested (max depth: ${maxDepth})`);
+    }
+
+    if (obj && typeof obj === 'object') {
+      // Handle arrays and objects
+      for (const key in obj) {
+        checkDepth(obj[key], currentDepth + 1);
+      }
+    }
+  }
+
+  checkDepth(parsed);
+
+  return parsed;
 }
 
 // ===== INITIALIZATION HELPERS =====
@@ -409,14 +547,13 @@ async function handleAgentSpawn(ctx: CommandContext): Promise<void> {
     const db = initializeDatabase();
 
     try {
-      // Parse optional metadata
+      // Parse optional metadata with size/depth validation
       let metadata: any = {};
       if (options.metadata) {
-        try {
-          metadata = JSON.parse(options.metadata);
-        } catch (error) {
-          throw new Error('Invalid metadata JSON format');
-        }
+        metadata = parseAndValidateJSON(options.metadata, {
+          maxSize: 102400,  // 100KB
+          maxDepth: 10
+        });
       }
 
       // Parse optional capabilities
@@ -458,11 +595,17 @@ async function handleAgentSpawn(ctx: CommandContext): Promise<void> {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
 
+    // Security: CWE-209 - Never expose stack traces in production
+    // Stack traces only shown in DEBUG mode (non-JSON output)
     if (options.json) {
-      console.log(JSON.stringify({ status: 'error', error: errorMessage, stack: errorStack }, null, 2));
+      console.log(JSON.stringify({
+        status: 'error',
+        error: sanitizeErrorMessage(errorMessage)
+      }, null, 2));
     } else {
-      console.error(chalk.red(`✗ Failed to spawn agent: ${errorMessage}`));
+      console.error(chalk.red(`✗ Failed to spawn agent: ${sanitizeErrorMessage(errorMessage)}`));
       if (process.env.DEBUG === '1' && errorStack) {
+        console.error(chalk.gray('Stack trace (DEBUG mode):'));
         console.error(chalk.gray(errorStack));
       }
     }
@@ -524,7 +667,8 @@ async function handleAgentUpdate(ctx: CommandContext): Promise<void> {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(chalk.red(`✗ Failed to update agent: ${errorMessage}`));
+    // Security: CWE-209 - Sanitize error messages in production
+    console.error(chalk.red(`✗ Failed to update agent: ${sanitizeErrorMessage(errorMessage)}`));
     process.exit(1);
   }
 }
@@ -571,33 +715,22 @@ async function handleAgentComplete(ctx: CommandContext): Promise<void> {
     const db = initializeDatabase();
 
     try {
-      // Check if agent exists and is not already completed
-      const agent = db.getAgent(options.id);
-
-      if (!agent) {
-        throw new Error(`Agent "${options.id}" not found. Use 'spawn' first.`);
-      }
-
-      if (agent.status === 'completed') {
-        throw new Error(`Agent "${options.id}" is already completed`);
-      }
-
-      // Parse optional metadata
+      // Parse optional metadata with size/depth validation
       let metadata: any = {};
       if (options.metadata) {
-        try {
-          metadata = JSON.parse(options.metadata);
-        } catch (error) {
-          throw new Error('Invalid metadata JSON format');
-        }
+        metadata = parseAndValidateJSON(options.metadata, {
+          maxSize: 102400,  // 100KB
+          maxDepth: 10
+        });
       }
 
       // Add phase/iteration to metadata
       if (options.phase) metadata.phase = options.phase;
       if (options.iteration) metadata.iteration = options.iteration;
 
-      // Mark agent as completed
-      db.markCompleted(options.id, options.confidence, options.output, metadata);
+      // Atomic completion (prevents TOCTOU race condition)
+      // Security: CWE-362 prevention via transaction-based optimistic locking
+      db.markCompletedAtomic(options.id, options.confidence, options.output, metadata);
 
       // CFN Loop 3 gate check
       const gatePass = options.confidence >= 0.75;
@@ -631,10 +764,14 @@ async function handleAgentComplete(ctx: CommandContext): Promise<void> {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
+    // Security: CWE-209 - Never expose stack traces in production (JSON or non-JSON)
     if (options.json) {
-      console.log(JSON.stringify({ status: 'error', error: errorMessage }, null, 2));
+      console.log(JSON.stringify({
+        status: 'error',
+        error: sanitizeErrorMessage(errorMessage)
+      }, null, 2));
     } else {
-      console.error(chalk.red(`✗ Failed to complete agent: ${errorMessage}`));
+      console.error(chalk.red(`✗ Failed to complete agent: ${sanitizeErrorMessage(errorMessage)}`));
     }
     process.exit(1);
   }
@@ -673,7 +810,8 @@ async function handleAgentTerminate(ctx: CommandContext): Promise<void> {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(chalk.red(`✗ Failed to terminate agent: ${errorMessage}`));
+    // Security: CWE-209 - Sanitize error messages in production
+    console.error(chalk.red(`✗ Failed to terminate agent: ${sanitizeErrorMessage(errorMessage)}`));
     process.exit(1);
   }
 }
@@ -729,7 +867,8 @@ async function handleAgentStatus(ctx: CommandContext): Promise<void> {
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(chalk.red(`✗ Failed to query agent status: ${errorMessage}`));
+    // Security: CWE-209 - Sanitize error messages in production
+    console.error(chalk.red(`✗ Failed to query agent status: ${sanitizeErrorMessage(errorMessage)}`));
     process.exit(1);
   }
 }
