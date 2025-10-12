@@ -59,6 +59,50 @@ Claude Flow provides comprehensive APIs for AI agent orchestration, swarm coordi
 - **GET `/health`**: Health check endpoint
 - **GET `/api`**: API documentation endpoint
 
+### Web Portal API
+
+**Purpose**: REST and WebSocket API for web portal monitoring interface
+
+**Base URLs**:
+- REST: `http://localhost:3000/api`
+- WebSocket: `ws://localhost:3000` (Socket.IO)
+
+**Authentication**: JWT Bearer token (optional for most endpoints, required for admin operations)
+
+**REST Endpoints**:
+1. `GET /api/agents/hierarchy` - Agent tree with optional filters (status, type)
+2. `GET /api/agents/:id/status` - Individual agent status with metrics
+3. `POST /api/agents/:id/intervene` - Admin-only intervention (pause/resume/terminate/restart)
+4. `GET /api/metrics` - System-wide metrics (5-min aggregation)
+5. `GET /api/events` - Paginated event history (max 1000/page)
+6. `GET /api/resources` - Current system resource utilization
+7. `GET /api/health` - Health check (healthy/degraded/unhealthy)
+8. `POST /api/auth/logout` - JWT token revocation (blacklist)
+9. `POST /api/auth/refresh` - Refresh access token
+
+**WebSocket Events**:
+
+Server-to-Client:
+- `agent:update` - Agent status update (throttle: 1/sec)
+- `agent:spawned` - New agent created
+- `agent:terminated` - Agent terminated
+- `hierarchy:change` - Hierarchy structure changed
+- `metrics:update` - System metrics (throttle: 1/5sec)
+- `event:stream` - Real-time event stream
+- `error` - Error notification
+
+Client-to-Server:
+- `subscribe` - Subscribe to agent/swarm updates
+- `unsubscribe` - Unsubscribe from updates
+- `ping` - Connection latency check
+
+**Rate Limiting**:
+- Standard endpoints: 100 req/min per IP
+- Intervention endpoint: 10 req/min per IP
+- Auth endpoints: 10 req/min per IP
+
+**Documentation**: packages/web-portal/docs/API.md (1303 lines)
+
 ## MCP Server APIs
 
 ### Server Configuration
