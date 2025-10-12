@@ -1,0 +1,891 @@
+{
+  "epic": {
+    "id": "epic-unified-web-portal",
+    "name": "Unified Web Portal Consolidation",
+    "version": "2.0.0",
+    "type": "master-config",
+    "description": "Consolidate 8 fragmented web portals into a single, unified, modular web portal for Claude Flow Novice with real-time agent monitoring, control, and visualization",
+    "business_value": "Reduce 714MB to ~300MB, eliminate 45% code duplication, provide consistent UX, enable 2-3x faster feature development",
+    "stakeholders": ["development-team", "end-users", "devops"],
+    "priority": "high",
+    "estimated_duration": "8-11 weeks",
+    "target_release": "v3.0.0",
+    "created": "2025-10-11",
+    "last_updated": "2025-10-11"
+  },
+  "documentation_structure": {
+    "master_config": "planning/web/epic-master-config.json (THIS FILE)",
+    "description": "This master configuration serves as the single source of truth for the Unified Web Portal Epic. It provides high-level overview, phase summaries, and clear references to detailed implementation documentation.",
+    "supporting_documents": {
+      "epic_analysis": {
+        "epic_scope": "planning/web/epic-scope-boundaries.json",
+        "feature_analysis": "planning/web/FEATURE-CONSOLIDATION-MATRIX.md",
+        "migration_guide": "planning/web/MIGRATION-GUIDE.md",
+        "quick_start": "planning/web/QUICK-START.md"
+      },
+      "phase_guides": {
+        "phase_1": "planning/web/PHASE-1-CONSOLIDATED-GUIDE.md"
+      },
+      "sprint_implementation_plans": {
+        "sprint_1_1": "planning/web/sprint-1.1-implementation-plan.json",
+        "sprint_1_1_summary": "planning/web/sprint-1.1-summary.md",
+        "sprint_1_1_execution": "planning/web/sprint-1.1-execution-roadmap.md"
+      }
+    },
+    "usage_instructions": {
+      "starting_point": "Read THIS FILE (epic-master-config.json) first for complete epic overview",
+      "detailed_implementation": {
+        "step_1": "Review phase-level consolidated guide (e.g., PHASE-1-CONSOLIDATED-GUIDE.md)",
+        "step_2": "Read sprint implementation plan JSON for technical specs (e.g., sprint-1.1-implementation-plan.json)",
+        "step_3": "Follow sprint execution roadmap for step-by-step instructions (e.g., sprint-1.1-execution-roadmap.md)",
+        "step_4": "Consult supporting documents as needed (feature matrix, migration guide)"
+      }
+    }
+  },
+  "current_state_analysis": {
+    "existing_portals": 8,
+    "total_files": 209,
+    "total_size": "714MB",
+    "code_duplication": "45%",
+    "websocket_implementations": 5,
+    "agent_visualization_duplicates": 4,
+    "express_servers": 3,
+    "portal_locations": [
+      {
+        "name": "Transparency Portal",
+        "location": "src/web/frontend",
+        "size": "671MB",
+        "features": ["React SPA", "Agent monitoring", "Transparency logging", "Real-time updates"]
+      },
+      {
+        "name": "Web Dashboard",
+        "location": "src/web/dashboard",
+        "features": ["Agent hierarchy", "Performance metrics", "Status monitoring"]
+      },
+      {
+        "name": "Fleet Dashboard",
+        "location": "src/dashboard",
+        "size": "204KB",
+        "features": ["Fleet management", "Swarm visualization", "Agent list view"]
+      },
+      {
+        "name": "Console UI",
+        "location": "src/ui/console",
+        "features": ["Terminal interface", "WebSocket client", "Command execution"]
+      },
+      {
+        "name": "Web UI Components",
+        "location": "src/ui/web-ui",
+        "features": ["Shared UI components", "HTML interfaces"]
+      },
+      {
+        "name": "Monitor Dashboard",
+        "location": "monitor/dashboard",
+        "size": "9.3MB",
+        "features": ["Premium monitoring", "Security middleware", "Advanced charts"]
+      },
+      {
+        "name": "Analytics Dashboard",
+        "location": ".claude-flow/dashboard",
+        "features": ["Analytics", "Metrics visualization"]
+      },
+      {
+        "name": "Phase 4 Dashboard",
+        "location": "Referenced in planning",
+        "features": ["CFN Loop monitoring", "Phase tracking"]
+      }
+    ],
+    "key_issues": [
+      "670MB node_modules in src/web/frontend bloating main package",
+      "5 separate WebSocket implementations with inconsistent APIs",
+      "4 duplicate agent hierarchy visualizations",
+      "3 separate Express servers (ports 3000, 3001, 8080)",
+      "No shared component library - copy/paste development",
+      "MCP integration scattered across 3 portals",
+      "Inconsistent real-time data protocols",
+      "No unified authentication/authorization"
+    ]
+  },
+  "target_architecture": {
+    "structure": "monorepo-workspace",
+    "package_layout": {
+      "packages/web-portal": {
+        "type": "standalone-package",
+        "optional": true,
+        "install": "npm install @claude-flow/web-portal",
+        "structure": [
+          "src/client/ - React frontend (Vite + React 18 + Material-UI v6)",
+          "src/server/ - Express backend (unified from 3 servers)",
+          "src/shared/ - Shared types & utils",
+          "src/services/ - WebSocketClient, ApiClient",
+          "src/stores/ - Zustand state management (4 stores)",
+          "src/hooks/ - Custom React hooks",
+          "public/ - Static assets",
+          "config/ - Build and configuration files",
+          "tests/ - Unit, integration, e2e tests"
+        ]
+      },
+      "packages/web-components": {
+        "type": "shared-library",
+        "purpose": "Reusable React components extracted from 8 portals",
+        "exports": [
+          "AgentHierarchyTree (consolidates 4 duplicates)",
+          "StatusMonitor (consolidates 3 duplicates)",
+          "PerformanceCharts (consolidates 3 duplicates)",
+          "EventTimeline (consolidates 2 duplicates)",
+          "ResourceGauges",
+          "FleetOverview",
+          "AlertsPanel",
+          "CFNLoopDashboard"
+        ]
+      }
+    },
+    "backend": {
+      "type": "express-server",
+      "port": 3000,
+      "consolidates": ["src/web/api/", "src/web/portal-server.ts", "monitor/dashboard/secure-server.ts"],
+      "features": [
+        "REST API endpoints (7 routes)",
+        "WebSocket server (unified Socket.IO)",
+        "Authentication middleware",
+        "Rate limiting",
+        "Compression",
+        "Security headers (helmet)",
+        "CORS configuration"
+      ],
+      "api_routes": [
+        "GET /api/hierarchy - Agent hierarchy",
+        "GET /api/status - Agent statuses",
+        "GET /api/metrics - Performance metrics",
+        "GET /api/events - Event stream",
+        "GET /api/resources - Resource usage",
+        "POST /api/intervention - Human intervention",
+        "GET /api/health - Health check"
+      ],
+      "websocket_events": [
+        "agent:update - Agent status changes",
+        "hierarchy:change - Hierarchy updates",
+        "metrics:update - Performance metrics",
+        "event:stream - Real-time events",
+        "error:notify - Error notifications"
+      ]
+    },
+    "frontend": {
+      "type": "react-spa",
+      "framework": "React 18.3.1",
+      "ui_library": "Material-UI v6.1.7",
+      "state_management": "Zustand 5.0.1",
+      "routing": "React Router v6.28.0",
+      "charts": "Recharts 2.14.1",
+      "code_editor": "Monaco Editor 0.52.2",
+      "build_tool": "Vite",
+      "features": [
+        "Real-time agent monitoring",
+        "Interactive hierarchy visualization",
+        "Performance metrics dashboard",
+        "Event timeline with filters",
+        "Human intervention controls",
+        "CFN Loop progress tracking",
+        "Fleet management (1000+ agents)",
+        "Resource monitoring",
+        "Multi-swarm support",
+        "Dark/light theme toggle"
+      ],
+      "views": [
+        "/dashboard - Main overview",
+        "/agents - Agent management",
+        "/hierarchy - Hierarchy tree",
+        "/performance - Performance metrics",
+        "/events - Event timeline",
+        "/fleet - Fleet management",
+        "/cfn-loop - CFN Loop monitoring",
+        "/intervention - Human controls",
+        "/settings - Configuration"
+      ]
+    },
+    "integration": {
+      "transparency_system": "src/coordination/shared/transparency/",
+      "swarm_coordinator": "src/swarm/",
+      "event_bus": "src/eventbus/",
+      "redis_coordination": "src/redis/",
+      "sqlite_memory": "src/sqlite/"
+    }
+  },
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Foundation - Shared Libraries & Architecture",
+      "duration": "2-3 weeks",
+      "objective": "Create monorepo structure, shared component library, and unified data layer",
+      "status": "planning_complete",
+      "documentation": {
+        "consolidated_guide": "planning/web/PHASE-1-CONSOLIDATED-GUIDE.md",
+        "description": "Complete phase overview with sprint breakdown, architecture decisions, execution workflow, and success metrics"
+      },
+      "success_criteria": [
+        "Monorepo workspace with 2 packages created",
+        "8 duplicate components consolidated into unified library",
+        "5 WebSocket implementations merged into 1",
+        "≥80% test coverage for all new code",
+        "<30s build time, <2MB bundle size"
+      ],
+      "deliverables": [
+        "packages/web-portal/ - Main unified SPA structure",
+        "packages/web-components/ - 8 shared components",
+        "Unified WebSocketClient service",
+        "Unified ApiClient with React Query integration",
+        "Zustand state management (4 stores)"
+      ],
+      "sprints": [
+        {
+          "sprint": "1.1",
+          "name": "Monorepo Setup & Workspace Configuration",
+          "duration": "3-4 days",
+          "implementation_plan": "planning/web/sprint-1.1-implementation-plan.json",
+          "summary": "planning/web/sprint-1.1-summary.md",
+          "execution_guide": "planning/web/sprint-1.1-execution-roadmap.md",
+          "summary_inline": {
+            "objective": "Establish monorepo foundation with npm workspaces for unified web portal consolidation",
+            "tasks": [
+              "Create workspace structure (packages/web-portal, packages/web-components)",
+              "Extract and deduplicate dependencies from 8 portals (40% reduction)",
+              "Setup build pipeline (SWC for server, Vite for client, Turbo for orchestration)"
+            ],
+            "deliverables": [
+              "Empty but complete packages/ structure with proper naming conventions",
+              "Unified package.json with consolidated dependencies (React 18.3.1, Socket.IO 4.8.1, Material-UI 6.1.7)",
+              "TypeScript + SWC + Vite configuration with project references",
+              "Build scripts with Turbo orchestration (<30s build time target)"
+            ],
+            "key_consolidations": {
+              "react_versions": "18.2.0 → 18.3.1 (single version)",
+              "socket_io_versions": "4.7.4, 4.7.5, 4.8.1 → 4.8.1 (single version)",
+              "typescript_versions": "4.9.5, 5.3.3, 5.9.3 → 5.6.3 (single version)",
+              "removed_packages": "react-scripts, react-query v3, prismjs, react-syntax-highlighter, react-terminal-ui, react-dropzone, express@5.1.0"
+            },
+            "acceptance_criteria": [
+              "packages/ directory exists with web-portal and web-components subdirectories",
+              "Single version of react, socket.io-client, typescript across all packages",
+              "TypeScript compilation successful with project references",
+              "Build pipeline functional (<30s build time)",
+              "No files migrated yet (structure only)"
+            ]
+          }
+        },
+        {
+          "sprint": "1.2",
+          "name": "Shared Component Library",
+          "duration": "5-6 days",
+          "implementation_plan": "planning/web/sprint-1.2-implementation-plan.json (TO BE CREATED)",
+          "summary_inline": {
+            "objective": "Extract and unify 8 duplicate components from 8 portals into shared component library",
+            "tasks": [
+              "Extract AgentHierarchyTree component (12 hours) - consolidate 4 duplicates",
+              "Create StatusMonitor component (10 hours) - consolidate 3 duplicates",
+              "Unify PerformanceCharts component (10 hours) - consolidate 3 duplicates",
+              "Create EventTimeline component (8 hours) - consolidate 2 duplicates"
+            ],
+            "deliverables": [
+              "8 unified components in packages/web-components/src/",
+              "Storybook documentation for all components",
+              "80-85% test coverage per component",
+              "Migration guide from old implementations"
+            ],
+            "key_consolidations": {
+              "AgentHierarchyTree": "4 duplicates → 1 (src/web/dashboard, src/components/visualizations, src/dashboard, src/web/frontend)",
+              "StatusMonitor": "3 duplicates → 1 (src/web/dashboard, src/web/frontend, src/dashboard)",
+              "PerformanceCharts": "3 duplicates → 1 (src/web/dashboard, src/dashboard, monitor/dashboard)",
+              "EventTimeline": "2 duplicates → 1 (src/web/dashboard, src/web/frontend)"
+            },
+            "source_files": {
+              "AgentHierarchyTree": [
+                "src/web/dashboard/components/AgentHierarchyTree.tsx",
+                "src/web/dashboard/components/V1AgentHierarchyTree.tsx",
+                "src/components/visualizations/AgentHierarchyTree.tsx",
+                "src/dashboard/components/FleetOverview.tsx"
+              ],
+              "StatusMonitor": [
+                "src/web/dashboard/components/AgentStatusMonitor.tsx",
+                "src/web/frontend/src/components/AgentStatusPanel.tsx",
+                "src/dashboard/components/FleetDashboard.tsx"
+              ]
+            },
+            "acceptance_criteria": [
+              "Single AgentHierarchyTree with all features (depth viz, real-time, expand/collapse)",
+              "Single StatusMonitor with status cards, progress, error highlighting, filters",
+              "Single PerformanceCharts library (line, bar, gauge, real-time)",
+              "Single EventTimeline with search, category filters, virtual scrolling",
+              "All components have Storybook stories and 80-85% test coverage",
+              "Components exported from packages/web-components/ with proper TypeScript types"
+            ]
+          }
+        },
+        {
+          "sprint": "1.3",
+          "name": "Unified Data Layer & WebSocket",
+          "duration": "4-5 days",
+          "implementation_plan": "planning/web/sprint-1.3-implementation-plan.json (TO BE CREATED)",
+          "summary_inline": {
+            "objective": "Consolidate WebSocket implementations, create unified API client, setup state management",
+            "tasks": [
+              "Consolidate WebSocket implementations (12 hours) - merge 5 into 1",
+              "Create unified API client (8 hours) - 7 REST endpoints",
+              "Setup Zustand state management (8 hours) - 4 stores"
+            ],
+            "deliverables": [
+              "WebSocketClient service class with automatic reconnection",
+              "React hooks (useWebSocket, useWebSocketEvent, useDashboardWebSocket)",
+              "ApiClient service with React Query integration",
+              "4 Zustand stores (agent, metrics, events, UI)",
+              "95% test coverage for WebSocketClient"
+            ],
+            "key_consolidations": {
+              "WebSocket": "5 implementations → 1 (src/web/dashboard/hooks, src/websocket, src/ui/console, src/communication, monitor/dashboard)",
+              "API": "Unified client with 7 endpoints and React Query caching",
+              "State": "4 Zustand stores (agent, metrics, events, UI) with persistence middleware"
+            },
+            "source_files": {
+              "WebSocket": [
+                "src/web/dashboard/hooks/useWebSocket.ts",
+                "src/websocket/swarmWebSocketServer.ts",
+                "src/ui/console/js/websocket-client.js",
+                "src/communication/websocket-cluster.ts",
+                "monitor/dashboard/websocket/"
+              ]
+            },
+            "acceptance_criteria": [
+              "Single WebSocketClient service class with automatic reconnection and exponential backoff",
+              "Event subscription system with TypeScript types for all events",
+              "React hooks (useWebSocket, useWebSocketEvent, useDashboardWebSocket)",
+              "ApiClient with all 7 endpoints (hierarchy, status, metrics, events, resources, intervention, health)",
+              "React Query integration with proper caching and loading states",
+              "4 Zustand stores with persistence middleware and DevTools integration",
+              "95% test coverage for WebSocketClient, 80% for ApiClient and stores"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "Backend Consolidation",
+      "duration": "2 weeks",
+      "objective": "Unify 3 Express servers into single production-ready backend",
+      "status": "planning_pending",
+      "documentation": null,
+      "success_criteria": [
+        "Single Express server on port 3000",
+        "All 7 REST API endpoints implemented with OpenAPI docs",
+        "Unified Socket.IO server with 5 event types",
+        "Authentication middleware with JWT support",
+        "Integration with transparency system and swarm coordinator"
+      ],
+      "deliverables": [
+        "Unified Express server in packages/web-portal/src/server/",
+        "REST API routes with validation and error handling",
+        "Socket.IO server with room-based subscriptions",
+        "Authentication and authorization middleware",
+        "Integration services for transparency and swarm systems"
+      ],
+      "sprints": [
+        {
+          "sprint": "2.1",
+          "name": "Core Server Setup",
+          "duration": "4-5 days",
+          "implementation_plan": "planning/web/sprint-2.1-implementation-plan.json (TO BE CREATED)",
+          "summary_inline": {
+            "objective": "Create unified Express server from 3 separate servers",
+            "tasks": [
+              "Create unified Express server (10 hours) - consolidate 3 servers",
+              "Implement REST API routes (12 hours) - 7 endpoints",
+              "Setup Socket.IO server (10 hours) - 5 event types"
+            ],
+            "key_consolidations": {
+              "Express_servers": "3 → 1 (src/web/api/, src/web/portal-server.ts, monitor/dashboard/secure-server.ts)",
+              "Middleware": "Security from monitor/dashboard (helmet, rate limiting, compression)",
+              "WebSocket_server": "Unified Socket.IO with room-based subscriptions"
+            },
+            "acceptance_criteria": [
+              "Single Express app on port 3000 with all middleware configured",
+              "7 REST API routes implemented with OpenAPI/Swagger documentation",
+              "Socket.IO server with 5 event types and authentication",
+              "Request validation, response schemas, pagination support",
+              "Tests for all endpoints"
+            ]
+          }
+        },
+        {
+          "sprint": "2.2",
+          "name": "Integration & Authentication",
+          "duration": "5-6 days",
+          "implementation_plan": "planning/web/sprint-2.2-implementation-plan.json (TO BE CREATED)",
+          "summary_inline": {
+            "objective": "Integrate transparency system, swarm coordinator, and implement authentication",
+            "tasks": [
+              "Integrate transparency system (8 hours)",
+              "Integrate swarm coordinator (8 hours)",
+              "Implement authentication (10 hours)"
+            ],
+            "key_integrations": {
+              "TransparencySystem": "Agent lifecycle events, hierarchy updates, metrics collection",
+              "SwarmCoordinator": "Swarm status updates, agent spawn/terminate, multi-swarm support",
+              "Authentication": "JWT, API key support, RBAC, session management"
+            },
+            "acceptance_criteria": [
+              "TransparencySystem integrated with event propagation",
+              "SwarmCoordinator integration with swarm metadata access",
+              "JWT authentication with role-based access control",
+              "Secure cookie handling and session management"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "Frontend Migration",
+      "duration": "3-4 weeks",
+      "objective": "Build unified React SPA using shared components and unified backend",
+      "status": "planning_pending",
+      "documentation": null,
+      "success_criteria": [
+        "React 18 SPA with 9 views implemented",
+        "All shared components integrated",
+        "Real-time data connections working",
+        "Responsive layouts with Material-UI theming",
+        "Monaco Editor integration for code viewing"
+      ],
+      "deliverables": [
+        "Complete React SPA in packages/web-portal/src/client/",
+        "9 view components (Dashboard, Agents, Hierarchy, Performance, Events, Fleet, CFN Loop, Intervention, Settings)",
+        "Layout component with navigation",
+        "Theme provider with dark/light mode",
+        "Real-time data synchronization"
+      ],
+      "sprints": [
+        {
+          "sprint": "3.1",
+          "name": "Core Application Structure",
+          "duration": "5-6 days",
+          "summary_inline": {
+            "objective": "Setup React application with routing and layout",
+            "tasks": [
+              "Setup React application (10 hours)",
+              "Integrate shared components (8 hours)",
+              "Implement Dashboard view (12 hours)"
+            ],
+            "acceptance_criteria": [
+              "React app bootstrapped with React Router v6 and 9 routes",
+              "Layout component with navigation and theme provider",
+              "Dashboard view with key metrics and real-time updates"
+            ]
+          }
+        },
+        {
+          "sprint": "3.2",
+          "name": "Feature Views - Part 1",
+          "duration": "5-6 days",
+          "summary_inline": {
+            "objective": "Implement Agents, Hierarchy, and Performance views",
+            "tasks": [
+              "Implement Agents view (10 hours)",
+              "Implement Hierarchy view (8 hours)",
+              "Implement Performance view (10 hours)"
+            ],
+            "acceptance_criteria": [
+              "Agents view with list, search, filters, and spawn/terminate controls",
+              "Hierarchy view with interactive tree and export functionality",
+              "Performance view with charts, trends, and CSV export"
+            ]
+          }
+        },
+        {
+          "sprint": "3.3",
+          "name": "Feature Views - Part 2",
+          "duration": "5-6 days",
+          "summary_inline": {
+            "objective": "Implement Events, Fleet, and CFN Loop views",
+            "tasks": [
+              "Implement Events view (8 hours)",
+              "Implement Fleet view (10 hours)",
+              "Implement CFN Loop view (10 hours)"
+            ],
+            "acceptance_criteria": [
+              "Events view with timeline, search, and filters",
+              "Fleet view with grid/list, aggregation, and virtual scrolling",
+              "CFN Loop view with phase visualization and progress tracking"
+            ]
+          }
+        },
+        {
+          "sprint": "3.4",
+          "name": "Advanced Features",
+          "duration": "5-6 days",
+          "summary_inline": {
+            "objective": "Implement Intervention, Settings views, and Monaco Editor",
+            "tasks": [
+              "Implement Intervention view (10 hours)",
+              "Implement Settings view (8 hours)",
+              "Add Monaco Editor integration (8 hours)"
+            ],
+            "acceptance_criteria": [
+              "Intervention view with pause/resume, message injection, parameter adjustment",
+              "Settings view with theme toggle, refresh config, filter preferences",
+              "Monaco Editor with syntax highlighting, TypeScript support, diff viewer"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "Cleanup & Documentation",
+      "duration": "1-2 weeks",
+      "objective": "Remove old portals, comprehensive testing, documentation, and deployment",
+      "status": "planning_pending",
+      "documentation": null,
+      "success_criteria": [
+        "Old portals archived (8 portals moved to archive/)",
+        "All imports updated to new locations",
+        "80%+ test coverage across all packages",
+        "Comprehensive documentation (user guide, API docs, developer guide)",
+        "Deployment scripts (Docker, docker-compose, Nginx)"
+      ],
+      "deliverables": [
+        "Archive/ directory with old portal implementations",
+        "Updated imports throughout codebase",
+        "Test suites with 80%+ coverage",
+        "Complete documentation set",
+        "Deployment configurations and demo server"
+      ],
+      "sprints": [
+        {
+          "sprint": "4.1",
+          "name": "Portal Cleanup",
+          "duration": "3-4 days",
+          "summary_inline": {
+            "objective": "Archive old portal implementations and update imports",
+            "tasks": [
+              "Archive old portal implementations (6 hours)",
+              "Update imports and references (8 hours)",
+              "Remove duplicate dependencies (4 hours)"
+            ],
+            "acceptance_criteria": [
+              "8 old portals moved to archive/ with README documenting migration",
+              "All imports updated to packages/web-portal",
+              "node_modules reduced by ~400MB"
+            ]
+          }
+        },
+        {
+          "sprint": "4.2",
+          "name": "Testing & Quality",
+          "duration": "4-5 days",
+          "summary_inline": {
+            "objective": "Achieve 80%+ test coverage and perform quality validation",
+            "tasks": [
+              "Component unit tests (12 hours)",
+              "API integration tests (10 hours)",
+              "End-to-end tests (10 hours)"
+            ],
+            "acceptance_criteria": [
+              "80%+ test coverage for web-components package",
+              "All API routes and WebSocket events tested",
+              "Critical user flows tested with Playwright"
+            ]
+          }
+        },
+        {
+          "sprint": "4.3",
+          "name": "Documentation & Deployment",
+          "duration": "3-4 days",
+          "summary_inline": {
+            "objective": "Write comprehensive documentation and create deployment scripts",
+            "tasks": [
+              "Write comprehensive documentation (10 hours)",
+              "Create deployment scripts (8 hours)",
+              "Create demo and examples (8 hours)"
+            ],
+            "acceptance_criteria": [
+              "README with quick start, installation, and configuration guides",
+              "API documentation and component storybook",
+              "Docker, docker-compose, and deployment configurations",
+              "Working demo with sample data"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "execution_instructions": {
+    "overview": "This epic follows a phase-by-phase approach, with each phase containing multiple sprints. Each sprint has detailed implementation plans and execution roadmaps.",
+    "starting_point": {
+      "step_1": "Read this master config file (epic-master-config.json) for complete epic overview",
+      "step_2": "Review current state analysis and target architecture sections",
+      "step_3": "Understand phase breakdown and sprint structure",
+      "step_4": "Proceed to detailed implementation using the workflow below"
+    },
+    "detailed_implementation_workflow": {
+      "step_1": "Review phase-level consolidated guide",
+      "example": "Read planning/web/PHASE-1-CONSOLIDATED-GUIDE.md for Phase 1 overview",
+      "content": "Phase guide contains sprint breakdown, architecture decisions, execution workflow, testing strategy, success metrics"
+    },
+    "step_2": {
+      "action": "Read sprint implementation plan JSON for technical specifications",
+      "example": "Read planning/web/sprint-1.1-implementation-plan.json for Sprint 1.1",
+      "content": "Implementation plan contains detailed tasks, file templates, migration steps, acceptance criteria, validation commands"
+    },
+    "step_3": {
+      "action": "Follow sprint execution roadmap for step-by-step instructions",
+      "example": "Read planning/web/sprint-1.1-execution-roadmap.md for Sprint 1.1",
+      "content": "Execution roadmap contains bash commands, git workflow, troubleshooting, and sequential steps"
+    },
+    "step_4": {
+      "action": "Consult supporting documents as needed",
+      "examples": [
+        "planning/web/FEATURE-CONSOLIDATION-MATRIX.md - Feature overlap analysis",
+        "planning/web/MIGRATION-GUIDE.md - Migration instructions",
+        "planning/web/QUICK-START.md - Getting started guide"
+      ]
+    },
+    "file_hierarchy": {
+      "level_1_master": "epic-master-config.json (THIS FILE) - High-level overview with inline sprint summaries",
+      "level_2_phase": "PHASE-N-CONSOLIDATED-GUIDE.md - Phase execution guide with sprint breakdown",
+      "level_3_sprint": "sprint-N.M-implementation-plan.json - Detailed technical specifications",
+      "level_4_execution": "sprint-N.M-execution-roadmap.md - Step-by-step bash commands",
+      "level_5_supporting": "Feature matrix, migration guide, quick start - Reference documentation"
+    },
+    "git_workflow": {
+      "branch_strategy": "Create feature branch per phase (e.g., feature/phase-1-foundation)",
+      "commit_strategy": "Commit after each sprint completion with descriptive message",
+      "push_strategy": "Push to remote after phase validation complete",
+      "example_commits": [
+        "feat(phase-1): Complete Sprint 1.1 - Monorepo Setup",
+        "feat(phase-1): Complete Sprint 1.2 - Shared Component Library",
+        "feat(phase-1): Complete Sprint 1.3 - Unified Data Layer",
+        "feat(epic): Complete Phase 1 - Foundation"
+      ]
+    }
+  },
+  "success_metrics": {
+    "quantitative": {
+      "file_reduction": {
+        "before": "209 files",
+        "target": "80 files",
+        "reduction": "62%",
+        "measurement": "find packages/ -name \"*.ts*\" | wc -l"
+      },
+      "size_reduction": {
+        "before": "714MB",
+        "target": "300MB",
+        "reduction": "58%",
+        "measurement": "du -sh packages/"
+      },
+      "dependency_consolidation": {
+        "before": "5 WebSocket libs, 3 React versions",
+        "target": "1 of each",
+        "reduction": "40% fewer dependencies",
+        "measurement": "Compare package.json sizes"
+      },
+      "test_coverage": {
+        "target": "≥80%",
+        "measurement": "npm run test:coverage"
+      },
+      "bundle_size": {
+        "target": "<2MB gzipped",
+        "measurement": "du -sh packages/web-portal/dist/"
+      },
+      "build_time": {
+        "target": "<30s",
+        "measurement": "time npm run build"
+      },
+      "api_response_time": {
+        "target": "<100ms p95",
+        "measurement": "Load testing with k6"
+      },
+      "websocket_latency": {
+        "target": "<50ms p95",
+        "measurement": "Real-time event propagation tests"
+      }
+    },
+    "qualitative": {
+      "unified_ux": "Consistent design across all features",
+      "developer_experience": "2-3x faster feature development",
+      "code_maintainability": "Single source of truth for components",
+      "documentation": "Comprehensive docs and examples",
+      "production_ready": "Security, auth, monitoring built-in"
+    }
+  },
+  "risks_and_mitigations": {
+    "risk_1": {
+      "risk": "Breaking changes for existing integrations",
+      "severity": "high",
+      "probability": "medium",
+      "mitigation": "Provide migration guide, deprecation warnings, backward compatibility layer for v2.x",
+      "contingency": "Parallel deployment during transition period"
+    },
+    "risk_2": {
+      "risk": "Performance regression with consolidated components",
+      "severity": "medium",
+      "probability": "medium",
+      "mitigation": "Extensive performance testing, React.memo, virtual scrolling, lazy loading",
+      "contingency": "Component-level optimization and profiling"
+    },
+    "risk_3": {
+      "risk": "Feature gaps during migration",
+      "severity": "medium",
+      "probability": "low",
+      "mitigation": "Comprehensive feature matrix, user testing, parallel deployment during transition",
+      "contingency": "Roll back to old portals if critical features missing"
+    },
+    "risk_4": {
+      "risk": "Timeline overrun due to complexity",
+      "severity": "medium",
+      "probability": "medium",
+      "mitigation": "Phased delivery, MVP scope, regular stakeholder updates, buffer time in estimates",
+      "contingency": "Prioritize core features, defer nice-to-have features to v3.1"
+    },
+    "risk_5": {
+      "risk": "Dependency version conflicts during consolidation",
+      "severity": "high",
+      "probability": "medium",
+      "mitigation": "Use npm-check-updates to find compatible versions, test thoroughly with npm ls",
+      "contingency": "Keep separate package.json files temporarily and migrate gradually"
+    }
+  },
+  "dependencies": {
+    "technical": {
+      "runtime": [
+        "Node.js ≥16.0.0",
+        "npm ≥7.0.0"
+      ],
+      "frontend": [
+        "React ≥18.3.1",
+        "React DOM ≥18.3.1",
+        "TypeScript ≥5.6.3",
+        "Material-UI v6.1.7",
+        "Socket.IO Client v4.8.1",
+        "Recharts v2.14.1",
+        "Zustand v5.0.1",
+        "React Router v6.28.0"
+      ],
+      "backend": [
+        "Express v4.21.1",
+        "Socket.IO v4.8.1",
+        "jsonwebtoken v9.0.2",
+        "bcrypt v6.0.0"
+      ],
+      "build_tools": [
+        "Vite (frontend)",
+        "SWC (backend)",
+        "Turbo (orchestration)"
+      ]
+    },
+    "internal": {
+      "core_systems": [
+        "Transparency system (src/coordination/shared/transparency/)",
+        "Swarm coordinator (src/swarm/)",
+        "Event bus (src/eventbus/)",
+        "Redis coordination (src/redis/)",
+        "SQLite memory (src/sqlite/)"
+      ],
+      "integration_points": [
+        "Agent lifecycle events",
+        "Hierarchy updates",
+        "Metrics collection",
+        "Event streaming",
+        "Swarm status updates"
+      ]
+    }
+  },
+  "deployment_strategy": {
+    "approach": "phased-rollout",
+    "phases": [
+      {
+        "phase": "alpha",
+        "audience": "development-team",
+        "duration": "1 week",
+        "criteria": "Core features working, basic tests passing",
+        "completion": "After Phase 2 (Backend Consolidation)"
+      },
+      {
+        "phase": "beta",
+        "audience": "early-adopters",
+        "duration": "2 weeks",
+        "criteria": "All features complete, 80%+ test coverage, documentation draft",
+        "completion": "After Phase 3 (Frontend Migration)"
+      },
+      {
+        "phase": "rc",
+        "audience": "all-users",
+        "duration": "1 week",
+        "criteria": "Production ready, full documentation, migration guide",
+        "completion": "After Phase 4 Sprint 4.2 (Testing & Quality)"
+      },
+      {
+        "phase": "ga",
+        "audience": "all-users",
+        "release": "v3.0.0",
+        "criteria": "All tests passing, security audit complete, performance validated",
+        "completion": "After Phase 4 Sprint 4.3 (Documentation & Deployment)"
+      }
+    ]
+  },
+  "post_launch": {
+    "monitoring": [
+      "User adoption metrics",
+      "Performance monitoring (response time, throughput)",
+      "Error tracking (Sentry or similar)",
+      "User feedback collection",
+      "Real-time dashboard usage analytics"
+    ],
+    "iterations": [
+      {
+        "version": "v3.0.x",
+        "focus": "Bug fixes and polish",
+        "timeline": "ongoing"
+      },
+      {
+        "version": "v3.1.0",
+        "focus": "Additional visualizations (network topology, 3D agent hierarchy)",
+        "timeline": "2-3 weeks post-launch"
+      },
+      {
+        "version": "v3.2.0",
+        "focus": "Mobile responsive improvements and mobile app",
+        "timeline": "1-2 months post-launch"
+      },
+      {
+        "version": "v3.3.0",
+        "focus": "Advanced analytics (predictive insights, anomaly detection)",
+        "timeline": "2-3 months post-launch"
+      }
+    ]
+  },
+  "version_history": {
+    "2.0.0": {
+      "date": "2025-10-11",
+      "changes": [
+        "Created master configuration as single source of truth",
+        "Added inline sprint summaries for quick reference",
+        "Added clear documentation structure and navigation instructions",
+        "Added file hierarchy explanation (5 levels)",
+        "Added execution instructions with git workflow",
+        "Consolidated success metrics and risk assessments",
+        "Added version history tracking"
+      ],
+      "author": "Architect Agent"
+    },
+    "1.0.0": {
+      "date": "2025-10-11",
+      "changes": [
+        "Initial epic specification created",
+        "Phase 1 planning complete with 3 sprints",
+        "Sprint 1.1 detailed implementation plan created",
+        "Phase-level consolidated guide created",
+        "Feature consolidation matrix created"
+      ],
+      "author": "Planning Team"
+    }
+  }
+}

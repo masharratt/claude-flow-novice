@@ -1,0 +1,114 @@
+{
+  "epic_id": "epic-unified-web-portal",
+  "scope_control": {
+    "primary_goal": "Consolidate 8 web portals into unified modular web portal with real-time agent monitoring",
+    "in_scope": [
+      "Monorepo workspace with npm workspaces (packages/web-portal, packages/web-components)",
+      "Consolidate 8 duplicate components into shared library",
+      "Merge 5 WebSocket implementations into unified Socket.IO client",
+      "Unify 3 Express servers into single production server (port 3000)",
+      "React 18 SPA with Material-UI v6 and Zustand state management",
+      "Real-time agent monitoring with hierarchy visualization",
+      "REST API (7 endpoints) and WebSocket events (5 types)",
+      "Authentication middleware (JWT, API key, RBAC)",
+      "Integration with transparency system, swarm coordinator, event bus",
+      "80%+ test coverage, comprehensive documentation",
+      "Deployment configurations (Docker, docker-compose, Nginx)"
+    ],
+    "out_of_scope": [
+      "Mobile app development (deferred to v3.2.0)",
+      "Advanced analytics features (predictive insights, anomaly detection) - v3.3.0",
+      "3D agent hierarchy visualization - v3.1.0",
+      "Network topology visualization - v3.1.0",
+      "Kubernetes deployment (Docker only for v3.0.0)",
+      "Multi-tenancy support",
+      "Internationalization (i18n)",
+      "Social login (OAuth) - Phase 1 focus only",
+      "Custom theming beyond dark/light mode"
+    ],
+    "risk_profile": "internal-tooling-medium-risk",
+    "decision_authority_config": {
+      "auto_approve_threshold": 0.90,
+      "auto_relaunch_max_iteration": 10,
+      "escalation_criteria": [
+        "Breaking changes to public API",
+        "Data migration requiring downtime",
+        "Security vulnerability discovered",
+        "Dependency with known CVE"
+      ]
+    }
+  },
+  "phase_breakdown": [
+    {
+      "phase_id": "1",
+      "name": "Foundation - Shared Libraries & Architecture",
+      "dependencies": [],
+      "estimated_agents": 8,
+      "sprints": ["1.1", "1.2", "1.3"],
+      "duration": "2-3 weeks",
+      "key_deliverables": [
+        "Monorepo workspace structure",
+        "8 shared components in packages/web-components",
+        "Unified WebSocket client and API client",
+        "Zustand state management (4 stores)"
+      ]
+    },
+    {
+      "phase_id": "2",
+      "name": "Backend Consolidation",
+      "dependencies": ["1"],
+      "estimated_agents": 10,
+      "sprints": ["2.1", "2.2"],
+      "duration": "2 weeks",
+      "key_deliverables": [
+        "Unified Express server (port 3000)",
+        "7 REST API endpoints with OpenAPI docs",
+        "Socket.IO server with 5 event types",
+        "Authentication middleware (JWT, RBAC)",
+        "Integration with transparency and swarm systems"
+      ]
+    },
+    {
+      "phase_id": "3",
+      "name": "Frontend Migration",
+      "dependencies": ["1", "2"],
+      "estimated_agents": 12,
+      "sprints": ["3.1", "3.2", "3.3", "3.4"],
+      "duration": "3-4 weeks",
+      "key_deliverables": [
+        "React 18 SPA with 9 views",
+        "Material-UI theming (dark/light)",
+        "Real-time data synchronization",
+        "Monaco Editor integration",
+        "Responsive layouts"
+      ]
+    },
+    {
+      "phase_id": "4",
+      "name": "Cleanup & Documentation",
+      "dependencies": ["1", "2", "3"],
+      "estimated_agents": 8,
+      "sprints": ["4.1", "4.2", "4.3"],
+      "duration": "1-2 weeks",
+      "key_deliverables": [
+        "8 old portals archived",
+        "80%+ test coverage",
+        "Comprehensive documentation",
+        "Deployment scripts (Docker, Nginx)",
+        "Demo with sample data"
+      ]
+    }
+  ],
+  "success_metrics": {
+    "file_reduction": "62% (209 → 80 files)",
+    "size_reduction": "58% (714MB → 300MB)",
+    "dependency_consolidation": "40% fewer dependencies",
+    "test_coverage": "≥80%",
+    "bundle_size": "<2MB gzipped",
+    "build_time": "<30s",
+    "api_response_time": "<100ms p95",
+    "websocket_latency": "<50ms p95"
+  },
+  "created": "2025-10-11T17:21:20Z",
+  "version": "1.0.0"
+}
