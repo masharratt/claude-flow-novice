@@ -3,7 +3,7 @@
  * Performance metrics dashboard with charts, trends, and CSV export
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -61,22 +61,52 @@ export const Performance: React.FC = () => {
 
   const metricsStore = useMetricsStore();
   const { agents } = useAgentStore();
-  const { isConnected } = useWebSocket();
+  const webSocket = useWebSocket();
+  const { isConnected } = webSocket;
+
+  // WebSocket event payload interface
+  interface MetricsUpdatePayload {
+    system?: {
+      cpu: number;
+      memory: number;
+      disk: number;
+      network: {
+        bytesIn: number;
+        bytesOut: number;
+      };
+      timestamp: number;
+    };
+    agents?: Record<string, {
+      agentId: string;
+      cpu: number;
+      memory: number;
+      tasksInProgress: number;
+      tasksCompleted: number;
+      errorCount: number;
+      confidence: number;
+      timestamp: number;
+    }>;
+  }
 
   // WebSocket subscription for real-time metrics updates
-  useWebSocketEvent('metrics:update', (data: any) => {
-    console.log('[Performance] Metrics update received:', data);
+  const { data: metricsUpdate } = useWebSocketEvent<MetricsUpdatePayload>(webSocket, 'metrics:update');
+
+  // Process metrics updates
+  useEffect(() => {
+    if (!metricsUpdate) return;
+
+    console.log('[Performance] Metrics update received:', metricsUpdate);
     // Update metrics store with new data
-    if (data.system) {
-      metricsStore.setSystemMetrics(data.system);
+    if (metricsUpdate.system) {
+      metricsStore.setSystemMetrics(metricsUpdate.system);
     }
-    if (data.agents) {
-      Object.entries(data.agents).forEach(([agentId, metrics]: [string, any]) => {
+    if (metricsUpdate.agents) {
+      Object.entries(metricsUpdate.agents).forEach(([agentId, metrics]) => {
         metricsStore.setAgentMetrics(agentId, metrics);
       });
     }
     setLastUpdated(new Date());
-  });
+  }, [metricsUpdate, metricsStore]);
 
   // Auto-update every 5 seconds
   useEffect(() => {

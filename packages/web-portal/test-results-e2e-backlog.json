@@ -1,0 +1,86 @@
+{
+  "testSuite": "E2E Playwright Tests - Backlog Sprint",
+  "timestamp": "2025-10-12T00:00:00Z",
+  "totalTests": 32,
+  "passed": 18,
+  "failed": 14,
+  "duration": "25.9s",
+  "browser": "chromium",
+  "results": {
+    "events-view": {
+      "total": 10,
+      "passed": 2,
+      "failed": 8,
+      "tests": [
+        {"name": "complete flow: view timeline → search → filter → verify updates", "status": "failed", "reason": "Missing event data in store - no events rendered"},
+        {"name": "category filter flow: all categories", "status": "failed", "reason": "Missing category filter data-testid"},
+        {"name": "severity filter flow: all severities", "status": "failed", "reason": "Missing severity filter data-testid"},
+        {"name": "date range filter flow: all presets", "status": "failed", "reason": "Missing date range filter data-testid"},
+        {"name": "search functionality: text, agent ID, event type", "status": "failed", "reason": "Missing search input data-testid"},
+        {"name": "virtual scrolling performance", "status": "failed", "reason": "No events to scroll"},
+        {"name": "refresh button functionality", "status": "failed", "reason": "Refresh button aria-label not found"},
+        {"name": "filter toggle button", "status": "passed"},
+        {"name": "clear filters button", "status": "passed"},
+        {"name": "event statistics chips display", "status": "failed", "reason": "Statistics not visible without event data"}
+      ]
+    },
+    "fleet-view": {
+      "total": 11,
+      "passed": 9,
+      "failed": 2,
+      "tests": [
+        {"name": "complete flow: view aggregation → toggle grid/list → view swarm details", "status": "passed"},
+        {"name": "aggregation cards display", "status": "passed"},
+        {"name": "grid/list toggle functionality", "status": "passed"},
+        {"name": "swarm list rendering in list view", "status": "passed"},
+        {"name": "swarm grid rendering in grid view", "status": "passed"},
+        {"name": "swarm status breakdown display", "status": "passed"},
+        {"name": "virtual scrolling for swarm list", "status": "passed"},
+        {"name": "agent distribution chart rendering", "status": "failed", "reason": "Canvas element not found in chart container"},
+        {"name": "refresh button functionality", "status": "passed"},
+        {"name": "swarm list section header", "status": "failed", "reason": "Text 'Swarm List' not found"},
+        {"name": "metrics update when data changes", "status": "passed"}
+      ]
+    },
+    "cfn-loop-view": {
+      "total": 11,
+      "passed": 7,
+      "failed": 4,
+      "tests": [
+        {"name": "complete flow: view timeline → select phase → view metrics → progress bars", "status": "failed", "reason": "Phase data-testids not found - store not initialized"},
+        {"name": "phase timeline navigation", "status": "failed", "reason": "Phase elements not visible without data"},
+        {"name": "current loop status display", "status": "passed"},
+        {"name": "metrics cards verification", "status": "passed"},
+        {"name": "progress bar accuracy", "status": "passed"},
+        {"name": "threshold status indicators", "status": "passed"},
+        {"name": "phase completion status", "status": "failed", "reason": "Phase icons not visible"},
+        {"name": "sprint chips display", "status": "failed", "reason": "Sprint chip text not found (data not loaded)"},
+        {"name": "refresh button functionality", "status": "passed"},
+        {"name": "progress bar color coding", "status": "passed"},
+        {"name": "responsive layout adaptation", "status": "passed"}
+      ]
+    }
+  },
+  "summary": {
+    "views": {
+      "events": "Mostly failing - needs store initialization with mock data",
+      "fleet": "Mostly passing - good state management",
+      "cfn-loop": "Mixed - core metrics work, phase data needs initialization"
+    },
+    "issues": [
+      "Zustand stores not initialized with mock data for E2E tests",
+      "Missing data-testid attributes on filter components (category-filter, severity-filter, daterange-filter, search-input)",
+      "Chart.js canvas elements not rendering properly in test environment",
+      "Event store returns empty array - needs MSW or fixture injection"
+    ],
+    "recommendations": [
+      "Add E2E test setup file to initialize Zustand stores with fixtures",
+      "Add missing data-testid attributes to filter components in Events view",
+      "Use Playwright route mocking to inject API responses",
+      "Add data-testid='agent-distribution-chart' to Fleet view chart",
+      "Consider using beforeEach hooks to reset and seed store state"
+    ],
+    "confidence": 0.56,
+    "reasoning": "18/32 tests passing. Core UI components render correctly with data-testids. Main issue is store initialization in E2E environment. Fleet view performs best (82% pass rate), CFN Loop is mixed (64% pass rate), Events needs work (20% pass rate due to missing mock data)."
+  }
+}

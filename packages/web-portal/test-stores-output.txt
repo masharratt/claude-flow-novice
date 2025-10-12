@@ -1,0 +1,18 @@
+
+> @claude-flow-novice/web-portal@3.0.0 test:stores
+> vitest run src/shared/stores
+
+
+ RUN  v2.1.9 /mnt/c/Users/masha/Documents/claude-flow-novice/packages/web-portal
+
+ ✓ src/shared/stores/__tests__/eventsStore.test.ts (32 tests) 768ms
+   ✓ EventsStore > Auto-Pruning > should manually prune events 347ms
+ ✓ src/shared/stores/__tests__/uiStore.test.ts (42 tests) 7ms
+ ✓ src/shared/stores/__tests__/metricsStore.test.ts (20 tests) 20ms
+ ✓ src/shared/stores/__tests__/agentStore.test.ts (21 tests) 4ms
+
+ Test Files  4 passed (4)
+      Tests  115 passed (115)
+   Start at  13:26:04
+   Duration  19.65s (transform 435ms, setup 5.16s, collect 346ms, tests 799ms, environment 11.50s, prepare 1.12s)
+

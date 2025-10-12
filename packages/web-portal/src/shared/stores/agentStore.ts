@@ -20,6 +20,10 @@ export interface Agent {
     confidence: number;
     errorRate: number;
   };
+  metadata?: {
+    swarmId?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface AgentHierarchy {

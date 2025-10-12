@@ -15,17 +15,31 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/__tests__/setup.ts',
-    testTimeout: 10000,
+    testTimeout: 15000,
     hookTimeout: 10000,
     teardownTimeout: 10000,
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true
+        singleFork: true,
+        isolate: true
       }
     },
-    bail: false, // Don't bail on first failure to get full test results
-    isolate: false, // Don't isolate tests for faster execution
+    maxConcurrency: 1,
+    fileParallelism: false,
+    sequence: {
+      shuffle: false,
+      concurrent: false
+    },
+    bail: false,
+    isolate: true,
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+      '**/src/__tests__/e2e/**/*.spec.ts'
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

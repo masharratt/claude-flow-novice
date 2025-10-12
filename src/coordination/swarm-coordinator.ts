@@ -193,7 +193,9 @@ export class SwarmCoordinator extends EventEmitter {
         this.config.configManager,
         this.config.providerConfig
       );
-      // ProviderManager doesn't need initialization in current implementation
+
+      // Initialize ProviderManager (async provider initialization)
+      await this.providerManager.init();
 
       // Create AgentExecutor if we have both ProviderManager and Redis
       if (this.redisClient) {
