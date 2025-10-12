@@ -244,3 +244,8 @@ export const useAgentStore = create<AgentStore>()(
     { name: 'AgentStore', enabled: process.env.NODE_ENV === 'development' }
   )
 );
+
+// Expose store for E2E tests
+if (typeof window !== 'undefined' && (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test')) {
+  (window as any).__agentStore = useAgentStore;
+}

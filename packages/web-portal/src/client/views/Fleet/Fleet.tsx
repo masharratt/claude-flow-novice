@@ -27,8 +27,12 @@ import {
 } from '@mui/icons-material';
 import { VariableSizeList } from 'react-window';
 import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { useAgentStore, type Agent } from '../../../shared/stores/agentStore';
 import { useWebSocket } from '../../../shared/hooks/useWebSocket';
+
+// Register Chart.js components for Pie chart
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 // WebSocket event payload interfaces
 interface AgentUpdatePayload {
