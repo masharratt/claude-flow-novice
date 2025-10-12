@@ -327,6 +327,40 @@ If max_vote - min_vote > 0.15:
 **Configuration**: Monitoring intervals, alert thresholds
 **Usage**: System observability, performance optimization
 
+### Web Portal Monitoring
+
+**Purpose**: Real-time visualization of agent coordination and swarm performance
+
+**Implementation**: React SPA with 7 consolidated views, WebSocket updates, Chart.js visualizations
+
+**Views**:
+1. **Dashboard**: System health, metrics cards, hierarchy tree, performance charts
+2. **Agents**: List/grid view, search, spawn/terminate operations
+3. **Hierarchy**: Tree visualization, expand/collapse, agent relationships
+4. **Performance**: CPU/memory/agents charts with dual Y-axis
+5. **Events**: Virtual scrolling (10K+ events), full-text search, severity filters
+6. **Fleet**: Aggregation metrics, pie chart distribution, virtual scrolling
+7. **CFN Loop**: Phase timeline, progress bars, validator results
+
+**Technology Stack**:
+- Frontend: React 18.3.1, Material-UI v6, React Router v6
+- State: Zustand 5.0.1 with Immer middleware
+- Real-time: Socket.IO 4.8.1, WebSocket subscriptions
+- Charts: Chart.js 4.4.7, react-chartjs-2 5.2.0
+- Virtual Scrolling: react-window 1.8.10
+- Testing: Vitest 2.1.5 (121 unit), Playwright 1.49.0 (32 E2E)
+
+**Legacy Portals Consolidated**: 8 (dashboard, monitoring, consensus-monitoring, feature-flags-monitoring, fleet-manager-monitoring, gossip-monitoring, sovereignty-monitoring)
+
+**Usage**:
+```bash
+npm run portal:install  # One-time setup
+npm run portal:dev      # Development mode (http://localhost:3002)
+npm run portal:build    # Production build
+```
+
+**Documentation**: WEB_PORTAL_INSTALL.md, packages/web-portal/docs/
+
 ### Phase 4 Analytics
 
 **Purpose**: Advanced analytics for swarm coordination
