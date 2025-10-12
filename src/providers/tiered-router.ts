@@ -36,7 +36,56 @@ const TIER_CONFIGS: TierConfig[] = [
   {
     name: "Tier 1: Z.ai Agent Orchestration (ALL Task Tool Agents)",
     provider: "zai",
-    agentTypes: [], // All agents EXCEPT "main-chat" route to Z.ai by default
+    agentTypes: [
+      // Core development agents
+      "coder", "developer", "programmer",
+      "tester", "qa", "test-engineer",
+      "reviewer", "code-reviewer",
+
+      // Specialized development
+      "backend-dev", "frontend-dev", "mobile-dev",
+      "react-frontend-engineer", "api-designer",
+
+      // Analysis & research
+      "analyst", "researcher", "planner",
+      "code-analyzer", "perf-analyzer",
+
+      // DevOps & infrastructure
+      "devops-engineer", "system-architect",
+
+      // Security
+      "security-specialist", "security-architect-persona",
+
+      // Architecture & coordination
+      "architect", "coordinator", "system-architect-persona",
+      "goal-planner", "product-owner",
+
+      // Specialized agents
+      "base-template-generator", "specification",
+      "refinement", "pseudocode", "architecture",
+
+      // Testing specialists
+      "tdd-london-swarm", "production-validator",
+      "interaction-tester", "playwright-tester",
+
+      // Code quality
+      "code-booster", "code-quality-validator",
+
+      // Swarm coordination
+      "hierarchical-coordinator", "mesh-coordinator",
+      "adaptive-coordinator", "adaptive-coordinator-enhanced",
+      "blocking-coordinator-example", "task-coordinator",
+
+      // Consensus & distributed
+      "consensus-builder", "byzantine-coordinator",
+      "raft-manager", "quorum-manager",
+      "gossip-coordinator", "crdt-synchronizer",
+      "security-manager", "performance-benchmarker",
+
+      // Fallback agents
+      "general-purpose", "reviewer", "researcher", "planner",
+      "coordinator", "ui-designer", "state-architect"
+    ], // ALL agents route to Z.ai for cost optimization
     priority: 1,
   },
 ];
