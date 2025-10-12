@@ -3,3 +3,4 @@
 
   ➜  Local:   http://localhost:3002/
   ➜  Network: use --host to expose
+Killed
