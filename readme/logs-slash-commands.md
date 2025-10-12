@@ -16,21 +16,33 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, sw
 
 **Parameters**:
 - `task-description`: Description of development task
+- `--mode`: CFN Loop mode (mvp, standard, enterprise) - default: standard
 - `--phase`: Specific phase to execute (epic, sprint, phase, consensus, swarm)
-- `--threshold`: Consensus threshold (default: 0.90)
-- `--max-iterations`: Maximum iterations (default: 10)
+- `--threshold`: Consensus threshold (overrides mode default)
+- `--max-iterations`: Maximum iterations (overrides mode default)
 - `--agents`: Agent types to include
+
+**Modes**:
+- `mvp`: Speed-focused (Gate: 0.70, Consensus: 0.80, 2 validators, 5 iterations)
+- `standard`: Balanced (Gate: 0.75, Consensus: 0.90, 4 validators, 10 iterations) - default
+- `enterprise`: Quality-focused (Gate: 0.75, Consensus: 0.95, 4 validators, 15 iterations, Loop 0.5 planning, 4-person board)
 
 **Examples**:
 ```bash
-# Basic CFN loop execution
+# Basic CFN loop execution (standard mode)
 /cfn-loop "Implement user authentication system"
 
-# Execute specific phase
-/cfn-loop "Add payment processing" --phase swarm
+# MVP mode for fast prototyping
+/cfn-loop "Build MVP prototype" --mode=mvp
 
-# Custom threshold and iterations
-/cfn-loop "Create API documentation" --threshold 0.85 --max-iterations 5
+# Enterprise mode with full quality gates
+/cfn-loop "Production API system" --mode=enterprise
+
+# Execute specific phase with mode
+/cfn-loop "Add payment processing" --phase swarm --mode=standard
+
+# Custom threshold overrides mode default
+/cfn-loop "Create API documentation" --mode=enterprise --threshold 0.93
 ```
 
 #### `/cfn-loop-epic`
@@ -594,22 +606,34 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, sw
 
 #### `/parse-epic`
 
-**Purpose**: Parse and validate epic configuration files
+**Purpose**: Parse and validate epic configuration files with CFN Loop mode selection
 
 **Usage**: `/parse-epic <file-path> [options]`
 
 **Options**:
+- `--cfn-mode`: CFN Loop mode (mvp, standard, enterprise, auto) - default: auto
 - `--validate`: Validate epic configuration
 - `--output`: Output format
 - `--strict`: Strict validation mode
 
+**Auto-Detection**: Infers mode from filename patterns:
+- Files ending in `-mvp` → MVP mode
+- Files ending in `-enterprise` → Enterprise mode
+- Other files → Standard mode
+
 **Examples**:
 ```bash
-# Parse epic configuration
+# Auto-detect mode from filename
+/parse-epic ./epics/auth-mvp.json --cfn-mode=auto  # Detects MVP mode
+
+# Explicit enterprise mode
+/parse-epic ./epics/platform.json --cfn-mode=enterprise
+
+# Parse with validation
 /parse-epic ./epics/ecommerce-platform.md --validate --output json
 
-# Strict validation
-/parse-epic ./epics/user-auth.md --strict
+# Strict validation with mode
+/parse-epic ./epics/user-auth-enterprise.md --strict --cfn-mode=auto
 ```
 
 ## Command Configuration

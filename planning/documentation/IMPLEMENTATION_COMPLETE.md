@@ -192,9 +192,9 @@ const recommendations = parseRecommendations(taskResult);
    - Comprehensive error handling with fallbacks
    - Ready for Task tool integration when available
 
-   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+   
 
-   Co-Authored-By: Claude <noreply@anthropic.com>"
+   "
    ```
 
 ---

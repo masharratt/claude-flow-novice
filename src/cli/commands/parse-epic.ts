@@ -19,6 +19,7 @@ import type { EpicConfig } from '../../parsers/epic-parser-types.js';
 interface ParseEpicOptions {
   output?: string;
   validate?: boolean;
+  cfnMode?: 'mvp' | 'enterprise' | 'standard' | 'auto';
 }
 
 export const parseEpicCommand = new Command()
@@ -27,6 +28,7 @@ export const parseEpicCommand = new Command()
   .argument('<epic-directory>', 'Path to epic directory containing EPIC_OVERVIEW.md and phase files')
   .option('-o, --output <file>', 'Output file path (default: <epic-name>-config.json)')
   .option('-v, --validate', 'Run validation and report errors without generating output')
+  .option('--cfn-mode <mode>', 'CFN Loop mode: mvp, enterprise, standard, or auto (default: auto)', 'auto')
   .action(async (epicDirectory: string, options: ParseEpicOptions) => {
     await executeParseEpic(epicDirectory, options);
   });
@@ -77,6 +79,9 @@ async function executeParseEpic(
       process.exit(1);
     }
 
+    // Detect CFN Loop mode
+    const cfnMode = detectCFNMode(options.cfnMode, defaultOutputName, epicConfig);
+
     // Get validation result with stats
     const validation = parser.getValidationResult();
 
@@ -86,6 +91,7 @@ async function executeParseEpic(
       console.log(chalk.white('   - Epic:'), chalk.cyan(epicConfig.epicId));
       console.log(chalk.white('   - Phases:'), chalk.cyan(validation.stats?.totalPhases || 0));
       console.log(chalk.white('   - Total Sprints:'), chalk.cyan(validation.stats?.totalSprints || 0));
+      console.log(chalk.white('   - CFN Mode:'), chalk.cyan(cfnMode.toUpperCase()));
       console.log(chalk.white('   - Scope boundaries:'), chalk.green('✓'));
       console.log(chalk.white('   - Dependencies:'), chalk.green('✓'));
 
@@ -138,11 +144,21 @@ async function executeParseEpic(
       ? path.resolve(process.cwd(), options.output)
       : path.join(absoluteEpicDir, defaultOutputName);
 
+    // Add CFN mode metadata to epic config
+    const epicConfigWithMode = {
+      ...epicConfig,
+      metadata: {
+        ...epicConfig.metadata,
+        cfnMode: cfnMode,
+      },
+    };
+
     // Write JSON to output file
     try {
-      await fs.writeFile(outputPath, JSON.stringify(epicConfig, null, 2), 'utf-8');
+      await fs.writeFile(outputPath, JSON.stringify(epicConfigWithMode, null, 2), 'utf-8');
       const relativeOutput = path.relative(process.cwd(), outputPath);
       console.log(chalk.white('📄 Output:'), chalk.cyan(relativeOutput));
+      console.log(chalk.white('📦 CFN Mode:'), chalk.cyan(cfnMode.toUpperCase()));
     } catch (error) {
       console.error(chalk.red('✗ Failed to write output file:'), (error as Error).message);
       process.exit(1);
@@ -169,6 +185,53 @@ async function executeParseEpic(
     }
     process.exit(1);
   }
+}
+
+/**
+ * Detect CFN Loop mode from options, filename, or metadata
+ *
+ * Priority:
+ * 1. Explicit --cfn-mode flag (if not 'auto')
+ * 2. Filename pattern (e.g., "project-mvp.json")
+ * 3. Epic metadata
+ * 4. Default to standard
+ */
+function detectCFNMode(
+  optionMode: string | undefined,
+  filename: string,
+  epicConfig: EpicConfig
+): 'mvp' | 'enterprise' | 'standard' {
+  // 1. Explicit mode (if not 'auto')
+  if (optionMode && optionMode !== 'auto' && ['mvp', 'enterprise', 'standard'].includes(optionMode)) {
+    return optionMode as 'mvp' | 'enterprise' | 'standard';
+  }
+
+  // 2. Filename pattern detection
+  const lowerFilename = filename.toLowerCase();
+  if (lowerFilename.includes('-mvp') || lowerFilename.includes('_mvp') || lowerFilename.includes('.mvp')) {
+    return 'mvp';
+  }
+  if (lowerFilename.includes('-enterprise') || lowerFilename.includes('_enterprise') || lowerFilename.includes('.enterprise')) {
+    return 'enterprise';
+  }
+
+  // 3. Epic metadata detection
+  if (epicConfig.metadata) {
+    const metadata = epicConfig.metadata as any;
+    if (metadata.cfnMode && ['mvp', 'enterprise', 'standard'].includes(metadata.cfnMode)) {
+      return metadata.cfnMode;
+    }
+    if (metadata.mode && ['mvp', 'enterprise', 'standard'].includes(metadata.mode)) {
+      return metadata.mode;
+    }
+    if (metadata.quality) {
+      if (metadata.quality === 'mvp') return 'mvp';
+      if (metadata.quality === 'enterprise') return 'enterprise';
+    }
+  }
+
+  // 4. Default to standard
+  return 'standard';
 }
 
 // CLI execution when run directly

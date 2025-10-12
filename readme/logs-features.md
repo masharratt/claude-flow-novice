@@ -7,14 +7,93 @@
 **Purpose**: Self-correcting development loop with autonomous iteration
 
 **Key Components**:
-- **4-loop architecture**: Epic/Sprint → Phase → Consensus → Primary Swarm
-- **Confidence gating**: ≥75% threshold for progression
-- **Byzantine consensus**: ≥90% validation threshold
-- **Product Owner GOAP**: PROCEED/DEFER/ESCALATE decisions
-- **Automatic feedback**: Iteration-based improvement
+- **5-loop architecture**: Epic/Sprint → Planning (Enterprise) → Phase → Consensus → Primary Swarm
+- **Mode-adaptive thresholds**: MVP (0.70/0.80) • Standard (0.75/0.90) • Enterprise (0.75/0.95)
+- **Byzantine consensus**: Mode-specific validation (2-4 validators)
+- **Product Owner GOAP**: Single or 4-person board (Enterprise)
+- **Automatic feedback**: Iteration-based improvement with mode-specific limits
 
-**Configuration**: Iteration limits, thresholds, timeout settings
+**Configuration**: Mode selection, iteration limits, thresholds, timeout settings
 **Usage**: Multi-phase project execution with quality validation
+
+### CFN Loop Modes
+
+**Purpose**: Adapt CFN Loop quality gates to project needs
+
+**Implementation**: Three modes with different thresholds and team structures
+
+**Modes**:
+1. **MVP**: Ship fast (Gate: 0.70, Consensus: 0.80, 2 validators, 5 iterations, single PO, skip A11y/perf)
+2. **Standard**: Balanced (Gate: 0.75, Consensus: 0.90, 4 validators, 10 iterations, single PO) - default
+3. **Enterprise**: Production quality (Gate: 0.75, Consensus: 0.95, 4 validators, 15 iterations, 4-person board, Loop 0.5)
+
+**Usage**:
+```bash
+/cfn-loop "Task" --mode=mvp          # Fast iteration
+/cfn-loop "Task" --mode=standard     # Balanced (default)
+/cfn-loop "Task" --mode=enterprise   # Full quality gates
+```
+
+**Integration**: Mode stored in Redis (`cfn:mode:{phaseId}`) for swarm coordination
+
+### Loop 0.5 Planning Consensus
+
+**Purpose**: Architect team votes on design BEFORE Loop 3 implementation (Enterprise mode only)
+
+**Implementation**: 3 architects (system, security, API) vote on ADRs and system diagrams
+
+**Threshold**: 0.85 consensus required
+
+**Output**: Design specification stored in SQLite with ACL Level 3 (1-year retention)
+
+**Benefit**: Reduces Loop 3 rework by 30-40% (clear design constraints upfront)
+
+**Usage**: Automatic when `--mode=enterprise`
+
+**Flow**:
+1. Spawn 3 architects (system, security, API)
+2. Design debate via Redis pub/sub (10-15 min)
+3. Vote on proposals (≥0.85 consensus)
+4. Store design spec in SQLite at `cfn/phase-{id}/loop0.5/design`
+5. Loop 3 implementers follow approved design
+
+**Personas**: `.claude/agents/planning-team/` (system-architect-persona, security-architect-persona, api-designer-persona)
+
+**Memory Pattern**:
+```bash
+# Store Loop 0.5 results
+/sqlite-memory store --key "cfn/phase-{id}/loop0.5/design" --level project --data '{"adr":"...","diagram":"..."}'
+
+# Loop 3 reads planning results
+/sqlite-memory retrieve --key "cfn/phase-{id}/loop0.5/design" --level project
+```
+
+### Multi-Stakeholder Product Owner Board
+
+**Purpose**: Replace single product owner with 4-person board for balanced decisions (Enterprise mode only)
+
+**Implementation**: 4 personas with weighted voting (CTO 30%, PO 30%, Power User 20%, Accessibility 20%)
+
+**Decision Algorithm**: Weighted confidence voting from `/planning/parallelization/DESIGN_CONSENSUS_MULTI_STAKEHOLDER_ARCHITECTURE.md:776-820`
+
+**Deliberation**: Triggered when disagreement >0.15 (facilitator agent negotiates compromise)
+
+**Output**: PROCEED/DEFER/ESCALATE decision with dissenting opinions documented
+
+**Usage**: Automatic when `--mode=enterprise`
+
+**Personas**: `.claude/agents/product-owner-team/` (cto-agent, product-owner-agent, power-user-persona, accessibility-advocate-persona)
+
+**Voting Formula**:
+```
+Final Decision = (CTO * 0.30) + (PO * 0.30) + (PowerUser * 0.20) + (A11y * 0.20)
+```
+
+**Deliberation Trigger**:
+```
+If max_vote - min_vote > 0.15:
+  Spawn facilitator agent for compromise negotiation
+```
 
 ### Agent Lifecycle Management
 

@@ -214,7 +214,7 @@ git commit -m "Add lifecycle state interfaces to AgentDefinition
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 2. Lifecycle manager implementation
 git add src/agents/lifecycle/
@@ -227,7 +227,7 @@ git commit -m "Implement AgentLifecycleManager with state transitions
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 3. Hook integration enhancements
 git add src/config/integration/hooks-integration.ts
@@ -240,7 +240,7 @@ git commit -m "Add new hook types for lifecycle management
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 4. State persistence layer
 git add src/agents/lifecycle/StatePersistence.ts
@@ -253,7 +253,7 @@ git commit -m "Add agent state persistence with backup/recovery
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 5. Tests and documentation
 git add tests/agents/lifecycle/ tests/integration/lifecycle-hooks-integration.test.ts
@@ -266,7 +266,7 @@ git commit -m "Add comprehensive lifecycle management tests
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # Tag the checkpoint
 git tag -a v1.0-lifecycle-states -m "CHECKPOINT 1: Agent Lifecycle State Management
@@ -502,7 +502,7 @@ git commit -m "Implement bidirectional dependency tracking system
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 2. Completion eligibility engine
 git add src/agents/dependencies/CompletionEligibilityEngine.ts
@@ -515,7 +515,7 @@ git commit -m "Add completion eligibility checking with rules engine
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 3. Enhanced agent manager
 git add src/agents/agent-manager.ts
@@ -528,7 +528,7 @@ git commit -m "Enhance agent manager with dependency awareness
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 4. Dependency visualization and monitoring
 git add src/agents/dependencies/DependencyVisualizer.ts
@@ -541,7 +541,7 @@ git commit -m "Add dependency visualization and monitoring tools
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 5. Tests and integration
 git add tests/agents/dependencies/ tests/integration/dependency-completion-flow.test.ts
@@ -554,7 +554,7 @@ git commit -m "Add comprehensive dependency tracking tests
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # Tag the checkpoint
 git tag -a v1.1-dependency-tracking -m "CHECKPOINT 2: Dependency-Aware Completion Tracking
@@ -1332,7 +1332,7 @@ git commit -m "Add comprehensive lifecycle integration test suite
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 2. Stress testing and race condition detection
 git add tests/stress/ tests/tools/RaceConditionDetector.ts
@@ -1345,7 +1345,7 @@ git commit -m "Implement stress testing and race condition detection
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 3. Performance benchmarking
 git add tests/performance/lifecycle-benchmarks.ts
@@ -1358,7 +1358,7 @@ git commit -m "Add performance benchmarking suite for lifecycle management
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 4. System validation and health checking
 git add src/validation/
@@ -1371,7 +1371,7 @@ git commit -m "Implement system health validation and self-healing
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # 5. Rollback and disaster recovery
 git add src/lifecycle/rollback/
@@ -1384,7 +1384,7 @@ git commit -m "Add comprehensive rollback and disaster recovery
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+"
 
 # Tag the final checkpoint
 git tag -a v1.3-lifecycle-complete -m "CHECKPOINT 4: Integration Testing & Validation COMPLETE

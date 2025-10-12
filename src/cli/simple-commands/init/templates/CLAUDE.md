@@ -18,10 +18,11 @@
 * **Redis persistence enables swarm recovery** - swarm state survives interruptions.
 * **ALL agent communication MUST use Redis pub/sub** - no direct file coordination.
 
-**Consensus thresholds**
+**Consensus thresholds** (mode-dependent)
 
-* Gate (agent self-confidence): **≥0.75 each**
-* Validators consensus: **≥0.90**
+* Standard mode: Gate ≥0.75 • Consensus ≥0.90 • 4 validators • single PO
+* MVP mode: Gate ≥0.70 • Consensus ≥0.80 • 2 validators • single PO
+* Enterprise mode: Gate ≥0.75 • Consensus ≥0.95 • 4 validators • 4-person board • Loop 0.5 planning
 
 ---
 
@@ -71,7 +72,14 @@ node tests/manual/test-swarm-direct.js "Create REST API with authentication" --e
 node config/hooks/post-edit-pipeline.js "[FILE]" --memory-key "swarm/[agent]/[step]"
 ```
 
-**Useful flags (optional)**: `--tdd-mode` • `--minimum-coverage 80..90` • `--rust-strict`
+**Useful flags (optional)**: `--tdd-mode` • `--minimum-coverage 80..90` • `--rust-strict` • `--no-wasm` (disable 52x acceleration)
+
+**Markdown validation** (opt-in, better for CI): `--validate-markdown`
+
+**WASM 52x acceleration** enabled by default for:
+- JavaScript/TypeScript: AST parsing, linting, type checking
+- Rust files: Pattern matching (unwrap, panic, expect detection)
+- Markdown (opt-in): Link checking, structure analysis
 
 ### 3.3 Safe Test Execution
 
@@ -94,24 +102,55 @@ pkill -f vitest; pkill -f "npm test"
 ---
 
 ## 4) CFN Loop (Single Section)
+
+### 4.1 Loop Structure
+
 Loop 0: Epic/Sprint orchestration (multi-phase) → no iteration limit
+Loop 0.5: Planning consensus (Enterprise only) → architects vote on design; ≥0.85 consensus
 Loop 1: Phase execution (sequential phases) → no limit
-Loop 2: Consensus validation (team of 2-4 validators) → max 10/phase; exit at ≥0.90
-Loop 3: Primary swarm implementation → max 10/subtask; exit when all ≥0.75
+Loop 2: Consensus validation (2-4 validators) → max 5-15/phase; exit at ≥0.80-0.95
+Loop 3: Primary swarm implementation → max 5-15/subtask; exit when all ≥0.70-0.75
 Loop 4: Product Owner decision gate (GOAP) → PROCEED / DEFER / ESCALATE
 
-Flow
+### 4.2 CFN Loop Modes
+
+**Mode Selection**: Adapt quality gates to project needs
+
+```bash
+/cfn-loop "Task" --mode=mvp          # Fast iteration
+/cfn-loop "Task" --mode=standard     # Balanced (default)
+/cfn-loop "Task" --mode=enterprise   # Full quality gates
+```
+
+**Mode Comparison**:
+
+| Mode | Best For | Gate | Consensus | Iterations | Validators | Product Owner | Loop 0.5 |
+|------|----------|------|-----------|------------|------------|---------------|----------|
+| **MVP** | Prototypes, MVPs | ≥0.70 | ≥0.80 | 5 | 2 | Single | No |
+| **Standard** | General features | ≥0.75 | ≥0.90 | 10 | 4 | Single | No |
+| **Enterprise** | Production systems | ≥0.75 | ≥0.95 | 15 | 4 | 4-person board | Yes (≥0.85) |
+
+**Auto-Detection**: Epic parser infers mode from filename patterns (`-mvp`, `-enterprise`)
+
+```bash
+/parse-epic ./auth-mvp.json --cfn-mode=auto  # Detects MVP mode
+/parse-epic ./platform.json --cfn-mode=enterprise
+```
+
+**Mode Storage**: Redis key `cfn:mode:{phaseId}` stores mode for swarm coordination
+
+### 4.3 Flow
 
 Loop 3 implementers produce output + self-confidence scores.
 Can use up to 7 agents in mesh, if > 7 agents needed, use coordinators in mesh with teams under them in hierarchical. Can use up to 50 agents under a coordinator
 
-Gate: if all ≥0.75, go to Loop 2; else retry Loop 3 with targeted/different agents.
+Gate: if all ≥threshold (mode-dependent), go to Loop 2; else retry Loop 3 with targeted/different agents.
 
-Loop 2 validator team of 2-4 agents run; refer recommendations to product owner for decisions
+Loop 2 validator team of 2-4 agents run (mode-dependent count); refer recommendations to product owner for decisions
 
 **🎯 CRITICAL:** Loop 4 Product Owner runs autonomous GOAP decision:
 
-After consensus validation, Product Owner agent makes autonomous PROCEED/DEFER/ESCALATE decision:
+After consensus validation, Product Owner agent (single or 4-person board) makes autonomous PROCEED/DEFER/ESCALATE decision:
 
 PROCEED: Relaunch Loop 3 with targeted fixes or move to next sprint
 
@@ -120,6 +159,41 @@ DEFER: Approve work, backlog out-of-scope issues. launch swarms for next steps
 ESCALATE: Critical ambiguity → human review.
 
 Auto-transition phases when complete by rereading the root claude.md file and launching a swarm for next steps. No permission prompts.
+
+### 4.4 Loop 0.5 Planning Consensus (Enterprise Mode Only)
+
+**Purpose**: Architect team votes on design BEFORE Loop 3 implementation
+
+**Implementation**: 3 architects (system, security, API) vote on ADRs and system diagrams
+
+**Threshold**: ≥0.85 consensus required
+
+**Output**: Design specification stored in SQLite with ACL Level 3 (1-year retention)
+
+**Benefit**: Reduces Loop 3 rework by 30-40% (clear design constraints upfront)
+
+**Flow**:
+1. Spawn 3 architects (system, security, API)
+2. Design debate via Redis pub/sub (10-15 min)
+3. Vote on proposals (≥0.85 consensus)
+4. Store design spec in SQLite at `cfn/phase-{id}/loop0.5/design`
+5. Loop 3 implementers follow approved design
+
+**Personas**: `.claude/agents/planning-team/` (system-architect, security-architect, api-designer)
+
+### 4.5 Multi-Stakeholder Product Owner Board (Enterprise Mode Only)
+
+**Purpose**: Replace single product owner with 4-person board for balanced decisions
+
+**Implementation**: 4 personas with weighted voting (CTO 30%, PO 30%, Power User 20%, Accessibility 20%)
+
+**Decision Algorithm**: Weighted confidence voting from `/planning/parallelization/DESIGN_CONSENSUS_MULTI_STAKEHOLDER_ARCHITECTURE.md`
+
+**Deliberation**: Triggered when disagreement >0.15 (facilitator agent negotiates compromise)
+
+**Output**: PROCEED/DEFER/ESCALATE decision with dissenting opinions documented
+
+**Personas**: `.claude/agents/product-owner-team/` (cto-agent, product-owner-agent, power-user-persona, accessibility-advocate-persona)
 
 ### CFN Loop Coordination Example
 
@@ -159,6 +233,8 @@ redis-cli setex "cfn:phase-auth:state" 3600 '{"loop":3,"agents":5,"confidence":0
 **Git Commit After Each Completion:**
 ```bash
 # After Loop 3 completes (all agents ≥0.75)
+/github-commit --chat
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Loop 3 - Authentication Phase
@@ -170,13 +246,15 @@ Loop 3 Implementation Results:
 
 Ready for Loop 2 validation
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 EOF
 )"
 
 # After Loop 2 validation completes (consensus ≥0.90)
+/github-commit --chat
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Loop 2 - Validation Phase
@@ -189,13 +267,15 @@ Loop 2 Validation Results:
 
 Ready for Loop 4 Product Owner decision
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 EOF
 )"
 
 # After Loop 4 Product Owner decision (PROCEED/DEFER)
+/github-commit --chat
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Phase - Authentication System
@@ -207,13 +287,16 @@ Loop 4 Product Owner Decision: DEFER ✅
 
 Next: Auto-transition to next phase
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 EOF
 )"
 
 # After Sprint completes (multiple phases done)
+/github-commit --full
+# Triggers /cfn-loop-document automatically
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Sprint 1 - User Management
@@ -224,13 +307,16 @@ Sprint Summary:
 - Sprint Confidence: 0.90
 - Status: All phases validated and production ready
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 EOF
 )"
 
 # After Epic completes (all sprints done)
+/github-commit --full
+/cfn-loop-document --epic=e-commerce-v1
+# Or manual:
 git add .
 git commit -m "$(cat <<'EOF'
 feat(cfn-loop): Complete Epic - E-commerce Platform v1.0
@@ -241,20 +327,20 @@ Epic Summary:
 - Epic Confidence: 0.90
 - Status: Platform launch ready
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-Co-Authored-By: Claude <noreply@anthropic.com>
+
+
 EOF
 )"
 ```
 
 **Complete CFN Loop Flow with Coordination:**
-1. **Loop 3**: Agents coordinate via event bus, store results in SQLite → Commit on completion (≥0.75)
-2. **Loop 2**: Validators read Loop 3 memory, validate, publish consensus → Commit on validation (≥0.90)
-3. **Loop 4**: Product Owner reads all memory, makes GOAP decision → Commit on decision
-4. **Phase Complete**: Commit phase summary with all metrics
-5. **Sprint Complete**: Commit sprint summary with all phase results
-6. **Epic Complete**: Commit epic summary with all sprint results
+1. **Loop 3**: Agents coordinate via event bus, store results in SQLite → `/github-commit --chat` on completion (≥0.75)
+2. **Loop 2**: Validators read Loop 3 memory, validate, publish consensus → `/github-commit --chat` on validation (≥0.90)
+3. **Loop 4**: Product Owner reads all memory, makes GOAP decision → `/github-commit --chat` on decision
+4. **Phase Complete**: `/github-commit --chat` with phase summary and metrics
+5. **Sprint Complete**: `/github-commit --full` with sprint summary, auto-triggers `/cfn-loop-document --sprint=name`
+6. **Epic Complete**: `/github-commit --full` + `/cfn-loop-document --epic=name` with all sprint/phase results
 
 ### CFN Loop Enterprise Commands
 
@@ -315,9 +401,14 @@ claude-flow-novice recovery:status --effectiveness-target 0.90
 Retry Templates
 
 Loop 3 retry (low confidence): replace failing agents with specialists; add missing roles (security/perf).
-Loop 2 retry (consensus <0.90): target validator issues (e.g., fix SQLi, raise coverage) and refer recommendations to product owner for improvements
+Loop 2 retry (consensus <threshold): target validator issues (e.g., fix SQLi, raise coverage) and refer recommendations to product owner for improvements
 
-Stop only if: dual iteration limits reached, critical security/compilation error, or explicit STOP/PAUSE.
+**Mode-Specific Iteration Limits**:
+- MVP: Loop 3 max 5 iterations • Loop 2 max 5 iterations
+- Standard: Loop 3 max 10 iterations • Loop 2 max 10 iterations
+- Enterprise: Loop 3 max 15 iterations • Loop 2 max 15 iterations
+
+Stop only if: mode-specific iteration limits reached, critical security/compilation error, or explicit STOP/PAUSE.
 
 ---
 
@@ -380,6 +471,30 @@ redis-cli publish "swarm:coordination" '{"agent":"id","status":"message"}'
 * `/swarm`, `/sparc`, `/hooks` — autodiscovered
 * Redis persistence provides automatic recovery
 
+**Markdown Validation** (standalone tool for CI/pre-commit)
+
+```bash
+# Validate all markdown files (WASM 52x accelerated)
+node config/hooks/markdown-validator.js --all
+
+# CI mode (exit 1 on errors)
+node config/hooks/markdown-validator.js --all --ci
+
+# Single file or pattern
+node config/hooks/markdown-validator.js README.md
+node config/hooks/markdown-validator.js docs/**/*.md
+
+# Pre-commit hook: Add to .git/hooks/pre-commit
+node config/hooks/markdown-validator.js --all --ci
+```
+
+**Use cases**:
+- ✅ Pre-commit hooks: Catch broken links before committing
+- ✅ CI/CD: PR validation (100+ files in <1s)
+- ✅ Documentation builds: Pre-process before publishing
+- ✅ CFN Loop agents: Quality check generated docs
+- ❌ Post-edit: Too noisy during active editing (use --validate-markdown flag)
+
 **File organization**: never save working files to root.
 
 ---
@@ -431,9 +546,17 @@ redis-cli get "swarm:swarm_id"  # Retrieve complete state for specific swarm ins
 
 ```bash
 # Execute CFN Loop autonomous workflow with self-correcting consensus validation and retry mechanisms
-/cfn-loop "Implement authentication system" --phase=auth --max-loop2=10
-/cfn-loop-sprints "E-commerce platform" --sprints=3 --max-loop2=5
-/cfn-loop-epic "User management system" --phases=4
+/cfn-loop "Implement authentication system" --phase=auth --mode=standard
+/cfn-loop "Build MVP prototype" --mode=mvp  # Fast iteration (Gate: 0.70, Consensus: 0.80)
+/cfn-loop "Production API" --mode=enterprise  # Full quality gates with Loop 0.5 planning
+
+# Epic-level mode selection with auto-detection
+/parse-epic ./auth-mvp.json --cfn-mode=auto  # Detects MVP mode from filename
+/parse-epic ./platform-enterprise.json --cfn-mode=auto  # Detects Enterprise mode
+
+# Sprint and epic orchestration
+/cfn-loop-sprints "E-commerce platform" --sprints=3 --mode=enterprise
+/cfn-loop-epic "User management system" --phases=4 --mode=standard
 
 # SPARC methodology phases for systematic specification, architecture, refinement, and completion workflows
 /sparc analysis "Database performance issues"
@@ -532,6 +655,77 @@ pkill -f vitest; pkill -f "npm test"  # Force terminate hanging test processes
 # Store and retrieve memory with ACL enforcement providing security layer Redis doesn't offer
 /sqlite-memory store --key "sensitive-data" --level system --data '{"encrypted": true}'
 /sqlite-memory retrieve --key "project-data" --level project
+```
+
+---
+
+## 11) Metrics Reporting Standards
+
+When reporting file counts and build metrics in completion reports, use these standardized commands:
+
+### TypeScript Source Files
+```bash
+# Count all TypeScript source files
+find src -name "*.ts" -o -name "*.tsx" | wc -l
+# Report as: "X TypeScript source files"
+```
+
+### JavaScript Output Files
+```bash
+# Count compiled JavaScript files (after build)
+find .claude-flow-novice/dist -name "*.js" 2>/dev/null | wc -l
+# OR: find dist -name "*.js" 2>/dev/null | wc -l
+# Report as: "X JavaScript output files" or "X files compiled to dist/"
+```
+
+### Build Compilation Ratio
+```bash
+# Calculate tree-shaking effectiveness
+echo "scale=1; ($(find dist -name "*.js" | wc -l) * 100) / $(find src -name "*.ts" -o -name "*.tsx" | wc -l)" | bc
+# Report as: "X% compilation ratio (indicates tree-shaking effectiveness)"
+```
+
+### Lines of Code
+```bash
+# Count total lines (excluding node_modules, dist, .git)
+find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" | grep -v node_modules | grep -v dist | grep -v .git | xargs wc -l | tail -1
+```
+
+### Reporting Format
+
+When writing completion reports, ALWAYS clarify context:
+- ❌ "691 TypeScript files compiled" (ambiguous - source or output?)
+- ✅ "10,047 TypeScript source files compiled to 812 JavaScript output files (8% ratio)"
+- ✅ "Build compiled 691 TypeScript files from src/ to dist/"
+
+### Recommended Report Structure
+
+```json
+{
+  "build_metrics": {
+    "source_files": {
+      "typescript": 10047,
+      "javascript": 150
+    },
+    "output_files": {
+      "javascript": 812,
+      "sourcemaps": 812
+    },
+    "compilation_ratio": "8%",
+    "build_time_ms": 938
+  }
+}
+```
+
+### Helper Script
+
+Use the standardized metrics collection script:
+```bash
+# Human-readable output
+node scripts/collect-build-metrics.js
+
+# JSON output for reports
+node scripts/collect-build-metrics.js --json
 ```
 
 ---
