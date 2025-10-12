@@ -1,0 +1,207 @@
+{
+  "name": "Enterprise Mode Criteria",
+  "description": "Quality-focused criteria for production-grade enterprise systems",
+  "mode": "enterprise",
+  "thresholds": {
+    "gateThreshold": 0.75,
+    "consensusThreshold": 0.95,
+    "planningConsensusThreshold": 0.85,
+    "testCoverage": 0.90
+  },
+  "qualityCriteria": {
+    "codeQuality": {
+      "required": [
+        "Production-ready architecture",
+        "SOLID principles applied",
+        "Design patterns implemented correctly",
+        "Comprehensive error handling",
+        "Complete inline documentation",
+        "Code review approved"
+      ],
+      "mustHave": [
+        "Maintainable code structure",
+        "Clear separation of concerns",
+        "Type safety enforced",
+        "Linting rules passing"
+      ]
+    },
+    "testing": {
+      "required": [
+        ">90% test coverage",
+        "All edge cases tested",
+        "Integration tests complete",
+        "End-to-end tests passing",
+        "Load testing validated",
+        "Chaos engineering tests"
+      ],
+      "mustHave": [
+        "Property-based testing for critical paths",
+        "Performance regression tests",
+        "Database migration tests"
+      ]
+    },
+    "security": {
+      "required": [
+        "Security audit completed",
+        "Vulnerability scanning clean",
+        "Authentication hardened (MFA)",
+        "Authorization implemented (RBAC)",
+        "Input validation comprehensive",
+        "Rate limiting active",
+        "CSRF protection enabled",
+        "Security headers configured",
+        "Secrets management implemented"
+      ],
+      "compliance": [
+        "GDPR compliance validated",
+        "SOC2 requirements met",
+        "Data encryption at rest and in transit",
+        "Audit logging complete"
+      ]
+    },
+    "accessibility": {
+      "required": [
+        "WCAG 2.1 AA compliant",
+        "Screen reader compatible",
+        "Keyboard navigation complete",
+        "Color contrast validated",
+        "ARIA labels implemented",
+        "Focus management correct",
+        "Accessibility audit passed"
+      ],
+      "mustHave": [
+        "Assistive technology tested",
+        "Alternative text for images",
+        "Semantic HTML used"
+      ]
+    },
+    "performance": {
+      "required": [
+        "Performance benchmarks met",
+        "Load testing validated (1000+ concurrent users)",
+        "Response time <500ms (p95)",
+        "Database queries optimized",
+        "Caching strategy implemented",
+        "CDN configured for static assets",
+        "Memory leaks prevented"
+      ],
+      "scalability": [
+        "Horizontal scaling supported",
+        "Auto-scaling configured",
+        "Database replication ready",
+        "Rate limiting per tenant"
+      ]
+    },
+    "documentation": {
+      "required": [
+        "Complete API documentation",
+        "Architecture diagrams",
+        "System design documents",
+        "Runbook for operations",
+        "Incident response playbook",
+        "User guide comprehensive",
+        "Code examples provided"
+      ],
+      "mustHave": [
+        "ADRs (Architecture Decision Records)",
+        "Security documentation",
+        "Compliance documentation",
+        "Monitoring and alerting guide"
+      ]
+    },
+    "monitoring": {
+      "required": [
+        "Application metrics instrumented",
+        "Error tracking configured",
+        "Log aggregation active",
+        "Alerting rules defined",
+        "Dashboards created",
+        "SLIs/SLOs defined",
+        "On-call runbook"
+      ]
+    },
+    "deployment": {
+      "required": [
+        "CI/CD pipeline automated",
+        "Blue-green deployment ready",
+        "Rollback procedure tested",
+        "Database migrations automated",
+        "Feature flags implemented",
+        "Canary releases supported"
+      ]
+    }
+  },
+  "skipValidations": [],
+  "mandatoryChecks": [
+    "security-audit",
+    "accessibility-audit",
+    "load-testing",
+    "compliance-validation",
+    "documentation-complete",
+    "monitoring-instrumented"
+  ],
+  "loop05Planning": {
+    "enabled": true,
+    "architects": [
+      "architect",
+      "system-architect",
+      "security-specialist"
+    ],
+    "threshold": 0.85,
+    "deliverables": [
+      "Architecture Decision Records (ADRs)",
+      "System architecture diagrams",
+      "Security architecture and threat model",
+      "Scalability plan",
+      "Compliance requirements"
+    ]
+  },
+  "loop04ProductOwnerBoard": {
+    "enabled": true,
+    "members": [
+      {
+        "role": "cto",
+        "weight": 0.30,
+        "focus": "Strategic alignment, technical debt, architecture viability"
+      },
+      {
+        "role": "product-owner",
+        "weight": 0.30,
+        "focus": "Business value, ROI, user stories, competitive positioning"
+      },
+      {
+        "role": "user-power",
+        "weight": 0.20,
+        "focus": "Usability, user experience, feature completeness, workflows"
+      },
+      {
+        "role": "user-accessibility",
+        "weight": 0.20,
+        "focus": "WCAG compliance, screen reader compatibility, keyboard navigation"
+      }
+    ],
+    "votingAlgorithm": "weighted-confidence",
+    "decisionThresholds": {
+      "PROCEED": 0.85,
+      "DEFER": 0.65,
+      "ESCALATE": 0.0
+    }
+  },
+  "tradeoffs": {
+    "acceptable": [],
+    "notAcceptable": [
+      "Technical debt",
+      "Security vulnerabilities",
+      "Accessibility non-compliance",
+      "Performance below SLA",
+      "Incomplete documentation",
+      "Missing monitoring",
+      "Unvalidated scalability"
+    ]
+  },
+  "decisionGuidelines": {
+    "PROCEED": "All enterprise criteria met. Security audit passed. WCAG 2.1 AA compliant. Performance benchmarks validated. Board unanimously approves. Ready for production.",
+    "DEFER": "Core functionality excellent but minor enhancements identified. Approve with backlog items for future iterations. No blocking issues.",
+    "ESCALATE": "Critical enterprise requirements unmet. Security concerns, accessibility issues, or compliance gaps. Board review required."
+  }
+}

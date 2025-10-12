@@ -36,12 +36,14 @@
     "clean": "rm -rf dist storybook-static"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@mui/material": "^6.1.7",
     "@mui/icons-material": "^6.1.7",
-    "recharts": "^2.14.1",
-    "date-fns": "^4.1.0"
+    "@mui/lab": "^6.0.0-beta.13",
+    "@mui/material": "^6.1.7",
+    "date-fns": "^4.1.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "react-window": "^1.8.10",
+    "recharts": "^2.14.1"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
@@ -56,19 +58,22 @@
     }
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
-    "@types/react": "^18.3.12",
-    "@swc/cli": "^0.7.8",
-    "@swc/core": "^1.13.20",
-    "vitest": "^2.1.5",
     "@storybook/react": "^8.4.5",
     "@storybook/react-vite": "^8.4.5",
+    "@swc/cli": "^0.7.8",
+    "@swc/core": "^1.13.20",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.12",
+    "@types/react-window": "^1.8.8",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
     "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.14.0",
-    "@typescript-eslint/parser": "^8.14.0",
-    "prettier": "^3.3.3"
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
   },
   "engines": {
     "node": ">=20.0.0",
