@@ -49,6 +49,32 @@ During installation, Claude Flow Novice automatically:
 - ✅ **4 Validators**: Includes agent-template, CFN-loop, test-coverage, blocking-coordination validators
 - 🔄 **Redis Detection**: Auto-detects and starts Redis if installed (optional but recommended)
 
+---
+
+## 📊 Optional: Web Portal
+
+Claude Flow Novice includes an **optional** web-based monitoring portal with real-time visualization of agent coordination, swarm performance, and CFN Loop execution.
+
+**Features:**
+- 7 consolidated monitoring views (Dashboard, Agents, Hierarchy, Performance, Events, Fleet, CFN Loop)
+- Real-time WebSocket updates
+- Virtual scrolling for 10K+ events
+- Chart.js visualizations (CPU, memory, agent distribution)
+- Complete test coverage (121 unit tests, 21/32 E2E passing)
+
+**Install the portal separately:**
+
+```bash
+npm run portal:install
+npm run portal:dev
+```
+
+Access at: **http://localhost:3002**
+
+See [WEB_PORTAL_INSTALL.md](WEB_PORTAL_INSTALL.md) for complete documentation.
+
+---
+
 **Note**: Redis is optional but recommended for cross-session state persistence. See [Redis Setup](#redis-setup-optional) below.
 
 ### 2. Create Your First Project
