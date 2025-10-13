@@ -62,6 +62,180 @@ redis-cli setex "swarm:phase-auth-implementation:state" 86400 '{
 
 ---
 
+## Loop 3: Hybrid CLI Routing (Claude Max Mode)
+
+**When hybrid routing enabled (default with `/switch-api max`):**
+
+### Architecture
+
+```
+Main Chat (Claude Max subscription, $0)
+  ↓
+  Task("CFN-Loop3-Coordinator", "...", "coordinator")
+  ↓
+  Coordinator (Claude Max via Task tool, $0)
+  ↓
+  node tests/manual/test-swarm-direct.js
+  ↓
+  Worker Agents (z.ai via CLI, $0.10-2/1M)
+```
+
+### Coordinator Spawning Pattern
+
+**IMPORTANT:** The coordinator itself spawns via the **Task tool** (uses Claude Max subscription, $0 cost):
+
+```javascript
+Task("CFN-Loop3-Coordinator",
+  `Lead implementation of authentication system...`,
+  "coordinator"
+)
+```
+
+**Workers** spawn via **CLI commands** executed by the coordinator (uses z.ai provider, ~$0.50 cost):
+
+```bash
+node tests/manual/test-swarm-direct.js \
+  "Implement auth: JWT, sessions" \
+  --executor --max-agents 5
+```
+
+**Why This Pattern:**
+- Coordinator needs intelligent orchestration → Claude Max quality ($0 via subscription)
+- Workers execute parallel tasks → z.ai cost efficiency ($0.50 vs $15 per 1M tokens)
+- **97% cost savings** while maintaining coordinator intelligence
+
+---
+
+**Spawn coordinator via Task tool (uses Claude Max subscription):**
+
+```javascript
+// Spawn coordinator via Task tool (Claude Max subscription, $0)
+Task("CFN-Loop3-Coordinator",
+  `**You are the coordinator** - spawned via Task tool using Claude Max subscription ($0 cost).
+   Your role: Orchestrate workers via CLI.
+
+   Lead implementation of [PHASE_NAME] (e.g., authentication system).
+
+   **Your Mission:**
+   Orchestrate [N] worker agents via CLI with intelligent monitoring.
+
+   **Spawning Strategy (Hybrid CLI):**
+
+   1. **Spawn workers via CLI with z.ai provider:**
+
+   \`\`\`bash
+   node tests/manual/test-swarm-direct.js \\
+     "Implement [PHASE_NAME]: [LIST_COMPONENTS]" \\
+     --executor --max-agents [N] --strategy development --mode mesh
+   \`\`\`
+
+   2. **Workers coordinate via Redis pub/sub channels:**
+      - swarm:[phase]:[agent-id]:complete
+      - swarm:[phase]:[agent-id]:progress
+      - swarm:[phase]:coordination
+
+   3. **Monitor Redis for worker completion events:**
+
+   \`\`\`bash
+   redis-cli SUBSCRIBE "swarm:[phase]:*:complete"
+   \`\`\`
+
+   4. **Parse worker completion events:**
+
+   Workers publish JSON:
+   \`\`\`json
+   {
+     "agent": "coder-1",
+     "confidence": 0.85,
+     "filesModified": ["src/auth/jwt.ts"],
+     "linesOfCode": 450,
+     "testsWritten": 12,
+     "testsPassing": 12,
+     "coverage": 0.87,
+     "reasoning": "Implementation complete with comprehensive tests",
+     "issues": [],
+     "recommendations": ["Add edge case tests in Loop 2"]
+   }
+   \`\`\`
+
+   5. **Error Detection & Recovery:**
+
+   \`\`\`javascript
+   // Detect low confidence workers
+   if (data.confidence < 0.75) {
+     console.log(\`⚠️ \${data.agent} below threshold (\${data.confidence})\`);
+     console.log(\`Issue: \${data.reasoning}\`);
+
+     // Relaunch with adjusted prompt
+     await spawn(\`node tests/manual/test-swarm-direct.js \\
+       "Retry \${data.agent} task - fix: [SPECIFIC_ISSUE]" \\
+       --executor --max-agents 1\`);
+   }
+   \`\`\`
+
+   6. **Aggregate Results & Report:**
+
+   \`\`\`javascript
+   const avgConfidence = workers.reduce((sum, w) => sum + w.confidence, 0) / workers.length;
+   const allPass = workers.every(w => w.confidence >= 0.75);
+
+   console.log(\`
+   ## Loop 3 Complete - [PHASE_NAME] (Standard)
+
+   **Workers:** \${workers.length}
+   **Avg Confidence:** \${avgConfidence.toFixed(2)} (target: ≥0.75)
+   **Files Modified:** \${totalFiles}
+   **Tests Written:** \${totalTests}
+   **Status:** \${allPass ? '✅ PASS' : '⚠️ NEEDS_RETRY'}
+
+   **Cost Structure:**
+   - You (coordinator): $0 (Claude Max subscription)
+   - Workers: \${workers.length} × 200K tokens × $0.50/1M = $\${(workers.length * 0.10).toFixed(2)}
+   - Total: ~$\${(workers.length * 0.10).toFixed(2)}
+   - Savings: 97% vs pure Claude ($15/1M)
+
+   **Next:** \${allPass ? 'Proceed to Loop 2 validation' : 'Retry failing agents'}
+   \`);
+   \`\`\`
+
+   **Key Responsibilities in Hybrid Mode:**
+   - Intelligent task decomposition (N workers with clear, non-overlapping scopes)
+   - Real-time progress monitoring via Redis
+   - Autonomous error detection and recovery (relaunch with targeted fixes)
+   - Natural language interpretation of worker results
+   - Structured reporting to main chat (human-readable summaries)
+   - Cost tracking and optimization`,
+  "coordinator"
+)
+```
+
+### Benefits of Hybrid Approach
+
+**vs Pure CLI (no coordinator):**
+- ✅ 100% visibility into execution (CLI gives 0%)
+- ✅ Natural language progress updates
+- ✅ Autonomous error recovery
+- ✅ Intelligent result aggregation
+- ✅ 30 seconds to understand vs 15 minutes manual review
+
+**vs Pure Claude Max (no workers):**
+- ✅ 97% cost savings ($0.50 vs $15 per 1M tokens)
+- ✅ Same coordinator quality (Claude Max for orchestration)
+- ✅ Parallel worker execution (CLI spawning)
+
+**Trade-offs:**
+- ⚠️ Sequential agent spawning (~10s for 5 agents vs instant Task spawning)
+- ⚠️ Requires Redis coordination infrastructure
+
+### When Hybrid Routing is Disabled
+
+**Pure provider mode** (all agents use main provider):
+- No coordinator intelligence layer
+- Direct CLI spawning without orchestration
+- Manual result aggregation required
+
+---
+
 ## Loop 3: Spawn Implementers
 
 **Batch spawn in single message:**
@@ -131,33 +305,115 @@ redis-cli publish "cfn.loop.3.agent.complete" '{
 
 ## SQLite Memory Storage
 
-**Loop 3 results** (ACL Level 1: Private, 30-day TTL):
+### Dual-Write Pattern (Redis + SQLite)
 
+**Architecture**: Write to Redis (hot, ephemeral) + SQLite (warm, persistent)
+**Performance**: Write <60ms (p95), Read <5ms (Redis) / <20ms (SQLite)
+**TTL**: Redis 1h, SQLite 30-365d
+
+### Loop 3 Agent Confidence (ACL 1: Private)
+
+```javascript
+// Store agent confidence after implementation
+await memory.memoryAdapter.set(
+  `cfn/phase-auth/loop3/agent-${agentId}/confidence`,
+  {
+    confidence: 0.85,
+    files: ['src/auth/core.ts', 'src/auth/middleware.ts'],
+    linesOfCode: 450,
+    testsWritten: 12,
+    testsPassing: 12,
+    coverage: 0.87,
+    reasoning: 'Implementation complete with comprehensive tests',
+    blockers: []
+  },
+  { agentId, aclLevel: 1, namespace: 'cfn-loop', ttl: 2592000 }
+);
+```
+
+**CLI alternative**:
 ```bash
 /sqlite-memory store \
   --key "cfn/phase-auth/loop3/agent-coder-1" \
   --level private \
-  --data '{
-    "confidence":0.85,
-    "files":["src/auth/core.ts"],
-    "reasoning":"Tests pass, security clean",
-    "coverage":0.85
-  }' \
+  --data '{"confidence":0.85,"files":["src/auth/core.ts"],"reasoning":"Tests pass"}' \
   --ttl 2592000
 ```
 
-**Phase-level results** (ACL Level 3: Swarm, 30-day TTL):
+### Loop 3 Phase Results (ACL 3: Swarm)
 
-```bash
-/sqlite-memory store \
-  --key "cfn/phase-auth/loop3/results" \
-  --level swarm \
-  --data '{
-    "avgConfidence":0.85,
-    "agents":["coder-1","coder-2","security-specialist-1"],
-    "gateStatus":"pass"
-  }' \
-  --ttl 2592000
+```javascript
+// Aggregate all agent results for gate check
+await memory.memoryAdapter.set(
+  `cfn/phase-auth/loop3/results`,
+  {
+    avgConfidence: 0.85,
+    agents: ['coder-1', 'coder-2', 'security-specialist-1'],
+    gateStatus: 'pass',
+    filesModified: 23,
+    totalTests: 47,
+    totalCoverage: 0.84
+  },
+  { agentId: 'coordinator', aclLevel: 3, namespace: 'cfn-loop', ttl: 2592000 }
+);
+```
+
+### Loop 2 Consensus (ACL 3: Swarm)
+
+```javascript
+// Store validator consensus results
+await memory.memoryAdapter.set(
+  `cfn/phase-auth/loop2/consensus`,
+  {
+    avgConsensus: 0.92,
+    validators: [
+      { name: 'code-quality', confidence: 0.92 },
+      { name: 'security', confidence: 0.95 },
+      { name: 'perf', confidence: 0.88 },
+      { name: 'tester', confidence: 0.93 }
+    ],
+    consensusStatus: 'pass',
+    recommendations: ['Add factory pattern', 'Improve error messages']
+  },
+  { agentId: 'coordinator', aclLevel: 3, namespace: 'cfn-loop', ttl: 2592000 }
+);
+```
+
+### Loop 4 Product Owner Decision (ACL 4: Project)
+
+```javascript
+// Store PO decision (long retention for audit)
+await memory.memoryAdapter.set(
+  `cfn/phase-auth/loop4/decision`,
+  {
+    decision: 'DEFER',
+    reasoning: 'Meets criteria. Validator perf concerns out-of-scope.',
+    consensus: 0.87,
+    override: true,
+    backlogItems: ['Add factory pattern', 'Rate limiting dashboard'],
+    nextAction: 'launch agents for user-profile phase'
+  },
+  { agentId: 'product-owner', aclLevel: 4, namespace: 'cfn-loop', ttl: 31536000 }
+);
+```
+
+### Cross-Session Recovery
+
+```javascript
+// Recover phase state after crash
+const consensus = await db.query(`
+  SELECT * FROM consensus
+  WHERE target_id = ? AND status IN ('pending', 'in_progress')
+`, [phaseId]);
+
+if (consensus.length > 0) {
+  const { current_score, threshold } = consensus[0];
+  if (current_score >= threshold) {
+    return { loop: 4, action: 'await_product_owner_decision' };
+  } else {
+    return { loop: 2, action: 'resume_validation' };
+  }
+}
 ```
 
 ---
