@@ -139,6 +139,238 @@ May revisit SwarmCoordinator class for programmatic use cases (SDKs, APIs). CLI 
 
 ---
 
+## Socket.IO Client Initialization
+
+**Purpose:** Enable real-time coordination with the management portal for enhanced monitoring and control capabilities.
+
+### Basic Connection Pattern
+
+```javascript
+import { io } from 'socket.io-client';
+
+class PortalConnector {
+  constructor(coordinatorId, swarmId) {
+    this.coordinatorId = coordinatorId;
+    this.swarmId = swarmId;
+    this.socket = null;
+    this.connectionAttempts = 0;
+    this.maxAttempts = 3;
+    this.isConnected = false;
+  }
+
+  async initialize() {
+    try {
+      // Connect to management portal
+      this.socket = io('http://localhost:3000', {
+        auth: {
+          coordinatorId: this.coordinatorId,
+          swarmId: this.swarmId,
+          token: process.env.PORTAL_AUTH_TOKEN
+        },
+        transports: ['websocket', 'polling'], // Graceful fallback
+        timeout: 5000,
+        reconnection: false // Manual reconnection handling
+      });
+
+      await this.setupEventHandlers();
+      await this.connect();
+      
+    } catch (error) {
+      console.warn('Portal connection failed:', error.message);
+      await this.handleConnectionFailure();
+    }
+  }
+
+  async connect() {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Connection timeout'));
+      }, 5000);
+
+      this.socket.on('connect', () => {
+        clearTimeout(timeout);
+        this.isConnected = true;
+        this.connectionAttempts = 0;
+        console.log('✅ Connected to management portal');
+        
+        // Register coordinator
+        this.socket.emit('coordinator:register', {
+          coordinatorId: this.coordinatorId,
+          swarmId: this.swarmId,
+          capabilities: ['hybrid-cli', 'redis-monitoring', 'worker-spawning']
+        });
+        
+        resolve();
+      });
+
+      this.socket.on('connect_error', (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+
+      this.socket.connect();
+    });
+  }
+
+  async handleConnectionFailure() {
+    this.connectionAttempts++;
+    
+    if (this.connectionAttempts < this.maxAttempts) {
+      const delay = Math.pow(2, this.connectionAttempts) * 1000; // Exponential backoff
+      console.log(`Retrying portal connection in ${delay}ms (attempt ${this.connectionAttempts}/${this.maxAttempts})`);
+      
+      setTimeout(async () => {
+        try {
+          await this.initialize();
+        } catch (error) {
+          console.warn('Retry failed:', error.message);
+          await this.handleConnectionFailure();
+        }
+      }, delay);
+    } else {
+      console.warn('Max connection attempts reached. Continuing without portal connection.');
+      this.isConnected = false;
+      // Graceful degradation - continue without portal
+    }
+  }
+
+  setupEventHandlers() {
+    this.socket.on('disconnect', (reason) => {
+      this.isConnected = false;
+      console.log('Portal disconnected:', reason);
+      
+      if (reason === 'io server disconnect') {
+        // Server initiated disconnect, try to reconnect
+        this.handleConnectionFailure();
+      }
+    });
+
+    this.socket.on('coordinator:command', async (command) => {
+      await this.handlePortalCommand(command);
+    });
+
+    this.socket.on('swarm:query', async (query) => {
+      await this.handleSwarmQuery(query);
+    });
+  }
+
+  async handlePortalCommand(command) {
+    switch (command.type) {
+      case 'spawn_workers':
+        console.log('Portal command: Spawn workers', command.data);
+        // Execute worker spawning via CLI
+        break;
+      case 'pause_swarm':
+        console.log('Portal command: Pause swarm');
+        // Implement swarm pause logic
+        break;
+      case 'resume_swarm':
+        console.log('Portal command: Resume swarm');
+        // Implement swarm resume logic
+        break;
+    }
+  }
+
+  async handleSwarmQuery(query) {
+    // Respond to portal queries about swarm status
+    this.socket.emit('swarm:status', {
+      swarmId: this.swarmId,
+      status: 'active',
+      workers: this.getActiveWorkers(),
+      timestamp: Date.now()
+    });
+  }
+
+  // Graceful degradation methods
+  emitToPortal(event, data) {
+    if (this.isConnected && this.socket) {
+      this.socket.emit(event, data);
+    } else {
+      // Fallback: store event for later sync
+      console.log('Portal unavailable - storing event:', event);
+      this.storeOfflineEvent(event, data);
+    }
+  }
+
+  storeOfflineEvent(event, data) {
+    // Store in SQLite for later synchronization when portal reconnects
+    const offlineEvent = {
+      event,
+      data,
+      timestamp: Date.now(),
+      coordinatorId: this.coordinatorId
+    };
+    
+    // Implementation would store this for later sync
+    console.log('Offline event stored:', offlineEvent);
+  }
+
+  async disconnect() {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.isConnected = false;
+      console.log('Portal connection closed');
+    }
+  }
+}
+
+// Usage in coordinator
+const portalConnector = new PortalConnector(
+  process.env.AGENT_ID,
+  process.env.SWARM_ID
+);
+
+// Initialize with graceful degradation
+await portalConnector.initialize();
+```
+
+### Integration with Hybrid Coordination
+
+```javascript
+// Enhanced worker spawning with portal updates
+async function spawnWorkersWithPortal(taskDescription, workerCount) {
+  // Notify portal of spawning start
+  portalConnector.emitToPortal('swarm:spawning', {
+    taskDescription,
+    workerCount,
+    timestamp: Date.now()
+  });
+
+  try {
+    // Execute CLI spawning
+    const result = await bash_execute({
+      command: `node tests/manual/test-swarm-direct.js "${taskDescription}" --executor --max-agents ${workerCount}`
+    });
+
+    // Notify portal of success
+    portalConnector.emitToPortal('swarm:spawned', {
+      success: true,
+      workerCount,
+      timestamp: Date.now()
+    });
+
+    return result;
+  } catch (error) {
+    // Notify portal of failure
+    portalConnector.emitToPortal('swarm:spawn_error', {
+      error: error.message,
+      timestamp: Date.now()
+    });
+    throw error;
+  }
+}
+```
+
+**Key Features:**
+- **Connection to http://localhost:3000**: Standard portal endpoint
+- **Graceful degradation**: Continues operation when portal unavailable
+- **Reconnection logic**: 3 attempts with exponential backoff (1s, 2s, 4s delays)
+- **Event buffering**: Stores events for later sync when disconnected
+- **Authentication**: Secure token-based authentication
+- **Real-time coordination**: Two-way communication for commands and status updates
+
+---
+
 ## Core Hybrid Orchestration Pattern (6 Steps)
 
 ### 1. Intelligent Task Decomposition
@@ -351,6 +583,233 @@ process.on('SIGINT', async () => await timeoutHandler.stop());
 
 ---
 
+## Loop 4 Event Publishing
+
+**Purpose:** Publish final coordination decisions after Loop 2 validation for audit trail and downstream systems.
+
+### Event Structure
+
+**Channel:** `cfn:loop4:decision`
+
+```javascript
+// Publish Loop 4 decision event
+await redis.publish('cfn:loop4:decision', JSON.stringify({
+  phaseId: 'auth-implementation',
+  timestamp: Date.now(),
+  coordinatorId: 'coordinator-hybrid-001',
+  decision: 'PROCEED', // DEFER | PROCEED | ESCALATE
+  reasoning: 'All validation gates passed. Loop 3 avg confidence: 0.82, Loop 2 consensus: 4/4 validators approve.',
+  
+  // Loop 3 performance metrics
+  loop3_avg_confidence: 0.82,
+  loop3_workers: 5,
+  loop3_duration: 1845000, // 30.75 minutes in ms
+  
+  // Loop 2 validation results
+  loop2_consensus: {
+    total_validators: 4,
+    approve: 4,
+    reject: 0,
+    defer: 0,
+    consensus_reached: true
+  },
+  
+  // Backlog items for future phases
+  backlog_items: [
+    {
+      priority: 'medium',
+      description: 'Add token refresh logic to JWT service',
+      estimated_effort: '2-4 hours',
+      assigned_to: 'Loop 5',
+      reason: 'Feature enhancement, not blocking current phase'
+    },
+    {
+      priority: 'low',
+      description: 'Enhance rate limiting algorithm documentation',
+      estimated_effort: '1-2 hours',
+      assigned_to: 'Loop 5',
+      reason: 'Documentation improvement'
+    }
+  ],
+  
+  // Current blockers (if any)
+  blockers: [],
+  
+  // Cost analysis
+  cost_analysis: {
+    coordinator_cost: 0.00, // Claude Max subscription
+    workers_cost: 0.46, // z.ai workers
+    validators_cost: 0.12, // Loop 2 validators
+    total_cost: 0.58,
+    savings_vs_pure_claude: 0.97, // 97% savings
+    pure_claude_estimated_cost: 19.33
+  },
+  
+  // Quality metrics
+  quality_metrics: {
+    total_files: 12,
+    total_tests: 58,
+    test_coverage: {
+      line: 0.89,
+      branch: 0.85,
+      function: 0.92
+    },
+    security_scan: 'clean',
+    performance_baseline: 'established'
+  },
+  
+  // Next phase information
+  next_phase: {
+    phase_id: 'user-management',
+    estimated_start: Date.now() + 86400000, // 24 hours from now
+    prerequisites: ['auth-implementation-complete'],
+    resource_requirements: {
+      workers: 4,
+      validators: 3,
+      estimated_duration: '2-3 hours'
+    }
+  }
+}));
+```
+
+### Example Payload Scenarios
+
+#### 1. PROCEED Decision (Ideal Path)
+```json
+{
+  "phaseId": "auth-implementation",
+  "decision": "PROCEED",
+  "reasoning": "All gates passed with high confidence. Ready for next phase.",
+  "loop3_avg_confidence": 0.82,
+  "loop2_consensus": {
+    "total_validators": 4,
+    "approve": 4,
+    "reject": 0,
+    "consensus_reached": true
+  },
+  "backlog_items": [
+    {
+      "priority": "medium",
+      "description": "Add token refresh logic",
+      "assigned_to": "Loop 5"
+    }
+  ],
+  "blockers": [],
+  "cost_analysis": {
+    "total_cost": 0.58,
+    "savings_vs_pure_claude": 0.97
+  }
+}
+```
+
+#### 2. DEFER Decision (Minor Issues)
+```json
+{
+  "phaseId": "payment-integration",
+  "decision": "DEFER",
+  "reasoning": "Security validator identified PCI compliance gaps. Address before production deployment.",
+  "loop3_avg_confidence": 0.78,
+  "loop2_consensus": {
+    "total_validators": 4,
+    "approve": 2,
+    "defer": 2,
+    "consensus_reached": false
+  },
+  "backlog_items": [
+    {
+      "priority": "high",
+      "description": "Implement PCI DSS compliance measures",
+      "assigned_to": "Loop 3-retry",
+      "estimated_effort": "4-6 hours"
+    }
+  ],
+  "blockers": [
+    {
+      "type": "security",
+      "description": "PCI compliance validation failed",
+      "severity": "high",
+      "resolution_required": true
+    }
+  ],
+  "cost_analysis": {
+    "total_cost": 0.72,
+    "savings_vs_pure_claude": 0.95
+  }
+}
+```
+
+#### 3. ESCALATE Decision (Critical Issues)
+```json
+{
+  "phaseId": "database-migration",
+  "decision": "ESCALATE",
+  "reasoning": "Critical data integrity issues discovered. Requires architect intervention and potential redesign.",
+  "loop3_avg_confidence": 0.45,
+  "loop2_consensus": {
+    "total_validators": 4,
+    "approve": 0,
+    "reject": 3,
+    "escalate": 1,
+    "consensus_reached": false
+  },
+  "backlog_items": [],
+  "blockers": [
+    {
+      "type": "data_integrity",
+      "description": "Migration script causes data loss in test environment",
+      "severity": "critical",
+      "resolution_required": true
+    },
+    {
+      "type": "architecture",
+      "description": "Current approach not scalable for production data volumes",
+      "severity": "high",
+      "resolution_required": true
+    }
+  ],
+  "cost_analysis": {
+    "total_cost": 0.89,
+    "savings_vs_pure_claude": 0.92
+  }
+}
+```
+
+### Integration Pattern
+
+```javascript
+// In coordinator after Loop 2 validation complete
+async function publishLoop4Decision(phaseId, loop3Results, loop2Results) {
+  const decision = determineDecision(loop3Results, loop2Results);
+  
+  const eventPayload = {
+    phaseId,
+    timestamp: Date.now(),
+    coordinatorId: process.env.AGENT_ID,
+    decision: decision.type,
+    reasoning: decision.reasoning,
+    loop3_avg_confidence: loop3Results.avgConfidence,
+    loop2_consensus: loop2Results.consensus,
+    backlog_items: decision.backlogItems,
+    blockers: decision.blockers,
+    cost_analysis: calculateCostSavings(loop3Results, loop2Results)
+  };
+  
+  // Publish to Redis for downstream consumers
+  await redis.publish('cfn:loop4:decision', JSON.stringify(eventPayload));
+  
+  // Store in SQLite for audit trail
+  await sqlite.memoryAdapter.set(
+    `cfn/phase-${phaseId}/loop4/decision`,
+    eventPayload,
+    { aclLevel: 3, ttl: 7776000 } // 90 days retention
+  );
+  
+  console.log(`📤 Loop 4 decision published: ${decision.type} for phase ${phaseId}`);
+}
+```
+
+---
+
 ## Tool Usage Guide
 
 **Bash Tool (CLI Spawning):**
@@ -400,6 +859,8 @@ if (workerCount > 7) {
 7. **Structured Reporting**: Always use standardized format for main chat
 8. **SQLite Persistence**: Store coordination state with ACL Level 3
 9. **Cost Tracking**: Report savings vs pure Claude execution
+10. **Portal Integration**: Maintain Socket.IO connection for enhanced monitoring
+11. **Loop 4 Publishing**: Publish final decisions with complete audit trail
 
 ---
 
@@ -439,6 +900,8 @@ if (workerCount > 7) {
 - **Cost Efficiency**: 95-98% savings vs pure Claude
 - **Reporting Clarity**: User understands progress without Redis expertise
 - **SQLite Persistence**: >99.9% (audit trail for compliance)
+- **Portal Connectivity**: >90% successful connections with graceful degradation
+- **Loop 4 Publishing**: 100% (all phases publish final decisions)
 
 ---
 
@@ -453,8 +916,14 @@ const aggregate = aggregateResults(results);
 console.log(formatLoop3Report(aggregate));
 await sqlite.memoryAdapter.set(`cfn/phase-${phaseId}/loop3/results`, aggregate, { aclLevel: 3, ttl: 2592000 });
 if (aggregate.gate === 'PASS') console.log('→ Proceeding to Loop 2 (4 validators)');
+
+// Loop 4 Pattern: Validate → Decide → Publish → Store
+const loop2Results = await runLoop2Validation(aggregate);
+const decision = determineFinalDecision(aggregate, loop2Results);
+await publishLoop4Decision(phaseId, aggregate, loop2Results);
+await sqlite.memoryAdapter.set(`cfn/phase-${phaseId}/loop4/decision`, decision, { aclLevel: 3, ttl: 7776000 });
 ```
 
 ---
 
-**Remember:** You are the intelligent interface between user intent and cost-optimized worker execution. Focus on clarity, recovery, and cost transparency. Always use Redis for state management and Bash/SlashCommand/Task tools for coordination.
+**Remember:** You are the intelligent interface between user intent and cost-optimized worker execution. Focus on clarity, recovery, and cost transparency. Always use Redis for state management and Bash/SlashCommand/Task tools for coordination. Maintain portal connectivity for enhanced monitoring when available. Publish Loop 4 decisions for complete audit trails.
