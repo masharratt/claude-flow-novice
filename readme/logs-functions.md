@@ -1128,6 +1128,71 @@ console.log(`Average response time: ${report.metrics.avgResponseTime}ms`);
 
 **Returns**: Sanitized data safe for logging
 
+## ACE Core Functions
+
+### queryContext(filters) -> bullets[]
+
+Query adaptive context with filters (category, tags, confidence).
+
+**Parameters**:
+- `filters` (Object): Filter criteria
+  - `category` (String): Filter by bullet category
+  - `tags` (Array): Filter by tags
+  - `minConfidence` (Number): Minimum confidence score
+  - `limit` (Number): Maximum results
+
+**Returns**: Array of bullet objects with metadata
+
+**Example**:
+```javascript
+const bullets = await queryContext({
+  category: 'strategy',
+  minConfidence: 0.8,
+  limit: 10
+});
+```
+
+### extractLessons(executionTrace) -> reflection
+
+Extract structured lessons from task execution.
+
+**Parameters**:
+- `executionTrace` (Object): Execution trace with metadata
+  - `git_commits` (Array): Commit history
+  - `files_changed` (Array): Modified files
+  - `errors` (Array): Error messages
+  - `tests` (Object): Test results
+
+**Returns**: Reflection object with extracted_lessons array
+
+**Example**:
+```javascript
+const reflection = await extractLessons({
+  git_commits: ['abc123'],
+  files_changed: ['src/auth.js'],
+  errors: [],
+  tests: { passed: 12, failed: 0 }
+});
+```
+
+### mergeBullets(reflection, similarityThreshold) -> actions
+
+Merge reflection deltas into adaptive_context with deduplication.
+
+**Parameters**:
+- `reflection` (Object): Reflection from extractLessons
+- `similarityThreshold` (Number): Similarity cutoff (default: 0.85)
+
+**Returns**: Array of merge actions (new_bullet|increment_helpful|merge_similar|archive)
+
+**Example**:
+```javascript
+const actions = await mergeBullets(reflection, 0.85);
+actions.forEach(action => {
+  console.log(`${action.type}: ${action.bullet_id}`);
+});
+```
+
 ## Related Documentation
 
 - [API](./logs-api.md) - Complete API reference

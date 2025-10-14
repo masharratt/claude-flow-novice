@@ -766,6 +766,105 @@ alias st="/status --component swarm"
 3. **Retry Mechanisms**: Built-in retry logic for transient failures
 4. **Rollback Support**: Ability to rollback problematic changes
 
+### Context Management
+
+#### `/context-reflect`
+
+**Purpose**: Extract lessons from task execution, store in adaptive context
+
+**Usage**: `/context-reflect [options]`
+
+**Options**:
+- `--task-id`: Task to analyze (default: last completed)
+- `--agent-id`: Filter by agent
+- `--auto-curate`: Auto-merge extracted lessons
+- `--output`: Output format (json|markdown)
+
+**Example**:
+```bash
+/context-reflect --task-id=task-123 --auto-curate
+```
+
+**Output**: Reflection with 3-7 extracted bullet lessons
+
+#### `/context-curate`
+
+**Purpose**: Merge reflection deltas into adaptive context with deduplication
+
+**Usage**: `/context-curate [options]`
+
+**Options**:
+- `--reflection-id`: Reflection to process (default: all pending)
+- `--auto-merge`: Skip human review (confidence ≥0.8)
+- `--similarity-threshold`: Merge threshold (default: 0.85)
+- `--maintenance`: Run periodic deduplication
+
+**Example**:
+```bash
+/context-curate --reflection-id=ref-123 --auto-merge
+```
+
+**Output**: Merge actions (new/incremented/merged/archived bullets)
+
+#### `/context-query`
+
+**Purpose**: Search adaptive context bullets by category, tags, confidence
+
+**Usage**: `/context-query [options]`
+
+**Options**:
+- `--category`: Filter by type (strategy|pattern|edge_case|domain_insight|anti_pattern|optimization)
+- `--tags`: Comma-separated tags
+- `--min-confidence`: Minimum score (default: 0.6)
+- `--limit`: Max results (default: 20)
+- `--output`: Format (json|markdown|claude-md)
+
+**Example**:
+```bash
+/context-query --category=strategy --min-confidence=0.8
+```
+
+**Output**: Relevant bullets sorted by priority
+
+#### `/context-inject`
+
+**Purpose**: Inject adaptive context bullets into CLAUDE.md dynamically
+
+**Usage**: `/context-inject [options]`
+
+**Options**:
+- `--target`: Target file (default: ./CLAUDE.md)
+- `--phase`: Filter by CFN Loop phase
+- `--agent-type`: Filter for specific agent type
+- `--mode`: Injection mode (append|replace|merge)
+- `--min-confidence`: Minimum score (default: 0.7)
+
+**Example**:
+```bash
+/context-inject --phase=phase-0 --limit=15
+```
+
+**Output**: Injects bullets into CLAUDE.md adaptive context section
+
+#### `/context-stats`
+
+**Purpose**: View adaptive context statistics and health metrics
+
+**Usage**: `/context-stats [options]`
+
+**Options**:
+- `--period`: Analysis period in days (default: 30)
+- `--category`: Filter by category
+- `--detail-level`: Summary|detailed|comprehensive
+- `--format`: Output format (text|json|chart)
+
+**Example**:
+```bash
+/context-stats --period=30 --detail-level=summary
+```
+
+**Output**: Health report with recommendations
+
 ## Related Documentation
 
 - [API](./logs-api.md) - Complete API reference
