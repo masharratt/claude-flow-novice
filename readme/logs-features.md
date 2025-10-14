@@ -36,6 +36,53 @@
 
 **Integration**: Mode stored in Redis (`cfn:mode:{phaseId}`) for swarm coordination
 
+### CFN Loop Coordinators
+
+**Purpose**: Mode-specific coordinators with autonomous phase execution and intelligent return-to-chat triggers
+
+**Implementation**: Specialized coordinators handle entire sprints with mode expertise and cost optimization
+
+**Coordinators**:
+1. **cfn-coordinator-mvp**: Rapid iteration (cost target <$1/phase, 15min duration)
+2. **cfn-coordinator-standard**: Balanced quality/speed (cost target $2/phase, 30min duration)
+3. **cfn-coordinator-enterprise**: Full quality gates (cost target $5/phase, 60min duration)
+
+**Key Features**:
+- **Autonomous execution**: Loop 3→2→4 without human intervention
+- **Auto-phase-launch**: Coordinators manage entire sprint lifecycle
+- **Mode-specific parameter enforcement**: Gate thresholds, validator counts, iteration limits
+- **Return-to-chat triggers**: Only for human decisions or sprint completion
+- **Auto-injection**: Mode-specific instructions for next phase
+- **Telemetry tracking**: Phase metrics (confidence, cost, duration, savings vs pure Claude)
+
+**Spawn Pattern**:
+```bash
+# Auto-spawn coordinator based on mode
+node src/cli/hybrid-routing/spawn-coordinator.js "Execute sprint: User Authentication" --mode=mvp --sprint-id=auth-001
+```
+
+**Return-to-Chat Criteria**:
+- Human decision required (architecture changes, budget adjustments, critical blockers)
+- Sprint complete (all phases executed, deliverables ready)
+
+**Cost Optimization**:
+- MVP: 2-3 workers max, z.ai provider, <$1 total
+- Standard: 4-5 workers, mixed providers, ~$2 total
+- Enterprise: 5-7 workers, quality focus, ~$5 total
+
+**Telemetry Format**:
+```json
+{
+  "phaseId": "user-auth-mvp",
+  "mode": "mvp",
+  "coordinator": "cfn-coordinator-mvp",
+  "loop3": {"workers": 2, "avgConfidence": 0.75, "cost": 0.27, "duration": 720000},
+  "loop2": {"validators": 2, "consensus": 0.85, "cost": 0.08, "duration": 300000},
+  "totalCost": 0.35,
+  "savingsVsPureClaude": 0.96
+}
+```
+
 ### Loop 0.5 Planning Consensus
 
 **Purpose**: Architect team votes on design BEFORE Loop 3 implementation (Enterprise mode only)
@@ -349,8 +396,18 @@ node src/cli/hybrid-routing/spawn-workers.js "OAuth2" \
   --subtasks="Implement PKCE|Audit tokens"
 ```
 
-**Integration**: Redis coordination, SQLite memory, web portal (Socket.IO), retry logic (502 errors)
-**Performance**: 30-minute timeout, parallel execution, token tracking, cost reporting
+**Error Recovery**:
+- **502 Auto-Retry**: Exponential backoff (1s, 2s, 4s max) for transient API errors
+- **Timeout Handling**: 30-minute limit with partial result recovery via Redis/SQLite
+- **Fallback Coordination**: Redis keys preserved for interrupted swarm recovery
+
+**Performance**:
+- **Parallel execution**: Workers spawn concurrently
+- **Token tracking**: Real-time usage monitoring
+- **Cost reporting**: Per-provider breakdown (z.ai vs Claude Max)
+- **Retry telemetry**: `⚠️ Worker N 502 error, retry M/3 in Ns`
+
+**Integration**: Redis coordination, SQLite memory, web portal (Socket.IO), CLI spawning
 
 ### Dependency Tracker
 
