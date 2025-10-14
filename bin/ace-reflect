@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+/**
+ * ace-reflect - Extract lessons from task execution
+ * Usage: ace-reflect --task-id=TASK_ID [--type=success|failure|optimization|edge_case] [--auto-curate]
+ */
+
+const { ACESystem } = require('../src/ace');
+const path = require('path');
+
+async function main() {
+  const args = process.argv.slice(2);
+
+  // Parse arguments
+  const options = {
+    taskId: null,
+    type: 'success',
+    autoCurate: false,
+    trace: {},
+    feedback: {}
+  };
+
+  args.forEach(arg => {
+    if (arg.startsWith('--task-id=')) {
+      options.taskId = arg.split('=')[1];
+    } else if (arg.startsWith('--type=')) {
+      options.type = arg.split('=')[1];
+    } else if (arg === '--auto-curate') {
+      options.autoCurate = true;
+    }
+  });
+
+  if (!options.taskId) {
+    console.error('Error: --task-id is required');
+    console.log('Usage: ace-reflect --task-id=TASK_ID [--type=success] [--auto-curate]');
+    process.exit(1);
+  }
+
+  // Initialize ACE
+  const ace = new ACESystem({
+    dbPath: path.join(process.cwd(), '.artifacts/database/swarm-memory.db')
+  });
+  await ace.initialize();
+
+  try {
+    // Reflect
+    console.log(`🔍 Reflecting on task: ${options.taskId}`);
+    const result = await ace.reflect({
+      taskId: options.taskId,
+      trace: options.trace,
+      feedback: options.feedback,
+      reflectionType: options.type
+    });
+
+    console.log(`✅ Reflection complete: ${result.reflectionId}`);
+    console.log(`📚 Lessons extracted: ${result.lessonsExtracted}`);
+
+    result.lessons.forEach((lesson, i) => {
+      console.log(`\n${i + 1}. [${lesson.category}] ${lesson.content}`);
+      console.log(`   Confidence: ${lesson.confidence_score.toFixed(2)} | Priority: ${lesson.priority}`);
+    });
+
+    // Auto-curate if requested
+    if (options.autoCurate) {
+      console.log(`\n🔄 Auto-curating reflection...`);
+      const curateResult = await ace.curate({
+        reflectionId: result.reflectionId,
+        similarityThreshold: 0.85
+      });
+
+      console.log(`✅ Curation complete:`);
+      console.log(`   New bullets: ${curateResult.newBullets}`);
+      console.log(`   Incremented: ${curateResult.incrementedBullets}`);
+    } else {
+      console.log(`\n💡 Run: ace-curate --reflection-id=${result.reflectionId}`);
+    }
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+    process.exit(1);
+  } finally {
+    await ace.close();
+  }
+}
+
+main();

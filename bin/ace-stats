@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+/**
+ * ace-stats - View ACE system statistics
+ * Usage: ace-stats
+ */
+
+const { ACESystem } = require('../src/ace');
+const path = require('path');
+
+async function main() {
+  const ace = new ACESystem({
+    dbPath: path.join(process.cwd(), '.artifacts/database/swarm-memory.db')
+  });
+  await ace.initialize();
+
+  try {
+    console.log(`📊 ACE System Statistics\n`);
+
+    const stats = await ace.getStats();
+
+    console.log(`Total Bullets: ${stats.total_bullets}`);
+    console.log(`Avg Confidence: ${stats.avg_confidence}`);
+
+    console.log(`\n📂 Category Distribution:`);
+    stats.category_distribution.forEach(cat => {
+      console.log(`   ${cat.category}: ${cat.count}`);
+    });
+
+    console.log(`\n🏆 Top 10 Bullets (by helpful count):`);
+    stats.top_bullets.forEach((bullet, i) => {
+      const confidence = (bullet.confidence_score * 100).toFixed(0);
+      const helpful = bullet.helpful_count || 0;
+      const harmful = bullet.harmful_count || 0;
+      const ratio = harmful > 0 ? (helpful / harmful).toFixed(1) : '∞';
+
+      console.log(`\n${i + 1}. ${bullet.bullet_id} [${confidence}%]`);
+      console.log(`   ${bullet.content.substring(0, 80)}...`);
+      console.log(`   📈 Helpful: ${helpful} | Harmful: ${harmful} | Ratio: ${ratio}:1`);
+    });
+
+    console.log(`\n✅ System health: ${stats.total_bullets > 0 ? 'Active' : 'Empty - seed initial bullets'}`);
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+    process.exit(1);
+  } finally {
+    await ace.close();
+  }
+}
+
+main();
