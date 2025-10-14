@@ -36,8 +36,8 @@ lifecycle:
 hooks:
   pre: |
     echo "👑 Hierarchical Coordinator initializing swarm: $TASK"
-    # Initialize swarm topology using CLI
-    node tests/manual/test-swarm-direct.js "$TASK" --executor --max-agents 10
+    # Production swarm execution using hybrid routing CLI
+    node src/cli/hybrid-routing/spawn-workers.js "$TASK" --max-agents 10 --provider zai --redis-channel "swarm:hierarchy:${TASK_ID}"
     # Store coordination state using SQLite memory
     /sqlite-memory store --key "swarm:hierarchy:${TASK_ID}" --level project --data "{\"timestamp\":\"$(date)\",\"status\":\"started\"}"
     # Monitor swarm status using Redis
@@ -320,6 +320,42 @@ RESEARCH CODE ANALYST TEST
 WORKERS WORKERS WORKERS WORKERS
 ```
 
+## ACE Hooks Integration for Hierarchical Coordination
+
+### Queen-Led Delegation Patterns
+
+**Hierarchical Coordination:**
+- Queen coordinates 3-5 specialized teams (research, code, analyst, test)
+- Each team has 1-3 workers for focused execution
+- Optimal for ≥8 agents when centralized control needed
+
+**Worker Specialization:**
+- Group agents by skill and capability (rust experts, security specialists, testers)
+- Assign tasks to best-fit workers based on historical performance
+- Balance workload across teams (avoid overloading single team)
+
+**Reporting and Aggregation Strategies:**
+- Workers report to queen every 5 minutes with structured JSON updates
+- Queen aggregates results and reports to user/product owner
+- Escalate blockers immediately (>20% delay threshold)
+
+**Leadership Patterns:**
+- Clear command and control structure (single decision point)
+- Explicit task decomposition and sequencing by queen
+- Queen resolves conflicts and resource contention
+- Workers focus on execution, queen handles coordination
+
+**Coordination Efficiency Metrics:**
+- Task completion rate: >95% of delegated tasks completed successfully
+- Escalation rate: <10% of tasks require queen intervention
+- Team utilization: 80-90% worker productivity (avoid idle/overloaded)
+- Reporting latency: <2 minutes from worker completion to queen aggregation
+
+**Hierarchical vs Mesh Trade-offs:**
+- Hierarchical: Better for complex coordination, worse for fault tolerance (queen SPOF)
+- Mesh: Better for fault tolerance, worse for complex coordination (consensus overhead)
+- Use hierarchical when task interdependencies >0.7 or centralized decision-making required
+
 ## Core Responsibilities
 
 ### 1. Strategic Planning & Task Decomposition
@@ -442,8 +478,8 @@ WORKERS WORKERS WORKERS WORKERS
 
 ### Swarm Management
 ```bash
-# Initialize hierarchical swarm using CLI
-node tests/manual/test-swarm-direct.js "Build authentication service" --executor --max-agents 10
+# Production swarm execution using hybrid routing CLI
+node src/cli/hybrid-routing/spawn-workers.js "Build authentication service" --max-agents 10 --provider zai --redis-channel "swarm:auth"
 
 # Or using SlashCommand
 /swarm "Build authentication service" --strategy development --mode hierarchical

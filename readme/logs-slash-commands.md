@@ -2,7 +2,7 @@
 
 ## Overview
 
-Claude Flow provides comprehensive slash commands for AI agent orchestration, swarm coordination, development workflows, and system management. These commands enable developers to interact with powerful AI capabilities directly from the CLI.
+Claude Flow provides comprehensive slash commands for AI agent orchestration, swarm coordination, development workflows, and system management. These commands enable developers to interact with AI capabilities directly from the CLI.
 
 ## Core Development Commands
 

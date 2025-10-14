@@ -6,6 +6,34 @@ For core commands used in typical development workflows, see `CLAUDE.md` Section
 
 ---
 
+## Testing & Validation
+
+### /hello-world-tests [--layer=0|1|2|3|all] [--skip-validation]
+
+**Purpose**: Run comprehensive CFN coordination validation suite
+
+**Validates**:
+- Layer 0: Agent tooling (15 agents × 7 tools)
+- Layer 1: Mesh coordination + SQLite persistence
+- Layer 2: Review handoff + dynamic scaling
+- Layer 3: Error handling + retry logic
+
+**Usage**:
+```bash
+# Run all layers
+/hello-world-tests
+
+# Run specific layer
+/hello-world-tests --layer=0
+
+# Run multiple layers
+/hello-world-tests --layer=0,1
+```
+
+**Output**: Combined JSON report with SQLite metrics, agent counts, success rates
+
+---
+
 ## Fullstack Development
 
 **Launch coordinated fullstack teams with frontend, backend, and database specialists:**
@@ -43,6 +71,104 @@ For core commands used in typical development workflows, see `CLAUDE.md` Section
 # Refinement phase
 /sparc refine "API optimization"
 ```
+
+---
+
+## Hybrid Routing (Cost-Optimized Worker Spawning)
+
+**Spawn specialized Claude agents with 97% cost savings via z.ai provider:**
+
+### Three Agent Selection Modes
+
+**1. Automatic Selection (keyword-based matching)**
+```bash
+# System selects best agents based on task keywords
+node src/cli/hybrid-routing/spawn-workers.js "Build auth system" --max-agents=3
+# → Automatically assigns: coder, security-specialist, tester
+```
+
+**2. Coordinator Override (manual agent types)**
+```bash
+# Coordinator specifies exact agent types
+node src/cli/hybrid-routing/spawn-workers.js "Refactor API" \
+  --max-agents=3 \
+  --agents=architect,coder,reviewer
+# → Forces workflow: design → implement → review
+```
+
+**3. Full Override (custom agents + subtasks)**
+```bash
+# Complete control over agents and instructions
+node src/cli/hybrid-routing/spawn-workers.js "OAuth2 security" \
+  --max-agents=2 \
+  --agents=coder,security-specialist \
+  --subtasks="Implement OAuth2 with PKCE|Audit token security"
+# → Custom specialized instructions per agent
+```
+
+### Dynamic Agent Discovery
+
+**50+ specialized agents** dynamically discovered from `.claude/agents/` folder across **16 categories**:
+
+- analysis, architecture, cfn-loop, consensus, core-agents, development, devops, documentation, goal, planning-team, security, sparc, specialized, swarm, testing, and more
+
+**Agent discovery capabilities:**
+```bash
+# Regenerate agent documentation (slash command)
+/list-agents-rebuild
+
+# List all available agents
+node src/cli/hybrid-routing/spawn-workers.js --list-agents
+
+# List agents by category
+node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
+```
+
+**Agent selection:**
+- Recursive scanning with category preservation
+- In-memory caching for performance
+- Whitelist/blacklist support
+- Lazy loading of agent definitions
+
+### Cost Comparison
+
+```
+z.ai provider:    $0.50/1M tokens (input + output)
+Claude direct:    $3.00/1M input, $15.00/1M output
+Savings:          97% on typical workloads
+```
+
+### Features
+
+- Real Claude API calls (Anthropic/z.ai providers)
+- Bash execution capability (npm, git, file operations)
+- Redis pub/sub coordination
+- SQLite memory storage
+- Token tracking and cost reporting
+- Web portal integration (Socket.IO events)
+- Automatic retry on 502 errors (3 attempts)
+- 30-minute timeout for complex tasks
+
+### Programmatic Usage
+
+```javascript
+import { HybridWorkerSpawner } from './src/cli/hybrid-routing/spawn-workers.js';
+
+const spawner = new HybridWorkerSpawner({
+  task: "Build feature",
+  maxAgents: 3,
+  provider: 'zai',
+  agentOverride: ['architect', 'coder', 'tester'],
+  subtaskOverride: ['Design X', 'Implement X', 'Test X']
+});
+
+await spawner.initialize();
+await spawner.spawnAll();
+spawner.printSummary();
+await spawner.cleanup();
+```
+
+**Documentation:** `src/cli/hybrid-routing/COORDINATOR-OVERRIDE.md`, `SPECIALIZED-AGENTS.md`
 
 ---
 
@@ -458,41 +584,137 @@ claude-flow-novice workflow deploy --pipeline=production
 
 ---
 
-## SQLite Memory Management (Sprint 1.7)
+## SQLite Memory & ACL Commands
+
+### Initialization
 
 ```bash
-# Initialize SQLite-backed memory with 5-level ACL and encryption for persistent state across sessions
+# Initialize SQLite-backed memory with 5-level ACL and encryption
 /sqlite-memory init --database-path ./memory.db --acl-enabled --encryption AES-256-GCM
-
-# Configure access control permissions at different security levels for project isolation and compliance
-/sqlite-memory set-acl --key "project-data" --level project --permissions read,write
-/sqlite-memory set-acl --key "agent-private" --level private --permissions read,write --agent-id coder-1
-
-# Store and retrieve memory with ACL enforcement and automatic encryption for sensitive levels (1, 2, 5)
-/sqlite-memory store --key "sensitive-data" --level system --data '{"encrypted": true}' --ttl 3600
-/sqlite-memory retrieve --key "project-data" --level project
-/sqlite-memory query --acl-level swarm --swarm-id swarm-1 --limit 100
-
-# Cross-session recovery and state restoration from SQLite after Redis connection loss
-/sqlite-memory recover --from-sqlite --verify-integrity
-/sqlite-memory backup --destination ./backups/memory-$(date +%Y%m%d).db
-/sqlite-memory restore --source ./backups/memory-20251010.db --dry-run
-
-# Agent lifecycle tracking and audit trail for compliance and debugging requirements
-/sqlite-memory audit --event-type agent.lifecycle --since 24h --format json
-/sqlite-memory audit --event-type blocking.coordination --coordinator-id coord-1
-
-# Performance metrics and optimization for dual-write pattern monitoring and tuning
-/sqlite-memory metrics --detailed  # p95 latency, throughput, dual-write success rate
-/sqlite-memory vacuum --analyze  # Optimize database performance and reclaim space
 ```
 
-**Performance Targets** (Sprint 1.7):
-- **Dual-Write Latency**: p95 55ms (target <60ms) ✅
-- **SQLite-Only Latency**: p95 48ms (target <50ms) ✅
-- **Throughput**: 10,000+ writes/sec sustained
-- **Recovery Time**: <10 seconds after crash
-- **Data Preservation**: 100% during Redis failure
+### 5-Level ACL System
+
+| Level | Scope      | Encryption | Use Case              |
+|-------|------------|------------|-----------------------|
+| 1     | Agent      | AES-256    | Agent confidence      |
+| 2     | Team       | AES-256    | Team coordination     |
+| 3     | Swarm      | None       | Consensus, validators |
+| 4     | Project    | None       | PO decisions          |
+| 5     | System     | Master key | Audit logs            |
+
+### Permission Management
+
+```bash
+# Grant swarm-level permissions
+/sqlite-memory set-acl --key "project-data" --level project --permissions read,write
+
+# Grant private agent permissions
+/sqlite-memory set-acl --key "agent-private" --level private --permissions read,write --agent-id coder-1
+
+# Check permission (cached <1ms)
+/sqlite-memory check-permission --agent-id coder-1 --resource-id resource-123 --action read
+```
+
+### Storage Operations
+
+```bash
+# Store with ACL enforcement (automatic encryption for L1/L2/L5)
+/sqlite-memory store --key "sensitive-data" --level system --data '{"encrypted": true}' --ttl 3600
+/sqlite-memory store --key "cfn/phase-auth/loop3/agent-1" --level private --data '{"confidence":0.85}'
+
+# Retrieve with ACL enforcement
+/sqlite-memory retrieve --key "project-data" --level project
+/sqlite-memory query --acl-level swarm --swarm-id swarm-1 --limit 100
+```
+
+### CFN Loop Integration
+
+```bash
+# Loop 3 confidence storage (ACL 1: Private, 30-day TTL)
+/sqlite-memory store \
+  --key "cfn/phase-auth/loop3/agent-coder-1" \
+  --level private \
+  --data '{"confidence":0.85,"files":["src/auth/core.ts"],"reasoning":"Tests pass"}' \
+  --ttl 2592000
+
+# Loop 2 consensus storage (ACL 3: Swarm, 30-day TTL)
+/sqlite-memory store \
+  --key "cfn/phase-auth/loop2/consensus" \
+  --level swarm \
+  --data '{"avgConsensus":0.92,"validators":[...]}' \
+  --ttl 2592000
+
+# Loop 4 decision storage (ACL 4: Project, 365-day TTL)
+/sqlite-memory store \
+  --key "cfn/phase-auth/loop4/decision" \
+  --level project \
+  --data '{"decision":"DEFER","reasoning":"..."}' \
+  --ttl 31536000
+```
+
+### Cross-Session Recovery
+
+```bash
+# Recover after crash (Redis failure, VS Code crash)
+/sqlite-memory recover --from-sqlite --verify-integrity
+
+# Query recovery state
+sqlite3 ./swarm-memory.db "SELECT * FROM consensus WHERE status IN ('pending','in_progress')"
+
+# Backup and restore
+/sqlite-memory backup --destination ./backups/memory-$(date +%Y%m%d).db
+/sqlite-memory restore --source ./backups/memory-20251010.db --dry-run
+```
+
+### Audit Trails
+
+```bash
+# Agent lifecycle tracking
+/sqlite-memory audit --event-type agent.lifecycle --since 24h --format json
+
+# Coordination events
+/sqlite-memory audit --event-type blocking.coordination --coordinator-id coord-1
+
+# Query audit log
+sqlite3 ./swarm-memory.db "SELECT * FROM audit_log WHERE agent_id = 'coder-1' ORDER BY timestamp DESC LIMIT 50"
+```
+
+### Performance Metrics
+
+```bash
+# Detailed metrics (p95 latency, throughput, dual-write success rate)
+/sqlite-memory metrics --detailed
+
+# Optimize database
+/sqlite-memory vacuum --analyze
+
+# Monitor dual-write pattern
+redis-cli monitor | grep "swarm:memory:"
+```
+
+**Performance Targets**:
+- Dual-write: p95 <60ms ✅
+- SQLite-only: p95 <50ms ✅
+- Throughput: 10K+ writes/sec
+- Recovery: <10s after crash
+- Preservation: 100% during Redis failure
+
+### Advanced Queries
+
+```bash
+# Retrieve all Loop 3 results for a phase
+/sqlite-memory retrieve --key "cfn/phase-auth/loop3/*" --level swarm
+
+# Count agents in a phase
+sqlite3 ./swarm-memory.db "SELECT COUNT(*) FROM agents WHERE status = 'completed'"
+
+# List consensus decisions
+sqlite3 ./swarm-memory.db "SELECT id, target_id, current_score, threshold, status FROM consensus WHERE status = 'achieved'"
+
+# View encryption status
+sqlite3 ./swarm-memory.db "SELECT key, acl_level, encrypted FROM memory WHERE acl_level IN (1,2,5)"
+```
 
 ---
 

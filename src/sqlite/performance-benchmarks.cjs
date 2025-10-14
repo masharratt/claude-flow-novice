@@ -6,8 +6,8 @@
  * with 5-level ACL system and Redis coordination.
  */
 
-const SwarmMemoryManager = require('./SwarmMemoryManager');
-const MemoryStoreAdapter = require('./MemoryStoreAdapter');
+const SwarmMemoryManager = require('./SwarmMemoryManager.cjs');
+const MemoryStoreAdapter = require('./MemoryStoreAdapter.cjs');
 const fs = require('fs');
 const path = require('path');
 

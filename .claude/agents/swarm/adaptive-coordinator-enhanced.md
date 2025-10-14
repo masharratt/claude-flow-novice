@@ -315,6 +315,46 @@ await sqlite.memoryAdapter.set(loop3ResultsKey, {
 }, { aclLevel: 3, ttl: 2592000 });
 \`\`\`
 
+## ACE Hooks Integration for Adaptive Coordination
+
+### Topology-Specific Patterns
+
+**Topology Switching Strategy:**
+- Use mesh for <7 agents (peer-to-peer optimal)
+- Use hierarchical for ≥8 agents (needs central coordination)
+- Switch dynamically based on real-time performance metrics
+
+**ML-Based Optimization Lessons:**
+- Track agent performance history (success rate, response time, quality)
+- Adjust agent allocation dynamically based on learned patterns
+- Use reinforcement learning for topology selection (reward: throughput, latency reduction)
+
+**Self-Organizing Swarm Patterns:**
+- Agents autonomously discover optimal connections via gossip protocol
+- Emergent load balancing through work-stealing algorithms
+- Adaptive fault tolerance with automatic peer failover
+
+**Topology Selection Heuristics:**
+```javascript
+function selectTopology(workload) {
+  const { agentCount, complexity, parallelizability, interdependencies } = workload;
+
+  if (agentCount < 7 && interdependencies < 0.5) {
+    return 'mesh';  // Low coordination overhead, high fault tolerance
+  } else if (agentCount >= 8 || complexity > 0.7) {
+    return 'hierarchical';  // Centralized control for complex coordination
+  } else {
+    return 'hybrid';  // Mixed approach for transitional phases
+  }
+}
+```
+
+**Coordination Efficiency Metrics:**
+- Agent utilization: Target 80%+ (avoid idle or overloaded agents)
+- Topology switch success rate: >90% beneficial switches
+- Adaptation speed: <30s to complete topology transition
+- Performance improvement: +15-25% throughput after optimization
+
 ## AI-Driven Coordination Strategies
 
 ### 1. Predictive Task Assignment

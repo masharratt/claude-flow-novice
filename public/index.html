@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error-message {
+            color: #dc3545;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            display: none;
+        }
+        .success-message {
+            color: #155724;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            display: none;
+        }
+        .navigation {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .navigation a {
+            margin: 0 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .dashboard {
+            display: none;
+            text-align: center;
+        }
+        .dashboard h2 {
+            color: #333;
+        }
+        .items-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Application</h1>
+        
+        <!-- Login Form -->
+        <div id="login-form">
+            <form id="login-form-element">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Login</button>
+                <div id="error-message" class="error-message"></div>
+                <div id="success-message" class="success-message"></div>
+            </form>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="dashboard">
+            <h2>Welcome to Dashboard</h2>
+            <div class="loading" id="loading">Loading items...</div>
+            <div class="items-list" id="items-list"></div>
+            <button id="logout-btn" style="margin-top: 20px;">Logout</button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <a href="#" onclick="showPage('login')">Login</a>
+            <a href="#" onclick="showPage('dashboard')">Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        // Simple application logic for testing
+        document.getElementById('login-form-element').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-message');
+            const successMsg = document.getElementById('success-message');
+            
+            // Reset messages
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            
+            // Simple validation
+            if (!email || !password) {
+                errorMsg.textContent = 'Please fill in all fields';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorMsg.textContent = 'Password must be at least 6 characters';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            
+            // Simulate login
+            if (email === 'test@example.com' && password === 'password123') {
+                successMsg.textContent = 'Login successful!';
+                successMsg.style.display = 'block';
+                
+                setTimeout(() => {
+                    document.getElementById('login-form').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    loadItems();
+                }, 1000);
+            } else {
+                errorMsg.textContent = 'Invalid credentials';
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('success-message').style.display = 'none';
+        });
+
+        async function loadItems() {
+            const loading = document.getElementById('loading');
+            const itemsList = document.getElementById('items-list');
+            
+            loading.style.display = 'block';
+            itemsList.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/items');
+                const data = await response.json();
+                
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    
+                    if (data.items && data.items.length > 0) {
+                        data.items.forEach(item => {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'item';
+                            itemDiv.textContent = item.name || 'Sample Item';
+                            itemsList.appendChild(itemDiv);
+                        });
+                    } else {
+                        itemsList.innerHTML = '<p>No items found</p>';
+                    }
+                }, 1000);
+            } catch (error) {
+                loading.style.display = 'none';
+                itemsList.innerHTML = '<p>Error loading items</p>';
+            }
+        }
+
+        function showPage(page) {
+            if (page === 'login') {
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('dashboard').style.display = 'none';
+            } else if (page === 'dashboard') {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                loadItems();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+{
+  "epic": {
+    "id": "EPIC-WEB-PORTAL-HYBRID-ROUTING",
+    "name": "Hybrid Routing Web Portal Integration",
+    "description": "Integrate CLI hybrid routing workers with existing web portal for real-time progress monitoring, cost tracking, and CFN Loop visualization. Replaces tmux approach with browser-based multi-user monitoring. Includes foundation quality fixes from HYBRID_ROUTING_HANDOFF.md before portal integration.",
+    "mode": "standard",
+    "objectives": [
+      "Complete Sprint 3 quality fixes: SQLite tests (54/54 passing), 502 retry logic, timeout logging",
+      "Enable real-time visibility of hybrid routing workers in web portal",
+      "Visualize CFN Loop progress (Loop 3 iterations, Loop 4 decisions) in browser",
+      "Track cost savings (z.ai vs Claude) in portal dashboard",
+      "Support multi-user team monitoring of agent coordination",
+      "Provide historical search and export of hybrid routing events"
+    ],
+    "business_value": "97% cost savings visibility + remote team monitoring + historical audit trail + production-ready quality",
+    "priority": "high",
+    "estimated_duration": "1.5 sprints (8-10 hours total: 4h Phase 0 + 4-6h Phases 1-5)",
+    "dependencies": [
+      "Web portal already deployed (packages/web-portal)",
+      "Hybrid routing MVP complete (spawn-workers.js)",
+      "Socket.IO server running (port 3000)"
+    ]
+  },
+  "phases": [
+    {
+      "phase_id": "PHASE-0-QUALITY-FIXES",
+      "name": "Foundation Quality Improvements",
+      "description": "Address known issues from hybrid routing MVP before portal integration (from HYBRID_ROUTING_HANDOFF.md Medium Priority items #2, #4, #5)",
+      "estimated_effort": "4 hours",
+      "loop_config": {
+        "gate_threshold": 0.75,
+        "consensus_threshold": 0.90,
+        "max_loop3_iterations": 10,
+        "max_loop2_iterations": 10
+      },
+      "tasks": [
+        {
+          "task_id": "TASK-0.1-SQLITE-MOCKING",
+          "title": "Fix SQLite Test Mocking (Sprint 3 Completion)",
+          "description": "Refactor MemoryStoreAdapter for dependency injection to fix Vitest mocking incompatibility (from HYBRID_ROUTING_HANDOFF.md Medium Priority #2)",
+          "type": "implementation",
+          "estimated_effort": "2-3 hours",
+          "acceptance_criteria": [
+            "MemoryStoreAdapter constructor accepts optional memoryManager and aclEnforcer dependencies",
+            "Tests updated to inject mock dependencies instead of vi.mock() at module level",
+            "54/54 tests passing (from current 10/54)",
+            "Code coverage ≥80% for MemoryStoreAdapter",
+            "No TypeErrors related to undefined memoryManager or aclEnforcer"
+          ],
+          "files": [
+            "src/sqlite/MemoryStoreAdapter.cjs",
+            "tests/unit/sqlite-memory-adapter.test.js"
+          ],
+          "reference": "HYBRID_ROUTING_HANDOFF.md - What's Incomplete section, Option A: Dependency Injection"
+        },
+        {
+          "task_id": "TASK-0.2-502-RETRY",
+          "title": "Implement Worker Retry Logic for 502 Errors",
+          "description": "Add exponential backoff retry (1s, 2s, 4s) to handle z.ai API 502 errors (from HYBRID_ROUTING_HANDOFF.md Medium Priority #4)",
+          "type": "implementation",
+          "estimated_effort": "30 minutes",
+          "acceptance_criteria": [
+            "spawnWorkerWithRetry() method with maxRetries=3",
+            "Exponential backoff delays: 1s, 2s, 4s",
+            "Retry only on 502 errors (not 401, 403, 429, etc.)",
+            "Log retry attempts: '⚠️ Worker N 502 error, retry M/3 in Xs'",
+            "Target: <1% failure rate (from current ~10%)"
+          ],
+          "files": [
+            "src/cli/hybrid-routing/spawn-workers.js"
+          ],
+          "reference": "HYBRID_ROUTING_HANDOFF.md - Known Issues #1: z.ai API 502 Errors"
+        },
+        {
+          "task_id": "TASK-0.3-TIMEOUT-LOGGING",
+          "title": "Improve Worker Timeout Detection",
+          "description": "Add explicit timeout logging to prevent silent failures (from HYBRID_ROUTING_HANDOFF.md Known Issues #2)",
+          "type": "implementation",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Timeout message logged: '⏱️ TIMEOUT: Workers exceeded 30-minute limit'",
+            "Display completed workers count: 'Workers completed: N/M'",
+            "Suggest fallback: 'Check /tmp/ for partial results'",
+            "Clear signal to user that timeout occurred (not silent failure)"
+          ],
+          "files": [
+            "src/cli/hybrid-routing/spawn-workers.js"
+          ],
+          "reference": "HYBRID_ROUTING_HANDOFF.md - Known Issues #2: Worker Timeout Detection"
+        },
+        {
+          "task_id": "TASK-0.4-DOCUMENTATION",
+          "title": "Document Coordinator Spawning Patterns in CLAUDE.md",
+          "description": "Add Hybrid Routing section to CLAUDE.md with CLI spawning examples and cost optimization guidance (from HYBRID_ROUTING_HANDOFF.md Medium Priority #5)",
+          "type": "documentation",
+          "estimated_effort": "1 hour",
+          "acceptance_criteria": [
+            "New section: 'Hybrid CLI Routing' in CLAUDE.md",
+            "CLI spawning pattern documented: node spawn-workers.js 'Task' --max-agents N",
+            "Cost optimization examples: z.ai ($0.50/1M) vs Claude ($15/1M) = 97% savings",
+            "Coordinator patterns: Task('Coordinator', '...', 'coordinator')",
+            "Web portal integration patterns (preview for Phase 1-4)"
+          ],
+          "files": [
+            "CLAUDE.md"
+          ],
+          "reference": "HYBRID_ROUTING_HANDOFF.md - Medium Priority #5"
+        },
+        {
+          "task_id": "TASK-0.5-COORDINATOR-VISIBILITY",
+          "title": "Document Coordinator Return Values for Main Chat",
+          "description": "Document what information coordinators return to main chat: structured JSON artifacts, natural language summaries, progress telemetry, and Redis telemetry patterns",
+          "type": "documentation",
+          "estimated_effort": "30 minutes",
+          "acceptance_criteria": [
+            "Document Task tool return format: final message + file artifacts",
+            "Document structured JSON patterns (/tmp/test-analysis.json, /tmp/test-results-iter-N.json)",
+            "Document natural language summary format (Loop 3/4 telemetry templates)",
+            "Document Redis pub/sub patterns for coordinator events (optional instrumentation)",
+            "Document BashOutput limitations (unreliable after 30min timeout)",
+            "Add examples of coordinator reports to coordinator-hybrid.md"
+          ],
+          "files": [
+            ".claude/agents/core-agents/coordinator-hybrid.md",
+            "planning/cli-hybrid-routing/COORDINATOR_VISIBILITY_PATTERNS.md"
+          ],
+          "reference": "Session conversation: 'what information is being returned from the task tool agents to the main chat?'"
+        }
+      ]
+    },
+    {
+      "phase_id": "PHASE-1-WORKER-EVENTS",
+      "name": "Worker Event Publishing",
+      "description": "Add Socket.IO client to spawn-workers.js to publish worker lifecycle events to web portal (from HYBRID_ROUTING_HANDOFF.md Medium Priority #1)",
+      "estimated_effort": "2 hours",
+      "loop_config": {
+        "gate_threshold": 0.75,
+        "consensus_threshold": 0.90,
+        "max_loop3_iterations": 10,
+        "max_loop2_iterations": 10
+      },
+      "tasks": [
+        {
+          "task_id": "TASK-1.1-SOCKETIO-CLIENT",
+          "title": "Add Socket.IO Client to spawn-workers.js",
+          "description": "Import socket.io-client, connect to portal server, handle connection errors gracefully",
+          "type": "implementation",
+          "estimated_effort": "30 minutes",
+          "acceptance_criteria": [
+            "Socket.IO client connects to http://localhost:3000",
+            "Connection errors logged, graceful degradation if portal unavailable",
+            "Client initialized in HybridWorkerSpawner constructor"
+          ],
+          "files": [
+            "src/cli/hybrid-routing/spawn-workers.js"
+          ]
+        },
+        {
+          "task_id": "TASK-1.2-WORKER-LIFECYCLE-EVENTS",
+          "title": "Publish Worker Lifecycle Events",
+          "description": "Emit agent:spawned, agent:update, agent:completed events with worker metadata",
+          "type": "implementation",
+          "estimated_effort": "45 minutes",
+          "acceptance_criteria": [
+            "agent:spawned event published when worker starts (workerId, subtask, provider, timestamp)",
+            "agent:update event published during execution (progress, tool use count)",
+            "agent:completed event published on success (confidence, tokens, cost, duration, files modified)",
+            "agent:failed event published on error (error message, duration)",
+            "All events include agentId format: 'hybrid-worker-{workerId}'"
+          ],
+          "files": [
+            "src/cli/hybrid-routing/spawn-workers.js"
+          ]
+        },
+        {
+          "task_id": "TASK-1.3-BATCH-SUMMARY-EVENT",
+          "title": "Publish Batch Summary Event",
+          "description": "Emit swarm:completed event after all workers finish with aggregated metrics",
+          "type": "implementation",
+          "estimated_effort": "30 minutes",
+          "acceptance_criteria": [
+            "swarm:completed event published with avg confidence, total tokens, total cost, worker count",
+            "Event includes gate result (PASS/FAIL), cost savings percentage",
+            "Event includes list of all worker IDs and their confidence scores"
+          ],
+          "files": [
+            "src/cli/hybrid-routing/spawn-workers.js"
+          ]
+        },
+        {
+          "task_id": "TASK-1.4-UNIT-TESTS",
+          "title": "Unit Tests for Portal Events",
+          "description": "Test Socket.IO event publishing with mock client",
+          "type": "testing",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Mock Socket.IO client in tests",
+            "Verify agent:spawned emitted with correct payload",
+            "Verify agent:completed emitted with confidence, cost, tokens",
+            "Verify swarm:completed emitted with aggregated metrics",
+            "Test graceful degradation when portal unavailable"
+          ],
+          "files": [
+            "tests/unit/spawn-workers-portal-events.test.js"
+          ]
+        }
+      ]
+    },
+    {
+      "phase_id": "PHASE-2-COORDINATOR-EVENTS",
+      "name": "Coordinator CFN Loop Events",
+      "description": "Update coordinator-hybrid.md to publish CFN Loop events (Loop 3 iterations, gate checks, Loop 4 decisions) - complements Redis telemetry from HYBRID_ROUTING_HANDOFF.md Medium Priority #3",
+      "estimated_effort": "1.5 hours",
+      "loop_config": {
+        "gate_threshold": 0.75,
+        "consensus_threshold": 0.90,
+        "max_loop3_iterations": 10,
+        "max_loop2_iterations": 10
+      },
+      "tasks": [
+        {
+          "task_id": "TASK-2.1-COORDINATOR-SOCKETIO",
+          "title": "Add Socket.IO Client to Coordinator Instructions",
+          "description": "Update coordinator-hybrid.md with Socket.IO client initialization pattern",
+          "type": "documentation",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Coordinator instructions include Socket.IO client setup",
+            "Connection to http://localhost:3000 documented",
+            "Graceful degradation if portal unavailable"
+          ],
+          "files": [
+            ".claude/agents/core-agents/coordinator-hybrid.md"
+          ]
+        },
+        {
+          "task_id": "TASK-2.2-LOOP3-EVENTS",
+          "title": "Publish Loop 3 Events",
+          "description": "Emit cfn:loop3:start, cfn:loop3:iteration, cfn:loop3:test-complete, cfn:loop3:gate events",
+          "type": "implementation",
+          "estimated_effort": "45 minutes",
+          "acceptance_criteria": [
+            "cfn:loop3:start published with phase, workers, mode, threshold",
+            "cfn:loop3:iteration published on each retry (iteration number, previous confidence, improvements)",
+            "cfn:loop3:test-complete published after test run (passing/total, artifact path)",
+            "cfn:loop3:gate published after confidence check (avgConfidence, threshold, result PASS/FAIL)"
+          ],
+          "files": [
+            ".claude/agents/core-agents/coordinator-hybrid.md"
+          ]
+        },
+        {
+          "task_id": "TASK-2.3-LOOP4-EVENTS",
+          "title": "Publish Loop 4 Product Owner Events",
+          "description": "Emit cfn:loop4:decision event with DEFER/PROCEED/ESCALATE decision",
+          "type": "implementation",
+          "estimated_effort": "30 minutes",
+          "acceptance_criteria": [
+            "cfn:loop4:decision published with decision type, reasoning, backlog items, blockers",
+            "Event includes loop3_avg_confidence, loop2_consensus (if available)",
+            "Event includes cost savings calculation (z.ai vs Claude)"
+          ],
+          "files": [
+            ".claude/agents/core-agents/coordinator-hybrid.md"
+          ]
+        },
+        {
+          "task_id": "TASK-2.4-FILE-ARTIFACTS",
+          "title": "Document Coordinator File Artifact Pattern",
+          "description": "Formalize file artifact pattern for coordinators (/tmp/*.json) as alternative to Redis/Socket.IO when portal unavailable",
+          "type": "implementation",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Coordinator creates /tmp/{phase}-{loop}-iter-{N}.json for test results",
+            "Coordinator creates /tmp/{phase}-analysis.json for root cause analysis",
+            "File artifacts use standardized schema (compatible with portal import)",
+            "Portal can import file artifacts as fallback when Socket.IO unavailable"
+          ],
+          "files": [
+            ".claude/agents/core-agents/coordinator-hybrid.md",
+            "packages/web-portal/src/server/api/import-artifacts.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "phase_id": "PHASE-3-PORTAL-API-ENDPOINTS",
+      "name": "Web Portal Backend Integration",
+      "description": "Add API endpoints and WebSocket handlers in web portal to receive hybrid routing events",
+      "estimated_effort": "1.5 hours",
+      "loop_config": {
+        "gate_threshold": 0.75,
+        "consensus_threshold": 0.90,
+        "max_loop3_iterations": 10,
+        "max_loop2_iterations": 10
+      },
+      "tasks": [
+        {
+          "task_id": "TASK-3.1-HYBRID-WORKER-API",
+          "title": "Create Hybrid Worker API Endpoint",
+          "description": "Add REST endpoint /api/agents/hybrid to list/filter hybrid workers",
+          "type": "implementation",
+          "estimated_effort": "30 minutes",
+          "acceptance_criteria": [
+            "GET /api/agents/hybrid returns all hybrid workers",
+            "Supports query params: status, provider, confidence_min, confidence_max",
+            "Returns worker metadata: subtask, tokens, cost, duration, provider"
+          ],
+          "files": [
+            "packages/web-portal/src/server/api/agents.ts"
+          ]
+        },
+        {
+          "task_id": "TASK-3.2-WEBSOCKET-HANDLERS",
+          "title": "WebSocket Event Handlers for Hybrid Routing",
+          "description": "Add Socket.IO handlers for agent:*, cfn:loop3:*, cfn:loop4:* events",
+          "type": "implementation",
+          "estimated_effort": "45 minutes",
+          "acceptance_criteria": [
+            "Handler for agent:spawned stores worker in memory/database",
+            "Handler for agent:completed updates worker status, confidence, cost",
+            "Handler for cfn:loop3:* events stores loop iteration history",
+            "Handler for cfn:loop4:decision stores PO decisions",
+            "All handlers broadcast to connected clients via Socket.IO"
+          ],
+          "files": [
+            "packages/web-portal/src/server/websocket/hybrid-routing-handler.ts"
+          ]
+        },
+        {
+          "task_id": "TASK-3.3-DATA-PERSISTENCE",
+          "title": "Persist Hybrid Routing Events",
+          "description": "Store events in SQLite or in-memory store for historical queries",
+          "type": "implementation",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Events stored with timestamp, phaseId, agentId, payload",
+            "TTL: 7 days for historical queries",
+            "Query support: filter by phaseId, agentId, event type, date range"
+          ],
+          "files": [
+            "packages/web-portal/src/server/services/event-store.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "phase_id": "PHASE-4-PORTAL-UI-UPDATES",
+      "name": "Web Portal Frontend Updates",
+      "description": "Update Agents view, Events view, and CFN Loop view to display hybrid routing data",
+      "estimated_effort": "1 hour",
+      "loop_config": {
+        "gate_threshold": 0.75,
+        "consensus_threshold": 0.90,
+        "max_loop3_iterations": 10,
+        "max_loop2_iterations": 10
+      },
+      "tasks": [
+        {
+          "task_id": "TASK-4.1-AGENTS-VIEW-FILTER",
+          "title": "Add Hybrid Worker Filter to Agents View",
+          "description": "Add 'Hybrid Workers' filter/tab in Agents view to show spawn-workers.js agents",
+          "type": "implementation",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "New filter: 'Hybrid Workers' (shows agents with type='hybrid-worker')",
+            "Display: workerId, subtask, provider (z.ai/anthropic), confidence, cost, duration",
+            "Color coding: green if confidence ≥0.75, yellow if <0.75",
+            "Cost badge: '$0.0009' with savings percentage vs Claude"
+          ],
+          "files": [
+            "packages/web-portal/src/client/views/AgentsView.tsx"
+          ]
+        },
+        {
+          "task_id": "TASK-4.2-CFN-LOOP-ITERATION-DISPLAY",
+          "title": "Show Loop 3 Iterations in CFN Loop View",
+          "description": "Add iteration history display in CFN Loop view (retry count, confidence progression)",
+          "type": "implementation",
+          "estimated_effort": "30 minutes",
+          "acceptance_criteria": [
+            "Loop 3 section shows iteration count (e.g., 'Iteration 2/5')",
+            "Confidence progression chart: iteration 1 → 2 → 3",
+            "Test results per iteration: passing/total, artifact link",
+            "Gate result badge: PASS (green) or FAIL (red)"
+          ],
+          "files": [
+            "packages/web-portal/src/client/views/CFNLoopView.tsx"
+          ]
+        },
+        {
+          "task_id": "TASK-4.3-LOOP4-DECISION-DISPLAY",
+          "title": "Show Loop 4 Decisions in CFN Loop View",
+          "description": "Display Product Owner decisions with reasoning and backlog items",
+          "type": "implementation",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Loop 4 section shows decision: DEFER/PROCEED/ESCALATE",
+            "Reasoning displayed in expandable card",
+            "Backlog items listed with links to create GitHub issues",
+            "Cost savings highlighted: '$0.50 (97% savings vs $15)'"
+          ],
+          "files": [
+            "packages/web-portal/src/client/views/CFNLoopView.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "phase_id": "PHASE-5-TESTING-VALIDATION",
+      "name": "E2E Testing and Validation",
+      "description": "Create E2E tests for hybrid routing portal integration, validate cost tracking accuracy",
+      "estimated_effort": "30 minutes",
+      "loop_config": {
+        "gate_threshold": 0.75,
+        "consensus_threshold": 0.90,
+        "max_loop3_iterations": 10,
+        "max_loop2_iterations": 10
+      },
+      "tasks": [
+        {
+          "task_id": "TASK-5.1-E2E-WORKER-VISIBILITY",
+          "title": "E2E Test: Worker Visibility in Portal",
+          "description": "Test that spawned workers appear in Agents view with correct metadata",
+          "type": "testing",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Spawn 3 workers via spawn-workers.js",
+            "Verify workers appear in portal Agents view within 2 seconds",
+            "Verify metadata: subtask, provider, confidence, cost, duration",
+            "Verify cost calculation accuracy (tokens × rate = cost)"
+          ],
+          "files": [
+            "tests/e2e/web-portal-hybrid-routing.test.js"
+          ]
+        },
+        {
+          "task_id": "TASK-5.2-E2E-CFN-LOOP-EVENTS",
+          "title": "E2E Test: CFN Loop Events in Portal",
+          "description": "Test that CFN Loop events (Loop 3, Loop 4) display correctly in portal",
+          "type": "testing",
+          "estimated_effort": "15 minutes",
+          "acceptance_criteria": [
+            "Execute CFN Loop with coordinator-hybrid",
+            "Verify Loop 3 iterations display in CFN Loop view",
+            "Verify Loop 4 decision displays with reasoning",
+            "Verify cost savings calculation: (traditional_cost - actual_cost) / traditional_cost"
+          ],
+          "files": [
+            "tests/e2e/web-portal-cfn-loop-hybrid.test.js"
+          ]
+        }
+      ]
+    }
+  ],
+  "success_criteria": [
+    {
+      "criterion": "All hybrid workers visible in portal Agents view within 2 seconds of spawning",
+      "metric": "Latency ≤2s from worker spawn to portal display",
+      "validation": "E2E test TASK-5.1"
+    },
+    {
+      "criterion": "CFN Loop iterations and decisions display accurately in CFN Loop view",
+      "metric": "100% event delivery (no missing events)",
+      "validation": "E2E test TASK-5.2"
+    },
+    {
+      "criterion": "Cost tracking accuracy within ±1% of actual API charges",
+      "metric": "Portal cost display matches Anthropic/z.ai invoices",
+      "validation": "Manual validation over 10 worker spawns"
+    },
+    {
+      "criterion": "Multi-user support: 5+ users viewing portal simultaneously",
+      "metric": "No performance degradation with 5 concurrent clients",
+      "validation": "Load test with 5 browser sessions"
+    },
+    {
+      "criterion": "Historical event search: Query 1000+ events in <500ms",
+      "metric": "Search response time ≤500ms for 1000 events",
+      "validation": "Performance test with synthetic event data"
+    },
+    {
+      "criterion": "Coordinator final reports include structured telemetry",
+      "metric": "100% of coordinator executions produce /tmp/*.json artifacts + natural language summary",
+      "validation": "Manual review of 10 coordinator executions (Phase 0, Task 0.5)"
+    }
+  ],
+  "risks": [
+    {
+      "risk": "Socket.IO connection failures between spawn-workers.js and portal",
+      "mitigation": "Graceful degradation: Workers continue if portal unavailable, file artifacts fallback",
+      "likelihood": "low",
+      "impact": "low"
+    },
+    {
+      "risk": "Portal not running when hybrid routing executes",
+      "mitigation": "Auto-detect portal availability, log warning if unavailable, continue execution",
+      "likelihood": "medium",
+      "impact": "low"
+    },
+    {
+      "risk": "Event volume overwhelms portal (1000+ events in CFN Loop)",
+      "mitigation": "Event batching, throttling, virtual scrolling in Events view",
+      "likelihood": "low",
+      "impact": "medium"
+    },
+    {
+      "risk": "Cost calculation discrepancies (rounding errors, rate changes)",
+      "mitigation": "Unit tests for cost calculation, periodic validation against invoices",
+      "likelihood": "low",
+      "impact": "low"
+    }
+  ],
+  "out_of_scope": [
+    "tmux integration (deprioritized per HYBRID_ROUTING_HANDOFF.md - portal provides superior UX with 80% overlap)",
+    "Redis pub/sub telemetry standalone (covered by Phase 2 portal events, lower priority per HYBRID_ROUTING_HANDOFF.md Medium Priority #3)",
+    "Real-time log streaming from workers (file artifacts sufficient per HYBRID_ROUTING_HANDOFF.md)",
+    "Advanced analytics dashboard (future enhancement)",
+    "Export to external monitoring systems (Grafana, Datadog)",
+    "SQLite lifecycle tracking for Task tool (HYBRID_ROUTING_HANDOFF.md Low Priority #2 - deferred)",
+    "Environment variable timeout configuration (HYBRID_ROUTING_HANDOFF.md Low Priority #1 - deferred)",
+    "BashOutput reliability improvements (HYBRID_ROUTING_HANDOFF.md Known Issues #3 - workaround sufficient)"
+  ],
+  "acceptance_criteria": {
+    "phase_0": "54/54 SQLite tests passing, 502 retry logic functional, timeout logging working, CLAUDE.md documented",
+    "phase_1": "3/3 workers visible in portal with confidence, cost, duration metadata",
+    "phase_2": "CFN Loop events (Loop 3 iterations, Loop 4 decisions) display in portal",
+    "phase_3": "API endpoints return hybrid worker data with <100ms latency",
+    "phase_4": "UI updates render hybrid routing data without layout shifts",
+    "phase_5": "E2E tests pass: worker visibility + CFN Loop events"
+  },
+  "validation_criteria": {
+    "functional": [
+      "All worker lifecycle events (spawned, update, completed, failed) visible in portal",
+      "CFN Loop events (Loop 3, Loop 4) display with correct iteration count, confidence, decisions",
+      "Cost tracking accurate within ±1% of actual API charges",
+      "Multi-user support: 5+ concurrent users without performance issues"
+    ],
+    "non_functional": [
+      "Event delivery latency ≤2s from worker spawn to portal display",
+      "Historical search response time ≤500ms for 1000+ events",
+      "Portal remains responsive with 100+ hybrid workers active",
+      "Graceful degradation: Workers continue if portal unavailable"
+    ],
+    "security": [
+      "No sensitive data (API keys, tokens) exposed in portal events",
+      "Authentication required to access portal (existing auth system)",
+      "Event payloads validated before storage (Zod schemas)"
+    ]
+  },
+  "documentation": [
+    {
+      "file": "CLAUDE.md",
+      "section": "Hybrid CLI Routing",
+      "description": "Add Hybrid Routing section with CLI spawning examples, cost optimization guidance, web portal patterns (Phase 0, Task 0.4)"
+    },
+    {
+      "file": "packages/web-portal/docs/HYBRID_ROUTING_INTEGRATION.md",
+      "description": "User guide for monitoring hybrid routing workers in portal (created in Phase 4 or 5)"
+    },
+    {
+      "file": "packages/web-portal/README.md",
+      "section": "Hybrid Workers",
+      "description": "Add Hybrid Workers section to portal README (created in Phase 4 or 5)"
+    },
+    {
+      "file": "planning/cli-hybrid-routing/HYBRID_ROUTING_HANDOFF.md",
+      "section": "Implementation Status",
+      "description": "Update handoff document with Phase 0 completion status, SQLite tests fixed, 502 retry deployed"
+    }
+  ],
+  "implementation_notes": {
+    "phase_0_prerequisites": "Complete Phase 0 (SQLite tests, 502 retry, timeout logging, CLAUDE.md) before starting Phase 1 portal integration",
+    "sqlite_dependency_injection": "Use constructor injection pattern from HYBRID_ROUTING_HANDOFF.md Option A for testability",
+    "502_retry_pattern": "Exponential backoff 1s, 2s, 4s per HYBRID_ROUTING_HANDOFF.md Known Issues #1",
+    "timeout_detection": "30-minute timeout with explicit logging per HYBRID_ROUTING_HANDOFF.md Known Issues #2",
+    "socket_io_client_setup": "Use socket.io-client v4.8.1 (matches portal server version)",
+    "graceful_degradation": "If portal unavailable, log warning and continue execution (file artifacts fallback per HYBRID_ROUTING_HANDOFF.md)",
+    "event_payload_structure": "Follow existing portal event schema (agentId, type, status, metadata)",
+    "cost_calculation_formula": "(inputTokens / 1M) * inputRate + (outputTokens / 1M) * outputRate",
+    "provider_rates": {
+      "zai": { "input": 0.50, "output": 0.50 },
+      "anthropic": { "input": 3.00, "output": 15.00 }
+    },
+    "handoff_reference": "HYBRID_ROUTING_HANDOFF.md - all tasks mapped to epic phases with explicit references",
+    "coordinator_return_pattern": {
+      "task_tool_output": "Natural language summary in final message (user-visible)",
+      "file_artifacts": "/tmp/{phase}-{loop}-*.json (structured data for portal import)",
+      "redis_telemetry": "Optional Socket.IO events if portal running (Phase 2)",
+      "limitations": "No streaming updates during execution, final report only"
+    },
+    "visibility_gaps_documented": {
+      "current_state": [
+        "Task tool coordinators return final message only (no streaming updates)",
+        "BashOutput unreliable after 30-minute timeout",
+        "Redis telemetry not yet instrumented for CFN Loop events",
+        "SQLite lifecycle tracking not connected to Task tool agents"
+      ],
+      "workarounds": [
+        "Coordinators create /tmp/*.json file artifacts for structured data",
+        "Coordinators print telemetry to console (natural language summaries)",
+        "Portal can import file artifacts as fallback (Phase 2, Task 2.4)"
+      ],
+      "future_enhancements": [
+        "Real-time coordinator progress streaming (requires Task tool enhancement or intermediate file polling)",
+        "Redis CFN Loop event instrumentation (cfn:loop3:*, cfn:loop4:*) - Phase 2",
+        "SQLite lifecycle tracking for Task tool spawned coordinators",
+        "BashOutput reliability improvements or alternative progress mechanism"
+      ]
+    }
+  },
+  "rollout_strategy": {
+    "phase_1": "Deploy to development environment, test with manual worker spawns",
+    "phase_2": "Dog-food with CFN Loop execution (Sprint 4 or 5)",
+    "phase_3": "Deploy to staging, multi-user testing with team",
+    "phase_4": "Production deployment with gradual rollout (50% → 100%)"
+  },
+  "metrics_tracking": {
+    "event_delivery_rate": "Percentage of events successfully delivered to portal (target: 99%+)",
+    "latency": "Time from worker event to portal display (target: ≤2s)",
+    "cost_accuracy": "Deviation from actual API charges (target: ±1%)",
+    "user_adoption": "Percentage of hybrid routing executions monitored via portal (target: 80%+)"
+  }
+}

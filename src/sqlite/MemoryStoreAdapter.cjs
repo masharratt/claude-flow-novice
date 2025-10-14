@@ -6,7 +6,7 @@
  * while leveraging the SQLite-based SwarmMemoryManager for persistence and ACL.
  */
 
-const SwarmMemoryManager = require('./SwarmMemoryManager');
+const SwarmMemoryManager = require('./SwarmMemoryManager.cjs');
 const EventEmitter = require('events');
 const crypto = require('crypto');
 
@@ -18,8 +18,9 @@ class MemoryStoreAdapter extends EventEmitter {
     this.namespace = options.namespace || 'memory-store';
     this.defaultTTL = options.defaultTTL || 86400; // 24 hours
 
-    // Initialize SwarmMemoryManager
-    this.memoryManager = new SwarmMemoryManager({
+    // Initialize SwarmMemoryManager with dependency injection support
+    // Allows tests to inject mocks via options.memoryManager
+    this.memoryManager = options.memoryManager || new SwarmMemoryManager({
       dbPath: options.dbPath,
       encryptionKey: options.encryptionKey,
       compressionThreshold: options.compressionThreshold || 1024,

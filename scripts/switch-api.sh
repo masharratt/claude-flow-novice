@@ -47,11 +47,18 @@ switch_to_zai() {
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "GLM-4.6",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "GLM-4.6",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "GLM-4.5-Air"
+  },
+  "hybridRouting": {
+    "enabled": false,
+    "mode": "pure-provider"
   }
 }
 SETTINGS
     echo "✓ Switched to z.ai API"
     echo "  Using GLM-4.6 (Sonnet), GLM-4.5-Air (Haiku)"
+    echo ""
+    echo "  Pure Provider Mode (All z.ai)"
+    echo "   • All sessions use z.ai ($0.10-2/1M)"
 }
 
 # Function to switch to Claude Max
@@ -65,11 +72,23 @@ switch_to_claude_max() {
   },
   "terminal": {
     "disableRawMode": true
+  },
+  "hybridRouting": {
+    "enabled": true,
+    "mode": "cli-hybrid",
+    "coordinator": "claude-max",
+    "workers": "zai"
   }
 }
 SETTINGS
     echo "✓ Switched to Claude Max (Official Anthropic API)"
     echo "  Run 'claude login' if authentication is needed"
+    echo ""
+    echo "🔀 Hybrid Routing ENABLED (CLI-based)"
+    echo "   • Main chat: Claude Max subscription ($0)"
+    echo "   • Coordinators: Claude Max via Task tool ($0)"
+    echo "   • Workers: Z.ai via CLI spawning ($0.10-2/1M)"
+    echo "   • Expected savings: 97% on worker costs"
 }
 
 # Main menu

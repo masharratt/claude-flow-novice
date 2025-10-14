@@ -8,8 +8,9 @@ import Redis from 'ioredis';
 export class RedisClient {
   constructor(options = {}) {
     this.options = {
-      host: options.host || 'localhost',
-      port: options.port || 6379,
+      host: options.host || process.env.REDIS_HOST || 'localhost',
+      port: options.port || parseInt(process.env.REDIS_PORT) || 6379,
+      password: options.password || process.env.REDIS_PASSWORD || null,
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
         return delay;
@@ -258,7 +259,25 @@ export class RedisClient {
   }
 }
 
-// Helper function to create and connect client
+/**
+ * Helper function to create and connect Redis client with authentication
+ *
+ * @param {Object} options - Configuration options
+ * @param {string} options.host - Redis host (default: localhost)
+ * @param {number} options.port - Redis port (default: 6379)
+ * @param {string} options.password - Redis password (default: process.env.REDIS_PASSWORD)
+ * @returns {Promise<RedisClient>} Connected Redis client instance
+ *
+ * @example
+ * // Without authentication (development)
+ * const client = await createRedisClient();
+ *
+ * @example
+ * // With authentication (production)
+ * const client = await createRedisClient({
+ *   password: process.env.REDIS_PASSWORD
+ * });
+ */
 export async function createRedisClient(options = {}) {
   const client = new RedisClient(options);
   await client.connect();

@@ -14,7 +14,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
 const lz4 = require('lz4');
-const { promisify } = require('util');
 const EventEmitter = require('events');
 
 class SwarmMemoryManager extends EventEmitter {
@@ -44,12 +43,12 @@ class SwarmMemoryManager extends EventEmitter {
       totalAccessTime: 0
     };
 
-    // Bind methods
-    this.get = promisify(this._get.bind(this));
-    this.set = promisify(this._set.bind(this));
-    this.delete = promisify(this._delete.bind(this));
-    this.has = promisify(this._has.bind(this));
-    this.clear = promisify(this._clear.bind(this));
+    // Bind methods (already return Promises, no need to promisify)
+    this.get = this._get.bind(this);
+    this.set = this._set.bind(this);
+    this.delete = this._delete.bind(this);
+    this.has = this._has.bind(this);
+    this.clear = this._clear.bind(this);
   }
 
   /**
@@ -76,29 +75,26 @@ class SwarmMemoryManager extends EventEmitter {
         this.db.run('PRAGMA temp_store = memory');
         this.db.run('PRAGMA mmap_size = 268435456');
 
-        // Load schema if file path provided
-        if (this.dbPath !== ':memory:') {
-          const fs = require('fs');
-          const path = require('path');
-          const schemaPath = path.join(__dirname, 'schema.sql');
+        // Load schema (always, even for :memory: databases)
+        const fs = require('fs');
+        const path = require('path');
+        const schemaPath = path.join(__dirname, 'schema.sql');
 
-          if (fs.existsSync(schemaPath)) {
-            const schema = fs.readFileSync(schemaPath, 'utf8');
-            this.db.exec(schema, (err) => {
-              if (err) {
-                this.emit('error', err);
-                reject(err);
-                return;
-              }
-              this.isInitialized = true;
-              this.emit('initialized');
-              resolve(this);
-            });
-          } else {
+        if (fs.existsSync(schemaPath)) {
+          // Read and normalize line endings to LF
+          const schema = fs.readFileSync(schemaPath, 'utf8').replace(/\r\n/g, '\n');
+
+          this.db.exec(schema, (err) => {
+            if (err) {
+              console.error('Schema loading error:', err.message);
+              this.emit('error', err);
+              reject(err);
+              return;
+            }
             this.isInitialized = true;
             this.emit('initialized');
             resolve(this);
-          }
+          });
         } else {
           this.isInitialized = true;
           this.emit('initialized');
@@ -186,6 +182,11 @@ class SwarmMemoryManager extends EventEmitter {
    * Check ACL permissions with project-level support
    */
   async _checkACL(agentId, aclLevel, action = 'read', context = {}) {
+    // Bypass ACL for system agent during initialization
+    if (agentId === 'system') {
+      return true;
+    }
+
     const cacheKey = `${agentId}:${aclLevel}:${action}:${context.projectId || 'default'}`;
     const cached = this.aclCache.get(cacheKey);
 

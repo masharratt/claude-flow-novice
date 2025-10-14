@@ -7,6 +7,7 @@ export { WebSocketServer } from './SocketIOServer';
 export { TransparencyAdapter } from './integrations/TransparencyAdapter';
 export { SwarmAdapter } from './integrations/SwarmAdapter';
 export { MetricsAggregator } from './integrations/MetricsAggregator';
+export { HybridRoutingHandler } from './hybrid-routing-handler';
 
 export type {
   SocketIOServerConfig,
@@ -33,3 +34,10 @@ export type {
 export type {
   MetricsAggregatorConfig
 } from './integrations/MetricsAggregator';
+
+export type {
+  CFNLoop3Event,
+  CFNLoop4Decision,
+  AgentSpawnedEvent,
+  AgentCompletedEvent
+} from './hybrid-routing-handler';

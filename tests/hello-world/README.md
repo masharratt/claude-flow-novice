@@ -1,4 +1,4 @@
-# 3-Layer Mesh Coordination Test Suite
+# 4-Layer Mesh Coordination Test Suite
 
 Complete distributed coordination test architecture using Redis pub/sub for real-time agent coordination.
 
@@ -11,14 +11,17 @@ redis-cli ping  # Should return "PONG"
 # 2. Install dependencies (if needed)
 npm install ioredis
 
-# 3. Run all layers (when implementation files are created)
-./run-all-layers.sh
+# 3. Run all layers sequentially
+./layer0-tool-validation.js          # Validate agent tooling
+./layer1-mesh-coordination.js         # Mesh coordination
+./layer2-review-coordination.js       # Review coordination
+./layer3-error-retry.js               # Error handling
 
 # 4. View results
-cat output/layer1-results.json
-cat output/layer2-results.json
-cat output/layer3-results.json
-cat output/combined-metrics.json
+cat ../../test-results/layer0-tool-validation/layer0-results.json
+cat ../../test-results/hello-world/layer1-results.json
+cat ../../test-results/hello-world/layer2-results.json
+cat ../../test-results/hello-world/layer3-results.json
 ```
 
 ## Architecture Documents
@@ -38,11 +41,12 @@ cat output/combined-metrics.json
 | `error-injector.js` | Error injection and retry coordination | ✅ Complete |
 | `metrics-collector.js` | Metrics aggregation and validation | ✅ Complete |
 
-### Test Layers (Implementation Pending)
+### Test Layers
 
 | Layer | File | Description | Status |
 |-------|------|-------------|--------|
-| 1 | `layer1-mesh-coordination.js` | 2 peer coordinators, 70 combos, claim negotiation | 📋 TODO |
+| 0 | `layer0-tool-validation.js` | Validate agent tooling (15 agents × 7 tools) | ✅ Complete |
+| 1 | `layer1-mesh-coordination.js` | 2 peer coordinators, 70 combos, claim negotiation | ✅ Complete |
 | 2 | `layer2-review-coordination.js` | Add dynamic reviewer pool (3-10 reviewers) | 📋 TODO |
 | 3 | `layer3-error-retry.js` | 50% error injection, retry coordination | 📋 TODO |
 
@@ -56,6 +60,28 @@ cat output/combined-metrics.json
 | `run-all-layers.sh` | Execute complete test suite | 📋 TODO |
 
 ## Layer Overview
+
+### Layer 0: Agent Tool Validation
+
+**Objective**: Validate all specialized agents have functional tooling before mesh coordination
+
+**Architecture**:
+- 15 specialized agent types (coder, architect, tester, analyst, reviewer, backend-dev, code-analyzer, code-quality-validator, security-specialist, devops-engineer, api-docs, mobile-dev, base-template-generator, perf-analyzer, pseudocode)
+- 7 critical tools per agent (Read, Write, Edit, Bash, Grep, Glob, TodoWrite)
+- Direct CLI spawning with --agents override
+- Artifact-based validation (file operations, tool output)
+
+**Success Criteria**:
+- ✅ All 15 agents spawn successfully
+- ✅ ≥5/7 tools working per agent
+- ✅ 6 critical tools at 100% (Read, Write, Edit, Bash, Grep, Glob)
+- ✅ TodoWrite at ≥80% (nice-to-have)
+
+**Why This Layer**:
+- Previous sessions revealed coordinators completing work themselves instead of delegating
+- Root cause: CLI argument parsing bugs (now fixed)
+- This layer validates agents have functional tools after CLI fixes
+- Prevents moving to mesh coordination with broken agent tooling
 
 ### Layer 1: Mesh Coordination
 

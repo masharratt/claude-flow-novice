@@ -18,6 +18,7 @@
 
 import { createClient } from 'redis';
 import { createRequire } from 'module';
+import { io } from 'socket.io-client';
 const require = createRequire(import.meta.url);
 const MemoryStoreAdapter = require('../../sqlite/MemoryStoreAdapter.cjs');
 
@@ -132,6 +133,17 @@ class HybridWorkerSpawner {
     this.timeout = options.timeout || 1800000; // 1800 seconds (30 minutes) for complex multi-step tasks
     this.model = options.model || 'claude-3-5-sonnet-20241022';
 
+    // Coordinator override: Allow manual agent selection
+    this.agentOverride = options.agentOverride || null; // Array of agent types: ['coder', 'architect', 'tester']
+    this.subtaskOverride = options.subtaskOverride || null; // Array of custom subtasks (optional)
+
+    // Agent whitelist/blacklist configuration
+    this.agentWhitelist = options.agentWhitelist || null; // Array of allowed agent types (null = allow all)
+    this.agentBlacklist = options.agentBlacklist || null; // Array of blocked agent types
+
+    // Agent discovery caching
+    this.cachedAgents = null; // Lazy-loaded and cached agent definitions
+
     // Initialize Anthropic client based on provider
     const apiKey = this.provider === 'zai'
       ? process.env.Z_AI_API_KEY
@@ -154,6 +166,13 @@ class HybridWorkerSpawner {
 
     // SQLite memory adapter
     this.memoryAdapter = null;
+
+    // Socket.IO client for web portal integration
+    this.socketClient = null;
+    this.socketAvailable = false;
+    this.portalUrl = options.portalUrl || process.env.PORTAL_URL || 'http://localhost:3002';
+    this.portalConnectionAttempts = 0;
+    this.maxPortalConnectionAttempts = 5;
 
     // Results tracking
     this.results = [];
@@ -195,7 +214,7 @@ class HybridWorkerSpawner {
   }
 
   /**
-   * Initialize Redis and SQLite connections
+   * Initialize Redis, SQLite, and Socket.IO connections
    */
   async initialize() {
     // Try to initialize Redis (optional)
@@ -238,18 +257,144 @@ class HybridWorkerSpawner {
       console.log('⚠️  SQLite unavailable, continuing without memory storage');
       this.memoryAdapter = null;
     }
+
+    // Initialize Socket.IO client for web portal (optional, graceful degradation)
+    try {
+      this.socketClient = io(this.portalUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: this.maxPortalConnectionAttempts,
+        timeout: 10000,
+        forceNew: true,
+        autoConnect: true,
+        withCredentials: true
+      });
+
+      // Handle connection events
+      this.socketClient.on('connect', () => {
+        this.socketAvailable = true;
+        this.portalConnectionAttempts = 0;
+        console.log(`✅ Socket.IO connected to web portal: ${this.portalUrl}`);
+      });
+
+      this.socketClient.on('connect_error', (error) => {
+        this.portalConnectionAttempts++;
+        this.socketAvailable = false;
+        if (this.portalConnectionAttempts === 1) {
+          // Only log once to avoid spam
+          console.log(`⚠️  Portal connection error: ${error.message}`);
+          console.log(`   Retrying... (attempt ${this.portalConnectionAttempts}/${this.maxPortalConnectionAttempts})`);
+        }
+        if (this.portalConnectionAttempts >= this.maxPortalConnectionAttempts) {
+          console.log('⚠️  Web portal unavailable, continuing without live updates');
+        }
+      });
+
+      this.socketClient.on('disconnect', (reason) => {
+        this.socketAvailable = false;
+        if (reason === 'io server disconnect') {
+          // Server disconnected us, try to reconnect
+          this.socketClient.connect();
+        }
+      });
+
+      this.socketClient.on('reconnect', (attemptNumber) => {
+        console.log(`✅ Reconnected to portal (attempt ${attemptNumber})`);
+        this.socketAvailable = true;
+        this.portalConnectionAttempts = 0;
+      });
+
+      // Wait briefly for initial connection (non-blocking)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    } catch (error) {
+      console.log(`⚠️  Socket.IO initialization error: ${error.message}`);
+      console.log('   Continuing without web portal integration');
+      this.socketAvailable = false;
+      this.socketClient = null;
+    }
+  }
+
+  /**
+   * Spawn a single worker agent with retry logic for 502 errors
+   * Exponential backoff: 1s, 2s, 4s (max 3 retries)
+   */
+  async spawnWorkerWithRetry(workerId, subtask, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.spawnWorker(workerId, subtask);
+      } catch (error) {
+        // Check if it's a 502 error
+        const is502 = error.message && (
+          error.message.includes('502') ||
+          error.message.includes('Bad Gateway')
+        );
+
+        if (!is502 || attempt === maxRetries) {
+          // Not a 502 error, or final attempt failed - rethrow
+          throw error;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s
+        const backoffMs = Math.pow(2, attempt - 1) * 1000;
+        console.log(`⚠️  Worker ${workerId} 502 error, retry ${attempt}/${maxRetries} in ${backoffMs/1000}s`);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+      }
+    }
+  }
+
+  /**
+   * Emit Socket.IO event to web portal
+   */
+  emitPortalEvent(eventType, payload) {
+    if (this.socketAvailable && this.socketClient) {
+      try {
+        this.socketClient.emit(eventType, payload);
+      } catch (error) {
+        // Silent failure - portal events are optional
+      }
+    }
   }
 
   /**
    * Spawn a single worker agent with bash execution capability
    */
-  async spawnWorker(workerId, subtask) {
+  async spawnWorker(workerId, subtask, customSystemPrompt = null) {
     const startTime = Date.now();
 
-    console.log(`🤖 Worker ${workerId}: Spawning (provider: ${this.provider})`);
+    // Extract agent type if subtask is an object
+    let taskDescription = typeof subtask === 'string' ? subtask : subtask.task;
+    let agentType = typeof subtask === 'object' ? subtask.agentType : 'generic';
+    let baseSystemPrompt = typeof subtask === 'object' && subtask.systemPrompt
+      ? subtask.systemPrompt
+      : null;
+
+    console.log(`🤖 Worker ${workerId} [${agentType}]: Spawning (provider: ${this.provider})`);
+
+    // Emit agent:spawned event to web portal
+    this.emitPortalEvent('agent:spawned', {
+      agentId: `hybrid-worker-${workerId}`,
+      workerId,
+      agentType,
+      subtask: taskDescription,
+      provider: this.provider,
+      model: this.model,
+      timestamp: Date.now()
+    });
 
     // Create agent prompt with tool use instructions
-    const systemPrompt = `You are worker agent ${workerId} in a hybrid routing system.
+    let systemPrompt;
+
+    if (customSystemPrompt) {
+      systemPrompt = customSystemPrompt;
+    } else if (baseSystemPrompt) {
+      // Use specialized agent prompt with tool integration
+      systemPrompt = `${baseSystemPrompt}
+
+## Tool Integration for Hybrid Routing
+
+You are worker agent ${workerId} with specialized role: ${agentType}
 
 IMPORTANT: You have access to these tools:
 - bash_execute: Run bash commands (npm install, git commands, mkdir, etc.)
@@ -265,9 +410,31 @@ write_file({ path: "tests/example.test.js", content: "test code here" })
 To install dependencies:
 bash_execute({ command: "npm install express" })
 
-TASK: ${subtask}
+TASK: ${taskDescription}
 
 Execute the task using available tools. Report confidence score (0.0-1.0) at the end.`;
+    } else {
+      // Generic worker prompt (fallback)
+      systemPrompt = `You are worker agent ${workerId} in a hybrid routing system.
+
+IMPORTANT: You have access to these tools:
+- bash_execute: Run bash commands (npm install, git commands, mkdir, etc.)
+- write_file: Create or update files
+- read_file: Read file contents
+
+Use these tools to complete your task. Don't just describe what to do - ACTUALLY DO IT.
+
+Example:
+To create a test file, use:
+write_file({ path: "tests/example.test.js", content: "test code here" })
+
+To install dependencies:
+bash_execute({ command: "npm install express" })
+
+TASK: ${taskDescription}
+
+Execute the task using available tools. Report confidence score (0.0-1.0) at the end.`;
+    }
 
     try {
       let messages = [
@@ -309,6 +476,16 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
         // Execute tool
         console.log(`  🔧 Worker ${workerId} using tool: ${toolUseBlock.name}`);
         const toolResult = await this.executeTool(toolUseBlock.name, toolUseBlock.input);
+
+        // Emit agent:update event for tool use
+        this.emitPortalEvent('agent:update', {
+          agentId: `hybrid-worker-${workerId}`,
+          workerId,
+          progress: toolUseCount / MAX_TOOL_ITERATIONS,
+          tool: toolUseBlock.name,
+          toolInput: toolUseBlock.input,
+          timestamp: Date.now()
+        });
 
         // Add assistant message with tool use
         messages.push({
@@ -409,6 +586,19 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
 
       console.log(`📥 Worker ${workerId} completed: confidence ${confidence.toFixed(2)} (${totalTokens} tokens, $${cost.toFixed(6)}, ${(duration/1000).toFixed(1)}s)`);
 
+      // Emit agent:completed event to web portal
+      this.emitPortalEvent('agent:completed', {
+        agentId: `hybrid-worker-${workerId}`,
+        workerId,
+        confidence,
+        tokens: { input: inputTokens, output: outputTokens, total: totalTokens },
+        cost,
+        duration,
+        filesModified: [], // TODO: Extract from tool calls
+        success: true,
+        timestamp: Date.now()
+      });
+
       return result;
 
     } catch (error) {
@@ -426,12 +616,369 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
 
       this.results.push(result);
 
+      // Emit agent:failed event to web portal
+      this.emitPortalEvent('agent:failed', {
+        agentId: `hybrid-worker-${workerId}`,
+        workerId,
+        error: error.message,
+        duration,
+        timestamp: Date.now()
+      });
+
       return result;
     }
   }
 
   /**
-   * Decompose task into subtasks
+   * Recursively scan directory for .md files
+   */
+  async scanAgentFiles(dirPath, basePath) {
+    const { promises: fs } = await import('fs');
+    const path = await import('path');
+
+    let agentFiles = [];
+
+    try {
+      const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+
+        if (entry.isDirectory()) {
+          // Recursively scan subdirectories
+          const subFiles = await this.scanAgentFiles(fullPath, basePath);
+          agentFiles = agentFiles.concat(subFiles);
+        } else if (entry.isFile() && entry.name.endsWith('.md')) {
+          // Calculate relative path for category (e.g., "core-agents", "security", "analysis")
+          const relativePath = path.relative(basePath, fullPath);
+          const category = path.dirname(relativePath).split(path.sep)[0] || 'root';
+
+          agentFiles.push({
+            path: fullPath,
+            category,
+            filename: entry.name
+          });
+        }
+      }
+    } catch (error) {
+      // Directory doesn't exist or can't be read
+    }
+
+    return agentFiles;
+  }
+
+  /**
+   * Check if agent type is allowed by whitelist/blacklist
+   */
+  isAgentAllowed(agentType) {
+    // Check blacklist first (if configured)
+    if (this.agentBlacklist && this.agentBlacklist.length > 0) {
+      if (this.agentBlacklist.includes(agentType)) {
+        return false;
+      }
+    }
+
+    // Check whitelist (if configured)
+    if (this.agentWhitelist && this.agentWhitelist.length > 0) {
+      return this.agentWhitelist.includes(agentType);
+    }
+
+    // No restrictions - allow all
+    return true;
+  }
+
+  /**
+   * Load specialized agent definitions dynamically from .claude/agents folder
+   * Scans recursively and caches results
+   */
+  async loadAgentDefinitions() {
+    // Return cached agents if available
+    if (this.cachedAgents) {
+      return this.cachedAgents;
+    }
+
+    const { promises: fs } = await import('fs');
+    const path = await import('path');
+
+    try {
+      const agentsPath = path.join(process.cwd(), '.claude', 'agents');
+
+      // Recursively scan all .md files in .claude/agents
+      const agentFiles = await this.scanAgentFiles(agentsPath, agentsPath);
+
+      console.log(`🔍 Discovered ${agentFiles.length} agent files in .claude/agents/`);
+
+      const agents = {};
+      let loadedCount = 0;
+      let skippedCount = 0;
+
+      for (const agentFile of agentFiles) {
+        try {
+          const content = await fs.readFile(agentFile.path, 'utf-8');
+
+          // Parse YAML frontmatter (handle both Unix \n and Windows \r\n)
+          const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+          if (!frontmatterMatch) {
+            console.log(`⚠️  No frontmatter in ${agentFile.filename}, skipping`);
+            skippedCount++;
+            continue;
+          }
+
+          const frontmatter = frontmatterMatch[1];
+
+          // Extract agent type from YAML frontmatter 'name' field
+          const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
+          if (!nameMatch) {
+            console.log(`⚠️  No 'name' field in ${agentFile.filename}, skipping`);
+            skippedCount++;
+            continue;
+          }
+
+          const agentType = nameMatch[1].trim();
+
+          // Check whitelist/blacklist
+          if (!this.isAgentAllowed(agentType)) {
+            skippedCount++;
+            continue;
+          }
+
+          // Extract description (simplified YAML parsing - handles multiline)
+          const descMatch = frontmatter.match(/description:\s*([^\n]+(?:\n(?!\w+:).+)*)/);
+          const description = descMatch ? descMatch[1].trim() : '';
+
+          // Extract keywords from description (appears after "Keywords -" or "Keywords:")
+          const keywordsMatch = description.match(/Keywords\s*[-:]\s*(.+?)(?:\n|$)/i);
+          const keywords = keywordsMatch
+            ? keywordsMatch[1].split(/[,;]/).map(k => k.trim().toLowerCase()).filter(k => k.length > 0)
+            : [];
+
+          agents[agentType] = {
+            type: agentType,
+            category: agentFile.category,
+            description,
+            keywords,
+            systemPrompt: content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, ''),
+            filePath: agentFile.path
+          };
+
+          loadedCount++;
+        } catch (error) {
+          console.log(`⚠️  Error loading ${agentFile.filename}: ${error.message}`);
+          skippedCount++;
+        }
+      }
+
+      console.log(`✅ Loaded ${loadedCount} agents (${skippedCount} skipped)`);
+
+      // Cache results
+      this.cachedAgents = agents;
+
+      return agents;
+    } catch (error) {
+      console.log(`⚠️  Agent definitions not found, using generic workers`);
+      return {};
+    }
+  }
+
+  /**
+   * List all available agents (flat list)
+   */
+  async listAgents() {
+    const agents = await this.loadAgentDefinitions();
+    const agentList = Object.values(agents);
+
+    console.log('\n📋 Available Specialized Agents');
+    console.log('═'.repeat(60));
+    console.log(`Total: ${agentList.length} agents\n`);
+
+    // Sort by type for consistent display
+    agentList.sort((a, b) => a.type.localeCompare(b.type));
+
+    for (const agent of agentList) {
+      const keywordPreview = agent.keywords.slice(0, 5).join(', ');
+      const moreKeywords = agent.keywords.length > 5 ? ` (+${agent.keywords.length - 5} more)` : '';
+      console.log(`  • ${agent.type.padEnd(30)} [${agent.category}]`);
+      console.log(`    Keywords: ${keywordPreview}${moreKeywords}`);
+    }
+
+    console.log('═'.repeat(60));
+  }
+
+  /**
+   * List agents grouped by category
+   */
+  async listAgentsByCategory() {
+    const agents = await this.loadAgentDefinitions();
+    const agentList = Object.values(agents);
+
+    // Group by category
+    const byCategory = {};
+    for (const agent of agentList) {
+      if (!byCategory[agent.category]) {
+        byCategory[agent.category] = [];
+      }
+      byCategory[agent.category].push(agent);
+    }
+
+    console.log('\n📋 Available Agents by Category');
+    console.log('═'.repeat(60));
+    console.log(`Total: ${agentList.length} agents in ${Object.keys(byCategory).length} categories\n`);
+
+    // Sort categories alphabetically
+    const sortedCategories = Object.keys(byCategory).sort();
+
+    for (const category of sortedCategories) {
+      const categoryAgents = byCategory[category];
+      console.log(`\n📁 ${category.toUpperCase()} (${categoryAgents.length} agents)`);
+      console.log('─'.repeat(60));
+
+      // Sort agents within category
+      categoryAgents.sort((a, b) => a.type.localeCompare(b.type));
+
+      for (const agent of categoryAgents) {
+        const keywordPreview = agent.keywords.slice(0, 3).join(', ');
+        const moreKeywords = agent.keywords.length > 3 ? ` (+${agent.keywords.length - 3})` : '';
+        console.log(`  • ${agent.type}`);
+        console.log(`    ${keywordPreview}${moreKeywords}`);
+      }
+    }
+
+    console.log('\n' + '═'.repeat(60));
+  }
+
+  /**
+   * Match task to specialized agents based on keywords
+   */
+  matchTaskToAgents(task, availableAgents, numAgents) {
+    const taskLower = task.toLowerCase();
+    const matches = [];
+
+    // Score each agent based on keyword matches
+    for (const [type, agent] of Object.entries(availableAgents)) {
+      let score = 0;
+      for (const keyword of agent.keywords) {
+        if (taskLower.includes(keyword)) {
+          score++;
+        }
+      }
+      if (score > 0) {
+        matches.push({ type, agent, score });
+      }
+    }
+
+    // Sort by score (highest first)
+    matches.sort((a, b) => b.score - a.score);
+
+    // Return top N agents
+    return matches.slice(0, numAgents).map(m => ({
+      type: m.type,
+      agent: m.agent
+    }));
+  }
+
+  /**
+   * Decompose task into subtasks with specialized agent assignment
+   */
+  async decomposeTaskWithSpecialization(task, numAgents) {
+    // Load agent definitions
+    const agents = await this.loadAgentDefinitions();
+
+    if (Object.keys(agents).length === 0) {
+      // Fallback to generic decomposition
+      return this.decomposeTask(task, numAgents);
+    }
+
+    // COORDINATOR OVERRIDE: Check if coordinator specified agent types
+    if (this.agentOverride && Array.isArray(this.agentOverride) && this.agentOverride.length > 0) {
+      console.log('🎯 Using Coordinator Override for agent selection');
+
+      // When coordinator specifies agent types, use THEIR count by default
+      // Only use more if subtaskOverride provides more tasks
+      // Example: --agents coder → spawn 1 coder
+      // Example: --agents coder,tester → spawn 2 agents
+      // Example: --agents coder --subtasks="task1|task2|task3" → spawn 3 coders (cycles)
+      const subtasks = [];
+      const spawnCount = this.subtaskOverride && this.subtaskOverride.length > 0
+        ? this.subtaskOverride.length
+        : this.agentOverride.length;
+
+      for (let i = 0; i < spawnCount; i++) {
+        const agentType = this.agentOverride[i % this.agentOverride.length];
+        const agent = agents[agentType];
+
+        if (!agent) {
+          console.log(`⚠️  Agent type '${agentType}' not found, falling back to keyword matching`);
+          // Fall through to keyword matching below
+          break;
+        }
+
+        // Use coordinator-provided subtask if available, otherwise generate
+        const subtask = this.subtaskOverride && this.subtaskOverride[i]
+          ? this.subtaskOverride[i]
+          : this.generateSubtaskForAgent(task, agentType, i, spawnCount);
+
+        subtasks.push({
+          task: subtask,
+          agentType: agentType,
+          systemPrompt: agent.systemPrompt
+        });
+      }
+
+      // If coordinator override succeeded, return
+      if (subtasks.length > 0) {
+        console.log(`✅ Coordinator override: Spawning ${subtasks.length} agents (${this.agentOverride.join(', ')})`);
+        return subtasks;
+      }
+      // Otherwise fall through to keyword matching
+    }
+
+    // AUTOMATIC SELECTION: Match task to specialized agents via keywords
+    const matchedAgents = this.matchTaskToAgents(task, agents, numAgents);
+
+    if (matchedAgents.length === 0) {
+      // No specialized agents matched, use generic decomposition
+      return this.decomposeTask(task, numAgents);
+    }
+
+    // Create specialized subtasks
+    const subtasks = [];
+    for (let i = 0; i < numAgents; i++) {
+      const matched = matchedAgents[i % matchedAgents.length];
+      subtasks.push({
+        task: this.generateSubtaskForAgent(task, matched.type, i, numAgents),
+        agentType: matched.type,
+        systemPrompt: matched.agent.systemPrompt
+      });
+    }
+
+    return subtasks;
+  }
+
+  /**
+   * Generate agent-specific subtask
+   */
+  generateSubtaskForAgent(mainTask, agentType, index, total) {
+    const taskLower = mainTask.toLowerCase();
+
+    if (agentType === 'coder') {
+      return `Implement core functionality for: ${mainTask}`;
+    } else if (agentType === 'architect') {
+      return `Design system architecture for: ${mainTask}`;
+    } else if (agentType === 'tester') {
+      return `Create comprehensive tests for: ${mainTask}`;
+    } else if (agentType === 'security-specialist') {
+      return `Perform security analysis for: ${mainTask}`;
+    } else if (agentType === 'analyst') {
+      return `Analyze code quality and performance for: ${mainTask}`;
+    } else if (agentType === 'reviewer') {
+      return `Review implementation of: ${mainTask}`;
+    }
+
+    return `${mainTask} (Part ${index + 1}/${total})`;
+  }
+
+  /**
+   * Decompose task into subtasks (fallback for generic workers)
    */
   decomposeTask(task, numAgents) {
     // Simple decomposition - split task into logical parts
@@ -476,20 +1023,32 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
   }
 
   /**
-   * Spawn all workers in parallel
+   * Spawn all workers in parallel with retry logic
    */
   async spawnAll() {
+    // Decompose task into subtasks with specialization (may adjust agent count)
+    const subtasks = await this.decomposeTaskWithSpecialization(this.taskDescription, this.maxAgents);
+
+    // Update maxAgents to match actual spawn count (coordinator override may reduce it)
+    this.maxAgents = subtasks.length;
+
     console.log(`\n🚀 Spawning ${this.maxAgents} workers for task: "${this.taskDescription}"`);
     console.log(`📡 Provider: ${this.provider}`);
     console.log(`📊 Model: ${this.model}`);
     console.log('');
 
-    // Decompose task into subtasks
-    const subtasks = this.decomposeTask(this.taskDescription, this.maxAgents);
+    // Log agent assignments if specialized
+    if (typeof subtasks[0] === 'object' && subtasks[0].agentType) {
+      console.log('🎯 Specialized Agent Assignment:');
+      subtasks.forEach((st, i) => {
+        console.log(`   Worker ${i + 1}: ${st.agentType} - ${st.task}`);
+      });
+      console.log('');
+    }
 
-    // Spawn workers in parallel
+    // Spawn workers in parallel with retry logic
     const workerPromises = subtasks.map((subtask, index) =>
-      this.spawnWorker(index + 1, subtask)
+      this.spawnWorkerWithRetry(index + 1, subtask)
     );
 
     // Wait for all workers with timeout
@@ -497,25 +1056,50 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
       const results = await Promise.race([
         Promise.all(workerPromises),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Workers timed out')), this.timeout)
+          setTimeout(() => reject(new Error('TIMEOUT')), this.timeout)
         )
       ]);
 
       return results;
     } catch (error) {
-      console.log(`\n⚠️  Warning: ${error.message}`);
+      if (error.message === 'TIMEOUT') {
+        // Explicit timeout logging
+        const completedCount = this.results.filter(r => r.success).length;
+        const totalWorkers = this.maxAgents;
+
+        console.log(`\n⏱️  TIMEOUT: Workers exceeded ${this.timeout/60000}-minute limit`);
+        console.log(`📊 Workers completed: ${completedCount}/${totalWorkers}`);
+        console.log(`💡 Fallback: Check /tmp/ for partial results`);
+        console.log(`   - Redis keys: redis-cli keys "swarm:${this.redisChannel}:*"`);
+        console.log(`   - SQLite: Check ${process.env.SQLITE_MEMORY_PATH || './swarm-memory.db'}`);
+      } else {
+        console.log(`\n⚠️  Warning: ${error.message}`);
+      }
+
       return this.results; // Return partial results
     }
   }
 
   /**
-   * Print summary report
+   * Print summary report and emit swarm:completed event
    */
   printSummary() {
     const successfulWorkers = this.results.filter(r => r.success);
     const avgConfidence = successfulWorkers.length > 0
       ? successfulWorkers.reduce((sum, r) => sum + r.confidence, 0) / successfulWorkers.length
       : 0;
+
+    const gateThreshold = 0.75;
+    const gateResult = avgConfidence >= gateThreshold ? 'PASS' : 'FAIL';
+
+    // Calculate cost savings vs pure Claude
+    const pureClaude = {
+      inputCost: 3.00,  // $3/1M input tokens
+      outputCost: 15.00 // $15/1M output tokens
+    };
+    const pureClaudeCost = (this.totalTokens.input / 1_000_000) * pureClaude.inputCost +
+                           (this.totalTokens.output / 1_000_000) * pureClaude.outputCost;
+    const costSavingsPercent = ((pureClaudeCost - this.totalCost) / pureClaudeCost) * 100;
 
     console.log('\n' + '='.repeat(60));
     console.log('📊 HYBRID ROUTING SUMMARY');
@@ -526,6 +1110,7 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
     console.log(`   - Input: ${this.totalTokens.input.toLocaleString()}`);
     console.log(`   - Output: ${this.totalTokens.output.toLocaleString()}`);
     console.log(`💰 Total Cost: $${this.totalCost.toFixed(4)}`);
+    console.log(`💰 Cost Savings: ${costSavingsPercent.toFixed(1)}% vs pure Claude ($${pureClaudeCost.toFixed(4)})`);
     console.log(`📡 Provider: ${this.provider}`);
 
     if (successfulWorkers.length >= this.maxAgents * 0.75) {
@@ -535,12 +1120,43 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
     }
 
     console.log('='.repeat(60));
+
+    // Emit swarm:completed event to web portal with aggregated metrics
+    this.emitPortalEvent('swarm:completed', {
+      swarmId: `hybrid-swarm-${Date.now()}`,
+      avgConfidence,
+      totalTokens: this.totalTokens,
+      totalCost: this.totalCost,
+      workerCount: this.maxAgents,
+      successfulWorkers: successfulWorkers.length,
+      gateResult,
+      gateThreshold,
+      costSavingsPercent,
+      pureClaudeCost,
+      workers: successfulWorkers.map(w => ({
+        agentId: `hybrid-worker-${w.workerId}`,
+        workerId: w.workerId,
+        confidence: w.confidence,
+        tokens: w.tokens,
+        cost: w.cost,
+        duration: w.duration
+      })),
+      timestamp: Date.now()
+    });
   }
 
   /**
    * Cleanup resources
    */
   async cleanup() {
+    if (this.socketClient) {
+      try {
+        this.socketClient.disconnect();
+      } catch (error) {
+        // Ignore cleanup errors
+      }
+    }
+
     if (this.redisClient) {
       try {
         await this.redisClient.quit();
@@ -560,17 +1176,46 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
 }
 
 /**
+ * Parse CLI argument supporting both --flag=value and --flag value formats
+ */
+function parseArg(args, flagName, defaultValue = null) {
+  // Try --flag=value format first
+  const equalsFormat = args.find(arg => arg.startsWith(`--${flagName}=`));
+  if (equalsFormat) {
+    return equalsFormat.split('=')[1];
+  }
+
+  // Try --flag value format (space-separated)
+  const flagIndex = args.findIndex(arg => arg === `--${flagName}`);
+  if (flagIndex !== -1 && flagIndex + 1 < args.length && !args[flagIndex + 1].startsWith('--')) {
+    return args[flagIndex + 1];
+  }
+
+  return defaultValue;
+}
+
+/**
  * CLI Entry Point
  */
 async function main() {
   const args = process.argv.slice(2);
 
-  // Parse arguments
+  // Parse arguments (supports both --flag=value and --flag value)
   const task = args.find(arg => !arg.startsWith('--')) || 'Execute task';
-  const maxAgents = parseInt(args.find(arg => arg.startsWith('--max-agents='))?.split('=')[1]) || 3;
-  const provider = args.find(arg => arg.startsWith('--provider='))?.split('=')[1] || 'zai';
-  const redisChannel = args.find(arg => arg.startsWith('--redis-channel='))?.split('=')[1] || 'swarm:workers';
-  const model = args.find(arg => arg.startsWith('--model='))?.split('=')[1] || 'claude-3-5-sonnet-20241022';
+  const maxAgents = parseInt(parseArg(args, 'max-agents', '3'));
+  const provider = parseArg(args, 'provider', 'zai');
+  const redisChannel = parseArg(args, 'redis-channel', 'swarm:workers');
+  const model = parseArg(args, 'model', 'claude-3-5-sonnet-20241022');
+
+  // Coordinator override arguments
+  const agentOverrideArg = parseArg(args, 'agents');
+  const agentOverride = agentOverrideArg ? agentOverrideArg.split(',') : null;
+  const subtaskOverrideArg = parseArg(args, 'subtasks');
+  const subtaskOverride = subtaskOverrideArg ? subtaskOverrideArg.split('|') : null;
+
+  // Parse listing flags
+  const listAgents = args.includes('--list-agents');
+  const listByCategory = args.includes('--agents-by-category');
 
   // Show help
   if (args.includes('--help') || args.includes('-h')) {
@@ -581,21 +1226,69 @@ USAGE:
   node src/cli/hybrid-routing/spawn-workers.js "Task description" [OPTIONS]
 
 OPTIONS:
-  --max-agents=N         Number of workers to spawn (default: 3)
-  --provider=PROVIDER    Provider: zai or anthropic (default: zai)
-  --redis-channel=CH     Redis pub/sub channel (default: swarm:workers)
-  --model=MODEL          Model name (default: claude-3-5-sonnet-20241022)
+  --max-agents N         Number of workers to spawn (default: 3)
+  --max-agents=N         Alternate format with equals sign
+
+  --provider PROVIDER    Provider: zai or anthropic (default: zai)
+  --provider=PROVIDER    Alternate format with equals sign
+
+  --redis-channel CH     Redis pub/sub channel (default: swarm:workers)
+  --redis-channel=CH     Alternate format with equals sign
+
+  --model MODEL          Model name (default: claude-3-5-sonnet-20241022)
+  --model=MODEL          Alternate format with equals sign
+
+  --agents TYPE1,TYPE2   Coordinator override: Specify agent types (comma-separated)
+  --agents=TYPE1,TYPE2   Spawns ONLY the specified types (count = types provided)
+                         Example: --agents coder → spawns 1 coder
+                         Example: --agents=coder,tester → spawns 2 agents
+
+  --subtasks T1|T2|T3    Custom subtasks (pipe-separated, optional, used with --agents)
+  --subtasks=T1|T2|T3    Alternate format with equals sign
+
+  --list-agents          List all available specialized agents (flat list)
+  --agents-by-category   List available agents grouped by category
   --help, -h             Show this help message
 
+NOTE: Both --flag value and --flag=value formats are supported
+
+AGENT SELECTION MODES:
+
+  1. AUTOMATIC (default): Keyword-based matching selects best agents
+     node src/cli/hybrid-routing/spawn-workers.js "Build auth system" --max-agents=3
+     → Automatically assigns: coder, security-specialist, tester
+
+  2. COORDINATOR OVERRIDE: Manually specify agent types
+     node src/cli/hybrid-routing/spawn-workers.js "Build feature" --max-agents=3 \\
+       --agents=architect,coder,tester
+     → Uses specified agents in order
+
+  3. FULL OVERRIDE: Custom agents + custom subtasks
+     node src/cli/hybrid-routing/spawn-workers.js "Complex task" --max-agents=2 \\
+       --agents=coder,security-specialist \\
+       --subtasks="Implement OAuth2 flow|Audit authentication security"
+
 EXAMPLES:
-  # Spawn 3 workers with z.ai provider (cost-optimized)
+  # List available agents
+  node src/cli/hybrid-routing/spawn-workers.js --list-agents
+  node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
+
+  # Automatic agent selection (keyword-based)
   node src/cli/hybrid-routing/spawn-workers.js "Build auth system" --max-agents=3
 
-  # Spawn 5 workers with Anthropic provider
-  node src/cli/hybrid-routing/spawn-workers.js "Analyze code" --max-agents=5 --provider=anthropic
+  # Coordinator override: Force specific agents
+  node src/cli/hybrid-routing/spawn-workers.js "Refactor API" \\
+    --max-agents=3 --agents=architect,coder,reviewer
 
-  # Custom Redis channel for coordination
-  node src/cli/hybrid-routing/spawn-workers.js "Create API" --redis-channel=swarm:api:workers
+  # Full override: Custom agents + custom subtasks
+  node src/cli/hybrid-routing/spawn-workers.js "Security review" \\
+    --max-agents=2 \\
+    --agents=security-specialist,reviewer \\
+    --subtasks="Audit authentication system|Review authorization logic"
+
+  # Use Anthropic provider instead of z.ai
+  node src/cli/hybrid-routing/spawn-workers.js "Analyze code" \\
+    --max-agents=5 --provider=anthropic
 
 ENVIRONMENT:
   Z_AI_API_KEY          API key for z.ai provider
@@ -613,8 +1306,21 @@ ENVIRONMENT:
     maxAgents,
     provider,
     redisChannel,
-    model
+    model,
+    agentOverride,
+    subtaskOverride
   });
+
+  // Handle listing commands before initialization
+  if (listAgents) {
+    await spawner.listAgents();
+    process.exit(0);
+  }
+
+  if (listByCategory) {
+    await spawner.listAgentsByCategory();
+    process.exit(0);
+  }
 
   try {
     // Initialize connections

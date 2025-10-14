@@ -13,9 +13,10 @@ class RedisCoordinator extends EventEmitter {
 
     this.options = {
       redis: {
-        host: options.redis?.host || 'localhost',
-        port: options.redis?.port || 6379,
-        db: options.redis?.db || 0,
+        host: options.redis?.host || process.env.REDIS_HOST || 'localhost',
+        port: options.redis?.port || parseInt(process.env.REDIS_PORT) || 6379,
+        password: options.redis?.password || process.env.REDIS_PASSWORD || null,
+        db: options.redis?.db || parseInt(process.env.REDIS_DB) || 0,
         ...options.redis
       },
       swarmId: options.swarmId || 'file-processing-optimization',

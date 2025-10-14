@@ -132,6 +132,39 @@ transparencyLogger.logMessage({
 });
 \`\`\`
 
+### Hybrid Routing (Specialized Agent Selection)
+
+\`\`\`bash
+# List 50+ dynamically discovered agents
+node src/cli/hybrid-routing/spawn-workers.js --list-agents
+
+# List agents by category (16 categories)
+node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
+
+# Automatic agent selection (keyword-based)
+node src/cli/hybrid-routing/spawn-workers.js "Build auth" --max-agents=3
+
+# Coordinator override (manual agent types)
+node src/cli/hybrid-routing/spawn-workers.js "Refactor API" \
+  --agents=architect,coder,reviewer
+
+# Full override (custom agents + subtasks)
+node src/cli/hybrid-routing/spawn-workers.js "OAuth2" \
+  --agents=coder,security-specialist \
+  --subtasks="Implement PKCE|Audit tokens"
+\`\`\`
+
+**Features**:
+- **50+ specialized agents** dynamically discovered from `.claude/agents/` folder
+- **16 categories**: analysis, architecture, cfn-loop, consensus, core-agents, development, devops, documentation, goal, planning-team, security, sparc, specialized, swarm, testing
+- **Dynamic discovery**: Recursive scanning with category preservation, in-memory caching, lazy loading
+- Three selection modes: automatic, coordinator override, full override
+- z.ai provider integration for worker agents
+- Real Claude API calls with bash execution capability
+- Redis coordination, SQLite memory, web portal integration
+
+**Documentation**: [\`additional-commands.md#hybrid-routing\`](./additional-commands.md#hybrid-routing-cost-optimized-worker-spawning), [\`logs-features.md#hybrid-routing\`](./logs-features.md#hybrid-routing-specialized-agent-selection), \`src/cli/hybrid-routing/COORDINATOR-OVERRIDE.md\`
+
 ### MCP Integration
 
 \`\`\`javascript

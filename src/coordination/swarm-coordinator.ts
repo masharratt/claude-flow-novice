@@ -667,19 +667,34 @@ export class SwarmCoordinator extends EventEmitter {
       // Get available agents
       const availableAgents = Array.from(this.agents.values()).filter((a) => a.status === 'idle');
 
-      // Assign tasks to agents
-      for (const task of pendingTasks) {
-        if (availableAgents.length === 0) break;
+      // **OPTIMIZATION: Parallel task assignment**
+      // Assign multiple tasks concurrently up to maxConcurrentTasks limit
+      const tasksToAssign = Math.min(
+        pendingTasks.length,
+        availableAgents.length,
+        this.config.maxConcurrentTasks
+      );
 
+      const assignmentPromises: Promise<void>[] = [];
+
+      for (let i = 0; i < tasksToAssign; i++) {
+        const task = pendingTasks[i];
         const agent = this.selectBestAgent(task, availableAgents);
+
         if (agent) {
-          try {
-            await this.assignTask(task.id, agent.id);
-            availableAgents.splice(availableAgents.indexOf(agent), 1);
-          } catch (error) {
+          // Non-blocking assignment - collect promises
+          const assignmentPromise = this.assignTask(task.id, agent.id).catch((error) => {
             this.logger.error(`Failed to assign task ${task.id}:`, error);
-          }
+          });
+
+          assignmentPromises.push(assignmentPromise);
+          availableAgents.splice(availableAgents.indexOf(agent), 1);
         }
+      }
+
+      // Execute all assignments in parallel
+      if (assignmentPromises.length > 0) {
+        await Promise.all(assignmentPromises);
       }
     } catch (error) {
       this.logger.error('Error processing background tasks:', error);

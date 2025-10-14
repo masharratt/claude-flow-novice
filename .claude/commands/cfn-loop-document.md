@@ -23,6 +23,31 @@ Update documentation files in `/readme` directory based on completed sprint/epic
 
 ## Execution Pattern
 
+### Step 0: Read Documentation Guidelines
+```javascript
+// Read /readme/CLAUDE.md first to understand documentation structure and rules
+Task("Documentation Guidelines Analyzer", `
+  READ: /readme/CLAUDE.md
+
+  EXTRACT:
+  1. Documentation categories and organization
+  2. File purposes and content areas
+  3. Cross-references between docs
+  4. Navigation paths and use cases
+  5. Sparse language rules (CRITICAL)
+  6. What NOT to include (marketing, cost optimization, verbose explanations)
+
+  OUTPUT:
+  {
+    "file_purposes": {...},  // What each doc covers
+    "categories": [...],     // Documentation categories
+    "dependencies": {...},   // Which docs reference others
+    "forbidden_patterns": [...], // What to avoid
+    "required_patterns": [...] // Required sparse language patterns
+  }
+`, "analyst")
+```
+
 ### Step 1: Detect Completed Work
 ```bash
 # Auto-detect from recent commits
@@ -65,9 +90,10 @@ mcp__claude-flow-novice__swarm_init({
 Task("Command Docs", `
   UPDATE: /readme/logs-slash-commands.md
 
-  RULES:
-  - Sparse language (AI agent readability)
-  - Active voice, present tense
+  RULES (from /readme/CLAUDE.md):
+  - Sparse language: active voice, present tense, no fluff
+  - NO marketing language, cost optimization details, comparatives
+  - NO "can be used", "will allow", "is recommended"
   - Code examples must work
   - Follow existing patterns
 
@@ -77,8 +103,11 @@ Task("Command Docs", `
 Task("Feature Docs", `
   UPDATE: /readme/logs-features.md
 
-  Focus: High-level feature descriptions
-  Pattern: Purpose → Usage → Integration
+  RULES (from /readme/CLAUDE.md):
+  - Focus: High-level feature descriptions
+  - Pattern: Purpose → Usage → Integration
+  - NO cost savings, performance comparisons, marketing claims
+  - Exception: Internal metrics for optimization (e.g., "398K events/sec, 2.5μs latency")
 
   NEW FEATURES: ${newFeatures}
 `, "coder")
@@ -129,9 +158,10 @@ node config/hooks/markdown-validator.js readme/ --ci
 # Verify all links work
 node config/hooks/markdown-validator.js --check-links
 
-# Check for sparse language violations
-grep -r "will be\|is used\|can be used" readme/ && {
-  echo "⚠️  Warning: Non-sparse language detected"
+# Check for sparse language violations and forbidden content
+grep -r "will be\|is used\|can be used\|revolutionary\|amazing\|cost savings\|97%\|outperforms\|best-in-class" readme/logs-*.md && {
+  echo "⚠️  Warning: Non-sparse language or forbidden content detected"
+  echo "See /readme/CLAUDE.md for guidelines"
 }
 ```
 
@@ -289,7 +319,7 @@ const detectChanges = () => {
 };
 ```
 
-## Sparse Language Rules
+## Sparse Language Rules (from /readme/CLAUDE.md)
 
 ### Active Voice (Required)
 - ✅ "Returns data from Redis"
@@ -310,6 +340,14 @@ const detectChanges = () => {
 ### Direct Description (Required)
 - ✅ "Execute autonomous workflow"
 - ❌ "This feature allows you to execute a workflow autonomously"
+
+### Forbidden Content
+- ❌ Marketing language ("revolutionary", "amazing", "best-in-class")
+- ❌ Cost optimization ("97% savings", "worker cost $0.50 vs $15")
+- ❌ Comparative benchmarks ("40x faster than", "outperforms X by 200%")
+- ❌ Motivational content ("unlock potential", "exciting capability")
+- ❌ Future promises ("coming soon", "planned enhancements")
+- ❌ Opinions without context ("always use", "not recommended")
 
 ## Output Format
 
@@ -406,7 +444,8 @@ done
 - Markdown syntax validation (no broken markup)
 - Link validation (all internal links work)
 - Code example testing (examples execute correctly)
-- Sparse language check (pattern compliance)
+- Sparse language check (pattern compliance from /readme/CLAUDE.md)
+- Forbidden content check (no marketing, cost details, comparatives)
 
 ### Rollback Capability
 ```bash

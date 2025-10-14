@@ -1,0 +1,558 @@
+{
+  "epic": {
+    "id": "hybrid-routing-implementation",
+    "name": "Hybrid CLI Routing Implementation",
+    "description": "Implement hybrid routing architecture with Claude Max coordinators and z.ai workers for 97% cost savings",
+    "mode": "standard",
+    "estimatedHours": 33,
+    "priority": "high",
+    "dependencies": ["redis-security-fixes"],
+    "deliverables": [
+      "Updated CFN Loop instructions with hybrid patterns",
+      "Coordinator agent profiles with orchestration logic",
+      "Worker agent profiles with Redis communication",
+      "Swarm execution script with provider detection",
+      "Updated documentation with cost analysis"
+    ]
+  },
+  "phases": [
+    {
+      "id": "phase-0-security",
+      "name": "Security Hardening (CRITICAL)",
+      "description": "Implement Redis security fixes before enabling hybrid routing in production",
+      "order": 0,
+      "estimatedHours": 26,
+      "blocksSubsequent": true,
+      "sprints": [
+        {
+          "id": "sprint-0.1",
+          "name": "Redis Authentication",
+          "description": "Implement password-based authentication for all Redis connections",
+          "estimatedHours": 8,
+          "tasks": [
+            {
+              "id": "task-0.1.1",
+              "name": "Configure Redis server authentication",
+              "description": "Set requirepass in redis.conf, generate secure password, restart Redis server",
+              "assignedAgent": "devops-engineer",
+              "estimatedHours": 2,
+              "files": ["config/redis.conf", ".env.example"]
+            },
+            {
+              "id": "task-0.1.2",
+              "name": "Update Redis client connections",
+              "description": "Add authentication to all Redis clients in codebase (coordinator, workers, tests)",
+              "assignedAgent": "coder",
+              "estimatedHours": 4,
+              "files": [
+                "src/coordination/swarm-coordinator.ts",
+                "src/redis/*.js",
+                "tests/hello-world/lib/redis-client.js"
+              ]
+            },
+            {
+              "id": "task-0.1.3",
+              "name": "Test authentication failures",
+              "description": "Verify unauthorized connections are rejected, test password rotation",
+              "assignedAgent": "tester",
+              "estimatedHours": 2,
+              "files": ["tests/security/redis-authentication.test.js"]
+            }
+          ]
+        },
+        {
+          "id": "sprint-0.2",
+          "name": "JSON Schema Validation",
+          "description": "Validate all Redis pub/sub messages to prevent injection attacks",
+          "estimatedHours": 12,
+          "tasks": [
+            {
+              "id": "task-0.2.1",
+              "name": "Define message schemas",
+              "description": "Create JSON schemas for worker completion events, coordinator commands, validation messages",
+              "assignedAgent": "architect",
+              "estimatedHours": 3,
+              "files": ["src/security/schemas/redis-messages.json"]
+            },
+            {
+              "id": "task-0.2.2",
+              "name": "Implement schema validator",
+              "description": "Create validator class using ajv library, validate all incoming Redis messages",
+              "assignedAgent": "coder",
+              "estimatedHours": 5,
+              "files": ["src/security/message-validator.cjs"]
+            },
+            {
+              "id": "task-0.2.3",
+              "name": "Integrate validation in Redis clients",
+              "description": "Add validation to pub/sub handlers, reject invalid messages, log security events",
+              "assignedAgent": "coder",
+              "estimatedHours": 3,
+              "files": [
+                "src/coordination/swarm-coordinator.ts",
+                "tests/hello-world/lib/redis-client.js"
+              ]
+            },
+            {
+              "id": "task-0.2.4",
+              "name": "Test malformed payloads",
+              "description": "Test injection attempts, malformed JSON, schema violations, verify rejection",
+              "assignedAgent": "security-specialist",
+              "estimatedHours": 1,
+              "files": ["tests/security/message-validator.test.js"]
+            }
+          ]
+        },
+        {
+          "id": "sprint-0.3",
+          "name": "HMAC-SHA256 Message Signing",
+          "description": "Sign all worker completion events to prevent message spoofing",
+          "estimatedHours": 6,
+          "tasks": [
+            {
+              "id": "task-0.3.1",
+              "name": "Implement message signer",
+              "description": "Create HMAC-SHA256 signer using crypto library, sign all outgoing messages",
+              "assignedAgent": "security-specialist",
+              "estimatedHours": 3,
+              "files": ["src/security/message-signer.js"]
+            },
+            {
+              "id": "task-0.3.2",
+              "name": "Verify signatures in coordinator",
+              "description": "Add signature verification to coordinator, reject unsigned/invalid messages",
+              "assignedAgent": "coder",
+              "estimatedHours": 2,
+              "files": ["src/coordination/swarm-coordinator.ts"]
+            },
+            {
+              "id": "task-0.3.3",
+              "name": "Test signature tampering",
+              "description": "Test modified signatures, replayed messages, verify rejection",
+              "assignedAgent": "security-specialist",
+              "estimatedHours": 1,
+              "files": ["tests/security/message-signer.test.js"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-1-core",
+      "name": "Core Hybrid Routing Implementation",
+      "description": "Update CFN Loop instructions and agent profiles with hybrid patterns",
+      "order": 1,
+      "estimatedHours": 4,
+      "dependencies": ["phase-0-security"],
+      "sprints": [
+        {
+          "id": "sprint-1.1",
+          "name": "CFN Loop Instructions Update",
+          "description": "Add hybrid spawning patterns to all CFN Loop instruction files",
+          "estimatedHours": 2,
+          "tasks": [
+            {
+              "id": "task-1.1.1",
+              "name": "Update MVP instructions",
+              "description": "Add Loop 3 hybrid spawning section with coordinator pattern, CLI spawning commands, Redis monitoring",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["config/cfn-loop/instructions/mvp-instructions.md"]
+            },
+            {
+              "id": "task-1.1.2",
+              "name": "Update standard instructions",
+              "description": "Add Loop 3 hybrid spawning section with coordinator pattern, CLI spawning commands, Redis monitoring",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["config/cfn-loop/instructions/standard-instructions.md"]
+            },
+            {
+              "id": "task-1.1.3",
+              "name": "Update enterprise instructions",
+              "description": "Add Loop 3 hybrid spawning section with coordinator pattern, CLI spawning commands, Redis monitoring, enhanced security",
+              "assignedAgent": "coder",
+              "estimatedHours": 1,
+              "files": ["config/cfn-loop/instructions/enterprise-instructions.md"]
+            }
+          ]
+        },
+        {
+          "id": "sprint-1.2",
+          "name": "Agent Profile Updates",
+          "description": "Update coordinator and worker agent profiles with hybrid routing behavior",
+          "estimatedHours": 2,
+          "tasks": [
+            {
+              "id": "task-1.2.1",
+              "name": "Update coordinator profiles",
+              "description": "Add hybrid routing section to coordinator, architect, system-architect, product-owner profiles with orchestration patterns",
+              "assignedAgent": "coder",
+              "estimatedHours": 1,
+              "files": [
+                ".claude/agents/coordinator.md",
+                ".claude/agents/architect.md",
+                ".claude/agents/system-architect.md",
+                ".claude/agents/product-owner.md"
+              ]
+            },
+            {
+              "id": "task-1.2.2",
+              "name": "Create worker profile template",
+              "description": "Create reusable template for worker hybrid routing behavior with Redis communication patterns",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": [".claude/agents/_templates/worker-hybrid-routing.md"]
+            },
+            {
+              "id": "task-1.2.3",
+              "name": "Update worker profiles (batch)",
+              "description": "Apply worker template to coder, tester, reviewer, security-specialist, devops-engineer profiles",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": [
+                ".claude/agents/coder.md",
+                ".claude/agents/tester.md",
+                ".claude/agents/reviewer.md",
+                ".claude/agents/security-specialist.md",
+                ".claude/agents/devops-engineer.md"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-2-infrastructure",
+      "name": "Infrastructure Integration",
+      "description": "Update swarm scripts and Redis coordination with hybrid mode detection",
+      "order": 2,
+      "estimatedHours": 2,
+      "dependencies": ["phase-1-core"],
+      "sprints": [
+        {
+          "id": "sprint-2.1",
+          "name": "Swarm Script Enhancement",
+          "description": "Add provider detection and hybrid mode support to swarm execution script",
+          "estimatedHours": 1,
+          "tasks": [
+            {
+              "id": "task-2.1.1",
+              "name": "Add hybrid routing detection",
+              "description": "Check settings.json for hybridRouting config, detect worker provider, log hybrid mode status",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["tests/manual/test-swarm-direct.js"]
+            },
+            {
+              "id": "task-2.1.2",
+              "name": "Configure agent provider selection",
+              "description": "Use detected provider for spawned agents, set model based on provider, verify z.ai usage",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["tests/manual/test-swarm-direct.js"]
+            }
+          ]
+        },
+        {
+          "id": "sprint-2.2",
+          "name": "Redis Coordination Update",
+          "description": "Add hybrid mode awareness to Redis coordination layer",
+          "estimatedHours": 1,
+          "tasks": [
+            {
+              "id": "task-2.2.1",
+              "name": "Add hybrid mode detection to coordinator",
+              "description": "Check environment for hybrid routing flag, log worker provider info, track cost per provider",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["src/coordination/swarm-coordinator.ts"]
+            },
+            {
+              "id": "task-2.2.2",
+              "name": "Update completion event format",
+              "description": "Include provider info in completion events, track cost by provider, aggregate by provider type",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["src/coordination/swarm-coordinator.ts"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-3-documentation",
+      "name": "Documentation and Examples",
+      "description": "Update documentation with hybrid routing usage, cost analysis, and examples",
+      "order": 3,
+      "estimatedHours": 2,
+      "dependencies": ["phase-2-infrastructure"],
+      "sprints": [
+        {
+          "id": "sprint-3.1",
+          "name": "User Documentation",
+          "description": "Update readme files and documentation with hybrid routing information",
+          "estimatedHours": 2,
+          "tasks": [
+            {
+              "id": "task-3.1.1",
+              "name": "Update main README",
+              "description": "Add hybrid routing section with architecture diagram, benefits, cost analysis, usage examples",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["readme/README.md"]
+            },
+            {
+              "id": "task-3.1.2",
+              "name": "Update agent spawning docs",
+              "description": "Document hybrid patterns, coordinator usage, worker spawning, Redis monitoring",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["readme/development/AGENT-SPAWNING.md"]
+            },
+            {
+              "id": "task-3.1.3",
+              "name": "Update cost optimization docs",
+              "description": "Add hybrid cost analysis, comparison table, real-world examples, savings calculations",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["readme/cost-optimization/COST-OPTIMIZATION.md"]
+            },
+            {
+              "id": "task-3.1.4",
+              "name": "Create hybrid routing quick start",
+              "description": "Create step-by-step guide for enabling and using hybrid routing with examples",
+              "assignedAgent": "coder",
+              "estimatedHours": 0.5,
+              "files": ["readme/quick-start/HYBRID-ROUTING-QUICK-START.md"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-4-testing",
+      "name": "Integration Testing and Validation",
+      "description": "Test hybrid routing with CFN Loop, verify cost tracking, validate visibility improvements",
+      "order": 4,
+      "estimatedHours": 4,
+      "dependencies": ["phase-3-documentation"],
+      "sprints": [
+        {
+          "id": "sprint-4.1",
+          "name": "Functional Testing",
+          "description": "Test hybrid routing with CFN Loop execution and verify all components work together",
+          "estimatedHours": 2,
+          "tasks": [
+            {
+              "id": "task-4.1.1",
+              "name": "Test coordinator spawning",
+              "description": "Verify coordinator spawns via Task tool, uses Claude Max, can execute CLI commands",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/integration/hybrid-coordinator-spawning.test.js"]
+            },
+            {
+              "id": "task-4.1.2",
+              "name": "Test worker spawning via CLI",
+              "description": "Verify workers spawn via CLI, use z.ai provider, publish to Redis channels",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/integration/hybrid-worker-spawning.test.js"]
+            },
+            {
+              "id": "task-4.1.3",
+              "name": "Test Redis monitoring",
+              "description": "Verify coordinator monitors Redis, receives completion events, aggregates results",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/integration/hybrid-redis-monitoring.test.js"]
+            },
+            {
+              "id": "task-4.1.4",
+              "name": "Test CFN Loop integration",
+              "description": "Run full CFN Loop with hybrid routing, verify all loops work, check cost tracking",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/integration/hybrid-cfn-loop.test.js"]
+            }
+          ]
+        },
+        {
+          "id": "sprint-4.2",
+          "name": "Validation and Metrics",
+          "description": "Validate cost tracking, visibility improvements, and error recovery",
+          "estimatedHours": 2,
+          "tasks": [
+            {
+              "id": "task-4.2.1",
+              "name": "Verify cost tracking",
+              "description": "Confirm coordinator costs $0, workers show z.ai pricing, total matches expected",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/validation/hybrid-cost-tracking.test.js"]
+            },
+            {
+              "id": "task-4.2.2",
+              "name": "Verify visibility improvements",
+              "description": "Compare pure CLI vs hybrid coordinator output, measure information gain, validate progress updates",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/validation/hybrid-visibility.test.js"]
+            },
+            {
+              "id": "task-4.2.3",
+              "name": "Test error recovery",
+              "description": "Inject worker failures, verify coordinator detects, confirms recovery actions, validates relaunch",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/validation/hybrid-error-recovery.test.js"]
+            },
+            {
+              "id": "task-4.2.4",
+              "name": "Performance benchmarking",
+              "description": "Measure spawning time, execution duration, cost per phase, compare to pure CLI baseline",
+              "assignedAgent": "tester",
+              "estimatedHours": 0.5,
+              "files": ["tests/validation/hybrid-performance-benchmark.test.js"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "phase-5-rollout",
+      "name": "Production Rollout",
+      "description": "Enable hybrid routing by default, monitor production usage, gather feedback",
+      "order": 5,
+      "estimatedHours": 1,
+      "dependencies": ["phase-4-testing"],
+      "sprints": [
+        {
+          "id": "sprint-5.1",
+          "name": "Production Enablement",
+          "description": "Enable hybrid routing by default and monitor initial production usage",
+          "estimatedHours": 1,
+          "tasks": [
+            {
+              "id": "task-5.1.1",
+              "name": "Enable by default with Claude Max",
+              "description": "Verify /switch-api max enables hybrid routing, test default configuration, confirm settings persist",
+              "assignedAgent": "devops-engineer",
+              "estimatedHours": 0.25,
+              "files": ["scripts/switch-api.sh"]
+            },
+            {
+              "id": "task-5.1.2",
+              "name": "Monitor first production runs",
+              "description": "Watch first 5 CFN Loop executions, track cost savings, verify coordinator behavior, log any issues",
+              "assignedAgent": "devops-engineer",
+              "estimatedHours": 0.5,
+              "files": ["planning/cli-hybrid-routing/PRODUCTION_MONITORING_LOG.md"]
+            },
+            {
+              "id": "task-5.1.3",
+              "name": "Gather user feedback",
+              "description": "Collect feedback on visibility improvements, coordinator usefulness, any issues encountered",
+              "assignedAgent": "product-owner",
+              "estimatedHours": 0.25,
+              "files": ["planning/cli-hybrid-routing/USER_FEEDBACK.md"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "successCriteria": [
+    {
+      "criterion": "Security fixes implemented and tested",
+      "verification": "All security tests passing, Redis authenticated, messages validated and signed",
+      "phase": "phase-0-security"
+    },
+    {
+      "criterion": "Hybrid routing enabled by default with Claude Max",
+      "verification": "/switch-api max sets hybridRouting.enabled = true in settings.json",
+      "phase": "phase-1-core"
+    },
+    {
+      "criterion": "Coordinators use Claude Max subscription ($0 cost)",
+      "verification": "Cost tracking shows $0 for coordinator execution",
+      "phase": "phase-4-testing"
+    },
+    {
+      "criterion": "Workers use z.ai provider (97% cost savings)",
+      "verification": "Cost tracking shows $0.10-2/1M tokens for workers",
+      "phase": "phase-4-testing"
+    },
+    {
+      "criterion": "Visibility improvements validated",
+      "verification": "Coordinator provides structured updates vs. raw CLI output baseline",
+      "phase": "phase-4-testing"
+    },
+    {
+      "criterion": "Error recovery working",
+      "verification": "Coordinator detects failures, relaunches workers, reports resolution",
+      "phase": "phase-4-testing"
+    },
+    {
+      "criterion": "Documentation complete",
+      "verification": "All documentation updated with hybrid patterns and examples",
+      "phase": "phase-3-documentation"
+    },
+    {
+      "criterion": "Production rollout successful",
+      "verification": "5+ production CFN Loop executions complete without major issues",
+      "phase": "phase-5-rollout"
+    }
+  ],
+  "risks": [
+    {
+      "risk": "Security fixes incomplete before production use",
+      "impact": "critical",
+      "mitigation": "Phase 0 blocks all subsequent phases, must complete security before enabling hybrid routing",
+      "owner": "security-specialist"
+    },
+    {
+      "risk": "Coordinator spawning fails on subscription accounts",
+      "impact": "high",
+      "mitigation": "Test with actual Claude Max subscription account in phase 4 testing",
+      "owner": "tester"
+    },
+    {
+      "risk": "Worker profiles not updated causing Redis communication failures",
+      "impact": "medium",
+      "mitigation": "Create reusable template in sprint 1.2, batch update common profiles",
+      "owner": "coder"
+    },
+    {
+      "risk": "Cost tracking inaccurate",
+      "impact": "medium",
+      "mitigation": "Dedicated validation test in sprint 4.2, compare to z.ai billing dashboard",
+      "owner": "tester"
+    },
+    {
+      "risk": "User confusion about when hybrid routing is active",
+      "impact": "low",
+      "mitigation": "Clear status messages in /switch-api, documentation with examples",
+      "owner": "coder"
+    }
+  ],
+  "rollbackPlan": {
+    "trigger": "Critical issues found in production",
+    "steps": [
+      "Disable hybrid routing: Edit ~/.claude/settings.json, set hybridRouting.enabled = false",
+      "Revert to pure provider mode: All agents use main provider",
+      "Alternative: Switch to pure z.ai: /switch-api zai for full cost savings without coordinator",
+      "Investigate issues: Review logs, coordinator behavior, worker completion events",
+      "Fix and retest: Address issues in development, rerun phase 4 testing",
+      "Gradual re-enable: Test with single user, expand to team if successful"
+    ]
+  },
+  "metadata": {
+    "createdDate": "2025-10-12",
+    "estimatedCompletionDate": "2025-10-15",
+    "totalEstimatedHours": 33,
+    "criticalPath": "phase-0-security → phase-1-core → phase-2-infrastructure → phase-4-testing → phase-5-rollout",
+    "parallelizable": "phase-3-documentation can run parallel to phase-2-infrastructure"
+  }
+}

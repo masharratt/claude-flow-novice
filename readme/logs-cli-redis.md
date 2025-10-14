@@ -102,6 +102,131 @@ node tests/manual/test-swarm-direct.js "Analyze system performance" \
   --topology mesh --strategy analysis --max-agents 8
 ```
 
+### Hybrid Routing Coordination
+
+**Purpose**: Redis pub/sub coordination for 50+ specialized agents across 16 categories
+
+#### Agent Discovery
+
+```bash
+# List available agents
+redis-cli GET "hybrid:agents:available"
+# → {"count":50,"categories":16}
+
+# Check agent cache
+redis-cli EXISTS "hybrid:agents:cache"
+# → 1 (cached) or 0 (needs loading)
+```
+
+#### Worker Coordination
+
+**Spawn notification**:
+```bash
+redis-cli PUBLISH "hybrid:worker:spawned" \
+  '{"workerId":1,"agentType":"coder","task":"Implement auth"}'
+```
+
+**Progress updates**:
+```bash
+redis-cli PUBLISH "hybrid:worker:1:progress" \
+  '{"tool":"bash_execute","command":"npm install"}'
+```
+
+**Completion events**:
+```bash
+redis-cli PUBLISH "hybrid:worker:1:complete" \
+  '{"confidence":0.85,"tokens":{"input":1500,"output":800},"cost":0.00115}'
+```
+
+#### Result Aggregation
+
+**Store worker results**:
+```bash
+redis-cli HSET "hybrid:task:auth:results" \
+  "worker1" '{"confidence":0.85,"tokens":2300}'
+```
+
+**Read aggregated results**:
+```bash
+redis-cli HGETALL "hybrid:task:auth:results"
+# → worker1: {confidence:0.85,...}
+#   worker2: {confidence:0.82,...}
+```
+
+**Calculate average confidence**:
+```bash
+redis-cli EVAL "
+  local results = redis.call('HGETALL', KEYS[1])
+  local sum, count = 0, 0
+  for i=2,#results,2 do
+    local data = cjson.decode(results[i])
+    sum = sum + data.confidence
+    count = count + 1
+  end
+  return sum / count
+" 1 "hybrid:task:auth:results"
+# → 0.835 (average confidence)
+```
+
+#### Web Portal Integration
+
+**Real-time events**:
+```bash
+# Agent spawned
+redis-cli PUBLISH "portal:agent:spawned" \
+  '{"agentId":"worker-1","agentType":"coder","timestamp":1697123456789}'
+
+# Agent progress
+redis-cli PUBLISH "portal:agent:update" \
+  '{"agentId":"worker-1","progress":0.5,"tool":"write_file"}'
+
+# Agent completed
+redis-cli PUBLISH "portal:agent:completed" \
+  '{"agentId":"worker-1","confidence":0.85,"duration":45000}'
+
+# Swarm completed
+redis-cli PUBLISH "portal:swarm:completed" \
+  '{"avgConfidence":0.835,"totalCost":0.005,"workers":5}'
+```
+
+#### Error Handling
+
+**502 retry tracking**:
+```bash
+# Track retry attempts
+redis-cli INCR "hybrid:worker:1:retries"
+
+# Check retry count
+redis-cli GET "hybrid:worker:1:retries"
+# → 2 (exponential backoff: 1s, 2s, 4s)
+```
+
+**Failed worker recovery**:
+```bash
+# Mark worker as failed
+redis-cli HSET "hybrid:task:auth:workers" "worker1" "failed"
+
+# Get failed worker list
+redis-cli HGETALL "hybrid:task:auth:workers" | grep failed
+```
+
+#### TTL Management
+
+**Set expiration**:
+```bash
+# Worker results expire after 1 hour
+redis-cli SETEX "hybrid:worker:1:result" 3600 '{"confidence":0.85}'
+
+# Task results expire after 24 hours
+redis-cli SETEX "hybrid:task:auth:results" 86400 '{"avgConfidence":0.835}'
+```
+
+**Check remaining TTL**:
+```bash
+redis-cli TTL "hybrid:task:auth:results"
+# → 84600 (seconds remaining)
+```
+
 #### CLI Wrapper Commands
 
 ```bash

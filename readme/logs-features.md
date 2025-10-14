@@ -48,6 +48,28 @@
 
 **Benefit**: Reduces Loop 3 rework by 30-40% (clear design constraints upfront)
 
+### Agent Tool Validation
+
+**Purpose**: Validate all specialized agents have functional tooling before coordination
+
+**Implementation**: 4-layer hello-world test suite
+
+**Layers**:
+1. **Layer 0**: Agent tooling (15 agents × 7 tools) - validates Read, Write, Edit, Bash, Grep, Glob, TodoWrite
+2. **Layer 1**: Mesh coordination (2 coordinators, 70 files) - Redis pub/sub + SQLite persistence
+3. **Layer 2**: Review handoff (dynamic reviewer pool) - SQLite ACL enforcement
+4. **Layer 3**: Error handling (50% error injection) - encrypted retry history
+
+**Success Criteria**:
+- Layer 0: All agents spawn, ≥5/7 tools working, 6 critical tools at 100%
+- Layer 1: 72 agents, 70 unique files, 0 conflicts, SQLite persistence validated
+- Layer 2: All 70 files reviewed, queue depth ≤15, dynamic scaling observed
+- Layer 3: 50% initial failures, ≤10 retries per file, 100% final pass rate
+
+**Integration**: Run via `/hello-world-tests` slash command, generates JSON report with SQLite metrics
+
+**CLI Fix History**: Session fixed CLI argument parsing bugs that prevented coordinators from delegating work (now validated in Layer 0)
+
 **Usage**: Automatic when `--mode=enterprise`
 
 **Flow**:
@@ -255,7 +277,7 @@ If max_vote - min_vote > 0.15:
 - **Graceful Degradation**: Automatic fallback to bash sequential on Lua failure
 
 **Performance Metrics** (Sprint 1.7):
-- **Speedup**: 50-60x faster than sequential bash (300s → 2.5s for 10K coordinators)
+- **Speedup**: Sequential bash: 300s → Lua-optimized: 2.5s (10K coordinators)
 - **Architecture**: 1-2 SCAN iterations + 1 MGET + 4-5 batched DEL commands
 - **Throughput**: 4,000-8,000 coordinators/sec cleaned
 - **Safety**: SCAN-based discovery (non-blocking), atomic execution
@@ -285,6 +307,50 @@ If max_vote - min_vote > 0.15:
 
 **Configuration**: Agent types, capability definitions, validation rules
 **Usage**: Agent selection, spawning, coordination
+
+### Hybrid Routing (Specialized Agent Selection)
+
+**Purpose**: Cost-optimized agent spawning with intelligent specialization matching
+
+**Implementation**:
+- **50+ dynamically discovered agents** from `.claude/agents/` folder across 16 categories
+- **Automatic selection**: Keyword-based agent matching
+- **Coordinator override**: Manual agent type specification via `--agents` flag
+- **Full override**: Custom agents + subtasks via `--agents` + `--subtasks`
+- **Graceful fallback**: Automatic selection if override fails
+
+**Key Components**:
+- **Agent definition loading**: Parse YAML frontmatter, extract keywords from descriptions
+- **Keyword matching**: Score agents based on task description overlap
+- **System prompt integration**: Append tool integration (bash, file ops) to specialized prompts
+- **Provider integration**: z.ai provider support for worker agents
+- **Dynamic discovery**: Recursive scanning with category preservation, in-memory caching, lazy loading
+
+**Categories** (16 total): analysis, architecture, cfn-loop, consensus, core-agents, development, devops, documentation, goal, planning-team, security, sparc, specialized, swarm, testing
+
+**Usage**:
+```bash
+# List available agents
+node src/cli/hybrid-routing/spawn-workers.js --list-agents
+
+# List by category
+node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
+
+# Automatic (keyword-based)
+node src/cli/hybrid-routing/spawn-workers.js "Build auth" --max-agents=3
+
+# Coordinator override (agent types)
+node src/cli/hybrid-routing/spawn-workers.js "Refactor API" \
+  --agents=architect,coder,reviewer
+
+# Full override (agents + custom subtasks)
+node src/cli/hybrid-routing/spawn-workers.js "OAuth2" \
+  --agents=coder,security-specialist \
+  --subtasks="Implement PKCE|Audit tokens"
+```
+
+**Integration**: Redis coordination, SQLite memory, web portal (Socket.IO), retry logic (502 errors)
+**Performance**: 30-minute timeout, parallel execution, token tracking, cost reporting
 
 ### Dependency Tracker
 
@@ -659,7 +725,7 @@ npm run portal:build    # Production build
 - **State Manager**: 0.28ms snapshots (native JSON chosen over WASM)
   - Throughput: 3,560 snapshots/sec
   - State size: 50-200KB typical (100 agents)
-  - V8 JIT optimization: 1.86x faster than WASM for large states
+  - V8 JIT optimization chosen for large state management
 - **AST Processing**: 0.011ms parse time (sub-millisecond target achieved)
 - **File Throughput**: 2,597 files/sec (5 MB/s target exceeded)
 - **Code Optimization**: 48.0x performance multiplier (exceeded 40x target)

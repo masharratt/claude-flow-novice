@@ -6,20 +6,22 @@
  * and Redis coordination for swarm operations.
  */
 
-const SwarmMemoryManager = require('./SwarmMemoryManager');
-const MemoryStoreAdapter = require('./MemoryStoreAdapter');
-const RedisCoordinator = require('./RedisCoordinator');
-const AgentRegistry = require('./AgentRegistry');
-const PerformanceBenchmarks = require('./performance-benchmarks');
-const EncryptionKeyManager = require('./EncryptionKeyManager');
-const MultiLayerCache = require('./MultiLayerCache');
+const EventEmitter = require('events');
+const SwarmMemoryManager = require('./SwarmMemoryManager.cjs');
+const MemoryStoreAdapter = require('./MemoryStoreAdapter.cjs');
+const RedisCoordinator = require('./RedisCoordinator.cjs');
+const AgentRegistry = require('./AgentRegistry.cjs');
+const PerformanceBenchmarks = require('./performance-benchmarks.cjs');
+const EncryptionKeyManager = require('./EncryptionKeyManager.cjs');
+const MultiLayerCache = require('./MultiLayerCache.cjs');
 const ACLEnforcer = require('./ACLEnforcer.cjs');
 
 /**
  * Main SQLite Memory Management System
  */
-class SQLiteMemorySystem {
+class SQLiteMemorySystem extends EventEmitter {
   constructor(options = {}) {
+    super();
     this.options = {
       swarmId: options.swarmId || 'phase-1-foundation-infrastructure',
       agentId: options.agentId || `sqlite-system-${Date.now()}`,
@@ -598,10 +600,6 @@ class SQLiteMemorySystem {
     }
   }
 }
-
-// Extend EventEmitter for event handling
-SQLiteMemorySystem.prototype = Object.create(require('events').EventEmitter.prototype);
-SQLiteMemorySystem.prototype.constructor = SQLiteMemorySystem;
 
 // Export main classes
 module.exports = {

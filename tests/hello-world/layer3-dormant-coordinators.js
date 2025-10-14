@@ -40,6 +40,7 @@ import { ReviewCoordinator } from './coordinators/review-coordinator.js';
 import { StateTracker } from './lib/state-tracker.js';
 import { createClient } from 'redis';
 import { spawn } from 'child_process';
+import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as url from 'url';
@@ -265,15 +266,40 @@ async function runLayer3Test() {
   console.log('');
 
   // Send generate requests to implementation coordinators
-  await coordA.sendRequest('Impl-A', 'generate', {
-    fileCount: 35,
-    range: { start: 1, end: 35 }
-  });
+  // Must send from external source (not from the coordinator itself)
+  const requestA = {
+    id: uuidv4(),
+    type: 'request',
+    from: 'Main',
+    to: 'Impl-A',
+    task: 'generate',
+    data: {
+      fileCount: 35,
+      range: { start: 1, end: 35 }
+    },
+    timestamp: Date.now(),
+    correlationId: uuidv4()
+  };
 
-  await coordB.sendRequest('Impl-B', 'generate', {
-    fileCount: 35,
-    range: { start: 36, end: 70 }
-  });
+  const requestB = {
+    id: uuidv4(),
+    type: 'request',
+    from: 'Main',
+    to: 'Impl-B',
+    task: 'generate',
+    data: {
+      fileCount: 35,
+      range: { start: 36, end: 70 }
+    },
+    timestamp: Date.now(),
+    correlationId: uuidv4()
+  };
+
+  await redis.publish('coordinator:Impl-A:requests', JSON.stringify(requestA));
+  console.log('[Impl-A] Sent request to Impl-A: generate');
+
+  await redis.publish('coordinator:Impl-B:requests', JSON.stringify(requestB));
+  console.log('[Impl-B] Sent request to Impl-B: generate');
 
   console.log('✅ Generate requests sent to both implementers');
   console.log('');

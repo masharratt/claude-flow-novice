@@ -2,7 +2,7 @@
 
 ## Overview
 
-Claude Flow implements a comprehensive Model Context Protocol (MCP) system that provides external AI models with access to powerful agent orchestration, fleet management, swarm coordination, monitoring, and development tools. The MCP integration enables seamless Claude Code integration with 44+ essential tools for AI-powered development workflows, including advanced fleet management, event bus architecture, multi-national compliance, and WASM 40x performance optimization capabilities.
+Claude Flow implements a comprehensive Model Context Protocol (MCP) system that provides external AI models with access to agent orchestration, fleet management, swarm coordination, monitoring, and development tools. The MCP integration enables seamless Claude Code integration with 44+ essential tools for AI-powered development workflows, including advanced fleet management, event bus architecture, multi-national compliance, and WASM 40x performance optimization capabilities.
 
 ## MCP Server Configuration
 
