@@ -15,9 +15,10 @@
 
 import { createClient } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
+import { createSecureLogger } from '../../../src/security/secure-logger.js';
 
 export class DormantCoordinatorBase {
-  constructor(id, redisUrl) {
+  constructor(id, redisUrl, options = {}) {
     this.id = id;
     this.redisUrl = redisUrl;
     this.state = 'dormant';
@@ -26,6 +27,14 @@ export class DormantCoordinatorBase {
     this.running = false;
     this.heartbeatInterval = null;
     this.messageHandlers = new Map();
+
+    // Secure logging (VULN-005 mitigation)
+    this.logger = createSecureLogger(this.id, {
+      enableDebug: options.enableDebug || false,
+      enableRateLimiting: true,
+      rateLimitMax: 100,
+      rateLimitWindow: 1000
+    });
 
     // Redis clients (separate for pub/sub)
     this.pubClient = null;
@@ -36,6 +45,15 @@ export class DormantCoordinatorBase {
     this.pendingRequests = new Map(); // correlationId -> request
     this.completedRequests = new Set();
 
+    // Queue bounds (VULN-004 mitigation: DoS prevention)
+    this.MAX_QUEUE_SIZE = parseInt(options.env?.MAX_QUEUE_SIZE || process.env.MAX_QUEUE_SIZE) || 1000;
+
+    // Rate limiting (VULN-004 mitigation: DoS prevention)
+    this.RATE_LIMIT_WINDOW_MS = parseInt(options.env?.RATE_LIMIT_WINDOW_MS || process.env.RATE_LIMIT_WINDOW_MS) || 60000; // 1 minute
+    this.RATE_LIMIT_MAX_REQUESTS = parseInt(options.env?.RATE_LIMIT_MAX_REQUESTS || process.env.RATE_LIMIT_MAX_REQUESTS) || 100;
+    this.rateLimits = new Map(); // sender -> { count, resetTime }
+    this.rateLimitCleanupInterval = null;
+
     // Statistics
     this.stats = {
       requestsReceived: 0,
@@ -43,7 +61,10 @@ export class DormantCoordinatorBase {
       stateTransitions: 0,
       heartbeatsSent: 0,
       messagesReceived: 0,
-      messagesSent: 0
+      messagesSent: 0,
+      queueOverflows: 0,
+      rateLimitViolations: 0,
+      rateLimitEntriesCleaned: 0
     };
 
     this.setupMessageHandlers();
@@ -54,17 +75,21 @@ export class DormantCoordinatorBase {
    * Override in subclasses to add custom handlers
    */
   setupMessageHandlers() {
+    console.log(`[${this.id}] [DEBUG] Registering base message handlers`);
+
     this.messageHandlers.set('request', this.handleRequest.bind(this));
     this.messageHandlers.set('response', this.handleResponse.bind(this));
     this.messageHandlers.set('error', this.handleError.bind(this));
     this.messageHandlers.set('heartbeat', this.handleHeartbeat.bind(this));
+
+    console.log(`[${this.id}] [DEBUG] Base handlers registered:`, Array.from(this.messageHandlers.keys()));
   }
 
   /**
    * Initialize Redis connections and subscriptions
    */
   async initialize() {
-    console.log(`[${this.id}] Initializing dormant coordinator...`);
+    this.logger.info('Initializing dormant coordinator');
 
     // Create Redis clients
     this.pubClient = createClient({ url: this.redisUrl });
@@ -76,27 +101,67 @@ export class DormantCoordinatorBase {
     await this.subClient.connect();
     await this.mainClient.connect();
 
-    console.log(`[${this.id}] Redis clients connected`);
+    this.logger.info('Redis clients connected');
+
+    console.log(`[${this.id}] [DEBUG] Setting up Redis subscriptions...`);
 
     // Subscribe to own request channel
     await this.subClient.subscribe(`coordinator:${this.id}:requests`, (message) => {
-      this.handleIncomingMessage(JSON.parse(message));
+      console.log(`[${this.id}] [DEBUG] Raw Redis message received on requests channel:`, {
+        channel: `coordinator:${this.id}:requests`,
+        messageLength: message.length,
+        messagePreview: message.substring(0, 200)
+      });
+      try {
+        const parsed = JSON.parse(message);
+        console.log(`[${this.id}] [DEBUG] Parsed message successfully:`, {
+          type: parsed.type,
+          task: parsed.task,
+          from: parsed.from
+        });
+        this.handleIncomingMessage(parsed);
+      } catch (error) {
+        console.error(`[${this.id}] [DEBUG] Failed to parse message:`, error);
+      }
     });
+
+    console.log(`[${this.id}] [DEBUG] Subscribed to: coordinator:${this.id}:requests`);
 
     // Subscribe to own response channel
     await this.subClient.subscribe(`coordinator:${this.id}:responses`, (message) => {
-      this.handleIncomingMessage(JSON.parse(message));
+      console.log(`[${this.id}] [DEBUG] Raw Redis message received on responses channel:`, {
+        channel: `coordinator:${this.id}:responses`,
+        messageLength: message.length,
+        messagePreview: message.substring(0, 200)
+      });
+      try {
+        const parsed = JSON.parse(message);
+        console.log(`[${this.id}] [DEBUG] Parsed message successfully:`, {
+          type: parsed.type,
+          task: parsed.task,
+          from: parsed.from
+        });
+        this.handleIncomingMessage(parsed);
+      } catch (error) {
+        console.error(`[${this.id}] [DEBUG] Failed to parse message:`, error);
+      }
     });
+
+    console.log(`[${this.id}] [DEBUG] Subscribed to: coordinator:${this.id}:responses`);
 
     // Subscribe to state transition events (for monitoring)
     await this.subClient.subscribe('coordinator:state-transitions', (message) => {
+      console.log(`[${this.id}] [DEBUG] State transition event received`);
       const data = JSON.parse(message);
       if (data.coordinatorId !== this.id) {
         this.stats.messagesReceived++;
       }
     });
 
-    console.log(`[${this.id}] Subscribed to channels`);
+    console.log(`[${this.id}] [DEBUG] Subscribed to: coordinator:state-transitions`);
+
+    this.logger.info('Subscribed to channels');
+    console.log(`[${this.id}] [DEBUG] All Redis subscriptions active`);
 
     // Register coordinator in Redis
     await this.mainClient.hSet(`coordinator:${this.id}:info`, {
@@ -107,60 +172,243 @@ export class DormantCoordinatorBase {
       pid: process.pid.toString()
     });
 
-    console.log(`[${this.id}] Registered in Redis`);
+    this.logger.info('Registered in Redis');
+
+    // Start rate limit cleanup interval (every 5 minutes)
+    this.startRateLimitCleanup();
   }
 
   /**
    * Handle incoming messages from Redis pub/sub
    */
-  handleIncomingMessage(message) {
+  async handleIncomingMessage(message) {
     this.stats.messagesReceived++;
+
+    console.log(`[${this.id}] [DEBUG] Redis message received:`, {
+      from: message.from,
+      to: message.to,
+      type: message.type,
+      task: message.task,
+      hasSignature: !!message.signature,
+      hasCorrelationId: !!message.correlationId,
+      timestamp: message.timestamp
+    });
 
     // Ignore our own messages
     if (message.from === this.id) {
+      console.log(`[${this.id}] [DEBUG] Ignoring own message`);
       return;
     }
 
-    // Route by task name (not message type)
-    const handler = this.messageHandlers.get(message.task);
+    console.log(`[${this.id}] [DEBUG] Handler lookup:`, {
+      taskName: message.task,
+      messageType: message.type,
+      availableHandlers: Array.from(this.messageHandlers.keys())
+    });
+
+    // Route by type first (request, response, error, heartbeat)
+    let handler = this.messageHandlers.get(message.type);
+
+    // Fall back to task for custom handlers
+    if (!handler && message.task) {
+      handler = this.messageHandlers.get(message.task);
+    }
+
+    console.log(`[${this.id}] [DEBUG] Handler found:`, {
+      type: message.type,
+      task: message.task,
+      handlerExists: !!handler,
+      handlerType: handler ? typeof handler : 'undefined',
+      routedBy: handler ? (this.messageHandlers.has(message.type) ? 'type' : 'task') : 'none'
+    });
+
     if (handler) {
-      handler(message);
+      console.log(`[${this.id}] [DEBUG] Executing handler for type: ${message.type}, task: ${message.task}`);
+      try {
+        await handler(message);
+        console.log(`[${this.id}] [DEBUG] Handler execution complete for type: ${message.type}, task: ${message.task}`);
+      } catch (error) {
+        console.error(`[${this.id}] [DEBUG] Handler execution error:`, {
+          type: message.type,
+          task: message.task,
+          error: error.message,
+          stack: error.stack
+        });
+        this.logger.error('Handler error', {
+          error: error.message,
+          type: message.type,
+          task: message.task,
+          from: message.from
+        });
+      }
     } else {
-      console.log(`[${this.id}] Unknown task: ${message.task} (message type: ${message.type})`);
+      console.log(`[${this.id}] [DEBUG] No handler found for type: ${message.type}, task: ${message.task}`);
+      this.logger.debug(`No handler for type: ${message.type}, task: ${message.task}`);
+    }
+  }
+
+  /**
+   * Enforce rate limiting for incoming requests
+   *
+   * Security: Prevents DoS attacks via request flooding (VULN-004, CVSS 7.5)
+   * Tracks requests per sender with sliding window
+   *
+   * @param {string} sender - Sender ID from message
+   * @throws {Error} If rate limit exceeded
+   */
+  enforceRateLimit(sender) {
+    const now = Date.now();
+    let limit = this.rateLimits.get(sender);
+
+    // Initialize or reset window if expired
+    if (!limit || now > limit.resetTime) {
+      limit = {
+        count: 0,
+        resetTime: now + this.RATE_LIMIT_WINDOW_MS
+      };
+      this.rateLimits.set(sender, limit);
+    }
+
+    // Check if limit exceeded
+    if (limit.count >= this.RATE_LIMIT_MAX_REQUESTS) {
+      this.stats.rateLimitViolations++;
+
+      throw new Error(
+        `Rate limit exceeded: ${sender} (${this.RATE_LIMIT_MAX_REQUESTS} req/min)`
+      );
+    }
+
+    // Increment counter
+    limit.count++;
+  }
+
+  /**
+   * Start rate limit cleanup interval
+   *
+   * Periodically removes expired rate limit entries to prevent memory buildup
+   */
+  startRateLimitCleanup() {
+    this.rateLimitCleanupInterval = setInterval(() => {
+      const now = Date.now();
+      let cleaned = 0;
+
+      for (const [sender, limit] of this.rateLimits.entries()) {
+        if (now > limit.resetTime) {
+          this.rateLimits.delete(sender);
+          cleaned++;
+        }
+      }
+
+      if (cleaned > 0) {
+        this.stats.rateLimitEntriesCleaned += cleaned;
+        this.logger.debug(`Cleaned ${cleaned} expired rate limit entries`);
+      }
+    }, 300000); // Every 5 minutes
+
+    this.logger.debug('Rate limit cleanup started (5min interval)');
+  }
+
+  /**
+   * Stop rate limit cleanup interval
+   */
+  stopRateLimitCleanup() {
+    if (this.rateLimitCleanupInterval) {
+      clearInterval(this.rateLimitCleanupInterval);
+      this.rateLimitCleanupInterval = null;
+      this.logger.debug('Rate limit cleanup stopped');
     }
   }
 
   /**
    * Handle incoming request message
+   *
+   * Security: Enforces rate limiting and queue bounds (VULN-004 mitigation)
    */
   async handleRequest(message) {
-    console.log(`[${this.id}] Received request: ${message.task} (${message.id})`);
+    this.logger.info(`Received request: ${message.task}`, { id: message.id });
 
-    this.stats.requestsReceived++;
-    this.requestQueue.push(message);
+    try {
+      // Rate limiting check
+      const sender = message.from;
+      this.enforceRateLimit(sender);
+
+      // Queue bounds check
+      if (this.requestQueue.length >= this.MAX_QUEUE_SIZE) {
+        this.stats.queueOverflows++;
+
+        throw new Error(
+          `Queue full: ${this.MAX_QUEUE_SIZE} (dropping message from ${sender})`
+        );
+      }
+
+      // Accept request
+      this.stats.requestsReceived++;
+      this.requestQueue.push(message);
+    } catch (error) {
+      this.logger.error('[SECURITY] Request rejected', {
+        error: error.message,
+        from: message.from,
+        messageId: message.id,
+        queueSize: this.requestQueue.length,
+        rateLimitViolations: this.stats.rateLimitViolations,
+        queueOverflows: this.stats.queueOverflows
+      });
+
+      // Re-throw to prevent message processing
+      throw error;
+    }
   }
 
   /**
    * Handle response message
    */
   async handleResponse(message) {
+    console.log(`[${this.id}] [DEBUG] handleResponse called:`, {
+      correlationId: message.correlationId,
+      hasData: !!message.data,
+      pendingRequestCount: this.pendingRequests.size,
+      currentState: this.state
+    });
+
     const request = this.pendingRequests.get(message.correlationId);
 
+    console.log(`[${this.id}] [DEBUG] Pending request lookup:`, {
+      correlationId: message.correlationId,
+      requestFound: !!request,
+      pausedForResponse: request?.pausedForResponse,
+      responseAlreadyReceived: request?.responseReceived
+    });
+
     if (!request) {
-      console.log(`[${this.id}] Received response for unknown request: ${message.correlationId}`);
+      this.logger.warn('Received response for unknown request', { correlationId: message.correlationId });
+      console.log(`[${this.id}] [DEBUG] Available correlation IDs:`, Array.from(this.pendingRequests.keys()));
       return;
     }
 
-    console.log(`[${this.id}] Received response for: ${message.correlationId}`);
+    this.logger.info('Received response', { correlationId: message.correlationId });
+    console.log(`[${this.id}] [DEBUG] Storing response data...`);
 
     // Store response data
     request.response = message.data;
     request.responseReceived = true;
 
+    console.log(`[${this.id}] [DEBUG] Response stored:`, {
+      correlationId: message.correlationId,
+      responseReceived: request.responseReceived,
+      hasResponseData: !!request.response
+    });
+
     // If we're paused waiting for this response, we can resume
     if (this.state === 'paused' && request.pausedForResponse) {
-      console.log(`[${this.id}] Response received, resuming from pause`);
+      this.logger.info('Response received, resuming from pause');
+      console.log(`[${this.id}] [DEBUG] Transitioning from paused to active`);
       this.transitionState('active');
+    } else {
+      console.log(`[${this.id}] [DEBUG] Not transitioning state:`, {
+        currentState: this.state,
+        isPaused: this.state === 'paused',
+        pausedForResponse: request.pausedForResponse
+      });
     }
   }
 
@@ -168,7 +416,7 @@ export class DormantCoordinatorBase {
    * Handle error message
    */
   async handleError(message) {
-    console.error(`[${this.id}] Error from ${message.from}: ${message.error}`);
+    this.logger.error(`Error from ${message.from}`, { error: message.error });
   }
 
   /**
@@ -191,13 +439,13 @@ export class DormantCoordinatorBase {
     this.stateHistory.push(transition);
     this.stats.stateTransitions++;
 
-    console.log(`[${this.id}] State transition: ${this.state} → ${newState}`);
+    this.logger.info(`State transition: ${this.state} → ${newState}`);
 
     this.state = newState;
 
     // Update Redis
     this.mainClient.hSet(`coordinator:${this.id}:info`, 'state', this.state).catch(err => {
-      console.error(`[${this.id}] Failed to update state in Redis:`, err);
+      this.logger.error('Failed to update state in Redis', err);
     });
 
     // Publish state transition event
@@ -241,11 +489,11 @@ export class DormantCoordinatorBase {
         await this.pubClient.publish(`coordinator:${this.id}:heartbeat`, JSON.stringify(heartbeat));
         this.stats.heartbeatsSent++;
       } catch (error) {
-        console.error(`[${this.id}] Heartbeat error:`, error);
+        this.logger.error('Heartbeat error', error);
       }
     }, 5000); // Every 5 seconds
 
-    console.log(`[${this.id}] Heartbeat started (5s interval)`);
+    this.logger.info('Heartbeat started (5s interval)');
   }
 
   /**
@@ -255,7 +503,7 @@ export class DormantCoordinatorBase {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
-      console.log(`[${this.id}] Heartbeat stopped`);
+      this.logger.info('Heartbeat stopped');
     }
   }
 
@@ -286,7 +534,7 @@ export class DormantCoordinatorBase {
     await this.pubClient.publish(`coordinator:${targetCoordinator}:requests`, JSON.stringify(request));
 
     this.stats.messagesSent++;
-    console.log(`[${this.id}] Sent request to ${targetCoordinator}: ${task}`);
+    this.logger.info(`Sent request to ${targetCoordinator}`, { task });
 
     return request.correlationId;
   }
@@ -309,7 +557,7 @@ export class DormantCoordinatorBase {
     await this.pubClient.publish(`coordinator:${targetCoordinator}:responses`, JSON.stringify(response));
 
     this.stats.messagesSent++;
-    console.log(`[${this.id}] Sent response to ${targetCoordinator} (${correlationId})`);
+    this.logger.info(`Sent response to ${targetCoordinator}`, { correlationId });
   }
 
   /**
@@ -322,7 +570,7 @@ export class DormantCoordinatorBase {
       throw new Error(`Unknown correlation ID: ${correlationId}`);
     }
 
-    console.log(`[${this.id}] Pausing to wait for response: ${correlationId}`);
+    this.logger.info('Pausing to wait for response', { correlationId });
 
     // Mark request as paused for response
     request.pausedForResponse = true;
@@ -340,7 +588,7 @@ export class DormantCoordinatorBase {
       throw new Error(`Timeout waiting for response: ${correlationId}`);
     }
 
-    console.log(`[${this.id}] Response received, resuming`);
+    this.logger.info('Response received, resuming');
     return request.response;
   }
 
@@ -349,7 +597,7 @@ export class DormantCoordinatorBase {
    * Override in subclasses to implement custom processing logic
    */
   async run() {
-    console.log(`[${this.id}] Starting main run loop`);
+    this.logger.info('Starting main run loop');
     this.running = true;
 
     while (this.running) {
@@ -362,7 +610,7 @@ export class DormantCoordinatorBase {
         try {
           await this.processRequest(request);
         } catch (error) {
-          console.error(`[${this.id}] Error processing request:`, error);
+          this.logger.error('Error processing request', error);
         }
 
         this.transitionState('dormant');
@@ -371,7 +619,7 @@ export class DormantCoordinatorBase {
       await this.sleep(100);
     }
 
-    console.log(`[${this.id}] Run loop ended`);
+    this.logger.info('Run loop ended');
   }
 
   /**
@@ -393,7 +641,13 @@ export class DormantCoordinatorBase {
       queueSize: this.requestQueue.length,
       pendingRequests: this.pendingRequests.size,
       completedRequests: this.completedRequests.size,
-      stateTransitions: this.stateHistory.length
+      stateTransitions: this.stateHistory.length,
+      rateLimiting: {
+        maxQueueSize: this.MAX_QUEUE_SIZE,
+        rateLimitMaxRequests: this.RATE_LIMIT_MAX_REQUESTS,
+        rateLimitWindowMs: this.RATE_LIMIT_WINDOW_MS,
+        activeRateLimits: this.rateLimits.size
+      }
     };
   }
 
@@ -401,10 +655,11 @@ export class DormantCoordinatorBase {
    * Graceful shutdown
    */
   async shutdown() {
-    console.log(`[${this.id}] Shutting down...`);
+    this.logger.info('Shutting down');
 
     this.running = false;
     this.stopHeartbeat();
+    this.stopRateLimitCleanup();
 
     // Wait for pending requests to complete
     const maxWait = 10000; // 10 seconds
@@ -422,7 +677,7 @@ export class DormantCoordinatorBase {
     await this.subClient.quit();
     await this.mainClient.quit();
 
-    console.log(`[${this.id}] Shutdown complete`);
+    this.logger.info('Shutdown complete');
   }
 
   /**

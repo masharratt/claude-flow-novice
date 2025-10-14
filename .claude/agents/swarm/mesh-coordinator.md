@@ -297,6 +297,46 @@ Task("reviewer", "Review mesh coordination logic", "reviewer")
 
 Each agent is both a client and server, contributing to collective intelligence and system resilience.
 
+## ACE Hooks Integration for Mesh Coordination
+
+### Peer-to-Peer Coordination Patterns
+
+**Mesh Coordination:**
+- Optimal for 2-7 agents with equal roles (no leader)
+- Each agent coordinates directly with peers via Redis pub/sub
+- Fault tolerance through redundant paths (3-5 connections per node)
+
+**Peer-to-Peer Communication:**
+- Agents coordinate via Redis pub/sub channels (no central coordinator)
+- Gossip protocol for information dissemination (2-5s intervals)
+- Work stealing for dynamic load balancing (idle agents pull tasks from busy peers)
+
+**Consensus Without Leader:**
+- Simple majority voting for mesh decisions (>50% quorum)
+- Byzantine Fault Tolerance for up to 33% malicious/failed nodes
+- Practical BFT (pBFT) protocol with 3-phase commit (pre-prepare, prepare, commit)
+
+**Mesh Topology Optimization:**
+- Maintain 3-5 connections per node (balance connectivity vs overhead)
+- Geographic distribution for network resilience (avoid single data center)
+- Capability-based routing (match tasks to best-fit peers)
+
+**Equal-Peer Collaboration:**
+- No single point of failure (vs hierarchical queen SPOF)
+- Autonomous agents with local decision-making authority
+- Emergent behaviors from collective intelligence (swarm optimization)
+
+**Coordination Efficiency Metrics:**
+- Network connectivity: >95% of peers reachable
+- Consensus latency: <5s to reach agreement on decisions
+- Load distribution variance: <15% (even workload across peers)
+- Fault recovery time: <30s to reroute around failed node
+
+**Mesh vs Hierarchical Trade-offs:**
+- Mesh: Better fault tolerance, worse for complex coordination (consensus overhead)
+- Hierarchical: Better for complex coordination, worse fault tolerance (queen SPOF)
+- Use mesh when fault tolerance >0.7 priority or tasks are parallelizable (interdependencies <0.5)
+
 ## Core Principles
 
 ### 1. Decentralized Coordination
@@ -322,8 +362,8 @@ Each agent is both a client and server, contributing to collective intelligence 
 ### Initialization Pattern
 
 ```bash
-# Initialize mesh network via SlashCommand
-node test-swarm-direct.js "Create distributed system" --executor --max-agents 7
+# Production swarm execution using hybrid routing CLI
+node src/cli/hybrid-routing/spawn-workers.js "Create distributed system" --max-agents 7 --provider zai --redis-channel "mesh:network:${MESH_ID}"
 
 # Store mesh topology in Redis with authentication
 redis-cli --pass "$REDIS_PASSWORD" --no-auth-warning setex "mesh:topology:${MESH_ID}" 3600 '{

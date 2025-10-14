@@ -19,7 +19,9 @@
 import { SwarmCoordinator } from '../../.claude-flow-novice/dist/src/coordination/swarm-coordinator.js';
 import { ConfigManager } from '../../.claude-flow-novice/dist/src/config/config-manager.js';
 import { Logger } from '../../.claude-flow-novice/dist/src/core/logger.js';
+import { MemoryStoreAdapter } from '../../src/sqlite/MemoryStoreAdapter.cjs';
 import { createClient } from 'redis';
+import { io as ioClient } from 'socket.io-client';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
@@ -71,7 +73,7 @@ const logger = new Logger(
  * MeshCoordinator - Handles Redis pub/sub coordination
  */
 class MeshCoordinator {
-  constructor(id, redisUrl) {
+  constructor(id, redisUrl, sqliteDbPath) {
     this.id = id;
     this.claimedCombos = new Set();
     this.peerClaims = new Map(); // Track what peers claimed
@@ -81,7 +83,17 @@ class MeshCoordinator {
     this.publisherClient = createClient({ url: redisUrl });
     this.subscriberClient = createClient({ url: redisUrl });
 
+    // SQLite memory adapter for persistent state
+    this.sqliteAdapter = new MemoryStoreAdapter({
+      dbPath: sqliteDbPath,
+      swarmId: `layer1-test-${Date.now()}`,
+      agentId: id,
+      namespace: 'layer1-mesh-coordination'
+    });
+
     this.messageCount = 0;
+    this.sqliteWrites = 0;
+    this.sqliteReads = 0;
   }
 
   async initialize() {
@@ -90,6 +102,10 @@ class MeshCoordinator {
     await this.subscriberClient.connect();
 
     logger.info(`${this.id}: Connected to Redis (pub/sub clients)`);
+
+    // Initialize SQLite adapter
+    await this.sqliteAdapter.initialize();
+    logger.info(`${this.id}: Connected to SQLite (persistent memory)`);
 
     // Subscribe to coordination channel
     await this.subscriberClient.subscribe('coordination:claims:channel', (message) => {
@@ -319,13 +335,26 @@ function generateCombinations() {
 /**
  * Spawn sub-agents for claimed combinations
  */
-async function spawnSubAgents(coordinatorId, swarmCoordinator, combinations) {
+async function spawnSubAgents(coordinatorId, swarmCoordinator, combinations, socket) {
   logger.info(`${coordinatorId}: Spawning ${combinations.length} sub-agents...`);
 
   const tasks = combinations.map((combo, index) => {
     const agentId = `agent-${coordinatorId}-${String(index + 1).padStart(3, '0')}`;
     const ext = FILE_EXTENSIONS[combo.language];
     const outputFile = path.join(OUTPUT_DIR, `${combo.language.toLowerCase()}-${combo.translation.toLowerCase()}.${ext}`);
+
+    // Emit agent:spawned event to portal
+    if (socket && socket.connected) {
+      socket.emit('agent:spawned', {
+        agentId,
+        workerId: agentId,
+        subtask: `Create ${combo.language} Hello World in ${combo.translation}`,
+        provider: 'zai',
+        coordinatorId,
+        timestamp: Date.now()
+      });
+      logger.info(`${coordinatorId}: Emitted agent:spawned for ${agentId}`);
+    }
 
     return {
       id: `task-${agentId}`,
@@ -407,6 +436,26 @@ async function runLayer1Test() {
   logger.info('PHASE 1: INITIALIZE MESH COORDINATORS');
   logger.info('━'.repeat(60));
   logger.info('');
+
+  // Connect to web portal Socket.IO
+  const socket = ioClient('http://localhost:3002', {
+    reconnection: true,
+    reconnectionAttempts: 3,
+    reconnectionDelay: 1000,
+    timeout: 5000
+  });
+
+  await new Promise((resolve) => {
+    socket.on('connect', () => {
+      logger.info('✅ Connected to web portal Socket.IO (http://localhost:3002)');
+      resolve();
+    });
+    socket.on('connect_error', (err) => {
+      logger.warn(`⚠️ Socket.IO connection error: ${err.message} (proceeding without portal monitoring)`);
+      resolve(); // Continue even if portal not available
+    });
+    setTimeout(resolve, 2000); // Continue after 2s even if no connection
+  });
 
   // Create mesh coordinators with Redis pub/sub
   const meshCoordA = new MeshCoordinator('Coordinator-A', 'redis://localhost:6379');
@@ -530,8 +579,8 @@ async function runLayer1Test() {
 
   // Spawn sub-agents
   await Promise.all([
-    spawnSubAgents('Coordinator-A', swarmA, claimedA),
-    spawnSubAgents('Coordinator-B', swarmB, claimedB)
+    spawnSubAgents('Coordinator-A', swarmA, claimedA, socket),
+    spawnSubAgents('Coordinator-B', swarmB, claimedB, socket)
   ]);
 
   logger.info('');

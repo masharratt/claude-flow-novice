@@ -79,6 +79,7 @@ const AGENT_TYPES = [
   'coordinator',
   'researcher',
   'devops-engineer',
+  'hybrid-worker',
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -87,6 +88,17 @@ interface AgentFilters {
   status: Agent['status'] | 'all';
   type: string | 'all';
   capabilities: string[];
+  showHybridWorkers: boolean;
+}
+
+interface HybridWorker {
+  workerId: string;
+  subtask: string;
+  provider: 'zai' | 'anthropic';
+  confidence: number;
+  cost: number;
+  duration: number;
+  filesModified: string[];
 }
 
 interface SpawnAgentForm {
@@ -110,7 +122,11 @@ export const Agents: React.FC = () => {
     status: 'all',
     type: 'all',
     capabilities: [],
+    showHybridWorkers: false,
   });
+
+  // Hybrid workers state
+  const [hybridWorkers, setHybridWorkers] = useState<HybridWorker[]>([]);
 
   // Modals
   const [spawnModalOpen, setSpawnModalOpen] = useState(false);
@@ -142,6 +158,16 @@ export const Agents: React.FC = () => {
   useWebSocketEvent('agent:terminated', (data: any) => {
     console.log('[Agents] Agent terminated:', data);
   });
+
+  // Fetch hybrid workers when filter is enabled
+  useEffect(() => {
+    if (filters.showHybridWorkers && isConnected) {
+      fetch('/api/agents/hybrid')
+        .then(res => res.json())
+        .then(data => setHybridWorkers(data.workers || []))
+        .catch(err => console.error('[Agents] Failed to fetch hybrid workers:', err));
+    }
+  }, [filters.showHybridWorkers, isConnected]);
 
   // Fuzzy search function
   const fuzzyMatch = useCallback((text: string, search: string): boolean => {
@@ -396,6 +422,62 @@ export const Agents: React.FC = () => {
     </Card>
   );
 
+  // Render hybrid worker card
+  const renderHybridWorkerCard = (worker: HybridWorker) => {
+    const savingsPercent = ((1 - worker.cost / (worker.duration * 0.015)) * 100).toFixed(0);
+    const confidenceColor = worker.confidence >= 0.75 ? '#4caf50' : '#ff9800';
+
+    return (
+      <Card key={worker.workerId} elevation={2} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <CardContent sx={{ flexGrow: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+            <Typography variant="h6" component="div" noWrap sx={{ flexGrow: 1, mr: 1 }}>
+              {worker.workerId}
+            </Typography>
+            <Chip
+              label={`${(worker.confidence * 100).toFixed(0)}%`}
+              size="small"
+              sx={{ backgroundColor: confidenceColor, color: 'white' }}
+            />
+          </Box>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {worker.subtask}
+          </Typography>
+
+          <Chip
+            label={worker.provider}
+            color={worker.provider === 'zai' ? 'primary' : 'secondary'}
+            size="small"
+            sx={{ mb: 1, mr: 1 }}
+          />
+
+          <Chip
+            label={`$${worker.cost.toFixed(2)}`}
+            size="small"
+            color="success"
+            sx={{ mb: 1, mr: 1 }}
+          />
+
+          <Chip
+            label={`${savingsPercent}% saved`}
+            size="small"
+            color="info"
+            sx={{ mb: 1 }}
+          />
+
+          <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+            Duration: {worker.duration}s
+          </Typography>
+
+          <Typography variant="caption" display="block">
+            Files: {worker.filesModified.length}
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Render agent list item
   const renderAgentListItem = (agent: Agent) => (
     <Paper key={agent.id} elevation={1} sx={{ p: 2, mb: 1 }}>
@@ -589,6 +671,18 @@ export const Agents: React.FC = () => {
                 </Select>
               </FormControl>
 
+              {/* Hybrid Workers Toggle */}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={filters.showHybridWorkers}
+                    onChange={(e) => handleFilterChange('showHybridWorkers', e.target.checked)}
+                  />
+                }
+                label="Show Hybrid Workers"
+                sx={{ mb: 2 }}
+              />
+
               <Button
                 fullWidth
                 variant="outlined"
@@ -597,6 +691,7 @@ export const Agents: React.FC = () => {
                     status: 'all',
                     type: 'all',
                     capabilities: [],
+                    showHybridWorkers: false,
                   })
                 }
               >
@@ -629,7 +724,23 @@ export const Agents: React.FC = () => {
           </Box>
 
           {/* Agent Display */}
-          {paginatedAgents.length === 0 ? (
+          {filters.showHybridWorkers ? (
+            hybridWorkers.length === 0 ? (
+              <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  No hybrid workers found. Hybrid workers will appear here when spawned via CLI.
+                </Typography>
+              </Paper>
+            ) : (
+              <Grid container spacing={2}>
+                {hybridWorkers.map((worker) => (
+                  <Grid item xs={12} sm={6} md={4} key={worker.workerId}>
+                    {renderHybridWorkerCard(worker)}
+                  </Grid>
+                ))}
+              </Grid>
+            )
+          ) : paginatedAgents.length === 0 ? (
             <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="body1" color="text.secondary">
                 No agents found. Try adjusting your filters or spawn a new agent.

@@ -104,6 +104,47 @@ RESEARCH CODE ANALYST TEST
 WORKERS WORKERS WORKERS WORKERS
 ```
 
+## ACE Hooks Integration for Test Coordination
+
+### Test Orchestration Patterns
+
+**Test Coordination:**
+- Run unit, integration, e2e tests in parallel streams (minimize total execution time)
+- Hierarchical structure: Queen coordinates specialized test teams
+- Optimal for ≥5 test agents with diverse test types
+
+**Parallel Test Execution:**
+- Unit tests: Fastest, highest parallelism (70% of test agents)
+- Integration tests: Medium speed, moderate parallelism (20% of agents)
+- E2E tests: Slowest, lowest parallelism (10% of agents)
+- Execute independent test suites concurrently (reduce total time by 60-80%)
+
+**Test Suite Allocation Strategies:**
+- Coverage optimization: Allocate agents to maximize coverage per time unit
+- Critical path first: Prioritize tests for high-risk components
+- Balanced load: Distribute tests evenly to avoid idle agents
+
+**Coverage Optimization:**
+- Target allocation: 60% unit tests, 30% integration tests, 10% e2e tests
+- Line coverage: ≥80% target (adjust agent allocation to meet threshold)
+- Branch coverage: ≥75% target (spawn additional agents for complex logic)
+
+**Test Failure Coordination:**
+- Halt on critical failures: Stop all agents if blocking test fails (security, compilation)
+- Continue on warnings: Allow other agents to proceed for non-blocking failures
+- Aggregate results: Queen collects all test reports and generates summary
+
+**Coordination Efficiency Metrics:**
+- Test execution time: Total time to run all test suites (<10 minutes for full suite)
+- Agent utilization: >80% of test agents actively executing tests
+- Coverage achievement rate: >90% of coverage targets met on first run
+- Failure isolation time: <30s from failure detection to test suite halt (critical failures only)
+
+**Test Coordination vs Other Patterns:**
+- Hierarchical: Best for diverse test types with specialized agents
+- Mesh: Suitable for homogeneous test suites with equal-priority tests
+- Adaptive: Use when test suite composition changes frequently (dynamic allocation)
+
 ## Core Responsibilities
 
 ### 1. Strategic Planning & Task Decomposition

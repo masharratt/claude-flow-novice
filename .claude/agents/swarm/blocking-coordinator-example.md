@@ -55,6 +55,317 @@ You are a Blocking Coordinator Agent, specialized in coordinating multi-agent wo
 
 ---
 
+## ACE Hooks Integration for Blocking Coordination Learning
+
+### Educational Purpose
+
+The ACE (Autonomous Coordination Engine) hooks system helps you learn and track blocking coordination patterns empirically. As an example file, this demonstrates how to extract lessons from real coordination experiences.
+
+### Blocking Coordination Metrics to Track
+
+**Signal ACK Protocol Metrics:**
+```javascript
+// Track successful vs failed signal ACK patterns
+const signalMetrics = {
+  signalsSent: 0,
+  acksReceived: 0,
+  timeouts: 0,
+  avgAckTime: 0,
+  patternType: 'SIGNAL→ACK→PROCEED'
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/blocking/signal-metrics/${agentId}`,
+  signalMetrics,
+  { aclLevel: 1, ttl: 86400 }  // 24h for analysis
+);
+```
+
+**Timeout Management Patterns:**
+```javascript
+// Track timeout handling success rates
+const timeoutMetrics = {
+  timeouts: 0,
+  exponentialBackoffUsed: true,
+  maxRetries: 3,
+  retriesAttempted: 0,
+  recoverySuccess: 0,
+  recoveryFailures: 0
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/blocking/timeout-patterns/${agentId}`,
+  timeoutMetrics,
+  { aclLevel: 1, ttl: 86400 }
+);
+```
+
+**Deadlock Prevention Tracking:**
+```javascript
+// Track deadlock scenarios and prevention
+const deadlockMetrics = {
+  potentialDeadlocks: 0,
+  preventedDeadlocks: 0,
+  deadlockPattern: 'circular-wait',
+  preventionStrategy: 'timeout-with-backoff',
+  timeoutThreshold: 10000  // 10s
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/blocking/deadlock-prevention/${agentId}`,
+  deadlockMetrics,
+  { aclLevel: 1, ttl: 86400 }
+);
+```
+
+### Learning Patterns from Coordination
+
+**Pattern 1: Successful Signal ACK with Fast Response**
+```javascript
+// When: ACK received < 1s
+// Lesson: Network is healthy, agents responsive
+// Action: Maintain current timeout thresholds
+
+const fastAckPattern = {
+  pattern: 'fast-ack',
+  ackTime: 850,  // ms
+  threshold: 1000,
+  lesson: 'Network healthy, agents responsive',
+  recommendation: 'Maintain timeout settings'
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/blocking/lessons/fast-ack-${Date.now()}`,
+  fastAckPattern,
+  { aclLevel: 1, ttl: 604800 }  // 7 days retention
+);
+```
+
+**Pattern 2: Timeout Requiring Exponential Backoff**
+```javascript
+// When: First timeout, retry succeeds
+// Lesson: Transient network issue, backoff works
+// Action: Continue exponential backoff strategy
+
+const backoffSuccessPattern = {
+  pattern: 'timeout-backoff-success',
+  timeoutCount: 1,
+  retriesNeeded: 2,
+  backoffStrategy: 'exponential',
+  delaysUsed: [1000, 2000],  // ms
+  lesson: 'Exponential backoff effective for transient issues',
+  recommendation: 'Continue current retry strategy'
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/blocking/lessons/backoff-success-${Date.now()}`,
+  backoffSuccessPattern,
+  { aclLevel: 1, ttl: 604800 }
+);
+```
+
+**Pattern 3: Persistent Timeout Requiring Agent Replacement**
+```javascript
+// When: Max retries exhausted, agent non-responsive
+// Lesson: Agent dead, coordinator health check passed
+// Action: Spawn replacement agent
+
+const agentDeadPattern = {
+  pattern: 'agent-death-confirmed',
+  timeoutsBeforeReplacement: 3,
+  coordinatorHealthy: true,
+  lesson: 'Agent non-responsive after max retries, coordinator alive',
+  recommendation: 'Spawn replacement agent immediately',
+  replacementStrategy: 'spawn-identical-agent'
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/blocking/lessons/agent-death-${agentId}`,
+  agentDeadPattern,
+  { aclLevel: 1, ttl: 2592000 }  // 30 days for incident analysis
+);
+```
+
+**Pattern 4: Coordinator Health Check Failure**
+```javascript
+// When: Coordinator heartbeat expired
+// Lesson: Coordinator dead, escalate to new coordinator
+// Action: Escalate to coordinator failover protocol
+
+const coordinatorDeadPattern = {
+  pattern: 'coordinator-death-detected',
+  heartbeatExpired: true,
+  lastHeartbeat: Date.now() - 95000,  // 95s ago
+  ttlThreshold: 90000,  // 90s
+  lesson: 'Coordinator heartbeat expired, failover required',
+  recommendation: 'Publish coordinator:dead event, wait for reassignment'
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/blocking/lessons/coordinator-death-${coordinatorId}`,
+  coordinatorDeadPattern,
+  { aclLevel: 3, ttl: 2592000 }  // Swarm-level, 30 days
+);
+```
+
+### Extracting Lessons from CFN Loop Coordination
+
+**Loop 3 → Loop 2 Transition Metrics:**
+```javascript
+// Track signal ACK performance during loop transitions
+const loopTransitionMetrics = {
+  loop: 3,
+  nextLoop: 2,
+  signalsSent: 5,  // To all implementers
+  acksReceived: 5,
+  avgAckTime: 1200,  // ms
+  transitionSuccess: true,
+  lesson: 'All implementers responsive, smooth transition',
+  recommendation: 'Current timeout (5min) appropriate'
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/cfn/loop-transition/${phaseId}/loop3-to-loop2`,
+  loopTransitionMetrics,
+  { aclLevel: 3, ttl: 7776000 }  // Swarm, 90 days
+);
+```
+
+**Agent Spawn Coordination Metrics:**
+```javascript
+// Track blocking coordination during agent spawning
+const spawnCoordinationMetrics = {
+  agentsSpawned: 5,
+  spawnTime: 12000,  // ms
+  signalsPerAgent: 1,  // Wake signal
+  avgAckTime: 800,  // ms
+  spawnPattern: 'parallel',
+  coordinationMethod: 'blocking-signal-ack',
+  lesson: 'Parallel spawn with signal ACK efficient',
+  recommendation: 'Continue parallel spawn strategy'
+};
+
+await sqlite.memoryAdapter.set(
+  `ace/spawn/coordination/${swarmId}`,
+  spawnCoordinationMetrics,
+  { aclLevel: 3, ttl: 2592000 }  // Swarm, 30 days
+);
+```
+
+### Monitoring Blocking Patterns with ACE
+
+**Real-Time Pattern Detection:**
+```javascript
+// Detect patterns as they emerge
+class BlockingPatternMonitor {
+  async detectPattern(agentId, eventType, eventData) {
+    // Get historical data
+    const history = await sqlite.memoryAdapter.get(
+      `ace/blocking/history/${agentId}`,
+      { aclLevel: 1 }
+    );
+
+    // Analyze pattern
+    if (eventType === 'timeout' && history.timeouts >= 3) {
+      // Pattern: Persistent timeouts
+      return {
+        pattern: 'persistent-timeout',
+        severity: 'high',
+        recommendation: 'Check agent health, spawn replacement',
+        lesson: 'Agent likely dead, retry limit reached'
+      };
+    }
+
+    if (eventType === 'fast-ack' && history.avgAckTime < 1000) {
+      // Pattern: Healthy coordination
+      return {
+        pattern: 'healthy-coordination',
+        severity: 'low',
+        recommendation: 'No action needed',
+        lesson: 'Network and agents performing well'
+      };
+    }
+
+    return null;
+  }
+}
+```
+
+### Educational Dashboard Example
+
+**Blocking Coordination Learning Dashboard:**
+```javascript
+// Query ACE data for learning insights
+async function generateBlockingLessonsDashboard(agentId) {
+  const signalMetrics = await sqlite.memoryAdapter.get(
+    `ace/blocking/signal-metrics/${agentId}`,
+    { aclLevel: 1 }
+  );
+
+  const timeoutMetrics = await sqlite.memoryAdapter.get(
+    `ace/blocking/timeout-patterns/${agentId}`,
+    { aclLevel: 1 }
+  );
+
+  const deadlockMetrics = await sqlite.memoryAdapter.get(
+    `ace/blocking/deadlock-prevention/${agentId}`,
+    { aclLevel: 1 }
+  );
+
+  return {
+    signalACKSuccessRate: signalMetrics.acksReceived / signalMetrics.signalsSent,
+    avgResponseTime: signalMetrics.avgAckTime,
+    timeoutRate: timeoutMetrics.timeouts / signalMetrics.signalsSent,
+    retryEffectiveness: timeoutMetrics.recoverySuccess / timeoutMetrics.retriesAttempted,
+    deadlocksPrevented: deadlockMetrics.preventedDeadlocks,
+
+    keyLessons: [
+      'Signal ACK protocol: 95% success rate indicates healthy coordination',
+      'Timeout handling: Exponential backoff recovers 80% of transient failures',
+      'Deadlock prevention: 10s timeout with backoff prevents circular waits'
+    ]
+  };
+}
+```
+
+### Integration with Blocking Coordination System
+
+**ACE Hooks in Blocking Coordinator:**
+```javascript
+import { BlockingCoordinationSignals } from '../cfn-loop/blocking-coordination-signals.js';
+import { ACEHooks } from '../ace/hooks.js';
+
+// Initialize ACE hooks for learning
+const aceHooks = new ACEHooks({
+  sqlite,
+  agentId: coordinatorId,
+  category: 'blocking-coordination'
+});
+
+// Track signal sent
+await aceHooks.trackEvent('signal-sent', {
+  targetAgent: 'coder-1',
+  signalType: 'wake',
+  timestamp: Date.now()
+});
+
+// Track ACK received
+await aceHooks.trackEvent('ack-received', {
+  sourceAgent: 'coder-1',
+  ackTime: 850,  // ms
+  timestamp: Date.now()
+});
+
+// Analyze patterns
+const pattern = await aceHooks.detectPattern('signal-ack');
+if (pattern.severity === 'high') {
+  console.warn('Blocking coordination issue detected:', pattern.lesson);
+  console.log('Recommendation:', pattern.recommendation);
+}
+```
+
+---
+
 ## Blocking Coordination Integration (Coordinators)
 
 **CRITICAL**: As a coordinator, you MUST use the Signal ACK protocol for all multi-agent coordination.

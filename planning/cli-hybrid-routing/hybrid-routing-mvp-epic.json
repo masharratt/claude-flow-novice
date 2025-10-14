@@ -1,0 +1,187 @@
+{
+  "epic": {
+    "id": "hybrid-routing-mvp",
+    "name": "Hybrid CLI Routing - MVP Implementation",
+    "description": "Minimal viable implementation to enable hybrid CLI routing with Claude Max coordinators and z.ai workers. Focus on core functionality needed to dog-food the epic itself.",
+    "mode": "mvp",
+    "estimatedHours": 2.5,
+    "priority": "critical",
+    "dependencies": [],
+    "successCriteria": [
+      "Coordinator profile supports hybrid CLI patterns",
+      "CFN Loop instructions document hybrid spawning",
+      "Can execute epic using hybrid routing",
+      "97% cost savings demonstrated"
+    ]
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Core Profile Updates",
+      "description": "Update coordinator and CFN Loop documentation with hybrid patterns",
+      "estimatedHours": 2,
+      "dependencies": [],
+      "sprints": [
+        {
+          "id": "sprint-1.1",
+          "name": "Coordinator Profile",
+          "description": "Create streamlined coordinator profile optimized for hybrid CLI routing",
+          "estimatedHours": 0.5,
+          "tasks": [
+            {
+              "id": "task-1.1.1",
+              "name": "Create coordinator-hybrid.md",
+              "description": "Streamlined coordinator profile under 500 lines with hybrid CLI patterns",
+              "estimatedHours": 0.5,
+              "assignedAgent": "coder",
+              "acceptanceCriteria": [
+                "File exists at .claude/agents/core-agents/coordinator-hybrid.md",
+                "Under 500 lines total",
+                "6-step orchestration pattern documented",
+                "SQLite integration with ACL Level 3",
+                "Post-edit hook validation passes"
+              ],
+              "dependencies": [],
+              "status": "completed",
+              "confidence": 0.92
+            }
+          ]
+        },
+        {
+          "id": "sprint-1.2",
+          "name": "CFN Loop Instructions",
+          "description": "Update standard mode instructions with hybrid spawning pattern",
+          "estimatedHours": 1,
+          "tasks": [
+            {
+              "id": "task-1.2.1",
+              "name": "Add Loop 3 hybrid section",
+              "description": "Document coordinator spawning via Task tool with CLI worker spawning",
+              "estimatedHours": 1,
+              "assignedAgent": "coder",
+              "acceptanceCriteria": [
+                "New section added to standard-instructions.md",
+                "Architecture diagram shows coordinator → workers flow",
+                "Task tool spawning pattern with full example",
+                "Redis monitoring patterns documented",
+                "Error recovery logic included",
+                "Cost comparison shows 97% savings"
+              ],
+              "dependencies": [],
+              "status": "completed",
+              "confidence": 0.92
+            }
+          ]
+        },
+        {
+          "id": "sprint-1.3",
+          "name": "Manual Validation",
+          "description": "Test hybrid routing with simple coordinator spawn",
+          "estimatedHours": 0.5,
+          "tasks": [
+            {
+              "id": "task-1.3.1",
+              "name": "Spawn test coordinator",
+              "description": "Verify coordinator can spawn workers via CLI and monitor Redis",
+              "estimatedHours": 0.5,
+              "assignedAgent": "coordinator",
+              "acceptanceCriteria": [
+                "Coordinator spawns via Task tool (Claude Max, $0)",
+                "Workers spawn via CLI (z.ai, ~$0.50)",
+                "Redis monitoring works",
+                "Result aggregation succeeds",
+                "Natural language reporting to main chat"
+              ],
+              "dependencies": ["task-1.1.1", "task-1.2.1"],
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "qualityGates": {
+    "loop3": {
+      "threshold": 0.70,
+      "description": "MVP mode uses lower threshold for rapid iteration"
+    },
+    "loop2": {
+      "consensusThreshold": 0.80,
+      "validators": 2,
+      "validatorTypes": ["code-quality-validator", "tester"],
+      "description": "MVP mode uses 2 validators instead of 4"
+    },
+    "coverage": {
+      "minimum": 70,
+      "description": "MVP mode accepts 70% coverage vs 80% standard"
+    }
+  },
+  "coordination": {
+    "swarmMode": "mesh",
+    "maxAgentsPerPhase": 3,
+    "redisChannels": [
+      "swarm:hybrid-routing-mvp:coordination",
+      "swarm:hybrid-routing-mvp:*:complete"
+    ],
+    "sqliteKeys": [
+      "cfn/phase-core-updates/loop3/*",
+      "cfn/phase-core-updates/loop2/*",
+      "cfn/phase-core-updates/loop4/*"
+    ]
+  },
+  "costAnalysis": {
+    "traditionalApproach": {
+      "description": "Pure Claude Max for all agents",
+      "estimatedTokens": 500000,
+      "costPerMillionTokens": 15.0,
+      "totalCost": 7.5
+    },
+    "hybridApproach": {
+      "description": "Coordinator (Claude Max subscription) + Workers (z.ai CLI)",
+      "coordinatorTokens": 50000,
+      "coordinatorCost": 0.0,
+      "workerTokens": 450000,
+      "workerCostPerMillionTokens": 0.5,
+      "totalCost": 0.225,
+      "savings": 7.275,
+      "savingsPercentage": 97.0
+    }
+  },
+  "dogFoodingStrategy": {
+    "description": "Use hybrid routing to execute this MVP epic itself",
+    "approach": "Spawn coordinator via Task tool, coordinator spawns workers via CLI",
+    "command": "/cfn-loop-epic planning/cli-hybrid-routing/hybrid-routing-mvp-epic.json --mode=mvp",
+    "expectedBehavior": [
+      "Main chat spawns coordinator (Claude Max subscription, $0)",
+      "Coordinator uses CLI to spawn workers (z.ai, ~$0.50 total)",
+      "Redis coordination enables progress monitoring",
+      "Natural language updates to main chat",
+      "97% cost savings vs traditional approach"
+    ]
+  },
+  "nextSteps": {
+    "immediate": [
+      "Execute manual validation (task-1.3.1)",
+      "Run dog-fooding test with this epic",
+      "Verify cost savings in practice"
+    ],
+    "future": [
+      "Add similar sections to MVP and Enterprise instructions",
+      "Implement security enhancements (HMAC signing) - defer to Phase 0 of full epic",
+      "Create Redis monitoring scripts for coordinators",
+      "Add metrics dashboard for cost tracking"
+    ]
+  },
+  "deferredWork": {
+    "description": "Security and infrastructure work deferred from full epic",
+    "phases": [
+      {
+        "name": "Phase 0: Security Foundation",
+        "estimatedHours": 26,
+        "reason": "Not needed for MVP functionality, required for production"
+      }
+    ],
+    "totalDeferredHours": 26,
+    "deferredPercentage": 91.2
+  }
+}

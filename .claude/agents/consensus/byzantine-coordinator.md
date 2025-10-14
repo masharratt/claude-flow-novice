@@ -213,6 +213,146 @@ try {
 - Select new primary deterministically
 - Resume consensus protocol with new primary
 
+## ACE Framework Integration - Byzantine Coordination Lessons
+
+### Autonomy (Self-Directing Byzantine Detection)
+
+**Pattern: Proactive Malicious Actor Detection**
+```javascript
+// Autonomous monitoring without manual oversight
+class AutonomousMaliciousDetector {
+  async monitor(consensusRound) {
+    // Self-directing detection across multiple dimensions
+    const signatureViolations = await this.detectSignatureInconsistencies();
+    const conflictingMessages = await this.detectConflictingPrepares();
+    const timeoutPatterns = await this.analyzeTimeoutBehavior();
+
+    // Autonomous isolation without coordinator intervention
+    for (const suspiciousAgentId of [...signatureViolations, ...conflictingMessages]) {
+      if (await this.confirmMalicious(suspiciousAgentId)) {
+        await this.isolateAgent(suspiciousAgentId);
+        await sqlite.memoryAdapter.set(
+          `byzantine/${this.coordinatorId}/malicious/${suspiciousAgentId}`,
+          { reason: 'Byzantine behavior detected', round: consensusRound },
+          { aclLevel: 3, ttl: 2592000 }
+        );
+      }
+    }
+  }
+}
+```
+
+**Lesson Learned:** PBFT coordination requires 3f+1 nodes minimum for f Byzantine failures. In production, always deploy N ≥ 4 nodes for single-fault tolerance (f=1).
+
+**Lesson Learned:** Track message inconsistencies autonomously. Flag agents after 3 violations within 10 rounds to avoid false positives while maintaining security.
+
+### Competence (Byzantine Fault Tolerance Expertise)
+
+**Pattern: Cryptographic Verification at Scale**
+```javascript
+// Competent threshold signature implementation
+class ThresholdSignatureValidator {
+  async validatePreparePhase(messages, threshold = '2f') {
+    // Parallel signature verification for performance
+    const validations = await Promise.all(
+      messages.map(async (msg) => ({
+        agentId: msg.agentId,
+        valid: await crypto.subtle.verify(
+          'HMAC',
+          this.publicKey,
+          msg.signature,
+          msg.payload
+        )
+      }))
+    );
+
+    const validCount = validations.filter(v => v.valid).length;
+    const requiredCount = this.computeThreshold(threshold);
+
+    // Competent consensus validation
+    if (validCount >= requiredCount) {
+      return { consensus: true, validAgents: validations.filter(v => v.valid).map(v => v.agentId) };
+    } else {
+      const malicious = validations.filter(v => !v.valid).map(v => v.agentId);
+      await this.flagMaliciousAgents(malicious);
+      return { consensus: false, malicious };
+    }
+  }
+}
+```
+
+**Lesson Learned:** Use threshold signatures (t-of-n) for Byzantine consensus validation. For f Byzantine failures, require t = 2f+1 signatures.
+
+**Lesson Learned:** Cryptographic verification adds 15-30ms per message. Batch verify signatures in parallel to maintain <100ms PREPARE phase latency.
+
+### Network (Distributed Byzantine Resilience)
+
+**Pattern: Network Partition Detection and Recovery**
+```javascript
+// Network-aware Byzantine consensus
+class PartitionResilientPBFT {
+  async detectPartition() {
+    const reachableNodes = await this.heartbeatAllNodes();
+    const unreachableNodes = this.allNodes.filter(n => !reachableNodes.includes(n));
+
+    // Partition detected if >f nodes unreachable
+    if (unreachableNodes.length > this.faultTolerance) {
+      await this.pauseConsensus();
+      await this.waitForPartitionHealing();
+      return { partitioned: true, unreachable: unreachableNodes };
+    }
+
+    return { partitioned: false };
+  }
+
+  async reconcileAfterPartition() {
+    // Sync state across healed partition
+    const stateSnapshots = await Promise.all(
+      this.allNodes.map(n => this.fetchState(n))
+    );
+
+    // Vote on canonical state (majority wins)
+    const canonicalState = this.electCanonicalState(stateSnapshots);
+
+    // Propagate canonical state to all nodes
+    await Promise.all(
+      this.allNodes.map(n => this.syncState(n, canonicalState))
+    );
+  }
+}
+```
+
+**Lesson Learned:** Network partitions can split Byzantine consensus quorums. Always detect partitions early via heartbeat monitoring (every 5-10s).
+
+**Lesson Learned:** After partition healing, reconcile state by majority vote among all nodes. Discard minority partition's consensus decisions to prevent split-brain.
+
+**Lesson Learned:** Byzantine consensus requires N ≥ 3f+1 nodes total. Partitions reducing connectivity below this threshold MUST pause consensus until healing.
+
+### Security Patterns for Byzantine Environments
+
+**Pattern: Defense Against Sybil Attacks**
+- Validate agent identity cryptographically before allowing consensus participation
+- Implement proof-of-stake or proof-of-authority to prevent identity forgery
+- Track reputation scores over time; isolate agents with declining trust scores
+
+**Pattern: Replay Attack Prevention**
+- Include sequence numbers in all consensus messages
+- Reject messages with sequence numbers ≤ last processed sequence
+- Implement message expiration (TTL) to prevent delayed replay attacks
+
+**Pattern: DoS Protection**
+- Rate limit consensus message broadcasting (max 100 messages/agent/second)
+- Implement exponential backoff for agents sending excessive messages
+- Isolate agents consuming >20% of network bandwidth
+
+### Performance Optimization
+
+**Lesson Learned:** View changes add 2-5 seconds of latency. Minimize view changes by deploying robust primary with monitoring.
+
+**Lesson Learned:** Three-phase PBFT has O(N²) message complexity. For N > 50 nodes, consider hierarchical consensus with regional coordinators.
+
+**Lesson Learned:** Signature verification is CPU-bound. Use hardware acceleration (AES-NI, cryptographic coprocessors) for >100 nodes.
+
 ## Malicious Detection Strategies
 
 ### Signature Verification

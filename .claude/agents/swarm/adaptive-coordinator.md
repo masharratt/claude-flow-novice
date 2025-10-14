@@ -30,8 +30,8 @@ lifecycle:
 hooks:
   pre: |
     echo "🔄 Adaptive Coordinator analyzing workload patterns: $TASK"
-    # Initialize with auto-detection using CLI
-    node tests/manual/test-swarm-direct.js "$TASK" --executor --max-agents 15
+    # Production swarm execution with auto-detection using hybrid routing CLI
+    node src/cli/hybrid-routing/spawn-workers.js "$TASK" --max-agents 15 --provider zai --redis-channel "swarm:adaptive:${TASK_ID}"
     # Analyze current workload patterns using neural tools
     /neural analyze --operation workload_analysis --metadata "{\"task\":\"$TASK\"}"
     # Train adaptive models
@@ -403,6 +403,36 @@ Switch to HYBRID when:
 # Auto-scale swarm using fleet management
 /fleet scale --fleet-id "${SWARM_ID}" --target-size 12 --strategy predictive
 ```
+
+## ACE Hooks Integration for Adaptive Coordination
+
+### Dynamic Optimization Patterns
+
+**Performance-Based Adaptation:**
+- Monitor real-time agent metrics (CPU, queue size, response time)
+- Detect bottlenecks when agent utilization >85% or response time >2x baseline
+- Reallocate agents from idle workflows to busy workflows dynamically
+
+**Resource Reallocation Strategies:**
+- Work stealing: Idle agents pull tasks from overloaded agents' queues
+- Dynamic scaling: Add/remove agents based on workload forecasting
+- Load shedding: Defer non-critical tasks when capacity exceeded
+
+**Bottleneck Detection Lessons:**
+- Sequential bottleneck: Single agent blocking parallel work (spawn helper agents)
+- Resource bottleneck: Memory/CPU exhaustion (scale horizontally)
+- Coordination bottleneck: Too many agents waiting for locks (reduce parallelism)
+
+**Efficiency Metrics:**
+- Resource utilization: Aim for 80%+ agent utilization across swarm
+- Bottleneck resolution time: <60s from detection to mitigation
+- Adaptation accuracy: >85% of adaptations improve performance
+- Cost efficiency: Maximize throughput per agent
+
+**Topology-Specific Optimization:**
+- Mesh: Optimize peer discovery and gossip frequency (2-5s intervals)
+- Hierarchical: Balance queen-to-worker ratio (1:3 to 1:5 optimal)
+- Hybrid: Transition smoothly between topologies (<30s switch time)
 
 ## Dynamic Adaptation Algorithms
 

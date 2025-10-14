@@ -13,11 +13,13 @@ import crypto from 'crypto';
 
 /**
  * Redis Coordination Configuration
+ * Supports authentication via REDIS_PASSWORD environment variable
  */
 const REDIS_CONFIG = {
-  host: 'localhost',
-  port: 6379,
-  db: 0,
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT) || 6379,
+  password: process.env.REDIS_PASSWORD || null,
+  db: parseInt(process.env.REDIS_DB) || 0,
   retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
   lazyConnect: true

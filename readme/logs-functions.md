@@ -256,6 +256,227 @@ const fleet = await fleet_manager_initialize({
 
 **Returns**: Array of optimization insights with ROI metrics
 
+## Agent Discovery Functions
+
+### loadAgentDefinitions()
+
+Load specialized agents from `.claude/agents/` folder with recursive scanning
+
+**Signature**: `async loadAgentDefinitions(options) -> Promise<Object<AgentDefinition>>`
+
+**Parameters**:
+- `options.whitelist` (Array, optional): Allowed agent types only
+- `options.blacklist` (Array, optional): Blocked agent types
+- `options.cache` (Boolean, default: true): Enable in-memory caching
+
+**Returns**: Object mapping agent types to definitions
+```javascript
+{
+  "coder": {
+    type: "coder",
+    category: "core-agents",
+    keywords: ["implement", "code", "build", ...],
+    systemPrompt: "...",
+    filePath: "/path/to/coder.md"
+  },
+  // ... 50+ agents
+}
+```
+
+**Features**:
+- **Recursive scanning**: Discovers all `.md` files in `.claude/agents/`
+- **YAML frontmatter parsing**: Extracts `name` and `description` fields
+- **Keyword extraction**: Parses keywords from description
+- **Category preservation**: Infers category from directory structure
+- **In-memory caching**: Cached after first load (lazy loading)
+- **Whitelist/blacklist**: Filter available agents
+
+**Example**:
+```javascript
+const { HybridWorkerSpawner } = require('./src/cli/hybrid-routing/spawn-workers.js');
+const spawner = new HybridWorkerSpawner();
+const agents = await spawner.loadAgentDefinitions();
+
+console.log(`Loaded ${Object.keys(agents).length} agents`);
+// → Loaded 50 agents
+```
+
+**With filtering**:
+```javascript
+const spawner = new HybridWorkerSpawner({
+  agentWhitelist: ['coder', 'architect', 'tester']
+});
+const agents = await spawner.loadAgentDefinitions();
+// → Only 3 agents loaded
+```
+
+---
+
+### matchTaskToAgents()
+
+Match task description to specialized agents based on keyword scoring
+
+**Signature**: `matchTaskToAgents(task, availableAgents, numAgents) -> AgentMatch[]`
+
+**Parameters**:
+- `task` (String): Task description
+- `availableAgents` (Object): Agent definitions from `loadAgentDefinitions()`
+- `numAgents` (Number): Number of agents to select
+
+**Returns**: Array of top N agents with highest keyword match scores
+```javascript
+[
+  { type: "coder", agent: {...}, score: 3 },
+  { type: "security-specialist", agent: {...}, score: 2 },
+  { type: "tester", agent: {...}, score: 1 }
+]
+```
+
+**Algorithm**:
+1. Convert task to lowercase
+2. For each agent, count keyword matches in task
+3. Sort agents by score (descending)
+4. Return top N agents
+
+**Example**:
+```javascript
+const task = "Build authentication system with JWT tokens";
+const agents = await spawner.loadAgentDefinitions();
+const matches = spawner.matchTaskToAgents(task, agents, 3);
+
+matches.forEach(m => {
+  console.log(`${m.type}: ${m.score} keyword matches`);
+});
+// → coder: 3 keyword matches (build, authentication, system)
+// → security-specialist: 2 matches (authentication, tokens)
+// → tester: 1 match (system)
+```
+
+---
+
+### generateSubtaskForAgent()
+
+Generate agent-specific subtask based on agent type
+
+**Signature**: `generateSubtaskForAgent(mainTask, agentType, index, total) -> String`
+
+**Parameters**:
+- `mainTask` (String): Main task description
+- `agentType` (String): Agent type (e.g., 'coder', 'architect')
+- `index` (Number): Agent index (0-based)
+- `total` (Number): Total number of agents
+
+**Returns**: Specialized subtask string
+
+**Agent-specific patterns**:
+- `coder`: "Implement core functionality for: {task}"
+- `architect`: "Design system architecture for: {task}"
+- `tester`: "Create comprehensive tests for: {task}"
+- `security-specialist`: "Perform security analysis for: {task}"
+- `analyst`: "Analyze code quality and performance for: {task}"
+- `reviewer`: "Review implementation of: {task}"
+- Default: "{task} (Part {index+1}/{total})"
+
+**Example**:
+```javascript
+const subtask1 = spawner.generateSubtaskForAgent("Build auth system", "architect", 0, 3);
+console.log(subtask1);
+// → "Design system architecture for: Build auth system"
+
+const subtask2 = spawner.generateSubtaskForAgent("Build auth system", "coder", 1, 3);
+console.log(subtask2);
+// → "Implement core functionality for: Build auth system"
+
+const subtask3 = spawner.generateSubtaskForAgent("Build auth system", "tester", 2, 3);
+console.log(subtask3);
+// → "Create comprehensive tests for: Build auth system"
+```
+
+---
+
+### scanAgentFiles()
+
+Recursively scan directory for agent `.md` files
+
+**Signature**: `async scanAgentFiles(dirPath, basePath) -> Promise<AgentFile[]>`
+
+**Parameters**:
+- `dirPath` (String): Directory to scan
+- `basePath` (String): Base path for relative path calculation
+
+**Returns**: Array of agent file metadata
+```javascript
+[
+  {
+    path: "/path/to/.claude/agents/core-agents/coder.md",
+    category: "core-agents",
+    filename: "coder.md"
+  },
+  // ... 72 files
+]
+```
+
+**Features**:
+- Recursive directory traversal
+- Filters for `.md` files only
+- Calculates relative path for category inference
+- Graceful error handling (skips inaccessible directories)
+
+**Example**:
+```javascript
+const path = require('path');
+const agentsPath = path.join(process.cwd(), '.claude', 'agents');
+const files = await spawner.scanAgentFiles(agentsPath, agentsPath);
+
+console.log(`Discovered ${files.length} agent files`);
+// → Discovered 72 agent files
+
+// Group by category
+const byCategory = files.reduce((acc, file) => {
+  acc[file.category] = (acc[file.category] || 0) + 1;
+  return acc;
+}, {});
+console.log(byCategory);
+// → { "core-agents": 11, "analysis": 3, "consensus": 8, ... }
+```
+
+---
+
+### isAgentAllowed()
+
+Check if agent type passes whitelist/blacklist filters
+
+**Signature**: `isAgentAllowed(agentType) -> Boolean`
+
+**Parameters**:
+- `agentType` (String): Agent type to check
+
+**Returns**: `true` if allowed, `false` if blocked
+
+**Logic**:
+1. Check blacklist first (if configured) - return `false` if blocked
+2. Check whitelist (if configured) - return `true` only if included
+3. If no restrictions - return `true` (allow all)
+
+**Example**:
+```javascript
+// Blacklist example
+const spawner1 = new HybridWorkerSpawner({
+  agentBlacklist: ['deprecated-agent']
+});
+spawner1.isAgentAllowed('coder');           // → true
+spawner1.isAgentAllowed('deprecated-agent'); // → false
+
+// Whitelist example
+const spawner2 = new HybridWorkerSpawner({
+  agentWhitelist: ['coder', 'architect', 'tester']
+});
+spawner2.isAgentAllowed('coder');     // → true
+spawner2.isAgentAllowed('analyst');   // → false (not in whitelist)
+```
+
+---
+
 ## Swarm Coordination Functions
 
 ### Swarm Initialization Functions

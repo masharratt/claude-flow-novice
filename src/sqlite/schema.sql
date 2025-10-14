@@ -234,9 +234,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (swarm_id) REFERENCES swarms(id) ON DELETE CASCADE,
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE SET NULL,
-    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL,
-    INDEX idx_metrics_time_bucket (time_bucket),
-    INDEX idx_metrics_name_type (metric_name, metric_type)
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
 );
 
 -- 9. DEPENDENCIES table - Task and resource dependencies
@@ -396,6 +394,9 @@ CREATE INDEX IF NOT EXISTS idx_audit_swarm_id ON audit_log(swarm_id);
 CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_risk_level ON audit_log(risk_level);
 CREATE INDEX IF NOT EXISTS idx_audit_acl_level ON audit_log(acl_level);
+
+CREATE INDEX IF NOT EXISTS idx_metrics_time_bucket ON metrics(time_bucket);
+CREATE INDEX IF NOT EXISTS idx_metrics_name_type ON metrics(metric_name, metric_type);
 
 CREATE INDEX IF NOT EXISTS idx_dependencies_dependent_id ON dependencies(dependent_id);
 CREATE INDEX IF NOT EXISTS idx_dependencies_dependency_id ON dependencies(dependency_id);

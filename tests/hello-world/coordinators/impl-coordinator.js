@@ -40,10 +40,17 @@ export class ImplCoordinator extends DormantCoordinatorBase {
 
   /**
    * Setup implementation-specific message handlers
+   * Extends base handlers instead of replacing them
    */
   setupImplHandlers() {
+    console.log(`[${this.id}] [DEBUG] Setting up impl-specific handlers`);
+    console.log(`[${this.id}] [DEBUG] Base handlers before:`, Array.from(this.messageHandlers.keys()));
+
+    // Add custom task handlers (extend, don't replace base handlers)
     this.messageHandlers.set('generate', this.handleGenerateRequest.bind(this));
     this.messageHandlers.set('review_response', this.handleReviewResponse.bind(this));
+
+    console.log(`[${this.id}] [DEBUG] All handlers after:`, Array.from(this.messageHandlers.keys()));
   }
 
   /**
@@ -88,7 +95,7 @@ export class ImplCoordinator extends DormantCoordinatorBase {
       },
     };
 
-    // Create SwarmCoordinator
+    // Create SwarmCoordinator with OPTIMIZED CONCURRENCY
     this.swarmCoordinator = new SwarmCoordinator(
       {
         id: `${this.id}-swarm`,
@@ -99,34 +106,70 @@ export class ImplCoordinator extends DormantCoordinatorBase {
         redisUrl: this.redisUrl,
         enableMonitoring: false,
         enableSQLiteMemory: false,
+        // **PERFORMANCE OPTIMIZATION**: Increase concurrent task execution
+        maxConcurrentTasks: 20, // Up from default 5 (4x parallelism)
+        maxAgents: 20, // Up from default 10
+        backgroundTaskInterval: 1000, // Check every 1s (down from 5s)
       },
       logger
     );
 
     await this.swarmCoordinator.start();
 
-    // Register a coder agent
-    await this.swarmCoordinator.registerAgent(
-      `${this.id}-agent`,
-      'coder',
-      ['file-operations', 'code-generation']
-    );
+    // **PERFORMANCE OPTIMIZATION**: Register multiple coder agents for parallel execution
+    const agentCount = 10; // 10 parallel agents
+    const agentRegistrations = [];
 
-    console.log(`[${this.id}] SwarmCoordinator initialized`);
+    for (let i = 0; i < agentCount; i++) {
+      agentRegistrations.push(
+        this.swarmCoordinator.registerAgent(
+          `${this.id}-agent-${i}`,
+          'coder',
+          ['file-operations', 'code-generation']
+        )
+      );
+    }
+
+    await Promise.all(agentRegistrations);
+    console.log(`[${this.id}] SwarmCoordinator initialized with ${agentCount} agents`);
   }
 
   /**
    * Handle generate request
    */
   async handleGenerateRequest(message) {
+    console.log(`[${this.id}] [DEBUG] handleGenerateRequest called`);
+    console.log(`[${this.id}] [DEBUG] Message details:`, {
+      id: message.id,
+      type: message.type,
+      task: message.task,
+      correlationId: message.correlationId,
+      from: message.from,
+      hasData: !!message.data,
+      fileCount: message.data?.fileCount
+    });
+
     console.log(`[${this.id}] Generate request received: ${message.data.fileCount} files`);
 
-    this.requestQueue.push({
+    const request = {
       id: message.id,
       type: 'generate',
+      task: 'generate',
       correlationId: message.correlationId,
       from: message.from,
       data: message.data
+    };
+
+    console.log(`[${this.id}] [DEBUG] Adding to request queue:`, {
+      queueSizeBefore: this.requestQueue.length,
+      request: request
+    });
+
+    this.requestQueue.push(request);
+
+    console.log(`[${this.id}] [DEBUG] Request queued:`, {
+      queueSizeAfter: this.requestQueue.length,
+      totalQueued: this.requestQueue.length
     });
   }
 
@@ -134,22 +177,42 @@ export class ImplCoordinator extends DormantCoordinatorBase {
    * Handle review response
    */
   async handleReviewResponse(message) {
-    console.log(`[${this.id}] Review response received`);
+    console.log(`[${this.id}] [DEBUG] Review response received`);
+    console.log(`[${this.id}] [DEBUG] Message details:`, {
+      correlationId: message.correlationId,
+      from: message.from,
+      hasData: !!message.data
+    });
 
-    // Store response
-    this.messageHandlers.get('response')(message);
+    // Delegate to base response handler
+    const responseHandler = this.messageHandlers.get('response');
+    if (responseHandler) {
+      await responseHandler(message);
+    } else {
+      console.error(`[${this.id}] [DEBUG] ERROR: No 'response' handler found!`);
+      console.error(`[${this.id}] [DEBUG] Available handlers:`, Array.from(this.messageHandlers.keys()));
+    }
   }
 
   /**
    * Process a generate request
    */
   async processRequest(request) {
-    if (request.type !== 'generate') {
-      console.log(`[${this.id}] Skipping non-generate request: ${request.type}`);
+    console.log(`[${this.id}] [DEBUG] processRequest called:`, {
+      requestId: request.id,
+      task: request.task,
+      correlationId: request.correlationId,
+      from: request.from,
+      currentState: this.state
+    });
+
+    if (request.task !== 'generate') {
+      console.log(`[${this.id}] [DEBUG] Skipping non-generate request: ${request.task}`);
       return;
     }
 
     console.log(`[${this.id}] Processing generate request: ${request.id}`);
+    console.log(`[${this.id}] [DEBUG] Starting file generation process...`);
 
     try {
       // Initialize swarm if needed
@@ -160,16 +223,36 @@ export class ImplCoordinator extends DormantCoordinatorBase {
       // Generate files
       await this.generateFiles();
 
+      console.log(`[${this.id}] [DEBUG] Files generated, preparing review request...`);
+
       // Submit for review
+      console.log(`[${this.id}] [DEBUG] Sending review request to Review coordinator...`);
       const correlationId = await this.sendRequest('Review', 'review', {
         coordinator: this.id,
         files: this.generatedFiles,
         fileCount: this.generatedFiles.length
       });
 
+      console.log(`[${this.id}] [DEBUG] Review request sent:`, {
+        correlationId,
+        targetCoordinator: 'Review',
+        fileCount: this.generatedFiles.length
+      });
+
       // Pause and wait for review response
       console.log(`[${this.id}] Waiting for review response...`);
+      console.log(`[${this.id}] [DEBUG] Entering pauseAndWait:`, {
+        correlationId,
+        timeout: 120000,
+        currentState: this.state
+      });
+
       const reviewResponse = await this.pauseAndWait(correlationId, 120000);
+
+      console.log(`[${this.id}] [DEBUG] Review response received:`, {
+        hasErrors: reviewResponse.hasErrors,
+        errorFileCount: reviewResponse.errorFiles?.length || 0
+      });
 
       // Process review results
       if (reviewResponse.hasErrors) {
