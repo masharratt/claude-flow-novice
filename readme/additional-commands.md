@@ -584,6 +584,43 @@ claude-flow-novice workflow deploy --pipeline=production
 
 ---
 
+## Context Management
+
+### ACE System
+
+```bash
+# Reflect on execution
+/context-reflect --task-id=task-xyz --auto-curate
+
+# Curate reflections
+/context-curate --maintenance --auto-merge
+
+# Query bullets
+/context-query --category=pattern --tags=redis,coordination
+
+# Inject context
+/context-inject --agent-type=coder --phase=phase-0
+
+# View statistics
+/context-stats --period=30 --format=json
+```
+
+### Direct SQLite Queries
+
+```bash
+# Query strategy bullets
+sqlite3 ./.artifacts/database/swarm-memory.db \
+  "SELECT bullet_id, content, confidence_score
+   FROM adaptive_context
+   WHERE category='strategy' AND is_active=1
+   ORDER BY priority DESC;"
+
+# Mark bullet helpful
+sqlite3 ./.artifacts/database/swarm-memory.db \
+  "INSERT INTO context_usage_log (id, bullet_id, usage_outcome, created_at)
+   VALUES ('usage-$(date +%s)', 'STRAT-001', 'helpful', datetime('now'));"
+```
+
 ## SQLite Memory & ACL Commands
 
 ### Initialization

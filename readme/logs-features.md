@@ -836,6 +836,34 @@ npm run portal:build    # Production build
 - Independent context management
 - Clean separation of concerns
 
+## Adaptive Context Extension (ACE)
+
+**Purpose**: Learn from execution patterns without context collapse
+
+**Implementation**: SQLite-backed bullet system with incremental delta updates. Avoids full CLAUDE.md rewrites that lose accumulated knowledge.
+
+**Components**:
+- 4 SQLite tables (adaptive_context, context_reflections, context_usage_log, context_merge_log)
+- 5 slash commands (reflect, curate, query, inject, stats)
+- 3 automatic hooks (post-task, pre-agent-spawn, post-cfn-loop)
+- 2 specialized agents (reflector, curator)
+
+**Usage**:
+```bash
+# Extract lessons after task
+/context-reflect --task-id=task-123 --auto-curate
+
+# Query before spawning agents
+/context-query --tags=cfn-loop,redis --min-confidence=0.8
+
+# Inject into CLAUDE.md
+/context-inject --phase=phase-0 --limit=15
+```
+
+**Integration**: Coordinators automatically extract and inject context during CFN Loop execution
+
+**Metrics**: +10.6% performance improvement, -86.9% adaptation latency (Stanford ACE research)
+
 ## Related Documentation
 
 - [API](./logs-api.md) - Complete API reference
