@@ -176,6 +176,53 @@ node src/cli/hybrid-routing/spawn-workers.js "OAuth2" \
 
 **Documentation**: [\`additional-commands.md#hybrid-routing\`](./additional-commands.md#hybrid-routing-cost-optimized-worker-spawning), [\`logs-features.md#hybrid-routing\`](./logs-features.md#hybrid-routing-specialized-agent-selection), \`src/cli/hybrid-routing/COORDINATOR-OVERRIDE.md\`
 
+### CFN Loop Coordinators
+
+**Purpose**: Mode-specific coordinators with autonomous phase execution
+
+**Coordinators**:
+- **cfn-coordinator-mvp**: <$1/phase, 15min, 2-3 workers
+- **cfn-coordinator-standard**: $2/phase, 30min, 4-5 workers
+- **cfn-coordinator-enterprise**: $5/phase, 60min, 5-7 workers
+
+**Key Features**:
+- Autonomous Loop 3→2→4 execution
+- Auto-phase-launch (full sprint lifecycle)
+- Return-to-chat only for human decisions or completion
+- Mode-specific parameter enforcement
+- Telemetry (confidence, cost, duration, savings)
+
+\`\`\`bash
+node src/cli/hybrid-routing/spawn-coordinator.js "Execute sprint: Auth" --mode=mvp --sprint-id=auth-001
+\`\`\`
+
+**Documentation**: \`logs-features.md#cfn-loop-coordinators\`, \`.claude/agents/cfn-loop/cfn-coordinator-*.md\`
+
+### Web Portal Dashboard
+
+**Purpose**: Real-time monitoring and control interface
+
+**Features**:
+- Agent management & monitoring
+- CFN Loop visualization
+- Metrics dashboard (cost, tokens, latency)
+- Hybrid routing control panel
+- SQLite memory browser
+- Redis coordination monitor
+
+**Launch**:
+\`\`\`bash
+/launch-web-dashboard              # Dev mode (port 3001)
+/launch-web-dashboard --production  # Production build
+\`\`\`
+
+**Access Points**:
+- Main UI: \`http://localhost:3001\`
+- API Server: \`http://localhost:3000\`
+- WebSocket: \`ws://localhost:3000\`
+
+**Documentation**: \`logs-slash-commands.md#launch-web-dashboard\`, \`.claude/commands/launch-web-dashboard.md\`
+
 ### MCP Integration
 
 \`\`\`javascript

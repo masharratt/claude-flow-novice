@@ -436,6 +436,46 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, sw
 /monitor tasks --status running
 ```
 
+#### `/launch-web-dashboard`
+
+**Purpose**: Launch web portal development server with hot-reload
+
+**Usage**: `/launch-web-dashboard [options]`
+
+**Options**:
+- `--port <port>`: Custom client port (default: 3001)
+- `--production`: Build and run production mode
+- `--debug`: Enable verbose logging
+- `--kill-only`: Kill existing processes without starting
+
+**Behavior**:
+- Kills conflicting processes on ports 3000-3003
+- Starts Vite client (port 3001) and Express server (port 3000)
+- Auto-selects next available port on conflict
+- Hot-reload enabled in development mode
+
+**Examples**:
+```bash
+# Standard development mode
+/launch-web-dashboard
+
+# Custom port
+/launch-web-dashboard --port 4000
+
+# Production build
+/launch-web-dashboard --production
+
+# Cleanup only
+/launch-web-dashboard --kill-only
+```
+
+**Access Points**:
+- Main UI: `http://localhost:3001`
+- API Server: `http://localhost:3000`
+- WebSocket: `ws://localhost:3000`
+
+**Features**: Agent monitoring, CFN Loop visualization, metrics dashboard, hybrid routing control, SQLite memory browser, Redis coordination monitor
+
 ## Utility Commands
 
 ### Hooks Management
