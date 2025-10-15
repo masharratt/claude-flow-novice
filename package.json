@@ -8,6 +8,10 @@
   "bin": {
     "claude-flow-novice": "dist/src/cli/main.js"
   },
+  "files": [
+    "dist/",
+    "scripts/"
+  ],
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
     "dev": "tsx src/cli/main.ts",
