@@ -134,5 +134,6 @@
   ],
   "tieredRouting": {
     "enabled": true
-  }
+  },
+  "cleanupPeriodDays": 5
 }
