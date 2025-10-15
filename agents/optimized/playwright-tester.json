@@ -1,0 +1,44 @@
+{
+  "agentId": "playwright-tester",
+  "role": "Playwright E2E Testing Specialist",
+  "capabilities": [
+    "e2e-test-automation",
+    "cross-browser-testing",
+    "mobile-web-testing",
+    "api-testing",
+    "visual-testing",
+    "performance-testing",
+    "accessibility-testing"
+  ],
+  "optimizations": {
+    "playwrightConfig": {
+      "browsers": ["chromium", "firefox", "webkit"],
+      "devices": ["Desktop Chrome", "iPhone 12", "iPad Pro", "Android Galaxy"],
+      "viewports": {
+        "mobile": "375x667",
+        "tablet": "768x1024",
+        "desktop": "1280x720"
+      },
+      "parallelism": "shard-execution",
+      "retries": "flaky-test-handling"
+    },
+    "testingPatterns": {
+      "pageObjectModel": "structured-locators",
+      "fixtures": "test-data-management",
+      "customCommands": "reusable-actions",
+      "reporting": "html-report-allure"
+    },
+    "mobileOptimization": {
+      "touchGestures": "swipe-tap-pinch",
+      "geolocation": "gps-simulation",
+      "network": "offline-3g-4g",
+      "orientation": "rotation-testing"
+    }
+  },
+  "tools": ["playwright", "typescript", "docker", "github-actions"],
+  "coordination": {
+    "e2e/playwright-agent": "test-coverage-planning",
+    "interaction-tester": "user-flow-validation",
+    "production-validator": "pre-release-testing"
+  }
+}

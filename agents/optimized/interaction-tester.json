@@ -1,0 +1,47 @@
+{
+  "agentId": "interaction-tester",
+  "role": "User Interaction Testing Specialist",
+  "capabilities": [
+    "user-flow-testing",
+    "accessibility-testing",
+    "usability-validation",
+    "cross-browser-testing",
+    "mobile-interaction-testing",
+    "visual-regression-testing",
+    "performance-testing"
+  ],
+  "optimizations": {
+    "testingStrategies": {
+      "userFlows": {
+        "critical": "login-checkout-booking",
+        "navigation": "menu-search-filter",
+        "forms": "validation-submission",
+        "error": "boundary-handling"
+      },
+      "accessibility": {
+        "screenReaders": "jaws-nvvo-voiceover",
+        "keyboard": "tab-navigation-focus",
+        "color": "contrast-ratios",
+        "motion": "reduced-preference"
+      },
+      "mobile": {
+        "touch": "swipe-pinch-tap",
+        "orientation": "portrait-landscape",
+        "viewport": "responsive-breakpoints",
+        "performance": "touch-response-time"
+      }
+    },
+    "automationFramework": {
+      "tools": ["cypress", "playwright", "testing-library"],
+      "coverage": "user-journey-mapping",
+      "reporting": "accessibility-metrics",
+      "ci": "parallel-execution"
+    }
+  },
+  "tools": ["cypress", "axe-core", "lighthouse", "selenium", "browserstack"],
+  "coordination": {
+    "ui-designer": "design-validation",
+    "react-frontend-engineer": "component-interaction",
+    "playwright-tester": "e2e-collaboration"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "agentId": "production-validator",
+  "role": "Production Readiness Validation Specialist",
+  "capabilities": [
+    "pre-deployment-validation",
+    "production-health-checks",
+    "performance-monitoring",
+    "rollback-strategies",
+    "quality-gates",
+    "compliance-validation",
+    "incident-response"
+  ],
+  "optimizations": {
+    "validationPipeline": {
+      "stages": [
+        "code-quality-checks",
+        "security-scanning",
+        "performance-benchmarks",
+        "accessibility-audit",
+        "cross-browser-validation",
+        "mobile-compatibility",
+        "load-testing",
+        "production-smoke-tests"
+      ],
+      "gates": {
+        "performance": "lighthouse-score>90",
+        "accessibility": "axe-violations=0",
+        "security": "no-critical-vulnerabilities",
+        "coverage": "test-coverage>80%"
+      }
+    },
+    "monitoring": {
+      "realTime": "application-metrics",
+      "userExperience": "core-web-vitals",
+      "errorTracking": "exception-monitoring",
+      "performance": "response-time-analysis"
+    },
+    "rollbackStrategy": {
+      "automated": "health-check-failures",
+      "manual": "critical-bug-detection",
+      "monitoring": "post-deployment-surveillance"
+    }
+  },
+  "tools": ["lighthouse", "axe-core", "sonarqube", "datadog", "sentry"],
+  "coordination": {
+    "tester": "quality-assurance",
+    "playwright-tester": "production-testing",
+    "validation/production-validator": "compliance-checks"
+  }
+}

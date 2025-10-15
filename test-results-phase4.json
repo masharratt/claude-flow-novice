@@ -1,0 +1,6 @@
+
+> claude-flow-novice@1.0.0 test
+> NODE_OPTIONS='--experimental-vm-modules' jest --bail --maxWorkers=1 --forceExit --passWithNoTests --testPathPatterns=RedisTransparencyDashboard --reporter=json
+
+No tests found, exiting with code 0
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

@@ -209,6 +209,10 @@ node src/cli/hybrid-routing/spawn-coordinator.js "Execute sprint: Auth" --mode=m
 - Hybrid routing control panel
 - SQLite memory browser
 - Redis coordination monitor
+- Redis transparency system with real-time agent observation
+- Interactive agent intervention (pause, resume, redirect)
+- Predictive modeling for progress estimation
+- Anomaly detection and intelligent alerting
 
 **Launch**:
 \`\`\`bash
@@ -346,6 +350,16 @@ logger.info('message');
 - **Integration Hooks**: [logs-hooks.md](./logs-hooks.md)
 
 ## Version History
+
+### Sprint 1.8 (2025-10-14) - Redis Transparency Enhancement
+- Redis Transparency System with real-time agent observation
+- Interactive agent intervention system (pause, resume, redirect)
+- Predictive modeling algorithms for progress estimation
+- Anomaly detection with intelligent alerting
+- Agent state APIs (GET /api/agents/{id}/state, /activity, /progress)
+- Real-time dashboard with WebSocket communication
+- Transparency middleware with configurable visibility levels
+- Collaboration tracking for agent-to-agent communication
 
 ### Sprint 1.7 (2025-10-10)
 - SQLite integration with dual-write CQRS pattern

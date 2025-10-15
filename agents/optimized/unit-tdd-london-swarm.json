@@ -1,0 +1,53 @@
+{
+  "agentId": "unit/tdd-london-swarm",
+  "role": "Unit Test-Driven Development (London School) Specialist",
+  "capabilities": [
+    "unit-test-design",
+    "mocking-strategies",
+    "test-doubles",
+    "behavior-verification",
+    "code-refactoring",
+    "test-maintenance",
+    "design-feedback"
+  ],
+  "optimizations": {
+    "unitTestingStrategy": {
+      "londonSchool": {
+        "outsideIn": "start-with-acceptance",
+        "mockist": "test-interactions",
+        "behaviorFocus": "what-it-does",
+        "designDriving": "test-informs-design"
+      },
+      "testStructure": {
+        "given": "test-context-setup",
+        "when": "action-execution",
+        "then": "behavior-verification",
+        "cleanup": "resource-management"
+      },
+      "mockingPatterns": {
+        "externalDependencies": "mock-interfaces",
+        "collaborators": "interaction-verification",
+        "dataSources": "stub-responses",
+        "time": "time-machine-pattern"
+      }
+    },
+    "codeQuality": {
+      "coverage": "meaningful-coverage",
+      "maintainability": "readable-tests",
+      "performance": "fast-execution",
+      "isolation": "independent-tests"
+    },
+    "refactoringSupport": {
+      "safetyNet": "comprehensive-test-suite",
+      "designFeedback": "test-smells-detection",
+      "continuousImprovement": "test-evolution",
+      "documentation": "living-documentation"
+    }
+  },
+  "tools": ["jest", "testdouble", "sinon", "eslint-plugin-jest", "test-driven-development"],
+  "coordination": {
+    "tdd-london-swarm": "methodology-alignment",
+    "react-frontend-engineer": "component-unit-tests",
+    "state-architect": "logic-unit-tests"
+  }
+}

@@ -921,6 +921,45 @@ npm run portal:build    # Production build
 
 **Metrics**: +10.6% performance improvement, -86.9% adaptation latency (Stanford ACE research)
 
+## Redis Transparency System
+
+**Purpose**: Real-time agent observation and interactive intervention
+
+**Implementation**: Redis pub/sub messaging with React dashboard and WebSocket communication
+
+**Components**:
+- **Transparency Middleware**: Configurable visibility levels (minimal, standard, detailed)
+- **Agent State APIs**: GET /api/agents/{id}/state, /activity, /progress
+- **Real-time Dashboard**: React components for live monitoring
+- **Predictive Modeling**: ML algorithms for progress estimation
+- **Anomaly Detection**: Intelligent alerting for unusual behavior
+
+**Key Features**:
+- **Live Agent Monitoring**: Track state, progress, and performance in real-time
+- **Interactive Intervention**: Pause, resume, or redirect agents during execution
+- **Progress Prediction**: Estimate completion times based on historical patterns
+- **Collaboration Tracking**: Monitor agent-to-agent communication patterns
+- **Performance Analytics**: Token usage, execution time, error rates
+
+**Usage**:
+```bash
+# Launch transparency dashboard
+claude-flow-transparency-dashboard
+
+# Query agent state
+curl -X GET http://localhost:3001/api/v1/agents/coder-1/state
+
+# Monitor real-time updates
+redis-cli subscribe "swarm:transparency:*"
+```
+
+**Configuration**: Set transparency level in system configuration
+- `minimal`: Basic state information only
+- `standard`: State + progress + performance metrics
+- `detailed`: Full visibility including internal reasoning
+
+**Integration**: Automatically enabled for CFN Loop coordinators, manual launch available for other operations
+
 ## Related Documentation
 
 - [API](./logs-api.md) - Complete API reference

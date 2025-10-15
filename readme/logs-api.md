@@ -59,6 +59,98 @@ Claude Flow provides comprehensive APIs for AI agent orchestration, swarm coordi
 - **GET `/health`**: Health check endpoint
 - **GET `/api`**: API documentation endpoint
 
+### Agent Observation APIs
+
+**Purpose**: Real-time agent state monitoring and transparency system
+
+**Base URL**: `http://localhost:3001/api/v1`
+
+#### `/api/v1/agents/:agentId/state`
+- **GET /**: Get current agent state (idle, active, paused, error, completed)
+- **GET /transitions**: Get state transition history
+- **GET /timeline`: Get chronological state timeline
+
+**Response**:
+```json
+{
+  "agentId": "coder-1",
+  "state": "active",
+  "lastUpdated": 1697234567890,
+  "duration": 120000,
+  "progress": 0.65,
+  "confidence": 0.82
+}
+```
+
+#### `/api/v1/agents/:agentId/activity`
+- **GET /**: Get recent activity log
+- **GET /tools`: Get tool usage history
+- **GET /messages`: Get message exchange history
+
+**Response**:
+```json
+{
+  "agentId": "coder-1",
+  "activities": [
+    {
+      "timestamp": 1697234567890,
+      "type": "tool_use",
+      "tool": "bash_execute",
+      "duration": 5000,
+      "status": "completed"
+    }
+  ]
+}
+```
+
+#### `/api/v1/agents/:agentId/progress`
+- **GET /**: Get current progress metrics
+- **GET /prediction`: Get ML-based completion prediction
+- **GET /milestones`: Get milestone achievements
+
+**Response**:
+```json
+{
+  "agentId": "coder-1",
+  "progress": 0.65,
+  "estimatedCompletion": 1697235678900,
+  "confidence": 0.82,
+  "milestones": [
+    {
+      "name": "Code implementation",
+      "completed": true,
+      "timestamp": 1697234567890
+    }
+  ]
+}
+```
+
+#### `/api/v1/agents/:agentId/intervention`
+- **POST /pause**: Pause agent execution
+- **POST /resume**: Resume paused agent
+- **POST /redirect`: Redirect agent to new task
+
+**Request**:
+```json
+{
+  "action": "pause",
+  "reason": "Manual intervention for review"
+}
+```
+
+#### `/api/v1/transparency/stream`
+- **WebSocket**: Real-time agent state updates
+- **Events**: `state_change`, `progress_update`, `activity`, `error`
+
+**WebSocket Usage**:
+```javascript
+const socket = io('ws://localhost:3001');
+socket.emit('subscribe', { agents: ['coder-1', 'security-1'] });
+socket.on('agent:update', (data) => {
+  console.log('Agent state updated:', data);
+});
+```
+
 ### Web Portal API
 
 **Purpose**: REST and WebSocket API for web portal monitoring interface

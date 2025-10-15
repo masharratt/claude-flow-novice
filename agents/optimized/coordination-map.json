@@ -1,0 +1,67 @@
+{
+  "coordinationMatrix": {
+    "ui-designer": {
+      "react-frontend-engineer": ["design-specifications", "component-requirements", "design-tokens"],
+      "interaction-tester": ["user-flows", "accessibility-requirements", "interaction-patterns"],
+      "state-architect": ["ui-state-requirements", "data-flow-specifications"],
+      "mobile-dev": ["responsive-designs", "mobile-patterns", "touch-interactions"]
+    },
+    "react-frontend-engineer": {
+      "ui-designer": ["implementation-feedback", "technical-constraints"],
+      "state-architect": ["state-integration", "data-binding"],
+      "tester": ["component-coverage", "test-requirements"],
+      "code-booster": ["performance-optimization", "code-quality"],
+      "mobile-dev": ["responsive-components", "mobile-optimizations"]
+    },
+    "state-architect": {
+      "react-frontend-engineer": ["state-patterns", "data-flow"],
+      "ui-designer": ["state-driven-ui", "dynamic-content"],
+      "unit/tdd-london-swarm": ["state-logic-testing", "mock-strategies"],
+      "tester": ["state-testing-strategies", "integration-points"]
+    },
+    "interaction-tester": {
+      "ui-designer": ["design-validation", "usability-feedback"],
+      "react-frontend-engineer": ["component-interaction", "behavior-validation"],
+      "playwright-tester": ["user-flow-automation", "accessibility-testing"],
+      "mobile-dev": ["mobile-interactions", "touch-validation"]
+    },
+    "playwright-tester": {
+      "e2e/playwright-agent": ["test-implementation", "coverage-planning"],
+      "interaction-tester": ["user-flow-validation", "accessibility-testing"],
+      "mobile-dev": ["mobile-e2e", "device-testing"],
+      "production-validator": ["release-testing", "production-validation"]
+    },
+    "tdd-london-swarm": {
+      "unit/tdd-london-swarm": ["methodology-alignment", "test-patterns"],
+      "react-frontend-engineer": ["test-driven-development", "design-feedback"],
+      "tester": ["test-strategy", "quality-standards"],
+      "code-booster": ["refactoring-safety", "quality-improvement"]
+    },
+    "mobile-dev": {
+      "ui-designer": ["mobile-patterns", "responsive-requirements"],
+      "react-frontend-engineer": ["mobile-components", "performance"],
+      "playwright-tester": ["mobile-testing", "device-coverage"],
+      "production-validator": ["mobile-readiness", "performance-validation"]
+    },
+    "production-validator": {
+      "tester": ["quality-gates", "pre-deployment-validation"],
+      "validation/production-validator": ["compliance-checks", "standards-validation"],
+      "playwright-tester": ["production-testing", "smoke-tests"],
+      "code-booster": ["performance-validation", "quality-metrics"]
+    }
+  },
+  "sharedWorkflows": {
+    "feature-development": ["ui-designer", "react-frontend-engineer", "state-architect", "tdd-london-swarm"],
+    "testing-coverage": ["tester", "interaction-tester", "playwright-tester", "unit/tdd-london-swarm"],
+    "mobile-optimization": ["mobile-dev", "ui-designer", "react-frontend-engineer", "interaction-tester"],
+    "production-readiness": ["production-validator", "validation/production-validator", "tester", "code-booster"],
+    "quality-improvement": ["code-booster", "tester", "tdd-london-swarm", "production-validator"]
+  },
+  "communicationProtocols": {
+    "design-to-dev": "storybook-documentation",
+    "test-coordination": "test-plan-sharing",
+    "mobile-alignment": "responsive-breakpoint-agreement",
+    "quality-standards": "shared-linting-rules",
+    "production-deployment": "validation-checklist"
+  }
+}

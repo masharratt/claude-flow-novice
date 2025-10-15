@@ -1,139 +1,92 @@
-# Claude Flow Novice Documentation
+# Documentation Directory
 
-**AI Agent Orchestration Made Simple**
+This directory contains all project documentation organized into logical categories for improved maintainability and navigation.
 
-## Quick Start Paths
+## Directory Structure
 
-### 🚀 New Users
-- [Quick Start Guide](./guides/QUICK_START.md) - Get running in 5 minutes
-- [Installation](./guides/INSTALLATION.md) - Setup instructions
-- [User Guide](./guides/user/USER_GUIDE.md) - Complete user documentation
+### 📋 [`architecture/`](./architecture/)
+System design documents, architectural specifications, and technical architecture reports.
+- **Purpose**: Core system architecture and design documentation
+- **Contents**: Architecture designs, execution summaries, technical specifications
+- **Audience**: Architects, senior developers, technical leads
 
-### 💻 Developers
-- [Development Setup](./guides/DEVELOPMENT_SETUP.md)
-- [API Reference](./api/API.md)
-- [Examples](./guides/EXAMPLES.md)
+### 📅 [`planning/`](./planning/)
+Project planning documents, migration strategies, execution plans, and coordination reports.
+- **Purpose**: Project planning, roadmaps, and execution tracking
+- **Contents**: Backlog items, migration plans, cleanup strategies, coordination reports
+- **Audience**: Project managers, team leads, stakeholders
 
-### 🏗️ Architecture & Advanced
-- [System Architecture](./architecture/ARCHITECTURE.md)
-- [CFN Loop](./cfn-loop/CFN_LOOP_PHASE_ORCHESTRATION.md)
-- [Fleet Manager](./architecture/fleet-manager-design.md)
+### 🔍 [`analysis/`](./analysis/)
+Technical analysis reports, impact assessments, compatibility studies, and research findings.
+- **Purpose**: Technical analysis and research documentation
+- **Contents**: Breaking changes analysis, compatibility reports, risk assessments
+- **Audience**: Developers, analysts, technical decision makers
 
----
+### 🔌 [`api/`](./api/)
+API specifications, coordination documentation, and interface documentation.
+- **Purpose**: API and interface documentation
+- **Contents**: API specifications, structure documentation, coordination guides
+- **Audience**: Developers, API consumers, integration teams
 
-## Documentation Categories
+### 📖 [`guides/`](./guides/)
+Setup instructions, installation guides, configuration instructions, and user documentation.
+- **Purpose**: User guides and setup documentation
+- **Contents**: Installation guides, setup instructions, configuration help
+- **Audience**: Users, developers, DevOps teams
 
-### 📚 Core Documentation
+### 🧠 [`memory/`](./memory/)
+Historical documentation, project memory, and contextual information.
+- **Purpose**: Project memory and historical context
+- **Contents**: Project history, decision records, contextual documentation
+- **Audience**: Team members, project historians
 
-**[guides/](./guides/)** - User guides and tutorials
-- Quick start, installation, troubleshooting
-- User workflows and examples
-- Contributing guidelines
+## Navigation Tips
 
-**[api/](./api/)** - API documentation
-- API reference and configuration
-- Function catalog and routing
-- Validation guides
+### Finding Information
+1. **Architecture Questions** → Check [`architecture/`](./architecture/)
+2. **Project Planning** → Check [`planning/`](./planning/)
+3. **Technical Analysis** → Check [`analysis/`](./analysis/)
+4. **API Documentation** → Check [`api/`](./api/)
+5. **Setup Help** → Check [`guides/`](./guides/)
+6. **Project History** → Check [`memory/`](./memory/)
 
-**[reference/](./reference/)** - Reference materials
-- Changelogs and version history
-- Wiki and templates
-- General reference docs
+### Document Conventions
+- **README.md** files in each subdirectory provide category-specific overviews
+- Documents follow consistent naming conventions for easy identification
+- Cross-references are used to link related documentation
+- Most recent documents appear first in directory listings
 
-### 🔧 Development
+### File Naming Patterns
+- `ARCHITECTURE_*` → Architecture documents
+- `MIGRATION_*` → Migration-related documents  
+- `ROOT_CLEANUP_*` → Cleanup project documents
+- `BREAKING_CHANGES_*` → Impact analysis documents
+- `README-*` → Specific topic guides
 
-**[development/](./development/)** - Development workflows
-- SDK testing and integration
-- Development guides
-- Implementation references
+## Recent Changes
 
-**[integration/](./integration/)** - Integration & hooks
-- Slash commands
-- Workflow automation
-- Hook pipeline documentation
+This documentation structure was created as part of a root directory cleanup effort to improve project organization and maintainability. Previously, 87+ files were scattered in the root directory, making navigation difficult.
 
-**[testing/](./testing/)** - Testing & validation
-- Test guides and results
-- Validation reports
-- Testing frameworks
+### Migration Details
+- **Files Moved**: 75 documents from root directory
+- **Categories Created**: 6 logical documentation categories
+- **Date**: Current migration effort
+- **Purpose**: Improve maintainability and navigation
 
-### 🏛️ Architecture & Operations
+## Contributing
 
-**[architecture/](./architecture/)** - System design
-- System architecture
-- Agent coordination patterns
-- Fleet management
-- WASM acceleration
+When adding new documentation:
+1. Choose the appropriate category based on content and audience
+2. Follow existing naming conventions
+3. Update relevant README files if needed
+4. Add cross-references to related documents
+5. Consider the intended audience when writing
 
-**[cfn-loop/](./cfn-loop/)** - CFN Loop methodology
-- 4-loop architecture
-- Phase orchestration
-- Product Owner GOAP
+## Maintenance
 
-**[operations/](./operations/)** - Production operations
-- Deployment guides
-- Monitoring & APM
-- Runbooks and procedures
+- Regular review of document relevance and accuracy
+- Archive outdated documents rather than deleting
+- Update cross-references when documents are moved
+- Maintain consistent formatting and structure
 
-### 🔐 Security & Performance
-
-**[security/](./security/)** - Security documentation
-- Security practices
-- Authentication guides
-- Security audits
-
-**[performance/](./performance/)** - Performance optimization
-- WASM deliverables
-- Optimization guides
-- Performance tuning
-
-**[migration/](./migration/)** - Migration guides
-- Version migration paths
-- MCP deprecation notices
-- Upgrade guides
-
----
-
-## Common Tasks
-
-### Setting Up
-1. [Install Claude Flow Novice](./guides/INSTALLATION.md)
-2. [Run Setup Wizard](./guides/SETUP_WIZARD.md)
-3. [Your First Swarm](./guides/QUICK_START.md)
-
-### Building Applications
-1. [API Development](./api/API.md)
-2. [Using CFN Loop](./cfn-loop/CFN_LOOP_PHASE_ORCHESTRATION.md)
-3. [Testing Your Code](./testing/README.md)
-
-### Production Deployment
-1. [Deployment Checklist](./operations/DEPLOYMENT.md)
-2. [Security Hardening](./security/DEPLOYMENT_CHECKLIST.md)
-3. [Production Operations](./operations/PRODUCTION_OPERATIONS.md)
-
-### Troubleshooting
-- [Troubleshooting Guide](./guides/TROUBLESHOOTING.md)
-- [Error Messages](./guides/EXAMPLES.md)
-- [Common Issues](./operations/README.md)
-
----
-
-## Version Information
-
-**Current Version**: v1.7
-- WASM 40x acceleration (Sprints 1.2-1.4 COMPLETE)
-- Event Bus: 398,373 events/sec
-- Fleet Manager: 1000+ concurrent agents
-- Redis persistence and coordination
-
-**See Also**: [Migration Guide](./migration/V2_MIGRATION_GUIDE.md) for upgrading
-
----
-
-## Archive
-
-Historical documentation has been moved to [archive/](./archive/) for reference purposes.
-
----
-
-**Need Help?** Start with the [Quick Start Guide](./guides/QUICK_START.md) or [User Guide](./guides/user/USER_GUIDE.md)
+For questions about this documentation structure, refer to the main project README.md or contact the project team.
