@@ -18,7 +18,7 @@ async function testProviderRouting() {
       },
       anthropic: {
         apiKey: process.env.ANTHROPIC_API_KEY,
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'haiku',
       },
       routing: {
         enabled: true,

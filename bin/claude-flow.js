@@ -61,9 +61,10 @@ async function main() {
           child.kill('SIGTERM');
           setTimeout(() => {
             if (!child.killed) {
+              console.log('⚠️  Process did not terminate gracefully, sending SIGKILL...');
               child.kill('SIGKILL');
             }
-          }, 5000);
+          }, 30000); // Extended from 5 to 30 seconds for graceful shutdown
         }
       };
       

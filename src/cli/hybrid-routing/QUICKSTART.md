@@ -113,7 +113,7 @@ node src/cli/hybrid-routing/spawn-workers.js "Task" --redis-channel=swarm:custom
 
 ```bash
 # Use specific Claude model
-node src/cli/hybrid-routing/spawn-workers.js "Task" --model=claude-3-5-sonnet-20241022
+node src/cli/hybrid-routing/spawn-workers.js "Task" --model=haiku
 ```
 
 ## Integration with CFN Loop
@@ -234,5 +234,5 @@ node src/cli/hybrid-routing/spawn-workers.js "Task" --max-agents=N
 --redis-channel=swarm:custom
 
 # With model
---model=claude-3-5-sonnet-20241022
+--model=haiku
 ```

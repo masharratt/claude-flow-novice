@@ -308,7 +308,7 @@ if (existsSync(settingsPath)) {
 // Use detected provider for all spawned agents
 const agentConfig = {
   provider: provider,  // 'zai' in hybrid mode
-  model: provider === 'zai' ? 'glm-4.6' : 'claude-3-5-sonnet-20241022'
+  model: provider === 'zai' ? 'glm-4.6' : 'haiku'
 };
 ```
 

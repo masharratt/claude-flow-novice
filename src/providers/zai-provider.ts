@@ -51,14 +51,14 @@ interface ZaiCompletionResponse {
 export class ZaiProvider extends BaseProvider {
   readonly name: LLMProvider = "zai";
   readonly capabilities: ProviderCapabilities = {
-    supportedModels: ["claude-3-5-sonnet-20241022", "glm-4.5", "glm-4.6"],
+    supportedModels: ["haiku", "glm-4.5", "glm-4.6"],
     maxContextLength: {
-      "claude-3-5-sonnet-20241022": 200000,
+      "haiku": 200000,
       "glm-4.5": 128000,
       "glm-4.6": 200000,
     } as Record<LLMModel, number>,
     maxOutputTokens: {
-      "claude-3-5-sonnet-20241022": 8192,
+      "haiku": 8192,
       "glm-4.5": 4096,
       "glm-4.6": 128000,
     } as Record<LLMModel, number>,
@@ -73,7 +73,7 @@ export class ZaiProvider extends BaseProvider {
     supportsLogprobs: false,
     supportsBatching: false,
     pricing: {
-      "claude-3-5-sonnet-20241022": {
+      "haiku": {
         promptCostPer1k: 0.003,
         completionCostPer1k: 0.015,
         currency: "USD",
@@ -396,13 +396,13 @@ export class ZaiProvider extends BaseProvider {
 
   async getModelInfo(model: LLMModel): Promise<ModelInfo> {
     const modelNames: Record<string, string> = {
-      "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
+      "haiku": "Claude 3.5 Sonnet",
       "glm-4.5": "GLM-4.5",
       "glm-4.6": "GLM-4.6",
     };
 
     const modelDescriptions: Record<string, string> = {
-      "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet via Z.ai",
+      "haiku": "Claude 3.5 Sonnet via Z.ai",
       "glm-4.5": "GLM-4.5 via Z.ai - 128K context",
       "glm-4.6": "GLM-4.6 via Z.ai - 200K context, 128K max output",
     };

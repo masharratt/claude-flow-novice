@@ -247,7 +247,7 @@ From **ENTERPRISE_COORDINATION_FINAL_REPORT.md**:
 **Provider Implementation:**
 - Location: `src/providers/zai-provider.ts`
 - Features: Streaming, metrics, error handling, retry logic
-- Models: glm-4.5, glm-4.6, claude-3-5-sonnet-20241022
+- Models: glm-4.5, glm-4.6, haiku
 - Pricing: $0.003/1K input, $0.015/1K output
 
 **Conclusion:** Z.ai API fully configured, tested, and production-ready. 350+ successful API calls validated.

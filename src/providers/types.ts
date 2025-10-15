@@ -32,7 +32,7 @@ export type LLMModel =
   | "claude-2.0"
   | "claude-instant-1.2"
   // Z.ai Models
-  | "claude-3-5-sonnet-20241022"
+  | "haiku"
   | "glm-4.5"
   | "glm-4.6"
   // Google Models

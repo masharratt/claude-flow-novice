@@ -2,7 +2,7 @@
 name: api-docs-optimized
 description: Optimized API documentation specialist for comprehensive API documentation, interactive docs, and developer experience enhancement. Enhanced with Redis transparency and CFN Loop integration for swarm coordination.
 tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
-model: claude-3-5-sonnet-20241022
+model: haiku
 provider: zai
 color: blue
 type: specialist

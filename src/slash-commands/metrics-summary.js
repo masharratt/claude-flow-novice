@@ -61,13 +61,13 @@ function estimateCost(inputTokens, outputTokens, model, provider) {
   // Pricing per 1K tokens (USD)
   const pricing = {
     'anthropic': {
-      'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
+      'haiku': { input: 0.003, output: 0.015 },
       'claude-3-sonnet-20240229': { input: 0.003, output: 0.015 },
     },
     'z.ai': {
       'glm-4.5': { input: 0.003, output: 0.015 },
       'glm-4.6': { input: 0.003, output: 0.015 },
-      'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
+      'haiku': { input: 0.003, output: 0.015 },
     },
   };
 

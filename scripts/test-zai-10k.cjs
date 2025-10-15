@@ -23,7 +23,7 @@ console.log('\n🚀 Z.ai API Test - 10K Max Tokens\n');
 console.log('='.repeat(80) + '\n');
 
 const payload = {
-  model: 'claude-3-5-sonnet-20241022',
+  model: 'haiku',
   max_tokens: 10000,
   messages: [
     { role: 'user', content: 'Write a haiku about AI and coding. Then explain why you chose those words.' }

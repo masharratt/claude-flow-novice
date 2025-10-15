@@ -44,7 +44,7 @@ fetch('https://api.z.ai/api/anthropic/v1/messages', {
     'anthropic-version': '2023-06-01'
   },
   body: JSON.stringify({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'haiku',
     messages: [{ role: 'user', content: 'Hello' }],
     max_tokens: 50
   })

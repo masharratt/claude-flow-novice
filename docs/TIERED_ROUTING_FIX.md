@@ -42,7 +42,7 @@ Reference implementation from [agentic-flow](https://github.com/ruvnet/agentic-f
         },
         "action": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022"
+          "model": "haiku"
         }
       }
     ]

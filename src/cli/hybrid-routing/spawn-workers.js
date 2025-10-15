@@ -130,8 +130,8 @@ class HybridWorkerSpawner {
     this.maxAgents = options.maxAgents || 3;
     this.redisChannel = options.redisChannel || 'swarm:workers';
     this.taskDescription = options.task || 'Execute task';
-    this.timeout = options.timeout || 1800000; // 1800 seconds (30 minutes) for complex multi-step tasks
-    this.model = options.model || 'claude-3-5-sonnet-20241022';
+    this.timeout = options.timeout || 3600000; // 3600 seconds (60 minutes) for complex multi-step tasks
+    this.model = options.model || 'haiku';
 
     // REQUIRED: Agent types must be specified
     this.agentOverride = options.agentOverride || null; // Array of agent types: ['coder', 'architect', 'tester']
@@ -1247,7 +1247,7 @@ async function main() {
   const maxAgents = parseInt(parseArg(args, 'max-agents', '3'));
   const provider = parseArg(args, 'provider', 'zai');
   const redisChannel = parseArg(args, 'redis-channel', 'swarm:workers');
-  const model = parseArg(args, 'model', 'claude-3-5-sonnet-20241022');
+  const model = parseArg(args, 'model', 'haiku');
 
   // Coordinator override arguments
   const agentOverrideArg = parseArg(args, 'agents');
@@ -1283,7 +1283,7 @@ OPTIONS:
   --redis-channel CH     Redis pub/sub channel (default: swarm:workers)
   --redis-channel=CH     Alternate format with equals sign
 
-  --model MODEL          Model name (default: claude-3-5-sonnet-20241022)
+  --model MODEL          Model name (default: haiku)
   --model=MODEL          Alternate format with equals sign
 
   --subtasks T1|T2|T3    Custom subtasks (pipe-separated, optional, used with --agents)

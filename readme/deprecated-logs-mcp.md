@@ -1,8 +1,26 @@
-# Claude Flow MCP Documentation
+# Claude Flow MCP Documentation - ⚠️ DEPRECATED
 
-## Overview
+## ⚠️ DEPRECATED IN v2.0.0 (October 9, 2025)
 
-Claude Flow implements a comprehensive Model Context Protocol (MCP) system that provides external AI models with access to agent orchestration, fleet management, swarm coordination, monitoring, and development tools. The MCP integration enables seamless Claude Code integration with 44+ essential tools for AI-powered development workflows, including advanced fleet management, event bus architecture, multi-national compliance, and WASM 40x performance optimization capabilities.
+**Status**: This entire MCP system has been removed and replaced with CLI-based architecture.
+
+**Migration Required**: See [MCP Deprecation Notice](../MCP_DEPRECATION_NOTICE.md) for complete migration guide.
+
+---
+
+## Historical Overview
+
+**This documentation describes a DEPRECATED system.** Claude Flow previously implemented a comprehensive Model Context Protocol (MCP) system that provided external AI models with access to agent orchestration, fleet management, swarm coordination, monitoring, and development tools. The MCP integration enabled seamless Claude Code integration with 44+ essential tools for AI-powered development workflows, including advanced fleet management, event bus architecture, multi-national compliance, and WASM 40x performance optimization capabilities.
+
+### ❌ What Was Removed
+
+All MCP functionality described in this document has been **completely deprecated**:
+
+- **44 MCP Tools** → Replaced with CLI slash commands
+- **MCP Server** → Replaced with unified CLI (`claude-flow-novice start`)
+- **MCP Client** → Replaced with CLI wrapper SDK
+- **MCP Resources** → Replaced with SQLite memory system
+- **MCP Protocol** → Replaced with Redis pub/sub coordination
 
 ## MCP Server Configuration
 
@@ -830,10 +848,58 @@ await mcp.call('memory_usage', {
 - **Session Cleanup**: Expired session removal
 - **Backup Operations**: Regular data backups
 
+## Migration Guide (MCP → CLI)
+
+### Complete Command Mapping
+
+| MCP Command | CLI Replacement | Status |
+|------------|-----------------|---------|
+| `mcp://swarm_init` | `claude-flow-novice swarm init <objective>` | ✅ Available |
+| `mcp://agent_spawn` | `claude-flow-novice swarm spawn <agent> <task>` | ✅ Available |
+| `mcp://fleet_scale` | `claude-flow-novice fleet scale --target <n>` | ✅ Available |
+| `mcp://memory_store` | `claude-flow-novice memory store <key> --value <val>` | ✅ Available |
+| `mcp://performance_report` | `claude-flow-novice performance report` | ✅ Available |
+| `mcp://task_orchestrate` | `/cfn-loop "Task description"` | ✅ Available |
+| `mcp://health_check` | `claude-flow-novice monitor health` | ✅ Available |
+
+### Programmatic Migration
+
+**Old (MCP):**
+```javascript
+import { MCPClient } from 'claude-flow-novice/mcp/client';
+const client = new MCPClient({ transport });
+await client.request('swarm_init', { objective: 'Build API' });
+```
+
+**New (CLI):**
+```javascript
+import { ClaudeFlowCLI } from 'claude-flow-novice';
+const cli = new ClaudeFlowCLI();
+await cli.swarm.init({ objective: 'Build API' });
+```
+
+### Current Architecture
+
+The MCP system has been replaced with:
+
+1. **Hybrid CLI Routing** with typed agent spawning
+2. **Redis Pub/Sub Coordination** for agent communication
+3. **SQLite Memory System** for persistent state
+4. **CFN Loop** for autonomous workflows
+5. **Slash Commands** for direct tool access
+
+---
+
 ## Related Documentation
 
-- [API](./logs-api.md) - Complete API reference
-- [Features](./logs-features.md) - Available logging features
-- [Functions](./logs-functions.md) - Utility functions
-- [Hooks](./logs-hooks.md) - System integration points
-- [Slash Commands](./logs-slash-commands.md) - CLI operations
+- **[Migration Guide](../MCP_DEPRECATION_NOTICE.md)** - Complete deprecation migration
+- **[Slash Commands](./logs-slash-commands.md)** - Current CLI operations (replaces MCP tools)
+- **[CLI Redis Coordination](./logs-cli-redis.md)** - Current coordination system (replaces MCP protocol)
+- **[Features](./logs-features.md)** - Current available features
+- **[API](./logs-api.md)** - Current REST/MCP/CLI APIs
+- **[Functions](./logs-functions.md)** - Current utility functions
+- **[Hooks](./logs-hooks.md)** - Current system integration points
+
+---
+
+**⚠️ Remember: This entire MCP system is DEPRECATED. Use the CLI-based architecture instead.**

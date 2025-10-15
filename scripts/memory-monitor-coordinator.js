@@ -21,6 +21,20 @@ class MemoryMonitor {
     this.monitoring = false;
     this.samples = [];
     this.startTime = Date.now();
+
+    // Process-specific memory history for growth rate analysis
+    this.processHistory = {};
+
+    // Context-aware thresholds for different process types
+    this.thresholds = {
+      'cfn-coordinator-mvp': { memory: 2000, timeout: 3600000 }, // Higher limit for coordinators
+      'cfn-coordinator-standard': { memory: 2000, timeout: 3600000 },
+      'cfn-coordinator-enterprise': { memory: 3000, timeout: 7200000 },
+      'spawn-coordinator': { memory: 1500, timeout: 1800000 },
+      'spawn-workers': { memory: 1500, timeout: 1800000 },
+      'node': { memory: 1000, timeout: 900000 },
+      'default': { memory: 1500, timeout: 1800000 }
+    };
   }
 
   /**
@@ -78,13 +92,46 @@ class MemoryMonitor {
 
         this.samples.push(sample);
 
+        // Track process-specific memory history
+        const processKey = `${proc.pid}-${proc.name}`;
+        if (!this.processHistory[processKey]) {
+          this.processHistory[processKey] = [];
+        }
+        this.processHistory[processKey].push({
+          timestamp: now,
+          memory: proc.rss,
+          cpu: proc.cpu
+        });
+
+        // Keep only last 30 samples per process for growth rate analysis
+        if (this.processHistory[processKey].length > 30) {
+          this.processHistory[processKey] = this.processHistory[processKey].slice(-30);
+        }
+
         // Log to file
         const logLine = `${sample.timestamp},${sample.pid},${sample.name},${sample.cpu},${sample.mem},${sample.rss},${sample.vsz},${sample.elapsed}`;
         await this.writeLog(logLine);
 
-        // Console output for significant memory usage
-        if (proc.rss > 500) { // More than 500MB
-          console.log(`⚠️  High memory detected: PID ${proc.pid} (${proc.name}) - ${proc.rss}MB RSS, ${proc.cpu}% CPU`);
+        // Get context-aware threshold for this process
+        const processThreshold = this.getThresholdForProcess(proc.name, proc.pid);
+        const warningThreshold = processThreshold.memory * 0.7; // Warning at 70%
+        const criticalThreshold = processThreshold.memory;
+
+        // Console output for graduated memory warnings
+        if (proc.rss > warningThreshold) {
+          console.log(`⚠️  Moderate memory usage: PID ${proc.pid} (${proc.name}) - ${proc.rss}MB RSS (threshold: ${processThreshold.memory}MB)`);
+        }
+        if (proc.rss > criticalThreshold) {
+          console.log(`🚨 High memory detected: PID ${proc.pid} (${proc.name}) - ${proc.rss}MB RSS (exceeds threshold: ${processThreshold.memory}MB)`);
+        }
+
+        // Check for concerning memory growth patterns (only if we have enough history)
+        if (this.processHistory[processKey].length >= 10) {
+          const growthAnalysis = this.analyzeMemoryGrowth(this.processHistory[processKey]);
+          if (growthAnalysis.isLeaking) {
+            console.log(`🚨 POTENTIAL MEMORY LEAK: PID ${proc.pid} (${proc.name}) - ${growthAnalysis.growthRate.toFixed(2)}MB/s sustained growth`);
+            console.log(`   💡 This is based on sustained growth pattern, not temporary spikes`);
+          }
         }
       }
 
@@ -187,6 +234,85 @@ class MemoryMonitor {
   }
 
   /**
+   * Get context-aware threshold for a process
+   */
+  getThresholdForProcess(processName, pid) {
+    // Check if process name matches any specific thresholds
+    if (this.thresholds[processName]) {
+      return this.thresholds[processName];
+    }
+
+    // Check for coordinator processes by examining command line
+    if (processName === 'node' && this.hasCoordinatorArgs(pid)) {
+      const cmdline = require('fs').readFileSync(`/proc/${pid}/cmdline`, 'utf8');
+      if (cmdline.includes('cfn-coordinator-mvp')) {
+        return this.thresholds['cfn-coordinator-mvp'];
+      } else if (cmdline.includes('cfn-coordinator-standard')) {
+        return this.thresholds['cfn-coordinator-standard'];
+      } else if (cmdline.includes('cfn-coordinator-enterprise')) {
+        return this.thresholds['cfn-coordinator-enterprise'];
+      } else if (cmdline.includes('spawn-coordinator') || cmdline.includes('spawn-workers')) {
+        return this.thresholds['spawn-coordinator'];
+      }
+    }
+
+    // Default threshold
+    return this.thresholds['default'];
+  }
+
+  /**
+   * Analyze memory growth pattern to distinguish leaks from legitimate usage
+   */
+  analyzeMemoryGrowth(history) {
+    if (history.length < 5) {
+      return { isLeaking: false, growthRate: 0 };
+    }
+
+    // Calculate growth rate over recent history (last 10 samples)
+    const recent = history.slice(-10);
+    const timeSpan = recent[recent.length - 1].timestamp - recent[0].timestamp;
+    const memoryGrowth = recent[recent.length - 1].memory - recent[0].memory;
+    const growthRate = timeSpan > 0 ? (memoryGrowth / (timeSpan / 1000)) : 0; // MB/second
+
+    // Check for consistent growth pattern
+    const consistentGrowth = this.isConsistentGrowth(recent);
+
+    // Only flag as leak if:
+    // 1. Growth rate is significant (> 3MB/s)
+    // 2. Growth is consistent (not just spikes)
+    // 3. Total growth is substantial (> 50MB in analysis window)
+    const isLeaking = growthRate > 3.0 && consistentGrowth && memoryGrowth > 50;
+
+    return {
+      isLeaking,
+      growthRate,
+      memoryGrowth,
+      consistent: consistentGrowth
+    };
+  }
+
+  /**
+   * Check if memory growth is consistent vs temporary spikes
+   */
+  isConsistentGrowth(samples) {
+    if (samples.length < 3) return false;
+
+    let increasingSegments = 0;
+    let totalSegments = 0;
+
+    for (let i = 1; i < samples.length; i++) {
+      totalSegments++;
+      if (samples[i].memory > samples[i - 1].memory) {
+        increasingSegments++;
+      }
+    }
+
+    // Consistent growth means at least 70% of segments are increasing
+    const consistencyRatio = increasingSegments / totalSegments;
+    return consistencyRatio > 0.7;
+  }
+
+  /**
    * Write to log file
    */
   async writeLog(line) {
@@ -260,15 +386,16 @@ class MemoryMonitor {
       console.log(`   CPU: ${minCpu}% → ${maxCpu}% (avg: ${avgCpu.toFixed(1)}%)`);
       console.log(`   Samples: ${samples.length}`);
 
-      // Check for memory leak pattern
+      // Check for memory leak pattern with more realistic thresholds
       const memoryGrowth = maxMemory - minMemory;
       const memoryGrowthRate = memoryGrowth / (samples.length * this.interval / 1000); // MB/second
 
-      if (memoryGrowth > 100) { // More than 100MB growth
+      if (memoryGrowth > 500) { // More than 500MB growth (increased from 100MB)
         console.log(`   ⚠️  Memory growth: ${memoryGrowth}MB (${memoryGrowthRate.toFixed(2)}MB/s)`);
 
-        if (memoryGrowthRate > 1.0) { // More than 1MB/second
+        if (memoryGrowthRate > 5.0) { // More than 5MB/second (increased from 1MB/s)
           console.log(`   🚨 POTENTIAL MEMORY LEAK DETECTED!`);
+          console.log(`   💡 Consider monitoring longer before killing - legitimate file operations can cause temporary spikes`);
         }
       }
 
@@ -300,7 +427,7 @@ class MemoryMonitor {
 async function monitorCoordinator(args = []) {
   const options = {
     interval: 2000, // 2 seconds
-    maxDuration: 60000, // 1 minute for quick test
+    maxDuration: 300000, // 5 minutes for realistic monitoring (increased from 1 minute)
     logFile: './coordinator-memory.log'
   };
 

@@ -98,7 +98,7 @@ claude  # Now routes through proxy!
 ```typescript
 // Anthropic request format
 {
-  model: "claude-3-5-sonnet-20241022",
+  model: "haiku",
   messages: [{ role: "user", content: "Hello" }],
   max_tokens: 1024,
   system: "You are a helpful assistant",

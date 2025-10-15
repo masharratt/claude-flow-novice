@@ -400,7 +400,7 @@ class AgentExecutor {
       // 4. Call LLM via ProviderManager
       const request: LLMRequest = {
         messages: currentMessages,
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'haiku',
         maxTokens: 8192,
         temperature: 0.7,
       };

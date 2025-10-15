@@ -29,7 +29,7 @@ const APPROVED_TOOLS = [
 ];
 
 const APPROVED_MODELS = [
-  'sonnet', 'haiku', 'opus', 'sonnet-3-5', 'sonnet-4-5', 'claude-3-5-sonnet-20241022'
+  'sonnet', 'haiku', 'opus', 'sonnet-3-5', 'sonnet-4-5', 'haiku'
 ];
 
 const VALID_COLOR_FORMATS = [
