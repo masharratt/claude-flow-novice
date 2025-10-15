@@ -133,7 +133,7 @@ class HybridWorkerSpawner {
     this.timeout = options.timeout || 1800000; // 1800 seconds (30 minutes) for complex multi-step tasks
     this.model = options.model || 'claude-3-5-sonnet-20241022';
 
-    // Coordinator override: Allow manual agent selection
+    // REQUIRED: Agent types must be specified
     this.agentOverride = options.agentOverride || null; // Array of agent types: ['coder', 'architect', 'tester']
     this.subtaskOverride = options.subtaskOverride || null; // Array of custom subtasks (optional)
 
@@ -143,6 +143,9 @@ class HybridWorkerSpawner {
 
     // Agent discovery caching
     this.cachedAgents = null; // Lazy-loaded and cached agent definitions
+
+    // Valid agent types (loaded from AVAILABLE-AGENTS.md or .claude/agents/)
+    this.validAgentTypes = null; // Lazy-loaded list of valid agent types
 
     // Initialize Anthropic client based on provider
     const apiKey = this.provider === 'zai'
@@ -447,7 +450,7 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
       let inputTokens = 0;
       let outputTokens = 0;
       let toolUseCount = 0;
-      const MAX_TOOL_ITERATIONS = 25; // Increased from 10 to allow complex multi-step tasks
+      const MAX_TOOL_ITERATIONS = 1000; // Increased from 25 to allow comprehensive optimization tasks
       let content = '';
 
       // Tool use loop
@@ -685,6 +688,45 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
 
     // No restrictions - allow all
     return true;
+  }
+
+  /**
+   * Get list of valid agent types from AVAILABLE-AGENTS.md or .claude/agents/
+   */
+  async getValidAgentTypes() {
+    // Return cached list if available
+    if (this.validAgentTypes) {
+      return this.validAgentTypes;
+    }
+
+    const agents = await this.loadAgentDefinitions();
+    this.validAgentTypes = Object.keys(agents).sort();
+    return this.validAgentTypes;
+  }
+
+  /**
+   * Validate agent types against allowed list
+   * Throws error if invalid types are found
+   */
+  async validateAgentTypes(agentTypes) {
+    if (!agentTypes || agentTypes.length === 0) {
+      return; // No validation needed if no types specified
+    }
+
+    const validTypes = await this.getValidAgentTypes();
+    const invalidTypes = agentTypes.filter(type => !validTypes.includes(type));
+
+    if (invalidTypes.length > 0) {
+      const errorMsg = [
+        `❌ Invalid agent type(s): ${invalidTypes.join(', ')}`,
+        '',
+        `Valid agent types (${validTypes.length} available):`,
+        ...validTypes.map(t => `  • ${t}`),
+        '',
+        'Use --list-agents to see all available agents'
+      ].join('\n');
+      throw new Error(errorMsg);
+    }
   }
 
   /**
@@ -1223,10 +1265,16 @@ async function main() {
 🤖 Hybrid Routing CLI - Spawn Real Claude Agents
 
 USAGE:
-  node src/cli/hybrid-routing/spawn-workers.js "Task description" [OPTIONS]
+  node src/cli/hybrid-routing/spawn-workers.js "Task description" --agents=TYPE1,TYPE2 [OPTIONS]
+
+REQUIRED:
+  --agents TYPE1,TYPE2   Agent types to spawn (comma-separated, REQUIRED)
+  --agents=TYPE1,TYPE2   Must be valid types from AVAILABLE-AGENTS.md
+                         Example: --agents=coder → spawns 1 coder
+                         Example: --agents=coder,tester → spawns 2 agents
 
 OPTIONS:
-  --max-agents N         Number of workers to spawn (default: 3)
+  --max-agents N         Number of workers to spawn (default: matches agent count)
   --max-agents=N         Alternate format with equals sign
 
   --provider PROVIDER    Provider: zai or anthropic (default: zai)
@@ -1238,11 +1286,6 @@ OPTIONS:
   --model MODEL          Model name (default: claude-3-5-sonnet-20241022)
   --model=MODEL          Alternate format with equals sign
 
-  --agents TYPE1,TYPE2   Coordinator override: Specify agent types (comma-separated)
-  --agents=TYPE1,TYPE2   Spawns ONLY the specified types (count = types provided)
-                         Example: --agents coder → spawns 1 coder
-                         Example: --agents=coder,tester → spawns 2 agents
-
   --subtasks T1|T2|T3    Custom subtasks (pipe-separated, optional, used with --agents)
   --subtasks=T1|T2|T3    Alternate format with equals sign
 
@@ -1252,43 +1295,31 @@ OPTIONS:
 
 NOTE: Both --flag value and --flag=value formats are supported
 
-AGENT SELECTION MODES:
+AGENT VALIDATION:
+  All agent types are validated against:
+  - .claude/agents/ folder (50+ agent definitions)
+  - src/cli/hybrid-routing/AVAILABLE-AGENTS.md (documentation)
 
-  1. AUTOMATIC (default): Keyword-based matching selects best agents
-     node src/cli/hybrid-routing/spawn-workers.js "Build auth system" --max-agents=3
-     → Automatically assigns: coder, security-specialist, tester
-
-  2. COORDINATOR OVERRIDE: Manually specify agent types
-     node src/cli/hybrid-routing/spawn-workers.js "Build feature" --max-agents=3 \\
-       --agents=architect,coder,tester
-     → Uses specified agents in order
-
-  3. FULL OVERRIDE: Custom agents + custom subtasks
-     node src/cli/hybrid-routing/spawn-workers.js "Complex task" --max-agents=2 \\
-       --agents=coder,security-specialist \\
-       --subtasks="Implement OAuth2 flow|Audit authentication security"
+  Invalid agent types will be rejected with error message showing valid options.
 
 EXAMPLES:
-  # List available agents
+  # List available agents (REQUIRED before first use)
   node src/cli/hybrid-routing/spawn-workers.js --list-agents
   node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
 
-  # Automatic agent selection (keyword-based)
-  node src/cli/hybrid-routing/spawn-workers.js "Build auth system" --max-agents=3
-
-  # Coordinator override: Force specific agents
+  # Spawn specific agent types
   node src/cli/hybrid-routing/spawn-workers.js "Refactor API" \\
-    --max-agents=3 --agents=architect,coder,reviewer
+    --agents=architect,coder,reviewer
 
-  # Full override: Custom agents + custom subtasks
+  # Custom agents + custom subtasks
   node src/cli/hybrid-routing/spawn-workers.js "Security review" \\
-    --max-agents=2 \\
     --agents=security-specialist,reviewer \\
     --subtasks="Audit authentication system|Review authorization logic"
 
   # Use Anthropic provider instead of z.ai
   node src/cli/hybrid-routing/spawn-workers.js "Analyze code" \\
-    --max-agents=5 --provider=anthropic
+    --agents=analyst,code-analyzer \\
+    --provider=anthropic
 
 ENVIRONMENT:
   Z_AI_API_KEY          API key for z.ai provider
@@ -1320,6 +1351,34 @@ ENVIRONMENT:
   if (listByCategory) {
     await spawner.listAgentsByCategory();
     process.exit(0);
+  }
+
+  // REQUIRED: Validate that --agents flag is provided
+  if (!agentOverride || agentOverride.length === 0) {
+    console.error(`❌ ERROR: --agents flag is REQUIRED
+
+Usage:
+  node src/cli/hybrid-routing/spawn-workers.js "Task" --agents=TYPE1,TYPE2
+
+Examples:
+  --agents=coder
+  --agents=architect,coder,tester
+
+To see available agent types:
+  --list-agents          (flat list)
+  --agents-by-category   (grouped by category)
+
+Run --help for full documentation.
+`);
+    process.exit(1);
+  }
+
+  // Validate agent types against allowed list
+  try {
+    await spawner.validateAgentTypes(agentOverride);
+  } catch (error) {
+    console.error(`\n${error.message}\n`);
+    process.exit(1);
   }
 
   try {
