@@ -916,11 +916,3 @@ main();
 
 export default HooksIntegrationSystem;
 export { HooksIntegrationSystem };
-`;
-  }
-
-  // Additional helper methods would continue here...
-}
-
-export default HooksIntegrationSystem;
-export { HooksIntegrationSystem };

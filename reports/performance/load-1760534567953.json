@@ -1,0 +1,13 @@
+{
+  "results": [
+    {
+      "name": "load-test-swarm-operations",
+      "success": true,
+      "result": {
+        "duration": 349,
+        "operation": "swarm-coordination"
+      }
+    }
+  ],
+  "summary": "Completed 1 tests"
+}
