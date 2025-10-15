@@ -83,7 +83,7 @@ async function test() {
     {
       name: 'Test 1: Simple greeting (10K tokens)',
       payload: {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'haiku',
         max_tokens: 10000,
         messages: [{ role: 'user', content: 'Reply with exactly: "Hello from Z.ai GLM-4.6!"' }]
       }
@@ -91,7 +91,7 @@ async function test() {
     {
       name: 'Test 2: Code generation (10K tokens)',
       payload: {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'haiku',
         max_tokens: 10000,
         messages: [{ role: 'user', content: 'Write a complete JavaScript class for managing a todo list with add, remove, and list methods. Include comments.' }]
       }

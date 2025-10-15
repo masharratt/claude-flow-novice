@@ -10,7 +10,7 @@ const http = require('http');
 
 const API_KEY = process.env.Z_AI_API_KEY || process.env.ZAI_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN;
 const BASE_URL = 'https://api.z.ai/api/anthropic';
-const DEFAULT_MODEL = 'claude-3-5-sonnet-20241022';
+const DEFAULT_MODEL = 'haiku';
 
 function makeRequest(options, data) {
   return new Promise((resolve, reject) => {

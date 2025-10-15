@@ -34,7 +34,7 @@ async function testZaiDirectCall() {
   console.log(`⏰ Timestamp: ${new Date().toISOString()}\n`);
 
   const payload = {
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'haiku',
     messages: [
       {
         role: 'user',

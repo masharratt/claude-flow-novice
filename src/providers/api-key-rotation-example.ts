@@ -87,7 +87,7 @@ export class ZaiProviderWithRotation {
   async complete(messages: Array<{ role: string; content: string }>) {
     try {
       const response = await this.rotator.makeRequest({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'haiku',
         messages,
         temperature: 0.7,
         max_tokens: 8192,

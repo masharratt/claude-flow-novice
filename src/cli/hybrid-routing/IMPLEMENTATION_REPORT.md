@@ -220,7 +220,7 @@ node src/cli/hybrid-routing/spawn-workers.js "Build authentication system" --max
 ```
 🚀 Spawning 5 workers for task: "Build authentication system"
 📡 Provider: zai
-📊 Model: claude-3-5-sonnet-20241022
+📊 Model: haiku
 
 ✅ Redis connection established
 ✅ SQLite memory adapter initialized

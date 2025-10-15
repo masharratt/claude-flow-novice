@@ -48,7 +48,7 @@ node src/cli/hybrid-routing/spawn-workers.js "Create REST API" --redis-channel=s
 | `--max-agents=N` | Number of workers to spawn | 3 |
 | `--provider=PROVIDER` | Provider: `zai` or `anthropic` | `zai` |
 | `--redis-channel=CH` | Redis pub/sub channel | `swarm:workers` |
-| `--model=MODEL` | Model name | `claude-3-5-sonnet-20241022` |
+| `--model=MODEL` | Model name | `haiku` |
 | `--help, -h` | Show help message | - |
 
 ### Environment Variables
@@ -108,7 +108,7 @@ Workers spawned:
 ```
 🚀 Spawning 3 workers for task: "Build authentication system"
 📡 Provider: zai
-📊 Model: claude-3-5-sonnet-20241022
+📊 Model: haiku
 
 ✅ Redis connection established
 ✅ SQLite memory adapter initialized

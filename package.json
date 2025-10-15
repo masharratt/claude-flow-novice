@@ -178,7 +178,7 @@
     "dotenv": "^16.6.1",
     "eventemitter3": "^5.0.0",
     "express": "^5.1.0",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "^11.3.2",
     "glob": "^10.4.5",
     "helmet": "^7.2.0",
     "inquirer": "^9.3.8",

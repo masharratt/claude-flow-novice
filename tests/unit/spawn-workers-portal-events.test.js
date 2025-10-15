@@ -130,7 +130,7 @@ describe('spawn-workers.js - Socket.IO Portal Events', () => {
         agentType: 'coder',
         subtask: 'Implement authentication',
         provider: 'zai',
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'haiku',
         timestamp: Date.now()
       });
 
@@ -140,7 +140,7 @@ describe('spawn-workers.js - Socket.IO Portal Events', () => {
         agentType: 'coder',
         subtask: 'Implement authentication',
         provider: 'zai',
-        model: 'claude-3-5-sonnet-20241022'
+        model: 'haiku'
       }));
     });
 

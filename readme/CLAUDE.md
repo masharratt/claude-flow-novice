@@ -72,9 +72,9 @@
 - Utility functions and helper APIs
 - Memory management utilities, coordination helpers, performance optimization
 
-**[logs-mcp.md](./logs-mcp.md)**
-- Model Context Protocol integration
-- MCP server SDK (30 essential tools), tool discovery, session management
+**[deprecated-logs-mcp.md](./deprecated-logs-mcp.md)** - ⚠️ DEPRECATED
+- Historical MCP documentation (removed in v2.0.0)
+- Migration guide to CLI-based architecture
 
 **[logs-cli-redis.md](./logs-cli-redis.md)**
 - Redis CLI integration and command reference

@@ -61,7 +61,7 @@ const tests = [
   {
     name: 'Claude via /v1/chat/completions',
     url: 'https://api.z.ai/v1/chat/completions',
-    model: 'claude-3-5-sonnet-20241022'
+    model: 'haiku'
   },
   {
     name: 'Check /v1/models endpoint',

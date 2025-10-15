@@ -5,7 +5,7 @@
  * Copies .claude directory from node_modules to project root
  */
 
-import { existsSync, copySync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, copySync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
