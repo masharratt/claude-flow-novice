@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy",
   "type": "module",
   "mcpName": "io.github.ruvnet/claude-flow",
@@ -9,6 +9,7 @@
     "claude-flow-novice": "dist/src/cli/main.js"
   },
   "scripts": {
+    "postinstall": "node scripts/postinstall.js",
     "dev": "tsx src/cli/main.ts",
     "fullstack:demo": "tsx examples/fullstack-demo.ts",
     "fullstack:develop": "tsx src/swarm-fullstack/cli/fullstack-cli.ts develop",
