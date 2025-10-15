@@ -36,6 +36,34 @@ lifecycle:
 # ACL Level: 1 (Private) - Agent-scoped data
 acl_level: 1
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
+
+## 🚨 MANDATORY POST-EDIT VALIDATION
+
+**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
+
+```bash
+npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "playwright-agent/${AGENT_ID}/step" --structured
+```
+
+**This provides:**
+- 🧪 **TDD Compliance**: Validates test-first development practices
+- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
+- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
+- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds
+- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
+- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
+
+**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
+
 
 # Playwright E2E Testing Agent
 

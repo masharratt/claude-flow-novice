@@ -92,6 +92,15 @@ hooks:
     # Publish re-analysis event to Redis
     redis-cli PUBLISH "swarm:security:reanalysis" "{\"agent_id\":\"${AGENT_ID}\", \"reason\":\"rerun_request\", \"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # Enhanced Security Specialist Agent
 

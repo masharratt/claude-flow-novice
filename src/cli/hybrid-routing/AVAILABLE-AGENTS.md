@@ -1,486 +1,320 @@
 # Available Specialized Agents
 
-**Hybrid Routing System - Dynamic Agent Discovery**
+**Hybrid Routing System - Use Case-Based Agent Selection**
 
 **Generated**: 2025-10-15
 **Source**: `.claude/agents/` folder (live discovery)
-**Purpose**: Documentation snapshot - coordinators read from `.claude/agents/` directly
+**Purpose**: Agent capability reference for intelligent coordinator selection
 
-## Architecture
+## Coordinator Selection Guide
 
-**Source of Truth**: `.claude/agents/` folder
-- Coordinators use `HybridWorkerSpawner.loadAgentDefinitions()`
-- Recursive scanning with YAML frontmatter parsing
-- In-memory caching after first load
-- This file is documentation only (not used by spawning system)
+**Coordinators should select agents based on task requirements, not keyword matching.**
+
+### Selection Principles:
+1. **Understand the task domain** (security, performance, architecture, etc.)
+2. **Identify required capabilities** (analysis, implementation, validation, etc.)
+3. **Choose agents with matching expertise** from the sections below
+4. **Consider task complexity** for appropriate agent seniority/specialization
+
+---
 
 ## Discovery Statistics
 
 ```
 🔍 Discovered 85 agent files in .claude/agents/
-✅ Loaded 85 agents
-📋 49 categories
+✅ Loaded 85 agents across 12 use case domains
+📋 Agent capabilities organized by coordinator needs
 ```
 
-## Agents by Category
+---
 
-### 📁 GENERAL (17 agents)
+## 1. CORE DEVELOPMENT AGENTS
 
-| Agent Type | Keywords |
-|------------|----------|
-| **analyst** | *(No keywords available)* |
-| **architect** | *(No keywords available)* |
-| **coder** | *(No keywords available)* |
-| **coordinator** | *(No keywords available)* |
-| **planner** | *(No keywords available)* |
-| **researcher** | *(No keywords available)* |
-| **reviewer** | *(No keywords available)* |
-| **tester** | *(No keywords available)* |
-| **architecture** | *(No keywords available)* |
-| **pseudocode** | *(No keywords available)* |
-| **refinement** | *(No keywords available)* |
-| **specification** | *(No keywords available)* |
+### General Purpose Implementers
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **architect** | System design, component architecture, API design | High-level system design, component boundaries, technical decisions |
+| **coder** | General implementation, feature development, bug fixes | Code implementation across languages, problem-solving, feature completion |
+| **backend-dev** | Server-side development, APIs, database work | REST/GraphQL APIs, business logic, database integration, authentication |
+| **react-frontend-engineer** | React applications, UI components, state management | React components, hooks, state management, frontend architecture |
+| **mobile-dev** | React Native, iOS/Android development | Cross-platform mobile features, native modules, mobile UI/UX |
+
+### Specialized Implementers
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **rust-mvp-developer** | Rust prototyping, MVP development | Rust basics, rapid prototyping, simple implementations |
+| **rust-enterprise-developer** | Production Rust, enterprise features | Advanced Rust, performance optimization, production patterns |
+| **rust-developer** | General Rust development | Rust implementation, memory safety, performance |
 
 ---
 
-### 📁 AGENT (1 agents)
+## 2. VALIDATION & QUALITY ASSURANCE
 
-| Agent Type | Keywords |
-|------------|----------|
-| **agent-type-guidelines** | *(No keywords available)* |
+### Testing & Validation
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **tester** | Test creation, TDD, quality assurance | Unit tests, integration tests, TDD practices, test strategy |
+| **interaction-tester** | UI testing, user flows, accessibility | User interaction testing, accessibility validation, E2E flows |
+| **playwright-tester** | Browser automation, end-to-end testing | Playwright automation, browser testing, web application testing |
+| **production-validator** | Production readiness, real integration testing | Production validation, real system testing, deployment readiness |
 
----
-
-### 📁 FORMAT (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **format-selection** | *(No keywords available)* |
-
----
-
-### 📁 PROMPT (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **prompt-engineering** | *(No keywords available)* |
+### Code Quality & Analysis
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **code-analyzer** | Code review, quality assessment, technical debt | Comprehensive code analysis, quality metrics, technical debt assessment |
+| **code-quality-validator** | Deep quality analysis, architecture compliance | Advanced quality validation, architecture compliance, code standards |
+| **code-booster** | Performance optimization, refactoring | Code optimization, performance improvements, refactoring strategies |
+| **perf-analyzer** | Performance analysis, bottleneck identification | Performance profiling, bottleneck detection, optimization recommendations |
 
 ---
 
-### 📁 QUALITY (1 agents)
+## 3. SECURITY SPECIALISTS
 
-| Agent Type | Keywords |
-|------------|----------|
-| **quality-metrics** | *(No keywords available)* |
-
----
-
-### 📁 CODE (4 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **code-analyzer** | *(No keywords available)* |
-| **code-quality-validator** | *(No keywords available)* |
-| **code-booster** | *(No keywords available)* |
-| **code-booster** | *(No keywords available)* |
+### Security Assessment & Implementation
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **security-specialist** | Security audits, vulnerability assessment, security implementation | Security audits, vulnerability scanning, secure coding practices |
+| **security-architect-persona** | Security architecture design, Zero Trust planning | Security architecture, Zero Trust design, threat modeling |
+| **security-manager** | Distributed systems security, cryptography | Blockchain security, cryptographic protocols, distributed system security |
 
 ---
 
-### 📁 ANALYZE (1 agents)
+## 4. ARCHITECTURE & SYSTEM DESIGN
 
-| Agent Type | Keywords |
-|------------|----------|
-| **analyze-code-quality** | *(No keywords available)* |
+### System Architecture
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **system-architect** | Enterprise architecture, distributed systems | Large-scale system design, distributed systems, scalability planning |
+| **system-architect-persona** | Technical leadership, architecture decisions | Architecture decision making, technical leadership, system evolution |
+| **architect** | Component design, API design, database schema | Component architecture, API design, database design |
 
----
-
-### 📁 PERF (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **perf-analyzer** | *(No keywords available)* |
-
----
-
-### 📁 SYSTEM (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **system-architect** | *(No keywords available)* |
-| **system-architect-persona** | *(No keywords available)* |
+### State & Data Management
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **state-architect** | State management, data flow design | State management patterns, data flow architecture, state synchronization |
 
 ---
 
-### 📁 CFN (3 agents)
+## 5. DEVOPS & INFRASTRUCTURE
 
-| Agent Type | Keywords |
-|------------|----------|
-| **cfn-coordinator-enterprise** | *(No keywords available)* |
-| **cfn-coordinator-mvp** | *(No keywords available)* |
-| **cfn-coordinator-standard** | *(No keywords available)* |
+### Infrastructure & Deployment
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **devops-engineer** | CI/CD, Docker, Kubernetes, cloud infrastructure | Pipeline design, containerization, orchestration, infrastructure as code |
 
----
-
-### 📁 PRODUCT (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **product-owner** | *(No keywords available)* |
-| **product-owner-agent** | *(No keywords available)* |
+### Performance & Monitoring
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **performance-benchmarker** | Performance testing, benchmarking, monitoring | Performance measurement, load testing, benchmarking, monitoring setup |
 
 ---
 
-### 📁 BYZANTINE (1 agents)
+## 6. COORDINATION & PROJECT MANAGEMENT
 
-| Agent Type | Keywords |
-|------------|----------|
-| **byzantine-coordinator** | *(No keywords available)* |
+### Multi-Agent Coordination
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **coordinator-hybrid** | Primary multi-agent coordination, task orchestration | Intelligent task decomposition, agent selection, progress monitoring |
+| **task-coordinator** | Complex workflow management, task breakdown | Workflow orchestration, dependency management, complex task coordination |
+| **adaptive-coordinator** | Dynamic team formation, topology switching | Adaptive agent selection, dynamic team configuration |
+| **adaptive-coordinator-enhanced** | Advanced adaptive coordination with enhanced capabilities | Enhanced adaptive coordination, intelligent team optimization |
 
----
+### Hierarchical & Specialized Coordination
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **hierarchical-coordinator** | Large team coordination, hierarchical structures | Hierarchical team management, multi-level coordination |
+| **mesh-coordinator** | Flat team coordination, mesh communication | Mesh-based coordination, peer-to-peer agent communication |
 
-### 📁 CONSENSUS (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **consensus-builder** | *(No keywords available)* |
-
----
-
-### 📁 CRDT (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **crdt-synchronizer** | *(No keywords available)* |
-
----
-
-### 📁 GOSSIP (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **gossip-coordinator** | *(No keywords available)* |
+### Product & Strategy
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **product-owner** | Feature decisions, scope management, prioritization | Product decisions, scope management, feature prioritization |
+| **planner** | Task planning, project organization, milestone planning | Task breakdown, project planning, milestone management |
 
 ---
 
-### 📁 PERFORMANCE (1 agents)
+## 7. SPECIALIZED DOMAINS
 
-| Agent Type | Keywords |
-|------------|----------|
-| **performance-benchmarker** | *(No keywords available)* |
+### Blockchain & Distributed Systems
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **byzantine-coordinator** | Byzantine fault tolerance, malicious actor handling | Byzantine consensus, fault tolerance, security in adversarial environments |
+| **consensus-builder** | Distributed consensus, team agreement | Consensus algorithms, distributed decision making, team coordination |
+| **raft-manager** | Raft consensus implementation | Raft protocol, leader election, log replication |
+| **crdt-synchronizer** | Conflict-free replicated data types | CRDT implementation, state synchronization, conflict resolution |
+| **gossip-coordinator** | Gossip protocols, epidemic dissemination | Gossip protocols, peer-to-peer communication, data dissemination |
+| **quorum-manager** | Dynamic quorum management, voting systems | Quorum calculation, voting mechanisms, distributed decisions |
 
----
+### API Development & Documentation
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **api-docs** | API documentation, OpenAPI specifications | OpenAPI/Swagger docs, API specification, documentation generation |
+| **api-designer-persona** | API architecture, REST/GraphQL design | API design principles, REST/GraphQL architecture, interface design |
 
-### 📁 QUORUM (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **quorum-manager** | *(No keywords available)* |
-
----
-
-### 📁 RAFT (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **raft-manager** | *(No keywords available)* |
-
----
-
-### 📁 SECURITY (4 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **security-manager** | *(No keywords available)* |
-| **security-architect-persona** | *(No keywords available)* |
-| **security-specialist-existing** | *(No keywords available)* |
-| **security-specialist** | *(No keywords available)* |
+### User Experience & Accessibility
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **ui-designer** | User interface design, component design | UI design, component architecture, user experience design |
+| **accessibility-advocate-persona** | Accessibility compliance, inclusive design | WCAG compliance, accessibility testing, inclusive design practices |
+| **power-user-persona** | Advanced user workflows, efficiency optimization | Power user features, workflow optimization, advanced functionality |
 
 ---
 
-### 📁 CONTEXT (2 agents)
+## 8. CFN LOOP SPECIALISTS
 
-| Agent Type | Keywords |
-|------------|----------|
-| **context-curator** | *(No keywords available)* |
-| **context-reflector** | *(No keywords available)* |
+### CFN Coordinators (Mode-Based)
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **cfn-coordinator-mvp** | Fast iteration, prototyping, cost optimization | Rapid development, cost-effective solutions, quick iteration |
+| **cfn-coordinator-standard** | Balanced development, standard quality gates | Balanced approach, standard quality practices, reliable delivery |
+| **cfn-coordinator-enterprise** | Enterprise-grade development, full compliance | Enterprise standards, compliance, comprehensive quality gates |
 
----
-
-### 📁 BASE (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **base-template-generator** | *(No keywords available)* |
-
----
-
-### 📁 COORDINATOR (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **coordinator-hybrid** | *(No keywords available)* |
+### Advanced Planning & Decision Making
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **goal-planner** | Complex planning, A* search optimization | Goal-oriented planning, A* search algorithms, adaptive replanning |
+| **product-owner-agent** | Product decisions, backlog management | Product strategy, backlog prioritization, stakeholder management |
 
 ---
 
-### 📁 TASK (1 agents)
+## 9. ANALYSIS & RESEARCH
 
-| Agent Type | Keywords |
-|------------|----------|
-| **task-coordinator** | *(No keywords available)* |
+### Analysis & Investigation
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **analyst** | General analysis, investigation, assessment | Problem analysis, investigative work, comprehensive assessment |
+| **researcher** | Research, discovery, competitive analysis | Research methodologies, information gathering, analysis |
+| **architecture** | Architecture analysis, assessment | Architecture evaluation, design pattern analysis |
 
----
-
-### 📁 DEV (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **dev-backend-api** | *(No keywords available)* |
-
----
-
-### 📁 BACKEND (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **backend-dev** | *(No keywords available)* |
+### Code Analysis & Optimization
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **analyze-code-quality** | Code quality analysis, improvement recommendations | Code quality assessment, improvement strategies, best practices |
 
 ---
 
-### 📁 DEVOPS (1 agents)
+## 10. SPECIALIZED DEVELOPMENT PATTERNS
 
-| Agent Type | Keywords |
-|------------|----------|
-| **devops-engineer** | *(No keywords available)* |
+### Development Methodologies
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **base-template-generator** | Template creation, scaffolding, boilerplate | Template generation, scaffolding, project initialization |
+| **specification** | Specification writing, requirements analysis | Technical specifications, requirements documentation |
+| **pseudocode** | Algorithm design, logic planning | Algorithm development, pseudocode creation, logic design |
 
----
-
-### 📁 DOCS (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **docs-api-openapi** | *(No keywords available)* |
-
----
-
-### 📁 API (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **api-docs** | *(No keywords available)* |
-| **api-designer-persona** | *(No keywords available)* |
+### Quality & Refinement
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **refinement** | Code refinement, optimization, quality improvement | Code refinement, optimization techniques, quality enhancement |
+| **specification-optimized** | Optimized specification creation | High-quality specifications, optimized documentation |
 
 ---
 
-### 📁 BLOCKING (2 agents)
+## 11. TESTING & VALIDATION SPECIALISTS
 
-| Agent Type | Keywords |
-|------------|----------|
-| **blocking-coordinator-example** | *(No keywords available)* |
-| **blocking-coordinator-example** | *(No keywords available)* |
+### Testing Methodologies
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **tdd-london-swarm** | London School TDD, mock-driven development | Mock-driven TDD, outside-in development, behavior verification |
 
----
-
-### 📁 INTERACTION (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **interaction-tester** | *(No keywords available)* |
-| **interaction-tester** | *(No keywords available)* |
+### Validation & Compliance
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **production-validator** | Production validation, deployment readiness | Production testing, deployment validation, real-world testing |
 
 ---
 
-### 📁 REACT (1 agents)
+## 12. CONTEXT & MEMORY MANAGEMENT
 
-| Agent Type | Keywords |
-|------------|----------|
-| **react-frontend-engineer** | *(No keywords available)* |
-
----
-
-### 📁 STATE (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **state-architect** | *(No keywords available)* |
+### Context Management
+| Agent | When to Use | Core Capabilities |
+|--------|-------------|-------------------|
+| **context-curator** | Context organization, consolidation | Context management, information consolidation, organization |
+| **context-reflector** | Learning extraction, pattern recognition | Lesson extraction, pattern recognition, learning from execution |
 
 ---
 
-### 📁 UI (1 agents)
+## Coordinator Selection Workflow
 
-| Agent Type | Keywords |
-|------------|----------|
-| **ui-designer** | *(No keywords available)* |
+### Step 1: Analyze Task Requirements
+- **What is the primary domain?** (security, performance, architecture, etc.)
+- **What are the main activities?** (analysis, implementation, validation, etc.)
+- **What is the complexity level?** (simple, medium, complex, enterprise)
 
----
+### Step 2: Select Core Agents
+- **Implementation needs:** coder, backend-dev, react-frontend-engineer, etc.
+- **Architecture needs:** architect, system-architect, etc.
+- **Validation needs:** tester, code-analyzer, security-specialist, etc.
+- **Coordination needs:** coordinator-hybrid, task-coordinator, etc.
 
-### 📁 GOAL (1 agents)
+### Step 3: Add Specialists as Needed
+- **Security:** Add security-specialist for any system handling data/auth
+- **Performance:** Add perf-analyzer for performance-critical tasks
+- **Accessibility:** Add accessibility-advocate-persona for user-facing features
+- **Documentation:** Add api-docs for API development
 
-| Agent Type | Keywords |
-|------------|----------|
-| **goal-planner** | *(No keywords available)* |
-
----
-
-### 📁 ACCESSIBILITY (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **accessibility-advocate-persona** | *(No keywords available)* |
-
----
-
-### 📁 CTO (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **cto-agent** | *(No keywords available)* |
+### Step 4: Consider CFN Loop Requirements
+- **MVP mode:** cfn-coordinator-mvp for rapid prototyping
+- **Standard mode:** cfn-coordinator-standard for balanced development
+- **Enterprise mode:** cfn-coordinator-enterprise for production systems
 
 ---
 
-### 📁 POWER (1 agents)
+## Usage Examples
 
-| Agent Type | Keywords |
-|------------|----------|
-| **power-user-persona** | *(No keywords available)* |
+### Feature Development
+```
+Task: "Build user authentication system"
+→ coordinator-hybrid (orchestration)
+→ architect (system design)
+→ backend-dev (API implementation)
+→ security-specialist (security measures)
+→ tester (test creation)
+→ code-analyzer (quality review)
+```
 
----
+### Security Audit
+```
+Task: "Audit application for vulnerabilities"
+→ security-specialist (lead security assessment)
+→ code-analyzer (code review)
+→ tester (security testing)
+→ production-validator (production readiness)
+```
 
-### 📁 CLI (1 agents)
+### Performance Optimization
+```
+Task: "Optimize slow database queries"
+→ perf-analyzer (identify bottlenecks)
+→ code-booster (implement optimizations)
+→ backend-dev (database changes)
+→ tester (validate improvements)
+```
 
-| Agent Type | Keywords |
-|------------|----------|
-| **cli-agent-optimizer** | *(No keywords available)* |
-
----
-
-### 📁 MOBILE (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **mobile-dev** | *(No keywords available)* |
-
----
-
-### 📁 SPEC (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **spec-mobile-react-native** | *(No keywords available)* |
-
----
-
-### 📁 RUST (3 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **rust-developer** | *(No keywords available)* |
-| **rust-enterprise-developer** | *(No keywords available)* |
-| **rust-mvp-developer** | *(No keywords available)* |
-
----
-
-### 📁 ADAPTIVE (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **adaptive-coordinator-enhanced** | *(No keywords available)* |
-| **adaptive-coordinator** | *(No keywords available)* |
+### System Architecture
+```
+Task: "Design microservices architecture"
+→ system-architect (overall architecture)
+→ architect (component design)
+→ devops-engineer (infrastructure planning)
+→ security-architect-persona (security architecture)
+```
 
 ---
 
-### 📁 HIERARCHICAL (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **hierarchical-coordinator** | *(No keywords available)* |
-
----
-
-### 📁 MESH (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **mesh-coordinator** | *(No keywords available)* |
-
----
-
-### 📁 TEST (1 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **test-coordinator** | *(No keywords available)* |
-
----
-
-### 📁 PLAYWRIGHT (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **playwright-agent** | *(No keywords available)* |
-| **playwright-tester** | *(No keywords available)* |
-
----
-
-### 📁 PRODUCTION (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **production-validator** | *(No keywords available)* |
-| **production-validator** | *(No keywords available)* |
-
----
-
-### 📁 TDD (2 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **tdd-london-swarm** | *(No keywords available)* |
-| **tdd-london-swarm** | *(No keywords available)* |
-
----
-
-
----
-
-## Usage
-
-### CLI Commands
+## CLI Integration
 
 ```bash
-# List all agents (flat view)
-node src/cli/hybrid-routing/spawn-workers.js --list-agents
+# Coordinator intelligent selection (default)
+node src/cli/hybrid-routing/spawn-workers.js "Build authentication system"
 
-# List agents by category
-node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
+# Coordinator override (specific agents)
+node src/cli/hybrid-routing/spawn-workers.js "Complex feature" \
+  --agents=coordinator-hybrid,architect,backend-dev,security-specialist,tester
 
-# Regenerate this documentation file
-/list-agents-rebuild
+# CFN Loop mode selection
+node src/cli/hybrid-routing/spawn-workers.js "Enterprise API" \
+  --mode=enterprise  # Uses cfn-coordinator-enterprise
 ```
 
-### Coordinator Usage
-
-```bash
-# Automatic selection (keyword-based)
-node src/cli/hybrid-routing/spawn-workers.js "Build auth" --max-agents=3
-
-# Coordinator override (manual agent types)
-node src/cli/hybrid-routing/spawn-workers.js "Task" \
-  --agents=architect,coder,tester
-
-# Full override (custom agents + subtasks)
-node src/cli/hybrid-routing/spawn-workers.js "Task" \
-  --agents=coder,security-specialist \
-  --subtasks="Subtask 1|Subtask 2"
-```
-
----
-
-## Notes
-
-- **Live Discovery**: Coordinators read from `.claude/agents/` folder directly
-- **This File**: Documentation snapshot for human reference
-- **Regenerate**: Run `/list-agents-rebuild` to update this documentation
-- **Agent Files**: Add/modify agents in `.claude/agents/` folder (auto-discovered)
-- **Caching**: Agent definitions cached after first load (lazy loading)
-- **Missing Keywords**: Some agents without keywords can be used via coordinator override
-
+**Note:** This document serves as a reference for coordinators to make intelligent agent selection decisions based on task requirements and agent capabilities, rather than automated keyword matching.

@@ -89,6 +89,15 @@ hooks:
       /fleet terminate --fleet-id "${SWARM_ID}"
       /sqlite-memory store --key "hierarchy:lifecycle:${AGENT_ID}:state" --level agent --data "{\"state\":\"cleaned\"}"
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # Hierarchical Swarm Coordinator
 

@@ -36,6 +36,15 @@ lifecycle:
 # ACL Level: 3 (Swarm) - Validation team shared data
 acl_level: 1  # Private
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # Consensus Security Manager Agent
 

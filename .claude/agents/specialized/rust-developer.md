@@ -61,6 +61,15 @@ threshold_targets:
 rust_focus_areas: [general, web_api, cli_tool, embedded_system, blockchain, performance_critical, safety_critical]
 safety_levels: [basic, standard, critical, mission_critical]
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # Enhanced Adaptive Rust Developer
 

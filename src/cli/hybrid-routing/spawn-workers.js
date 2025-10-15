@@ -19,6 +19,7 @@
 import { createClient } from 'redis';
 import { createRequire } from 'module';
 import { io } from 'socket.io-client';
+import AgentUseCaseRegistry from './agent-use-cases.js';
 const require = createRequire(import.meta.url);
 const MemoryStoreAdapter = require('../../sqlite/MemoryStoreAdapter.cjs');
 
@@ -140,6 +141,9 @@ class HybridWorkerSpawner {
     // Agent whitelist/blacklist configuration
     this.agentWhitelist = options.agentWhitelist || null; // Array of allowed agent types (null = allow all)
     this.agentBlacklist = options.agentBlacklist || null; // Array of blocked agent types
+
+    // Use case registry for intelligent agent selection
+    this.useCaseRegistry = null;
 
     // Agent discovery caching
     this.cachedAgents = null; // Lazy-loaded and cached agent definitions
@@ -974,22 +978,43 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
       // Otherwise fall through to keyword matching
     }
 
-    // AUTOMATIC SELECTION: Match task to specialized agents via keywords
-    const matchedAgents = this.matchTaskToAgents(task, agents, numAgents);
+    // INTELLIGENT SELECTION: Use use case registry for agent recommendations
+    if (!this.useCaseRegistry) {
+      this.useCaseRegistry = await AgentUseCaseRegistry.load();
+    }
 
-    if (matchedAgents.length === 0) {
-      // No specialized agents matched, use generic decomposition
+    const recommendations = this.useCaseRegistry.recommendAgents(task);
+
+    console.log('\n🎯 Intelligent Agent Selection:');
+    console.log('Primary agents:', recommendations.primary.join(', ') || 'None');
+    console.log('Secondary agents:', recommendations.secondary.join(', ') || 'None');
+    console.log('Reasoning:', recommendations.reasoning.join('; ') || 'Default selection');
+
+    // Use recommended agents if available, fallback to keyword matching
+    const selectedAgentTypes = recommendations.primary.length > 0
+      ? [...recommendations.primary, ...recommendations.secondary].slice(0, numAgents)
+      : this.matchTaskToAgents(task, agents, numAgents).map(m => m.type);
+
+    if (selectedAgentTypes.length === 0) {
+      // No agents matched, use generic decomposition
       return this.decomposeTask(task, numAgents);
     }
 
-    // Create specialized subtasks
+    // Create specialized subtasks using selected agents
     const subtasks = [];
     for (let i = 0; i < numAgents; i++) {
-      const matched = matchedAgents[i % matchedAgents.length];
+      const agentType = selectedAgentTypes[i % selectedAgentTypes.length];
+      const agent = agents[agentType];
+
+      if (!agent) {
+        console.log(`⚠️  Agent '${agentType}' not found in loaded agents, skipping`);
+        continue;
+      }
+
       subtasks.push({
-        task: this.generateSubtaskForAgent(task, matched.type, i, numAgents),
-        agentType: matched.type,
-        systemPrompt: matched.agent.systemPrompt
+        task: this.generateSubtaskForAgent(task, agentType, i, numAgents),
+        agentType: agentType,
+        systemPrompt: agent.systemPrompt
       });
     }
 
