@@ -33,6 +33,8 @@ class MemoryMonitor {
       'spawn-coordinator': { memory: 1500, timeout: 1800000 },
       'spawn-workers': { memory: 1500, timeout: 1800000 },
       'node': { memory: 1000, timeout: 900000 },
+      'rust': { memory: 2000, timeout: 3600000 }, // Rust processes can use more memory
+      'cargo': { memory: 3000, timeout: 7200000 }, // Cargo builds can be memory intensive
       'default': { memory: 1500, timeout: 1800000 }
     };
   }

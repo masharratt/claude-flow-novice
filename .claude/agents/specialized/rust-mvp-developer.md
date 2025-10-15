@@ -41,6 +41,15 @@ mode_support: [mvp]
 threshold_targets:
   mvp: { confidence: 0.70, evidence_quality: basic, iteration_efficiency: high }
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # MVP Rust Developer
 

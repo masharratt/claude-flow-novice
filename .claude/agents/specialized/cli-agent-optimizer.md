@@ -43,6 +43,8 @@ acl_level: 3
 coordination_role: optimizer
 mode_support: [mvp, standard, enterprise]
 threshold_targets:
+
+---
   mvp: { confidence: 0.70, evidence: basic, iterations: 5, validators: 2 }
   standard: { confidence: 0.75, evidence: adequate, iterations: 10, validators: 4 }
   enterprise: { confidence: 0.85, evidence: comprehensive, iterations: 15, validators: 4 }
@@ -67,6 +69,15 @@ npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "cli-optimizer/${
 ### Mandatory Frontmatter Structure (ALL Agents)
 ```yaml
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 name: agent-name                    # REQUIRED: Lowercase with hyphens
 description: |                      # REQUIRED: Clear, keyword-rich with MUST/USE/PROACTIVE
   MUST BE USED when [primary use case].

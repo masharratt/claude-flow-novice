@@ -48,6 +48,15 @@ hooks:
     echo "✅ Pseudocode phase complete"
     memory_store "pseudo_complete_$(date +%s)" "Algorithms designed"
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # SPARC Pseudocode Agent
 

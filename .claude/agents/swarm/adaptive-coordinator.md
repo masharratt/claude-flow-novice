@@ -87,6 +87,15 @@ hooks:
     # Publish coordination completion
     redis-cli PUBLISH "swarm:coordination:analysis:complete" "{\"coordinator_id\":\"${AGENT_ID}\", \"performance_improvement\":${PERFORMANCE_IMPROVEMENT}, \"consensus_rate\":${CONSENSUS_RATE}, \"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # Enhanced Adaptive Swarm Coordinator
 

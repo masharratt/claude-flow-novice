@@ -1,3 +1,30 @@
+---
+name: prompt-engineering
+description: Documentation file for prompt-engineering
+type: documentation
+acl_level: 3  # Swarm-level documentation
+validation_hooks:
+  - agent-template-validator
+lifecycle:
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
+                     VALUES ('${AGENT_ID}', 'documentation', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents
+                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
+                         completed_at = CURRENT_TIMESTAMP
+                     WHERE id = '${AGENT_ID}'"
+---
+
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 # Prompt Engineering Best Practices
 
 **Version:** 2.0.0

@@ -43,6 +43,15 @@ constraints:
   - "All security validations must follow CFN Loop 2 consensus patterns"
   - "Security audit trail must be maintained for 90 days minimum"
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
 
 # Enhanced Security Specialist Agent
 

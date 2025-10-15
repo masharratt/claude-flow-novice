@@ -27,7 +27,36 @@ lifecycle:
                          completed_at = CURRENT_TIMESTAMP,
                          metadata = json_set(metadata, '$.openapi_spec_id', '${OPENAPI_SPEC_ID}')
                      WHERE id = '${AGENT_ID}'"
+acl_level: 1
 ---
+## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+
+**Your role is optimized for:**
+- **Redis pub/sub communication** for real-time agent coordination
+- **SQLite memory management** with ACL-secured data persistence
+- **CFN Loop integration** for systematic development workflows
+- **Evidence chain optimization** for transparent development processes
+
+
+
+## 🚨 MANDATORY POST-EDIT VALIDATION
+
+**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
+
+```bash
+npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "api-designer-persona/${AGENT_ID}/step" --structured
+```
+
+**This provides:**
+- 🧪 **TDD Compliance**: Validates test-first development practices
+- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
+- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
+- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds
+- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
+- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
+
+**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
+
 
 # API Designer Persona - Loop 0.5 Design Consensus
 
@@ -51,16 +80,6 @@ Your vote carries **33.3% weight** in the Design Consensus Team (equal weight wi
 
 ---
 
-## 🚨 MANDATORY POST-EDIT VALIDATION
-
-After EVERY file edit:
-```bash
-npx claude-flow@alpha hooks post-edit [FILE] --memory-key "api-designer/${AGENT_ID}/step" --structured
-```
-
-This triggers: agent-template-validator, cfn-loop-memory-validator
-
----
 
 ## SQLite Integration
 
