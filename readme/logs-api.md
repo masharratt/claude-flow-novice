@@ -181,12 +181,18 @@ Server-to-Client:
 - `hierarchy:change` - Hierarchy structure changed
 - `metrics:update` - System metrics (throttle: 1/5sec)
 - `event:stream` - Real-time event stream
+- `cfn:loop:update` - CFN loop status change
+- `cfn:phase:complete` - Phase completed with telemetry
+- `cfn:consensus:ready` - Consensus validation results
+- `ace:context:updated` - Adaptive context changes
 - `error` - Error notification
 
 Client-to-Server:
 - `subscribe` - Subscribe to agent/swarm updates
 - `unsubscribe` - Unsubscribe from updates
 - `ping` - Connection latency check
+- `cfn:loop:control` - CFN loop control commands
+- `ace:context:query` - Query adaptive context
 
 **Rate Limiting**:
 - Standard endpoints: 100 req/min per IP
@@ -194,6 +200,46 @@ Client-to-Server:
 - Auth endpoints: 10 req/min per IP
 
 **Documentation**: packages/web-portal/docs/API.md (1303 lines)
+
+## CFN Loop APIs
+
+### Loop Management
+#### `/api/v1/cfn/loops`
+- **GET /**: List all CFN loops with status
+- **POST /**: Create new CFN loop
+- **GET /:loopId**: Get specific loop details
+- **PUT /:loopId`: Update loop configuration
+- **DELETE /:loopId`: Cancel/terminate loop
+
+#### `/api/v1/cfn/phases`
+- **GET /**: List all phases across loops
+- **GET /:phaseId`: Get phase details with telemetry
+- **POST /:phaseId/advance`: Advance to next phase
+- **GET /:phaseId/consensus`: Get consensus validation status
+
+#### `/api/v1/cfn/agents`
+- **GET /**: List agents in CFN loops
+- **POST /:agentId/confidence`: Submit confidence score
+- **GET /:agentId/metrics`: Get agent performance metrics
+- **POST /:agentId/retry`: Retry failed agent task
+
+### ACE System APIs
+#### `/api/v1/ace/context`
+- **GET /**: Get current adaptive context
+- **POST /**: Store context with semantic similarity
+- **GET /search`: Search context by content/tags
+- **POST /inject`: Inject context into CLAUDE.md dynamically
+
+#### `/api/v1/ace/bullets`
+- **GET /**: Get context bullets by category
+- **POST /**: Create new context bullet
+- **PUT /:bulletId`: Update existing bullet
+- **DELETE /:bulletId`: Remove context bullet
+
+#### `/api/v1/ace/reflection`
+- **GET /**: Get recent reflection deltas
+- **POST /**: Store reflection from completed tasks
+- **GET /curate`: Get curated reflection summaries
 
 ## MCP Server APIs
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Claude Flow provides comprehensive slash commands for AI agent orchestration, swarm coordination, development workflows, and system management. These commands enable developers to interact with AI capabilities directly from the CLI.
+Claude Flow provides comprehensive slash commands for AI agent orchestration, CFN Loop execution, swarm coordination, and system management. These commands enable developers to interact with AI capabilities directly from the CLI.
 
 ## Core Development Commands
 
@@ -43,6 +43,119 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, sw
 
 # Custom threshold overrides mode default
 /cfn-loop "Create API documentation" --mode=enterprise --threshold 0.93
+```
+
+#### `/cfn-loop-sprints`
+
+**Purpose**: Execute multi-sprint project with automatic phase transitions
+
+**Usage**: `/cfn-loop-sprints <phase-description> [options]`
+
+**Parameters**:
+- `phase-description`: Phase description
+- `--sprints`: Number of sprints (default: 3)
+- `--duration`: Sprint duration
+- `parallel`: Run sprints in parallel (default: false)
+
+**Examples**:
+```bash
+# Execute three sprints for authentication
+/cfn-loop-sprints "User authentication system" --sprints 3
+
+# Sprint with custom duration
+/cfn-loop-sprints "Payment processing" --duration 30m
+
+# Parallel sprints for rapid development
+/cfn-loop-sprints "Microservice architecture" --sprints 5 --parallel
+```
+
+#### `/cfn-loop-single`
+
+**Purpose**: Execute single task through CFN Loop with validation
+
+**Usage**: `/cfn-loop-single <task-description> [options]`
+
+**Parameters**:
+- `task-description`: Single task description
+- `--agents`: Specific agent types
+- `--mode`: CFN Loop mode
+
+**Examples**:
+```bash
+# Single task with specific agents
+/cfn-loop-single "Write unit tests" --agents coder,tester
+
+# Quick MVP implementation
+/cfn-loop-single "Create login form" --mode=mvp
+```
+
+#### `/cfn-optimize-agents`
+
+**Purpose**: Parallel optimization of agent library with performance metrics
+
+**Usage**: `/cfn-optimize-agents [options]`
+
+**Options**:
+- `--agents`: Number of optimization agents (default: 4)
+- `--rounds`: Optimization rounds per agent (default: 3)
+- `--metrics`: Performance metrics collection
+
+**Examples**:
+```bash
+# Standard optimization with 4 agents
+/cfn-optimize-agents
+
+# High-performance optimization
+/cfn-optimize-agents --agents 8 --rounds 5
+
+# Performance-focused optimization
+/cfn-optimize-agents --metrics performance
+```
+
+#### `/cfn-loop-document`
+
+**Purpose**: Auto-update documentation based on completed work
+
+**Usage**: `/cfn-loop-document [options]`
+
+**Options**:
+- `--sprint <name>`: Document specific sprint
+- `--epic <name>`: Document entire epic
+- `--phase <name>`: Document single phase
+
+**Examples**:
+```bash
+# Auto-document from git history
+/cfn-loop-document
+
+# Document specific sprint
+/cfn-loop-document --sprint=auth-system
+
+# Document entire epic
+/cfn-loop-document --epic=e-commerce-v1
+```
+
+#### `/cfn-claude-sync`
+
+**Purpose**: Synchronize CLAUDE.md configuration across agents
+
+**Usage**: `/cfn-claude-sync [options]`
+
+**Options**:
+- `--validate`: Check configuration consistency
+- `--fix`: Auto-fix inconsistencies
+- `--backup`: Create backup before sync
+
+**Examples**:
+```bash
+# Sync CLAUDE.md across all agents
+/cfn-claude-sync
+
+# Validate without changes
+/cfn-claude-sync --validate
+
+# Auto-fix with backup
+/cfn-claude-sync --fix --backup
 ```
 
 #### `/cfn-loop-epic`

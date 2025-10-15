@@ -2,138 +2,129 @@
 
 **Hybrid Routing System - Dynamic Agent Discovery**
 
+**Generated**: 2025-10-15
+**Source**: `.claude/agents/` folder (live discovery)
+**Purpose**: Documentation snapshot - coordinators read from `.claude/agents/` directly
+
 ## Architecture
 
-**Source of Truth**: `.claude/agents/` folder (50+ agent .md files)
-**Live Discovery**: `HybridWorkerSpawner.loadAgentDefinitions()` method
-**This File**: Documentation snapshot for human reference
-
-**When coordinators spawn agents**:
-- Load agents dynamically from `.claude/agents/` folder (NOT from this file)
-- Parse YAML frontmatter from each .md file
-- Extract keywords, system prompts, categories
-- In-memory cache for performance
-- Select agents via keyword matching or coordinator override
-
-**To regenerate this file**: `/list-agents-rebuild`
-
----
-
-## Overview
-
-- **Total Discovered**: 72 agent files in `.claude/agents/` folder
-- **Successfully Loaded**: 58 agents (14 skipped due to missing YAML frontmatter)
-- **Unique Agent Types**: 50 specialized agents
-- **Categories**: 16 functional categories
+**Source of Truth**: `.claude/agents/` folder
+- Coordinators use `HybridWorkerSpawner.loadAgentDefinitions()`
+- Recursive scanning with YAML frontmatter parsing
+- In-memory caching after first load
+- This file is documentation only (not used by spawning system)
 
 ## Discovery Statistics
 
 ```
-🔍 Discovered 72 agent files in .claude/agents/
-✅ Loaded 58 agents (14 skipped)
-📋 50 unique agent types across 16 categories
+🔍 Discovered 137 agent files in .claude/agents/
+✅ Loaded 121 agents (16 skipped)
+📋 76 agents in 14 categories
 ```
 
 ## Agents by Category
 
-### 📁 ANALYSIS (3 agents)
+### 📁 ANALYSIS (2 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **code-analyzer** | analyze, review, audit, assess, evaluate, inspect, scan, check quality, find issues, bottlenecks, vulnerabilities, technical debt, performance analysis, security review, code metrics, implementation |
-| **code-quality-validator** | code analysis, quality analysis, technical debt, code smells, complexity analysis, architecture conformance, anti-pattern detection, refactoring analysis, dependency analysis, validation, review |
-| **perf-analyzer** | performance analysis, bottleneck detection, profiling, optimization, memory analysis, load testing, query optimization, runtime analysis, performance tuning |
+| **code-analyzer** | analyze, review, audit (+13) |
+| **perf-analyzer** | performance analysis, bottleneck detection, profiling (+6) |
 
 ---
 
-### 📁 ARCHITECTURE (1 agent)
+### 📁 CFN-LOOP (3 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **system-architect** | enterprise architecture, system design, technical leadership, distributed systems, microservices, event-driven, scalability, cloud architecture, architectural patterns, technical strategy, adr, quality attributes, performance architecture, security design, infrastructure planning, technology evaluation |
+| **cfn-coordinator-enterprise** | enterprise, mission-critical, enterprise-grade validation (+3) |
+| **cfn-coordinator-mvp** | mvp, rapid development, simplified validation (+2) |
+| **product-owner** | goap, product owner, scope enforcement (+6) |
 
 ---
 
-### 📁 CFN-LOOP (1 agent)
+### 📁 CONSENSUS (2 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **product-owner** | goap, product owner, scope enforcement, autonomous decision, cfn loop, consensus validation, trade-off analysis, a* search, decision authority |
-
----
-
-### 📁 CONSENSUS (8 agents)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **byzantine-coordinator** | pbft, byzantine fault tolerance, consensus, malicious detection, cryptographic verification, view change, threshold signatures, secure coordination, distributed consensus |
-| **consensus-builder** | consensus, distributed decision-making, byzantine tolerance, raft, pbft, voting, quorum, agent coordination, agreement protocols, swarm consensus |
-| **crdt-synchronizer** | *(No keywords available)* |
 | **gossip-coordinator** | *(No keywords available)* |
-| **performance-benchmarker** | performance benchmarking, throughput measurement, latency analysis, resource monitoring, comparative analysis, adaptive tuning, consensus optimization, protocol benchmarking, bottleneck identification, performance testing |
-| **quorum-manager** | *(No keywords available)* |
-| **raft-manager** | *(No keywords available)* |
-| **security-manager** | consensus security, threshold cryptography, zero-knowledge proof, byzantine fault tolerance, sybil attack, eclipse attack, distributed key generation, key rotation, attack detection, cryptographic signatures, secure consensus, blockchain security, distributed systems security, penetration testing |
+| **performance-benchmarker** | performance benchmarking, throughput measurement, latency analysis (+7) |
 
 ---
 
-### 📁 CORE-AGENTS (11 agents)
+### 📁 CORE-AGENTS (1 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **analyst** | analyze, review, audit, assess, evaluate, inspect, scan, check quality, find issues, bottlenecks, vulnerabilities, technical debt, performance analysis, security review, code metrics |
-| **architect** | design, architect, structure, plan, infrastructure, schema, api design, scalability, microservices, system design, technical decisions, cloud architecture, integration, performance, technology evaluation, architectural patterns |
-| **base-template-generator** | template, boilerplate, scaffold, generate, starter, skeleton, base structure, foundational code, setup, initialization, configuration template, component template, api template, model template, test template, documentation template, project setup, module template, starter kit, base configuration |
-| **coder** | implement, code, build, develop, create function, write class, refactor, optimize, fix, integrate, api, component, database, algorithm, security, authentication, validation, error handling, feature development, bug fix, performance, technical debt |
-| **coordinator** | general coordination, fallback coordinator, basic orchestration, simple delegation, project planning, task breakdown, dependency management, progress tracking, resource allocation |
-| **coordinator-hybrid** | *(No keywords available)* |
-| **planner** | general planning, task breakdown, fallback planner, basic coordination |
-| **researcher** | general research, investigate, explore, broad analysis, technology comparison, fallback researcher |
-| **reviewer** | general review, fallback reviewer, basic code review, simple quality check |
-| **task-coordinator** | task coordination, multi-agent orchestration, workflow management, agent spawning, swarm coordination, dependency management, progress tracking, consensus validation, task decomposition, specialist selection |
-| **tester** | test, validate, tdd, unit test, integration test, e2e test, coverage, test suite, quality assurance, qa, bug validation, test-driven development, test strategy, test automation, regression test, acceptance test |
+| **tester** | test, validate, tdd (+13) |
 
 ---
 
-### 📁 DEVELOPMENT (1 agent)
+### 📁 DEVOPS (1 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **backend-dev** | api, rest, graphql, endpoint, route, controller, middleware, backend, server, express, authentication, validation, http |
+| **devops-engineer** | ci/cd, pipeline, deploy (+19) |
 
 ---
 
-### 📁 DEVOPS (1 agent)
+### 📁 DOCUMENTATION (1 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **devops-engineer** | ci/cd, pipeline, deploy, infrastructure, docker, kubernetes, terraform, iac, automation, devops, monitoring, observability, gitops, container, orchestration, cloud, aws, azure, gcp, security automation, platform engineering, sre |
+| **api-docs** | api documentation, openapi, swagger (+12) |
 
 ---
 
-### 📁 DOCUMENTATION (1 agent)
+### 📁 GOAL (1 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **api-docs** | api documentation, openapi, swagger, rest api, endpoints, api spec, schema, authentication docs, api reference, request/response, error codes, security schemes, api versioning, interactive docs, swagger ui |
+| **goal-planner** | goap, planning, a* search (+5) |
 
 ---
 
-### 📁 FRONTEND (3 agents)
+### 📁 OPTIMIZED (37 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **react-frontend-engineer** | *(No keywords available)* |
-| **state-architect** | *(No keywords available)* |
-| **ui-designer** | *(No keywords available)* |
-
----
-
-### 📁 GOAL (1 agent)
-
-| Agent Type | Keywords |
-|------------|----------|
-| **goal-planner** | goap, planning, a* search, state space, goal decomposition, adaptive replanning, action sequencing, strategic planning |
+| **analyst** | analyze, review, audit (+8) |
+| **api-docs-optimized** | *(No keywords available)* |
+| **architect** | design, architect, structure (+7) |
+| **backend-dev** | api, rest, graphql (+10) |
+| **base-template-generator** | template, boilerplate, scaffold (+17) |
+| **byzantine-coordinator** | pbft, byzantine fault tolerance, consensus (+6) |
+| **cfn-coordinator-enterprise-optimized** | *(No keywords available)* |
+| **cfn-coordinator-mvp-optimized** | *(No keywords available)* |
+| **cfn-coordinator-standard** | standard, balanced development, comprehensive validation (+4) |
+| **code-analyzer-optimized** | *(No keywords available)* |
+| **code-quality-validator** | code analysis, quality analysis, technical debt (+8) |
+| **coder** | implement, code, build (+9) |
+| **consensus-builder** | consensus, distributed decision-making, byzantine tolerance (+7) |
+| **coordinator** | general coordination, fallback coordinator, basic orchestration (+6) |
+| **coordinator-hybrid** | hybrid orchestration, cli spawning, cost optimization (+2) |
+| **crdt-synchronizer** | crdt, conflict-free, state synchronization (+7) |
+| **devops-engineer-optimized** | *(No keywords available)* |
+| **goal-planner-optimized** | *(No keywords available)* |
+| **gossip-coordinator-optimized** | *(No keywords available)* |
+| **hierarchical-coordinator-optimized** | *(No keywords available)* |
+| **mesh-coordinator-optimized** | *(No keywords available)* |
+| **perf-analyzer-optimized** | *(No keywords available)* |
+| **performance-benchmarker-optimized** | *(No keywords available)* |
+| **planner** | general planning, task breakdown, fallback planner (+1) |
+| **product-owner-optimized** | *(No keywords available)* |
+| **pseudocode-optimized** | *(No keywords available)* |
+| **quorum-manager** | quorum management, distributed consensus, membership coordination (+3) |
+| **raft-manager** | raft consensus, leader election, log replication (+3) |
+| **react-frontend-engineer** | react, typescript, css (+5) |
+| **refinement-optimized** | *(No keywords available)* |
+| **researcher** | general research, investigate, explore (+3) |
+| **reviewer** | general review, fallback reviewer, basic code review (+2) |
+| **security-manager** | consensus security, threshold cryptography, zero-knowledge proof (+4) |
+| **state-architect** | state management, zustand, react-query (+2) |
+| **system-architect** | enterprise architecture, system design, technical leadership (+13) |
+| **task-coordinator** | task coordination, multi-agent orchestration, workflow management (+5) |
+| **ui-designer** | ui design, ux, accessibility (+6) |
 
 ---
 
@@ -147,43 +138,52 @@
 
 ---
 
-### 📁 SECURITY (1 agent)
+### 📁 SECURITY (2 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **security-specialist** | security audit, vulnerability, threat model, penetration test, encryption, authentication, authorization, cve, owasp, zero trust, cryptography, incident response, compliance, gdpr, hipaa, pci dss, siem, waf, edr, dlp, nist, iso 27001 |
+| **security-specialist** | security audit, vulnerability, threat model (+19) |
+| **security-specialist-optimized** | security audit, vulnerability, threat model (+18) |
 
 ---
 
-### 📁 SPARC (4 agents)
+### 📁 SPARC (5 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **architecture** | sparc, architecture, system design, components, scalability, infrastructure, microservices, api, database, deployment, tech stack, design patterns |
-| **pseudocode** | sparc, pseudocode, algorithm, logic flow, data structures, complexity analysis, o(n), big-o, sorting, searching, optimization, computational thinking |
-| **refinement** | sparc, refinement, tdd, testing, refactoring, optimization, performance, quality, code coverage, unit tests, integration tests, debugging |
-| **specification** | sparc, specification, requirements, functional specs, acceptance criteria, user stories, use cases, constraints, system behavior |
+| **architecture** | sparc, architecture, system design (+9) |
+| **pseudocode** | sparc, pseudocode, algorithm (+9) |
+| **refinement** | sparc, refinement, tdd (+9) |
+| **specification** | sparc, specification, requirements (+8) |
+| **specification-optimized** | sparc, specification, requirements (+3) |
 
 ---
 
-### 📁 SPECIALIZED (2 agents)
+### 📁 SPECIALIZED (8 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
-| **code-booster** | performance optimization, code refactoring, efficiency, caching, parallelization, lazy loading, memoization, algorithmic improvement, resource management, wasm |
-| **mobile-dev** | react native, mobile, ios, android, cross-platform, mobile app, expo, native module, mobile ui, touchableopacity, flatlist, navigation |
+| **cli-agent-optimizer** | *(No keywords available)* |
+| **code-booster** | performance optimization, code refactoring, efficiency (+7) |
+| **mobile-dev** | react native, mobile, ios (+9) |
+| **mobile-dev-optimized** | react native, mobile, ios (+9) |
+| **rust-developer** | *(No keywords available)* |
+| **rust-developer-optimized** | rust, development, mvp (+5) |
+| **rust-enterprise-developer** | *(No keywords available)* |
+| **rust-mvp-developer** | *(No keywords available)* |
 
 ---
 
-### 📁 SWARM (5 agents)
+### 📁 SWARM (6 agents)
 
 | Agent Type | Keywords |
 |------------|----------|
 | **adaptive-coordinator** | *(No keywords available)* |
-| **adaptive-coordinator-enhanced** | adaptive coordination, machine learning, predictive analytics, topology optimization, swarm intelligence, real-time optimization, self-organizing |
-| **blocking-coordinator-example** | coordinator, blocking, signal ack, cfn loop, timeout, agent lifecycle, swarm coordination, hmac, redis pub/sub |
+| **adaptive-coordinator-enhanced** | adaptive coordination, machine learning, predictive analytics (+4) |
+| **adaptive-coordinator-optimized** | *(No keywords available)* |
+| **blocking-coordinator-example** | coordinator, blocking, signal ack (+6) |
 | **hierarchical-coordinator** | *(No keywords available)* |
-| **mesh-coordinator** | mesh coordination, distributed systems, peer-to-peer, fault tolerance, consensus |
+| **mesh-coordinator** | mesh coordination, distributed systems, peer-to-peer (+2) |
 
 ---
 
@@ -191,103 +191,55 @@
 
 | Agent Type | Keywords |
 |------------|----------|
-| **interaction-tester** | interaction testing, integration tests, e2e, ui testing, accessibility, user flows, functional testing, cross-browser |
-| **playwright-tester** | playwright, e2e testing, browser automation, web testing, ui automation, test frameworks, screenshot testing, accessibility testing |
-| **production-validator** | production validation, deployment ready, real implementation, no mocks, real database, real api, infrastructure testing, production testing, deployment verification, end-to-end validation, implementation completeness |
-| **tdd-london-swarm** | tdd london school, mock-driven, outside-in tdd, behavior verification, interaction testing, mock-first, collaboration testing, behavior testing, mockist approach, test doubles, interaction verification, contract testing |
+| **interaction-tester** | interaction testing, integration tests, e2e (+5) |
+| **playwright-tester** | playwright, e2e testing, browser automation (+7) |
+| **production-validator** | production validation, deployment ready, real implementation (+8) |
+| **tdd-london-swarm** | tdd london school, mock-driven, outside-in tdd (+9) |
+
+---
+
 
 ---
 
 ## Usage
 
-### List All Agents (Flat View)
+### CLI Commands
 
 ```bash
+# List all agents (flat view)
 node src/cli/hybrid-routing/spawn-workers.js --list-agents
-```
 
-### List Agents by Category
-
-```bash
+# List agents by category
 node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
+
+# Regenerate this documentation file
+/list-agents-rebuild
 ```
 
-### Use Specific Agent Types (Coordinator Override)
+### Coordinator Usage
 
 ```bash
-# Single agent type
-node src/cli/hybrid-routing/spawn-workers.js "Task" --agents=coder
+# Automatic selection (keyword-based)
+node src/cli/hybrid-routing/spawn-workers.js "Build auth" --max-agents=3
 
-# Multiple agent types
+# Coordinator override (manual agent types)
 node src/cli/hybrid-routing/spawn-workers.js "Task" \
-  --max-agents=3 \
   --agents=architect,coder,tester
-```
 
-### Automatic Agent Selection (Keyword Matching)
-
-```bash
-# System automatically selects best agents based on task keywords
-node src/cli/hybrid-routing/spawn-workers.js "Build authentication system" --max-agents=5
-
-# Example: "authentication" keyword would match:
-#   - security-specialist (keywords: authentication, security audit, ...)
-#   - coder (keywords: implement, authentication, ...)
-#   - tester (keywords: test, tdd, ...)
-```
-
----
-
-## Technical Implementation
-
-### Discovery Process
-
-1. **Recursive scanning** of `.claude/agents/` folder
-2. **YAML frontmatter parsing** from each `.md` file
-3. **Agent type extraction** from `name:` field
-4. **Keyword extraction** from `description:` field
-5. **Category preservation** from directory structure
-6. **In-memory caching** for performance
-7. **Lazy loading** on first access
-
-### Agent Definition Format
-
-Each agent file follows this structure:
-
-```markdown
----
-name: agent-type-name
-description: |
-  Agent description with embedded keywords.
-  Keywords - keyword1, keyword2, keyword3
----
-
-# Agent system prompt and capabilities
-...
-```
-
-### Whitelist/Blacklist Support
-
-```javascript
-// Programmatic usage
-const spawner = new HybridWorkerSpawner({
-  agentWhitelist: ['coder', 'architect', 'tester'], // Only allow these
-  agentBlacklist: ['deprecated-agent']              // Block these
-});
+# Full override (custom agents + subtasks)
+node src/cli/hybrid-routing/spawn-workers.js "Task" \
+  --agents=coder,security-specialist \
+  --subtasks="Subtask 1|Subtask 2"
 ```
 
 ---
 
 ## Notes
 
-- **8 agents with missing keywords**: Some agents (crdt-synchronizer, gossip-coordinator, quorum-manager, raft-manager, coordinator-hybrid, react-frontend-engineer, state-architect, ui-designer, api-designer-persona, security-architect-persona, system-architect-persona, adaptive-coordinator) are missing keyword definitions. These can still be used via coordinator override mode but won't be selected by automatic keyword matching.
+- **Live Discovery**: Coordinators read from `.claude/agents/` folder directly
+- **This File**: Documentation snapshot for human reference
+- **Regenerate**: Run `/list-agents-rebuild` to update this documentation
+- **Agent Files**: Add/modify agents in `.claude/agents/` folder (auto-discovered)
+- **Caching**: Agent definitions cached after first load (lazy loading)
+- **Missing Keywords**: Some agents without keywords can be used via coordinator override
 
-- **14 skipped files**: Documentation files without proper YAML frontmatter (CLAUDE.md, README*.md, *-GUIDELINES.md, etc.) are automatically skipped during discovery.
-
-- **Category structure**: Categories are inferred from directory structure (e.g., `.claude/agents/core-agents/coder.md` → category: "core-agents").
-
----
-
-**Generated**: 2025-10-13
-**Source**: `node src/cli/hybrid-routing/spawn-workers.js --agents-by-category`
-**Implementation**: Dynamic discovery with recursive scanning, in-memory caching, and lazy loading
