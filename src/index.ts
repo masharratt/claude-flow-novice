@@ -33,7 +33,7 @@ export const AgentType = {
 export type AgentType = typeof AgentType[keyof typeof AgentType];
 
 // Version
-export const VERSION = '1.6.6';
+export const VERSION = '2.0.4';
 
 // Default configuration
 export const defaultConfig = {

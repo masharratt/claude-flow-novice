@@ -318,17 +318,155 @@ echo "✅ Recovery checkpoint created"
 #### CFN Loop Execution
 
 ```bash
-# Basic CFN loop
-/cfn-loop "Implement authentication system" --threshold 0.85 --max-iterations 5
+# Basic CFN loop with mode selection
+/cfn-loop "Implement authentication system" --mode=standard --threshold 0.85 --max-iterations 5
+/cfn-loop "Build MVP prototype" --mode=mvp --threshold 0.70 --max-iterations 5
+/cfn-loop "Production API" --mode=enterprise --threshold 0.75 --max-iterations 15
 
-# Specific phase execution
-/cfn-loop "Add payment processing" --phase swarm
+# Multi-phase execution
+/cfn-loop-sprints "User authentication system" --sprints=3 --mode=standard
+/cfn-loop-epic "E-commerce platform" --phases=4 --mode=enterprise --loop0.5
 
-# Epic orchestration
-/cfn-loop-epic "Build e-commerce platform" --phases 4 --dependencies "1->2->3->4"
+# Single task execution
+/cfn-loop-single "Fix authentication bug" --mode=mvp
+/cfn-loop-single "Optimize database queries" --mode=standard
 
-# Sprint-based execution
-/cfn-loop-sprints "Frontend development" --sprints 3 --max-iterations 3
+# Agent optimization
+/cfn-optimize-agents --parallel=4 --provider=zai
+
+# Documentation updates
+/cfn-loop-document --sprint=auth-sprint-001 --epic=user-management
+/cfn-claude-sync --dry-run --verbose
+```
+
+#### CFN Loop Redis Coordination
+
+**Loop State Management**:
+```bash
+# Store loop state
+redis-cli setex "cfn:loop:auth-001" 3600 '{"loop":3,"phase":"implementation","agents":5}'
+
+# Track agent confidence
+redis-cli hset "cfn:phase:auth:loop3" "coder-1" '{"confidence":0.85,"status":"complete"}'
+redis-cli hset "cfn:phase:auth:loop3" "security-1" '{"confidence":0.82,"status":"complete"}'
+
+# Monitor loop progress
+redis-cli get "cfn:loop:auth-001:status"
+redis-cli keys "cfn:phase:auth:*"
+
+# Calculate average confidence
+redis-cli eval "
+  local results = redis.call('HGETALL', KEYS[1])
+  local sum, count = 0, 0
+  for i=2,#results,2 do
+    local data = cjson.decode(results[i])
+    if data.confidence then
+      sum = sum + data.confidence
+      count = count + 1
+    end
+  end
+  return count > 0 and sum / count or 0
+" 1 "cfn:phase:auth:loop3"
+```
+
+**Consensus Validation**:
+```bash
+# Store validator results
+redis-cli lpush "cfn:phase:auth:loop2:validators" '{"validator":"code-review-1","score":0.92}'
+redis-cli lpush "cfn:phase:auth:loop2:validators" '{"validator":"security-1","score":0.88}'
+
+# Calculate consensus
+redis-cli eval "
+  local validators = redis.call('LRANGE', KEYS[1], 0, -1)
+  local sum, count = 0, 0
+  for i=1,#validators do
+    local data = cjson.decode(validators[i])
+    sum = sum + data.score
+    count = count + 1
+  end
+  return count > 0 and sum / count or 0
+" 1 "cfn:phase:auth:loop2:validators"
+
+# Store consensus decision
+redis-cli setex "cfn:phase:auth:loop4:decision" 3600 '{"decision":"PROCEED","reason":"All gates passed","consensus":0.90}'
+```
+
+**Product Owner Decisions**:
+```bash
+# Store PO decision with override capability
+redis-cli setex "cfn:phase:auth:loop4:po-decision" 3600 '{
+  "decision": "PROCEED",
+  "consensus": 0.88,
+  "threshold": 0.90,
+  "override": true,
+  "reasoning": "Minor security concerns noted but acceptable for MVP",
+  "nextPhase": "testing"
+}'
+
+# Track decision history
+redis-cli lpush "cfn:decisions:history" '{
+  "phaseId": "auth-001",
+  "loop": 4,
+  "decision": "PROCEED",
+  "timestamp": "'$(date -Iseconds)'"
+}'
+```
+
+#### ACE System Redis Integration
+
+**Context Storage**:
+```bash
+# Store adaptive context with semantic similarity
+redis-cli setex "ace:context:auth-patterns" 86400 '{
+  "content": "JWT implementation with refresh tokens",
+  "tags": ["authentication", "security", "jwt"],
+  "similarity": 0.95,
+  "confidence": 0.88
+}'
+
+# Search context by content
+redis-cli eval "
+  local keys = redis.call('KEYS', ARGV[1])
+  local results = {}
+  for i=1,#keys do
+    local data = redis.call('GET', keys[i])
+    if data and string.find(data, ARGV[2]) then
+      table.insert(results, data)
+    end
+  end
+  return results
+" 0 "ace:context:*" "authentication"
+
+# Context bullet management
+redis-cli hset "ace:bullets:security" "bullet-001" '{
+  "category": "security",
+  "confidence": 0.92,
+  "pattern": "input-validation",
+  "tags": ["validation", "security", "best-practices"]
+}'
+```
+
+**Reflection Storage**:
+```bash
+# Store reflection deltas
+redis-cli lpush "ace:reflection:deltas" '{
+  "taskId": "auth-implementation",
+  "timestamp": "'$(date -Iseconds)'",
+  "learnings": [
+    "JWT refresh tokens improve UX",
+    "Rate limiting prevents brute force"
+  ],
+  "confidence": 0.87
+}'
+
+# Curated reflection summaries
+redis-cli setex "ace:reflection:curated:auth" 604800 '{
+  "topic": "authentication",
+  "summary": "JWT with refresh tokens and rate limiting",
+  "confidence": 0.90,
+  "examples": 5,
+  "lastUpdated": "'$(date -Iseconds)'"
+}'
 ```
 
 #### SPARC Methodology

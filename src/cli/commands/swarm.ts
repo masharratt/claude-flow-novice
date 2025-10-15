@@ -8,7 +8,7 @@ import { success, error, warning, info } from '../cli-core.js';
 import type { CommandContext } from '../cli-core.js';
 import { BackgroundExecutor } from '../../coordination/background-executor.js';
 import { SwarmCoordinator } from '../../coordination/swarm-coordinator.js';
-import { SwarmMemoryManager } from '../../memory/swarm-memory.js';
+import { SwarmMemoryManager } from '../../swarm/memory.js';
 import { setSwarmCoordinator } from '../../coordination/swarm-coordinator-factory.js';
 import { requireSwarmInit } from '../../validators/swarm-init-validator.js';
 export async function swarmAction(ctx: CommandContext) {

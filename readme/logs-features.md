@@ -36,6 +36,26 @@
 
 **Integration**: Mode stored in Redis (`cfn:mode:{phaseId}`) for swarm coordination
 
+### ACE (Adaptive Context Extension)
+
+**Purpose**: Stanford-inspired pattern for context management with adaptive learning
+
+**Key Components**:
+- **Generator**: Create and refine context from agent interactions
+- **Reflector**: Meta-cognitive analysis of context quality
+- **Curator**: Merge, deduplicate, and prioritize insights
+- **SQLite Memory**: Persistent adaptive context with 30-365 day retention
+
+**Features**:
+- **Semantic Deduplication**: Avoid redundant insights
+- **Confidence Evolution**: Track helpful/harmful content patterns
+- **Agent-Type Mapping**: Context injection based on agent roles
+- **CLI Commands**: `ace-reflect`, `ace-accurate`, `ace-query`, `ace-inject`, `ace-stats`
+
+**Configuration**: Context retention policies, confidence thresholds, agent preferences
+
+**Usage**: Long-term learning across sessions with automatic context injection
+
 ### CFN Loop Coordinators
 
 **Purpose**: Mode-specific coordinators with autonomous phase execution and intelligent return-to-chat triggers

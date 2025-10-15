@@ -15,7 +15,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DIST_DIR = path.join(__dirname, '..', '.claude-flow-novice', 'dist');
+const DIST_DIR = path.join(__dirname, '..', 'dist');
 
 // Patterns to match and fix relative imports without .js extension
 const IMPORT_PATTERNS = [
@@ -51,6 +51,14 @@ async function fixFileExtensions(filePath) {
         // Skip if already has .js extension
         if (modulePath.endsWith('.js')) {
           return match;
+        }
+
+        // If it's a .ts extension in a .js file, change to .js
+        if (modulePath.endsWith('.ts')) {
+          const fixedModulePath = modulePath.replace('.ts', '.js');
+          const fixed = match.replace(modulePath, fixedModulePath);
+          modified = true;
+          return fixed;
         }
 
         // Skip if it's a JSON or other file type

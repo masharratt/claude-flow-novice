@@ -1466,6 +1466,209 @@ class UnifiedPostEditPipeline {
         return context;
     }
 
+    suggestBetterLocation(filePath) {
+        const fileName = path.basename(filePath);
+        const ext = path.extname(filePath).toLowerCase();
+        const nameWithoutExt = path.basename(filePath, ext);
+        const suggestions = [];
+
+        // Check existing directory structure
+        const projectRoot = process.cwd();
+        const existingDirs = this.getExistingDirectories(projectRoot);
+
+        // Markdown files
+        if (ext === '.md') {
+            if (existingDirs.includes('docs')) {
+                suggestions.push({
+                    location: `docs/${fileName}`,
+                    reason: 'Documentation directory exists'
+                });
+            }
+            if (existingDirs.includes('readme')) {
+                suggestions.push({
+                    location: `readme/${fileName}`,
+                    reason: 'README directory exists'
+                });
+            }
+            if (fileName.toLowerCase().includes('readme')) {
+                suggestions.push({
+                    location: `README.md`,
+                    reason: 'Main project README should be in root'
+                });
+            }
+            if (fileName.toLowerCase().includes('changelog')) {
+                suggestions.push({
+                    location: `CHANGELOG.md`,
+                    reason: 'Standard changelog filename'
+                });
+            }
+            // Check if it's API docs
+            if (nameWithoutExt.toLowerCase().includes('api')) {
+                suggestions.push({
+                    location: `docs/api/${fileName}`,
+                    reason: 'API documentation'
+                });
+            }
+            // Check if it's guides
+            if (nameWithoutExt.toLowerCase().includes('guide')) {
+                suggestions.push({
+                    location: `docs/guides/${fileName}`,
+                    reason: 'User guides'
+                });
+            }
+        }
+
+        // JSON files
+        if (ext === '.json') {
+            if (fileName.includes('package')) {
+                suggestions.push({
+                    location: `package.json`,
+                    reason: 'Package.json belongs in root'
+                });
+            }
+            if (fileName.includes('tsconfig')) {
+                suggestions.push({
+                    location: `tsconfig.json`,
+                    reason: 'TypeScript config belongs in root'
+                });
+            }
+            if (existingDirs.includes('config')) {
+                suggestions.push({
+                    location: `config/${fileName}`,
+                    reason: 'Configuration files directory'
+                });
+            }
+            if (existingDirs.includes('data')) {
+                suggestions.push({
+                    location: `data/${fileName}`,
+                    reason: 'Data files directory'
+                });
+            }
+            // Check if it's test data
+            if (nameWithoutExt.toLowerCase().includes('test') || nameWithoutExt.toLowerCase().includes('mock')) {
+                suggestions.push({
+                    location: `tests/fixtures/${fileName}`,
+                    reason: 'Test data/mocks directory'
+                });
+            }
+            // Check if it's schema
+            if (nameWithoutExt.toLowerCase().includes('schema')) {
+                suggestions.push({
+                    location: `schemas/${fileName}`,
+                    reason: 'Schema files directory'
+                });
+            }
+        }
+
+        // General suggestions based on file type
+        if (['.js', '.ts', '.jsx', '.tsx'].includes(ext)) {
+            if (existingDirs.includes('src')) {
+                suggestions.push({
+                    location: `src/${fileName}`,
+                    reason: 'Source code directory'
+                });
+            }
+            if (existingDirs.includes('lib')) {
+                suggestions.push({
+                    location: `lib/${fileName}`,
+                    reason: 'Library directory'
+                });
+            }
+            if (nameWithoutExt.toLowerCase().includes('test') || nameWithoutExt.toLowerCase().includes('spec')) {
+                if (existingDirs.includes('tests')) {
+                    suggestions.push({
+                        location: `tests/${fileName}`,
+                        reason: 'Test files directory'
+                    });
+                } else if (existingDirs.includes('test')) {
+                    suggestions.push({
+                        location: `test/${fileName}`,
+                        reason: 'Test files directory'
+                    });
+                }
+            }
+        }
+
+        // Configuration files
+        if (['.env', '.env.example', '.gitignore', '.dockerfile', '.dockerignore'].includes(fileName.toLowerCase())) {
+            suggestions.push({
+                location: fileName,
+                reason: 'Configuration files belong in root'
+            });
+        }
+
+        // If no specific suggestions, provide general ones
+        if (suggestions.length === 0) {
+            if (existingDirs.includes('src')) {
+                suggestions.push({
+                    location: `src/${fileName}`,
+                    reason: 'Default source directory'
+                });
+            }
+            if (existingDirs.includes('docs')) {
+                suggestions.push({
+                    location: `docs/${fileName}`,
+                    reason: 'Documentation directory'
+                });
+            }
+            if (existingDirs.includes('config')) {
+                suggestions.push({
+                    location: `config/${fileName}`,
+                    reason: 'Configuration directory'
+                });
+            }
+            if (existingDirs.includes('scripts')) {
+                suggestions.push({
+                    location: `scripts/${fileName}`,
+                    reason: 'Scripts directory'
+                });
+            }
+            if (existingDirs.includes('tools')) {
+                suggestions.push({
+                    location: `tools/${fileName}`,
+                    reason: 'Tools and utilities directory'
+                });
+            }
+            // Generic suggestions based on file type
+            if (ext === '.md') {
+                suggestions.push({
+                    location: `docs/${fileName}`,
+                    reason: 'General documentation'
+                });
+            } else if (ext === '.json') {
+                suggestions.push({
+                    location: `config/${fileName}`,
+                    reason: 'Configuration data'
+                });
+            } else {
+                suggestions.push({
+                    location: `src/${fileName}`,
+                    reason: 'Source code'
+                });
+            }
+        }
+
+        // Remove duplicates and limit to 5 suggestions
+        const uniqueSuggestions = suggestions.filter((suggestion, index, self) =>
+            index === self.findIndex((s) => s.location === suggestion.location)
+        ).slice(0, 5);
+
+        return uniqueSuggestions;
+    }
+
+    getExistingDirectories(rootPath) {
+        try {
+            return fs.readdirSync(rootPath)
+                .filter(item => {
+                    const itemPath = path.join(rootPath, item);
+                    return fs.statSync(itemPath).isDirectory();
+                })
+                .filter(dir => !dir.startsWith('.') && dir !== 'node_modules'); // Exclude hidden and node_modules
+        } catch (error) {
+            return [];
+        }
+    }
+
     formatTimestamp(isoTimestamp) {
         const date = new Date(isoTimestamp);
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -1575,9 +1778,65 @@ class UnifiedPostEditPipeline {
     async run(filePath, options = {}) {
         const language = this.detectLanguage(filePath);
 
+        // Strong warning for files in root directory (FIRST CHECK - before any bypasses)
+        const fileDir = path.resolve(path.dirname(filePath));
+        const projectRoot = process.cwd();
+        const isRootDirectory = fileDir === projectRoot;
+        const ext = path.extname(filePath).toLowerCase();
+        const fileName = path.basename(filePath);
+
+        if (isRootDirectory) {
+            // Allow certain essential config files in root
+            const allowedRootFiles = [
+                'package.json', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+                'tsconfig.json', 'jsconfig.json', 'tsconfig.build.json',
+                '.gitignore', '.gitattributes', '.env.example', '.env',
+                'README.md', 'CHANGELOG.md', 'LICENSE', 'LICENSE.md',
+                '.dockerignore', 'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml',
+                '.nvmrc', '.node-version', 'Makefile'
+            ];
+
+            if (!allowedRootFiles.includes(fileName)) {
+                const suggestions = this.suggestBetterLocation(filePath);
+
+                console.log(`\n🚫 ROOT DIRECTORY WARNING: ${fileName}`);
+                console.log(`   Creating files in project root causes organizational issues`);
+                console.log(`   and makes them harder to find and manage.`);
+                console.log(`\n💡 SUGGESTED LOCATIONS:`);
+                suggestions.forEach((suggestion, i) => {
+                    console.log(`   ${i + 1}. ${suggestion.location} (${suggestion.reason})`);
+                });
+                console.log(`\n✅ RECOMMENDED ACTION:`);
+                console.log(`   Move this file to an appropriate subdirectory for better organization`);
+                console.log(`   Root should only contain essential config files (package.json, .gitignore, etc.)`);
+
+                return {
+                    file: filePath,
+                    language,
+                    timestamp: new Date().toISOString(),
+                    editId: `edit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    agentContext: this.extractAgentContext(options),
+                    status: 'ROOT_WARNING',
+                    bypassed: false,
+                    reason: `File created in root directory - should be moved to appropriate subdirectory`,
+                    rootWarning: {
+                        fileName,
+                        suggestions,
+                        message: 'Strongly recommend moving files from root to appropriate subdirectories'
+                    },
+                    summary: {
+                        success: true,
+                        warnings: [`File "${fileName}" should not be in root directory`],
+                        errors: [],
+                        suggestions: suggestions.map(s => `Move to ${s.location} - ${s.reason}`)
+                    }
+                };
+            }
+            // File is allowed in root, proceed with normal validation
+        }
+
         // Markdown files: Only validate if explicitly requested (better for pre-commit/CI)
         // Post-edit validation creates too many false positives during active editing
-        const ext = path.extname(filePath).toLowerCase();
         if (ext === '.md') {
             // Only process if --validate-markdown flag is set (opt-in for CI/pre-commit)
             if (options.validateMarkdown || process.env.VALIDATE_MARKDOWN === 'true') {
@@ -1603,8 +1862,9 @@ class UnifiedPostEditPipeline {
             }
         }
 
-        // Bypass other non-code config files
-        const bypassExtensions = ['.toml', '.txt', '.json', '.yaml', '.yml'];
+  
+        // Bypass other non-code config files (after root directory check)
+        const bypassExtensions = ['.toml', '.txt', '.yaml', '.yml'];
         if (bypassExtensions.includes(ext)) {
             console.log(`\n⏭️  BYPASSED: ${ext} files don't require validation`);
             return {
@@ -1625,6 +1885,7 @@ class UnifiedPostEditPipeline {
             };
         }
 
+  
         // Auto-enable Rust strict mode for .rs files
         if (language === 'rust' && !this.rustStrict) {
             this.rustStrict = true;

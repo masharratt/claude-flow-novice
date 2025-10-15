@@ -22,6 +22,7 @@ This documentation provides comprehensive coverage of Claude Flow's logging syst
 ## Context Management
 
 - [ACE System Overview](./logs-features.md#adaptive-context-extension-ace)
+- [ACE Context Storage](./logs-api.md#ace-system-apis)
 - [Context Reflection](./logs-slash-commands.md#context-reflect)
 - [Context Curation](./logs-slash-commands.md#context-curate)
 - [Context Query](./logs-slash-commands.md#context-query)
@@ -29,6 +30,7 @@ This documentation provides comprehensive coverage of Claude Flow's logging syst
 - [Context Statistics](./logs-slash-commands.md#context-stats)
 - [ACE Core Functions](./logs-functions.md#ace-core-functions)
 - [Context Management Commands](./additional-commands.md#context-management)
+- [ACE Redis Integration](./logs-cli-redis.md#ace-system-redis-integration)
 
 ## Quick Start
 
@@ -176,27 +178,37 @@ node src/cli/hybrid-routing/spawn-workers.js "OAuth2" \
 
 **Documentation**: [\`additional-commands.md#hybrid-routing\`](./additional-commands.md#hybrid-routing-cost-optimized-worker-spawning), [\`logs-features.md#hybrid-routing\`](./logs-features.md#hybrid-routing-specialized-agent-selection), \`src/cli/hybrid-routing/COORDINATOR-OVERRIDE.md\`
 
-### CFN Loop Coordinators
+### CFN Loop System
 
-**Purpose**: Mode-specific coordinators with autonomous phase execution
+**Purpose**: Autonomous 3-loop self-correcting workflow with consensus validation
+
+**Components**:
+- **Loop Management**: Phase orchestration with telemetry
+- **Consensus Validation**: 2-4 validators with configurable thresholds
+- **Product Owner Decisions**: GOAP-based decision gates with override capability
+- **Mode Selection**: MVP (0.70/0.80), Standard (0.75/0.90), Enterprise (0.75/0.95)
+
+**Commands**:
+- [`/cfn-loop`](./logs-slash-commands.md#cfn-loop-task-description---phase-name---mode-mvpstandardenterprise) - Single task execution
+- [`/cfn-loop-sprints`](./logs-slash-commands.md#cfn-loop-sprints-phase-description---sprints-number) - Multi-phase sprints
+- [`/cfn-loop-epic`](./logs-slash-commands.md#cfn-loop-epic-epic-description---phases-number) - Epic orchestration
+- [`/cfn-loop-single`](./logs-slash-commands.md#cfn-loop-single-task-description) - Quick single execution
+- [`/cfn-optimize-agents`](./logs-slash-commands.md#cfn-optimize-agents---parallel-4---provider-zai) - Agent optimization
+- [`/cfn-loop-document`](./logs-slash-commands.md#cfn-loop-document---sprint-name---epic-name) - Documentation updates
+- [`/cfn-claude-sync`](./logs-slash-commands.md#cfn-claude-sync---dry-run---verbose) - CLAUDE.md sync
 
 **Coordinators**:
 - **cfn-coordinator-mvp**: <$1/phase, 15min, 2-3 workers
 - **cfn-coordinator-standard**: $2/phase, 30min, 4-5 workers
 - **cfn-coordinator-enterprise**: $5/phase, 60min, 5-7 workers
 
-**Key Features**:
-- Autonomous Loop 3→2→4 execution
-- Auto-phase-launch (full sprint lifecycle)
-- Return-to-chat only for human decisions or completion
-- Mode-specific parameter enforcement
-- Telemetry (confidence, cost, duration, savings)
+**Redis Integration**:
+- Loop state tracking with TTL
+- Agent confidence aggregation
+- Consensus calculation
+- PO decision storage with override
 
-\`\`\`bash
-node src/cli/hybrid-routing/spawn-coordinator.js "Execute sprint: Auth" --mode=mvp --sprint-id=auth-001
-\`\`\`
-
-**Documentation**: \`logs-features.md#cfn-loop-coordinators\`, \`.claude/agents/cfn-loop/cfn-coordinator-*.md\`
+**Documentation**: [`logs-api.md#cfn-loop-apis`](./logs-api.md#cfn-loop-apis), [`logs-cli-redis.md#cfn-loop-redis-coordination`](./logs-cli-redis.md#cfn-loop-redis-coordination), [`CFN_LOOP_CHEATSHEET.md`](./CFN_LOOP_CHEATSHEET.md)
 
 ### Web Portal Dashboard
 
@@ -350,6 +362,16 @@ logger.info('message');
 - **Integration Hooks**: [logs-hooks.md](./logs-hooks.md)
 
 ## Version History
+
+### Sprint 1.9 (2025-10-15) - CFN Loop & ACE Enhancement
+- CFN Loop autonomous workflow with 3-loop self-correcting consensus
+- ACE (Adaptive Context Extension) system with semantic similarity
+- New CFN Loop commands: /cfn-loop-sprints, /cfn-loop-epic, /cfn-loop-single
+- ACE commands: /context-reflect, /context-curate, /context-query, /context-inject
+- Redis coordination patterns for CFN Loop state management
+- SQLite memory integration for cross-loop data persistence
+- Documentation update automation with /cfn-loop-document
+- CLAUDE.md synchronization with /cfn-claude-sync
 
 ### Sprint 1.8 (2025-10-14) - Redis Transparency Enhancement
 - Redis Transparency System with real-time agent observation
