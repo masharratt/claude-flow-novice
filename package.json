@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy",
   "type": "module",
   "mcpName": "io.github.ruvnet/claude-flow",
@@ -10,7 +10,10 @@
   },
   "files": [
     "dist/",
-    "scripts/"
+    "wiki/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
@@ -158,13 +161,6 @@
     "node": ">=20.0.0",
     "npm": ">=9.0.0"
   },
-  "files": [
-    "dist/",
-    "wiki/",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
   "exports": {
     ".": "./dist/src/index.js",
     "./cli": "./dist/src/cli/main.js",
