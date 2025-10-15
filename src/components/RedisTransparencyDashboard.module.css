@@ -1,0 +1,599 @@
+/* Redis Transparency Dashboard Styles */
+
+.dashboardContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+}
+
+.header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.subtitle {
+  color: #718096;
+  margin-top: 0.5rem;
+}
+
+.headerActions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.iconButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.iconButton.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.iconButton.inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.exportButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.exportButton:hover {
+  background: #e5e7eb;
+}
+
+.timeRangeSelect {
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timeRangeSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.summaryCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.summaryCard {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+
+.summaryCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardTitle {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.cardValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.cardIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardIcon.green {
+  background: #d1fae5;
+  color: #10b981;
+}
+
+.cardIcon.blue {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.cardIcon.purple {
+  background: #e9d5ff;
+  color: #8b5cf6;
+}
+
+.cardIcon.red {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.cardIcon.yellow {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.tabsContainer {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 0.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.tabsList {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.tabButton:hover {
+  background: #f3f4f6;
+}
+
+.tabButton.active {
+  background: #3b82f6;
+  color: white;
+}
+
+.tabButton.inactive {
+  color: #6b7280;
+}
+
+.contentArea {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+}
+
+.chartContainer {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.chartTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 1.5rem;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.errorContainer {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.errorContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.errorTitle {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.modelCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modelCard:hover {
+  background: #f9fafb;
+  border-color: #3b82f6;
+}
+
+.modelCard.selected {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.modelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.modelName {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.modelStatus {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.modelStatus.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.modelStatus.training {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.modelStatus.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.modelMetrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+}
+
+.metricLabel {
+  color: #6b7280;
+}
+
+.metricValue {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.agentStatusCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  transition: all 0.2s;
+}
+
+.agentStatusCard:hover {
+  background: #f9fafb;
+}
+
+.agentInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.statusIndicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.statusIndicator.online {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.statusIndicator.busy {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.statusIndicator.offline {
+  background: #6b7280;
+  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
+}
+
+.agentDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.agentName {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.agentRole {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.agentMetrics {
+  text-align: right;
+}
+
+.agentMetricLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.agentMetricValue {
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.anomalyTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.anomalyTable th {
+  text-align: left;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.anomalyTable td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.anomalyTable tr:hover {
+  background: #f9fafb;
+}
+
+.severityBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.severityBadge.critical {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.severityBadge.high {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.severityBadge.medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.severityBadge.low {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.statusBadge.active {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.statusBadge.investigating {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusBadge.resolved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboardContainer {
+    padding: 1rem;
+  }
+
+  .headerContent {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .summaryCards {
+    grid-template-columns: 1fr;
+  }
+
+  .contentArea {
+    grid-template-columns: 1fr;
+  }
+
+  .tabsList {
+    flex-wrap: wrap;
+  }
+
+  .tabButton {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .modelMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .anomalyTable {
+    font-size: 0.875rem;
+  }
+
+  .anomalyTable th,
+  .anomalyTable td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .cardValue {
+    font-size: 1.5rem;
+  }
+
+  .headerActions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .exportButton,
+  .timeRangeSelect {
+    width: 100%;
+  }
+}
+
+/* Animation for data updates */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chartContainer {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.summaryCard {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.summaryCard:nth-child(1) { animation-delay: 0.1s; }
+.summaryCard:nth-child(2) { animation-delay: 0.2s; }
+.summaryCard:nth-child(3) { animation-delay: 0.3s; }
+.summaryCard:nth-child(4) { animation-delay: 0.4s; }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

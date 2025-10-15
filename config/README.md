@@ -1,73 +1,93 @@
-# Configuration Directory Structure
+# Configuration Directory
 
-This directory contains all configuration files organized by tool/purpose to improve maintainability and clarity.
+This directory contains configuration files for various tools, services, and build processes used throughout the project.
 
-## Directory Structure
+## Configuration Files
 
+### 📦 Package Configuration
+- **`package-scripts.json`** - Custom npm scripts and task definitions
+- **`sprint-1.2-implementation-plan.json`** - Sprint planning and implementation configuration
+
+### 🔧 Tool Configuration
+- **`claude-flow.config.json`** - Claude AI workflow and integration settings
+- **`codecov.yml`** - Code coverage reporting configuration
+- **`docker-compose.yml`** - Docker container orchestration settings
+
+## Usage Guidelines
+
+### Package Scripts
+The `package-scripts.json` file extends npm's script capabilities with custom automation tasks:
+```bash
+# View available scripts
+cat config/package-scripts.json
+
+# Run custom scripts (if integrated with package.json)
+npm run custom:task
 ```
-config/
-├── typescript/     # TypeScript configuration files
-├── jest/          # Jest testing configuration
-├── linting/       # ESLint, Prettier, and other linting tools
-├── build/         # Build tool configurations (Babel, SWC, etc.)
-└── apps/          # Application-specific configurations
-```
 
-## Purpose
+### Sprint Planning
+The sprint configuration file contains:
+- Implementation timelines
+- Task breakdowns
+- Resource allocation
+- Milestone definitions
 
-The config directory centralizes all configuration files to:
-- Improve project organization
-- Make configurations easier to find and maintain
-- Enable better sharing of configurations across projects
-- Separate concerns by tool type
-- Prepare for potential monorepo structure
+### Tool Integration
+Each configuration file is automatically detected by its respective tool:
+- **Codecov**: Automatically reads `codecov.yml` for coverage settings
+- **Docker**: Uses `docker-compose.yml` for container orchestration
+- **Claude Flow**: Integrates with `claude-flow.config.json` for AI workflows
 
-## Subdirectory Details
+## Configuration Management
 
-### typescript/
-Contains TypeScript compiler configurations:
-- Base TypeScript configs
-- Environment-specific tsconfig files
-- Shared TypeScript project references
+### Environment-Specific Configs
+When working with different environments:
+1. Use environment variables for sensitive data
+2. Create environment-specific overrides when needed
+3. Never commit secrets or API keys to configuration files
+4. Use template files for environment-specific settings
 
-### jest/
-Contains Jest testing framework configurations:
-- Base Jest configuration
-- Environment-specific test configs
-- Custom test setups and utilities
+### Version Control
+- All configuration files are version controlled
+- Changes should be reviewed for impact
+- Document breaking changes in commit messages
+- Test configuration changes in development first
 
-### linting/
-Contains code quality and formatting configurations:
-- ESLint rules and configurations
-- Prettier formatting rules
-- Other linting tools (stylelint, etc.)
+## Security Considerations
 
-### build/
-Contains build tool configurations:
-- Babel configurations for transpilation
-- SWC configurations for fast compilation
-- Webpack or other bundler configurations
-- Build optimization settings
+### Sensitive Data
+- Never store passwords, API keys, or secrets in these files
+- Use environment variables or secret management systems
+- Consider using `.env` files for local development (excluded from git)
+- Validate configuration files don't expose sensitive information
 
-### apps/
-Contains application-specific configurations:
-- App-specific overrides
-- Environment configurations
-- Feature flags and app settings
+### Access Control
+- Limit write access to configuration files
+- Review changes to configuration files carefully
+- Monitor configuration file access in production environments
 
-## Migration Plan
+## Maintenance
 
-Future phases will move existing configuration files into these directories:
-1. TypeScript configs → config/typescript/
-2. Jest configs → config/jest/
-3. Linting configs → config/linting/
-4. Build tool configs → config/build/
-5. App configs → config/apps/ (if approved)
+### Regular Updates
+- Review configuration files quarterly for relevance
+- Update tool configurations when upgrading dependencies
+- Remove obsolete configuration files
+- Document configuration changes for team awareness
 
-## Benefits
+### Backup and Recovery
+- Configuration files are backed up with git
+- Tag important configuration changes for easy rollback
+- Document configuration dependencies
+- Test configuration recovery procedures
 
-- **Organization**: Clear separation of configuration concerns
-- **Maintainability**: Easier to locate and update specific configurations
-- **Reusability**: Configurations can be shared across projects
-- **Scalability**: Structure supports growth to monorepo if needed
-- **Developer Experience**: Reduced cognitive load when working with configs
+## Recent Changes
+
+This configuration directory was created as part of a root directory cleanup effort to improve project organization. Previously, configuration files were scattered in the root directory, making them difficult to manage and track.
+
+### Migration Details
+- **Files Moved**: 5 configuration files from root directory
+- **Purpose**: Centralize configuration management
+- **Benefit**: Improved security and maintainability
+- **Impact**: Better organization and easier configuration management
+
+For questions about specific configuration files or settings, refer to the individual tool documentation or contact the development team.

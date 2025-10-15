@@ -15,6 +15,7 @@ import { PerformanceCommand } from './performance.js';
 import { GitHubCommand } from './github.js';
 import { WorkflowCommand } from './workflow.js';
 import { executeClaudeSoulCommand } from './claude-soul.js';
+import { CfnOptimizeAgentsCommand } from '../../src/slash-commands/cfn-optimize-agents.js';
 
 /**
  * Command Registry Class
@@ -59,6 +60,11 @@ export class SlashCommandRegistry {
     this.register(new WorkflowCommand());
     this.addAlias('workflow', 'wf');
     this.addAlias('workflow', 'w');
+
+    // CFN Loop optimization commands
+    this.register(new CfnOptimizeAgentsCommand());
+    this.addAlias('cfn-optimize-agents', 'cfn-opt');
+    this.addAlias('cfn-optimize-agents', 'optimize-agents');
 
     // Legacy function-based commands
     this.registerLegacyCommand('claude-md', {

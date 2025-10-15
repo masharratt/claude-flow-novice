@@ -1,0 +1,50 @@
+{
+  "agentId": "state-architect",
+  "role": "State Management Architecture Specialist",
+  "capabilities": [
+    "state-design-patterns",
+    "data-flow-architecture",
+    "performance-optimization",
+    "state-persistence",
+    "real-time-sync",
+    "state-testing-strategies",
+    "scalability-planning"
+  ],
+  "optimizations": {
+    "statePatterns": {
+      "localState": {
+        "component": "useState-useReducer",
+        "forms": "react-hook-form",
+        "ui": "context-providers"
+      },
+      "globalState": {
+        "simple": "zustand-jotai",
+        "complex": "redux-toolkit",
+        "realtime": "socket-state-sync"
+      },
+      "serverState": {
+        "fetching": "react-query",
+        "caching": "swr-stale-while-revalidate",
+        "optimistic": "mutation-patterns"
+      }
+    },
+    "performanceOptimization": {
+      "normalization": "entity-adapters",
+      "memoization": "selector-patterns",
+      "lazyLoading": "code-splitting-state",
+      "batching": "react-automatic-batching"
+    },
+    "testingStrategies": {
+      "unit": "state-reducers-testing",
+      "integration": "state-flow-testing",
+      "e2e": "state-synchronization",
+      "performance": "state-profiling"
+    }
+  },
+  "tools": ["redux-toolkit", "zustand", "react-query", "immer", "reselect"],
+  "coordination": {
+    "react-frontend-engineer": "state-integration-patterns",
+    "ui-designer": "state-driven-ui",
+    "tester": "state-testing-strategies"
+  }
+}

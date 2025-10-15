@@ -836,6 +836,64 @@ coord:{swarmId}:heartbeat          # Health monitoring
 coord:{swarmId}:queue              # Task queue
 ```
 
+#### Transparency Coordination Keys
+
+```
+transparency:agents:{agentId}:state         # Current agent state
+transparency:agents:{agentId}:activity      # Activity log
+transparency:agents:{agentId}:progress      # Progress metrics
+transparency:agents:{agentId}:transitions   # State transitions
+transparency:stream:updates                 # Real-time update stream
+transparency:predictions:{agentId}          # ML-based predictions
+transparency:anomalies:detection            # Anomaly detection results
+transparency:intervention:{agentId}         # Intervention commands
+```
+
+**Transparency State Management**:
+```bash
+# Monitor agent state changes
+redis-cli subscribe "transparency:agents:*:state"
+
+# Track real-time updates
+redis-cli subscribe "transparency:stream:updates"
+
+# Query agent activity
+redis-cli lrange "transparency:agents:coder-1:activity" 0 -1
+
+# Get current progress
+redis-cli get "transparency:agents:coder-1:progress"
+
+# Monitor state transitions
+redis-cli subscribe "transparency:agents:*:transitions"
+```
+
+**Intervention Coordination**:
+```bash
+# Send pause command
+redis-cli publish "transparency:intervention:coder-1" '{"action":"pause","reason":"review"}'
+
+# Send resume command
+redis-cli publish "transparency:intervention:coder-1" '{"action":"resume"}'
+
+# Redirect agent to new task
+redis-cli publish "transparency:intervention:coder-1" '{"action":"redirect","task":"New task description"}'
+
+# Monitor intervention results
+redis-cli subscribe "transparency:intervention:*"
+```
+
+**Performance Analytics**:
+```bash
+# Get agent performance metrics
+redis-cli hgetall "transparency:agents:coder-1:performance"
+
+# Monitor prediction accuracy
+redis-cli get "transparency:predictions:coder-1:accuracy"
+
+# Check anomaly detection
+redis-cli lrange "transparency:anomalies:detection" 0 10
+```
+
 ## Performance Optimization
 
 ### Redis Performance Tuning

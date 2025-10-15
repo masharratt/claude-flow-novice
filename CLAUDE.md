@@ -6,12 +6,16 @@
 
 **Core Principles:**
 * Use agents for all non-trivial work (≥4 steps or multi-file/research/testing/architecture/security)
+* **PRIMARY COORDINATOR: Use coordinator-hybrid for all multi-agent coordination** (cost-optimized CLI spawning with typed agents)
 * Initialize swarm before multi-agent work
 * Batch operations: one message per related batch (spawn, file edits, bash, todos, memory ops)
 * Run post-edit hook after every file edit
+* **REQUIRED: All CLI agent spawning must use explicit --agents flag with typed agents**
 
 **Prohibited Patterns:**
-* Working solo on multi-step tasks — spawn parallel specialists
+* Working solo on multi-step tasks — spawn parallel specialists via coordinator-hybrid
+* Using generic "coordinator" fallback when coordinator-hybrid available
+* Spawning agents without explicit --agents flag (must specify types from AVAILABLE-AGENTS.md)
 * Mixing implementers + validators in same message
 * Running tests inside agents — execute once; agents read results
 * Concurrent test runs — terminate previous runs first
@@ -35,9 +39,26 @@
 
 ## 2) When Agents Are Mandatory (Triggers)
 
-If **any** apply, spawn agents:
+If **any** apply, spawn coordinator-hybrid (which spawns typed specialist agents):
 
 * > 3 distinct steps • multiple files • research+implement+test • design decisions • code review/quality • security/performance/compliance • system integration • docs generation • refactor/optimize • any feature work
+
+**Coordinator Selection Priority:**
+1. **coordinator-hybrid** (PRIMARY) - All multi-agent work, CLI spawning with --agents flag, cost-optimized ($0 coordinator + $0.50 workers)
+2. **adaptive-coordinator** - Only for 8+ agents with dynamic topology switching
+3. **coordinator** - FALLBACK ONLY when specialized coordinators unavailable
+
+**Required Spawning Pattern:**
+```bash
+# ✅ CORRECT: Explicit typed agents
+node src/cli/hybrid-routing/spawn-workers.js \
+  "Task description" \
+  --agents=analyst,architect,coder \
+  --provider zai
+
+# ❌ WRONG: Missing --agents flag (will error)
+node src/cli/hybrid-routing/spawn-workers.js "Task description" --max-agents 3
+```
 
 ---
 
@@ -103,7 +124,7 @@ pkill -f vitest; pkill -f "npm test"
 
 ### 3.4 Batching (One message = all related ops)
 
-* Spawn all agents with Task tool in one message.
+* Spawn all agents with Task tool in one message (this will mostly be coordinator launches)
 * Batch file ops, bash, todos, memory ops.
 
 ---
@@ -319,15 +340,25 @@ Main Chat (Claude Max subscription, $0)
   Workers (z.ai, $0.10-2/1M tokens)
 ```
 
-**CLI Spawning (spawn-workers.js):**
+**CLI Spawning (spawn-workers.js) - REQUIRED --agents Flag:**
 
 ```bash
-# Basic spawning with retry logic
+# ✅ CORRECT: Explicit typed agents (REQUIRED)
 node src/cli/hybrid-routing/spawn-workers.js \
   "Fix SQLite dependency injection" \
-  --max-agents 2 --provider zai --redis-channel swarm:task1
+  --agents=analyst,coder \
+  --provider zai --redis-channel swarm:task1
+
+# ❌ WRONG: Missing --agents flag (will error)
+node src/cli/hybrid-routing/spawn-workers.js \
+  "Fix SQLite dependency injection" \
+  --max-agents 2 --provider zai
+
+# List available agent types:
+node src/cli/hybrid-routing/spawn-workers.js --list-agents
 
 # Features:
+# - REQUIRED: --agents flag with typed agents from AVAILABLE-AGENTS.md
 # - Automatic 502 retry with exponential backoff (1s, 2s, 4s max)
 # - 30-minute timeout with explicit logging
 # - Redis pub/sub coordination
@@ -357,15 +388,16 @@ node src/cli/hybrid-routing/spawn-workers.js \
 
 ```javascript
 // Coordinator spawned via Task tool (uses Claude Max subscription)
-Task("CFN-Loop3-Coordinator",
+Task("coordinator-hybrid",
   `Lead implementation of authentication system.
 
    **Spawning Strategy (Hybrid CLI):**
-   1. Spawn 5 worker agents via CLI with z.ai provider:
+   1. Spawn typed worker agents via CLI with z.ai provider (REQUIRED --agents flag):
 
-      node tests/manual/test-swarm-direct.js \\
-        "Implement auth: JWT, sessions, rate-limiting, security" \\
-        --executor --max-agents 5 --strategy development --mode mesh
+      node src/cli/hybrid-routing/spawn-workers.js \\
+        "Implement auth: JWT (coder-1), sessions (coder-2), rate-limiting (security-1)" \\
+        --agents=coder,coder,security-specialist \\
+        --provider zai --redis-channel swarm:auth
 
    2. Workers will coordinate via Redis pub/sub on channels:
       - swarm:auth:coder-1:complete

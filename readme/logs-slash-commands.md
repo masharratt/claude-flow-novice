@@ -476,6 +476,90 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, sw
 
 **Features**: Agent monitoring, CFN Loop visualization, metrics dashboard, hybrid routing control, SQLite memory browser, Redis coordination monitor
 
+## Transparency Commands
+
+### Agent Transparency System
+
+#### `/transparency`
+
+**Purpose**: Launch Redis transparency dashboard for real-time agent monitoring
+
+**Usage**: `/transparency [options]`
+
+**Options**:
+- `--port`: Dashboard port (default: 3001)
+- `--level`: Transparency level (minimal|standard|detailed)
+- `--agents`: Comma-separated list of agent IDs to monitor
+- `--redis`: Redis connection string (default: redis://localhost:6379)
+
+**Examples**:
+```bash
+# Launch dashboard with standard transparency
+/transparency --level=standard
+
+# Monitor specific agents
+/transparency --agents=coder-1,security-1 --port=3002
+```
+
+**Output**: Launches web dashboard at http://localhost:3001
+
+#### `/agent-observe`
+
+**Purpose**: Query agent state and activity via command line
+
+**Usage**: `/agent-observe <agentId> [query]`
+
+**Queries**:
+- `state`: Current agent state and transitions
+- `activity`: Recent activity and tool usage
+- `progress`: Progress metrics and predictions
+- `performance`: Performance analytics
+
+**Examples**:
+```bash
+# Check agent state
+/agent-observe coder-1 state
+
+# Get progress information
+/agent-observe coder-1 progress
+
+# Monitor activity
+/agent-observe security-1 activity
+```
+
+**Output**: JSON-formatted agent data
+
+#### `/agent-intervene`
+
+**Purpose**: Intervene in agent execution (pause, resume, redirect)
+
+**Usage**: `/agent-intervene <agentId> <action> [options]`
+
+**Actions**:
+- `pause`: Pause agent execution
+- `resume`: Resume paused agent
+- `redirect`: Redirect to new task
+- `terminate`: Stop agent execution
+
+**Options**:
+- `--reason`: Intervention reason
+- `--task`: New task for redirect action
+- `--force`: Force intervention without confirmation
+
+**Examples**:
+```bash
+# Pause agent for review
+/agent-intervene coder-1 pause --reason="Code review required"
+
+# Resume agent
+/agent-intervene coder-1 resume
+
+# Redirect to new task
+/agent-intervene security-1 redirect --task="Review security patches"
+```
+
+**Output**: Confirmation of intervention action
+
 ## Utility Commands
 
 ### Hooks Management

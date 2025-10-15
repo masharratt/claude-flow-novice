@@ -21,4 +21,8 @@ Switch Claude API provider between z.ai (GLM models) and official Anthropic Clau
 - `save <name>` - Save current settings
 - `restore <name>` - Restore previously saved settings
 
-Execute API switch: {{args}}
+Execute API switch using bash script:
+
+```bash
+bash scripts/switch-api.sh {{args}}
+```

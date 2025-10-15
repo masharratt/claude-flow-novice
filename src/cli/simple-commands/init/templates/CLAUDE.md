@@ -1,4 +1,3 @@
-
 # Claude Flow Novice — AI Agent Orchestration
 
 ---
@@ -120,11 +119,17 @@ Loop 2: Consensus validation (2-4 validators) → max 5-15/phase; exit at ≥0.8
 Loop 3: Primary swarm implementation → max 5-15/subtask; exit when all ≥0.70-0.75
 Loop 4: Product Owner decision gate (GOAP) → PROCEED / DEFER / ESCALATE -> Re-inject detailed mode instructions
 
+**SQLite Persistence (Dual-Layer)**:
+- Redis: Active coordination (pub/sub, heartbeats, 1h TTL)
+- SQLite: Persistent state (audit trails, 30-365 day retention)
+
+Loop storage patterns:
+- Loop 3: `cfn/phase:{id}/loop3/{agentId}/confidence` → ACL Level 1 (Private)
+- Loop 2: `consensus` table → ACL Level 3 (Swarm), immutable audit
+- Loop 4: `cfn/phase:{id}/loop4/decision` → ACL Level 4 (Project)
+
 **Detailed Mode Instructions**:
-See instruction files for complete spawn patterns, Redis pub/sub coordination, SQLite memory patterns, git commit templates, and retry strategies.
-- MVP: `config/cfn-loop/instructions/mvp-instructions.md`
-- Standard: `config/cfn-loop/instructions/standard-instructions.md`
-- Enterprise: `config/cfn-loop/instructions/enterprise-instructions.md`
+See coordinator profiles for complete spawn patterns, Redis pub/sub coordination, SQLite memory patterns, git commit templates, and retry strategies. Each coordinator maintains mode-specific expertise and auto-injects instructions for next phases.
 
 ### 4.2 CFN Loop Modes
 
@@ -153,6 +158,118 @@ See instruction files for complete spawn patterns, Redis pub/sub coordination, S
 
 **Mode Storage**: Redis key `cfn:mode:{phaseId}` stores mode for swarm coordination
 
+### 4.3 Dedicated CFN Coordinators
+
+**Mode-Based Coordinator Selection**:
+Specialized coordinators handle entire sprints with mode-specific expertise and autonomous phase execution:
+
+| Coordinator | Mode | Focus | Cost Target | Phase Duration |
+|-------------|------|-------|-------------|----------------|
+| **cfn-coordinator-mvp** | MVP | Rapid iteration, cost optimization | <$1.00/phase | 15 minutes |
+| **cfn-coordinator-standard** | Standard | Balanced quality and speed | $2.00/phase | 30 minutes |
+| **cfn-coordinator-enterprise** | Enterprise | Full quality gates, compliance | $5.00/phase | 60 minutes |
+
+**Coordinator Spawning Pattern**:
+```bash
+# Auto-spawn appropriate coordinator based on mode
+node src/cli/hybrid-routing/spawn-coordinator.js \
+  "Execute sprint: User Authentication System" \
+  --mode=mvp --sprint-id=auth-sprint-001
+
+# Coordinator spawns workers for each phase
+node src/cli/hybrid-routing/spawn-workers.js \
+  "Implement core authentication features" \
+  --max-agents 3 --provider zai --redis-channel swarm:mvp-phase
+```
+
+**Auto-Phase-Launch Pattern**:
+Coordinators autonomously execute Loop 3→2→4 for each phase:
+
+1. **Loop 3**: Spawn workers (2-5 based on mode)
+2. **Loop 2**: Coordinate validators (2-4 based on mode)
+3. **Loop 4**: Product Owner decision
+4. **Auto-Inject**: Mode-specific instructions for next phase
+
+**Single-Coordinator-Per-Sprint Pattern**:
+- One coordinator handles entire sprint lifecycle
+- Persistent state across all phases
+- Mode-specific parameter enforcement
+- Automatic return-to-chat triggers
+
+**Return-to-Chat Triggers**:
+Coordinators return to main chat only for:
+
+1. **Human Decision Required**:
+   - Major architectural changes
+   - Budget/timeline adjustments
+   - Critical technical blockers
+   - Stakeholder approval needed
+
+2. **Sprint Complete**:
+   - All planned phases executed
+   - Deliverables ready for review
+   - Next iteration planning required
+
+```javascript
+// Return-to-chat trigger logic
+const shouldReturnToChat = {
+  humanDecision: blockers.critical || scope.majorChange,
+  sprintComplete: phases.remaining === 0 && deliverables.ready
+};
+```
+
+**Coordinator Auto-Injection**:
+After each Loop 4 PROCEED decision, coordinators auto-inject mode-specific instructions:
+
+```javascript
+// MVP coordinator auto-injection example
+const mvpInstructions = `
+## MVP Mode Instructions for Next Phase
+
+### Development Priorities
+1. **Speed Over Perfection**: Focus on functional delivery
+2. **Core Features Only**: Implement essential functionality
+3. **Rapid Testing**: Basic test coverage (70%+ acceptable)
+4. **Quick Validation**: 2-validator consensus process
+
+### Cost Constraints
+- Phase Budget: <$1.00 total
+- Worker Count: 2-3 maximum
+- Timeline: 15 minutes per phase
+- Provider: z.ai (cost optimization)
+`;
+```
+
+**Coordinator Telemetry**:
+Each coordinator tracks and reports phase metrics:
+
+```javascript
+const coordinatorMetrics = {
+  phaseId: 'user-auth-mvp',
+  mode: 'mvp',
+  coordinator: 'cfn-coordinator-mvp',
+  
+  loop3: {
+    workers: 2,
+    avgConfidence: 0.75,
+    gateThreshold: 0.70,
+    cost: 0.27,
+    duration: 720000
+  },
+  
+  loop2: {
+    validators: 2,
+    consensus: 0.85,
+    consensusThreshold: 0.80,
+    cost: 0.08,
+    duration: 300000
+  },
+  
+  totalCost: 0.35,
+  totalDuration: 1020000,
+  savingsVsPureClaude: 0.96
+};
+```
 
 ### CFN Loop Coordination Framework
 
@@ -179,13 +296,123 @@ redis-cli publish "swarm:coordination" '{"agent":"coder-1","status":"ready","loo
 redis-cli subscribe "swarm:coordination"
 
 # SQLite Memory (Persistent) - Cross-loop data with ACL
-/sqlite-memory store --key "cfn/phase-auth/loop3/results" --level project --data '{"confidence":0.85}'
+/sqlite-memory store --key "cfn/phase-auth/loop3/results" --level project
 /sqlite-memory retrieve --key "cfn/phase-auth/*" --level project
 
 # Redis State (Ephemeral) - Active coordination state
 redis-cli setex "cfn:phase-auth:state" 3600 '{"loop":3,"agents":5,"confidence":0.85}'
 redis-cli get "cfn:phase-auth:state"
 ```
+
+### Hybrid CLI-Based Routing (Default with Claude Max)
+
+**Enabled automatically when using `/switch-api max`**
+
+**Architecture:**
+```
+Main Chat (Claude Max subscription, $0)
+  ↓
+  Task("Coordinator", "intelligent coordination", "coordinator")
+  ↓
+  Bash: node src/cli/hybrid-routing/spawn-workers.js --max-agents 5 --provider zai
+  ↓
+  Workers (z.ai, $0.10-2/1M tokens)
+```
+
+**CLI Spawning (spawn-workers.js):**
+
+```bash
+# Basic spawning with retry logic
+node src/cli/hybrid-routing/spawn-workers.js \
+  "Fix SQLite dependency injection" \
+  --max-agents 2 --provider zai --redis-channel swarm:task1
+
+# Features:
+# - Automatic 502 retry with exponential backoff (1s, 2s, 4s max)
+# - 30-minute timeout with explicit logging
+# - Redis pub/sub coordination
+# - SQLite memory persistence
+# - Token usage tracking
+```
+
+**Automatic Error Recovery:**
+
+```bash
+⚠️  Worker 1 502 error, retry 1/3 in 1s
+⚠️  Worker 1 502 error, retry 2/3 in 2s
+✅ Worker 1 completed: confidence 0.85
+```
+
+**Timeout Handling:**
+
+```bash
+⏱️  TIMEOUT: Workers exceeded 30-minute limit
+📊 Workers completed: 3/5
+💡 Fallback: Check /tmp/ for partial results
+   - Redis keys: redis-cli keys "swarm:phase0:*"
+   - SQLite: Check ./swarm-memory.db
+```
+
+**Loop 3 Implementation Pattern (Hybrid Mode):**
+
+```javascript
+// Coordinator spawned via Task tool (uses Claude Max subscription)
+Task("CFN-Loop3-Coordinator",
+  `Lead implementation of authentication system.
+
+   **Spawning Strategy (Hybrid CLI):**
+   1. Spawn 5 worker agents via CLI with z.ai provider:
+
+      node tests/manual/test-swarm-direct.js \\
+        "Implement auth: JWT, sessions, rate-limiting, security" \\
+        --executor --max-agents 5 --strategy development --mode mesh
+
+   2. Workers will coordinate via Redis pub/sub on channels:
+      - swarm:auth:coder-1:complete
+      - swarm:auth:coder-2:complete
+      - swarm:auth:security-1:complete
+      - (etc)
+
+   3. Monitor Redis for worker completion events.
+
+   4. Aggregate confidence scores from all workers.
+
+   5. Report when all workers ≥0.75 confidence:
+      {
+        "phase": "auth",
+        "workers": 5,
+        "avgConfidence": 0.82,
+        "status": "READY_FOR_LOOP2"
+      }
+
+   **Your Role:**
+   - Intelligent task decomposition
+   - Progress monitoring via Redis
+   - Error handling and recovery
+   - Result aggregation
+   - Structured reporting to main chat
+
+   **Cost Structure:**
+   - You (coordinator): $0 (subscription)
+   - Workers: 5 × 200K tokens × $0.50/1M = $0.50
+   - Total phase cost: ~$0.50
+   - Savings vs pure Claude: 97%`,
+  "coordinator"
+)
+```
+
+**Benefits of Hybrid Approach:**
+- ✅ Best coordinator quality (Claude 3.5 Sonnet for orchestration)
+- ✅ 97% cost savings on worker execution
+- ✅ Intelligent progress reporting to main chat
+- ✅ Error handling and recovery logic
+- ✅ Structured result aggregation
+- ⚠️ Sequential spawning (~10s for 5 agents)
+
+**When Hybrid Routing is Disabled (Pure Provider Mode):**
+- All agents use main provider (Claude Max or z.ai)
+- No coordinator intelligence layer
+- Direct CLI spawning without orchestration
 
 **Git Commit After Loop Completion:**
 
@@ -278,7 +505,7 @@ Stop only if: mode-specific iteration limits reached, critical security/compilat
 
 ## 5) Coordination Checklist (Before / During / After)
 
-**Before**: assess complexity → set agent count/types → choose topology → prepare single spawn message → unique non-overlapping instructions.
+**Before**: initialize SQLite memory system for agent persistence → assess complexity → set agent count/types → choose topology → prepare single spawn message → unique non-overlapping instructions.
 
 **During**: coordinate via SwarmMemory → post-edit hook after every edit → self-validate and report confidence.
 
@@ -302,7 +529,46 @@ node tests/manual/test-swarm-recovery.js  # Execute recovery
 redis-cli publish "swarm:coordination" '{"agent":"id","status":"message"}'
 ```
 
-## 7) Output & Telemetry (Concise)
+## 7) SQLite Memory System
+
+### 5-Level ACL
+
+| Level | Scope      | Encryption | Loop Use    |
+|-------|------------|------------|-------------|
+| 1     | Agent      | AES-256    | Loop 3      |
+| 2     | Team       | AES-256    | Team sync   |
+| 3     | Swarm      | None       | Loop 2      |
+| 4     | Project    | None       | Loop 4      |
+| 5     | System     | Master key | Audit       |
+
+### Agent Usage
+
+```javascript
+// Initialize
+const memory = new SQLiteMemorySystem({ swarmId, agentId, dbPath });
+await memory.initialize();
+
+// Store with ACL
+await memory.memoryAdapter.set(key, value, { agentId, aclLevel, namespace });
+
+// Retrieve
+const data = await memory.memoryAdapter.get(key, { agentId });
+```
+
+### Loop Storage Keys
+
+- Loop 3: `cfn/phase:{id}/loop3/{agentId}/confidence` (ACL 1)
+- Loop 2: `consensus` table (ACL 3)
+- Loop 4: `cfn/phase:{id}/loop4/decision` (ACL 4)
+
+**Architecture**: Redis (hot, 1h TTL) + SQLite (persistent, 30-365d)
+**Performance**: Write <60ms, Read <5ms (Redis) / <20ms (SQLite)
+
+**Detailed commands**: See `readme/additional-commands.md` Section "SQLite Memory & ACL Commands"
+
+---
+
+## 8) Output & Telemetry (Concise)
 
 **Agent confidence JSON (per agent)**
 
@@ -326,7 +592,7 @@ Loop 2: 0.87 (target 0.90) ❌ → Relaunch Loop 3 (security + coverage)
 
 ---
 
-## 8) CLI Command Reference
+## 9) CLI Command Reference
 
 ### Swarm Management
 
@@ -374,8 +640,7 @@ redis-cli get "swarm:state" | jq .
 
 **SQLite Memory (Persistent state with ACL):**
 ```bash
-/sqlite-memory init --database-path ./memory.db --acl-enabled
-/sqlite-memory store --key "cfn/phase/loop3" --level project --data '{"confidence":0.85}'
+/sqlite-memory store --key "cfn/phase/loop3" --level project
 /sqlite-memory retrieve --key "cfn/phase/*" --level project
 ```
 
