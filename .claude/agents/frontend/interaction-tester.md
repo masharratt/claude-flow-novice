@@ -1,10 +1,10 @@
 ---
 name: interaction-tester
 description: |
-  MUST BE USED when testing user flows, browser interactions, and E2E scenarios.
-  Use PROACTIVELY for visual regression testing, accessibility validation, cross-browser compatibility.
-  ALWAYS delegate when user asks "test user flow", "validate checkout", "check accessibility", "E2E testing".
-  Keywords - e2e testing, playwright, browser automation, visual testing, accessibility, user flows, regression testing
+  MUST BE USED when testing user interactions and frontend component behavior.
+  Use PROACTIVELY for usability testing, interaction validation, and user experience verification.
+  ALWAYS delegate when user asks to "interaction testing", "UI validation", "frontend usability".
+  Keywords - interaction testing, UI validation, usability testing, user experience, component testing
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 provider: zai

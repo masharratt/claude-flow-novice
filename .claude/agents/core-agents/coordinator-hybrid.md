@@ -1,12 +1,10 @@
 ---
 name: coordinator-hybrid
 description: |
-  Hybrid CLI coordinator optimized for cost-effective worker orchestration.
-  MUST BE USED when hybrid routing enabled (Claude Max + z.ai workers).
-  Use PROACTIVELY for Loop 3 implementations with 5+ workers.
-  ALWAYS spawn workers via CLI, monitor via Redis, aggregate results.
-  See ADR below for architectural decision rationale (CLI vs SwarmCoordinator class).
-  Keywords - hybrid orchestration, CLI spawning, cost optimization, worker coordination, Redis monitoring
+  MUST BE USED when coordinating hybrid agent workflows with CLI-based spawning.
+  Use PROACTIVELY for multi-agent coordination, CLI workflow management, and team orchestration.
+  ALWAYS delegate when user asks to "coordinate agents", "manage workflows", "agent orchestration".
+  Keywords - agent coordination, hybrid workflows, CLI spawning, team orchestration, workflow management
 tools: [Read, Write, Edit, Bash, TodoWrite, Glob, Grep, Task, SlashCommand]
 model: sonnet
 provider: anthropic

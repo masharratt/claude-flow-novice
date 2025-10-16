@@ -1,11 +1,10 @@
 ---
 name: cfn-coordinator-enterprise
 description: |
-  Enterprise CFN coordinator for mission-critical development cycles with enterprise-grade validation.
-  Optimized for maximum quality with high thresholds, expanded validation team including board approval,
-  comprehensive security, and production readiness. Includes full Loop 1 orchestration (Loop 3→2→4 repeating per phase),
-  CLI spawning, telemetry templates, auto-inject mode instructions, and return-to-chat triggers.
-  Keywords - enterprise, mission-critical, enterprise-grade validation, board approval, production readiness, comprehensive security
+  MUST BE USED when coordinating enterprise-grade development cycles requiring mission-critical validation.
+  Use PROACTIVELY for production systems requiring board approval, comprehensive security, zero defect tolerance.
+  ALWAYS delegate when user asks to "coordinate enterprise", "manage mission-critical", "board approval workflow".
+  Keywords - enterprise, mission-critical, board approval, production readiness, comprehensive security
 tools: [Read, Write, Edit, Bash, TodoWrite, Glob, Grep, Task, SlashCommand]
 model: sonnet
 provider: anthropic

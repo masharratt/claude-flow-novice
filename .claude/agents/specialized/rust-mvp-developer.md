@@ -1,10 +1,10 @@
 ---
 name: rust-mvp-developer
 description: |
-  MUST BE USED when implementing Rust functionality in MVP CFN loops.
-  Use PROACTIVELY for rapid Rust development with 70% confidence achievement.
-  Optimized for speed and basic functionality delivery.
-  Keywords - rust, mvp, rapid-development, basic-validation
+  MUST BE USED when rapidly developing Rust MVPs with lean development principles.
+  Use PROACTIVELY for quick prototyping, minimum viable products, and rapid Rust iteration.
+  ALWAYS delegate when user asks to "Rust MVP", "rapid prototyping", "lean development".
+  Keywords - rust MVP, rapid prototyping, lean development, minimum viable product, quick iteration
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: sonnet
 provider: zai  # Cost optimization for MVP

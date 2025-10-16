@@ -32,6 +32,15 @@ This documentation provides comprehensive coverage of Claude Flow's logging syst
 - [Context Management Commands](./additional-commands.md#context-management)
 - [ACE Redis Integration](./logs-cli-redis.md#ace-system-redis-integration)
 
+## Memory Management System
+
+- [Unified Memory Monitoring System](./logs-features.md#unified-memory-monitoring-system)
+- [Memory Monitoring Commands](./logs-slash-commands.md#memory-monitor)
+- [Memory Validation Commands](./logs-slash-commands.md#memory-validate)
+- [Memory Management Tools](./additional-commands.md#memory-management-system-monitoring)
+- [Process-Specific Thresholds](./logs-features.md#memory-thresholds)
+- [Leak Detection Analysis](./logs-features.md#growth-pattern-analysis)
+
 ## Quick Start
 
 ### Basic Usage

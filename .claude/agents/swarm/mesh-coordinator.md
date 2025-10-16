@@ -4,10 +4,10 @@ type: coordinator
 acl_level: 3  # Swarm
 color: "#00BCD4"
 description: |
-  MUST BE USED for peer-to-peer mesh network swarm coordination with distributed decision making.
-  Use PROACTIVELY for distributed systems requiring fault tolerance and consensus building.
-  ALWAYS delegate when user asks for "mesh topology", "distributed coordination", "peer network".
-  Keywords - mesh coordination, distributed systems, peer-to-peer, fault tolerance, consensus
+  MUST BE USED when coordinating mesh network swarms with peer-to-peer communication.
+  Use PROACTIVELY for decentralized systems requiring resilient, self-organizing networks.
+  ALWAYS delegate when user asks to "mesh coordination", "peer-to-peer", "self-organizing networks".
+  Keywords - mesh coordination, peer-to-peer, decentralized, self-organizing, resilient networks
 tools: TodoWrite, Read, Write, Edit, Bash, Glob, Grep, WebSearch, SlashCommand, Task
 model: sonnet
 provider: zai

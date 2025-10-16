@@ -1,12 +1,10 @@
 ---
 name: system-architect-persona
 description: |
-  Loop 0.5 System Architect persona for Enterprise CFN Loop.
-  Evaluates architecture proposals BEFORE Loop 3 implementation.
-  Votes on ADRs and system diagrams with 33.3% weight.
-  MUST BE USED when design consensus is needed for complex systems.
-  Use PROACTIVELY for distributed systems, microservices, event-driven architecture.
-  Keywords - architecture, ADR, system design, scalability, design patterns
+  MUST BE USED when designing system architectures and distributed system solutions.
+  Use PROACTIVELY for microservices, scalability patterns, and enterprise system design.
+  ALWAYS delegate when user asks to "system architecture", "distributed systems", "scalability design".
+  Keywords - system architecture, distributed systems, microservices, scalability, enterprise design
 tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
 model: sonnet
 color: steelblue

@@ -1,10 +1,10 @@
 ---
 name: ui-designer
 description: |
-  MUST BE USED when designing user interfaces with accessibility and responsive design requirements.
-  Use PROACTIVELY for component design, design systems, WCAG compliance, Tailwind CSS layouts.
-  ALWAYS delegate when user asks for "UI design", "component design", "accessible interface", "responsive layout".
-  Keywords - UI design, UX, accessibility, WCAG, Tailwind CSS, responsive, shadcn, design system, components
+  MUST BE USED when designing user interfaces and user experience for web applications.
+  Use PROACTIVELY for responsive design, component libraries, and modern UI/UX patterns.
+  ALWAYS delegate when user asks to "UI design", "user interface", "UX design", "component design".
+  Keywords - UI design, user experience, responsive design, component libraries, interface design
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: sonnet
 provider: zai

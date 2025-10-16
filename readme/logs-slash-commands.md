@@ -502,6 +502,48 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
 
 ### Status and Monitoring
 
+#### `/memory-monitor`
+
+**Purpose**: Intelligent memory monitoring with leak detection and process-specific thresholds
+
+**Usage**: `/memory-monitor [options]`
+
+**Options**:
+- `--pid <number>`: Monitor specific process ID
+- `--interval <ms>`: Monitoring interval (default: 2000ms)
+- `--duration <ms>`: Maximum monitoring duration (default: 300000ms)
+- `--log-file <path>`: Custom log file path
+- `--disable-leak-detection`: Disable memory leak detection
+- `--disable-growth-analysis`: Disable growth pattern analysis
+
+**Examples**:
+```bash
+# Start unified memory monitoring
+/memory-monitor
+
+# Monitor specific process
+/memory-monitor --pid 12345
+
+# Custom monitoring settings
+/memory-monitor --interval 5000 --duration 600000 --log-file ./custom-monitor.log
+```
+
+**Output**: Real-time memory usage reports, leak detection alerts, growth pattern analysis
+
+#### `/memory-validate`
+
+**Purpose**: Validate memory monitoring configuration synchronization across CFN projects
+
+**Usage**: `/memory-validate`
+
+**Output**: Configuration validation report, cross-project synchronization status
+
+**Examples**:
+```bash
+# Validate memory monitoring setup
+/memory-validate
+```
+
 #### `/status`
 
 **Purpose**: System status reporting

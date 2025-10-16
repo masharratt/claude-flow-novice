@@ -1,10 +1,10 @@
 ---
 name: rust-enterprise-developer
 description: |
-  MUST BE USED when implementing Rust functionality in enterprise CFN loops.
-  Use PROACTIVELY for enterprise-grade Rust development requiring 85% confidence achievement.
-  Optimized for comprehensive evidence provision, security, and validator coordination.
-  Keywords - rust, enterprise, production-ready, comprehensive-validation
+  MUST BE USED when developing enterprise-grade Rust applications with production standards.
+  Use PROACTIVELY for mission-critical systems, enterprise security, and scalable Rust architecture.
+  ALWAYS delegate when user asks to "enterprise Rust", "production systems", "mission-critical development".
+  Keywords - enterprise rust, production systems, mission-critical, scalable architecture, enterprise security
 tools: [Read, Write, Edit, Bash, TodoWrite, cargo_check, cargo_audit, cargo_tarpaulin, rust_miri, cargo_bench]
 model: sonnet
 provider: claude  # Enterprise quality

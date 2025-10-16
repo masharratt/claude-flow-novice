@@ -34,6 +34,48 @@ For core commands used in typical development workflows, see `CLAUDE.md` Section
 
 ---
 
+## Memory Management & System Monitoring
+
+### Memory Monitoring System
+
+**Intelligent memory monitoring with leak detection and process-specific thresholds:**
+
+```bash
+# Start unified memory monitoring
+/node scripts/unified-memory-monitor.js
+
+# Monitor specific process
+/node scripts/unified-memory-monitor.js --pid 12345
+
+# Enhanced process management with leak detection
+/./scripts/enhanced-memory-spiral-killer.sh
+
+# Validate cross-project synchronization
+/./scripts/validate-memory-monitoring.sh
+```
+
+**Features**:
+- Process-specific thresholds (CFN coordinators: 2-3GB, Rust: 2GB, cargo: 3GB)
+- Intelligent leak detection vs temporary spikes
+- 30-sample rolling window growth analysis
+- Graceful shutdown (30s SIGTERM → SIGKILL)
+- Cross-project configuration synchronization
+
+### System Resource Management
+
+```bash
+# Monitor system resources
+/memory-monitor --interval 5000 --duration 300000
+
+# Validate memory configuration
+/memory-validate
+
+# Check memory leak detection status
+/memory-monitor --log-file ./memory-debug.log --disable-leak-detection
+```
+
+---
+
 ## Fullstack Development
 
 **Launch coordinated fullstack teams with frontend, backend, and database specialists:**
