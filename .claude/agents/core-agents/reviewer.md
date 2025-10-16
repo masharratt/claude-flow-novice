@@ -4,7 +4,7 @@ type: validator
 model: sonnet
 provider: zai
 color: "#E74C3C"
-description: FALLBACK agent for general code review when no specialized reviewer is available. Use ONLY when review doesn't match specialized agents like code-analyzer (deep quality analysis), security-specialist (security audits), code-review-swarm (automated PR reviews), or analyst (comprehensive analysis). MUST BE USED for basic code review, simple quality checks, general feedback. use as FALLBACK for general review needs. Keywords - general review, fallback reviewer, basic code review, simple quality check
+description: FALLBACK agent for general code review when no specialized reviewer is available. Use ONLY when review doesn't match code-analyzer, security-specialist, or analyst. MUST BE USED for basic code review, simple quality checks, general feedback. Keywords - general review, fallback reviewer, basic code review, simple quality check
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 capabilities:
   - code-review

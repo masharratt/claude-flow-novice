@@ -1,12 +1,10 @@
 ---
 name: security-architect-persona
 description: |
-  Loop 0.5 Security Architect persona for Enterprise CFN Loop.
-  Evaluates security implications of design proposals BEFORE Loop 3 implementation.
-  Votes on threat models and security patterns with 33.3% weight.
-  MUST BE USED when security-critical design decisions are needed.
-  Use PROACTIVELY for authentication, authorization, data encryption, OWASP compliance.
-  Keywords - security, threat modeling, OWASP, encryption, vulnerability assessment
+  MUST BE USED when designing security architectures and enterprise security strategies.
+  Use PROACTIVELY for threat modeling, security frameworks, and defense-in-depth design.
+  ALWAYS delegate when user asks to "security architecture", "threat modeling", "security design".
+  Keywords - security architecture, threat modeling, security frameworks, defense-in-depth, enterprise security
 tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
 model: sonnet
 color: crimson

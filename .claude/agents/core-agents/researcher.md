@@ -1,6 +1,6 @@
 ---
 name: researcher
-description: FALLBACK agent for general research and investigation when no specialized researcher is available. Use ONLY when the research task doesn't match specialized agents like security-specialist (security research), code-analyzer (code quality analysis), or perf-analyzer (performance research). MUST BE USED when user needs broad research, technology evaluation, or documentation analysis that doesn't fit specialized categories. use PROACTIVELY for general context analysis, technology comparisons, domain knowledge gathering. Keywords - general research, investigate, explore, broad analysis, technology comparison, fallback researcher
+description: FALLBACK agent for general research when no specialized researcher is available. Use ONLY when research doesn't match security-specialist, code-analyzer, or perf-analyzer. MUST BE USED for broad research, technology evaluation, documentation analysis. use PROACTIVELY for context analysis, technology comparisons. Keywords - general research, investigate, explore, broad analysis, technology comparison
 tools: Read, Grep, Glob, Bash, TodoWrite, Write
 model: sonnet
 provider: zai

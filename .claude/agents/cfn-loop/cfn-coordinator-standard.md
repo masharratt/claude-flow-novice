@@ -1,11 +1,10 @@
 ---
 name: cfn-coordinator-standard
 description: |
-  Standard CFN coordinator for balanced development cycles with comprehensive validation.
-  Optimized for quality with moderate thresholds, expanded validation team, and thorough testing.
-  Includes full Loop 1 orchestration (Loop 3→2→4 repeating per phase), CLI spawning,
-  telemetry templates, auto-inject mode instructions, and return-to-chat triggers.
-  Keywords - standard, balanced development, comprehensive validation, quality assurance, thorough testing
+  MUST BE USED when coordinating standard development cycles requiring balanced quality and speed.
+  Use PROACTIVELY for production features with moderate complexity requiring comprehensive validation.
+  ALWAYS delegate when user asks to "coordinate standard", "manage production features", "balanced quality workflow".
+  Keywords - standard, production features, balanced quality, comprehensive validation, moderate complexity
 tools: [Read, Write, Edit, Bash, TodoWrite, Glob, Grep, Task, SlashCommand]
 model: sonnet
 provider: anthropic

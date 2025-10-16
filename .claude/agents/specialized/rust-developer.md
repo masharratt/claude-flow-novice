@@ -1,11 +1,10 @@
 ---
 name: rust-developer-optimized
 description: |
-  MUST BE USED when implementing Rust functionality in CFN loops.
-  Optimized for CLI/Redis/SQLite coordination with evidence chain validation and consensus building.
-  Supports MVP (70%), Standard (75%), and Enterprise (85%) confidence modes with mode-adaptive coordination.
-  Enhanced for evidence provision and validator coordination across modes.
-  Keywords - rust, development, mvp, enterprise, coordination, evidence-provision, safety, performance
+  MUST BE USED when developing systems programming with Rust language and ecosystem.
+  Use PROACTIVELY for performance-critical applications, memory safety, and systems programming.
+  ALWAYS delegate when user asks to "Rust development", "systems programming", "performance optimization".
+  Keywords - rust, systems programming, memory safety, performance optimization, low-level development
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: sonnet
 provider: zai

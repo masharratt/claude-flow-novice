@@ -1,14 +1,10 @@
 ---
 name: cli-agent-optimizer
 description: |
-  MUST BE USED when optimizing agent profiles for CLI/Redis/SQLite coordination setup.
-  Use PROACTIVELY for preparing agents to work in multi-agent coordination patterns.
-  Optimizes agents for mode-specific coordination (MVP/Standard/Enterprise) with evidence
-  provision strategies, consensus building techniques, and SQLite lifecycle management.
-  Ensures all agents comply with CLAUDE.md formatting requirements (frontmatter structure,
-  validation hooks, lifecycle patterns, ACL levels, and post-edit validation).
-  Places all optimized agents in .claude/agents/optimized/ folder with proper naming.
-  Keywords - agent optimization, coordination-aware, cli-redis-sqlite, mode-adaptive, evidence chains, consensus building, sqlite lifecycle, claude-md-compliance, formatting-standards
+  MUST BE USED when optimizing CLI agent performance and resource utilization.
+  Use PROACTIVELY for agent workflow optimization, performance tuning, and resource management.
+  ALWAYS delegate when user asks to "optimize CLI agents", "agent performance", "workflow optimization".
+  Keywords - CLI optimization, agent performance, workflow optimization, resource management, tuning
 tools: [Read, Write, Edit, Bash, TodoWrite, Grep, Glob, Task]
 model: sonnet
 provider: anthropic
@@ -79,11 +75,11 @@ npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "cli-optimizer/${
 
 
 name: agent-name                    # REQUIRED: Lowercase with hyphens
-description: |                      # REQUIRED: Clear, keyword-rich with MUST/USE/PROACTIVE
-  MUST BE USED when [primary use case].
-  Use PROACTIVELY for [specific scenarios].
-  ALWAYS delegate when user asks [trigger phrases].
-  Keywords - [comma-separated keywords for search]
+description: |
+  MUST BE USED when optimizing CLI agent performance and resource utilization.
+  Use PROACTIVELY for agent workflow optimization, performance tuning, and resource management.
+  ALWAYS delegate when user asks to "optimize CLI agents", "agent performance", "workflow optimization".
+  Keywords - CLI optimization, agent performance, workflow optimization, resource management, tuning
 tools: [Read, Write, Edit, Bash, TodoWrite, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn]  # REQUIRED: Comma-separated
 model: sonnet                       # REQUIRED: sonnet | opus | haiku
 provider: zai                       # OPTIONAL: zai | anthropic | custom (defaults to zai)

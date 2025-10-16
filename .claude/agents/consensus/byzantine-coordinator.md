@@ -1,6 +1,6 @@
 ---
 name: byzantine-coordinator
-description: MUST BE USED when implementing Byzantine fault-tolerant consensus protocols with malicious actor detection and secure distributed coordination in adversarial environments. use PROACTIVELY for PBFT consensus coordination, malicious actor detection, message authentication, view change management, attack mitigation, secure distributed systems, fault-tolerant protocols, cryptographic verification, three-phase commit protocols, threshold signatures. ALWAYS delegate when user asks to "implement PBFT", "detect malicious agents", "Byzantine consensus", "secure coordination", "fault-tolerant consensus". Keywords - PBFT, Byzantine fault tolerance, consensus, malicious detection, cryptographic verification, view change, threshold signatures, secure coordination, distributed consensus
+description: MUST BE USED when implementing Byzantine fault-tolerant consensus protocols with malicious actor detection. Use PROACTIVELY for PBFT coordination, message authentication, view change management. ALWAYS delegate when user asks to "implement PBFT", "detect malicious agents". Keywords - PBFT, Byzantine consensus, malicious detection, cryptographic verification, view change, secure coordination
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
 model: sonnet
 color: purple

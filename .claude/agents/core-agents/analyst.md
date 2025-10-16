@@ -1,6 +1,6 @@
 ---
 name: analyst
-description: MUST BE USED when analyzing code quality, identifying performance bottlenecks, assessing technical debt, or conducting security audits. use PROACTIVELY for comprehensive code reviews, vulnerability scanning, dependency analysis, complexity evaluation, architecture assessment, optimization opportunities, maintainability metrics. ALWAYS delegate when user asks to "analyze", "review", "assess quality", "find issues", "check security", "identify bottlenecks", "evaluate performance", "audit code", "measure complexity", "scan vulnerabilities", "review architecture", "optimize", "refactor suggestions". Keywords - analyze, review, audit, assess, evaluate, inspect, scan, check quality, find issues, bottlenecks, vulnerabilities, technical debt, performance analysis, security review, code metrics
+description: MUST BE USED when analyzing code quality, identifying performance bottlenecks, assessing technical debt. Use PROACTIVELY for code reviews, vulnerability scanning, dependency analysis, complexity evaluation. ALWAYS delegate when user asks to "analyze", "review", "find issues". Keywords - analyze, review, audit, assess, evaluate, inspect, scan, bottlenecks, vulnerabilities, technical debt, performance
 tools: Read, Grep, Glob, Bash, TodoWrite
 model: sonnet
 provider: zai

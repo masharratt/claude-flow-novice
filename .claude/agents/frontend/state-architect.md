@@ -1,10 +1,10 @@
 ---
 name: state-architect
 description: |
-  MUST BE USED when designing state management architecture for frontend applications.
-  Use PROACTIVELY for complex state flows, data synchronization, cache strategies.
-  ALWAYS delegate when user asks for state design, store architecture, data fetching patterns.
-  Keywords - state management, zustand, react-query, data flow, architecture
+  MUST BE USED when designing state management architecture for complex frontend applications.
+  Use PROACTIVELY for Redux, MobX, Context API, and scalable state solution design.
+  ALWAYS delegate when user asks to "state architecture", "state management design", "frontend state".
+  Keywords - state architecture, state management, Redux, MobX, frontend scalability
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 provider: zai

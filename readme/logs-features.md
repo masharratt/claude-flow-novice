@@ -56,6 +56,48 @@
 
 **Usage**: Long-term learning across sessions with automatic context injection
 
+### Unified Memory Monitoring System
+
+**Purpose**: Intelligent memory management across CFN distributed projects with leak detection vs legitimate workload differentiation
+
+**Key Components**:
+- **Shared Configuration**: Centralized thresholds and analysis parameters
+- **Process-Specific Detection**: Different limits for coordinators, Rust, cargo builds
+- **Growth Pattern Analysis**: Distinguishes leaks from temporary spikes
+- **Graceful Shutdown**: 30-second SIGTERM to SIGKILL transition
+
+**Features**:
+- **Intelligent Leak Detection**: Requires 70% consistent growth over multiple samples
+- **Context-Aware Thresholds**: CFN coordinators (2-3GB), Rust (2GB), cargo (3GB)
+- **Process History Tracking**: 30-sample rolling window for growth analysis
+- **Cross-Project Synchronization**: Identical behavior across all distributed systems
+
+**Configuration**: Shared configuration in `config/memory-monitoring-config.js`
+
+**Memory Thresholds**:
+- CFN Coordinators: 2000-3000MB (60-120 minute timeouts)
+- Spawn Workers: 1500MB (30 minute timeout)
+- Rust Processes: 2000MB (60 minute timeout)
+- Cargo Builds: 3000MB (120 minute timeout)
+- Default Fallback: 1500MB (30 minute timeout)
+
+**Usage**:
+```bash
+# Start unified memory monitoring
+node scripts/unified-memory-monitor.js
+
+# Monitor specific process
+node scripts/unified-memory-monitor.js --pid 12345
+
+# Enhanced process management
+./scripts/enhanced-memory-spiral-killer.sh
+
+# Validate synchronization
+./scripts/validate-memory-monitoring.sh
+```
+
+**Integration**: Ready for CFN npm distribution with identical configuration across projects
+
 ### CFN Loop Coordinators
 
 **Purpose**: Mode-specific coordinators with autonomous phase execution and intelligent return-to-chat triggers

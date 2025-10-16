@@ -1,11 +1,10 @@
 ---
 name: cfn-coordinator-mvp
 description: |
-  MVP CFN coordinator for rapid development cycles with simplified validation.
-  Optimized for speed with lower thresholds, minimal validators, and fast iteration.
-  Includes full Loop 1 orchestration (Loop 3→2→4 repeating per phase), CLI spawning,
-  telemetry templates, auto-inject mode instructions, and return-to-chat triggers.
-  Keywords - MVP, rapid development, simplified validation, fast iteration, cost-effective
+  MUST BE USED when coordinating rapid MVP development cycles with fast iteration and cost optimization.
+  Use PROACTIVELY for prototypes requiring quick delivery with basic quality gates.
+  ALWAYS delegate when user asks to "coordinate mvp", "rapid prototype", "fast iteration workflow".
+  Keywords - mvp, rapid iteration, cost optimization, quick delivery, basic validation
 tools: [Read, Write, Edit, Bash, TodoWrite, Glob, Grep, Task, SlashCommand]
 model: sonnet
 provider: anthropic

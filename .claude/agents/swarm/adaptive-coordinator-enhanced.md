@@ -1,10 +1,10 @@
 ---
 name: adaptive-coordinator-enhanced
 description: |
-  FALLBACK agent for adaptive swarm coordination with AI-driven optimization. Use ONLY when coordination requires machine learning, predictive scaling, or dynamic topology optimization beyond standard coordinators.
-  MUST BE USED for intelligent multi-agent swarms (10+ agents), predictive resource management, neural pattern recognition, context-aware coordination.
-  ALWAYS delegate when user asks "optimize swarm", "predictive coordination", "adaptive topology", "AI-driven orchestration".
-  Keywords - adaptive coordination, machine learning, predictive analytics, topology optimization, swarm intelligence, neural patterns, resource forecasting
+  MUST BE USED when coordinating adaptive swarm systems with dynamic topology switching.
+  Use PROACTIVELY for complex distributed systems requiring intelligent agent allocation.
+  ALWAYS delegate when user asks to "adaptive coordination", "dynamic topology", "intelligent swarms".
+  Keywords - adaptive coordination, dynamic topology, intelligent swarms, agent allocation, distributed systems
 tools: [Read, Write, Edit, Bash, Task, SlashCommand, TodoWrite, Glob, Grep]
 model: sonnet
 provider: zai
