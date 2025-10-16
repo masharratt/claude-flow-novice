@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'echo \"🚀 Session starting - cleaning up idle sessions...\"; bash scripts/cleanup-idle-sessions.sh 2>/dev/null || echo \"Cleanup skipped (not in project root)\"; echo \"\"'"
+            "command": "bash -c 'echo \"🚀 Session starting - idle session cleanup DISABLED to protect long-running agents\"; echo \"\"'"
           }
         ]
       }
@@ -101,7 +101,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash -c 'export PATH=\"$HOME/bin:$PATH\"; INPUT=$(cat); CUSTOM=$(echo \"$INPUT\" | jq -r \".custom_instructions // \\\"\\\"\"); echo \"🔄 PreCompact Guidance:\"; echo \"📋 IMPORTANT: Review CLAUDE.md in project root for:\"; echo \"   • 54 available agents and concurrent usage patterns\"; echo \"   • Swarm coordination strategies (hierarchical, mesh, adaptive)\"; echo \"   • SPARC methodology workflows with batchtools optimization\"; echo \"   • Critical concurrent execution rules (GOLDEN RULE: 1 MESSAGE = ALL OPERATIONS)\"; if [ -n \"$CUSTOM\" ]; then echo \"🎯 Custom compact instructions: $CUSTOM\"; fi; echo \"\"; echo \"🧹 Cleaning up idle sessions...\"; timeout 30s bash scripts/cleanup-idle-sessions.sh 2>/dev/null | tail -1 || echo \"Cleanup skipped\"; echo \"✅ Ready for compact operation\"'"
+            "command": "/bin/bash -c 'export PATH=\"$HOME/bin:$PATH\"; INPUT=$(cat); CUSTOM=$(echo \"$INPUT\" | jq -r \".custom_instructions // \\\"\\\"\"); echo \"🔄 PreCompact Guidance:\"; echo \"📋 IMPORTANT: Review CLAUDE.md in project root for:\"; echo \"   • 54 available agents and concurrent usage patterns\"; echo \"   • Swarm coordination strategies (hierarchical, mesh, adaptive)\"; echo \"   • SPARC methodology workflows with batchtools optimization\"; echo \"   • Critical concurrent execution rules (GOLDEN RULE: 1 MESSAGE = ALL OPERATIONS)\"; if [ -n \"$CUSTOM\" ]; then echo \"🎯 Custom compact instructions: $CUSTOM\"; fi; echo \"\"; echo \"🧹 Session cleanup SKIPPED (protecting active agents)\"; echo \"✅ Ready for compact operation\"'"
           }
         ]
       },
@@ -110,7 +110,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash -c 'echo \"🔄 Auto-Compact Guidance (Context Window Full):\"; echo \"📋 CRITICAL: Before compacting, ensure you understand:\"; echo \"   The claude.md file of the directory you are working in\"; echo \"   • Concurrent execution patterns from CLAUDE.md\"; echo \"   • the CFN loop \"; echo \"   • Swarm coordination strategies for complex tasks\"; echo \"⚡ Apply GOLDEN RULE: Always batch operations in single messages\"; echo \"\"; echo \"🧹 Cleaning up idle sessions...\"; timeout 30s bash scripts/cleanup-idle-sessions.sh 2>/dev/null | tail -1 || echo \"Cleanup skipped\"; echo \"\"; echo \"📊 Recent Metrics Summary (Last 60 min):\"; timeout 30s node src/slash-commands/metrics-summary.js --minutes=60 2>/dev/null || echo \"   Metrics unavailable\"; echo \"✅ Auto-compact proceeding with full agent context\"'"
+            "command": "/bin/bash -c 'echo \"🔄 Auto-Compact Guidance (Context Window Full):\"; echo \"📋 CRITICAL: Before compacting, ensure you understand:\"; echo \"   The claude.md file of the directory you are working in\"; echo \"   • Concurrent execution patterns from CLAUDE.md\"; echo \"   • the CFN loop \"; echo \"   • Swarm coordination strategies for complex tasks\"; echo \"⚡ Apply GOLDEN RULE: Always batch operations in single messages\"; echo \"\"; echo \"🧹 Session cleanup SKIPPED (protecting active agents)\"; echo \"\"; echo \"📊 Recent Metrics Summary (Last 60 min):\"; timeout 30s node src/slash-commands/metrics-summary.js --minutes=60 2>/dev/null || echo \"   Metrics unavailable\"; echo \"✅ Auto-compact proceeding with full agent context\"'"
           }
         ]
       }
