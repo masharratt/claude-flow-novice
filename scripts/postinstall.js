@@ -22,7 +22,7 @@ const stats = {
 /**
  * Recursively copy files, skipping existing ones unless forced
  */
-function smartCopy(source, target, forceUpdate = false) {
+function smartCopy(source, target, forceUpdate = false, verbose = false) {
   if (!existsSync(source)) return;
 
   const stat = statSync(source);
@@ -36,7 +36,7 @@ function smartCopy(source, target, forceUpdate = false) {
     // Copy contents
     const entries = readdirSync(source);
     for (const entry of entries) {
-      smartCopy(join(source, entry), join(target, entry), forceUpdate);
+      smartCopy(join(source, entry), join(target, entry), forceUpdate, verbose);
     }
   } else {
     // File - check if it exists
@@ -47,13 +47,22 @@ function smartCopy(source, target, forceUpdate = false) {
       // New file - always copy
       copyFileSync(source, target);
       stats.copied.push(relativePath);
+      if (verbose) {
+        console.log(`   ✅ ${relativePath}`);
+      }
     } else if (forceUpdate) {
       // Existing file + force update - overwrite
       copyFileSync(source, target);
       stats.updated.push(relativePath);
+      if (verbose) {
+        console.log(`   🔄 ${relativePath}`);
+      }
     } else {
       // Existing file - skip to preserve custom changes
       stats.skipped.push(relativePath);
+      if (verbose) {
+        console.log(`   ⏭️  ${relativePath}`);
+      }
     }
   }
 }
@@ -67,11 +76,16 @@ function copyClaudeDirectory() {
     const sourceDir = join(__dirname, '../dist/.claude');
     const targetDir = join(projectRoot, '.claude');
     const forceUpdate = process.env.CLAUDE_FORCE_UPDATE === 'true';
+    const verbose = process.env.CLAUDE_VERBOSE === 'true' || process.env.npm_config_loglevel === 'verbose';
 
     console.log('🚀 claude-flow-novice post-install: Setting up .claude directory...');
 
     if (forceUpdate) {
       console.log('⚠️  CLAUDE_FORCE_UPDATE=true - will overwrite existing files');
+    }
+
+    if (verbose) {
+      console.log('📢 Verbose mode enabled - showing all file operations\n');
     }
 
     // Check if source directory exists
@@ -89,7 +103,7 @@ function copyClaudeDirectory() {
     }
 
     // Smart copy - preserve existing files
-    smartCopy(sourceDir, targetDir, forceUpdate);
+    smartCopy(sourceDir, targetDir, forceUpdate, verbose);
 
     console.log('✅ Successfully synced .claude directory');
     console.log('📁 Location:', targetDir);
@@ -105,6 +119,7 @@ function copyClaudeDirectory() {
     if (stats.skipped.length > 0 && !isNewInstall) {
       console.log('\n💡 Tip: Your custom agents and configurations were preserved.');
       console.log('   To force update all files: CLAUDE_FORCE_UPDATE=true npx claude-flow-novice@latest');
+      console.log('   To see all file operations: CLAUDE_VERBOSE=true npx claude-flow-novice@latest');
     }
 
     // Verify key components
