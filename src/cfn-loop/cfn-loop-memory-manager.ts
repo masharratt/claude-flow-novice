@@ -107,7 +107,7 @@ export interface Loop4Decision {
   decisionId: string;
   phase: string;
   iteration: number;
-  decision: 'PROCEED' | 'DEFER' | 'ESCALATE';
+  decision: 'PROCEED' | 'LOOP' | 'DEFER' | 'ESCALATE';
   reasoning: string;
   loop3Confidence: number;
   loop2Consensus: number;

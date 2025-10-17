@@ -13,7 +13,12 @@
 
 const sqlite3 = require('sqlite3').verbose();
 const crypto = require('crypto');
-const lz4 = require('lz4');
+let lz4 = null;
+try {
+  lz4 = require('lz4');
+} catch (e) {
+  console.warn('lz4 compression not available. Falling back to uncompressed storage.');
+}
 const EventEmitter = require('events');
 
 class SwarmMemoryManager extends EventEmitter {
@@ -152,22 +157,33 @@ class SwarmMemoryManager extends EventEmitter {
   }
 
   /**
-   * Compress data using LZ4
+   * Compress data using LZ4 (or return uncompressed if not available)
    */
   _compress(data) {
     if (Buffer.byteLength(data, 'utf8') > this.compressionThreshold) {
       this.metrics.compressionOperations++;
       const input = Buffer.from(data, 'utf8');
-      const compressed = lz4.encode(input);
-      return compressed.toString('base64');
+
+      if (lz4) {
+        const compressed = lz4.encode(input);
+        return compressed.toString('base64');
+      } else {
+        // Fallback to uncompressed if lz4 not available
+        return data;
+      }
     }
     return data;
   }
 
   /**
-   * Decompress data using LZ4
+   * Decompress data using LZ4 (or return original data if not available or fails)
    */
   _decompress(compressedData) {
+    if (!lz4) {
+      // If lz4 is not available, return original data
+      return compressedData;
+    }
+
     try {
       const compressed = Buffer.from(compressedData, 'base64');
       const decompressed = lz4.decode(compressed);
@@ -418,8 +434,8 @@ class SwarmMemoryManager extends EventEmitter {
         // Encrypt if needed
         const encryption = this._encrypt(processedValue, aclLevel);
 
-        // Compress if needed
-        const compressionType = sizeBytes > this.compressionThreshold ? 'lz4' : 'none';
+        // Compress if needed and lz4 is available
+        const compressionType = (sizeBytes > this.compressionThreshold && lz4) ? 'lz4' : 'none';
         let finalValue = encryption.encrypted;
         let iv = encryption.iv;
         let checksum = encryption.authTag;

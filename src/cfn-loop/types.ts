@@ -127,13 +127,15 @@ export interface PrimarySwarmResult {
  * Autonomous decision gate after Loop 2 consensus validation
  */
 export interface ProductOwnerDecision {
-  decision: 'PROCEED' | 'DEFER' | 'ESCALATE';
+  decision: 'PROCEED' | 'LOOP' | 'DEFER' | 'ESCALATE';
   confidence: number; // 0.0 to 1.0
   reasoning: string;
   backlogItems: string[]; // Items deferred to backlog (for DEFER decision)
   blockers: string[]; // Critical blockers (for ESCALATE decision)
   recommendations: string[]; // Improvement suggestions
   timestamp: number;
+  iterationCount?: number; // Current iteration count (for LOOP decision)
+  maxIterations?: number; // Max iterations allowed (for LOOP decision)
 }
 
 // ===== PHASE RESULT TYPES =====

@@ -110,10 +110,11 @@ ${decisionContext}
 /**
  * Generate MVP owner decision (mock)
  */
-function generateMVPOwnerDecision(consensusResult: ConsensusResult): ProductOwnerDecision {
+function generateMVPOwnerDecision(consensusResult: ConsensusResult, currentIteration = 1): ProductOwnerDecision {
   const consensusScore = consensusResult.consensusScore;
+  const maxIterations = 5; // MVP mode iteration limit
 
-  // MVP thresholds (lower than standard)
+  // MVP Enhanced Decision Thresholds with LOOP
   if (consensusScore >= 0.85) {
     // High confidence - PROCEED
     return {
@@ -125,33 +126,51 @@ function generateMVPOwnerDecision(consensusResult: ConsensusResult): ProductOwne
       recommendations: ['Ship MVP', 'Plan iteration 2 for improvements'],
       timestamp: Date.now(),
     };
-  } else if (consensusScore >= 0.80) {
-    // Medium confidence - DEFER (ship with backlog)
+  } else if (consensusScore >= 0.70 && consensusScore < 0.85) {
+    // Intermediate confidence - LOOP
+    return {
+      decision: 'LOOP',
+      confidence: consensusScore,
+      reasoning: `MVP needs refinement. Consensus: ${(consensusScore * 100).toFixed(1)}%. Retry Loop 3 with targeted improvements.`,
+      backlogItems: [
+        'Refactor implementation based on feedback',
+        'Address specific quality concerns',
+      ],
+      blockers: [],
+      recommendations: ['Retry Loop 3', 'Focus on specific improvement areas'],
+      iterationCount: currentIteration,
+      maxIterations,
+      timestamp: Date.now(),
+    };
+  } else if (consensusScore >= 0.65) {
+    // Low confidence - DEFER with backlog
     return {
       decision: 'DEFER',
       confidence: consensusScore,
-      reasoning: `MVP approved with minor issues. Consensus: ${(consensusScore * 100).toFixed(1)}%. Ship now, improve later.`,
+      reasoning: `MVP needs significant work. Consensus: ${(consensusScore * 100).toFixed(1)}%. Defer with comprehensive backlog.`,
       backlogItems: [
         'Refactor complex logic for maintainability',
         'Increase test coverage to 90%',
         'Add comprehensive documentation',
+        'Address core functionality gaps',
       ],
       blockers: [],
-      recommendations: ['Ship MVP', 'Address backlog in next sprint'],
+      recommendations: ['Revise MVP scope', 'Address critical backlog items'],
       timestamp: Date.now(),
     };
   } else {
-    // Low confidence - ESCALATE
+    // Critical issues - ESCALATE
     return {
       decision: 'ESCALATE',
       confidence: consensusScore,
-      reasoning: `MVP not ready. Consensus: ${(consensusScore * 100).toFixed(1)}%. Critical issues require attention.`,
+      reasoning: `MVP not viable. Consensus: ${(consensusScore * 100).toFixed(1)}%. Critical issues require human review.`,
       backlogItems: [],
       blockers: [
-        'Consensus below MVP threshold (0.80)',
+        'Consensus below MVP threshold (0.65)',
         'Critical functionality incomplete',
+        'Fundamental design or implementation problems',
       ],
-      recommendations: ['Fix critical issues', 'Retry Loop 3'],
+      recommendations: ['Full stakeholder review', 'Consider alternative approaches'],
       timestamp: Date.now(),
     };
   }

@@ -22,6 +22,7 @@ import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { WASMRuntime } from '../../src/booster/wasm-runtime.js';
 import { TestCoverageValidator } from './post-test-coverage.js';
+import Redis from 'ioredis';
 
 const execAsync = promisify(exec);
 
@@ -1141,6 +1142,23 @@ class UnifiedPostEditPipeline {
                 });
         }
 
+        // Initialize Redis for hook feedback (Phase 4.5 integration)
+        this.redis = options.redis || new Redis({
+            host: process.env.REDIS_HOST || 'localhost',
+            port: process.env.REDIS_PORT || 6379,
+            db: 0,
+            lazyConnect: true,  // Only connect when needed
+            retryStrategy: (times) => {
+                if (times > 3) return null;  // Stop retrying after 3 attempts
+                return Math.min(times * 50, 200);  // Exponential backoff
+            }
+        });
+
+        // Extract agent ID from memory-key pattern: "swarm/{agentId}/{step}"
+        this.agentId = this.extractAgentId(options);
+        this.coordinatorId = process.env.COORDINATOR_ID || null;
+        this.feedbackEnabled = options.feedbackEnabled !== false;  // Default: true
+
         this.languageDetectors = {
             '.js': 'javascript',
             '.jsx': 'javascript',
@@ -1203,6 +1221,139 @@ class UnifiedPostEditPipeline {
     detectLanguage(filePath) {
         const ext = path.extname(filePath).toLowerCase();
         return this.languageDetectors[ext] || 'unknown';
+    }
+
+    /**
+     * Extract agent ID from memory-key pattern
+     * Pattern: "swarm/{agentId}/{step}" → returns agentId
+     */
+    extractAgentId(options) {
+        // Try from options.memoryKey first
+        const memoryKey = options.memoryKey || process.env.MEMORY_KEY;
+        if (memoryKey) {
+            const parts = memoryKey.split('/');
+            if (parts.length >= 2 && parts[0] === 'swarm') {
+                return parts[1];  // Returns agentId
+            }
+        }
+
+        // Try from environment variable
+        return process.env.AGENT_ID || null;
+    }
+
+    /**
+     * Detect spawn mode: CLI vs Task
+     * CLI agents: Pattern {role}-{number} (e.g., "coder-1", "tester-2")
+     * Task agents: Pattern task_{uuid} (e.g., "task_abc123")
+     */
+    detectSpawnMode(agentId) {
+        if (!agentId) return 'unknown';
+
+        // CLI pattern: {role}-{number}
+        const cliPattern = /^(coder|tester|architect|security|validator|perf-analyzer)-\d+$/;
+        if (cliPattern.test(agentId)) {
+            return 'cli';
+        }
+
+        // Task pattern: task_{uuid}
+        const taskPattern = /^task_[a-f0-9]+$/;
+        if (taskPattern.test(agentId)) {
+            return 'task';
+        }
+
+        // Fallback: check environment variable
+        return process.env.SPAWN_MODE || 'unknown';
+    }
+
+    /**
+     * Send feedback to agent via Redis (hybrid approach)
+     * - CLI mode: Publish to agent:{agentId}:feedback
+     * - Task mode: LPUSH to coordinator:{coordinatorId}:feedback
+     * - Always write to log file for persistence
+     */
+    async sendAgentFeedback(message) {
+        if (!this.feedbackEnabled || !this.agentId) {
+            return;  // Feedback disabled or no agent to notify
+        }
+
+        const spawnMode = this.detectSpawnMode(this.agentId);
+        const timestamp = new Date().toISOString();
+
+        const feedbackMessage = {
+            timestamp,
+            source: 'post-edit-pipeline',
+            agentId: this.agentId,
+            spawnMode,
+            ...message
+        };
+
+        // 1. Redis pub/sub (real-time) - CLI mode
+        if (spawnMode === 'cli') {
+            try {
+                await this.redis.connect();
+                const channel = `agent:${this.agentId}:feedback`;
+                await this.redis.publish(channel, JSON.stringify(feedbackMessage));
+                console.log(`✅ Feedback sent to agent ${this.agentId} via Redis`);
+            } catch (error) {
+                console.warn(`⚠️  Redis feedback failed (non-blocking): ${error.message}`);
+            } finally {
+                await this.redis.disconnect();
+            }
+        }
+
+        // 2. Redis LPUSH (coordinator queue) - Task mode
+        if (spawnMode === 'task' && this.coordinatorId) {
+            try {
+                await this.redis.connect();
+                const channel = `coordinator:${this.coordinatorId}:feedback`;
+                await this.redis.lpush(channel, JSON.stringify(feedbackMessage));
+                console.log(`✅ Coordinator ${this.coordinatorId} notified for Task agent ${this.agentId}`);
+            } catch (error) {
+                console.warn(`⚠️  Coordinator notification failed (non-blocking): ${error.message}`);
+            } finally {
+                await this.redis.disconnect();
+            }
+        }
+
+        // 3. Log file (persistence) - ALWAYS write
+        await this.writeAgentFeedbackLog(feedbackMessage);
+    }
+
+    /**
+     * Write feedback to log file for persistence
+     * File: .artifacts/hooks/agent-{agentId}-feedback.json
+     */
+    async writeAgentFeedbackLog(message) {
+        try {
+            const artifactsDir = path.join(process.cwd(), '.artifacts', 'hooks');
+            if (!fs.existsSync(artifactsDir)) {
+                fs.mkdirSync(artifactsDir, { recursive: true });
+            }
+
+            const feedbackFile = path.join(artifactsDir, `agent-${this.agentId}-feedback.json`);
+
+            let existing = { agentId: this.agentId, feedback: [] };
+            if (fs.existsSync(feedbackFile)) {
+                existing = JSON.parse(fs.readFileSync(feedbackFile, 'utf8'));
+            }
+
+            // Add new feedback (undelivered)
+            existing.feedback.unshift({
+                ...message,
+                delivered: false,
+                deliveredAt: null
+            });
+
+            // LRU cleanup: keep last 50
+            existing.feedback = existing.feedback.slice(0, 50);
+            existing.lastUpdate = new Date().toISOString();
+
+            fs.writeFileSync(feedbackFile, JSON.stringify(existing, null, 2));
+            console.log(`✅ Feedback logged to ${feedbackFile}`);
+
+        } catch (error) {
+            console.warn(`⚠️  Failed to write feedback log: ${error.message}`);
+        }
     }
 
     async runCommand(command, args, cwd = process.cwd()) {
@@ -1810,6 +1961,16 @@ class UnifiedPostEditPipeline {
                 console.log(`   Move this file to an appropriate subdirectory for better organization`);
                 console.log(`   Root should only contain essential config files (package.json, .gitignore, etc.)`);
 
+                // Send feedback to agent via Redis (Phase 4.5 integration)
+                await this.sendAgentFeedback({
+                    type: 'ROOT_WARNING',
+                    file: filePath,
+                    fileName,
+                    severity: 'warning',
+                    suggestions,
+                    message: 'File created in root directory - should be moved'
+                });
+
                 return {
                     file: filePath,
                     language,
@@ -1940,6 +2101,16 @@ class UnifiedPostEditPipeline {
         this.logStepResult('Lint', results.steps.linting);
         if (!results.steps.linting.success) {
             results.summary.warnings.push(`Linting issues in ${path.basename(filePath)}`);
+
+            // Send LINT_ISSUES feedback to agent
+            await this.sendAgentFeedback({
+                type: 'LINT_ISSUES',
+                file: filePath,
+                severity: 'info',
+                linter: results.steps.linting.linter || 'unknown',
+                issues: results.steps.linting.output || results.steps.linting.error || 'Linting failed',
+                message: `Linting issues detected in ${path.basename(filePath)}`
+            });
         }
 
         // Step 3: Type Check
@@ -1958,6 +2129,16 @@ class UnifiedPostEditPipeline {
 
             if (!results.rustQuality.passed) {
                 console.log(`  ❌ Rust quality issues found`);
+
+                // Send RUST_QUALITY feedback to agent
+                await this.sendAgentFeedback({
+                    type: 'RUST_QUALITY',
+                    file: filePath,
+                    severity: results.rustQuality.issues.some(i => i.severity === 'error') ? 'error' : 'warning',
+                    issues: results.rustQuality.issues,
+                    message: `${results.rustQuality.issues.length} Rust quality issue(s) found`
+                });
+
                 results.rustQuality.issues.forEach(issue => {
                     console.log(`     [${issue.severity.toUpperCase()}] ${issue.message}`);
                     results.recommendations.push(issue);
@@ -2029,6 +2210,18 @@ class UnifiedPostEditPipeline {
                     } else if (coveragePercent < this.minimumCoverage) {
                         // Fallback for when validation is not available
                         Logger.warning(`Coverage below minimum (${this.minimumCoverage}%)`);
+
+                        // Send LOW_COVERAGE feedback to agent
+                        await this.sendAgentFeedback({
+                            type: 'LOW_COVERAGE',
+                            file: filePath,
+                            severity: 'warning',
+                            current: coveragePercent,
+                            required: this.minimumCoverage,
+                            gap: this.minimumCoverage - coveragePercent,
+                            message: `Test coverage ${coveragePercent}% below threshold ${this.minimumCoverage}%`
+                        });
+
                         results.recommendations.push({
                             type: 'coverage',
                             priority: 'medium',
@@ -2057,6 +2250,20 @@ class UnifiedPostEditPipeline {
 
                 if (results.tddCompliance.recommendations) {
                     results.recommendations.push(...results.tddCompliance.recommendations);
+
+                    // Send TDD_VIOLATION feedback for missing tests
+                    const tddViolations = results.tddCompliance.recommendations.filter(r => r.type === 'tdd_violation');
+                    if (tddViolations.length > 0) {
+                        await this.sendAgentFeedback({
+                            type: 'TDD_VIOLATION',
+                            file: filePath,
+                            severity: 'warning',
+                            hasTests: results.tddCompliance.hasTests,
+                            violations: tddViolations,
+                            message: tddViolations[0].message,
+                            suggestedTestFile: this.suggestTestFileName(filePath)
+                        });
+                    }
                 }
             }
         }

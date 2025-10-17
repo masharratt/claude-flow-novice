@@ -1675,7 +1675,7 @@ ${i + 1}. **${r.agentType}** (Confidence: ${r.confidence})
    */
   private validateProductOwnerDecision(parsed: any): ProductOwnerDecision {
     // Validate decision type
-    if (!['PROCEED', 'DEFER', 'ESCALATE'].includes(parsed.decision)) {
+    if (!['PROCEED', 'LOOP', 'DEFER', 'ESCALATE'].includes(parsed.decision)) {
       throw new Error(`Invalid decision: ${parsed.decision}`);
     }
 

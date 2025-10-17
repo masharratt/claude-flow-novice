@@ -75,6 +75,14 @@ const COSTS = {
   }
 };
 
+// Topology-specific timeout configuration (Phase 3 Deliverable 1)
+const TOPOLOGY_TIMEOUTS = {
+  'sequential': 120000,      // 2 minutes - simple parallel execution
+  'bidirectional': 300000,   // 5 minutes - iterative feedback loops
+  'collaborative': 360000,   // 6 minutes - Q&A coordination + work
+  'release-gate': 360000     // 6 minutes - barrier synchronization + wait
+};
+
 // Anthropic tool definitions
 const ANTHROPIC_TOOLS = [
   {
@@ -131,12 +139,21 @@ class HybridWorkerSpawner {
     this.maxAgents = options.maxAgents || 3;
     this.redisChannel = options.redisChannel || 'swarm:workers';
     this.taskDescription = options.task || 'Execute task';
-    this.timeout = options.timeout || 3600000; // 3600 seconds (60 minutes) for complex multi-step tasks
     this.model = options.model || 'haiku';
+
+    // Topology-aware timeout (Phase 3 Deliverable 1)
+    this.topology = options.topology || 'sequential';
+    this.timeout = options.timeout || TOPOLOGY_TIMEOUTS[this.topology] || 120000;
+
+    // Background execution mode (Phase 3 Deliverable 2)
+    this.background = options.background || false;
 
     // REQUIRED: Agent types must be specified
     this.agentOverride = options.agentOverride || null; // Array of agent types: ['coder', 'architect', 'tester']
     this.subtaskOverride = options.subtaskOverride || null; // Array of custom subtasks (optional)
+
+    // Redis coordination configuration (topology already set above with timeout)
+    this.dependenciesOverride = options.dependencies || null; // User-provided dependency graph (explicit)
 
     // Agent whitelist/blacklist configuration
     this.agentWhitelist = options.agentWhitelist || null; // Array of allowed agent types (null = allow all)
@@ -365,6 +382,451 @@ class HybridWorkerSpawner {
   }
 
   /**
+   * Generate topology-specific Redis coordination instructions for WORKERS
+   * Workers just signal completion - coordinator handles complex logic
+   */
+  generateTopologyInstructions(topology, workerId, agentType) {
+    const channelPrefix = {
+      'bidirectional': 'swarm:bidirectional',
+      'collaborative': 'swarm:collab',
+      'release-gate': 'swarm:gate',
+      'sequential': 'swarm:sequential'
+    }[topology];
+
+    // Release-gate topology has special worker instructions
+    if (topology === 'release-gate') {
+      return `
+
+## Redis Coordination - Release Gate (Barrier Synchronization)
+
+A coordinator agent is managing the barrier. You must reach the barrier and wait.
+
+**Your Task:**
+1. Complete your assigned work
+2. Signal arrival at barrier
+3. Wait for coordinator release
+4. Confirm release and continue
+
+**Step 1 - Signal Arrival at Barrier:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli incr \\"${channelPrefix}:agents_waiting\\"" })
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:${agentType}:status\\" \\"arrived\\"" })
+\`\`\`
+
+**Step 2 - Wait for Release (polling loop):**
+\`\`\`bash
+# Poll every 2 seconds for up to 60 seconds
+for i in {1..30}; do
+  release=$(redis-cli get "${channelPrefix}:release")
+  if [ "$release" = "true" ]; then
+    echo "Released by coordinator"
+    break
+  fi
+  sleep 2
+done
+\`\`\`
+
+Execute via bash_execute tool.
+
+**Step 3 - Confirm Release:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:${agentType}:status\\" \\"released\\"" })
+\`\`\`
+`;
+    }
+
+    // For other non-sequential topologies, workers have simple instructions
+    if (topology !== 'sequential') {
+      return `
+
+## Redis Coordination (Simplified Worker Instructions)
+
+A coordinator agent is managing the ${topology} coordination pattern.
+
+**Your Task:**
+1. Complete your assigned work
+2. Signal completion to the coordinator via Redis
+3. Wait for further instructions if needed
+
+**Signal Completion:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli lpush \\"${channelPrefix}:${agentType}:done\\" '<JSON_OUTPUT>'" })
+\`\`\`
+
+Where JSON_OUTPUT is your work result, e.g.:
+\`{"confidence": 0.85, "content": "your work summary"}\`
+
+**Then set status:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:${agentType}:status\\" \\"work_complete\\"" })
+\`\`\`
+
+The coordinator will handle the rest of the coordination pattern.
+`;
+    }
+
+    // Sequential topology (no coordinator, no coordination)
+    return `
+
+## Sequential Execution
+
+Simple sequential pattern - complete your task independently.
+
+**Optional:** Signal completion for monitoring:
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:${agentType}:status\\" \\"complete\\"" })
+\`\`\`
+`;
+  }
+
+  /**
+   * Spawn coordinator agent to manage Redis coordination patterns
+   */
+  async spawnCoordinator(subtasks) {
+    const startTime = Date.now();
+    const agentTypes = subtasks.map(st => typeof st === 'object' ? st.agentType : 'generic');
+
+    console.log(`👑 Coordinator: Managing ${this.topology} coordination for ${agentTypes.join(', ')}`);
+
+    const coordinatorPrompt = this.generateCoordinatorInstructions(this.topology, agentTypes, subtasks);
+
+    try {
+      let messages = [
+        {
+          role: 'user',
+          content: `Coordinate the following workers using ${this.topology} topology:\n${agentTypes.map((t, i) => `- Worker ${i + 1}: ${t}`).join('\n')}\n\nUse Redis to manage coordination. Monitor worker status and orchestrate the pattern.`
+        }
+      ];
+
+      let inputTokens = 0;
+      let outputTokens = 0;
+      let toolUseCount = 0;
+      const MAX_TOOL_ITERATIONS = 50; // Coordinators need fewer iterations
+      let content = '';
+
+      // Tool use loop (simplified for coordinator)
+      for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
+        const response = await this.anthropic.createMessage({
+          model: this.model,
+          max_tokens: 8000,
+          system: coordinatorPrompt,
+          messages: messages,
+          temperature: 0.7,
+          tools: ANTHROPIC_TOOLS
+        });
+
+        const inputTokens = response.usage?.input_tokens || 0;
+        const outputTokens = response.usage?.output_tokens || 0;
+
+        // Update tokens
+        this.totalTokens.input += inputTokens;
+        this.totalTokens.output += outputTokens;
+
+        // Process response content
+        let hasToolUse = false;
+        for (const block of response.content) {
+          if (block.type === 'text') {
+            content += block.text;
+          } else if (block.type === 'tool_use') {
+            hasToolUse = true;
+            toolUseCount++;
+            const toolResult = await this.executeTool(block.name, block.input);
+
+            messages.push({
+              role: 'assistant',
+              content: response.content
+            });
+
+            messages.push({
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: block.id,
+                content: JSON.stringify(toolResult)
+              }]
+            });
+          }
+        }
+
+        if (!hasToolUse) {
+          break; // Coordinator finished
+        }
+
+        if (response.stop_reason === 'end_turn') {
+          break;
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`👑 Coordinator: Completed in ${duration}ms (${toolUseCount} tool uses)`);
+
+      return {
+        workerId: 0, // Coordinator ID
+        success: true,
+        content,
+        confidence: 1.0,
+        inputTokens,
+        outputTokens,
+        toolUseCount,
+        duration
+      };
+
+    } catch (error) {
+      console.error(`👑 Coordinator: Error - ${error.message}`);
+      return {
+        workerId: 0,
+        success: false,
+        error: error.message,
+        inputTokens: 0,
+        outputTokens: 0,
+        toolUseCount: 0,
+        duration: Date.now() - startTime
+      };
+    }
+  }
+
+  /**
+   * Generate coordinator-specific instructions for Redis management
+   */
+  generateCoordinatorInstructions(topology, agentTypes, subtasks) {
+    const channelPrefix = {
+      'bidirectional': 'swarm:bidirectional',
+      'collaborative': 'swarm:collab',
+      'release-gate': 'swarm:gate'
+    }[topology];
+
+    switch(topology) {
+      case 'bidirectional':
+        return `You are a coordination agent managing a bidirectional feedback loop between two workers.
+
+**Workers:**
+- Worker 1 (Producer): ${agentTypes[0]}
+- Worker 2 (Reviewer): ${agentTypes[1]}
+
+**Your Role:**
+Monitor Redis for worker completion, facilitate feedback exchanges, ensure iterative improvement, and handle potential failures.
+
+## Error Detection
+
+**Check for Worker Failures:**
+\`\`\`bash
+# After timeout, check which workers didn't signal
+for agent in ${agentTypes.join(' ')}; do
+  status=$(redis-cli get "${channelPrefix}:$agent:status")
+  if [ -z "$status" ]; then
+    echo "⚠️  $agent failed to signal (no status key)"
+    redis-cli set "${channelPrefix}:$agent:status" "failed"
+  fi
+done
+\`\`\`
+
+**Set Failure State:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:status\\" \\"partial_failure\\"" })
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:failed_count\\" \\"${agentTypes.filter(t => !status).length}\\"" })
+\`\`\`
+
+**Coordination Steps:**
+
+1. **Wait for Producer Work:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli --csv blpop \\"${channelPrefix}:${agentTypes[0]}:done\\" 30" })
+\`\`\`
+
+2. **Forward to Reviewer:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli lpush \\"${channelPrefix}:${agentTypes[1]}:work\\" '<producer_output>'" })
+\`\`\`
+
+3. **Wait for Review:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli --csv blpop \\"${channelPrefix}:${agentTypes[1]}:feedback\\" 30" })
+\`\`\`
+
+4. **Check Quality:**
+   - If approved: Set status complete, exit
+   - If needs fixes: Forward feedback to producer, repeat from step 1
+
+5. **Max 3 iterations**, then force approval.
+
+**Exit Criteria:**
+- Work approved by reviewer
+- OR 3 iterations completed
+- Set \`${channelPrefix}:status\` to "complete"
+`;
+
+      case 'collaborative':
+        return `You are a coordination agent managing collaborative Q&A between a lead and team members.
+
+**Workers:**
+${agentTypes.map((t, i) => `- Worker ${i + 1}: ${t}`).join('\n')}
+
+**Your Role:**
+Monitor worker completion, route questions from team to lead, facilitate answers, coordinate graceful shutdown, and handle potential failures.
+
+## Error Detection
+
+**Check for Worker Failures:**
+\`\`\`bash
+# After timeout, check which workers didn't signal
+for agent in ${agentTypes.join(' ')}; do
+  status=$(redis-cli get "${channelPrefix}:$agent:status")
+  if [ -z "$status" ]; then
+    echo "⚠️  $agent failed to signal (no status key)"
+    redis-cli set "${channelPrefix}:$agent:status" "failed"
+  fi
+done
+\`\`\`
+
+**Set Failure State:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:status\\" \\"partial_failure\\"" })
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:failed_count\\" \\"${agentTypes.filter(t => !status).length}\\"" })
+\`\`\`
+
+**Coordination Steps:**
+
+1. **Wait for All Workers (optimized with blocking):**
+\`\`\`bash
+# Use BRPOPLPUSH for efficient blocking wait
+for agent in ${agentTypes.join(' ')}; do
+  # Block until worker signals (60 second timeout)
+  result=$(redis-cli brpoplpush "${channelPrefix}:$agent:done" "${channelPrefix}:$agent:processed" 60)
+
+  if [ -z "$result" ]; then
+    echo "⏱️  $agent timeout"
+  else
+    echo "✅ $agent complete: $result"
+  fi
+done
+\`\`\`
+
+2. **Enter Q&A Phase (blocking):**
+\`\`\`bash
+# Blocking wait for questions
+while true; do
+  # Use BLPOP for efficient, non-blocking wait (5-second timeout)
+  question=$(redis-cli blpop "${channelPrefix}:questions" 5)
+
+  if [ -z "$question" ]; then
+    echo "No more questions or timeout"
+    break
+  fi
+
+  # Route question to lead agent, process answer
+  redis-cli rpush "${channelPrefix}:lead:questions" "$question"
+
+  # Wait for lead agent's answer (blocking)
+  answer=$(redis-cli blpop "${channelPrefix}:lead:answers" 30)
+
+  if [ -n "$answer" ]; then
+    # Forward answer back to requesters
+    redis-cli rpush "${channelPrefix}:requesters:answers" "$answer"
+  fi
+done
+\`\`\`
+
+3. **Graceful Shutdown:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:all_done\\" \\"true\\"" })
+\`\`\`
+
+4. **Verify All Workers Exit:**
+Check status for each worker becomes "complete"
+
+**Exit Criteria:**
+- All workers complete primary work
+- Q&A phase finishes (or 5-second idle timeout)
+- all_done flag set
+`;
+
+      case 'release-gate':
+        return `You are a coordination agent managing barrier synchronization (release gate).
+
+**Workers:**
+${agentTypes.map((t, i) => `- Worker ${i + 1}: ${t}`).join('\n')}
+
+**Your Role:**
+Monitor worker completion, ensure ALL reach barrier, release all simultaneously, and handle potential failures.
+
+## Error Detection
+
+**Check for Worker Failures:**
+\`\`\`bash
+# After timeout, check which workers didn't signal
+for agent in ${agentTypes.join(' ')}; do
+  status=$(redis-cli get "${channelPrefix}:$agent:status")
+  if [ -z "$status" ]; then
+    echo "⚠️  $agent failed to signal (no status key)"
+    redis-cli set "${channelPrefix}:$agent:status" "failed"
+  fi
+done
+\`\`\`
+
+**Set Failure State:**
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:status\\" \\"partial_failure\\"" })
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:failed_count\\" \\"${agentTypes.filter(t => !status).length}\\"" })
+\`\`\`
+
+**Coordination Steps:**
+
+1. **Wait for All at Barrier (optimized with blocking):**
+\`\`\`bash
+# Use BLPOP with timeout for efficient blocking
+while true; do
+  # Block waiting for any worker arrival notification
+  result=$(redis-cli blpop "${channelPrefix}:arrivals" 5)
+
+  agents_waiting=$(redis-cli get "${channelPrefix}:agents_waiting")
+
+  if [ "$agents_waiting" = "${agentTypes.length}" ]; then
+    echo "All ${agentTypes.length} agents at barrier"
+    break
+  fi
+
+  if [ -z "$result" ]; then
+    echo "⏱️  Barrier wait timeout"
+    break
+  fi
+done
+\`\`\`
+
+2. **Release All (immediate broadcast):**
+\`\`\`javascript
+bash_execute({ command: "redis-cli set \\"${channelPrefix}:release\\" \\"true\\"" })
+\`\`\`
+
+3. **Verify All Released (optimized with BLPOP):**
+\`\`\`bash
+# Wait for all agent releases with timeout
+release_count=0
+while [ "$release_count" -lt "${agentTypes.length}" ]; do
+  # Block wait for 5 seconds
+  result=$(redis-cli blpop "${channelPrefix}:releases" 5)
+
+  if [ -n "$result" ]; then
+    ((release_count++))
+    echo "Agent released - total: $release_count/${agentTypes.length}"
+  else
+    echo "Release wait timeout - received $release_count/${agentTypes.length}"
+    break
+  fi
+done
+\`\`\`
+
+**Exit Criteria:**
+- All workers reach barrier or 5-second wait
+- Release signal sent
+- All (or most) workers exit with "released" status
+`;
+
+      default:
+        return 'Coordinate workers as needed.';
+    }
+  }
+
+  /**
    * Spawn a single worker agent with bash execution capability
    */
   async spawnWorker(workerId, subtask, customSystemPrompt = null) {
@@ -442,6 +904,10 @@ TASK: ${taskDescription}
 
 Execute the task using available tools. Report confidence score (0.0-1.0) at the end.`;
     }
+
+    // Inject Redis coordination instructions based on topology
+    const topologyInstructions = this.generateTopologyInstructions(this.topology, workerId, agentType);
+    systemPrompt = `${systemPrompt}\n${topologyInstructions}`;
 
     try {
       let messages = [
@@ -893,6 +1359,89 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
   }
 
   /**
+   * Get dependencies (user-provided OR inferred)
+   */
+  async getDependencies() {
+    // Priority 1: User-provided dependencies (explicit)
+    if (this.dependenciesOverride) {
+      console.log('🎯 Using explicit dependencies from CLI');
+      return this.dependenciesOverride;
+    }
+
+    // Priority 2: Coordinator infers based on agent types + topology
+    const agentTypes = this.agentOverride || [];
+    const inferred = this.inferDependencies(agentTypes, this.topology);
+
+    if (inferred) {
+      console.log('🤖 Coordinator inferred dependencies:', JSON.stringify(inferred));
+      return inferred;
+    }
+
+    // Priority 3: No dependencies (parallel execution)
+    console.log('⚡ No dependencies - agents execute in parallel');
+    return null;
+  }
+
+  /**
+   * Infer dependencies based on agent types and topology
+   */
+  inferDependencies(agentTypes, topology) {
+    if (!agentTypes || agentTypes.length === 0) {
+      return null;
+    }
+
+    // Bidirectional: Always 1:1 pairing (first agent produces, second agent reviews)
+    if (topology === 'bidirectional') {
+      if (agentTypes.length >= 2) {
+        return {
+          edges: [{ from: agentTypes[0], to: agentTypes[1] }],
+          nodes: new Set([agentTypes[0], agentTypes[1]])
+        };
+      }
+      return null; // Not enough agents for bidirectional
+    }
+
+    // Collaborative: Architect/lead agent feeds team
+    if (topology === 'collaborative') {
+      // Look for lead agent (architect, lead, senior, etc.)
+      const leadAgent = agentTypes.find(t =>
+        t.includes('architect') ||
+        t.includes('lead') ||
+        t.includes('senior') ||
+        t.includes('manager')
+      );
+
+      if (leadAgent) {
+        const consumers = agentTypes.filter(t => t !== leadAgent);
+        if (consumers.length > 0) {
+          return {
+            edges: consumers.map(to => ({ from: leadAgent, to })),
+            nodes: new Set([leadAgent, ...consumers])
+          };
+        }
+      }
+
+      // Fallback: First agent leads
+      if (agentTypes.length >= 2) {
+        const consumers = agentTypes.slice(1);
+        return {
+          edges: consumers.map(to => ({ from: agentTypes[0], to })),
+          nodes: new Set(agentTypes)
+        };
+      }
+      return null;
+    }
+
+    // Release Gate: No dependencies, all wait at barrier
+    if (topology === 'release-gate') {
+      return null; // All agents independent, coordinator manages barrier
+    }
+
+    // Sequential: No dependencies (default)
+    return null;
+  }
+
+  /**
    * Match task to specialized agents based on keywords
    */
   matchTaskToAgents(task, availableAgents, numAgents) {
@@ -1102,7 +1651,20 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
     console.log(`\n🚀 Spawning ${this.maxAgents} workers for task: "${this.taskDescription}"`);
     console.log(`📡 Provider: ${this.provider}`);
     console.log(`📊 Model: ${this.model}`);
+    console.log(`🔀 Topology: ${this.topology}`);
+    console.log(`⏱️  Timeout: ${this.timeout / 1000}s (${this.timeout / 60000}min)`);
+    if (this.background) {
+      console.log(`🌙 Background Mode: Enabled`);
+    }
     console.log('');
+
+    // Spawn coordinator agent for non-sequential topologies
+    let coordinatorPromise = null;
+    if (this.topology !== 'sequential') {
+      console.log(`👑 Spawning coordination agent for ${this.topology} topology...`);
+      coordinatorPromise = this.spawnCoordinator(subtasks);
+      console.log('');
+    }
 
     // Log agent assignments if specialized
     if (typeof subtasks[0] === 'object' && subtasks[0].agentType) {
@@ -1118,10 +1680,31 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
       this.spawnWorkerWithRetry(index + 1, subtask)
     );
 
-    // Wait for all workers with timeout
+    // Add coordinator to promises if spawned
+    const allPromises = coordinatorPromise
+      ? [coordinatorPromise, ...workerPromises]
+      : workerPromises;
+
+    // Background mode: spawn and return immediately (Phase 3 Deliverable 2)
+    if (this.background) {
+      console.log('🌙 Background mode enabled - agents will run independently');
+      console.log('📊 Monitor progress: redis-cli monitor | grep "swarm:"');
+      console.log('📋 Check status: redis-cli keys "swarm:*"');
+      console.log('');
+      console.log('✅ Agents spawned in background');
+
+      // Don't wait for completion
+      return {
+        background: true,
+        spawned: this.maxAgents + (coordinatorPromise ? 1 : 0),
+        message: 'Agents running in background. Monitor via Redis.'
+      };
+    }
+
+    // Wait for all workers (and coordinator) with timeout
     try {
       const results = await Promise.race([
-        Promise.all(workerPromises),
+        Promise.all(allPromises),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('TIMEOUT')), this.timeout)
         )
@@ -1262,6 +1845,34 @@ function parseArg(args, flagName, defaultValue = null) {
 }
 
 /**
+ * Parse dependency graph from CLI argument
+ * Format: "producer:consumer1,consumer2|agent1:agent2"
+ * Example: "architect:coder,tester" or "architect:coder,tester|coder:reviewer"
+ */
+function parseDependencyGraph(depString) {
+  const edges = depString.split('|');
+  const graph = { edges: [], nodes: new Set() };
+
+  for (const edge of edges) {
+    const [from, toList] = edge.split(':');
+    if (!from || !toList) {
+      throw new Error(`Invalid dependency format: ${edge}. Expected format: "from:to1,to2"`);
+    }
+
+    const toNodes = toList.split(',');
+    graph.nodes.add(from.trim());
+
+    for (const to of toNodes) {
+      const toTrimmed = to.trim();
+      graph.nodes.add(toTrimmed);
+      graph.edges.push({ from: from.trim(), to: toTrimmed });
+    }
+  }
+
+  return graph;
+}
+
+/**
  * CLI Entry Point
  */
 async function main() {
@@ -1279,6 +1890,28 @@ async function main() {
   const agentOverride = agentOverrideArg ? agentOverrideArg.split(',') : null;
   const subtaskOverrideArg = parseArg(args, 'subtasks');
   const subtaskOverride = subtaskOverrideArg ? subtaskOverrideArg.split('|') : null;
+
+  // Redis coordination arguments
+  const topology = parseArg(args, 'topology', 'sequential');
+  const dependenciesArg = parseArg(args, 'dependencies');
+
+  // Timeout argument (Phase 3 Deliverable 1)
+  const timeoutArg = parseArg(args, 'timeout');
+  const timeout = timeoutArg ? parseInt(timeoutArg) : null; // null = use topology-specific default
+
+  // Background mode (Phase 3 Deliverable 2)
+  const background = args.includes('--background') || args.includes('--bg');
+
+  // Validate topology
+  const validTopologies = ['sequential', 'bidirectional', 'collaborative', 'release-gate'];
+  if (!validTopologies.includes(topology)) {
+    console.error(`❌ Invalid topology: ${topology}`);
+    console.error(`Valid topologies: ${validTopologies.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Parse dependency graph
+  const dependencies = dependenciesArg ? parseDependencyGraph(dependenciesArg) : null;
 
   // Parse listing flags
   const listAgents = args.includes('--list-agents');
@@ -1346,6 +1979,48 @@ EXAMPLES:
     --agents=analyst,code-analyzer \\
     --provider=anthropic
 
+COORDINATION PATTERNS (Redis Integration):
+  --topology PATTERN     Coordination pattern (default: sequential)
+    sequential           Simple completion, no coordination (default, 2min timeout)
+    bidirectional        Iterative feedback loops (coder ↔ reviewer, 5min timeout)
+    collaborative        Q&A waiting state (architect answers questions, 6min timeout)
+    release-gate         Barrier synchronization (all agents wait, 6min timeout)
+
+  --timeout MS           Override topology-specific timeout (milliseconds)
+                         Defaults: sequential=120s, bidirectional=300s,
+                                  collaborative=360s, release-gate=360s
+                         Example: --timeout=600000 (10 minutes)
+
+  --background, --bg     Run agents in background, return immediately
+                         Monitor: redis-cli monitor | grep "swarm:"
+                         Status: redis-cli keys "swarm:*"
+
+  --dependencies GRAPH   Agent dependency graph (optional)
+    Format: "producer:consumer1,consumer2|agent1:agent2"
+    Example: "architect:coder,tester|coder:reviewer"
+
+COORDINATION EXAMPLES:
+  # Bidirectional feedback (code review loop)
+  node src/cli/hybrid-routing/spawn-workers.js "Refactor API" \\
+    --agents=coder,reviewer \\
+    --topology=bidirectional
+
+  # Collaborative waiting (architect Q&A)
+  node src/cli/hybrid-routing/spawn-workers.js "Design auth system" \\
+    --agents=architect,coder,tester \\
+    --topology=collaborative
+
+  # Release gate (barrier synchronization)
+  node src/cli/hybrid-routing/spawn-workers.js "Deploy services" \\
+    --agents=backend,frontend,database \\
+    --topology=release-gate
+
+  # With explicit dependency graph
+  node src/cli/hybrid-routing/spawn-workers.js "Build feature" \\
+    --agents=architect,coder,tester \\
+    --topology=collaborative \\
+    --dependencies="architect:coder,tester"
+
 ENVIRONMENT:
   Z_AI_API_KEY          API key for z.ai provider
   ANTHROPIC_API_KEY     API key for Anthropic provider
@@ -1364,7 +2039,11 @@ ENVIRONMENT:
     redisChannel,
     model,
     agentOverride,
-    subtaskOverride
+    subtaskOverride,
+    topology,
+    dependencies,
+    timeout,
+    background
   });
 
   // Handle listing commands before initialization
