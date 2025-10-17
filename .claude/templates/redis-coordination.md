@@ -1,90 +1,56 @@
-# Redis Coordination Template
+# Redis Coordination Patterns
 
-## Core Communication Patterns
+## Communication Channels
 
-### Messaging Primitives
-- **LPUSH/BLPOP**: Primary communication mechanism
-- **Guaranteed Delivery**: Messages persist until consumed
-- **FIFO Ordering**: First pushed = first consumed
+### Standard Channel Formats
+- `swarm:{swarmId}:*` - Swarm-level communication
+- `agent:{agentId}:*` - Agent-specific channels
+- `phase:{phaseId}:*` - CFN Loop phase coordination
 
-### Communication Channels
-- `swarm:coordination`: Global status
-- `agent:{id}:status`: Individual agent status
-- `agent:{id}:feedback`: Agent-specific feedback
+### Message Types
+- `start`: Task initialization
+- `progress`: Ongoing work updates
+- `complete`: Task completion
+- `error`: Error reporting
+- `consensus`: Decision-making signals
+- `question`: Clarification requests
 
-### Message Envelope
-```json
-{
-  "swarmId": "string",
-  "agentId": "string",
-  "timestamp": "ISO8601",
-  "type": "status|feedback|metrics",
-  "confidence": 0.0,
-  "payload": {}
-}
+## Coordination Functions
+
+### Signal Progress
+```bash
+redis-cli publish "swarm:${SWARM_ID}:${AGENT_ID}:progress" '{
+  "status": "in_progress",
+  "milestone": "Authentication module implementation",
+  "confidence": 0.75,
+  "eta_seconds": 600
+}'
 ```
 
-## Topology Patterns
+### Report Completion
+```bash
+redis-cli publish "swarm:${SWARM_ID}:${AGENT_ID}:complete" '{
+  "agent": "'${AGENT_ID}'",
+  "confidence": 0.85,
+  "files_modified": ["src/auth.js", "src/auth.test.js"],
+  "tests_written": 12,
+  "coverage": { "line": 0.92, "branch": 0.88 }
+}'
+```
 
-### 1. Hierarchical Broadcast
-- **Use**: 1:many dependencies
-- **Flow**: Producer → Coordinator → Multiple Consumers
-- **Ideal For**: Complex workflows with branching
-
-### 2. Mesh Hybrid
-- **Use**: 2-5 agents, peer-to-peer
-- **Flow**: Producer → Multiple Consumers
-- **Mechanism**: LPUSH + SET for multiple readers
-
-### 3. Sequential Chain
-- **Use**: Linear workflows A → B → C
-- **Flow**: Each agent signals next after completion
-
-## Error Handling
-
-### Detection Strategies
-- Timeout wrappers
-- Connection loss checks
-- State markers
-- Heartbeat monitoring
-
-### Retry Mechanisms
-- Exponential backoff
-- Circuit breaker
-- Configurable max retries
-
-## CFN Loop Integration
-
-### Signaling Workflow
-- Loop 3 → Aggregate Workers
-- Signal Loop 2 Coordinator
-- Broadcast to Validators
-- Validate Implementation
-- Gate Threshold Checks
+### Request Consensus
+```bash
+redis-cli publish "swarm:${SWARM_ID}:consensus" '{
+  "type": "design_review",
+  "question": "Authentication strategy?",
+  "options": ["JWT", "Session", "OAuth"],
+  "voting_timeout": 300
+}'
+```
 
 ## Best Practices
-- Verify via Redis state
-- Use explicit state markers
-- Implement heartbeats
-- Handle connection loss
-- Minimal payload size
-
-## Quick Commands
-```bash
-# Signal completion
-redis-cli lpush "channel" '{"status":"done"}'
-
-# Wait for signal
-data=$(timeout 300 redis-cli --csv blpop "channel" 0)
-
-# Verify state
-redis-cli llen "channel"  # Expect 0 if consumed
-```
-
-## Confidence & Decision Tracking
-- Track agent confidence
-- Implement gate thresholds
-- Support mode-specific rules (MVP/Standard/Enterprise)
-
-**Last Updated**: 2025-10-17
-**Status**: Production-ready
+- Always use structured JSON
+- Include timestamp in messages
+- Provide confidence scores
+- Signal progress regularly
+- Handle connection failures gracefully
