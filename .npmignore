@@ -51,7 +51,7 @@ DEVELOPMENT.md
 TESTING.md
 
 # Build artifacts (keep dist for compiled files)
-dist/
+# dist/ -- REMOVED: package.json "files" array explicitly includes dist/
 .claude-flow-novice/metrics.db*
 .claude-flow-novice/preferences/
 
