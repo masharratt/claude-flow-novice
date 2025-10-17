@@ -116,31 +116,32 @@
 │ │  • Validator recommendations                       │               │
 │ │                                                    │               │
 │ │  Decision Criteria:                                │               │
-│ │  • PROCEED: Consensus ≥0.90, no critical issues   │               │
-│ │  • DEFER: Consensus ≥0.90, minor issues           │               │
-│ │  • ESCALATE: Consensus <0.90, critical issues     │               │
+│ │  • PROCEED: Consensus ≥0.90, criteria met         │               │
+│ │  • LOOP: Consensus <0.90, fixable issues          │               │
+│ │  • DEFER: Out-of-scope, add to backlog            │               │
+│ │  • ESCALATE: Ambiguous, human review required     │               │
 │ └───────────────────────────────────────────────────┘               │
 │                           │                                          │
 │                           ▼                                          │
 │                  Autonomous Decision                                 │
 │                           │                                          │
-│        ┌──────────────────┼──────────────────┐                      │
-│        │                  │                   │                      │
-│    ✅ PROCEED        ⏸️  DEFER          🚨 ESCALATE                 │
-│ (Next Phase)    (Backlog Items)    (Human Review)                   │
+│    ┌────────┬──────────┬──────────┬──────────┐                      │
+│    │        │          │          │          │                      │
+│  PROCEED   LOOP      DEFER    ESCALATE                             │
+│ (Advance) (Retry)  (Backlog)  (Human)                              │
 │                                                                       │
 │ • Backlog stored in SwarmMemory                                      │
 │ • namespace: 'backlog'                                               │
 │ • key: backlog/{phaseId}/{timestamp}                                 │
 └────────────────────────────┬────────────────────────────────────────┘
                              │
-        ┌────────────────────┼────────────────────┐
-        │                    │                     │
-        ▼                    ▼                     ▼
-  ┌──────────┐         ┌──────────┐         ┌──────────┐
-  │Next Phase│         │  Backlog │         │  Human   │
-  │ (Loop 1) │         │ Created  │         │  Review  │
-  └──────────┘         └──────────┘         └──────────┘
+    ┌──────┬──────────┬──────────┬──────────┐
+    │      │          │          │          │
+    ▼      ▼          ▼          ▼
+┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+│ Next   │ │ Retry  │ │Backlog │ │ Human  │
+│ Phase  │ │Loop 3  │ │Created │ │ Review │
+└────────┘ └────────┘ └────────┘ └────────┘
 ```
 
 ## Decision Flow Details
@@ -153,12 +154,13 @@
 │ • Consensus score                  │
 │ • Validator feedback               │
 │ • Implementation confidence        │
+│ • Iteration count                  │
 └────────────┬───────────────────────┘
              │
              ▼
       ┌─────────────┐
-      │  Analyze    │
-      │  Results    │
+      │GOAP Analysis│
+      │ (A* Search) │
       └──────┬──────┘
              │
     ┌────────┴────────┐
@@ -170,28 +172,28 @@
     ▼                                  ▼
 Consensus ≥ 0.90?               Consensus < 0.90?
     │                                  │
-    ├─ Yes ─┐                         └─ Yes ──▶ ESCALATE
-    │       │                                     (Critical Issues)
-    └─ No ──┘
-         │
-         ▼
-   Critical Issues?
-         │
-    ┌────┴────┐
-    │         │
-    ▼         ▼
-   Yes       No
-    │         │
-    │         ▼
-    │    Minor Issues?
-    │         │
-    │    ┌────┴────┐
-    │    │         │
-    │    ▼         ▼
-    │   Yes       No
-    │    │         │
-    ▼    ▼         ▼
-ESCALATE DEFER  PROCEED
+    ├─ Yes ─┐                    ┌────┴────┐
+    │       │                    │         │
+    │       ▼                    ▼         ▼
+    │  All criteria         Fixable?   Critical?
+    │  met?                     │         │
+    │    │                   ┌──┴──┐     │
+    │    ▼                   │     │     │
+    │  ┌──┴──┐              Yes   No     │
+    │  │     │               │     │     │
+    │  Yes   No              ▼     ▼     ▼
+    │  │     │             LOOP  DEFER ESCALATE
+    │  │     ▼            (Retry)(Backlog)(Human)
+    │  │  Out-of-scope?
+    │  │     │
+    │  │  ┌──┴──┐
+    │  │  Yes   No
+    │  │  │     │
+    │  ▼  ▼     ▼
+    │ DEFER   ESCALATE
+    ▼
+ PROCEED
+(Advance)
 ```
 
 ## Memory Flow
@@ -213,13 +215,14 @@ Loop 2 Validators
     ▼
 Loop 4 Product Owner
     │
-    ├──▶ Decision (PROCEED/DEFER/ESCALATE)
+    ├──▶ Decision (PROCEED/LOOP/DEFER/ESCALATE)
     │    • Stored in PhaseResult
+    │    • Includes iteration count, max iterations
     │
     └──▶ Backlog Items (if DEFER)
          • Stored: backlog/{phaseId}/{timestamp}
          • Namespace: 'backlog'
-         • Metadata: { type: 'deferred-work' }
+         • Metadata: { type: 'deferred-work', priority, reason }
 ```
 
 ## Iteration Limits
@@ -246,20 +249,20 @@ Loop 4 Product Owner
 Loop 3 (≥0.75) → Loop 2 (≥0.90) → Loop 4 (PROCEED) → Next Phase
 ```
 
-### Deferred Work Path
+### Retry Implementation Path
 ```
-Loop 3 (≥0.75) → Loop 2 (≥0.90) → Loop 4 (DEFER) → Backlog + Next Phase
+Loop 3 (≥0.75) → Loop 2 (<0.90) → Loop 4 (LOOP) → Retry Loop 3 (max iterations check)
 ```
 
-### Retry Path
+### Deferred Work Path
 ```
-Loop 3 (≥0.75) → Loop 2 (<0.90) → Feedback Injection → Loop 3 Retry
+Loop 3 (≥0.75) → Loop 2 (≥0.90, minor issues) → Loop 4 (DEFER) → Backlog + Next Phase
 ```
 
 ### Escalation Paths
 ```
 1. Loop 3 (<0.75, 10 iterations) → Escalate
-2. Loop 2 (<0.90, 10 iterations) → Escalate
+2. Loop 4 (LOOP, max iterations reached) → Escalate
 3. Loop 4 (ESCALATE decision) → Human Review
 ```
 

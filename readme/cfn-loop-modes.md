@@ -235,7 +235,7 @@ if (maxVote - minVote > 0.15) {
 }
 ```
 
-**Output**: PROCEED/DEFER/ESCALATE with dissenting opinions documented
+**Output**: PROCEED/LOOP/DEFER/ESCALATE with dissenting opinions documented
 
 **Personas**:
 - `.claude/agents/product-owner-team/cto-agent.md`
@@ -418,7 +418,7 @@ if (mode === 'mvp') {
   --key "cfn/phase-auth/loop4/decision" \
   --level project \
   --data '{
-    "decision": "DEFER",
+    "decision": "LOOP",
     "votes": [0.92, 0.88, 0.85, 0.90],
     "dissent": "A11y advocate requested contrast improvements"
   }'
