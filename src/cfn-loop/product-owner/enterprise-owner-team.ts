@@ -14,7 +14,7 @@
  * @module cfn-loop/product-owner/enterprise-owner-team
  */
 
-import type { StakeholderVote, BoardDecision } from '../modes/types.js';
+import type { StakeholderVote } from '../modes/types.js';
 import type { ConsensusResult, AgentResponse, ProductOwnerDecision } from '../types.js';
 
 /**
@@ -241,7 +241,7 @@ async function spawnStakeholder(
  */
 function generateStakeholderResponse(
   role: 'cto' | 'product-owner' | 'user-power' | 'user-accessibility'
-): { vote: 'PROCEED' | 'DEFER' | 'ESCALATE'; confidence: number } {
+): { vote: 'PROCEED' | 'LOOP' | 'DEFER' | 'ESCALATE'; confidence: number } {
   const baseConfidence = 0.80 + Math.random() * 0.15; // 0.80-0.95
   const confidence = Math.round(baseConfidence * 100) / 100;
 
@@ -263,13 +263,18 @@ function generateStakeholderResponse(
  * @param votes - Stakeholder votes with weights
  * @returns Board decision with consensus score
  */
-export function calculateBoardDecision(votes: StakeholderVote[]): BoardDecision {
+export function calculateBoardDecision(
+  votes: StakeholderVote[],
+  currentIteration = 1
+): ProductOwnerDecision {
   // Vote values: PROCEED=1.0, DEFER=0.5, ESCALATE=0.0
   const voteValues: Record<string, number> = {
     PROCEED: 1.0,
     DEFER: 0.5,
     ESCALATE: 0.0,
   };
+
+  const maxIterations = 15; // Enterprise mode iteration limit
 
   let weightedSum = 0;
   let totalWeight = 0;
@@ -285,10 +290,12 @@ export function calculateBoardDecision(votes: StakeholderVote[]): BoardDecision 
   const decisionScore = totalWeight > 0 ? weightedSum / totalWeight : 0;
   const averageConfidence = votes.length > 0 ? confidenceSum / votes.length : 0;
 
-  // Decision thresholds
-  let decision: 'PROCEED' | 'DEFER' | 'ESCALATE';
-  if (decisionScore >= 0.85) {
+  // Enhanced Decision Thresholds with LOOP
+  let decision: 'PROCEED' | 'DEFER' | 'ESCALATE' | 'LOOP';
+  if (decisionScore >= 0.90) {
     decision = 'PROCEED';
+  } else if (decisionScore >= 0.75 && decisionScore < 0.90) {
+    decision = 'LOOP';
   } else if (decisionScore >= 0.65) {
     decision = 'DEFER';
   } else {
@@ -308,14 +315,22 @@ export function calculateBoardDecision(votes: StakeholderVote[]): BoardDecision 
 
   return {
     decision,
-    decisionScore,
     confidence: averageConfidence,
     reasoning,
-    backlogItems,
+    backlogItems: decision === 'LOOP' ? [
+      'Refine implementation based on board feedback',
+      'Address specific quality concerns',
+    ] : backlogItems,
     blockers: decision === 'ESCALATE' ? ['Board decision: ESCALATE'] : [],
-    recommendations,
-    evaluations: votes,
-    boardConsensus,
+    recommendations:
+      decision === 'LOOP'
+        ? [
+            'Retry Loop 3 with targeted improvements',
+            'Incorporate board member insights',
+          ]
+        : recommendations,
+    iterationCount: currentIteration,
+    maxIterations,
     timestamp: Date.now(),
   };
 }

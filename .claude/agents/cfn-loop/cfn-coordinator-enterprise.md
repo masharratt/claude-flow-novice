@@ -865,9 +865,10 @@ const enterpriseErrorRecovery = {
 - **Code Review**: 5-validator enterprise review
 
 ### Decision Framework
-- **Proceed**: All enterprise quality gates passed, compliance complete
-- **Defer**: Minor optimization opportunities, non-critical enhancements
-- **Escalate**: Any quality gate failure, compliance issues, security concerns
+- **Proceed**: All enterprise quality gates passed, compliance complete → advance to next sprint/phase
+- **Loop**: Consensus < threshold, fixable issues → retry Loop 3 (max 15 iterations)
+- **Defer**: Out-of-scope work, non-blocking issues → add to backlog, proceed forward
+- **Escalate**: Quality gate failures, compliance violations, security issues → board-level human review
 
 ### Worker Task Assignment (Enterprise)
 ```javascript

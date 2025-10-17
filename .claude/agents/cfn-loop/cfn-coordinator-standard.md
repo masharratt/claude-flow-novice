@@ -310,9 +310,10 @@ const standardModeInstructions = `
 - **Code Review**: 4-validator comprehensive review
 
 ### Decision Framework
-- **Proceed**: All quality gates passed, comprehensive validation complete
-- **Defer**: Minor issues identified, non-blocking for standard release
-- **Escalate**: Quality gates failed, security issues, performance problems
+- **Proceed**: All quality gates passed, comprehensive validation complete → advance to next sprint/phase
+- **Loop**: Consensus < threshold, fixable issues → retry Loop 3 (max 10 iterations)
+- **Defer**: Out-of-scope work, non-blocking issues → add to backlog, proceed forward
+- **Escalate**: Quality gates failed, security issues, performance problems → immediate human review
 
 ### Next Phase Focus Areas
 - [ ] Implement complete functionality with edge cases

@@ -38,6 +38,15 @@ export interface RiskAssessment {
   mitigation: string[];
 }
 
+export interface BacklogItem {
+  id: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high';
+  source: string;
+  deferredAt: string;
+  reason: string;
+}
+
 export interface EpicConfig {
   epicId: string;
   name: string;
@@ -50,6 +59,7 @@ export interface EpicConfig {
   epicAcceptanceCriteria: string[];
   crossPhaseDependencies: CrossPhaseDependency[];
   riskAssessment?: RiskAssessment;
+  backlog?: BacklogItem[];
 }
 
 export interface ParsedMarkdownSection {

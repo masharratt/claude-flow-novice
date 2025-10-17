@@ -263,9 +263,10 @@ const mvpModeInstructions = `
 - **Provider**: z.ai (cost optimization)
 
 ### Decision Framework
-- **Proceed**: Core functionality working, basic tests pass
-- **Defer**: Minor issues, non-blocking for MVP
-- **Escalate**: Critical failures, security issues
+- **Proceed**: Core functionality working, basic tests pass → advance to next sprint/phase
+- **Loop**: Consensus < threshold, fixable issues → retry Loop 3 (max 5 iterations)
+- **Defer**: Out-of-scope work, non-blocking issues → add to backlog, proceed forward
+- **Escalate**: Critical failures, security issues → immediate human review
 
 ### Next Phase Focus Areas
 - [ ] Implement core business logic

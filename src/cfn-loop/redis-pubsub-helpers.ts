@@ -73,7 +73,7 @@ export interface SprintLifecycleEvent {
   coordinatorId: string;
   dependencies?: string[];
   consensus?: number;
-  decision?: 'PROCEED' | 'DEFER' | 'ESCALATE';
+  decision?: 'PROCEED' | 'LOOP' | 'DEFER' | 'ESCALATE';
   timestamp: number;
 }
 
@@ -197,7 +197,7 @@ export class RedisPubSubHelper {
   async publishSprintComplete(
     sprintId: string,
     consensus: number,
-    decision: 'PROCEED' | 'DEFER' | 'ESCALATE'
+    decision: 'PROCEED' | 'LOOP' | 'DEFER' | 'ESCALATE'
   ): Promise<void> {
     const event: SprintLifecycleEvent = {
       type: 'sprint:complete',

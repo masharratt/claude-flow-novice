@@ -8,6 +8,7 @@ import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { RedisMonitoringService, RedisMonitoringConfig } from './RedisMonitoringService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +23,8 @@ export interface ServerConfig {
   maxConnections?: number;
   enableCompression?: boolean;
   enableMetrics?: boolean;
+  enableRedisMonitoring?: boolean;
+  redisMonitoringConfig?: RedisMonitoringConfig;
 }
 
 export interface ClientConnection {
@@ -58,6 +61,7 @@ export class RealtimeServer {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private metricsInterval: NodeJS.Timeout | null = null;
   private startTime: Date = new Date();
+  private redisMonitoring: RedisMonitoringService | null = null;
 
   constructor(config: ServerConfig = {}) {
     this.config = {
@@ -69,7 +73,9 @@ export class RealtimeServer {
       heartbeatInterval: config.heartbeatInterval ?? 30000,
       maxConnections: config.maxConnections ?? 1000,
       enableCompression: config.enableCompression ?? true,
-      enableMetrics: config.enableMetrics ?? true
+      enableMetrics: config.enableMetrics ?? true,
+      enableRedisMonitoring: config.enableRedisMonitoring ?? true,
+      redisMonitoringConfig: config.redisMonitoringConfig ?? {}
     };
 
     this.app = express();
@@ -89,6 +95,7 @@ export class RealtimeServer {
     this.setupMiddleware();
     this.setupRoutes();
     this.setupWebSocket();
+    this.setupRedisMonitoring();
     this.startHeartbeat();
     this.startMetricsCollection();
   }
@@ -171,8 +178,154 @@ export class RealtimeServer {
       });
     });
 
+    // Redis monitoring endpoints
+    if (this.config.enableRedisMonitoring) {
+      this.setupRedisMonitoringEndpoints();
+    }
+
     // Static files for dashboard
     this.app.use(express.static(path.join(__dirname, '../public')));
+  }
+
+  /**
+   * Setup Redis monitoring endpoints
+   */
+  private setupRedisMonitoringEndpoints(): void {
+    // Get recent feedback messages
+    this.app.get('/api/redis/feedback', (req, res) => {
+      if (!this.redisMonitoring) {
+        return res.status(503).json({ error: 'Redis monitoring not available' });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 100;
+      const feedback = this.redisMonitoring.getFeedbackHistory(limit);
+      res.json({ feedback, count: feedback.length });
+    });
+
+    // Get current metrics
+    this.app.get('/api/redis/metrics', (req, res) => {
+      if (!this.redisMonitoring) {
+        return res.status(503).json({ error: 'Redis monitoring not available' });
+      }
+
+      const metrics = this.redisMonitoring.getMetrics();
+      res.json(metrics);
+    });
+
+    // Get queue statuses
+    this.app.get('/api/redis/queues', (req, res) => {
+      if (!this.redisMonitoring) {
+        return res.status(503).json({ error: 'Redis monitoring not available' });
+      }
+
+      const queues = this.redisMonitoring.getQueueStatuses();
+      res.json({ queues, count: queues.length });
+    });
+
+    // Get pattern violations
+    this.app.get('/api/redis/violations', (req, res) => {
+      if (!this.redisMonitoring) {
+        return res.status(503).json({ error: 'Redis monitoring not available' });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 100;
+      const violations = this.redisMonitoring.getViolations(limit);
+      res.json({ violations, count: violations.length });
+    });
+
+    // Get coordination events
+    this.app.get('/api/redis/coordination', (req, res) => {
+      if (!this.redisMonitoring) {
+        return res.status(503).json({ error: 'Redis monitoring not available' });
+      }
+
+      const limit = parseInt(req.query.limit as string) || 100;
+      const events = this.redisMonitoring.getCoordinationHistory(limit);
+      res.json({ events, count: events.length });
+    });
+
+    console.log(`📡 Redis monitoring endpoints enabled`);
+  }
+
+  /**
+   * Setup Redis monitoring service
+   */
+  private setupRedisMonitoring(): void {
+    if (!this.config.enableRedisMonitoring) {
+      return;
+    }
+
+    try {
+      this.redisMonitoring = new RedisMonitoringService(this.config.redisMonitoringConfig);
+
+      // Connect monitoring events to WebSocket broadcasts
+      this.redisMonitoring.on('redis_feedback', (feedback) => {
+        this.broadcastToAll({
+          type: 'redis_feedback',
+          payload: feedback
+        });
+      });
+
+      this.redisMonitoring.on('redis_coordination', (event) => {
+        this.broadcastToAll({
+          type: 'redis_coordination',
+          payload: event
+        });
+      });
+
+      this.redisMonitoring.on('redis_queue_status', (status) => {
+        this.broadcastToAll({
+          type: 'redis_queue_status',
+          payload: status
+        });
+      });
+
+      this.redisMonitoring.on('redis_pattern_violation', (violation) => {
+        this.broadcastToAll({
+          type: 'redis_pattern_violation',
+          payload: violation
+        });
+      });
+
+      this.redisMonitoring.on('redis_metrics', (metrics) => {
+        this.broadcastToAll({
+          type: 'redis_metrics',
+          payload: metrics
+        });
+      });
+
+      this.redisMonitoring.on('connected', () => {
+        console.log('✅ Redis monitoring service connected');
+      });
+
+      this.redisMonitoring.on('error', (error) => {
+        console.error('❌ Redis monitoring error:', error.message);
+      });
+
+      console.log(`📊 Redis monitoring service initialized`);
+    } catch (error) {
+      console.error('❌ Failed to initialize Redis monitoring:', error);
+      this.metrics.errors++;
+    }
+  }
+
+  /**
+   * Broadcast message to all connected clients
+   */
+  private broadcastToAll(message: any): void {
+    // Broadcast to WebSocket clients
+    if (this.wsServer) {
+      this.wsServer.clients.forEach((ws: WebSocket) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          this.sendWebSocketMessage(ws, message);
+        }
+      });
+    }
+
+    // Broadcast to SSE clients
+    this.sseClients.forEach((res) => {
+      this.sendSSEEvent(res, message.type, message.payload);
+    });
   }
 
   /**
@@ -743,8 +896,18 @@ export class RealtimeServer {
   /**
    * Start the server
    */
-  start(port?: number): void {
+  async start(port?: number): Promise<void> {
     const serverPort = port || this.config.port;
+
+    // Start Redis monitoring if enabled
+    if (this.config.enableRedisMonitoring && this.redisMonitoring) {
+      try {
+        await this.redisMonitoring.start();
+        console.log('✅ Redis monitoring service started');
+      } catch (error) {
+        console.error('❌ Failed to start Redis monitoring:', error);
+      }
+    }
 
     this.server.listen(serverPort, () => {
       console.log(`🚀 Real-time Communication Server running on port ${serverPort}`);
@@ -752,6 +915,10 @@ export class RealtimeServer {
       console.log(`📡 SSE: http://localhost:${serverPort}/api/events`);
       console.log(`🔄 Custom Sync: http://localhost:${serverPort}/api/sync`);
       console.log(`📈 Metrics: http://localhost:${serverPort}/api/metrics`);
+
+      if (this.config.enableRedisMonitoring) {
+        console.log(`📊 Redis Monitoring: http://localhost:${serverPort}/api/redis/*`);
+      }
     });
 
     // Graceful shutdown
@@ -769,7 +936,7 @@ export class RealtimeServer {
   /**
    * Shutdown the server
    */
-  private shutdown(): void {
+  private async shutdown(): Promise<void> {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
     }
@@ -778,9 +945,59 @@ export class RealtimeServer {
       clearInterval(this.metricsInterval);
     }
 
+    // Stop Redis monitoring
+    if (this.redisMonitoring) {
+      try {
+        // Remove all event listeners to prevent memory leaks
+        const events = [
+          'redis_feedback',
+          'redis_coordination',
+          'redis_queue_status',
+          'redis_pattern_violation',
+          'redis_metrics',
+          'connected',
+          'error'
+        ];
+
+        events.forEach(event => {
+          this.redisMonitoring.removeAllListeners(event);
+        });
+
+        await this.redisMonitoring.stop();
+        console.log('✅ Redis monitoring service stopped');
+      } catch (error) {
+        console.error('❌ Error stopping Redis monitoring:', error);
+      }
+    }
+
+    // Clear WebSocket server
     if (this.wsServer) {
       this.wsServer.close();
+
+      // Remove all server-level event listeners
+      this.wsServer.removeAllListeners('connection');
+      this.wsServer.removeAllListeners('error');
     }
+
+    // Gracefully close all existing WebSocket connections
+    if (this.wsServer) {
+      this.wsServer.clients.forEach((client) => {
+        if (client.readyState !== 3) {  // Not already closed
+          client.terminate();
+        }
+      });
+    }
+
+    // Close SSE connections
+    this.sseClients.forEach((client) => {
+      if (!client.writableEnded) {
+        client.end();
+      }
+    });
+
+    // Clear connection maps
+    this.connections.clear();
+    this.sseClients.clear();
 
     this.server.close(() => {
       console.log('Server shutdown complete');

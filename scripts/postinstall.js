@@ -6,8 +6,8 @@
  * Overwrites existing files to ensure updates work correctly
  */
 
-import { existsSync, cpSync } from 'fs';
-import { dirname, join } from 'path';
+import { existsSync, readdirSync, statSync, copyFileSync, mkdirSync } from 'fs';
+import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,6 +16,7 @@ const __dirname = dirname(__filename);
 
 /**
  * Copy .claude directory from node_modules to project root
+ * Shows progress for each file copied
  */
 function copyClaudeDirectory() {
   try {
@@ -32,6 +33,9 @@ function copyClaudeDirectory() {
     const targetDir = join(projectRoot, '.claude');
 
     console.log('🚀 claude-flow-novice post-install: Setting up .claude directory...');
+    console.log('📂 Source:', sourceDir);
+    console.log('📁 Target:', targetDir);
+    console.log('');
 
     // Check if source directory was found
     if (!sourceDir) {
@@ -41,12 +45,42 @@ function copyClaudeDirectory() {
       process.exit(1);
     }
 
-    // Copy entire directory, overwriting existing files
-    cpSync(sourceDir, targetDir, { recursive: true, force: true });
+    let fileCount = 0;
 
-    console.log('✅ Successfully installed .claude directory');
+    /**
+     * Recursively copy directory with progress output
+     */
+    function copyWithProgress(source, target) {
+      const stat = statSync(source);
+
+      if (stat.isDirectory()) {
+        // Create directory if it doesn't exist
+        if (!existsSync(target)) {
+          mkdirSync(target, { recursive: true });
+        }
+
+        // Copy all entries in directory
+        const entries = readdirSync(source);
+        for (const entry of entries) {
+          copyWithProgress(join(source, entry), join(target, entry));
+        }
+      } else {
+        // Copy file and show progress
+        const relativePath = relative(sourceDir, source);
+        const status = existsSync(target) ? '♻️  Overwriting' : '📄 Copying';
+        console.log(`${status}: ${relativePath}`);
+
+        copyFileSync(source, target);
+        fileCount++;
+      }
+    }
+
+    // Start copying
+    copyWithProgress(sourceDir, targetDir);
+
+    console.log('');
+    console.log(`✅ Successfully copied ${fileCount} files`);
     console.log('📁 Location:', targetDir);
-
     console.log('🎉 Installation complete! claude-flow-novice is ready to use.');
 
   } catch (error) {

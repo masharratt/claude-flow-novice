@@ -106,7 +106,7 @@ export interface ModeSelectionResult {
  */
 export interface StakeholderVote {
   stakeholder: 'cto' | 'product-owner' | 'user-power' | 'user-accessibility';
-  vote: 'PROCEED' | 'DEFER' | 'ESCALATE';
+  vote: 'PROCEED' | 'LOOP' | 'DEFER' | 'ESCALATE';
   confidence: number; // 0.0-1.0
   weight: number; // Role weight
 }
@@ -115,7 +115,7 @@ export interface StakeholderVote {
  * Board decision result from weighted voting
  */
 export interface BoardDecision {
-  decision: 'PROCEED' | 'DEFER' | 'ESCALATE';
+  decision: 'PROCEED' | 'LOOP' | 'DEFER' | 'ESCALATE';
   decisionScore: number; // 0.0-1.0 weighted score
   confidence: number; // Average confidence
   reasoning: string;

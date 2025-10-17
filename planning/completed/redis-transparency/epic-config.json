@@ -1,0 +1,38 @@
+{
+  "epic_metadata": {
+    "epic_id": "redis-transparency-enhancement",
+    "epic_name": "Redis Subagent Transparency Enhancement",
+    "description": "Enhance implementation transparency by providing real-time visibility into subagent activities, decision-making processes, and collaborative workflows through Redis messaging system improvements",
+    "priority": "high",
+    "estimated_duration": "12-15 days",
+    "estimated_cost": "$24-30",
+    "mode": "standard",
+    "team_size": "3-4 agents",
+    "created_date": "2025-10-14",
+    "last_updated": "2025-10-14",
+    "version": "1.0.0"
+  },
+
+  "backlog": [
+    {
+      "id": "backlog-001",
+      "description": "Machine Learning-based Predictive Agent Behavior Model",
+      "priority": "medium",
+      "source": "phase-4-advanced-features",
+      "deferredAt": "2025-10-15T09:00:00Z",
+      "reason": "Requires advanced data collection from other phases, out of current scope"
+    },
+    {
+      "id": "backlog-002",
+      "description": "Cross-platform WebSocket Dashboard Support",
+      "priority": "low",
+      "source": "dashboard-integration",
+      "deferredAt": "2025-10-16T14:30:00Z",
+      "reason": "Current implementation focuses on web-based dashboard"
+    }
+  ],
+
+  "implementation_phases": [
+    // Previous phases remain unchanged
+  ]
+}
