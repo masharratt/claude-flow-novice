@@ -302,11 +302,13 @@ npm test -- --coverage --testPathPattern=your-test.test.js
 └─────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────┐
-│ Product Owner Decision Gate         │
+│ Product Owner Decision Gate (Loop 4)│
 │ • Consensus <90%? → GOAP analysis   │
-│ • Decision: PROCEED | DEFER | ESCALATE │
-│ • PROCEED → Return to Loop 2        │
+│ • Decision: PROCEED|LOOP|DEFER|ESCALATE│
+│ • PROCEED → Advance to next phase   │
+│ • LOOP → Retry Loop 3 (max iterations)│
 │ • DEFER → Backlog + approve phase   │
+│ • ESCALATE → Human review required  │
 └─────────────────────────────────────┘
               ↓
 ┌─────────────────────────────────────┐
@@ -318,11 +320,11 @@ npm test -- --coverage --testPathPattern=your-test.test.js
 └─────────────────────────────────────┘
 ```
 
-## Product Owner Decision Gate
+## Product Owner Decision Gate (Loop 4)
 
 **When**: After consensus <90% in Loop 3
 **Agent**: `product-owner` (GOAP-based decision engine)
-**Decision**: PROCEED | DEFER | ESCALATE
+**Decision**: PROCEED | LOOP | DEFER | ESCALATE
 
 ### Quick Setup
 
@@ -348,7 +350,8 @@ Task("Product Owner", "GOAP decision: analyze consensus failure + scope boundari
 
 | Action | Scope Impact | Cost | Decision |
 |--------|-------------|------|----------|
-| Relaunch Loop 3 (in-scope issue) | Maintains | 50-100 | PROCEED |
+| Advance to next phase (criteria met) | Maintains | 0 | PROCEED |
+| Retry Loop 3 (fixable issues) | Maintains | 50-100 | LOOP |
 | Defer to backlog (out-of-scope) | Maintains | 20 | DEFER |
 | Expand scope (add new features) | Expands | 1000 ❌ | Blocked |
 
@@ -357,14 +360,21 @@ Task("Product Owner", "GOAP decision: analyze consensus failure + scope boundari
 
 ### Decision Outcomes
 
-**PROCEED** (in-scope, fixable):
-- Spawn Loop 3 with targeted agents (NO permission needed)
+**PROCEED** (criteria met, consensus ≥ threshold):
+- Advance to next sprint/phase immediately
+- No additional work needed
+- Example: Consensus 0.92, all acceptance criteria passed
+
+**LOOP** (consensus < threshold, fixable issues):
+- Retry Loop 3 with targeted agents
+- Respects max iteration limits (MVP: 5, Standard: 10, Enterprise: 15)
 - Example: "Security issue in auth module" → spawn `security-specialist` + `backend-dev`
 
 **DEFER** (out-of-scope, non-critical):
 - Save to backlog in memory namespace `scope-control/backlog/{item-id}`
 - Approve current phase (consensus override: 90% → approved)
 - Auto-transition to next phase
+- Example: "Add rate limiting" → future sprint, approve current work
 
 **ESCALATE** (ambiguous, high-risk):
 - Generate 2-3 options with trade-offs
@@ -408,8 +418,8 @@ mcp__claude-flow-novice__memory_usage({
     "defer": 20,        // Save to backlog
     "proceed": 1500     // Requires scope expansion
   },
-  "decision": "DEFER",
-  "action": "Save 'ML routing' to backlog + approve phase transition"
+  "decision": "LOOP",
+  "action": "Retry Loop 3 with targeted feedback"
 }
 
 // Result: Phase approved, next phase begins, ML routing saved for future sprint
@@ -602,7 +612,7 @@ redis-cli EVAL "..." 1 "hybrid:task:auth:results"
 |------|----------------|--------------------------|
 | Loop 2 (Self-Validation) | 10 iterations | IMMEDIATELY self-correct with feedback (autonomous) |
 | Loop 3 (Consensus) | 10 rounds | IMMEDIATELY invoke Product Owner gate if <90% |
-| Product Owner Decision | 1 decision per failure | PROCEED → Loop 2 | DEFER → approve phase |
+| Product Owner Decision | 1 decision per failure | PROCEED → next phase | LOOP → retry | DEFER → backlog |
 | Total Maximum | 100 iterations | System continues autonomously - NO HUMAN WAIT |
 
 **Note**: Product Owner gate enables autonomous scope control - most decisions execute without human approval.

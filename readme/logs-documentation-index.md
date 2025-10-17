@@ -53,6 +53,8 @@ This documentation provides comprehensive coverage of Claude Flow's logging syst
 - [Hybrid Routing with Use Case Intelligence](./logs-features.md#hybrid-routing-enhanced-with-use-case-intelligence) - Enhanced agent spawning
 - [Agent Use Case Coordination](./logs-cli-redis.md#agent-use-case-coordination) - Redis patterns for coordination
 - [Agent Optimization Coordination](./logs-cli-redis.md#agent-optimization-coordination) - Redis patterns for optimization workflows
+- [Redis Coordination System](./logs-features.md#redis-coordination-system) - Production agent coordination (Phase 7)
+- [Redis Monitoring Commands](./logs-cli-redis.md#redis-monitoring-commands) - Real-time coordination monitoring
 
 ## Agent Selection Features
 
