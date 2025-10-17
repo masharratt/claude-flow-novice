@@ -10,6 +10,7 @@
   },
   "files": [
     "dist/",
+    "scripts/",
     "wiki/",
     "README.md",
     "LICENSE",
