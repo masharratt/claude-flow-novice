@@ -13,12 +13,13 @@
 * Agents communicate via Redis pub/sub with explicit dependencies (see `.claude/redis-agent-dependencies.md`)
 
 **Core Principles:**
-* Use agents for all non-trivial work (≥4 steps or multi-file/research/testing/architecture/security)
+* Use agents for all non-trivial work (≥3 steps or multi-file/research/testing/architecture/security)
 * **PRIMARY COORDINATOR: Use coordinator-hybrid for all multi-agent coordination** (cost-optimized CLI spawning with typed agents)
 * Initialize swarm before multi-agent work
 * Batch operations: spawn ALL agents (coordinator + workers) in single message
 * Run post-edit hook after every file edit
 * **REQUIRED: All CLI agent spawning must use explicit --agents flag with typed agents**
+* **Context continuity:** Redis/SQLite persistence enables unlimited continuation — never stop due to context/token concerns
 
 **Prohibited Patterns:**
 * Main chat orchestrating agents directly — spawn coordinator to handle orchestration
@@ -27,11 +28,12 @@
 * Using generic "coordinator" fallback when coordinator-hybrid available
 * Spawning agents without explicit --agents flag (must specify types from AVAILABLE-AGENTS.md)
 * Agent coordination without Redis pub/sub messaging — ALL agents must use Redis
-* Running tests inside agents — execute once; agents read results
+* Running tests inside agents — coordinator runs tests ONCE; workers read cached results from test-results.json
 * Concurrent test runs — terminate previous runs first
 * **Saving to project root — check `.artifacts/logs/post-edit-pipeline.log` after writes; move files if ROOT_WARNING**
 * Creating guides/summaries/reports unless explicitly asked
-* Asking permission to retry/advance when criteria/iterations allow. Instead relaunch agents
+* Asking permission to retry/advance when criteria/iterations allow — **relaunch agents immediately when consensus <threshold and iterations <max**
+* Stopping work due to context/token concerns — Redis/SQLite persistence handles continuation automatically
 
 **Communication:**
 * Use spartan language
@@ -123,14 +125,27 @@ If file created in root, hook returns `status: "ROOT_WARNING"` with `rootWarning
 
 ### 3.3 Safe Test Execution
 
+**Pattern: Coordinator runs tests ONCE before spawning workers**
+
 ```bash
-# Run once, save results
+# 1. Coordinator terminates any existing test runs
+pkill -f vitest; pkill -f "npm test"
+
+# 2. Coordinator runs tests once and caches results
 npm test -- --run --reporter=json > test-results.json 2>&1
-# Agents read results only
+
+# 3. Workers read cached results only (no test execution)
 cat test-results.json
-# Cleanup
+
+# 4. Cleanup after all work complete
 pkill -f vitest; pkill -f "npm test"
 ```
+
+**Rules:**
+* Coordinator executes tests before worker spawn
+* Workers ONLY read test-results.json (never run tests)
+* Single test execution prevents concurrent run conflicts
+* Cache results in test-results.json for worker consumption
 
 ### 3.4 Batching (One message = all related ops)
 
