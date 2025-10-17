@@ -6,8 +6,7 @@ description: |
   ALWAYS delegate when user asks to "state architecture", "state management design", "frontend state".
   Keywords - state architecture, state management, Redux, MobX, frontend scalability
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: seagreen
 type: specialist
 capabilities:

@@ -2,8 +2,7 @@
 name: context-curator
 description: MUST BE USED when managing adaptive context, merging reflection deltas, organizing knowledge. Use PROACTIVELY for context curation, deduplication, knowledge management, organizing project learnings. ALWAYS delegate when user asks to "curate context", "merge reflections", "organize learnings", "deduplicate knowledge". Keywords - context curation, reflection merging, knowledge management, deduplication, adaptive context, learning organization
 tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: blue
 type: specialist
 capabilities:

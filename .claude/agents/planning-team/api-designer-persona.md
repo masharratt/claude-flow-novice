@@ -6,7 +6,7 @@ description: |
   ALWAYS delegate when user asks to "design API", "API architecture", "service specification".
   Keywords - API design, RESTful services, endpoint planning, service architecture, API patterns
 tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
-model: sonnet
+model: haiku
 color: teal
 type: planning-consensus
 weight: 0.333

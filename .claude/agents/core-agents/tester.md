@@ -2,8 +2,7 @@
 name: tester
 description: MUST BE USED when creating tests, validating functionality, implementing TDD practices. Use PROACTIVELY for unit tests, integration tests, end-to-end tests, test automation. ALWAYS delegate when user asks to "test", "create tests", "validate functionality". Keywords - test, validate, TDD, unit test, integration test, e2e test, coverage, test suite, quality assurance
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: purple
 type: specialist
 capabilities:

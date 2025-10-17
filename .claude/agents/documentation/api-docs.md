@@ -3,7 +3,6 @@ name: api-docs-optimized
 description: Optimized API documentation specialist for comprehensive API documentation, interactive docs, and developer experience enhancement. Enhanced with Redis transparency and CFN Loop integration for swarm coordination.
 tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
 model: haiku
-provider: zai
 color: blue
 type: specialist
 acl_level: 3  # Swarm (documentation team)

@@ -111,7 +111,7 @@ Main Chat (Claude Max subscription, $0)
   ↓
   You (Coordinator via Task tool, $0 subscription)
   ↓
-  Bash: node src/cli/hybrid-routing/spawn-workers.js --max-agents N --provider zai
+  Bash: node src/cli/hybrid-routing/spawn-workers.js --agents=analyst,coder,tester,reviewer,security-specialist --provider zai
   ↓
   Workers (z.ai, $0.10-2/1M tokens)
   ↓
@@ -159,14 +159,17 @@ await coordinator.execute(task);
 
 ### Option B: CLI Spawning via Production CLI (✅ Selected)
 ```bash
+# REQUIRED: Use --agents flag with explicit typed agents
 node src/cli/hybrid-routing/spawn-workers.js \
   "Task description" \
-  --max-agents 5 --provider zai --redis-channel swarm:phase-id
+  --agents=analyst,coder,tester,reviewer,security-specialist \
+  --provider zai --redis-channel swarm:phase-id
 ```
 
 **Pros:**
 - ✅ Simple: Single bash command spawns workers
 - ✅ Natural language friendly: Task description as string
+- ✅ Type-safe: Explicit agent types prevent misallocation
 - ✅ Coordinator agnostic: Works from any context
 - ✅ Cost optimization: Uses z.ai provider automatically
 - ✅ Redis coordination: Built-in with pub/sub
@@ -412,8 +415,10 @@ async function spawnWorkersWithPortal(taskDescription, workerCount) {
   try {
     // Execute CLI spawning (production)
     // spawn-workers.js automatically emits agent:spawned for each worker
+    // REQUIRED: Use --agents flag with explicit agent types
+    const agentTypes = workerTasks.map(t => t.agentType).join(',');
     const result = await bash_execute({
-      command: `node src/cli/hybrid-routing/spawn-workers.js "${taskDescription}" --max-agents ${workerCount} --provider zai --redis-channel swarm:${phaseId}`
+      command: `node src/cli/hybrid-routing/spawn-workers.js "${taskDescription}" --agents=${agentTypes} --provider zai --redis-channel swarm:${phaseId}`
     });
 
     // CLI automatically emits swarm:completed when all workers finish
@@ -1179,9 +1184,11 @@ TodoWrite({ todos: [
 
 ```bash
 # Spawn 5 workers for authentication phase (production)
+# REQUIRED: Use --agents flag with explicit typed agents
 node src/cli/hybrid-routing/spawn-workers.js \
   "Implement authentication system: JWT (coder-1), sessions (coder-2), rate-limiting (security-1), bcrypt (coder-3), OAuth (coder-4)" \
-  --max-agents 5 --provider zai --redis-channel swarm:auth
+  --agents=coder,coder,security-specialist,coder,coder \
+  --provider zai --redis-channel swarm:auth
 ```
 
 **CLI Command Structure:**
@@ -1763,7 +1770,9 @@ if (workerCount > 7) {
 ```javascript
 // Loop 3 Pattern: Decompose → Spawn → Monitor → Aggregate → Report → Store → Proceed
 const tasks = decomposePhase(phaseObjective);
-await Bash(`node src/cli/hybrid-routing/spawn-workers.js "${taskDescription}" --max-agents ${tasks.length} --provider zai --redis-channel swarm:phase-id`);
+// REQUIRED: Use --agents flag with explicit agent types from tasks
+const agentTypes = tasks.map(t => t.agentType).join(',');
+await Bash(`node src/cli/hybrid-routing/spawn-workers.js "${taskDescription}" --agents=${agentTypes} --provider zai --redis-channel swarm:phase-id`);
 const results = await monitorWorkerCompletions(tasks.length, 'phase-id');
 const aggregate = aggregateResults(results);
 console.log(formatLoop3Report(aggregate));

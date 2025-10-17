@@ -574,8 +574,8 @@ const toolEffectivenessMetrics = {
   // Step 1: Initialize swarm (MANDATORY for multi-agent tasks)
   SlashCommand("/swarm-init --topology mesh --max-agents 5 --strategy balanced")
 
-  // OR use Bash tool for production swarm execution:
-  Bash("node src/cli/hybrid-routing/spawn-workers.js 'Create REST API' --max-agents 5 --provider zai --redis-channel 'swarm:api'")
+  // OR use Bash tool for production swarm execution (REQUIRED: --agents flag with explicit types):
+  Bash("node src/cli/hybrid-routing/spawn-workers.js 'Create REST API' --agents=analyst,coder,coder,tester,reviewer --provider zai --redis-channel 'swarm:api'")
 
   // Step 2: Spawn ALL specialist agents concurrently using Task tool
   Task("Agent Name", "Detailed specific instructions including:
@@ -601,7 +601,7 @@ Use for **slash commands** defined in `.claude/commands/`:
 
 ### Bash Tool
 Use for **CLI executables and system commands**:
-- `node src/cli/hybrid-routing/spawn-workers.js "objective" --max-agents 5 --provider zai` - Production swarm execution
+- `node src/cli/hybrid-routing/spawn-workers.js "objective" --agents=analyst,coder,coder,tester,reviewer --provider zai` - Production swarm execution (REQUIRED: --agents flag)
 - `redis-cli setex "key" 3600 '{"data":"value"}'` - Redis commands
 - `git add . && git commit -m "..."` - Git operations
 - `npm test`, `npm run build` - NPM commands

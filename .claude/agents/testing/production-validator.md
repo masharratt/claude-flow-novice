@@ -1,8 +1,7 @@
 ---
 name: production-validator
 type: validator
-model: sonnet
-provider: zai
+model: haiku
 color: "#E74C3C"
 description: MUST BE USED for production readiness validation before deployment. Use PROACTIVELY for pre-release checks, deployment gate validation, production environment verification, compliance validation. ALWAYS delegate when user asks to "validate production readiness", "check deployment readiness", "verify production compliance", "pre-deployment validation". Keywords - production validation, deployment gate, pre-release checks, production readiness, compliance validation, deployment verification, production environment
 tools: Read, Write, Edit, Bash, Grep, Glob, WebSearch, TodoWrite

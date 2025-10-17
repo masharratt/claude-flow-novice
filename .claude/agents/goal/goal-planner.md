@@ -2,8 +2,7 @@
 name: goal-planner
 description: "Goal-Oriented Action Planning (GOAP) specialist using A* search algorithms to dynamically create intelligent plans for achieving complex objectives. Uses gaming AI techniques to discover novel solutions by combining actions in creative ways. MUST BE USED for multi-phase planning, adaptive replanning, goal decomposition, and strategic decision-making. Use PROACTIVELY for complex planning scenarios, state space reasoning, and optimal path discovery. Keywords - GOAP, planning, A* search, state space, goal decomposition, adaptive replanning, action sequencing, strategic planning"
 tools: [Read, Write, Edit, Bash, TodoWrite, mcp__claude-flow-novice__memory_usage, mcp__claude-flow-novice__swarm_status, mcp__claude-flow-novice__task_orchestrate]
-model: sonnet
-provider: anthropic
+model: haiku
 color: purple
 type: strategic
 acl_level: 4

@@ -2,8 +2,7 @@
 name: interaction-tester
 description: MUST BE USED when testing user interactions, UI components, accessibility, and integration workflows. Use PROACTIVELY for integration testing, end-to-end testing, interaction testing, accessibility testing, UI component testing. ALWAYS delegate when user asks to "test interactions", "test UI", "test accessibility", "write integration tests", "test user flows", "e2e testing". Keywords - interaction testing, integration tests, e2e, UI testing, accessibility, user flows, component testing, test automation
 tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: cyan
 type: specialist
 

@@ -2,8 +2,7 @@
 name: backend-dev
 description: MUST BE USED when developing REST APIs, GraphQL endpoints, or backend services. Use PROACTIVELY for API routes, controllers, middleware, authentication, database queries. ALWAYS delegate when user asks to 'create API', 'build endpoint', 'implement REST', 'backend service'. Keywords - API, REST, GraphQL, endpoint, route, controller, middleware, backend, server, authentication
 tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn]
-model: sonnet
-provider: zai
+model: haiku
 color: blue
 type: specialist
 capabilities:

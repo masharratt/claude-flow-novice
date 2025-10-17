@@ -2,8 +2,7 @@
 name: product-owner-agent
 description: MUST BE USED when evaluating business value, customer impact, market readiness, and product decisions. Use PROACTIVELY for business case analysis, acceptance criteria validation, ROI assessment, go-to-market strategy, and customer advocacy. ALWAYS delegate when user asks to "evaluate business case", "review acceptance criteria", "assess market readiness", "product decision", "ROI analysis", "customer impact". Trigger keywords - product owner, business value, customer impact, market readiness, acceptance criteria, ROI, go-to-market, product decision, business case
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: green
 type: specialist
 capabilities:

@@ -2,8 +2,7 @@
 name: code-booster
 description: MUST BE USED when performance-critical code tasks require WASM acceleration. Use PROACTIVELY for code optimization, performance analysis, large-scale code generation, and compute-intensive refactoring. ALWAYS delegate when user asks "optimize performance", "accelerate code", "generate optimized code", "analyze performance bottlenecks", "refactor for speed". Trigger keywords - optimize, performance, accelerate, boost, wasm, speed, efficiency, benchmark, profiling, compute-intensive
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: purple
 type: specialist
 acl_level: 1

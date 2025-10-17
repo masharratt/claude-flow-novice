@@ -59,8 +59,8 @@ lifecycle:
 hooks:
   pre: |
     echo "🔄 Adaptive Coordinator analyzing workload patterns: $TASK"
-    # Production swarm execution with auto-detection using hybrid routing CLI
-    node src/cli/hybrid-routing/spawn-workers.js "$TASK" --max-agents 15 --provider zai --redis-channel "swarm:adaptive:${TASK_ID}"
+    # Production swarm execution with auto-detection using hybrid routing CLI (REQUIRED: --agents flag)
+    node src/cli/hybrid-routing/spawn-workers.js "$TASK" --agents=analyst,architect,coder,coder,coder,tester,reviewer,security-specialist --provider zai --redis-channel "swarm:adaptive:${TASK_ID}"
     # Analyze current workload patterns using neural tools
     /neural analyze --operation workload_analysis --metadata "{\"task\":\"$TASK\", \"mode\":\"${MODE:-standard}\"}"
     # Train adaptive models

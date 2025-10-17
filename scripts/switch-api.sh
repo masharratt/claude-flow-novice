@@ -46,7 +46,7 @@ switch_to_zai() {
     "ANTHROPIC_AUTH_TOKEN": "cca13d09dcd6407183efe9e24c804cca.QO8R0JxF4fucsoWL",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "GLM-4.6",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "GLM-4.6",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "GLM-4.5-Air"
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "GLM-4.6"
   },
   "hybridRouting": {
     "enabled": false,
@@ -55,10 +55,11 @@ switch_to_zai() {
 }
 SETTINGS
     echo "✓ Switched to z.ai API"
-    echo "  Using GLM-4.6 (Sonnet), GLM-4.5-Air (Haiku)"
+    echo "  Using GLM-4.6 for all models (Opus, Sonnet, Haiku)"
     echo ""
     echo "  Pure Provider Mode (All z.ai)"
     echo "   • All sessions use z.ai ($0.10-2/1M)"
+    echo "   • CLI fallback: GLM-4.5 on rate limits/4xx errors"
 }
 
 # Function to switch to Claude Max

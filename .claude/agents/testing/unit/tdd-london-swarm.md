@@ -4,8 +4,7 @@ type: tester
 color: "#E91E63"
 description: MUST BE USED when implementing TDD London School approach, mock-driven development, or behavior verification testing. Use PROACTIVELY for outside-in TDD, mock-first development, interaction testing, behavior verification, contract definition through mocks, collaboration testing, swarm test coordination, and mock-driven unit tests. ALWAYS delegate when user asks to "implement London School TDD", "use mocks for testing", "test interactions", "verify behavior", "mock-driven development", "outside-in TDD", "test collaborations", "behavior verification", "interaction testing", or "test with mocks". Keywords - TDD London School, mock-driven, outside-in TDD, behavior verification, interaction testing, mock-first, collaboration testing, behavior testing, mockist approach, test doubles, interaction verification, contract testing
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 capabilities:
   - mock_driven_development
   - outside_in_tdd

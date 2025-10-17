@@ -4,8 +4,7 @@ type: coordinator
 color: "#4ECDC4"
 description: FALLBACK agent for general task planning and coordination when no specialized planner is available. Use ONLY when planning doesn't match specialized agents like goal-planner (GOAP planning), sparc/* agents (SPARC methodology), architect (system architecture planning), or project managers. MUST BE USED for generic task breakdown, simple project organization, basic milestone planning. use as FALLBACK for general planning needs. Keywords - general planning, task breakdown, fallback planner, basic coordination
 tools: TodoWrite, Read, Write, Edit, Bash, Glob, Grep
-model: sonnet
-provider: zai
+model: haiku
 capabilities:
   - task_decomposition
   - dependency_analysis

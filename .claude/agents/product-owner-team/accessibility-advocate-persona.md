@@ -2,8 +2,7 @@
 name: accessibility-advocate-persona
 description: MUST BE USED when evaluating accessibility compliance, WCAG standards, and inclusive design. Use PROACTIVELY for design reviews, accessibility audits, screen reader testing, keyboard navigation validation, and ensuring legal compliance. ALWAYS delegate when user asks to "check accessibility", "WCAG compliance", "screen reader testing", "keyboard navigation", "inclusive design", "ADA compliance", "accessibility audit". Trigger keywords - accessibility, WCAG, screen reader, keyboard navigation, inclusive design, ADA, Section 508, color contrast, ARIA, accessibility testing, compliance audit, assistive technology
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: purple
 type: specialist
 capabilities:

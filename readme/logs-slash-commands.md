@@ -4,6 +4,128 @@
 
 Claude Flow provides comprehensive slash commands for AI agent orchestration, CFN Loop execution, swarm coordination, and system management. These commands enable developers to interact with AI capabilities directly from the CLI.
 
+## API Provider Commands
+
+### `/switch-api`
+
+**Purpose**: Switch between API providers with Redis transparency and CFN Loop integration
+
+**Usage**: `/switch-api <provider> [options]`
+
+**Providers**:
+- `max`: Claude Max (subscription-based)
+- `zai`: z.ai provider (cost-optimized)
+- `auto`: Automatic selection based on task requirements
+
+**Options**:
+- `--verbose`: Show detailed switching information
+- `--dry-run`: Preview switch without execution
+- `--migrate`: Migrate current state to new provider
+
+**Examples**:
+```bash
+# Switch to z.ai for cost optimization
+/switch-api zai --verbose
+
+# Dry run to preview changes
+/switch-api max --dry-run
+
+# Auto-select best provider
+/switch-api auto --task "lightweight code review"
+
+# Switch with CFN Loop state migration
+/switch-api zai --migrate
+```
+
+**Integration**: Updates Redis provider state, triggers CFN Loop coordinator adjustments
+
+### `/cost-savings-on`
+
+**Purpose**: Enable CLI-based coordination for cost optimization
+
+**Usage**: `/cost-savings-on`
+
+**What it does**:
+- Activates CLI-based agent spawning via spawn-workers.js
+- Injects CLI coordinator sections into CLAUDE.md
+- Routes workers through z.ai provider
+- Coordinator runs on Claude Max subscription
+
+**Example**:
+```bash
+/cost-savings-on
+```
+
+**Output**: Mode configuration status, CLAUDE.md updates, active coordinators
+
+### `/cost-savings-off`
+
+**Purpose**: Disable CLI mode, use Task-tool coordination
+
+**Usage**: `/cost-savings-off`
+
+**What it does**:
+- Deactivates CLI spawning patterns
+- Injects Task-tool coordinator sections into CLAUDE.md
+- Uses main provider for all agents
+- Removes CLI-specific coordination
+
+**Example**:
+```bash
+/cost-savings-off
+```
+
+**Output**: Mode configuration status, CLAUDE.md updates, active coordinators
+
+### `/cost-savings-status`
+
+**Purpose**: Display current cost-savings mode configuration
+
+**Usage**: `/cost-savings-status`
+
+**What it displays**:
+- Current mode (CLI or Task-tool)
+- Active coordinator patterns
+- CLAUDE.md section state
+- Configuration file location
+
+**Example**:
+```bash
+/cost-savings-status
+```
+
+**Output**: Mode status, coordinator configuration, CLAUDE.md sections
+
+### `/github-commit`
+
+**Purpose**: Create git commits with CFN Loop integration and automated messaging
+
+**Usage**: `/github-commit [options]`
+
+**Options**:
+- `--chat`: Create commit from chat conversation
+- `--message <text>`: Custom commit message
+- `--files <list>`: Specific files to include
+- `--components <list>`: CFN Loop components to include
+- `--type <type>`: Commit type (feat, fix, docs, test)
+
+**Examples**:
+```bash
+# Create commit from chat conversation
+/github-commit --chat
+
+# Create custom commit message
+/github-commit --message "feat: Add authentication system"
+
+# Include specific CFN Loop components
+/github-commit --components="CFN Loop,agent optimization"
+
+# Create specific type commit
+/github-commit --type feat --files "src/auth.js,tests/auth.test.js"
+```
+
+**Integration**: Automatically includes CFN Loop metadata, agent confidence scores, and validation results
+
 ## Core Development Commands
 
 ### CFN Loop Commands
@@ -211,6 +333,64 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
 # Vue.js project with TypeScript
 /fullstack "Admin panel" --stack vue --database mysql --deployment aws
 ```
+## Agent Selection Commands
+
+### `/recommend-agents`
+
+**Purpose**: Test intelligent agent selection based on use cases
+
+**Usage**: `/recommend-agents "task description"`
+
+**Examples**:
+```bash
+# Get agent recommendations for authentication system
+/recommend-agents "Build user authentication system"
+
+# Test different scenarios
+/recommend-agents "Conduct security audit"
+/recommend-agents "Design microservices architecture"
+/recommend-agents "Optimize database performance"
+```
+
+**Output**: 
+- Primary agents (recommended)
+- Secondary agents (optional)
+- Reasoning for selection
+- Spawn command example
+
+### `/list-agents`
+
+**Purpose**: List all available specialized agents with capabilities
+
+**Usage**: `/list-agents [options]`
+
+**Options**:
+- `--by-category`: Group agents by category
+- `--category <name>`: Show agents from specific category
+- `--search <term>`: Search agents by name or capability
+
+**Examples**:
+```bash
+# List all agents
+/list-agents
+
+# Group by category
+/list-agents --by-category
+
+# Show security agents
+/list-agents --category security
+
+# Search for testing capabilities
+/list-agents --search "test"
+```
+
+### `/list-agents-rebuild`
+
+**Purpose**: Rebuild AVAILABLE-AGENTS.md from .claude/agents/ folder
+
+**Usage**: `/list-agents-rebuild`
+
+**Output**: Regenerates agent documentation with current capabilities
 
 ## Fleet Management Commands
 

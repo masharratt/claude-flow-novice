@@ -8,8 +8,7 @@ description: |
   Keywords - SPARC, specification, requirements, constraints, acceptance criteria, problem definition, 
   functional requirements, non-functional requirements, use cases, scope, stakeholders
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: blue
 type: specialist
 capabilities:

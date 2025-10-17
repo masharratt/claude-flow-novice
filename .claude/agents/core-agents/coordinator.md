@@ -63,10 +63,11 @@ Your role is **PURE ORCHESTRATION**:
 **Agent Spawning Pattern (REQUIRED):**
 
 ```bash
-# ✅ CORRECT: Production CLI spawning for implementation agents
+# ✅ CORRECT: Production CLI spawning for implementation agents (REQUIRED: --agents flag with explicit types)
 node src/cli/hybrid-routing/spawn-workers.js \
   "Remove forbidden patterns from /readme docs: logs-features.md (coder-1), logs-api.md (coder-2), logs-mcp.md (coder-3)" \
-  --max-agents 3 --provider zai --redis-channel swarm:doc-cleanup
+  --agents=coder,coder,coder \
+  --provider zai --redis-channel swarm:doc-cleanup
 ```
 
 **Redis Monitoring Pattern:**

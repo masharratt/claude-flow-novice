@@ -6,8 +6,7 @@ description: |
   ALWAYS delegate when user asks to "Rust MVP", "rapid prototyping", "lean development".
   Keywords - rust MVP, rapid prototyping, lean development, minimum viable product, quick iteration
 tools: [Read, Write, Edit, Bash, TodoWrite]
-model: sonnet
-provider: zai  # Cost optimization for MVP
+model: haiku
 color: orange
 type: specialist
 capabilities:

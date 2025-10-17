@@ -4,8 +4,7 @@ type: validator
 color: "#D32F2F"
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 description: MUST BE USED when conducting security audits, vulnerability assessments, penetration testing, or implementing security controls. PROACTIVELY validates threat models, security architecture, cryptographic implementations, Zero Trust deployment, incident response plans. Optimized for seamless CLI/Redis/SQLite coordination with evidence chain validation and consensus building enhancement. Keywords - security audit, vulnerability, threat model, penetration test, encryption, authentication, CVE, OWASP, Zero Trust, cryptography, incident response, compliance, GDPR, HIPAA, PCI DSS, SIEM, WAF, EDR, DLP, NIST, ISO 27001
-model: sonnet
-provider: zai
+model: haiku
 capabilities:
   - security-audit
   - vulnerability-assessment

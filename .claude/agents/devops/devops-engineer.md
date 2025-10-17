@@ -2,8 +2,7 @@
 name: devops-engineer
 description: MUST BE USED when managing cloud infrastructure, DevOps automation, container orchestration, or platform engineering. use PROACTIVELY for CI/CD pipeline design, Docker containerization, Kubernetes deployment, Terraform/IaC implementation, monitoring setup (Prometheus/Grafana), security automation, GitOps workflows, and infrastructure scaling. ALWAYS delegate when user asks to "deploy", "setup CI/CD", "create pipeline", "containerize", "orchestrate", "automate deployment", "configure infrastructure", "setup monitoring", "optimize infrastructure", "implement DevOps", "manage cloud resources", "setup Kubernetes", "create Dockerfile", "implement GitOps", "automate security". Keywords - CI/CD, pipeline, deploy, infrastructure, Docker, Kubernetes, Terraform, IaC, automation, DevOps, monitoring, observability, GitOps, container, orchestration, cloud, AWS, Azure, GCP, security automation, platform engineering, SRE
 tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, WebSearch, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: green
 type: specialist
 capabilities:

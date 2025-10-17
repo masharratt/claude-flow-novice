@@ -2,8 +2,7 @@
 name: code-booster
 description: MUST BE USED when implementing performance optimizations, refactoring for efficiency, applying optimization patterns, parallelization implementation. Use PROACTIVELY for algorithm optimization, data structure improvements, caching implementation, parallel processing, memory optimization, query optimization. ALWAYS delegate when user asks to "optimize performance", "speed up code", "refactor for efficiency", "implement caching", "parallelize processing", "reduce memory usage". Keywords - performance optimization, code refactoring, efficiency, caching, parallelization, algorithm optimization, data structure optimization, memory optimization, query optimization, performance boost
 tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: yellow
 type: specialist
 capabilities:

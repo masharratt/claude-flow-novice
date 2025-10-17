@@ -4,8 +4,7 @@ type: implementer
 color: "#4CAF50"
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 description: MUST BE USED when validating production readiness, verifying real implementations, or ensuring deployment safety. Use PROACTIVELY for production validation, implementation verification, end-to-end testing with real systems, deployment readiness checks, real database integration validation, external API testing, infrastructure validation, performance under load testing, security validation, and pre-deployment verification. ALWAYS delegate when user asks to "validate production", "check deployment readiness", "test real integration", "verify implementation", "ensure production-ready", "validate against real database", "test with real API", "check for mocks", "production testing", or "deployment validation". Keywords - production validation, deployment ready, real implementation, no mocks, real database, real API, infrastructure testing, production testing, deployment verification, end-to-end validation, implementation completeness
-model: sonnet
-provider: zai
+model: haiku
 capabilities:
   - production_validation
   - implementation_verification

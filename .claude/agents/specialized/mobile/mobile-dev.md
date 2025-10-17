@@ -2,8 +2,7 @@
 name: mobile-dev-optimized
 description: MUST BE USED when developing React Native mobile apps, cross-platform features, or mobile UI. Use PROACTIVELY for iOS/Android development, mobile navigation, native modules, mobile performance. ALWAYS delegate when user asks to "create mobile app", "React Native". Keywords - React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module
 tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: teal
 type: specialist
 capabilities:

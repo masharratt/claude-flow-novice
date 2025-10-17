@@ -6,8 +6,7 @@ description: |
   ALWAYS delegate when user asks to "enterprise Rust", "production systems", "mission-critical development".
   Keywords - enterprise rust, production systems, mission-critical, scalable architecture, enterprise security
 tools: [Read, Write, Edit, Bash, TodoWrite, cargo_check, cargo_audit, cargo_tarpaulin, rust_miri, cargo_bench]
-model: sonnet
-provider: claude  # Enterprise quality
+model: haiku
 color: purple
 type: specialist
 capabilities:

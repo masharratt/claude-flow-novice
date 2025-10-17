@@ -41,6 +41,40 @@ This documentation provides comprehensive coverage of Claude Flow's logging syst
 - [Process-Specific Thresholds](./logs-features.md#memory-thresholds)
 - [Leak Detection Analysis](./logs-features.md#growth-pattern-analysis)
 
+## Agent Management System
+
+- [Agent Optimization System](./logs-features.md#agent-optimization-system) - Automated description optimization and formatting standardization
+- [Agent Use Case Registry](./logs-features.md#agent-use-case-registry) - Intelligent agent selection based on use cases
+- [Agent Registry API](./logs-api.md#agent-registry) - Agent discovery and capabilities
+- [Agent Recommendation API](./logs-api.md#agents-recommend) - Get intelligent agent recommendations
+- [Agent Definition Management](./logs-api.md#agent-definition-management) - Manage agent definitions
+- [Coordinator Integration APIs](./logs-api.md#coordinator-integration-apis) - Coordinator selection tools
+- [Agent Selection Commands](./logs-slash-commands.md#agent-selection-commands) - CLI commands for agent testing
+- [Hybrid Routing with Use Case Intelligence](./logs-features.md#hybrid-routing-enhanced-with-use-case-intelligence) - Enhanced agent spawning
+- [Agent Use Case Coordination](./logs-cli-redis.md#agent-use-case-coordination) - Redis patterns for coordination
+- [Agent Optimization Coordination](./logs-cli-redis.md#agent-optimization-coordination) - Redis patterns for optimization workflows
+
+## Agent Selection Features
+
+### Use Case-Based Selection
+- [Feature Development](./logs-features.md#use-cases-supported) - Development-focused agent selection
+- [Security Audit](./logs-api.md#agents-use-cases) - Security specialist selection
+- [Performance Optimization](./logs-features.md#use-cases-supported) - Performance-focused agents
+- [System Architecture](./logs-features.md#use-cases-supported) - Architecture and design agents
+- [CFN Loop Coordinators](./logs-features.md#use-cases-supported) - Mode-specific CFN coordinators
+
+### Agent Optimization Features
+- [Description Optimization](./logs-features.md#agent-optimization-system) - 24-50 word limit standardization
+- [YAML Frontmatter Standardization](./logs-features.md#agent-optimization-system) - Metadata structure normalization
+- [File Cleanup](./logs-features.md#agent-optimization-system) - Consistent naming conventions
+- [Quality Validation](./logs-cli-redis.md#agent-optimization-coordination) - Minimum capability standards
+
+### Coordinator Tools
+- [Coordinator Access Guide](../src/cli/hybrid-routing/COORDINATOR-ACCESS-GUIDE.md) - Complete coordinator integration guide
+- [Agent Use Case Registry](../src/cli/hybrid-routing/agent-use-cases.js) - Registry implementation
+- [Recommend-Agents CLI](../src/cli/hybrid-routing/recommend-agents.js) - Testing tool for recommendations
+- [AVAILABLE-AGENTS.md](../src/cli/hybrid-routing/AVAILABLE-AGENTS.md) - Complete agent reference
+
 ## Quick Start
 
 ### Basic Usage
@@ -205,6 +239,9 @@ node src/cli/hybrid-routing/spawn-workers.js "OAuth2" \
 - [`/cfn-optimize-agents`](./logs-slash-commands.md#cfn-optimize-agents---parallel-4---provider-zai) - Agent optimization
 - [`/cfn-loop-document`](./logs-slash-commands.md#cfn-loop-document---sprint-name---epic-name) - Documentation updates
 - [`/cfn-claude-sync`](./logs-slash-commands.md#cfn-claude-sync---dry-run---verbose) - CLAUDE.md sync
+- [`/cost-savings-on`](./logs-slash-commands.md#cost-savings-on) - Enable CLI coordination mode
+- [`/cost-savings-off`](./logs-slash-commands.md#cost-savings-off) - Enable Task-tool mode
+- [`/cost-savings-status`](./logs-slash-commands.md#cost-savings-status) - Display mode configuration
 
 **Coordinators**:
 - **cfn-coordinator-mvp**: <$1/phase, 15min, 2-3 workers
@@ -371,6 +408,16 @@ logger.info('message');
 - **Integration Hooks**: [logs-hooks.md](./logs-hooks.md)
 
 ## Version History
+
+### Sprint 1.10 (2025-10-15) - Agent Optimization System
+- Agent Optimization System with automated description standardization (24-50 word limit)
+- YAML frontmatter standardization across agent library
+- Agent formatting capabilities and quality validation
+- Redis coordination patterns for agent optimization workflows
+- Parallel optimization with 4-worker coordination
+- Performance monitoring and quality scoring system
+- /switch-api command for provider switching with Redis transparency
+- /github-commit command for git commits with CFN Loop integration
 
 ### Sprint 1.9 (2025-10-15) - CFN Loop & ACE Enhancement
 - CFN Loop autonomous workflow with 3-loop self-correcting consensus

@@ -2,7 +2,7 @@
 name: system-architect
 description: MUST BE USED when designing enterprise-grade system architecture, providing technical leadership, making strategic architectural decisions, or planning large-scale infrastructure. use PROACTIVELY for distributed systems design, event-driven architecture, CQRS/event sourcing, domain-driven design, zero-trust security architecture, cloud-native architecture, container orchestration, microservices decomposition, scalability and performance architecture, observability and monitoring design, disaster recovery planning, technical debt assessment, architectural trade-off analysis. ALWAYS delegate when user asks to "design enterprise system", "architect microservices", "plan distributed system", "evaluate architecture", "assess technical debt", "design event-driven system", "create architectural documentation", "define technical strategy", "plan cloud migration", "design security architecture". Keywords - enterprise architecture, system design, technical leadership, distributed systems, microservices, event-driven, scalability, cloud architecture, architectural patterns, technical strategy, ADR (Architecture Decision Records), quality attributes, performance architecture, security design, infrastructure planning, technology evaluation
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
-model: sonnet
+model: haiku
 color: seagreen
 type: specialist
 acl_level: 1

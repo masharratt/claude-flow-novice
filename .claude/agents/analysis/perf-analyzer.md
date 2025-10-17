@@ -2,8 +2,7 @@
 name: perf-analyzer
 description: MUST BE USED when analyzing application performance, identifying bottlenecks, profiling code execution, memory usage analysis. Use PROACTIVELY for performance optimization, load testing analysis, database query optimization, memory leak detection, runtime profiling. ALWAYS delegate when user asks to "analyze performance", "find bottlenecks", "profile application", "optimize performance", "detect memory leaks". Keywords - performance analysis, bottleneck detection, profiling, optimization, memory analysis, load testing, query optimization, runtime analysis, performance tuning
 tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: cyan
 type: specialist
 capabilities:

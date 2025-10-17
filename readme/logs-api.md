@@ -241,6 +241,186 @@ Client-to-Server:
 - **POST /**: Store reflection from completed tasks
 - **GET /curate`: Get curated reflection summaries
 
+## Agent Selection APIs
+
+### Agent Registry
+#### `/api/v1/agents`
+- **GET /**: List all available agents with capabilities
+- **GET /categories`: List agent categories
+- **GET /category/:category`: Get agents in specific category
+- **GET /search`: Search agents by name or capability
+
+**Response**:
+```json
+{
+  "agents": [
+    {
+      "type": "security-specialist",
+      "name": "Security Specialist",
+      "category": "security",
+      "description": "Security audits, vulnerability assessment, security implementation",
+      "capabilities": ["security audits", "vulnerability scanning", "secure coding practices"],
+      "useCases": ["security-audit", "feature-development"],
+      "keywords": ["security", "vulnerability", "audit", "authentication", "encryption"]
+    }
+  ],
+  "total": 85,
+  "categories": ["core-agents", "security", "architecture", "testing"]
+}
+```
+
+#### `/api/v1/agents/recommend`
+- **POST /**: Get agent recommendations for task
+
+**Request**:
+```json
+{
+  "task": "Build secure authentication system",
+  "context": {
+    "mode": "enterprise",
+    "domain": "security",
+    "complexity": "high"
+  },
+  "options": {
+    "maxAgents": 5,
+    "includeReasoning": true,
+    "useCaseOverride": null
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "primary": [
+    {
+      "type": "coordinator-hybrid",
+      "name": "Coordinator Hybrid",
+      "reasoning": "Complex task requires coordination",
+      "confidence": 0.95
+    },
+    {
+      "type": "security-specialist",
+      "name": "Security Specialist", 
+      "reasoning": "Security domain matched",
+      "confidence": 0.90
+    }
+  ],
+  "secondary": [
+    {
+      "type": "architect",
+      "name": "Architect",
+      "reasoning": "System design required",
+      "confidence": 0.85
+    }
+  ],
+  "reasoning": [
+    "Matched use case: feature-development",
+    "Matched domain: security", 
+    "Complex task requires coordination"
+  ],
+  "spawnCommand": "node spawn-workers.js \"Build secure authentication system\" --agents=coordinator-hybrid,security-specialist,architect"
+}
+```
+
+#### `/api/v1/agents/use-cases`
+- **GET /**: List all available use cases
+- **GET /:useCase`: Get agents for specific use case
+- **POST /**: Create custom use case mapping
+
+**Response**:
+```json
+{
+  "useCases": [
+    {
+      "name": "feature-development",
+      "description": "New feature implementation and development",
+      "primaryAgents": ["architect", "coder", "tester"],
+      "secondaryAgents": ["code-analyzer"],
+      "domain": "development"
+    },
+    {
+      "name": "security-audit",
+      "description": "Security assessment and vulnerability analysis",
+      "primaryAgents": ["security-specialist", "code-analyzer", "tester"],
+      "secondaryAgents": ["production-validator"],
+      "domain": "security"
+    }
+  ]
+}
+```
+
+### Agent Definition Management
+#### `/api/v1/agents/definitions`
+- **GET /**: Get agent definitions from AVAILABLE-AGENTS.md
+- **POST /rebuild`: Rebuild agent definitions from .claude/agents/ folder
+- **PUT /:agentType`: Update agent definition
+- **GET /validate`: Validate agent definitions
+
+**Response**:
+```json
+{
+  "lastUpdated": "2025-10-15T10:30:00Z",
+  "totalAgents": 85,
+  "categories": 12,
+  "sourceFiles": 85,
+  "validation": {
+    "valid": 82,
+    "warnings": 3,
+    "errors": 0
+  }
+}
+```
+
+### Coordinator Integration APIs
+#### `/api/v1/coordinators/selection`
+- **POST /**: Intelligent agent selection for coordinators
+
+**Request**:
+```json
+{
+  "task": "Implement microservices architecture",
+  "coordinatorType": "coordinator-hybrid",
+  "preferences": {
+    "includeSecurity": true,
+    "maxAgents": 4,
+    "excludeTypes": ["mobile-dev"]
+  }
+}
+```
+
+**Response**:
+```json
+{
+  "selection": {
+    "primary": ["system-architect", "backend-dev", "security-specialist"],
+    "secondary": ["tester", "api-docs"],
+    "reasoning": "Enterprise architecture requires security integration"
+  },
+  "executionPlan": {
+    "spawnCommand": "node spawn-workers.js \"Implement microservices\" --agents=system-architect,backend-dev,security-specialist",
+    "estimatedDuration": 45,
+    "estimatedCost": 0.85
+  }
+}
+```
+
+#### `/api/v1/coordinators/registry/status`
+- **GET /**: Get agent use case registry status
+
+**Response**:
+```json
+{
+  "status": "loaded",
+  "lastUpdated": "2025-10-15T10:30:00Z",
+  "agentCount": 85,
+  "useCaseCount": 15,
+  "domainCount": 12,
+  "fallbackMode": false,
+  "health": "healthy"
+}
+```
+
 ## MCP Server APIs
 
 ### Server Configuration

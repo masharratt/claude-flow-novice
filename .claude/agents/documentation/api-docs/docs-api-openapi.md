@@ -2,8 +2,7 @@
 name: api-docs
 description: MUST BE USED when creating API documentation, OpenAPI specs, or Swagger definitions. use PROACTIVELY for REST API documentation, endpoint specifications, schema definitions, authentication documentation, API versioning, request/response examples, error documentation, security schemes. ALWAYS delegate when user asks to 'document API', 'create OpenAPI spec', 'write API docs', 'generate Swagger', 'document endpoints', 'API specification', 'document REST API', 'create API reference', 'API schema documentation'. Keywords - API documentation, OpenAPI, Swagger, REST API, endpoints, API spec, schema, authentication docs, API reference, request/response, error codes, security schemes, API versioning, interactive docs, Swagger UI
 tools: Read, Write, Edit, MultiEdit, Grep, Glob
-model: sonnet
-provider: zai
+model: haiku
 color: indigo
 type: specialist
 acl_level: 3  # Swarm
