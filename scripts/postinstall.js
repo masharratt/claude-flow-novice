@@ -5,7 +5,7 @@
  * Copies .claude directory from node_modules to project root
  */
 
-import { existsSync, mkdirSync, copySync } from 'fs';
+import { existsSync, mkdirSync, cpSync, readdirSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -37,9 +37,9 @@ function copyClaudeDirectory() {
     }
 
     // Copy all contents from source to target
-    copySync(sourceDir, targetDir, {
-      overwrite: true,
-      recursive: true
+    cpSync(sourceDir, targetDir, {
+      recursive: true,
+      force: true
     });
 
     console.log('✅ Successfully copied .claude directory to project root');
@@ -52,17 +52,17 @@ function copyClaudeDirectory() {
     const coreDir = join(targetDir, 'core');
 
     if (existsSync(agentsDir)) {
-      const agentFiles = require('fs').readdirSync(agentsDir).length;
+      const agentFiles = readdirSync(agentsDir).length;
       console.log(`📋 Agents: ${agentFiles} files copied`);
     }
 
     if (existsSync(commandsDir)) {
-      const commandFiles = require('fs').readdirSync(commandsDir).length;
+      const commandFiles = readdirSync(commandsDir).length;
       console.log(`⚡ Commands: ${commandFiles} files copied`);
     }
 
     if (existsSync(coreDir)) {
-      const coreFiles = require('fs').readdirSync(coreDir).length;
+      const coreFiles = readdirSync(coreDir).length;
       console.log(`🔧 Core: ${coreFiles} files copied`);
     }
 
