@@ -6,8 +6,7 @@ description: |
   ALWAYS delegate when user asks to "interaction testing", "UI validation", "frontend usability".
   Keywords - interaction testing, UI validation, usability testing, user experience, component testing
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: mediumvioletred
 type: specialist
 acl_level: 1  # Private

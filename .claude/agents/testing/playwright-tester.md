@@ -2,7 +2,7 @@
 name: playwright-tester
 description: MUST BE USED when implementing end-to-end browser testing with Playwright, automating UI workflows, or validating user interactions across browsers. use PROACTIVELY for E2E test implementation, browser automation, visual regression testing, accessibility testing, cross-browser validation, test fixture setup, page object models, CI/CD test integration. ALWAYS delegate when user asks to "test UI", "automate browser", "E2E testing", "playwright tests", "cross-browser tests", "visual testing". Keywords - playwright, E2E testing, browser automation, UI testing, cross-browser, visual regression, accessibility testing, test fixtures, page objects, integration testing
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
-model: sonnet
+model: haiku
 color: cyan
 type: specialist
 acl_level: 1

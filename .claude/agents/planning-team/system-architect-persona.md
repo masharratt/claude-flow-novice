@@ -6,7 +6,7 @@ description: |
   ALWAYS delegate when user asks to "system architecture", "distributed systems", "scalability design".
   Keywords - system architecture, distributed systems, microservices, scalability, enterprise design
 tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
-model: sonnet
+model: haiku
 color: steelblue
 type: planning-consensus
 weight: 0.333

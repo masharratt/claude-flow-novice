@@ -2,7 +2,7 @@
 name: tdd-london-swarm
 description: MUST BE USED for coordinating TDD London School (mockist) test swarms with test-first development. Use PROACTIVELY for outside-in TDD coordination, mock-based testing orchestration, integration test coordination, test doubles management. ALWAYS delegate when user asks to "coordinate TDD swarm", "orchestrate mockist testing", "manage outside-in TDD", "coordinate test doubles". Keywords - TDD coordinator, London School TDD, mockist testing, outside-in TDD, test swarm coordination, test doubles, integration testing coordination
 tools: TodoWrite, Read, Write, Edit, Bash, Glob, Grep, WebSearch, SlashCommand, Task
-model: sonnet
+model: haiku
 color: orange
 type: coordinator
 acl_level: 3

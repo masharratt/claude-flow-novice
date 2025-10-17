@@ -2,8 +2,7 @@
 name: coder
 description: MUST BE USED when implementing features, writing code, fixing bugs. Use PROACTIVELY for API development, component creation, refactoring. ALWAYS delegate when user asks "implement", "create code", "write". Keywords - implement, code, build, develop, create, refactor, optimize, fix
 tools: Read, Write, Edit, MultiEdit, Bash, Glob, Grep, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: green
 type: specialist
 capabilities:

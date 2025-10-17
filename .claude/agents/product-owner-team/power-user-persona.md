@@ -2,8 +2,7 @@
 name: power-user-persona
 description: MUST BE USED when evaluating user experience for power users, advanced workflows, and efficiency optimization. Use PROACTIVELY for workflow analysis, keyboard navigation testing, performance feedback, feature completeness validation, and power user advocacy. ALWAYS delegate when user asks to "test power user features", "keyboard shortcuts", "workflow efficiency", "advanced features", "user experience review", "performance testing". Trigger keywords - power user, advanced user, workflow, keyboard shortcuts, efficiency, performance, user experience, productivity, features, customization, shortcuts
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: orange
 type: specialist
 capabilities:

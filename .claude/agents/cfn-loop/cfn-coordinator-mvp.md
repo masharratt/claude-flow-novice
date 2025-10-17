@@ -54,9 +54,9 @@ npx claude-flow-novice hooks post-edit [FILE_PATH] --memory-key "cfn-coordinator
 ## MVP Mode Configuration
 
 ### Mode-Specific Parameters
-- **Gate Threshold**: 0.70 (lowered for rapid iteration)
-- **Consensus Threshold**: 0.80 (simplified validation)
-- **Validators**: 2 (minimal validation team)
+- **Gate Threshold**: 0.65 (balanced speed - authoritative from mvp-instructions.md)
+- **Consensus Threshold**: 0.85 (quick validation - authoritative from mvp-instructions.md)
+- **Validators**: 2 (streamlined review)
 - **Max Loop 3 Iterations**: 5 (fast retry cycle)
 - **Timeout**: 15 minutes per phase (accelerated timeline)
 - **Cost Target**: <$1.00 per phase (highly cost-conscious)
@@ -100,15 +100,17 @@ Each phase follows the complete Loop 1 pattern:
 ### Spawning Pattern for MVP
 
 ```bash
-# Basic MVP worker spawning
+# Basic MVP worker spawning (REQUIRED: --agents flag with explicit types)
 node src/cli/hybrid-routing/spawn-workers.js \
   "Implement [feature] for MVP: rapid development focus on core functionality" \
-  --max-agents 3 --provider zai --redis-channel swarm:mvp-phase
+  --agents=coder,coder,tester \
+  --provider zai --redis-channel swarm:mvp-phase
 
 # Cost-optimized spawning (MVP priority)
 node src/cli/hybrid-routing/spawn-workers.js \
   "Build MVP version of [component] with essential features only" \
-  --max-agents 2 --provider zai --redis-channel swarm:mvp-phase \
+  --agents=coder,coder \
+  --provider zai --redis-channel swarm:mvp-phase \
   --timeout 900000 --budget 0.50
 ```
 
@@ -245,14 +247,14 @@ const mvpModeInstructions = `
 ### Development Priorities
 1. **Speed Over Perfection**: Focus on functional delivery
 2. **Core Features Only**: Implement essential functionality
-3. **Rapid Testing**: Basic test coverage (70%+ acceptable)
+3. **Rapid Testing**: Basic test coverage (60%+ acceptable)
 4. **Quick Validation**: 2-validator consensus process
 
 ### Quality Standards (MVP)
-- **Code Coverage**: 70%+ (line), 65%+ (branch)
-- **Test Confidence**: 0.70+ gate threshold
-- **Validator Consensus**: 0.80+ agreement
-- **Documentation**: Basic README + inline comments
+- **Code Coverage**: 60%+ (core paths)
+- **Test Confidence**: 0.65+ gate threshold
+- **Validator Consensus**: 0.85+ agreement
+- **Documentation**: Basic README and setup guide
 
 ### Cost Constraints
 - **Phase Budget**: <$1.00 total
@@ -796,6 +798,82 @@ Track these metrics to improve ACE context quality for rapid development:
 - ✅ MVP pattern reuse: ≥60% (proven cost-effective patterns)
 - ✅ Budget adherence: ≥90% (<$1.00/phase)
 - ✅ Velocity improvement: ≥30% vs. baseline
+
+---
+
+## MVP Mode Instructions (Auto-Injected)
+
+### Mode Configuration
+- **Mode**: MVP (Fast Development)
+- **Gate Threshold**: 0.65 (balanced speed)
+- **Consensus Threshold**: 0.85 (quick validation)
+- **Validators**: 2 (streamlined review)
+- **Timeout**: 15 minutes per phase
+- **Cost Target**: <$1.00 per phase
+- **Worker Count**: 3 (focused team)
+
+### Development Priorities
+1. **Speed First**: Rapid development with core functionality
+2. **MVP Features**: Essential features only
+3. **Basic Testing**: Core functionality validation
+4. **Quick Documentation**: Basic setup instructions
+
+### Quality Standards (MVP)
+- **Code Coverage**: 60%+ (core paths)
+- **Test Confidence**: 0.65+ gate threshold
+- **Validator Consensus**: 0.85+ agreement
+- **Documentation**: Basic README and setup guide
+
+### Cost Constraints
+- **Phase Budget**: <$1.00 total
+- **Worker Count**: 3 maximum
+- **Timeline**: 15 minutes per phase
+- **Provider**: z.ai (cost-optimized)
+
+### Validation Requirements
+- **Functional Testing**: Core functionality tests only
+- **Basic Performance**: Reasonable response times
+- **Security**: Basic input validation
+- **Code Review**: 2-validator streamlined review
+
+### Decision Framework
+- **Proceed**: Core features working, basic tests passing
+- **Defer**: Minor issues, non-blocking for MVP
+- **Escalate**: Critical functionality broken
+
+### Worker Task Assignment (MVP)
+```javascript
+const mvpWorkerTasks = [
+  {
+    id: 'core-dev',
+    task: 'Core functionality implementation',
+    files: ['core.js', 'core.test.js'],
+    priority: 'high',
+    estimatedTokens: 80000
+  },
+  {
+    id: 'feature-dev',
+    task: 'Essential features only',
+    files: ['feature.js', 'feature.test.js'],
+    priority: 'high',
+    estimatedTokens: 70000
+  },
+  {
+    id: 'test-dev',
+    task: 'Basic test coverage',
+    files: ['test-utils.js', 'basic.test.js'],
+    priority: 'medium',
+    estimatedTokens: 50000
+  }
+];
+```
+
+### Return-to-Chat Triggers
+- **Critical Issues**: Core functionality completely broken
+- **Sprint Complete**: All MVP phases finished
+- **Blocking Decisions**: Major architectural choices needed
+
+Remember: MVP mode prioritizes speed and essential functionality over comprehensive features.
 
 ---
 

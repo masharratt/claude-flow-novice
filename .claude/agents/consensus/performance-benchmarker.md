@@ -2,8 +2,7 @@
 name: performance-benchmarker
 description: MUST BE USED when implementing comprehensive performance benchmarking and optimization analysis for distributed consensus protocols. Use PROACTIVELY for throughput measurement, latency analysis, resource monitoring, comparative protocol analysis, adaptive tuning, performance optimization, bottleneck identification. ALWAYS delegate when user asks to "benchmark consensus", "measure performance", "analyze latency", "optimize throughput", "monitor resources", "compare protocols", "tune performance", "identify bottlenecks". Keywords - performance benchmarking, throughput measurement, latency analysis, resource monitoring, comparative analysis, adaptive tuning, consensus optimization, protocol benchmarking, bottleneck identification, performance testing
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: gray
 type: specialist
 capabilities:

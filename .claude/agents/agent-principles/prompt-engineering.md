@@ -1,6 +1,7 @@
 ---
 name: prompt-engineering
 description: Documentation file for prompt-engineering
+model: haiku
 type: documentation
 acl_level: 3  # Swarm-level documentation
 validation_hooks:

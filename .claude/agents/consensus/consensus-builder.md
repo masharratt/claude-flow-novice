@@ -2,7 +2,7 @@
 name: consensus-builder
 description: MUST BE USED when building and managing consensus mechanisms for distributed agent coordination and decision-making across swarms. use PROACTIVELY for consensus algorithm implementation, distributed decision-making, agreement protocols, Byzantine fault tolerance, Raft consensus, PBFT protocols, voting mechanisms, quorum management, multi-agent coordination, swarm consensus. ALWAYS delegate when user asks to "implement consensus", "build agreement protocol", "coordinate agents", "distributed voting", "consensus mechanism". Keywords - consensus, distributed decision-making, Byzantine tolerance, Raft, PBFT, voting, quorum, agent coordination, agreement protocols, swarm consensus
 tools: Read, Write, Edit, Bash, Grep, Glob, TodoWrite
-model: sonnet
+model: haiku
 color: purple
 type: implementer
 acl_level: 1  # Private

@@ -49,6 +49,11 @@
 - Fullstack development, SPARC methodology, fleet management, event bus
 - Enterprise-scale operations, testing, recovery operations
 
+**[COMPONENT_NPM_STATUS.md](./COMPONENT_NPM_STATUS.md)**
+- Complete inventory of all components available in the npm package
+- NPM package status for 200+ components across all categories
+- Implementation verification and coverage analysis
+
 ### API and Integration Documentation
 
 **[logs-api.md](./logs-api.md)**
@@ -86,6 +91,11 @@
 - Master index of all logging and system documentation
 - Quick start guides, architecture overview, integration patterns
 - Document catalog with purpose/audience matrix
+
+**[COMPONENT_INVENTORY_TABLE.md](./COMPONENT_INVENTORY_TABLE.md)**
+- Comprehensive table of all features, slash commands, hooks, and agents
+- Component categorization with descriptions and NPM package planning
+- Complete system inventory for project management and planning
 
 **[CHANGELOG.md](./CHANGELOG.md)**
 - Version history and release notes
@@ -318,6 +328,7 @@ curl -X POST /endpoint -d '{"field":"value"}'
 1. [logs-slash-commands.md](./logs-slash-commands.md) - CLI operations
 2. [logs-cli-redis.md](./logs-cli-redis.md) - Redis operations
 3. [additional-commands.md](./additional-commands.md) - Advanced commands
+4. [COMPONENT_NPM_STATUS.md](./COMPONENT_NPM_STATUS.md) - Package implementation verification
 
 ### API Integration
 1. [logs-api.md](./logs-api.md) - REST/MCP/CLI APIs
@@ -327,7 +338,9 @@ curl -X POST /endpoint -d '{"field":"value"}'
 ### Feature Discovery
 1. [logs-features.md](./logs-features.md) - Complete feature catalog
 2. [logs-documentation-index.md](./logs-documentation-index.md) - Documentation map
-3. [CHANGELOG.md](./CHANGELOG.md) - Recent additions
+3. [COMPONENT_INVENTORY_TABLE.md](./COMPONENT_INVENTORY_TABLE.md) - Complete system inventory
+4. [COMPONENT_NPM_STATUS.md](./COMPONENT_NPM_STATUS.md) - NPM package implementation status
+5. [CHANGELOG.md](./CHANGELOG.md) - Recent additions
 
 ## Maintenance
 
@@ -342,6 +355,8 @@ curl -X POST /endpoint -d '{"field":"value"}'
 - **Planning Docs**: [../planning/](../planning/) - Epic configurations and CFN Loop strategies
 - **Reports**: [../reports/](../reports/) - Testing and security validation reports
 - **Configuration**: [../config/](../config/) - CFN Loop criteria and hook configurations
+- **Component Inventory**: [./COMPONENT_INVENTORY_TABLE.md](./COMPONENT_INVENTORY_TABLE.md) - Complete system component catalog
+- **Package Status**: [./COMPONENT_NPM_STATUS.md](./COMPONENT_NPM_STATUS.md) - NPM implementation verification
 
 ---
 

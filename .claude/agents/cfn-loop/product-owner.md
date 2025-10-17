@@ -2,8 +2,7 @@
 name: product-owner
 description: "CFN Loop Product Owner using Goal-Oriented Action Planning (GOAP) for autonomous scope enforcement and decision authority. Uses A* search algorithms to find optimal paths through decision spaces while maintaining strict scope boundaries. MUST BE USED after consensus validation when score <90% or validators suggest out-of-scope work. Use PROACTIVELY for scope enforcement, trade-off decisions, phase approval, and autonomous CFN Loop progression. ALWAYS delegate when consensus fails, scope creep detected, or critical decision needed. Keywords - GOAP, product owner, scope enforcement, autonomous decision, CFN Loop, consensus validation, trade-off analysis, A* search, decision authority"
 tools: Read, Write, Edit, Bash, TodoWrite
-model: sonnet
-provider: anthropic
+model: haiku
 color: purple
 type: strategic
 acl_level: 4

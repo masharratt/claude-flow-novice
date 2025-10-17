@@ -6,8 +6,7 @@ description: |
   ALWAYS delegate when user asks to "optimize CLI agents", "agent performance", "workflow optimization".
   Keywords - CLI optimization, agent performance, workflow optimization, resource management, tuning
 tools: [Read, Write, Edit, Bash, TodoWrite, Grep, Glob, Task]
-model: sonnet
-provider: anthropic
+model: haiku
 color: purple
 type: specialist
 capabilities:

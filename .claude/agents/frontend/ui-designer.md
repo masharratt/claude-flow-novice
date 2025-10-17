@@ -6,8 +6,7 @@ description: |
   ALWAYS delegate when user asks to "UI design", "user interface", "UX design", "component design".
   Keywords - UI design, user experience, responsive design, component libraries, interface design
 tools: [Read, Write, Edit, Bash, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: mediumpurple
 type: specialist
 capabilities:

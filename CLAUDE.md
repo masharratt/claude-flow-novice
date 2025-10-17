@@ -32,8 +32,8 @@
 **Consensus thresholds** (mode-dependent)
 
 * Standard mode: Gate ≥0.75 • Consensus ≥0.90 • 4 validators • single PO
-* MVP mode: Gate ≥0.70 • Consensus ≥0.80 • 2 validators • single PO
-* Enterprise mode: Gate ≥0.75 • Consensus ≥0.95 • 4 validators • 4-person board • Loop 0.5 planning
+* MVP mode: Gate ≥0.65 • Consensus ≥0.85 • 2 validators • single PO
+* Enterprise mode: Gate ≥0.85 • Consensus ≥0.95 • 5 validators • 4-person board • Loop 0.5 planning
 
 ---
 
@@ -166,9 +166,9 @@ See coordinator profiles for complete spawn patterns, Redis pub/sub coordination
 
 | Mode | Best For | Gate | Consensus | Iterations | Validators | Product Owner | Loop 0.5 |
 |------|----------|------|-----------|------------|------------|---------------|----------|
-| **MVP** | Prototypes, MVPs | ≥0.70 | ≥0.80 | 5 | 2 | Single | No |
+| **MVP** | Prototypes, MVPs | ≥0.65 | ≥0.85 | 5 | 2 | Single | No |
 | **Standard** | General features | ≥0.75 | ≥0.90 | 10 | 4 | Single | No |
-| **Enterprise** | Production systems | ≥0.75 | ≥0.95 | 15 | 4 | 4-person board | Yes (≥0.85) |
+| **Enterprise** | Production systems | ≥0.85 | ≥0.95 | 15 | 5 | 4-person board | Yes (≥0.85) |
 
 **Auto-Detection**: Epic parser infers mode from filename patterns (`-mvp`, `-enterprise`)
 
@@ -562,6 +562,109 @@ redis-cli publish "swarm:coordination" '{"agent":"id","status":"message"}'
 ```
 
 ## 7) SQLite Memory System
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- TASK_COORDINATORS_START -->
+### Task-Tool Coordinators (Cost-Savings Mode DISABLED)
+
+**When cost-savings mode is disabled, use these Task spawning patterns:**
+
+#### coordinator-hybrid (PRIMARY)
+```javascript
+Task("coordinator-hybrid",
+  `Coordinate task: [description]
+
+   Spawn workers via Task tool:
+   - Task("analyst", "Analyze requirements", "analyst")
+   - Task("coder", "Implement solution", "coder")
+   - Task("tester", "Validate tests", "tester")
+
+   Coordinate via Redis pub/sub on swarm:task channel`,
+  "coordinator"
+)
+```
+
+#### cfn-coordinator-mvp
+```javascript
+Task("cfn-coordinator-mvp",
+  `Execute MVP phase: [description]
+
+   MVP Parameters:
+   - Gate threshold: 0.70
+   - Consensus: 0.80
+   - Validators: 2
+   - Max iterations: 5
+
+   Spawn 2-3 workers via Task tool`,
+  "coordinator"
+)
+```
+
+#### cfn-coordinator-standard
+```javascript
+Task("cfn-coordinator-standard",
+  `Execute standard phase: [description]
+
+   Standard Parameters:
+   - Gate threshold: 0.75
+   - Consensus: 0.90
+   - Validators: 4
+   - Max iterations: 10
+
+   Spawn 3-5 workers via Task tool`,
+  "coordinator"
+)
+```
+
+#### cfn-coordinator-enterprise
+```javascript
+Task("cfn-coordinator-enterprise",
+  `Execute enterprise phase: [description]
+
+   Enterprise Parameters:
+   - Gate threshold: 0.75
+   - Consensus: 0.95
+   - Validators: 4
+   - Max iterations: 15
+   - Loop 0.5: Planning consensus
+
+   Spawn 5-8 workers via Task tool`,
+  "coordinator"
+)
+```
+
+#### adaptive-coordinator
+```javascript
+Task("adaptive-coordinator",
+  `Coordinate with adaptive topology:
+
+   Topology: mesh (2-7) | hierarchical (8+)
+   Dynamic switching based on agent count
+
+   Spawn workers via Task tool`,
+  "coordinator"
+)
+```
+
+**Cost Structure (Task-Tool Mode):**
+- All agents use main provider (Claude Max or z.ai based on /switch-api)
+- Higher cost but maximum coordinator intelligence
+- Direct Task tool orchestration
+
+<!-- TASK_COORDINATORS_END -->
 
 ### 5-Level ACL
 

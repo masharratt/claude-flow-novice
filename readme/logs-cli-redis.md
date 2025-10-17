@@ -315,6 +315,50 @@ echo "✅ Recovery checkpoint created"
 
 ### Development Workflow Commands
 
+#### Cost-Savings Mode Toggle
+
+**Purpose**: Switch coordination patterns between CLI-based and Task-tool modes
+
+**Commands**:
+```bash
+# Enable CLI-based cost-savings mode
+/cost-savings-on
+node scripts/toggle-cost-savings.cjs on
+
+# Disable CLI mode, use Task-tool coordination
+/cost-savings-off
+node scripts/toggle-cost-savings.cjs off
+
+# Display current mode configuration
+/cost-savings-status
+node scripts/toggle-cost-savings.cjs status
+```
+
+**What happens on toggle**:
+- Updates `.claude-flow/cost-savings-mode.json`
+- Injects/removes CLAUDE.md coordinator sections
+- Switches between CLI and Task-tool spawning patterns
+- Preserves Redis/SQLite coordination
+
+**CLI Mode (cost-savings ON)**:
+```bash
+# Coordinator spawns workers via CLI
+node src/cli/hybrid-routing/spawn-workers.js \
+  "Implement authentication" \
+  --agents=coder,coder,security-specialist \
+  --provider zai \
+  --redis-channel swarm:auth
+```
+
+**Task-tool Mode (cost-savings OFF)**:
+```javascript
+// Coordinator spawns workers via Task tool
+Task("coder", "Implement JWT auth", "coder")
+Task("security-specialist", "Security audit", "security-specialist")
+```
+
+**Integration**: CLAUDE.md HTML markers, coordinator file management, mode persistence
+
 #### CFN Loop Execution
 
 ```bash
@@ -1350,6 +1394,285 @@ claude-flow-novice diagnostic:performance --benchmark=true
 
 # Recovery diagnostics
 claude-flow-nice diagnostic:recovery --test-scenarios=all
+```
+
+### Agent Optimization Coordination
+
+**Purpose**: Redis coordination patterns for agent description optimization and standardization
+
+#### Agent Optimization Events
+
+```bash
+# Publish optimization requests
+redis-cli PUBLISH "optimization:agents:request" \
+  '{"action":"optimize","category":"development","parallel":4,"provider":"zai"}'
+
+# Subscribe to optimization events
+redis-cli subscribe "optimization:agents:*"
+
+# Optimization completion event
+redis-cli PUBLISH "optimization:agents:complete" \
+  '{"agentsProcessed":12,"avgImprovement":0.21,"duration":45000,"successRate":0.95}'
+```
+
+#### Agent Description Quality Tracking
+
+```bash
+# Track agent description quality scores
+redis-cli hset "optimization:quality:agent-001" \
+  "originalLength" 45 \
+  "optimizedLength" 32 \
+  "qualityScore" 0.92 \
+  "improvement" 0.15 \
+  "timestamp" $(date +%s)
+
+# Quality metrics aggregation
+redis-cli hincrby "optimization:stats" "agentsProcessed" 1
+redis-cli hincrby "optimization:stats" "totalImprovement" 15
+redis-cli hincrby "optimization:stats" "failures" 0
+
+# Get quality distribution
+redis-cli hgetall "optimization:stats" | grep -E "agentsProcessed|totalImprovement|successRate"
+```
+
+#### Parallel Optimization Coordination
+
+```bash
+# Track parallel optimization workers
+redis-cli hset "optimization:workers" \
+  "worker-001" '{"status":"active","currentAgent":"security-specialist","progress":0.75}' \
+  "worker-002" '{"status":"active","currentAgent":"coder","progress":0.50}' \
+  "worker-003" '{"status":"idle"}' \
+  "worker-004" '{"status":"idle"}'
+
+# Monitor worker status
+redis-cli hgetall "optimization:workers"
+
+# Complete worker tracking
+redis-cli hset "optimization:workers:completed" "worker-001" "true"
+redis-cli hset "optimization:workers:completed" "worker-002" "true"
+
+# Check completion status
+redis-cli hgetall "optimization:workers:completed"
+```
+
+#### YAML Frontmatter Standardization
+
+```bash
+# Store standardized frontmatter templates
+redis-cli hset "optimization:templates" \
+  "description" "Implement feature X with technology Y and solve problem Z" \
+  "category" "development" \
+  "priority" "medium" \
+  "keywords" "frontend,react,javascript"
+
+# Template validation events
+redis-cli PUBLISH "optimization:template:validate" \
+  '{"agentId":"agent-001","template":"description","valid":true,"score":0.93}'
+
+# Frontmatter cleanup tracking
+redis-cli lpush "optimization:cleanup:log" \
+  '{"file":"security-specialist.md","removedFields":["deprecated"],"addedFields":["keywords"],"timestamp":1697403000}'
+```
+
+#### Optimization Performance Monitoring
+
+```bash
+# Track optimization performance metrics
+redis-cli lpush "optimization:latency" 125  # milliseconds
+redis-cli ltrim "optimization:latency" 0 999  # keep last 1000
+
+# Throughput metrics
+redis-cli hincrby "optimization:throughput" "requests" 1
+redis-cli hincrby "optimization:throughput" "completed" 1
+
+# Success rate tracking
+redis-cli hincrby "optimization:success" "total" 1
+redis-cli hincrby "optimization:success" "passed" 1
+
+# Performance summary
+redis-cli eval "
+  local latency = redis.call('LRANGE', KEYS[1], 0, -1)
+  local avg = 0
+  for i=1,#latency do
+    avg = avg + tonumber(latency[i])
+  end
+  return avg / #latency
+" 1 "optimization:latency"
+```
+
+### Agent Use Case Coordination
+
+### Redis Patterns for Use Case-Based Selection
+
+**Purpose**: Redis pub/sub coordination for intelligent agent selection with use case registry integration
+
+#### Use Case Registry Cache
+
+```bash
+# Cache use case registry for fast access
+redis-cli setex "usecase:registry" 3600 "$(cat agent-use-cases.json)"
+
+# Get cached registry
+redis-cli get "usecase:registry" | jq .
+
+# Invalidate cache when agents updated
+redis-cli del "usecase:registry"
+```
+
+#### Agent Recommendation Events
+
+```bash
+# Publish agent recommendation request
+redis-cli PUBLISH "coordination:recommend" \
+  '{"taskId":"task-123","task":"Build auth system","requester":"coordinator-hybrid"}'
+
+# Subscribe to recommendations
+redis-cli subscribe "coordination:recommend:response"
+
+# Response event
+redis-cli PUBLISH "coordination:recommend:response" \
+  '{"taskId":"task-123","primary":["architect","coder"],"reasoning":"Feature development use case"}'
+```
+
+#### Coordinator Selection State
+
+```bash
+# Track coordinator selection decisions
+redis-cli hset "coordinator:selection:coordinator-001" \
+  "task" "Build authentication" \
+  "useCase" "feature-development" \
+  "selected" "architect,coder,tester" \
+  "timestamp" $(date +%s)
+
+# Get selection history
+redis-cli hgetall "coordinator:selection:coordinator-001"
+
+# Cleanup old selections (24h TTL)
+redis-cli --scan --pattern "coordinator:selection:*" | \
+  xargs -I {} redis-cli expire {} 86400
+```
+
+### Hybrid Routing Redis Enhancement
+
+#### Agent Type Discovery
+
+```bash
+# Publish agent discovery events
+redis-cli PUBLISH "hybrid:agents:discovered" \
+  '{"count":85,"categories":12,"source":".claude/agents/"}'
+
+# Monitor agent cache status
+redis-cli PUBLISH "hybrid:agents:cache:status" \
+  '{"cached":true,"lastUpdate":"2025-10-15T10:30:00Z","hits":1250}'
+
+# Agent category mapping
+redis-cli hset "hybrid:agents:categories" \
+  "security" "security-specialist,security-architect,security-manager" \
+  "architecture" "architect,system-architect,state-architect" \
+  "development" "coder,backend-dev,react-frontend-engineer"
+```
+
+#### Selection Reasoning Storage
+
+```bash
+# Store selection reasoning for transparency
+redis-cli setex "selection:reasoning:task-123" 3600 \
+  '{"useCase":"feature-development","domain":"security","complexity":"high","reasoning":["Matched domain","Coordination required"]}'
+
+# Query reasoning patterns
+redis-cli --scan --pattern "selection:reasoning:*" | \
+  xargs -I {} redis-cli get {} | jq '.reasoning[]' | sort | uniq -c
+```
+
+### Coordinator Integration Patterns
+
+#### Use Case Query Optimization
+
+```bash
+# Cache frequent use case queries
+redis-cli setex "usecase:query:feature-development" 1800 \
+  '{"primary":["architect","coder","tester"],"secondary":["code-analyzer"]}'
+
+# Precompute domain mappings
+redis-cli hmset "usecase:domains" \
+  "security" "security-audit,feature-development" \
+  "performance" "performance-optimization,feature-development" \
+  "architecture" "system-architecture,feature-development"
+```
+
+#### Intelligent Selection Events
+
+```bash
+# Publish selection events for monitoring
+redis-cli PUBLISH "selection:intelligent" \
+  '{"task":"OAuth2 implementation","selected":["security-specialist","coder"],"confidence":0.92,"reasoning":"Security domain detected"}'
+
+# Track selection effectiveness
+redis-cli hincrby "selection:stats:security-specialist" "selected" 1
+redis-cli hincrby "selection:stats:security-specialist" "success" 1
+redis-cli expire "selection:stats:security-specialist" 604800
+```
+
+### Performance Monitoring
+
+#### Selection Performance Metrics
+
+```bash
+# Track selection latency
+redis-cli lpush "selection:latency" 45  # milliseconds
+redis-cli ltrim "selection:latency" 0 999  # keep last 1000
+
+# Selection cache hit rates
+redis-cli hincrby "selection:cache:stats" "hits" 1
+redis-cli hincrby "selection:cache:stats" "misses" 0
+
+# Use case effectiveness tracking
+redis-cli hmset "usecase:effectiveness:feature-development" \
+  "usage" 45 \
+  "success_rate" 0.89 \
+  "avg_confidence" 0.82
+```
+
+#### Registry Health Monitoring
+
+```bash
+# Monitor registry status
+redis-cli setex "registry:health" 60 \
+  '{"status":"healthy","agentCount":85,"useCases":15,"lastUpdate":"2025-10-15T10:30:00Z"}'
+
+# Track fallback activations
+redis-cli hincrby "registry:fallback" "activations" 1
+redis-cli hset "registry:fallback:$(date +%Y%m%d)" "reason" "Parse error" "count" 1
+```
+
+### Error Handling and Recovery
+
+#### Fallback Coordination
+
+```bash
+# Publish fallback events
+redis-cli PUBLISH "coordination:fallback" \
+  '{"reason":"Use case registry unavailable","fallback":"keyword matching","task":"Build API"}'
+
+# Store fallback state
+redis-cli setex "fallback:state:task-456" 300 \
+  '{"active":true,"reason":"Registry parse error","recoveryAttempt":3}'
+```
+
+#### Registry Recovery Operations
+
+```bash
+# Trigger registry rebuild
+redis-cli PUBLISH "registry:rebuild" \
+  '{"trigger":"Auto-detection","reason":"Parse errors detected","timestamp":1697403000}'
+
+# Monitor rebuild progress
+redis-cli subscribe "registry:rebuild:progress"
+
+# Rebuild complete event
+redis-cli PUBLISH "registry:rebuild:complete" \
+  '{"agentCount":85,"categories":12,"duration":1250,"success":true}'
 ```
 
 ## Related Documentation

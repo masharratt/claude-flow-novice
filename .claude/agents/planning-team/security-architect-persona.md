@@ -6,7 +6,7 @@ description: |
   ALWAYS delegate when user asks to "security architecture", "threat modeling", "security design".
   Keywords - security architecture, threat modeling, security frameworks, defense-in-depth, enterprise security
 tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
-model: sonnet
+model: haiku
 color: crimson
 type: planning-consensus
 weight: 0.333

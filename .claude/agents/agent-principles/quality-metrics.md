@@ -1,6 +1,7 @@
 ---
 name: quality-metrics
 description: Documentation file for quality-metrics
+model: haiku
 type: documentation
 acl_level: 3  # Swarm-level documentation
 validation_hooks:

@@ -2,8 +2,7 @@
 name: backend-dev
 description: MUST BE USED when developing REST APIs, GraphQL endpoints, or backend services. use PROACTIVELY for API routes, controllers, middleware, authentication, database queries, API documentation, request validation, error handling, rate limiting. ALWAYS delegate when user asks to 'create API', 'build endpoint', 'implement REST', 'GraphQL resolver', 'backend service', 'authentication endpoint', 'CRUD API', 'API route', 'server endpoint', 'database integration'. Keywords - API, REST, GraphQL, endpoint, route, controller, middleware, backend, server, Express, authentication, validation, HTTP
 tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite
-model: sonnet
-provider: zai
+model: haiku
 color: blue
 type: specialist
 capabilities:

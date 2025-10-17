@@ -1,6 +1,7 @@
 ---
 name: agent-type-guidelines
 description: Documentation file for agent-type-guidelines
+model: haiku
 type: documentation
 acl_level: 3  # Swarm-level documentation
 validation_hooks:

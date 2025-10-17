@@ -417,36 +417,131 @@ If max_vote - min_vote > 0.15:
 **Configuration**: Agent types, capability definitions, validation rules
 **Usage**: Agent selection, spawning, coordination
 
-### Hybrid Routing (Specialized Agent Selection)
+### Agent Optimization System
 
-**Purpose**: Cost-optimized agent spawning with intelligent specialization matching
-
-**Implementation**:
-- **50+ dynamically discovered agents** from `.claude/agents/` folder across 16 categories
-- **Automatic selection**: Keyword-based agent matching
-- **Coordinator override**: Manual agent type specification via `--agents` flag
-- **Full override**: Custom agents + subtasks via `--agents` + `--subtasks`
-- **Graceful fallback**: Automatic selection if override fails
+**Purpose**: Automated agent description optimization and formatting standardization
 
 **Key Components**:
-- **Agent definition loading**: Parse YAML frontmatter, extract keywords from descriptions
-- **Keyword matching**: Score agents based on task description overlap
-- **System prompt integration**: Append tool integration (bash, file ops) to specialized prompts
-- **Provider integration**: z.ai provider support for worker agents
-- **Dynamic discovery**: Recursive scanning with category preservation, in-memory caching, lazy loading
+- **Description Optimization**: Standardize agent descriptions to 24-50 word limit
+- **YAML Frontmatter Standardization**: Normalize YAML metadata structure
+- **File Cleanup**: Consistent file naming conventions across agent library
+- **Quality Validation**: Ensure all agents meet minimum capability standards
 
-**Categories** (16 total): analysis, architecture, cfn-loop, consensus, core-agents, development, devops, documentation, goal, planning-team, security, sparc, specialized, swarm, testing
+**Implementation**:
+- **Agent Scanner**: Recursively scan `.claude/agents/` folder for optimization candidates
+- **Description Parser**: Extract and analyze current description lengths
+- **Format Enforcer**: Apply consistent formatting patterns
+- **Quality Gate**: Reject descriptions below 24 words or above 50 words
+
+**Usage**:
+```bash
+# Optimize all agents in library
+node src/cli/hybrid-routing/optimize-agents.js --parallel 4
+
+# Optimize specific agent category
+node src/cli/hybrid-routing/optimize-agents.js --category development
+
+# Validate formatting standards
+node src/cli/hybrid-routing/optimize-agents.js --validate-only
+```
+
+**Configuration**: Word limits (24-50), parallel optimization workers, category filters
+**Integration**: Integrated into agent spawning workflow, hybrid routing CLI
+
+### Agent Use Case Registry
+
+**Purpose**: Intelligent agent selection based on use cases rather than keyword matching
+
+**Implementation**: Centralized registry mapping 85+ agents to use cases and domains with transparent reasoning
+
+**Key Components**:
+- **Use Case Mapping**: Pre-defined scenarios (feature-development, security-audit, performance-optimization)
+- **Domain Classification**: Agent categorization (security, architecture, development, testing)
+- **Intelligent Selection**: Context-aware agent recommendation with reasoning
+- **Coordinator Access**: Programmatic API for coordinators to query recommendations
+- **CLI Testing**: Interactive testing tool for validating agent selections
+
+**Use Cases Supported**:
+- **feature-development**: architect, coder, tester, code-analyzer
+- **security-audit**: security-specialist, code-analyzer, tester, production-validator  
+- **performance-optimization**: perf-analyzer, code-booster, tester
+- **system-architecture**: system-architect, architect, devops-engineer
+- **api-development**: api-designer-persona, backend-dev, api-docs, security-specialist
+- **mobile-development**: mobile-dev, react-frontend-engineer, tester
+- **infrastructure-setup**: devops-engineer, system-architect, security-specialist
+- **cfn-loop-mvp/standard/enterprise**: Mode-specific CFN coordinators
+
+**Coordinator Integration**:
+```javascript
+// Load registry
+const registry = await AgentUseCaseRegistry.load();
+
+// Get recommendations
+const recommendations = registry.recommendAgents("Build authentication system");
+
+// Output structure
+{
+  primary: ['coordinator-hybrid', 'architect', 'coder'],
+  secondary: ['security-specialist', 'tester'],
+  reasoning: [
+    'Matched use case: feature-development',
+    'Matched domain: security',
+    'Complex task requires coordination'
+  ]
+}
+```
+
+**CLI Testing**:
+```bash
+# Test agent recommendations
+node src/cli/hybrid-routing/recommend-agents.js "Build authentication system"
+
+# Shows:
+# - Primary agents with reasoning
+# - Secondary agents (optional)
+# - Spawn command for immediate use
+```
+
+**Configuration**: AVAILABLE-AGENTS.md documentation, agent definition parsing, fallback mappings
+
+**Benefits**:
+- ✅ **Intelligent Selection**: Based on use cases, not brittle keywords
+- ✅ **Transparent Reasoning**: See why agents were selected  
+- ✅ **Coordinator Control**: Can customize selections as needed
+- ✅ **Fallback Support**: Graceful degradation to basic mappings
+- ✅ **Extensible**: Easy to add new use cases and domains
+
+### Hybrid Routing (Enhanced with Use Case Intelligence)
+
+**Purpose**: Cost-optimized agent spawning with intelligent use case-based selection
+
+**Implementation**:
+- **85+ dynamically discovered agents** from `.claude/agents/` folder across 12 categories
+- **Use Case Registry Integration**: Automatic intelligent selection via AgentUseCaseRegistry
+- **Coordinator Override**: Manual agent type specification via `--agents` flag (REQUIRED)
+- **Full Override**: Custom agents + subtasks via `--agents` + `--subtasks`
+- **Graceful Fallback**: Automatic selection if override fails
+
+**Key Components**:
+- **Agent Definition Loading**: Parse YAML frontmatter, extract keywords from descriptions
+- **Use Case Matching**: Score agents based on task domain and complexity
+- **Intelligent Selection**: Use case registry provides primary/secondary agent recommendations
+- **System Prompt Integration**: Append tool integration (bash, file ops) to specialized prompts
+- **Provider Integration**: z.ai provider support for worker agents
+- **Dynamic Discovery**: Recursive scanning with category preservation, in-memory caching, lazy loading
+
+**Categories** (12 total): core-agents, validation, security, architecture, infrastructure, coordination, specialized-domains, cfn-loop, analysis, development-patterns, testing, context
 
 **Usage**:
 ```bash
 # List available agents
 node src/cli/hybrid-routing/spawn-workers.js --list-agents
 
-# List by category
+# List by category  
 node src/cli/hybrid-routing/spawn-workers.js --agents-by-category
 
-# Automatic (keyword-based)
-node src/cli/hybrid-routing/spawn-workers.js "Build auth" --max-agents=3
+# Automatic (use case-based selection)
+node src/cli/hybrid-routing/spawn-workers.js "Build auth" --agents=architect,coder,tester
 
 # Coordinator override (agent types)
 node src/cli/hybrid-routing/spawn-workers.js "Refactor API" \
@@ -469,7 +564,56 @@ node src/cli/hybrid-routing/spawn-workers.js "OAuth2" \
 - **Cost reporting**: Per-provider breakdown (z.ai vs Claude Max)
 - **Retry telemetry**: `⚠️ Worker N 502 error, retry M/3 in Ns`
 
+**Integration**: Redis coordination, SQLite memory, web portal (Socket.IO), CLI spawning, use case registry
+
+**Coordinator Access Guide**: See `src/cli/hybrid-routing/COORDINATOR-ACCESS-GUIDE.md` for complete integration patterns
+
 **Integration**: Redis coordination, SQLite memory, web portal (Socket.IO), CLI spawning
+
+### Cost-Savings Mode Toggle System
+
+**Purpose**: Switch between CLI-based and Task-tool coordination patterns
+
+**Implementation**: Dynamic CLAUDE.md section injection with coordinator file management
+
+**Key Components**:
+- **Mode persistence**: `.claude-flow/cost-savings-mode.json` stores active mode
+- **CLAUDE.md injection**: HTML comment markers for dynamic section management
+- **CLI coordination**: spawn-workers.js with z.ai provider routing
+- **Task-tool coordination**: Main provider for all agent spawning
+
+**Modes**:
+1. **CLI Mode (cost-savings ON)**:
+   - Coordinators spawn workers via spawn-workers.js
+   - z.ai provider for worker agents
+   - Claude Max coordinator in main chat
+   - Redis pub/sub coordination
+   - SQLite persistence with ACL
+
+2. **Task-tool Mode (cost-savings OFF)**:
+   - Coordinators spawn workers via Task tool
+   - Main provider for all agents
+   - No CLI-specific patterns
+   - Standard swarm coordination
+
+**Toggle Commands**:
+```bash
+/cost-savings-on     # Enable CLI mode
+/cost-savings-off    # Enable Task-tool mode
+/cost-savings-status # Display current configuration
+```
+
+**CLAUDE.md Sections**:
+- `<!-- CLI_COORDINATORS_START -->` to `<!-- CLI_COORDINATORS_END -->`
+- `<!-- TASK_COORDINATORS_START -->` to `<!-- TASK_COORDINATORS_END -->`
+
+**Toggle Script**: `scripts/toggle-cost-savings.cjs`
+
+**Configuration**: Mode detection via coordinator file locations and CLAUDE.md content
+
+**Usage**: Project-level coordination mode switching without manual file edits
+
+**Integration**: CFN Loop coordinators, hybrid routing, mode-aware agent spawning
 
 ### Dependency Tracker
 

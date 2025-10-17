@@ -1,6 +1,7 @@
 ---
 name: format-selection
 description: Documentation file for format-selection
+model: haiku
 type: documentation
 acl_level: 3  # Swarm-level documentation
 validation_hooks:

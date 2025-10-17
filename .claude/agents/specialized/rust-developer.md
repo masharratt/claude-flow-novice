@@ -6,8 +6,7 @@ description: |
   ALWAYS delegate when user asks to "Rust development", "systems programming", "performance optimization".
   Keywords - rust, systems programming, memory safety, performance optimization, low-level development
 tools: [Read, Write, Edit, Bash, TodoWrite]
-model: sonnet
-provider: zai
+model: haiku
 color: blue
 type: specialist
 capabilities:
