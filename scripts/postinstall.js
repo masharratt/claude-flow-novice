@@ -73,7 +73,15 @@ function smartCopy(source, target, forceUpdate = false, verbose = false) {
 function copyClaudeDirectory() {
   try {
     const projectRoot = process.cwd();
-    const sourceDir = join(__dirname, '../dist/.claude');
+
+    // Try multiple source locations (handles both dev and installed package scenarios)
+    const possibleSources = [
+      join(__dirname, '../dist/.claude'),  // Installed package: node_modules/claude-flow-novice/scripts/ → dist/.claude
+      join(__dirname, '../.claude'),       // Direct execution from repo root
+      join(__dirname, '../../.claude'),    // Execution from dist/scripts/
+    ];
+
+    const sourceDir = possibleSources.find(dir => existsSync(dir));
     const targetDir = join(projectRoot, '.claude');
     const forceUpdate = process.env.CLAUDE_FORCE_UPDATE === 'true';
     const verbose = process.env.CLAUDE_VERBOSE === 'true' || process.env.npm_config_loglevel === 'verbose';
@@ -88,9 +96,10 @@ function copyClaudeDirectory() {
       console.log('📢 Verbose mode enabled - showing all file operations\n');
     }
 
-    // Check if source directory exists
-    if (!existsSync(sourceDir)) {
-      console.error('❌ Source .claude directory not found at:', sourceDir);
+    // Check if source directory was found
+    if (!sourceDir) {
+      console.error('❌ Source .claude directory not found. Tried:');
+      possibleSources.forEach(dir => console.error(`   - ${dir}`));
       console.log('   This indicates a broken npm package installation.');
       process.exit(1);
     }

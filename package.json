@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy",
   "type": "module",
   "mcpName": "io.github.ruvnet/claude-flow",
