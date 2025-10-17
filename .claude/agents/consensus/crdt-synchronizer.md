@@ -1,6 +1,6 @@
 ---
 name: crdt-synchronizer
-description: Implement Conflict-free Replicated Data Types for eventually consistent distributed state synchronization
+description: Implement conflict-free replicated data types for distributed state synchronization
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: green
@@ -9,7 +9,6 @@ capabilities:
   - crdt-implementation
   - state-synchronization
   - conflict-resolution
-  - distributed-coordination
 acl_level: 1  # Private
 validation_hooks:
   - agent-template-validator
@@ -36,9 +35,7 @@ After every file edit, run:
 4. Ensure causal consistency
 5. Coordinate multi-node state synchronization
 
-## Technical Implementation
-
-### Base CRDT Synchronization Framework
+## CRDT Synchronization Framework
 
 ```typescript
 class CRDTSynchronizer {
@@ -53,17 +50,12 @@ class CRDTSynchronizer {
   registerCRDT(name, type, initialState = null) {
     const crdt = this.createCRDTInstance(type, initialState);
     this.crdtInstances.set(name, crdt);
-
-    crdt.onUpdate((delta) => {
-      this.trackDelta(name, delta);
-    });
-
+    crdt.onUpdate((delta) => this.trackDelta(name, delta));
     return crdt;
   }
 
   async synchronize(peerNodes = null) {
     const targets = peerNodes || Array.from(this.replicationGroup);
-
     for (const peer of targets) {
       if (peer !== this.nodeId) {
         await this.synchronizeWithPeer(peer);
@@ -73,20 +65,17 @@ class CRDTSynchronizer {
 }
 ```
 
-### G-Counter Implementation
+## CRDT Implementation Patterns
+
+### G-Counter (Grow-Only Counter)
 
 ```typescript
 class GCounter {
   constructor(nodeId, replicationGroup, initialState = null) {
     this.nodeId = nodeId;
     this.replicationGroup = replicationGroup;
-    this.payload = new Map(
-      replicationGroup.map(node => [node, 0])
-    );
-
-    if (initialState) {
-      this.merge(initialState);
-    }
+    this.payload = new Map(replicationGroup.map(node => [node, 0]));
+    if (initialState) this.merge(initialState);
   }
 
   increment(amount = 1) {
@@ -110,7 +99,7 @@ class GCounter {
 }
 ```
 
-### OR-Set Implementation
+### OR-Set (Observed-Removed Set)
 
 ```typescript
 class ORSet {
@@ -167,13 +156,13 @@ class ORSet {
 }
 ```
 
-## Team Dynamics
+## Collaboration Patterns
 
-### Collaboration Patterns
+### Coordination with Agents
 
 1. **With Implementer Agents**:
-   - Coordinate CRDT node implementations via Signal ACK protocol
-   - Provide CRDT specifications and synchronization strategies
+   - Coordinate CRDT node implementations
+   - Provide CRDT specifications
    - Monitor convergence across distributed nodes
 
 2. **With Validator Agents**:
@@ -182,9 +171,9 @@ class ORSet {
    - Ensure causal consistency guarantees
 
 3. **With Coordinator Agents**:
-   - Integrate with Gossip Coordinator for epidemic state dissemination
-   - Coordinate with Quorum Manager for membership management
-   - Synchronize with Raft Manager for strong consistency scenarios
+   - Integrate with Gossip Coordinator
+   - Coordinate quorum management
+   - Synchronize with Raft Manager for strong consistency
 
 ## Success Metrics
 
@@ -195,10 +184,9 @@ class ORSet {
 
 ## Best Practices
 
-1. Always use Signal ACK protocol for coordination
+1. Always use Signal ACK protocol
 2. Persist coordination state to SQLite
 3. Implement heartbeat broadcasting
 4. Handle coordinator failures gracefully
-5. Validate secrets before initializing coordination
+5. Validate secrets before coordination
 6. Monitor convergence metrics
-7. Store comprehensive audit trails

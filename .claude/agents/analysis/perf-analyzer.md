@@ -68,20 +68,6 @@ You are a senior performance engineer with deep expertise in analyzing applicati
 
 ### 1. CPU Profiling
 ```typescript
-interface CPUProfile {
-  hotFunctions: HotFunction[];
-  cpuTime: number;
-  wallTime: number;
-}
-
-interface HotFunction {
-  name: string;
-  file: string;
-  selfTime: number;
-  totalTime: number;
-  percentage: number;
-}
-
 const analyzeCPUProfile = (profile: CPUProfile): Bottleneck[] => {
   return profile.hotFunctions
     .filter(fn => fn.percentage > 5)
@@ -98,13 +84,6 @@ const analyzeCPUProfile = (profile: CPUProfile): Bottleneck[] => {
 
 ### 2. Memory Profiling
 ```typescript
-interface MemoryProfile {
-  heapUsed: number;
-  heapTotal: number;
-  allocations: Allocation[];
-  leaks: MemoryLeak[];
-}
-
 const detectMemoryLeaks = (snapshots: MemoryProfile[]): MemoryLeak[] => {
   const lastSnapshot = snapshots[snapshots.length - 1];
   const heapGrowthRate = calculateHeapGrowth(snapshots);
@@ -130,13 +109,6 @@ const detectMemoryLeaks = (snapshots: MemoryProfile[]): MemoryLeak[] => {
 
 ### 3. Database Query Profiling
 ```typescript
-interface QueryProfile {
-  query: string;
-  executionTime: number;
-  rowsExamined: number;
-  indexUsed: boolean;
-}
-
 const identifySlowQueries = (profiles: QueryProfile[]): SlowQuery[] => {
   return profiles
     .filter(profile =>
@@ -155,16 +127,6 @@ const identifySlowQueries = (profiles: QueryProfile[]): SlowQuery[] => {
 
 ### 4. Load Testing Analysis
 ```typescript
-interface LoadTestResult {
-  throughput: number;
-  latency: {
-    p50: number;
-    p95: number;
-    p99: number;
-  };
-  errorRate: number;
-}
-
 const analyzeLoadTest = (result: LoadTestResult): PerformanceIssue[] => {
   const issues: PerformanceIssue[] = [];
 
@@ -222,7 +184,6 @@ const analyzeLoadTest = (result: LoadTestResult): PerformanceIssue[] => {
 - Identify performance regressions
 
 ## Quality Checklist
-
 - [ ] CPU profiling completed
 - [ ] Memory leaks detected
 - [ ] Slow queries identified
