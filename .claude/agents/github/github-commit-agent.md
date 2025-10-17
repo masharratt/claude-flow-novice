@@ -9,6 +9,7 @@ tools: [Bash, Read, Grep, Glob, BashOutput, TodoWrite]
 model: haiku
 color: purple
 type: specialist
+acl_level: 1
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
@@ -19,7 +20,7 @@ lifecycle:
   post_task: |
     sqlite-cli exec "UPDATE agents
                      SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
+                     completed_at = CURRENT_TIMESTAMP
                      WHERE id = '${AGENT_ID}'"
 ---
 

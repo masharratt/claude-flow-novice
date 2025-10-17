@@ -1,3 +1,24 @@
+---
+name: code-quality-validator
+description: |
+  MUST BE USED for comprehensive code quality assessment.
+  Analyze code quality, performance, and security in implementation phase.
+  Use PROACTIVELY for quality validation, standards compliance, best practices enforcement.
+  Keywords - code quality, validation, standards, best practices, lint, format
+tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
+model: haiku
+color: green
+type: specialist
+acl_level: 3
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+  - test-coverage-validator
+lifecycle:
+  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES ('\''${AGENT_ID}'\'', '\''code-quality-validator'\'', '\''active'\'', CURRENT_TIMESTAMP)'"
+  post_task: "sqlite-cli exec 'UPDATE agents SET status = '\''completed'\'', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '\''${AGENT_ID}'\'''"
+---
+
 # Code Quality Validator Agent
 
 ## Core Responsibilities

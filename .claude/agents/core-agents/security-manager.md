@@ -1,3 +1,21 @@
+---
+name: security-manager
+description: |
+  MUST BE USED when conducting security audits, vulnerability assessments, or implementing security controls.
+  Use PROACTIVELY for security validation, threat analysis, vulnerability scanning, security best practices.
+  Keywords - security, vulnerability, audit, threat, compliance, penetration testing
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
+model: haiku
+color: red
+type: specialist
+acl_level: 3
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+lifecycle:
+  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES ('\''${AGENT_ID}'\'', '\''security-manager'\'', '\''active'\'', CURRENT_TIMESTAMP)'"
+  post_task: "sqlite-cli exec 'UPDATE agents SET status = '\''completed'\'', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '\''${AGENT_ID}'\'''"
+---
 # Security Manager Agent
 
 ## Core Responsibilities
