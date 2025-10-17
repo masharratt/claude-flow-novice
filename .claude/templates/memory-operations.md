@@ -1,78 +1,57 @@
 # Memory Operations Template
 
-## Storage Architecture
-- **Primary**: SQLite (Persistent)
-- **Cache**: Redis (Hot, 1h TTL)
-- **Retention**: 30-365 days
+## SQLite Memory Persistence Patterns
 
-## Access Control Levels (ACL)
+### Store Decision with ACL
+```typescript
+// Store strategic decision with 365-day retention
+await sqlite.memoryAdapter.set(
+  `cfn/phase-/loop4/decision`,
+  {
+    decision: decision.action,
+    consensus: loop2Data[0]?.consensus_score,
+    cost: decision.cost,
+    timestamp: Date.now()
+  },
+  { 
+    aclLevel: 4,  // Project-level access
+    ttl: 31536000  // 365 days
+  }
+);
+```
 
-| Level | Scope | Encryption | Use Case |
-|-------|-------|------------|----------|
-| 1 | Agent | AES-256 | Personal workspace |
-| 2 | Team | AES-256 | Team collaboration |
-| 3 | Swarm | None | Cross-agent sharing |
-| 4 | Project | None | Long-term context |
-| 5 | System | Master Key | Audit logs |
+### Retrieve Scope Boundaries
+```typescript
+const scopeBoundaries = await sqlite.memoryAdapter.get(
+  'project-boundaries', 
+  { aclLevel: 4 }  // Project-level access
+);
+```
 
-## Core Operations
+## Error Handling for Memory Operations
 
-### Write Pattern
-```python
-await memory.memoryAdapter.set(
-    key='task/progress',
-    value={'confidence': 0.85, 'status': 'in_progress'},
-    options={
-        'agentId': current_agent_id,
-        'aclLevel': 1,  # Agent-only
-        'ttl': 2592000  # 30 days
+### Retry with Exponential Backoff
+```typescript
+async function memoryWrite(key, value, options) {
+  const maxRetries = 3;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await sqlite.memoryAdapter.set(key, value, options);
+    } catch (error) {
+      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
+        const delay = Math.pow(2, i) * 100;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
     }
-)
+  }
+}
 ```
 
-### Read Pattern
-```python
-result = await memory.memoryAdapter.get(
-    key='task/progress',
-    options={'agentId': current_agent_id}
-)
-```
+## ACL Level Guidelines
 
-## Memory Key Structure
-```
-swarm:{swarmId}:{agentId}:{category}:{key}
-```
-
-## Confidence Tracking
-- **Scope**: Per task, per agent
-- **Stored**: SQLite (persistent)
-- **Cached**: Redis (fast access)
-
-## Performance Metrics
-- **Write Latency**:
-  * SQLite: <60ms
-  * Redis: <5ms
-- **Read Latency**:
-  * Redis (cache hit): <5ms
-  * SQLite: <20ms
-
-## Error Handling
-- Connection loss fallback
-- Exponential backoff
-- Circuit breaker
-- Hybrid storage mode
-
-## Best Practices
-- Minimize payload size
-- Use structured keys
-- Implement idempotent operations
-- Log all interactions
-- Validate before persist
-
-## Retention & Cleanup
-- Automatic key expiration
-- Configurable retention periods
-- Compliance with data policies
-
-**Last Updated**: 2025-10-17
-**Status**: Production-ready
+- **Level 1 (Private)**: Agent-scoped data
+- **Level 3 (Swarm)**: Team/validator shared data
+- **Level 4 (Project)**: Strategic decisions, compliance data
+- **Retention**: Adjust TTL based on ACL level and compliance needs

@@ -1,70 +1,80 @@
 # CFN Loop Mechanics Template
 
-**Purpose:** Standardized CFN Loop coordination patterns for all CFN coordinators
+## Loop Progression Mechanics
 
-## Loop Structure Overview
-
-### Phases
-- Loop 0: Epic/Sprint Orchestration
-- Loop 1: Research & Discovery
-- Loop 2: Consensus Validation
-- Loop 3: Primary Swarm Implementation
-- Loop 4: Product Owner Decision Gate
+### Loop Objectives
+- **Loop 2 (Validation)**: Consensus building, identify potential issues
+- **Loop 3 (Implementation)**: Address in-scope concerns
+- **Loop 4 (Strategic Decisions)**: Scope enforcement, phase progression
 
 ## Decision Framework
 
-### Progression States
-1. **PROCEED**:
-   - Consensus ≥ threshold
-   - All quality gates passed
-   - Advance to next phase
+### Decision Gate Criteria
+- **MVP Mode**: 
+  - Gate: ≥0.65
+  - Consensus: ≥0.85
+  - Max Iterations: 5
+  - Validators: 2
 
-2. **LOOP**:
-   - Consensus < threshold
-   - Fixable issues identified
-   - Relaunch with targeted improvements
+- **Standard Mode**:
+  - Gate: ≥0.75
+  - Consensus: ≥0.90
+  - Max Iterations: 10
+  - Validators: 4
 
-3. **DEFER**:
-   - Out-of-scope items
-   - Lower priority
-   - Add to backlog, continue current phase
+- **Enterprise Mode**:
+  - Gate: ≥0.85
+  - Consensus: ≥0.95
+  - Max Iterations: 15
+  - Validators: 5
 
-4. **ESCALATE**:
-   - Critical blockers
-   - Requires human intervention
-   - Major architectural changes
-   - Compliance/security risks
+## Decision Actions
 
-## Mode-Specific Thresholds
+### Proceed
+- Relaunch Loop 3 with targeted fixes
+- In-scope concerns addressed
+- Consensus building continues
 
-| Mode | Gate | Consensus | Validators | Max Iterations | Timeout |
-|------|------|-----------|------------|---------------|---------|
-| MVP | ≥0.65 | ≥0.85 | 2 | 5 | 15 min |
-| Standard | ≥0.75 | ≥0.90 | 4 | 10 | 30 min |
-| Enterprise | ≥0.85 | ≥0.95 | 5 | 15 | 60 min |
+### Defer
+- Approve current phase
+- Add out-of-scope items to backlog
+- Transition to next phase
 
-## Coordination Patterns
+### Escalate
+- Critical ambiguity detected
+- Requires human review
+- Blocked by persistent disagreements
 
-### Auto-Progression Rules
-- Autonomous loop progression
-- No human approval for iterations
-- Immediate relaunch or escalation
-- Return to chat ONLY for critical decisions
+## Typical Workflow
 
-### Return-to-Chat Triggers
-1. Human decision required
-2. Sprint completion
-3. Escalation scenarios
+1. **Observe**: Gather current state data
+2. **Orient**: Analyze context, classify concerns
+3. **Decide**: Apply GOAP to find optimal path
+4. **Act**: Execute decision autonomously
 
-## Iteration Tracking
-- Initialize iteration count in Redis
-- Increment on each Loop 3 execution
-- Auto-escalate at max iterations
-- Persistent across loop cycles
+## Scope Management
 
-## Key Principles
-- Self-correcting autonomous cycles
-- Minimal human intervention
-- Rapid, iterative improvement
-- Transparent decision framework
-- Configurable complexity modes
+### In-Scope
+- Directly related to current phase goals
+- Implementable within current resources
+- Aligned with project requirements
+
+### Out-of-Scope
+- Future enhancements
+- Requires significant additional resources
+- Not critical for current phase completion
+
+## Cost Function Philosophy
+
+- **Scope Maintenance**: Lowest cost
+- **Scope Expansion**: Prohibitively expensive (cost=1000)
+- **Scope Reduction**: Heavily penalized (cost=500)
+
+## Confidence Tracking
+
+### Metrics to Monitor
+- Consensus Score
+- Iteration Count
+- Validator Concerns
+- Implementation Quality
+- Scope Adherence
