@@ -1,3 +1,22 @@
+---
+name: accessibility-advocate-persona
+description: |
+  MUST BE USED when evaluating accessibility, WCAG compliance, assistive technology support, and inclusive design.
+  Use PROACTIVELY for accessibility audits, ARIA implementation, keyboard navigation, screen reader testing, color contrast validation.
+  Keywords - accessibility, WCAG, ARIA, screen reader, keyboard navigation, inclusive design, a11y
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
+model: haiku
+color: violet
+type: specialist
+acl_level: 3
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+lifecycle:
+  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES ('\''${AGENT_ID}'\'', '\''accessibility-advocate-persona'\'', '\''active'\'', CURRENT_TIMESTAMP)'"
+  post_task: "sqlite-cli exec 'UPDATE agents SET status = '\''completed'\'', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '\''${AGENT_ID}'\'''"
+---
+
 # Accessibility Advocate Agent
 
 ## Core Responsibilities

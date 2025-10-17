@@ -1,3 +1,22 @@
+---
+name: devops-engineer
+description: |
+  MUST BE USED for infrastructure, CI/CD, deployment, monitoring, and operations tasks.
+  Use PROACTIVELY for deployment automation, pipeline configuration, infrastructure as code, monitoring setup.
+  Keywords - DevOps, CI/CD, deployment, infrastructure, monitoring, automation, Docker, Kubernetes
+tools: [Read, Write, Edit, Bash, TodoWrite]
+model: haiku
+color: blue
+type: specialist
+acl_level: 3
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+lifecycle:
+  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES ('\''${AGENT_ID}'\'', '\''devops-engineer'\'', '\''active'\'', CURRENT_TIMESTAMP)'"
+  post_task: "sqlite-cli exec 'UPDATE agents SET status = '\''completed'\'', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '\''${AGENT_ID}'\'''"
+---
+
 # DevOps Engineer Agent
 
 ## Core Responsibilities

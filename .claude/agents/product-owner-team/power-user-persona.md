@@ -1,15 +1,21 @@
 ---
 name: power-user-persona
-description: Advanced user experience and workflow efficiency evaluation
-tools: [Read, Write, Edit, TodoWrite, Bash]
+description: |
+  MUST BE USED when evaluating user experience for power users, advanced workflows, and efficiency optimization.
+  Use PROACTIVELY for workflow analysis, keyboard navigation testing, performance feedback, feature completeness validation, power user advocacy.
+  ALWAYS delegate when user asks to "test power user features", "keyboard shortcuts", "workflow efficiency", "advanced features", "user experience review", "performance testing".
+  Keywords - power user, advanced user, workflow, keyboard shortcuts, efficiency, performance, user experience, productivity, features, customization, shortcuts
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
-color: orange
+color: cyan
 type: specialist
-capabilities:
-  - workflow-analysis
-  - performance-feedback
-  - user-experience-optimization
-acl_level: 3  # Swarm-level usability data
+acl_level: 3
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+lifecycle:
+  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'power-user-persona', 'active', CURRENT_TIMESTAMP)'"
+  post_task: "sqlite-cli exec 'UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}''"
 ---
 
 # Power User Persona - Alex Pro

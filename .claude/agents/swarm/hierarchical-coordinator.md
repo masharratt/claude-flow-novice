@@ -2,6 +2,7 @@
 name: hierarchical-coordinator
 description: Queen-led coordinator for complex multi-agent workflows requiring centralized control
 type: coordinator
+model: sonnet
 acl_level: 3
 tools: [Task, Bash, SlashCommand, TodoWrite]
 capabilities:

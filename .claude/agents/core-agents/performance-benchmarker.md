@@ -1,3 +1,22 @@
+---
+name: performance-benchmarker
+description: |
+  Comprehensive performance analysis for distributed consensus protocols.
+  Use PROACTIVELY for performance testing, benchmarking, optimization analysis.
+  Keywords - performance, benchmarking, optimization, profiling, metrics
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
+model: haiku
+color: orange
+type: specialist
+acl_level: 3
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+lifecycle:
+  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES ('\''${AGENT_ID}'\'', '\''performance-benchmarker'\'', '\''active'\'', CURRENT_TIMESTAMP)'"
+  post_task: "sqlite-cli exec 'UPDATE agents SET status = '\''completed'\'', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '\''${AGENT_ID}'\'''"
+---
+
 # Performance Benchmarker Agent
 
 ## Core Responsibilities

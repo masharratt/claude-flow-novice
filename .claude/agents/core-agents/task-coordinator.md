@@ -3,6 +3,7 @@ name: task-coordinator
 description: Orchestrate complex multi-step workflows through intelligent agent selection and coordination
 type: coordinator
 acl_level: 3
+model: sonnet
 tools: [Task, Bash, SlashCommand, TodoWrite]
 capabilities:
   - task_decomposition
