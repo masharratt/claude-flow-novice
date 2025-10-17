@@ -1,56 +1,43 @@
-# Redis Coordination Patterns
+# Redis Coordination Template
 
-## Communication Channels
+## Pub/Sub Communication Pattern
 
-### Standard Channel Formats
-- `swarm:{swarmId}:*` - Swarm-level communication
-- `agent:{agentId}:*` - Agent-specific channels
-- `phase:{phaseId}:*` - CFN Loop phase coordination
-
-### Message Types
-- `start`: Task initialization
-- `progress`: Ongoing work updates
-- `complete`: Task completion
-- `error`: Error reporting
-- `consensus`: Decision-making signals
-- `question`: Clarification requests
-
-## Coordination Functions
-
-### Signal Progress
-```bash
-redis-cli publish "swarm:${SWARM_ID}:${AGENT_ID}:progress" '{
-  "status": "in_progress",
-  "milestone": "Authentication module implementation",
-  "confidence": 0.75,
-  "eta_seconds": 600
-}'
+### Publish Decision Notification
+```typescript
+// Publish ephemeral decision notification to Redis
+await redis.publish(`cfn:loop4:decision:`, JSON.stringify({
+  decision: decision.action,
+  phaseId,
+  consensus: loop2Data[0]?.consensus_score,
+  cost: decision.cost
+}));
 ```
 
-### Report Completion
-```bash
-redis-cli publish "swarm:${SWARM_ID}:${AGENT_ID}:complete" '{
-  "agent": "'${AGENT_ID}'",
-  "confidence": 0.85,
-  "files_modified": ["src/auth.js", "src/auth.test.js"],
-  "tests_written": 12,
-  "coverage": { "line": 0.92, "branch": 0.88 }
-}'
+### Connection Loss Handling
+```typescript
+try {
+  await redis.publish(`cfn:loop4:decision:`, JSON.stringify(decisionData));
+} catch (error) {
+  if (error.code === 'REDIS_CONNECTION_LOST') {
+    console.warn('Redis connection lost - decision notification skipped');
+    // Log to SQLite audit trail
+    await sqlite.query(`
+      INSERT INTO audit_log (agent_id, action, details, timestamp)
+      VALUES ('product-owner', 'redis_notification_failed', ?, datetime('now'))
+    `, [JSON.stringify({ error: error.message, phaseId })]);
+  }
+}
 ```
 
-### Request Consensus
-```bash
-redis-cli publish "swarm:${SWARM_ID}:consensus" '{
-  "type": "design_review",
-  "question": "Authentication strategy?",
-  "options": ["JWT", "Session", "OAuth"],
-  "voting_timeout": 300
-}'
-```
+## Redis Pub/Sub Best Practices
 
-## Best Practices
-- Always use structured JSON
-- Include timestamp in messages
-- Provide confidence scores
-- Signal progress regularly
-- Handle connection failures gracefully
+### Reliability Patterns
+- Use retry mechanisms for critical messages
+- Log all connection loss events
+- Ensure SQLite persistence as primary record
+- Use Redis for ephemeral, non-critical notifications
+
+### Performance Considerations
+- Keep payload small (<64KB)
+- Use structured JSON
+- Minimize serialization/deserialization overhead

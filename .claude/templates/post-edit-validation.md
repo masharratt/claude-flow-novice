@@ -1,101 +1,67 @@
-# Post-Edit Validation Hooks
+# Post-Edit Validation Template
 
-## Mandatory Validation Pipeline
+## Mandatory Post-Edit Hook
 
-### Core Validators
-1. **Agent Template Validator**
-   - Verify SQLite lifecycle hooks
-   - Check ACL level declarations
-   - Validate error handling patterns
-   - Ensure Redis coordination imports
-
-2. **CFN Loop Memory Validator**
-   - Validate memory key formats
-   - Check ACL levels
-   - Verify TTL configurations
-   - Ensure encryption for sensitive data
-
-3. **Test Coverage Validator**
-   - Line coverage ≥80%
-   - Branch coverage ≥75%
-   - Function coverage ≥80%
-   - Validate lifecycle tests
-   - Validate signal ACK tests
-
-4. **Blocking Coordination Validator**
-   - Required imports validation
-   - HMAC secret environment usage
-   - Signal sending/receiving patterns
-   - Semantic review for coordinators
-
-## Validation Hook Usage
-
-### Basic Invocation
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] \
-  --memory-key "agent-name/context" \
-  --structured
+npx claude-flow-novice hooks post-edit [FILE_PATH]   --memory-key "product-owner/decision"   --structured
 ```
 
-### Validator Configuration
-```yaml
-validators:
-  agent_template:
-    enabled: true
-    severity: error
-    autofix: true
+## Validator Composition
 
-  cfn_loop_memory:
-    enabled: true
-    severity: warning
-    autofix: false
+### 1. Agent Template Validator
+- Validate SQLite lifecycle hooks
+- Check ACL level declarations
+- Verify error handling patterns
 
-  test_coverage:
-    enabled: true
-    severity: error
-    thresholds:
-      line: 80
-      branch: 75
-      function: 80
+### 2. CFN Loop Memory Validator
+- Validate memory key formats
+- Check ACL level correctness
+- Validate TTL configurations
+- Ensure encryption for sensitive data
 
-  blocking_coordination:
-    enabled: true
-    severity: critical
-    autofix: false
-```
+### 3. Test Coverage Validator
+- Line coverage ≥ 80%
+- Branch coverage ≥ 75%
+- Function coverage ≥ 80%
 
-## Performance Targets
-- Individual validator: <2s execution
-- Composite validation: <5s total
-- False positive rate: <2%
-- Automation: 85-95% depending on validator
+### 4. Blocking Coordination Validator
+- Verify signal sending/receiving patterns
+- Check HMAC secret usage
+- Validate state machine logic
 
-## Output Format
+## Validation Output Structure
+
 ```json
 {
-  "validator": "agent-template-validator",
-  "file": "src/agents/coder.md",
-  "valid": false,
-  "violations": [
+  "validator": "composite-hook",
+  "file": "/path/to/file",
+  "valid": true,
+  "results": [
     {
-      "type": "missing_sqlite_lifecycle",
-      "severity": "error",
-      "message": "Missing agent spawn registration",
-      "recommendation": "Add SQLite lifecycle hooks"
-    }
-  ],
-  "warnings": [
+      "type": "agent-template",
+      "valid": true
+    },
     {
-      "type": "error_handling_basic",
-      "message": "Basic error handling, consider retry logic"
+      "type": "cfn-loop-memory",
+      "valid": true
+    },
+    {
+      "type": "test-coverage",
+      "valid": true,
+      "metrics": {
+        "line_coverage": 0.85,
+        "branch_coverage": 0.80
+      }
+    },
+    {
+      "type": "blocking-coordination",
+      "valid": true
     }
   ]
 }
 ```
 
-## Best Practices
-- Run hooks after every file modification
-- Address critical violations immediately
-- Use automated fixes when possible
-- Maintain a consistent validation approach
-- Track validation metrics for continuous improvement
+## Performance Targets
+- Total validation time: <5 seconds
+- False positive rate: <2%
+- Caching of unchanged files

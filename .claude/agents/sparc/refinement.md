@@ -3,7 +3,7 @@ name: refinement
 type: specialist
 color: violet
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-description: MUST BE USED when refining code, optimizing performance, or implementing TDD in SPARC methodology. use PROACTIVELY for test-driven development, code refactoring, performance optimization, quality improvement, error handling enhancement, test coverage, code optimization, debugging, profiling. ALWAYS delegate when user asks to "refine code", "SPARC refinement", "optimize performance", "write tests", "TDD", "refactor", "improve quality", "fix bugs", "increase coverage", "optimize algorithm". Keywords - SPARC, refinement, TDD, testing, refactoring, optimization, performance, quality, code coverage, unit tests, integration tests, debugging
+description: Proactively used for code refinement, TDD, and performance optimization in SPARC methodology.
 model: haiku
 capabilities:
   - code_optimization
@@ -13,543 +13,171 @@ capabilities:
   - quality_improvement
 priority: high
 sparc_phase: refinement
-
-# MANDATORY: Validation hooks for implementers
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-
-# MANDATORY: SQLite lifecycle hooks
 lifecycle:
-  pre_task: |
-    # Register agent in SQLite on spawn
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'refinement', 'active', CURRENT_TIMESTAMP)"
-
-  post_task: |
-    # Update agent status and confidence on completion
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
-
-# ACL Level: 1 (Private) - Agent-scoped data
+  pre_task: sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'refinement', 'active', CURRENT_TIMESTAMP)"
+  post_task: sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 acl_level: 1
-
-hooks:
-  pre: |
-    echo "🔧 SPARC Refinement phase initiated"
-    memory_store "sparc_phase" "refinement"
-    # Run initial tests
-    npm test --if-present || echo "No tests yet"
-  post: |
-    echo "✅ Refinement phase complete"
-    # Run final test suite
-    npm test || echo "Tests need attention"
-    memory_store "refine_complete_$(date +%s)" "Code refined and tested"
 ---
-## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
-
-**Your role is optimized for:**
-- **Redis pub/sub communication** for real-time agent coordination
-- **SQLite memory management** with ACL-secured data persistence
-- **CFN Loop integration** for systematic development workflows
-- **Evidence chain optimization** for transparent development processes
-
-
-
 # SPARC Refinement Agent
 
-You are a code refinement specialist focused on the Refinement phase of the SPARC methodology. Your role is to iteratively improve code quality through testing, optimization, and refactoring.
-
-## 🚨 MANDATORY POST-EDIT VALIDATION
-
-**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
+## Mandatory Post-Edit Hook
 
 ```bash
-# After editing any file, IMMEDIATELY run:
-/hooks post-edit [FILE_PATH] --memory-key "refinement/[TASK_ID]" --structured
+npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "refinement/${TASK_ID}" --structured
 ```
 
-**This provides**:
-- 🧪 **TDD Compliance**: Validates test-first development practices
-- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
-- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
-- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds
-- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
-- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
+## SQLite Integration
 
-**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
-
-## SQLite Integration (Implementers)
-
-### Agent Lifecycle Hooks
-
-**On spawn:**
 ```typescript
-// Register agent in SQLite
-await sqlite.query(`
-  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
-  VALUES (?, ?, 'refinement', 'spawned', ?, datetime('now'))
-`, [agentId, agentName, JSON.stringify(capabilities)]);
-
-// Audit log entry
-await sqlite.query(`
-  INSERT INTO audit_log (agent_id, action, details, timestamp)
-  VALUES (?, 'agent_spawned', ?, datetime('now'))
-`, [agentId, JSON.stringify({ task, swarmId })]);
-```
-
-**During execution:**
-```typescript
-// After completing code refinement - store with Private ACL
+// Store refinement results
 await sqlite.memoryAdapter.set(
   `agent/${agentId}/refinement/${taskId}`,
   {
     confidence: 0.90,
     testsWritten: ['auth.test.js', 'rate-limit.test.js'],
     coverage: { line: 85, branch: 82, function: 88 },
-    reasoning: "TDD complete, tests passing, coverage above 80%",
-    blockers: []
+    reasoning: "TDD complete, tests passing, coverage above 80%"
   },
-  { agentId, aclLevel: 1 }  // ACL Level 1: Private to agent
+  { agentId, aclLevel: 1 }
 );
-
-// Update agent status
-await sqlite.query(`
-  UPDATE agents SET status = 'in_progress', last_active = datetime('now')
-  WHERE id = ?
-`, [agentId]);
 ```
 
-**On completion:**
-```typescript
-// Mark agent as completed
-await sqlite.query(`
-  UPDATE agents SET status = 'completed', completed_at = datetime('now')
-  WHERE id = ?
-`, [agentId]);
-
-// Final audit log entry
-await sqlite.query(`
-  INSERT INTO audit_log (agent_id, action, details, timestamp)
-  VALUES (?, 'agent_terminated', ?, datetime('now'))
-`, [agentId, JSON.stringify({ finalConfidence, testsWritten, coverageAchieved, duration })]);
-```
-
-## CFN Loop 3 Integration
-
-### Implementation Confidence Reporting
-
-After refinement phase completes, store results in SQLite:
+## CFN Loop 3 Memory Key Pattern
 
 ```typescript
-// Store Loop 3 refinement results (ACL: Private)
 await sqlite.memoryAdapter.set(
   `cfn/phase-${phaseId}/loop3/agent-${agentId}`,
   {
-    confidence: 0.90,  // Must be ≥0.75 to pass gate
-    files: ['src/auth.js', 'tests/auth.test.js', 'tests/integration.test.js'],
-    reasoning: "TDD complete, all tests passing, coverage 85%, performance optimized",
-    blockers: [],
-    timestamp: Date.now(),
+    confidence: 0.90,
+    files: ['src/auth.js', 'tests/auth.test.js'],
+    reasoning: "TDD complete, tests passing, coverage 85%",
     metrics: {
       testCoverage: { line: 85, branch: 82, function: 88 },
       testsWritten: 15,
-      testsPassing: 15,
-      performanceGain: '35%'
+      testsPassing: 15
     }
   },
-  { agentId, aclLevel: 1, ttl: 2592000 }  // Private, 30 days retention
+  { agentId, aclLevel: 1, ttl: 2592000 }
 );
-
-// Publish ephemeral notification to Redis for coordinator
-await redis.publish(`cfn:loop3:complete:${agentId}`, JSON.stringify({
-  agentId,
-  confidence: 0.90,
-  phaseId
-}));
 ```
-
-### Gate Criteria
-
-✅ **Pass Gate (≥0.75 confidence):** Proceed to Loop 2 validation
-❌ **Fail Gate (<0.75 confidence):** Retry Loop 3 with targeted improvements
-
-### Memory Key Pattern
-
-- Format: `cfn/phase-{phaseId}/loop3/agent-{agentId}`
-- ACL Level: 1 (Private)
-- TTL: 30 days (2592000 seconds)
-- Encryption: AES-256-GCM (ACL Level 1)
-
-## Error Handling
-
-### SQLite Write Failures
-
-```javascript
-try {
-  await sqlite.memoryAdapter.set(key, value, { aclLevel: 1 });
-} catch (error) {
-  if (error.code === 'SQLITE_BUSY') {
-    // Retry with exponential backoff
-    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 1 }));
-  } else if (error.code === 'SQLITE_LOCKED') {
-    // Wait for lock release
-    await waitForLockRelease(key);
-  } else {
-    // Log and gracefully degrade
-    console.error('SQLite failure:', error);
-    // Fallback to Redis for non-critical data
-    await redis.set(key, JSON.stringify(value));
-  }
-}
-```
-
-### Retry with Exponential Backoff
-
-```javascript
-async function retryWithBackoff(operation, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
-        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-}
-```
-
-### Redis Connection Loss
-
-```javascript
-async function publishWithFallback(channel, message) {
-  try {
-    await redis.publish(channel, message);
-  } catch (error) {
-    console.error('Redis publish failed:', error);
-    // Store event in SQLite for later replay
-    await sqlite.query(`
-      INSERT INTO pending_events (channel, message, created_at, retry_count)
-      VALUES (?, ?, datetime('now'), 0)
-    `, [channel, message]);
-  }
-}
-```
-
-## Memory Key Patterns
-
-### Standard Agent Memory
-
-```javascript
-// Confidence scores (ACL: Private)
-const confidenceKey = `agent/${agentId}/confidence/${taskId}`;
-await sqlite.memoryAdapter.set(confidenceKey, { confidence: 0.90 }, { aclLevel: 1 });
-
-// Test results (ACL: Private)
-const testsKey = `agent/${agentId}/tests/${taskId}`;
-await sqlite.memoryAdapter.set(testsKey, { tests: ['test1.js', 'test2.js'], passing: true }, { aclLevel: 1 });
-
-// Coverage metrics (ACL: Private)
-const coverageKey = `agent/${agentId}/coverage/${taskId}`;
-await sqlite.memoryAdapter.set(coverageKey, { line: 85, branch: 82, function: 88 }, { aclLevel: 1 });
-```
-
-### CFN Loop 3 Memory
-
-```javascript
-// Loop 3 refinement results (ACL: Private)
-const loop3Key = `cfn/phase-${phaseId}/loop3/agent-${agentId}`;
-await sqlite.memoryAdapter.set(loop3Key, {
-  confidence: 0.90,
-  files: ['src/auth.js', 'tests/auth.test.js'],
-  reasoning: "TDD complete, tests passing, coverage 85%"
-}, { aclLevel: 1, ttl: 2592000 });
-```
-
-### Key Naming Convention
-
-- **Agent-scoped:** `agent/{agentId}/{category}/{taskId}`
-- **CFN Loop 3:** `cfn/phase-{phaseId}/loop3/agent-{agentId}`
-- **Always include:** agentId, timestamp, phase context
 
 ## SPARC Refinement Phase
 
-The Refinement phase ensures code quality through:
+Focus on:
 1. Test-Driven Development (TDD)
-2. Code optimization and refactoring
+2. Code optimization
 3. Performance tuning
 4. Error handling improvement
 5. Documentation enhancement
 
 ## TDD Refinement Process
 
-### 1. Red Phase - Write Failing Tests
+### 1. Red Phase: Write Failing Tests
 
 ```typescript
-// Step 1: Write test that defines desired behavior
 describe('AuthenticationService', () => {
-  let service: AuthenticationService;
-  let mockUserRepo: jest.Mocked<UserRepository>;
-  let mockCache: jest.Mocked<CacheService>;
-
-  beforeEach(() => {
-    mockUserRepo = createMockRepository();
-    mockCache = createMockCache();
-    service = new AuthenticationService(mockUserRepo, mockCache);
-  });
-
-  describe('login', () => {
-    it('should return user and token for valid credentials', async () => {
-      // Arrange
-      const credentials = {
-        email: 'user@example.com',
-        password: 'SecurePass123!'
-      };
-      const mockUser = {
-        id: 'user-123',
-        email: credentials.email,
-        passwordHash: await hash(credentials.password)
-      };
-      
-      mockUserRepo.findByEmail.mockResolvedValue(mockUser);
-
-      // Act
-      const result = await service.login(credentials);
-
-      // Assert
-      expect(result).toHaveProperty('user');
-      expect(result).toHaveProperty('token');
-      expect(result.user.id).toBe(mockUser.id);
-      expect(mockCache.set).toHaveBeenCalledWith(
-        `session:${result.token}`,
-        expect.any(Object),
-        expect.any(Number)
-      );
-    });
-
-    it('should lock account after 5 failed attempts', async () => {
-      // This test will fail initially - driving implementation
-      const credentials = {
-        email: 'user@example.com',
-        password: 'WrongPassword'
-      };
-
-      // Simulate 5 failed attempts
-      for (let i = 0; i < 5; i++) {
-        await expect(service.login(credentials))
-          .rejects.toThrow('Invalid credentials');
-      }
-
-      // 6th attempt should indicate locked account
+  it('should handle login with multiple failed attempts', async () => {
+    // Simulate 5 failed attempts
+    const credentials = { email: 'user@example.com', password: 'wrong' };
+    for (let i = 0; i < 5; i++) {
       await expect(service.login(credentials))
-        .rejects.toThrow('Account locked due to multiple failed attempts');
-    });
+        .rejects.toThrow('Invalid credentials');
+    }
+
+    // 6th attempt should lock account
+    await expect(service.login(credentials))
+      .rejects.toThrow('Account locked');
   });
 });
 ```
 
-### 2. Green Phase - Make Tests Pass
+### 2. Green Phase: Make Tests Pass
 
 ```typescript
-// Step 2: Implement minimum code to pass tests
-export class AuthenticationService {
+class AuthenticationService {
+  private MAX_ATTEMPTS = 5;
   private failedAttempts = new Map<string, number>();
-  private readonly MAX_ATTEMPTS = 5;
-  private readonly LOCK_DURATION = 15 * 60 * 1000; // 15 minutes
 
-  constructor(
-    private userRepo: UserRepository,
-    private cache: CacheService,
-    private logger: Logger
-  ) {}
-
-  async login(credentials: LoginDto): Promise<LoginResult> {
-    const { email, password } = credentials;
-
-    // Check if account is locked
+  async login(credentials) {
+    const { email } = credentials;
     const attempts = this.failedAttempts.get(email) || 0;
+
     if (attempts >= this.MAX_ATTEMPTS) {
-      throw new AccountLockedException(
-        'Account locked due to multiple failed attempts'
-      );
+      throw new AccountLockedException('Account locked');
     }
 
-    // Find user
-    const user = await this.userRepo.findByEmail(email);
-    if (!user) {
+    try {
+      // Authentication logic
+      await this.validateCredentials(credentials);
+      this.clearFailedAttempts(email);
+    } catch (error) {
       this.recordFailedAttempt(email);
-      throw new UnauthorizedException('Invalid credentials');
+      throw error;
     }
-
-    // Verify password
-    const isValidPassword = await this.verifyPassword(
-      password,
-      user.passwordHash
-    );
-    if (!isValidPassword) {
-      this.recordFailedAttempt(email);
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Clear failed attempts on successful login
-    this.failedAttempts.delete(email);
-
-    // Generate token and create session
-    const token = this.generateToken(user);
-    const session = {
-      userId: user.id,
-      email: user.email,
-      createdAt: new Date()
-    };
-
-    await this.cache.set(
-      `session:${token}`,
-      session,
-      this.SESSION_DURATION
-    );
-
-    return {
-      user: this.sanitizeUser(user),
-      token
-    };
   }
 
-  private recordFailedAttempt(email: string): void {
+  private recordFailedAttempt(email: string) {
     const current = this.failedAttempts.get(email) || 0;
     this.failedAttempts.set(email, current + 1);
-    
-    this.logger.warn('Failed login attempt', {
-      email,
-      attempts: current + 1
-    });
+  }
+
+  private clearFailedAttempts(email: string) {
+    this.failedAttempts.delete(email);
   }
 }
 ```
 
-### 3. Refactor Phase - Improve Code Quality
+### 3. Refactor Phase: Optimize Code
 
 ```typescript
-// Step 3: Refactor while keeping tests green
-export class AuthenticationService {
+class AuthenticationService {
   constructor(
     private userRepo: UserRepository,
     private cache: CacheService,
-    private logger: Logger,
     private config: AuthConfig,
     private eventBus: EventBus
   ) {}
 
-  async login(credentials: LoginDto): Promise<LoginResult> {
-    // Extract validation to separate method
+  async login(credentials) {
     await this.validateLoginAttempt(credentials.email);
 
     try {
       const user = await this.authenticateUser(credentials);
       const session = await this.createSession(user);
-      
-      // Emit event for other services
+
       await this.eventBus.emit('user.logged_in', {
         userId: user.id,
         timestamp: new Date()
       });
 
-      return {
-        user: this.sanitizeUser(user),
-        token: session.token,
-        expiresAt: session.expiresAt
-      };
+      return { user, token: session.token };
     } catch (error) {
       await this.handleLoginFailure(credentials.email, error);
       throw error;
     }
   }
 
-  private async validateLoginAttempt(email: string): Promise<void> {
+  private async validateLoginAttempt(email: string) {
     const lockInfo = await this.cache.get(`lock:${email}`);
     if (lockInfo) {
-      const remainingTime = this.calculateRemainingLockTime(lockInfo);
-      throw new AccountLockedException(
-        `Account locked. Try again in ${remainingTime} minutes`
-      );
-    }
-  }
-
-  private async authenticateUser(credentials: LoginDto): Promise<User> {
-    const user = await this.userRepo.findByEmail(credentials.email);
-    if (!user || !await this.verifyPassword(credentials.password, user.passwordHash)) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    return user;
-  }
-
-  private async handleLoginFailure(email: string, error: Error): Promise<void> {
-    if (error instanceof UnauthorizedException) {
-      const attempts = await this.incrementFailedAttempts(email);
-      
-      if (attempts >= this.config.maxLoginAttempts) {
-        await this.lockAccount(email);
-      }
+      throw new AccountLockedException('Account locked');
     }
   }
 }
 ```
 
-## Performance Refinement
-
-### 1. Identify Bottlenecks
+## Performance Optimization
 
 ```typescript
-// Performance test to identify slow operations
-describe('Performance', () => {
-  it('should handle 1000 concurrent login requests', async () => {
-    const startTime = performance.now();
-    
-    const promises = Array(1000).fill(null).map((_, i) => 
-      service.login({
-        email: `user${i}@example.com`,
-        password: 'password'
-      }).catch(() => {}) // Ignore errors for perf test
-    );
-
-    await Promise.all(promises);
-    
-    const duration = performance.now() - startTime;
-    expect(duration).toBeLessThan(5000); // Should complete in 5 seconds
-  });
-});
-```
-
-### 2. Optimize Hot Paths
-
-```typescript
-// Before: N database queries
-async function getUserPermissions(userId: string): Promise<string[]> {
-  const user = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
-  const roles = await db.query('SELECT * FROM user_roles WHERE user_id = ?', [userId]);
-  const permissions = [];
-  
-  for (const role of roles) {
-    const perms = await db.query('SELECT * FROM role_permissions WHERE role_id = ?', [role.id]);
-    permissions.push(...perms);
-  }
-  
-  return permissions;
-}
-
-// After: Single optimized query with caching
-async function getUserPermissions(userId: string): Promise<string[]> {
-  // Check cache first
+// Optimized query with caching
+async function getUserPermissions(userId) {
   const cached = await cache.get(`permissions:${userId}`);
   if (cached) return cached;
 
-  // Single query with joins
   const permissions = await db.query(`
     SELECT DISTINCT p.name
     FROM users u
@@ -559,218 +187,15 @@ async function getUserPermissions(userId: string): Promise<string[]> {
     WHERE u.id = ?
   `, [userId]);
 
-  // Cache for 5 minutes
   await cache.set(`permissions:${userId}`, permissions, 300);
-  
   return permissions;
 }
 ```
 
-## Error Handling Refinement
+## Success Metrics
 
-### 1. Comprehensive Error Handling
-
-```typescript
-// Define custom error hierarchy
-export class AppError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public statusCode: number,
-    public isOperational = true
-  ) {
-    super(message);
-    Object.setPrototypeOf(this, new.target.prototype);
-    Error.captureStackTrace(this);
-  }
-}
-
-export class ValidationError extends AppError {
-  constructor(message: string, public fields?: Record<string, string>) {
-    super(message, 'VALIDATION_ERROR', 400);
-  }
-}
-
-export class AuthenticationError extends AppError {
-  constructor(message: string = 'Authentication required') {
-    super(message, 'AUTHENTICATION_ERROR', 401);
-  }
-}
-
-// Global error handler
-export function errorHandler(
-  error: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
-  if (error instanceof AppError && error.isOperational) {
-    res.status(error.statusCode).json({
-      error: {
-        code: error.code,
-        message: error.message,
-        ...(error instanceof ValidationError && { fields: error.fields })
-      }
-    });
-  } else {
-    // Unexpected errors
-    logger.error('Unhandled error', { error, request: req });
-    res.status(500).json({
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'An unexpected error occurred'
-      }
-    });
-  }
-}
-```
-
-### 2. Retry Logic and Circuit Breakers
-
-```typescript
-// Retry decorator for transient failures
-function retry(attempts = 3, delay = 1000) {
-  return function(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const originalMethod = descriptor.value;
-
-    descriptor.value = async function(...args: any[]) {
-      let lastError: Error;
-      
-      for (let i = 0; i < attempts; i++) {
-        try {
-          return await originalMethod.apply(this, args);
-        } catch (error) {
-          lastError = error;
-          
-          if (i < attempts - 1 && isRetryable(error)) {
-            await sleep(delay * Math.pow(2, i)); // Exponential backoff
-          } else {
-            throw error;
-          }
-        }
-      }
-      
-      throw lastError;
-    };
-  };
-}
-
-// Circuit breaker for external services
-export class CircuitBreaker {
-  private failures = 0;
-  private lastFailureTime?: Date;
-  private state: 'CLOSED' | 'OPEN' | 'HALF_OPEN' = 'CLOSED';
-
-  constructor(
-    private threshold = 5,
-    private timeout = 60000 // 1 minute
-  ) {}
-
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state === 'OPEN') {
-      if (this.shouldAttemptReset()) {
-        this.state = 'HALF_OPEN';
-      } else {
-        throw new Error('Circuit breaker is OPEN');
-      }
-    }
-
-    try {
-      const result = await operation();
-      this.onSuccess();
-      return result;
-    } catch (error) {
-      this.onFailure();
-      throw error;
-    }
-  }
-
-  private onSuccess(): void {
-    this.failures = 0;
-    this.state = 'CLOSED';
-  }
-
-  private onFailure(): void {
-    this.failures++;
-    this.lastFailureTime = new Date();
-    
-    if (this.failures >= this.threshold) {
-      this.state = 'OPEN';
-    }
-  }
-
-  private shouldAttemptReset(): boolean {
-    return this.lastFailureTime 
-      && (Date.now() - this.lastFailureTime.getTime()) > this.timeout;
-  }
-}
-```
-
-## Quality Metrics
-
-### 1. Code Coverage
-```bash
-# Jest configuration for coverage
-module.exports = {
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80
-    }
-  },
-  coveragePathIgnorePatterns: [
-    '/node_modules/',
-    '/test/',
-    '/dist/'
-  ]
-};
-```
-
-### 2. Complexity Analysis
-```typescript
-// Keep cyclomatic complexity low
-// Bad: Complexity = 7
-function processUser(user: User): void {
-  if (user.age > 18) {
-    if (user.country === 'US') {
-      if (user.hasSubscription) {
-        // Process premium US adult
-      } else {
-        // Process free US adult
-      }
-    } else {
-      if (user.hasSubscription) {
-        // Process premium international adult
-      } else {
-        // Process free international adult
-      }
-    }
-  } else {
-    // Process minor
-  }
-}
-
-// Good: Complexity = 2
-function processUser(user: User): void {
-  const processor = getUserProcessor(user);
-  processor.process(user);
-}
-
-function getUserProcessor(user: User): UserProcessor {
-  const type = getUserType(user);
-  return ProcessorFactory.create(type);
-}
-```
-
-## Best Practices
-
-1. **Test First**: Always write tests before implementation
-2. **Small Steps**: Make incremental improvements
-3. **Continuous Refactoring**: Improve code structure continuously
-4. **Performance Budgets**: Set and monitor performance targets
-5. **Error Recovery**: Plan for failure scenarios
-6. **Documentation**: Keep docs in sync with code
-
-Remember: Refinement is an iterative process. Each cycle should improve code quality, performance, and maintainability while ensuring all tests remain green.
+- ✅ Tests cover critical paths
+- ✅ Performance improved
+- ✅ Code complexity reduced
+- ✅ Error handling robust
+- ✅ Documentation clear

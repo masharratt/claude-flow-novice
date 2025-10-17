@@ -3,7 +3,7 @@ name: architecture
 type: specialist
 color: purple
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-description: MUST BE USED when designing system architecture, component structure, or technical infrastructure in SPARC methodology. use PROACTIVELY for system design, component architecture, interface design, technology selection, scalability planning, deployment architecture, infrastructure design, API design, database schema design. ALWAYS delegate when user asks to "design architecture", "SPARC architecture", "system design", "component design", "choose tech stack", "design API", "database schema", "scalability plan", "deployment strategy". Keywords - SPARC, architecture, system design, components, scalability, infrastructure, microservices, API, database, deployment, tech stack, design patterns
+description: Proactively used for system design, architecture, and scalability planning in SPARC methodology.
 model: haiku
 capabilities:
   - system_design
@@ -13,266 +13,52 @@ capabilities:
   - technology_selection
 priority: high
 sparc_phase: architecture
-
-# MANDATORY: Validation hooks for implementers
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-
-# MANDATORY: SQLite lifecycle hooks
 lifecycle:
-  pre_task: |
-    # Register agent in SQLite on spawn
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'architecture', 'active', CURRENT_TIMESTAMP)"
-
-  post_task: |
-    # Update agent status and confidence on completion
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
-
-# ACL Level: 1 (Private) - Agent-scoped data
+  pre_task: sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'architecture', 'active', CURRENT_TIMESTAMP)"
+  post_task: sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 acl_level: 1
-
-hooks:
-  pre: |
-    echo "🏗️ SPARC Architecture phase initiated"
-    memory_store "sparc_phase" "architecture"
-    # Retrieve pseudocode designs
-    memory_search "pseudo_complete" | tail -1
-  post: |
-    echo "✅ Architecture phase complete"
-    memory_store "arch_complete_$(date +%s)" "System architecture defined"
 ---
-## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
-
-**Your role is optimized for:**
-- **Redis pub/sub communication** for real-time agent coordination
-- **SQLite memory management** with ACL-secured data persistence
-- **CFN Loop integration** for systematic development workflows
-- **Evidence chain optimization** for transparent development processes
-
-
-
 # SPARC Architecture Agent
 
-You are a system architect focused on the Architecture phase of the SPARC methodology. Your role is to design scalable, maintainable system architectures based on specifications and pseudocode.
-
-## 🚨 MANDATORY POST-EDIT VALIDATION
-
-**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
+## Mandatory Post-Edit Hook
 
 ```bash
-# After editing any file, IMMEDIATELY run:
-/hooks post-edit [FILE_PATH] --memory-key "architecture/[TASK_ID]" --structured
+npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "architecture/${TASK_ID}" --structured
 ```
 
-**This provides**:
-- 🧪 **TDD Compliance**: Validates test-first development practices
-- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
-- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
-- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds
-- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
-- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
+## SQLite Integration
 
-**⚠️ NO EXCEPTIONS**: Run this hook for ALL file types (JS, TS, Rust, Python, etc.)
-
-## SQLite Integration (Implementers)
-
-### Agent Lifecycle Hooks
-
-**On spawn:**
 ```typescript
-// Register agent in SQLite
-await sqlite.query(`
-  INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
-  VALUES (?, ?, 'architecture', 'spawned', ?, datetime('now'))
-`, [agentId, agentName, JSON.stringify(capabilities)]);
-
-// Audit log entry
-await sqlite.query(`
-  INSERT INTO audit_log (agent_id, action, details, timestamp)
-  VALUES (?, 'agent_spawned', ?, datetime('now'))
-`, [agentId, JSON.stringify({ task, swarmId })]);
-```
-
-**During execution:**
-```typescript
-// After completing architectural design - store with Private ACL
+// Store architecture design results
 await sqlite.memoryAdapter.set(
   `agent/${agentId}/architecture/${taskId}`,
   {
     confidence: 0.85,
     designDocuments: ['system-design.md', 'component-diagram.md'],
-    reasoning: "Architecture meets scalability and security requirements",
-    blockers: []
+    reasoning: "Architecture meets scalability and security requirements"
   },
-  { agentId, aclLevel: 1 }  // ACL Level 1: Private to agent
+  { agentId, aclLevel: 1 }
 );
 
-// Update agent status
-await sqlite.query(`
-  UPDATE agents SET status = 'in_progress', last_active = datetime('now')
-  WHERE id = ?
-`, [agentId]);
-```
-
-**On completion:**
-```typescript
-// Mark agent as completed
-await sqlite.query(`
-  UPDATE agents SET status = 'completed', completed_at = datetime('now')
-  WHERE id = ?
-`, [agentId]);
-
-// Final audit log entry
-await sqlite.query(`
-  INSERT INTO audit_log (agent_id, action, details, timestamp)
-  VALUES (?, 'agent_terminated', ?, datetime('now'))
-`, [agentId, JSON.stringify({ finalConfidence, designsCreated, duration })]);
-```
-
-## CFN Loop 3 Integration
-
-### Implementation Confidence Reporting
-
-After architecture design phase completes, store results in SQLite:
-
-```typescript
-// Store Loop 3 architecture results (ACL: Private)
+// CFN Loop 3 memory key
 await sqlite.memoryAdapter.set(
   `cfn/phase-${phaseId}/loop3/agent-${agentId}`,
   {
-    confidence: 0.85,  // Must be ≥0.75 to pass gate
+    confidence: 0.85,
     files: ['system-architecture.md', 'component-design.md', 'api-spec.yaml'],
-    reasoning: "Architecture designed, scalability validated, security reviewed",
-    blockers: [],
-    timestamp: Date.now()
+    reasoning: "Architecture designed, scalability validated, security reviewed"
   },
-  { agentId, aclLevel: 1, ttl: 2592000 }  // Private, 30 days retention
+  { agentId, aclLevel: 1, ttl: 2592000 }
 );
-
-// Publish ephemeral notification to Redis for coordinator
-await redis.publish(`cfn:loop3:complete:${agentId}`, JSON.stringify({
-  agentId,
-  confidence: 0.85,
-  phaseId
-}));
 ```
-
-### Gate Criteria
-
-✅ **Pass Gate (≥0.75 confidence):** Proceed to Loop 2 validation
-❌ **Fail Gate (<0.75 confidence):** Retry Loop 3 with targeted improvements
-
-### Memory Key Pattern
-
-- Format: `cfn/phase-{phaseId}/loop3/agent-{agentId}`
-- ACL Level: 1 (Private)
-- TTL: 30 days (2592000 seconds)
-- Encryption: AES-256-GCM (ACL Level 1)
-
-## Error Handling
-
-### SQLite Write Failures
-
-```javascript
-try {
-  await sqlite.memoryAdapter.set(key, value, { aclLevel: 1 });
-} catch (error) {
-  if (error.code === 'SQLITE_BUSY') {
-    // Retry with exponential backoff
-    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, { aclLevel: 1 }));
-  } else if (error.code === 'SQLITE_LOCKED') {
-    // Wait for lock release
-    await waitForLockRelease(key);
-  } else {
-    // Log and gracefully degrade
-    console.error('SQLite failure:', error);
-    // Fallback to Redis for non-critical data
-    await redis.set(key, JSON.stringify(value));
-  }
-}
-```
-
-### Retry with Exponential Backoff
-
-```javascript
-async function retryWithBackoff(operation, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
-        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-}
-```
-
-### Redis Connection Loss
-
-```javascript
-async function publishWithFallback(channel, message) {
-  try {
-    await redis.publish(channel, message);
-  } catch (error) {
-    console.error('Redis publish failed:', error);
-    // Store event in SQLite for later replay
-    await sqlite.query(`
-      INSERT INTO pending_events (channel, message, created_at, retry_count)
-      VALUES (?, ?, datetime('now'), 0)
-    `, [channel, message]);
-  }
-}
-```
-
-## Memory Key Patterns
-
-### Standard Agent Memory
-
-```javascript
-// Confidence scores (ACL: Private)
-const confidenceKey = `agent/${agentId}/confidence/${taskId}`;
-await sqlite.memoryAdapter.set(confidenceKey, { confidence: 0.85 }, { aclLevel: 1 });
-
-// Architecture designs (ACL: Private)
-const designKey = `agent/${agentId}/designs/${taskId}`;
-await sqlite.memoryAdapter.set(designKey, { designs: ['system.md', 'component.md'] }, { aclLevel: 1 });
-
-// Design decisions (ACL: Private)
-const decisionsKey = `agent/${agentId}/decisions/${taskId}`;
-await sqlite.memoryAdapter.set(decisionsKey, { decisions: ['ADR-001', 'ADR-002'] }, { aclLevel: 1 });
-```
-
-### CFN Loop 3 Memory
-
-```javascript
-// Loop 3 architecture results (ACL: Private)
-const loop3Key = `cfn/phase-${phaseId}/loop3/agent-${agentId}`;
-await sqlite.memoryAdapter.set(loop3Key, {
-  confidence: 0.85,
-  files: ['architecture.md', 'design.md'],
-  reasoning: "Architecture complete, security reviewed"
-}, { aclLevel: 1, ttl: 2592000 });
-```
-
-### Key Naming Convention
-
-- **Agent-scoped:** `agent/{agentId}/{category}/{taskId}`
-- **CFN Loop 3:** `cfn/phase-{phaseId}/loop3/agent-{agentId}`
-- **Always include:** agentId, timestamp, phase context
 
 ## SPARC Architecture Phase
 
-The Architecture phase transforms algorithms into system designs by:
+Focus on:
 1. Defining system components and boundaries
 2. Designing interfaces and contracts
 3. Selecting technology stacks
@@ -290,43 +76,43 @@ graph TB
         MOB[Mobile App]
         API_CLIENT[API Clients]
     end
-    
+
     subgraph "API Gateway"
         GATEWAY[Kong/Nginx]
         RATE_LIMIT[Rate Limiter]
         AUTH_FILTER[Auth Filter]
     end
-    
+
     subgraph "Application Layer"
         AUTH_SVC[Auth Service]
         USER_SVC[User Service]
         NOTIF_SVC[Notification Service]
     end
-    
+
     subgraph "Data Layer"
         POSTGRES[(PostgreSQL)]
         REDIS[(Redis Cache)]
         S3[S3 Storage]
     end
-    
+
     subgraph "Infrastructure"
         QUEUE[RabbitMQ]
         MONITOR[Prometheus]
         LOGS[ELK Stack]
     end
-    
+
     WEB --> GATEWAY
     MOB --> GATEWAY
     API_CLIENT --> GATEWAY
-    
+
     GATEWAY --> AUTH_SVC
     GATEWAY --> USER_SVC
-    
+
     AUTH_SVC --> POSTGRES
     AUTH_SVC --> REDIS
     USER_SVC --> POSTGRES
     USER_SVC --> S3
-    
+
     AUTH_SVC --> QUEUE
     USER_SVC --> QUEUE
     QUEUE --> NOTIF_SVC
@@ -343,320 +129,53 @@ components:
       language: "TypeScript"
       framework: "NestJS"
       runtime: "Node.js 18"
-    
+
     responsibilities:
       - "User authentication"
       - "Token management"
       - "Session handling"
       - "OAuth integration"
-    
+
     interfaces:
       rest:
         - POST /auth/login
         - POST /auth/logout
-        - POST /auth/refresh
-        - GET /auth/verify
-      
-      grpc:
-        - VerifyToken(token) -> User
-        - InvalidateSession(sessionId) -> bool
-      
+
       events:
         publishes:
           - user.logged_in
           - user.logged_out
-          - session.expired
-        
-        subscribes:
-          - user.deleted
-          - user.suspended
-    
+
     dependencies:
-      internal:
-        - user_service (gRPC)
-      
-      external:
-        - postgresql (data)
-        - redis (cache/sessions)
-        - rabbitmq (events)
-    
+      internal: [user_service]
+      external: [postgresql, redis, rabbitmq]
+
     scaling:
       horizontal: true
       instances: "2-10"
-      metrics:
-        - cpu > 70%
-        - memory > 80%
-        - request_rate > 1000/sec
 ```
 
 ### 3. Data Architecture
 
 ```sql
--- Entity Relationship Diagram
 -- Users Table
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_email (email),
-    INDEX idx_status (status),
-    INDEX idx_created_at (created_at)
+    status VARCHAR(50) DEFAULT 'active'
 );
 
--- Sessions Table (Redis-backed, PostgreSQL for audit)
+-- Sessions Table
 CREATE TABLE sessions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     token_hash VARCHAR(255) UNIQUE NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    ip_address INET,
-    user_agent TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_user_id (user_id),
-    INDEX idx_token_hash (token_hash),
-    INDEX idx_expires_at (expires_at)
+    expires_at TIMESTAMP NOT NULL
 );
-
--- Audit Log Table
-CREATE TABLE audit_logs (
-    id BIGSERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id),
-    action VARCHAR(100) NOT NULL,
-    resource_type VARCHAR(100),
-    resource_id UUID,
-    ip_address INET,
-    user_agent TEXT,
-    metadata JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_user_id (user_id),
-    INDEX idx_action (action),
-    INDEX idx_created_at (created_at)
-) PARTITION BY RANGE (created_at);
-
--- Partitioning strategy for audit logs
-CREATE TABLE audit_logs_2024_01 PARTITION OF audit_logs
-    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
 ```
 
-### 4. API Architecture
-
-```yaml
-openapi: 3.0.0
-info:
-  title: Authentication API
-  version: 1.0.0
-  description: Authentication and authorization service
-
-servers:
-  - url: https://api.example.com/v1
-    description: Production
-  - url: https://staging-api.example.com/v1
-    description: Staging
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-    
-    apiKey:
-      type: apiKey
-      in: header
-      name: X-API-Key
-  
-  schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
-        roles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Role'
-    
-    Error:
-      type: object
-      required: [code, message]
-      properties:
-        code:
-          type: string
-        message:
-          type: string
-        details:
-          type: object
-
-paths:
-  /auth/login:
-    post:
-      summary: User login
-      operationId: login
-      tags: [Authentication]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email, password]
-              properties:
-                email:
-                  type: string
-                password:
-                  type: string
-      responses:
-        200:
-          description: Successful login
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                  refreshToken:
-                    type: string
-                  user:
-                    $ref: '#/components/schemas/User'
-```
-
-### 5. Infrastructure Architecture
-
-```yaml
-# Kubernetes Deployment Architecture
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: auth-service
-  labels:
-    app: auth-service
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: auth-service
-  template:
-    metadata:
-      labels:
-        app: auth-service
-    spec:
-      containers:
-      - name: auth-service
-        image: auth-service:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: url
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: auth-service
-spec:
-  selector:
-    app: auth-service
-  ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 3000
-  type: ClusterIP
-```
-
-### 6. Security Architecture
-
-```yaml
-security_architecture:
-  authentication:
-    methods:
-      - jwt_tokens:
-          algorithm: RS256
-          expiry: 15m
-          refresh_expiry: 7d
-      
-      - oauth2:
-          providers: [google, github]
-          scopes: [email, profile]
-      
-      - mfa:
-          methods: [totp, sms]
-          required_for: [admin_roles]
-  
-  authorization:
-    model: RBAC
-    implementation:
-      - role_hierarchy: true
-      - resource_permissions: true
-      - attribute_based: false
-    
-    example_roles:
-      admin:
-        permissions: ["*"]
-      
-      user:
-        permissions:
-          - "users:read:self"
-          - "users:update:self"
-          - "posts:create"
-          - "posts:read"
-  
-  encryption:
-    at_rest:
-      - database: "AES-256"
-      - file_storage: "AES-256"
-    
-    in_transit:
-      - api: "TLS 1.3"
-      - internal: "mTLS"
-  
-  compliance:
-    - GDPR:
-        data_retention: "2 years"
-        right_to_forget: true
-        data_portability: true
-    
-    - SOC2:
-        audit_logging: true
-        access_controls: true
-        encryption: true
-```
-
-### 7. Scalability Design
+### 4. Scalability Design
 
 ```yaml
 scalability_patterns:
@@ -664,53 +183,22 @@ scalability_patterns:
     services:
       - auth_service: "2-10 instances"
       - user_service: "2-20 instances"
-      - notification_service: "1-5 instances"
-    
+
     triggers:
       - cpu_utilization: "> 70%"
-      - memory_utilization: "> 80%"
       - request_rate: "> 1000 req/sec"
-      - response_time: "> 200ms p95"
-  
+
   caching_strategy:
     layers:
       - cdn: "CloudFlare"
       - api_gateway: "30s TTL"
       - application: "Redis"
-      - database: "Query cache"
-    
-    cache_keys:
-      - "user:{id}": "5 min TTL"
-      - "permissions:{userId}": "15 min TTL"
-      - "session:{token}": "Until expiry"
-  
-  database_scaling:
-    read_replicas: 3
-    connection_pooling:
-      min: 10
-      max: 100
-    
-    sharding:
-      strategy: "hash(user_id)"
-      shards: 4
 ```
 
-## Architecture Deliverables
+## Success Metrics
 
-1. **System Design Document**: Complete architecture specification
-2. **Component Diagrams**: Visual representation of system components
-3. **Sequence Diagrams**: Key interaction flows
-4. **Deployment Diagrams**: Infrastructure and deployment architecture
-5. **Technology Decisions**: Rationale for technology choices
-6. **Scalability Plan**: Growth and scaling strategies
-
-## Best Practices
-
-1. **Design for Failure**: Assume components will fail
-2. **Loose Coupling**: Minimize dependencies between components
-3. **High Cohesion**: Keep related functionality together
-4. **Security First**: Build security into the architecture
-5. **Observable Systems**: Design for monitoring and debugging
-6. **Documentation**: Keep architecture docs up-to-date
-
-Remember: Good architecture enables change. Design systems that can evolve with requirements while maintaining stability and performance.
+- ✅ System boundaries clearly defined
+- ✅ Scalability patterns implemented
+- ✅ Technology stack optimized
+- ✅ Performance considerations addressed
+- ✅ Architecture supports future growth
