@@ -2,41 +2,17 @@
 
 /**
  * Post-installation script for claude-flow-novice
- * Copies .claude directory from node_modules to project root
- * Preserves existing custom files unless CLAUDE_FORCE_UPDATE=true
+ * Copies .claude directory from package to project root
+ * Overwrites existing files to ensure updates work correctly
  */
 
-import { existsSync, mkdirSync, cpSync, readdirSync, statSync, copyFileSync } from 'fs';
-import { dirname, join, relative } from 'path';
+import { existsSync, cpSync } from 'fs';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-/**
- * Simple recursive copy - overwrites existing files
- */
-function simpleCopy(source, target) {
-  if (!existsSync(source)) return;
-
-  const stat = statSync(source);
-
-  if (stat.isDirectory()) {
-    // Create directory if it doesn't exist
-    if (!existsSync(target)) {
-      mkdirSync(target, { recursive: true });
-    }
-
-    // Copy contents
-    const entries = readdirSync(source);
-    for (const entry of entries) {
-      simpleCopy(join(source, entry), join(target, entry));
-    }
-  } else {
-    // File - always overwrite
-    copyFileSync(source, target);
-  }
-}
 
 /**
  * Copy .claude directory from node_modules to project root
@@ -65,8 +41,8 @@ function copyClaudeDirectory() {
       process.exit(1);
     }
 
-    // Simple copy - always overwrite
-    simpleCopy(sourceDir, targetDir);
+    // Copy entire directory, overwriting existing files
+    cpSync(sourceDir, targetDir, { recursive: true, force: true });
 
     console.log('✅ Successfully installed .claude directory');
     console.log('📁 Location:', targetDir);
