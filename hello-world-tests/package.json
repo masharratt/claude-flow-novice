@@ -1,0 +1,38 @@
+{
+  "name": "hello-world-tests",
+  "version": "1.0.0",
+  "description": "Simple hello-world function with comprehensive tests",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "test:unit": "jest tests/unit --coverage",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "jest tests/e2e",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@testing-library/jest-dom": "^6.1.5",
+    "supertest": "^6.3.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js",
+      "!src/**/*.spec.js"
+    ],
+    "coverageReporters": ["text", "lcov", "html"],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "testMatch": ["**/__tests__/**/*.test.js", "**/?(*.)+(spec|test).js"]
+  }
+}

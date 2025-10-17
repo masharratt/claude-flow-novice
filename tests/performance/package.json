@@ -1,0 +1,13 @@
+{
+  "name": "websocket-stress-test",
+  "version": "1.0.0",
+  "description": "WebSocket Scalability Stress Test",
+  "main": "stress-test-websocket.js",
+  "dependencies": {
+    "ioredis": "^5.3.2",
+    "ws": "^8.14.2"
+  },
+  "scripts": {
+    "test": "node stress-test-websocket.js"
+  }
+}
