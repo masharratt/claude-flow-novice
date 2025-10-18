@@ -105,8 +105,18 @@ allowed-tools: [Bash, Read, Write]
 
 ## Pattern Selection
 
-### Hierarchical (3+ agents, coordinator required)
-**Use when:** 1:Many dependencies (A → B,C,D)
+### Pattern 1: Simple Chain (2 agents)
+**Use when:** Sequential dependencies (A → B)
+
+**Pattern:**
+```bash
+# Agent A completes, Agent B waits
+redis-cli lpush "swarm:task:agentA:done" '{"data":"..."}'
+result=$(timeout 300 redis-cli --csv blpop "swarm:task:agentA:done" 0)
+```
+
+### Pattern 2: Hierarchical Broadcast (3+ agents, 1:Many)
+**Use when:** One agent's output feeds multiple downstream agents
 
 **Pattern:**
 ```bash
@@ -116,15 +126,64 @@ redis-cli lpush "swarm:task:analyzer:inbox" "$data"
 redis-cli lpush "swarm:task:architect:inbox" "$data"
 ```
 
-### Mesh (2-5 agents, peer-to-peer)
-**Use when:** Simple 1:1 or sequential chains
+### Pattern 3: Mesh Hybrid (2-5 agents, Many:1)
+**Use when:** Multiple agents complete independently, one aggregates
 
 **Pattern:**
 ```bash
-# Hybrid LPUSH+SET for 1:Many
+# Hybrid LPUSH+SET for multiple readers
 redis-cli lpush "swarm:task:agentA:done" '{"data":"..."}'  # First consumer
 redis-cli set "swarm:task:agentA:result" '{"data":"..."}'   # Additional readers
 redis-cli expire "swarm:task:agentA:result" 3600
+```
+
+### Pattern 4: Waiting Mode + Coordinator Wake-Up (NEW)
+**Use when:** CFN Loop iterations, incomplete work recovery, agent clarifications
+
+**Critical Benefits:**
+- **Zero token cost while waiting** (agents blocked in BLPOP, no API calls)
+- **Context preservation** (agents maintain ALL state across wake cycles)
+- **CFN Loop native** (10+ agents can cycle through iterations indefinitely)
+- **Instant wake-up** (<100ms latency)
+
+**Pattern:**
+```bash
+# Step 1: Agent enters waiting mode (infinite timeout)
+redis-cli lpush "swarm:task:agent-coder:ready" '{"status":"waiting","context":"iteration-1"}'
+wake_signal=$(redis-cli --csv blpop "swarm:task:agent-coder:wake" 0)
+# Agent maintains ALL context while blocked - NO token usage
+
+# Step 2: Coordinator wakes agent when needed
+redis-cli lpush "swarm:task:agent-coder:wake" '{
+  "reason": "cfn_loop_iteration",
+  "iteration": 2,
+  "feedback": ["Add error handling", "Increase coverage"]
+}'
+
+# Step 3: Agent processes, returns to waiting
+# Work done...
+redis-cli lpush "swarm:task:agent-coder:ready" '{"status":"waiting","context":"iteration-2"}'
+redis-cli --csv blpop "swarm:task:agent-coder:wake" 0  # Wait again
+```
+
+**CFN Loop Use Case:**
+```bash
+# Spawn 4 validators in waiting mode
+for i in {1..4}; do
+  Task("validator-$i", "Enter waiting mode, validate on wake", "reviewer")
+done
+
+# Iteration 1: consensus 0.78 < 0.90
+# Wake same validators for iteration 2 (context preserved!)
+for i in {1..4}; do
+  redis-cli lpush "swarm:cfn:validator-$i:wake" '{
+    "iteration": 2,
+    "previous_consensus": 0.78,
+    "feedback": "Improve validation criteria"
+  }'
+done
+
+# Iteration 2: consensus 0.92 >= 0.90 ✅ PROCEED
 ```
 
 ## Timeout Handling
@@ -152,6 +211,7 @@ Examples:
 - `examples/hierarchical-pattern.sh` (reusable coordinator template)
 - `examples/mesh-pattern.sh` (reusable peer-to-peer template)
 - `examples/timeout-handling.sh` (error recovery patterns)
+- `examples/waiting-mode-pattern.sh` (CFN Loop + wake-up demonstrations)
 
 ---
 
@@ -589,7 +649,8 @@ cat test-results.json
 │   └── examples/
 │       ├── hierarchical-pattern.sh
 │       ├── mesh-pattern.sh
-│       └── timeout-handling.sh
+│       ├── timeout-handling.sh
+│       └── waiting-mode-pattern.sh
 ├── cfn-loop-validation/
 │   ├── SKILL.md
 │   ├── consensus-calculator.js

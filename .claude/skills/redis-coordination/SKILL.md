@@ -272,16 +272,123 @@ redis-cli --csv blpop "swarm:task:coordinator:error" 0
 
 ---
 
+## Pattern 4: Waiting Mode + Coordinator Wake-Up
+
+**Use Case:** Agents enter waiting mode, coordinator/peers can wake them for clarifications, fixes, or CFN Loop iterations.
+
+**Critical for:**
+- CFN Loop iterations (agents maintain context across cycles)
+- Incomplete work recovery (coordinator wakes agents to fix issues)
+- Agent-to-agent clarifications (peer agents wake each other)
+- Context preservation (10 agents cycle through iterations without losing state)
+
+**Redis Pattern:**
+```bash
+# Step 1: Agents spawn and immediately enter waiting mode
+# Agent enters BLPOP waiting state (blocks indefinitely with 0 timeout)
+echo "Agent entering waiting mode..."
+redis-cli lpush "swarm:task:agent-coder:ready" '{"status":"waiting","context":"iteration-1"}'
+
+# Agent blocks on wake-up channel (infinite timeout = 0)
+wake_signal=$(redis-cli --csv blpop "swarm:task:agent-coder:wake" 0)
+# Agent maintains ALL context while blocked - NO token usage during wait
+
+# Step 2: Coordinator/peer wakes agent when needed
+# Example 1: Incomplete work detected
+redis-cli lpush "swarm:task:agent-coder:wake" '{
+  "reason": "incomplete_work",
+  "issues": ["Missing test coverage", "Type errors in auth.ts"],
+  "iteration": 2
+}'
+
+# Example 2: Clarifying question from peer
+redis-cli lpush "swarm:task:agent-coder:wake" '{
+  "reason": "clarification",
+  "from_agent": "reviewer",
+  "question": "Should we use JWT or session cookies?"
+}'
+
+# Example 3: CFN Loop next iteration
+redis-cli lpush "swarm:task:agent-coder:wake" '{
+  "reason": "cfn_loop_iteration",
+  "iteration": 3,
+  "previous_consensus": 0.78,
+  "target_consensus": 0.90,
+  "feedback": ["Improve error handling", "Add integration tests"]
+}'
+
+# Step 3: Agent wakes up, processes signal, does work, returns to waiting
+echo "Agent woke up: $wake_signal"
+# Process wake-up reason and do work...
+
+# Return to waiting mode for next iteration
+redis-cli lpush "swarm:task:agent-coder:ready" '{"status":"waiting","context":"iteration-2"}'
+redis-cli --csv blpop "swarm:task:agent-coder:wake" 0  # Wait again
+```
+
+**CFN Loop Example (10 Agents Cycling):**
+```bash
+# Coordinator spawns 10 agents, all enter waiting mode immediately
+for i in {1..10}; do
+  Task("agent-$i", "Enter waiting mode on swarm:cfn:agent-$i:wake", "coder")
+done
+
+# CFN Loop Iteration 1
+# Coordinator wakes 4 validators
+for i in {1..4}; do
+  redis-cli lpush "swarm:cfn:agent-$i:wake" '{
+    "iteration": 1,
+    "task": "validate_implementation",
+    "context": "auth-system"
+  }'
+done
+
+# Validators report back, return to waiting
+# Consensus: 0.78 < 0.90 (threshold)
+
+# CFN Loop Iteration 2 - Wake same agents (context preserved!)
+for i in {1..4}; do
+  redis-cli lpush "swarm:cfn:agent-$i:wake" '{
+    "iteration": 2,
+    "feedback": ["Previous iteration: 0.78", "Fix: Add error handling"],
+    "context": "auth-system"  # Agents remember previous iteration
+  }'
+done
+
+# Consensus: 0.92 >= 0.90 ✅ PROCEED
+```
+
+**When to Use:**
+- **CFN Loop:** Multiple iterations with same agents (context preservation)
+- **Incomplete Work:** Coordinator detects issues, wakes agents to fix
+- **Clarifications:** Agent needs input from peer, wakes peer for answer
+- **Long-Running Workflows:** Agents wait hours/days for external events
+
+**Benefits:**
+1. **Zero Token Cost During Wait:** Agents blocked in BLPOP consume no tokens
+2. **Context Preservation:** All agent state/memory maintained across wake cycles
+3. **Instant Wake-Up:** <100ms latency from wake signal to agent execution
+4. **Scalable:** 10+ agents can cycle through iterations indefinitely
+
+**Script:** See `examples/waiting-mode-pattern.sh`
+
+---
+
 ## Integration with CFN Loop
 
-Redis coordination enables CFN Loop consensus calculation:
+Redis coordination enables CFN Loop consensus calculation with agent context preservation:
 
 ```bash
-# Each validator reports confidence via Redis
-redis-cli lpush "swarm:cfn:validator-1:result" '{"confidence":0.85}'
-redis-cli lpush "swarm:cfn:validator-2:result" '{"confidence":0.90}'
-redis-cli lpush "swarm:cfn:validator-3:result" '{"confidence":0.78}'
-redis-cli lpush "swarm:cfn:validator-4:result" '{"confidence":0.92}'
+# Iteration 1: Spawn agents in waiting mode
+for i in {1..4}; do
+  Task("validator-$i", "Enter waiting mode, validate on wake", "reviewer")
+done
+
+# Each validator reports confidence via Redis after wake
+redis-cli lpush "swarm:cfn:validator-1:result" '{"confidence":0.85,"iteration":1}'
+redis-cli lpush "swarm:cfn:validator-2:result" '{"confidence":0.90,"iteration":1}'
+redis-cli lpush "swarm:cfn:validator-3:result" '{"confidence":0.78,"iteration":1}'
+redis-cli lpush "swarm:cfn:validator-4:result" '{"confidence":0.92,"iteration":1}'
 
 # Coordinator calculates consensus
 results=$(redis-cli lrange "swarm:cfn:validator-*:result" 0 -1)
@@ -292,7 +399,14 @@ if (( $(echo "$consensus >= 0.90" | bc -l) )); then
   echo "PROCEED: Consensus $consensus >= threshold 0.90"
 elif [ $iteration -lt $maxIterations ]; then
   echo "LOOP: Consensus $consensus < 0.90, iteration $iteration/$maxIterations"
-  # Relaunch agents immediately (no permission needed)
+  # Wake agents for next iteration (NO NEW SPAWN - context preserved)
+  for i in {1..4}; do
+    redis-cli lpush "swarm:cfn:validator-$i:wake" '{
+      "iteration": '$((iteration+1))',
+      "previous_consensus": '$consensus',
+      "feedback": "Improve validation criteria"
+    }'
+  done
 else
   echo "ESCALATE: Max iterations reached"
 fi

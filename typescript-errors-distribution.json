@@ -1,0 +1,5708 @@
+{
+  "summary": {
+    "total_files_with_errors": 618,
+    "total_errors": 6056,
+    "distributed_and_used": {
+      "files": 0,
+      "errors": 0
+    },
+    "distributed_but_unused": {
+      "files": 558,
+      "errors": 5235
+    },
+    "not_distributed": {
+      "files": 2,
+      "errors": 9
+    },
+    "deprecated": {
+      "files": 58,
+      "errors": 812
+    }
+  },
+  "categories": {
+    "distributed_and_used": [],
+    "distributed_but_unused": [
+      {
+        "file": "src/ci-cd/deployment-orchestrator.ts",
+        "errors": 71,
+        "errorCodes": [
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/neural/NeuralDomainMapper.ts",
+        "errors": 60,
+        "errorCodes": [
+          "TS6196",
+          "TS6133",
+          "TS2304",
+          "TS2345",
+          "TS2532",
+          "TS18048",
+          "TS2322",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/workflows/iterative-development-orchestrator.ts",
+        "errors": 52,
+        "errorCodes": [
+          "TS2835",
+          "TS2834",
+          "TS7006",
+          "TS2322",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/topology/enhanced-hierarchical-coordinator.ts",
+        "errors": 51,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2300",
+          "TS2416",
+          "TS2345",
+          "TS2353",
+          "TS18048",
+          "TS2339",
+          "TS2741",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/maestro/maestro-swarm-coordinator.ts",
+        "errors": 44,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS2783",
+          "TS2352",
+          "TS2532",
+          "TS2769",
+          "TS2538",
+          "TS2341",
+          "TS2554",
+          "TS2559",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/services/agentic-flow-hooks/memory-hooks.ts",
+        "errors": 44,
+        "errorCodes": [
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/cfn-loop-orchestrator.ts",
+        "errors": 41,
+        "errorCodes": [
+          "TS1484",
+          "TS6192",
+          "TS6196",
+          "TS6133",
+          "TS2322",
+          "TS2339",
+          "TS2554"
+        ]
+      },
+      {
+        "file": "src/communication/failure-recovery-system.ts",
+        "errors": 40,
+        "errorCodes": [
+          "TS6133",
+          "TS2724",
+          "TS1484",
+          "TS2769",
+          "TS2339",
+          "TS2353",
+          "TS2532",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/types/agent-lifecycle-types.ts",
+        "errors": 40,
+        "errorCodes": [
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/workflows/progressive-rollout-manager.ts",
+        "errors": 39,
+        "errorCodes": [
+          "TS6133",
+          "TS18048",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/api/swarm-api.ts",
+        "errors": 36,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2305",
+          "TS2307",
+          "TS6138",
+          "TS7030",
+          "TS2339",
+          "TS2554"
+        ]
+      },
+      {
+        "file": "src/topology/enhanced-mesh-coordinator.ts",
+        "errors": 35,
+        "errorCodes": [
+          "TS1484",
+          "TS2430",
+          "TS2416",
+          "TS6133",
+          "TS2300",
+          "TS2345",
+          "TS1117",
+          "TS2353",
+          "TS2532",
+          "TS18048",
+          "TS2322",
+          "TS2698",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/PerformanceMonitor.ts",
+        "errors": 34,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2322",
+          "TS2339",
+          "TS18047",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/providers/provider-manager.ts",
+        "errors": 34,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2339",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/hooks/useSwarmRealtimeData.ts",
+        "errors": 33,
+        "errorCodes": [
+          "TS2307",
+          "TS7006",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/testing-integration/chrome-mcp-integration.ts",
+        "errors": 33,
+        "errorCodes": [
+          "TS18048",
+          "TS2345",
+          "TS6133",
+          "TS2448",
+          "TS2454"
+        ]
+      },
+      {
+        "file": "src/topology/topology-manager.ts",
+        "errors": 33,
+        "errorCodes": [
+          "TS1484",
+          "TS2345",
+          "TS2353",
+          "TS2739",
+          "TS2532",
+          "TS2339",
+          "TS2322",
+          "TS2741",
+          "TS2740",
+          "TS6133",
+          "TS18046",
+          "TS18048",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/cli/commands/index.ts",
+        "errors": 32,
+        "errorCodes": [
+          "TS6133",
+          "TS6196",
+          "TS2307",
+          "TS2353",
+          "TS2532",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/communication/enhanced-event-bus.ts",
+        "errors": 32,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS4114",
+          "TS2416",
+          "TS2345",
+          "TS2532",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/coordination/task-delegation.ts",
+        "errors": 32,
+        "errorCodes": [
+          "TS6196",
+          "TS2345",
+          "TS18048",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/PipelineValidator.ts",
+        "errors": 31,
+        "errorCodes": [
+          "TS6133",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/integration/mock-components.ts",
+        "errors": 31,
+        "errorCodes": [
+          "TS18048",
+          "TS2538",
+          "TS6138",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/memory/sqlite-enhanced-backend.ts",
+        "errors": 31,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS2416",
+          "TS4114",
+          "TS2341"
+        ]
+      },
+      {
+        "file": "src/enterprise/analytics-manager.ts",
+        "errors": 30,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2532",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/services/agentic-flow-hooks/neural-hooks.ts",
+        "errors": 30,
+        "errorCodes": [
+          "TS6196",
+          "TS2345",
+          "TS6133",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/v1-transparency/v1-transparency-adapter.ts",
+        "errors": 29,
+        "errorCodes": [
+          "TS6133",
+          "TS2561",
+          "TS2322",
+          "TS2353",
+          "TS2393",
+          "TS2532",
+          "TS2339",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/config/storage/multi-tier-storage.ts",
+        "errors": 28,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/verification/conflict-resolver.ts",
+        "errors": 28,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2345",
+          "TS2532",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/config/core/intelligent-configuration-manager.ts",
+        "errors": 27,
+        "errorCodes": [
+          "TS1484",
+          "TS2393",
+          "TS2551",
+          "TS7006",
+          "TS2322",
+          "TS2307",
+          "TS6133",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/hive-mind/core/Memory.ts",
+        "errors": 27,
+        "errorCodes": [
+          "TS1484",
+          "TS7053",
+          "TS6133",
+          "TS2339",
+          "TS2532",
+          "TS2488",
+          "TS18046"
+        ]
+      },
+      {
+        "file": "src/verification/middleware.ts",
+        "errors": 27,
+        "errorCodes": [
+          "TS2835",
+          "TS6133",
+          "TS2323",
+          "TS2322",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/web/api/server.ts",
+        "errors": 27,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS7016",
+          "TS6196",
+          "TS2345",
+          "TS2339",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/config/ai/project-detection-engine.ts",
+        "errors": 26,
+        "errorCodes": [
+          "TS6133",
+          "TS2339",
+          "TS2322",
+          "TS2345",
+          "TS2551"
+        ]
+      },
+      {
+        "file": "src/core/orchestrator.ts",
+        "errors": 26,
+        "errorCodes": [
+          "TS2305",
+          "TS1484",
+          "TS6133",
+          "TS6138",
+          "TS2322",
+          "TS18048",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/hive-mind/integration/ConsensusEngine.ts",
+        "errors": 26,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2551",
+          "TS2339",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/neural/integration.ts",
+        "errors": 26,
+        "errorCodes": [
+          "TS6133",
+          "TS2532",
+          "TS2322",
+          "TS2304",
+          "TS7006",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/rollback/recovery-manager.ts",
+        "errors": 26,
+        "errorCodes": [
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/realtime/RealtimeServer.ts",
+        "errors": 26,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS7030",
+          "TS2532",
+          "TS2531"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/phase-orchestrator.ts",
+        "errors": 25,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS7016",
+          "TS2322",
+          "TS7006",
+          "TS18048",
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/hive-mind/integration/SwarmOrchestrator.ts",
+        "errors": 25,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS7006",
+          "TS2339",
+          "TS2532",
+          "TS2345",
+          "TS2341"
+        ]
+      },
+      {
+        "file": "src/verification/system-tracker.ts",
+        "errors": 25,
+        "errorCodes": [
+          "TS6196",
+          "TS2339",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/repl.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS2307",
+          "TS6192",
+          "TS2345",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/communication/ultra-fast-communication-bus.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS2322",
+          "TS6133",
+          "TS2540",
+          "TS2365",
+          "TS2363",
+          "TS2362"
+        ]
+      },
+      {
+        "file": "src/config/ai/decision-tree-generator.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2551",
+          "TS2339",
+          "TS18048",
+          "TS2538",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/config/index.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS1205",
+          "TS2304"
+        ]
+      },
+      {
+        "file": "src/coordination/load-balancer.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS2345",
+          "TS18046",
+          "TS2678",
+          "TS18048",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/feature-flags/rollout/RolloutController.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307",
+          "TS18048",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/hive-mind/core/Queen.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2345",
+          "TS2740",
+          "TS18046",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/verification/examples.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS2835",
+          "TS2323",
+          "TS7006",
+          "TS6133",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/realtime/RealtimeCommunicationManager.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2561",
+          "TS2367",
+          "TS2345",
+          "TS2322",
+          "TS18046"
+        ]
+      },
+      {
+        "file": "src/agents/github/index.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS2835",
+          "TS2834",
+          "TS2304",
+          "TS18004"
+        ]
+      },
+      {
+        "file": "src/integration/system-integration.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS2724",
+          "TS2554",
+          "TS2339",
+          "TS18046"
+        ]
+      },
+      {
+        "file": "src/migration/migration-runner.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS1295",
+          "TS1470",
+          "TS6196",
+          "TS7016",
+          "TS1287",
+          "TS2488",
+          "TS6133",
+          "TS2345",
+          "TS2339",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/services/swarm-memory-manager.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS6138",
+          "TS2532",
+          "TS2345",
+          "TS18048",
+          "TS6133",
+          "TS7053",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/core/fullstack-orchestrator.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/verification/rollback.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2532",
+          "TS2769",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/config/utils/config-export-import.ts",
+        "errors": 22,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS2538",
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/message-broker.ts",
+        "errors": 22,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS2322",
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/shared/message-broker.ts",
+        "errors": 22,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS2322",
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/verification/tests.ts",
+        "errors": 22,
+        "errorCodes": [
+          "TS6133",
+          "TS2835",
+          "TS6192",
+          "TS2323",
+          "TS2532",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cli/maestro-cli-bridge.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS2305",
+          "TS6133",
+          "TS1484",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/config/ui/progressive-disclosure-engine.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS2339",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/session-pool-optimizer.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/lifecycle/dependency-tracker.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS6196",
+          "TS2345",
+          "TS2353",
+          "TS2322",
+          "TS6133",
+          "TS2339",
+          "TS2367",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/memory/distributed-memory.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS6196",
+          "TS6133",
+          "TS2353"
+        ]
+      },
+      {
+        "file": "src/messaging/interactive-observation-system.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS7006",
+          "TS2339",
+          "TS2416",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/cli/commands/swarm.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS2339",
+          "TS2307",
+          "TS2353",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/communication/performance-validator.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS2835",
+          "TS2834",
+          "TS2322",
+          "TS18048",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/config/config-manager.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS2307",
+          "TS2769",
+          "TS2322",
+          "TS18048",
+          "TS2538",
+          "TS2339",
+          "TS2345",
+          "TS1205",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/index.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS1205"
+        ]
+      },
+      {
+        "file": "src/providers/base-provider.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS1484",
+          "TS2715",
+          "TS6133",
+          "TS2740"
+        ]
+      },
+      {
+        "file": "src/utils/markdown-updater.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS2345",
+          "TS2532",
+          "TS18048",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/verification/telemetry.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS6133",
+          "TS2339",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/cli/commands/recovery.ts",
+        "errors": 19,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS2353",
+          "TS2448",
+          "TS2454"
+        ]
+      },
+      {
+        "file": "src/coordination/pm-failover.ts",
+        "errors": 19,
+        "errorCodes": [
+          "TS6192",
+          "TS2345",
+          "TS2367",
+          "TS2339",
+          "TS2551",
+          "TS2532",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/providers/cohere-provider.ts",
+        "errors": 19,
+        "errorCodes": [
+          "TS1484",
+          "TS2532",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/services/agentic-flow-hooks/workflow-hooks.ts",
+        "errors": 19,
+        "errorCodes": [
+          "TS6133",
+          "TS2339",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/verification/alert-manager.ts",
+        "errors": 19,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS2339",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/verification/rollback-engine.ts",
+        "errors": 19,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/index.ts",
+        "errors": 19,
+        "errorCodes": [
+          "TS2835",
+          "TS2304",
+          "TS18004"
+        ]
+      },
+      {
+        "file": "src/config/web-portal-config.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS2345",
+          "TS2538",
+          "TS2739",
+          "TS2741"
+        ]
+      },
+      {
+        "file": "src/hive-mind/core/HiveMind.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/migration/index.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS1295",
+          "TS6133",
+          "TS2554",
+          "TS7006",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/providers/openai-provider.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS1484",
+          "TS18048",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/workflows/convergence-detector.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2532",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/topology/adaptive-coordinator.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS2835",
+          "TS6133",
+          "TS2353",
+          "TS2339",
+          "TS2322",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/web/api/apm-routes.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS7030",
+          "TS1117"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/hooks/useWebSocket.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS2307",
+          "TS2835",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/agents/github/core/github-collaboration-manager.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS2834",
+          "TS2835",
+          "TS2345",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/core/CommandHandlers.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS2769",
+          "TS2339",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/communication/message-bus.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS6196",
+          "TS2304",
+          "TS18046",
+          "TS2345",
+          "TS2322",
+          "TS6133",
+          "TS2532",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/config/consent-manager.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS2835",
+          "TS18048",
+          "TS2345",
+          "TS2322",
+          "TS2731",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/interfaces/index.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS2305",
+          "TS1205"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/message-bus-integration.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/core/config.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS2305",
+          "TS6133",
+          "TS18048",
+          "TS2538",
+          "TS2769",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/memory/advanced-memory-manager.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS6133",
+          "TS2532",
+          "TS2538",
+          "TS2322",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/verification/dashboard-exporter.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS6133",
+          "TS7006",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/web/api/routes/parallel-status.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS2709",
+          "TS2351",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/api/routes/status.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/sprint-orchestrator.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/cli/commands/enterprise.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/cli/simple-cli.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS6133",
+          "TS2532",
+          "TS18048",
+          "TS2538"
+        ]
+      },
+      {
+        "file": "src/communication/priority-message-queue.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS6133",
+          "TS2532",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/advanced-scheduler.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/messaging/agent-observation-api.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS7006",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/index.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS2835",
+          "TS2304",
+          "TS18004"
+        ]
+      },
+      {
+        "file": "src/web/api/routes/events.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/security/security-middleware.ts",
+        "errors": 16,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307",
+          "TS2322",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/RegressionTestManager.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS2322",
+          "TS2345",
+          "TS6133",
+          "TS18046",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/TestDataManager.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS2345",
+          "TS2322",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/cfn-compliance-monitor.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS7006",
+          "TS2339",
+          "TS18048",
+          "TS2353",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/index.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS2305",
+          "TS2459"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/utils/priority-queue.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS18048",
+          "TS2322",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/hive-mind/core/Agent.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/neural/index.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS2304",
+          "TS18004"
+        ]
+      },
+      {
+        "file": "src/providers/anthropic-provider.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS4114"
+        ]
+      },
+      {
+        "file": "src/providers/google-provider.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS1484",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/services/agentic-flow-hooks/hook-manager.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS6196",
+          "TS2345",
+          "TS6133",
+          "TS2349"
+        ]
+      },
+      {
+        "file": "src/services/task-handoff-service.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS6138",
+          "TS6133",
+          "TS2532",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/verification/hooks.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS6196",
+          "TS2322",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/processors/real-time-processor.ts",
+        "errors": 15,
+        "errorCodes": [
+          "TS6133",
+          "TS2835",
+          "TS7006",
+          "TS18046"
+        ]
+      },
+      {
+        "file": "src/agents/github/agent-factory.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS6133",
+          "TS2834",
+          "TS2835",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/completion/index.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS1205"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/state-machine-integration.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS6133",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/lifecycle/communication-protocols.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS6196",
+          "TS6133",
+          "TS1361",
+          "TS2345",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/messaging/redis-messaging-infrastructure.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/providers/zai-provider.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS1484",
+          "TS18048",
+          "TS2532",
+          "TS4114"
+        ]
+      },
+      {
+        "file": "src/services/agentic-flow-hooks/llm-hooks.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS2304",
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/core/enhanced-swarm-message-router.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS4114",
+          "TS18048",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/testing-integration/continuous-test-runner.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS6133",
+          "TS2339",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/utils/namespace-sanitizer.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS18048",
+          "TS2345",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/validation/production-validator.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS6133",
+          "TS18048",
+          "TS2322",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/verification/checkpoint-manager.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/verification/verification-pipeline.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS2307",
+          "TS2820",
+          "TS2367",
+          "TS2322",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/api/routes/metrics.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS6133",
+          "TS7034",
+          "TS7006",
+          "TS7005"
+        ]
+      },
+      {
+        "file": "src/web/security/xss-protection.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS2769",
+          "TS6133",
+          "TS2345",
+          "TS2503",
+          "TS7031"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/recovery-engine.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS6192",
+          "TS2353",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/routing/CommandRouter.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/shared/index.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS2308",
+          "TS1205"
+        ]
+      },
+      {
+        "file": "src/feature-flags/index.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1205",
+          "TS2307",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/redis/health-integration-example.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS2835",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/services/agentic-flow-hooks/performance-hooks.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/adapters/shadcn-mcp-adapter.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1484",
+          "TS18048",
+          "TS2345",
+          "TS2538",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/core/dynamic-agent-spawner.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/workflows/iterative-build-test.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/workflows/test-result-analyzer.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2345",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/tests/wasm-ast-test-suite.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS2835",
+          "TS6133",
+          "TS18046",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/web/portal-server.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1484",
+          "TS7016",
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/agents/hierarchical-coordinator.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2353",
+          "TS2783",
+          "TS2532",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/validate-cfn-decision.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS1484",
+          "TS2353",
+          "TS2322",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/cli/commands/advanced-memory-commands.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/cfn-loop-parallel.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS2709",
+          "TS6138",
+          "TS2351",
+          "TS18048",
+          "TS2339",
+          "TS2345",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hook.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6133",
+          "TS18048",
+          "TS2339",
+          "TS2538"
+        ]
+      },
+      {
+        "file": "src/cli/index.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6133",
+          "TS7027"
+        ]
+      },
+      {
+        "file": "src/cli/node-repl.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/cli/simple-orchestrator.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/communication/performance-optimizations.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6192",
+          "TS2532",
+          "TS2322",
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/components/visualizations/index.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/message-router.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS18048",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/hooks/useRedisTransparencyData.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS2307",
+          "TS2532",
+          "TS2322",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/services/swarm-relaunch-manager.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS6133",
+          "TS6138",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/workflows/fix-coordinator.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/agents/github/utils/error-handling.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS6133",
+          "TS2834"
+        ]
+      },
+      {
+        "file": "src/agents/mesh-coordinator.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2353",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/cli/cli-core.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS6133",
+          "TS18048",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/help/InteractiveHelp.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS1484",
+          "TS2322",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/config/zero-config-setup.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS1484",
+          "TS2323",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/checkpoint-manager.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS1484",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/enterprise/deployment-manager.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/hooks/index.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS2614",
+          "TS6133",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/migration/rollback-manager.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS1295",
+          "TS1287",
+          "TS2322",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/parsers/phase-parser.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS2532",
+          "TS2345",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/quality-gates/automated-review-system.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS2322",
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/services/performance-metrics-collector.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS6138",
+          "TS6133",
+          "TS2345",
+          "TS2352",
+          "TS2411",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/verification/index.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS2835",
+          "TS2304"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/wasm-ast-coordinator.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS2835",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/api/routes/hierarchy.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS6133",
+          "TS2345",
+          "TS7030",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/web/frontend/src/utils/security.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS1287",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/agents/github/compatibility/legacy-agent-mappings.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6133",
+          "TS2834",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/api/claude-client-enhanced.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS1484",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/auth/routes.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS2835",
+          "TS2304",
+          "TS7030"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/TestReportingSystem.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6133",
+          "TS2532",
+          "TS7053",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cli/agents/coder.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/communication/zero-copy-structures.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6133",
+          "TS2769",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/topic-manager.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/integration/state-machine-integration.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS2724",
+          "TS2551",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/enterprise/security-manager.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/feature-flags/validation/TruthBasedValidator.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS2322",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/migration/migration-analyzer.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS1295",
+          "TS6196",
+          "TS7016",
+          "TS1287",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/testing/visual-regression.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/verification/crdt-coordinator.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS1484",
+          "TS18048",
+          "TS2322",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/verification/security.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/realtime/CustomSyncManager.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS2741",
+          "TS2304",
+          "TS2538",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/web/server.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS6138",
+          "TS7030",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/agents/agent-validator.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cli/commands/workflow.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2307",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/help-system/help-request-handler.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/memory/artifact-adapter.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/messaging/message-persistence.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/confidence-integration.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2345",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/swarm-coordinator.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2307",
+          "TS2532",
+          "TS2554",
+          "TS6133",
+          "TS2345",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/v1-transparency/v1-to-v2-bridge.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2724",
+          "TS6196",
+          "TS2322",
+          "TS6133",
+          "TS2341"
+        ]
+      },
+      {
+        "file": "src/messaging/enhanced-progress-tracker.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2307",
+          "TS2353",
+          "TS2345",
+          "TS6133",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/providers/ollama-provider.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS1484",
+          "TS2353"
+        ]
+      },
+      {
+        "file": "src/providers/utils.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS1484",
+          "TS2739",
+          "TS2345",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/config/fullstack-config.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/verification/truth-scorer.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/transformers/code-transformation-pipeline.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2835",
+          "TS6133",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/realtime/RedisMonitoringService.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2709",
+          "TS2351",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/agents/github/utils/hook-integration.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6133",
+          "TS2834",
+          "TS2538"
+        ]
+      },
+      {
+        "file": "src/agents/github/utils/performance-optimizer.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6133",
+          "TS2834",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/auth/authService.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6133",
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/crash-detector.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS2353",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/git-checkpoint-manager.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2353",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/meta-coordinator.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/cli/agents/index.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS2820",
+          "TS2353"
+        ]
+      },
+      {
+        "file": "src/cli/commands/help.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cli/commands/sparc.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/communication/websocket-cluster.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS2835",
+          "TS6133",
+          "TS7027",
+          "TS2532",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/config/test-migration-fixer.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS7016",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/coordinators/swarm-coordinator-v2.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/query-controller.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/coordination/work-stealing.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS18048",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/enterprise/audit-manager.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6133",
+          "TS2783",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/services/swarm-coordinator.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6133",
+          "TS6138",
+          "TS2571",
+          "TS18046"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/adapters/chrome-mcp-adapter.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS1484",
+          "TS2783",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/integrations/communication-bridge.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS1484",
+          "TS2339",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/workflows/workflow-metrics.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS1484",
+          "TS2532",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/task/coordination.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS6196",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/topology/communication-bridge.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS2835",
+          "TS6133",
+          "TS7006",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/web/api/middleware/validation.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS2353",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/agents/github/core/github-integration-manager.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2834",
+          "TS2835",
+          "TS7006",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/agents/lifecycle-manager.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322",
+          "TS2869"
+        ]
+      },
+      {
+        "file": "src/agents/task-agent-integration.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/agents/unified-ultra-fast-agent-manager.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2345",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/api/auth-service.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS2305",
+          "TS6133",
+          "TS2307",
+          "TS2345",
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/api/database-service.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2305",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/correction-publisher.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS6133",
+          "TS2353",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/feedback-memory-manager.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/sprint-coordinator-enhanced.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2339",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cli/commands/agent-lifecycle.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2709",
+          "TS2351",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/spawn.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS2322",
+          "TS2820"
+        ]
+      },
+      {
+        "file": "src/cli/commands/monitor.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/intelligence/IntelligenceEngine.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/utils/IntelligentDefaults.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/communication/reliable-communication-manager.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/completion/hierarchical-detector.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2307",
+          "TS1484",
+          "TS2322",
+          "TS2739",
+          "TS4114"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/help-system/help-coordinator.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/help-system/help-matcher.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/help-coordinator.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2307",
+          "TS6196",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/shared/transparency/transparency-integration.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2345",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/hive-mind/core/Communication.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS2740",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/messaging/realtime-response-system.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS7006",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/migration/migration-validator.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1295",
+          "TS6133",
+          "TS7016",
+          "TS1287"
+        ]
+      },
+      {
+        "file": "src/providers/api-key-rotator.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS2345",
+          "TS2339",
+          "TS2532",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/resources/resource-manager.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS18046",
+          "TS2532",
+          "TS6133",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/scripts/startVisualizationServer.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2835",
+          "TS7006",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/validators/todowrite-integration.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2835",
+          "TS2345",
+          "TS7006",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/verification/agent-scorer.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/engine/wasm-engine.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS6133",
+          "TS2835",
+          "TS2345",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/web/api/middleware/auth.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS7030",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/realtime/PerformanceBenchmark.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS6133",
+          "TS2304",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/api/claude-client.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/auth/index.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/SwarmTestCoordinator.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6059",
+          "TS2448",
+          "TS2454",
+          "TS7053",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/agent-lifecycle-sqlite.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6196",
+          "TS2353",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/cfn-loop-memory-manager.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2353",
+          "TS2345",
+          "TS2551"
+        ]
+      },
+      {
+        "file": "src/cli/agents/analyst.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/claude-api.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/cli/commands/memory.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cli/commands/setup-wizard.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cli/commands/verification.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS2614",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/communication/ultra-fast-serialization.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS18048",
+          "TS2341"
+        ]
+      },
+      {
+        "file": "src/coordination/advanced-task-executor.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6196",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/agent-executor.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2709",
+          "TS2322",
+          "TS2345",
+          "TS2556"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/integration/help-deadlock-integration.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/integration/message-bus-completion-integration.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6196",
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/memory/dependency-graph-storage.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2307",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/artifact-storage.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/hierarchical-background-integration.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/background-executor.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS2345",
+          "TS7022",
+          "TS2448",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/coordination/distributed-consensus.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/coordination/messaging.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/queen-agent.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS6196",
+          "TS2345",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/v1-transparency/interfaces/v1-transparency-system.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6192",
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/messaging/agent-state-management.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS7006",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/migration/logger.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1295",
+          "TS1287"
+        ]
+      },
+      {
+        "file": "src/parsers/epic-parser.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/redis/state-validation-schemas.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/testing/backend-test-orchestrator.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/terminal/vscode-bridge.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2774"
+        ]
+      },
+      {
+        "file": "src/verification/checkpoint-compression.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS2790"
+        ]
+      },
+      {
+        "file": "src/verification/security-bypass-test.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS2835",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/api/middleware/cache.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/websocket/swarmWebSocketServer.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS2307",
+          "TS2694",
+          "TS2339",
+          "TS7006",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/workflows/fullstack-coordination-manager.ts",
+        "errors": 6,
+        "errorCodes": [
+          "TS6133",
+          "TS18048",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/agents/agent-loader.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS7016",
+          "TS2345",
+          "TS7006",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/agents/github/compatibility/legacy-agent-proxy.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2834",
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/agents/github/core/github-release-coordinator.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2834",
+          "TS2835",
+          "TS7053",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/agents/stage3-integration-validator.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/byzantine-consensus-adapter.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6196",
+          "TS6133",
+          "TS2345",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/circuit-breaker.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/product-owner/enterprise-owner-team.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/state-checkpoint-manager.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS2353",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cli/commands/agent.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/health-check.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2307",
+          "TS2345",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/parse-epic.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2448",
+          "TS2454",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/cli/commands/recovery-resume.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/cli/commands/recovery-status.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2353"
+        ]
+      },
+      {
+        "file": "src/cli/commands/session.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cli/commands/start/process-manager.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/start/process-ui-simple.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS6198",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/cli/commands/task.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/transparency.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2307",
+          "TS6196",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/config/migration/config-migration.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/config/validation/config-validator.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/state-machine.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2305",
+          "TS2307",
+          "TS6133",
+          "TS18048",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/query-message-integration.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2307",
+          "TS6196"
+        ]
+      },
+      {
+        "file": "src/coordination/confidence-score-system.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS18048",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/conflict-resolution.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6192",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/resources.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/role-assignment.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/coordination/scheduler.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/shared/transparency/transparency-system.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2353"
+        ]
+      },
+      {
+        "file": "src/coordination/swarm-monitor.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/core/orchestrator-fixed.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6138",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/enterprise/cloud-manager.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/enterprise/project-manager.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/eventbus/types.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2322",
+          "TS2739",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/providers/agent-spawn-wrapper.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/workflows/regression-test-manager.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/task/engine.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6196",
+          "TS18048",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/testing/performance/PerformanceTestRunner.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/verification/simple-hooks.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2322",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/api/middleware/error-handler.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/websocket/apm-websocket-handler.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS2307",
+          "TS7006",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/agents/frontend/index.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2835",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/auth/middleware.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/consensus/mvp-consensus.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/heartbeat-integration-example.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2351"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/index.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2459",
+          "TS2305",
+          "TS2614"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/redis-health-integration-example.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2351",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/validator-methods-replacement.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/agent-simple.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/config-integration.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/cli/commands/migrate.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/cli/commands/start/start-command.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS7027",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/config/integration/hooks-integration.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/config/migration/version-migration-engine.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/config/ruv-swarm-config.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2345",
+          "TS2740"
+        ]
+      },
+      {
+        "file": "src/config/ruv-swarm-integration.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2345",
+          "TS2304"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/coordinators/cascading-shutdown.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/coordinators/hierarchical-coordinator.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/dependency-resolver.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/resource-manager-safe.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/task-scheduler.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/integration/message-bus-completion-integration.example.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/memory/message-storage.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/memory/state-storage.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2307",
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/messaging/channels/state-channel.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2305",
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/multi-level-control.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/hierarchical-orchestrator.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/manager.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/feature-flags/cli/Phase4CLI.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS18048",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/feature-flags/validation/HookInterceptor.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/hive-mind/core/DatabaseManager.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/hive-mind/core/MemoryMonitor.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2339",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/messaging/transparency-middleware.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2307",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/observability/telemetry.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2322",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/preferences/example.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2835",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/providers/api-key-rotation-example.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/services/agent-manager.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/cli/fullstack-cli.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS2693"
+        ]
+      },
+      {
+        "file": "src/terminal/adapters/native.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/verification/cli-integration.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/demo/wasm-ast-demo.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2835",
+          "TS7006",
+          "TS18046"
+        ]
+      },
+      {
+        "file": "src/web/api/middleware/request-logger.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS1484",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/agents/heartbeat-manager.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2353",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/agents/lifecycle-cleanup-enhanced.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2353",
+          "TS2345",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/E2ETestGenerator.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/automation/test-pipeline/utils/swarm-coordinator.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/blocking-coordination-signals.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS2322",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/example-usage.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS2345",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/phase-orchestrator-example.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/redis-pubsub-helpers.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2367",
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/test-aggregator.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/test-lock-coordinator.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/validation-rules.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/ci-cd/performance/PerformanceGate.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2834",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/agents/hive-agents.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/agents/tester.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/create-template.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS6196"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/ps.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS2339",
+          "TS2365"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/wizard.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/status.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/ConsolidatedCLI.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2339",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/main.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/communication/optimized-serialization.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/cache/artifact-cache-optimizer.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/checkpoints/checkpoint-compressor.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/completion/sdk-completion-detector.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/completion/swarm-shutdown.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/state-machine-config.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2305",
+          "TS18046"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/dependency/cycle-detector.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6196",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/help-system/waiting-agent-pool.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/interfaces/ISessionStore.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6196",
+          "TS2307",
+          "TS2305"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/memory/completion-storage.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS2307",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/memory/index.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1205"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/state-sdk-integration.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/truth/framework-registry.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2835",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/truth/index.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/coordination/hive-orchestrator.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/hive-protocol.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2345",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/hive-mind/integration/MCPToolWrapper.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/observability/metrics-storage.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/providers/agent-profile-loader.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS18048",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/providers/rate-limit-detector.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS2801"
+        ]
+      },
+      {
+        "file": "src/scripts/publishSwarmEvents.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS6196"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/testing/frontend-test-orchestrator.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/topology/types.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/utils/helpers.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2345",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/utils/jwt.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/validators/epic-config-schema.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2307",
+          "TS2353",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/verification/demo.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS2305",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/verification/memory-manager.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/wasm-ast/performance/performance-monitor.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/web/messaging/agent-status-tracker.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/web/messaging/swarm-message-router.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/web/messaging/transparency-logger.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS1484",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/workflows/feature-lifecycle-manager.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/agents/agent-manager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/agents/agent-registry.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6196",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/auth/userService.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/blocking-coordination.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2322",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/consensus/enterprise-planning-consensus.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/feedback-injection-system.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/inject-rules-at-transition.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/retry-todo-manager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6196",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/agents/architect.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6196"
+        ]
+      },
+      {
+        "file": "src/cli/agents/base-agent.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/cleanup-orphans.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2709",
+          "TS2351"
+        ]
+      },
+      {
+        "file": "src/cli/commands/help-new.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/init.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/status.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/task.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/cli/commands/ruv-swarm.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2345",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/cli/commands/validate-coordination.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307",
+          "TS2351"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/core/TierManager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/formatter.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/cli/init/index.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/simple-mcp.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/config/utils/zero-config-setup.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/coordination/adapters/v1-coordinator-adapter.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6196",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/cache/index.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2459"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/completion/completion-detector.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/completion/mesh-detector.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/coordinator-factory.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/dependency-graph.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/help-request-metrics.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2305",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/dependency/dependency-manager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/dependency/index.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2300"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/help-system/help-request.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133",
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/memory/dependency-storage.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484",
+          "TS4053"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/messaging/channels/dependency-channel.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/messaging/channels/help-channel.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/messaging/channels/task-channel.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/bash-output-monitor.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/utils/sdk-helpers.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/mesh-healing.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/mesh-network.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6196",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/rate-limiter.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/coordination/shared/transparency/interfaces/transparency-system.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6192",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/core/logger.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/core/project-manager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/core/version.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/maestro/maestro-types.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2300"
+        ]
+      },
+      {
+        "file": "src/memory/backends/markdown.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2532",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/memory/swarm-memory.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2322",
+          "TS2559"
+        ]
+      },
+      {
+        "file": "src/migration/progress-reporter.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS1295",
+          "TS1287"
+        ]
+      },
+      {
+        "file": "src/observability/metrics-counter.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/redis/RedisHealthMonitor.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/test-utils/mock-rbac-manager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2835",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/validators/index.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/validators/swarm-init-validator.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/verification/checkpoint-compression-demo.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/api/routes/index.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/realtime/NativeWebSocketManager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/dashboard/realtime/SSEManager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/adapters/cliffy-node.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/agents/frontend/interaction-tester.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/agents/frontend/state-architect.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/agents/github/utils/github-client.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2834"
+        ]
+      },
+      {
+        "file": "src/agents/simple-agent.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/cfn-loop-integrator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/checkpoint-serializer.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2353"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/conflict-resolver.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/coordination-validator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/coordinator-timeout-handler.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/epic-report-generator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/heartbeat-warning-system.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/product-owner/mvp-owner.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/scope-control.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/test-product-owner-decision.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6196"
+        ]
+      },
+      {
+        "file": "src/ci-cd/github-actions-templates.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2538"
+        ]
+      },
+      {
+        "file": "src/cli/agents/capabilities.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/commands/config.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6192"
+        ]
+      },
+      {
+        "file": "src/cli/commands/goal-init.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/optimize-memory.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6192"
+        ]
+      },
+      {
+        "file": "src/cli/commands/hive-mind/stop.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2365"
+        ]
+      },
+      {
+        "file": "src/cli/commands/neural-init.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cli/commands/validate-setup.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/cli/consolidated/index.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2304"
+        ]
+      },
+      {
+        "file": "src/cli/index-remote.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/init/directory-structure.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cli/ui/compatible-ui.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/cli/utils/prompt-defaults.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/communication/shared-buffer-bus.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/config/migration-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2835"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/agent-state.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/dependency-node.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2872"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/index.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2305"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/core/state-transition.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2305"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/deadlock/resource-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/dependency/artifact-storage.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/dependency/dependency-graph.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/dependency/dependency-request.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/interfaces/ICoordinator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/messaging/message-router.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/sdk/background-orchestrator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/truth/truth-config-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/truth/truth-validator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/archives/v2-sdk-typescript/v2/types/sdk.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/coordination/config-translator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/coordination-toggle.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/coordination/metrics.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/coordination/pheromone-trails.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/coordination/shared/interfaces/ICoordinator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6196"
+        ]
+      },
+      {
+        "file": "src/core/agent-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/core/event-bus.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/core/persistence.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/crdt/types.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/index.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2305"
+        ]
+      },
+      {
+        "file": "src/lifecycle/memory-schema.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/memory/backends/sqlite.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/memory/manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/preferences/user-preference-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/providers/tiered-router.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/security/secrets-wrapper.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/services/agentic-flow-hooks/types.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6196"
+        ]
+      },
+      {
+        "file": "src/swarm-fullstack/testing/api-contract-validator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/utils/event-payload-helper.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/utils/markdown-sanitizer.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/utils/password.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2307"
+        ]
+      },
+      {
+        "file": "src/verification/test-verification.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/messaging/human-intervention-system.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/web/messaging/message-filter.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/web/websocket/websocket-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS1484"
+        ]
+      }
+    ],
+    "not_distributed": [
+      {
+        "file": "src/cfn-loop/__tests__/doc-code-examples-validator.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS18048",
+          "TS2345",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/cfn-loop/__tests__/test-utilities.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      }
+    ],
+    "deprecated": [
+      {
+        "file": "src/swarm/coordinator.ts",
+        "errors": 70,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2345",
+          "TS2741",
+          "TS2322",
+          "TS2532",
+          "TS2367",
+          "TS5097",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/swarm/executor-v2.ts",
+        "errors": 59,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS2304",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/swarm/sparc-executor.ts",
+        "errors": 49,
+        "errorCodes": [
+          "TS6133",
+          "TS2741",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/swarm/advanced-orchestrator.ts",
+        "errors": 48,
+        "errorCodes": [
+          "TS1484",
+          "TS2724",
+          "TS2614",
+          "TS6133",
+          "TS2345",
+          "TS2339",
+          "TS2353",
+          "TS2554",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/swarm/error-recovery/error-recovery-coordinator.ts",
+        "errors": 40,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2323",
+          "TS2339",
+          "TS18048",
+          "TS2551",
+          "TS2345",
+          "TS2367",
+          "TS7006",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/swarm/error-recovery/test-error-recovery-effectiveness.ts",
+        "errors": 35,
+        "errorCodes": [
+          "TS2307",
+          "TS2323",
+          "TS18048",
+          "TS2353",
+          "TS2339",
+          "TS2365",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/swarm/hive-mind-integration.ts",
+        "errors": 29,
+        "errorCodes": [
+          "TS2614",
+          "TS6133",
+          "TS2724",
+          "TS1484",
+          "TS2345",
+          "TS2488",
+          "TS18048",
+          "TS2322",
+          "TS2532",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/swarm/result-aggregator.ts",
+        "errors": 29,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2614",
+          "TS2724",
+          "TS2345",
+          "TS18048",
+          "TS2339",
+          "TS7053",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/mcp/server.ts",
+        "errors": 26,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS6138",
+          "TS2488",
+          "TS2339",
+          "TS2322",
+          "TS2345",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/mcp/claude-code-wrapper.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS2724",
+          "TS2305",
+          "TS1484",
+          "TS6133",
+          "TS2554",
+          "TS18046",
+          "TS2339",
+          "TS2304"
+        ]
+      },
+      {
+        "file": "src/swarm/error-recovery/advanced-error-detection.ts",
+        "errors": 24,
+        "errorCodes": [
+          "TS2307",
+          "TS2345",
+          "TS2322",
+          "TS6133",
+          "TS2532",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/swarm/claude-code-interface.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS6133",
+          "TS1484",
+          "TS2724",
+          "TS2614",
+          "TS2345",
+          "TS7022",
+          "TS2448",
+          "TS2339",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/swarm/strategies/research.ts",
+        "errors": 23,
+        "errorCodes": [
+          "TS6196",
+          "TS1484",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/swarm/memory.ts",
+        "errors": 22,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS7053"
+        ]
+      },
+      {
+        "file": "src/swarm/error-recovery/self-healing-mechanisms.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS2307",
+          "TS2323",
+          "TS6133",
+          "TS2741",
+          "TS2353",
+          "TS2339",
+          "TS2532",
+          "TS2484"
+        ]
+      },
+      {
+        "file": "src/swarm/optimizations/optimized-executor.ts",
+        "errors": 21,
+        "errorCodes": [
+          "TS6196",
+          "TS6133",
+          "TS2345",
+          "TS2339",
+          "TS2353",
+          "TS2322",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/swarm/direct-executor.ts",
+        "errors": 20,
+        "errorCodes": [
+          "TS6133",
+          "TS2741",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/swarm/mcp-integration-wrapper.ts",
+        "errors": 18,
+        "errorCodes": [
+          "TS2724",
+          "TS2614",
+          "TS1484",
+          "TS6133",
+          "TS2345",
+          "TS2532",
+          "TS2741",
+          "TS2488",
+          "TS2339",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/mcp/transports/http.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS1484",
+          "TS7022",
+          "TS2448",
+          "TS2454",
+          "TS6133",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/swarm/claude-flow-executor.ts",
+        "errors": 17,
+        "errorCodes": [
+          "TS6133",
+          "TS2353",
+          "TS7053",
+          "TS2769",
+          "TS2339",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/swarm/error-recovery/automated-recovery-workflows.ts",
+        "errors": 14,
+        "errorCodes": [
+          "TS2307",
+          "TS2339",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/mcp/recovery/index.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1205"
+        ]
+      },
+      {
+        "file": "src/swarm/executor.ts",
+        "errors": 13,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/mcp/session-manager.ts",
+        "errors": 12,
+        "errorCodes": [
+          "TS1484",
+          "TS6133",
+          "TS6138",
+          "TS2322",
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/swarm/error-recovery/recovery-monitoring.ts",
+        "errors": 11,
+        "errorCodes": [
+          "TS2307",
+          "TS2339",
+          "TS2345",
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/mcp/performance-monitor.ts",
+        "errors": 10,
+        "errorCodes": [
+          "TS6196",
+          "TS2322",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/mcp/swarm-tools.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm/error-recovery/resilience-architecture.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS2307",
+          "TS6133",
+          "TS2322",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/swarm/large-scale-coordinator.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS6196",
+          "TS2588",
+          "TS2322",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm/prompt-manager.ts",
+        "errors": 9,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS2663",
+          "TS2345"
+        ]
+      },
+      {
+        "file": "src/swarm/prompt-copier-enhanced.ts",
+        "errors": 8,
+        "errorCodes": [
+          "TS2415",
+          "TS4114",
+          "TS6133",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/swarm/json-output-aggregator.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS6133",
+          "TS6196",
+          "TS2532"
+        ]
+      },
+      {
+        "file": "src/swarm/prompt-cli.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS2305",
+          "TS6133",
+          "TS2339",
+          "TS7006"
+        ]
+      },
+      {
+        "file": "src/swarm/strategies/auto.ts",
+        "errors": 7,
+        "errorCodes": [
+          "TS6196",
+          "TS2532",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/mcp/orchestration-integration.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS1484",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/mcp/ruv-swarm-tools.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2430",
+          "TS2741"
+        ]
+      },
+      {
+        "file": "src/swarm/optimizations/async-file-manager.ts",
+        "errors": 5,
+        "errorCodes": [
+          "TS6133",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/mcp/auth.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS6133",
+          "TS2322",
+          "TS2769"
+        ]
+      },
+      {
+        "file": "src/mcp/claude-flow-tools.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2724",
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/mcp/server-with-wrapper.ts",
+        "errors": 4,
+        "errorCodes": [
+          "TS2551",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/mcp/integrate-wrapper.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2554",
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/swarm/consensus-coordinator.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/swarm/optimizations/index.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2304"
+        ]
+      },
+      {
+        "file": "src/swarm/prompt-copier.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS6133",
+          "TS2722"
+        ]
+      },
+      {
+        "file": "src/swarm/prompt-utils.ts",
+        "errors": 3,
+        "errorCodes": [
+          "TS2345",
+          "TS2538",
+          "TS18048"
+        ]
+      },
+      {
+        "file": "src/mcp/lifecycle-manager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6196",
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/mcp/recovery/recovery-manager.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS2614",
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/mcp/tools.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6196",
+          "TS2322"
+        ]
+      },
+      {
+        "file": "src/swarm/strategies/strategy-metrics-patch.ts",
+        "errors": 2,
+        "errorCodes": [
+          "TS6133",
+          "TS1484"
+        ]
+      },
+      {
+        "file": "src/mcp/load-balancer.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/mcp/protocol-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/mcp/recovery/connection-health-monitor.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2614"
+        ]
+      },
+      {
+        "file": "src/mcp/recovery/fallback-coordinator.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6133"
+        ]
+      },
+      {
+        "file": "src/mcp/recovery/reconnection-manager.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2614"
+        ]
+      },
+      {
+        "file": "src/mcp/router.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6138"
+        ]
+      },
+      {
+        "file": "src/mcp/server-wrapper-mode.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2339"
+        ]
+      },
+      {
+        "file": "src/mcp/transports/stdio.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS6192"
+        ]
+      },
+      {
+        "file": "src/swarm/index.ts",
+        "errors": 1,
+        "errorCodes": [
+          "TS2308"
+        ]
+      }
+    ]
+  },
+  "entry_points": [
+    "/mnt/c/Users/masha/Documents/claude-flow-novice/dist/src/index.js",
+    "/mnt/c/Users/masha/Documents/claude-flow-novice/dist/src/cli/main.js"
+  ],
+  "npm_ignore_patterns": [
+    "^src\\/.*.*\\/target\\/",
+    "^src\\/.*.*\\/debug\\/",
+    "^src\\/.*.*\\/release\\/",
+    "^src\\/wasm-regex-engine\\/target\\/",
+    "^src\\/web\\/frontend\\/node_modules\\/",
+    "^src\\/.*.*\\/__tests__\\/",
+    "src\\/.*.*\\/.*\\.test\\.ts",
+    "src\\/.*.*\\/.*\\.test\\.js",
+    "src\\/.*.*\\/.*\\.spec\\.ts",
+    "src\\/.*.*\\/.*\\.spec\\.js",
+    "scripts\\/.*.*\\/test-.*\\.js",
+    "scripts\\/.*.*\\/test-.*\\.mjs",
+    "scripts\\/.*.*\\/test-.*\\.cjs",
+    "scripts\\/.*.*\\/.*-screenshots\\.js",
+    "scripts\\/.*.*\\/capture-.*\\.js",
+    "^scripts\\/deployment\\/",
+    "scripts\\/.*.*\\/.*-validation\\.cjs",
+    "scripts\\/.*.*\\/.*-validator\\.cjs",
+    "scripts\\/.*.*\\/.*-assessment\\.cjs",
+    "scripts\\/migrate-.*\\.sql",
+    "scripts\\/optimize-.*\\.sql",
+    "scripts\\/.*-hooks\\.js",
+    "(^scripts\\/hooks-fix\\.js$|^scripts\\/hooks-fix\\.js\\/)",
+    "scripts\\/clean-react-imports\\..*",
+    "(^scripts\\/examine-page\\.js$|^scripts\\/examine-page\\.js\\/)",
+    "(^scripts\\/debug-page\\.js$|^scripts\\/debug-page\\.js\\/)",
+    "(^scripts\\/deploy-local\\.sh$|^scripts\\/deploy-local\\.sh\\/)",
+    "scripts\\/manual-.*\\.cjs",
+    "(^scripts\\/privacy-controls-validator\\.cjs$|^scripts\\/privacy-controls-validator\\.cjs\\/)",
+    "(^scripts\\/phase1-completion-report\\.cjs$|^scripts\\/phase1-completion-report\\.cjs\\/)",
+    "(^scripts\\/simple-test\\.js$|^scripts\\/simple-test\\.js\\/)",
+    "(^scripts\\/verify-and-organize\\.js$|^scripts\\/verify-and-organize\\.js\\/)",
+    "(^scripts\\/update-directory-paths\\.cjs$|^scripts\\/update-directory-paths\\.cjs\\/)",
+    "(^scripts\\/update_commands\\.sh$|^scripts\\/update_commands\\.sh\\/)",
+    "scripts\\/run-.*\\.sh",
+    "scripts\\/compare-.*\\.sh",
+    "scripts\\/detect-.*\\.sh",
+    "scripts\\/trufflehog-.*\\.sh",
+    "scripts\\/verify-.*\\.sh",
+    "(^scripts\\/monitor-loop\\.sh$|^scripts\\/monitor-loop\\.sh\\/)",
+    "(^scripts\\/monitor-memory\\.sh$|^scripts\\/monitor-memory\\.sh\\/)",
+    "^\\.git\\/",
+    "^\\.github\\/",
+    ".*\\.log",
+    "(^\\.DS_Store$|^\\.DS_Store\\/)",
+    "(^\\.env$|^\\.env\\/)",
+    "\\.env\\..*",
+    "\\/.*REPORT\\.md",
+    "\\/.*SUMMARY\\.md",
+    "\\/.*ANALYSIS\\.md",
+    "\\/.*CHECKLIST\\.md",
+    "(^\\/README-CFN-COORDINATORS\\.md$|^\\/README-CFN-COORDINATORS\\.md\\/)",
+    "(^\\/README-COORDINATORS\\.md$|^\\/README-COORDINATORS\\.md\\/)",
+    "(^\\/UNIFIED_MEMORY_MONITORING\\.md$|^\\/UNIFIED_MEMORY_MONITORING\\.md\\/)",
+    "(^\\/IMPLEMENTATION_SUMMARY\\.md$|^\\/IMPLEMENTATION_SUMMARY\\.md\\/)",
+    "\\/DEPRECATION_.*\\.md",
+    "\\/ZAI_FORK_.*\\.md",
+    "\\/adaptive-context-.*\\.md",
+    "\\/agent-library-.*\\.md",
+    "\\/agent-optimization-.*\\.md",
+    "\\/cfn-loop-verification-.*\\.md",
+    "\\/command-.*\\.md",
+    "\\/loop2-.*\\.md",
+    "\\/redis-.*\\.md",
+    "\\/security-.*\\.md",
+    "^\\.artifacts\\/logs\\/",
+    "^\\.tmp\\/",
+    "^tmp\\/",
+    "^\\.vscode\\/",
+    "^\\.idea\\/",
+    ".*\\.swp",
+    ".*\\.swo",
+    ".*~"
+  ]
+}
