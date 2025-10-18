@@ -55,7 +55,7 @@ export async function executeMVPConsensus(
 export async function executePlanningConsensus(
   votes: import('../byzantine-consensus-adapter.js').ValidatorVote[],
   memoryManager?: unknown
-): Promise<PlanningConsensusResult> {
+): Promise<import('./types.js').PlanningConsensusResult> {
   const consensus = new EnterprisePlanningConsensus(memoryManager);
   return consensus.executeConsensus(votes);
 }

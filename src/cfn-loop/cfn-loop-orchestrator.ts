@@ -36,14 +36,9 @@ import type {
 } from './types.js';
 import { selectMode } from './modes/index.js';
 import type { CFNLoopMode, CFNLoopModeName } from './modes/types.js';
-import { executeMVPConsensus } from './consensus/mvp-consensus.js';
-import { executeMVPOwnerDecision } from './product-owner/mvp-owner.js';
-import { executeEnterpriseBoardDecision } from './product-owner/enterprise-owner-team.js';
-import { executePlanningConsensus } from './consensus/enterprise-planning-consensus.js';
+import { executeMVPConsensus, executePlanningConsensus } from './consensus/index.js';
 import type { PlanningConsensusResult } from './consensus/types.js';
-
-// Explicitly declare EventEmitter for stricter type checking
-declare const EventEmitter: typeof import('events').EventEmitter;
+import { executeMVPOwnerDecision, executeEnterpriseBoardDecision } from './product-owner/index.js';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -149,10 +144,10 @@ export class CFNLoopOrchestrator extends EventEmitter {
   };
 
   // Component instances
-  private confidenceSystem: ConfidenceScoreSystem;
-  private iterationTracker: IterationTracker;
-  private feedbackSystem: FeedbackInjectionSystem;
-  private circuitBreaker: CFNCircuitBreaker;
+  private confidenceSystem!: ConfidenceScoreSystem;
+  private iterationTracker!: IterationTracker;
+  private feedbackSystem!: FeedbackInjectionSystem;
+  private circuitBreaker!: CFNCircuitBreaker;
   private memoryManager?: SwarmMemoryManager;
   private byzantineAdapter?: ByzantineConsensusAdapter; // Byzantine consensus adapter
 
@@ -183,13 +178,15 @@ export class CFNLoopOrchestrator extends EventEmitter {
     super();
 
     // Select CFN Loop mode (MVP, Enterprise, or Standard)
-    const modeSelection = selectMode({
-      mode: config.cfnMode,
+    // Updated selectMode usage
+    const detectionMetadata = {
+      cfnMode: config.cfnMode,
       filename: config.epicFilename,
       metadata: config.epicMetadata,
-      auto: config.autoDetectMode,
-    });
-    this.mode = modeSelection.mode;
+      autoDetect: config.autoDetectMode
+    };
+
+    this.mode = selectMode(config.cfnMode, detectionMetadata);
 
     // Apply mode-specific thresholds and limits
     this.config = {
@@ -300,6 +297,15 @@ export class CFNLoopOrchestrator extends EventEmitter {
         },
         this.memoryManager
       );
+
+      // Add safety checks and default 'on' method
+      if (!this.byzantineAdapter.on) {
+        this.byzantineAdapter.on = (event: string, callback: (...args: any[]) => void) => {
+          this.logger.warn(`No native 'on' method for event: ${event}`);
+          // No-op fallback
+          return this.byzantineAdapter;
+        };
+      }
 
       this.logger.info('Byzantine consensus adapter initialized', {
         validatorCount: this.byzantineAdapter ? 4 : 0,
@@ -609,11 +615,22 @@ export class CFNLoopOrchestrator extends EventEmitter {
       } else {
         return await executeWithProtection();
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'TimeoutError') {
-        this.statistics.timeouts++;
-        this.logger.error('Primary swarm execution timed out', {
-          error: error.message,
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        if (error.name === 'TimeoutError') {
+          this.statistics.timeouts++;
+          this.logger.error('Primary swarm execution timed out', {
+            error: error.message,
+          });
+        } else {
+          this.logger.error('Primary swarm execution failed', {
+            error: error.message,
+            name: error.name,
+          });
+        }
+      } else {
+        this.logger.error('Unknown error during primary swarm execution', {
+          error: String(error),
         });
       }
 
@@ -633,9 +650,9 @@ export class CFNLoopOrchestrator extends EventEmitter {
     const scores: ConfidenceScore[] = responses.map(response => ({
       agent: response.agentId,
       agentType: response.agentType,
-      confidence: response.confidence || 0.5,
-      reasoning: response.reasoning || 'No reasoning provided',
-      blockers: response.blockers || [],
+      confidence: response.confidence ?? 0.5,
+      reasoning: response.reasoning ?? 'No reasoning provided',
+      blockers: response.blockers ?? [],
       timestamp: new Date(response.timestamp),
     }));
 
@@ -1948,11 +1965,12 @@ Task("Reviewer", "Review changes for quality", "reviewer")
     ];
   }
 
-  private inferAgentType(instructions: string): string {
-    if (instructions.toLowerCase().includes('implement')) return 'coder';
-    if (instructions.toLowerCase().includes('test')) return 'tester';
-    if (instructions.toLowerCase().includes('review')) return 'reviewer';
-    return 'coder';
+  private inferAgentType(instructions: string): 'coder' | 'tester' | 'reviewer' | 'generic' {
+    const instructionLower = instructions.toLowerCase();
+    if (instructionLower.includes('implement')) return 'coder';
+    if (instructionLower.includes('test')) return 'tester';
+    if (instructionLower.includes('review')) return 'reviewer';
+    return 'generic';
   }
 
   private createEmptyConfidenceValidation(): ConfidenceValidationResult {
