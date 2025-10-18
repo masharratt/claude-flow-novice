@@ -164,6 +164,7 @@
   },
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.22.0",
+    "better-sqlite3": "^12.4.1",
     "boxen": "^7.0.0",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
@@ -184,6 +185,7 @@
     "p-queue": "^7.4.0",
     "p-retry": "^5.1.0",
     "p-timeout": "^6.1.0",
+    "redis": "^5.8.3",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.7.0",
     "sqlite": "^5.1.1",
