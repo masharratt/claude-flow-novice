@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { glob } from 'glob';
+import { glob, GlobOptionsWithTypes } from 'glob';
 import { resolve, dirname } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 
@@ -88,7 +88,7 @@ export class AgentLoader {
       }
 
       const [, yamlContent, markdownContent] = frontmatterMatch;
-      const frontmatter = parseYaml(yamlContent);
+      const frontmatter = parseYaml(yamlContent) as Record<string, unknown>;
 
       const description = frontmatter.description;
       if (!frontmatter.name || !description) {
@@ -97,15 +97,19 @@ export class AgentLoader {
       }
 
       return {
-        name: frontmatter.name,
-        type: frontmatter.type,
-        color: frontmatter.color,
-        description,
-        model: frontmatter.model,
-        capabilities: frontmatter.capabilities || [],
-        priority: frontmatter.priority || 'medium',
+        name: String(frontmatter.name),
+        type: frontmatter.type ? String(frontmatter.type) : undefined,
+        color: frontmatter.color ? String(frontmatter.color) : undefined,
+        description: String(description),
+        model: frontmatter.model ? String(frontmatter.model) : undefined,
+        capabilities: Array.isArray(frontmatter.capabilities)
+          ? frontmatter.capabilities.map(String)
+          : [],
+        priority: ['low', 'medium', 'high', 'critical'].includes(String(frontmatter.priority))
+          ? String(frontmatter.priority) as AgentDefinition['priority']
+          : 'medium',
         tools: this.parseTools(frontmatter),
-        hooks: frontmatter.hooks,
+        hooks: frontmatter.hooks as AgentDefinition['hooks'],
         content: markdownContent.trim(),
       };
     } catch (error) {
@@ -123,9 +127,16 @@ export class AgentLoader {
       return [];
     };
 
-    return extractTools(frontmatter.tools) ||
-           extractTools(frontmatter.capabilities?.tools) ||
-           [];
+    // Safely handle tools and capabilities.tools
+    const toolsFromFrontmatter = frontmatter.tools
+      ? extractTools(frontmatter.tools)
+      : [];
+
+    const toolsFromCapabilities = frontmatter.capabilities && typeof frontmatter.capabilities === 'object'
+      ? extractTools(Object(frontmatter.capabilities).tools)
+      : [];
+
+    return [...toolsFromFrontmatter, ...toolsFromCapabilities];
   }
 
   private async loadAgents(): Promise<void> {
@@ -137,10 +148,10 @@ export class AgentLoader {
     }
 
     const agentFiles = await glob('**/*.md', {
-      cwd: agentsDir,
+      root: agentsDir,
       ignore: ['**/README.md', '**/MIGRATION_SUMMARY.md'],
       absolute: true,
-    });
+    } as GlobOptionsWithTypes);
 
     this.agentCache.clear();
     this.categoriesCache = [];

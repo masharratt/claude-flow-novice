@@ -57,16 +57,50 @@ export class AgentRegistry extends EventEmitter {
     this.emit('registry:initialized');
   }
 
-  // Remaining methods remain the same as the original implementation
-  // [Copy over all methods from the original file]
+  // Add minimal implementation for loadFromMemory
+  private async loadFromMemory(): Promise<void> {
+    try {
+      const storedAgents = await this.memory.get(`${this.namespace}:registry`);
+      if (storedAgents) {
+        // Restore cached agents from memory
+        for (const [key, entry] of Object.entries(storedAgents)) {
+          this.cache.set(key, entry as AgentRegistryEntry);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load agents from memory:', error);
+    }
+  }
 
-  // TypeScript improvement: Add explicit return type annotations
-  // and use more strict type checking
+  // TypeScript improvement: Add explicit return type annotations with a complete implementation
   private calculateAgentScore(
     agent: AgentState,
     taskType: string,
     requiredCapabilities: string[],
   ): number {
-    // Implementation remains the same
+    // Comprehensive scoring logic
+    let score = 0;
+
+    // Basic type matching
+    if (agent.type === taskType) {
+      score += 50;
+    }
+
+    // Capability matching
+    if (agent.capabilities.includes(taskType)) {
+      score += 30;
+    }
+
+    // Required capabilities
+    for (const capability of requiredCapabilities) {
+      if (agent.capabilities.includes(capability)) {
+        score += 10;
+      }
+    }
+
+    // Health bonus
+    score += Math.floor(agent.health * 10);
+
+    return score;
   }
 }
