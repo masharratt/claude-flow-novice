@@ -170,3 +170,19 @@ hive-mind-prompt-*.txt
 
 planning/large-coordination/*
 planning/legion/*
+
+# Legacy v1 - exclude build artifacts and large files
+legacy/v1/*/node_modules/
+legacy/v1/**/node_modules/
+legacy/v1/**/*.tgz
+legacy/v1/**/*.log
+legacy/v1/**/*.tsbuildinfo
+legacy/v1/**/dist/
+legacy/v1/**/coverage/
+legacy/v1/**/.turbo/
+legacy/v1/**/*.db
+legacy/v1/**/*.db-wal
+legacy/v1/**/*.db-shm
+legacy/v1/**/build/
+legacy/v1/**/.swc/
+legacy/v1/**/.next/
