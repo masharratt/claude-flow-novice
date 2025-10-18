@@ -301,7 +301,75 @@ const data = await memory.memoryAdapter.get(key, { agentId });
 
 ---
 
-## 8) Output & Telemetry (Concise)
+## 9) ACE System (Adaptive Context Extension)
+
+**Purpose:** Learning and context management system that enables agents to learn from execution and inject proven patterns.
+
+**Core Components:**
+- **Context Bullets:** Structured lessons stored in SQLite (strategies, patterns, edge cases, anti-patterns)
+- **5 Slash Commands:** `/context-reflect`, `/context-curate`, `/context-query`, `/context-inject`, `/context-stats`
+- **2 Specialized Agents:** `context-reflector`, `context-curator`
+
+**Integration with CFN Loop:**
+
+**Pre-Agent Spawn (Loop 3):**
+```javascript
+// Query relevant context bullets
+const bullets = await queryContext({
+  tags: ['cfn-loop', 'coordination', 'phase-0'],
+  minConfidence: 0.7,
+  limit: 5
+});
+
+// Inject into agent instructions
+Task("coder-1", `
+## 📘 Adaptive Context
+${formatBullets(bullets)}
+
+## TASK
+${taskDescription}
+`, "coder");
+```
+
+**Post-Loop Reflection:**
+```javascript
+// After Loop 3 completion
+const reflectionId = await reflectOnExecution({
+  taskId: 'phase-auth-loop3',
+  agentIds: ['coder-1', 'coder-2'],
+  autoCurate: true  // Auto-merge high-confidence lessons
+});
+```
+
+**Bullet Categories:**
+- **STRAT-XXX:** High-level strategies and approaches
+- **PATTERN-XXX:** Reusable code/architecture patterns
+- **EDGE-XXX:** Edge cases and gotchas
+- **DOMAIN-XXX:** Domain-specific knowledge
+- **ANTI-XXX:** Anti-patterns to avoid
+- **OPT-XXX:** Optimization techniques
+
+**Available Commands:**
+```bash
+# Query bullets by tags
+/context-query --tags=cfn-loop,coordination --min-confidence=0.8
+
+# Inject bullets into CLAUDE.md
+/context-inject --phase=phase-0-foundation
+
+# Trigger reflection on completed task
+/context-reflect --task-id=task-auth-123 --auto-curate
+
+# View bullet health metrics
+/context-stats
+```
+
+**→ Complete ACE guide:** `.claude/ace-system-overview.md`
+**→ CFN coordinators:** All 3 CFN coordinators include ACE integration patterns
+
+---
+
+## 10) Output & Telemetry (Concise)
 
 **Agent confidence JSON (per agent)**
 ```json

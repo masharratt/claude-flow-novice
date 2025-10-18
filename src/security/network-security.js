@@ -1,2 +1,686 @@
 /**
- * SECURITY REMEDIATION: Network Security Enforcement\n * Addresses critical vulnerabilities:\n * - Network security gaps (no TLS/SSL enforcement) -> FIXED\n * - Network partition attack vulnerabilities -> FIXED\n * - Message integrity verification gaps -> FIXED\n * - Audit trail manipulation possibilities -> FIXED\n */\n\nconst tls = require('tls');\nconst https = require('https');\nconst crypto = require('crypto');\nconst fs = require('fs');\nconst path = require('path');\nconst { EventEmitter } = require('events');\n\nclass NetworkSecurityManager extends EventEmitter {\n    constructor(options = {}) {\n        super();\n        \n        // SECURITY: Mandatory TLS configuration\n        this.tlsConfig = {\n            minVersion: 'TLSv1.3',\n            maxVersion: 'TLSv1.3',\n            secureProtocol: 'TLSv1_3_method',\n            ciphers: [\n                'TLS_AES_256_GCM_SHA384',\n                'TLS_CHACHA20_POLY1305_SHA256',\n                'TLS_AES_128_GCM_SHA256'\n            ].join(':'),\n            honorCipherOrder: true,\n            sessionTimeout: 300, // 5 minutes\n            requestCert: true,\n            rejectUnauthorized: true\n        };\n        \n        // SECURITY: Certificate management\n        this.certificates = {\n            ca: null,\n            key: null,\n            cert: null,\n            pfx: null\n        };\n        \n        // SECURITY: Network monitoring\n        this.activeConnections = new Map();\n        this.suspiciousIPs = new Set();\n        this.messageIntegrityLog = [];\n        this.networkMetrics = {\n            totalConnections: 0,\n            rejectedConnections: 0,\n            tlsHandshakeFailures: 0,\n            messageIntegrityFailures: 0,\n            suspiciousActivity: 0\n        };\n        \n        // SECURITY: Rate limiting\n        this.rateLimiter = new Map();\n        this.rateLimitConfig = {\n            maxRequestsPerMinute: 100,\n            maxConnectionsPerIP: 10,\n            suspiciousThreshold: 50\n        };\n        \n        // SECURITY: Message authentication\n        this.messageKeys = new Map();\n        this.sequenceNumbers = new Map();\n        \n        // Initialize security systems\n        this.initializeNetworkSecurity();\n    }\n    \n    /**\n     * SECURITY FIX: Initialize network security systems\n     */\n    async initializeNetworkSecurity() {\n        try {\n            // Generate or load certificates\n            await this.initializeCertificates();\n            \n            // Start network monitoring\n            this.startNetworkMonitoring();\n            \n            // Initialize rate limiting cleanup\n            this.startRateLimitCleanup();\n            \n            this.emit('network_security_initialized', {\n                tlsVersion: this.tlsConfig.minVersion,\n                timestamp: Date.now()\n            });\n            \n        } catch (error) {\n            this.logSecurityViolation('network_security_init_failed', {\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            throw new Error(`Network security initialization failed: ${error.message}`);\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Initialize TLS certificates\n     */\n    async initializeCertificates() {\n        // In production: Load from secure certificate store\n        // For this implementation: Generate self-signed certificates\n        \n        const keyPair = crypto.generateKeyPairSync('rsa', {\n            modulusLength: 4096,\n            publicKeyEncoding: {\n                type: 'spki',\n                format: 'pem'\n            },\n            privateKeyEncoding: {\n                type: 'pkcs8',\n                format: 'pem'\n            }\n        });\n        \n        // Generate self-signed certificate for testing\n        this.certificates.key = keyPair.privateKey;\n        this.certificates.cert = this.generateSelfSignedCert(keyPair);\n    }\n    \n    /**\n     * SECURITY FIX: Generate self-signed certificate\n     */\n    generateSelfSignedCert(keyPair) {\n        // This is a simplified implementation\n        // In production: Use proper certificate authority\n        return keyPair.publicKey; // Simplified for demo\n    }\n    \n    /**\n     * SECURITY FIX: Create secure HTTPS server\n     */\n    createSecureServer(options = {}) {\n        const serverOptions = {\n            ...this.tlsConfig,\n            key: this.certificates.key,\n            cert: this.certificates.cert,\n            ca: this.certificates.ca,\n            ...options\n        };\n        \n        const server = https.createServer(serverOptions);\n        \n        // SECURITY: Monitor connections\n        server.on('connection', (socket) => {\n            this.handleNewConnection(socket);\n        });\n        \n        server.on('secureConnection', (tlsSocket) => {\n            this.handleSecureConnection(tlsSocket);\n        });\n        \n        server.on('tlsClientError', (error, tlsSocket) => {\n            this.handleTLSError(error, tlsSocket);\n        });\n        \n        return server;\n    }\n    \n    /**\n     * SECURITY FIX: Handle new connections with security validation\n     */\n    handleNewConnection(socket) {\n        const clientIP = socket.remoteAddress;\n        const connectionId = crypto.randomUUID();\n        \n        this.networkMetrics.totalConnections++;\n        \n        // SECURITY: Rate limiting check\n        if (!this.checkRateLimit(clientIP)) {\n            this.networkMetrics.rejectedConnections++;\n            this.logSecurityViolation('rate_limit_exceeded', {\n                clientIP,\n                timestamp: Date.now()\n            });\n            \n            socket.destroy();\n            return;\n        }\n        \n        // SECURITY: Check suspicious IPs\n        if (this.suspiciousIPs.has(clientIP)) {\n            this.networkMetrics.rejectedConnections++;\n            this.logSecurityViolation('suspicious_ip_connection', {\n                clientIP,\n                timestamp: Date.now()\n            });\n            \n            socket.destroy();\n            return;\n        }\n        \n        // Track active connection\n        this.activeConnections.set(connectionId, {\n            socket,\n            clientIP,\n            connectedAt: Date.now(),\n            tlsSecure: false\n        });\n        \n        // Set connection timeout\n        socket.setTimeout(30000, () => {\n            this.logSecurityEvent('connection_timeout', { clientIP, connectionId });\n            socket.destroy();\n        });\n        \n        socket.on('close', () => {\n            this.activeConnections.delete(connectionId);\n        });\n    }\n    \n    /**\n     * SECURITY FIX: Handle secure TLS connections\n     */\n    handleSecureConnection(tlsSocket) {\n        const clientIP = tlsSocket.remoteAddress;\n        const cipher = tlsSocket.getCipher();\n        const peerCert = tlsSocket.getPeerCertificate();\n        \n        // SECURITY: Validate TLS configuration\n        if (!this.validateTLSConnection(cipher, peerCert)) {\n            this.networkMetrics.tlsHandshakeFailures++;\n            this.logSecurityViolation('tls_validation_failed', {\n                clientIP,\n                cipher: cipher?.name,\n                timestamp: Date.now()\n            });\n            \n            tlsSocket.destroy();\n            return;\n        }\n        \n        // Update connection as secure\n        const connectionEntry = Array.from(this.activeConnections.values())\n            .find(conn => conn.clientIP === clientIP);\n        \n        if (connectionEntry) {\n            connectionEntry.tlsSecure = true;\n            connectionEntry.cipher = cipher;\n            connectionEntry.peerCert = peerCert;\n        }\n        \n        this.logSecurityEvent('secure_connection_established', {\n            clientIP,\n            cipher: cipher?.name,\n            protocol: cipher?.version\n        });\n    }\n    \n    /**\n     * SECURITY FIX: Handle TLS errors\n     */\n    handleTLSError(error, tlsSocket) {\n        const clientIP = tlsSocket?.remoteAddress;\n        \n        this.networkMetrics.tlsHandshakeFailures++;\n        \n        this.logSecurityViolation('tls_handshake_error', {\n            clientIP,\n            error: error.message,\n            code: error.code,\n            timestamp: Date.now()\n        });\n        \n        // Flag IP as suspicious after multiple TLS failures\n        this.flagSuspiciousActivity(clientIP, 'tls_handshake_failure');\n    }\n    \n    /**\n     * SECURITY FIX: Validate TLS connection parameters\n     */\n    validateTLSConnection(cipher, peerCert) {\n        // SECURITY: Validate cipher suite\n        if (!cipher || !this.isAllowedCipher(cipher.name)) {\n            return false;\n        }\n        \n        // SECURITY: Validate TLS version\n        if (!cipher.version || cipher.version < 'TLSv1.3') {\n            return false;\n        }\n        \n        // SECURITY: Validate peer certificate (if required)\n        if (this.tlsConfig.requestCert && !this.validatePeerCertificate(peerCert)) {\n            return false;\n        }\n        \n        return true;\n    }\n    \n    /**\n     * SECURITY FIX: Check if cipher is allowed\n     */\n    isAllowedCipher(cipherName) {\n        const allowedCiphers = [\n            'TLS_AES_256_GCM_SHA384',\n            'TLS_CHACHA20_POLY1305_SHA256',\n            'TLS_AES_128_GCM_SHA256'\n        ];\n        \n        return allowedCiphers.includes(cipherName);\n    }\n    \n    /**\n     * SECURITY FIX: Validate peer certificate\n     */\n    validatePeerCertificate(peerCert) {\n        if (!peerCert || !peerCert.subject) {\n            return false;\n        }\n        \n        // Check certificate validity\n        const now = new Date();\n        const validFrom = new Date(peerCert.valid_from);\n        const validTo = new Date(peerCert.valid_to);\n        \n        if (now < validFrom || now > validTo) {\n            return false;\n        }\n        \n        // Additional certificate validation would go here\n        return true;\n    }\n    \n    /**\n     * SECURITY FIX: Rate limiting implementation\n     */\n    checkRateLimit(clientIP) {\n        const now = Date.now();\n        const minute = Math.floor(now / 60000);\n        const key = `${clientIP}:${minute}`;\n        \n        const current = this.rateLimiter.get(key) || 0;\n        \n        if (current >= this.rateLimitConfig.maxRequestsPerMinute) {\n            this.flagSuspiciousActivity(clientIP, 'rate_limit_exceeded');\n            return false;\n        }\n        \n        this.rateLimiter.set(key, current + 1);\n        return true;\n    }\n    \n    /**\n     * SECURITY FIX: Message integrity verification\n     */\n    async verifyMessageIntegrity(message, signature, senderID) {\n        try {\n            // SECURITY: Validate message structure\n            if (!message || !signature || !senderID) {\n                throw new Error('Invalid message parameters');\n            }\n            \n            // SECURITY: Get sender's public key\n            const senderKey = this.messageKeys.get(senderID);\n            if (!senderKey) {\n                throw new Error(`No public key found for sender: ${senderID}`);\n            }\n            \n            // SECURITY: Verify sequence number (prevent replay attacks)\n            const expectedSeq = this.sequenceNumbers.get(senderID) || 0;\n            if (message.sequenceNumber <= expectedSeq) {\n                throw new Error('Invalid sequence number (replay attack detected)');\n            }\n            \n            // SECURITY: Verify message signature\n            const messageHash = crypto.createHash('sha384')\n                .update(JSON.stringify(message))\n                .digest();\n            \n            const isValid = crypto.verify(\n                'RSA-PSS',\n                messageHash,\n                {\n                    key: senderKey,\n                    padding: crypto.constants.RSA_PKCS1_PSS_PADDING,\n                    saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,\n                    hashAlgorithm: 'sha384'\n                },\n                Buffer.from(signature, 'base64')\n            );\n            \n            if (!isValid) {\n                this.networkMetrics.messageIntegrityFailures++;\n                throw new Error('Message signature verification failed');\n            }\n            \n            // Update sequence number\n            this.sequenceNumbers.set(senderID, message.sequenceNumber);\n            \n            // Log integrity verification\n            this.logMessageIntegrity({\n                senderID,\n                messageHash: messageHash.toString('hex'),\n                sequenceNumber: message.sequenceNumber,\n                verified: true,\n                timestamp: Date.now()\n            });\n            \n            return {\n                verified: true,\n                senderID,\n                sequenceNumber: message.sequenceNumber\n            };\n            \n        } catch (error) {\n            this.networkMetrics.messageIntegrityFailures++;\n            \n            this.logSecurityViolation('message_integrity_failure', {\n                senderID,\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            // Log failed integrity check\n            this.logMessageIntegrity({\n                senderID,\n                error: error.message,\n                verified: false,\n                timestamp: Date.now()\n            });\n            \n            throw error;\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Create secure message with integrity protection\n     */\n    async createSecureMessage(content, senderID, privateKey) {\n        try {\n            // Get next sequence number\n            const currentSeq = this.sequenceNumbers.get(senderID) || 0;\n            const sequenceNumber = currentSeq + 1;\n            \n            // Create message structure\n            const message = {\n                content,\n                senderID,\n                sequenceNumber,\n                timestamp: Date.now(),\n                nonce: crypto.randomBytes(16).toString('hex')\n            };\n            \n            // Create message hash\n            const messageHash = crypto.createHash('sha384')\n                .update(JSON.stringify(message))\n                .digest();\n            \n            // Sign message\n            const signature = crypto.sign(\n                'RSA-PSS',\n                messageHash,\n                {\n                    key: privateKey,\n                    padding: crypto.constants.RSA_PKCS1_PSS_PADDING,\n                    saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,\n                    hashAlgorithm: 'sha384'\n                }\n            ).toString('base64');\n            \n            return {\n                message,\n                signature,\n                messageHash: messageHash.toString('hex')\n            };\n            \n        } catch (error) {\n            this.logSecurityViolation('secure_message_creation_failed', {\n                senderID,\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            throw error;\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Network partition detection and mitigation\n     */\n    detectNetworkPartition() {\n        const activeCount = this.activeConnections.size;\n        const expectedMinimum = Math.ceil(this.networkMetrics.totalConnections * 0.7);\n        \n        if (activeCount < expectedMinimum) {\n            this.logSecurityEvent('network_partition_detected', {\n                activeConnections: activeCount,\n                expectedMinimum,\n                severity: 'HIGH',\n                timestamp: Date.now()\n            });\n            \n            return {\n                partitionDetected: true,\n                activeConnections: activeCount,\n                severity: activeCount < (expectedMinimum * 0.5) ? 'CRITICAL' : 'HIGH',\n                mitigationRequired: true\n            };\n        }\n        \n        return {\n            partitionDetected: false,\n            activeConnections: activeCount,\n            networkHealthy: true\n        };\n    }\n    \n    /**\n     * SECURITY FIX: Flag suspicious activity\n     */\n    flagSuspiciousActivity(clientIP, activityType) {\n        this.networkMetrics.suspiciousActivity++;\n        \n        // Track suspicious activity count\n        const key = `suspicious:${clientIP}`;\n        const current = this.rateLimiter.get(key) || 0;\n        this.rateLimiter.set(key, current + 1);\n        \n        // Flag IP as suspicious after threshold\n        if (current + 1 >= this.rateLimitConfig.suspiciousThreshold) {\n            this.suspiciousIPs.add(clientIP);\n            \n            this.logSecurityViolation('ip_flagged_suspicious', {\n                clientIP,\n                activityType,\n                count: current + 1,\n                timestamp: Date.now()\n            });\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Log message integrity events\n     */\n    logMessageIntegrity(integrityData) {\n        const logEntry = {\n            logId: crypto.randomUUID(),\n            ...integrityData,\n            loggedAt: Date.now()\n        };\n        \n        // Create tamper-proof hash chain\n        const previousHash = this.messageIntegrityLog.length > 0\n            ? this.messageIntegrityLog[this.messageIntegrityLog.length - 1].chainHash\n            : '0';\n        \n        logEntry.chainHash = crypto.createHash('sha384')\n            .update(JSON.stringify(logEntry))\n            .update(previousHash)\n            .digest('hex');\n        \n        this.messageIntegrityLog.push(logEntry);\n        \n        // Trim log if too large\n        if (this.messageIntegrityLog.length > 10000) {\n            this.messageIntegrityLog = this.messageIntegrityLog.slice(-5000);\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Start network monitoring\n     */\n    startNetworkMonitoring() {\n        // Monitor for network partitions\n        setInterval(() => {\n            this.detectNetworkPartition();\n        }, 30000); // Every 30 seconds\n        \n        // Clean up inactive connections\n        setInterval(() => {\n            this.cleanupInactiveConnections();\n        }, 60000); // Every minute\n    }\n    \n    /**\n     * SECURITY FIX: Clean up inactive connections\n     */\n    cleanupInactiveConnections() {\n        const now = Date.now();\n        const maxAge = 5 * 60 * 1000; // 5 minutes\n        \n        for (const [connectionId, connection] of this.activeConnections) {\n            if (now - connection.connectedAt > maxAge) {\n                this.logSecurityEvent('connection_timeout_cleanup', {\n                    connectionId,\n                    clientIP: connection.clientIP,\n                    age: now - connection.connectedAt\n                });\n                \n                connection.socket.destroy();\n                this.activeConnections.delete(connectionId);\n            }\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Start rate limit cleanup\n     */\n    startRateLimitCleanup() {\n        setInterval(() => {\n            const now = Date.now();\n            const currentMinute = Math.floor(now / 60000);\n            \n            // Clean up old rate limit entries\n            for (const [key, value] of this.rateLimiter) {\n                const [, minute] = key.split(':');\n                if (currentMinute - parseInt(minute) > 5) { // Keep 5 minutes\n                    this.rateLimiter.delete(key);\n                }\n            }\n        }, 60000); // Every minute\n    }\n    \n    /**\n     * SECURITY FIX: Register sender public key\n     */\n    registerSenderKey(senderID, publicKey) {\n        this.messageKeys.set(senderID, publicKey);\n        this.sequenceNumbers.set(senderID, 0);\n        \n        this.logSecurityEvent('sender_key_registered', {\n            senderID,\n            timestamp: Date.now()\n        });\n    }\n    \n    /**\n     * SECURITY FIX: Get network security status\n     */\n    getSecurityStatus() {\n        return {\n            tlsConfiguration: {\n                version: this.tlsConfig.minVersion,\n                ciphers: this.tlsConfig.ciphers,\n                certificateStatus: this.certificates.cert ? 'loaded' : 'missing'\n            },\n            networkMetrics: { ...this.networkMetrics },\n            activeConnections: this.activeConnections.size,\n            suspiciousIPs: this.suspiciousIPs.size,\n            messageIntegrityLogs: this.messageIntegrityLog.length,\n            rateLimitEntries: this.rateLimiter.size,\n            timestamp: Date.now()\n        };\n    }\n    \n    /**\n     * SECURITY FIX: Log security violations\n     */\n    logSecurityViolation(violationType, details) {\n        const logEntry = {\n            violationId: crypto.randomUUID(),\n            type: violationType,\n            details,\n            severity: 'CRITICAL',\n            timestamp: Date.now(),\n            nodeId: process.pid\n        };\n        \n        console.error('[NETWORK SECURITY VIOLATION]', JSON.stringify(logEntry, null, 2));\n        this.emit('security_violation', logEntry);\n    }\n    \n    /**\n     * SECURITY FIX: Log security events\n     */\n    logSecurityEvent(eventType, details) {\n        const logEntry = {\n            eventId: crypto.randomUUID(),\n            type: eventType,\n            details,\n            severity: 'INFO',\n            timestamp: Date.now()\n        };\n        \n        console.log('[NETWORK SECURITY EVENT]', JSON.stringify(logEntry, null, 2));\n        this.emit('security_event', logEntry);\n    }\n}\n\nmodule.exports = { NetworkSecurityManager };
+ * SECURITY REMEDIATION: Network Security Enforcement
+ * Addresses critical vulnerabilities:
+ * - Network security gaps (no TLS/SSL enforcement) -> FIXED
+ * - Network partition attack vulnerabilities -> FIXED
+ * - Message integrity verification gaps -> FIXED
+ * - Audit trail manipulation possibilities -> FIXED
+ */
+
+const tls = require('tls');
+const https = require('https');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const { EventEmitter } = require('events');
+
+class NetworkSecurityManager extends EventEmitter {
+    constructor(options = {}) {
+        super();
+        
+        // SECURITY: Mandatory TLS configuration
+        this.tlsConfig = {
+            minVersion: 'TLSv1.3',
+            maxVersion: 'TLSv1.3',
+            secureProtocol: 'TLSv1_3_method',
+            ciphers: [
+                'TLS_AES_256_GCM_SHA384',
+                'TLS_CHACHA20_POLY1305_SHA256',
+                'TLS_AES_128_GCM_SHA256'
+            ].join(':'),
+            honorCipherOrder: true,
+            sessionTimeout: 300, // 5 minutes
+            requestCert: true,
+            rejectUnauthorized: true
+        };
+        
+        // SECURITY: Certificate management
+        this.certificates = {
+            ca: null,
+            key: null,
+            cert: null,
+            pfx: null
+        };
+        
+        // SECURITY: Network monitoring
+        this.activeConnections = new Map();
+        this.suspiciousIPs = new Set();
+        this.messageIntegrityLog = [];
+        this.networkMetrics = {
+            totalConnections: 0,
+            rejectedConnections: 0,
+            tlsHandshakeFailures: 0,
+            messageIntegrityFailures: 0,
+            suspiciousActivity: 0
+        };
+        
+        // SECURITY: Rate limiting
+        this.rateLimiter = new Map();
+        this.rateLimitConfig = {
+            maxRequestsPerMinute: 100,
+            maxConnectionsPerIP: 10,
+            suspiciousThreshold: 50
+        };
+        
+        // SECURITY: Message authentication
+        this.messageKeys = new Map();
+        this.sequenceNumbers = new Map();
+        
+        // Initialize security systems
+        this.initializeNetworkSecurity();
+    }
+    
+    /**
+     * SECURITY FIX: Initialize network security systems
+     */
+    async initializeNetworkSecurity() {
+        try {
+            // Generate or load certificates
+            await this.initializeCertificates();
+            
+            // Start network monitoring
+            this.startNetworkMonitoring();
+            
+            // Initialize rate limiting cleanup
+            this.startRateLimitCleanup();
+            
+            this.emit('network_security_initialized', {
+                tlsVersion: this.tlsConfig.minVersion,
+                timestamp: Date.now()
+            });
+            
+        } catch (error) {
+            this.logSecurityViolation('network_security_init_failed', {
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            throw new Error(`Network security initialization failed: ${error.message}`);
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Initialize TLS certificates
+     */
+    async initializeCertificates() {
+        // In production: Load from secure certificate store
+        // For this implementation: Generate self-signed certificates
+        
+        const keyPair = crypto.generateKeyPairSync('rsa', {
+            modulusLength: 4096,
+            publicKeyEncoding: {
+                type: 'spki',
+                format: 'pem'
+            },
+            privateKeyEncoding: {
+                type: 'pkcs8',
+                format: 'pem'
+            }
+        });
+        
+        // Generate self-signed certificate for testing
+        this.certificates.key = keyPair.privateKey;
+        this.certificates.cert = this.generateSelfSignedCert(keyPair);
+    }
+    
+    /**
+     * SECURITY FIX: Generate self-signed certificate
+     */
+    generateSelfSignedCert(keyPair) {
+        // This is a simplified implementation
+        // In production: Use proper certificate authority
+        return keyPair.publicKey; // Simplified for demo
+    }
+    
+    /**
+     * SECURITY FIX: Create secure HTTPS server
+     */
+    createSecureServer(options = {}) {
+        const serverOptions = {
+            ...this.tlsConfig,
+            key: this.certificates.key,
+            cert: this.certificates.cert,
+            ca: this.certificates.ca,
+            ...options
+        };
+        
+        const server = https.createServer(serverOptions);
+        
+        // SECURITY: Monitor connections
+        server.on('connection', (socket) => {
+            this.handleNewConnection(socket);
+        });
+        
+        server.on('secureConnection', (tlsSocket) => {
+            this.handleSecureConnection(tlsSocket);
+        });
+        
+        server.on('tlsClientError', (error, tlsSocket) => {
+            this.handleTLSError(error, tlsSocket);
+        });
+        
+        return server;
+    }
+    
+    /**
+     * SECURITY FIX: Handle new connections with security validation
+     */
+    handleNewConnection(socket) {
+        const clientIP = socket.remoteAddress;
+        const connectionId = crypto.randomUUID();
+        
+        this.networkMetrics.totalConnections++;
+        
+        // SECURITY: Rate limiting check
+        if (!this.checkRateLimit(clientIP)) {
+            this.networkMetrics.rejectedConnections++;
+            this.logSecurityViolation('rate_limit_exceeded', {
+                clientIP,
+                timestamp: Date.now()
+            });
+            
+            socket.destroy();
+            return;
+        }
+        
+        // SECURITY: Check suspicious IPs
+        if (this.suspiciousIPs.has(clientIP)) {
+            this.networkMetrics.rejectedConnections++;
+            this.logSecurityViolation('suspicious_ip_connection', {
+                clientIP,
+                timestamp: Date.now()
+            });
+            
+            socket.destroy();
+            return;
+        }
+        
+        // Track active connection
+        this.activeConnections.set(connectionId, {
+            socket,
+            clientIP,
+            connectedAt: Date.now(),
+            tlsSecure: false
+        });
+        
+        // Set connection timeout
+        socket.setTimeout(30000, () => {
+            this.logSecurityEvent('connection_timeout', { clientIP, connectionId });
+            socket.destroy();
+        });
+        
+        socket.on('close', () => {
+            this.activeConnections.delete(connectionId);
+        });
+    }
+    
+    /**
+     * SECURITY FIX: Handle secure TLS connections
+     */
+    handleSecureConnection(tlsSocket) {
+        const clientIP = tlsSocket.remoteAddress;
+        const cipher = tlsSocket.getCipher();
+        const peerCert = tlsSocket.getPeerCertificate();
+        
+        // SECURITY: Validate TLS configuration
+        if (!this.validateTLSConnection(cipher, peerCert)) {
+            this.networkMetrics.tlsHandshakeFailures++;
+            this.logSecurityViolation('tls_validation_failed', {
+                clientIP,
+                cipher: cipher?.name,
+                timestamp: Date.now()
+            });
+            
+            tlsSocket.destroy();
+            return;
+        }
+        
+        // Update connection as secure
+        const connectionEntry = Array.from(this.activeConnections.values())
+            .find(conn => conn.clientIP === clientIP);
+        
+        if (connectionEntry) {
+            connectionEntry.tlsSecure = true;
+            connectionEntry.cipher = cipher;
+            connectionEntry.peerCert = peerCert;
+        }
+        
+        this.logSecurityEvent('secure_connection_established', {
+            clientIP,
+            cipher: cipher?.name,
+            protocol: cipher?.version
+        });
+    }
+    
+    /**
+     * SECURITY FIX: Handle TLS errors
+     */
+    handleTLSError(error, tlsSocket) {
+        const clientIP = tlsSocket?.remoteAddress;
+        
+        this.networkMetrics.tlsHandshakeFailures++;
+        
+        this.logSecurityViolation('tls_handshake_error', {
+            clientIP,
+            error: error.message,
+            code: error.code,
+            timestamp: Date.now()
+        });
+        
+        // Flag IP as suspicious after multiple TLS failures
+        this.flagSuspiciousActivity(clientIP, 'tls_handshake_failure');
+    }
+    
+    /**
+     * SECURITY FIX: Validate TLS connection parameters
+     */
+    validateTLSConnection(cipher, peerCert) {
+        // SECURITY: Validate cipher suite
+        if (!cipher || !this.isAllowedCipher(cipher.name)) {
+            return false;
+        }
+        
+        // SECURITY: Validate TLS version
+        if (!cipher.version || cipher.version < 'TLSv1.3') {
+            return false;
+        }
+        
+        // SECURITY: Validate peer certificate (if required)
+        if (this.tlsConfig.requestCert && !this.validatePeerCertificate(peerCert)) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * SECURITY FIX: Check if cipher is allowed
+     */
+    isAllowedCipher(cipherName) {
+        const allowedCiphers = [
+            'TLS_AES_256_GCM_SHA384',
+            'TLS_CHACHA20_POLY1305_SHA256',
+            'TLS_AES_128_GCM_SHA256'
+        ];
+        
+        return allowedCiphers.includes(cipherName);
+    }
+    
+    /**
+     * SECURITY FIX: Validate peer certificate
+     */
+    validatePeerCertificate(peerCert) {
+        if (!peerCert || !peerCert.subject) {
+            return false;
+        }
+        
+        // Check certificate validity
+        const now = new Date();
+        const validFrom = new Date(peerCert.valid_from);
+        const validTo = new Date(peerCert.valid_to);
+        
+        if (now < validFrom || now > validTo) {
+            return false;
+        }
+        
+        // Additional certificate validation would go here
+        return true;
+    }
+    
+    /**
+     * SECURITY FIX: Rate limiting implementation
+     */
+    checkRateLimit(clientIP) {
+        const now = Date.now();
+        const minute = Math.floor(now / 60000);
+        const key = `${clientIP}:${minute}`;
+        
+        const current = this.rateLimiter.get(key) || 0;
+        
+        if (current >= this.rateLimitConfig.maxRequestsPerMinute) {
+            this.flagSuspiciousActivity(clientIP, 'rate_limit_exceeded');
+            return false;
+        }
+        
+        this.rateLimiter.set(key, current + 1);
+        return true;
+    }
+    
+    /**
+     * SECURITY FIX: Message integrity verification
+     */
+    async verifyMessageIntegrity(message, signature, senderID) {
+        try {
+            // SECURITY: Validate message structure
+            if (!message || !signature || !senderID) {
+                throw new Error('Invalid message parameters');
+            }
+            
+            // SECURITY: Get sender's public key
+            const senderKey = this.messageKeys.get(senderID);
+            if (!senderKey) {
+                throw new Error(`No public key found for sender: ${senderID}`);
+            }
+            
+            // SECURITY: Verify sequence number (prevent replay attacks)
+            const expectedSeq = this.sequenceNumbers.get(senderID) || 0;
+            if (message.sequenceNumber <= expectedSeq) {
+                throw new Error('Invalid sequence number (replay attack detected)');
+            }
+            
+            // SECURITY: Verify message signature
+            const messageHash = crypto.createHash('sha384')
+                .update(JSON.stringify(message))
+                .digest();
+            
+            const isValid = crypto.verify(
+                'RSA-PSS',
+                messageHash,
+                {
+                    key: senderKey,
+                    padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+                    saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,
+                    hashAlgorithm: 'sha384'
+                },
+                Buffer.from(signature, 'base64')
+            );
+            
+            if (!isValid) {
+                this.networkMetrics.messageIntegrityFailures++;
+                throw new Error('Message signature verification failed');
+            }
+            
+            // Update sequence number
+            this.sequenceNumbers.set(senderID, message.sequenceNumber);
+            
+            // Log integrity verification
+            this.logMessageIntegrity({
+                senderID,
+                messageHash: messageHash.toString('hex'),
+                sequenceNumber: message.sequenceNumber,
+                verified: true,
+                timestamp: Date.now()
+            });
+            
+            return {
+                verified: true,
+                senderID,
+                sequenceNumber: message.sequenceNumber
+            };
+            
+        } catch (error) {
+            this.networkMetrics.messageIntegrityFailures++;
+            
+            this.logSecurityViolation('message_integrity_failure', {
+                senderID,
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            // Log failed integrity check
+            this.logMessageIntegrity({
+                senderID,
+                error: error.message,
+                verified: false,
+                timestamp: Date.now()
+            });
+            
+            throw error;
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Create secure message with integrity protection
+     */
+    async createSecureMessage(content, senderID, privateKey) {
+        try {
+            // Get next sequence number
+            const currentSeq = this.sequenceNumbers.get(senderID) || 0;
+            const sequenceNumber = currentSeq + 1;
+            
+            // Create message structure
+            const message = {
+                content,
+                senderID,
+                sequenceNumber,
+                timestamp: Date.now(),
+                nonce: crypto.randomBytes(16).toString('hex')
+            };
+            
+            // Create message hash
+            const messageHash = crypto.createHash('sha384')
+                .update(JSON.stringify(message))
+                .digest();
+            
+            // Sign message
+            const signature = crypto.sign(
+                'RSA-PSS',
+                messageHash,
+                {
+                    key: privateKey,
+                    padding: crypto.constants.RSA_PKCS1_PSS_PADDING,
+                    saltLength: crypto.constants.RSA_PSS_SALTLEN_DIGEST,
+                    hashAlgorithm: 'sha384'
+                }
+            ).toString('base64');
+            
+            return {
+                message,
+                signature,
+                messageHash: messageHash.toString('hex')
+            };
+            
+        } catch (error) {
+            this.logSecurityViolation('secure_message_creation_failed', {
+                senderID,
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            throw error;
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Network partition detection and mitigation
+     */
+    detectNetworkPartition() {
+        const activeCount = this.activeConnections.size;
+        const expectedMinimum = Math.ceil(this.networkMetrics.totalConnections * 0.7);
+        
+        if (activeCount < expectedMinimum) {
+            this.logSecurityEvent('network_partition_detected', {
+                activeConnections: activeCount,
+                expectedMinimum,
+                severity: 'HIGH',
+                timestamp: Date.now()
+            });
+            
+            return {
+                partitionDetected: true,
+                activeConnections: activeCount,
+                severity: activeCount < (expectedMinimum * 0.5) ? 'CRITICAL' : 'HIGH',
+                mitigationRequired: true
+            };
+        }
+        
+        return {
+            partitionDetected: false,
+            activeConnections: activeCount,
+            networkHealthy: true
+        };
+    }
+    
+    /**
+     * SECURITY FIX: Flag suspicious activity
+     */
+    flagSuspiciousActivity(clientIP, activityType) {
+        this.networkMetrics.suspiciousActivity++;
+        
+        // Track suspicious activity count
+        const key = `suspicious:${clientIP}`;
+        const current = this.rateLimiter.get(key) || 0;
+        this.rateLimiter.set(key, current + 1);
+        
+        // Flag IP as suspicious after threshold
+        if (current + 1 >= this.rateLimitConfig.suspiciousThreshold) {
+            this.suspiciousIPs.add(clientIP);
+            
+            this.logSecurityViolation('ip_flagged_suspicious', {
+                clientIP,
+                activityType,
+                count: current + 1,
+                timestamp: Date.now()
+            });
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Log message integrity events
+     */
+    logMessageIntegrity(integrityData) {
+        const logEntry = {
+            logId: crypto.randomUUID(),
+            ...integrityData,
+            loggedAt: Date.now()
+        };
+        
+        // Create tamper-proof hash chain
+        const previousHash = this.messageIntegrityLog.length > 0
+            ? this.messageIntegrityLog[this.messageIntegrityLog.length - 1].chainHash
+            : '0';
+        
+        logEntry.chainHash = crypto.createHash('sha384')
+            .update(JSON.stringify(logEntry))
+            .update(previousHash)
+            .digest('hex');
+        
+        this.messageIntegrityLog.push(logEntry);
+        
+        // Trim log if too large
+        if (this.messageIntegrityLog.length > 10000) {
+            this.messageIntegrityLog = this.messageIntegrityLog.slice(-5000);
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Start network monitoring
+     */
+    startNetworkMonitoring() {
+        // Monitor for network partitions
+        setInterval(() => {
+            this.detectNetworkPartition();
+        }, 30000); // Every 30 seconds
+        
+        // Clean up inactive connections
+        setInterval(() => {
+            this.cleanupInactiveConnections();
+        }, 60000); // Every minute
+    }
+    
+    /**
+     * SECURITY FIX: Clean up inactive connections
+     */
+    cleanupInactiveConnections() {
+        const now = Date.now();
+        const maxAge = 5 * 60 * 1000; // 5 minutes
+        
+        for (const [connectionId, connection] of this.activeConnections) {
+            if (now - connection.connectedAt > maxAge) {
+                this.logSecurityEvent('connection_timeout_cleanup', {
+                    connectionId,
+                    clientIP: connection.clientIP,
+                    age: now - connection.connectedAt
+                });
+                
+                connection.socket.destroy();
+                this.activeConnections.delete(connectionId);
+            }
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Start rate limit cleanup
+     */
+    startRateLimitCleanup() {
+        setInterval(() => {
+            const now = Date.now();
+            const currentMinute = Math.floor(now / 60000);
+            
+            // Clean up old rate limit entries
+            for (const [key, value] of this.rateLimiter) {
+                const [, minute] = key.split(':');
+                if (currentMinute - parseInt(minute) > 5) { // Keep 5 minutes
+                    this.rateLimiter.delete(key);
+                }
+            }
+        }, 60000); // Every minute
+    }
+    
+    /**
+     * SECURITY FIX: Register sender public key
+     */
+    registerSenderKey(senderID, publicKey) {
+        this.messageKeys.set(senderID, publicKey);
+        this.sequenceNumbers.set(senderID, 0);
+        
+        this.logSecurityEvent('sender_key_registered', {
+            senderID,
+            timestamp: Date.now()
+        });
+    }
+    
+    /**
+     * SECURITY FIX: Get network security status
+     */
+    getSecurityStatus() {
+        return {
+            tlsConfiguration: {
+                version: this.tlsConfig.minVersion,
+                ciphers: this.tlsConfig.ciphers,
+                certificateStatus: this.certificates.cert ? 'loaded' : 'missing'
+            },
+            networkMetrics: { ...this.networkMetrics },
+            activeConnections: this.activeConnections.size,
+            suspiciousIPs: this.suspiciousIPs.size,
+            messageIntegrityLogs: this.messageIntegrityLog.length,
+            rateLimitEntries: this.rateLimiter.size,
+            timestamp: Date.now()
+        };
+    }
+    
+    /**
+     * SECURITY FIX: Log security violations
+     */
+    logSecurityViolation(violationType, details) {
+        const logEntry = {
+            violationId: crypto.randomUUID(),
+            type: violationType,
+            details,
+            severity: 'CRITICAL',
+            timestamp: Date.now(),
+            nodeId: process.pid
+        };
+        
+        console.error('[NETWORK SECURITY VIOLATION]', JSON.stringify(logEntry, null, 2));
+        this.emit('security_violation', logEntry);
+    }
+    
+    /**
+     * SECURITY FIX: Log security events
+     */
+    logSecurityEvent(eventType, details) {
+        const logEntry = {
+            eventId: crypto.randomUUID(),
+            type: eventType,
+            details,
+            severity: 'INFO',
+            timestamp: Date.now()
+        };
+        
+        console.log('[NETWORK SECURITY EVENT]', JSON.stringify(logEntry, null, 2));
+        this.emit('security_event', logEntry);
+    }
+}
+
+module.exports = { NetworkSecurityManager };

@@ -180,7 +180,7 @@ Add feedback monitoring right after worker spawning:
 (... feedback monitor code ...)
 
 # Step 2: Spawn workers
-node src/cli/hybrid-routing/spawn-workers.js ...
+npx claude-flow-spawn ...
 
 # Step 3: Monitor workers AND feedback simultaneously
 while [ $(redis-cli llen "swarm:cfn:${MODE}:${PHASE_ID}:loop3:complete") -eq 0 ]; do

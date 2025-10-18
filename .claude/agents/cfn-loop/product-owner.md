@@ -73,9 +73,9 @@ const productOwnerActions: GOAPAction[] = [
   {
     name: "relaunch_loop3_targeted",
     preconditions: [
-      "loop3Iteration < 10",
+      "loop3Iteration < maxIterations",
       "concerns_are_in_scope",
-      "consensus < 0.90"
+      "consensus < threshold"
     ],
     effects: [
       "addresses_validator_concerns",
@@ -98,6 +98,21 @@ const productOwnerActions: GOAPAction[] = [
     ],
     cost: 20,
     scopeImpact: "maintains"
+  },
+  {
+    name: "escalate_to_human",
+    preconditions: [
+      "loop3Iteration >= maxIterations",
+      "OR consensus_degrading",
+      "OR critical_blocker_detected"
+    ],
+    effects: [
+      "human_review_requested",
+      "phase_blocked",
+      "escalation_report_generated"
+    ],
+    cost: 100,
+    scopeImpact: "maintains"
   }
 ];
 ```
@@ -106,15 +121,22 @@ const productOwnerActions: GOAPAction[] = [
 
 ```typescript
 const calculateActionCost = (action: GOAPAction, state: ProductOwnerState): number => {
-  let cost = action.baseComplexity * 10;
+  let cost = action.cost;
 
   // Scope impact penalty
   if (action.scopeImpact === 'expands') {
     cost += 1000;  // Effectively blocked
   }
 
-  // Iteration pressure
-  if (state.loop2Iteration >= 8) {
+  // Iteration pressure (enforce max iterations)
+  const maxIterations = getModeMaxIterations(state.mode);  // MVP: 5, Standard: 10, Enterprise: 15
+  if (state.loop3Iteration >= maxIterations) {
+    // Force escalation when iterations exceeded
+    if (action.name !== 'escalate_to_human') {
+      cost += 10000;  // Block all non-escalation actions
+    }
+  } else if (state.loop3Iteration >= maxIterations * 0.8) {
+    // Increase urgency as iteration limit approaches
     cost *= 1.5;
   }
 

@@ -29,4 +29,724 @@ class AuthenticationManager extends EventEmitter {
             expiresIn: '1h',
             notBefore: '0',
             clockTolerance: 10 // 10 seconds tolerance
-        };\n        \n        // SECURITY: Session configuration\n        this.sessionConfig = {\n            httpOnly: true,\n            secure: true,\n            sameSite: 'strict',\n            maxAge: 3600000, // 1 hour\n            regenerateOnAuth: true\n        };\n        \n        // SECURITY: User and session storage\n        this.authenticatedUsers = new Map();\n        this.activeSessions = new Map();\n        this.revokedTokens = new Set();\n        this.failedAttempts = new Map();\n        \n        // SECURITY: Rate limiting\n        this.rateLimits = {\n            maxLoginAttempts: 5,\n            lockoutDuration: 15 * 60 * 1000, // 15 minutes\n            maxSessionsPerUser: 3\n        };\n        \n        // SECURITY: Privilege levels\n        this.privilegeLevels = {\n            READONLY: 1,\n            USER: 2,\n            MODERATOR: 3,\n            ADMIN: 4,\n            SUPERADMIN: 5\n        };\n        \n        // SECURITY: Authentication metrics\n        this.authMetrics = {\n            totalLogins: 0,\n            failedLogins: 0,\n            blockedAttempts: 0,\n            tokensGenerated: 0,\n            tokensRevoked: 0,\n            privilegeEscalationAttempts: 0\n        };\n        \n        // Generate RSA key pair for JWT signing\n        this.keyPair = this.generateRSAKeyPair();\n        \n        // Initialize authentication system\n        this.initializeAuthSystem();\n    }\n    \n    /**\n     * SECURITY FIX: Generate cryptographically secure secret\n     */\n    generateSecureSecret() {\n        return crypto.randomBytes(64).toString('hex');\n    }\n    \n    /**\n     * SECURITY FIX: Generate RSA key pair for JWT signing\n     */\n    generateRSAKeyPair() {\n        return crypto.generateKeyPairSync('rsa', {\n            modulusLength: 2048,\n            publicKeyEncoding: {\n                type: 'spki',\n                format: 'pem'\n            },\n            privateKeyEncoding: {\n                type: 'pkcs8',\n                format: 'pem'\n            }\n        });\n    }\n    \n    /**\n     * SECURITY FIX: Secure user registration\n     */\n    async registerUser(userData) {\n        try {\n            const { username, password, email, role = 'USER' } = userData;\n            \n            // SECURITY: Input validation\n            this.validateUserInput({ username, password, email });\n            \n            // SECURITY: Check if user exists\n            if (this.authenticatedUsers.has(username)) {\n                throw new Error('User already exists');\n            }\n            \n            // SECURITY: Hash password with high-security bcrypt\n            const passwordHash = await bcrypt.hash(password, this.saltRounds);\n            \n            // SECURITY: Generate unique user ID\n            const userId = crypto.randomUUID();\n            \n            // SECURITY: Create user record\n            const user = {\n                userId,\n                username,\n                passwordHash,\n                email,\n                role,\n                privilegeLevel: this.privilegeLevels[role] || this.privilegeLevels.USER,\n                createdAt: Date.now(),\n                lastLogin: null,\n                isLocked: false,\n                failedLoginAttempts: 0,\n                twoFactorEnabled: false,\n                securityQuestions: []\n            };\n            \n            // Store user\n            this.authenticatedUsers.set(username, user);\n            \n            this.logSecurityEvent('user_registered', {\n                userId,\n                username,\n                role,\n                timestamp: Date.now()\n            });\n            \n            return {\n                success: true,\n                userId,\n                message: 'User registered successfully'\n            };\n            \n        } catch (error) {\n            this.logSecurityViolation('user_registration_failed', {\n                username: userData?.username,\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            throw error;\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Secure user authentication with rate limiting\n     */\n    async authenticateUser(credentials) {\n        const { username, password, clientIP } = credentials;\n        \n        try {\n            this.authMetrics.totalLogins++;\n            \n            // SECURITY: Check rate limiting\n            if (this.isRateLimited(username, clientIP)) {\n                this.authMetrics.blockedAttempts++;\n                throw new Error('Too many authentication attempts. Account temporarily locked.');\n            }\n            \n            // SECURITY: Get user record\n            const user = this.authenticatedUsers.get(username);\n            if (!user) {\n                this.recordFailedAttempt(username, clientIP, 'user_not_found');\n                throw new Error('Invalid credentials');\n            }\n            \n            // SECURITY: Check if account is locked\n            if (user.isLocked) {\n                this.authMetrics.blockedAttempts++;\n                throw new Error('Account is locked. Contact administrator.');\n            }\n            \n            // SECURITY: Verify password\n            const isValidPassword = await bcrypt.compare(password, user.passwordHash);\n            if (!isValidPassword) {\n                this.recordFailedAttempt(username, clientIP, 'invalid_password');\n                throw new Error('Invalid credentials');\n            }\n            \n            // SECURITY: Check for concurrent session limit\n            const userSessions = Array.from(this.activeSessions.values())\n                .filter(session => session.userId === user.userId);\n            \n            if (userSessions.length >= this.rateLimits.maxSessionsPerUser) {\n                // Revoke oldest session\n                const oldestSession = userSessions.sort((a, b) => a.createdAt - b.createdAt)[0];\n                this.revokeSession(oldestSession.sessionId);\n            }\n            \n            // SECURITY: Generate secure session\n            const sessionData = await this.createSecureSession(user, clientIP);\n            \n            // Update user login info\n            user.lastLogin = Date.now();\n            user.failedLoginAttempts = 0;\n            \n            // Clear failed attempts\n            this.failedAttempts.delete(username);\n            this.failedAttempts.delete(clientIP);\n            \n            this.logSecurityEvent('user_authenticated', {\n                userId: user.userId,\n                username,\n                clientIP,\n                sessionId: sessionData.sessionId,\n                timestamp: Date.now()\n            });\n            \n            return {\n                success: true,\n                user: {\n                    userId: user.userId,\n                    username: user.username,\n                    role: user.role,\n                    privilegeLevel: user.privilegeLevel\n                },\n                session: sessionData\n            };\n            \n        } catch (error) {\n            this.authMetrics.failedLogins++;\n            \n            this.logSecurityViolation('authentication_failed', {\n                username,\n                clientIP,\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            throw error;\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Create secure session with JWT token\n     */\n    async createSecureSession(user, clientIP) {\n        const sessionId = crypto.randomUUID();\n        const tokenId = crypto.randomUUID();\n        \n        // SECURITY: Create JWT payload\n        const payload = {\n            sub: user.userId,\n            username: user.username,\n            role: user.role,\n            privilegeLevel: user.privilegeLevel,\n            sessionId,\n            tokenId,\n            clientIP,\n            iat: Math.floor(Date.now() / 1000),\n            jti: tokenId\n        };\n        \n        // SECURITY: Sign JWT with RSA private key\n        const token = jwt.sign(payload, this.keyPair.privateKey, {\n            algorithm: this.tokenConfig.algorithm,\n            expiresIn: this.tokenConfig.expiresIn,\n            issuer: this.tokenConfig.issuer,\n            audience: this.tokenConfig.audience,\n            notBefore: this.tokenConfig.notBefore\n        });\n        \n        // SECURITY: Create session record\n        const session = {\n            sessionId,\n            userId: user.userId,\n            username: user.username,\n            tokenId,\n            token,\n            clientIP,\n            createdAt: Date.now(),\n            expiresAt: Date.now() + (60 * 60 * 1000), // 1 hour\n            isActive: true,\n            lastActivity: Date.now()\n        };\n        \n        // Store session\n        this.activeSessions.set(sessionId, session);\n        this.authMetrics.tokensGenerated++;\n        \n        return {\n            sessionId,\n            token,\n            expiresAt: session.expiresAt,\n            tokenType: 'Bearer'\n        };\n    }\n    \n    /**\n     * SECURITY FIX: Validate JWT token with comprehensive checks\n     */\n    async validateToken(token, requiredPrivilegeLevel = 1) {\n        try {\n            // SECURITY: Check if token is revoked\n            if (this.revokedTokens.has(token)) {\n                throw new Error('Token has been revoked');\n            }\n            \n            // SECURITY: Verify JWT signature and claims\n            const decoded = jwt.verify(token, this.keyPair.publicKey, {\n                algorithms: [this.tokenConfig.algorithm],\n                issuer: this.tokenConfig.issuer,\n                audience: this.tokenConfig.audience,\n                clockTolerance: this.tokenConfig.clockTolerance\n            });\n            \n            // SECURITY: Check if session exists and is active\n            const session = this.activeSessions.get(decoded.sessionId);\n            if (!session || !session.isActive) {\n                throw new Error('Session not found or inactive');\n            }\n            \n            // SECURITY: Check session expiration\n            if (Date.now() > session.expiresAt) {\n                this.revokeSession(session.sessionId);\n                throw new Error('Session expired');\n            }\n            \n            // SECURITY: Validate privilege level\n            if (decoded.privilegeLevel < requiredPrivilegeLevel) {\n                this.authMetrics.privilegeEscalationAttempts++;\n                throw new Error('Insufficient privileges');\n            }\n            \n            // SECURITY: Validate user still exists and is not locked\n            const user = this.authenticatedUsers.get(decoded.username);\n            if (!user || user.isLocked) {\n                this.revokeSession(session.sessionId);\n                throw new Error('User account invalid or locked');\n            }\n            \n            // Update session activity\n            session.lastActivity = Date.now();\n            \n            return {\n                valid: true,\n                user: {\n                    userId: decoded.sub,\n                    username: decoded.username,\n                    role: decoded.role,\n                    privilegeLevel: decoded.privilegeLevel\n                },\n                session: {\n                    sessionId: decoded.sessionId,\n                    expiresAt: session.expiresAt\n                }\n            };\n            \n        } catch (error) {\n            this.logSecurityViolation('token_validation_failed', {\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            throw new Error(`Token validation failed: ${error.message}`);\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Authorization check with role-based access control\n     */\n    async authorize(token, requiredRole, requiredPrivilegeLevel, resource = null) {\n        try {\n            // Validate token first\n            const validation = await this.validateToken(token, requiredPrivilegeLevel);\n            \n            // Check role requirement\n            if (requiredRole && validation.user.role !== requiredRole) {\n                // Check if user has higher privilege level that might override role requirement\n                if (validation.user.privilegeLevel < this.privilegeLevels.ADMIN) {\n                    throw new Error('Insufficient role permissions');\n                }\n            }\n            \n            // Resource-specific authorization\n            if (resource && !this.checkResourceAccess(validation.user, resource)) {\n                throw new Error('Resource access denied');\n            }\n            \n            this.logSecurityEvent('authorization_granted', {\n                userId: validation.user.userId,\n                username: validation.user.username,\n                requiredRole,\n                requiredPrivilegeLevel,\n                resource,\n                timestamp: Date.now()\n            });\n            \n            return {\n                authorized: true,\n                user: validation.user,\n                session: validation.session\n            };\n            \n        } catch (error) {\n            this.logSecurityViolation('authorization_denied', {\n                requiredRole,\n                requiredPrivilegeLevel,\n                resource,\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            throw error;\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Check resource-specific access\n     */\n    checkResourceAccess(user, resource) {\n        // Implement resource-specific access control logic\n        // This is a simplified implementation\n        \n        const resourcePermissions = {\n            'admin_panel': [this.privilegeLevels.ADMIN, this.privilegeLevels.SUPERADMIN],\n            'user_management': [this.privilegeLevels.ADMIN, this.privilegeLevels.SUPERADMIN],\n            'system_config': [this.privilegeLevels.SUPERADMIN],\n            'consensus_voting': [this.privilegeLevels.USER, this.privilegeLevels.MODERATOR, this.privilegeLevels.ADMIN, this.privilegeLevels.SUPERADMIN]\n        };\n        \n        const allowedLevels = resourcePermissions[resource];\n        return allowedLevels ? allowedLevels.includes(user.privilegeLevel) : false;\n    }\n    \n    /**\n     * SECURITY FIX: Secure session revocation\n     */\n    async revokeSession(sessionId, reason = 'manual_revocation') {\n        try {\n            const session = this.activeSessions.get(sessionId);\n            if (!session) {\n                throw new Error('Session not found');\n            }\n            \n            // Mark session as inactive\n            session.isActive = false;\n            session.revokedAt = Date.now();\n            session.revocationReason = reason;\n            \n            // Add token to revocation list\n            this.revokedTokens.add(session.token);\n            this.authMetrics.tokensRevoked++;\n            \n            // Remove from active sessions\n            this.activeSessions.delete(sessionId);\n            \n            this.logSecurityEvent('session_revoked', {\n                sessionId,\n                userId: session.userId,\n                reason,\n                timestamp: Date.now()\n            });\n            \n            return { success: true, message: 'Session revoked successfully' };\n            \n        } catch (error) {\n            this.logSecurityViolation('session_revocation_failed', {\n                sessionId,\n                error: error.message,\n                timestamp: Date.now()\n            });\n            \n            throw error;\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Rate limiting implementation\n     */\n    isRateLimited(username, clientIP) {\n        const now = Date.now();\n        \n        // Check username-based rate limiting\n        const userAttempts = this.failedAttempts.get(username) || { count: 0, lastAttempt: 0 };\n        if (userAttempts.count >= this.rateLimits.maxLoginAttempts) {\n            if (now - userAttempts.lastAttempt < this.rateLimits.lockoutDuration) {\n                return true;\n            } else {\n                // Reset counter after lockout period\n                this.failedAttempts.delete(username);\n            }\n        }\n        \n        // Check IP-based rate limiting\n        const ipAttempts = this.failedAttempts.get(clientIP) || { count: 0, lastAttempt: 0 };\n        if (ipAttempts.count >= this.rateLimits.maxLoginAttempts) {\n            if (now - ipAttempts.lastAttempt < this.rateLimits.lockoutDuration) {\n                return true;\n            } else {\n                // Reset counter after lockout period\n                this.failedAttempts.delete(clientIP);\n            }\n        }\n        \n        return false;\n    }\n    \n    /**\n     * SECURITY FIX: Record failed authentication attempts\n     */\n    recordFailedAttempt(username, clientIP, reason) {\n        const now = Date.now();\n        \n        // Record for username\n        const userAttempts = this.failedAttempts.get(username) || { count: 0, lastAttempt: 0 };\n        userAttempts.count++;\n        userAttempts.lastAttempt = now;\n        this.failedAttempts.set(username, userAttempts);\n        \n        // Record for IP\n        const ipAttempts = this.failedAttempts.get(clientIP) || { count: 0, lastAttempt: 0 };\n        ipAttempts.count++;\n        ipAttempts.lastAttempt = now;\n        this.failedAttempts.set(clientIP, ipAttempts);\n        \n        // Lock user account if too many attempts\n        if (userAttempts.count >= this.rateLimits.maxLoginAttempts) {\n            const user = this.authenticatedUsers.get(username);\n            if (user) {\n                user.isLocked = true;\n                user.lockedAt = now;\n                user.lockReason = `Too many failed login attempts: ${reason}`;\n            }\n        }\n        \n        this.logSecurityViolation('failed_authentication_attempt', {\n            username,\n            clientIP,\n            reason,\n            attemptCount: userAttempts.count,\n            timestamp: now\n        });\n    }\n    \n    /**\n     * SECURITY FIX: Validate user input\n     */\n    validateUserInput({ username, password, email }) {\n        // Username validation\n        if (!username || username.length < 3 || username.length > 50) {\n            throw new Error('Username must be between 3 and 50 characters');\n        }\n        \n        if (!/^[a-zA-Z0-9_-]+$/.test(username)) {\n            throw new Error('Username can only contain letters, numbers, underscores, and hyphens');\n        }\n        \n        // Password validation\n        if (!password || password.length < 8) {\n            throw new Error('Password must be at least 8 characters long');\n        }\n        \n        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]/.test(password)) {\n            throw new Error('Password must contain at least one lowercase letter, one uppercase letter, one digit, and one special character');\n        }\n        \n        // Email validation\n        if (!email || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {\n            throw new Error('Valid email address is required');\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Initialize authentication system\n     */\n    initializeAuthSystem() {\n        // Clean up expired sessions periodically\n        setInterval(() => {\n            this.cleanupExpiredSessions();\n        }, 5 * 60 * 1000); // Every 5 minutes\n        \n        // Clean up old revoked tokens\n        setInterval(() => {\n            this.cleanupRevokedTokens();\n        }, 60 * 60 * 1000); // Every hour\n        \n        // Reset rate limit counters periodically\n        setInterval(() => {\n            this.cleanupFailedAttempts();\n        }, 15 * 60 * 1000); // Every 15 minutes\n        \n        this.logSecurityEvent('auth_system_initialized', {\n            timestamp: Date.now()\n        });\n    }\n    \n    /**\n     * SECURITY FIX: Clean up expired sessions\n     */\n    cleanupExpiredSessions() {\n        const now = Date.now();\n        const expiredSessions = [];\n        \n        for (const [sessionId, session] of this.activeSessions) {\n            if (now > session.expiresAt) {\n                expiredSessions.push(sessionId);\n            }\n        }\n        \n        expiredSessions.forEach(sessionId => {\n            this.revokeSession(sessionId, 'expired');\n        });\n        \n        if (expiredSessions.length > 0) {\n            this.logSecurityEvent('expired_sessions_cleaned', {\n                count: expiredSessions.length,\n                timestamp: now\n            });\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Clean up old revoked tokens\n     */\n    cleanupRevokedTokens() {\n        // In production, this would check token expiration times\n        // For now, clear tokens older than 24 hours\n        if (this.revokedTokens.size > 10000) {\n            this.revokedTokens.clear();\n            \n            this.logSecurityEvent('revoked_tokens_cleaned', {\n                timestamp: Date.now()\n            });\n        }\n    }\n    \n    /**\n     * SECURITY FIX: Clean up old failed attempts\n     */\n    cleanupFailedAttempts() {\n        const now = Date.now();\n        const toDelete = [];\n        \n        for (const [key, attempts] of this.failedAttempts) {\n            if (now - attempts.lastAttempt > this.rateLimits.lockoutDuration) {\n                toDelete.push(key);\n            }\n        }\n        \n        toDelete.forEach(key => {\n            this.failedAttempts.delete(key);\n        });\n    }\n    \n    /**\n     * SECURITY FIX: Get authentication status and metrics\n     */\n    getAuthenticationStatus() {\n        return {\n            activeUsers: this.authenticatedUsers.size,\n            activeSessions: this.activeSessions.size,\n            revokedTokens: this.revokedTokens.size,\n            failedAttemptEntries: this.failedAttempts.size,\n            metrics: { ...this.authMetrics },\n            securityLevel: 'HIGH',\n            tokenAlgorithm: this.tokenConfig.algorithm,\n            sessionTimeout: this.sessionConfig.maxAge,\n            timestamp: Date.now()\n        };\n    }\n    \n    /**\n     * SECURITY FIX: Log security events\n     */\n    logSecurityEvent(eventType, details) {\n        const logEntry = {\n            eventId: crypto.randomUUID(),\n            type: eventType,\n            details,\n            severity: 'INFO',\n            timestamp: Date.now()\n        };\n        \n        console.log('[AUTH SECURITY EVENT]', JSON.stringify(logEntry, null, 2));\n        this.emit('security_event', logEntry);\n    }\n    \n    /**\n     * SECURITY FIX: Log security violations\n     */\n    logSecurityViolation(violationType, details) {\n        const logEntry = {\n            violationId: crypto.randomUUID(),\n            type: violationType,\n            details,\n            severity: 'CRITICAL',\n            timestamp: Date.now()\n        };\n        \n        console.error('[AUTH SECURITY VIOLATION]', JSON.stringify(logEntry, null, 2));\n        this.emit('security_violation', logEntry);\n    }\n}\n\n// Note: In production, install these dependencies:\n// npm install jsonwebtoken bcryptjs\n\n// For now, create mock implementations\nconst jwt_mock = {\n    sign: (payload, secret, options) => {\n        return Buffer.from(JSON.stringify({ ...payload, ...options })).toString('base64');\n    },\n    verify: (token, secret, options) => {\n        try {\n            return JSON.parse(Buffer.from(token, 'base64').toString());\n        } catch (e) {\n            throw new Error('Invalid token');\n        }\n    }\n};\n\nconst bcrypt_mock = {\n    hash: async (password, rounds) => {\n        return crypto.createHash('sha256').update(password + rounds).digest('hex');\n    },\n    compare: async (password, hash) => {\n        const expectedHash = crypto.createHash('sha256').update(password + '12').digest('hex');\n        return expectedHash === hash;\n    }\n};\n\n// Use mocks if real modules not available\nconst jwt_module = jwt || jwt_mock;\nconst bcrypt_module = bcrypt || bcrypt_mock;\n\nmodule.exports = { AuthenticationManager };
+        };
+        
+        // SECURITY: Session configuration
+        this.sessionConfig = {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 3600000, // 1 hour
+            regenerateOnAuth: true
+        };
+        
+        // SECURITY: User and session storage
+        this.authenticatedUsers = new Map();
+        this.activeSessions = new Map();
+        this.revokedTokens = new Set();
+        this.failedAttempts = new Map();
+        
+        // SECURITY: Rate limiting
+        this.rateLimits = {
+            maxLoginAttempts: 5,
+            lockoutDuration: 15 * 60 * 1000, // 15 minutes
+            maxSessionsPerUser: 3
+        };
+        
+        // SECURITY: Privilege levels
+        this.privilegeLevels = {
+            READONLY: 1,
+            USER: 2,
+            MODERATOR: 3,
+            ADMIN: 4,
+            SUPERADMIN: 5
+        };
+        
+        // SECURITY: Authentication metrics
+        this.authMetrics = {
+            totalLogins: 0,
+            failedLogins: 0,
+            blockedAttempts: 0,
+            tokensGenerated: 0,
+            tokensRevoked: 0,
+            privilegeEscalationAttempts: 0
+        };
+        
+        // Generate RSA key pair for JWT signing
+        this.keyPair = this.generateRSAKeyPair();
+        
+        // Initialize authentication system
+        this.initializeAuthSystem();
+    }
+    
+    /**
+     * SECURITY FIX: Generate cryptographically secure secret
+     */
+    generateSecureSecret() {
+        return crypto.randomBytes(64).toString('hex');
+    }
+    
+    /**
+     * SECURITY FIX: Generate RSA key pair for JWT signing
+     */
+    generateRSAKeyPair() {
+        return crypto.generateKeyPairSync('rsa', {
+            modulusLength: 2048,
+            publicKeyEncoding: {
+                type: 'spki',
+                format: 'pem'
+            },
+            privateKeyEncoding: {
+                type: 'pkcs8',
+                format: 'pem'
+            }
+        });
+    }
+    
+    /**
+     * SECURITY FIX: Secure user registration
+     */
+    async registerUser(userData) {
+        try {
+            const { username, password, email, role = 'USER' } = userData;
+            
+            // SECURITY: Input validation
+            this.validateUserInput({ username, password, email });
+            
+            // SECURITY: Check if user exists
+            if (this.authenticatedUsers.has(username)) {
+                throw new Error('User already exists');
+            }
+            
+            // SECURITY: Hash password with high-security bcrypt
+            const passwordHash = await bcrypt.hash(password, this.saltRounds);
+            
+            // SECURITY: Generate unique user ID
+            const userId = crypto.randomUUID();
+            
+            // SECURITY: Create user record
+            const user = {
+                userId,
+                username,
+                passwordHash,
+                email,
+                role,
+                privilegeLevel: this.privilegeLevels[role] || this.privilegeLevels.USER,
+                createdAt: Date.now(),
+                lastLogin: null,
+                isLocked: false,
+                failedLoginAttempts: 0,
+                twoFactorEnabled: false,
+                securityQuestions: []
+            };
+            
+            // Store user
+            this.authenticatedUsers.set(username, user);
+            
+            this.logSecurityEvent('user_registered', {
+                userId,
+                username,
+                role,
+                timestamp: Date.now()
+            });
+            
+            return {
+                success: true,
+                userId,
+                message: 'User registered successfully'
+            };
+            
+        } catch (error) {
+            this.logSecurityViolation('user_registration_failed', {
+                username: userData?.username,
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            throw error;
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Secure user authentication with rate limiting
+     */
+    async authenticateUser(credentials) {
+        const { username, password, clientIP } = credentials;
+        
+        try {
+            this.authMetrics.totalLogins++;
+            
+            // SECURITY: Check rate limiting
+            if (this.isRateLimited(username, clientIP)) {
+                this.authMetrics.blockedAttempts++;
+                throw new Error('Too many authentication attempts. Account temporarily locked.');
+            }
+            
+            // SECURITY: Get user record
+            const user = this.authenticatedUsers.get(username);
+            if (!user) {
+                this.recordFailedAttempt(username, clientIP, 'user_not_found');
+                throw new Error('Invalid credentials');
+            }
+            
+            // SECURITY: Check if account is locked
+            if (user.isLocked) {
+                this.authMetrics.blockedAttempts++;
+                throw new Error('Account is locked. Contact administrator.');
+            }
+            
+            // SECURITY: Verify password
+            const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+            if (!isValidPassword) {
+                this.recordFailedAttempt(username, clientIP, 'invalid_password');
+                throw new Error('Invalid credentials');
+            }
+            
+            // SECURITY: Check for concurrent session limit
+            const userSessions = Array.from(this.activeSessions.values())
+                .filter(session => session.userId === user.userId);
+            
+            if (userSessions.length >= this.rateLimits.maxSessionsPerUser) {
+                // Revoke oldest session
+                const oldestSession = userSessions.sort((a, b) => a.createdAt - b.createdAt)[0];
+                this.revokeSession(oldestSession.sessionId);
+            }
+            
+            // SECURITY: Generate secure session
+            const sessionData = await this.createSecureSession(user, clientIP);
+            
+            // Update user login info
+            user.lastLogin = Date.now();
+            user.failedLoginAttempts = 0;
+            
+            // Clear failed attempts
+            this.failedAttempts.delete(username);
+            this.failedAttempts.delete(clientIP);
+            
+            this.logSecurityEvent('user_authenticated', {
+                userId: user.userId,
+                username,
+                clientIP,
+                sessionId: sessionData.sessionId,
+                timestamp: Date.now()
+            });
+            
+            return {
+                success: true,
+                user: {
+                    userId: user.userId,
+                    username: user.username,
+                    role: user.role,
+                    privilegeLevel: user.privilegeLevel
+                },
+                session: sessionData
+            };
+            
+        } catch (error) {
+            this.authMetrics.failedLogins++;
+            
+            this.logSecurityViolation('authentication_failed', {
+                username,
+                clientIP,
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            throw error;
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Create secure session with JWT token
+     */
+    async createSecureSession(user, clientIP) {
+        const sessionId = crypto.randomUUID();
+        const tokenId = crypto.randomUUID();
+        
+        // SECURITY: Create JWT payload
+        const payload = {
+            sub: user.userId,
+            username: user.username,
+            role: user.role,
+            privilegeLevel: user.privilegeLevel,
+            sessionId,
+            tokenId,
+            clientIP,
+            iat: Math.floor(Date.now() / 1000),
+            jti: tokenId
+        };
+        
+        // SECURITY: Sign JWT with RSA private key
+        const token = jwt.sign(payload, this.keyPair.privateKey, {
+            algorithm: this.tokenConfig.algorithm,
+            expiresIn: this.tokenConfig.expiresIn,
+            issuer: this.tokenConfig.issuer,
+            audience: this.tokenConfig.audience,
+            notBefore: this.tokenConfig.notBefore
+        });
+        
+        // SECURITY: Create session record
+        const session = {
+            sessionId,
+            userId: user.userId,
+            username: user.username,
+            tokenId,
+            token,
+            clientIP,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + (60 * 60 * 1000), // 1 hour
+            isActive: true,
+            lastActivity: Date.now()
+        };
+        
+        // Store session
+        this.activeSessions.set(sessionId, session);
+        this.authMetrics.tokensGenerated++;
+        
+        return {
+            sessionId,
+            token,
+            expiresAt: session.expiresAt,
+            tokenType: 'Bearer'
+        };
+    }
+    
+    /**
+     * SECURITY FIX: Validate JWT token with comprehensive checks
+     */
+    async validateToken(token, requiredPrivilegeLevel = 1) {
+        try {
+            // SECURITY: Check if token is revoked
+            if (this.revokedTokens.has(token)) {
+                throw new Error('Token has been revoked');
+            }
+            
+            // SECURITY: Verify JWT signature and claims
+            const decoded = jwt.verify(token, this.keyPair.publicKey, {
+                algorithms: [this.tokenConfig.algorithm],
+                issuer: this.tokenConfig.issuer,
+                audience: this.tokenConfig.audience,
+                clockTolerance: this.tokenConfig.clockTolerance
+            });
+            
+            // SECURITY: Check if session exists and is active
+            const session = this.activeSessions.get(decoded.sessionId);
+            if (!session || !session.isActive) {
+                throw new Error('Session not found or inactive');
+            }
+            
+            // SECURITY: Check session expiration
+            if (Date.now() > session.expiresAt) {
+                this.revokeSession(session.sessionId);
+                throw new Error('Session expired');
+            }
+            
+            // SECURITY: Validate privilege level
+            if (decoded.privilegeLevel < requiredPrivilegeLevel) {
+                this.authMetrics.privilegeEscalationAttempts++;
+                throw new Error('Insufficient privileges');
+            }
+            
+            // SECURITY: Validate user still exists and is not locked
+            const user = this.authenticatedUsers.get(decoded.username);
+            if (!user || user.isLocked) {
+                this.revokeSession(session.sessionId);
+                throw new Error('User account invalid or locked');
+            }
+            
+            // Update session activity
+            session.lastActivity = Date.now();
+            
+            return {
+                valid: true,
+                user: {
+                    userId: decoded.sub,
+                    username: decoded.username,
+                    role: decoded.role,
+                    privilegeLevel: decoded.privilegeLevel
+                },
+                session: {
+                    sessionId: decoded.sessionId,
+                    expiresAt: session.expiresAt
+                }
+            };
+            
+        } catch (error) {
+            this.logSecurityViolation('token_validation_failed', {
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            throw new Error(`Token validation failed: ${error.message}`);
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Authorization check with role-based access control
+     */
+    async authorize(token, requiredRole, requiredPrivilegeLevel, resource = null) {
+        try {
+            // Validate token first
+            const validation = await this.validateToken(token, requiredPrivilegeLevel);
+            
+            // Check role requirement
+            if (requiredRole && validation.user.role !== requiredRole) {
+                // Check if user has higher privilege level that might override role requirement
+                if (validation.user.privilegeLevel < this.privilegeLevels.ADMIN) {
+                    throw new Error('Insufficient role permissions');
+                }
+            }
+            
+            // Resource-specific authorization
+            if (resource && !this.checkResourceAccess(validation.user, resource)) {
+                throw new Error('Resource access denied');
+            }
+            
+            this.logSecurityEvent('authorization_granted', {
+                userId: validation.user.userId,
+                username: validation.user.username,
+                requiredRole,
+                requiredPrivilegeLevel,
+                resource,
+                timestamp: Date.now()
+            });
+            
+            return {
+                authorized: true,
+                user: validation.user,
+                session: validation.session
+            };
+            
+        } catch (error) {
+            this.logSecurityViolation('authorization_denied', {
+                requiredRole,
+                requiredPrivilegeLevel,
+                resource,
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            throw error;
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Check resource-specific access
+     */
+    checkResourceAccess(user, resource) {
+        // Implement resource-specific access control logic
+        // This is a simplified implementation
+        
+        const resourcePermissions = {
+            'admin_panel': [this.privilegeLevels.ADMIN, this.privilegeLevels.SUPERADMIN],
+            'user_management': [this.privilegeLevels.ADMIN, this.privilegeLevels.SUPERADMIN],
+            'system_config': [this.privilegeLevels.SUPERADMIN],
+            'consensus_voting': [this.privilegeLevels.USER, this.privilegeLevels.MODERATOR, this.privilegeLevels.ADMIN, this.privilegeLevels.SUPERADMIN]
+        };
+        
+        const allowedLevels = resourcePermissions[resource];
+        return allowedLevels ? allowedLevels.includes(user.privilegeLevel) : false;
+    }
+    
+    /**
+     * SECURITY FIX: Secure session revocation
+     */
+    async revokeSession(sessionId, reason = 'manual_revocation') {
+        try {
+            const session = this.activeSessions.get(sessionId);
+            if (!session) {
+                throw new Error('Session not found');
+            }
+            
+            // Mark session as inactive
+            session.isActive = false;
+            session.revokedAt = Date.now();
+            session.revocationReason = reason;
+            
+            // Add token to revocation list
+            this.revokedTokens.add(session.token);
+            this.authMetrics.tokensRevoked++;
+            
+            // Remove from active sessions
+            this.activeSessions.delete(sessionId);
+            
+            this.logSecurityEvent('session_revoked', {
+                sessionId,
+                userId: session.userId,
+                reason,
+                timestamp: Date.now()
+            });
+            
+            return { success: true, message: 'Session revoked successfully' };
+            
+        } catch (error) {
+            this.logSecurityViolation('session_revocation_failed', {
+                sessionId,
+                error: error.message,
+                timestamp: Date.now()
+            });
+            
+            throw error;
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Rate limiting implementation
+     */
+    isRateLimited(username, clientIP) {
+        const now = Date.now();
+        
+        // Check username-based rate limiting
+        const userAttempts = this.failedAttempts.get(username) || { count: 0, lastAttempt: 0 };
+        if (userAttempts.count >= this.rateLimits.maxLoginAttempts) {
+            if (now - userAttempts.lastAttempt < this.rateLimits.lockoutDuration) {
+                return true;
+            } else {
+                // Reset counter after lockout period
+                this.failedAttempts.delete(username);
+            }
+        }
+        
+        // Check IP-based rate limiting
+        const ipAttempts = this.failedAttempts.get(clientIP) || { count: 0, lastAttempt: 0 };
+        if (ipAttempts.count >= this.rateLimits.maxLoginAttempts) {
+            if (now - ipAttempts.lastAttempt < this.rateLimits.lockoutDuration) {
+                return true;
+            } else {
+                // Reset counter after lockout period
+                this.failedAttempts.delete(clientIP);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * SECURITY FIX: Record failed authentication attempts
+     */
+    recordFailedAttempt(username, clientIP, reason) {
+        const now = Date.now();
+        
+        // Record for username
+        const userAttempts = this.failedAttempts.get(username) || { count: 0, lastAttempt: 0 };
+        userAttempts.count++;
+        userAttempts.lastAttempt = now;
+        this.failedAttempts.set(username, userAttempts);
+        
+        // Record for IP
+        const ipAttempts = this.failedAttempts.get(clientIP) || { count: 0, lastAttempt: 0 };
+        ipAttempts.count++;
+        ipAttempts.lastAttempt = now;
+        this.failedAttempts.set(clientIP, ipAttempts);
+        
+        // Lock user account if too many attempts
+        if (userAttempts.count >= this.rateLimits.maxLoginAttempts) {
+            const user = this.authenticatedUsers.get(username);
+            if (user) {
+                user.isLocked = true;
+                user.lockedAt = now;
+                user.lockReason = `Too many failed login attempts: ${reason}`;
+            }
+        }
+        
+        this.logSecurityViolation('failed_authentication_attempt', {
+            username,
+            clientIP,
+            reason,
+            attemptCount: userAttempts.count,
+            timestamp: now
+        });
+    }
+    
+    /**
+     * SECURITY FIX: Validate user input
+     */
+    validateUserInput({ username, password, email }) {
+        // Username validation
+        if (!username || username.length < 3 || username.length > 50) {
+            throw new Error('Username must be between 3 and 50 characters');
+        }
+        
+        if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+            throw new Error('Username can only contain letters, numbers, underscores, and hyphens');
+        }
+        
+        // Password validation
+        if (!password || password.length < 8) {
+            throw new Error('Password must be at least 8 characters long');
+        }
+        
+        if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
+            throw new Error('Password must contain at least one lowercase letter, one uppercase letter, one digit, and one special character');
+        }
+        
+        // Email validation
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            throw new Error('Valid email address is required');
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Initialize authentication system
+     */
+    initializeAuthSystem() {
+        // Clean up expired sessions periodically
+        setInterval(() => {
+            this.cleanupExpiredSessions();
+        }, 5 * 60 * 1000); // Every 5 minutes
+        
+        // Clean up old revoked tokens
+        setInterval(() => {
+            this.cleanupRevokedTokens();
+        }, 60 * 60 * 1000); // Every hour
+        
+        // Reset rate limit counters periodically
+        setInterval(() => {
+            this.cleanupFailedAttempts();
+        }, 15 * 60 * 1000); // Every 15 minutes
+        
+        this.logSecurityEvent('auth_system_initialized', {
+            timestamp: Date.now()
+        });
+    }
+    
+    /**
+     * SECURITY FIX: Clean up expired sessions
+     */
+    cleanupExpiredSessions() {
+        const now = Date.now();
+        const expiredSessions = [];
+        
+        for (const [sessionId, session] of this.activeSessions) {
+            if (now > session.expiresAt) {
+                expiredSessions.push(sessionId);
+            }
+        }
+        
+        expiredSessions.forEach(sessionId => {
+            this.revokeSession(sessionId, 'expired');
+        });
+        
+        if (expiredSessions.length > 0) {
+            this.logSecurityEvent('expired_sessions_cleaned', {
+                count: expiredSessions.length,
+                timestamp: now
+            });
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Clean up old revoked tokens
+     */
+    cleanupRevokedTokens() {
+        // In production, this would check token expiration times
+        // For now, clear tokens older than 24 hours
+        if (this.revokedTokens.size > 10000) {
+            this.revokedTokens.clear();
+            
+            this.logSecurityEvent('revoked_tokens_cleaned', {
+                timestamp: Date.now()
+            });
+        }
+    }
+    
+    /**
+     * SECURITY FIX: Clean up old failed attempts
+     */
+    cleanupFailedAttempts() {
+        const now = Date.now();
+        const toDelete = [];
+        
+        for (const [key, attempts] of this.failedAttempts) {
+            if (now - attempts.lastAttempt > this.rateLimits.lockoutDuration) {
+                toDelete.push(key);
+            }
+        }
+        
+        toDelete.forEach(key => {
+            this.failedAttempts.delete(key);
+        });
+    }
+    
+    /**
+     * SECURITY FIX: Get authentication status and metrics
+     */
+    getAuthenticationStatus() {
+        return {
+            activeUsers: this.authenticatedUsers.size,
+            activeSessions: this.activeSessions.size,
+            revokedTokens: this.revokedTokens.size,
+            failedAttemptEntries: this.failedAttempts.size,
+            metrics: { ...this.authMetrics },
+            securityLevel: 'HIGH',
+            tokenAlgorithm: this.tokenConfig.algorithm,
+            sessionTimeout: this.sessionConfig.maxAge,
+            timestamp: Date.now()
+        };
+    }
+    
+    /**
+     * SECURITY FIX: Log security events
+     */
+    logSecurityEvent(eventType, details) {
+        const logEntry = {
+            eventId: crypto.randomUUID(),
+            type: eventType,
+            details,
+            severity: 'INFO',
+            timestamp: Date.now()
+        };
+        
+        console.log('[AUTH SECURITY EVENT]', JSON.stringify(logEntry, null, 2));
+        this.emit('security_event', logEntry);
+    }
+    
+    /**
+     * SECURITY FIX: Log security violations
+     */
+    logSecurityViolation(violationType, details) {
+        const logEntry = {
+            violationId: crypto.randomUUID(),
+            type: violationType,
+            details,
+            severity: 'CRITICAL',
+            timestamp: Date.now()
+        };
+        
+        console.error('[AUTH SECURITY VIOLATION]', JSON.stringify(logEntry, null, 2));
+        this.emit('security_violation', logEntry);
+    }
+}
+
+// Note: In production, install these dependencies:
+// npm install jsonwebtoken bcryptjs
+
+// For now, create mock implementations
+const jwt_mock = {
+    sign: (payload, secret, options) => {
+        return Buffer.from(JSON.stringify({ ...payload, ...options })).toString('base64');
+    },
+    verify: (token, secret, options) => {
+        try {
+            return JSON.parse(Buffer.from(token, 'base64').toString());
+        } catch (e) {
+            throw new Error('Invalid token');
+        }
+    }
+};
+
+const bcrypt_mock = {
+    hash: async (password, rounds) => {
+        return crypto.createHash('sha256').update(password + rounds).digest('hex');
+    },
+    compare: async (password, hash) => {
+        const expectedHash = crypto.createHash('sha256').update(password + '12').digest('hex');
+        return expectedHash === hash;
+    }
+};
+
+// Use mocks if real modules not available
+const jwt_module = jwt || jwt_mock;
+const bcrypt_module = bcrypt || bcrypt_mock;
+
+module.exports = { AuthenticationManager };

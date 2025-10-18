@@ -6,6 +6,44 @@ For core commands used in typical development workflows, see `CLAUDE.md` Section
 
 ---
 
+## Development Utilities
+
+### Component Template Generator
+
+**Purpose**: Generate TypeScript components with proper types and tests
+
+**Usage**:
+```bash
+npm run create:component <ComponentName> <directory>
+```
+
+**Generated Files**:
+- `<directory>/<ComponentName>.ts` - Implementation with TypeScript interfaces
+- `<directory>/<ComponentName>.test.ts` - Jest test template
+- `<directory>/types.ts` - Type definitions (if doesn't exist)
+- `<directory>/index.ts` - Barrel export
+
+**Examples**:
+```bash
+# Create SwarmCoordinator in src/coordination
+npm run create:component SwarmCoordinator src/coordination
+
+# Create TaskValidator in src/validation
+npm run create:component TaskValidator src/validation
+
+# Create RedisClient in src/services
+npm run create:component RedisClient src/services
+```
+
+**Template Features**:
+- PascalCase validation
+- TypeScript interfaces exported
+- Lifecycle methods (initialize, execute, cleanup)
+- Basic test structure with beforeEach/afterEach
+- Automatic barrel export updates
+
+---
+
 ## Testing & Validation
 
 ### /hello-world-tests [--layer=0|1|2|3|all] [--skip-validation]

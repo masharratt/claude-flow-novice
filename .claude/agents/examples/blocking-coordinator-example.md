@@ -663,10 +663,10 @@ See `scripts/validate-agent-hooks.js` for hook validation:
 
 ```bash
 # Validate all agent profiles
-node scripts/validate-agent-hooks.js --all
+npx claude-flow-validate-hooks --all
 
 # Validate specific profile
-node scripts/validate-agent-hooks.js .claude/agents/examples/blocking-coordinator-example.md
+npx claude-flow-validate-hooks .claude/agents/examples/blocking-coordinator-example.md
 ```
 
 ## Debugging Hooks

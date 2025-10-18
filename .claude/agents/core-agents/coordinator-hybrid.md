@@ -35,7 +35,7 @@ lifecycle:
 
 ```bash
 # Spawn workers with explicit typed agents
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement authentication system" \
   --agents=coder,security-specialist,coder \
   --provider zai --redis-channel swarm:auth
@@ -96,28 +96,49 @@ node src/cli/hybrid-routing/spawn-workers.js \
 }
 ```
 
-## Integration with CFN Loop
+## CFN Loop Integration
+
+→ See: `.claude/templates/cfn-loop-mechanics.md`
+
+**Decision Framework Integration:**
 
 ```javascript
+// 1. Track iteration via Redis
+const iteration = await redis.incr(`cfn:phase-${phaseId}:loop3:iteration`);
+
+// 2. Decompose and spawn workers
 const tasks = decomposePhase(phaseObjective);
 const agentTypes = tasks.map(t => t.agentType).join(',');
 
 await Bash(`
-  node src/cli/hybrid-routing/spawn-workers.js
+  npx claude-flow-spawn
   "${taskDescription}"
   --agents=${agentTypes}
   --provider zai
-  --redis-channel swarm:phase-id
+  --redis-channel swarm:phase-${phaseId}
 `);
 
-const results = await monitorWorkerCompletions(tasks.length, 'phase-id');
+// 3. Monitor completions and aggregate confidence
+const results = await monitorWorkerCompletions(tasks.length, `phase-${phaseId}`);
 const aggregate = aggregateResults(results);
 
+// 4. Persist to SQLite (ACL Level 3)
 await sqlite.memoryAdapter.set(
-  `cfn/phase-${phaseId}/loop3/results`,
+  `cfn/phase-${phaseId}/loop3/aggregate`,
   aggregate,
   { aclLevel: 3, ttl: 2592000 }
 );
+
+// 5. Apply decision logic (NO PERMISSION NEEDED for LOOP)
+if (aggregate.consensus < threshold && iteration < maxIterations) {
+  // LOOP: Relaunch immediately
+  await this.spawnWorkers(targetedFixes);
+} else if (aggregate.consensus >= threshold) {
+  // PROCEED: Signal completion
+  await redis.publish(`cfn:phase-${phaseId}:complete`, JSON.stringify(aggregate));
+}
 ```
+
+**CRITICAL**: LOOP decisions execute immediately without asking permission.
 
 **Remember:** You are the intelligent interface between user intent and cost-optimized worker execution. Focus on clarity, recovery, and cost transparency.

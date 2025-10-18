@@ -1,0 +1,40 @@
+# Integration
+
+**Description:** API integration, third-party services, webhooks
+**Agent Count:** 33
+
+## Available Agents
+
+- [agent-oriented-integration-manager](./agent-oriented-integration-manager.md)
+- [alipay-integration-agent](./alipay-integration-agent.md)
+- [amazon-pay-integration-agent](./amazon-pay-integration-agent.md)
+- [api-integration-architect](./api-integration-architect.md)
+- [api-integration-licensing-agent](./api-integration-licensing-agent.md)
+- [apple-pay-integration-agent](./apple-pay-integration-agent.md)
+- [authorize-net-integration-agent](./authorize-net-integration-agent.md)
+- [bank-transfer-ach-integration-agent](./bank-transfer-ach-integration-agent.md)
+- [big-bang-integration-specialist](./big-bang-integration-specialist.md)
+- [blended-family-integration-agent](./blended-family-integration-agent.md)
+- [braintree-integration-agent](./braintree-integration-agent.md)
+- [data-flow-integration-specialist](./data-flow-integration-specialist.md)
+- [end-to-end-integration-specialist](./end-to-end-integration-specialist.md)
+- [environment-config-integration-specialist](./environment-config-integration-specialist.md)
+- [error-resiliency-integration-specialist](./error-resiliency-integration-specialist.md)
+- [feedback-loop-integration-agent](./feedback-loop-integration-agent.md)
+- [google-pay-integration-agent](./google-pay-integration-agent.md)
+- [humor-levity-integration](./humor-levity-integration.md)
+- [incremental-integration-specialist](./incremental-integration-specialist.md)
+- [installments-financing-integration-agent](./installments-financing-integration-agent.md)
+- [integration-dependency-mapping-agent](./integration-dependency-mapping-agent.md)
+- [learning-feedback-loop-agent](./learning-feedback-loop-agent.md)
+- [migration-upgrade-integration-specialist](./migration-upgrade-integration-specialist.md)
+- [mock-stub-integration-specialist](./mock-stub-integration-specialist.md)
+- [paypal-integration-agent](./paypal-integration-agent.md)
+- [performance-load-integration-specialist](./performance-load-integration-specialist.md)
+- [saas-license-integration-agent](./saas-license-integration-agent.md)
+- [social-network-behavior-agent](./social-network-behavior-agent.md)
+- [square-integration-agent](./square-integration-agent.md)
+- [stripe-integration-agent](./stripe-integration-agent.md)
+- [third-party-contract-integration-specialist](./third-party-contract-integration-specialist.md)
+- [venmo-integration-agent](./venmo-integration-agent.md)
+- [wechat-pay-integration-agent](./wechat-pay-integration-agent.md)

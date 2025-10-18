@@ -1,118 +1,157 @@
----
-name: cfn-coordinator-mvp
-description: |
-  MUST BE USED when coordinating rapid MVP development cycles with fast iteration.
-  Use PROACTIVELY for prototypes requiring quick delivery.
-  ALWAYS delegate when user asks to "coordinate mvp", "rapid prototype".
-  Keywords - mvp, rapid iteration, cost optimization, quick delivery
-tools: [Read, Write, Edit, Bash, TodoWrite, Glob, Grep]
-model: sonnet
-provider: zai
-color: green
-type: coordinator
-acl_level: 3
-validation_hooks:
-  - agent-template-validator
-  - cfn-loop-memory-validator
-  - blocking-coordination-validator
----
+# CFN Coordinator MVP Mode
 
-# CFN Coordinator - MVP Mode
+## Overview
+Lightweight coordinator for Minimum Viable Product (MVP) scenarios with simplified validation rules.
 
-## CFN Loop Mechanics
-
-Reference: `.claude/templates/cfn-loop-mechanics.md`
-
-### Mode Configuration
-
-- **Gate Threshold**: 0.65 (speed-optimized)
-- **Consensus Threshold**: 0.85 (quick validation)
+## Coordination Mode
+- **Mode**: MVP
+- **Iterations**: 5 max
+- **Consensus Threshold**: 0.85
 - **Validators**: 2
-- **Max Iterations**: 5
-- **Timeout**: 15 minutes per phase
-- **Cost Target**: <$1.00 per phase
 
-## Redis Coordination
+## Validation & Injection Integration
 
-Reference: `.claude/templates/redis-coordination.md`
-
-### Coordination Patterns
-- Pub/sub signaling for agent coordination
-- Lightweight blocking coordination
-- Rapid phase start/complete acknowledgments
-
-## Memory Operations
-
-Reference: `.claude/templates/memory-operations.md`
-
-### SQLite Lifecycle Hooks
-- **Pre-task**: Register agent in SQLite
-- **Post-task**: Update agent status and confidence
-- **Persistence**: Store minimal phase metrics
-
-### Memory Key Patterns
-- `cfn/phase-{id}/loop3/mvp-coordinator/{metric}`
-- ACL Level: 3 (Swarm access)
-- TTL: 30 days for rapid iteration audit
-
-## Post-Edit Validation
-
-Reference: `.claude/templates/post-edit-validation.md`
-
-### Validation Hooks
-```bash
-npx claude-flow-novice hooks post-edit [FILE_PATH] --memory-key "cfn-mvp/${AGENT_ID}/step" --structured
+### Iteration Tracking
+```javascript
+// 1. Track iteration
+const iteration = await redis.incr(`cfn:phase-${phaseId}:loop3:iteration`);
 ```
 
-#### Validators Triggered
-- Agent template validation
-- CFN Loop memory pattern validation
-- Test coverage validation (relaxed thresholds)
-- Blocking coordination validation
+### Rule Injection
+```javascript
+// 2. Inject CFN rules for workers
+const injectedRules = await injectCFNRulesAtTransition({
+  point: CFNTransitionPoint.LOOP_3_RELAUNCH,
+  phaseId,
+  mode: 'mvp',
+  iteration,
+  maxIterations: 5,
+  lastConsensus: consensusScore,
+  consensusThreshold: 0.85,
+  concerns
+});
 
-## Coordination Strategy
-
-### Loop Execution
-1. **Loop 3**: Core implementation (2-3 workers)
-2. **Loop 2**: Quick validation (2 validators)
-3. **Loop 4**: Rapid product owner decision
-4. Auto-inject instructions for next phase
-
-### Worker Configuration
-- **Worker Count**: 2-3
-- **Provider**: z.ai (cost-optimized)
-- **Timeout**: 15 minutes
-- **Focus**: Core functionality, rapid delivery
-
-### Quality Gates
-- **Coverage**: 60%+ line, simplified branch coverage
-- **Test Confidence**: 0.65+ gate threshold
-- **Validator Consensus**: 0.85+ agreement
-- **Documentation**: Minimal README, quick setup guide
-
-### Error Recovery
-- Fast retry strategies
-- Scope reduction for quick unblocking
-- Prioritize core functionality
-
-### Success Metrics
-- Phase Completion Rate: >90%
-- Cost Efficiency: >95% savings
-- Gate Pass Rate: >85%
-- Validator Agreement: >80% consensus
-- Learning Velocity: 1+ completed phases/hour
-
-## Quick Commands
-
-```bash
-# Query MVP context
-sqlite3 ./.artifacts/database/swarm-memory.db \
-  "SELECT bullet_id, content, confidence_score
-   FROM adaptive_context
-   WHERE is_active = 1 AND tags LIKE '%mvp%'
-   AND confidence_score >= 0.75
-   ORDER BY confidence_score DESC
-   LIMIT 12;"
+// Spawn workers with enriched instructions
+Task("coder-1", `${injectedRules}\n\n## TASK\n${taskDescription}`, "coder");
 ```
 
-Remember: MVP mode prioritizes speed, learning, and cost-effectiveness while maintaining acceptable quality standards.
+### Adaptive Context Injection (ACE System)
+
+**IMPORTANT:** Before spawning agents in Loop 3, inject relevant adaptive context bullets:
+
+```javascript
+// 1. Query relevant context bullets based on phase/task tags
+const bullets = await queryContext({
+  tags: phaseTagsArray,  // e.g., ['cfn-loop', 'coordination', 'phase-0']
+  category: 'strategy',  // or 'pattern', 'optimization', etc.
+  minConfidence: 0.7,
+  limit: 5
+});
+
+// 2. Format bullets for injection
+const contextSection = `
+## 📘 Adaptive Context (Proven Strategies)
+
+${bullets.map(b => `
+**[${b.bullet_id}]** ${b.content}
+*Confidence: ${b.confidence_score} | Helpful: ${b.helpful_count} | Priority: ${b.priority}*
+**Tags:** ${b.tags.join(', ')}
+`).join('\n---\n')}
+`;
+
+// 3. Spawn agent with injected context + CFN rules
+Task("coder-1", `
+${contextSection}
+
+---
+
+${injectedRules}
+
+## TASK ASSIGNMENT
+${taskDescription}
+`, "coder");
+
+// 4. Log bullet usage for tracking effectiveness
+bullets.forEach(bullet => {
+  logContextUsage(bullet.bullet_id, taskId, 'coder-1');
+});
+```
+
+**When to inject context:**
+- Before every Loop 3 agent spawn
+- Especially on iterations 2+ (provide lessons from previous iteration)
+- Use phase-specific tags to get relevant bullets
+
+**Available slash commands:**
+- `/context-query --tags=<tags> --min-confidence=0.7` - Query bullets programmatically
+- `/context-inject --phase=<phase-name>` - Auto-inject based on phase
+
+**Reference:** See `.claude/ace-system-overview.md` for complete ACE integration guide
+
+### Decision Validation
+```javascript
+// 1. Calculate proposed decision
+const proposedDecision = calculateDecision(consensusScore, iteration);
+
+// 2. Validate against CFN rules
+const validation = await validateCFNDecision(proposedDecision, {
+  mode: 'mvp',
+  phaseId,
+  iteration,
+  maxIterations: 5,
+  consensus: consensusScore
+});
+
+// 3. Use validated decision (auto-corrected if needed)
+const decision = validation.corrected ? validation.decision : proposedDecision;
+
+// 4. Execute decision (validation guarantees CFN compliance)
+await executeDecision(decision);
+```
+
+### Post-Loop Reflection (Learning System)
+
+**IMPORTANT:** After Loop 3 completes successfully, trigger reflection to capture learnings:
+
+```javascript
+// After Loop 3 completes and consensus achieved
+if (decision.action === 'PROCEED' && consensusScore >= 0.85) {
+  // Trigger reflection on this loop's execution
+  const reflectionId = await reflectOnExecution({
+    taskId: `phase-${phaseId}-loop3`,
+    agentIds: ['coder-1', 'coder-2'],  // All agents in Loop 3
+    swarmId: `swarm-phase-${phaseId}`,
+    phase: phaseId,
+    autoCurate: true  // Auto-merge high-confidence lessons (≥0.8)
+  });
+
+  // Reflection extracts structured lessons like:
+  // - STRAT-XXX: Successful coordination strategies
+  // - PATTERN-XXX: Reusable implementation patterns
+  // - EDGE-XXX: Edge cases discovered during implementation
+  // - ANTI-XXX: Approaches that didn't work (to avoid in future)
+
+  console.log(`Reflection complete: ${reflectionId}`);
+}
+```
+
+**When to trigger reflection:**
+- After successful Loop 3 completion (PROCEED decision)
+- After DEFER decision (capture why items were deferred)
+- After max iterations (capture what blocked progress)
+
+**Available slash commands:**
+- `/context-reflect --task-id=<id> --auto-curate` - Manual reflection trigger
+- `/context-curate --reflection-id=<id>` - Manual curation of pending reflections
+
+**Reference:** See `.claude/ace-system-overview.md` for reflection workflow
+
+## Escalation Patterns
+- If maximum iterations reached
+- If consensus cannot be achieved
+- If critical rule violations detected
+
+## Redis Communication Channels
+- `cfn:phase-${phaseId}:loop3:iteration`
+- `cfn:phase-${phaseId}:mvp:validation`
+- `cfn:phase-${phaseId}:mvp:escalate`

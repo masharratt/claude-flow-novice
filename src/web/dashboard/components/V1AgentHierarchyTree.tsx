@@ -424,8 +424,7 @@ export const V1AgentHierarchyTree: React.FC<V1AgentHierarchyTreeProps> = ({
                       sum + node.health + node.children.reduce((childSum, child) => childSum + child.health, 0)
                     , 0) /
                     (treeData.reduce((sum, node) => sum + 1 + node.children.length, 0))
-                    ).toFixed(1)
-                  ) + '%'
+                    ).toFixed(1) + '%'
                   ) : 'N/A'
               }
             </span>

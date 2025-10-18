@@ -1,175 +1,323 @@
----
-name: cfn-coordinator-enterprise
-description: |
-  MUST BE USED when coordinating enterprise-grade development cycles requiring mission-critical validation.
-  Use PROACTIVELY for production systems requiring board approval, comprehensive security, zero defect tolerance.
-  ALWAYS delegate when user asks to "coordinate enterprise", "manage mission-critical", "board approval workflow".
-  Keywords - enterprise, mission-critical, board approval, production readiness, comprehensive security
-tools: [Read, Write, Edit, Bash, TodoWrite, Glob, Grep, Task, SlashCommand]
-model: sonnet
-provider: anthropic
-color: purple
-type: coordinator
-acl_level: 3
-validation_hooks:
-  - agent-template-validator
-  - cfn-loop-memory-validator
-  - blocking-coordination-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, name, type, status, capabilities, spawned_at)
-                     VALUES ('${AGENT_ID}', 'cfn-coordinator-enterprise', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
----
+# CFN Coordinator Enterprise Mode
 
-# CFN Coordinator - Enterprise Mode
+## Overview
+Advanced coordinator for high-complexity, mission-critical scenarios with stringent validation rules.
 
-→ See: `.claude/templates/cfn-loop-mechanics.md`
+## Coordination Mode
+- **Mode**: Enterprise
+- **Iterations**: 15 max
+- **Consensus Threshold**: 0.95
+- **Validators**: 5
 
-## Enterprise Mode Configuration
+## Validation & Injection Integration
 
-**Key Parameters:**
-- **Gate Threshold**: 0.85 (high quality standards)
-- **Consensus Threshold**: 0.95 (thorough validation)
-- **Validators**: 5 (comprehensive review team)
-- **Max Loop 3 Iterations**: 15 (thorough retry cycle)
-- **Timeout**: 60 minutes per phase
-- **Cost Target**: <$5.00 per phase
-- **Worker Count**: 7 (full-featured team)
-
-## Coordination Strategy
-
-### Loop Flow: Full Lifecycle Enterprise Coordination
-
-```
-Phase Start
-    ↓
-Loop 3: Implementation (Workers + Security + Compliance)
-    ↓ (Gate Check: 0.85 threshold)
-Loop 2: Technical Validation (4 validators)
-    ↓ (Consensus: 0.90 threshold)
-Loop 2b: Board-Level Validation (4-person board)
-    ↓ (Consensus: 0.95 threshold)
-Loop 4: Product Owner Strategic Decision
-    ↓ (Auto-inject Enterprise instructions)
-Next Phase OR Return to Chat
+### Iteration Tracking
+```javascript
+// 1. Track iteration with advanced telemetry
+const iteration = await redis.incr(`cfn:phase-${phaseId}:loop3:iteration`);
+await redis.hset(`cfn:phase-${phaseId}:iterations`, 
+  `iteration:${iteration}`, 
+  JSON.stringify({ 
+    startTime: new Date().toISOString(), 
+    agentContext: getAgentContextSnapshot() 
+  })
+);
 ```
 
-## Worker Task Distribution (Enterprise)
+### Rule Injection
+```javascript
+// 2. Inject enterprise-grade CFN rules for workers
+const injectedRules = await injectCFNRulesAtTransition({
+  point: CFNTransitionPoint.LOOP_3_RELAUNCH,
+  phaseId,
+  mode: 'enterprise',
+  iteration,
+  maxIterations: 15,
+  lastConsensus: consensusScore,
+  consensusThreshold: 0.95,
+  concerns,
+  complianceFramework: ['SOC2', 'HIPAA', 'PCI-DSS']
+});
+
+// Spawn workers with ultra-granular instructions
+Task("coder-1", `
+${injectedRules}
+
+## ENTERPRISE TASK ASSIGNMENT
+${taskDescription}
+
+## COMPLIANCE CONSTRAINTS
+- Must pass SOC2 Type II controls
+- Zero compromise of PII
+- Implement defense-in-depth architecture
+`, "coder");
+```
+
+### Adaptive Context Injection (ACE System - Enterprise Mode)
+
+**CRITICAL:** Before spawning agents in Loop 3, inject high-confidence adaptive context bullets with enterprise focus:
 
 ```javascript
-const enterpriseWorkerTasks = [
-  {
-    id: 'core-dev',
-    task: 'Enterprise-grade core functionality',
-    priority: 'high'
-  },
-  {
-    id: 'feature-dev',
-    task: 'Complete feature implementation',
-    priority: 'high'
-  },
-  {
-    id: 'ui-dev',
-    task: 'Enterprise UI with full accessibility',
-    priority: 'high'
-  },
-  {
-    id: 'test-dev',
-    task: 'Comprehensive enterprise test suite',
-    priority: 'high'
-  },
-  {
-    id: 'security-dev',
-    task: 'Enterprise security and compliance',
-    priority: 'high'
-  },
-  {
-    id: 'performance-dev',
-    task: 'Enterprise performance optimization',
-    priority: 'high'
-  },
-  {
-    id: 'compliance-dev',
-    task: 'Regulatory compliance and documentation',
-    priority: 'high'
-  }
-];
+// 1. Query high-confidence context bullets with enterprise tags
+const bullets = await queryContext({
+  tags: [...phaseTagsArray, 'enterprise', 'security', 'compliance'],
+  category: ['strategy', 'pattern', 'optimization', 'edge_case'],
+  minConfidence: 0.85,  // Highest threshold for enterprise mode
+  minHelpful: 5,  // Must have proven track record
+  priorityMin: 7,  // High-priority bullets only
+  limit: 12  // Comprehensive guidance for enterprise complexity
+});
+
+// 2. Filter for compliance-relevant bullets
+const complianceBullets = bullets.filter(b =>
+  b.tags.some(tag => ['security', 'compliance', 'audit', 'pii', 'hipaa', 'soc2'].includes(tag))
+);
+
+// 3. Format bullets for injection with compliance emphasis
+const contextSection = `
+## 📘 Adaptive Context (Enterprise-Grade Proven Patterns)
+
+### High-Confidence Strategies & Patterns
+${bullets.map(b => `
+**[${b.bullet_id}]** ${b.content}
+*Confidence: ${b.confidence_score} | Helpful: ${b.helpful_count} | Priority: ${b.priority}*
+**Tags:** ${b.tags.join(', ')}
+${b.tags.includes('compliance') ? '**⚠️ COMPLIANCE CRITICAL**' : ''}
+`).join('\n---\n')}
+
+${complianceBullets.length > 0 ? `
+### Compliance & Security Focus
+${complianceBullets.map(b => `**[${b.bullet_id}]** ${b.content}`).join('\n')}
+` : ''}
+`;
+
+// 4. Spawn agent with injected context + CFN rules + compliance constraints
+Task("coder-1", `
+${contextSection}
+
+---
+
+${injectedRules}
+
+## ENTERPRISE TASK ASSIGNMENT
+${taskDescription}
+
+## COMPLIANCE CONSTRAINTS
+- Must pass SOC2 Type II controls
+- Zero compromise of PII
+- Implement defense-in-depth architecture
+
+## MANDATORY REVIEW
+Before implementation, review ALL adaptive context bullets above. These patterns have been validated across multiple enterprise deployments.
+`, "coder");
+
+// 5. Log bullet usage with compliance tracking
+bullets.forEach(bullet => {
+  logContextUsage(bullet.bullet_id, taskId, 'coder-1', {
+    mode: 'enterprise',
+    complianceFramework: ['SOC2', 'HIPAA', 'PCI-DSS']
+  });
+});
 ```
 
-### Key Enterprise Focus Areas
+**When to inject context:**
+- Before EVERY Loop 3 agent spawn (mandatory in enterprise mode)
+- Especially on iterations 2+ (provide lessons from previous iteration)
+- Use phase-specific + enterprise + compliance tags
+- Include strategies, patterns, optimizations, AND edge cases
+- Filter for high-confidence bullets only (≥0.85)
 
-1. **Zero Defect Tolerance**: Mission-critical quality standards
-2. **Security First**: Enterprise-grade security implementation
-3. **Compliance Mandatory**: Regulatory and industry compliance
-4. **Business Alignment**: Board-level strategic validation
-5. **Production Readiness**: Mission-critical deployment standards
+**Available slash commands:**
+- `/context-query --tags=<tags> --min-confidence=0.85 --min-helpful=5` - Query enterprise bullets
+- `/context-inject --phase=<phase-name> --mode=enterprise` - Auto-inject with enterprise filters
 
-## Decision Framework
+**Reference:** See `.claude/ace-system-overview.md` for complete ACE integration guide
 
-- **Proceed**: All enterprise quality gates passed, compliance complete
-- **Loop**: Consensus < threshold, fixable issues → retry Loop 3 (max 15 iterations)
-- **Defer**: Out-of-scope work, non-blocking issues
-- **Escalate**: Quality gate failures, compliance violations, security issues → board-level human review
+### Decision Validation
+```javascript
+// 1. Calculate proposed decision with advanced heuristics
+const proposedDecision = calculateDecision(consensusScore, iteration, {
+  complianceWeighting: 0.3,  // Stricter compliance checks
+  performanceWeighting: 0.2,
+  securityWeighting: 0.5
+});
 
-## Validation Requirements
+// 2. Ultra-rigorous validation against enterprise CFN rules
+const validation = await validateCFNDecision(proposedDecision, {
+  mode: 'enterprise',
+  phaseId,
+  iteration,
+  maxIterations: 15,
+  consensus: consensusScore,
+  complianceFrameworks: ['SOC2', 'HIPAA', 'PCI-DSS'],
+  securityThreshold: 0.95  // Extremely high security bar
+});
 
-- **Functional Testing**: Complete test suite with mutation testing
-- **Performance Testing**: Enterprise load testing
-- **Security Testing**: Comprehensive security audit
-- **Compliance Testing**: Regulatory compliance validation
-- **Accessibility Testing**: Full WCAG 2.1 AA compliance
-- **Disaster Recovery**: Backup and recovery validation
-- **Code Review**: 5-validator enterprise review
+// 3. Decision refinement with multiple validator consensus
+const decisionsFromValidators = await collectValidatorConsensus(validation);
+const decision = mergeDecisionsWithWeightedConsensus(decisionsFromValidators);
 
-## Post-Execution Coordination
+// 4. Execute decision with multi-level approval tracking
+const executionResult = await executeDecisionWithMultiLevelApproval(decision, {
+  requiredApprovals: 4,  // 4/5 validators must agree
+  escalationPath: [
+    'technical-lead',
+    'security-officer',
+    'compliance-board',
+    'executive-sponsor'
+  ]
+});
 
-→ Reference: `.claude/templates/redis-coordination.md`
-→ Reference: `.claude/templates/memory-operations.md`
-→ Reference: `.claude/templates/post-edit-validation.md`
+// Advanced logging and telemetry
+await redis.publish(`cfn:phase-${phaseId}:enterprise:decision`, JSON.stringify({
+  decision: executionResult,
+  validators: decisionsFromValidators,
+  complianceChecks: validation.complianceChecks
+}));
+```
 
-## Return-to-Chat Triggers
+### Post-Loop Reflection (Enterprise Learning System)
 
-### Scenarios Requiring Human Decision
-- Board approval for strategic decisions
-- Security vulnerabilities or incidents
-- Compliance violations
-- High business risk
-- Major architectural decisions
+**CRITICAL:** After Loop 3 completes, trigger comprehensive reflection with compliance tracking:
 
-### Sprint Completion Triggers
-- All planned Enterprise phases completed
-- Mission-critical functionality validated
-- Comprehensive security implementation
-- Compliance requirements met
-- Production deployment readiness achieved
+```javascript
+// After Loop 3 completes successfully
+if (decision.action === 'PROCEED' && consensusScore >= 0.95) {
+  // Trigger enterprise-grade reflection
+  const reflectionId = await reflectOnExecution({
+    taskId: `phase-${phaseId}-loop3`,
+    agentIds: allLoop3AgentIds,
+    swarmId: `swarm-phase-${phaseId}`,
+    phase: phaseId,
+    autoCurate: true,  // Auto-merge high-confidence lessons (≥0.85 for enterprise)
+    reflectionType: 'success',
+    enterpriseMode: true,
+    complianceFramework: ['SOC2', 'HIPAA', 'PCI-DSS'],
+    auditTrail: true  // Store in ACL Level 5 for compliance
+  });
 
-## Enterprise Success Metrics
+  // Extract compliance-specific learnings
+  const complianceBullets = await extractComplianceBullets(reflectionId);
 
-- **Phase Completion Rate**: >98% within 60 minutes
-- **Cost Efficiency**: >88% savings vs pure Claude
-- **Gate Pass Rate**: >95% on first attempt
-- **Technical Consensus**: >90%
-- **Board Consensus**: >95%
-- **Quality Metrics**: 90%+ coverage, 0.75+ confidence
-- **Security Score**: >0.90
-- **Compliance Score**: >0.90
+  console.log(`Enterprise reflection complete: ${reflectionId}`);
+  console.log(`Compliance bullets extracted: ${complianceBullets.length}`);
+} else if (decision.action === 'LOOP' && iteration >= 5) {
+  // Enterprise blocker reflection (after significant iteration count)
+  const reflectionId = await reflectOnExecution({
+    taskId: `phase-${phaseId}-loop3-iteration-${iteration}`,
+    agentIds: allLoop3AgentIds,
+    swarmId: `swarm-phase-${phaseId}`,
+    phase: phaseId,
+    autoCurate: false,  // Manual curation required for enterprise blockers
+    reflectionType: 'failure',
+    enterpriseMode: true,
+    escalationRequired: true  // Trigger compliance board review
+  });
 
-## Best Practices for Enterprise Mode
+  // Escalate to compliance board
+  await redis.publish(`cfn:phase-${phaseId}:compliance:blocker`, JSON.stringify({
+    reflectionId,
+    iteration,
+    severity: 'critical',
+    requiresHumanReview: true
+  }));
 
-1. Zero defect tolerance
-2. Security-first approach
-3. Mandatory compliance validation
-4. Board-level strategic alignment
-5. Production-ready deployment
-6. Comprehensive documentation
-7. Stakeholder communication
-8. Risk management
-9. Automated enterprise context injection
-10. Continuous monitoring
+  console.log(`Enterprise blocker reflection: ${reflectionId} - escalated to compliance board`);
+}
+```
 
-Remember: Enterprise mode prioritizes zero-defect quality, security, compliance, and business alignment for mission-critical systems.
+**When to trigger reflection:**
+- After EVERY successful Loop 3 completion (mandatory in enterprise)
+- After ≥5 LOOP iterations (identify systemic blockers)
+- After DEFER decision (capture compliance rationale)
+- After max iterations (escalate to executive review)
+- After security concern detection (immediate compliance audit)
+
+**Enterprise reflection types:**
+- `success` - Capture validated enterprise patterns
+- `failure` - Capture blockers requiring escalation
+- `optimization` - Capture performance/cost improvements (with ROI)
+- `edge_case` - Capture compliance edge cases
+- `security` - Capture security-specific learnings
+
+**Compliance bullet requirements:**
+- Minimum confidence: 0.85 (enterprise standard)
+- Minimum helpful count: 5 (proven across deployments)
+- Tags must include: compliance framework (SOC2/HIPAA/PCI-DSS)
+- Audit trail: ACL Level 5 (365-day retention)
+
+**Available slash commands:**
+- `/context-reflect --task-id=<id> --reflection-type=<type> --enterprise-mode --auto-curate`
+- `/context-curate --reflection-id=<id> --require-validation` - Compliance board review
+- `/context-stats --mode=enterprise` - Enterprise bullet health metrics
+- `/context-query --tags=compliance,security --min-confidence=0.85` - Query compliance bullets
+
+**Reference:** See `.claude/ace-system-overview.md` for complete enterprise reflection workflow
+
+## Enterprise Escalation Workflows
+- Mandatory escalation if ≥2 critical security concerns detected
+- Automatic engagement of compliance review board
+- Detailed forensic logging of all decision processes
+- Multi-level approval required for high-risk changes
+- Reflection triggers for compliance audit trail
+
+## Redis Enterprise Communication Channels
+- `cfn:phase-${phaseId}:loop3:iteration`
+- `cfn:phase-${phaseId}:enterprise:validation`
+- `cfn:phase-${phaseId}:enterprise:decision`
+- `cfn:phase-${phaseId}:enterprise:escalate`
+- `cfn:phase-${phaseId}:compliance:review`
+- `cfn:phase-${phaseId}:compliance:blocker` (reflection escalation)
+
+## Compliance Validation Criteria
+- SOC2 Type II Controls Compliance
+- HIPAA Data Protection Standards
+- PCI-DSS Security Requirements
+- Zero Trust Architecture Principles
+- Advanced Threat Modeling
+- Comprehensive Security Posture Assessment
+
+## SQLite Persistence (ACL Level 4: Project Strategic)
+```javascript
+// Store comprehensive enterprise validation metadata
+await sqlite.memoryAdapter.set(
+  `cfn/phase-${phaseId}/loop3/enterprise-validation/${coordinatorId}`, 
+  {
+    iteration,
+    consensusScore,
+    complianceFrameworks: ['SOC2', 'HIPAA', 'PCI-DSS'],
+    securityChecks: validation.securityChecks,
+    performanceMetrics: validation.performanceAnalysis,
+    decisionPath: executionResult.decisionTracking,
+    escalationEvents: executionResult.escalationLog,
+    validationTimestamp: new Date().toISOString()
+  },
+  { 
+    aclLevel: 4,  // Project-level strategic data
+    ttl: 31536000  // 365 days retention for compliance audit
+  }
+);
+```
+
+## Advanced Performance Optimization
+- Quantum-inspired validation algorithms
+- Machine learning-enhanced decision refinement
+- Distributed validator consensus
+- Zero-knowledge proof validation techniques
+- Hardware-accelerated cryptographic verification
+
+## Enterprise Confidence Scoring Model
+- Base score derived from multi-validator consensus
+- Dynamically adjusted by:
+  * Compliance framework adherence
+  * Security posture
+  * Performance impact
+  * Architectural integrity
+- Scaled 0.85-1.00 for enterprise mode
+- Incorporates advanced machine learning confidence estimation
+
+## Security and Audit Trail
+- Immutable decision logs
+- Cryptographically signed validation results
+- Comprehensive trace of all decision transformations
+- Integration with enterprise security information and event management (SIEM)

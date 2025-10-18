@@ -1389,6 +1389,9 @@ class UnifiedPostEditPipeline {
     }
 
     async formatFile(filePath, language) {
+        // Defensive: Extract string path if object passed
+        const normalizedPath = typeof filePath === 'object' ? (filePath.filePath || filePath.path || String(filePath)) : String(filePath);
+
         const formatters = this.config.formatters[language];
         if (!formatters) return { success: true, message: 'No formatter configured' };
 
@@ -1401,7 +1404,7 @@ class UnifiedPostEditPipeline {
         let wasmPreprocessed = false;
         if (this.wasmEnabled && this.wasmInitialized && this.wasmRuntime) {
             try {
-                const content = await fs.promises.readFile(filePath, 'utf8');
+                const content = await fs.promises.readFile(normalizedPath, 'utf8');
                 const ast = await this.wasmRuntime.parseASTFast(content);
                 wasmPreprocessed = true;
                 // AST available for formatter to use (52x faster parsing)
@@ -1410,7 +1413,7 @@ class UnifiedPostEditPipeline {
             }
         }
 
-        const result = await this.runCommand(tool, [...args, filePath]);
+        const result = await this.runCommand(tool, [...args, normalizedPath]);
         return {
             success: result.code === 0,
             message: result.code === 0 ? 'Formatted successfully' : result.stderr,
@@ -1420,6 +1423,9 @@ class UnifiedPostEditPipeline {
     }
 
     async lintFile(filePath, language) {
+        // Defensive: Extract string path if object passed
+        const normalizedPath = typeof filePath === 'object' ? (filePath.filePath || filePath.path || String(filePath)) : String(filePath);
+
         const linters = this.config.linters[language];
         if (!linters) return { success: true, message: 'No linter configured' };
 
@@ -1432,7 +1438,7 @@ class UnifiedPostEditPipeline {
         let wasmOptimized = false;
         if (this.wasmEnabled && this.wasmInitialized && this.wasmRuntime) {
             try {
-                const content = await fs.promises.readFile(filePath, 'utf8');
+                const content = await fs.promises.readFile(normalizedPath, 'utf8');
                 const optimized = await this.wasmRuntime.optimizeCodeFast(content);
                 wasmOptimized = true;
                 // Optimized code ready for linter (52x faster analysis)
@@ -1441,7 +1447,7 @@ class UnifiedPostEditPipeline {
             }
         }
 
-        const result = await this.runCommand(tool, [...args, filePath]);
+        const result = await this.runCommand(tool, [...args, normalizedPath]);
         return {
             success: result.code === 0,
             message: result.code === 0 ? 'Linting passed' : 'Linting issues found',
@@ -1474,6 +1480,43 @@ class UnifiedPostEditPipeline {
         }
 
         const projectDir = this.findProjectRoot(filePath);
+
+        // TypeScript incremental type checking (single-file mode)
+        if (language === 'typescript' && tool === 'tsc') {
+            const tsArgs = [...args, '--skipLibCheck', filePath];
+
+            try {
+                const result = await this.runCommand(tool, tsArgs, projectDir);
+
+                // Parse TypeScript error output from both stdout and stderr
+                const allOutput = result.stdout + result.stderr;
+                const errorLines = allOutput.split('\n').filter(line => line.includes('error TS'));
+                const errorCount = errorLines.length;
+
+                return {
+                    success: result.code === 0 && errorCount === 0,
+                    message: result.code === 0 ? 'TypeScript compilation passed' : `${errorCount} TypeScript error(s)`,
+                    output: allOutput,
+                    errors: errorCount > 0 ? errorLines.join('\n') : '',
+                    errorCount,
+                    errorLines: errorLines.slice(0, 10), // First 10 errors for feedback
+                    wasmAccelerated
+                };
+            } catch (error) {
+                // Handle TypeScript compiler crashes gracefully
+                return {
+                    success: false,
+                    message: 'TypeScript compiler error',
+                    output: error.message || error.stderr || '',
+                    errors: error.message || 'TypeScript compilation failed',
+                    errorCount: 1,
+                    errorLines: [(error.message || 'Unknown compiler error')],
+                    wasmAccelerated
+                };
+            }
+        }
+
+        // Standard type checking for other languages
         const result = await this.runCommand(tool, args, projectDir);
 
         return {
@@ -2120,6 +2163,18 @@ class UnifiedPostEditPipeline {
         if (!results.steps.typeCheck.success) {
             results.summary.errors.push(`Type errors in ${path.basename(filePath)}`);
             results.summary.success = false;
+
+            // Send TYPE_ERROR feedback to agent
+            await this.sendAgentFeedback({
+                type: 'TYPE_ERROR',
+                file: filePath,
+                severity: 'error',
+                language,
+                errorCount: results.steps.typeCheck.errorCount || 0,
+                errorLines: results.steps.typeCheck.errorLines || [],
+                errors: results.steps.typeCheck.errors,
+                message: `${results.steps.typeCheck.errorCount || 'Unknown'} TypeScript error(s) in ${path.basename(filePath)}`
+            });
         }
 
         // Step 4: Rust Quality Enforcement (if Rust and strict mode)

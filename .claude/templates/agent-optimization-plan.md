@@ -282,7 +282,7 @@ type: coordinator
 ## Worker Spawning Pattern
 
 ```bash
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Task description" \
   --agents=analyst,architect,coder \
   --provider zai

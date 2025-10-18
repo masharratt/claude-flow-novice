@@ -34,7 +34,7 @@ Regenerate `src/cli/hybrid-routing/AVAILABLE-AGENTS.md` from live agent discover
 
 ```bash
 # Regenerate agent list
-node src/cli/hybrid-routing/spawn-workers.js --agents-by-category > src/cli/hybrid-routing/AVAILABLE-AGENTS.md.tmp
+npx claude-flow-spawn --agents-by-category > src/cli/hybrid-routing/AVAILABLE-AGENTS.md.tmp
 
 # Parse and format into markdown document
 node << 'EOF'
@@ -126,9 +126,9 @@ markdown += '## Usage\n\n';
 markdown += '### CLI Commands\n\n';
 markdown += '```bash\n';
 markdown += '# List all agents (flat view)\n';
-markdown += 'node src/cli/hybrid-routing/spawn-workers.js --list-agents\n\n';
+markdown += 'npx claude-flow-spawn --list-agents\n\n';
 markdown += '# List agents by category\n';
-markdown += 'node src/cli/hybrid-routing/spawn-workers.js --agents-by-category\n\n';
+markdown += 'npx claude-flow-spawn --agents-by-category\n\n';
 markdown += '# Regenerate this documentation file\n';
 markdown += '/list-agents-rebuild\n';
 markdown += '```\n\n';
@@ -136,12 +136,12 @@ markdown += '```\n\n';
 markdown += '### Coordinator Usage\n\n';
 markdown += '```bash\n';
 markdown += '# Automatic selection (keyword-based)\n';
-markdown += 'node src/cli/hybrid-routing/spawn-workers.js "Build auth" --max-agents=3\n\n';
+markdown += 'npx claude-flow-spawn "Build auth" --max-agents=3\n\n';
 markdown += '# Coordinator override (manual agent types)\n';
-markdown += 'node src/cli/hybrid-routing/spawn-workers.js "Task" \\\n';
+markdown += 'npx claude-flow-spawn "Task" \\\n';
 markdown += '  --agents=architect,coder,tester\n\n';
 markdown += '# Full override (custom agents + subtasks)\n';
-markdown += 'node src/cli/hybrid-routing/spawn-workers.js "Task" \\\n';
+markdown += 'npx claude-flow-spawn "Task" \\\n';
 markdown += '  --agents=coder,security-specialist \\\n';
 markdown += '  --subtasks="Subtask 1|Subtask 2"\n';
 markdown += '```\n\n';

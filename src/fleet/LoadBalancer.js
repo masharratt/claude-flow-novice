@@ -675,7 +675,7 @@ export class LoadBalancer extends EventEmitter {
   /**
    * Mark agent as healthy
    */
-  markAgentHealthy(agent) {
+  async markAgentHealthy(agent) {
     const previousStatus = agent.status;
     agent.status = HEALTH_STATUS.HEALTHY;
 
@@ -703,7 +703,7 @@ export class LoadBalancer extends EventEmitter {
   /**
    * Mark agent as unhealthy
    */
-  markAgentUnhealthy(agent) {
+  async markAgentUnhealthy(agent) {
     const previousStatus = agent.status;
     agent.status = HEALTH_STATUS.UNHEALTHY;
 

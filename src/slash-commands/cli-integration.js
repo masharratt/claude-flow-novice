@@ -112,11 +112,9 @@ export class CliSlashHandler {
    */
   listCommands() {
     const commands = this.registry.listCommands();
-    
-    console.log('
-🚀 **AVAILABLE SLASH COMMANDS**
-');
-    
+
+    console.log('\n🚀 **AVAILABLE SLASH COMMANDS**\n');
+
     commands.forEach(cmd => {
       console.log(`/${cmd.name} - ${cmd.description}`);
       if (cmd.aliases.length > 0) {

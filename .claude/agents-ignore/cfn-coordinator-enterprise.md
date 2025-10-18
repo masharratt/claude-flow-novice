@@ -105,13 +105,13 @@ Each phase follows the complete Loop 1 pattern:
 
 ```bash
 # Enterprise worker spawning with comprehensive validation (REQUIRED: --agents flag with explicit types)
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement [feature] for Enterprise: production-ready, security-hardened, compliance-validated" \
   --agents=analyst,architect,coder,coder,security-specialist,tester,reviewer,compliance-specialist \
   --provider zai --redis-channel swarm:enterprise-phase
 
 # Mission-critical spawning with security focus
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Build Enterprise version of [component] with zero-defect tolerance, compliance validation" \
   --agents=analyst,coder,coder,security-specialist,tester,reviewer \
   --provider zai --redis-channel swarm:enterprise-phase \

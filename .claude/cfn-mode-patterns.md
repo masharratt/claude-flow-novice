@@ -53,7 +53,7 @@ swarm:cfn:mvp:${PHASE_ID}:loop3:complete
 
 **Worker Spawn:**
 ```bash
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement [feature] for MVP - core functionality only" \
   --agents=coder,tester \
   --topology=sequential \
@@ -86,7 +86,7 @@ swarm:cfn:standard:${PHASE_ID}:loop3:complete
 
 **Worker Spawn:**
 ```bash
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement [feature] with balanced quality and speed" \
   --agents=architect,coder,coder,tester \
   --topology=collaborative \
@@ -120,7 +120,7 @@ swarm:cfn:enterprise:${PHASE_ID}:loop3:complete
 
 **Worker Spawn:**
 ```bash
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement [feature] with enterprise quality standards" \
   --agents=architect,architect,coder,coder,coder,tester,security-specialist,perf-analyzer \
   --topology=release-gate \
@@ -157,7 +157,7 @@ swarm:cfn:mvp:${PHASE_ID}:loop2:complete
 
 **Validator Spawn:**
 ```bash
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Validate MVP implementation - focus on core functionality" \
   --agents=code-quality-validator,security-specialist \
   --topology=sequential \
@@ -192,7 +192,7 @@ swarm:cfn:standard:${PHASE_ID}:loop2:complete
 
 **Validator Spawn:**
 ```bash
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Validate standard implementation - comprehensive review" \
   --agents=code-quality-validator,security-specialist,perf-analyzer,interaction-tester \
   --topology=collaborative \
@@ -227,7 +227,7 @@ swarm:cfn:enterprise:${PHASE_ID}:loop2:complete
 
 **Validator Spawn:**
 ```bash
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Validate enterprise implementation - full compliance audit" \
   --agents=code-quality-validator,security-specialist,perf-analyzer,interaction-tester,compliance-auditor \
   --topology=release-gate \
@@ -455,7 +455,7 @@ Total: $4.00-$6.50 per phase
 /cfn-loop "Add user registration endpoint" --mode=mvp
 
 # Coordinator spawns workers
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement user registration endpoint - core functionality only" \
   --agents=coder,tester \
   --topology=sequential \
@@ -473,7 +473,7 @@ node src/cli/hybrid-routing/spawn-workers.js \
 /cfn-loop "Implement payment processing system" --mode=standard
 
 # Coordinator spawns workers
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement payment processing system with balanced quality and speed" \
   --agents=architect,coder,coder,tester \
   --topology=collaborative \
@@ -491,7 +491,7 @@ node src/cli/hybrid-routing/spawn-workers.js \
 /cfn-loop "Deploy HIPAA-compliant patient data API" --mode=enterprise
 
 # Coordinator spawns workers
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement HIPAA-compliant patient data API with enterprise quality standards" \
   --agents=architect,architect,coder,coder,coder,tester,security-specialist,perf-analyzer \
   --topology=release-gate \

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S deno run --allow-all
+#!/usr/bin/env node
 /**
  * Claude-Flow CLI entry point
  * This redirects to simple-cli.ts for remote execution compatibility
