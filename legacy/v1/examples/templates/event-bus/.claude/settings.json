@@ -1,0 +1,30 @@
+{
+  "claude_flow_novice": {
+    "event_bus": {
+      "enabled": true,
+      "throughput_target": 10000,
+      "latency_target": 50,
+      "worker_threads": 4,
+      "routing_strategy": "weighted",
+      "batch_size": 100,
+      "monitoring": {
+        "enabled": true,
+        "metrics_interval": 30000,
+        "alert_latency_threshold": 100,
+        "alert_dropped_threshold": 0.01
+      }
+    },
+    "swarm": {
+      "mode": "mesh",
+      "persistence": true,
+      "recovery": true
+    },
+    "memory": {
+      "backend": "redis",
+      "pubsub_enabled": true
+    },
+    "performance": {
+      "optimization_level": "aggressive"
+    }
+  }
+}

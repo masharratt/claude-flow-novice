@@ -1,0 +1,400 @@
+{
+  "orchestrator": {
+    "lifecycle": {
+      "maxConcurrentFeatures": 5,
+      "autoProgressionEnabled": true,
+      "qualityGateThresholds": {
+        "testCoverage": 85,
+        "codeQuality": 8.5,
+        "performanceScore": 80,
+        "securityScore": 95
+      },
+      "rollbackThresholds": {
+        "errorRate": 1.5,
+        "responseTime": 800,
+        "userSatisfaction": 7.5
+      }
+    },
+    "testing": {
+      "parallelExecution": true,
+      "crossBrowserTesting": true,
+      "performanceTesting": true,
+      "continuousIntegration": true,
+      "browsers": ["chromium", "firefox", "webkit"],
+      "testTypes": {
+        "unit": {
+          "enabled": true,
+          "coverageThreshold": 85,
+          "parallelWorkers": 4,
+          "timeout": 30000
+        },
+        "integration": {
+          "enabled": true,
+          "timeout": 60000,
+          "retries": 3,
+          "databases": ["postgresql", "redis"]
+        },
+        "e2e": {
+          "enabled": true,
+          "timeout": 120000,
+          "browsers": ["chromium", "firefox"],
+          "viewports": [
+            {"width": 1920, "height": 1080},
+            {"width": 1366, "height": 768},
+            {"width": 375, "height": 812}
+          ]
+        },
+        "performance": {
+          "enabled": true,
+          "timeout": 180000,
+          "thresholds": {
+            "loadTime": 2000,
+            "firstContentfulPaint": 1000,
+            "largestContentfulPaint": 2500,
+            "cumulativeLayoutShift": 0.1
+          }
+        }
+      }
+    },
+    "rollout": {
+      "defaultStrategy": "canary",
+      "autoRollbackEnabled": true,
+      "monitoringWindow": 30,
+      "progressiveStages": true,
+      "strategies": {
+        "canary": {
+          "stages": [
+            {"percentage": 5, "duration": 15, "autoProgress": true},
+            {"percentage": 25, "duration": 30, "autoProgress": true},
+            {"percentage": 100, "duration": -1, "autoProgress": false}
+          ],
+          "healthChecks": {
+            "interval": 30,
+            "endpoints": ["/health", "/metrics", "/ready"],
+            "successThreshold": 3,
+            "failureThreshold": 2
+          }
+        },
+        "blue-green": {
+          "stages": [
+            {"percentage": 0, "duration": 10, "autoProgress": true, "type": "validation"},
+            {"percentage": 100, "duration": 5, "autoProgress": false, "type": "switch"}
+          ],
+          "switchTimeout": 60,
+          "rollbackTimeout": 30
+        },
+        "rolling": {
+          "stages": [
+            {"percentage": 33, "duration": 20, "autoProgress": true},
+            {"percentage": 66, "duration": 20, "autoProgress": true},
+            {"percentage": 100, "duration": 15, "autoProgress": true}
+          ],
+          "maxUnavailable": 1,
+          "maxSurge": 1
+        }
+      }
+    },
+    "monitoring": {
+      "realTimeAlerts": true,
+      "performanceTracking": true,
+      "userFeedbackIntegration": true,
+      "businessMetrics": true,
+      "webhookUrl": "http://localhost:3001/webhooks",
+      "alertChannels": {
+        "slack": {
+          "enabled": true,
+          "webhook": "${SLACK_WEBHOOK_URL}",
+          "channels": ["#deployments", "#alerts"]
+        },
+        "email": {
+          "enabled": true,
+          "smtp": {
+            "host": "${SMTP_HOST}",
+            "port": 587,
+            "secure": false,
+            "auth": {
+              "user": "${SMTP_USER}",
+              "pass": "${SMTP_PASS}"
+            }
+          },
+          "recipients": ["team@company.com"]
+        }
+      },
+      "metrics": {
+        "collection": {
+          "interval": 30000,
+          "retention": "30d",
+          "compression": true
+        },
+        "thresholds": {
+          "errorRate": 2.0,
+          "responseTime": 1000,
+          "memoryUsage": 85,
+          "cpuUsage": 80,
+          "diskUsage": 90
+        }
+      },
+      "dashboards": {
+        "system": {
+          "refreshInterval": 30000,
+          "panels": ["system-health", "error-rates", "performance-metrics"]
+        },
+        "development": {
+          "refreshInterval": 60000,
+          "panels": ["active-features", "test-results", "deployment-status"]
+        }
+      }
+    },
+    "coordination": {
+      "swarmTopology": "hierarchical",
+      "agentCommunication": "event-driven",
+      "conflictResolution": "priority-based",
+      "maxAgentsPerTeam": 6,
+      "communicationPatterns": {
+        "eventBus": {
+          "enabled": true,
+          "topics": ["coordination", "tasks", "conflicts", "metrics"],
+          "persistence": true,
+          "ttl": 3600
+        },
+        "sharedMemory": {
+          "enabled": true,
+          "namespace": "coordination",
+          "encryption": false,
+          "compression": true,
+          "ttl": 1800
+        }
+      },
+      "workDistribution": {
+        "balancingStrategy": "capability-based",
+        "maxWorkQueueSize": 10,
+        "redistributionThreshold": 1.5,
+        "parallelExecution": true
+      }
+    },
+    "recovery": {
+      "automaticCheckpoints": true,
+      "recoveryPointRetention": 30,
+      "autoRecoveryEnabled": true,
+      "verificationRequired": true,
+      "checkpointTriggers": {
+        "phaseTransition": true,
+        "deploymentStart": true,
+        "deploymentComplete": true,
+        "testFailure": false,
+        "errorSpike": true
+      },
+      "autoRecoveryThresholds": {
+        "errorRate": 5.0,
+        "responseTime": 5000,
+        "healthCheckFailures": 3,
+        "performanceDrop": 50
+      },
+      "approvalRequired": {
+        "critical": ["cto", "ops-manager"],
+        "high": ["ops-manager", "tech-lead"],
+        "medium": ["tech-lead"]
+      }
+    }
+  },
+  "agents": {
+    "frontend": {
+      "framework": "react",
+      "uiLibrary": "shadcn",
+      "stateManagement": "zustand",
+      "buildTool": "vite",
+      "capabilities": [
+        "component-development",
+        "state-management",
+        "ui-testing",
+        "accessibility",
+        "responsive-design",
+        "performance-optimization"
+      ],
+      "dependencies": ["backend", "design-system"],
+      "workQueue": {
+        "maxSize": 8,
+        "prioritization": "deadline-first"
+      }
+    },
+    "backend": {
+      "language": "typescript",
+      "framework": "express",
+      "database": "postgresql",
+      "capabilities": [
+        "api-development",
+        "business-logic",
+        "data-modeling",
+        "authentication",
+        "caching",
+        "monitoring"
+      ],
+      "dependencies": ["database"],
+      "middleware": ["cors", "helmet", "compression", "morgan", "rate-limit"],
+      "workQueue": {
+        "maxSize": 10,
+        "prioritization": "dependency-first"
+      }
+    },
+    "database": {
+      "type": "sql",
+      "engine": "postgresql",
+      "capabilities": [
+        "schema-design",
+        "migration-management",
+        "query-optimization",
+        "backup-management",
+        "monitoring"
+      ],
+      "dependencies": [],
+      "configuration": {
+        "maxConnections": 100,
+        "connectionTimeout": 30000,
+        "queryTimeout": 60000
+      }
+    },
+    "testing": {
+      "frameworks": ["jest", "cypress", "playwright", "k6"],
+      "testTypes": ["unit", "integration", "e2e", "performance"],
+      "capabilities": [
+        "test-automation",
+        "coverage-analysis",
+        "performance-testing",
+        "security-testing",
+        "accessibility-testing"
+      ],
+      "configuration": {
+        "parallelExecution": true,
+        "crossBrowserTesting": true,
+        "visualRegression": false,
+        "reportGeneration": true
+      }
+    },
+    "devops": {
+      "containerization": "docker",
+      "orchestration": "kubernetes",
+      "cicd": "github-actions",
+      "monitoring": "prometheus",
+      "capabilities": [
+        "containerization",
+        "infrastructure-management",
+        "ci-cd-pipeline",
+        "monitoring-setup",
+        "security-scanning"
+      ],
+      "infrastructure": {
+        "cloud": "aws",
+        "regions": ["us-east-1", "us-west-2"],
+        "environments": ["development", "staging", "production"]
+      }
+    }
+  },
+  "environments": {
+    "development": {
+      "autoDeployment": true,
+      "testingRequired": false,
+      "approvalRequired": false,
+      "rollbackEnabled": true,
+      "monitoring": {
+        "level": "basic",
+        "retention": "7d"
+      }
+    },
+    "staging": {
+      "autoDeployment": false,
+      "testingRequired": true,
+      "approvalRequired": true,
+      "rollbackEnabled": true,
+      "monitoring": {
+        "level": "comprehensive",
+        "retention": "30d"
+      },
+      "approvers": ["tech-lead"]
+    },
+    "production": {
+      "autoDeployment": false,
+      "testingRequired": true,
+      "approvalRequired": true,
+      "rollbackEnabled": true,
+      "monitoring": {
+        "level": "comprehensive",
+        "retention": "90d",
+        "realTime": true
+      },
+      "approvers": ["tech-lead", "ops-manager"],
+      "maintenanceWindows": {
+        "enabled": true,
+        "schedule": "0 2 * * 0",
+        "duration": 120
+      }
+    }
+  },
+  "integration": {
+    "chromeMCP": {
+      "enabled": true,
+      "browsers": ["chromium", "firefox", "webkit"],
+      "headless": true,
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "timeout": 30000,
+      "retries": 2,
+      "screenshots": {
+        "onFailure": true,
+        "onSuccess": false,
+        "fullPage": false
+      }
+    },
+    "github": {
+      "webhooks": {
+        "enabled": true,
+        "events": ["push", "pull_request", "deployment_status"],
+        "secret": "${GITHUB_WEBHOOK_SECRET}"
+      },
+      "actions": {
+        "triggerOnPush": true,
+        "triggerOnPR": true,
+        "parallelJobs": 4
+      }
+    },
+    "slack": {
+      "enabled": true,
+      "webhook": "${SLACK_WEBHOOK_URL}",
+      "channels": {
+        "deployments": "#deployments",
+        "alerts": "#alerts",
+        "general": "#development"
+      },
+      "notifications": {
+        "deploymentStart": true,
+        "deploymentComplete": true,
+        "deploymentFailed": true,
+        "testFailures": true,
+        "qualityGateFailures": true
+      }
+    }
+  },
+  "security": {
+    "secretScanning": {
+      "enabled": true,
+      "patterns": [
+        "api[_-]?key",
+        "secret[_-]?key",
+        "password",
+        "token",
+        "private[_-]?key"
+      ]
+    },
+    "dependencyScanning": {
+      "enabled": true,
+      "schedule": "daily",
+      "autoFix": false
+    },
+    "codeScanning": {
+      "enabled": true,
+      "tools": ["semgrep", "bandit", "eslint-security"],
+      "schedule": "on-push"
+    }
+  }
+}

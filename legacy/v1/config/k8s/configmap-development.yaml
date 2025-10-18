@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cfn-coordination-config-dev
+  namespace: claude-flow-novice
+  labels:
+    app: claude-flow-novice
+    environment: development
+    component: coordination
+data:
+  # Environment
+  NODE_ENV: "development"
+
+  # Agent Configuration (Development: 10 agents)
+  CFN_MAX_AGENTS: "10"
+  CFN_SHARD_COUNT: "4"
+  CFN_METRICS_ENABLED: "true"
+  CFN_ALERTING_ENABLED: "false"
+  CFN_LOG_LEVEL: "debug"
+  CFN_CONSENSUS_THRESHOLD: "0.90"
+  CFN_ALERT_COORD_TIME_MS: "3000"
+
+  # Memory and Storage
+  CFN_BASE_DIR: "/tmp/cfn"
+  CFN_AGENT_MEMORY_LIMIT_MB: "100"
+  CFN_TOTAL_MEMORY_LIMIT_MB: "2048"
+
+  # Performance
+  CFN_AGENT_TIMEOUT_MS: "30000"
+  CFN_CONSENSUS_TIMEOUT_MS: "60000"
+  CFN_SWARM_INIT_TIMEOUT_MS: "10000"
+  CFN_ENABLE_CACHING: "true"
+  CFN_CACHE_TTL_SECONDS: "300"
+  CFN_MAX_CONCURRENT_OPERATIONS: "10"
+
+  # Monitoring
+  CFN_METRICS_COLLECTION_INTERVAL_MS: "5000"
+  CFN_METRICS_RETENTION_HOURS: "24"
+  CFN_TRACK_COORDINATION_TIME: "true"
+  CFN_TRACK_MEMORY_USAGE: "true"
+  CFN_TRACK_AGENT_LIFECYCLE: "true"
+
+  # Security (Development: Disabled)
+  CFN_ENABLE_AGENT_AUTH: "false"
+  CFN_ENABLE_TLS: "false"
+  CFN_ENABLE_RATE_LIMITING: "false"
+
+  # MCP Server
+  CFN_MCP_SERVER_ENABLED: "true"
+  CFN_MCP_SERVER_PORT: "3000"
+
+  # Testing and Debugging
+  CFN_TEST_MODE: "false"
+  CFN_DEBUG_AGENT_SPAWN: "true"
+  CFN_DEBUG_CONSENSUS: "true"
+  CFN_DEBUG_MEMORY: "true"
+  CFN_VERBOSE_LOGGING: "true"
+
+  # Consensus Algorithm
+  CFN_CONSENSUS_ALGORITHM: "byzantine"

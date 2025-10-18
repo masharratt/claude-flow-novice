@@ -1,0 +1,283 @@
+/**
+ * Tiered Provider Router
+ * Routes agents to appropriate LLM providers based on tier configuration
+ * and agent profile preferences
+ */
+
+import { LLMProvider } from "./types.js";
+import { AgentProfileLoader } from "./agent-profile-loader.js";
+import { getGlobalTelemetry, TelemetrySystem } from "../observability/telemetry.js";
+
+// ===== TIER CONFIGURATION =====
+
+export interface TierConfig {
+  name: string;
+  provider: LLMProvider;
+  agentTypes: string[];
+  priority: number;
+  subscriptionLimit?: number;
+}
+
+export interface SubscriptionUsage {
+  used: number;
+  limit: number;
+  resetDate: Date;
+}
+
+// ===== TIER DEFINITIONS =====
+
+const TIER_CONFIGS: TierConfig[] = [
+  {
+    name: "Tier 0: Main Chat (Claude Max)",
+    provider: "anthropic",
+    agentTypes: ["main-chat"], // Main chat always uses Claude Max
+    priority: 0,
+  },
+  {
+    name: "Tier 1: Z.ai Agent Orchestration (ALL Task Tool Agents)",
+    provider: "zai",
+    agentTypes: [
+      // Core development agents
+      "coder", "developer", "programmer",
+      "tester", "qa", "test-engineer",
+      "reviewer", "code-reviewer",
+
+      // Specialized development
+      "backend-dev", "frontend-dev", "mobile-dev",
+      "react-frontend-engineer", "api-designer",
+
+      // Analysis & research
+      "analyst", "researcher", "planner",
+      "code-analyzer", "perf-analyzer",
+
+      // DevOps & infrastructure
+      "devops-engineer", "system-architect",
+
+      // Security
+      "security-specialist", "security-architect-persona",
+
+      // Architecture & coordination
+      "architect", "coordinator", "system-architect-persona",
+      "goal-planner", "product-owner",
+
+      // Specialized agents
+      "base-template-generator", "specification",
+      "refinement", "pseudocode", "architecture",
+
+      // Testing specialists
+      "tdd-london-swarm", "production-validator",
+      "interaction-tester", "playwright-tester",
+
+      // Code quality
+      "code-booster", "code-quality-validator",
+
+      // Swarm coordination
+      "hierarchical-coordinator", "mesh-coordinator",
+      "adaptive-coordinator", "adaptive-coordinator-enhanced",
+      "blocking-coordinator-example", "task-coordinator",
+
+      // Consensus & distributed
+      "consensus-builder", "byzantine-coordinator",
+      "raft-manager", "quorum-manager",
+      "gossip-coordinator", "crdt-synchronizer",
+      "security-manager", "performance-benchmarker",
+
+      // Fallback agents
+      "general-purpose", "reviewer", "researcher", "planner",
+      "coordinator", "ui-designer", "state-architect"
+    ], // ALL agents route to Z.ai for cost optimization
+    priority: 1,
+  },
+];
+
+// ===== TIERED PROVIDER ROUTER =====
+
+export class TieredProviderRouter {
+  private subscriptionUsage: SubscriptionUsage;
+  private tierConfigs: TierConfig[];
+  private profileLoader: AgentProfileLoader;
+  private telemetry: TelemetrySystem;
+
+  constructor(
+    tierConfigs: TierConfig[] = TIER_CONFIGS,
+    initialUsage: Partial<SubscriptionUsage> = {},
+    agentsDir?: string,
+    telemetry?: TelemetrySystem,
+  ) {
+    this.tierConfigs = tierConfigs.sort((a, b) => a.priority - b.priority);
+    this.subscriptionUsage = {
+      used: initialUsage.used || 0,
+      limit: initialUsage.limit || 1000,
+      resetDate: initialUsage.resetDate || this.getNextResetDate(),
+    };
+    this.profileLoader = new AgentProfileLoader(agentsDir);
+    this.telemetry = telemetry || getGlobalTelemetry();
+  }
+
+  /**
+   * Select provider based on agent type, profile preferences, and tier rules
+   */
+  async selectProvider(agentType: string): Promise<LLMProvider> {
+    let selectedProvider: LLMProvider;
+    let tierName: string;
+    let source: string;
+
+    // Step 1: Check agent profile for explicit provider preference
+    const profilePreference = this.profileLoader.getProviderPreference(agentType);
+    if (profilePreference) {
+      // If profile specifies anthropic and subscription has capacity, use it
+      if (profilePreference === "anthropic" && this.hasSubscriptionCapacity()) {
+        this.consumeSubscription();
+        selectedProvider = "anthropic";
+        tierName = "Tier 1: Subscription";
+        source = "profile-override-subscription";
+      } else {
+        // Otherwise respect the profile preference
+        selectedProvider = profilePreference;
+        tierName = profilePreference === "anthropic" ? "Tier 3: Anthropic Explicit" : "Profile Override";
+        source = "profile-override";
+      }
+
+      // Record telemetry
+      this.telemetry.recordCounter("provider.request", 1, {
+        provider: selectedProvider,
+        tier: tierName,
+        agentType,
+        source,
+      });
+
+      return selectedProvider;
+    }
+
+    // Step 2: Check tier configuration for agent type
+    for (const tier of this.tierConfigs) {
+      if (tier.agentTypes.includes(agentType)) {
+        // Check subscription limits for Tier 1
+        if (tier.priority === 1 && tier.subscriptionLimit) {
+          if (this.hasSubscriptionCapacity()) {
+            this.consumeSubscription();
+            selectedProvider = tier.provider;
+            tierName = tier.name;
+            source = "tier-config-subscription";
+
+            // Record subscription usage gauge
+            this.telemetry.recordGauge("subscription.usage", this.subscriptionUsage.used, {
+              limit: this.subscriptionUsage.limit.toString(),
+              remaining: (this.subscriptionUsage.limit - this.subscriptionUsage.used).toString(),
+            });
+
+            // Record telemetry
+            this.telemetry.recordCounter("provider.request", 1, {
+              provider: selectedProvider,
+              tier: tierName,
+              agentType,
+              source,
+            });
+
+            return selectedProvider;
+          }
+          // Fallback to Tier 2 if subscription limit exceeded
+          continue;
+        }
+
+        selectedProvider = tier.provider;
+        tierName = tier.name;
+        source = "tier-config";
+
+        // Record telemetry
+        this.telemetry.recordCounter("provider.request", 1, {
+          provider: selectedProvider,
+          tier: tierName,
+          agentType,
+          source,
+        });
+
+        return selectedProvider;
+      }
+    }
+
+    // Step 3: Default fallback to Z.ai (Tier 1)
+    // All Task tool agents (anything except "main-chat") go to Z.ai
+    const fallbackTier = this.tierConfigs.find((t) => t.priority === 1);
+    selectedProvider = fallbackTier?.provider || "zai";
+    tierName = fallbackTier?.name || "Tier 1: Z.ai Agent Orchestration";
+    source = "fallback";
+
+    // Record telemetry
+    this.telemetry.recordCounter("provider.request", 1, {
+      provider: selectedProvider,
+      tier: tierName,
+      agentType,
+      source,
+    });
+
+    return selectedProvider;
+  }
+
+  /**
+   * Check if subscription has capacity
+   */
+  private hasSubscriptionCapacity(): boolean {
+    // Reset usage if past reset date
+    if (new Date() >= this.subscriptionUsage.resetDate) {
+      this.resetSubscriptionUsage();
+    }
+
+    return this.subscriptionUsage.used < this.subscriptionUsage.limit;
+  }
+
+  /**
+   * Consume subscription quota
+   */
+  private consumeSubscription(): void {
+    this.subscriptionUsage.used++;
+  }
+
+  /**
+   * Reset subscription usage
+   */
+  private resetSubscriptionUsage(): void {
+    this.subscriptionUsage.used = 0;
+    this.subscriptionUsage.resetDate = this.getNextResetDate();
+  }
+
+  /**
+   * Get next reset date (30 days from now)
+   */
+  private getNextResetDate(): Date {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  }
+
+  /**
+   * Get current subscription usage
+   */
+  getSubscriptionUsage(): SubscriptionUsage {
+    return { ...this.subscriptionUsage };
+  }
+
+  /**
+   * Get tier configuration for agent type
+   */
+  getTierForAgentType(agentType: string): TierConfig | undefined {
+    return this.tierConfigs.find((tier) => tier.agentTypes.includes(agentType));
+  }
+
+  /**
+   * Get all tier configurations
+   */
+  getTierConfigs(): TierConfig[] {
+    return [...this.tierConfigs];
+  }
+}
+
+// ===== FACTORY =====
+
+export function createTieredRouter(
+  customTiers?: TierConfig[],
+  initialUsage?: Partial<SubscriptionUsage>,
+  agentsDir?: string,
+  telemetry?: TelemetrySystem,
+): TieredProviderRouter {
+  return new TieredProviderRouter(customTiers, initialUsage, agentsDir, telemetry);
+}

@@ -1,0 +1,124 @@
+# Production Docker Compose Configuration
+# Claude Flow Novice - Agent Coordination Platform
+# Phase 2 Sprint 2.3 - Production Deployment Infrastructure
+
+version: '3.8'
+
+services:
+  # Main application service
+  coordinator:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+        - APP_VERSION=1.6.6
+    image: claude-flow-novice:1.6.6
+    container_name: cfn-coordinator
+    restart: unless-stopped
+    env_file:
+      - env.production
+    environment:
+      - NODE_ENV=production
+      - CFN_MAX_AGENTS=10
+      - CFN_BASE_DIR=/dev/shm/cfn
+      - CFN_METRICS_ENABLED=true
+      - CFN_LOG_LEVEL=info
+      - MESSAGE_BASE_DIR=/dev/shm/cfn/message-bus
+    ports:
+      - "3000:3000"
+      - "9091:9091"
+    volumes:
+      - app-logs:/app/logs
+      - app-data:/app/data
+      - ../../lib:/app/lib:ro
+      - ../../tests:/app/tests:ro
+      - ../../scripts:/app/scripts:ro
+    networks:
+      - cfn-network
+    tmpfs:
+      - /dev/shm:mode=1777,size=1g
+    shm_size: 1g
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 8192
+      nproc:
+        soft: 2048
+        hard: 4096
+    mem_limit: 2g
+    mem_reservation: 1g
+    cpus: 2
+    healthcheck:
+      test: ["CMD-SHELL", "test -d /dev/shm/cfn || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+
+  # Prometheus metrics collector
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cfn-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - cfn-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=24h'
+      - '--web.enable-lifecycle'
+    mem_limit: 512m
+    cpus: 1
+    depends_on:
+      - coordinator
+
+  # Grafana visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cfn-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - cfn-network
+    depends_on:
+      - prometheus
+    mem_limit: 256m
+    cpus: 0.5
+
+networks:
+  cfn-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  app-logs:
+    driver: local
+  app-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

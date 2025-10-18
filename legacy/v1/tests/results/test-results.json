@@ -1,0 +1,67 @@
+
+> claude-flow-novice@2.0.0 test
+> NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=16384' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/integration/cfn-loop-sqlite-integration.test.ts tests/integration/cross-session-recovery.test.ts tests/chaos/sqlite-failure-scenarios.test.ts tests/chaos/coordinator-death-sqlite.test.ts tests/performance/sqlite-load-test.ts tests/performance/redis-vs-sqlite-benchmark.ts src/cfn-loop/__tests__/sqlite-memory-manager.test.ts src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts src/cfn-loop/__tests__/blocking-coordination-audit.test.ts --json
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From src/cfn-loop/__tests__/sqlite-memory-manager.test.ts.
+FAIL src/cfn-loop/__tests__/sqlite-memory-manager.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts.
+FAIL src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From src/cfn-loop/__tests__/blocking-coordination-audit.test.ts.
+FAIL src/cfn-loop/__tests__/blocking-coordination-audit.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From tests/integration/cfn-loop-sqlite-integration.test.ts.
+FAIL tests/integration/cfn-loop-sqlite-integration.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From tests/chaos/sqlite-failure-scenarios.test.ts.
+FAIL tests/chaos/sqlite-failure-scenarios.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From tests/chaos/coordinator-death-sqlite.test.ts.
+FAIL tests/chaos/coordinator-death-sqlite.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From tests/integration/cross-session-recovery.test.ts.
+FAIL tests/integration/cross-session-recovery.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+Test Suites: 7 failed, 7 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        12.816 s
+Ran all test suites matching tests/integration/cfn-loop-sqlite-integration.test.ts|tests/integration/cross-session-recovery.test.ts|tests/chaos/sqlite-failure-scenarios.test.ts|tests/chaos/coordinator-death-sqlite.test.ts|tests/performance/sqlite-load-test.ts|tests/performance/redis-vs-sqlite-benchmark.ts|src/cfn-loop/__tests__/sqlite-memory-manager.test.ts|src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts|src/cfn-loop/__tests__/blocking-coordination-audit.test.ts.
+{"numFailedTestSuites":7,"numFailedTests":0,"numPassedTestSuites":0,"numPassedTests":0,"numPendingTestSuites":0,"numPendingTests":0,"numRuntimeErrorTestSuites":7,"numTodoTests":0,"numTotalTestSuites":7,"numTotalTests":0,"openHandles":[],"snapshot":{"added":0,"didUpdate":false,"failure":false,"filesAdded":0,"filesRemoved":0,"filesRemovedList":[],"filesUnmatched":0,"filesUpdated":0,"matched":0,"total":0,"unchecked":0,"uncheckedKeysByFile":[],"unmatched":0,"updated":0},"startTime":1760163120062,"success":false,"testResults":[{"assertionResults":[],"coverage":{},"endTime":1760163132888,"message":"  ● Test suite failed to run\n\n    module is already linked\n\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/sqlite-memory-manager.test.ts","startTime":1760163132888,"status":"failed","summary":""},{"assertionResults":[],"coverage":{},"endTime":1760163132888,"message":"  ● Test suite failed to run\n\n    module is already linked\n\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts","startTime":1760163132888,"status":"failed","summary":""},{"assertionResults":[],"coverage":{},"endTime":1760163132888,"message":"  ● Test suite failed to run\n\n    module is already linked\n\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/src/cfn-loop/__tests__/blocking-coordination-audit.test.ts","startTime":1760163132888,"status":"failed","summary":""},{"assertionResults":[],"coverage":{},"endTime":1760163132888,"message":"  ● Test suite failed to run\n\n    module is already linked\n\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/tests/integration/cfn-loop-sqlite-integration.test.ts","startTime":1760163132888,"status":"failed","summary":""},{"assertionResults":[],"coverage":{},"endTime":1760163132888,"message":"  ● Test suite failed to run\n\n    module is already linked\n\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/tests/chaos/sqlite-failure-scenarios.test.ts","startTime":1760163132888,"status":"failed","summary":""},{"assertionResults":[],"coverage":{},"endTime":1760163132888,"message":"  ● Test suite failed to run\n\n    module is already linked\n\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/tests/chaos/coordinator-death-sqlite.test.ts","startTime":1760163132888,"status":"failed","summary":""},{"assertionResults":[],"coverage":{},"endTime":1760163132888,"message":"  ● Test suite failed to run\n\n    module is already linked\n\n","name":"/mnt/c/Users/masha/Documents/claude-flow-novice/tests/integration/cross-session-recovery.test.ts","startTime":1760163132888,"status":"failed","summary":""}],"wasInterrupted":false}
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

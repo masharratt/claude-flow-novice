@@ -1,0 +1,85 @@
+{
+  "benchmark_timestamp": "2025-10-06T12:52:53Z",
+  "thresholds": {
+    "spawn_time_ms": 500,
+    "ipc_latency_ms": 50,
+    "checkpoint_write_ms": 100,
+    "checkpoint_restore_ms": 200,
+    "message_delivery_rate_pct": 95
+  },
+  "metrics": {
+    "spawn_time_ms": {
+      "mean": 239.6,
+      "median": 239,
+      "p95": 242,
+      "p99": 242,
+      "min": 236,
+      "max": 242,
+      "pass": true
+    },
+    "ipc_latency_ms": {
+      "mean": 28.8,
+      "median": 28,
+      "p95": 33,
+      "p99": 33,
+      "min": 27,
+      "max": 33,
+      "pass": true
+    },
+    "checkpoint_write_ms": {
+      "mean": 937,
+      "median": 445,
+      "p95": 1927,
+      "p99": 1927,
+      "min": 420,
+      "max": 1927,
+      "pass": false
+    },
+    "checkpoint_restore_ms": {
+      "mean": 52,
+      "median": 55,
+      "p95": 87,
+      "p99": 87,
+      "min": 10,
+      "max": 87,
+      "pass": true
+    },
+    "signal_handling_ms": {
+      "mean": 159,
+      "median": 157,
+      "p95": 189,
+      "p99": 189,
+      "min": 124,
+      "max": 189,
+      "pass": true
+    }
+  },
+  "scenarios": {
+    "single_agent_lifecycle": {
+      "spawn_ms": 734,
+      "checkpoint_ms": 309,
+      "shutdown_ms": 2,
+      "total_ms": 1049
+    },
+    "two_agent_messaging": {
+      "total_messages": 10,
+      "delivered_messages": 10,
+      "avg_latency_ms": 18.9,
+      "total_time_ms": 189,
+      "delivery_rate_pct": 100
+    },
+    "concurrent_spawn": {
+      "target_agents": 3,
+      "spawned_agents": 3,
+      "total_time_ms": 739
+    },
+    "stress_test": {
+      "total_messages": 50,
+      "delivered_messages": 49,
+      "delivery_rate_pct": 98,
+      "total_time_ms": 1368,
+      "pass": true
+    }
+  },
+  "overall_pass": false
+}

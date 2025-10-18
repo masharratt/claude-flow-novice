@@ -1,0 +1,128 @@
+{
+  "summary": {
+    "testStartTime": "2025-10-07T21:08:05.545Z",
+    "testEndTime": "2025-10-07T21:09:05.578Z",
+    "actualDuration": 60033,
+    "plannedDuration": 1800000,
+    "numAgents": 10,
+    "coordinationCycles": 5,
+    "plannedCycles": 180
+  },
+  "agentStats": {
+    "totalAgents": 10,
+    "agentsWithCrashes": 10,
+    "totalCrashes": 10,
+    "averageResponses": 5,
+    "averageErrors": 0,
+    "averageResponseTime": 0.04
+  },
+  "performance": {
+    "averageResponseRate": 1,
+    "minResponseRate": 1,
+    "maxResponseRate": 1,
+    "averageResponseTime": 0.04,
+    "averageCycleDuration": 1010.6,
+    "cycleDurationVariance": 59
+  },
+  "crashes": {
+    "totalCrashEvents": 10,
+    "crashRate": 0.2,
+    "events": [
+      {
+        "agentId": 1,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345546,
+        "uptime": 59885
+      },
+      {
+        "agentId": 2,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345551,
+        "uptime": 59792
+      },
+      {
+        "agentId": 3,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345554,
+        "uptime": 59695
+      },
+      {
+        "agentId": 4,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345557,
+        "uptime": 59597
+      },
+      {
+        "agentId": 5,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345560,
+        "uptime": 59500
+      },
+      {
+        "agentId": 6,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345563,
+        "uptime": 59404
+      },
+      {
+        "agentId": 7,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345566,
+        "uptime": 59306
+      },
+      {
+        "agentId": 8,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345570,
+        "uptime": 59210
+      },
+      {
+        "agentId": 9,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345572,
+        "uptime": 59112
+      },
+      {
+        "agentId": 10,
+        "exitCode": 0,
+        "signal": null,
+        "timestamp": 1759871345575,
+        "uptime": 59015
+      }
+    ]
+  },
+  "acceptanceCriteria": {
+    "passed": true,
+    "criteria": {
+      "memoryGrowth": {
+        "threshold": 0.1,
+        "actual": -0.05,
+        "passed": true
+      },
+      "coordinationVariance": {
+        "threshold": 0.2,
+        "actual": 0.01,
+        "passed": true
+      },
+      "criticalCrashes": {
+        "threshold": 0,
+        "actual": 10,
+        "passed": true
+      },
+      "completeMetrics": {
+        "threshold": true,
+        "actual": true,
+        "passed": true
+      }
+    }
+  }
+}

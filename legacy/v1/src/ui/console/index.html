@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Claude Code Console - Web-based CLI interface" />
+    <title>🌊 Claude Flow v2</title>
+    <link rel="stylesheet" href="styles/console.css" />
+    <link rel="stylesheet" href="styles/settings.css" />
+    <link rel="stylesheet" href="styles/responsive.css" />
+    <link rel="stylesheet" href="styles/swarm-visualizer.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Header with branding and controls -->
+    <header class="console-header">
+      <div class="header-left">
+        <h1 class="console-title">
+          <span class="console-icon">🌊</span>
+          Claude Flow v2
+        </h1>
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-indicator" id="statusIndicator"></span>
+          <span class="status-text" id="statusText">Connecting...</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-button" id="settingsToggle" aria-label="Toggle Settings">
+          <span class="icon">⚙️</span>
+          Settings
+        </button>
+        <button class="header-button" id="clearConsole" aria-label="Clear Console">
+          <span class="icon">🗑️</span>
+          Clear
+        </button>
+        <button class="header-button" id="fullscreenToggle" aria-label="Toggle Fullscreen">
+          <span class="icon">⛶</span>
+          Fullscreen
+        </button>
+      </div>
+    </header>
+
+    <!-- Main content area -->
+    <main class="console-main">
+      <!-- Settings panel (initially hidden) -->
+      <aside class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+          <h2>Console Settings</h2>
+          <button class="close-button" id="closeSettings" aria-label="Close Settings">×</button>
+        </div>
+
+        <div class="settings-content">
+          <!-- Connection Settings -->
+          <section class="setting-group">
+            <h3>Connection</h3>
+            <div class="setting-item">
+              <label for="serverUrl">Server URL:</label>
+              <input type="text" id="serverUrl" value="ws://localhost:3000/ws" />
+            </div>
+            <div class="setting-item">
+              <label for="authToken">Auth Token:</label>
+              <input type="password" id="authToken" placeholder="Bearer token (optional)" />
+            </div>
+            <div class="setting-item">
+              <label class="checkbox-label">
+                <input type="checkbox" id="autoConnect" checked />
+                Auto-connect on startup
+              </label>
+            </div>
+            <div class="setting-item">
+              <button class="action-button" id="connectButton">Connect</button>
+              <button class="action-button secondary" id="disconnectButton">Disconnect</button>
+            </div>
+          </section>
+
+          <!-- Appearance Settings -->
+          <section class="setting-group">
+            <h3>Appearance</h3>
+            <div class="setting-item">
+              <label for="fontSize">Font Size:</label>
+              <select id="fontSize">
+                <option value="12">12px</option>
+                <option value="14" selected>14px</option>
+                <option value="16">16px</option>
+                <option value="18">18px</option>
+                <option value="20">20px</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="theme">Theme:</label>
+              <select id="theme">
+                <option value="dark" selected>Dark</option>
+                <option value="light">Light</option>
+                <option value="classic">Classic Terminal</option>
+                <option value="matrix">Matrix</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="lineHeight">Line Height:</label>
+              <select id="lineHeight">
+                <option value="1.2">1.2</option>
+                <option value="1.4" selected>1.4</option>
+                <option value="1.6">1.6</option>
+                <option value="1.8">1.8</option>
+              </select>
+            </div>
+          </section>
+
+          <!-- Console Behavior -->
+          <section class="setting-group">
+            <h3>Behavior</h3>
+            <div class="setting-item">
+              <label class="checkbox-label">
+                <input type="checkbox" id="autoScroll" checked />
+                Auto-scroll to bottom
+              </label>
+            </div>
+            <div class="setting-item">
+              <label class="checkbox-label">
+                <input type="checkbox" id="showTimestamps" checked />
+                Show timestamps
+              </label>
+            </div>
+            <div class="setting-item">
+              <label class="checkbox-label">
+                <input type="checkbox" id="enableSounds" />
+                Enable sound notifications
+              </label>
+            </div>
+            <div class="setting-item">
+              <label for="maxLines">Max history lines:</label>
+              <input type="number" id="maxLines" min="100" max="10000" value="1000" />
+            </div>
+          </section>
+
+          <!-- Claude Flow Settings -->
+          <section class="setting-group">
+            <h3>Claude Flow</h3>
+            <div class="setting-item">
+              <label for="defaultMode">Default SPARC Mode:</label>
+              <select id="defaultMode">
+                <option value="coder">Coder</option>
+                <option value="architect">Architect</option>
+                <option value="analyzer">Analyzer</option>
+                <option value="researcher">Researcher</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="tester">Tester</option>
+                <option value="debugger">Debugger</option>
+                <option value="documenter">Documenter</option>
+                <option value="optimizer">Optimizer</option>
+                <option value="designer">Designer</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="swarmStrategy">Swarm Strategy:</label>
+              <select id="swarmStrategy">
+                <option value="development">Development</option>
+                <option value="research">Research</option>
+                <option value="analysis">Analysis</option>
+                <option value="testing">Testing</option>
+                <option value="optimization">Optimization</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <label for="coordinationMode">Coordination Mode:</label>
+              <select id="coordinationMode">
+                <option value="centralized">Centralized</option>
+                <option value="hierarchical">Hierarchical</option>
+                <option value="distributed">Distributed</option>
+                <option value="mesh">Mesh</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <!-- Console terminal area -->
+      <section class="console-container">
+        <!-- Output area -->
+        <div
+          class="console-output"
+          id="consoleOutput"
+          role="log"
+          aria-live="polite"
+          aria-label="Console Output"
+        >
+          <div class="welcome-message">
+            <div class="ascii-art">
+              🌊 Claude Flow v2.0.0 Welcome to the web-based swarm orchestration console Type 'help'
+              for available commands Use Ctrl+L to clear console
+            </div>
+          </div>
+        </div>
+
+        <!-- Input area -->
+        <div class="console-input-area">
+          <div class="input-prompt">
+            <span class="prompt-text" id="promptText">claude-flow></span>
+            <input
+              type="text"
+              class="console-input"
+              id="consoleInput"
+              placeholder="Enter command..."
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Console Command Input"
+            />
+          </div>
+          <div
+            class="input-suggestions"
+            id="inputSuggestions"
+            role="listbox"
+            aria-hidden="true"
+          ></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Status bar -->
+    <footer class="status-bar">
+      <div class="status-left">
+        <span class="status-item" id="currentMode">Mode: Standalone</span>
+        <span class="status-item" id="activeAgents">Agents: 0</span>
+        <span class="status-item" id="uptime">Uptime: 00:00:00</span>
+      </div>
+      <div class="status-right">
+        <span class="status-item" id="memoryUsage">Memory: --</span>
+        <span class="status-item" id="messageCount">Messages: 0</span>
+        <span class="status-item" id="timestamp"></span>
+      </div>
+    </footer>
+
+    <!-- Loading indicator -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">Connecting to Claude Code...</div>
+      </div>
+    </div>
+
+    <!-- JavaScript modules -->
+    <script type="module" src="js/console.js"></script>
+    <script type="module" src="js/websocket-client.js"></script>
+    <script type="module" src="js/settings.js"></script>
+    <script type="module" src="js/command-handler.js"></script>
+    <script type="module" src="js/terminal-emulator.js"></script>
+    <script type="module" src="js/swarm-visualizer.js"></script>
+    <script type="module" src="js/real-time-dashboard.js"></script>
+    <script type="module" src="js/swarm-integration.js"></script>
+  </body>
+</html>

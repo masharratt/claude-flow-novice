@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+
+    // Enhanced strictness (incremental improvement)
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noImplicitOverride": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "lib": ["ES2020", "DOM"],
+    "moduleDetection": "force",
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"],
+    "incremental": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "examples/**/*",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.test.js",
+    "**/*.spec.js",
+    "tests/**/*"
+  ]
+}

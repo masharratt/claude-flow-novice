@@ -1,0 +1,26 @@
+# Prometheus Configuration for Production Deployment
+# Scrapes metrics from Claude Flow Novice coordinator
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    environment: 'production'
+    cluster: 'cfn-main'
+
+scrape_configs:
+  # Application metrics
+  - job_name: 'claude-flow-novice'
+    static_configs:
+      - targets: ['coordinator:9091']
+        labels:
+          service: 'coordinator'
+          component: 'application'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'monitoring'

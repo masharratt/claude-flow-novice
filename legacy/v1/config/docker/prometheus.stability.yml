@@ -1,0 +1,33 @@
+# Prometheus configuration for 8-hour stability test
+# Scrapes metrics every 10 seconds for granular monitoring
+
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+  scrape_timeout: 5s
+  external_labels:
+    test: 'stability-8h'
+    agents: '50'
+    monitor: 'cfn-stability'
+
+scrape_configs:
+  # Application metrics
+  - job_name: 'claude-flow-novice'
+    static_configs:
+      - targets: ['stability-test:3000']
+        labels:
+          service: 'application'
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'system'
+
+  # Self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'monitoring'

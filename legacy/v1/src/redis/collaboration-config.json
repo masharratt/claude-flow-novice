@@ -1,0 +1,253 @@
+{
+  "collaborationTracking": {
+    "redis": {
+      "host": "localhost",
+      "port": 6379,
+      "db": 2,
+      "keyPrefix": "collaboration:",
+      "connectionTimeout": 5000,
+      "lazyConnect": true,
+      "maxRetriesPerRequest": 3,
+      "retryDelayOnFailover": 100
+    },
+    "tracking": {
+      "interactionTTL": 86400,
+      "collaborationTTL": 604800,
+      "metricsRetentionDays": 30,
+      "maxInteractionHistory": 10000,
+      "batchSize": 100
+    },
+    "analytics": {
+      "analysisWindow": 86400000,
+      "predictionHorizon": 3600000,
+      "minDataPoints": 10,
+      "confidenceThreshold": 0.75,
+      "updateInterval": 300000
+    }
+  },
+  "dashboard": {
+    "port": 3001,
+    "cors": {
+      "origin": "http://localhost:3000",
+      "credentials": true
+    },
+    "rateLimit": {
+      "windowMs": 900000,
+      "max": 100
+    },
+    "websocket": {
+      "heartbeatInterval": 30000,
+      "maxConnections": 100
+    },
+    "realtime": {
+      "enabled": true,
+      "updateInterval": 5000,
+      "batchUpdates": true
+    },
+    "export": {
+      "formats": ["json", "csv"],
+      "maxExportSize": "50MB"
+    }
+  },
+  "agents": {
+    "types": {
+      "system-architect": {
+        "capabilities": ["design", "coordination", "analytics", "planning"],
+        "role": "technical_leadership",
+        "priority": "high"
+      },
+      "analyst": {
+        "capabilities": ["analysis", "modeling", "prediction", "insights"],
+        "role": "data_analysis",
+        "priority": "high"
+      },
+      "backend-dev": {
+        "capabilities": ["development", "implementation", "testing", "optimization"],
+        "role": "implementation",
+        "priority": "medium"
+      },
+      "security-specialist": {
+        "capabilities": ["security", "auditing", "compliance", "threat_detection"],
+        "role": "security",
+        "priority": "high"
+      },
+      "react-frontend-engineer": {
+        "capabilities": ["frontend", "ui", "dashboard", "visualization"],
+        "role": "frontend",
+        "priority": "medium"
+      }
+    },
+    "registration": {
+      "autoRegister": true,
+      "requireAuthentication": false,
+      "defaultStatus": "active"
+    }
+  },
+  "collaboration": {
+    "types": {
+      "task_collaboration": {
+        "description": "Agents working together on specific tasks",
+        "expectedDuration": 30000,
+        "maxParticipants": 6
+      },
+      "decision_making": {
+        "description": "Collaborative decision processes",
+        "expectedDuration": 45000,
+        "maxParticipants": 8
+      },
+      "problem_solving": {
+        "description": "Complex problem resolution",
+        "expectedDuration": 60000,
+        "maxParticipants": 5
+      },
+      "creative_work": {
+        "description": "Creative and design collaboration",
+        "expectedDuration": 90000,
+        "maxParticipants": 4
+      }
+    },
+    "rules": {
+      "minParticipants": 2,
+      "maxParticipants": 8,
+      "requireConsensus": false,
+      "consensusThreshold": 0.75,
+      "timeout": 300000
+    }
+  },
+  "metrics": {
+    "collaboration": {
+      "successRate": {
+        "target": 0.90,
+        "warning": 0.80,
+        "critical": 0.70
+      },
+      "responseTime": {
+        "target": 2000,
+        "warning": 5000,
+        "critical": 10000
+      },
+      "consensusRate": {
+        "target": 0.85,
+        "warning": 0.75,
+        "critical": 0.65
+      }
+    },
+    "performance": {
+      "collaborationVelocity": {
+        "target": 10,
+        "unit": "collaborations/hour"
+      },
+      "resourceUtilization": {
+        "target": 0.80,
+        "warning": 0.90,
+        "critical": 0.95
+      }
+    },
+    "alerts": {
+      "enabled": true,
+      "channels": ["dashboard", "websocket"],
+      "severity": ["info", "warning", "error", "critical"]
+    }
+  },
+  "prediction": {
+    "models": {
+      "collaboration_outcomes": {
+        "algorithm": "random_forest",
+        "features": [
+          "participant_types",
+          "task_complexity",
+          "historical_performance",
+          "time_of_day",
+          "workload_levels"
+        ],
+        "accuracy": 0.85,
+        "retrainInterval": 86400000
+      },
+      "performance_trends": {
+        "algorithm": "linear_regression",
+        "features": [
+          "historical_metrics",
+          "seasonal_patterns",
+          "workload_trends",
+          "system_changes"
+        ],
+        "accuracy": 0.78,
+        "retrainInterval": 86400000
+      }
+    },
+    "features": {
+      "participant_experience": true,
+      "task_complexity": true,
+      "temporal_patterns": true,
+      "workload_distribution": true,
+      "historical_performance": true
+    }
+  },
+  "optimization": {
+    "recommendations": {
+      "enabled": true,
+      "categories": [
+        "immediate",
+        "short_term",
+        "long_term"
+      ],
+      "priorityFactors": [
+        "impact",
+        "effort",
+        "urgency",
+        "resource_availability"
+      ]
+    },
+    "auto_optimization": {
+      "enabled": false,
+      "rules": [
+        "load_balancing",
+        "skill_matching",
+        "team_composition"
+      ]
+    }
+  },
+  "security": {
+    "authentication": {
+      "enabled": false,
+      "method": "jwt",
+      "secret": "collaboration_secret_key"
+    },
+    "authorization": {
+      "roles": ["admin", "analyst", "viewer"],
+      "permissions": {
+        "admin": ["read", "write", "delete", "manage"],
+        "analyst": ["read", "write"],
+        "viewer": ["read"]
+      }
+    },
+    "dataPrivacy": {
+      "anonymization": false,
+      "retention": 90,
+      "encryption": false
+    }
+  },
+  "monitoring": {
+    "health": {
+      "enabled": true,
+      "interval": 30000,
+      "checks": [
+        "redis_connection",
+        "memory_usage",
+        "active_connections",
+        "error_rates"
+      ]
+    },
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "destinations": ["console", "file"],
+      "rotation": true
+    },
+    "tracing": {
+      "enabled": true,
+      "sampleRate": 0.1,
+      "service": "collaboration-tracker"
+    }
+  }
+}

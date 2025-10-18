@@ -1,0 +1,238 @@
+{
+  "crdt-verification": {
+    "coordinator": {
+      "nodeId": "crdt-coordinator-node",
+      "replicationGroup": [
+        "crdt-coordinator-node",
+        "consensus-node-1",
+        "consensus-node-2",
+        "consensus-node-3"
+      ],
+      "syncInterval": 5000,
+      "maxRetries": 5,
+      "enablePersistence": true,
+      "memoryBackend": "sqlite",
+      "conflictResolution": {
+        "defaultStrategy": "statistical",
+        "strategies": [
+          {
+            "name": "majority",
+            "priority": 1,
+            "minNodes": 3
+          },
+          {
+            "name": "performance",
+            "priority": 2,
+            "weightThreshold": 0.7
+          },
+          {
+            "name": "temporal",
+            "priority": 3,
+            "timeWindow": 300000
+          },
+          {
+            "name": "crdt-merge",
+            "priority": 4,
+            "fallback": true
+          }
+        ]
+      }
+    },
+    "memory": {
+      "backend": "sqlite",
+      "persistence": {
+        "enabled": true,
+        "directory": "./.crdt-data",
+        "maxSize": 500,
+        "ttl": 86400,
+        "compressionEnabled": true,
+        "backupInterval": 3600
+      },
+      "cleanup": {
+        "agentTimeout": 300,
+        "stateRetention": 86400,
+        "orphanCleanupInterval": 300,
+        "memoryThreshold": 85,
+        "gcInterval": 1800
+      },
+      "synchronization": {
+        "batchSize": 50,
+        "maxRetries": 3,
+        "backoffMultiplier": 2,
+        "conflictBufferSize": 1000,
+        "syncTimeout": 10000
+      }
+    },
+    "conflict-resolver": {
+      "strategies": {
+        "statistical": {
+          "outlierThreshold": 2.0,
+          "outlierMethod": "iqr",
+          "aggregationMethod": "adaptive"
+        },
+        "environment-weighted": {
+          "environmentWeights": {
+            "production": 1.0,
+            "staging": 0.8,
+            "development": 0.6,
+            "test": 0.4
+          },
+          "reliabilityThreshold": 0.7
+        },
+        "temporal": {
+          "decayFactor": 0.1,
+          "maxAge": 86400,
+          "timeWeightEnabled": true
+        },
+        "performance-optimized": {
+          "performanceThreshold": 0.5,
+          "topPercentile": 0.5,
+          "scoringWeights": {
+            "throughput": 0.4,
+            "executionTime": 0.4,
+            "errorRate": 0.2
+          }
+        }
+      },
+      "benchmarks": {
+        "cpuBenchmark": {
+          "timeoutMs": 30000,
+          "expectedMetrics": ["executionTime", "throughput", "cpuUtilization"],
+          "tolerances": {
+            "executionTime": 0.2,
+            "throughput": 0.15,
+            "cpuUtilization": 0.1
+          }
+        },
+        "memoryBenchmark": {
+          "timeoutMs": 60000,
+          "expectedMetrics": ["memoryUsage", "allocationRate", "gcTime"],
+          "tolerances": {
+            "memoryUsage": 0.25,
+            "allocationRate": 0.3,
+            "gcTime": 0.2
+          }
+        },
+        "networkBenchmark": {
+          "timeoutMs": 45000,
+          "expectedMetrics": ["latency", "bandwidth", "packetLoss"],
+          "tolerances": {
+            "latency": 0.1,
+            "bandwidth": 0.2,
+            "packetLoss": 0.05
+          }
+        }
+      }
+    },
+    "consensus": {
+      "byzantineFaultTolerance": {
+        "enabled": true,
+        "maxFaults": 1,
+        "consensusThreshold": 0.67
+      },
+      "raftIntegration": {
+        "enabled": true,
+        "electionTimeout": 5000,
+        "heartbeatInterval": 1000,
+        "logReplication": true
+      },
+      "gossipProtocol": {
+        "enabled": true,
+        "fanout": 3,
+        "interval": 2000,
+        "maxHops": 5
+      }
+    },
+    "monitoring": {
+      "metrics": {
+        "enabled": true,
+        "collection": {
+          "interval": 30000,
+          "retention": 604800,
+          "aggregation": "statistical"
+        },
+        "export": {
+          "prometheus": true,
+          "json": true,
+          "csv": false
+        }
+      },
+      "health": {
+        "checks": [
+          {
+            "name": "memory-usage",
+            "threshold": 80,
+            "interval": 60000
+          },
+          {
+            "name": "sync-latency",
+            "threshold": 5000,
+            "interval": 30000
+          },
+          {
+            "name": "conflict-rate",
+            "threshold": 0.1,
+            "interval": 120000
+          }
+        ]
+      },
+      "alerts": {
+        "enabled": true,
+        "channels": ["console", "file"],
+        "severity": {
+          "critical": ["memory-pressure", "sync-failure"],
+          "warning": ["high-conflict-rate", "slow-resolution"],
+          "info": ["agent-registered", "state-synchronized"]
+        }
+      }
+    },
+    "security": {
+      "authentication": {
+        "enabled": true,
+        "method": "node-signature",
+        "keyRotation": 86400
+      },
+      "authorization": {
+        "enabled": true,
+        "roles": {
+          "coordinator": ["read", "write", "sync", "cleanup"],
+          "consensus-agent": ["read", "write", "sync"],
+          "observer": ["read"]
+        }
+      },
+      "encryption": {
+        "inTransit": true,
+        "atRest": false,
+        "algorithm": "AES-256-GCM"
+      }
+    },
+    "testing": {
+      "chaos": {
+        "enabled": false,
+        "scenarios": [
+          {
+            "name": "network-partition",
+            "probability": 0.01,
+            "duration": 30000
+          },
+          {
+            "name": "node-failure",
+            "probability": 0.005,
+            "duration": 60000
+          },
+          {
+            "name": "memory-pressure",
+            "probability": 0.02,
+            "intensity": 0.8
+          }
+        ]
+      },
+      "simulation": {
+        "enabled": true,
+        "nodeCount": 5,
+        "reportRate": 10,
+        "conflictProbability": 0.1
+      }
+    }
+  }
+}

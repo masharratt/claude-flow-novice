@@ -1,0 +1,126 @@
+
+> claude-flow-novice@2.0.0 test
+> NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=16384' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit src/cfn-loop/__tests__/sqlite-memory-manager.test.ts src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts src/cfn-loop/__tests__/blocking-coordination-audit.test.ts tests/integration/cfn-loop-sqlite-integration.test.ts tests/integration/cross-session-recovery.test.ts tests/chaos/sqlite-failure-scenarios.test.ts tests/chaos/coordinator-death-sqlite.test.ts --json
+
+(node:6053) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/cfn-loop/__tests__/sqlite-memory-manager.test.ts (8.745 s)
+  SQLiteMemoryManager
+    Dual-Write Pattern
+      ✓ should write to both Redis and SQLite simultaneously (126 ms)
+      ✓ should maintain consistency between Redis and SQLite (77 ms)
+      ✓ should handle Redis failure with SQLite fallback (51 ms)
+    ACL Enforcement
+      ✕ should enforce PRIVATE level (agent-only access) (50 ms)
+      ✕ should enforce AGENT level (swarm coordination) (53 ms)
+      ✕ should enforce SWARM level (swarm-wide access) (56 ms)
+      ✓ should allow PROJECT level access (Product Owner, CI/CD) (50 ms)
+      ✓ should allow SYSTEM level access (admin, monitoring) (52 ms)
+    Encryption
+      ✓ should encrypt PRIVATE level data (AES-256-GCM) (61 ms)
+      ✓ should encrypt AGENT level data (57 ms)
+      ✓ should encrypt SYSTEM level data (56 ms)
+      ✓ should NOT encrypt SWARM level data (58 ms)
+      ✓ should NOT encrypt PROJECT level data (52 ms)
+    TTL Expiration
+      ✕ should respect TTL for entries (45 ms)
+      ✕ should cleanup expired entries in batch (44 ms)
+      ✓ should handle entries without TTL (never expire) (251 ms)
+    Concurrent Operations
+      ✓ should handle concurrent writes to same key (146 ms)
+      ✓ should handle concurrent writes to different keys (519 ms)
+    Error Handling
+      ✕ should handle Redis connection failure gracefully (42 ms)
+      ✓ should return null for non-existent keys (39 ms)
+      ✓ should handle malformed encryption data (54 ms)
+    Performance & Indexing
+      ✓ should efficiently query by ACL level (indexed) (1157 ms)
+      ✓ should efficiently query by agent_id (indexed) (409 ms)
+
+  ● SQLiteMemoryManager › ACL Enforcement › should enforce PRIVATE level (agent-only access)
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"secret": "data"}
+
+      339 |   beforeEach(async () => {
+      340 |     // Clean up test database
+    > 341 |     try {
+          |          ^
+      342 |       await fs.unlink(TEST_DB_PATH);
+      343 |     } catch (error) {
+      344 |       // Ignore if file doesn't exist
+
+      at expect (node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:341:19)
+
+  ● SQLiteMemoryManager › ACL Enforcement › should enforce AGENT level (swarm coordination)
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"coordination": "data"}
+
+      353 |       await redis.del(...keys);
+      354 |     }
+    > 355 |   }, TEST_TIMEOUT);
+          |                   ^
+      356 |
+      357 |   afterEach(async () => {
+      358 |     // Close manager
+
+      at expect (node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:355:19)
+
+  ● SQLiteMemoryManager › ACL Enforcement › should enforce SWARM level (swarm-wide access)
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"swarm": "information"}
+
+      367 |       // Ignore
+      368 |     }
+    > 369 |
+          | ^
+      370 |     // Clean up Redis
+      371 |     const keys = await redis.keys('memory:*');
+      372 |     if (keys.length > 0) {
+
+      at expect (node_modules/expect/build/index.js:2116:15)
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:369:19)
+
+  ● SQLiteMemoryManager › TTL Expiration › should respect TTL for entries
+
+    ReplyError: ERR invalid expire time in 'setex' command
+
+      at parseError (node_modules/redis-parser/lib/parser.js:179:12)
+      at parseType (node_modules/redis-parser/lib/parser.js:302:14)
+
+  ● SQLiteMemoryManager › TTL Expiration › should cleanup expired entries in batch
+
+    ReplyError: ERR invalid expire time in 'setex' command
+
+      at parseError (node_modules/redis-parser/lib/parser.js:179:12)
+      at parseType (node_modules/redis-parser/lib/parser.js:302:14)
+
+  ● SQLiteMemoryManager › Error Handling › should handle Redis connection failure gracefully
+
+    ReferenceError: jest is not defined
+
+      551 |
+      552 |       expect(row.encrypted).toBe(1);
+    > 553 |       expect(row.value).not.toContain('sensitive');
+          |                      ^
+      554 |       expect(row.value).not.toContain('123-45-6789');
+      555 |
+      556 |       // Verify decryption works
+
+      at Object.<anonymous> (src/cfn-loop/__tests__/sqlite-memory-manager.test.ts:553:22)
+
+Test Suites: 1 failed, 1 of 7 total
+Tests:       6 failed, 17 passed, 23 total
+Snapshots:   0 total
+Time:        9.892 s
+Ran all test suites matching src/cfn-loop/__tests__/sqlite-memory-manager.test.ts|src/cfn-loop/__tests__/agent-lifecycle-sqlite.test.ts|src/cfn-loop/__tests__/blocking-coordination-audit.test.ts|tests/integration/cfn-loop-sqlite-integration.test.ts|tests/integration/cross-session-recovery.test.ts|tests/chaos/sqlite-failure-scenarios.test.ts|tests/chaos/coordinator-death-sqlite.test.ts.

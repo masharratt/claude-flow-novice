@@ -1,0 +1,19 @@
+{
+  "patterns": [
+    {
+      "pattern": "node test-",
+      "replacement": "node tests/manual/test-",
+      "description": "Move manual test scripts to tests/manual directory"
+    },
+    {
+      "pattern": "\\.claude-flow-novice/dist",
+      "replacement": "dist/",
+      "description": "Update build directory references"
+    },
+    {
+      "pattern": "test-results/",
+      "replacement": ".artifacts/test-results/",
+      "description": "Move test results to artifacts directory"
+    }
+  ]
+}

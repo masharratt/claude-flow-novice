@@ -1,0 +1,211 @@
+{
+  "dashboard": {
+    "title": "CFN Rate Limiting & Backpressure Monitoring",
+    "description": "Real-time monitoring of message inbox utilization, backpressure events, and overflow alerts",
+    "version": "1.0.0",
+    "tags": ["rate-limiting", "backpressure", "inbox", "coordination"],
+    "timezone": "UTC",
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Inbox Utilization by Agent",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "metric": "inbox.utilization",
+            "legend": "{{agent}}",
+            "unit": "percent"
+          }
+        ],
+        "thresholds": [
+          { "value": 75, "color": "yellow", "label": "Warning" },
+          { "value": 90, "color": "red", "label": "Critical" }
+        ],
+        "description": "Message inbox utilization percentage per agent (max 100 messages)"
+      },
+      {
+        "id": 2,
+        "title": "Inbox Message Count",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "metric": "inbox.size",
+            "legend": "{{agent}}",
+            "unit": "count"
+          }
+        ],
+        "thresholds": [
+          { "value": 75, "color": "yellow", "label": "Warning (75 msgs)" },
+          { "value": 90, "color": "red", "label": "Critical (90 msgs)" }
+        ],
+        "description": "Absolute message count in agent inboxes"
+      },
+      {
+        "id": 3,
+        "title": "Backpressure Events Rate",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "metric": "backpressure.events_per_min",
+            "legend": "Backpressure events/min",
+            "unit": "count"
+          }
+        ],
+        "thresholds": [
+          { "value": 100, "color": "yellow", "label": "Warning threshold" }
+        ],
+        "description": "Rate of backpressure wait events (high rate indicates system load)"
+      },
+      {
+        "id": 4,
+        "title": "Message Send Failures",
+        "type": "timeseries",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "metric": "coordination.send_failures_per_min",
+            "legend": "Send failures/min",
+            "unit": "count"
+          }
+        ],
+        "thresholds": [
+          { "value": 10, "color": "red", "label": "Critical threshold" }
+        ],
+        "description": "Message delivery failure rate (critical if >10/min)"
+      },
+      {
+        "id": 5,
+        "title": "Inbox Overflow Events",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "metric": "inbox.overflow_events_per_min",
+            "legend": "Overflow events/min",
+            "unit": "count"
+          }
+        ],
+        "thresholds": [
+          { "value": 1, "color": "red", "label": "Any overflow is critical" }
+        ],
+        "description": "Inbox overflow events (messages dropped due to full inbox)"
+      },
+      {
+        "id": 6,
+        "title": "Alert Summary",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 16, "w": 6, "h": 8 },
+        "targets": [
+          {
+            "query": "count_alerts_by_severity",
+            "fields": ["critical", "warning", "info"]
+          }
+        ],
+        "description": "Alert counts by severity level (last hour)"
+      },
+      {
+        "id": 7,
+        "title": "Top Utilized Agents",
+        "type": "table",
+        "gridPos": { "x": 18, "y": 16, "w": 6, "h": 8 },
+        "targets": [
+          {
+            "query": "top_inbox_utilization",
+            "fields": ["agent", "utilization", "message_count"],
+            "limit": 10,
+            "order": "desc"
+          }
+        ],
+        "description": "Agents with highest inbox utilization"
+      }
+    ],
+    "annotations": [
+      {
+        "name": "Rate Limiting Alerts",
+        "datasource": "cfn-alerts",
+        "filter": {
+          "tags": ["inbox_high_utilization", "backpressure_high_rate", "inbox_overflow_detected"]
+        },
+        "color": "red"
+      }
+    ],
+    "variables": [
+      {
+        "name": "agent",
+        "type": "query",
+        "query": "SELECT DISTINCT agent FROM inbox_metrics",
+        "description": "Filter by specific agent",
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "name": "timeRange",
+        "type": "interval",
+        "options": ["5m", "15m", "1h", "6h", "24h"],
+        "default": "1h",
+        "description": "Time range for metrics"
+      }
+    ]
+  },
+  "queries": {
+    "count_alerts_by_severity": {
+      "description": "Count alerts grouped by severity",
+      "source": "/dev/shm/cfn-alerts.jsonl",
+      "aggregation": "GROUP BY severity, COUNT(*)",
+      "timeWindow": "1h"
+    },
+    "top_inbox_utilization": {
+      "description": "Rank agents by inbox utilization",
+      "source": "/dev/shm/cfn-metrics.jsonl",
+      "query": "SELECT agent, MAX(value) as utilization FROM metrics WHERE metric='inbox.utilization' GROUP BY agent ORDER BY utilization DESC LIMIT 10",
+      "timeWindow": "5m"
+    }
+  },
+  "alertRules": [
+    {
+      "name": "Inbox Critical Utilization",
+      "condition": "inbox.utilization >= 90",
+      "severity": "critical",
+      "message": "Agent {{agent}} inbox at {{value}}% utilization (critical threshold: 90%)",
+      "actions": ["emit_alert", "notify_oncall"]
+    },
+    {
+      "name": "Inbox Warning Utilization",
+      "condition": "inbox.utilization >= 75 AND inbox.utilization < 90",
+      "severity": "warning",
+      "message": "Agent {{agent}} inbox at {{value}}% utilization (warning threshold: 75%)",
+      "actions": ["emit_alert"]
+    },
+    {
+      "name": "Backpressure High Rate",
+      "condition": "backpressure.events_per_min > 100",
+      "severity": "warning",
+      "message": "Backpressure events exceeding threshold: {{value}} events/min (threshold: 100/min)",
+      "actions": ["emit_alert"]
+    },
+    {
+      "name": "Message Send Failures Critical",
+      "condition": "coordination.send_failures_per_min > 10",
+      "severity": "critical",
+      "message": "Message send failures critical: {{value}} failures/min (threshold: 10/min)",
+      "actions": ["emit_alert", "notify_oncall", "trigger_incident"]
+    },
+    {
+      "name": "Inbox Overflow Detected",
+      "condition": "inbox.overflow_events_per_min > 0",
+      "severity": "critical",
+      "message": "Inbox overflow detected: {{value}} overflow events in last minute",
+      "actions": ["emit_alert", "notify_oncall", "trigger_incident"]
+    }
+  ],
+  "metadata": {
+    "createdBy": "devops-engineer",
+    "phase": "1",
+    "sprint": "1.5",
+    "lastUpdated": "2025-10-06T19:35:00Z"
+  }
+}

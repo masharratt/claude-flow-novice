@@ -1,0 +1,18 @@
+
+> claude-flow-novice@2.0.0 test
+> NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=16384' jest --config=config/jest/jest.config.js --bail --maxWorkers=1 --forceExit tests/parallelization/test-lock-serialization.test.ts --verbose
+
+
+ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From tests/parallelization/test-lock-serialization.test.ts.
+FAIL tests/parallelization/test-lock-serialization.test.ts
+  ● Test suite failed to run
+
+    module is already linked
+
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        6.343 s
+Ran all test suites matching tests/parallelization/test-lock-serialization.test.ts.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

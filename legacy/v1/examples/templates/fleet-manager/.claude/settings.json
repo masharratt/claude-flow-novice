@@ -1,0 +1,31 @@
+{
+  "claude_flow_novice": {
+    "fleet_management": {
+      "enabled": true,
+      "max_agents": 1500,
+      "efficiency_target": 0.40,
+      "autoscale": true,
+      "regions": ["us-east-1", "eu-west-1"],
+      "monitoring": {
+        "dashboard": true,
+        "alerts": true,
+        "metrics_interval": 60000
+      }
+    },
+    "swarm": {
+      "mode": "hierarchical",
+      "persistence": true,
+      "recovery": true
+    },
+    "memory": {
+      "backend": "sqlite",
+      "acl_enabled": true,
+      "encryption": true
+    },
+    "performance": {
+      "wasm_enabled": true,
+      "target_speedup": "40x",
+      "optimization_level": "aggressive"
+    }
+  }
+}

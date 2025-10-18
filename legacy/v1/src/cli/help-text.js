@@ -1,0 +1,1029 @@
+/**
+ * Help text templates for Claude Flow CLI
+ * Provides clear, actionable command documentation
+ */
+
+import { HelpFormatter } from './help-formatter.js';
+import { VERSION } from '../core/version.js';
+
+export { VERSION };
+
+export const MAIN_HELP = `
+🌊 Claude-Flow v${VERSION} - Enterprise-Grade AI Agent Orchestration Platform
+
+🎯 ENTERPRISE FEATURES: Complete ruv-swarm integration with 100+ MCP tools and production-ready infrastructure
+🐝 NEW: Claude Code 1.0.51+ full compatibility with enhanced hooks and cross-platform support
+⚡ ALPHA 107: Enhanced Cloud Features & Ruv-Swarm Integration
+
+🔍 ALPHA 107 HIGHLIGHTS:
+  🐛 macOS Compatibility Fixes - Enhanced settings.json hooks for cross-platform support
+  🧠 Distributed Neural Networks - Real multi-node training with sandbox clusters
+  📊 100% Real Functionality - All MCP tools fully implemented with real backends
+  🔧 Enhanced GitHub Integration - Automated releases, checkpoints, and workflow orchestration
+  🔧 Production-Ready Infrastructure - Enterprise-grade reliability and performance
+
+USAGE:
+  npx claude-flow@alpha <command> [options]    # Run latest alpha version
+  npx claude-flow@alpha <command> --help       # Get detailed help for any command
+  npx claude-flow@alpha --help                 # Show this help
+  
+  # After local install:
+  claude-flow-novice <command> [options]
+  claude-flow-novice <command> --help    # Get detailed help for any command
+
+🚀 QUICK START:
+  # First time setup (creates CLAUDE.md & .claude/commands)
+  npx claude-flow@alpha init
+  
+  # 🐝 HIVE MIND QUICK START:
+  claude-flow-novice hive-mind wizard          # Interactive setup wizard
+  claude-flow-novice hive-mind spawn "objective"  # Create intelligent swarm
+  claude-flow-novice hive-mind spawn "Build API" --claude  # Open Claude Code CLI
+  
+  # After setup, use without npx:
+  claude-flow-novice start --ui --swarm         # Start with swarm intelligence UI
+  claude-flow-novice swarm "build REST API"     # Deploy multi-agent workflow
+  claude-flow-novice swarm "create service" --claude  # Open Claude Code CLI with swarm
+
+🐝 HIVE MIND COMMANDS (NEW!):
+  hive-mind wizard         🎯 Interactive setup wizard (RECOMMENDED)
+  hive-mind init           Initialize Hive Mind system with SQLite
+  hive-mind spawn <task>   Create intelligent swarm with objective
+  hive-mind status         View active swarms and performance metrics
+  hive-mind metrics        Advanced performance analytics
+
+📋 CORE COMMANDS:
+  init                     Initialize Claude Flow v2.0.0 (creates CLAUDE.md & .claude/commands)
+                          --monitoring enables token usage tracking
+  start [--ui] [--swarm]   Start orchestration system
+  swarm <objective>        Multi-agent swarm coordination
+  agent <action>           Agent management (spawn, list, terminate)
+  sparc <mode>             SPARC development modes (17 available)
+  memory <action>          Persistent memory operations
+  github <mode>            GitHub workflow automation (6 modes)
+  personalize <action>     🎯 AI-powered workflow personalization and optimization
+  status                   System status and health
+  
+🔍 VERIFICATION COMMANDS (NEW!):
+  verify <subcommand>      Truth verification system (0.95 threshold)
+  truth                    View truth scores and reliability metrics
+  pair [--start]           Collaborative development with real-time verification
+  
+📋 SWARM INTELLIGENCE COMMANDS:
+  training <command>       Neural pattern learning & model updates (3 commands)
+  coordination <command>   Swarm & agent orchestration (3 commands)
+  analysis <command>       Performance & token usage analytics (real tracking!)
+  automation <command>     Intelligent agent & workflow management (3 commands)
+  hooks <command>          Lifecycle event management (5 commands)
+  migrate-hooks            Migrate settings.json to Claude Code 1.0.51+ format
+  monitoring <command>     Real-time system monitoring (3 commands)
+  optimization <command>   Performance & topology optimization (3 commands)
+  
+📋 ADDITIONAL COMMANDS:
+  task <action>            Task and workflow management
+  config <action>          System configuration
+  mcp <action>             MCP server management
+  batch <action>           Batch operations
+  stream-chain <workflow>  Stream-JSON chaining for multi-agent pipelines (NEW!)
+
+🔍 GET HELP:
+  npx claude-flow@alpha --help                Show this help
+  npx claude-flow@alpha <command> --help      Detailed command help
+
+🎯 RECOMMENDED FOR NEW USERS:
+  npx claude-flow@alpha hive-mind wizard     # Start here! Interactive guided setup
+  npx claude-flow@alpha init                 # Initialize Claude Flow
+  npx claude-flow@alpha help hive-mind       # Learn about Hive Mind features
+  npx claude-flow@alpha swarm "Build API" --claude  # Quick start with Claude Code CLI
+
+📚 Documentation: https://github.com/ruvnet/claude-flow
+🐝 Hive Mind Guide: https://github.com/ruvnet/claude-flow/tree/main/docs/hive-mind
+🐝 ruv-swarm: https://github.com/ruvnet/ruv-FANN/tree/main/ruv-swarm
+💬 Discord Community: https://discord.agentics.org
+
+💖 Created by rUv with love: https://github.com/ruvnet
+`;
+
+export const COMMAND_HELP = {
+  verify: `
+🔍 VERIFY COMMAND - Truth Verification System
+
+USAGE:
+  claude-flow-novice verify <subcommand> [options]
+
+DESCRIPTION:
+  Enforce truth and accuracy in multi-agent operations with a 0.95 threshold.
+  "Truth is enforced, not assumed" - every agent claim is verified.
+
+SUBCOMMANDS:
+  init <mode>        Initialize verification system
+                     Modes: strict (0.95), moderate (0.85), development (0.75)
+  verify <task>      Run verification on specific task or agent
+  status             Show verification system status and metrics
+  rollback           Trigger manual rollback to last good state
+
+OPTIONS:
+  --threshold <n>    Custom accuracy threshold (0.0-1.0)
+  --agent <type>     Specify agent type for verification
+  --auto-rollback    Enable automatic rollback on failures
+  --verbose          Detailed verification output
+  --json             Output in JSON format
+
+EXAMPLES:
+  claude-flow-novice verify init strict                  # Production mode
+  claude-flow-novice verify verify task-123 --agent coder
+  claude-flow-novice verify status --recent 10
+  claude-flow-novice verify rollback --checkpoint last
+`,
+  truth: `
+📊 TRUTH COMMAND - Truth Score Analytics
+
+USAGE:
+  claude-flow-novice truth [options]
+
+DESCRIPTION:
+  View and analyze truth scores, reliability metrics, and verification history.
+  Provides insights into agent accuracy and system reliability.
+
+OPTIONS:
+  --report           Generate detailed truth score report
+  --analyze          Analyze failure patterns and trends
+  --agent <type>     Filter by specific agent type
+  --taskId <id>      Check specific task truth score
+  --threshold <n>    Filter scores below threshold
+  --json             Output in JSON format
+  --export <file>    Export report to file
+
+EXAMPLES:
+  claude-flow-novice truth                        # Show current scores
+  claude-flow-novice truth --report               # Detailed report
+  claude-flow-novice truth --analyze              # Pattern analysis
+  claude-flow-novice truth --agent coder --detailed
+  claude-flow-novice truth --json | jq .averageScore
+`,
+  pair: `
+👥 PAIR COMMAND - Collaborative Development Mode
+
+USAGE:
+  claude-flow-novice pair [options]
+
+DESCRIPTION:
+  Real-time collaborative development with AI verification.
+  Continuous validation with instant feedback and auto-rollback.
+
+OPTIONS:
+  --start            Start new pair programming session
+  --mode <type>      Set verification mode:
+                     strict (0.95), standard (0.85), development (0.75)
+  --threshold <n>    Custom accuracy threshold (0.0-1.0)
+  --verify           Enable real-time verification
+  --monitor          Show real-time metrics dashboard
+  --auto-rollback    Enable automatic rollback on failures
+  --summary          View session summary
+  --export <file>    Export session metrics
+
+EXAMPLES:
+  claude-flow-novice pair --start                 # Start session
+  claude-flow-novice pair --start --mode strict   # Production pairing
+  claude-flow-novice pair --threshold 0.90        # Custom threshold
+  claude-flow-novice pair --summary               # View session stats
+  claude-flow-novice pair --monitor --verify      # Real-time monitoring
+`,
+  swarm: `
+🧠 SWARM COMMAND - Multi-Agent AI Coordination
+
+USAGE:
+  claude-flow-novice swarm <objective> [options]
+
+DESCRIPTION:
+  Deploy intelligent multi-agent swarms to accomplish complex objectives.
+  Agents work in parallel with neural optimization and real-time coordination.
+
+OPTIONS:
+  --strategy <type>    Execution strategy: research, development, analysis, 
+                       testing, optimization, maintenance
+  --mode <type>        Coordination mode: centralized, distributed, 
+                       hierarchical, mesh, hybrid
+  --max-agents <n>     Maximum number of agents (default: 5)
+  --parallel           Enable parallel execution (2.8-4.4x speed improvement)
+  --monitor            Real-time swarm monitoring
+  --ui                 Interactive user interface
+  --background         Run in background with progress tracking
+  --claude             Open Claude Code CLI
+  --executor           Use built-in executor instead of Claude Code
+  --analysis           Enable analysis/read-only mode (no code changes)
+  --read-only          Enable read-only mode (alias for --analysis)
+
+EXAMPLES:
+  claude-flow-novice swarm "Build a REST API with authentication"
+  claude-flow-novice swarm "Research cloud architecture patterns" --strategy research
+  claude-flow-novice swarm "Optimize database queries" --max-agents 3 --parallel
+  claude-flow-novice swarm "Develop feature X" --strategy development --monitor --ui
+  claude-flow-novice swarm "Build API" --claude  # Open Claude Code CLI
+  claude-flow-novice swarm "Create service" --executor  # Use built-in executor
+  claude-flow-novice swarm "Analyze codebase for security issues" --analysis
+  claude-flow-novice swarm "Review architecture patterns" --read-only --strategy research
+
+AGENT TYPES:
+  researcher    Research with web access and data analysis
+  coder         Code development with neural patterns
+  analyst       Performance analysis and optimization
+  architect     System design with enterprise patterns
+  tester        Comprehensive testing with automation
+  coordinator   Multi-agent orchestration
+
+ANALYSIS MODE:
+  When using --analysis or --read-only flags, the swarm operates in a safe
+  read-only mode that prevents all code modifications. Perfect for:
+  
+  • Code reviews and security audits
+  • Architecture analysis and documentation
+  • Performance bottleneck identification
+  • Technical debt assessment
+  • Dependency mapping and analysis
+  • "What-if" scenario exploration
+  
+  In analysis mode, agents can only read files, search codebases, and
+  generate reports - no Write, Edit, or system-modifying operations.
+`,
+
+  github: `
+🐙 GITHUB COMMAND - Workflow Automation
+
+USAGE:
+  claude-flow-novice github <mode> <objective> [options]
+
+DESCRIPTION:
+  Automate GitHub workflows with 6 specialized AI-powered modes.
+  Each mode handles specific aspects of repository management.
+
+MODES:
+  init                Initialize GitHub-enhanced checkpoint system (NEW!)
+  gh-coordinator      GitHub workflow orchestration and CI/CD
+  pr-manager          Pull request management with reviews
+  issue-tracker       Issue management and project coordination
+  release-manager     Release coordination and deployment
+  repo-architect      Repository structure optimization
+  sync-coordinator    Multi-package synchronization
+
+OPTIONS:
+  --auto-approve      Automatically approve safe changes
+  --dry-run           Preview changes without applying
+  --verbose           Detailed operation logging
+  --config <file>     Custom configuration file
+
+EXAMPLES:
+  claude-flow-novice github init                                        # Initialize GitHub checkpoint hooks
+  claude-flow-novice github pr-manager "create feature PR with tests"
+  claude-flow-novice github gh-coordinator "setup CI/CD pipeline" --auto-approve
+  claude-flow-novice github release-manager "prepare v2.0.0 release"
+  claude-flow-novice github repo-architect "optimize monorepo structure"
+  claude-flow-novice github issue-tracker "analyze and label issues"
+  claude-flow-novice github sync-coordinator "sync versions across packages"
+`,
+
+  agent: `
+🤖 AGENT COMMAND - AI Agent Management
+
+USAGE:
+  claude-flow-novice agent <action> [options]
+
+ACTIONS:
+  spawn <type>      Create new AI agent
+  list              List all active agents
+  terminate <id>    Terminate specific agent
+  info <id>         Show agent details
+  hierarchy         Manage agent hierarchies
+  ecosystem         View agent ecosystem
+
+OPTIONS:
+  --name <name>     Custom agent name
+  --verbose         Detailed output
+  --json            JSON output format
+
+AGENT TYPES:
+  researcher        Research and data analysis
+  coder            Code generation and refactoring
+  analyst          Performance and security analysis
+  architect        System design and architecture
+  tester           Test creation and execution
+  coordinator      Task coordination
+  reviewer         Code and design review
+  optimizer        Performance optimization
+
+EXAMPLES:
+  claude-flow-novice agent spawn researcher --name "DataBot"
+  claude-flow-novice agent list --verbose
+  claude-flow-novice agent terminate agent-123
+  claude-flow-novice agent hierarchy create enterprise
+  claude-flow-novice agent ecosystem status
+`,
+
+  memory: `
+💾 MEMORY COMMAND - Persistent Memory Management
+
+USAGE:
+  claude-flow-novice memory <action> [options]
+
+ACTIONS:
+  store <key> <value>     Store data in memory
+  get <key>               Retrieve stored data
+  query <search>          Search memory contents
+  list                    List all stored items
+  delete <key>            Delete specific entry
+  stats                   Memory usage statistics
+  export <file>           Export memory to file
+  import <file>           Import memory from file
+  cleanup                 Clean old entries
+
+OPTIONS:
+  --namespace <ns>        Use specific namespace
+  --format <type>         Output format (json, table)
+  --verbose               Detailed output
+
+EXAMPLES:
+  claude-flow-novice memory store architecture "microservices pattern"
+  claude-flow-novice memory get architecture
+  claude-flow-novice memory query "API design"
+  claude-flow-novice memory stats
+  claude-flow-novice memory export backup.json
+  claude-flow-novice memory cleanup --older-than 30d
+`,
+
+  sparc: `
+🚀 SPARC COMMAND - Development Mode Operations
+
+USAGE:
+  claude-flow-novice sparc [mode] [objective]
+  claude-flow-novice sparc <action>
+
+DESCRIPTION:
+  SPARC provides 17 specialized development modes for different workflows.
+  Each mode optimizes AI assistance for specific tasks.
+
+MODES:
+  architect      System architecture and design
+  code           Code generation and implementation
+  tdd            Test-driven development workflow
+  debug          Debugging and troubleshooting
+  security       Security analysis and fixes
+  refactor       Code refactoring and optimization
+  docs           Documentation generation
+  review         Code review and quality checks
+  data           Data modeling and analysis
+  api            API design and implementation
+  ui             UI/UX development
+  ops            DevOps and infrastructure
+  ml             Machine learning workflows
+  blockchain     Blockchain development
+  mobile         Mobile app development
+  game           Game development
+  iot            IoT system development
+
+ACTIONS:
+  modes          List all available modes
+  info <mode>    Show mode details
+  run <mode>     Run specific mode
+
+EXAMPLES:
+  claude-flow-novice sparc "design authentication system"    # Auto-select mode
+  claude-flow-novice sparc architect "design microservices"  # Use architect mode
+  claude-flow-novice sparc tdd "user registration feature"   # TDD workflow
+  claude-flow-novice sparc modes                            # List all modes
+  claude-flow-novice sparc info security                    # Mode details
+`,
+
+  init: `
+🎯 INIT COMMAND - Initialize Claude Flow Environment
+
+USAGE:
+  claude-flow-novice init [options]
+
+DESCRIPTION:
+  Initialize Claude Flow v2.0.0 in your project with full MCP integration.
+  By default creates standard setup with local Git checkpoints.
+  
+  TWO INITIALIZATION MODES:
+  • claude-flow-novice init         Standard init with local Git checkpoints
+  • claude-flow-novice github init  GitHub-enhanced with automatic releases (NEW!)
+
+OPTIONS:
+  --force          Overwrite existing configuration
+  --dry-run        Preview what will be created
+  --basic          Use basic initialization (pre-v2.0.0)
+  --sparc          SPARC enterprise setup with additional features
+  --minimal        Minimal setup without examples
+  --template <t>   Use specific project template
+
+WHAT claude-flow-novice init CREATES (DEFAULT):
+  📄 CLAUDE.md          AI-readable project instructions & context
+  📁 .claude/           Enterprise configuration directory containing:
+    └── commands/       Custom commands and automation scripts
+    └── settings.json   Advanced configuration and hooks
+    └── hooks/          Pre/post operation automation
+  📋 .roomodes          17 specialized SPARC development modes
+  
+  CLAUDE.md CONTENTS:
+  • Project overview and objectives
+  • Technology stack and architecture
+  • Development guidelines and patterns
+  • AI-specific instructions for better assistance
+  • Integration with ruv-swarm MCP tools
+  
+  .claude/commands INCLUDES:
+  • Custom project-specific commands
+  • Automated workflow scripts
+  • Integration hooks for Claude Code
+  • Team collaboration tools
+  
+  Features enabled:
+  • ruv-swarm integration with 27 MCP tools
+  • Neural network processing with WASM
+  • Multi-agent coordination topologies
+  • Cross-session memory persistence
+  • GitHub workflow automation
+  • Performance monitoring
+  • Enterprise security features
+
+EXAMPLES:
+  npx claude-flow@alpha init              # Standard init with local checkpoints
+  npx claude-flow@alpha github init       # GitHub-enhanced init with releases
+  claude-flow-novice init --force                # Overwrite existing configuration
+  claude-flow-novice github init --force         # Force GitHub mode (overwrite)
+  claude-flow-novice init --dry-run              # Preview what will be created
+  claude-flow-novice init --monitoring           # Initialize with token tracking
+  claude-flow-novice init --sparc                # SPARC enterprise setup
+  claude-flow-novice init --minimal              # Basic setup only
+`,
+
+  start: `
+🚀 START COMMAND - Start Orchestration System
+
+USAGE:
+  claude-flow-novice start [options]
+
+DESCRIPTION:
+  Start the Claude Flow orchestration system with optional UI and swarm intelligence.
+
+OPTIONS:
+  --ui             Enable interactive user interface
+  --swarm          Enable swarm intelligence features
+  --daemon         Run as background daemon
+  --port <port>    MCP server port (default: 3000)
+  --verbose        Detailed logging
+  --config <file>  Custom configuration file
+
+EXAMPLES:
+  claude-flow-novice start                      # Basic start
+  claude-flow-novice start --ui --swarm         # Full UI with swarm features
+  claude-flow-novice start --daemon             # Background daemon
+  claude-flow-novice start --port 8080          # Custom MCP port
+  claude-flow-novice start --config prod.json   # Production config
+`,
+
+  status: `
+📊 STATUS COMMAND - System Status
+
+USAGE:
+  claude-flow-novice status [options]
+
+DESCRIPTION:
+  Show comprehensive system status including agents, tasks, and resources.
+
+OPTIONS:
+  --verbose        Detailed system information
+  --json           JSON output format
+  --watch          Live updates
+  --interval <ms>  Update interval (with --watch)
+
+OUTPUT INCLUDES:
+  • Orchestrator status
+  • Active agents and their state
+  • Task queue and progress
+  • Memory usage statistics
+  • MCP server status
+  • System resources
+  • Performance metrics
+
+EXAMPLES:
+  claude-flow-novice status                     # Basic status
+  claude-flow-novice status --verbose           # Detailed information
+  claude-flow-novice status --json              # Machine-readable format
+  claude-flow-novice status --watch             # Live monitoring
+`,
+
+  training: `
+🧠 TRAINING COMMAND - Neural Pattern Learning & Model Updates
+
+USAGE:
+  claude-flow-novice training <command> [options]
+
+DESCRIPTION:
+  Train neural patterns from operations, learn from outcomes, and update agent models 
+  with real ruv-swarm integration for continuous learning and optimization.
+
+COMMANDS:
+  neural-train      Train neural patterns from operations data
+  pattern-learn     Learn from specific operation outcomes  
+  model-update      Update agent models with new insights
+
+NEURAL TRAIN OPTIONS:
+  --data <source>   Training data source (default: recent)
+                    Options: recent, historical, custom, swarm-<id>
+  --model <name>    Target model (default: general-predictor)
+                    Options: task-predictor, agent-selector, performance-optimizer
+  --epochs <n>      Training epochs (default: 50)
+
+PATTERN LEARN OPTIONS:
+  --operation <op>  Operation type to learn from
+  --outcome <result> Operation outcome (success/failure/partial)
+
+MODEL UPDATE OPTIONS:
+  --agent-type <type>      Agent type to update (coordinator, coder, researcher, etc.)
+  --operation-result <res> Result from operation execution
+
+EXAMPLES:
+  claude-flow-novice training neural-train --data recent --model task-predictor
+  claude-flow-novice training pattern-learn --operation "file-creation" --outcome "success"
+  claude-flow-novice training model-update --agent-type coordinator --operation-result "efficient"
+  claude-flow-novice training neural-train --data "swarm-123" --epochs 100 --model "coordinator-predictor"
+
+🎯 Neural training improves:
+  • Task selection accuracy
+  • Agent performance prediction  
+  • Coordination efficiency
+  • Error prevention patterns
+`,
+
+  coordination: `
+🐝 COORDINATION COMMAND - Swarm & Agent Orchestration
+
+USAGE:
+  claude-flow-novice coordination <command> [options]
+
+DESCRIPTION:
+  Initialize swarms, spawn coordinated agents, and orchestrate task execution 
+  across agents with real ruv-swarm MCP integration for optimal performance.
+
+COMMANDS:
+  swarm-init        Initialize swarm coordination infrastructure
+  agent-spawn       Spawn and coordinate new agents
+  task-orchestrate  Orchestrate task execution across agents
+
+SWARM-INIT OPTIONS:
+  --swarm-id <id>      Swarm identifier (auto-generated if not provided)
+  --topology <type>    Coordination topology (default: hierarchical)
+                       Options: hierarchical, mesh, ring, star, hybrid
+  --max-agents <n>     Maximum number of agents (default: 5)
+  --strategy <strategy> Coordination strategy (default: balanced)
+
+AGENT-SPAWN OPTIONS:
+  --type <type>        Agent type (default: general)
+                       Options: coordinator, coder, developer, researcher, analyst, analyzer, 
+                       tester, architect, reviewer, optimizer, general
+  --name <name>        Custom agent name (auto-generated if not provided)
+  --swarm-id <id>      Target swarm for agent coordination
+  --capabilities <cap> Custom capabilities specification
+
+TASK-ORCHESTRATE OPTIONS:
+  --task <description> Task description (required)
+  --swarm-id <id>      Target swarm for task execution
+  --strategy <strategy> Coordination strategy (default: adaptive)
+                       Options: adaptive, parallel, sequential, hierarchical
+  --share-results      Enable result sharing across swarm
+
+EXAMPLES:
+  claude-flow-novice coordination swarm-init --topology hierarchical --max-agents 8
+  claude-flow-novice coordination agent-spawn --type developer --name "api-dev" --swarm-id swarm-123
+  claude-flow-novice coordination task-orchestrate --task "Build REST API" --strategy parallel --share-results
+  claude-flow-novice coordination swarm-init --topology mesh --max-agents 12
+
+🎯 Coordination enables:
+  • Intelligent task distribution
+  • Agent synchronization
+  • Shared memory coordination
+  • Performance optimization
+  • Fault tolerance
+`,
+
+  analysis: `
+📊 ANALYSIS COMMAND - Performance & Usage Analytics
+
+USAGE:
+  claude-flow-novice analysis <command> [options]
+
+DESCRIPTION:
+  Detect performance bottlenecks, generate comprehensive reports, and analyze 
+  token consumption using real ruv-swarm analytics for system optimization.
+
+COMMANDS:
+  bottleneck-detect    Detect performance bottlenecks in the system
+  performance-report   Generate comprehensive performance reports
+  token-usage          Analyze token consumption and costs
+
+BOTTLENECK DETECT OPTIONS:
+  --scope <scope>      Analysis scope (default: system)
+                       Options: system, swarm, agent, task, memory
+  --target <target>    Specific target to analyze (default: all)
+                       Examples: agent-id, swarm-id, task-type
+
+PERFORMANCE REPORT OPTIONS:
+  --timeframe <time>   Report timeframe (default: 24h)
+                       Options: 1h, 6h, 24h, 7d, 30d
+  --format <format>    Report format (default: summary)
+                       Options: summary, detailed, json, csv
+
+TOKEN USAGE OPTIONS:
+  --agent <agent>      Filter by agent type or ID (default: all)
+  --breakdown          Include detailed breakdown by agent type
+  --cost-analysis      Include cost projections and optimization
+
+EXAMPLES:
+  claude-flow-novice analysis bottleneck-detect --scope system
+  claude-flow-novice analysis bottleneck-detect --scope agent --target coordinator-1
+  claude-flow-novice analysis performance-report --timeframe 7d --format detailed
+  claude-flow-novice analysis token-usage --breakdown --cost-analysis
+  claude-flow-novice analysis bottleneck-detect --scope swarm --target swarm-123
+
+🎯 Analysis helps with:
+  • Performance optimization
+  • Cost management
+  • Resource allocation
+  • Bottleneck identification
+  • Trend analysis
+`,
+
+  automation: `
+🤖 AUTOMATION COMMAND - Intelligent Agent & Workflow Management
+
+USAGE:
+  claude-flow-novice automation <command> [options]
+
+DESCRIPTION:
+  Automatically spawn optimal agents, intelligently manage workflows, and select 
+  optimal configurations with real ruv-swarm intelligence for maximum efficiency.
+
+COMMANDS:
+  auto-agent        Automatically spawn optimal agents based on task complexity
+  smart-spawn       Intelligently spawn agents based on specific requirements
+  workflow-select   Select and configure optimal workflows for project types
+
+AUTO-AGENT OPTIONS:
+  --task-complexity <level>  Task complexity level (default: medium)
+                             Options: low, medium, high, enterprise
+  --swarm-id <id>           Target swarm ID for agent spawning
+
+SMART-SPAWN OPTIONS:
+  --requirement <req>       Specific requirement description
+                           Examples: "web-development", "data-analysis", "enterprise-api"
+  --max-agents <n>         Maximum number of agents to spawn (default: 10)
+
+WORKFLOW-SELECT OPTIONS:
+  --project-type <type>     Project type (default: general)
+                           Options: web-app, api, data-analysis, enterprise, general
+  --priority <priority>     Optimization priority (default: balanced)
+                           Options: speed, quality, cost, balanced
+
+EXAMPLES:
+  claude-flow-novice automation auto-agent --task-complexity enterprise --swarm-id swarm-123
+  claude-flow-novice automation smart-spawn --requirement "web-development" --max-agents 8
+  claude-flow-novice automation workflow-select --project-type api --priority speed
+  claude-flow-novice automation auto-agent --task-complexity low
+
+🎯 Automation benefits:
+  • Optimal resource allocation
+  • Intelligent agent selection
+  • Workflow optimization
+  • Reduced manual configuration
+  • Performance-based scaling
+`,
+
+  hooks: `
+🔗 HOOKS COMMAND - Lifecycle Event Management
+
+USAGE:
+  claude-flow-novice hooks <command> [options]
+
+DESCRIPTION:
+  Execute lifecycle hooks before and after tasks, edits, and sessions with 
+  real ruv-swarm integration for automated preparation, tracking, and cleanup.
+
+COMMANDS:
+  pre-task      Execute before task begins (preparation & setup)
+  post-task     Execute after task completion (analysis & cleanup)
+  pre-edit      Execute before file modifications (backup & validation)
+  post-edit     Execute after file modifications (tracking & coordination)
+  session-end   Execute at session termination (cleanup & export)
+
+PRE-TASK OPTIONS:
+  --description <desc>     Task description
+  --task-id <id>          Task identifier
+  --agent-id <id>         Executing agent identifier
+  --auto-spawn-agents     Auto-spawn agents for task (default: true)
+
+POST-TASK OPTIONS:
+  --task-id <id>               Task identifier
+  --analyze-performance        Generate performance analysis
+  --generate-insights          Create AI-powered insights
+
+PRE-EDIT OPTIONS:
+  --file <path>           Target file path
+  --operation <type>      Edit operation type (edit, create, delete)
+
+POST-EDIT OPTIONS:
+  --file <path>           Modified file path
+  --memory-key <key>      Coordination memory key for storing edit info
+
+SESSION-END OPTIONS:
+  --export-metrics        Export session performance metrics
+  --swarm-id <id>         Swarm identifier for coordination cleanup
+  --generate-summary      Create comprehensive session summary
+
+EXAMPLES:
+  claude-flow-novice hooks pre-task --description "Build API" --task-id task-123 --agent-id agent-456
+  claude-flow-novice hooks post-task --task-id task-123 --analyze-performance --generate-insights
+  claude-flow-novice hooks pre-edit --file "src/api.js" --operation edit
+  claude-flow-novice hooks post-edit --file "src/api.js" --memory-key "swarm/123/edits/timestamp"
+  claude-flow-novice hooks session-end --export-metrics --generate-summary --swarm-id swarm-123
+
+🎯 Hooks enable:
+  • Automated preparation & cleanup
+  • Performance tracking
+  • Coordination synchronization
+  • Error prevention
+  • Insight generation
+`,
+};
+
+export function getCommandHelp(command) {
+  // Return legacy format for now - to be updated
+  return COMMAND_HELP[command] || `Help not available for command: ${command}`;
+}
+
+export function getStandardizedCommandHelp(command) {
+  const commandConfigs = {
+    agent: {
+      name: 'claude-flow-novice agent',
+      description: 'Manage individual agents',
+      usage: 'claude-flow-novice agent <action> [options]',
+      commands: [
+        { name: 'spawn', description: 'Create a new agent' },
+        { name: 'list', description: 'List all active agents' },
+        { name: 'info', description: 'Show agent details' },
+        { name: 'terminate', description: 'Stop an agent' },
+        { name: 'hierarchy', description: 'Manage agent hierarchies' },
+        { name: 'ecosystem', description: 'View agent ecosystem' },
+      ],
+      options: [
+        {
+          flags: '--type <type>',
+          description: 'Agent type',
+          validValues: [
+            'coordinator',
+            'researcher',
+            'coder',
+            'analyst',
+            'architect',
+            'tester',
+            'reviewer',
+            'optimizer',
+          ],
+        },
+        {
+          flags: '--name <name>',
+          description: 'Agent name',
+        },
+        {
+          flags: '--verbose',
+          description: 'Detailed output',
+        },
+        {
+          flags: '--json',
+          description: 'Output in JSON format',
+        },
+        {
+          flags: '--help',
+          description: 'Show this help message',
+        },
+      ],
+      examples: [
+        'claude-flow-novice agent spawn researcher --name "Research Bot"',
+        'claude-flow-novice agent list --json',
+        'claude-flow-novice agent terminate agent-123',
+        'claude-flow-novice agent info agent-456 --verbose',
+      ],
+    },
+    sparc: {
+      name: 'claude-flow-novice sparc',
+      description: 'Execute SPARC development modes',
+      usage: 'claude-flow-novice sparc <mode> [task] [options]',
+      commands: [
+        { name: 'spec', description: 'Specification mode - Requirements analysis' },
+        { name: 'architect', description: 'Architecture mode - System design' },
+        { name: 'tdd', description: 'Test-driven development mode' },
+        { name: 'integration', description: 'Integration mode - Component connection' },
+        { name: 'refactor', description: 'Refactoring mode - Code improvement' },
+        { name: 'modes', description: 'List all available SPARC modes' },
+      ],
+      options: [
+        {
+          flags: '--file <path>',
+          description: 'Input/output file path',
+        },
+        {
+          flags: '--format <type>',
+          description: 'Output format',
+          validValues: ['markdown', 'json', 'yaml'],
+        },
+        {
+          flags: '--verbose',
+          description: 'Detailed output',
+        },
+        {
+          flags: '--help',
+          description: 'Show this help message',
+        },
+      ],
+      examples: [
+        'claude-flow-novice sparc spec "User authentication system"',
+        'claude-flow-novice sparc tdd "Payment processing module"',
+        'claude-flow-novice sparc architect "Microservices architecture"',
+        'claude-flow-novice sparc modes',
+      ],
+    },
+    memory: {
+      name: 'claude-flow-novice memory',
+      description: 'Manage persistent memory operations',
+      usage: 'claude-flow-novice memory <action> [key] [value] [options]',
+      commands: [
+        { name: 'store', description: 'Store data in memory' },
+        { name: 'query', description: 'Search memory by pattern' },
+        { name: 'list', description: 'List memory namespaces' },
+        { name: 'export', description: 'Export memory to file' },
+        { name: 'import', description: 'Import memory from file' },
+        { name: 'clear', description: 'Clear memory namespace' },
+      ],
+      options: [
+        {
+          flags: '--namespace <name>',
+          description: 'Memory namespace',
+          defaultValue: 'default',
+        },
+        {
+          flags: '--ttl <seconds>',
+          description: 'Time to live in seconds',
+        },
+        {
+          flags: '--format <type>',
+          description: 'Export format',
+          validValues: ['json', 'yaml'],
+        },
+        {
+          flags: '--help',
+          description: 'Show this help message',
+        },
+      ],
+      examples: [
+        'claude-flow-novice memory store "api_design" "REST endpoints specification"',
+        'claude-flow-novice memory query "authentication"',
+        'claude-flow-novice memory export backup.json',
+        'claude-flow-novice memory list --namespace project',
+      ],
+    },
+  };
+
+  const config = commandConfigs[command];
+  if (!config) {
+    return HelpFormatter.formatError(
+      `Unknown command: ${command}`,
+      'claude-flow',
+      'claude-flow-novice <command> --help',
+    );
+  }
+
+  return HelpFormatter.formatHelp(config);
+}
+
+export function getMainHelp(plain = false) {
+  // Return the vibrant, emoji-rich version by default
+  if (!plain) {
+    return MAIN_HELP;
+  }
+
+  // Return plain standardized format when requested
+  const helpInfo = {
+    name: 'claude-flow',
+    description: 'Advanced AI agent orchestration system',
+    usage: `claude-flow-novice <command> [<args>] [options]
+    claude-flow-novice <command> --help
+    claude-flow-novice --version`,
+    commands: [
+      {
+        name: 'hive-mind',
+        description: 'Manage hive mind swarm intelligence',
+        aliases: ['hm'],
+      },
+      {
+        name: 'init',
+        description: 'Initialize Claude Flow configuration',
+      },
+      {
+        name: 'start',
+        description: 'Start orchestration system',
+      },
+      {
+        name: 'swarm',
+        description: 'Execute multi-agent swarm coordination',
+      },
+      {
+        name: 'agent',
+        description: 'Manage individual agents',
+      },
+      {
+        name: 'sparc',
+        description: 'Execute SPARC development modes',
+      },
+      {
+        name: 'memory',
+        description: 'Manage persistent memory operations',
+      },
+      {
+        name: 'github',
+        description: 'Automate GitHub workflows',
+      },
+      {
+        name: 'status',
+        description: 'Show system status and health',
+      },
+      {
+        name: 'config',
+        description: 'Manage configuration settings',
+      },
+      {
+        name: 'session',
+        description: 'Manage sessions and state persistence',
+      },
+      {
+        name: 'terminal',
+        description: 'Terminal pool management',
+      },
+      {
+        name: 'workflow',
+        description: 'Manage automated workflows',
+      },
+      {
+        name: 'training',
+        description: 'Neural pattern training',
+      },
+      {
+        name: 'coordination',
+        description: 'Swarm coordination commands',
+      },
+      {
+        name: 'help',
+        description: 'Show help information',
+      },
+    ],
+    globalOptions: [
+      {
+        flags: '--config <path>',
+        description: 'Configuration file path',
+        defaultValue: '.claude/config.json',
+      },
+      {
+        flags: '--verbose',
+        description: 'Enable verbose output',
+      },
+      {
+        flags: '--quiet',
+        description: 'Suppress non-error output',
+      },
+      {
+        flags: '--json',
+        description: 'Output in JSON format',
+      },
+      {
+        flags: '--plain',
+        description: 'Show plain help without emojis',
+      },
+      {
+        flags: '--help',
+        description: 'Show help information',
+      },
+      {
+        flags: '--version',
+        description: 'Show version information',
+      },
+    ],
+    examples: [
+      'npx claude-flow@alpha init',
+      'claude-flow-novice hive-mind wizard',
+      'claude-flow-novice swarm "Build REST API"',
+      'claude-flow-novice agent spawn researcher --name "Research Bot"',
+      'claude-flow-novice status --json',
+      'claude-flow-novice memory query "API design"',
+    ],
+  };
+
+  return HelpFormatter.formatHelp(helpInfo);
+}

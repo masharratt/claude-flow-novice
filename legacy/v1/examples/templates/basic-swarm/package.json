@@ -1,0 +1,24 @@
+{
+  "name": "my-claude-swarm-project",
+  "version": "1.0.0",
+  "description": "Claude Flow Novice swarm coordination project",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx claude-flow-novice",
+    "init": "npx claude-flow-novice init",
+    "swarm": "npx claude-flow-novice swarm",
+    "status": "npx claude-flow-novice status"
+  },
+  "dependencies": {
+    "claude-flow-novice": "^1.6.6"
+  },
+  "keywords": [
+    "claude",
+    "ai-agents",
+    "swarm",
+    "coordination"
+  ],
+  "author": "",
+  "license": "MIT"
+}

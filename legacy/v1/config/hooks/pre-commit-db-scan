@@ -1,0 +1,119 @@
+#!/bin/bash
+# Pre-commit hook: Scan SQLite databases for secrets before allowing commits
+# Part of claude-flow-novice security infrastructure
+
+set -e
+
+echo "🔍 Scanning database files for secrets..."
+
+# Find all staged database files
+STAGED_DBS=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(db|sqlite)$' || true)
+
+if [ -z "$STAGED_DBS" ]; then
+  echo "✅ No database files to scan"
+  exit 0
+fi
+
+echo "Found database files:"
+echo "$STAGED_DBS"
+echo ""
+
+# Secret patterns to check (matches COORDINATOR_COMMUNICATION_REQUIREMENTS.md)
+SECRET_PATTERNS=(
+  'api[_-]?key'
+  'password'
+  'secret'
+  'token'
+  'ZAI_API_KEY'
+  'ANTHROPIC_API_KEY'
+  'Bearer [A-Za-z0-9_-]+'
+  'private[_-]?key'
+  'credential'
+  'auth.*key'
+  'sk-ant-[A-Za-z0-9_-]+'
+  'sess-[A-Za-z0-9_-]+'
+)
+
+SECRETS_FOUND=0
+DETAILED_FINDINGS=()
+
+for db in $STAGED_DBS; do
+  echo "Scanning: $db"
+
+  # Check if file exists and is a valid SQLite database
+  if [ ! -f "$db" ]; then
+    echo "⚠️  File not found: $db (removed?)"
+    continue
+  fi
+
+  # Check if it's a valid SQLite database
+  if ! file "$db" 2>/dev/null | grep -q "SQLite"; then
+    echo "⚠️  Not a valid SQLite database: $db"
+    continue
+  fi
+
+  # Dump database content (with error handling)
+  DB_CONTENT=$(sqlite3 "$db" ".dump" 2>/dev/null || echo "")
+
+  if [ -z "$DB_CONTENT" ]; then
+    echo "⚠️  Could not read database: $db (may be empty, locked, or corrupt)"
+    continue
+  fi
+
+  # Check each pattern
+  for pattern in "${SECRET_PATTERNS[@]}"; do
+    # Use case-insensitive grep with line numbers
+    MATCHES=$(echo "$DB_CONTENT" | grep -inE "$pattern" || true)
+
+    if [ -n "$MATCHES" ]; then
+      echo "  ❌ ERROR: Found potential secret matching pattern: $pattern"
+
+      # Store detailed findings
+      DETAILED_FINDINGS+=("File: $db")
+      DETAILED_FINDINGS+=("Pattern: $pattern")
+      DETAILED_FINDINGS+=("Matches:")
+
+      # Show first 3 matches (truncated for security)
+      echo "$MATCHES" | head -3 | while IFS= read -r line; do
+        # Truncate to 80 chars and mask potential secrets
+        TRUNCATED=$(echo "$line" | cut -c1-80 | sed 's/\(sk-ant-[A-Za-z0-9_-]\{8\}\)[A-Za-z0-9_-]*/\1***/g')
+        echo "    $TRUNCATED"
+        DETAILED_FINDINGS+=("    $TRUNCATED")
+      done
+
+      SECRETS_FOUND=$((SECRETS_FOUND + 1))
+      echo ""
+    fi
+  done
+
+  echo "  ✓ Scan complete for $db"
+  echo ""
+done
+
+if [ $SECRETS_FOUND -gt 0 ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "❌ COMMIT BLOCKED: $SECRETS_FOUND potential secret(s) found in database files"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+  echo "🔒 Security Issue: Database files contain potential secrets or API keys"
+  echo ""
+  echo "To fix:"
+  echo "  1. Remove secrets from database files before committing"
+  echo "  2. Use environment variables for API keys instead"
+  echo "  3. Sanitize data before storing in SQLite (see sanitizeForStorage())"
+  echo "  4. If false positive, add pattern to whitelist in this hook"
+  echo ""
+  echo "Detailed findings:"
+  for finding in "${DETAILED_FINDINGS[@]}"; do
+    echo "  $finding"
+  done
+  echo ""
+  echo "To bypass this check (NOT RECOMMENDED):"
+  echo "  git commit --no-verify"
+  echo ""
+  exit 1
+fi
+
+echo "✅ Database secret scan passed - no secrets detected"
+exit 0
