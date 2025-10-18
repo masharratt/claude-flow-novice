@@ -115,7 +115,7 @@ export function getPreset(name) {
 /**
  * Create agent with preset configuration
  */
-export function createAgentWithPreset(agentConfig, presetName) {
+export async function createAgentWithPreset(agentConfig, presetName) {
   const { createSelfValidatingAgent } = await import('./self-validating-agent.js');
   const preset = getPreset(presetName);
 

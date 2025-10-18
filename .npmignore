@@ -1,106 +1,86 @@
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Build artifacts - ONLY in src/
+src/**/target/
+src/**/debug/
+src/**/release/
+src/wasm-regex-engine/target/
+src/web/frontend/node_modules/
+
+# Test files - ONLY in src/
+src/**/__tests__/
+src/**/*.test.ts
+src/**/*.test.js
+src/**/*.spec.ts
+src/**/*.spec.js
+
+# Project-specific scripts (not for distribution)
+scripts/**/test-*.js
+scripts/**/test-*.mjs
+scripts/**/test-*.cjs
+scripts/**/*-screenshots.js
+scripts/**/capture-*.js
+scripts/deployment/
+scripts/**/*-validation.cjs
+scripts/**/*-validator.cjs
+scripts/**/*-assessment.cjs
+scripts/migrate-*.sql
+scripts/optimize-*.sql
+scripts/*-hooks.js
+scripts/hooks-fix.js
+scripts/clean-react-imports.*
+scripts/examine-page.js
+scripts/debug-page.js
+scripts/deploy-local.sh
+scripts/manual-*.cjs
+scripts/privacy-controls-validator.cjs
+scripts/phase1-completion-report.cjs
+scripts/simple-test.js
+scripts/verify-and-organize.js
+scripts/update-directory-paths.cjs
+scripts/update_commands.sh
+scripts/run-*.sh
+scripts/compare-*.sh
+scripts/detect-*.sh
+scripts/trufflehog-*.sh
+scripts/verify-*.sh
+scripts/monitor-loop.sh
+scripts/monitor-memory.sh
 
 # Development files
+.git/
+.github/
+*.log
 .DS_Store
 .env
 .env.*
-!.env.example
-!.env.template
-!.env.secure.template
-*.key
-*.pem
-*.p12
-*.pfx
-.vscode/
-.idea/
 
-# Source files - we ship compiled JS only
-src/
-tsconfig.tsbuildinfo
-.swcrc
-
-# Test files
-__tests__/
-test/
-tests/
-coverage/
-.nyc_output/
-*.test.js
-*.test.ts
-*.spec.js
-*.spec.ts
-
-# Development tools and configs
-.eslintrc*
-.prettierrc*
-jest.config*
-babel.config*
-webpack.config*
-rollup.config*
-
-# Documentation and planning (keep essential docs)
-reports/
-CONTRIBUTING.md
-SECURITY.md
-CODE_OF_CONDUCT.md
-DEVELOPMENT.md
-TESTING.md
-
-# Build artifacts (keep dist for compiled files)
-# dist/ -- REMOVED: package.json "files" array explicitly includes dist/
-.claude-flow-novice/metrics.db*
-.claude-flow-novice/preferences/
-
-# Local development files
-claude-flow
-claude-flow.cmd
-init-test/
-exported-memory.json
-test-memory.json
-*.log
-
-# CI/CD
-.github/
-.travis.yml
-.circleci/
-.gitlab-ci.yml
-
-# Binary builds
-bin/
+# Project-specific documentation (root level only, keep readme/ folder)
+/*REPORT.md
+/*SUMMARY.md
+/*ANALYSIS.md
+/*CHECKLIST.md
+/README-CFN-COORDINATORS.md
+/README-COORDINATORS.md
+/UNIFIED_MEMORY_MONITORING.md
+/IMPLEMENTATION_SUMMARY.md
+/DEPRECATION_*.md
+/ZAI_FORK_*.md
+/adaptive-context-*.md
+/agent-library-*.md
+/agent-optimization-*.md
+/cfn-loop-verification-*.md
+/command-*.md
+/loop2-*.md
+/redis-*.md
+/security-*.md
 
 # Temporary files
-*.tmp
-*.temp
-.cache/
+.artifacts/logs/
+.tmp/
+tmp/
 
-# Research and analysis directories (not needed in npm package)
-analysis/
-planning/
-research/
-
-# Web portal source (not needed - only built artifacts)
-packages/*/src/
-packages/*/node_modules/
-
-# Keep essential files
-!README.md
-!CHANGELOG.md
-!LICENSE
-!CLAUDE.md
-!.claude/
-!config/
-!scripts/
-!examples/
-!wiki/
-!docs/
-!readme/
-!AUTO_SETUP.md
-!AGENT_SYNC_DOCUMENTATION.md
-
-# Keep compiled distribution files
-!.claude-flow-novice/dist/
-!.claude-flow-novice/.claude/
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

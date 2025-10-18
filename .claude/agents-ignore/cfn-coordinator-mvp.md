@@ -101,13 +101,13 @@ Each phase follows the complete Loop 1 pattern:
 
 ```bash
 # Basic MVP worker spawning (REQUIRED: --agents flag with explicit types)
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement [feature] for MVP: rapid development focus on core functionality" \
   --agents=coder,coder,tester \
   --provider zai --redis-channel swarm:mvp-phase
 
 # Cost-optimized spawning (MVP priority)
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Build MVP version of [component] with essential features only" \
   --agents=coder,coder \
   --provider zai --redis-channel swarm:mvp-phase \

@@ -1,29 +1,33 @@
 {
+  "$schema": "https://json.schemastore.org/swcrc",
   "jsc": {
-    "target": "es2020",
-    "baseUrl": ".",
     "parser": {
       "syntax": "typescript",
-      "tsx": false,
-      "decorators": true,
-      "dynamicImport": true
+      "tsx": true,
+      "dynamicImport": true,
+      "decorators": true
     },
+    "target": "es2022",
+    "loose": false,
     "transform": {
       "decoratorMetadata": true,
-      "legacyDecorator": true
+      "legacyDecorator": true,
+      "react": {
+        "runtime": "automatic",
+        "importSource": "react"
+      }
     },
-    "keepClassNames": true,
-    "loose": false
+    "keepClassNames": true
   },
   "module": {
     "type": "es6",
-    "strict": false,
+    "strict": true,
     "strictMode": true,
     "lazy": false,
     "noInterop": false,
     "resolveExtensions": [".ts", ".tsx", ".js", ".jsx"]
   },
-  "minify": false,
-  "sourceMaps": false,
-  "inlineSourcesContent": false
+  "sourceMaps": true,
+  "inlineSourcesContent": true,
+  "minify": false
 }

@@ -1,0 +1,334 @@
+{
+  "epicId": "claude-code-skills-integration",
+  "name": "Claude Code Skills Integration for Multi-Agent Coordination",
+  "description": "Integrate Claude Code Skills to reduce context usage by 30-40% through progressive disclosure of Redis patterns, CFN loop workflows, SQLite memory access, and automated hook pipeline execution.",
+  "status": "not_started",
+  "owner": "Core Platform Team",
+  "priority": "high",
+  "estimatedDuration": "3 weeks",
+  "overviewFile": "planning/skills/IMPLEMENTATION_PLAN.md",
+
+  "strategicValue": {
+    "contextEfficiency": "Skills load coordination patterns only when needed (progressive disclosure)",
+    "consistency": "Redis/CFN/ACL rules encoded in skills - eliminates prompt drift",
+    "autonomy": "Claude selects skills automatically - reduces coordination questions",
+    "maintainability": "Update skill once - all agents get latest patterns",
+    "shareability": "Skills version-controlled - team consistency guaranteed"
+  },
+
+  "phases": [
+    {
+      "phaseId": "phase-1-core-coordination",
+      "name": "Core Coordination Skills",
+      "description": "Eliminate repetitive Redis coordination and agent spawning explanations through skills",
+      "status": "not_started",
+      "dependencies": [],
+      "estimatedDuration": "1 week",
+
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "name": "Redis Coordination Skill",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": [],
+          "deliverables": [
+            "SKILL.md with hierarchical and mesh patterns",
+            "examples/hierarchical-pattern.sh",
+            "examples/mesh-pattern.sh",
+            "examples/timeout-handling.sh"
+          ],
+          "acceptanceCriteria": [
+            "Claude autonomously selects Redis pattern (hierarchical vs mesh) based on agent count",
+            "LPUSH/BLPOP patterns correctly implemented (not pub/sub)",
+            "Timeout handling included in all blocking operations",
+            "Channel naming convention documented and enforced",
+            "Test coverage: 100% pattern selection accuracy in 10 test scenarios"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "name": "Agent Spawning Skill",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-1.1"],
+          "deliverables": [
+            "SKILL.md with CLI wrapper patterns",
+            "spawn-templates.sh (reusable CLI invocations)",
+            "agent-selection-guide.md (when to use which agents)"
+          ],
+          "acceptanceCriteria": [
+            "CLI spawning pattern with explicit --agents flag documented",
+            "Cost optimization explained ($0 coordinator vs $0.50)",
+            "Topology selection rules encoded (mesh vs hierarchical)",
+            "Redis integration patterns for spawned agents",
+            "Test coverage: 100% correct agent type selection in 10 test scenarios"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "name": "CFN Loop Validation Skill",
+          "status": "not_started",
+          "duration": "3 days",
+          "dependencies": ["sprint-1.2"],
+          "deliverables": [
+            "SKILL.md with consensus threshold automation",
+            "consensus-calculator.js (aggregate validator scores)",
+            "evidence-chain.sql (SQLite schema for feedback storage)"
+          ],
+          "acceptanceCriteria": [
+            "Mode-dependent thresholds encoded (MVP/Standard/Enterprise)",
+            "Auto-retry logic until consensus reached (no manual checks)",
+            "SQLite memory integration for evidence chain",
+            "Automatic validator spawning based on mode",
+            "Test coverage: 100% correct mode selection and threshold enforcement"
+          ]
+        }
+      ],
+
+      "successMetrics": {
+        "contextReduction": "30% reduction in coordination-related prompts",
+        "autonomousSelection": "100% Redis pattern selection without manual intervention",
+        "thresholdAutomation": "Zero manual CFN consensus checks"
+      }
+    },
+
+    {
+      "phaseId": "phase-2-memory-hooks",
+      "name": "Memory & Hooks Integration",
+      "description": "Enable persistent state and automated quality gates through SQLite and hook pipeline skills",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-coordination"],
+      "estimatedDuration": "1 week",
+
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "name": "SQLite Memory Access Skill",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": [],
+          "deliverables": [
+            "SKILL.md with 5-level ACL query patterns",
+            "acl-queries.sql (pre-built queries by ACL level)",
+            "ttl-cleanup.sh (automated TTL expiration script)"
+          ],
+          "acceptanceCriteria": [
+            "5-level ACL model documented (Agent/Team/Swarm/Project/System)",
+            "Query patterns for each ACL level with encryption enforcement",
+            "Redis hot cache + SQLite cold storage integration",
+            "TTL management rules by data type",
+            "Test coverage: 100% ACL enforcement validation"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "name": "Hook Pipeline Skill",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-2.1"],
+          "deliverables": [
+            "SKILL.md with post-edit automation and feedback handling",
+            "post-edit-handler.sh (reusable hook invocation)",
+            "feedback-resolver.sh (auto-resolution logic for each feedback type)"
+          ],
+          "acceptanceCriteria": [
+            "Automatic hook execution after Edit/Write/MultiEdit",
+            "ROOT_WARNING auto-resolution (move file to suggested location)",
+            "TDD_VIOLATION semi-auto handling (prompt to write tests)",
+            "Redis feedback integration for CLI-spawned agents",
+            "Test coverage: 100% ROOT_WARNING resolution, 90% TDD_VIOLATION handling"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "name": "Test Execution Skill",
+          "status": "not_started",
+          "duration": "3 days",
+          "dependencies": ["sprint-2.2"],
+          "deliverables": [
+            "SKILL.md with coordinator-pattern test execution",
+            "test-coordinator-pattern.sh (coordinator template)",
+            "test-cache-reader.sh (worker result parsing)"
+          ],
+          "acceptanceCriteria": [
+            "Coordinator runs tests ONCE before spawning workers",
+            "Workers ONLY read test-results.json (never run tests)",
+            "Redis coordination for test completion signaling",
+            "Cleanup pattern after all work complete",
+            "Test coverage: Zero concurrent test execution conflicts in 20 test runs"
+          ]
+        }
+      ],
+
+      "successMetrics": {
+        "statePersistence": "Agents persist state autonomously across sessions",
+        "rootWarningResolution": "100% auto-resolution rate for ROOT_WARNING feedback",
+        "testConflicts": "Zero concurrent test execution conflicts"
+      }
+    },
+
+    {
+      "phaseId": "phase-3-testing-refinement",
+      "name": "Testing & Refinement",
+      "description": "Validate autonomous decision-making, optimize skill descriptions, and achieve 40% context reduction",
+      "status": "not_started",
+      "dependencies": ["phase-2-memory-hooks"],
+      "estimatedDuration": "1 week",
+
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "name": "Skill Invocation Analytics",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": [],
+          "deliverables": [
+            "Skill invocation logging system",
+            "Analytics dashboard for skill selection accuracy",
+            "Context token reduction measurement tool"
+          ],
+          "acceptanceCriteria": [
+            "All skill invocations logged with context and outcome",
+            "Dashboard shows skill selection accuracy per skill",
+            "Token reduction measured before/after skill integration",
+            "Mismatched invocations flagged for description refinement",
+            "Test coverage: 100% invocation logging accuracy"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "name": "Skill Description Refinement",
+          "status": "not_started",
+          "duration": "2 days",
+          "dependencies": ["sprint-3.1"],
+          "deliverables": [
+            "Updated SKILL.md descriptions based on usage data",
+            "Accuracy report showing improvement over baseline",
+            "Documented patterns for high-accuracy descriptions"
+          ],
+          "acceptanceCriteria": [
+            "Skill invocation accuracy ≥95% for all skills",
+            "Description updates based on ≥20 real-world invocations per skill",
+            "Context reduction ≥40% measured across 50 test prompts",
+            "Manual override rate <5% for all coordination tasks",
+            "Test coverage: 95% accuracy validated in 100 test scenarios"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "name": "Production Rollout",
+          "status": "not_started",
+          "duration": "3 days",
+          "dependencies": ["sprint-3.2"],
+          "deliverables": [
+            "Skills-first migration complete in CLAUDE.md",
+            "Manual coordination patterns deprecated",
+            "Rollback plan documented and tested",
+            "Maintenance plan for monthly reviews"
+          ],
+          "acceptanceCriteria": [
+            "CLAUDE.md references skills exclusively (manual coordination removed)",
+            "Rollback plan tested with <10% accuracy degradation scenario",
+            "Monthly review process documented with example audit",
+            "Quarterly audit process defined with success metrics",
+            "Test coverage: 100% rollback success in 5 test scenarios"
+          ]
+        }
+      ],
+
+      "successMetrics": {
+        "overallContextReduction": "40% reduction in total prompt tokens",
+        "invocationAccuracy": "95%+ skill invocation correctness",
+        "manualOverrides": "<5% coordination requiring manual intervention"
+      }
+    }
+  ],
+
+  "backlog": [
+    {
+      "id": "backlog-001",
+      "description": "Security audit skill for automated vulnerability scanning",
+      "priority": "medium",
+      "source": "phase-2-memory-hooks",
+      "deferredAt": "2025-10-18T00:00:00Z",
+      "reason": "Requires integration with external security tools (defer to v2)"
+    },
+    {
+      "id": "backlog-002",
+      "description": "Performance profiling skill for automated bottleneck detection",
+      "priority": "medium",
+      "source": "phase-3-testing-refinement",
+      "deferredAt": "2025-10-18T00:00:00Z",
+      "reason": "Lower priority than core coordination skills"
+    },
+    {
+      "id": "backlog-003",
+      "description": "Documentation generation skill for auto-generated API docs",
+      "priority": "low",
+      "source": "phase-3-testing-refinement",
+      "deferredAt": "2025-10-18T00:00:00Z",
+      "reason": "Manual documentation sufficient for now"
+    },
+    {
+      "id": "backlog-004",
+      "description": "Multi-language support for skills (Python, Rust, Go)",
+      "priority": "low",
+      "source": "phase-1-core-coordination",
+      "deferredAt": "2025-10-18T00:00:00Z",
+      "reason": "JavaScript/Bash coverage sufficient for current needs"
+    }
+  ],
+
+  "epicAcceptanceCriteria": [
+    "All 6 core skills implemented and tested (Redis, Agent Spawning, CFN Loop, SQLite, Hooks, Test Execution)",
+    "Context reduction ≥40% measured across 50 test prompts",
+    "Skill invocation accuracy ≥95% validated in 100 test scenarios",
+    "Manual override rate <5% for all coordination tasks",
+    "Zero concurrent test execution conflicts in 20 test runs",
+    "100% ROOT_WARNING auto-resolution rate",
+    "Agents persist state autonomously across sessions",
+    "Skills-first migration complete in CLAUDE.md"
+  ],
+
+  "riskMitigation": {
+    "skills_selected_incorrectly": {
+      "likelihood": "medium",
+      "impact": "high",
+      "mitigation": "Iterative description refinement based on invocation logs"
+    },
+    "context_usage_increases": {
+      "likelihood": "low",
+      "impact": "high",
+      "mitigation": "Rollback plan + parallel operation in Week 1"
+    },
+    "redis_patterns_outdated": {
+      "likelihood": "low",
+      "impact": "medium",
+      "mitigation": "Monthly skill review process"
+    },
+    "acl_violations": {
+      "likelihood": "low",
+      "impact": "high",
+      "mitigation": "SQLite query validation in skill tests"
+    }
+  },
+
+  "successMetricsSummary": {
+    "phase1": {
+      "contextReduction": "30%",
+      "autonomousSelection": "100%",
+      "thresholdAutomation": "Zero manual checks"
+    },
+    "phase2": {
+      "statePersistence": "Autonomous across sessions",
+      "rootWarningResolution": "100%",
+      "testConflicts": "Zero conflicts"
+    },
+    "phase3": {
+      "overallContextReduction": "40%",
+      "invocationAccuracy": "95%+",
+      "manualOverrides": "<5%"
+    }
+  }
+}

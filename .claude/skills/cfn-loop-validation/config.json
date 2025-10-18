@@ -1,0 +1,92 @@
+{
+  "modes": {
+    "mvp": {
+      "threshold": 0.6,
+      "maxRetries": 3,
+      "validatorsToSpawn": 2,
+      "description": "Minimum viable product mode - basic validation with fast execution",
+      "features": [
+        "Basic syntax validation",
+        "Resource existence checks",
+        "Simple dependency analysis"
+      ]
+    },
+    "standard": {
+      "threshold": 0.8,
+      "maxRetries": 5,
+      "validatorsToSpawn": 4,
+      "description": "Standard mode - comprehensive validation with balanced performance",
+      "features": [
+        "Complete syntax validation",
+        "Resource dependency analysis",
+        "Security best practices",
+        "Performance optimization checks",
+        "Cost estimation"
+      ]
+    },
+    "enterprise": {
+      "threshold": 0.95,
+      "maxRetries": 10,
+      "validatorsToSpawn": 8,
+      "description": "Enterprise mode - advanced validation with maximum security and compliance",
+      "features": [
+        "Complete syntax validation",
+        "Advanced dependency analysis",
+        "Enterprise security standards",
+        "Compliance validation",
+        "Disaster recovery checks",
+        "Multi-region deployment analysis",
+        "Advanced performance optimization",
+        "Detailed cost analysis",
+        "Audit trail logging"
+      ]
+    }
+  },
+  "validators": {
+    "baseValidators": [
+      "SyntaxValidator",
+      "DependencyValidator",
+      "ResourceValidator"
+    ],
+    "standardValidators": [
+      "SyntaxValidator",
+      "DependencyValidator",
+      "ResourceValidator",
+      "SecurityValidator"
+    ],
+    "enterpriseValidators": [
+      "SyntaxValidator",
+      "DependencyValidator",
+      "ResourceValidator",
+      "SecurityValidator",
+      "ComplianceValidator",
+      "PerformanceValidator",
+      "CostValidator",
+      "DisasterRecoveryValidator"
+    ]
+  },
+  "retry": {
+    "backoffStrategy": "exponential",
+    "maxBackoffTime": 30000,
+    "initialBackoffTime": 1000,
+    "jitter": true
+  },
+  "evidence": {
+    "retentionPeriod": 2592000,
+    "maxEvidenceSize": "10MB",
+    "compression": true
+  },
+  "performance": {
+    "maxConcurrentValidators": 8,
+    "timeoutPerValidator": 30000,
+    "cacheResults": true,
+    "cacheTTL": 3600
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "fileOutput": true,
+    "maxFileSize": "100MB",
+    "maxFiles": 5
+  }
+}

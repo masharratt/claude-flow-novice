@@ -243,7 +243,7 @@ npm run build
 /launch-web-dashboard
 
 # Spawn workers (dashboard monitors them)
-node src/cli/hybrid-routing/spawn-workers.js "Task" --max-agents 5
+npx claude-flow-spawn "Task" --max-agents 5
 ```
 
 ### With Swarm Coordination

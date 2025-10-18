@@ -101,13 +101,13 @@ Each phase follows the complete Loop 1 pattern:
 
 ```bash
 # Standard worker spawning with comprehensive testing (REQUIRED: --agents flag with explicit types)
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Implement [feature] for Standard: comprehensive testing, edge cases, documentation" \
   --agents=analyst,coder,coder,tester,reviewer \
   --provider zai --redis-channel swarm:standard-phase
 
 # Quality-focused spawning
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Build Standard version of [component] with full test suite and documentation" \
   --agents=coder,coder,tester,reviewer \
   --provider zai --redis-channel swarm:standard-phase \

@@ -22,7 +22,7 @@ Display current cost-savings mode status and coordinator configuration.
 **Execute status check:**
 
 ```bash
-node scripts/toggle-cost-savings.cjs status
+npx claude-flow-cost-savings status
 ```
 
 **Output includes:**

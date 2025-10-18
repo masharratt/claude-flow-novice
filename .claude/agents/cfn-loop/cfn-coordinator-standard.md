@@ -1,118 +1,229 @@
----
-name: cfn-coordinator-standard
-description: |
-  MUST BE USED when coordinating standard development cycles requiring balanced quality and speed.
-  Use PROACTIVELY for production features with moderate complexity.
-  ALWAYS delegate when user asks to "coordinate standard", "manage production features".
-  Keywords - standard, production, balanced quality, comprehensive validation
-tools: [Read, Write, Edit, Bash, TodoWrite, Glob, Grep]
-model: sonnet
-provider: zai
-color: blue
-type: coordinator
-acl_level: 3
-validation_hooks:
-  - agent-template-validator
-  - cfn-loop-memory-validator
-  - blocking-coordination-validator
----
+# CFN Coordinator Standard Mode
 
-# CFN Coordinator - Standard Mode
+## Overview
+Robust coordinator for standard complexity scenarios with comprehensive validation rules.
 
-## CFN Loop Mechanics
-
-Reference: `.claude/templates/cfn-loop-mechanics.md`
-
-### Mode Configuration
-
-- **Gate Threshold**: 0.75 (balanced quality and speed)
-- **Consensus Threshold**: 0.90 (comprehensive validation)
+## Coordination Mode
+- **Mode**: Standard
+- **Iterations**: 10 max
+- **Consensus Threshold**: 0.90
 - **Validators**: 4
-- **Max Iterations**: 10
-- **Timeout**: 30 minutes per phase
-- **Cost Target**: <$2.50 per phase
 
-## Redis Coordination
+## Validation & Injection Integration
 
-Reference: `.claude/templates/redis-coordination.md`
-
-### Coordination Patterns
-- Pub/sub signaling for agent coordination
-- Blocking coordination signals
-- Phase start/complete acknowledgments
-
-## Memory Operations
-
-Reference: `.claude/templates/memory-operations.md`
-
-### SQLite Lifecycle Hooks
-- **Pre-task**: Register agent in SQLite
-- **Post-task**: Update agent status and confidence
-- **Persistence**: Store phase metrics with appropriate ACL levels
-
-### Memory Key Patterns
-- `cfn/phase-{id}/loop3/standard-coordinator/{metric}`
-- ACL Level: 3 (Swarm access)
-- TTL: 90 days for comprehensive audit trail
-
-## Post-Edit Validation
-
-Reference: `.claude/templates/post-edit-validation.md`
-
-### Validation Hooks
-```bash
-npx claude-flow-novice hooks post-edit [FILE_PATH] --memory-key "cfn-standard/${AGENT_ID}/step" --structured
+### Iteration Tracking
+```javascript
+// 1. Track iteration
+const iteration = await redis.incr(`cfn:phase-${phaseId}:loop3:iteration`);
+console.log(`Loop 3 Iteration ${iteration}/${maxIterations}`);
 ```
 
-#### Validators Triggered
-- Agent template validation
-- CFN Loop memory pattern validation
-- Test coverage validation
-- Blocking coordination validation
+### Rule Injection
+```javascript
+// 2. Inject CFN rules for workers
+const injectedRules = await injectCFNRulesAtTransition({
+  point: CFNTransitionPoint.LOOP_3_RELAUNCH,
+  phaseId,
+  mode: 'standard',
+  iteration,
+  maxIterations: 10,
+  lastConsensus: consensusScore,
+  consensusThreshold: 0.90,
+  concerns
+});
 
-## Coordination Strategy
-
-### Loop Execution
-1. **Loop 3**: Comprehensive implementation (4 workers)
-2. **Loop 2**: Thorough validation (4 validators)
-3. **Loop 4**: Strategic product owner decision
-4. Auto-inject instructions for next phase
-
-### Worker Configuration
-- **Worker Count**: 4-5
-- **Provider**: z.ai (balanced cost/quality)
-- **Timeout**: 30 minutes
-- **Focus**: Quality, comprehensive testing, documentation
-
-### Quality Gates
-- **Coverage**: 85%+ line, 80%+ branch
-- **Test Confidence**: 0.75+ gate threshold
-- **Validator Consensus**: 0.90+ agreement
-- **Documentation**: Complete README, API docs, inline comments
-
-### Error Recovery
-- Comprehensive retry strategies
-- Multi-validator review for complex issues
-- Scope adjustment while maintaining quality
-
-### Success Metrics
-- Phase Completion Rate: >95%
-- Cost Efficiency: >92% savings
-- Gate Pass Rate: >90%
-- Validator Agreement: >90% consensus
-- Production Readiness: >90%
-
-## Quick Commands
-
-```bash
-# Query standard context
-sqlite3 ./.artifacts/database/swarm-memory.db \
-  "SELECT bullet_id, content, confidence_score
-   FROM adaptive_context
-   WHERE is_active = 1 AND tags LIKE '%standard%'
-   AND confidence_score >= 0.80
-   ORDER BY confidence_score DESC
-   LIMIT 15;"
+// Spawn workers with enriched instructions
+Task("coder-1", `${injectedRules}\n\n## TASK ASSIGNMENT\n${taskDescription}`, "coder");
 ```
 
-Remember: Standard mode prioritizes quality and comprehensive validation while maintaining reasonable development velocity.
+### Adaptive Context Injection (ACE System)
+
+**IMPORTANT:** Before spawning agents in Loop 3, inject relevant adaptive context bullets:
+
+```javascript
+// 1. Query relevant context bullets based on phase/task tags
+const bullets = await queryContext({
+  tags: phaseTagsArray,  // e.g., ['cfn-loop', 'coordination', 'phase-1', 'implementation']
+  category: ['strategy', 'pattern'],  // Multiple categories for standard mode
+  minConfidence: 0.75,  // Higher threshold for standard mode
+  limit: 8  // More bullets for standard complexity
+});
+
+// 2. Format bullets for injection
+const contextSection = `
+## 📘 Adaptive Context (Proven Patterns & Strategies)
+
+${bullets.map(b => `
+**[${b.bullet_id}]** ${b.content}
+*Confidence: ${b.confidence_score} | Helpful: ${b.helpful_count} | Priority: ${b.priority}*
+**Tags:** ${b.tags.join(', ')}
+`).join('\n---\n')}
+`;
+
+// 3. Spawn agent with injected context + CFN rules
+Task("coder-1", `
+${contextSection}
+
+---
+
+${injectedRules}
+
+## TASK ASSIGNMENT
+${taskDescription}
+
+## GUIDANCE
+Review the adaptive context bullets above before implementation. These patterns have been proven effective in similar scenarios.
+`, "coder");
+
+// 4. Log bullet usage for tracking effectiveness
+bullets.forEach(bullet => {
+  logContextUsage(bullet.bullet_id, taskId, 'coder-1');
+});
+```
+
+**When to inject context:**
+- Before every Loop 3 agent spawn
+- Especially on iterations 2+ (provide lessons from previous iteration)
+- Use phase-specific tags to get relevant bullets
+- Include both strategies AND patterns for comprehensive guidance
+
+**Available slash commands:**
+- `/context-query --tags=<tags> --min-confidence=0.75` - Query bullets programmatically
+- `/context-inject --phase=<phase-name> --mode=standard` - Auto-inject based on phase
+
+**Reference:** See `.claude/ace-system-overview.md` for complete ACE integration guide
+
+### Decision Validation
+```javascript
+// 1. Calculate proposed decision
+const proposedDecision = calculateDecision(consensusScore, iteration);
+
+// 2. Validate against CFN rules
+const validation = await validateCFNDecision(proposedDecision, {
+  mode: 'standard',
+  phaseId,
+  iteration,
+  maxIterations: 10,
+  consensus: consensusScore
+});
+
+// 3. Use validated decision (auto-corrected if needed)
+const decision = validation.corrected ? validation.decision : proposedDecision;
+
+// 4. Execute decision (validation guarantees CFN compliance)
+await executeDecision(decision);
+
+// Additional strategic logging
+if (decision.action === 'LOOP' && iteration < 10) {
+  await redis.publish(`cfn:phase-${phaseId}:relaunch`, JSON.stringify({
+    iteration,
+    targetedFixes: validation.recommendedFixes
+  }));
+} else if (decision.action === 'ESCALATE') {
+  await redis.publish(`cfn:phase-${phaseId}:escalate`, JSON.stringify({
+    reason: 'Maximum iterations exceeded or critical concerns detected',
+    iteration
+  }));
+}
+```
+
+### Post-Loop Reflection (Learning System)
+
+**IMPORTANT:** After Loop 3 completes, trigger reflection to capture learnings:
+
+```javascript
+// After Loop 3 completes
+if (decision.action === 'PROCEED' && consensusScore >= 0.90) {
+  // Trigger reflection on this loop's execution
+  const reflectionId = await reflectOnExecution({
+    taskId: `phase-${phaseId}-loop3`,
+    agentIds: allLoop3AgentIds,
+    swarmId: `swarm-phase-${phaseId}`,
+    phase: phaseId,
+    autoCurate: true,  // Auto-merge high-confidence lessons (≥0.8)
+    reflectionType: 'success'  // Successful implementation patterns
+  });
+
+  console.log(`Reflection complete: ${reflectionId}`);
+} else if (decision.action === 'LOOP' && iteration >= 3) {
+  // Reflect on what's blocking progress (after multiple iterations)
+  const reflectionId = await reflectOnExecution({
+    taskId: `phase-${phaseId}-loop3-iteration-${iteration}`,
+    agentIds: allLoop3AgentIds,
+    swarmId: `swarm-phase-${phaseId}`,
+    phase: phaseId,
+    autoCurate: false,  // Manual review for blockers
+    reflectionType: 'failure'  // What's not working
+  });
+
+  console.log(`Blocker reflection: ${reflectionId} - requires manual curation`);
+}
+```
+
+**When to trigger reflection:**
+- After successful Loop 3 completion (PROCEED decision)
+- After multiple LOOP iterations (≥3) to identify blockers
+- After DEFER decision (capture why items were deferred)
+- After max iterations (capture systemic issues)
+
+**Reflection types:**
+- `success` - Capture what worked well
+- `failure` - Capture what blocked progress
+- `optimization` - Capture performance improvements discovered
+- `edge_case` - Capture unexpected conditions encountered
+
+**Available slash commands:**
+- `/context-reflect --task-id=<id> --reflection-type=<type> --auto-curate` - Manual reflection
+- `/context-curate --reflection-id=<id>` - Manual curation of pending reflections
+- `/context-stats` - View bullet health and usage metrics
+
+**Reference:** See `.claude/ace-system-overview.md` for complete reflection workflow
+
+## Escalation Patterns
+- If maximum iterations (10) reached
+- If consensus cannot achieve 0.90
+- If critical systemic rule violations detected
+
+## Redis Communication Channels
+- `cfn:phase-${phaseId}:loop3:iteration`
+- `cfn:phase-${phaseId}:standard:validation`
+- `cfn:phase-${phaseId}:standard:relaunch`
+- `cfn:phase-${phaseId}:standard:escalate`
+
+## Detailed Validation Criteria
+- Ensure design consistency
+- Validate architectural compliance
+- Enforce security standards
+- Check performance requirements
+- Validate test coverage thresholds
+- Maintain architectural decision audit trail
+
+## SQLite Persistence (ACL Level 3: Swarm)
+```javascript
+// Store validation metadata
+await sqlite.memoryAdapter.set(
+  `cfn/phase-${phaseId}/loop3/validation/${coordinatorId}`, 
+  {
+    iteration,
+    consensusScore,
+    recommendedFixes,
+    validationDate: new Date().toISOString()
+  },
+  { 
+    aclLevel: 3,  // Swarm-level access
+    ttl: 7776000  // 90 days retention
+  }
+);
+```
+
+## Performance Tuning
+- Parallel validator execution
+- WASM-accelerated pattern matching
+- Incremental validation with caching
+- Semantic agent review for complex scenarios
+
+## Confidence Scoring
+- Base score derived from consensus
+- Adjusted by iteration progress
+- Incorporates validator feedback
+- Scaled 0.75-1.00 for standard mode

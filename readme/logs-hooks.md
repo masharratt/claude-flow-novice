@@ -84,11 +84,13 @@ OS detection for cross-platform support
 - File edits and modifications
 - Pre/post validation requirements
 - TDD compliance checks
+- TypeScript file changes (`.ts`, `.tsx`)
 
 **Execution Context**:
 - Development environment
 - File-specific validation context
 - Multi-language support (JS, TS, Rust, Python, Go, Java, C/C++)
+- TypeScript incremental validation
 
 **Configuration Options**:
 ```javascript
@@ -97,7 +99,9 @@ OS detection for cross-platform support
   minimumCoverage: number (default: 80),
   blockOnTDDViolations: boolean,
   rustStrict: boolean,
-  structured: boolean
+  structured: boolean,
+  validateMarkdown: boolean,  // Opt-in markdown link checking
+  wasmEnabled: boolean         // 52x performance boost (default: true)
 }
 ```
 
@@ -119,6 +123,13 @@ OS detection for cross-platform support
   - `panic!()` prevention
   - `todo!()` and `unimplemented!()` validation
   - Error handling pattern enforcement
+
+- **TypeScript Type Validation**:
+  - Incremental single-file type checking (`tsc --noEmit --skipLibCheck <file>`)
+  - Error parsing and detailed reporting
+  - TYPE_ERROR feedback to agents via Redis
+  - Non-blocking validation with logged results
+  - Graceful handling of compiler crashes
 
 ### Security Validation Hooks
 

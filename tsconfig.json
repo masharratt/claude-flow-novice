@@ -9,57 +9,48 @@
     "allowJs": true,
     "checkJs": false,
     "skipLibCheck": true,
-    "noImplicitOverride": false,
-    "outDir": ".claude-flow-novice/dist",
+
+    // Enhanced strictness (incremental improvement)
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedIndexedAccess": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "noImplicitOverride": true,
+    "outDir": "dist",
     "rootDir": "src",
     "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "strictFunctionTypes": false,
-    "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": false,
-    "exactOptionalPropertyTypes": false,
-    "noPropertyAccessFromIndexSignature": false,
-    "noUncheckedIndexedAccess": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "declaration": true,
-    "declarationMap": false,
-    "sourceMap": false,
+    "declarationMap": true,
+    "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": false,
+    "verbatimModuleSyntax": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "lib": ["ES2020", "DOM"],
     "moduleDetection": "force",
     "types": ["node"],
     "typeRoots": ["./node_modules/@types"],
-    "incremental": true,
-    "composite": false,
-    "maxNodeModuleJsDepth": 1
+    "incremental": true
   },
   "include": [
     "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    ".claude-flow-novice/dist",
     "dist",
     "examples/**/*",
     "**/*.test.ts",
     "**/*.spec.ts",
     "**/*.test.js",
     "**/*.spec.js",
-    "tests/**/*",
-    "deno_modules",
-    "bin",
-    "src/__tests__/**/*",
-    "src/coordination/archives/**/*",
-    "src/web/**/*",
-    "src/terminal/vscode-bridge.ts"
-  ],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+    "tests/**/*"
+  ]
 }

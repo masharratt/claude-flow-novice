@@ -25,7 +25,7 @@ Disable CLI cost-savings mode to use traditional Task-tool agent spawning.
 **Execute mode toggle:**
 
 ```bash
-node scripts/toggle-cost-savings.cjs off
+npx claude-flow-cost-savings off
 ```
 
 **After disabling:**

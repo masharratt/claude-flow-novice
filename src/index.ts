@@ -27,10 +27,10 @@ export const AgentType = {
   API_DOCS: 'api-docs',
   BACKEND_DEV: 'backend-dev',
   FRONTEND_DEV: 'frontend-dev',
-  MOBILE_DEV: 'mobile-dev'
+  MOBILE_DEV: 'mobile-dev',
 } as const;
 
-export type AgentType = typeof AgentType[keyof typeof AgentType];
+export type AgentType = (typeof AgentType)[keyof typeof AgentType];
 
 // Version
 export const VERSION = '2.0.4';
@@ -41,6 +41,6 @@ export const defaultConfig = {
   strategy: 'development',
   mode: 'mesh',
   persistence: true,
-  consensusThreshold: 0.90,
-  gateThreshold: 0.75
+  consensusThreshold: 0.9,
+  gateThreshold: 0.75,
 };

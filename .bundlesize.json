@@ -1,0 +1,15 @@
+{
+  "files": [
+    {
+      "path": "./dist/index.js",
+      "maxSize": "500 kB",
+      "compression": "gzip"
+    },
+    {
+      "path": "./dist/index.esm.js",
+      "maxSize": "550 kB",
+      "compression": "gzip"
+    }
+  ],
+  "defaultCompression": "gzip"
+}

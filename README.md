@@ -22,21 +22,38 @@ A simplified AI agent orchestration system designed for beginners. Claude Flow N
 ### Installation
 
 ```bash
-# Install globally
-npm install -g claude-flow-novice
-
-# Or install in your project
+# Install in your project
 npm install claude-flow-novice
+
+# Auto-syncs on install:
+# ✅ .claude/agents/     → Your project (96+ specialized agents)
+# ✅ .claude/commands/   → Your project (201+ slash commands)
+# ✅ .claude/*.md        → Your project (CFN Loop rules, ACE system, patterns)
+# ✅ config/hooks/       → Your project (39 validation hooks)
+```
+
+### Verify Installation
+
+```bash
+# Check cost-savings status
+npx claude-flow-cost-savings status
+
+# View available commands
+npx claude-flow-sync --help
+npx claude-flow-spawn --help
 ```
 
 ### Basic Usage
 
 ```bash
-# Initialize a new project
-claude-flow-novice init my-agent-project
+# Spawn agents for a task (cost-optimized)
+npx claude-flow-spawn "Build a REST API with authentication" \
+  --agents=coder,tester,reviewer \
+  --provider zai \
+  --max-agents 3
 
-# Run a simple task with agent coordination
-claude-flow-novice swarm "Build a REST API with authentication" --max-agents 3
+# Enable cost-savings mode
+npx claude-flow-cost-savings on
 
 # Execute CFN Loop for complex features
 claude-flow-novice cfn-loop "Implement user authentication system" --mode=standard

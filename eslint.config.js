@@ -26,7 +26,21 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'warn',
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
-      'no-var': 'error'
+      'no-var': 'error',
+
+      // Import path standardization (prevent module resolution errors)
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            group: ['../src/*', '../../src/*', '../../../src/*'],
+            message: 'Use absolute imports from src root instead of relative src/ imports'
+          },
+          {
+            group: ['../**/node_modules/*'],
+            message: 'Do not import directly from node_modules subdirectories'
+          }
+        ]
+      }]
     }
   },
   {

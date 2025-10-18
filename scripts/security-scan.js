@@ -18,6 +18,8 @@ class SecurityScanner {
   constructor() {
     this.issues = [];
     this.warnings = [];
+    this.startMemory = process.memoryUsage();
+    this.fileHandles = new Set();
     this.sensitivePatterns = [
       // API Keys and Tokens
       {
@@ -152,11 +154,48 @@ class SecurityScanner {
     console.log('🔒 Starting security scan...');
     console.log('='.repeat(50));
 
+    try {
+      await Promise.race([
+        this.runScans(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Security scan timeout after 5 minutes')), 300000)
+        )
+      ]);
+    } catch (error) {
+      console.error(`❌ Scan failed: ${error.message}`);
+      throw error;
+    } finally {
+      await this.cleanup();
+    }
+
+    this.generateReport();
+  }
+
+  async runScans() {
     await this.scanFiles();
     await this.scanDependencies();
     await this.scanPermissions();
+  }
 
-    this.generateReport();
+  async cleanup() {
+    // Close any open file handles
+    this.fileHandles.forEach(handle => {
+      try {
+        if (handle && typeof handle.close === 'function') {
+          handle.close();
+        }
+      } catch (err) {
+        // Ignore cleanup errors
+      }
+    });
+    this.fileHandles.clear();
+
+    // Log memory usage
+    const endMemory = process.memoryUsage();
+    const memoryDelta = (endMemory.heapUsed - this.startMemory.heapUsed) / 1024 / 1024;
+    if (memoryDelta > 100) {
+      console.warn(`⚠️  Memory delta: ${memoryDelta.toFixed(2)}MB (potential leak)`);
+    }
   }
 
   async scanFiles() {
@@ -164,12 +203,25 @@ class SecurityScanner {
 
     const files = this.getSourceFiles();
     let scannedCount = 0;
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
 
     for (const file of files) {
       try {
-        const content = fs.readFileSync(file, 'utf8');
+        // Check file size before reading
+        const stats = fs.statSync(file);
+        if (stats.size > MAX_FILE_SIZE) {
+          this.warnings.push(`Skipping large file: ${file} (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
+          continue;
+        }
+
+        const content = await this.readFileAsync(file);
         this.scanFileContent(file, content);
         scannedCount++;
+
+        // Force garbage collection hint every 100 files
+        if (scannedCount % 100 === 0 && global.gc) {
+          global.gc();
+        }
       } catch (error) {
         // Skip files that can't be read
       }
@@ -178,13 +230,32 @@ class SecurityScanner {
     console.log(`✅ Scanned ${scannedCount} files`);
   }
 
+  async readFileAsync(filePath) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      const stream = fs.createReadStream(filePath, { encoding: 'utf8', highWaterMark: 64 * 1024 });
+
+      stream.on('data', chunk => chunks.push(chunk));
+      stream.on('end', () => resolve(chunks.join('')));
+      stream.on('error', reject);
+
+      this.fileHandles.add(stream);
+      stream.on('close', () => this.fileHandles.delete(stream));
+    });
+  }
+
   scanFileContent(filePath, content) {
     const lines = content.split('\n');
 
     // Check for sensitive information
     this.sensitivePatterns.forEach(pattern => {
+      // Reset regex lastIndex to prevent state leaks
+      pattern.pattern.lastIndex = 0;
       let match;
-      while ((match = pattern.pattern.exec(content)) !== null) {
+      let matchCount = 0;
+      const MAX_MATCHES = 1000; // Prevent regex DoS
+
+      while ((match = pattern.pattern.exec(content)) !== null && matchCount < MAX_MATCHES) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         const lineContent = lines[lineNumber - 1] || '';
 
@@ -198,13 +269,19 @@ class SecurityScanner {
           match: match[0],
           recommendation: 'Remove hardcoded secrets and use environment variables or secure configuration'
         });
+        matchCount++;
       }
     });
 
     // Check for insecure patterns
     this.insecurePatterns.forEach(pattern => {
+      // Reset regex lastIndex to prevent state leaks
+      pattern.pattern.lastIndex = 0;
       let match;
-      while ((match = pattern.pattern.exec(content)) !== null) {
+      let matchCount = 0;
+      const MAX_MATCHES = 1000; // Prevent regex DoS
+
+      while ((match = pattern.pattern.exec(content)) !== null && matchCount < MAX_MATCHES) {
         const lineNumber = content.substring(0, match.index).split('\n').length;
         const lineContent = lines[lineNumber - 1] || '';
 
@@ -218,6 +295,7 @@ class SecurityScanner {
           match: match[0],
           recommendation: pattern.recommendation
         });
+        matchCount++;
       }
     });
   }

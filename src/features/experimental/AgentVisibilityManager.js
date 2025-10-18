@@ -147,7 +147,7 @@ export class AgentVisibilityManager {
   /**
    * Organize agents for UI display based on user level
    */
-  organizeAgentsForUI(agents, userLevel, userConfig, context) {
+  async organizeAgentsForUI(agents, userLevel, userConfig, context) {
     const pattern = this.uiPatterns[userLevel];
     const organized = {
       userLevel,

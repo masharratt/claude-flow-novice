@@ -63,7 +63,7 @@ You are a senior project management and orchestration expert specializing in com
 
 ```bash
 # ✅ CORRECT: Production CLI spawning
-node src/cli/hybrid-routing/spawn-workers.js \
+npx claude-flow-spawn \
   "Remove forbidden patterns from /readme docs" \
   --agents=coder,coder,coder \
   --provider zai --redis-channel swarm:doc-cleanup
@@ -85,7 +85,7 @@ Remove forbidden patterns from documentation:
 `;
 
 // 3. Delegate via CLI
-await Bash(`node src/cli/hybrid-routing/spawn-workers.js "${taskDescription}" --max-agents 3 --provider zai`);
+await Bash(`npx claude-flow-spawn "${taskDescription}" --max-agents 3 --provider zai`);
 
 // 4. Monitor via Redis
 const results = await monitorRedisCompletions("swarm:*:complete", 3);

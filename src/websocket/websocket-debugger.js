@@ -395,12 +395,12 @@ export class WebSocketDebugger extends EventEmitter {
  * Debug wrapper for WebSocket connections
  */
 class DebugSocket extends EventEmitter {
-  constructor(socket, id, debugger) {
+  constructor(socket, id, wsDebugger) {
     super();
 
     this.socket = socket;
     this.id = id;
-    this.debugger = debugger;
+    this.debugger = wsDebugger;
     this.startTime = Date.now();
     this.lastActivity = Date.now();
     this.messageCount = 0;
@@ -518,8 +518,8 @@ class DebugSocket extends EventEmitter {
  * Debug wrapper for Socket.IO connections
  */
 class DebugSocketIO extends DebugSocket {
-  constructor(socket, id, debugger) {
-    super(socket, id, debugger);
+  constructor(socket, id, wsDebugger) {
+    super(socket, id, wsDebugger);
     this.setupSocketIOHandlers();
   }
 

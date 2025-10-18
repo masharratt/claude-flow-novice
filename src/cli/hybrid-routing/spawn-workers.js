@@ -923,7 +923,8 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
       const MAX_TOOL_ITERATIONS = 1000; // Increased from 25 to allow comprehensive optimization tasks
       let content = '';
 
-      // Tool use loop
+      // Tool use loop with context window management
+      const MAX_CONTEXT_MESSAGES = 20; // Keep only last 20 messages
       while (toolUseCount < MAX_TOOL_ITERATIONS) {
         const response = await this.anthropic.createMessage({
           model: this.model,
@@ -979,6 +980,12 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
         });
 
         toolUseCount++;
+
+        // Trim context window to prevent memory leak
+        if (messages.length > MAX_CONTEXT_MESSAGES) {
+          // Keep first message (initial task) + last N messages
+          messages = [messages[0], ...messages.slice(-MAX_CONTEXT_MESSAGES + 1)];
+        }
       }
 
       if (toolUseCount >= MAX_TOOL_ITERATIONS) {
@@ -1103,7 +1110,7 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
   }
 
   /**
-   * Recursively scan directory for .md files
+   * Recursively scan directory for .md files (excludes node_modules)
    */
   async scanAgentFiles(dirPath, basePath) {
     const { promises: fs } = await import('fs');
@@ -1115,6 +1122,11 @@ Execute the task using available tools. Report confidence score (0.0-1.0) at the
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
+        // Skip node_modules to prevent memory leak
+        if (entry.name === 'node_modules') {
+          continue;
+        }
+
         const fullPath = path.join(dirPath, entry.name);
 
         if (entry.isDirectory()) {

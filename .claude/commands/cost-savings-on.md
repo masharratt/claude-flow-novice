@@ -18,14 +18,14 @@ Enable cost-savings mode to use CLI-based agent spawning with spawn-workers.js f
 **Mode Details:**
 - **Coordinator**: Runs in main chat (Claude Max, $0)
 - **Workers**: Spawned via CLI with z.ai provider
-- **Spawning**: Uses `node src/cli/hybrid-routing/spawn-workers.js --agents=type1,type2 --provider zai`
+- **Spawning**: Uses `npx claude-flow-spawn --agents=type1,type2 --provider zai`
 - **Coordination**: Redis pub/sub messaging
 - **State**: SQLite persistence with ACL
 
 **Execute mode toggle:**
 
 ```bash
-node scripts/toggle-cost-savings.cjs on
+npx claude-flow-cost-savings on
 ```
 
 **After enabling:**
