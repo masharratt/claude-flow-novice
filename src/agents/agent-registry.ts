@@ -57,7 +57,6 @@ export class AgentRegistry extends EventEmitter {
     this.emit('registry:initialized');
   }
 
-  // Add minimal implementation for loadFromMemory
   private async loadFromMemory(): Promise<void> {
     try {
       const storedAgents = await this.memory.get(`${this.namespace}:registry`);
@@ -72,7 +71,6 @@ export class AgentRegistry extends EventEmitter {
     }
   }
 
-  // TypeScript improvement: Add explicit return type annotations with a complete implementation
   private calculateAgentScore(
     agent: AgentState,
     taskType: string,
@@ -87,13 +85,19 @@ export class AgentRegistry extends EventEmitter {
     }
 
     // Capability matching
-    if (agent.capabilities.includes(taskType)) {
+    if (
+      (agent.capabilities.domains && agent.capabilities.domains.includes(taskType)) ||
+      (agent.capabilities.languages && agent.capabilities.languages.includes(taskType))
+    ) {
       score += 30;
     }
 
     // Required capabilities
     for (const capability of requiredCapabilities) {
-      if (agent.capabilities.includes(capability)) {
+      if (
+        (agent.capabilities.domains && agent.capabilities.domains.includes(capability)) ||
+        (agent.capabilities.languages && agent.capabilities.languages.includes(capability))
+      ) {
         score += 10;
       }
     }

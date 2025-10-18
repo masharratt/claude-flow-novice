@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { glob, GlobOptionsWithTypes } from 'glob';
+import { glob } from 'glob';
 import { resolve, dirname } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 
@@ -147,11 +147,16 @@ export class AgentLoader {
       return;
     }
 
-    const agentFiles = await glob('**/*.md', {
-      root: agentsDir,
-      ignore: ['**/README.md', '**/MIGRATION_SUMMARY.md'],
-      absolute: true,
-    } as GlobOptionsWithTypes);
+    const agentFiles = await new Promise<string[]>((resolve, reject) => {
+      glob('**/*.md', {
+        cwd: agentsDir,
+        ignore: ['**/README.md', '**/MIGRATION_SUMMARY.md'],
+        absolute: true
+      }, (err, matches) => {
+        if (err) reject(err);
+        else resolve(matches);
+      });
+    });
 
     this.agentCache.clear();
     this.categoriesCache = [];
