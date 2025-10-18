@@ -59,7 +59,55 @@ Refer to `.claude/skills/redis-coordination/SKILL.md` for:
 - Simple Chain Coordination
 - Hierarchical Broadcast
 - Mesh Hybrid Patterns
-- Waiting Mode + Wake-Up Mechanisms
+- **Waiting Mode + Wake-Up** (✅ Operational)
+
+### Redis Waiting Mode (Zero-Token Agent Coordination)
+
+**Use Case:** CFN Loop iterations, long-running tasks, multi-agent consensus
+
+**Agent enters waiting mode:**
+```bash
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --context "iteration-1"
+```
+
+**Coordinator wakes agent:**
+```bash
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --reason cfn_loop_iteration \
+  --iteration 2 \
+  --feedback "Add error handling,Improve test coverage"
+```
+
+**Agent reports result:**
+```bash
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence 0.92 \
+  --iteration 2
+```
+
+**Coordinator collects results:**
+```bash
+CONSENSUS=$(./claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+  --task-id "$TASK_ID" \
+  --agent-ids "coder-1,reviewer-1,tester-1,security-1")
+
+if (( $(echo "$CONSENSUS >= 0.90" | bc -l) )); then
+  echo "✅ Consensus reached: $CONSENSUS"
+fi
+```
+
+**Benefits:**
+- 🚀 Zero token cost while waiting (BLPOP blocks, no API calls)
+- 🔄 Context preserved across iterations
+- ⚡ Instant wake-up (<100ms latency)
+- 📈 Scalable (10+ agents, indefinite cycles)
 
 ## 4) CFN Loop Overview
 
