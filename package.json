@@ -3,9 +3,9 @@
   "version": "2.5.2",
   "description": "Simplified Claude Flow for beginners - AI agent orchestration made easy",
   "mcpName": "io.github.ruvnet/claude-flow",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "bin": {
-    "claude-flow-novice": "dist/cli/main.js"
+    "claude-flow-novice": "dist/src/cli/main.js"
   },
   "scripts": {
     "dev": "tsx src/cli/main.ts",
