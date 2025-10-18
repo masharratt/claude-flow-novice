@@ -63,14 +63,83 @@ node config/hooks/post-edit-pipeline.js src/file.ts
 
 ## Integration with Agents
 
-When agents use Edit/Write tools, they can invoke the post-edit pipeline:
+### ✅ Recommended: Automatic Post-Edit Validation
+
+After using Edit/Write tools, agents should invoke the post-edit hook:
 
 ```bash
-# Agent workflow
-./.claude/skills/hook-pipeline/post-edit-handler.sh "$EDITED_FILE" \
-  --agent-id "coder-1" \
-  --coordinator-id "cfn-coordinator" \
-  --memory-key "swarm/coder-1/implementation"
+# Simple invocation (non-blocking)
+./.claude/hooks/invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
+
+# Blocking mode (fails if validation errors)
+./.claude/hooks/invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID" --blocking
 ```
 
-Results are automatically published to Redis channel: `swarm:skills:sprint-2.2:{agentId}:hooks`
+### Manual Validation (Alternative)
+
+```bash
+# Direct pipeline call
+node config/hooks/post-edit-pipeline.js src/file.ts --memory-key "swarm/agent-1/validation"
+
+# Via legacy skill wrapper
+./.claude/skills/hook-pipeline/post-edit-handler.sh "$EDITED_FILE" \
+  --agent-id "coder-1" \
+  --coordinator-id "cfn-coordinator"
+```
+
+### Configuration
+
+Edit `.claude/hooks/post-edit.config.json` to customize:
+- Enable/disable hooks globally
+- Configure blocking vs non-blocking behavior
+- Set Redis publish channels
+- Adjust validation settings
+- Control logging verbosity
+
+### Redis Integration
+
+Results are published to channel: `swarm:hooks:post-edit`
+
+Message format:
+```json
+{
+  "file": "src/path/to/file.ts",
+  "agentId": "coder-1",
+  "exitCode": 0,
+  "timestamp": 1729276694
+}
+```
+
+### Agent Workflow Example
+
+```bash
+# 1. Agent performs edit
+echo "Editing file..."
+# ... Edit/Write operation ...
+
+# 2. Immediately validate (non-blocking by default)
+./.claude/hooks/invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
+
+# 3. Check exit code (optional)
+if [ $? -eq 0 ]; then
+  echo "✅ Validation passed"
+else
+  echo "⚠️  Validation warnings (see logs)"
+fi
+
+# 4. Results available in Redis and logs
+# Channel: swarm:hooks:post-edit
+# Log: .artifacts/logs/post-edit-pipeline.log
+```
+
+### For Coordinator Agents
+
+Coordinators can monitor validation results via Redis:
+
+```bash
+# Subscribe to all post-edit validation events
+redis-cli SUBSCRIBE swarm:hooks:post-edit
+
+# Query recent results from memory
+redis-cli GET "swarm/coder-1/hook-results"
+```

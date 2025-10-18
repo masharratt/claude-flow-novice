@@ -1,0 +1,37 @@
+{
+  "enabled": true,
+  "version": "2.0.0",
+  "pipeline": "config/hooks/post-edit-pipeline.js",
+  "triggerOn": ["Edit", "Write", "MultiEdit"],
+  "fileTypes": [".ts", ".tsx", ".js", ".jsx"],
+  "blocking": false,
+  "exitCodes": {
+    "0": "SUCCESS",
+    "1": "ERROR",
+    "2": "SYNTAX_ERROR"
+  },
+  "redis": {
+    "enabled": true,
+    "publishChannel": "swarm:hooks:post-edit",
+    "memoryKeyPattern": "swarm/{agentId}/hook-results"
+  },
+  "logging": {
+    "enabled": true,
+    "logFile": ".artifacts/logs/post-edit-pipeline.log",
+    "includeTimestamp": true,
+    "verbose": false
+  },
+  "validation": {
+    "typescript": {
+      "enabled": true,
+      "noEmit": true,
+      "skipLibCheck": true
+    }
+  },
+  "feedback": {
+    "provideSuggestions": true,
+    "autoFixable": ["LINT_ISSUES"],
+    "nonBlocking": ["TYPE_WARNING", "LINT_ISSUES"],
+    "blocking": ["SYNTAX_ERROR"]
+  }
+}

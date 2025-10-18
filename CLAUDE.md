@@ -22,6 +22,16 @@
 * Delegate ALL coordination to skills
 * Use skill-specific configuration for complex workflows
 
+### Post-Edit Validation (REQUIRED for all Edit/Write operations)
+**After ANY Edit/Write/MultiEdit operation, agents MUST run:**
+```bash
+./.claude/hooks/invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
+```
+
+**Why:** Prevents TypeScript errors from propagating. Non-blocking by default.
+**Config:** `.claude/hooks/post-edit.config.json`
+**Skill:** `.claude/skills/hook-pipeline/SKILL.md`
+
 ## 2) Skill-Driven Agent Execution
 
 ### Skill Selection Criteria
