@@ -1,0 +1,172 @@
+# Dependencies
+node_modules/
+.deno/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+# dist/ symlink preserved - points to .claude-flow-novice/dist
+!dist
+build/
+out/
+*.exe
+.turbo/
+
+# Binaries
+bin/claude-flow-*
+!bin/claude-flow
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
+.env.keys
+.env.backup.*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Test artifacts and coverage
+coverage/
+coverage-*/
+*.lcov
+test-results/
+*.tsbuildinfo
+
+# Legacy test artifacts
+playwright-report/
+.nyc_output/
+
+# Test output directories
+tests/results/
+tests/logs/
+
+# Artifacts directory (ephemeral test/build data)
+.artifacts/
+.artifacts/**
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.temp
+.cache/
+tmp/
+
+# Claude-Flow specific
+claude-flow.db
+claude-flow.config.json
+.claude-flow*
+# memory/
+# sessions/
+
+# MCP/Swarm
+.ruv-swarm/
+mcp-server.log
+swarm-debug.log
+memory/backups/
+ui_*.log
+init-output.log
+
+# Development
+*.pid
+*.seed
+*.pid.lock
+package
+test-init
+test-full-init
+swarm-runs
+
+# Temporary files
+analyzing
+the
+claude-flow-mcp-wrapper
+
+# SQLite Database Files
+.swarm/memory.db*
+.hive-mind/hive.db*
+
+# Database files (runtime state)
+database/*.db
+database/*.db-wal
+database/*.db-shm
+
+# Rust
+*/target*
+*/target/*
+*target/*
+*/.build-logs/*
+
+
+
+# Claude Flow generated files
+.claude/settings.local.json
+.mcp.json
+claude-flow.config.json
+.swarm/
+.hive-mind/
+.claude-flow/
+memory/
+coordination/
+memory/claude-flow-data.json
+memory/sessions/*
+!memory/sessions/README.md
+memory/agents/*
+!memory/agents/README.md
+coordination/memory_bank/*
+coordination/subtasks/*
+coordination/orchestration/*
+# Database files - block all by default (protected by pre-commit hook)
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+
+# Allow specific project databases (protected by pre-commit secret scanning)
+!.artifacts/database/swarm-memory.db
+!.artifacts/database/coordination-state.db
+!memory/project-context.db
+
+# Still block temporary/cache databases
+**/*-temp.db
+**/*-temp.sqlite
+**/*-cache.db
+**/*-cache.sqlite
+claude-flow
+# Removed Windows wrapper files per user request
+hive-mind-prompt-*.txt
+*.test-checkpoints/*
+
+planning/large-coordination/*
+planning/legion/*

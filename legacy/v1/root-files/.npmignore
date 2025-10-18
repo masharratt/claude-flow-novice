@@ -1,0 +1,86 @@
+# Build artifacts - ONLY in src/
+src/**/target/
+src/**/debug/
+src/**/release/
+src/wasm-regex-engine/target/
+src/web/frontend/node_modules/
+
+# Test files - ONLY in src/
+src/**/__tests__/
+src/**/*.test.ts
+src/**/*.test.js
+src/**/*.spec.ts
+src/**/*.spec.js
+
+# Project-specific scripts (not for distribution)
+scripts/**/test-*.js
+scripts/**/test-*.mjs
+scripts/**/test-*.cjs
+scripts/**/*-screenshots.js
+scripts/**/capture-*.js
+scripts/deployment/
+scripts/**/*-validation.cjs
+scripts/**/*-validator.cjs
+scripts/**/*-assessment.cjs
+scripts/migrate-*.sql
+scripts/optimize-*.sql
+scripts/*-hooks.js
+scripts/hooks-fix.js
+scripts/clean-react-imports.*
+scripts/examine-page.js
+scripts/debug-page.js
+scripts/deploy-local.sh
+scripts/manual-*.cjs
+scripts/privacy-controls-validator.cjs
+scripts/phase1-completion-report.cjs
+scripts/simple-test.js
+scripts/verify-and-organize.js
+scripts/update-directory-paths.cjs
+scripts/update_commands.sh
+scripts/run-*.sh
+scripts/compare-*.sh
+scripts/detect-*.sh
+scripts/trufflehog-*.sh
+scripts/verify-*.sh
+scripts/monitor-loop.sh
+scripts/monitor-memory.sh
+
+# Development files
+.git/
+.github/
+*.log
+.DS_Store
+.env
+.env.*
+
+# Project-specific documentation (root level only, keep readme/ folder)
+/*REPORT.md
+/*SUMMARY.md
+/*ANALYSIS.md
+/*CHECKLIST.md
+/README-CFN-COORDINATORS.md
+/README-COORDINATORS.md
+/UNIFIED_MEMORY_MONITORING.md
+/IMPLEMENTATION_SUMMARY.md
+/DEPRECATION_*.md
+/ZAI_FORK_*.md
+/adaptive-context-*.md
+/agent-library-*.md
+/agent-optimization-*.md
+/cfn-loop-verification-*.md
+/command-*.md
+/loop2-*.md
+/redis-*.md
+/security-*.md
+
+# Temporary files
+.artifacts/logs/
+.tmp/
+tmp/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
