@@ -1,6 +1,7 @@
 /**
- * Core exports for Claude Flow Novice
+ * Core Engine - v2.0
  */
 
-export { AgentManager } from './agent-manager.js';
-export { ProjectManager } from './project-manager.js';
+export const VERSION = '2.0.0';
+
+console.log('Claude Flow Novice v2.0 - Clean Architecture');
