@@ -1,0 +1,549 @@
+{
+  "epic": {
+    "id": "redis-coordination-enhancements",
+    "title": "Redis Coordination Skill - Production Resilience & Observability",
+    "description": "Enhance Redis coordination skill with error recovery, partial consensus, dynamic timeouts, priority wake-ups, health checks, graceful shutdown, and comprehensive metrics export for production-grade orchestration.",
+    "version": "2.0.0",
+    "priority": "high",
+    "estimatedDuration": "5-7 days",
+    "dependencies": [
+      "Redis 5.0+",
+      "jq",
+      "bc"
+    ]
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "name": "Error Recovery & Resilience",
+      "description": "Implement automatic retry mechanisms and dead letter queue for failed agent signals",
+      "priority": "critical",
+      "estimatedDuration": "1 day",
+      "tasks": [
+        {
+          "id": "task-1-1",
+          "title": "Add retry mechanism to orchestrator",
+          "description": "Implement --retry-count and --retry-delay parameters with exponential backoff for agent timeout recovery",
+          "acceptance": [
+            "Orchestrator accepts --retry-count and --retry-delay flags",
+            "Failed agents automatically retry with exponential backoff",
+            "Retry attempts logged with timestamp and reason",
+            "Max retries honored before final failure"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh"
+          ],
+          "agents": ["backend-dev", "devops-engineer"],
+          "estimatedEffort": "4 hours"
+        },
+        {
+          "id": "task-1-2",
+          "title": "Implement dead letter queue for failed signals",
+          "description": "Create DLQ pattern to capture permanently failed agent signals for debugging",
+          "acceptance": [
+            "Failed signals moved to swarm:{task}:dlq:{agent} after max retries",
+            "DLQ entries include failure reason, timestamp, retry count",
+            "Add query-dlq.sh script to inspect failed signals",
+            "DLQ entries expire after 7 days (configurable TTL)"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh",
+            ".claude/skills/redis-coordination/query-dlq.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "3 hours"
+        },
+        {
+          "id": "task-1-3",
+          "title": "Update config.json with retry defaults",
+          "description": "Add retry configuration section to config.json",
+          "acceptance": [
+            "config.json includes retryPolicy section",
+            "Default maxRetries: 3, retryDelay: 5000ms",
+            "DLQ TTL configurable (default: 604800 seconds)"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/config.json"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "1 hour"
+        }
+      ],
+      "deliverables": [
+        "Retry mechanism with exponential backoff",
+        "Dead letter queue for failed signals",
+        "Updated configuration schema"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "phase-2",
+      "name": "Partial Consensus & Quorum",
+      "description": "Enable swarms to reach consensus with subset of agents (quorum-based completion)",
+      "priority": "critical",
+      "estimatedDuration": "1 day",
+      "tasks": [
+        {
+          "id": "task-2-1",
+          "title": "Add quorum configuration to orchestrator",
+          "description": "Implement --min-quorum parameter to allow partial agent completion (e.g., 6/7 agents)",
+          "acceptance": [
+            "Orchestrator accepts --min-quorum parameter (e.g., '6' or '85%')",
+            "Absolute numbers and percentages both supported",
+            "Quorum calculation per loop (Loop 3 and Loop 2 separate)",
+            "Logs indicate quorum threshold and actual completion count"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh"
+          ],
+          "agents": ["backend-dev", "architect"],
+          "estimatedEffort": "4 hours"
+        },
+        {
+          "id": "task-2-2",
+          "title": "Implement timeout handling with quorum fallback",
+          "description": "When agent times out, check if remaining agents meet quorum before failing",
+          "acceptance": [
+            "Timeout doesn't fail orchestration if quorum met",
+            "Timed-out agents logged to DLQ",
+            "Consensus calculated only from completed agents",
+            "Warning logged when operating below full agent count"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "3 hours"
+        },
+        {
+          "id": "task-2-3",
+          "title": "Add quorum validation tests",
+          "description": "Test suite validating quorum-based completion scenarios",
+          "acceptance": [
+            "Test: 6/7 agents complete, quorum=6 → SUCCESS",
+            "Test: 5/7 agents complete, quorum=6 → FAILURE",
+            "Test: Percentage quorum (80% of 10 agents = 8)",
+            "Test: Quorum with retry - timed-out agent retries and reaches quorum"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/test-quorum.sh"
+          ],
+          "agents": ["tester"],
+          "estimatedEffort": "3 hours"
+        }
+      ],
+      "deliverables": [
+        "Quorum-based consensus mechanism",
+        "Timeout handling with fallback logic",
+        "Comprehensive quorum test suite"
+      ],
+      "dependencies": ["phase-1"]
+    },
+    {
+      "id": "phase-3",
+      "name": "Dynamic Timeout Adjustment",
+      "description": "Per-agent timeout configuration based on agent role and task complexity",
+      "priority": "high",
+      "estimatedDuration": "1 day",
+      "tasks": [
+        {
+          "id": "task-3-1",
+          "title": "Design agent timeout metadata schema",
+          "description": "Define how per-agent timeouts are configured in swarm metadata",
+          "acceptance": [
+            "Swarm metadata supports agentTimeouts object",
+            "Format: {\"researcher\": 7200, \"coder-1\": 3600, \"default\": 3600}",
+            "Fallback to global timeout if agent not specified",
+            "Timeouts in seconds (converted from ms in config.json)"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/SKILL.md"
+          ],
+          "agents": ["architect"],
+          "estimatedEffort": "2 hours"
+        },
+        {
+          "id": "task-3-2",
+          "title": "Implement per-agent timeout in orchestrator",
+          "description": "Update BLPOP timeout logic to use agent-specific timeouts",
+          "acceptance": [
+            "Orchestrator reads agentTimeouts from swarm metadata",
+            "Each agent BLPOP uses its configured timeout",
+            "Logs show agent-specific timeout being used",
+            "Backward compatible with global timeout if no metadata"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh",
+            ".claude/skills/redis-coordination/init-swarm.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "4 hours"
+        },
+        {
+          "id": "task-3-3",
+          "title": "Add timeout helpers and utilities",
+          "description": "Create utility functions for timeout calculation and role-based defaults",
+          "acceptance": [
+            "get-agent-timeout.sh utility script",
+            "Returns timeout for given agent ID from swarm metadata",
+            "Default timeouts by agent role (researcher=2h, coder=1h, reviewer=30m)",
+            "Integration example in SKILL.md"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/get-agent-timeout.sh",
+            ".claude/skills/redis-coordination/SKILL.md"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "2 hours"
+        }
+      ],
+      "deliverables": [
+        "Agent timeout metadata schema",
+        "Per-agent timeout orchestration",
+        "Timeout utility functions"
+      ],
+      "dependencies": ["phase-1"]
+    },
+    {
+      "id": "phase-4",
+      "name": "Priority Wake-Up Queue",
+      "description": "Implement priority-based wake-up using Redis Sorted Sets for critical agents",
+      "priority": "medium",
+      "estimatedDuration": "1 day",
+      "tasks": [
+        {
+          "id": "task-4-1",
+          "title": "Design priority queue wake-up mechanism",
+          "description": "Replace LPUSH/BLPOP with ZADD/BZPOPMIN for priority-ordered wake-ups",
+          "acceptance": [
+            "Wake messages stored in sorted set: swarm:{task}:wake-queue",
+            "Priority score: timestamp + agent priority offset",
+            "Higher priority agents (lower score) wake first",
+            "Backward compatible with existing wake mechanism"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/invoke-waiting-mode.sh"
+          ],
+          "agents": ["architect", "backend-dev"],
+          "estimatedEffort": "3 hours"
+        },
+        {
+          "id": "task-4-2",
+          "title": "Implement priority-based wake in invoke-waiting-mode.sh",
+          "description": "Update wake command to support --priority flag and use ZADD",
+          "acceptance": [
+            "wake command accepts --priority flag (0-100, default: 50)",
+            "Lower priority number = higher urgency",
+            "ZADD adds wake message with priority score",
+            "enter command uses BZPOPMIN instead of BLPOP"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/invoke-waiting-mode.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "4 hours"
+        },
+        {
+          "id": "task-4-3",
+          "title": "Update orchestrator to use priority wake-ups",
+          "description": "Assign priorities during iteration transitions (validators > implementers)",
+          "acceptance": [
+            "Loop 2 validators wake with priority=10 (high)",
+            "Loop 3 implementers wake with priority=30 (medium)",
+            "Product owner wakes with priority=5 (critical)",
+            "Priority documented in SKILL.md with examples"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh",
+            ".claude/skills/redis-coordination/SKILL.md"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "3 hours"
+        }
+      ],
+      "deliverables": [
+        "Priority queue wake-up mechanism",
+        "Priority-aware invoke-waiting-mode.sh",
+        "Orchestrator priority assignment logic"
+      ],
+      "dependencies": ["phase-1"]
+    },
+    {
+      "id": "phase-5",
+      "name": "Agent Health Checks & Heartbeat",
+      "description": "Implement heartbeat mechanism to detect hung agents before timeout expires",
+      "priority": "high",
+      "estimatedDuration": "1 day",
+      "tasks": [
+        {
+          "id": "task-5-1",
+          "title": "Design heartbeat protocol",
+          "description": "Define heartbeat key pattern and expected update frequency",
+          "acceptance": [
+            "Heartbeat key pattern: swarm:{task}:{agent}:heartbeat",
+            "TTL-based expiry (default: 60 seconds)",
+            "Agents update heartbeat every 30 seconds during work",
+            "Orchestrator checks heartbeat before BLPOP timeout"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/SKILL.md"
+          ],
+          "agents": ["architect"],
+          "estimatedEffort": "2 hours"
+        },
+        {
+          "id": "task-5-2",
+          "title": "Create heartbeat helper script",
+          "description": "Build heartbeat.sh for agents to pulse during long-running tasks",
+          "acceptance": [
+            "heartbeat.sh send --task-id --agent-id (sets TTL key)",
+            "heartbeat.sh check --task-id --agent-id (returns alive/dead)",
+            "Automatic TTL renewal (60 seconds)",
+            "Lightweight (single Redis SET command)"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/heartbeat.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "3 hours"
+        },
+        {
+          "id": "task-5-3",
+          "title": "Integrate heartbeat monitoring in orchestrator",
+          "description": "Check agent heartbeats periodically and fail fast if agent hung",
+          "acceptance": [
+            "Orchestrator checks heartbeats every 30s during BLPOP wait",
+            "If heartbeat missing and agent not done, log warning",
+            "After 2 missed heartbeats, consider agent hung",
+            "Hung agents trigger retry or quorum fallback"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh"
+          ],
+          "agents": ["backend-dev", "devops-engineer"],
+          "estimatedEffort": "5 hours"
+        }
+      ],
+      "deliverables": [
+        "Heartbeat protocol specification",
+        "Heartbeat helper script",
+        "Orchestrator heartbeat monitoring"
+      ],
+      "dependencies": ["phase-2"]
+    },
+    {
+      "id": "phase-6",
+      "name": "Graceful Shutdown & Cancellation",
+      "description": "Enable user-initiated cancellation of orchestration with proper cleanup",
+      "priority": "high",
+      "estimatedDuration": "1 day",
+      "tasks": [
+        {
+          "id": "task-6-1",
+          "title": "Create cancel-swarm.sh script",
+          "description": "Script to publish shutdown signal to all agents in a swarm",
+          "acceptance": [
+            "cancel-swarm.sh --task-id <id> [--reason <text>]",
+            "Publishes to swarm:{task}:shutdown channel",
+            "Includes reason, timestamp, and initiator metadata",
+            "Returns list of agents notified"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/cancel-swarm.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "3 hours"
+        },
+        {
+          "id": "task-6-2",
+          "title": "Implement shutdown handling in orchestrator",
+          "description": "Orchestrator subscribes to shutdown channel and exits gracefully",
+          "acceptance": [
+            "Orchestrator subscribes to swarm:{task}:shutdown",
+            "On shutdown signal, logs reason and exits with code 130",
+            "Cleans up Redis keys before exit",
+            "Marks swarm metadata as 'cancelled' status"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "4 hours"
+        },
+        {
+          "id": "task-6-3",
+          "title": "Add shutdown handling to waiting agents",
+          "description": "Agents in waiting mode listen for shutdown and exit gracefully",
+          "acceptance": [
+            "invoke-waiting-mode.sh enter subscribes to shutdown channel",
+            "Uses BLPOP on both wake and shutdown keys (multi-key)",
+            "Returns shutdown reason to caller",
+            "Agent cleanup before exit"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/invoke-waiting-mode.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "3 hours"
+        }
+      ],
+      "deliverables": [
+        "cancel-swarm.sh utility",
+        "Orchestrator shutdown handling",
+        "Agent shutdown response mechanism"
+      ],
+      "dependencies": ["phase-1"]
+    },
+    {
+      "id": "phase-7",
+      "name": "Metrics Export & Observability",
+      "description": "Comprehensive metrics export for production monitoring and debugging",
+      "priority": "medium",
+      "estimatedDuration": "1.5 days",
+      "tasks": [
+        {
+          "id": "task-7-1",
+          "title": "Design metrics schema and export format",
+          "description": "Define metrics to track and output format (Prometheus/OpenTelemetry compatible)",
+          "acceptance": [
+            "Metrics: iteration_duration_ms, agent_latency_ms, consensus_score, retry_count, timeout_count",
+            "Labels: task_id, agent_id, loop (2/3), iteration, mode",
+            "Output formats: Prometheus text, JSON, OpenTelemetry OTLP",
+            "Metrics stored in Redis time-series (optional)"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/metrics-schema.json"
+          ],
+          "agents": ["architect", "devops-engineer"],
+          "estimatedEffort": "3 hours"
+        },
+        {
+          "id": "task-7-2",
+          "title": "Implement metrics collection in orchestrator",
+          "description": "Instrument orchestrator to capture metrics at key points",
+          "acceptance": [
+            "Iteration start/end timestamps recorded",
+            "Agent completion latency calculated (BLPOP duration)",
+            "Consensus scores logged per iteration",
+            "Retry and timeout events counted",
+            "Metrics stored in swarm:{task}:metrics:{metric-name}"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh"
+          ],
+          "agents": ["backend-dev"],
+          "estimatedEffort": "5 hours"
+        },
+        {
+          "id": "task-7-3",
+          "title": "Create metrics-export.sh script",
+          "description": "Export collected metrics in standard formats",
+          "acceptance": [
+            "metrics-export.sh --task-id <id> --format <prometheus|json|otlp>",
+            "Prometheus format: counter, gauge, histogram metrics",
+            "JSON format: structured metrics with timestamps",
+            "Optional push to remote endpoint (--push-gateway)",
+            "Supports time-range filtering (--since, --until)"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/metrics-export.sh"
+          ],
+          "agents": ["backend-dev", "devops-engineer"],
+          "estimatedEffort": "4 hours"
+        },
+        {
+          "id": "task-7-4",
+          "title": "Build metrics dashboard example",
+          "description": "Create example Grafana dashboard JSON for visualizing CFN Loop metrics",
+          "acceptance": [
+            "Dashboard shows iteration duration trends",
+            "Panel for consensus convergence over iterations",
+            "Agent latency heatmap",
+            "Timeout and retry counts per agent",
+            "Import instructions in SKILL.md"
+          ],
+          "files": [
+            ".claude/skills/redis-coordination/examples/grafana-dashboard.json",
+            ".claude/skills/redis-coordination/SKILL.md"
+          ],
+          "agents": ["devops-engineer"],
+          "estimatedEffort": "4 hours"
+        }
+      ],
+      "deliverables": [
+        "Metrics schema specification",
+        "Instrumented orchestrator with metrics collection",
+        "metrics-export.sh utility",
+        "Grafana dashboard example"
+      ],
+      "dependencies": ["phase-1", "phase-2", "phase-5"]
+    }
+  ],
+  "deliverables": {
+    "code": [
+      ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (enhanced)",
+      ".claude/skills/redis-coordination/invoke-waiting-mode.sh (enhanced)",
+      ".claude/skills/redis-coordination/query-dlq.sh",
+      ".claude/skills/redis-coordination/get-agent-timeout.sh",
+      ".claude/skills/redis-coordination/heartbeat.sh",
+      ".claude/skills/redis-coordination/cancel-swarm.sh",
+      ".claude/skills/redis-coordination/metrics-export.sh"
+    ],
+    "tests": [
+      ".claude/skills/redis-coordination/test-quorum.sh",
+      ".claude/skills/redis-coordination/test-retry.sh",
+      ".claude/skills/redis-coordination/test-heartbeat.sh",
+      ".claude/skills/redis-coordination/test-shutdown.sh",
+      ".claude/skills/redis-coordination/test-metrics.sh"
+    ],
+    "documentation": [
+      ".claude/skills/redis-coordination/SKILL.md (updated)",
+      ".claude/skills/redis-coordination/examples/grafana-dashboard.json",
+      ".claude/skills/redis-coordination/metrics-schema.json"
+    ],
+    "configuration": [
+      ".claude/skills/redis-coordination/config.json (v2.0.0)"
+    ]
+  },
+  "testing": {
+    "unit": [
+      "Retry mechanism with exponential backoff",
+      "Quorum calculation (absolute and percentage)",
+      "Per-agent timeout resolution",
+      "Priority queue ordering",
+      "Heartbeat TTL expiry",
+      "Shutdown signal propagation"
+    ],
+    "integration": [
+      "Full CFN Loop with quorum fallback (6/7 agents)",
+      "Retry + quorum combined scenario",
+      "Priority wake-up ordering validation",
+      "Heartbeat monitoring during long tasks",
+      "Graceful shutdown during iteration",
+      "End-to-end metrics collection and export"
+    ],
+    "performance": [
+      "10-agent swarm with heartbeat overhead",
+      "Priority queue wake-up latency (<100ms)",
+      "Metrics collection impact on orchestration"
+    ]
+  },
+  "rollback": {
+    "strategy": "Feature flags in config.json",
+    "flags": [
+      "enableRetry (default: true)",
+      "enableQuorum (default: false - opt-in)",
+      "enablePriorityWake (default: false)",
+      "enableHeartbeat (default: true)",
+      "enableMetrics (default: true)"
+    ],
+    "backwardCompatibility": "All enhancements backward compatible with v1.4.0 orchestration"
+  },
+  "successCriteria": [
+    "All 7 phases complete with passing tests",
+    "Zero breaking changes to existing CFN Loop workflows",
+    "Documentation updated with examples for each enhancement",
+    "Performance impact <5% overhead vs baseline",
+    "Metrics dashboard successfully deployed and validated"
+  ]
+}

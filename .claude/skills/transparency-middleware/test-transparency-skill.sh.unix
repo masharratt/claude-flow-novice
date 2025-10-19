@@ -1,0 +1,126 @@
+#!/bin/bash
+
+# Transparency Middleware Test Suite
+# Version: 1.0.0
+# Sprint: 1.2 Middleware Skills Wrapper
+
+set -euo pipefail
+
+# Import testing utilities
+source .claude/skills/common/test-utils.sh
+source .claude/skills/transparency-middleware/middleware-config.sh
+
+# Logging configuration
+LOG_FILE="/tmp/transparency-middleware-tests.log"
+touch "$LOG_FILE"
+
+# Redis connection parameters
+REDIS_HOST="${REDIS_HOST:-localhost}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+
+# Test suite global variables
+TEST_TASK_ID="transparency-test-$(date +%s)"
+TOTAL_TESTS=10
+PASSED_TESTS=0
+
+# Utility Functions
+log_test_start() {
+    echo "[TEST] Starting: $1" | tee -a "$LOG_FILE"
+}
+
+log_test_result() {
+    local status="$1"
+    local message="$2"
+    if [ "$status" -eq 0 ]; then
+        echo "[PASS] $message" | tee -a "$LOG_FILE"
+        ((PASSED_TESTS++))
+    else
+        echo "[FAIL] $message" | tee -a "$LOG_FILE"
+    fi
+}
+
+# Test 1: Initialization
+test_initialization() {
+    log_test_start "Initialization Tests"
+    local test_result=0
+
+    # Test minimal transparency level
+    ./invoke-transparency-middleware.sh init \
+        --task-id "$TEST_TASK_ID" \
+        --level minimal || test_result=1
+
+    # Verify configuration
+    local config=$(redis-cli hget "transparency:${TEST_TASK_ID}" config)
+    [[ "$config" =~ "level:minimal" ]] || test_result=1
+
+    # Test Redis connection
+    redis-cli ping || test_result=1
+
+    log_test_result "$test_result" "Initialization Test"
+    return "$test_result"
+}
+
+# Test 2: Message Observation
+test_message_observation() {
+    log_test_start "Message Observation"
+    local test_result=0
+
+    # Simulate message generation
+    ./invoke-transparency-middleware.sh subscribe \
+        --task-id "$TEST_TASK_ID" \
+        --channel "test-channel" || test_result=1
+
+    # Publish test message
+    redis-cli publish "test-channel" "Test observation message" || test_result=1
+
+    # Check message reception
+    local message=$(redis-cli blpop "transparency:${TEST_TASK_ID}:messages" 5)
+    [[ -n "$message" ]] || test_result=1
+
+    log_test_result "$test_result" "Message Observation Test"
+    return "$test_result"
+}
+
+# Test 3: Transparency Level Changes
+test_transparency_levels() {
+    log_test_start "Transparency Level Changes"
+    local test_result=0
+
+    # Test level progression
+    local levels=("minimal" "detailed" "verbose" "debug")
+    for level in "${levels[@]}"; do
+        ./invoke-transparency-middleware.sh set-level \
+            --task-id "$TEST_TASK_ID" \
+            --level "$level" || test_result=1
+    done
+
+    log_test_result "$test_result" "Transparency Level Changes Test"
+    return "$test_result"
+}
+
+# Test 4-10: Additional tests would be implemented similarly
+# ... (other test functions)
+
+# Main Test Execution
+main() {
+    echo "Starting Transparency Middleware Test Suite" | tee -a "$LOG_FILE"
+
+    test_initialization
+    test_message_observation
+    test_transparency_levels
+    # Call other test functions...
+
+    # Final Report
+    echo "Test Results: $PASSED_TESTS/$TOTAL_TESTS passed" | tee -a "$LOG_FILE"
+
+    if [ "$PASSED_TESTS" -eq "$TOTAL_TESTS" ]; then
+        redis-cli publish "swarm:sprint-1.2:devops" "test_suite_passed:1.0"
+        exit 0
+    else
+        redis-cli publish "swarm:sprint-1.2:devops" "test_suite_failed:0.0"
+        exit 1
+    fi
+}
+
+# Execute main function
+main

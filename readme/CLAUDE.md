@@ -22,6 +22,20 @@
 
 ## Documentation Categories
 
+### V2 Core Documentation
+
+**[README.md](./README.md)**
+- v2 system overview, quick start guide
+- Skills-first architecture, zero-token coordination
+- CFN Loop consensus framework, cost optimization
+- Migration notes from v1
+
+**[log-skills.md](./log-skills.md)**
+- Complete skills system documentation
+- Available skills: Redis Coordination, Agent Spawning, CFN Loop Validation
+- Skill development guide, testing guidelines, coordination patterns
+- Performance metrics, troubleshooting, future enhancements
+
 ### CFN Loop Documentation
 
 **[CFN_LOOP_CHEATSHEET.md](./CFN_LOOP_CHEATSHEET.md)**
@@ -319,10 +333,20 @@ curl -X POST /endpoint -d '{"field":"value"}'
 
 ## Quick Navigation by Use Case
 
+### Getting Started with v2
+1. [README.md](./README.md) - v2 overview and quick start
+2. [log-skills.md](./log-skills.md) - Skills system fundamentals
+3. [CFN_LOOP_CHEATSHEET.md](./CFN_LOOP_CHEATSHEET.md) - Quick reference
+
 ### Getting Started with CFN Loop
 1. [CFN_LOOP_CHEATSHEET.md](./CFN_LOOP_CHEATSHEET.md) - Quick reference
 2. [cfn-loop-modes.md](./cfn-loop-modes.md) - Mode selection
 3. [cfn-loop-flow-diagram.md](./cfn-loop-flow-diagram.md) - Visual flow
+
+### Skills Development
+1. [log-skills.md](./log-skills.md) - Complete skills guide
+2. [logs-cli-redis.md](./logs-cli-redis.md) - Redis coordination patterns
+3. [logs-hooks.md](./logs-hooks.md) - Hook pipeline integration
 
 ### System Administration
 1. [logs-slash-commands.md](./logs-slash-commands.md) - CLI operations
@@ -332,8 +356,8 @@ curl -X POST /endpoint -d '{"field":"value"}'
 
 ### API Integration
 1. [logs-api.md](./logs-api.md) - REST/MCP/CLI APIs
-2. [logs-mcp.md](./logs-mcp.md) - MCP protocol
-3. [logs-hooks.md](./logs-hooks.md) - Hook integration
+2. [logs-hooks.md](./logs-hooks.md) - Hook integration
+3. [logs-functions.md](./logs-functions.md) - Utility functions
 
 ### Feature Discovery
 1. [logs-features.md](./logs-features.md) - Complete feature catalog
@@ -341,6 +365,10 @@ curl -X POST /endpoint -d '{"field":"value"}'
 3. [COMPONENT_INVENTORY_TABLE.md](./COMPONENT_INVENTORY_TABLE.md) - Complete system inventory
 4. [COMPONENT_NPM_STATUS.md](./COMPONENT_NPM_STATUS.md) - NPM package implementation status
 5. [CHANGELOG.md](./CHANGELOG.md) - Recent additions
+
+### Legacy Documentation
+1. [deprecated-logs-mcp.md](./deprecated-logs-mcp.md) - Historical MCP implementation
+2. [../legacy/readme-v1/](../legacy/readme-v1/) - Complete v1 documentation
 
 ## Maintenance
 

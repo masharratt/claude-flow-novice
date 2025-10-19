@@ -26,112 +26,175 @@ LOOP 3: Primary Swarm Execution (implementation with confidence scores)
 
 ## Execution Pattern
 
-**CRITICAL:** Use CFN Loop Coordinator agent with automatic orchestration.
+**MANDATORY: Spawn single coordinator agent that manages all orchestration internally.**
 
-### Step 1: Spawn CFN Loop Coordinator (MANDATORY)
+The coordinator uses CLI spawning (95-98% cost savings) and provides full visibility via web portal.
 
-```javascript
-// CTO spawns coordinator agent - DO NOT spawn implementers directly
-Task("CFN Loop Coordinator", `
-  Execute CFN Loop for task: $ARGUMENTS
-
-  MANDATORY: Use orchestrator script for dependency enforcement.
-
-  ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
-    --task-id "cfn-$(date +%s)" \
-    --mode standard \
-    --loop3-agents "researcher,backend-dev,devops" \
-    --loop2-agents "reviewer,architect,tester" \
-    --product-owner "product-owner" \
-    --max-iterations 10
-
-  The orchestrator will:
-  - Spawn all agents automatically
-  - Enforce BLPOP dependency blocking
-  - Collect consensus after validators finish
-  - Wake agents for next iteration if needed
-  - Report final result
-
-  DO NOT spawn agents manually with Task().
-`, "cfn-loop-coordinator")
-```
-
-### Alternative: Manual Spawning (NOT RECOMMENDED)
-
-If you must spawn agents manually (NOT recommended), follow this pattern:
-
-### Step 2: Execute - Primary Swarm (Loop 3)
-```javascript
-// Spawn ALL agents in ONE message
-Task("Coder 1", `
-  Implementation task...
-
-  MANDATORY: After EVERY file edit, run:
-  node config/hooks/post-edit-pipeline.js "[FILE_PATH]" --memory-key "swarm/coder-1/step-1"
-
-  Report confidence score when complete.
-`, "coder")
-
-Task("Tester 1", "...", "tester")
-Task("Backend Dev 1", "...", "backend-dev")
-```
-
-### Step 3: Self-Assessment Gate
-- Collect confidence scores from ALL agents
-- **PASS** (all ≥75%) → Proceed to Step 4
-- **FAIL** (any <75%) → IMMEDIATELY relaunch Loop 3 with targeted agents (NO approval)
-
-### Step 4: Verify - Consensus Swarm
-**CRITICAL**: Spawn validators in SEPARATE message AFTER implementation complete:
+### Step 1: Spawn Coordinator Agent (SINGLE AGENT PATTERN)
 
 ```javascript
-// MESSAGE 2: Validators (AFTER implementation)
-mcp__claude-flow-novice__swarm_init({
-  topology: "mesh",
-  maxAgents: 3,
-  strategy: "balanced"
-})
+Task("cost-savings-cfn-loop-coordinator", `
+  CFN LOOP SINGLE TASK EXECUTION
 
-Task("Validator 1", "Review completed work at [files]", "reviewer")
-Task("Validator 2", "Security audit of implementation", "security-specialist")
-Task("Validator 3", "Architecture validation", "system-architect")
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COST OPTIMIZATION - CUSTOM ROUTING (CRITICAL)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  IMPORTANT: Enable custom routing for maximum cost savings!
+
+  1. Enable routing (one-time setup):
+     /custom-routing-activate
+
+  2. Verify status:
+     /switch-api status
+
+  Cost Breakdown (per iteration):
+  ┌─────────────────────┬──────────────┬────────────┐
+  │ Component           │ Provider     │ Cost/Call  │
+  ├─────────────────────┼──────────────┼────────────┤
+  │ Main Chat           │ Anthropic    │ $0.015     │
+  │ Coordinator (Task)  │ Anthropic    │ $0.015     │
+  │ Loop 3 Agents (CLI) │ Z.ai         │ $0.003 ea  │
+  │ Loop 2 Agents (CLI) │ Z.ai         │ $0.003 ea  │
+  │ Product Owner (CLI) │ Z.ai         │ $0.003     │
+  └─────────────────────┴──────────────┴────────────┘
+
+  Expected Savings:
+  • WITH custom routing:    ~64% cost reduction
+  • WITHOUT custom routing: Full Anthropic pricing
+  • Combined with CLI:      95-98% vs all-Task-tool
+
+  Key Concept:
+  - Task() agents use Main Chat provider (Anthropic)
+  - CLI-spawned agents use custom routing (Z.ai when enabled)
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TASK SPECIFICATION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Task Description: $ARGUMENTS
+  Task ID: cfn-single-$(date +%s)
+  Mode: STANDARD (gate: 0.75, consensus: 0.90)
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SUCCESS CRITERIA (REQUIRED - CUSTOMIZE FOR TASK)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Acceptance Criteria:
+  - [ ] Core functionality implemented
+  - [ ] Tests pass with >80% coverage
+  - [ ] Code reviewed for security
+  - [ ] Documentation complete
+  - [ ] No breaking changes
+
+  Quality Gates:
+  - Loop 3 Gate Threshold: 0.75 (standard mode)
+  - Loop 2 Consensus Threshold: 0.90 (standard mode)
+  - Max Loop 3 Iterations: 10
+  - Max Loop 2 Iterations: 10
+
+  Definition of Done:
+  - All acceptance criteria checked
+  - Consensus ≥0.90 achieved
+  - Product Owner approval
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  AGENT CONFIGURATION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Loop 3 Agents (Implementation):
+  - researcher (requirement analysis)
+  - backend-dev (implementation)
+  - devops (deployment/infrastructure)
+
+  Loop 2 Agents (Validation):
+  - reviewer (code review)
+  - architect (design validation)
+  - tester (quality assurance)
+  - security-specialist (security audit)
+
+  Product Owner: product-owner (GOAP decision-making)
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EXECUTION INSTRUCTIONS
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. INVOKE ORCHESTRATOR:
+     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
+       --task-id "cfn-single-$(date +%s)" \\
+       --mode standard \\
+       --loop3-agents "researcher,backend-dev,devops" \\
+       --loop2-agents "reviewer,architect,tester,security-specialist" \\
+       --product-owner "product-owner" \\
+       --max-iterations 10
+
+  2. MONITOR PROGRESS:
+     - Web portal: http://localhost:3000
+     - CLI metrics: ./.claude/skills/web-portal/invoke-portal-agents.sh
+     - Event stream: ./.claude/skills/web-portal/invoke-portal-events.sh
+
+  3. REPORT STRUCTURED RESULT:
+     {
+       "taskId": "cfn-single-XXXXX",
+       "status": "complete|failed",
+       "iterations": {"loop3": N, "loop2": M},
+       "finalConsensus": 0.XX,
+       "acceptanceCriteria": {
+         "met": ["Core functionality", "Tests passing", ...],
+         "pending": ["Documentation"]
+       },
+       "recommendations": [...]
+     }
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CRITICAL RULES
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  - DO NOT spawn agents with Task()
+  - LET orchestrator handle CLI spawning
+  - USE Redis BLPOP for dependencies
+  - PUBLISH events to web-portal channel
+  - RETURN structured result to Main Chat
+`, "cost-savings-cfn-loop-coordinator")
 ```
 
-### Step 5: Product Owner Decision Gate (GOAP)
-```javascript
-Task("Product Owner", `
-  GOAP DECISION EXECUTION - Loop 2 Iteration ${iteration}/10
+### Step 2: Coordinator Autonomous Execution
 
-  CURRENT STATE:
-  - Consensus: ${consensusScore} (target: ≥0.90)
-  - Validator concerns: ${JSON.stringify(concerns)}
+The coordinator runs orchestrator script internally:
 
-  RETRIEVE SCOPE:
-  mcp__claude-flow-novice__memory_usage({
-    action: "retrieve",
-    namespace: "scope-control",
-    key: "project-boundaries"
-  })
+**Loop 3: Implementation**
+- Spawns agents via CLI: `npx claude-flow-novice agent <type>`
+- Collects confidence scores
+- Gate check (≥0.75): PASS → Wake Loop 2 | FAIL → Iterate
 
-  EXECUTE GOAP A* SEARCH:
-  1. Classify concerns: in-scope vs out-of-scope
-  2. Generate action space with cost functions
-  3. Run A* pathfinding
-  4. Make autonomous decision
+**Loop 2: Validation**
+- **WAITS** for Loop 3 gate pass (Redis BLPOP)
+- Spawns validators via CLI
+- Collects consensus scores
+- Consensus check (≥0.90): PASS → Complete | FAIL → Iterate
 
-  OUTPUT: {decision: "PROCEED|DEFER|ESCALATE", ...}
-`, "product-owner")
+**Loop 1: Product Owner**
+- GOAP decision-making
+- Returns structured result to Main Chat
+
+### Step 3: Visibility via Web Portal
+
+**Monitor execution:**
+```bash
+# Start web portal (if not running)
+./.claude/skills/web-portal/invoke-portal-start.sh
+
+# View agents
+./.claude/skills/web-portal/invoke-portal-agents.sh --status active
+
+# Track events
+./.claude/skills/web-portal/invoke-portal-events.sh --limit 50
+
+# Get metrics
+./.claude/skills/web-portal/invoke-portal-metrics.sh
 ```
 
-**Decision Outcomes:**
-- **PROCEED** → IMMEDIATELY relaunch Loop 3 with targeted agents (NO approval)
-- **DEFER** → Save to backlog, approve phase
-- **ESCALATE** → Generate alternatives (rare)
-
-### Step 6: Action Based on Decision
-- **PROCEED** → Spawn Loop 3 swarm with Product Owner's agent selections
-- **DEFER** → Transition to next phase (if applicable)
-- **ESCALATE** → Only STOP if critical error
+**Web UI:** http://localhost:3000 (real-time updates)
 
 ## Autonomous Execution Rules
 

@@ -10,7 +10,7 @@ tools: ["Bash", "Read", "TodoWrite"]
 
 **Role:** Orchestrate multi-loop CFN execution with CLI-based agent spawning for 95-98% cost savings.
 
-**CRITICAL:** This agent uses CLI spawning (`npx claude-flow-spawn`) instead of Task tool - COST_SAVINGS_MODE=yes required.
+**CRITICAL:** This agent uses orchestrator script with CLI spawning (`npx claude-flow-novice`) instead of Task tool. Automatically selected by `/cfn-loop`, `/cfn-loop-single`, and `/cfn-loop-epic` slash commands in v2.
 
 ## Execution Pattern
 
@@ -24,62 +24,30 @@ tools: ["Bash", "Read", "TodoWrite"]
 - Max iterations
 ```
 
-### Step 2: CLI-Based Orchestration
+### Step 2: Invoke Orchestrator Script
 ```bash
-# COST-OPTIMIZED: Use CLI spawning for all agents
+# COST-OPTIMIZED: Use orchestrator script for all CFN Loop execution
+# Orchestrator handles all agent spawning via CLI internally
 
-# Loop 3: Implementers (spawn via CLI)
-npx claude-flow-spawn \
-  "Implement feature X - researcher" \
-  --agents=researcher \
-  --provider zai \
-  --redis-channel "swarm:cfn-loop:loop3"
-
-npx claude-flow-spawn \
-  "Implement feature X - backend-dev" \
-  --agents=backend-dev \
-  --provider zai \
-  --redis-channel "swarm:cfn-loop:loop3"
-
-npx claude-flow-spawn \
-  "Implement feature X - devops" \
-  --agents=devops \
-  --provider zai \
-  --redis-channel "swarm:cfn-loop:loop3"
-
-# Wait for Loop 3 completion via Redis BLPOP
-./.claude/skills/redis-coordination/wait-for-completion.sh \
+./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
   --task-id "$TASK_ID" \
-  --agents "researcher,backend-dev,devops"
+  --mode standard \
+  --loop3-agents "researcher,backend-dev,devops" \
+  --loop2-agents "reviewer,architect,tester,security-specialist" \
+  --product-owner "product-owner" \
+  --max-iterations 10
 
-# Loop 2: Validators (spawn via CLI)
-npx claude-flow-spawn \
-  "Validate feature X - reviewer" \
-  --agents=reviewer \
-  --provider zai \
-  --redis-channel "swarm:cfn-loop:loop2"
-
-npx claude-flow-spawn \
-  "Validate feature X - architect" \
-  --agents=architect \
-  --provider zai \
-  --redis-channel "swarm:cfn-loop:loop2"
-
-npx claude-flow-spawn \
-  "Validate feature X - tester" \
-  --agents=tester \
-  --provider zai \
-  --redis-channel "swarm:cfn-loop:loop2"
-
-# Wait for Loop 2 completion
-./.claude/skills/redis-coordination/wait-for-completion.sh \
-  --task-id "$TASK_ID" \
-  --agents "reviewer,architect,tester"
-
-# Collect consensus
-CONSENSUS=$(./.claude/skills/redis-coordination/collect-consensus.sh \
-  --task-id "$TASK_ID" \
-  --agents "reviewer,architect,tester")
+# Orchestrator internally:
+# 1. Spawns Loop 3 agents via CLI: npx claude-flow-novice agent <type>
+# 2. Collects confidence scores
+# 3. Checks gate threshold (≥0.75 for standard mode)
+# 4. IF gate passes → Signal Loop 2 to start
+# 5. IF gate fails → Wake Loop 3 for iteration N+1
+# 6. Spawns Loop 2 agents via CLI (BLOCKED until gate passes via BLPOP)
+# 7. Collects consensus scores
+# 8. Checks consensus threshold (≥0.90 for standard mode)
+# 9. IF consensus reached → Complete
+# 10. IF consensus fails → Wake all agents for iteration N+1
 ```
 
 **Why CLI Spawning:**
@@ -87,27 +55,25 @@ CONSENSUS=$(./.claude/skills/redis-coordination/collect-consensus.sh \
 - 95-98% cost savings per iteration
 - Same functionality, lower cost
 
-### Step 3: Iteration Management
+### Step 3: Monitor Progress via Web Portal
 
 ```bash
-ITERATION=1
-MAX_ITERATIONS=10
-CONSENSUS_THRESHOLD=0.90
+# Real-time monitoring (orchestrator handles iteration management)
 
-while (( ITERATION <= MAX_ITERATIONS )); do
-  echo "=== Iteration $ITERATION/$MAX_ITERATIONS ==="
+# View all agents
+./.claude/skills/web-portal/invoke-portal-agents.sh --swarm "$TASK_ID"
 
-  # Spawn Loop 3 agents via CLI
-  # Spawn Loop 2 agents via CLI
-  # Collect consensus
+# Track events
+./.claude/skills/web-portal/invoke-portal-events.sh --phase "$PHASE_NAME"
 
-  if (( $(echo "$CONSENSUS >= $CONSENSUS_THRESHOLD" | bc -l) )); then
-    echo "✅ CONSENSUS REACHED ($CONSENSUS >= $CONSENSUS_THRESHOLD)"
-    break
-  fi
+# Get consensus metrics
+./.claude/skills/web-portal/invoke-portal-metrics.sh --view consensus
 
-  ITERATION=$((ITERATION + 1))
-done
+# Web UI: http://localhost:3000
+# - Agent hierarchy and status
+# - Confidence/consensus scores
+# - Event timeline
+# - Real-time WebSocket updates
 ```
 
 ## Agent Instructions Template
@@ -152,35 +118,53 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 ## Error Handling
 
-If CLI spawning fails:
-1. Check `npx claude-flow-spawn` command exists
-2. Verify z.ai provider configuration
+If orchestrator fails:
+1. Check orchestrator script exists: `./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh`
+2. Verify CLI command works: `npx claude-flow-novice agent --help`
 3. Check Redis is running: `redis-cli ping`
 4. Review agent completion signals: `redis-cli KEYS "swarm:*:done"`
-5. Verify skill wrappers exist in `.claude/skills/redis-coordination/`
+5. Monitor web portal for agent status: http://localhost:3000
 
 ## Forbidden Patterns
 
-❌ **NEVER** use Task tool:
+❌ **NEVER** spawn agents directly (Task tool or manual CLI):
 ```javascript
-// FORBIDDEN - expensive Claude Max agents
+// FORBIDDEN - Manual Task tool spawning
 Task("Coder", "...")
 Task("Reviewer", "...")
 ```
 
-✅ **ALWAYS** use CLI spawning:
 ```bash
-# CORRECT - cost-optimized z.ai workers
-npx claude-flow-spawn "Task" --agents=coder --provider zai
+# FORBIDDEN - Manual CLI spawning
+npx claude-flow-novice agent coder --task "..."
+npx claude-flow-novice agent reviewer --task "..."
+```
+
+✅ **ALWAYS** use orchestrator script:
+```bash
+# CORRECT - Orchestrator manages all agent spawning
+./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+  --task-id "$TASK_ID" \
+  --mode standard \
+  --loop3-agents "researcher,backend-dev,devops" \
+  --loop2-agents "reviewer,architect,tester" \
+  --product-owner "product-owner"
 ```
 
 ## Integration with Slash Commands
 
-When invoked via `/cfn-loop` with COST_SAVINGS_MODE=yes:
-1. Main chat spawns this coordinator agent
-2. Coordinator uses CLI spawning for all Loop 3 and Loop 2 agents
-3. Redis coordination handles BLPOP blocking between loops
-4. Consensus collection triggers next iteration or completion
+When invoked via `/cfn-loop`, `/cfn-loop-single`, or `/cfn-loop-epic` (v2):
+1. Main chat spawns this coordinator agent (single Task() call)
+2. Coordinator receives structured parameters from slash command:
+   - Task specification (description, task ID, mode)
+   - Success criteria (acceptance criteria, quality gates, definition of done)
+   - Orchestration configuration (Loop 3 agents, Loop 2 agents, Product Owner)
+   - Execution instructions (max iterations, thresholds)
+3. Coordinator invokes orchestrator script internally
+4. Orchestrator spawns all agents via CLI (npx claude-flow-novice)
+5. Redis BLPOP coordination handles dependencies between loops
+6. Web portal provides real-time visibility
+7. Coordinator returns structured result to Main Chat
 
 ## Deliverable
 
@@ -203,4 +187,4 @@ Final output format:
 
 ---
 
-**Note:** This coordinator requires COST_SAVINGS_MODE=yes in root CLAUDE.md. For standard Task tool-based CFN Loop, use `cfn-loop-coordinator` instead.
+**Note:** This coordinator is automatically selected by CFN Loop slash commands in v2. It uses orchestrator script for all agent spawning, providing 95-98% cost savings vs Task tool coordination.

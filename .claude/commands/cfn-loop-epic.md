@@ -90,71 +90,203 @@ mcp__claude-flow-novice__memory_usage({
 
 ## Phase Execution (Loop 1)
 
-For EACH phase in epic:
+**MANDATORY: Spawn single coordinator agent that manages ALL phases autonomously.**
 
-### Phase Initialization
-1. Check dependencies satisfied
-2. Load scope boundaries from memory
-3. Initialize swarm for phase
-4. Execute Loop 2 & Loop 3 (as defined in /cfn-loop command)
+The coordinator uses CLI spawning per phase and provides full visibility via web portal.
 
-### Phase Pattern (MANDATORY Coordinator Pattern)
-
-**CRITICAL:** Use CFN Loop Coordinator agent with automatic orchestration.
+### Epic Pattern (SINGLE COORDINATOR FOR ALL PHASES)
 
 ```javascript
-// PHASE 1: User Authentication - Spawn coordinator (DO NOT spawn implementers directly)
-Task("CFN Loop Coordinator", `
-  Execute CFN Loop for Phase ${phaseId}: ${phaseName}
+Task("cost-savings-cfn-loop-coordinator", `
+  CFN LOOP EPIC EXECUTION - MULTI-PHASE
 
-  MANDATORY: Use orchestrator script for dependency enforcement.
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COST OPTIMIZATION - CUSTOM ROUTING (CRITICAL)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
-    --task-id "phase-${phaseId}-$(date +%s)" \
-    --mode standard \
-    --loop3-agents "backend-dev,frontend-dev,devops" \
-    --loop2-agents "reviewer,architect,tester,security-specialist" \
-    --product-owner "product-owner" \
-    --max-iterations 10
+  ⚠️  IMPORTANT: Enable custom routing for maximum cost savings!
 
-  The orchestrator will:
-  - Spawn all agents automatically
-  - Enforce BLPOP dependency blocking
-  - Collect consensus after validators finish
-  - Wake agents for next iteration if needed
-  - Report final result
+  1. Enable routing (one-time setup):
+     /custom-routing-activate
 
-  DO NOT spawn agents manually with Task().
-`, "cfn-loop-coordinator")
+  2. Verify status:
+     /switch-api status
 
-// Self-Assessment Gate → Consensus → Product Owner → Action
-// All handled by orchestrator
+  Cost Breakdown (PER PHASE, per iteration):
+  ┌─────────────────────┬──────────────┬────────────┐
+  │ Component           │ Provider     │ Cost/Call  │
+  ├─────────────────────┼──────────────┼────────────┤
+  │ Main Chat           │ Anthropic    │ $0.015     │
+  │ Coordinator (Task)  │ Anthropic    │ $0.015     │
+  │ Loop 3 Agents (CLI) │ Z.ai         │ $0.003 ea  │
+  │ Loop 2 Agents (CLI) │ Z.ai         │ $0.003 ea  │
+  │ Product Owner (CLI) │ Z.ai         │ $0.003     │
+  └─────────────────────┴──────────────┴────────────┘
 
-// If Phase 1 consensus ≥90% → AUTO-TRANSITION to Phase 2
+  Epic Cost Example (3 phases, 2 iterations each):
+  • WITH custom routing:    ~$0.30 total
+  • WITHOUT custom routing: ~$0.90 total
+  • SAVINGS: ~67% cost reduction
+
+  Key Concept:
+  - Task() agents use Main Chat provider (Anthropic)
+  - CLI-spawned agents use custom routing (Z.ai when enabled)
+  - Cost multiplies by number of phases and iterations
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EPIC SPECIFICATION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Epic Goal: $ARGUMENTS
+  Epic ID: epic-$(date +%s)
+  Mode: STANDARD (gate: 0.75, consensus: 0.90)
+
+  Phases:
+  ${epicPhases.map((p, i) =>
+    \`  Phase \${i+1}: \${p.name}
+    - Deliverables: \${p.deliverables.join(', ')}
+    - Dependencies: \${p.dependencies.join(', ') || 'None'}
+    - Estimated agents: \${p.estimated_agents}\`
+  ).join('\n')}
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EPIC-LEVEL SUCCESS CRITERIA
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Scope Boundaries (CRITICAL - ENFORCE STRICTLY):
+
+  In Scope:
+  - ${inScopeItems.join('\n  - ')}
+
+  Out of Scope (DEFER TO BACKLOG):
+  - ${outOfScopeItems.join('\n  - ')}
+
+  Epic-Level Acceptance Criteria:
+  - [ ] All phases complete with consensus ≥0.90
+  - [ ] All deliverables implemented
+  - [ ] Integration tests pass
+  - [ ] Security audit complete
+  - [ ] Documentation updated
+  - [ ] No scope creep (out-of-scope items deferred)
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PHASE-BY-PHASE EXECUTION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  For EACH phase:
+
+  1. CHECK DEPENDENCIES:
+     - Verify all dependency phases complete
+     - Load previous phase results from memory
+
+  2. STORE SCOPE BOUNDARIES:
+     mcp__claude-flow-novice__memory_usage({
+       action: "store",
+       namespace: "scope-control",
+       key: "epic-${EPIC_ID}-scope",
+       value: JSON.stringify({
+         inScope: [...],
+         outOfScope: [...],
+         decisionAuthority: {...}
+       })
+     })
+
+  3. INVOKE ORCHESTRATOR FOR PHASE:
+     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
+       --task-id "phase-${PHASE_ID}-$(date +%s)" \\
+       --mode standard \\
+       --loop3-agents "backend-dev,frontend-dev,devops" \\
+       --loop2-agents "reviewer,architect,tester,security-specialist" \\
+       --product-owner "product-owner" \\
+       --max-iterations 10
+
+  4. STORE PHASE RESULTS:
+     mcp__claude-flow-novice__memory_usage({
+       action: "store",
+       namespace: "epic-progress",
+       key: "phase-${PHASE_ID}-results",
+       value: JSON.stringify({
+         consensus: 0.XX,
+         deliverables: [...],
+         timestamp: Date.now()
+       })
+     })
+
+  5. AUTO-TRANSITION:
+     IF phase consensus ≥0.90 AND dependencies satisfied:
+       IMMEDIATELY start next phase (NO approval needed)
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MONITORING & VISIBILITY
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Web Portal: http://localhost:3000
+
+  Per-Phase Monitoring:
+  - Agents: ./.claude/skills/web-portal/invoke-portal-agents.sh --swarm phase-${PHASE_ID}
+  - Events: ./.claude/skills/web-portal/invoke-portal-events.sh --phase phase-${PHASE_ID}
+  - Metrics: ./.claude/skills/web-portal/invoke-portal-metrics.sh
+
+  Epic Progress:
+  - Query memory for phase results
+  - Track consensus trends
+  - Monitor scope adherence
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FINAL EPIC REPORT
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Return structured result to Main Chat:
+  {
+    "epicId": "epic-XXXXX",
+    "status": "complete|partial|failed",
+    "phases": [
+      {
+        "phaseId": "phase-1",
+        "name": "User Authentication",
+        "status": "complete",
+        "consensus": 0.94,
+        "iterations": {"loop3": 2, "loop2": 1},
+        "deliverables": ["Login API", "JWT generation", ...]
+      },
+      ...
+    ],
+    "deferredItems": [
+      "OAuth integration (out-of-scope)",
+      "Biometric auth (out-of-scope)"
+    ],
+    "recommendations": [...]
+  }
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CRITICAL RULES
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  - DO NOT spawn agents with Task()
+  - LET orchestrator handle CLI spawning per phase
+  - USE memory for scope enforcement
+  - AUTO-TRANSITION between phases (no approval)
+  - DEFER out-of-scope items to backlog
+  - PUBLISH events per phase
+  - RETURN epic summary when complete
+`, "cost-savings-cfn-loop-coordinator")
 ```
 
-### Alternative: Manual Spawning (NOT RECOMMENDED)
+### Coordinator Autonomous Multi-Phase Execution
 
-If you must spawn agents manually (NOT recommended), follow this pattern:
+**Phase Iteration:**
+For each phase, coordinator:
+1. Checks dependencies satisfied
+2. Loads scope boundaries
+3. Invokes orchestrator for phase
+4. Monitors via web portal
+5. Stores phase results
+6. Auto-transitions to next phase
 
-```javascript
-mcp__claude-flow-novice__swarm_init({
-  topology: "mesh",
-  maxAgents: 5,
-  strategy: "balanced"
-})
-
-Task("Coder 1", `
-  Implement JWT generation...
-
-  MANDATORY: After EVERY file edit:
-  node config/hooks/post-edit-pipeline.js "[FILE_PATH]" --memory-key "swarm/auth/coder-1"
-
-  Report confidence score.
-`, "backend-dev")
-
-// ... more agents
-```
+**Visibility per Phase:**
+- Web UI shows all phases, current phase highlighted
+- Event stream filtered by phase ID
+- Metrics track per-phase consensus trends
 
 ### Phase Transition Logic
 ```javascript

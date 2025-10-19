@@ -1,0 +1,60 @@
+{
+  "skillName": "fleet-manager",
+  "version": "1.0.0",
+  "status": "operational",
+  "description": "Resource allocation, performance monitoring, and load balancing for distributed agent swarms",
+  "capabilities": [
+    "agent-registration",
+    "resource-allocation",
+    "performance-metrics",
+    "load-balancing"
+  ],
+  "resourceTiers": {
+    "shared": {
+      "cpu": 0.5,
+      "memory": 512,
+      "useCase": "Lightweight tasks, research, documentation"
+    },
+    "dedicated": {
+      "cpu": 2.0,
+      "memory": 2048,
+      "useCase": "Backend development, testing, code analysis"
+    },
+    "premium": {
+      "cpu": 4.0,
+      "memory": 4096,
+      "useCase": "CFN Loop validation, compilation, heavy processing"
+    }
+  },
+  "scripts": [
+    "invoke-fleet-register.sh",
+    "invoke-fleet-allocate.sh",
+    "invoke-fleet-metrics.sh",
+    "invoke-fleet-balance.sh",
+    "test-fleet-manager.sh"
+  ],
+  "dependencies": {
+    "redis": "required",
+    "jq": "required",
+    "bc": "required"
+  },
+  "integrations": [
+    "redis-coordination",
+    "agent-spawning",
+    "cfn-loop-validation"
+  ],
+  "performance": {
+    "registrationLatency": "<50ms",
+    "allocationLatency": "<100ms",
+    "metricsLatency": "<30ms",
+    "balancingLatency": "<200ms"
+  },
+  "scalability": {
+    "maxConcurrentAgents": 100,
+    "maxResourcePool": {
+      "cpu": 400,
+      "memory": 409600
+    },
+    "metricsCollectionRate": "1Hz"
+  }
+}

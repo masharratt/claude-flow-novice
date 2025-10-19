@@ -70,94 +70,195 @@ LOOP 3: Primary Swarm Execution with subtask iterations
 
 ## Execution Pattern
 
-### Step 1: Determine Coordinator Mode (MANDATORY)
+**MANDATORY: Spawn single coordinator agent that manages all orchestration internally.**
+
+The coordinator uses CLI spawning (95-98% cost savings) and provides full visibility via web portal.
+
+### Step 1: Parse Command Arguments
+
+Extract parameters from command:
+- `--mode=mvp|standard|enterprise` (default: standard)
+- `--phase=<name>` (optional phase identifier)
+- `--max-loop2=<n>` (max consensus iterations, default: 10)
+- `--max-loop3=<n>` (max implementation iterations, default: 10)
+
+### Step 2: Spawn Coordinator Agent (SINGLE AGENT PATTERN)
+
 ```javascript
-// Determine coordinator based on mode flag
-const mode = args.includes('--mode=mvp') ? 'mvp' : 
-             args.includes('--mode=enterprise') ? 'enterprise' : 'standard';
+Task("cost-savings-cfn-loop-coordinator", `
+  CFN LOOP EXECUTION - STRUCTURED PARAMETERS
 
-const coordinatorConfig = {
-  mvp: {
-    name: 'cfn-coordinator-mvp',
-    instructions: 'config/cfn-loop/instructions/mvp-instructions.md',
-    gateThreshold: 0.70,
-    consensusThreshold: 0.80,
-    validators: 2,
-    maxIterations: 5
-  },
-  standard: {
-    name: 'cfn-coordinator-standard',
-    instructions: 'config/cfn-loop/instructions/standard-instructions.md',
-    gateThreshold: 0.75,
-    consensusThreshold: 0.90,
-    validators: 3,
-    maxIterations: 10
-  },
-  enterprise: {
-    name: 'cfn-coordinator-enterprise',
-    instructions: 'config/cfn-loop/instructions/enterprise-instructions.md',
-    gateThreshold: 0.85,
-    consensusThreshold: 0.95,
-    validators: 5,
-    maxIterations: 15
-  }
-};
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COST OPTIMIZATION - CUSTOM ROUTING (CRITICAL)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-const config = coordinatorConfig[mode];
+  ⚠️  IMPORTANT: Enable custom routing for maximum cost savings!
+
+  1. Enable routing (one-time setup):
+     /custom-routing-activate
+
+  2. Verify status:
+     /switch-api status
+
+  Cost Breakdown (per iteration):
+  ┌─────────────────────┬──────────────┬────────────┐
+  │ Component           │ Provider     │ Cost/Call  │
+  ├─────────────────────┼──────────────┼────────────┤
+  │ Main Chat           │ Anthropic    │ $0.015     │
+  │ Coordinator (Task)  │ Anthropic    │ $0.015     │
+  │ Loop 3 Agents (CLI) │ Z.ai         │ $0.003 ea  │
+  │ Loop 2 Agents (CLI) │ Z.ai         │ $0.003 ea  │
+  │ Product Owner (CLI) │ Z.ai         │ $0.003     │
+  └─────────────────────┴──────────────┴────────────┘
+
+  Expected Savings:
+  • WITH custom routing:    ~64% cost reduction
+  • WITHOUT custom routing: Full Anthropic pricing
+  • Combined with CLI:      95-98% vs all-Task-tool
+
+  Key Concept:
+  - Task() agents use Main Chat provider (Anthropic)
+  - CLI-spawned agents use custom routing (Z.ai when enabled)
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TASK SPECIFICATION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Task Description: ${taskDescription}
+  Phase Name: ${phaseName || 'default'}
+  Task ID: cfn-${phaseName}-$(date +%s)
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SUCCESS CRITERIA (REQUIRED)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Acceptance Criteria:
+  - [ ] Feature implements core functionality
+  - [ ] All tests pass with >80% coverage
+  - [ ] Security review completed
+  - [ ] Documentation updated
+  - [ ] No regression in existing features
+
+  Quality Gates:
+  - Loop 3 Gate Threshold: ${gateThreshold} (${mode} mode)
+  - Loop 2 Consensus Threshold: ${consensusThreshold} (${mode} mode)
+  - Max Loop 3 Iterations: ${maxLoop3}
+  - Max Loop 2 Iterations: ${maxLoop2}
+
+  Definition of Done:
+  - Consensus ≥${consensusThreshold} achieved
+  - All acceptance criteria met
+  - Product Owner approval received
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ORCHESTRATION CONFIGURATION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Mode: ${mode.toUpperCase()}
+
+  Loop 3 Agents (Implementation):
+  - ${loop3Agents.join('\n  - ')}
+
+  Loop 2 Agents (Validation):
+  - ${loop2Agents.join('\n  - ')}
+
+  Product Owner: product-owner
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EXECUTION INSTRUCTIONS
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. INVOKE ORCHESTRATOR:
+     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
+       --task-id "${taskId}" \\
+       --mode ${mode} \\
+       --loop3-agents "${loop3Agents.join(',')}" \\
+       --loop2-agents "${loop2Agents.join(',')}" \\
+       --product-owner "product-owner" \\
+       --max-iterations ${maxLoop2}
+
+  2. MONITOR PROGRESS:
+     - Use web portal: http://localhost:3000
+     - Query metrics: ./.claude/skills/web-portal/invoke-portal-metrics.sh
+     - Track events: ./.claude/skills/web-portal/invoke-portal-events.sh --phase ${phaseName}
+
+  3. REPORT RESULTS:
+     Return structured result to Main Chat:
+     {
+       "taskId": "${taskId}",
+       "phase": "${phaseName}",
+       "status": "complete|failed",
+       "iterations": {
+         "loop3": N,
+         "loop2": M
+       },
+       "finalConsensus": 0.XX,
+       "acceptanceCriteria": {
+         "met": [...],
+         "pending": [...]
+       },
+       "nextActions": [...]
+     }
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CRITICAL RULES
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  - DO NOT spawn agents manually with Task()
+  - LET orchestrator script handle all agent spawning via CLI
+  - USE Redis BLPOP for loop dependencies
+  - REPORT confidence/consensus after each iteration
+  - WAKE agents via invoke-waiting-mode.sh wake
+  - PUBLISH events to web-portal:events channel
+  - RETURN structured result when complete
+`, "cost-savings-cfn-loop-coordinator")
 ```
 
-### Step 2: Spawn Mode-Based Coordinator (MANDATORY)
-```javascript
-// Spawn appropriate coordinator with detailed instructions
-Task(`${config.name}`, `
-  COORDINATOR MODE: ${mode.toUpperCase()}
-  
-  INSTRUCTIONS PATH: ${config.instructions}
-  
-  CONFIGURATION:
-  - Gate Threshold: ${config.gateThreshold}
-  - Consensus Threshold: ${config.consensusThreshold}
-  - Validators: ${config.validators}
-  - Max Iterations: ${config.maxIterations}
-  
-  TASK: ${taskDescription}
-  PHASE: ${phaseName || 'default'}
-  
-  EXECUTE 3-LOOP COORDINATION:
-  1. Read detailed instructions from ${config.instructions}
-  2. Spawn appropriate workers for Loop 3
-  3. Execute validation in Loop 2
-  4. Make autonomous decisions in Loop 4
-  
-  RETURN-TO-CHAT TRIGGERS:
-  - Human decisions required (architectural changes, budget adjustments)
-  - Sprint completion (all phases finished)
-  - Critical technical blockers requiring expert intervention
-  
-  CONTINUE AUTONOMOUSLY for all other scenarios.
-`, "coordinator")
-```
+### Step 3: Coordinator Autonomous Execution
 
-### Step 3: Coordinator Executes Autonomous Loops
-The coordinator handles all loop execution internally:
+The coordinator runs the orchestrator script internally, which:
 
 **Loop 3: Implementation**
-```javascript
-// Coordinator spawns workers based on mode
-const workers = mode === 'mvp' ? 2 : mode === 'enterprise' ? 5 : 3;
-```
+- Spawns workers via CLI: `npx claude-flow-novice agent <agent-type>`
+- Each agent completes work and reports confidence
+- Orchestrator collects scores and checks gate threshold
+- **PASS** (≥${gateThreshold}) → Signal Loop 2 to start
+- **FAIL** (<${gateThreshold}) → Wake Loop 3 for iteration N+1
 
 **Loop 2: Validation**
-```javascript
-// Coordinator spawns validators based on mode
-const validators = config.validators;
+- **WAITS** for Loop 3 gate pass signal (Redis BLPOP)
+- Spawns validators via CLI
+- Each validator reviews and reports consensus score
+- Orchestrator collects scores and checks consensus threshold
+- **PASS** (≥${consensusThreshold}) → Task complete
+- **FAIL** (<${consensusThreshold}) → Wake all agents for iteration N+1
+
+**Loop 1: Product Owner**
+- Reviews final consensus and acceptance criteria
+- Makes autonomous go/no-go decision
+- Returns structured result to Main Chat
+
+### Step 4: Visibility via Web Portal
+
+**Real-time monitoring:**
+```bash
+# View all agents
+./.claude/skills/web-portal/invoke-portal-agents.sh --swarm cfn-${PHASE_NAME}
+
+# Track phase events
+./.claude/skills/web-portal/invoke-portal-events.sh --phase ${PHASE_NAME}
+
+# Get consensus metrics
+./.claude/skills/web-portal/invoke-portal-metrics.sh --view consensus
+
+# Dashboard summary
+./.claude/skills/web-portal/invoke-portal-dashboard.sh
 ```
 
-**Loop 4: Product Owner Decision**
-```javascript
-// Coordinator makes autonomous decisions
-// Returns to chat only for specific triggers
-```
+**Web UI:**
+- Navigate to http://localhost:3000
+- View agent hierarchy, confidence scores, event timeline
+- Real-time updates via WebSocket
 
 ## Return-to-Chat Triggers
 

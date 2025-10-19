@@ -59,17 +59,33 @@ Product Owner (GOAP Decision)
   ↓ Decision: PROCEED | RELAUNCH iteration N+1
 ```
 
-### Dependency Enforcement
+### Dependency Enforcement (CORRECTED - Self-Validation Pattern)
 ```bash
-# Loop 2 agents automatically BLOCK until Loop 3 completes
+# 1. Loop 3 agents complete and self-validate
 for agent in loop3-agents; do
-  redis-cli blpop "swarm:${TASK_ID}:${agent}:done" 0  # Infinite wait
+  redis-cli blpop "swarm:${TASK_ID}:${agent}:done" 0
 done
 
-# Product Owner automatically BLOCKS until Loop 2 completes
+# 2. Gate check on Loop 3 self-validation
+if gate_passed; then
+  # Signal Loop 2 validators to start
+  redis-cli lpush "swarm:${TASK_ID}:gate-passed" "{\"loop3_confidence\": $CONFIDENCE}"
+else
+  # Relaunch Loop 3 for iteration N+1 (skip Loop 2)
+  wake_loop3_agents
+  continue
+fi
+
+# 3. Loop 2 agents WAIT for gate pass signal
+# (Each validator blocks until gate passes)
+redis-cli blpop "swarm:${TASK_ID}:gate-passed" 0
+
+# 4. Loop 2 agents complete validation
 for validator in loop2-agents; do
   redis-cli blpop "swarm:${TASK_ID}:${validator}:done" 0
 done
+
+# 5. Product Owner makes decision based on Loop 2 consensus
 ```
 
 ### Usage

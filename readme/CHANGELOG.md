@@ -1,39 +1,55 @@
 # Claude Flow Novice Changelog
 
-## [Unreleased]
+## v2.0.0 - Skills-First Architecture (2025-10-18)
 
-### ✨ Added: CFN Loop Enforcement (Sprint 1.5)
+### 🚀 Major Release - Breaking Changes
 
-**Components:**
-- Validation hooks: Auto-correct LOOP/PROCEED decisions
-- Rule injection: CFN rules injected at loop transitions
-- Self-correction monitor: Real-time violation detection via Redis
-- Integration tests: 12 scenarios, 91% coverage
+**Architecture Migration:**
+- ✅ Skills-first coordination (redis-coordination, agent-spawning, cfn-loop-validation)
+- ✅ Zero-token waiting via Redis BLPOP
+- ✅ Orchestrated CFN Loop with automatic dependency enforcement
+- ✅ Cost-savings mode (CLI spawning, 95-98% savings)
+- ✅ Post-edit validation pipeline (mandatory)
+- ✅ Parallel agent spawning requirement
 
-**Implementation:**
-- `src/cfn-loop/validate-cfn-decision.ts` - Decision validation with auto-correction
-- `src/cfn-loop/validation-rules.ts` - 3 critical rules (LOOP permission, iteration limits, consensus)
-- `src/cfn-loop/inject-rules-at-transition.ts` - Dynamic rule injection
-- `src/cfn-loop/cfn-compliance-monitor.ts` - Real-time monitoring
-- `tests/cfn-loop/enforcement-integration.test.ts` - E2E validation
+**Breaking Changes:**
+- ❌ MCP protocol deprecated (use CLI/skills)
+- ❌ Manual CFN Loop Task() spawning forbidden (use orchestrator)
+- ❌ Implicit coordination removed (use Redis pub/sub)
 
-**Performance:**
-- Validation: <1s per decision
-- Test coverage: 91%
-- Auto-correction: Immediate (no human intervention)
+**New Features:**
+- Skills system (9 production skills)
+- Waiting mode protocol (enter/wake/report/collect)
+- orchestrate-cfn-loop.sh for managed CFN execution
+- Heartbeat monitoring and agent health tracking
+- Priority wake mechanism for agent coordination
+
+**Migration Guide:**
+See README.md and log-skills.md for v1 → v2 migration patterns.
+
+### Skills Introduced
+1. Redis Coordination
+2. Agent Spawning
+3. CFN Loop Validation
+4. Transparency Middleware
+5. Event Bus
+6. Fleet Management
+7. Monitoring Skills
+8. Web Portal
+9. ACE System
 
 ## [1.6.3] - 2025-10-04
 
 ### 🐛 Critical Fix: WSL Memory Leak
-- **PreToolUse Hook**: Blocks \`find /mnt/c\` commands that cause catastrophic memory leaks on WSL
+- **PreToolUse Hook**: Blocks `find /mnt/c` commands that cause catastrophic memory leaks on WSL
   - Memory spike: 15GB → 36GB in 4 minutes from find commands
   - Hook returns error: "🔴 BLOCKED: find on /mnt/c paths forbidden (causes memory leak - use Glob tool instead)"
-  - Files: \`.claude/settings.json\` in both claude-flow-novice and ourstories-v2
+  - Files: `.claude/settings.json` in both claude-flow-novice and ourstories-v2
 
 ### 📊 Root Cause Analysis
-- **Monitoring Results**: 10-minute observation confirmed \`find /mnt/c\` as memory bomb
+- **Monitoring Results**: 10-minute observation confirmed `find /mnt/c` as memory bomb
   - 2-3 concurrent find commands: +16GB memory spike
   - Growth rate: 4GB/minute while finds active
   - WSL filesystem translation causes 2-10 second delays per find + 50-200MB buffered output
 
-[Rest of the existing changelog content would follow...]
+## [Remaining previous changelog content would follow]
