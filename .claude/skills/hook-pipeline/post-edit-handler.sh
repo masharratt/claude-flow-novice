@@ -74,8 +74,10 @@ echo "Memory key: $MEMORY_KEY"
 [ -n "$COORDINATOR_ID" ] && echo "Coordinator ID: $COORDINATOR_ID"
 
 # Execute post-edit pipeline
+set +e  # Temporarily disable exit on error to capture exit code
 node config/hooks/post-edit-pipeline.js $CMD_ARGS
 EXIT_CODE=$?
+set -e  # Re-enable exit on error
 
 # Extract feedback from log
 LOG_FILE=".artifacts/logs/post-edit-pipeline.log"

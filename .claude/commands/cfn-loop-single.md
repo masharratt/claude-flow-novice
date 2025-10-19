@@ -26,14 +26,39 @@ LOOP 3: Primary Swarm Execution (implementation with confidence scores)
 
 ## Execution Pattern
 
-### Step 1: Initialize Swarm (MANDATORY)
+**CRITICAL:** Use CFN Loop Coordinator agent with automatic orchestration.
+
+### Step 1: Spawn CFN Loop Coordinator (MANDATORY)
+
 ```javascript
-mcp__claude-flow-novice__swarm_init({
-  topology: "mesh",          // mesh for 2-7, hierarchical for 8+
-  maxAgents: 5,              // match actual agent count
-  strategy: "balanced"
-})
+// CTO spawns coordinator agent - DO NOT spawn implementers directly
+Task("CFN Loop Coordinator", `
+  Execute CFN Loop for task: $ARGUMENTS
+
+  MANDATORY: Use orchestrator script for dependency enforcement.
+
+  ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+    --task-id "cfn-$(date +%s)" \
+    --mode standard \
+    --loop3-agents "researcher,backend-dev,devops" \
+    --loop2-agents "reviewer,architect,tester" \
+    --product-owner "product-owner" \
+    --max-iterations 10
+
+  The orchestrator will:
+  - Spawn all agents automatically
+  - Enforce BLPOP dependency blocking
+  - Collect consensus after validators finish
+  - Wake agents for next iteration if needed
+  - Report final result
+
+  DO NOT spawn agents manually with Task().
+`, "cfn-loop-coordinator")
 ```
+
+### Alternative: Manual Spawning (NOT RECOMMENDED)
+
+If you must spawn agents manually (NOT recommended), follow this pattern:
 
 ### Step 2: Execute - Primary Swarm (Loop 3)
 ```javascript

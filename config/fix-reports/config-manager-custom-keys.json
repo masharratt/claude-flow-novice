@@ -1,0 +1,15 @@
+{
+  "fix_applied": "Custom Config Key Retrieval",
+  "confidence": 0.92,
+  "changes": [
+    {
+      "file": "src/cli/config-manager.ts",
+      "description": "Added custom config key retrieval from ~/.claude-flow-custom-config.json"
+    }
+  ],
+  "test_status": "PASS",
+  "recommendations": [
+    "Replace 'any' type with more specific types",
+    "Add comprehensive test suite"
+  ]
+}

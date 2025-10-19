@@ -100,14 +100,44 @@ mcp__claude-flow-novice__memory_usage({
 
 For EACH sprint in phase:
 
-### Sprint Initialization
-```javascript
-// SPRINT 1.1: Core Login API
-console.log(`Sprint ${sprintId}: ${sprintName}`);
+### Sprint Initialization (MANDATORY Coordinator Pattern)
 
+**CRITICAL:** Use CFN Loop Coordinator agent with automatic orchestration.
+
+```javascript
+// SPRINT 1.1: Core Login API - Spawn coordinator (DO NOT spawn implementers directly)
+Task("CFN Loop Coordinator", `
+  Execute CFN Loop for Sprint ${sprintId}: ${sprintName}
+
+  MANDATORY: Use orchestrator script for dependency enforcement.
+
+  ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+    --task-id "sprint-${sprintId}-$(date +%s)" \
+    --mode standard \
+    --loop3-agents "backend-dev,tester,security-specialist" \
+    --loop2-agents "reviewer,architect" \
+    --product-owner "product-owner" \
+    --max-iterations 10
+
+  The orchestrator will:
+  - Spawn all agents automatically
+  - Enforce BLPOP dependency blocking
+  - Collect consensus after validators finish
+  - Wake agents for next iteration if needed
+  - Report final result
+
+  DO NOT spawn agents manually with Task().
+`, "cfn-loop-coordinator")
+```
+
+### Alternative: Manual Spawning (NOT RECOMMENDED)
+
+If you must spawn agents manually (NOT recommended due to lack of dependency enforcement), follow this pattern:
+
+```javascript
 // Initialize swarm for sprint
 mcp__claude-flow-novice__swarm_init({
-  topology: "mesh",          // Use mesh for smaller sprint teams (2-7 agents)
+  topology: "mesh",
   maxAgents: 3,
   strategy: "balanced"
 })
@@ -116,31 +146,13 @@ mcp__claude-flow-novice__swarm_init({
 Task("Backend Dev 1", `
   Implement POST /auth/login endpoint
 
-  Requirements:
-  - Accept email/password in request body
-  - Validate credentials against database
-  - Generate JWT on successful auth
-  - Return 401 on failure
-
   MANDATORY: After EVERY file edit:
   node config/hooks/post-edit-pipeline.js "[FILE_PATH]" --memory-key "swarm/sprint-1.1/backend-1"
 
   Report confidence score when complete.
 `, "backend-dev")
 
-Task("Tester 1", `
-  Create tests for login endpoint...
-
-  MANDATORY: Run post-edit hook after each test file.
-
-  Report confidence score.
-`, "tester")
-
-Task("Security 1", `
-  Review login security...
-
-  Report confidence score.
-`, "security-specialist")
+// ... more agents
 ```
 
 ### Sprint Self-Assessment Gate

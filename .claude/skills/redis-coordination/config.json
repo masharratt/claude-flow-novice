@@ -1,0 +1,17 @@
+{
+  "version": "1.3.0",
+  "host": "localhost",
+  "port": 6379,
+  "db": 0,
+  "waitingMode": {
+    "defaultTimeout": 300000,
+    "wakeChannelPattern": "task:{taskId}:agent:{agentId}:wake",
+    "resultKeyPattern": "task:{taskId}:agent:{agentId}:result",
+    "consensusThreshold": 0.90
+  },
+  "patterns": {
+    "chain": { "enabled": true },
+    "hierarchical": { "enabled": true },
+    "mesh": { "enabled": true }
+  }
+}

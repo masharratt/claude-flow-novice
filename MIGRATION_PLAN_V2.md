@@ -1,5 +1,15 @@
 # Migration Plan: claude-flow-novice v2.0 Clean Break
 
+**⚠️ OBSOLETE:** This migration plan was superseded by Skills-First Architecture (Phase 8 - 2025-10-18)
+
+**Actual Strategy Used:** Skills-based modular architecture instead of monolithic file migration
+
+**For Current Status:** See `MIGRATION_PROGRESS.md` and `SKILLS_AUDIT.md`
+
+---
+
+## ORIGINAL PLAN (NOT EXECUTED)
+
 **Strategy:** Archive current codebase as v1, start fresh v2 in same repo, selectively migrate needed files.
 
 **Goal:** Clean architecture with zero TypeScript errors, while preserving git history and npm continuity.

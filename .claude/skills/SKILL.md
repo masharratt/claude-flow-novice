@@ -1,6 +1,58 @@
 # Hook Pipeline Auto-Resolution Skill
 
-## Metadata
+## DEPRECATED - CONSOLIDATED INTO HOOK PIPELINE SKILL
+
+**Status:** This skill has been consolidated into the main Hook Pipeline skill.
+
+**Reason:** Auto-resolution is an integral part of the post-edit validation workflow, not a separate skill. The feedback-resolver.sh implementation already exists in the Hook Pipeline directory and works in concert with post-edit-handler.sh.
+
+**Migration Path:**
+- All auto-resolution functionality is now documented in: `.claude/skills/hook-pipeline/SKILL.md`
+- Use the convenience wrapper: `.claude/skills/hook-pipeline/auto-resolve.sh`
+- Original implementation: `.claude/skills/hook-pipeline/feedback-resolver.sh`
+
+## Quick Reference
+
+### Old Usage (DEPRECATED)
+```bash
+# This documentation is outdated
+```
+
+### New Usage (CURRENT)
+```bash
+# Resolve most recent feedback
+./.claude/skills/hook-pipeline/auto-resolve.sh
+
+# Resolve with auto-fix enabled
+./.claude/skills/hook-pipeline/auto-resolve.sh --auto-fix
+
+# Resolve specific feedback type
+./.claude/skills/hook-pipeline/auto-resolve.sh --type ROOT_WARNING --auto-fix
+```
+
+## Complete Documentation
+
+See: `.claude/skills/hook-pipeline/SKILL.md` - Section "Automatic Feedback Resolution"
+
+## Components Now Located In Hook Pipeline
+
+| Component | Location |
+|-----------|----------|
+| Auto-resolver | `.claude/skills/hook-pipeline/feedback-resolver.sh` |
+| Convenience wrapper | `.claude/skills/hook-pipeline/auto-resolve.sh` |
+| Post-edit handler | `.claude/skills/hook-pipeline/post-edit-handler.sh` |
+| Documentation | `.claude/skills/hook-pipeline/SKILL.md` |
+
+---
+
+## Legacy Documentation (For Historical Reference Only)
+
+The content below is preserved for historical reference but should NOT be used. Refer to Hook Pipeline SKILL.md instead.
+
+<details>
+<summary>Click to view legacy documentation</summary>
+
+## Metadata (OUTDATED)
 ```yaml
 name: hook-pipeline-auto-resolver
 version: 1.0.0
@@ -16,7 +68,7 @@ configuration:
   default-timeout: 300ms
 ```
 
-## 1. Architectural Decision Record
+## 1. Architectural Decision Record (OUTDATED)
 
 ### Context
 - Complex multi-agent workflows require intelligent, automatic feedback resolution

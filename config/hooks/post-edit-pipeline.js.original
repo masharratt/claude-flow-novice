@@ -1,0 +1,612 @@
+#!/usr/bin/env node
+/**
+ * Enhanced Post-Edit Pipeline - Comprehensive Validation Hook
+ * Validates edited files with TypeScript, ESLint, Prettier, Security Analysis, and Code Metrics
+ *
+ * Features:
+ * - TypeScript validation with error categorization
+ * - ESLint integration for code quality
+ * - Prettier formatting checks
+ * - Security analysis (eval, password logging, XSS detection)
+ * - Code metrics (lines, functions, classes, complexity)
+ * - Actionable recommendations engine
+ *
+ * Usage: node config/hooks/post-edit-pipeline.js <file_path> [--memory-key <key>] [--agent-id <id>]
+ */
+
+import { execSync } from 'child_process';
+import { existsSync, readFileSync, appendFileSync, mkdirSync } from 'fs';
+import { dirname, extname, resolve } from 'path';
+
+// Parse arguments
+const args = process.argv.slice(2);
+const filePath = args[0];
+const memoryKeyIndex = args.indexOf('--memory-key');
+const memoryKey = memoryKeyIndex >= 0 ? args[memoryKeyIndex + 1] : null;
+const agentIdIndex = args.indexOf('--agent-id');
+const agentId = agentIdIndex >= 0 ? args[agentIdIndex + 1] : null;
+
+if (!filePath) {
+  console.error('Error: File path required');
+  console.error('Usage: node config/hooks/post-edit-pipeline.js <file_path> [--memory-key <key>] [--agent-id <id>]');
+  process.exit(1);
+}
+
+// Ensure log directory exists
+const logDir = '.artifacts/logs';
+if (!existsSync(logDir)) {
+  mkdirSync(logDir, { recursive: true });
+}
+
+const logFile = `${logDir}/post-edit-pipeline.log`;
+
+function log(status, message, metadata = {}) {
+  const entry = JSON.stringify({
+    timestamp: new Date().toISOString(),
+    file: filePath,
+    status,
+    message,
+    memoryKey,
+    agentId,
+    ...metadata
+  });
+  console.log(entry);
+  appendFileSync(logFile, entry + '\n');
+}
+
+// Check if file exists
+if (!existsSync(filePath)) {
+  log('ERROR', 'File not found', { path: filePath });
+  process.exit(1);
+}
+
+// Read file content for analysis
+const fileContent = readFileSync(filePath, 'utf-8');
+const ext = extname(filePath);
+
+// Initialize results object
+const results = {
+  typescript: null,
+  eslint: null,
+  prettier: null,
+  security: null,
+  metrics: null,
+  recommendations: []
+};
+
+// ============================================================================
+// PHASE 1: TypeScript Validation
+// ============================================================================
+
+if (['.ts', '.tsx'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running TypeScript validation');
+
+    // Use tsc to check only this file
+    const cmd = `npx tsc --noEmit --skipLibCheck ${filePath}`;
+    execSync(cmd, { stdio: 'pipe', encoding: 'utf-8' });
+
+    results.typescript = {
+      passed: true,
+      errors: []
+    };
+    log('SUCCESS', 'TypeScript validation passed');
+
+  } catch (error) {
+    // Parse TypeScript errors
+    const output = error.stdout || error.stderr || '';
+    const lines = output.split('\n').filter(line => line.includes('error TS'));
+
+    if (lines.length === 0) {
+      results.typescript = {
+        passed: true,
+        errors: []
+      };
+      log('SUCCESS', 'No TypeScript errors detected');
+    } else {
+      // Categorize errors
+      const errorTypes = {
+        implicitAny: lines.filter(l => l.includes('TS7006') || l.includes('TS7031')).length,
+        propertyMissing: lines.filter(l => l.includes('TS2339')).length,
+        typeMismatch: lines.filter(l => l.includes('TS2322') || l.includes('TS2345')).length,
+        syntaxError: lines.filter(l => l.includes('TS1005') || l.includes('TS1128')).length,
+        other: 0
+      };
+      errorTypes.other = lines.length - Object.values(errorTypes).reduce((a, b) => a + b, 0);
+
+      const severity = errorTypes.syntaxError > 0 ? 'SYNTAX_ERROR' :
+                       lines.length > 5 ? 'LINT_ISSUES' : 'TYPE_WARNING';
+
+      results.typescript = {
+        passed: false,
+        errorCount: lines.length,
+        errorTypes,
+        errors: lines.slice(0, 5),
+        severity
+      };
+
+      log(severity, `TypeScript errors detected: ${lines.length}`, {
+        errorCount: lines.length,
+        errorTypes,
+        errors: lines.slice(0, 5)
+      });
+
+      // Add recommendations based on error types
+      if (errorTypes.syntaxError > 0) {
+        results.recommendations.push({
+          type: 'typescript',
+          priority: 'critical',
+          message: 'Fix syntax errors before proceeding',
+          action: 'Review and fix TypeScript syntax issues'
+        });
+      } else if (errorTypes.implicitAny > 0) {
+        results.recommendations.push({
+          type: 'typescript',
+          priority: 'high',
+          message: 'Add explicit type annotations',
+          action: 'Add type annotations for parameters and return values'
+        });
+      }
+    }
+  }
+} else {
+  log('SKIPPED', 'TypeScript validation skipped for non-TypeScript file');
+}
+
+// ============================================================================
+// PHASE 1: ESLint Integration
+// ============================================================================
+
+if (['.js', '.jsx', '.ts', '.tsx'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running ESLint validation');
+
+    // Check if ESLint is available
+    try {
+      execSync('npx eslint --version', { stdio: 'ignore', timeout: 5000 });
+    } catch {
+      log('SKIPPED', 'ESLint not available');
+      results.eslint = { available: false };
+    }
+
+    if (results.eslint === null) {
+      // Run ESLint
+      const eslintCmd = `npx eslint "${filePath}" --format json`;
+      const eslintOutput = execSync(eslintCmd, {
+        stdio: 'pipe',
+        encoding: 'utf-8',
+        timeout: 10000
+      });
+
+      const eslintResults = JSON.parse(eslintOutput);
+      const fileResults = eslintResults[0] || { messages: [] };
+
+      results.eslint = {
+        available: true,
+        passed: fileResults.errorCount === 0,
+        errorCount: fileResults.errorCount || 0,
+        warningCount: fileResults.warningCount || 0,
+        messages: fileResults.messages.slice(0, 5)
+      };
+
+      if (fileResults.errorCount > 0) {
+        log('LINT_ISSUES', `ESLint found ${fileResults.errorCount} errors`, {
+          errorCount: fileResults.errorCount,
+          warningCount: fileResults.warningCount
+        });
+
+        results.recommendations.push({
+          type: 'eslint',
+          priority: 'high',
+          message: `Fix ${fileResults.errorCount} ESLint errors`,
+          action: `Run: npx eslint "${filePath}" --fix`
+        });
+      } else {
+        log('SUCCESS', 'ESLint validation passed');
+      }
+    }
+  } catch (error) {
+    // ESLint errors are expected, parse them
+    if (error.stdout) {
+      try {
+        const eslintResults = JSON.parse(error.stdout);
+        const fileResults = eslintResults[0] || { messages: [] };
+
+        results.eslint = {
+          available: true,
+          passed: fileResults.errorCount === 0,
+          errorCount: fileResults.errorCount || 0,
+          warningCount: fileResults.warningCount || 0,
+          messages: fileResults.messages.slice(0, 5)
+        };
+
+        if (fileResults.errorCount > 0) {
+          log('LINT_ISSUES', `ESLint found ${fileResults.errorCount} errors`, {
+            errorCount: fileResults.errorCount,
+            warningCount: fileResults.warningCount
+          });
+
+          results.recommendations.push({
+            type: 'eslint',
+            priority: 'high',
+            message: `Fix ${fileResults.errorCount} ESLint errors`,
+            action: `Run: npx eslint "${filePath}" --fix`
+          });
+        }
+      } catch {
+        log('ERROR', 'ESLint execution failed', { error: error.message });
+        results.eslint = { available: false, error: error.message };
+      }
+    } else {
+      log('ERROR', 'ESLint execution failed', { error: error.message });
+      results.eslint = { available: false, error: error.message };
+    }
+  }
+}
+
+// ============================================================================
+// PHASE 1: Prettier Integration
+// ============================================================================
+
+if (['.js', '.jsx', '.ts', '.tsx', '.json', '.css', '.html'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running Prettier formatting check');
+
+    // Check if Prettier is available
+    try {
+      execSync('npx prettier --version', { stdio: 'ignore', timeout: 5000 });
+    } catch {
+      log('SKIPPED', 'Prettier not available');
+      results.prettier = { available: false };
+    }
+
+    if (results.prettier === null) {
+      // Run Prettier check
+      try {
+        const prettierCmd = `npx prettier --check "${filePath}"`;
+        execSync(prettierCmd, {
+          stdio: 'pipe',
+          encoding: 'utf-8',
+          timeout: 10000
+        });
+
+        results.prettier = {
+          available: true,
+          passed: true,
+          formatted: true
+        };
+        log('SUCCESS', 'Prettier formatting check passed');
+
+      } catch (error) {
+        results.prettier = {
+          available: true,
+          passed: false,
+          formatted: false,
+          needsFormatting: true
+        };
+        log('LINT_ISSUES', 'File needs Prettier formatting');
+
+        results.recommendations.push({
+          type: 'prettier',
+          priority: 'medium',
+          message: 'File needs formatting',
+          action: `Run: npx prettier --write "${filePath}"`
+        });
+      }
+    }
+  } catch (error) {
+    log('ERROR', 'Prettier execution failed', { error: error.message });
+    results.prettier = { available: false, error: error.message };
+  }
+}
+
+// ============================================================================
+// PHASE 2: Security Analysis
+// ============================================================================
+
+log('VALIDATING', 'Running security analysis');
+
+const securityIssues = [];
+
+// Check for eval() usage
+if (fileContent.includes('eval(')) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'critical',
+    message: 'Use of eval() function detected - security risk',
+    suggestion: 'Replace eval() with safer alternatives like JSON.parse() or Function constructor with proper validation'
+  });
+}
+
+// Check for new Function() usage
+if (fileContent.includes('new Function(')) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'critical',
+    message: 'Use of new Function() detected - security risk',
+    suggestion: 'Avoid dynamic code execution; use safer alternatives'
+  });
+}
+
+// Check for password logging
+if (fileContent.includes('password') && (fileContent.includes('console.log') || fileContent.includes('console.debug'))) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'critical',
+    message: 'Potential password logging detected',
+    suggestion: 'Remove password logging from code immediately'
+  });
+}
+
+// Check for XSS vulnerabilities (innerHTML with concatenation)
+if (fileContent.includes('innerHTML') && fileContent.match(/innerHTML\s*[+]=|innerHTML\s*=\s*.*\+/)) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'high',
+    message: 'Potential XSS vulnerability with innerHTML concatenation',
+    suggestion: 'Use textContent, createElement, or proper sanitization libraries'
+  });
+}
+
+// Check for hardcoded secrets (basic patterns)
+const secretPatterns = [
+  /api[_-]?key\s*=\s*['"][^'"]{20,}['"]/i,
+  /secret\s*=\s*['"][^'"]{20,}['"]/i,
+  /token\s*=\s*['"][^'"]{20,}['"]/i,
+  /password\s*=\s*['"][^'"]+['"]/i
+];
+
+for (const pattern of secretPatterns) {
+  if (pattern.test(fileContent)) {
+    securityIssues.push({
+      type: 'security',
+      severity: 'critical',
+      message: 'Potential hardcoded secret detected',
+      suggestion: 'Move secrets to environment variables or secure configuration'
+    });
+    break; // Only report once
+  }
+}
+
+results.security = {
+  passed: securityIssues.length === 0,
+  issueCount: securityIssues.length,
+  issues: securityIssues
+};
+
+if (securityIssues.length > 0) {
+  log('SECURITY_ISSUES', `Security analysis found ${securityIssues.length} issues`, {
+    issueCount: securityIssues.length,
+    issues: securityIssues
+  });
+
+  results.recommendations.push({
+    type: 'security',
+    priority: 'critical',
+    message: `Address ${securityIssues.length} security ${securityIssues.length === 1 ? 'issue' : 'issues'} immediately`,
+    action: 'Review security recommendations and apply fixes'
+  });
+} else {
+  log('SUCCESS', 'No security issues detected');
+}
+
+// ============================================================================
+// PHASE 3: Code Metrics
+// ============================================================================
+
+log('VALIDATING', 'Calculating code metrics');
+
+const lines = fileContent.split('\n');
+const lineCount = lines.length;
+const functionCount = (fileContent.match(/function\s+\w+|const\s+\w+\s*=\s*\([^)]*\)\s*=>/g) || []).length;
+const classCount = (fileContent.match(/class\s+\w+/g) || []).length;
+const todoCount = (fileContent.match(/\/\/\s*TODO|\/\*\s*TODO/gi) || []).length;
+const fixmeCount = (fileContent.match(/\/\/\s*FIXME|\/\*\s*FIXME/gi) || []).length;
+
+// Calculate cyclomatic complexity (simplified)
+let complexity = 'low';
+if (lineCount > 300 || functionCount > 10) {
+  complexity = 'high';
+} else if (lineCount > 150 || functionCount > 5) {
+  complexity = 'medium';
+}
+
+results.metrics = {
+  lines: lineCount,
+  functions: functionCount,
+  classes: classCount,
+  todos: todoCount,
+  fixmes: fixmeCount,
+  complexity
+};
+
+log('SUCCESS', 'Code metrics calculated', {
+  lines: lineCount,
+  functions: functionCount,
+  classes: classCount,
+  complexity
+});
+
+// ============================================================================
+// PHASE 3: Recommendations Engine
+// ============================================================================
+
+log('VALIDATING', 'Generating recommendations');
+
+// Maintainability recommendations
+if (lineCount > 200) {
+  results.recommendations.push({
+    type: 'maintainability',
+    priority: 'medium',
+    message: `File has ${lineCount} lines - consider breaking it down`,
+    action: 'Split into smaller, focused modules (150-200 lines per file)'
+  });
+}
+
+// Code quality recommendations
+if (fileContent.includes('var ')) {
+  results.recommendations.push({
+    type: 'code-quality',
+    priority: 'low',
+    message: 'Use const or let instead of var',
+    action: 'Replace var declarations with const or let for better scoping'
+  });
+}
+
+if (fileContent.includes('==') && !fileContent.includes('===') && fileContent.includes('==') > fileContent.includes('===')) {
+  results.recommendations.push({
+    type: 'code-quality',
+    priority: 'medium',
+    message: 'Prefer strict equality (===) over loose equality (==)',
+    action: 'Replace == with === for type-safe comparisons'
+  });
+}
+
+// TypeScript-specific recommendations
+if (['.ts', '.tsx'].includes(ext)) {
+  if (fileContent.includes(': any')) {
+    results.recommendations.push({
+      type: 'typescript',
+      priority: 'medium',
+      message: 'Avoid using "any" type when possible',
+      action: 'Use specific types or unknown for better type safety'
+    });
+  }
+
+  if (!fileContent.includes('interface') && !fileContent.includes('type ') && lineCount > 100) {
+    results.recommendations.push({
+      type: 'typescript',
+      priority: 'low',
+      message: 'Consider defining interfaces or types',
+      action: 'Add type definitions for better code structure and maintainability'
+    });
+  }
+}
+
+// Documentation recommendations
+if (fileContent.includes('export ') && !fileContent.includes('/**') && functionCount > 0) {
+  results.recommendations.push({
+    type: 'documentation',
+    priority: 'low',
+    message: 'Public exports could benefit from JSDoc comments',
+    action: 'Add JSDoc documentation for exported functions/classes'
+  });
+}
+
+// Testing recommendations
+if (!filePath.includes('test') && !filePath.includes('spec') && (functionCount > 0 || classCount > 0)) {
+  results.recommendations.push({
+    type: 'testing',
+    priority: 'medium',
+    message: 'Consider writing tests for this module',
+    action: 'Create corresponding test file to ensure code reliability'
+  });
+}
+
+// TODO/FIXME recommendations
+if (todoCount > 0 || fixmeCount > 0) {
+  results.recommendations.push({
+    type: 'maintenance',
+    priority: 'low',
+    message: `Found ${todoCount} TODOs and ${fixmeCount} FIXMEs`,
+    action: 'Address pending tasks and technical debt'
+  });
+}
+
+// Sort recommendations by priority
+const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+results.recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+// Limit to top 10 recommendations
+results.recommendations = results.recommendations.slice(0, 10);
+
+log('SUCCESS', `Generated ${results.recommendations.length} recommendations`);
+
+// ============================================================================
+// Summary and Exit
+// ============================================================================
+
+// Calculate overall status
+const hasCriticalIssues = results.recommendations.some(r => r.priority === 'critical');
+const hasHighIssues = results.recommendations.some(r => r.priority === 'high');
+const hasTypeScriptErrors = results.typescript && !results.typescript.passed;
+const hasESLintErrors = results.eslint && results.eslint.errorCount > 0;
+
+let overallStatus = 'SUCCESS';
+let exitCode = 0;
+
+if (hasCriticalIssues) {
+  overallStatus = 'CRITICAL_ISSUES';
+  exitCode = 2;
+} else if (hasTypeScriptErrors && results.typescript.severity === 'SYNTAX_ERROR') {
+  overallStatus = 'SYNTAX_ERROR';
+  exitCode = 2;
+} else if (hasHighIssues || hasESLintErrors) {
+  overallStatus = 'LINT_ISSUES';
+  exitCode = 0; // Non-blocking
+} else if (results.recommendations.length > 0) {
+  overallStatus = 'IMPROVEMENTS_SUGGESTED';
+  exitCode = 0;
+}
+
+// Log final summary
+log(overallStatus, 'Pipeline validation complete', {
+  typescript: results.typescript,
+  eslint: results.eslint,
+  prettier: results.prettier,
+  security: results.security,
+  metrics: results.metrics,
+  recommendationCount: results.recommendations.length,
+  topRecommendations: results.recommendations.slice(0, 3)
+});
+
+// Print user-friendly summary
+console.error('\n' + '='.repeat(80));
+console.error('Enhanced Post-Edit Pipeline Summary');
+console.error('='.repeat(80));
+
+if (results.typescript) {
+  console.error(`\nTypeScript: ${results.typescript.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  if (!results.typescript.passed) {
+    console.error(`  Errors: ${results.typescript.errorCount}`);
+  }
+}
+
+if (results.eslint && results.eslint.available) {
+  console.error(`ESLint: ${results.eslint.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  if (!results.eslint.passed) {
+    console.error(`  Errors: ${results.eslint.errorCount}, Warnings: ${results.eslint.warningCount}`);
+  }
+}
+
+if (results.prettier && results.prettier.available) {
+  console.error(`Prettier: ${results.prettier.passed ? '✅ PASSED' : '⚠️  NEEDS FORMATTING'}`);
+}
+
+console.error(`\nSecurity: ${results.security.passed ? '✅ NO ISSUES' : '❌ ISSUES FOUND'}`);
+if (!results.security.passed) {
+  console.error(`  Issues: ${results.security.issueCount}`);
+}
+
+console.error(`\nCode Metrics:`);
+console.error(`  Lines: ${results.metrics.lines}`);
+console.error(`  Functions: ${results.metrics.functions}`);
+console.error(`  Classes: ${results.metrics.classes}`);
+console.error(`  Complexity: ${results.metrics.complexity.toUpperCase()}`);
+
+if (results.recommendations.length > 0) {
+  console.error(`\nTop Recommendations:`);
+  results.recommendations.slice(0, 3).forEach((rec, i) => {
+    const icon = rec.priority === 'critical' ? '🔴' : rec.priority === 'high' ? '🟠' : rec.priority === 'medium' ? '🟡' : '🔵';
+    console.error(`  ${icon} [${rec.type.toUpperCase()}] ${rec.message}`);
+    console.error(`     Action: ${rec.action}`);
+  });
+
+  if (results.recommendations.length > 3) {
+    console.error(`  ... and ${results.recommendations.length - 3} more recommendations`);
+  }
+}
+
+console.error('='.repeat(80) + '\n');
+
+process.exit(exitCode);

@@ -98,16 +98,52 @@ For EACH phase in epic:
 3. Initialize swarm for phase
 4. Execute Loop 2 & Loop 3 (as defined in /cfn-loop command)
 
-### Phase Pattern
+### Phase Pattern (MANDATORY Coordinator Pattern)
+
+**CRITICAL:** Use CFN Loop Coordinator agent with automatic orchestration.
+
 ```javascript
-// PHASE 1: User Authentication
+// PHASE 1: User Authentication - Spawn coordinator (DO NOT spawn implementers directly)
+Task("CFN Loop Coordinator", `
+  Execute CFN Loop for Phase ${phaseId}: ${phaseName}
+
+  MANDATORY: Use orchestrator script for dependency enforcement.
+
+  ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+    --task-id "phase-${phaseId}-$(date +%s)" \
+    --mode standard \
+    --loop3-agents "backend-dev,frontend-dev,devops" \
+    --loop2-agents "reviewer,architect,tester,security-specialist" \
+    --product-owner "product-owner" \
+    --max-iterations 10
+
+  The orchestrator will:
+  - Spawn all agents automatically
+  - Enforce BLPOP dependency blocking
+  - Collect consensus after validators finish
+  - Wake agents for next iteration if needed
+  - Report final result
+
+  DO NOT spawn agents manually with Task().
+`, "cfn-loop-coordinator")
+
+// Self-Assessment Gate → Consensus → Product Owner → Action
+// All handled by orchestrator
+
+// If Phase 1 consensus ≥90% → AUTO-TRANSITION to Phase 2
+```
+
+### Alternative: Manual Spawning (NOT RECOMMENDED)
+
+If you must spawn agents manually (NOT recommended), follow this pattern:
+
+```javascript
 mcp__claude-flow-novice__swarm_init({
   topology: "mesh",
   maxAgents: 5,
   strategy: "balanced"
 })
 
-// Loop 3: Primary swarm
 Task("Coder 1", `
   Implement JWT generation...
 
@@ -118,10 +154,6 @@ Task("Coder 1", `
 `, "backend-dev")
 
 // ... more agents
-
-// Self-Assessment Gate → Consensus → Product Owner → Action
-
-// If Phase 1 consensus ≥90% → AUTO-TRANSITION to Phase 2
 ```
 
 ### Phase Transition Logic

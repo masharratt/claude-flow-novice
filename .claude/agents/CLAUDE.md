@@ -403,13 +403,10 @@ npx claude-flow@alpha hooks post-edit [FILE_PATH] \
    - Triggers: After test execution
    - Automation: 100% (quantitative metrics)
 
-4. **Blocking Coordination Validator** (Priority 4 - MEDIUM)
-   - Validates required imports (BlockingCoordinationSignals, CoordinatorTimeoutHandler)
-   - Validates HMAC secret environment variable usage
-   - Validates signal sending/receiving patterns present
-   - Hybrid validation: Spawns reviewer agent for state machine logic
-   - Triggers: For coordinator agents only
-   - Automation: 60% (complex logic requires semantic review)
+4. **Blocking Coordination Validator** (DEPRECATED - Use Redis BLPOP instead)
+   - ⚠️ **Status**: Deprecated in favor of Redis BLPOP primitives
+   - See: `.claude/skills/redis-coordination/SKILL.md` for modern patterns
+   - Migration guide: `legacy/v1/deprecated/BLOCKING_COORDINATION_MIGRATION.md`
 
 **Hook Composition Pattern:**
 
@@ -504,16 +501,20 @@ try {
 }
 ```
 
-✅ **Blocking Coordination Imports** (Coordinators only)
-```javascript
-// Required imports for coordinator agents
-import { BlockingCoordinationSignals } from '../cfn-loop/blocking-coordination-signals';
-import { CoordinatorTimeoutHandler } from '../cfn-loop/coordinator-timeout-handler';
+✅ **Redis BLPOP Coordination** (Coordinators - Modern Pattern)
+```bash
+# Zero-token blocking coordination using Redis primitives
+# See: .claude/skills/redis-coordination/SKILL.md
 
-// Usage pattern validation
-const signals = new BlockingCoordinationSignals(coordinatorId, hmacSecret);
-await signals.sendSignal('READY', targetAgentId);
-await signals.waitForAck(requestId, timeoutMs);
+# Agent signals completion
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+# Coordinator blocks until agent completes (zero tokens consumed)
+redis-cli blpop "swarm:${TASK_ID}:${AGENT_ID}:done" 30
+
+# Wake agent for next iteration
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+  --task-id "$TASK_ID" --agent-id "$AGENT_ID" --reason "cfn_loop_iteration"
 ```
 
 **Memory Key Patterns:**
@@ -755,18 +756,15 @@ sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = 0.85, comp
 
 **Hook Composition for Coordinators:**
 
-Coordinator agents run additional validation:
+Coordinator agents run standard validation:
 
 ```bash
-# Coordinators also trigger blocking-coordination-validator
+# Coordinators trigger standard validators
 npx claude-flow@alpha hooks post-edit src/coordinator.js --memory-key "agent/coordinator-1/phase" --structured
-# → Triggers: agent-template-validator, cfn-loop-memory-validator, blocking-coordination-validator
+# → Triggers: agent-template-validator, cfn-loop-memory-validator
 
-# Validates:
-# - HMAC secret usage
-# - Signal ACK patterns
-# - Timeout configuration
-# - State machine logic (spawns reviewer agent for semantic validation)
+# For Redis coordination validation, see:
+# .claude/skills/redis-coordination/test-orchestrator.sh (8/8 passing tests)
 ```
 
 **Performance:**
@@ -968,35 +966,32 @@ validation_hooks:
   - blocking-coordination-validator  # Coordinator-specific
 ```
 
-**Blocking Coordination Pattern:**
-```javascript
-import { BlockingCoordinationSignals } from '../cfn-loop/blocking-coordination-signals';
-import { CoordinatorTimeoutHandler } from '../cfn-loop/coordinator-timeout-handler';
+**Redis BLPOP Coordination Pattern:**
+```bash
+# Modern zero-token coordination using Redis BLPOP primitives
+# See: .claude/skills/redis-coordination/SKILL.md
 
-// Initialize with HMAC secret from environment
-const signals = new BlockingCoordinationSignals(
-  coordinatorId,
-  process.env.BLOCKING_COORDINATION_SECRET
-);
+# 1. Agent enters waiting mode (zero-token blocking)
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+  --task-id "task-123" \
+  --agent-id "coder-1" \
+  --context "iteration-1"
 
-// Send signal to agent
-await signals.sendSignal('READY', 'coder-1');
+# 2. Coordinator blocks until agent reports (BLPOP - no API calls)
+redis-cli blpop "swarm:task-123:coder-1:done" 30
 
-// Wait for ACK with timeout
-const ack = await signals.waitForAck(requestId, 30000);  // 30s timeout
+# 3. Wake agent for next iteration
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+  --task-id "task-123" \
+  --agent-id "coder-1" \
+  --reason "cfn_loop_iteration" \
+  --iteration 2
 
-// Error handling
-try {
-  await signals.sendSignal('START', targetAgentId);
-} catch (error) {
-  if (error.code === 'TIMEOUT') {
-    // Handle timeout
-    await timeoutHandler.handleTimeout(targetAgentId);
-  } else if (error.code === 'REDIS_CONNECTION_LOST') {
-    // Graceful degradation
-    await fallbackCoordination(targetAgentId);
-  }
-}
+# Benefits:
+# - Zero tokens consumed while waiting (BLPOP blocks without API calls)
+# - Instant wake-up (<100ms latency)
+# - Auto-cleanup (keys deleted on read)
+# - Validated by 8/8 passing tests
 ```
 
 **For complete example:** See Rust Coder template in [Format Selection Principles](./agent-principles/format-selection.md)
@@ -1030,9 +1025,9 @@ Different agent types have different format requirements and validation hooks:
 - **Coordinator Agents**:
   - Format: Metadata (structured workflows)
   - ACL Level: 3 (Swarm)
-  - Validators: agent-template-validator, cfn-loop-memory-validator, blocking-coordination-validator
-  - SQLite: Persist coordination signals, agent assignments
-  - Special: HMAC secret validation, signal ACK patterns
+  - Validators: agent-template-validator, cfn-loop-memory-validator
+  - SQLite: Persist coordination state, agent assignments
+  - Special: Redis BLPOP coordination (see `.claude/skills/redis-coordination/SKILL.md`)
 
 - **Tester Agents (Validators)**:
   - Format: Code-Heavy for unit tests, Metadata for test strategy
@@ -1121,6 +1116,7 @@ if (cache.has(hash)) {
 - Missing SQLite lifecycle hooks (no audit trail)
 - Wrong ACL level (data exposure or access denial)
 - Missing error handling (cascading failures)
+- Using deprecated BlockingCoordinationSignals (use Redis BLPOP instead)
 
 **Detailed best practices:** [Prompt Engineering Best Practices](./agent-principles/prompt-engineering.md)
 
@@ -1137,7 +1133,7 @@ if (cache.has(hash)) {
 - [ ] SQLite lifecycle hooks present (pre_task, post_task)
 - [ ] ACL level declared (1-5 based on agent type)
 - [ ] Error handling patterns implemented (retry, fallback)
-- [ ] Blocking coordination imports (coordinators only)
+- [ ] Redis BLPOP coordination patterns (coordinators - see redis-coordination skill)
 
 **Hook Validation Metrics:**
 - Agent template validation pass rate (target: 100%)
