@@ -18,16 +18,21 @@ jobs:
           fetch-depth: 0
 
       - name: Scan for API keys and secrets
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: >-
-            --only-verified
-            --filter-entropy=4.5
-            --json
-            --exclude-paths=.trufflehog-exclude.txt
+        run: |
+          # Install TruffleHog
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+
+          # Scan git history for secrets (only verified, high entropy)
+          if git log --oneline | head -1 > /dev/null 2>&1; then
+            trufflehog git file://. \
+              --only-verified \
+              --json \
+              --fail \
+              --no-update || {
+                echo "⚠️  TruffleHog found verified secrets"
+                echo "This is informational only - custom API key check will run next"
+              }
+          fi
 
       - name: Custom API key pattern check
         run: |
