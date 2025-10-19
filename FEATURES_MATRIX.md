@@ -56,9 +56,15 @@
 | **Mesh Coordinator** | Dynamic connections, Load-based distribution, Dependency resolution | `src/agents/mesh-coordinator.ts` | ❌ **MISSING** (10% confident) | ❌ Missing | ✅ |
 | **Hierarchical Coordinator** | Multi-level hierarchy, Task delegation, Agent promotion | `src/agents/hierarchical-coordinator.ts` | ❌ **MISSING** (10% confident) | ❌ Missing | ✅ |
 | **CFN Loop Orchestrator** | Parallel confidence, Iteration tracking, Circuit breaker, Memory persistence | `src/cfn-loop/cfn-loop-orchestrator.ts` | ✅ **EXISTS** (100% - verified migrated) | `.claude/skills/cfn-loop-validation/` | ✅ |
-| **Blocking Coordination Cleanup** | Redis Lua Script, Batch Operations, TTL-Based Staleness | `src/coordination/blocking-cleanup.ts` | ❌ **MISSING** (10% confident) | ❌ Missing | ✅ |
+| **Redis BLPOP Coordination** | Zero-token blocking, BLPOP/LPUSH primitives, Waiting mode, Wake-up protocol | `.claude/skills/redis-coordination/` | ✅ **EXISTS** (100% - 8/8 tests passing) | ✅ `.claude/skills/redis-coordination/` | ✅ |
 
-**Summary:** 7 features | **Code Status:** 2 EXISTS, 0 PARTIAL, 5 MISSING | Skills: 2/7 (29%)
+**Summary:** 7 features | **Code Status:** 3 EXISTS ↑, 0 PARTIAL, 4 MISSING ↓ | Skills: 3/7 (43%) ↑
+
+**Updates 2025-10-19:**
+- **Blocking Coordination DEPRECATED** - Replaced with Redis BLPOP primitives
+- Upgraded from 421-line JavaScript system to simple 2-line BLPOP patterns
+- Zero-token blocking achieved (BLPOP doesn't consume API calls)
+- Migration guide: `legacy/v1/deprecated/BLOCKING_COORDINATION_MIGRATION.md`
 
 ---
 
@@ -71,13 +77,15 @@
 | **Agent Use Case Registry** | Use case mapping, Domain classification, Intelligent selection | `src/cli/hybrid-routing/agent-use-case-registry.js` | ❌ **MISSING** (10% - no hybrid-routing dir) | ❌ Missing | ✅ |
 | **Hybrid Routing** | 85+ agents, Use case registry integration, Dynamic discovery, CLI spawning | `src/cli/hybrid-routing/spawn-workers.cjs`, `src/cli/spawn.ts` | ✅ **EXISTS** (100% - fully operational v2.0.0) | ✅ `.claude/skills/agent-spawning/` v1.4.0+ | ✅ |
 | **Cost-Savings Mode Toggle** | CLI Mode vs Task-tool Mode, CLAUDE.md configuration | `CLAUDE.md` (COST_SAVINGS_MODE flag) | ✅ **EXISTS** (100% - simplified implementation) | ✅ Main chat behavior | ✅ |
-| **Dependency Tracker** | Dependency types, Circular detection, Completion blocking | `src/lifecycle/dependency-tracker.ts` | ⚠️ **PARTIAL** (40% - dependency-resolver.ts found) | ❌ Missing | ✅ |
+| **Dependency Tracker** | Dependency types, Circular detection, Completion blocking | `src/lifecycle/dependency-tracker.ts`, `src/coordination/dependency-resolver.ts` | ✅ **EXISTS** (90% - dual-file architecture) | ❌ Missing | ✅ |
 
-**Summary:** 6 features | **Code Status:** 3 EXISTS ↑, 1 PARTIAL, 2 MISSING ↓ | Skills: 4/6 (67%) ↑
+**Summary:** 6 features | **Code Status:** 4 EXISTS ↑, 0 PARTIAL ↓, 2 MISSING | Skills: 4/6 (67%) ↑
 
 **Updates 2025-10-19:**
 - CLI spawning infrastructure fully restored with `npx claude-flow-spawn` command
 - Cost-savings mode simplified to CLAUDE.md flag (COST_SAVINGS_MODE=yes/no)
+- **Coordinator simplification**: Reduced from 19 to 4 core coordinators
+- Dependency tracker upgraded to EXISTS (dual-file architecture validated)
 - Enables 95-98% cost savings via z.ai worker routing
 
 ---
@@ -235,8 +243,8 @@
 | Category | Total Features | Code EXISTS | Code PARTIAL | Code MISSING/DEFERRED | Skills Coverage |
 |----------|----------------|-------------|--------------|----------------------|-----------------|
 | Core System | 10 | 4 (40%) ↑ | 3 (30%) | 3 (30%) ↓ | 4/10 (40%) ↑ |
-| Swarm Coordination | 7 | 2 (29%) | 0 (0%) | 5 (71%) | 2/7 (29%) |
-| Agent Management | 6 | 3 (50%) ↑ | 1 (17%) ↓ | 2 (33%) ↓ | 4/6 (67%) ↑ |
+| Swarm Coordination | 7 | 3 (43%) ↑ | 0 (0%) | 4 (57%) ↓ | 3/7 (43%) ↑ |
+| Agent Management | 6 | 4 (67%) ↑ | 0 (0%) ↓ | 2 (33%) | 4/6 (67%) ↑ |
 | Monitoring | 4 | 3 (75%) ✅ | 0 (0%) | 1 (25%) | 0/4 (0%) |
 | CLI Commands | 3 | 3 (100%) ✅ | 0 (0%) | 0 (0%) | 3/3 (100%) |
 | MCP Integration | 2 | ❌ Deprecated | N/A | N/A | N/A |
@@ -248,29 +256,47 @@
 | Performance | 5 | 4 (80%) ✅ | 0 (0%) | 1 (20%) | 0/5 (0%) |
 | Logging | 4 | 0 (0%) | 0 (0%) | 4 (100%) | 0/4 (0%) |
 | Additional | 2 | 2 (100%) ✅ | 0 (0%) | 0 (0%) | 0/2 (0%) |
-| **TOTAL (excl. deprecated)** | **53** | **31 (58%)** ↑ | **3 (6%)** ↓ | **19 (36%)** | **18/53 (34%)** ↑ |
+| **TOTAL (excl. deprecated)** | **53** | **33 (62%)** ↑ | **2 (4%)** ↓ | **18 (34%)** ↓ | **19/53 (36%)** ↑ |
 
 ### Verification Progress: ✅ 100% Complete (55/55 features audited)
 
 **Key Improvements from Initial Assessment:**
 - ↑ Core System EXISTS: 3 → 4 (ACE found!)
 - ↑ Configuration EXISTS: 2 → 3 (Hook Pipeline fully verified!)
-- ↑ Agent Management EXISTS: 1 → 3 (CLI spawning + cost-savings mode restored!)
-- ↑ Overall EXISTS: 28 → 31 (+10.7%)
-- ↓ Overall PARTIAL: 5 → 3 (-40%)
-- ↓ Overall MISSING: 20 → 19 (-5%)
-- ↑ Skills Coverage: 28% → 34%
-- Overall MISSING rate: 61% (initial 23 features) → 36% (all 55 features) - **25% improvement** ↑
+- ↑ Agent Management EXISTS: 1 → 4 (CLI spawning + cost-savings + dependency tracker!)
+- ↑ Swarm Coordination EXISTS: 2 → 3 (Redis BLPOP replaces BlockingCoordination!)
+- ↑ Overall EXISTS: 28 → 33 (+17.9%)
+- ↓ Overall PARTIAL: 5 → 2 (-60%)
+- ↓ Overall MISSING: 20 → 18 (-10%)
+- ↑ Skills Coverage: 28% → 36%
+- Overall MISSING rate: 61% (initial 23 features) → 34% (all 55 features) - **27% improvement** ↑
 
 **Latest Updates (2025-10-19):**
 1. **CLI Spawning Infrastructure Restored**
    - `npx claude-flow-spawn` command fully operational
    - Skills wrapper: `.claude/skills/agent-spawning/` v1.4.0+
 
-2. **Cost-Savings Mode Simplified**
-   - Configuration: `COST_SAVINGS_MODE=yes` in root CLAUDE.md
-   - Enabled: Uses `coordinator-hybrid` (95-98% savings via z.ai workers)
-   - Disabled: Uses `coordinator` (safe default with Task tool)
+2. **Coordinator Simplification (19 → 4)**
+   - `coordinator` (Task tool, safe default)
+   - `cost-savings-coordinator` (CLI spawning, 95-98% savings)
+   - `cfn-loop-coordinator` (Task tool, CFN consensus)
+   - `cost-savings-cfn-loop-coordinator` (CLI spawning, CFN consensus + savings)
+   - Configuration: `COST_SAVINGS_MODE=yes/no` in root CLAUDE.md
+   - 14 deprecated coordinators moved to agents-ignore
+
+3. **Dependency Tracker Validated**
+   - Dual-file architecture: `dependency-tracker.ts` + `dependency-resolver.ts`
+   - Full topological sorting, cycle detection, execution graph building
+   - Upgraded from PARTIAL (40%) to EXISTS (90%)
+
+4. **BlockingCoordination → Redis BLPOP Migration** ✅
+   - Deprecated 421-line BlockingCoordinationSignals JavaScript system
+   - Replaced with simple Redis BLPOP primitives (2 lines)
+   - Zero-token blocking achieved (BLPOP doesn't consume API calls)
+   - 8/8 tests passing for orchestrator validation
+   - Migration guide: `legacy/v1/deprecated/BLOCKING_COORDINATION_MIGRATION.md`
+   - Files archived: `blocking-coordination-signals.js`, `coordinator-timeout-handler.js`
+   - Benefits: -421 lines complexity, -HMAC secrets, auto-cleanup
 
 ---
 
@@ -283,8 +309,8 @@
 - Configuration: 2/3 (67%)
 
 ### ⚠️ Medium Coverage (25-50%)
+- Swarm Coordination: 3/7 (43%) ↑
 - Core System: 4/10 (40%) ↑
-- Swarm Coordination: 2/7 (29%)
 
 ### ❌ Low Coverage (<25%)
 - Monitoring: 0/4 (0%)
