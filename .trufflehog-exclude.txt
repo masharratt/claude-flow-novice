@@ -1,0 +1,42 @@
+# TruffleHog exclusion patterns
+# Exclude paths that commonly have false positives
+
+# Node modules
+node_modules/
+**/node_modules/**
+
+# Test fixtures and mocks
+**/__tests__/**
+**/__mocks__/**
+**/test/**
+**/tests/**
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+
+# Documentation
+**/docs/**
+**/readme/**
+**/*.md
+**/*.MD
+
+# Build artifacts
+**/dist/**
+**/build/**
+**/.next/**
+
+# Lock files (contain hashes, not secrets)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Example/template files
+**/*.example
+**/*.template
+.env.example
+
+# Legacy/archive directories
+legacy/**
+archive/**
+**/archive/**
