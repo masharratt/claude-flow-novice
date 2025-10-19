@@ -1,0 +1,66 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "CFN Loop Observability Metrics Schema",
+    "version": "1.0.0",
+    "type": "object",
+    "properties": {
+        "task_metadata": {
+            "type": "object",
+            "properties": {
+                "task_id": {"type": "string"},
+                "mode": {"enum": ["mvp", "standard", "enterprise"]},
+                "current_iteration": {"type": "number", "minimum": 1},
+                "start_timestamp": {"type": "number"}
+            },
+            "required": ["task_id", "mode"]
+        },
+        "iteration_metrics": {
+            "type": "object",
+            "properties": {
+                "duration_ms": {"type": "number", "minimum": 0},
+                "iteration_count": {"type": "number", "minimum": 1},
+                "gate_pass_rate": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+        },
+        "agent_metrics": {
+            "type": "object",
+            "properties": {
+                "latency_ms": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "min": {"type": "number"},
+                            "max": {"type": "number"},
+                            "avg": {"type": "number"}
+                        }
+                    }
+                },
+                "timeout_count": {"type": "number", "minimum": 0},
+                "retry_count": {"type": "number", "minimum": 0},
+                "heartbeat_miss_count": {"type": "number", "minimum": 0}
+            }
+        },
+        "consensus_metrics": {
+            "type": "object",
+            "properties": {
+                "loop3": {
+                    "type": "object",
+                    "properties": {
+                        "confidence_score": {"type": "number", "minimum": 0, "maximum": 1},
+                        "gate_pass": {"type": "boolean"}
+                    }
+                },
+                "loop2": {
+                    "type": "object",
+                    "properties": {
+                        "consensus_score": {"type": "number", "minimum": 0, "maximum": 1},
+                        "final_consensus": {"type": "boolean"}
+                    }
+                },
+                "quorum_fallback_count": {"type": "number", "minimum": 0}
+            }
+        }
+    },
+    "required": ["task_metadata", "iteration_metrics", "agent_metrics", "consensus_metrics"]
+}

@@ -11,13 +11,27 @@
 #                   --agents <agent1,agent2,...> \
 #                   [--task-id <id>] \
 #                   [--topology <mesh|hierarchical|chain>] \
-#                   [--ttl <seconds>]
+#                   [--ttl <seconds>] \
+#                   [--metadata <json-string>]
+#
+# Per-Agent Timeout Configuration:
+#   Agents can have custom timeout values set via Redis:
+#
+#   redis-cli SETEX "swarm:<task-id>:<agent-id>:timeout" 86400 <timeout-seconds>
+#
+#   If no custom timeout is set, the orchestrator will use role-based defaults:
+#   - researcher: 7200s (2 hours)
+#   - backend-dev, coder, frontend-dev: 3600s (1 hour)
+#   - reviewer, tester, security: 1800s (30 minutes)
+#   - coordinator, orchestrator, product-owner: 900s (15 minutes)
+#   - default: 3600s (1 hour)
 #
 # Benefits:
 #   - Namespace isolation for concurrent swarms
 #   - Agent inventory and resource tracking
 #   - Status monitoring (in_progress/completed)
 #   - Automatic cleanup via TTL
+#   - Per-agent timeout configuration via get-agent-timeout.sh
 ##############################################################################
 
 set -euo pipefail
@@ -30,6 +44,7 @@ TOPOLOGY="mesh"
 TTL=604800  # 7 days default
 MAX_AGENTS=""
 METADATA_EXTRA=""
+AGENT_TIMEOUTS=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -60,6 +75,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --metadata)
       METADATA_EXTRA="$2"
+      shift 2
+      ;;
+    --agent-timeouts)
+      AGENT_TIMEOUTS="$2"
       shift 2
       ;;
     *)
