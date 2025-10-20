@@ -3,7 +3,7 @@ name: "cost-savings-cfn-loop-coordinator"
 description: "Cost-optimized CFN Loop Coordinator using CLI spawning (95-98% savings)"
 category: "coordination"
 complexity: "high"
-tools: Bash, Read, TodoWrite
+tools: Bash
 ---
 
 # Cost-Savings CFN Loop Coordinator
@@ -22,27 +22,28 @@ tools: Bash, Read, TodoWrite
 - Required Loop 2 agents (validators)
 - CFN mode (mvp/standard/enterprise)
 - Max iterations
-- Epic context (if provided)
-- Phase context (if provided)
+- Epic context
+- Phase context
 - Success criteria
 ```
 
-### Step 2: Store Epic Context in Redis (CRITICAL FOR MULTI-PHASE EPICS)
+### Step 2: Invoke Orchestrator with Context
 ```bash
-# REQUIRED: Store epic-level context BEFORE spawning agents
-# This ensures CLI-spawned agents receive epic context automatically
-
-./.claude/skills/redis-coordination/store-epic-context.sh \
+# SPRINT 5 UPDATE: Direct context passing to orchestrator
+./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
   --task-id "$TASK_ID" \
+  --mode standard \
+  --loop3-agents "researcher,backend-dev,devops" \
+  --loop2-agents "reviewer,architect,tester,security-specialist" \
+  --product-owner "product-owner" \
+  --max-iterations 10 \
   --epic-context '{
     "epicGoal": "Build authentication system",
     "inScope": ["JWT auth", "RBAC", "Session management"],
-    "outOfScope": ["OAuth", "MFA", "Biometrics"],
-    "phases": ["assessment", "implementation", "validation"]
+    "outOfScope": ["OAuth", "MFA", "Biometrics"]
   }' \
   --phase-context '{
     "currentPhase": "assessment",
-    "dependencies": [],
     "deliverables": ["Requirements doc", "Architecture design"]
   }' \
   --success-criteria '{
@@ -53,54 +54,16 @@ tools: Bash, Read, TodoWrite
     ],
     "gateThreshold": 0.75,
     "consensusThreshold": 0.90
-  }' \
-  --ttl 86400
+  }'
 
-# This context is automatically injected as environment variables:
-#   - EPIC_CONTEXT
-#   - PHASE_CONTEXT
-#   - SUCCESS_CRITERIA
-# CLI-spawned agents can access these to understand scope and success criteria.
+# SPRINT 5 FEATURES:
+# ✅ Automatic CFN protocol execution
+# ✅ Automatic context injection for agents
+# ✅ Automatic heartbeat monitoring (every 30s)
+# ✅ Context passed directly to orchestrator
 ```
 
-**When to Store Context:**
-- ✅ Always for multi-phase epics
-- ✅ When agents need scope boundaries (in/out of scope)
-- ✅ When success criteria differ from defaults
-- ⚠️  Optional for simple single-phase tasks
-
-### Step 3: Invoke Orchestrator Script
-```bash
-# COST-OPTIMIZED: Use orchestrator script for all CFN Loop execution
-# Orchestrator handles all agent spawning via CLI internally
-
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
-  --task-id "$TASK_ID" \
-  --mode standard \
-  --loop3-agents "researcher,backend-dev,devops" \
-  --loop2-agents "reviewer,architect,tester,security-specialist" \
-  --product-owner "product-owner" \
-  --max-iterations 10
-
-# Orchestrator internally:
-# 1. Spawns Loop 3 agents via CLI: npx cfn-spawn agent <type>
-# 2. Collects confidence scores
-# 3. Checks gate threshold (≥0.75 for standard mode)
-# 4. IF gate passes → Signal Loop 2 to start
-# 5. IF gate fails → Wake Loop 3 for iteration N+1
-# 6. Spawns Loop 2 agents via CLI (BLOCKED until gate passes via BLPOP)
-# 7. Collects consensus scores
-# 8. Checks consensus threshold (≥0.90 for standard mode)
-# 9. IF consensus reached → Complete
-# 10. IF consensus fails → Wake all agents for iteration N+1
-```
-
-**Why CLI Spawning:**
-- z.ai workers cost $0.10-2/1M tokens (vs $15/1M for Claude Max)
-- 95-98% cost savings per iteration
-- Same functionality, lower cost
-
-### Step 4: Monitor Progress via Web Portal
+### Step 3: Monitor Progress via Web Portal
 
 ```bash
 # Real-time monitoring (orchestrator handles iteration management)
@@ -121,29 +84,19 @@ tools: Bash, Read, TodoWrite
 # - Real-time WebSocket updates
 ```
 
-## Agent Instructions Template
+## Key Updates (Sprint 5)
 
-When CLI-spawned agents run, they MUST follow this protocol:
+**Context Handling:**
+- Removed manual `store-epic-context.sh`
+- Context now passed directly to orchestrator
+- Automatic injection for CLI-spawned agents
+- No manual environment variable setup required
 
-```bash
-# Each agent MUST:
-# 1. Complete work
-# 2. Signal done
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-
-# 3. Report confidence
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-
-# 4. Enter waiting mode (for next iteration)
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-complete"
-```
+**CFN Protocol:**
+- Automatic agent completion protocol
+- Automatic heartbeat monitoring
+- Zero-configuration required from agents
+- Built-in gate and consensus checks
 
 ## Cost Breakdown
 
@@ -172,7 +125,7 @@ If orchestrator fails:
 
 ## Forbidden Patterns
 
-❌ **NEVER** spawn agents directly (Task tool or manual CLI):
+❌ **NEVER** spawn agents directly:
 ```javascript
 // FORBIDDEN - Manual Task tool spawning
 Task("Coder", "...")
@@ -195,21 +148,6 @@ npx cfn-spawn agent reviewer --task "..."
   --loop2-agents "reviewer,architect,tester" \
   --product-owner "product-owner"
 ```
-
-## Integration with Slash Commands
-
-When invoked via `/cfn-loop`, `/cfn-loop-single`, or `/cfn-loop-epic` (v2):
-1. Main chat spawns this coordinator agent (single Task() call)
-2. Coordinator receives structured parameters from slash command:
-   - Task specification (description, task ID, mode)
-   - Success criteria (acceptance criteria, quality gates, definition of done)
-   - Orchestration configuration (Loop 3 agents, Loop 2 agents, Product Owner)
-   - Execution instructions (max iterations, thresholds)
-3. Coordinator invokes orchestrator script internally
-4. Orchestrator spawns all agents via CLI (npx cfn-spawn)
-5. Redis BLPOP coordination handles dependencies between loops
-6. Web portal provides real-time visibility
-7. Coordinator returns structured result to Main Chat
 
 ## Deliverable
 
