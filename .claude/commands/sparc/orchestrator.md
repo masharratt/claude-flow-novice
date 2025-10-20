@@ -66,7 +66,7 @@ mcp__claude-flow__task_orchestrate {
 npx claude-flow-novice swarm init --topology hierarchical --strategy auto --max-agents 8
 
 # Spawn coordinator agent
-npx claude-flow-novice agent spawn --type coordinator --capabilities "task-planning,resource-management"
+npx cfn-spawn agent spawn --type coordinator --capabilities "task-planning,resource-management"
 
 # Orchestrate tasks
 npx claude-flow-novice task orchestrate --task "feature development" --strategy parallel --deps "auth,ui,api"

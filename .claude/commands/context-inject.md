@@ -172,18 +172,29 @@ async function preAgentSpawnContext(agentType, taskContext) {
 }
 ```
 
-**Dynamic Injection During Execution:**
+**Dynamic Injection:**
 
-```javascript
-// During CFN Loop 3, inject relevant optimization bullets
-Task("coder-1", `
-  Implement authentication system.
+```bash
+# Query top bullets for current task
+BULLETS=$(sqlite3 ./.artifacts/database/swarm-memory.db "
+SELECT '**[' || bullet_id || ']** ' || content || ' (confidence: ' || confidence_score || ')'
+FROM adaptive_context
+WHERE is_active = 1
+  AND (tags LIKE '%auth%' OR tags LIKE '%security%')
+  AND confidence_score >= 0.7
+ORDER BY helpful_count DESC, confidence_score DESC
+LIMIT 5;
+")
 
-  Before you start, check these adaptive context bullets:
-  ${await contextInject({ tags: 'auth,security', limit: 5, format: 'inline' })}
+# Inject into agent prompt
+Task("coder-1", "
+Implement authentication system.
 
-  Follow these proven patterns to avoid common pitfalls.
-`, "coder");
+Before you start, review these proven patterns:
+$BULLETS
+
+Follow these patterns to avoid common pitfalls.
+", "coder");
 ```
 
 **Validation & Safety:**

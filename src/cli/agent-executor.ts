@@ -11,6 +11,13 @@ import { spawn } from 'child_process';
 import { AgentDefinition } from './agent-definition-parser.js';
 import { TaskContext, getAgentId } from './agent-prompt-builder.js';
 import { buildCLIAgentSystemPrompt, loadContextFromEnv } from './cli-agent-context.js';
+import {
+  loadMessages,
+  storeMessage,
+  getCurrentFork,
+  formatMessagesForAPI,
+  type Message
+} from './conversation-fork.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -66,17 +73,55 @@ async function executeViaAPI(
   console.log('');
 
   try {
-    // Build system prompt with natural language context (Phase 1 enhancement)
-    console.log('[agent-executor] Building system prompt with context...');
-    const contextOptions = loadContextFromEnv();
-    // Override agent type with definition name
-    contextOptions.agentType = definition.name;
-    // Override iteration/taskId if provided in context
-    if (context.taskId) contextOptions.taskId = context.taskId;
-    if (context.iteration) contextOptions.iteration = context.iteration;
+    // Check for conversation fork (Sprint 4 enhancement)
+    const forkId = process.env.FORK_ID || await getCurrentFork(context.taskId || '', agentId);
+    const iteration = context.iteration || 1;
 
-    const systemPrompt = await buildCLIAgentSystemPrompt(contextOptions);
-    console.log('[agent-executor] System prompt built successfully');
+    let systemPrompt: string;
+    let messages: Array<{role: string, content: string}> = [];
+
+    if (forkId && iteration > 1) {
+      // Continue from fork (iterations 2+)
+      console.log(`[agent-executor] Continuing from fork: ${forkId}`);
+
+      // Load fork messages
+      const forkMessages = await loadMessages(context.taskId || '', agentId, forkId);
+      console.log(`[agent-executor] Loaded ${forkMessages.length} messages from fork`);
+
+      // Extract system prompt from first message (it's always the system message)
+      // The fork messages are assistant/user pairs, we need to add system separately
+      systemPrompt = forkMessages[0]?.content || '';
+
+      // Format remaining messages for API
+      messages = formatMessagesForAPI(forkMessages.slice(1));
+
+      // Add new user message with feedback
+      messages.push({
+        role: 'user',
+        content: prompt
+      });
+
+      console.log(`[agent-executor] Fork continuation: ${messages.length} messages`);
+    } else {
+      // New conversation (iteration 1)
+      console.log('[agent-executor] Starting new conversation');
+      console.log('[agent-executor] Building system prompt with context...');
+
+      const contextOptions = loadContextFromEnv();
+      contextOptions.agentType = definition.name;
+      if (context.taskId) contextOptions.taskId = context.taskId;
+      if (context.iteration) contextOptions.iteration = context.iteration;
+
+      systemPrompt = await buildCLIAgentSystemPrompt(contextOptions);
+      console.log('[agent-executor] System prompt built successfully');
+
+      // Initial user message
+      messages = [{
+        role: 'user',
+        content: prompt
+      }];
+    }
+
     console.log('');
 
     // Dynamic import to avoid bundling issues
@@ -87,8 +132,34 @@ async function executeViaAPI(
       agentId,
       definition.model,
       prompt,
-      systemPrompt
+      systemPrompt,
+      messages.length > 1 ? messages : undefined
     );
+
+    // Store messages in conversation history (for future forking)
+    if (context.taskId) {
+      // Store user message
+      const userMessage: Message = {
+        role: 'user',
+        content: prompt,
+        iteration,
+        timestamp: new Date().toISOString()
+      };
+      await storeMessage(context.taskId, agentId, userMessage);
+
+      // Store assistant response
+      if (result.output) {
+        const assistantMessage: Message = {
+          role: 'assistant',
+          content: result.output,
+          iteration,
+          timestamp: new Date().toISOString()
+        };
+        await storeMessage(context.taskId, agentId, assistantMessage);
+      }
+
+      console.log(`[agent-executor] Stored messages for iteration ${iteration}`);
+    }
 
     return {
       success: result.success,

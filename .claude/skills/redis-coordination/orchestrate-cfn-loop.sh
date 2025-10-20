@@ -389,11 +389,7 @@ function check_heartbeats_loop() {
         if [[ " ${LOOP3_AGENTS} " =~ " ${AGENT} " ]]; then
           REMAINING=$((${#LOOP3_COMPLETED_AGENTS[@]}))
           REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP3" "$LOOP3_TOTAL")
-        elif [[ " ${LOOP2_AGENTS} " =~ " ${AGENT} " ]]; then
-          # Safety check: LOOP2_COMPLETED_AGENTS may not be initialized during Loop 3
-          if [ -z "${LOOP2_COMPLETED_AGENTS+x}" ]; then
-            continue
-          fi
+        elif [[ " ${LOOP2_AGENTS} " =~ " ${LOOP2_AGENTS} " ]]; then
           REMAINING=$((${#LOOP2_COMPLETED_AGENTS[@]}))
           REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP2" "$LOOP2_TOTAL")
         else
@@ -668,6 +664,23 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     '{consensus: ($consensus | tonumber), iteration: ($iteration | tonumber)}')
   echo "$LOOP3_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:loop3_consensus" >/dev/null
 
+  # SPRINT 4: Create conversation forks after iteration 1
+  if [ "$ITERATION" -eq 1 ]; then
+    echo "[Coordinator] Creating conversation forks for iteration 2..."
+    for AGENT in "${LOOP3_COMPLETED_AGENTS[@]}"; do
+      FORK_ID=$(npx cfn-fork create --task-id "$TASK_ID" --agent-id "$AGENT" --iteration 1 2>/dev/null || echo "")
+
+      if [ -n "$FORK_ID" ] && [ "$FORK_ID" != "(nil)" ]; then
+        # Store fork ID in Redis for this agent
+        redis-cli setex "swarm:${TASK_ID}:${AGENT}:fork-id" 86400 "$FORK_ID" >/dev/null
+        echo "  ✓ Fork created for $AGENT: $FORK_ID"
+      else
+        echo "  ⚠ Fork creation skipped for $AGENT (will use context rebuild)"
+      fi
+    done
+    echo ""
+  fi
+
   # Gate check
   if (( $(echo "$LOOP3_CONSENSUS < $GATE" | bc -l) )); then
     echo "❌ Gate FAILED ($LOOP3_CONSENSUS < $GATE)"
@@ -679,12 +692,17 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     # Wake Loop 3 agents for next iteration with MEDIUM priority (priority=30)
     IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
     for AGENT in "${AGENTS[@]}"; do
+      # SPRINT 4: Get fork ID if exists
+      FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+      if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
+
       ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
         --task-id "$TASK_ID" \
         --agent-id "$AGENT" \
         --priority 30 \
         --reason "gate_failed" \
         --iteration $((ITERATION + 1)) \
+        --fork-id "$FORK_ID" \
         --feedback "Improve confidence from $LOOP3_CONSENSUS to >$GATE"
     done
 
@@ -791,22 +809,12 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   fi
   echo ""
 
-  # Step 4: Collect Loop 2 consensus scores and feedback (only from completed agents)
+  # Step 4: Collect Loop 2 consensus scores (only from completed agents)
   echo "[Loop 2] Collecting consensus scores from ${#LOOP2_COMPLETED_AGENTS[@]} agents..."
   LOOP2_COMPLETED_IDS=$(IFS=','; echo "${LOOP2_COMPLETED_AGENTS[*]}")
-
-  # Capture full output to extract both consensus and feedback
-  COLLECT_OUTPUT=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+  LOOP2_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
     --task-id "$TASK_ID" \
-    --agent-ids "$LOOP2_COMPLETED_IDS")
-
-  LOOP2_CONSENSUS=$(echo "$COLLECT_OUTPUT" | tail -1)
-
-  # Extract aggregated feedback from collect output
-  LOOP2_FEEDBACK=""
-  if echo "$COLLECT_OUTPUT" | grep -q "Aggregated Feedback"; then
-    LOOP2_FEEDBACK=$(echo "$COLLECT_OUTPUT" | sed -n '/Aggregated Feedback/,/Consensus:/p' | grep '^\s*-' | sed 's/^\s*-\s*//' | paste -sd ',' -)
-  fi
+    --agent-ids "$LOOP2_COMPLETED_IDS" | tail -1)
 
   echo "[Loop 2] Average consensus: $LOOP2_CONSENSUS (from ${#LOOP2_COMPLETED_AGENTS[@]}/${LOOP2_TOTAL} agents)"
 
@@ -816,44 +824,6 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     --arg iteration "$ITERATION" \
     '{consensus: ($consensus | tonumber), iteration: ($iteration | tonumber)}')
   echo "$LOOP2_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:loop2_consensus" >/dev/null
-
-  # SPRINT 3 - Phase 2: Store iteration results for all agents
-  echo "[Coordinator] Storing iteration results for history..."
-  IFS=',' read -ra ALL_AGENTS_ARRAY <<< "$LOOP3_AGENTS,$LOOP2_AGENTS"
-  for AGENT in "${ALL_AGENTS_ARRAY[@]}"; do
-    # Get agent's confidence score
-    AGENT_CONFIDENCE=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:confidence:iteration-${ITERATION}" || echo "0")
-    if [ "$AGENT_CONFIDENCE" = "(nil)" ]; then
-      AGENT_CONFIDENCE="0"
-    fi
-
-    # Get agent's result/output (try multiple possible keys)
-    AGENT_RESULT=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:output" || echo "")
-    if [ "$AGENT_RESULT" = "(nil)" ] || [ -z "$AGENT_RESULT" ]; then
-      AGENT_RESULT="Completed iteration $ITERATION"
-    fi
-
-    # Store result with metadata
-    RESULT_DATA=$(jq -nc \
-      --arg result "$AGENT_RESULT" \
-      --arg confidence "$AGENT_CONFIDENCE" \
-      --arg iteration "$ITERATION" \
-      --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-      '{result: $result, confidence: ($confidence | tonumber), iteration: ($iteration | tonumber), timestamp: $timestamp}')
-
-    echo "$RESULT_DATA" | redis-cli -x setex "swarm:${TASK_ID}:${AGENT}:result:iteration-${ITERATION}" 86400 >/dev/null
-
-    # Store feedback if available (from Loop 2 validators)
-    if [ -n "$LOOP2_FEEDBACK" ]; then
-      FEEDBACK_DATA=$(jq -nc \
-        --arg feedback "$LOOP2_FEEDBACK" \
-        --arg iteration "$ITERATION" \
-        --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        '{feedback: $feedback, iteration: ($iteration | tonumber), timestamp: $timestamp}')
-      echo "$FEEDBACK_DATA" | redis-cli -x setex "swarm:${TASK_ID}:${AGENT}:feedback:iteration-${ITERATION}" 86400 >/dev/null
-    fi
-  done
-  echo "[Coordinator] Iteration results stored for ${#ALL_AGENTS_ARRAY[@]} agents"
 
   # Consensus check
   if (( $(echo "$LOOP2_CONSENSUS >= $CONSENSUS" | bc -l) )); then
@@ -951,27 +921,24 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     exit 1
   fi
 
-  # Wake agents for next iteration with role-based priorities and specific feedback
-  echo "[Coordinator] Waking agents for iteration $((ITERATION + 1)) with priorities and feedback..."
-
-  # Build feedback message for Loop 3 implementers
-  LOOP3_FEEDBACK="Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
-  if [ -n "$LOOP2_FEEDBACK" ]; then
-    # Include specific validator feedback
-    LOOP3_FEEDBACK="$LOOP3_FEEDBACK,$LOOP2_FEEDBACK"
-    echo "[Coordinator] Passing validator feedback to Loop 3: $(echo "$LOOP2_FEEDBACK" | tr ',' '\n' | wc -l) items"
-  fi
+  # Wake agents for next iteration with role-based priorities
+  echo "[Coordinator] Waking agents for iteration $((ITERATION + 1)) with priorities..."
 
   # Wake Loop 3 implementers with MEDIUM priority (priority=30)
   IFS=',' read -ra LOOP3_ARRAY <<< "$LOOP3_AGENTS"
   for AGENT in "${LOOP3_ARRAY[@]}"; do
+    # SPRINT 4: Get fork ID if exists
+    FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+    if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
+
     ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
       --task-id "$TASK_ID" \
       --agent-id "$AGENT" \
       --priority 30 \
       --reason "cfn_loop_iteration" \
       --iteration $((ITERATION + 1)) \
-      --feedback "$LOOP3_FEEDBACK"
+      --fork-id "$FORK_ID" \
+      --feedback "Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
   done
 
   # Wake Loop 2 validators with HIGH priority (priority=10)
@@ -983,7 +950,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
       --priority 10 \
       --reason "cfn_loop_iteration" \
       --iteration $((ITERATION + 1)) \
-      --feedback "Re-validate iteration $((ITERATION + 1)) work against threshold >=$CONSENSUS"
+      --feedback "Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
   done
 
   echo ""

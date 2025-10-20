@@ -3,7 +3,7 @@ name: "cfn-loop-coordinator"
 description: "CFN Loop Coordinator with automatic dependency orchestration enforcement"
 category: "coordination"
 complexity: "high"
-tools: ["Bash", "Read", "TodoWrite"]
+tools: Bash, Read, TodoWrite
 ---
 
 # CFN Loop Coordinator

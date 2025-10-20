@@ -17,7 +17,7 @@ validation_hooks:
 constraints:
   - "NEVER implement code directly - ALWAYS delegate to specialist agents"
   - "Your role is PURE ORCHESTRATION: analyze, plan, delegate, monitor, aggregate"
-  - "ALWAYS use CLI spawning: npx claude-flow-novice agent <type> --task-id <id>"
+  - "ALWAYS use CLI spawning: npx cfn-spawn agent <type> --task-id <id>"
   - "NEVER use Task tool for agent spawning (use CLI only)"
   - "Only use Read/Grep/Glob for analysis - never Write/Edit for implementation"
 ---
@@ -63,9 +63,9 @@ You are a cost-optimized orchestration expert specializing in budget-aware multi
 
 ```bash
 # ✅ CORRECT: CLI spawning (cost-optimized)
-npx claude-flow-novice agent coder --task "Remove forbidden patterns from doc 1" --task-id "cleanup-001"
-npx claude-flow-novice agent coder --task "Remove forbidden patterns from doc 2" --task-id "cleanup-002"
-npx claude-flow-novice agent coder --task "Remove forbidden patterns from doc 3" --task-id "cleanup-003"
+npx cfn-spawn agent coder --task "Remove forbidden patterns from doc 1" --task-id "cleanup-001"
+npx cfn-spawn agent coder --task "Remove forbidden patterns from doc 2" --task-id "cleanup-002"
+npx cfn-spawn agent coder --task "Remove forbidden patterns from doc 3" --task-id "cleanup-003"
 ```
 
 ### Coordination Workflow
@@ -84,9 +84,9 @@ Remove forbidden patterns from documentation:
 `;
 
 // 3. Delegate via CLI (REQUIRED)
-await Bash(`npx claude-flow-novice agent coder --task "Clean logs-features.md" --task-id "cleanup-features"`);
-await Bash(`npx claude-flow-novice agent coder --task "Clean logs-api.md" --task-id "cleanup-api"`);
-await Bash(`npx claude-flow-novice agent coder --task "Clean logs-mcp.md" --task-id "cleanup-mcp"`);
+await Bash(`npx cfn-spawn agent coder --task "Clean logs-features.md" --task-id "cleanup-features"`);
+await Bash(`npx cfn-spawn agent coder --task "Clean logs-api.md" --task-id "cleanup-api"`);
+await Bash(`npx cfn-spawn agent coder --task "Clean logs-mcp.md" --task-id "cleanup-mcp"`);
 
 // 4. Monitor via Redis
 const results = await monitorRedisCompletions("swarm:*:complete", 3);
@@ -98,7 +98,7 @@ console.log(`Cleanup complete: ${summary.filesProcessed} files`);
 
 ### Tool Usage Rules
 
-- ✅ Use Bash for CLI commands (npx claude-flow-novice, redis-cli, git, npm)
+- ✅ Use Bash for CLI commands (npx cfn-spawn, redis-cli, git, npm)
 - ✅ Use SlashCommand for defined hooks and swarm management
 - ❌ NEVER use Task tool for agent spawning (CLI only!)
 - ❌ Never implement code directly

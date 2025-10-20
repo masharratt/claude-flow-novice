@@ -4,10 +4,15 @@
 #
 # Usage:
 #   ./invoke-waiting-mode.sh enter --task-id <task> --agent-id <agent> --context <context>
-#   ./invoke-waiting-mode.sh wake --task-id <task> --agent-id <agent> --reason <reason> [--iteration <n>] [--priority <0-100>]
+#   ./invoke-waiting-mode.sh wake --task-id <task> --agent-id <agent> --reason <reason> [--iteration <n>] [--priority <0-100>] [--fork-id <fork_id>]
 #   ./invoke-waiting-mode.sh report --task-id <task> --agent-id <agent> --confidence <score> [--iteration <n>]
 #   ./invoke-waiting-mode.sh collect --task-id <task> --agent-ids <id1,id2,id3>
 #   ./invoke-waiting-mode.sh shutdown --task-id <task> [--reason <reason>]
+#
+# New parameter: --fork-id
+#   Optional unique identifier for conversation continuation
+#   Allows tracking and resuming specific conversation forks
+#   Stored in Redis with 5-minute TTL during agent wake
 #
 # Priority Levels (0-100, higher = more urgent, default = 50):
 #   90-100: Critical (security patches, system failures)
@@ -20,20 +25,10 @@
 #   # Agent enters waiting mode
 #   ./invoke-waiting-mode.sh enter --task-id auth-system --agent-id coder-1 --context "iteration-1"
 #
-#   # Coordinator wakes agent with default priority
-#   ./invoke-waiting-mode.sh wake --task-id auth-system --agent-id coder-1 --reason cfn_loop_iteration --iteration 2
+#   # Coordinator wakes agent with fork ID
+#   ./invoke-waiting-mode.sh wake --task-id auth-system --agent-id coder-1 --reason cfn_loop_iteration --iteration 2 --fork-id "fork-1-a3b2c1d4"
 #
-#   # Coordinator wakes agent with high priority
-#   ./invoke-waiting-mode.sh wake --task-id auth-system --agent-id coder-1 --reason security_patch --priority 95
-#
-#   # Agent reports result
-#   ./invoke-waiting-mode.sh report --task-id auth-system --agent-id coder-1 --confidence 0.85 --iteration 1
-#
-#   # Coordinator collects results
-#   ./invoke-waiting-mode.sh collect --task-id auth-system --agent-ids coder-1,reviewer-1,tester-1
-#
-#   # Coordinator broadcasts shutdown signal
-#   ./invoke-waiting-mode.sh shutdown --task-id auth-system --reason task_complete
+#   # Other existing use cases remain unchanged
 
 set -euo pipefail
 
@@ -54,6 +49,7 @@ ITERATION=""
 CONFIDENCE=""
 FEEDBACK=""
 TASK_DESC=""
+FORK_ID=""
 PRIORITY=50  # Default medium priority (0-100, higher = more urgent)
 
 while [[ $# -gt 0 ]]; do
@@ -96,6 +92,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --priority)
             PRIORITY="$2"
+            shift 2
+            ;;
+        --fork-id)
+            FORK_ID="$2"
             shift 2
             ;;
         *)
@@ -189,6 +189,7 @@ case "$COMMAND" in
             --arg task "${TASK_DESC:-}" \
             --arg feedback "${FEEDBACK:-}" \
             --arg priority "$PRIORITY" \
+            --arg fork_id "${FORK_ID:-}" \
             --arg ts "$(date +%s)" \
             '{
                 reason: $reason,
@@ -196,6 +197,7 @@ case "$COMMAND" in
                 task: $task,
                 feedback: ($feedback | split(",") | map(select(length > 0))),
                 priority: ($priority | tonumber),
+                fork_id: $fork_id,
                 timestamp: ($ts | tonumber)
             }')
 
@@ -214,9 +216,7 @@ case "$COMMAND" in
             # Only store if feedback array is not empty after filtering
             ARRAY_LENGTH=$(echo "$FEEDBACK_ARRAY" | jq 'length')
             if [ "$ARRAY_LENGTH" -gt 0 ]; then
-                # Store as JSON array with 24-hour TTL using redis-cli -x (reads from stdin)
-                # Note: -x reads LAST argument from stdin, so we can't use SET key value EX ttl
-                # Instead: SET key (value from stdin), then EXPIRE key ttl
+                # Store as JSON array with 24-hour TTL
                 REDIS_RESULT=$(printf '%s' "$FEEDBACK_ARRAY" | redis-cli -x SET "$FEEDBACK_KEY")
                 redis-cli EXPIRE "$FEEDBACK_KEY" 86400 >/dev/null
 
@@ -248,8 +248,15 @@ case "$COMMAND" in
         fi
 
         # Add to sorted set (ZADD with calculated score)
-        # Use redis-cli with ZADD and pass JSON as the member directly
         redis-cli ZADD "$WAKE_QUEUE" "$PRIORITY_SCORE" "$WAKE_MSG" >/dev/null
+
+        # Store fork ID in Redis if provided
+        if [ -n "$FORK_ID" ]; then
+            FORK_KEY="swarm:${TASK_ID}:${AGENT_ID}:fork-id"
+            # Store fork ID with 5-minute expiration
+            redis-cli SETEX "$FORK_KEY" 300 "$FORK_ID" >/dev/null
+            echo "[Coordinator] Fork ID stored: $FORK_ID (5-minute TTL)"
+        fi
 
         echo "[Coordinator] ✅ Wake signal sent to $AGENT_ID"
         echo "  Reason: $REASON"
@@ -388,12 +395,11 @@ case "$COMMAND" in
         ;;
 
     *)
-
         echo "Usage: $0 <command> [options]"
         echo ""
         echo "Commands:"
         echo "  enter    - Agent enters waiting mode"
-        echo "  wake     - Coordinator wakes an agent (supports --priority 0-100)"
+        echo "  wake     - Coordinator wakes an agent (supports --priority 0-100, --fork-id)"
         echo "  report   - Agent reports result"
         echo "  collect  - Coordinator collects results"
         echo "  shutdown - Coordinator broadcasts shutdown signal to all waiting agents"
@@ -407,7 +413,7 @@ case "$COMMAND" in
         echo ""
         echo "Examples:"
         echo "  $0 enter --task-id auth --agent-id coder-1 --context iteration-1"
-        echo "  $0 wake --task-id auth --agent-id coder-1 --reason cfn_loop_iteration --iteration 2"
+        echo "  $0 wake --task-id auth --agent-id coder-1 --reason cfn_loop_iteration --iteration 2 --fork-id fork-1"
         echo "  $0 wake --task-id auth --agent-id coder-1 --reason security_patch --priority 95"
         echo "  $0 report --task-id auth --agent-id coder-1 --confidence 0.85 --iteration 1"
         echo "  $0 collect --task-id auth --agent-ids coder-1,reviewer-1,tester-1"

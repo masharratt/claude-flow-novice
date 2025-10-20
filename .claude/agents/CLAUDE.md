@@ -1,1233 +1,995 @@
-# The Definitive Guide to Agent Profile Design
+# Agent Creation & Customization Guide
 
-**Version:** 3.0.0
-**Last Updated:** 2025-10-17
-**Status:** Production-Ready with Phase 4 Template Optimization
+**Version:** 4.0.0
+**Last Updated:** 2025-10-20
+**Audience:** NPM Users & Developers
 
-This document is the single source of truth for creating, editing, and validating agent profiles in the Claude Flow ecosystem. It incorporates empirical findings from our comprehensive Rust benchmarking system, Phase 4 bulk optimization results (75 agents, 73% reduction), and establishes evidence-based best practices with reusable template patterns.
+This is your practical guide to creating, customizing, and maintaining AI agents in the Claude Flow Novice system. Whether you're using our npm package or building custom workflows, this guide will help you create powerful, specialized agents tailored to your needs.
 
 ---
 
 ## Table of Contents
 
-1. [Quick Start](#quick-start)
-2. [Phase 4 Template System](#phase-4-template-system)
-3. [Core Universal Principles](#core-universal-principles)
-4. [Agent Profile Structure](#agent-profile-structure)
-5. [Examples & Templates](#examples--templates)
-6. [Specialized Guidance](#specialized-guidance)
+1. [Quick Start - Create Your First Agent](#quick-start-create-your-first-agent)
+2. [Understanding the Agent Directory](#understanding-the-agent-directory)
+3. [Agent Anatomy](#agent-anatomy)
+4. [Step-by-Step Agent Creation](#step-by-step-agent-creation)
+5. [Ready-to-Use Templates](#ready-to-use-templates)
+6. [Customization Guide](#customization-guide)
+7. [Testing Your Agent](#testing-your-agent)
+8. [Advanced Concepts](#advanced-concepts)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
-## Quick Start
+## Quick Start - Create Your First Agent
 
-### The Three Golden Rules
+### What You'll Learn
+In 5 minutes, you'll create a custom agent that can perform specialized tasks in your workflow.
 
-1. **Complexity-Verbosity Inverse Law**: As task complexity increases, prompt verbosity should DECREASE
-2. **Priming Paradox**: Verbose prompts excel at basic tasks, minimal prompts excel at complex reasoning
-3. **Rust Validation**: These findings are validated for Rust; hypotheses for other languages
-
-### Format Selection in 30 Seconds
-
-```yaml
-Is the task BASIC (parsing, simple logic, CRUD)?
-  → Use CODE-HEAVY format (+43% quality improvement)
-
-Is the task COMPLEX with clear requirements (architecture, review)?
-  → Use MINIMAL format (avoid over-constraining)
-
-Is the task MEDIUM complexity with structured steps?
-  → Use METADATA format (structured guidance)
-```
-
-**For detailed format guidance:** See [Format Selection Principles](./agent-principles/format-selection.md)
-
-### Agent Size Guidelines (Phase 4 Validated)
-
-**Target:** 100-200 lines per agent (average: 137 lines)
-
-```yaml
-All Agents:
-  → Use 5 reusable templates for common patterns
-  → Preserve only unique domain logic
-  → Target: 100-200 lines (validated across 75 agents)
-
-Templates Available:
-  - redis-coordination.md (90 lines)
-  - memory-operations.md (78 lines)
-  - post-edit-validation.md (121 lines)
-  - cfn-loop-mechanics.md (70 lines)
-  - team-dynamics.md (80 lines)
-```
-
-**Phase 4 Results:** 75 agents optimized, 73% codebase reduction, 50-66% faster loading
-
----
-
-## Phase 4 Template System
-
-### Overview
-
-**Phase 4 (October 2025)** successfully optimized 75 of 81 agents using template extraction:
-- **23,615 lines removed** (71% average reduction per agent)
-- **Average agent size:** 137 lines (down from 470 lines)
-- **5 reusable templates** created
-- **100% functionality preserved**
-
-### The 5 Core Templates
-
-#### 1. Redis Coordination (`.claude/templates/redis-coordination.md`)
-**What:** Redis pub/sub patterns, LPUSH/BLPOP, hierarchical broadcast, mesh hybrid
-**When:** All agents need Redis coordination
-**Size:** 90 lines
-**Usage:**
-```markdown
-## Redis Coordination
-
-→ See: `.claude/templates/redis-coordination.md`
-
-- Event publishing patterns
-- Signal ACK protocol
-- Error handling strategies
-```
-
-#### 2. Memory Operations (`.claude/templates/memory-operations.md`)
-**What:** SQLite + Redis integration, 5-level ACL, retention policies
-**When:** All agents need memory persistence
-**Size:** 78 lines
-**Usage:**
-```markdown
-## Memory Operations
-
-→ See: `.claude/templates/memory-operations.md`
-
-- SQLite lifecycle hooks
-- ACL-based access control
-- Retry logic for persistence
-```
-
-#### 3. Post-Edit Validation (`.claude/templates/post-edit-validation.md`)
-**What:** Hook integration, 5 feedback types, validation patterns
-**When:** All agents perform file edits
-**Size:** 121 lines
-**Usage:**
-```markdown
-## 🚨 MANDATORY POST-EDIT VALIDATION
-
+### Prerequisites
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "agent/step" --structured
+# Install claude-flow-novice
+npm install claude-flow-novice
+
+# Verify installation
+npx claude-flow-novice --version
 ```
 
-→ See: `.claude/templates/post-edit-validation.md` for feedback types
+### Your First Agent (3 Steps)
+
+**Step 1: Create the agent file**
+```bash
+mkdir -p .claude/agents/custom
+touch .claude/agents/custom/my-first-agent.md
 ```
 
-#### 4. CFN Loop Mechanics (`.claude/templates/cfn-loop-mechanics.md`)
-**What:** Loop structure, decision framework (PROCEED/LOOP/DEFER/ESCALATE), mode thresholds
-**When:** Agents participate in CFN Loop
-**Size:** 70 lines
-**Usage:**
-```markdown
-## CFN Loop Mechanics
-
-→ See: `.claude/templates/cfn-loop-mechanics.md`
-
-- Loop progression logic
-- Mode-specific thresholds (MVP/Standard/Enterprise)
-- Decision framework
-```
-
-#### 5. Team Dynamics (`.claude/templates/team-dynamics.md`)
-**What:** Dynamic role adaptation, collaboration patterns, confidence calibration
-**When:** All agents work in teams
-**Size:** 80 lines
-**Usage:**
-```markdown
-## Team Role Awareness
-
-→ See: `.claude/templates/team-dynamics.md`
-
-**Specialty:** [Agent domain]
-**Solo Confidence:** ≥0.80
-**Team Confidence:** ≥0.75
-
-## Collaboration Patterns
-- **With Implementers:** Provide specifications
-- **With Validators:** Share results via Redis
-- **Solo:** Full implementation cycle
-```
-
-### Template-Based Agent Structure (Validated)
-
-**New Standard (100-200 lines):**
-
+**Step 2: Add basic configuration**
 ```markdown
 ---
-# Frontmatter (30 lines)
-name: agent-name
+name: my-first-agent
 description: |
-  MUST BE USED when [use case]
-  Keywords - [keywords]
+  MUST BE USED when performing [your specific task].
+  Keywords - [relevant, keywords, for, your, task]
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 type: specialist
-acl_level: 1
-validation_hooks:
-  - agent-template-validator
-  - cfn-loop-memory-validator
-lifecycle:
-  pre_task: "sqlite-cli exec 'INSERT INTO agents...'"
-  post_task: "sqlite-cli exec 'UPDATE agents...'"
 ---
 
-# Agent Name (1 line)
+# My First Agent
 
-Brief intro (2-3 lines)
+You are a specialized agent that helps with [describe what your agent does].
 
-## 🚨 MANDATORY POST-EDIT VALIDATION (8 lines)
+## Core Responsibilities
+- [Responsibility 1]
+- [Responsibility 2]
+- [Responsibility 3]
 
-→ See: `.claude/templates/post-edit-validation.md`
-
-## Template References (20 lines)
-
-→ See: `.claude/templates/redis-coordination.md`
-→ See: `.claude/templates/memory-operations.md`
-→ See: `.claude/templates/team-dynamics.md`
-→ See: `.claude/templates/cfn-loop-mechanics.md`
-
-## Core Unique Logic (50-120 lines)
-
-[ONLY agent-specific domain expertise]
-
-## Success Metrics (10 lines)
+## Approach
+[Describe how your agent should approach tasks]
 ```
 
-### Benefits of Template System
-
-**Developer Productivity:**
-- 5× easier maintenance (single template update propagates)
-- Faster agent creation (templates provide scaffolding)
-- Consistent structure across 75 agents
-
-**System Performance:**
-- 50-66% faster agent loading
-- 73% reduction in token usage
-- 70% more efficient rule processing
-
-**Quality:**
-- 100% functionality preserved
-- All validation hooks maintained
-- Standardized patterns reduce bugs
-
-**Cost Savings:**
-- 73% fewer tokens per agent
-- ~32,925 equivalent lines reused via templates
-- 5× reduction in maintenance effort
-
-### Creating New Agents (Template-First Approach)
-
-**Step 1:** Choose appropriate templates (typically all 5)
-
-**Step 2:** Define unique domain logic only (50-120 lines)
-
-**Step 3:** Reference templates, don't duplicate
-```markdown
-## Redis Coordination
-
-→ See: `.claude/templates/redis-coordination.md`
-
-[Only agent-specific Redis patterns here]
+**Step 3: Test your agent**
+```bash
+# Spawn your agent
+npx claude-flow-novice agent-spawn my-first-agent --task-id test-1
 ```
 
-**Step 4:** Validate agent size <200 lines
-
-**Example:** See optimized agents in `.claude/agents/` (all <200 lines)
+**That's it!** You've created a working agent.
 
 ---
 
-## Core Universal Principles
+## Understanding the Agent Directory
 
-### 1. Agent Profile Structure **REQUIRED FORMAT**
+### Directory Structure
 
-Every agent MUST include:
+```
+.claude/agents/
+├── CLAUDE.md                    # This guide
+├── core-agents/                 # Production-ready core agents
+│   ├── coder.md                # Code implementation
+│   ├── reviewer.md             # Code review & quality
+│   ├── tester.md               # Testing & validation
+│   └── coordinator.md          # Multi-agent coordination
+├── development/                 # Development-focused agents
+│   ├── backend-dev.md
+│   ├── frontend-dev.md
+│   └── devops-engineer.md
+├── security/                    # Security-focused agents
+│   └── security-specialist.md
+├── custom/                      # YOUR CUSTOM AGENTS GO HERE
+│   └── your-agent.md
+└── templates/                   # Reusable templates
+    ├── redis-coordination.md
+    ├── memory-operations.md
+    └── team-dynamics.md
+```
 
-#### Frontmatter (YAML)
+### Where to Put Your Agents
+
+**Option 1: Project-Specific** (Recommended for teams)
+```bash
+# Lives in your project repo
+<project-root>/.claude/agents/custom/
+```
+- ✅ Version controlled with your code
+- ✅ Shared across team
+- ✅ Project-specific workflows
+
+**Option 2: Personal Agents**
+```bash
+# Lives in your home directory
+~/.claude/agents/
+```
+- ✅ Available across all projects
+- ✅ Personal productivity tools
+- ⚠️ Not shared with team
+
+---
+
+## Agent Anatomy
+
+Every agent has three main parts:
+
+### 1. Frontmatter (YAML Configuration)
 
 ```yaml
 ---
-name: agent-name                    # REQUIRED: Lowercase with hyphens
-description: |                      # REQUIRED: Clear, keyword-rich description
-  MUST BE USED when [primary use case].
-  Use PROACTIVELY for [specific scenarios].
-  ALWAYS delegate when user asks [trigger phrases].
-  Keywords - [comma-separated keywords for search]
-tools: [Read, Write, Edit, Bash, TodoWrite, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn]  # REQUIRED: Comma-separated list, can include MCP commands
-model: sonnet                       # REQUIRED: sonnet | opus | haiku
-provider: zai                       # OPTIONAL: zai | anthropic | custom (defaults to zai if not specified)
-color: seagreen                     # REQUIRED: Visual identifier
-type: specialist                    # OPTIONAL: specialist | coordinator | swarm
-capabilities:                       # OPTIONAL: Array of capability tags
-  - rust
-  - error-handling
-lifecycle:                          # OPTIONAL: Hooks for agent lifecycle
-  pre_task: "npx claude-flow@alpha hooks pre-task"
-  post_task: "npx claude-flow@alpha hooks post-task"
-hooks:                             # OPTIONAL: Integration points
-  memory_key: "agent-name/context"
-  validation: "post-edit"
-validation_hooks:                  # OPTIONAL: Auto-triggered validators
-  - agent-template-validator       # Auto-validates on .md save
-  - cfn-loop-memory-validator      # Auto-validates memory.set() calls
-  - test-coverage-validator        # Auto-validates after tests
-  - blocking-coordination-validator # For coordinators only
-triggers:                          # OPTIONAL: Automatic activation patterns
-  - "build rust"
-  - "implement concurrent"
-constraints:                       # OPTIONAL: Limitations and boundaries
-  - "Do not modify production database"
+name: agent-name                    # Unique identifier (lowercase, hyphens)
+description: |                      # What the agent does & when to use it
+  MUST BE USED when [use case].
+  Keywords - [searchable, terms]
+tools: [Read, Write, Edit, Bash]    # Available tools (Bash includes Redis CLI)
+model: haiku                        # haiku | sonnet | opus
+type: specialist                    # specialist | coordinator | swarm
+capabilities:                       # Optional tags
+  - api-development
+  - database-design
+acl_level: 1                        # Data access level (1-5)
 ---
 ```
 
-#### Body Structure
+### 2. Agent Body (Instructions)
 
 ```markdown
 # Agent Name
 
-[Opening paragraph: WHO you are, WHAT you do]
-
-## 🚨 MANDATORY POST-EDIT VALIDATION
-
-**CRITICAL**: After **EVERY** file edit operation, you **MUST** run the enhanced post-edit hook:
-
-```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "agent/step" --structured
-```
-
-**This provides:**
-- 🧪 **TDD Compliance**: Validates test-first development practices
-- 🔒 **Security Analysis**: Detects eval(), hardcoded credentials, XSS vulnerabilities
-- 🎨 **Formatting**: Prettier/rustfmt analysis with diff preview
-- 📊 **Coverage Analysis**: Test coverage validation with configurable thresholds (≥80%)
-- 🤖 **Actionable Recommendations**: Specific steps to improve code quality
-- 💾 **Memory Coordination**: Stores results for cross-agent collaboration
-
-**Additional Validators:**
-- **Agent Template Validator**: Auto-validates SQLite lifecycle hooks, ACL declarations, error handling patterns (triggers on `.claude/agents/**/*.md` edits)
-- **CFN Loop Memory Validator**: Auto-validates ACL levels for Loop 3/2/4 memory operations (triggers on `memory.set()` calls)
-- **Test Coverage Validator**: Auto-validates 80% line coverage, 75% branch coverage thresholds (triggers after test execution)
-- **Blocking Coordination Validator**: Auto-validates HMAC secrets, signal ACK patterns (coordinators only)
+Brief description of what this agent does.
 
 ## Core Responsibilities
-
-[Primary duties in clear, actionable bullet points]
+- Primary duty 1
+- Primary duty 2
 
 ## Approach & Methodology
+How the agent thinks about and solves problems.
 
-[HOW the agent accomplishes tasks - frameworks, patterns, decision-making]
-
-## Integration & Collaboration
-
-[How this agent works with other agents and the broader system]
+## Collaboration
+How this agent works with other agents.
 
 ## Success Metrics
+How to measure if the agent succeeded.
+```
 
-[How to measure agent effectiveness]
+### 3. Template References (Optional)
+
+```markdown
+## Redis Coordination
+→ See: `.claude/templates/redis-coordination.md`
+
+## Memory Operations
+→ See: `.claude/templates/memory-operations.md`
 ```
 
 ---
 
-### 2. The Complexity-Verbosity Inverse Law
+## Step-by-Step Agent Creation
 
-**Empirical Finding:** Task complexity and prompt verbosity have an inverse relationship.
+### Step 1: Define Your Agent's Purpose
 
-```
-Basic Tasks (parsing, CRUD):
-  - Code-Heavy: 85.3% quality (+43% vs Minimal)
-  - Best approach: Detailed examples with step-by-step guidance
+**Ask yourself:**
+- What specific task will this agent perform?
+- When should it be automatically triggered?
+- What expertise does it need?
+- How will it collaborate with other agents?
 
-Complex Tasks (architecture, lock-free algorithms):
-  - Minimal: 87.2% quality (+31% vs Code-Heavy)
-  - Best approach: High-level principles with reasoning freedom
-```
+**Example:**
+> "I need an agent that reviews database schema migrations for security issues and performance problems."
 
-**Why This Matters:**
-- Basic tasks benefit from concrete patterns (priming effect)
-- Complex tasks need creative freedom (over-specification creates tunnel vision)
-- Medium tasks need structured scaffolding without over-constraining
+### Step 2: Choose Your Template
 
-**For detailed analysis:** See [Format Selection Principles](./agent-principles/format-selection.md)
+We provide 3 templates based on task complexity:
 
----
+| Template | Best For | Size | Example Use |
+|----------|----------|------|-------------|
+| **Simple** | Single, focused tasks | 100-200 lines | File formatter, linter |
+| **Standard** | Multi-step workflows | 200-400 lines | API developer, reviewer |
+| **Advanced** | Complex coordination | 400-700 lines | Architect, coordinator |
 
-### 3. Mandatory Post-Edit Validation System
-
-**UNIVERSAL REQUIREMENT:** Every agent MUST run post-edit hooks after file modifications.
+### Step 3: Create Your Agent File
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] \
-  --memory-key "agent-name/context" \
-  --structured
+# For a database migration reviewer
+touch .claude/agents/custom/migration-reviewer.md
 ```
 
-**Core Benefits:**
-- TDD compliance verification
-- Security analysis (XSS, eval(), hardcoded credentials)
-- Formatting validation (Prettier, rustfmt)
-- Test coverage analysis (≥80% line, ≥75% branch)
-- Cross-agent memory coordination
-- Actionable recommendations
+### Step 4: Fill in the Template
 
-**Four Production-Ready Validators:**
-
-1. **Agent Template Validator** (Priority 1 - CRITICAL)
-   - Validates SQLite lifecycle hooks (spawn, update, terminate)
-   - Validates ACL level declarations (1-5)
-   - Validates error handling patterns (SQLite failures, Redis connection loss)
-   - Validates blocking coordination imports (coordinators only)
-   - Triggers: On edit to `.claude/agents/**/*.md` files
-   - Automation: 95% (WASM-accelerated pattern matching)
-
-2. **CFN Loop Memory Pattern Validator** (Priority 2 - HIGH)
-   - Validates ACL level correctness (Loop 3: Private=1, Loop 2: Swarm=3, Loop 4: Project=4)
-   - Validates memory key format (`cfn/phase-{id}/loop{N}/...`)
-   - Validates TTL values match retention policies (Loop 4: 365 days)
-   - Validates encryption for sensitive data (Loop 3 private data)
-   - Triggers: On `memory.set()` calls in code
-   - Automation: 90% (deterministic rule matching)
-
-3. **Test Coverage Validator** (Priority 3 - MEDIUM)
-   - Validates line coverage ≥ 80%
-   - Validates branch coverage ≥ 75%
-   - Validates function coverage ≥ 80%
-   - Validates agent lifecycle tests present
-   - Validates signal ACK protocol tests present
-   - Triggers: After test execution
-   - Automation: 100% (quantitative metrics)
-
-4. **Blocking Coordination Validator** (DEPRECATED - Use Redis BLPOP instead)
-   - ⚠️ **Status**: Deprecated in favor of Redis BLPOP primitives
-   - See: `.claude/skills/redis-coordination/SKILL.md` for modern patterns
-   - Migration guide: `legacy/v1/deprecated/BLOCKING_COORDINATION_MIGRATION.md`
-
-**Hook Composition Pattern:**
-
-Hooks compose for comprehensive validation:
-
-```javascript
-// CompositeHook pattern enables layered validation
-const agentValidation = new CompositeHook(
-  new AgentTemplateValidator(),
-  new CFNLoopMemoryValidator(),
-  new TestCoverageValidator()
-);
-
-// Results merge for actionable recommendations
-const result = await agentValidation.validate(file, content);
-// → { valid: boolean, results: [], combinedRecommendations: [] }
-```
-
-**Performance Expectations:**
-- Individual validator: <2s (WASM-accelerated)
-- Composite validation: <5s total (parallel execution)
-- False positive rate: <2%
-
-**For integration details:** See [Prompt Engineering Best Practices](./agent-principles/prompt-engineering.md)
-
----
-
-### 4. Agent Template Validator Specification
-
-**Purpose:** Ensures all agent templates follow SQLite lifecycle, ACL, and error handling best practices.
-
-**Validation Criteria:**
-
-✅ **SQLite Lifecycle Hooks** (All agents MUST persist to SQLite for audit trail)
-```typescript
-// Agent spawn registration
-await sqlite.execute(`
-  INSERT INTO agents (id, type, status, spawned_at)
-  VALUES (?, ?, 'active', CURRENT_TIMESTAMP)
-`, [agentId, agentType]);
-
-// Confidence score updates during execution
-await sqlite.execute(`
-  UPDATE agents SET status = ?, confidence = ?, updated_at = CURRENT_TIMESTAMP
-  WHERE id = ?
-`, [status, confidenceScore, agentId]);
-
-// Agent termination and cleanup
-await sqlite.execute(`
-  UPDATE agents SET status = 'completed', completed_at = CURRENT_TIMESTAMP
-  WHERE id = ?
-`, [agentId]);
-```
-
-✅ **ACL Level Declaration** (Data access control by agent type)
-```yaml
-# ACL Level Guidelines by Agent Type:
-implementers:
-  acl_level: 1  # Private (agent-scoped data)
-  example: "coder, backend-dev, frontend-dev"
-
-validators:
-  acl_level: 3  # Swarm (shared across validation team)
-  example: "reviewer, security-specialist, tester"
-
-coordinators:
-  acl_level: 3  # Swarm (coordinate multiple agents)
-  example: "architect, planner, devops-engineer"
-
-product_owner:
-  acl_level: 4  # Project (strategic decisions, audit trail)
-  example: "product-owner (CFN Loop 4 only)"
-```
-
-✅ **Error Handling for SQLite Failures**
-```javascript
-try {
-  await sqlite.memoryAdapter.set(key, value, { aclLevel: 1 });
-} catch (error) {
-  if (error.code === 'SQLITE_BUSY') {
-    // Retry with exponential backoff
-    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value));
-  } else if (error.code === 'SQLITE_LOCKED') {
-    // Wait for lock release
-    await waitForLockRelease(key);
-  } else {
-    // Log and gracefully degrade
-    console.error('SQLite failure:', error);
-    // Fallback to Redis for non-critical data
-    await redis.set(key, value);
-  }
-}
-```
-
-✅ **Redis BLPOP Coordination** (Coordinators - Modern Pattern)
-```bash
-# Zero-token blocking coordination using Redis primitives
-# See: .claude/skills/redis-coordination/SKILL.md
-
-# Agent signals completion
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-
-# Coordinator blocks until agent completes (zero tokens consumed)
-redis-cli blpop "swarm:${TASK_ID}:${AGENT_ID}:done" 30
-
-# Wake agent for next iteration
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
-  --task-id "$TASK_ID" --agent-id "$AGENT_ID" --reason "cfn_loop_iteration"
-```
-
-**Memory Key Patterns:**
-
-```yaml
-# Standard agent memory patterns
-agent_memory:
-  format: "agent/{agentId}/confidence/{taskId}"
-  example: "agent/coder-1/confidence/auth-implementation"
-  acl_level: 1  # Private to agent
-
-# CFN Loop memory patterns
-cfn_loop_memory:
-  loop_3: "cfn/phase-{id}/loop3/agent-{id}/{metric}"
-  loop_2: "cfn/phase-{id}/loop2/validation/{validator-id}"
-  loop_4: "cfn/phase-{id}/loop4/decision/{decision-type}"
-
-  # ACL levels by loop
-  loop_3_acl: 1  # Private (implementation details)
-  loop_2_acl: 3  # Swarm (validation team access)
-  loop_4_acl: 4  # Project (strategic decisions)
-```
-
-**Validation Trigger:**
-- File path: `.claude/agents/**/*.md`
-- Trigger event: File save/edit
-- Execution time: <2s (WASM-accelerated)
-- Integration: Automatic via post-edit hook
-
-**Validation Output Example:**
-
-```json
-{
-  "validator": "agent-template-validator",
-  "file": ".claude/agents/backend/coder.md",
-  "valid": false,
-  "violations": [
-    {
-      "type": "missing_sqlite_lifecycle",
-      "severity": "error",
-      "message": "Missing agent spawn registration (INSERT INTO agents)",
-      "line": null,
-      "recommendation": "Add SQLite lifecycle hooks in agent initialization"
-    },
-    {
-      "type": "missing_acl_declaration",
-      "severity": "error",
-      "message": "No ACL level declared for memory operations",
-      "line": 45,
-      "recommendation": "Add aclLevel: 1 for implementer agents"
-    }
-  ],
-  "warnings": [
-    {
-      "type": "error_handling_basic",
-      "message": "Basic error handling present, consider retry logic",
-      "recommendation": "Implement exponential backoff for SQLite BUSY errors"
-    }
-  ]
-}
-```
-
-**For CFN Loop integration:** See section on SQLite Integration Requirements below.
-
----
-
-### 5. SQLite Integration Requirements
-
-**All agents MUST persist to SQLite for audit trail and cross-session recovery.**
-
-**ACL Level Guidelines:**
-
-| Agent Type | ACL Level | Scope | Example Use Cases |
-|-----------|-----------|-------|-------------------|
-| **Implementers** | 1 (Private) | Agent-scoped data | Code snippets, temporary state, confidence scores |
-| **Validators** | 3 (Swarm) | Validation team shared | Review feedback, security findings, test results |
-| **Coordinators** | 3 (Swarm) | Multi-agent coordination | Task assignments, progress tracking, blocking signals |
-| **Product Owner** | 4 (Project) | Strategic decisions | GOAP decisions, backlog items, phase approvals |
-
-**Memory Key Patterns:**
-
-```javascript
-// Standard agent memory
-const agentKey = `agent/${agentId}/confidence/${taskId}`;
-await sqlite.memoryAdapter.set(agentKey, confidenceScore, {
-  aclLevel: 1,  // Private to agent
-  ttl: 2592000  // 30 days
-});
-
-// CFN Loop patterns
-const loop3Key = `cfn/phase-auth/loop3/agent-coder-1/implementation`;
-await sqlite.memoryAdapter.set(loop3Key, implementationDetails, {
-  aclLevel: 1,  // Private (Loop 3 implementation)
-  ttl: 2592000  // 30 days
-});
-
-const loop2Key = `cfn/phase-auth/loop2/validation/reviewer-1`;
-await sqlite.memoryAdapter.set(loop2Key, validationResults, {
-  aclLevel: 3,  // Swarm (Loop 2 validation team)
-  ttl: 7776000  // 90 days
-});
-
-const loop4Key = `cfn/phase-auth/loop4/decision/proceed`;
-await sqlite.memoryAdapter.set(loop4Key, goapDecision, {
-  aclLevel: 4,  // Project (Loop 4 strategic decision)
-  ttl: 31536000  // 365 days (compliance requirement)
-});
-```
-
-**Error Handling Patterns:**
-
-```javascript
-// Retry with exponential backoff for transient errors
-async function retryWithBackoff(operation, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await operation();
-    } catch (error) {
-      if (error.code === 'SQLITE_BUSY' && i < maxRetries - 1) {
-        const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms
-        await new Promise(resolve => setTimeout(resolve, delay));
-      } else {
-        throw error;
-      }
-    }
-  }
-}
-
-// Graceful degradation for non-critical data
-async function writeWithFallback(key, value, options) {
-  try {
-    await sqlite.memoryAdapter.set(key, value, options);
-  } catch (error) {
-    console.warn('SQLite write failed, falling back to Redis:', error);
-    // Fallback to Redis for non-audit data only
-    if (options.aclLevel < 4) {
-      await redis.set(key, JSON.stringify(value));
-    } else {
-      // Critical data MUST persist to SQLite
-      throw new Error('Cannot write critical data to fallback store');
-    }
-  }
-}
-```
-
-**Agent Lifecycle Hooks Integration:**
-
-```yaml
-# In agent frontmatter
-lifecycle:
-  pre_task: |
-    # Register agent in SQLite on spawn
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', '${AGENT_TYPE}', 'active', CURRENT_TIMESTAMP)"
-
-  post_task: |
-    # Update agent status and confidence on completion
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed',
-                         confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
-```
-
-**For CFN Loop memory patterns:** See CFN Loop Memory Pattern Validator above.
-
----
-
-### 6. Integration with Claude Flow
-
-#### Hook System
-
-Every agent integrates with:
-- **Pre-task hooks**: Initialize context, set up memory namespace, register in SQLite
-- **Post-edit hooks**: Validate quality, coordinate with other agents, run validators
-- **Post-task hooks**: Finalize task, export metrics, update SQLite status
-- **Session management**: Persist state across sessions via SQLite
-
-#### Memory Coordination (SQLite + ACL)
-
-```javascript
-// Standard memory key pattern: {agent-type}/{domain}/{aspect}
-await sqlite.memoryAdapter.set("architect/auth/design", designDoc, { aclLevel: 3 });
-await sqlite.memoryAdapter.set("coder/auth/implementation", code, { aclLevel: 1 });
-await sqlite.memoryAdapter.set("reviewer/auth/feedback", feedback, { aclLevel: 3 });
-await sqlite.memoryAdapter.set("tester/auth/coverage", coverage, { aclLevel: 3 });
-
-// CFN Loop memory pattern: cfn/phase-{id}/loop{N}/{agent-id}/{metric}
-await sqlite.memoryAdapter.set("cfn/phase-auth/loop3/coder-1/confidence", 0.85, {
-  aclLevel: 1,  // Loop 3: Private implementation data
-  ttl: 2592000  // 30 days
-});
-
-await sqlite.memoryAdapter.set("cfn/phase-auth/loop2/reviewer-1/consensus", 0.92, {
-  aclLevel: 3,  // Loop 2: Swarm validation data
-  ttl: 7776000  // 90 days
-});
-
-await sqlite.memoryAdapter.set("cfn/phase-auth/loop4/decision", "DEFER", {
-  aclLevel: 4,  // Loop 4: Project strategic decision
-  ttl: 31536000  // 365 days (compliance)
-});
-```
-
-**ACL Enforcement:**
-- ACL Level 1 (Private): Only creating agent can read
-- ACL Level 3 (Swarm): All agents in same swarm can read
-- ACL Level 4 (Project): All agents in project can read
-- ACL Level 5 (Team/System): Reserved for infrastructure
-
-#### Swarm Coordination with SQLite Lifecycle
-
-When spawning multiple agents:
-1. **Pre-task hook**: Register agent in SQLite, initialize memory namespace
-2. **Execute work**: Implement task with progress updates to SQLite
-3. **Post-edit hook**: Validate each file with all 4 validators (agent-template, cfn-loop-memory, test-coverage, blocking-coordination)
-4. **Store results**: Persist to SQLite with appropriate ACL level
-5. **Post-task hook**: Finalize task, update agent status to 'completed', export metrics
-
-**Hook Execution Sequence:**
-
-```bash
-# 1. Pre-task: Agent registration
-sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('coder-1', 'coder', 'active', CURRENT_TIMESTAMP)"
-
-# 2. Work execution with progress updates
-sqlite-cli exec "UPDATE agents SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP WHERE id = 'coder-1'"
-
-# 3. Post-edit: Run all applicable validators
-npx claude-flow@alpha hooks post-edit src/auth.js --memory-key "agent/coder-1/auth" --structured
-# → Triggers: agent-template-validator, cfn-loop-memory-validator, test-coverage-validator
-
-# 4. Store results with ACL
-sqlite-cli exec "INSERT INTO memory (key, value, acl_level, ttl) VALUES ('agent/coder-1/confidence/auth', '0.85', 1, 2592000)"
-
-# 5. Post-task: Finalization
-sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = 0.85, completed_at = CURRENT_TIMESTAMP WHERE id = 'coder-1'"
-```
-
-**Hook Composition for Coordinators:**
-
-Coordinator agents run standard validation:
-
-```bash
-# Coordinators trigger standard validators
-npx claude-flow@alpha hooks post-edit src/coordinator.js --memory-key "agent/coordinator-1/phase" --structured
-# → Triggers: agent-template-validator, cfn-loop-memory-validator
-
-# For Redis coordination validation, see:
-# .claude/skills/redis-coordination/test-orchestrator.sh (8/8 passing tests)
-```
-
-**Performance:**
-- Sequential validators: ~5-8s total
-- Parallel validators (independent): ~2-3s total (recommended)
-- WASM acceleration: 52x speedup for pattern matching
-
-**For detailed integration:** See [Prompt Engineering Best Practices](./agent-principles/prompt-engineering.md)
-
----
-
-## Agent Profile Structure
-
-### The Three Formats
-
-1. **MINIMAL (200-400 lines)**: For complex, strategic tasks requiring reasoning freedom
-2. **METADATA (400-700 lines)**: For medium complexity with structured workflows
-3. **CODE-HEAVY (700-1200 lines)**: For basic tasks benefiting from concrete examples
-
-**Detailed format specifications:** [Format Selection Principles](./agent-principles/format-selection.md)
-
-### Format Selection Decision Tree
-
-```
-Task Complexity Assessment
-        │
-    ┌───┴────┐
-    │        │
-  BASIC   COMPLEX
-    │        │
-CODE-HEAVY MINIMAL
-```
-
-**Full decision tree and factors:** [Format Selection Principles](./agent-principles/format-selection.md)
-
----
-
-## Examples & Templates
-
-### Example 1: Minimal Format (Complex Tasks)
-
-**File:** `.claude/agents/architecture/system-architect.md`
+**Simple Template Example:**
 
 ```markdown
 ---
-name: system-architect
+name: migration-reviewer
 description: |
-  MUST BE USED when designing enterprise-grade system architecture.
-  Use PROACTIVELY for distributed systems, event-driven architecture.
-  Keywords - architecture, system design, microservices, scalability
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
-color: seagreen
-type: coordinator
-validation_hooks:
-  - agent-template-validator
-  - cfn-loop-memory-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'system-architect', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
+  MUST BE USED when reviewing database migrations for security and performance.
+  Use PROACTIVELY for SQL schema changes, migrations, database updates.
+  Keywords - database, migration, schema, SQL, security, performance
+tools: [Read, Grep, TodoWrite]
+model: haiku
+type: specialist
+capabilities:
+  - database-security
+  - sql-review
+  - performance-analysis
+acl_level: 3
 ---
 
-# System Architect Agent
+# Database Migration Reviewer
 
-You are a senior system architect with deep expertise in designing
-scalable, maintainable, and robust software systems.
-
-## 🚨 MANDATORY POST-EDIT VALIDATION
-
-After EVERY file edit:
-```bash
-npx claude-flow@alpha hooks post-edit [FILE] --memory-key "architect/${AGENT_ID}/step" --structured
-```
-
-This triggers: agent-template-validator, cfn-loop-memory-validator
-
-## SQLite Integration
-
-All architectural decisions MUST persist to SQLite with ACL Level 3 (Swarm):
-
-```javascript
-// Store ADR in SQLite
-await sqlite.memoryAdapter.set(
-  `architect/${agentId}/adr/${componentName}`,
-  architectureDecisionRecord,
-  { aclLevel: 3, ttl: 31536000 }  // 1 year retention
-);
-
-// Error handling with retry
-try {
-  await sqlite.memoryAdapter.set(key, value, options);
-} catch (error) {
-  if (error.code === 'SQLITE_BUSY') {
-    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, value, options));
-  } else {
-    throw error;
-  }
-}
-```
+You are a specialized database expert focused on reviewing migration files for
+security vulnerabilities and performance issues.
 
 ## Core Responsibilities
 
-- Design system architectures from business requirements
-- Make strategic technical decisions with clear rationale
-- Define component boundaries and interactions
-- Ensure scalability, security, and maintainability
-- Create Architecture Decision Records (ADRs)
-- Persist all decisions to SQLite for audit trail
+1. **Security Review**
+   - Check for SQL injection vulnerabilities
+   - Validate access control patterns
+   - Review encryption of sensitive data
+   - Ensure proper sanitization
 
-## Architectural Approach
+2. **Performance Analysis**
+   - Identify missing indexes
+   - Flag inefficient queries
+   - Check for N+1 query patterns
+   - Validate transaction boundaries
 
-### Requirements Analysis
-Extract functional and non-functional requirements, identify constraints
-and quality attributes, understand stakeholder needs.
+3. **Best Practices**
+   - Ensure migrations are reversible
+   - Check for breaking changes
+   - Validate naming conventions
+   - Verify proper error handling
 
-### Design Process
-Apply appropriate patterns (microservices, event-driven, CQRS), consider
-trade-offs, document decisions with ADRs.
+## Review Process
 
-### Quality Attributes
-- Performance: Response times, throughput
-- Scalability: Horizontal and vertical scaling
-- Security: Zero-trust, defense-in-depth
-- Maintainability: Modular design, clear interfaces
-- Reliability: Fault tolerance, disaster recovery
+1. Read migration file
+2. Analyze SQL patterns
+3. Check against security checklist
+4. Evaluate performance implications
+5. Provide actionable feedback
 
-## Collaboration
+## Output Format
 
-- Work with Coder agents for implementation guidance (ACL 1)
-- Coordinate with Reviewer agents for design validation (ACL 3)
-- Provide specifications to DevOps for infrastructure (ACL 3)
-- Share ADRs via SQLite memory system (ACL 3)
+Provide a confidence score (0.0-1.0) and structured feedback:
+- Critical issues (must fix)
+- Warnings (should address)
+- Suggestions (nice to have)
+- Approved changes
 
 ## Success Metrics
-
-- Architecture meets quality attributes
-- Team can implement the design
-- Documentation is clear and comprehensive
-- Trade-offs are explicitly documented
-- All decisions persisted to SQLite with appropriate ACL
+- Zero critical security issues
+- No obvious performance bottlenecks
+- Migrations are reversible
+- Confidence score ≥ 0.85
 ```
 
-**For more examples:** [Format Selection Principles](./agent-principles/format-selection.md)
+### Step 5: Test Your Agent
+
+```bash
+# Test with a sample task
+npx claude-flow-novice agent-spawn migration-reviewer \
+  --task-id test-migration \
+  --prompt "Review the migration in db/migrations/001_add_users_table.sql"
+```
 
 ---
 
-### Example 2: Metadata Format (Medium Tasks with CFN Loop Integration)
+## Ready-to-Use Templates
 
-**File:** `.claude/agents/development/api-developer.md`
+### Template 1: Code Implementer
 
-**Key additions for CFN Loop:**
+```markdown
+---
+name: my-implementer
+description: |
+  MUST BE USED when implementing [specific type of code].
+  Keywords - implement, build, create, develop
+tools: [Read, Write, Edit, Bash, TodoWrite]
+model: haiku
+type: specialist
+acl_level: 1
+---
+
+# [Type] Implementer
+
+You implement [specific type of code] following best practices.
+
+## Core Responsibilities
+- Write clean, maintainable code
+- Follow TDD approach
+- Implement features from specifications
+- Optimize for readability
+
+## Implementation Workflow
+1. Understand requirements
+2. Write tests first
+3. Implement solution
+4. Refactor for quality
+5. Validate coverage
+
+## Success Criteria
+- All tests pass
+- Code coverage ≥ 80%
+- Follows coding standards
+- Confidence score ≥ 0.80
+```
+
+### Template 2: Code Reviewer
+
+```markdown
+---
+name: my-reviewer
+description: |
+  MUST BE USED for reviewing [specific type of code].
+  Keywords - review, validate, quality, security
+tools: [Read, Grep, TodoWrite]
+model: haiku
+type: validator
+acl_level: 3
+---
+
+# [Type] Code Reviewer
+
+You review [specific type of code] for quality, security, and best practices.
+
+## Review Criteria
+
+### Code Quality
+- [ ] Clear variable names
+- [ ] Proper error handling
+- [ ] Minimal complexity
+- [ ] Good documentation
+
+### Security
+- [ ] No hardcoded secrets
+- [ ] Proper input validation
+- [ ] Safe API usage
+- [ ] No XSS/injection risks
+
+### Performance
+- [ ] Efficient algorithms
+- [ ] No memory leaks
+- [ ] Proper caching
+- [ ] Optimized queries
+
+## Output Format
+Provide confidence score and categorized feedback:
+- 🔴 Critical (blocking issues)
+- 🟡 Warnings (should fix)
+- 🟢 Suggestions (improvements)
+
+## Success Metrics
+- Confidence score ≥ 0.90
+- Zero critical issues
+- Actionable feedback provided
+```
+
+### Template 3: Specialist Agent
+
+```markdown
+---
+name: my-specialist
+description: |
+  MUST BE USED when [specialized task].
+  Use PROACTIVELY for [scenarios].
+  Keywords - [domain, specific, keywords]
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
+model: sonnet
+type: specialist
+capabilities:
+  - [capability-1]
+  - [capability-2]
+acl_level: 1
+---
+
+# [Domain] Specialist
+
+You are an expert in [domain] with deep knowledge of [specific expertise].
+
+## Expertise Areas
+- [Area 1]: [Description]
+- [Area 2]: [Description]
+- [Area 3]: [Description]
+
+## Approach
+[How you analyze and solve problems in this domain]
+
+## Tools & Techniques
+- [Tool/Technique 1]
+- [Tool/Technique 2]
+- [Tool/Technique 3]
+
+## Collaboration
+- **With Implementers**: Provide specifications and guidance
+- **With Reviewers**: Share domain expertise
+- **Solo**: Full end-to-end implementation
+
+## Success Metrics
+- Domain-specific quality criteria
+- Stakeholder satisfaction
+- Technical accuracy
+- Confidence score ≥ 0.85
+```
+
+---
+
+## Customization Guide
+
+### 1. Choosing the Right Model
+
+| Model | Speed | Cost | Best For |
+|-------|-------|------|----------|
+| **haiku** | ⚡⚡⚡ | $ | Simple tasks, quick iterations |
+| **sonnet** | ⚡⚡ | $$ | Balanced performance, most tasks |
+| **opus** | ⚡ | $$$ | Complex reasoning, critical tasks |
+
+**Recommendation:** Start with `haiku`, upgrade to `sonnet` if needed.
+
+### 2. Selecting Tools
+
+Available tools:
 ```yaml
-validation_hooks:
-  - agent-template-validator
-  - cfn-loop-memory-validator
-  - test-coverage-validator
+# File Operations
+tools: [Read, Write, Edit, MultiEdit]
+
+# Search & Navigation
+tools: [Grep, Glob]
+
+# Execution
+tools: [Bash]
+
+# Coordination & Task Management
+tools: [TodoWrite]
+
+# Agent Spawning (Coordinators)
+tools: [Bash]  # For CLI spawning: npx claude-flow-novice agent-spawn
+```
+
+**Note:** Agent coordination uses Redis pub/sub + CLI spawning, not MCP tools.
+
+**Rule of Thumb:** Only include tools your agent will actually use. More tools = more complexity.
+
+### 3. Setting ACL Levels
+
+| Level | Scope | Use When |
+|-------|-------|----------|
+| **1** | Private | Agent's own data only |
+| **3** | Swarm | Shared across team of agents |
+| **4** | Project | Strategic decisions, audit logs |
+| **5** | System | Infrastructure only |
+
+**Most agents use level 1 or 3.**
+
+### 4. Adding Capabilities (Tags)
+
+```yaml
+capabilities:
+  - rust              # Language expertise
+  - api-design        # Domain knowledge
+  - security-review   # Specialized skill
+  - performance-opt   # Focus area
+```
+
+These help with agent discovery and routing.
+
+### 5. Customizing Behavior
+
+**Tone & Style:**
+```markdown
+You are a [friendly/professional/technical] agent that [approach].
+
+## Communication Style
+- Use [formal/casual] language
+- Provide [detailed/concise] explanations
+- Focus on [theory/practice]
+```
+
+**Decision-Making:**
+```markdown
+## Decision Framework
+When [situation], prioritize:
+1. [Criterion 1]
+2. [Criterion 2]
+3. [Criterion 3]
+```
+
+**Error Handling:**
+```markdown
+## Error Handling Strategy
+- For [error type]: [action]
+- If [condition]: [fallback]
+- Always: [safety measure]
+```
+
+---
+
+## Testing Your Agent
+
+### Manual Testing
+
+```bash
+# Basic spawn test
+npx claude-flow-novice agent-spawn my-agent --task-id test-1
+
+# With specific prompt
+npx claude-flow-novice agent-spawn my-agent \
+  --task-id test-2 \
+  --prompt "Specific task instructions"
+```
+
+### Integration Testing
+
+Create a test task:
+```bash
+# Create test directory
+mkdir -p tests/agents
+
+# Create test file
+cat > tests/agents/test-my-agent.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Testing my-agent..."
+
+# Spawn agent
+npx claude-flow-novice agent-spawn my-agent \
+  --task-id test-integration
+
+# Verify output
+# [Add your verification logic]
+
+echo "✅ Test passed"
+EOF
+
+chmod +x tests/agents/test-my-agent.sh
+
+# Run test
+./tests/agents/test-my-agent.sh
+```
+
+### Validation Checklist
+
+Before deploying your agent:
+
+- [ ] YAML frontmatter is valid
+- [ ] Name is unique and descriptive
+- [ ] Description includes use cases and keywords
+- [ ] Tools list includes only needed tools
+- [ ] Core responsibilities are clear
+- [ ] Success metrics are defined
+- [ ] Agent tested with sample tasks
+- [ ] Documentation is complete
+
+---
+
+## Advanced Concepts
+
+### Multi-Agent Coordination
+
+Agents can work together using Redis pub/sub and CLI spawning:
+
+```markdown
+## Redis Coordination
+→ See: `.claude/templates/redis-coordination.md`
+
+### Agent Spawning Pattern
+```bash
+# Spawn agents via CLI (coordinators only)
+npx claude-flow-novice agent-spawn backend-dev --task-id "${TASK_ID}"
+npx claude-flow-novice agent-spawn reviewer --task-id "${TASK_ID}"
+```
+
+### Signaling Pattern
+```bash
+# Signal completion
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+# Wait for other agent (zero-token blocking)
+redis-cli blpop "swarm:${TASK_ID}:other-agent:done" 30
+```
+```
+
+### Memory Operations
+
+Agents can persist and share data:
+
+```markdown
+## Memory Operations
+→ See: `.claude/templates/memory-operations.md`
+
+### SQLite Integration
+```typescript
+await sqlite.memoryAdapter.set(
+  `agent/${agentId}/data/${taskId}`,
+  { confidence: 0.85, status: 'complete' },
+  { aclLevel: 1, ttl: 2592000 }
+);
+```
+```
+
+### CFN Loop Integration
+
+For self-correcting workflows:
+
+```markdown
+## CFN Loop Mechanics
+→ See: `.claude/templates/cfn-loop-mechanics.md`
+
+Agents participate in 3-loop validation:
+- Loop 3: Implementation
+- Loop 2: Validation
+- Loop 4: Strategic decisions
+```
+
+### Lifecycle Hooks
+
+```yaml
 lifecycle:
-  pre_task: "sqlite-cli exec 'INSERT INTO agents ...'"
-  post_task: "sqlite-cli exec 'UPDATE agents SET status=completed ...'"
+  pre_task: |
+    # Runs before agent starts
+    echo "Initializing agent..."
+
+  post_task: |
+    # Runs after agent completes
+    echo "Agent completed with confidence: ${CONFIDENCE_SCORE}"
 ```
 
-**CFN Loop Memory Persistence:**
-```javascript
-// Loop 3: Implementation confidence (Private)
-await sqlite.memoryAdapter.set(
-  `cfn/phase-api/loop3/api-developer-1/confidence`,
-  0.85,
-  { aclLevel: 1, ttl: 2592000 }  // Private, 30 days
-);
+### Validation Hooks
 
-// Loop 2: Validation feedback (Swarm)
-await sqlite.memoryAdapter.set(
-  `cfn/phase-api/loop2/reviewer-1/feedback`,
-  reviewFeedback,
-  { aclLevel: 3, ttl: 7776000 }  // Swarm, 90 days
-);
-```
-
-**For complete example:** See API Developer template in [Format Selection Principles](./agent-principles/format-selection.md)
-
----
-
-### Example 3: Code-Heavy Format (Basic Tasks with Blocking Coordination)
-
-**File:** `.claude/agents/coordination/coordinator.md`
-
-**Key additions for coordinators:**
 ```yaml
-type: coordinator
 validation_hooks:
-  - agent-template-validator
-  - cfn-loop-memory-validator
-  - blocking-coordination-validator  # Coordinator-specific
+  - agent-template-validator      # Validates agent structure
+  - cfn-loop-memory-validator     # Validates memory operations
+  - test-coverage-validator       # Validates test coverage
 ```
 
-**Redis BLPOP Coordination Pattern:**
+---
+
+## Troubleshooting
+
+### Agent Not Found
+
+**Problem:** `Error: Agent 'my-agent' not found`
+
+**Solutions:**
+1. Check file is in `.claude/agents/` directory
+2. Verify filename matches agent name: `my-agent.md`
+3. Ensure YAML frontmatter has `name: my-agent`
+
+### Invalid YAML
+
+**Problem:** `Error: Invalid YAML frontmatter`
+
+**Solutions:**
+1. Check YAML syntax with `---` delimiters
+2. Ensure proper indentation (2 spaces)
+3. Quote special characters in strings
+4. Validate at https://www.yamllint.com/
+
+### Agent Behavior Issues
+
+**Problem:** Agent doesn't perform as expected
+
+**Solutions:**
+1. Review and clarify core responsibilities
+2. Simplify instructions (less is often more)
+3. Add specific examples of desired behavior
+4. Test with varied prompts
+5. Check model choice (try upgrading haiku → sonnet)
+
+### Tools Not Working
+
+**Problem:** `Error: Tool [X] not available`
+
+**Solutions:**
+1. Verify tool is in frontmatter `tools` list
+2. Check spelling matches exactly
+3. For agent spawning, use Bash tool with CLI commands
+4. Review tool permissions
+
+### Memory/Coordination Issues
+
+**Problem:** Agents can't share data
+
+**Solutions:**
+1. Check Redis is running: `redis-cli ping`
+2. Verify ACL levels are compatible
+3. Ensure memory keys follow patterns
+4. Check SQLite database exists
+
+---
+
+## Example: Complete Custom Agent
+
+Here's a real-world example - a Terraform reviewer agent:
+
+```markdown
+---
+name: terraform-reviewer
+description: |
+  MUST BE USED when reviewing Terraform infrastructure code.
+  Use PROACTIVELY for IaC review, security validation, cost optimization.
+  Keywords - terraform, infrastructure, IaC, cloud, AWS, security
+tools: [Read, Grep, Glob, TodoWrite]
+model: sonnet
+type: specialist
+capabilities:
+  - terraform
+  - infrastructure-as-code
+  - cloud-security
+  - cost-optimization
+acl_level: 3
+---
+
+# Terraform Infrastructure Reviewer
+
+You are an infrastructure expert specializing in Terraform code review with
+focus on security, best practices, and cost optimization.
+
+## Core Responsibilities
+
+### 1. Security Review
+- Check for exposed secrets or credentials
+- Validate IAM policies (principle of least privilege)
+- Review security group rules
+- Ensure encryption at rest and in transit
+- Verify logging and monitoring
+
+### 2. Best Practices
+- Validate resource naming conventions
+- Check for proper tagging strategy
+- Ensure state management best practices
+- Review module structure and reusability
+- Validate provider versioning
+
+### 3. Cost Optimization
+- Identify over-provisioned resources
+- Flag expensive resource types
+- Suggest reserved instances where applicable
+- Review data transfer patterns
+- Validate auto-scaling configurations
+
+### 4. Compliance
+- Check against company standards
+- Validate regulatory requirements
+- Ensure disaster recovery provisions
+- Review backup strategies
+
+## Review Process
+
+1. **Parse Terraform Files**
+   - Read all `.tf` files in directory
+   - Identify resource types and configurations
+   - Map dependencies
+
+2. **Security Analysis**
+   - Run security checklist
+   - Flag critical issues
+   - Identify vulnerabilities
+
+3. **Cost Analysis**
+   - Estimate monthly costs
+   - Identify optimization opportunities
+   - Calculate potential savings
+
+4. **Compliance Check**
+   - Verify against standards
+   - Document exceptions
+   - Recommend remediation
+
+5. **Generate Report**
+   - Categorize findings by severity
+   - Provide specific recommendations
+   - Include confidence score
+
+## Output Format
+
+### Summary
+- Overall confidence score (0.0-1.0)
+- Total issues found by severity
+- Estimated monthly cost
+- Compliance status
+
+### Detailed Findings
+
+**🔴 Critical Issues** (must fix before deployment)
+- [Issue description]
+- File: `path/to/file.tf:line`
+- Recommendation: [specific fix]
+
+**🟡 Warnings** (should address)
+- [Issue description]
+- Impact: [description]
+- Suggestion: [improvement]
+
+**🟢 Optimizations** (nice to have)
+- [Opportunity description]
+- Potential savings: [amount]
+- Effort: [low/medium/high]
+
+## Success Metrics
+- Security score ≥ 0.90
+- Zero critical vulnerabilities
+- Cost optimization opportunities identified
+- Compliance requirements met
+- Clear, actionable feedback
+
+## Collaboration
+- **With DevOps**: Review infrastructure changes
+- **With Security Team**: Validate security posture
+- **With Finance**: Optimize cloud spend
+- **Solo**: Complete IaC review and reporting
+```
+
+**Usage:**
 ```bash
-# Modern zero-token coordination using Redis BLPOP primitives
-# See: .claude/skills/redis-coordination/SKILL.md
-
-# 1. Agent enters waiting mode (zero-token blocking)
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "task-123" \
-  --agent-id "coder-1" \
-  --context "iteration-1"
-
-# 2. Coordinator blocks until agent reports (BLPOP - no API calls)
-redis-cli blpop "swarm:task-123:coder-1:done" 30
-
-# 3. Wake agent for next iteration
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
-  --task-id "task-123" \
-  --agent-id "coder-1" \
-  --reason "cfn_loop_iteration" \
-  --iteration 2
-
-# Benefits:
-# - Zero tokens consumed while waiting (BLPOP blocks without API calls)
-# - Instant wake-up (<100ms latency)
-# - Auto-cleanup (keys deleted on read)
-# - Validated by 8/8 passing tests
+npx claude-flow-novice agent-spawn terraform-reviewer \
+  --prompt "Review Terraform files in ./infrastructure"
 ```
 
-**For complete example:** See Rust Coder template in [Format Selection Principles](./agent-principles/format-selection.md)
-
 ---
 
-## Specialized Guidance
+## Quick Reference
 
-### By Agent Type
+### Common Agent Patterns
 
-Different agent types have different format requirements and validation hooks:
-
-- **Coder Agents (Implementers)**:
-  - Format: Code-Heavy for basic tasks, Minimal for complex algorithms
-  - ACL Level: 1 (Private)
-  - Validators: agent-template-validator, cfn-loop-memory-validator, test-coverage-validator
-  - SQLite: Persist confidence scores, implementation notes
-
-- **Reviewer Agents (Validators)**:
-  - Format: Minimal (requires contextual reasoning)
-  - ACL Level: 3 (Swarm)
-  - Validators: agent-template-validator, cfn-loop-memory-validator
-  - SQLite: Persist review feedback, validation consensus
-
-- **Architect Agents (Coordinators)**:
-  - Format: Minimal (strategic thinking)
-  - ACL Level: 3 (Swarm)
-  - Validators: agent-template-validator, cfn-loop-memory-validator
-  - SQLite: Persist ADRs, design decisions (1 year retention)
-
-- **Coordinator Agents**:
-  - Format: Metadata (structured workflows)
-  - ACL Level: 3 (Swarm)
-  - Validators: agent-template-validator, cfn-loop-memory-validator
-  - SQLite: Persist coordination state, agent assignments
-  - Special: Redis BLPOP coordination (see `.claude/skills/redis-coordination/SKILL.md`)
-
-- **Tester Agents (Validators)**:
-  - Format: Code-Heavy for unit tests, Metadata for test strategy
-  - ACL Level: 3 (Swarm)
-  - Validators: agent-template-validator, test-coverage-validator
-  - SQLite: Persist test results, coverage metrics
-
-- **Researcher Agents**:
-  - Format: Minimal (open-ended exploration)
-  - ACL Level: 1 (Private) or 3 (Swarm) depending on context
-  - Validators: agent-template-validator
-  - SQLite: Persist research findings, competitive analysis
-
-- **DevOps Agents**:
-  - Format: Metadata (structured workflows)
-  - ACL Level: 3 (Swarm)
-  - Validators: agent-template-validator, cfn-loop-memory-validator
-  - SQLite: Persist deployment logs, infrastructure state
-
-- **Product Owner (CFN Loop 4 only)**:
-  - Format: Minimal (strategic GOAP decisions)
-  - ACL Level: 4 (Project)
-  - Validators: agent-template-validator, cfn-loop-memory-validator
-  - SQLite: Persist GOAP decisions, backlog items (365 day retention for compliance)
-
-**Full type-specific guidance:** [Agent Type Guidelines](./agent-principles/agent-type-guidelines.md)
-
----
-
-### Prompt Engineering
-
-Key principles for effective agent prompts:
-
-1. **Clear Role Definition**: Establish expertise domain
-2. **Specific Responsibilities**: Concrete, actionable duties
-3. **Appropriate Tool Selection**: Only essential tools
-4. **Integration Points**: Explicit collaboration contracts
-5. **Validation Hooks**: Mandatory quality gates (4 production-ready validators)
-6. **SQLite Lifecycle**: Agent spawn, update, completion hooks
-7. **ACL Declaration**: Appropriate access control level by agent type
-8. **Error Handling**: SQLite retry logic, graceful degradation
-
-**Hook-Agent Collaboration Interface:**
-
-For complex validation requiring semantic understanding:
-
-```javascript
-class HybridValidator {
-  async validate(file, content) {
-    // Hook performs pattern detection (95% automation)
-    const patterns = await this.detectPatterns(content);
-
-    if (patterns.hasComplexLogic) {
-      // Delegate semantic analysis to reviewer agent (5% requiring human-level understanding)
-      const agentReview = await this.requestAgentReview({
-        file,
-        content,
-        concern: 'State machine correctness',
-        context: patterns.extracted
-      });
-
-      return { ...patterns, agentReview };
-    }
-
-    return patterns;
-  }
-}
+**Code Writer:**
+```yaml
+tools: [Read, Write, Edit, Bash, TodoWrite]
+model: haiku
+type: specialist
+acl_level: 1
 ```
 
-**Incremental Validation with Caching:**
-
-Avoid re-validating unchanged files (10-100x speedup):
-
-```javascript
-const hash = computeHash(content);
-if (cache.has(hash)) {
-  return cache.get(hash);  // Instant validation for unchanged files
-}
+**Code Reviewer:**
+```yaml
+tools: [Read, Grep, TodoWrite]
+model: sonnet
+type: validator
+acl_level: 3
 ```
 
-**Anti-patterns to avoid:**
-- Over-specification (tunnel vision)
-- Under-specification (too vague)
-- Example overload (cognitive burden)
-- Rigid checklists (context-insensitive)
-- Missing SQLite lifecycle hooks (no audit trail)
-- Wrong ACL level (data exposure or access denial)
-- Missing error handling (cascading failures)
-- Using deprecated BlockingCoordinationSignals (use Redis BLPOP instead)
-
-**Detailed best practices:** [Prompt Engineering Best Practices](./agent-principles/prompt-engineering.md)
-
----
-
-### Quality Metrics & Validation
-
-**Pre-Deployment Checklist:**
-- [ ] Valid YAML frontmatter (including validation_hooks, lifecycle)
-- [ ] Format matches task complexity (Minimal/Metadata/Code-Heavy)
-- [ ] Clear responsibilities defined
-- [ ] Integration points specified (memory keys, ACL levels)
-- [ ] Post-edit hook included (mandatory)
-- [ ] SQLite lifecycle hooks present (pre_task, post_task)
-- [ ] ACL level declared (1-5 based on agent type)
-- [ ] Error handling patterns implemented (retry, fallback)
-- [ ] Redis BLPOP coordination patterns (coordinators - see redis-coordination skill)
-
-**Hook Validation Metrics:**
-- Agent template validation pass rate (target: 100%)
-- CFN Loop ACL compliance rate (target: 100%, zero violations in production)
-- Test coverage above thresholds (≥80% line, ≥75% branch)
-- Blocking coordination pattern correctness (coordinators: 100%)
-- Hook execution time (<5s total for composite validation)
-- False positive rate (<2%)
-
-**Ongoing Monitoring:**
-- First-time success rate (>80%)
-- Iteration count (<3)
-- Quality score (>85%)
-- User satisfaction (>4.5/5)
-- SQLite persistence success rate (>99.9%)
-- ACL violation rate (0% in production)
-- Agent lifecycle completion rate (>95%)
-
-**Hook Performance Targets:**
-- Individual validator: <2s (WASM-accelerated)
-- Composite validation: <5s (parallel execution)
-- Cache hit rate: >70% during development (incremental validation)
-- Manual validation required: <2% (only semantic edge cases)
-
-**Comprehensive validation guide:** [Quality Metrics & Validation](./agent-principles/quality-metrics.md)
-
----
-
-## Benchmark System
-
-### Running Benchmarks
-
-```bash
-cd benchmark/agent-benchmarking
-
-# Run Rust benchmarks (VALIDATED)
-node index.js run 5 --rust --verbose
-
-# Run JavaScript benchmarks (HYPOTHESIS)
-node index.js run 5 --verbose
-
-# Analyze results
-node index.js analyze
+**Coordinator:**
+```yaml
+tools: [Read, Bash, TodoWrite]  # Bash for Redis CLI + agent spawning
+model: sonnet
+type: coordinator
+acl_level: 3
 ```
 
-**Detailed benchmarking guide:** [Quality Metrics & Validation](./agent-principles/quality-metrics.md)
+### File Naming Convention
+
+```
+.claude/agents/
+├── [category]/
+│   └── [agent-name].md    # lowercase, hyphens, descriptive
+```
+
+**Good:** `terraform-reviewer.md`, `api-security-validator.md`
+**Bad:** `TerraformReviewer.md`, `agent1.md`, `myAgent.md`
+
+### Essential YAML Fields
+
+**Minimum required:**
+```yaml
+---
+name: agent-name
+description: |
+  What the agent does and when to use it
+tools: [Read, Write]
+model: haiku
+---
+```
+
+**Recommended:**
+```yaml
+---
+name: agent-name
+description: |
+  MUST BE USED when [use case]
+  Keywords - [keywords]
+tools: [Read, Write, Edit, TodoWrite]
+model: haiku
+type: specialist
+capabilities: [capability-tags]
+acl_level: 1
+---
+```
 
 ---
 
-## Conclusion
+## Resources
 
-### Key Takeaways
+### Template Files
+- `.claude/templates/redis-coordination.md` - Multi-agent coordination
+- `.claude/templates/memory-operations.md` - Data persistence
+- `.claude/templates/team-dynamics.md` - Agent collaboration
+- `.claude/templates/cfn-loop-mechanics.md` - Self-correcting workflows
 
-1. **Format matters**: Choose based on task complexity (inverse relationship)
-2. **Validation is critical**: 4 production-ready hooks ensure quality and coordination
-3. **SQLite integration**: All agents MUST persist lifecycle and data for audit trail
-4. **ACL enforcement**: Appropriate access control prevents data exposure
-5. **Hook composition**: CompositeHook pattern enables layered validation (<5s total)
-6. **Hybrid validation**: Hooks automate 85%, agents handle semantic understanding (15%)
-7. **Integration is essential**: Memory, swarm, and event bus enable collaboration
-8. **Continuous improvement**: Use metrics to refine agents
+### Example Agents
+- `.claude/agents/core-agents/coder.md` - Code implementation
+- `.claude/agents/core-agents/reviewer.md` - Code review
+- `.claude/agents/core-agents/tester.md` - Testing & validation
+- `.claude/agents/development/backend-dev.md` - Backend development
+- `.claude/agents/security/security-specialist.md` - Security analysis
 
-### Four Production-Ready Validators
+### Documentation
+- `README.md` - Project overview
+- `.claude/skills/` - Reusable skill modules
+- `.claude/commands/` - Slash command definitions
 
-1. **Agent Template Validator**: SQLite lifecycle, ACL, error handling (95% automation)
-2. **CFN Loop Memory Pattern Validator**: ACL correctness, key format, TTL (90% automation)
-3. **Test Coverage Validator**: Line/branch/function coverage thresholds (100% automation)
-4. **Blocking Coordination Validator**: HMAC, signals, state machines (60% automation + agent review)
+### Technical Deep-Dive
 
-### Next Steps
-
-1. Choose appropriate format for your agent (Minimal/Metadata/Code-Heavy)
-2. Use templates as starting points (includes SQLite lifecycle hooks)
-3. Add validation_hooks to frontmatter (agent-template, cfn-loop-memory, test-coverage, blocking-coordination)
-4. Implement SQLite lifecycle hooks (pre_task, post_task)
-5. Declare ACL level (1=Private, 3=Swarm, 4=Project)
-6. Add error handling patterns (retry, fallback)
-7. Test with benchmark system
-8. Deploy with validation hooks (automatic on save)
-9. Monitor hook metrics (<5s validation, <2% false positives)
-10. Iterate based on metrics and agent feedback
+For advanced users who want to understand the theoretical foundations:
+- [Format Selection Principles](./agent-principles/format-selection.md)
+- [Agent Type Guidelines](./agent-principles/agent-type-guidelines.md)
+- [Prompt Engineering Best Practices](./agent-principles/prompt-engineering.md)
+- [Quality Metrics & Validation](./agent-principles/quality-metrics.md)
 
 ---
 
-## Reference Documents
+## Need Help?
 
-- **[Format Selection Principles](./agent-principles/format-selection.md)**: Detailed format guidance, benchmarking findings, decision tree
-- **[Agent Type Guidelines](./agent-principles/agent-type-guidelines.md)**: Type-specific recommendations for coders, reviewers, architects, testers, researchers, DevOps
-- **[Prompt Engineering Best Practices](./agent-principles/prompt-engineering.md)**: Effective prompt patterns, anti-patterns, integration with Claude Flow
-- **[Quality Metrics & Validation](./agent-principles/quality-metrics.md)**: Validation checklists, benchmark system, continuous improvement
+### Common Questions
+
+**Q: How many agents should I create?**
+A: Start with 1-3 focused agents. Add more as needed. Quality > quantity.
+
+**Q: Should I modify core agents?**
+A: No, create custom agents instead. Core agents may be updated in new releases.
+
+**Q: Can agents call other agents?**
+A: Yes! Coordinators spawn agents via CLI: `npx claude-flow-novice agent-spawn [agent-name]`
+
+**Q: How do I share agents with my team?**
+A: Put them in `.claude/agents/` and commit to git.
+
+**Q: What's the difference between skills and agents?**
+A: Skills are reusable behaviors (like templates). Agents are executable workers that use skills.
+
+### Getting Help
+
+1. Check existing agents for examples
+2. Review template files for patterns
+3. Test incrementally with simple tasks
+4. Start simple, add complexity gradually
+5. Open issues on GitHub for bugs
 
 ---
 
-**Document Version:** 2.0.0
-**Last Updated:** 2025-09-30
-**Maintained By:** Claude Flow Core Team
-**Feedback:** Document improvements and findings for future versions
+## What's Next?
+
+Now that you understand agent creation, explore:
+
+1. **Multi-Agent Workflows** - Coordinate multiple agents for complex tasks
+2. **CFN Loop Integration** - Build self-correcting pipelines
+3. **Custom Skills** - Create reusable behavior modules
+4. **Web Portal** - Monitor agent execution in real-time
+5. **Advanced Coordination** - Redis pub/sub, memory operations
+
+**Ready to build something amazing? Start creating your first agent!**
+
+---
+
+**Document Version:** 4.0.0 (User-Friendly Edition)
+**Last Updated:** 2025-10-20
+**Maintained By:** Claude Flow Novice Team
+**Feedback:** We'd love to hear how you're using agents! Share your creations.

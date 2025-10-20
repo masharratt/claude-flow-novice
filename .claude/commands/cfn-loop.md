@@ -124,9 +124,9 @@ Task("cost-savings-cfn-loop-coordinator", `
   TASK SPECIFICATION
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  Task Description: ${taskDescription}
-  Phase Name: ${phaseName || 'default'}
-  Task ID: cfn-${phaseName}-$(date +%s)
+  Task Description: $ARGUMENTS
+  Phase Name: (extract from task description or use 'default')
+  Task ID: cfn-phase-$(date +%s)
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   SUCCESS CRITERIA (REQUIRED)
@@ -139,14 +139,14 @@ Task("cost-savings-cfn-loop-coordinator", `
   - [ ] Documentation updated
   - [ ] No regression in existing features
 
-  Quality Gates:
-  - Loop 3 Gate Threshold: ${gateThreshold} (${mode} mode)
-  - Loop 2 Consensus Threshold: ${consensusThreshold} (${mode} mode)
-  - Max Loop 3 Iterations: ${maxLoop3}
-  - Max Loop 2 Iterations: ${maxLoop2}
+  Quality Gates (STANDARD MODE):
+  - Loop 3 Gate Threshold: 0.75
+  - Loop 2 Consensus Threshold: 0.90
+  - Max Loop 3 Iterations: 10
+  - Max Loop 2 Iterations: 10
 
   Definition of Done:
-  - Consensus ≥${consensusThreshold} achieved
+  - Consensus ≥0.90 achieved
   - All acceptance criteria met
   - Product Owner approval received
 
@@ -154,13 +154,18 @@ Task("cost-savings-cfn-loop-coordinator", `
   ORCHESTRATION CONFIGURATION
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  Mode: ${mode.toUpperCase()}
+  Mode: STANDARD
 
-  Loop 3 Agents (Implementation):
-  - ${loop3Agents.join('\n  - ')}
+  Loop 3 Agents (Implementation) - CUSTOMIZE FOR TASK:
+  - researcher (requirement analysis)
+  - backend-dev (implementation)
+  - devops (deployment/infrastructure)
 
-  Loop 2 Agents (Validation):
-  - ${loop2Agents.join('\n  - ')}
+  Loop 2 Agents (Validation) - CUSTOMIZE FOR TASK:
+  - reviewer (code review)
+  - architect (design validation)
+  - tester (quality assurance)
+  - security-specialist (security audit)
 
   Product Owner: product-owner
 
@@ -169,24 +174,32 @@ Task("cost-savings-cfn-loop-coordinator", `
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   1. INVOKE ORCHESTRATOR:
-     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
-       --task-id "${taskId}" \\
-       --mode ${mode} \\
-       --loop3-agents "${loop3Agents.join(',')}" \\
-       --loop2-agents "${loop2Agents.join(',')}" \\
-       --product-owner "product-owner" \\
-       --max-iterations ${maxLoop2}
+     # Generate task ID and construct bash command with actual values
+     # DO NOT use template literals - construct real bash variables
+
+     TASK_ID="cfn-phase-$(date +%s)"
+     MODE="standard"
+     LOOP3_AGENTS="researcher,backend-dev,devops"
+     LOOP2_AGENTS="reviewer,architect,tester,security-specialist"
+
+     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+       --task-id "$TASK_ID" \
+       --mode "$MODE" \
+       --loop3-agents "$LOOP3_AGENTS" \
+       --loop2-agents "$LOOP2_AGENTS" \
+       --product-owner "product-owner" \
+       --max-iterations 10
 
   2. MONITOR PROGRESS:
      - Use web portal: http://localhost:3000
      - Query metrics: ./.claude/skills/web-portal/invoke-portal-metrics.sh
-     - Track events: ./.claude/skills/web-portal/invoke-portal-events.sh --phase ${phaseName}
+     - Track events: ./.claude/skills/web-portal/invoke-portal-events.sh --phase <phase-name>
 
   3. REPORT RESULTS:
      Return structured result to Main Chat:
      {
-       "taskId": "${taskId}",
-       "phase": "${phaseName}",
+       "taskId": "<actual-task-id>",
+       "phase": "<phase-name>",
        "status": "complete|failed",
        "iterations": {
          "loop3": N,
@@ -219,19 +232,19 @@ Task("cost-savings-cfn-loop-coordinator", `
 The coordinator runs the orchestrator script internally, which:
 
 **Loop 3: Implementation**
-- Spawns workers via CLI: `npx claude-flow-novice agent <agent-type>`
+- Spawns workers via CLI: `npx cfn-spawn agent <agent-type>`
 - Each agent completes work and reports confidence
 - Orchestrator collects scores and checks gate threshold
-- **PASS** (≥${gateThreshold}) → Signal Loop 2 to start
-- **FAIL** (<${gateThreshold}) → Wake Loop 3 for iteration N+1
+- **PASS** (≥0.75) → Signal Loop 2 to start
+- **FAIL** (<0.75) → Wake Loop 3 for iteration N+1
 
 **Loop 2: Validation**
 - **WAITS** for Loop 3 gate pass signal (Redis BLPOP)
 - Spawns validators via CLI
 - Each validator reviews and reports consensus score
 - Orchestrator collects scores and checks consensus threshold
-- **PASS** (≥${consensusThreshold}) → Task complete
-- **FAIL** (<${consensusThreshold}) → Wake all agents for iteration N+1
+- **PASS** (≥0.90) → Task complete
+- **FAIL** (<0.90) → Wake all agents for iteration N+1
 
 **Loop 1: Product Owner**
 - Reviews final consensus and acceptance criteria
@@ -243,10 +256,10 @@ The coordinator runs the orchestrator script internally, which:
 **Real-time monitoring:**
 ```bash
 # View all agents
-./.claude/skills/web-portal/invoke-portal-agents.sh --swarm cfn-${PHASE_NAME}
+./.claude/skills/web-portal/invoke-portal-agents.sh --swarm cfn-<phase-name>
 
 # Track phase events
-./.claude/skills/web-portal/invoke-portal-events.sh --phase ${PHASE_NAME}
+./.claude/skills/web-portal/invoke-portal-events.sh --phase <phase-name>
 
 # Get consensus metrics
 ./.claude/skills/web-portal/invoke-portal-metrics.sh --view consensus

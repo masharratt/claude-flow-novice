@@ -59,5 +59,5 @@ Agents share learnings across sessions for cumulative expertise!
 npx claude-flow-novice train agent --type coder --capabilities "react,typescript"
 
 # Check specializations
-npx claude-flow-novice agent list --specializations
+npx cfn-spawn agent list --specializations
 ```

@@ -455,7 +455,7 @@ npx claude-flow-novice templates sync --template redis-coordination
 ### Agent Generator
 ```bash
 # CLI tool to create new agents from templates
-npx claude-flow-novice agents create \
+npx cfn-spawn agents create \
   --name new-agent \
   --type specialist \
   --templates redis,memory,post-edit,team-dynamics

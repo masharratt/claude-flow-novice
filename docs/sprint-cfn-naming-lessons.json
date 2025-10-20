@@ -1,0 +1,44 @@
+{
+  "lessons": [
+    {
+      "bullet_id": "STRAT-001",
+      "category": "strategy",
+      "content": "Prioritize pragmatic wrapper solutions over complete reimplementation when legacy code has a viable core pattern. By creating targeted wrappers that delegate to existing working implementations, development time can be reduced by 80-90%.",
+      "confidence": 0.92,
+      "tags": ["cli-development", "code-reuse", "efficiency", "refactoring"],
+      "reasoning": "The sprint demonstrated that carefully analyzing existing code and creating thin, delegating wrappers is often more time-efficient than complete rewrites. In this case, a 5.5-hour implementation replaced a projected 21-hour rewrite."
+    },
+    {
+      "bullet_id": "PATTERN-002",
+      "category": "pattern",
+      "content": "Implement consistent CLI architecture with a standardized structure: argument parsing, execution function with subcommand switch, comprehensive help system, ES module compatibility, and exportable main function for testability.",
+      "confidence": 0.88,
+      "tags": ["cli-design", "typescript", "architecture", "modularity"],
+      "reasoning": "Standardized CLI design reduces cognitive load, improves maintainability, and creates a predictable interface for developers. The sprint's 7 CLIs averaging 180 lines demonstrate the effectiveness of this approach."
+    },
+    {
+      "bullet_id": "STRAT-003",
+      "category": "strategy",
+      "content": "Use bulk automation techniques for documentation updates, leveraging tools like `sed` to consistently replace patterns across multiple files, ensuring rapid and error-free documentation maintenance.",
+      "confidence": 0.85,
+      "tags": ["documentation", "automation", "cli-tools", "maintenance"],
+      "reasoning": "Manually updating 25+ files is error-prone and time-consuming. Automated sed replacement ensures consistency, reduces human error, and dramatically speeds up documentation updates."
+    },
+    {
+      "bullet_id": "EDGE-004",
+      "category": "edge_case",
+      "content": "Anticipate and design for ES module compatibility by replacing legacy module detection methods (like `require.main === module`) with modern techniques such as `import.meta.url` checks.",
+      "confidence": 0.79,
+      "tags": ["typescript", "module-system", "compatibility", "migration"],
+      "reasoning": "As JavaScript evolves, handling module systems becomes crucial. Proactively addressing ES module differences prevents potential runtime errors and supports modern development practices."
+    },
+    {
+      "bullet_id": "PATTERN-005",
+      "category": "pattern",
+      "content": "Implement a three-tier delegation strategy for CLI tools: bash script execution, slash command equivalents, and direct implementation delegates, allowing flexibility and clear separation of concerns.",
+      "confidence": 0.82,
+      "tags": ["cli-architecture", "delegation", "modularity", "design-patterns"],
+      "reasoning": "Different CLI tools have varying complexity and integration needs. A flexible delegation strategy allows each tool to use the most appropriate execution method while maintaining a consistent interface."
+    }
+  ]
+}

@@ -4,7 +4,7 @@ View agent performance metrics.
 
 ## Usage
 ```bash
-npx claude-flow-novice agent metrics [options]
+npx cfn-spawn agent metrics [options]
 ```
 
 ## Options
@@ -15,11 +15,11 @@ npx claude-flow-novice agent metrics [options]
 ## Examples
 ```bash
 # All agents metrics
-npx claude-flow-novice agent metrics
+npx cfn-spawn agent metrics
 
 # Specific agent
-npx claude-flow-novice agent metrics --agent-id agent-001
+npx cfn-spawn agent metrics --agent-id agent-001
 
 # Last hour
-npx claude-flow-novice agent metrics --period 1h
+npx cfn-spawn agent metrics --period 1h
 ```

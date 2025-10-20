@@ -1,0 +1,1234 @@
+{
+  "epic": {
+    "id": "epic-react-portal-integration",
+    "name": "React Web Portal Integration & Enhancement",
+    "description": "Integrate production-ready React + TypeScript web portal with 4 core capabilities: Human-in-the-Loop Interventions, Real-Time Visualizations, Transparency Insights, and Message Streaming. Total codebase: 6,550 lines across 9 major components.",
+    "priority": "high",
+    "status": "planned",
+    "estimatedDuration": "8-10 weeks",
+    "owner": "architecture-team",
+    "stakeholders": ["frontend-team", "backend-team", "devops-team"],
+    "tags": ["web-portal", "react", "typescript", "real-time", "visualization"],
+    "dependencies": [
+      "Redis pub/sub infrastructure",
+      "WebSocket backend implementation",
+      "Agent coordination system"
+    ],
+    "successCriteria": [
+      "All 9 React components integrated and functional",
+      "Real-time WebSocket communication established",
+      "Human interventions successfully routed to agents",
+      "Decision transparency tracking operational",
+      "Performance targets met (10k+ messages, <100ms latency)",
+      "WCAG 2.1 AA accessibility compliance maintained",
+      "Test coverage ≥80% for new components"
+    ]
+  },
+
+  "phases": [
+    {
+      "id": "phase-0-assessment",
+      "name": "Phase 0: Current State Assessment & Planning",
+      "order": 0,
+      "description": "Evaluate current vanilla portal vs React portal, identify integration points, and create migration strategy",
+      "estimatedDuration": "1 week",
+      "status": "pending",
+      "tasks": [
+        {
+          "id": "assess-current-portal",
+          "title": "Assess Current Vanilla Portal Capabilities",
+          "description": "Document all features in current simple-portal-server.cjs implementation (10 tabs: Overview, Swarms, Repos, Performance, Agents, Hierarchy, Fleet, CFN Loop, Events, Logs)",
+          "type": "research",
+          "priority": "critical",
+          "estimatedHours": 8,
+          "assignee": "analyst",
+          "dependencies": []
+        },
+        {
+          "id": "gap-analysis",
+          "title": "Conduct Feature Gap Analysis",
+          "description": "Compare vanilla portal (10 tabs, ~1300 lines) vs React portal (9 components, 6550 lines). Identify overlap, gaps, and unique features in each.",
+          "type": "analysis",
+          "priority": "critical",
+          "estimatedHours": 12,
+          "assignee": "architect",
+          "dependencies": ["assess-current-portal"]
+        },
+        {
+          "id": "integration-strategy",
+          "title": "Design Integration Strategy",
+          "description": "Decide: (A) Replace vanilla portal with React, (B) Hybrid approach with both, (C) Gradual migration tab-by-tab. Consider: Bundle size (300KB vs 5MB), maintenance complexity, feature richness.",
+          "type": "architecture",
+          "priority": "critical",
+          "estimatedHours": 16,
+          "assignee": "architect",
+          "dependencies": ["gap-analysis"]
+        },
+        {
+          "id": "backend-api-audit",
+          "title": "Audit Backend API Readiness",
+          "description": "Verify which of 14 required REST endpoints are implemented. Check WebSocket protocol support for 5 event types (agent-update, message, decision-point, metrics-update, intervention-ack).",
+          "type": "analysis",
+          "priority": "high",
+          "estimatedHours": 8,
+          "assignee": "backend-dev",
+          "dependencies": []
+        },
+        {
+          "id": "create-migration-plan",
+          "title": "Create Detailed Migration Plan",
+          "description": "Document step-by-step migration approach with rollback strategy. Include: data migration, deployment sequence, testing strategy, monitoring plan.",
+          "type": "planning",
+          "priority": "high",
+          "estimatedHours": 12,
+          "assignee": "architect",
+          "dependencies": ["integration-strategy", "backend-api-audit"]
+        }
+      ],
+      "successCriteria": [
+        "Integration strategy documented and approved",
+        "Backend API gap analysis complete",
+        "Migration plan with rollback strategy created",
+        "Risk assessment documented",
+        "Timeline and resource allocation finalized"
+      ]
+    },
+
+    {
+      "id": "phase-1-foundation",
+      "name": "Phase 1: Backend API & WebSocket Foundation",
+      "order": 1,
+      "description": "Implement required backend APIs and WebSocket infrastructure to support React portal",
+      "estimatedDuration": "2 weeks",
+      "status": "pending",
+      "dependsOn": ["phase-0-assessment"],
+      "tasks": [
+        {
+          "id": "implement-rest-endpoints",
+          "title": "Implement Missing REST API Endpoints",
+          "description": "Create 14 required endpoints: GET /api/agents, GET /api/agents/:id, GET /api/agents/hierarchy, GET /api/messages, GET /api/messages?agent=:id, GET /api/messages?thread=:id, GET /api/metrics, GET /api/metrics/history, GET /api/decisions, GET /api/decisions/:id, POST /api/decisions, POST /api/decisions/:id/feedback, PUT /api/decisions/:id/outcome, POST /api/interventions, GET /api/interventions/history, GET /api/tests, GET /api/tests/metrics",
+          "type": "implementation",
+          "priority": "critical",
+          "estimatedHours": 32,
+          "assignee": "backend-dev",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "All 14 endpoints implemented",
+            "OpenAPI documentation generated",
+            "Integration tests passing",
+            "Response times <100ms average"
+          ]
+        },
+        {
+          "id": "websocket-protocol",
+          "title": "Implement WebSocket Protocol",
+          "description": "Create WebSocket server supporting: Client→Server (subscribe, intervention, feedback) and Server→Client (agent-update, message, decision-point, metrics-update, intervention-ack) event types.",
+          "type": "implementation",
+          "priority": "critical",
+          "estimatedHours": 24,
+          "assignee": "backend-dev",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "WebSocket server running on port 3000",
+            "All 8 event types supported",
+            "Auto-reconnection logic",
+            "Connection pooling for scalability",
+            "< 50ms message latency"
+          ]
+        },
+        {
+          "id": "redis-integration",
+          "title": "Extend Redis Pub/Sub for Portal Events",
+          "description": "Subscribe to additional Redis channels for decision tracking, intervention routing, and metrics updates. Publish to swarm:*:interventions, swarm:*:decisions channels.",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 16,
+          "assignee": "backend-dev",
+          "dependencies": ["websocket-protocol"],
+          "acceptanceCriteria": [
+            "Portal subscribed to swarm:*:events, swarm:*:logs, swarm:*:decisions",
+            "Interventions routed via Redis to agents",
+            "Real-time decision tracking operational",
+            "Message buffering during disconnection"
+          ]
+        },
+        {
+          "id": "security-implementation",
+          "title": "Implement Security Layer",
+          "description": "Add input validation, rate limiting (10 interventions/min), CSRF protection, WebSocket origin validation, Content Security Policy headers.",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 20,
+          "assignee": "security-specialist",
+          "dependencies": ["implement-rest-endpoints", "websocket-protocol"],
+          "acceptanceCriteria": [
+            "All inputs validated and sanitized",
+            "Rate limiting enforced",
+            "CSRF tokens validated",
+            "CSP headers configured",
+            "Security audit passed"
+          ]
+        },
+        {
+          "id": "api-documentation",
+          "title": "Create API Documentation",
+          "description": "Generate OpenAPI 3.0 specs, create Postman collection, write integration guide for frontend team.",
+          "type": "documentation",
+          "priority": "medium",
+          "estimatedHours": 12,
+          "assignee": "api-docs",
+          "dependencies": ["implement-rest-endpoints"],
+          "acceptanceCriteria": [
+            "OpenAPI spec published",
+            "Postman collection available",
+            "Integration guide reviewed by frontend team",
+            "Example requests documented"
+          ]
+        }
+      ],
+      "successCriteria": [
+        "All 14 REST endpoints operational",
+        "WebSocket protocol fully implemented",
+        "Security measures in place",
+        "API documentation complete",
+        "Load testing passed (100 concurrent connections)"
+      ]
+    },
+
+    {
+      "id": "phase-2-core-components",
+      "name": "Phase 2: Core React Components Integration",
+      "order": 2,
+      "description": "Integrate the 4 largest React components: TransparencyInsights (956 lines), SwarmDashboard (759 lines), FilterControls (729 lines), AccessibilityEnhancements (686 lines)",
+      "estimatedDuration": "2 weeks",
+      "status": "pending",
+      "dependsOn": ["phase-1-foundation"],
+      "tasks": [
+        {
+          "id": "setup-react-project",
+          "title": "Initialize React Project Structure",
+          "description": "Set up React 18 + TypeScript project in web-portal/ directory. Configure Material-UI, Zustand, React Query, Socket.IO client, Recharts, Fuse.js, React Window. Copy 9 components from legacy/v1/src/web/frontend/.",
+          "type": "setup",
+          "priority": "critical",
+          "estimatedHours": 16,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Project builds without errors",
+            "All dependencies installed (40+ packages)",
+            "TypeScript config strict mode enabled",
+            "ESLint and Prettier configured",
+            "Development server runs"
+          ]
+        },
+        {
+          "id": "integrate-swarm-dashboard",
+          "title": "Integrate SwarmDashboard Component",
+          "description": "Connect SwarmDashboard (759 lines) to backend WebSocket. Display: swarm metrics (8 KPIs), agent status grid, message flow visualization, relaunch history, decision insights preview, test metrics.",
+          "type": "implementation",
+          "priority": "critical",
+          "estimatedHours": 32,
+          "assignee": "react-frontend-engineer",
+          "dependencies": ["setup-react-project"],
+          "acceptanceCriteria": [
+            "Real-time metrics updating every 1 second",
+            "Agent status grid shows live data",
+            "WebSocket connection indicator functional",
+            "All 8 metrics displayed with trend sparklines",
+            "Component renders <16ms"
+          ]
+        },
+        {
+          "id": "integrate-transparency-insights",
+          "title": "Integrate TransparencyInsights Component",
+          "description": "Connect TransparencyInsights (956 lines - largest component) to decision tracking API. Implement: Timeline View, Patterns View, Analysis View, Feedback View, Testing View. Support decision filtering (by agent, confidence, tag, date, outcome).",
+          "type": "implementation",
+          "priority": "critical",
+          "estimatedHours": 40,
+          "assignee": "react-frontend-engineer",
+          "dependencies": ["setup-react-project"],
+          "acceptanceCriteria": [
+            "All 5 views functional",
+            "Real-time decision streaming via WebSocket",
+            "Factor analysis visualization working",
+            "Alternative options comparison displayed",
+            "Feedback submission functional",
+            "Performance: handles 1000+ decisions"
+          ]
+        },
+        {
+          "id": "integrate-filter-controls",
+          "title": "Integrate FilterControls Component",
+          "description": "Connect FilterControls (729 lines) with Fuse.js fuzzy search. Support: agent filter, type filter, priority filter, keyword search, date range, metadata toggles.",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 24,
+          "assignee": "react-frontend-engineer",
+          "dependencies": ["integrate-swarm-dashboard"],
+          "acceptanceCriteria": [
+            "All 6 filter types working",
+            "Fuzzy search with typo tolerance",
+            "Debounced search (300ms)",
+            "Filter state persisted in URL",
+            "Combined filters apply correctly"
+          ]
+        },
+        {
+          "id": "integrate-accessibility",
+          "title": "Integrate AccessibilityEnhancements Component",
+          "description": "Implement AccessibilityEnhancements (686 lines) for WCAG 2.1 AA compliance. Features: keyboard navigation, screen reader support (ARIA labels, live regions), high contrast mode, focus management, skip links, reduced motion support.",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 28,
+          "assignee": "accessibility-advocate",
+          "dependencies": ["integrate-swarm-dashboard"],
+          "acceptanceCriteria": [
+            "WCAG 2.1 AA compliance verified",
+            "Keyboard navigation for all features",
+            "Screen reader announcements working",
+            "High contrast mode functional",
+            "axe DevTools audit passed",
+            "Manual accessibility testing passed"
+          ]
+        },
+        {
+          "id": "state-management-setup",
+          "title": "Configure Zustand State Management",
+          "description": "Set up Zustand store with: connection state, swarmData, messages, agents, interventions, transparencyInsights, filters, UI state. Integrate React Query for API data fetching.",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 16,
+          "assignee": "react-frontend-engineer",
+          "dependencies": ["setup-react-project"],
+          "acceptanceCriteria": [
+            "Global state management operational",
+            "React Query cache configured (60s TTL)",
+            "State persisted to localStorage",
+            "DevTools integration working",
+            "State updates trigger re-renders efficiently"
+          ]
+        }
+      ],
+      "successCriteria": [
+        "4 core components integrated and functional",
+        "Real-time data flowing from backend",
+        "State management working correctly",
+        "WCAG 2.1 AA compliance achieved",
+        "Component render times <16ms"
+      ]
+    },
+
+    {
+      "id": "phase-3-advanced-components",
+      "name": "Phase 3: Advanced Components & Features",
+      "order": 3,
+      "description": "Integrate remaining 5 components: MessageViewer (660 lines), MCPIntegrationPanel (618 lines), PerformanceOptimizer (559 lines), AgentStatusPanel (558 lines), InterventionPanel (480 lines)",
+      "estimatedDuration": "2 weeks",
+      "status": "pending",
+      "dependsOn": ["phase-2-core-components"],
+      "tasks": [
+        {
+          "id": "integrate-message-viewer",
+          "title": "Integrate MessageViewer Component",
+          "description": "Connect MessageViewer (660 lines) with virtual scrolling (react-window). Features: thread-based organization, multi-dimensional filtering, fuzzy search (Fuse.js), real-time streaming, pagination, export (JSON/CSV/Markdown).",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 32,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Virtual scrolling handles 10,000+ messages",
+            "Thread nesting up to 10 levels",
+            "Fuzzy search operational",
+            "Export functions working (all 3 formats)",
+            "Real-time WebSocket message streaming",
+            "< 100ms search response time"
+          ]
+        },
+        {
+          "id": "integrate-intervention-panel",
+          "title": "Integrate InterventionPanel Component",
+          "description": "Connect InterventionPanel (480 lines) to intervention API. Support 9 intervention types: redirect, pause, resume, relaunch, guidance, stop, priority, resource_adjust, swarm_relaunch. Include confirmation dialogs for high-impact operations.",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 28,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "All 9 intervention types functional",
+            "Confirmation dialogs for 4 high-impact types",
+            "Template selector working",
+            "Intervention history displayed",
+            "Swarm relaunch counter tracking",
+            "Status flow: pending → sent → acknowledged"
+          ]
+        },
+        {
+          "id": "integrate-mcp-panel",
+          "title": "Integrate MCPIntegrationPanel Component",
+          "description": "Connect MCPIntegrationPanel (618 lines) for MCP command execution. Features: command selector, parameter forms, execution history.",
+          "type": "implementation",
+          "priority": "medium",
+          "estimatedHours": 24,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "MCP commands executable from UI",
+            "Parameter validation working",
+            "Execution history stored",
+            "Error handling functional",
+            "Command responses displayed"
+          ]
+        },
+        {
+          "id": "integrate-agent-status-panel",
+          "title": "Integrate AgentStatusPanel Component",
+          "description": "Connect AgentStatusPanel (558 lines) as sidebar. Display agent list with status, quick actions, filtering.",
+          "type": "implementation",
+          "priority": "medium",
+          "estimatedHours": 20,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Sidebar displays all agents",
+            "Status indicators color-coded",
+            "Quick actions functional",
+            "Real-time status updates",
+            "Agent filtering working"
+          ]
+        },
+        {
+          "id": "integrate-performance-optimizer",
+          "title": "Integrate PerformanceOptimizer Component",
+          "description": "Connect PerformanceOptimizer (559 lines) HOC for monitoring. Track: render times, memory usage, warnings. Set thresholds: render <16ms, memory alerts.",
+          "type": "implementation",
+          "priority": "medium",
+          "estimatedHours": 20,
+          "assignee": "perf-analyzer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Performance monitoring active",
+            "Render time tracking operational",
+            "Memory usage alerts configured",
+            "Performance metrics accessible via window.__PORTAL_METRICS__",
+            "Warnings logged for slow renders"
+          ]
+        },
+        {
+          "id": "error-boundary-setup",
+          "title": "Implement Error Boundary Hierarchy",
+          "description": "Create error boundary hierarchy to catch React errors. Add fallback UI, error logging, optional Sentry integration.",
+          "type": "implementation",
+          "priority": "high",
+          "estimatedHours": 12,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Error boundaries at component level",
+            "Fallback UI displays on error",
+            "Errors logged to console",
+            "Error state recoverable",
+            "User-friendly error messages"
+          ]
+        }
+      ],
+      "successCriteria": [
+        "All 9 React components integrated",
+        "Human-in-the-loop interventions functional",
+        "Message streaming with 10k+ message capacity",
+        "Performance monitoring active",
+        "Error handling robust"
+      ]
+    },
+
+    {
+      "id": "phase-4-testing-qa",
+      "name": "Phase 4: Testing, QA & Performance Optimization",
+      "order": 4,
+      "description": "Comprehensive testing, performance optimization, accessibility audit, and production readiness",
+      "estimatedDuration": "1.5 weeks",
+      "status": "pending",
+      "dependsOn": ["phase-3-advanced-components"],
+      "tasks": [
+        {
+          "id": "unit-testing",
+          "title": "Achieve 80% Unit Test Coverage",
+          "description": "Write unit tests for all React components, hooks, utilities. Current coverage: ~40%. Target: ≥80%.",
+          "type": "testing",
+          "priority": "critical",
+          "estimatedHours": 40,
+          "assignee": "tester",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "≥80% code coverage achieved",
+            "All critical paths tested",
+            "Edge cases covered",
+            "Test suite runs in <2 minutes",
+            "Jest + React Testing Library configured"
+          ]
+        },
+        {
+          "id": "integration-testing",
+          "title": "Create Integration Tests",
+          "description": "Test WebSocket flows, intervention workflows, decision tracking, message streaming, state management integration.",
+          "type": "testing",
+          "priority": "high",
+          "estimatedHours": 32,
+          "assignee": "interaction-tester",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "WebSocket connection tests passing",
+            "Intervention E2E flow tested",
+            "Real-time updates verified",
+            "API integration tests complete",
+            "CI/CD integration configured"
+          ]
+        },
+        {
+          "id": "e2e-playwright-tests",
+          "title": "Create E2E Tests with Playwright",
+          "description": "Create Playwright tests for complete user workflows: intervention sending, message filtering, decision analysis, agent monitoring.",
+          "type": "testing",
+          "priority": "high",
+          "estimatedHours": 28,
+          "assignee": "playwright-tester",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "10+ E2E scenarios covered",
+            "Tests run in headless mode",
+            "Screenshots on failure",
+            "Video recording for debugging",
+            "CI/CD integration ready"
+          ]
+        },
+        {
+          "id": "performance-benchmarking",
+          "title": "Conduct Performance Benchmarking",
+          "description": "Benchmark: 10,000 message handling, 100 agent monitoring, WebSocket latency, bundle size analysis, memory profiling, render performance.",
+          "type": "testing",
+          "priority": "high",
+          "estimatedHours": 24,
+          "assignee": "performance-benchmarker",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "10k+ messages handled smoothly",
+            "WebSocket latency <50ms average",
+            "Bundle size optimized (<5MB gzipped)",
+            "Memory leaks identified and fixed",
+            "Performance regression tests in place"
+          ]
+        },
+        {
+          "id": "accessibility-audit",
+          "title": "Full Accessibility Audit",
+          "description": "Conduct WCAG 2.1 AA audit using: axe DevTools, manual keyboard testing, screen reader testing (NVDA, JAWS), color contrast verification.",
+          "type": "testing",
+          "priority": "high",
+          "estimatedHours": 20,
+          "assignee": "accessibility-advocate",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "axe DevTools: 0 violations",
+            "Keyboard navigation: all features accessible",
+            "Screen reader: all content announced",
+            "Color contrast: AAA level achieved",
+            "WCAG 2.1 AA certification ready"
+          ]
+        },
+        {
+          "id": "security-audit",
+          "title": "Security Audit & Penetration Testing",
+          "description": "Test: input validation, rate limiting, CSRF protection, XSS prevention, WebSocket origin validation, authentication (if applicable).",
+          "type": "testing",
+          "priority": "critical",
+          "estimatedHours": 24,
+          "assignee": "security-specialist-optimized",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Penetration testing passed",
+            "No critical vulnerabilities",
+            "OWASP Top 10 compliance",
+            "Security best practices followed",
+            "Security report documented"
+          ]
+        },
+        {
+          "id": "bundle-optimization",
+          "title": "Optimize Bundle Size",
+          "description": "Analyze and optimize bundle: code splitting, tree shaking, lazy loading, compression. Target: <3MB gzipped from current ~5MB.",
+          "type": "optimization",
+          "priority": "medium",
+          "estimatedHours": 16,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Bundle size reduced by 40%",
+            "Code splitting implemented",
+            "Lazy loading for heavy components",
+            "Webpack Bundle Analyzer report generated",
+            "Initial load time <3 seconds"
+          ]
+        }
+      ],
+      "successCriteria": [
+        "≥80% test coverage achieved",
+        "All E2E tests passing",
+        "Performance benchmarks met",
+        "WCAG 2.1 AA compliance verified",
+        "Security audit passed",
+        "Bundle size optimized"
+      ]
+    },
+
+    {
+      "id": "phase-5-deployment",
+      "name": "Phase 5: Deployment & Production Readiness",
+      "order": 5,
+      "description": "Production deployment, monitoring setup, documentation, and knowledge transfer",
+      "estimatedDuration": "1 week",
+      "status": "pending",
+      "dependsOn": ["phase-4-testing-qa"],
+      "tasks": [
+        {
+          "id": "docker-configuration",
+          "title": "Create Docker Configuration",
+          "description": "Create Dockerfile with multi-stage build: (1) npm ci + build, (2) nginx serve. Include nginx.conf for reverse proxy, health checks, logging.",
+          "type": "devops",
+          "priority": "high",
+          "estimatedHours": 12,
+          "assignee": "devops-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Dockerfile builds successfully",
+            "Multi-stage build optimized",
+            "nginx configured correctly",
+            "Health check endpoint /health",
+            "Container size <200MB"
+          ]
+        },
+        {
+          "id": "ci-cd-pipeline",
+          "title": "Configure CI/CD Pipeline",
+          "description": "Set up GitHub Actions: (1) on PR: lint, test, build, (2) on merge: build, test, security scan, deploy to staging, (3) manual: deploy to production.",
+          "type": "devops",
+          "priority": "high",
+          "estimatedHours": 16,
+          "assignee": "devops-engineer",
+          "dependencies": ["docker-configuration"],
+          "acceptanceCriteria": [
+            "CI pipeline runs on every PR",
+            "Automated testing in CI",
+            "Docker image pushed to registry",
+            "Staging deployment automated",
+            "Production deployment manual approval"
+          ]
+        },
+        {
+          "id": "monitoring-setup",
+          "title": "Configure Monitoring & Logging",
+          "description": "Set up: (1) Application monitoring (performance metrics), (2) Error tracking (Sentry optional), (3) Log aggregation, (4) Alert configuration.",
+          "type": "devops",
+          "priority": "high",
+          "estimatedHours": 16,
+          "assignee": "devops-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Performance metrics collected",
+            "Error tracking operational",
+            "Logs aggregated and searchable",
+            "Alerts configured for critical issues",
+            "Monitoring dashboard created"
+          ]
+        },
+        {
+          "id": "staging-deployment",
+          "title": "Deploy to Staging Environment",
+          "description": "Deploy React portal to staging. Test: WebSocket connectivity, API integration, performance under load, security measures.",
+          "type": "deployment",
+          "priority": "critical",
+          "estimatedHours": 12,
+          "assignee": "devops-engineer",
+          "dependencies": ["ci-cd-pipeline"],
+          "acceptanceCriteria": [
+            "Staging deployment successful",
+            "Smoke tests passing",
+            "Integration tests passing in staging",
+            "Performance acceptable",
+            "Rollback procedure tested"
+          ]
+        },
+        {
+          "id": "production-deployment",
+          "title": "Production Deployment",
+          "description": "Deploy to production with: (1) Blue-green deployment strategy, (2) Database migrations (if any), (3) Traffic routing, (4) Monitoring validation.",
+          "type": "deployment",
+          "priority": "critical",
+          "estimatedHours": 8,
+          "assignee": "devops-engineer",
+          "dependencies": ["staging-deployment"],
+          "acceptanceCriteria": [
+            "Production deployment successful",
+            "Zero downtime achieved",
+            "All health checks passing",
+            "Monitoring confirming normal operation",
+            "Rollback plan ready"
+          ]
+        },
+        {
+          "id": "user-documentation",
+          "title": "Create User Documentation",
+          "description": "Write comprehensive user guide: (1) Portal overview, (2) Feature walkthroughs, (3) Intervention guide, (4) Troubleshooting, (5) FAQ.",
+          "type": "documentation",
+          "priority": "high",
+          "estimatedHours": 20,
+          "assignee": "api-documentation",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "User guide complete with screenshots",
+            "Video tutorials created",
+            "Troubleshooting section comprehensive",
+            "FAQ addresses common issues",
+            "Documentation published and accessible"
+          ]
+        },
+        {
+          "id": "developer-handoff",
+          "title": "Developer Knowledge Transfer",
+          "description": "Conduct knowledge transfer sessions: (1) Architecture overview, (2) Codebase walkthrough, (3) Deployment procedures, (4) Maintenance guide, (5) Q&A sessions.",
+          "type": "documentation",
+          "priority": "high",
+          "estimatedHours": 16,
+          "assignee": "architect",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "3+ team members trained",
+            "Architecture diagrams documented",
+            "Code walkthrough video recorded",
+            "Maintenance runbook created",
+            "On-call procedures documented"
+          ]
+        }
+      ],
+      "successCriteria": [
+        "Production deployment successful",
+        "Monitoring and alerting operational",
+        "User documentation complete",
+        "Team training completed",
+        "Post-deployment review conducted"
+      ]
+    },
+
+    {
+      "id": "phase-6-technical-debt",
+      "name": "Phase 6: Technical Debt Resolution",
+      "order": 6,
+      "description": "Address technical debt items identified in handoff document",
+      "estimatedDuration": "1.5 weeks",
+      "status": "pending",
+      "dependsOn": ["phase-5-deployment"],
+      "tasks": [
+        {
+          "id": "extract-shared-types",
+          "title": "Extract Shared Types to @types Package",
+          "description": "Create @types/claude-flow-portal package with: Agent, AgentMessage, DecisionPoint, SwarmMetrics, Intervention, FilterOptions, etc. Share types between frontend and backend.",
+          "type": "refactoring",
+          "priority": "medium",
+          "estimatedHours": 16,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Types package created and published",
+            "All shared types extracted",
+            "Frontend imports from @types package",
+            "Backend uses same types",
+            "TypeScript compilation successful"
+          ]
+        },
+        {
+          "id": "consolidate-websocket-logic",
+          "title": "Consolidate WebSocket Logic into Custom Hook",
+          "description": "Create useWebSocket hook with: connection management, auto-reconnection, event subscription, error handling, connection status. Replace all inline WebSocket logic.",
+          "type": "refactoring",
+          "priority": "medium",
+          "estimatedHours": 12,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "useWebSocket hook created",
+            "All components use hook",
+            "Duplicate logic removed",
+            "Reconnection logic centralized",
+            "Hook unit tested"
+          ]
+        },
+        {
+          "id": "error-boundary-hierarchy",
+          "title": "Implement Proper Error Boundary Hierarchy",
+          "description": "Create error boundary hierarchy: (1) Global ErrorBoundary, (2) Feature-level boundaries, (3) Component-level boundaries. Add fallback UI, error logging, recovery options.",
+          "type": "refactoring",
+          "priority": "high",
+          "estimatedHours": 16,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "3-level error boundary hierarchy",
+            "Fallback UI for each level",
+            "Error context preserved",
+            "Recovery actions available",
+            "Error logging comprehensive"
+          ]
+        },
+        {
+          "id": "increase-test-coverage",
+          "title": "Increase Test Coverage to 90%",
+          "description": "Bring test coverage from current 80% to 90%. Focus on: complex business logic, WebSocket interactions, state management, edge cases.",
+          "type": "testing",
+          "priority": "medium",
+          "estimatedHours": 32,
+          "assignee": "tester",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "≥90% code coverage",
+            "Critical paths 100% covered",
+            "Integration tests comprehensive",
+            "Mock WebSocket in tests",
+            "Test performance maintained"
+          ]
+        },
+        {
+          "id": "bundle-size-optimization",
+          "title": "Further Bundle Size Optimization",
+          "description": "Reduce bundle from ~3MB to <2MB gzipped. Techniques: dynamic imports for heavy libraries (Chart.js, Fuse.js), remove unused dependencies, optimize Material-UI imports.",
+          "type": "optimization",
+          "priority": "medium",
+          "estimatedHours": 20,
+          "assignee": "react-frontend-engineer",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "Bundle size <2MB gzipped",
+            "Initial load time <2 seconds",
+            "Lighthouse score >90",
+            "All optimizations documented",
+            "Performance regression tests pass"
+          ]
+        }
+      ],
+      "successCriteria": [
+        "All technical debt items addressed",
+        "Code quality improved",
+        "Test coverage ≥90%",
+        "Bundle size <2MB gzipped",
+        "Maintainability enhanced"
+      ]
+    },
+
+    {
+      "id": "phase-7-enhanced-analytics",
+      "name": "Phase 7: Enhanced Analytics (Q4 2025)",
+      "order": 7,
+      "description": "Implement enhanced analytics features: historical performance reports, trend analysis, anomaly detection, custom dashboard builder",
+      "estimatedDuration": "3 weeks",
+      "status": "future",
+      "dependsOn": ["phase-6-technical-debt"],
+      "tasks": [
+        {
+          "id": "historical-reports",
+          "title": "Implement Historical Performance Reports",
+          "description": "Create report views for 24h, 7d, 30d time ranges. Metrics: agent performance trends, swarm efficiency over time, intervention effectiveness, decision quality evolution.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 32,
+          "assignee": "react-frontend-engineer",
+          "dependencies": []
+        },
+        {
+          "id": "trend-analysis",
+          "title": "Implement Trend Analysis & Forecasting",
+          "description": "Add trend visualization: linear regression, moving averages, forecasting. Predict: agent load, performance bottlenecks, intervention needs.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 40,
+          "assignee": "react-frontend-engineer",
+          "dependencies": ["historical-reports"]
+        },
+        {
+          "id": "anomaly-detection",
+          "title": "Implement Anomaly Detection",
+          "description": "Detect anomalies in: agent performance, message patterns, decision confidence, system metrics. Alert on: performance degradation, unusual errors, coordination breakdowns.",
+          "type": "feature",
+          "priority": "high",
+          "estimatedHours": 48,
+          "assignee": "backend-dev",
+          "dependencies": []
+        },
+        {
+          "id": "custom-dashboard-builder",
+          "title": "Create Custom Dashboard Builder",
+          "description": "Allow users to create custom dashboards: drag-and-drop widget placement, metric selection, time range customization, save/load layouts.",
+          "type": "feature",
+          "priority": "low",
+          "estimatedHours": 56,
+          "assignee": "react-frontend-engineer",
+          "dependencies": []
+        }
+      ],
+      "successCriteria": [
+        "Historical reports functional for 3 time ranges",
+        "Trend analysis with forecasting operational",
+        "Anomaly detection catching real issues",
+        "Custom dashboards savable and shareable"
+      ]
+    },
+
+    {
+      "id": "phase-8-advanced-visualizations",
+      "name": "Phase 8: Advanced Visualizations (Q1 2026)",
+      "order": 8,
+      "description": "Implement advanced visualizations: 3D agent network graph, real-time heatmaps, coordination flow diagram, interactive timeline",
+      "estimatedDuration": "4 weeks",
+      "status": "future",
+      "dependsOn": ["phase-7-enhanced-analytics"],
+      "tasks": [
+        {
+          "id": "3d-network-graph",
+          "title": "Implement 3D Agent Network Graph",
+          "description": "Create 3D visualization of agent communication using Three.js or D3.js. Show: agent nodes, message flows, coordination patterns, cluster identification.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 60,
+          "assignee": "react-frontend-engineer",
+          "dependencies": []
+        },
+        {
+          "id": "realtime-heatmaps",
+          "title": "Create Real-Time Heatmaps",
+          "description": "Visualize: agent activity heatmap, message frequency heatmap, performance heatmap, coordination intensity heatmap.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 40,
+          "assignee": "react-frontend-engineer",
+          "dependencies": []
+        },
+        {
+          "id": "coordination-flow-diagram",
+          "title": "Build Coordination Flow Diagram",
+          "description": "Create Sankey diagram showing: message flows between agents, decision dependencies, task handoffs, data flow patterns.",
+          "type": "feature",
+          "priority": "low",
+          "estimatedHours": 48,
+          "assignee": "react-frontend-engineer",
+          "dependencies": []
+        },
+        {
+          "id": "interactive-timeline",
+          "title": "Create Interactive Timeline",
+          "description": "Build zoomable timeline showing: events, decisions, interventions, relaunches, test runs. Support: filtering, search, playback, export.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 52,
+          "assignee": "react-frontend-engineer",
+          "dependencies": []
+        }
+      ],
+      "successCriteria": [
+        "3D network graph renders 100+ agents smoothly",
+        "Heatmaps update in real-time",
+        "Flow diagram shows clear patterns",
+        "Timeline supports full event history"
+      ]
+    },
+
+    {
+      "id": "phase-9-ai-insights",
+      "name": "Phase 9: AI-Powered Insights (Q2 2026)",
+      "order": 9,
+      "description": "Implement AI-powered features: predictive intervention suggestions, pattern recognition, automated feedback, performance recommendations",
+      "estimatedDuration": "4 weeks",
+      "status": "future",
+      "dependsOn": ["phase-8-advanced-visualizations"],
+      "tasks": [
+        {
+          "id": "predictive-interventions",
+          "title": "Implement Predictive Intervention Suggestions",
+          "description": "Use ML to predict when interventions needed: analyze historical patterns, detect early warning signs, suggest proactive interventions, learn from outcomes.",
+          "type": "feature",
+          "priority": "high",
+          "estimatedHours": 80,
+          "assignee": "researcher",
+          "dependencies": []
+        },
+        {
+          "id": "pattern-recognition",
+          "title": "Implement Pattern Recognition Engine",
+          "description": "Automatically detect: recurring decision patterns, coordination patterns, performance patterns, failure patterns. Generate insights and recommendations.",
+          "type": "feature",
+          "priority": "high",
+          "estimatedHours": 72,
+          "assignee": "researcher",
+          "dependencies": []
+        },
+        {
+          "id": "automated-feedback",
+          "title": "Create Automated Feedback Generation",
+          "description": "Generate AI feedback for decisions: analyze outcomes, compare to alternatives, suggest improvements, track feedback effectiveness.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 64,
+          "assignee": "researcher",
+          "dependencies": []
+        },
+        {
+          "id": "performance-recommendations",
+          "title": "Build Performance Recommendation System",
+          "description": "Analyze system performance and recommend: resource adjustments, architecture changes, workflow optimizations, agent reconfigurations.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 56,
+          "assignee": "researcher",
+          "dependencies": []
+        }
+      ],
+      "successCriteria": [
+        "Predictive model accuracy >80%",
+        "Pattern recognition finds actionable insights",
+        "Automated feedback improves decision quality",
+        "Recommendations implemented show measurable improvement"
+      ]
+    },
+
+    {
+      "id": "phase-10-collaboration",
+      "name": "Phase 10: Collaboration Features (Q3 2026)",
+      "order": 10,
+      "description": "Implement collaboration features: multi-user access, role-based permissions, approval workflows, team notifications",
+      "estimatedDuration": "4 weeks",
+      "status": "future",
+      "dependsOn": ["phase-9-ai-insights"],
+      "tasks": [
+        {
+          "id": "multi-user-access",
+          "title": "Implement Multi-User Access",
+          "description": "Support multiple simultaneous users: authentication, user profiles, concurrent editing, conflict resolution, activity tracking.",
+          "type": "feature",
+          "priority": "high",
+          "estimatedHours": 64,
+          "assignee": "backend-dev",
+          "dependencies": []
+        },
+        {
+          "id": "role-based-permissions",
+          "title": "Create Role-Based Permission System",
+          "description": "Define roles: Admin (full access), Operator (interventions + monitoring), Viewer (read-only), Auditor (read + export). Implement: permission checks, UI adaptation, audit logging.",
+          "type": "feature",
+          "priority": "high",
+          "estimatedHours": 56,
+          "assignee": "backend-dev",
+          "dependencies": ["multi-user-access"]
+        },
+        {
+          "id": "approval-workflows",
+          "title": "Implement Intervention Approval Workflows",
+          "description": "Add approval process for high-risk interventions: request submission, approval routing, notification, execution after approval, audit trail.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 48,
+          "assignee": "backend-dev",
+          "dependencies": ["role-based-permissions"]
+        },
+        {
+          "id": "team-notifications",
+          "title": "Create Team Notification System",
+          "description": "Notify team on: critical events, intervention requests, system alerts, performance issues. Support: email, Slack, Discord, in-app notifications.",
+          "type": "feature",
+          "priority": "medium",
+          "estimatedHours": 40,
+          "assignee": "backend-dev",
+          "dependencies": []
+        }
+      ],
+      "successCriteria": [
+        "Multi-user access supports 10+ concurrent users",
+        "RBAC implemented with 4+ roles",
+        "Approval workflows reduce unauthorized interventions",
+        "Notifications delivered reliably with <1s latency"
+      ]
+    }
+  ],
+
+  "risks": [
+    {
+      "id": "risk-bundle-size",
+      "title": "Large Bundle Size (5MB gzipped)",
+      "description": "React portal bundle is significantly larger than current vanilla portal (300KB). May impact initial load time.",
+      "severity": "medium",
+      "probability": "high",
+      "mitigation": "Implement aggressive code splitting, lazy loading, tree shaking. Consider hybrid approach where vanilla portal is default with React as opt-in.",
+      "owner": "react-frontend-engineer"
+    },
+    {
+      "id": "risk-backend-gaps",
+      "title": "Backend API Gaps",
+      "description": "React portal requires 14 REST endpoints + WebSocket protocol. Current backend may be missing many of these.",
+      "severity": "high",
+      "probability": "high",
+      "mitigation": "Complete Phase 1 backend foundation before starting React integration. Create comprehensive API documentation.",
+      "owner": "backend-dev"
+    },
+    {
+      "id": "risk-complexity-increase",
+      "title": "Maintenance Complexity",
+      "description": "Adding 6,550 lines of React code + 40+ dependencies significantly increases codebase complexity.",
+      "severity": "medium",
+      "probability": "medium",
+      "mitigation": "Invest in documentation, testing, knowledge transfer. Consider simpler alternatives for specific features.",
+      "owner": "architect"
+    },
+    {
+      "id": "risk-migration-disruption",
+      "title": "User Disruption During Migration",
+      "description": "Switching from vanilla to React portal may disrupt users. Learning curve for new UI.",
+      "severity": "medium",
+      "probability": "medium",
+      "mitigation": "Use hybrid approach during transition. Keep vanilla portal available as fallback. Provide comprehensive user documentation and training.",
+      "owner": "product-owner"
+    },
+    {
+      "id": "risk-websocket-scalability",
+      "title": "WebSocket Scalability",
+      "description": "Real-time WebSocket connections may not scale beyond 100 concurrent users (currently tested up to 100 agents).",
+      "severity": "high",
+      "probability": "medium",
+      "mitigation": "Implement connection pooling, load balancing, Redis pub/sub for scaling. Conduct load testing early.",
+      "owner": "devops-engineer"
+    },
+    {
+      "id": "risk-accessibility-regression",
+      "title": "Accessibility Regression",
+      "description": "Complex React components may introduce accessibility issues not present in vanilla portal.",
+      "severity": "medium",
+      "probability": "medium",
+      "mitigation": "Dedicated AccessibilityEnhancements component already exists. Conduct regular accessibility audits. Involve accessibility experts early.",
+      "owner": "accessibility-advocate"
+    }
+  ],
+
+  "metrics": {
+    "kpis": [
+      {
+        "name": "Test Coverage",
+        "target": "≥80%",
+        "current": "~40%",
+        "measurement": "Jest coverage report"
+      },
+      {
+        "name": "Bundle Size",
+        "target": "<3MB gzipped",
+        "current": "~5MB gzipped",
+        "measurement": "Webpack Bundle Analyzer"
+      },
+      {
+        "name": "Initial Load Time",
+        "target": "<3 seconds",
+        "current": "TBD",
+        "measurement": "Lighthouse Performance score"
+      },
+      {
+        "name": "WebSocket Latency",
+        "target": "<50ms average",
+        "current": "TBD",
+        "measurement": "Performance monitoring"
+      },
+      {
+        "name": "Accessibility Score",
+        "target": "WCAG 2.1 AA (0 violations)",
+        "current": "TBD",
+        "measurement": "axe DevTools audit"
+      },
+      {
+        "name": "Message Handling Capacity",
+        "target": "10,000+ messages",
+        "current": "10,000 (designed for)",
+        "measurement": "Load testing"
+      },
+      {
+        "name": "Concurrent User Support",
+        "target": "100+ concurrent users",
+        "current": "Tested up to 100 agents",
+        "measurement": "Load testing"
+      },
+      {
+        "name": "Security Vulnerabilities",
+        "target": "0 critical, 0 high",
+        "current": "TBD",
+        "measurement": "Security audit + npm audit"
+      }
+    ]
+  },
+
+  "resources": {
+    "team": [
+      {
+        "role": "architect",
+        "count": 1,
+        "allocation": "50%",
+        "responsibilities": ["Architecture design", "Integration strategy", "Knowledge transfer"]
+      },
+      {
+        "role": "react-frontend-engineer",
+        "count": 2,
+        "allocation": "100%",
+        "responsibilities": ["Component integration", "State management", "UI implementation"]
+      },
+      {
+        "role": "backend-dev",
+        "count": 2,
+        "allocation": "75%",
+        "responsibilities": ["REST API implementation", "WebSocket server", "Redis integration"]
+      },
+      {
+        "role": "devops-engineer",
+        "count": 1,
+        "allocation": "50%",
+        "responsibilities": ["Docker configuration", "CI/CD setup", "Monitoring"]
+      },
+      {
+        "role": "tester",
+        "count": 1,
+        "allocation": "75%",
+        "responsibilities": ["Unit tests", "Integration tests", "Test coverage"]
+      },
+      {
+        "role": "accessibility-advocate",
+        "count": 1,
+        "allocation": "25%",
+        "responsibilities": ["Accessibility audit", "WCAG compliance", "Screen reader testing"]
+      },
+      {
+        "role": "security-specialist",
+        "count": 1,
+        "allocation": "25%",
+        "responsibilities": ["Security audit", "Input validation", "Penetration testing"]
+      },
+      {
+        "role": "technical-writer",
+        "count": 1,
+        "allocation": "25%",
+        "responsibilities": ["User documentation", "API documentation", "Knowledge base"]
+      }
+    ],
+    "tools": [
+      "React 18 + TypeScript",
+      "Material-UI (MUI) v6",
+      "Zustand (state management)",
+      "React Query (data fetching)",
+      "Socket.IO (WebSocket)",
+      "Recharts + MUI X-Charts (visualizations)",
+      "Fuse.js (fuzzy search)",
+      "React Window (virtual scrolling)",
+      "Jest + React Testing Library",
+      "Playwright (E2E testing)",
+      "Docker + nginx",
+      "GitHub Actions (CI/CD)"
+    ]
+  }
+}

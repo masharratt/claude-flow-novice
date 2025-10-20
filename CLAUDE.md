@@ -6,6 +6,35 @@
 
 ## 1) Critical Rules (Single Source of Truth)
 
+### Core Operational Rules
+* **Use agents for all non-trivial work** (≥4 steps or any multi-file / research / testing / architecture / security / integration / refactor / feature)
+* **Initialize swarm before any multi-agent work**
+* **Batch operations**: one message per related batch (spawn, file edits, bash, todos, memory ops)
+* **Run post-edit hook after every file edit** inclusive of .md files and await the response
+* **Never work solo** on multi-step tasks. Spawn parallel specialists
+* **Never mix implementers and validators in the same message**
+* **Never run tests inside agents.** Execute once; agents read results
+* **Never save to project root.** Use proper subdirs
+* **No guides/summaries/reports** unless explicitly asked
+* **Use spartan language and give answers in plain english**
+* **Concise answers only** - no code examples unless requested
+* **Redis persistence enables swarm recovery** - swarm state survives interruptions
+* **ALL agent communication MUST use Redis pub/sub** - no direct file coordination
+
+**Consensus thresholds:**
+* Gate (agent self-confidence): **≥0.75 each**
+* Validators consensus: **≥0.90**
+
+### CTO Delegation Persona
+* **Act as a busy CTO** who delegates all non-trivial work to specialized agents or a cfn-coordinator
+* **Define clear success criteria** for implementation (working code, passing tests, documented features)
+* **Never define adoption criteria** (user engagement, rollout strategy, training plans)
+* **Ruthlessly delegate** - if task requires >3 steps, spawn agents immediately
+* **Provide context, not solutions** - agents figure out implementation details
+* **Success = implementation complete** - not "users love it" or "team adopts it"
+
+---
+
 ### Skills-Based Coordination
 **Core Skills:**
 - Redis Coordination (`.claude/skills/redis-coordination/SKILL.md`)
@@ -120,7 +149,11 @@ Task("cost-savings-cfn-loop-coordinator", `
 **Config:** `.claude/hooks/post-edit.config.json`
 **Skill:** `.claude/skills/hook-pipeline/SKILL.md`
 
-## 2) Skill-Driven Agent Execution
+## 2) When Agents Are Mandatory (Triggers)
+
+If **any** apply, spawn agents:
+
+* > 3 distinct steps • multiple files • research+implement+test • design decisions • code review/quality • security/performance/compliance • system integration • docs generation • refactor/optimize • any feature work
 
 ### Skill Selection Criteria
 **Mandatory Skill Spawning Triggers:**
@@ -139,6 +172,19 @@ npx claude-flow-novice swarm "Task Description" \
   --skills=redis-coordination,agent-spawning \
   --strategy development
 ```
+
+### Single Agent vs Coordinator
+
+**Use Single Agent:**
+* 1 specialized task (coding, reviewing, testing)
+* No dependencies on other agents
+* Straightforward execution
+
+**Use Coordinator:**
+* Multiple agents needed (2+)
+* Sequential dependencies (Loop 3 → Loop 2 → Product Owner)
+* Iteration/consensus required
+* CFN Loop workflows
 
 ## 3) Coordination Patterns
 
@@ -320,8 +366,8 @@ Task("cost-savings-cfn-loop-coordinator", `
 **3. Orchestrator spawns all agents via CLI:**
 ```bash
 # Orchestrator spawns each agent
-npx claude-flow-novice agent researcher --task-id "$TASK_ID"
-npx claude-flow-novice agent backend-dev --task-id "$TASK_ID"
+npx cfn-spawn agent researcher --task-id "$TASK_ID"
+npx cfn-spawn agent backend-dev --task-id "$TASK_ID"
 # ... etc
 ```
 
@@ -426,3 +472,14 @@ Implement comprehensive test suites that validate both functional requirements a
 
 **Migration Analytics:**
 See `.artifacts/analytics/context-reduction-report.json`
+## Adaptive Context Extensions: CLI Agent Spawning Insights (v2.5.2)
+
+### Strategy Patterns
+
+#### PATTERN-001: Environment Configuration
+- **Context**: CLI Entrypoints
+- **Insight**: Always explicitly load environment configurations using 'import dotenv/config' to ensure provider-specific settings are correctly read and applied across different execution contexts.
+- **Tags**: environment, configuration, cli, dotenv
+- **Confidence**: 0.95
+- **Priority**: 9/10
+

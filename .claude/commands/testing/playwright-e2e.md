@@ -156,8 +156,8 @@ npx claude-flow-novice sparc run playwright-tester "Execute E2E tests in contain
 ```bash
 # Coordinate with multiple testing agents
 npx claude-flow-novice swarm init hierarchical --max-agents 5
-npx claude-flow-novice agent spawn playwright-tester
-npx claude-flow-novice agent spawn performance-analyzer
+npx cfn-spawn agent spawn playwright-tester
+npx cfn-spawn agent spawn performance-analyzer
 npx claude-flow-novice task orchestrate "Execute comprehensive web portal testing with performance analysis"
 ```
 

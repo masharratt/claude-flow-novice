@@ -155,9 +155,10 @@ export async function agentCommand(
       parentTaskId: options.parentTaskId,
     };
 
-    const prompt = buildAgentPrompt(definition, taskContext);
+    const prompt = await buildAgentPrompt(definition, taskContext);
     console.log(`  ✓ Prompt size: ${prompt.length} characters`);
     console.log(`  ✓ CFN Loop protocol: ${prompt.includes('CFN Loop Redis Completion Protocol') ? 'included' : 'not applicable'}`);
+    console.log(`  ✓ Iteration history: ${prompt.includes('## Iteration History') ? 'included' : 'not applicable'}`);
     console.log('');
 
     // Step 3: Execute agent

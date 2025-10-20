@@ -116,6 +116,9 @@ echo "[Swarm] TTL: $TTL seconds ($(($TTL / 86400)) days)"
 METADATA_KEY="swarm:${SWARM_ID}:metadata"
 
 # Store base metadata
+# Extract repository name from PWD
+REPO_NAME=$(basename "$(pwd)")
+
 redis-cli hset "$METADATA_KEY" \
   swarm_id "$SWARM_ID" \
   task_id "$TASK_ID" \
@@ -123,7 +126,9 @@ redis-cli hset "$METADATA_KEY" \
   max_agents "$MAX_AGENTS" \
   agents "$AGENTS" \
   created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  status "in_progress" > /dev/null
+  status "in_progress" \
+  repository "$REPO_NAME" \
+  cwd "$(pwd)" > /dev/null
 
 # Add extra metadata if provided (JSON string)
 if [ -n "$METADATA_EXTRA" ]; then

@@ -68,20 +68,16 @@ Spawn a `context-reflector` agent to analyze recent task execution traces and ex
 /context-reflect --reflection-type=optimization --swarm-id=swarm-perf
 ```
 
-**Reflection Prompt Template:**
-The reflector agent will use this structured prompt:
+**Implementation:**
 
-```
-You are a Context Reflector for the ACE (Adaptive Context Extension) system.
+Spawn the `context-reflector` agent with task context:
 
-**Task Execution Trace:**
-{execution_trace}
-
-**Feedback Signals:**
-{feedback_signals}
+```javascript
+Task("context-reflector", `
+You are a Context Reflector for the ACE system.
 
 **Your Mission:**
-Extract 3-7 high-quality lessons (bullets) from this execution. For each lesson:
+Analyze recent task execution and extract 3-7 high-quality lessons. For each lesson:
 
 1. **Identify the pattern/insight**: What worked? What failed? What was unexpected?
 2. **Classify the lesson**:
@@ -98,37 +94,39 @@ Extract 3-7 high-quality lessons (bullets) from this execution. For each lesson:
    - Include context/conditions ("When X, do Y")
    - 1-3 sentences max
 
-4. **Assess confidence**: 0.0-1.0 based on:
-   - Strong evidence (tests pass, metrics improve) → 0.8-1.0
-   - Moderate evidence (code works, no tests) → 0.5-0.7
-   - Hypothesis/observation (needs validation) → 0.3-0.4
+4. Assess confidence (0.0-1.0)
+5. Add 2-5 relevant tags
 
-5. **Tag appropriately**: Add 2-5 relevant tags for retrieval
+**Steps:**
+1. Read recent task execution logs/context
+2. Identify patterns, successes, failures, edge cases
+3. For each lesson, use store-reflection.sh:
 
-**Output Format (JSON):**
-{
-  "reflection_type": "success|failure|optimization|edge_case|pattern",
-  "summary": "Brief summary of what was learned",
-  "extracted_lessons": [
-    {
-      "bullet_id": "STRAT-XXX",  // Use next available ID
-      "category": "strategy|pattern|edge_case|domain_insight|anti_pattern|optimization",
-      "content": "Actionable lesson with context",
-      "confidence": 0.85,
-      "tags": ["tag1", "tag2"],
-      "reasoning": "Why this lesson is valuable"
-    }
-  ],
-  "helpful_existing_bullets": ["STRAT-001", "PATTERN-017"],  // Bullets that helped
-  "harmful_existing_bullets": []  // Bullets that led astray
-}
+   \`\`\`bash
+   # Create lessons file
+   cat > /tmp/lessons.json << 'EOF'
+   [
+     {
+       "bullet_id": "STRAT-XXX",
+       "category": "strategy",
+       "content": "Lesson content here",
+       "confidence": 0.85,
+       "tags": ["tag1", "tag2"]
+     }
+   ]
+   EOF
+
+   # Store reflection
+   ./.claude/skills/ace-system/store-reflection.sh \\
+     --reflection-type success \\
+     --task-id \${TASK_ID} \\
+     --agent-id \${AGENT_ID} \\
+     --lessons-file /tmp/lessons.json
+   \`\`\`
+
+4. Report reflection ID and summary
+`, "context-reflector");
 ```
-
-**Storage:**
-- Reflections stored in `context_reflections` table
-- ACL Level 3 (Swarm) - visible to swarm members
-- 30-day retention for pending reflections
-- Processed reflections retained as audit trail
 
 **Post-Reflection:**
 1. If `--auto-curate` enabled: Trigger `/context-curate --reflection-id=<id>`

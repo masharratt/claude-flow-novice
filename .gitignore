@@ -33,6 +33,8 @@ bin/claude-flow-*
 .env.*.local
 .env.keys
 .env.backup.*
+.claude/api-configs/env-backups/
+.claude/api-configs/*.env
 
 # Logs
 logs/

@@ -98,18 +98,16 @@ if (similarity > threshold) {
 }
 ```
 
-**Curation Prompt Template:**
-```
-You are a Context Curator for the ACE (Adaptive Context Extension) system.
+**Implementation:**
 
-**Pending Reflection:**
-{reflection_data}
+Spawn the `context-curator` agent:
 
-**Existing Bullets (Semantic Neighbors):**
-{similar_bullets}
+```javascript
+Task("context-curator", `
+You are a Context Curator for the ACE system.
 
 **Your Mission:**
-For each extracted lesson in the reflection:
+Merge pending reflections into adaptive_context table. For each reflection:
 
 1. **Check for semantic similarity**:
    - Compare with existing bullets
@@ -131,25 +129,38 @@ For each extracted lesson in the reflection:
    - Medium (5-7): Optimization tips, domain insights
    - Low (1-4): Edge cases, situational patterns
 
-5. **Update counters**:
-   - Identify helpful_existing_bullets → increment their helpful_count
-   - Identify harmful_existing_bullets → increment their harmful_count
+5. Update counters (helpful/harmful)
 
-**Output Format (JSON):**
-{
-  "curation_actions": [
-    {
-      "action": "new_bullet|increment_helpful|increment_harmful|merge_similar|archive",
-      "bullet_id": "STRAT-042",
-      "target_bullet_id": "STRAT-001",  // For increment/merge actions
-      "similarity_score": 0.92,
-      "reasoning": "Why this action is appropriate",
-      "merged_content": "New merged content (if merge action)"
-    }
-  ],
-  "validation_required": ["STRAT-042"],  // Bullets needing human review
-  "summary": "Curated 5 lessons: 2 new, 3 reinforced existing"
-}
+**Steps:**
+1. Query pending reflections:
+   \`\`\`bash
+   ./.claude/skills/ace-system/query-reflections.sh --status pending --limit 10
+   \`\`\`
+
+2. For each reflection, check for similar bullets:
+   \`\`\`bash
+   sqlite3 ./.artifacts/database/swarm-memory.db "
+   SELECT bullet_id, content, confidence_score
+   FROM adaptive_context
+   WHERE is_active = 1 AND category = '\${CATEGORY}'
+   LIMIT 10;
+   "
+   \`\`\`
+
+3. Decide action and execute:
+   - **New bullet**: Use add-bullet.sh
+   - **Increment helpful**: Update helpful_count
+   - **Merge similar**: Create new version, archive old
+
+4. Update reflection status:
+   \`\`\`bash
+   ./.claude/skills/ace-system/update-reflection.sh \\
+     --reflection-id \${REFL_ID} \\
+     --status merged
+   \`\`\`
+
+5. Report actions taken
+`, "context-curator");
 ```
 
 **Post-Curation:**

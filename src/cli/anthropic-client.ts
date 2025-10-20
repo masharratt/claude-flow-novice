@@ -23,6 +23,7 @@ export interface MessageOptions {
   temperature?: number;
   stream?: boolean;
   tools?: any[];
+  messages?: Array<{ role: string; content: string }>; // Sprint 4: Conversation forking
 }
 
 export interface MessageResponse {
@@ -154,12 +155,18 @@ export async function sendMessage(
   console.log(`[anthropic-client] Stream: ${enableStreaming ? 'enabled' : 'disabled'}`);
   console.log('');
 
-  const messages: Anthropic.MessageParam[] = [
-    {
-      role: 'user',
-      content: options.prompt,
-    },
-  ];
+  // Sprint 4: Use messages array if provided (conversation forking)
+  const messages: Anthropic.MessageParam[] = options.messages
+    ? options.messages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+    : [
+        {
+          role: 'user',
+          content: options.prompt,
+        },
+      ];
 
   // Retry logic: Try primary model (glm-4.6), fall back to glm-4.5 on error
   let lastError: Error | null = null;
@@ -283,11 +290,15 @@ export async function executeAgentAPI(
   agentId: string,
   model: string,
   prompt: string,
-  systemPrompt?: string
+  systemPrompt?: string,
+  messages?: Array<{ role: string; content: string }> // Sprint 4: Conversation forking
 ): Promise<{ success: boolean; output: string; usage: any; error?: string }> {
   try {
     console.log(`[anthropic-client] Executing agent: ${agentType}`);
     console.log(`[anthropic-client] Agent ID: ${agentId}`);
+    if (messages && messages.length > 1) {
+      console.log(`[anthropic-client] Continuing conversation (${messages.length} messages)`);
+    }
     console.log('');
 
     let fullOutput = '';
@@ -298,6 +309,7 @@ export async function executeAgentAPI(
         prompt,
         systemPrompt,
         stream: true,
+        messages, // Pass messages for conversation continuation
       },
       (chunk) => {
         // Stream output in real-time

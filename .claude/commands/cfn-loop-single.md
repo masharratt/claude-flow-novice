@@ -163,7 +163,7 @@ Task("cost-savings-cfn-loop-coordinator", `
 The coordinator runs orchestrator script internally:
 
 **Loop 3: Implementation**
-- Spawns agents via CLI: `npx claude-flow-novice agent <type>`
+- Spawns agents via CLI: `npx cfn-spawn agent <type>`
 - Collects confidence scores
 - Gate check (≥0.75): PASS → Wake Loop 2 | FAIL → Iterate
 

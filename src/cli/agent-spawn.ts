@@ -119,6 +119,47 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
     claudeArgs.push('--parent-task-id', parentTaskId);
   }
 
+  // Fetch epic context from Redis if available
+  let epicContext = '';
+  let phaseContext = '';
+  let successCriteria = '';
+
+  if (taskId) {
+    try {
+      const { execSync } = await import('child_process');
+
+      // Try to read epic-level context from Redis
+      try {
+        epicContext = execSync(`redis-cli get "swarm:${taskId}:epic-context"`, { encoding: 'utf8' }).trim();
+        if (epicContext === '(nil)') epicContext = '';
+      } catch (e) {
+        // Redis not available or key doesn't exist
+      }
+
+      // Try to read phase-specific context
+      try {
+        phaseContext = execSync(`redis-cli get "swarm:${taskId}:phase-context"`, { encoding: 'utf8' }).trim();
+        if (phaseContext === '(nil)') phaseContext = '';
+      } catch (e) {
+        // Redis not available or key doesn't exist
+      }
+
+      // Try to read success criteria
+      try {
+        successCriteria = execSync(`redis-cli get "swarm:${taskId}:success-criteria"`, { encoding: 'utf8' }).trim();
+        if (successCriteria === '(nil)') successCriteria = '';
+      } catch (e) {
+        // Redis not available or key doesn't exist
+      }
+
+      if (epicContext) {
+        console.log(`[cfn-spawn]   Epic context loaded from Redis`);
+      }
+    } catch (err) {
+      console.warn(`[cfn-spawn]   Could not load epic context from Redis:`, err);
+    }
+  }
+
   // Add environment variables for agent context
   const env = {
     ...process.env,
@@ -128,7 +169,11 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
     CONTEXT: context || '',
     MODE: mode || 'cli',
     PRIORITY: priority?.toString() || '5',
-    PARENT_TASK_ID: parentTaskId || ''
+    PARENT_TASK_ID: parentTaskId || '',
+    // Epic-level context from Redis
+    EPIC_CONTEXT: epicContext,
+    PHASE_CONTEXT: phaseContext,
+    SUCCESS_CRITERIA: successCriteria
   };
 
   console.log(`[cfn-spawn] Executing: npx ${claudeArgs.join(' ')}`);

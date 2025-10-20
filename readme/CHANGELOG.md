@@ -1,5 +1,34 @@
 # Claude Flow Novice Changelog
 
+## v2.7.0 - Conversation Forking (Sprint 4) (2025-10-20)
+
+### 🔀 Major Feature - Application-Level Conversation Forking
+
+**Problem:** CLI agents rebuilt full context every iteration.
+
+**Solution:** Conversation forking for CFN Loop iterations.
+
+**Impact:**
+- 38% token reduction (66K → 41K tokens across 3 iterations)
+- Combined 99% cost savings with v2.6.0 vs Task tool
+- Backward compatible (fallback to context rebuild)
+
+**Features:**
+- Automatic fork creation after iteration 1
+- Fork-based continuation for iteration 2+
+- Redis storage with 24h TTL
+- CLI utility (`npx cfn-fork`)
+
+**Implementation:**
+- `src/cli/conversation-fork.ts` (312 lines, 10 functions)
+- `src/cli/agent-executor.ts` - Fork detection
+- `src/cli/cfn-fork.ts` - CLI utility (196 lines)
+- `.claude/skills/redis-coordination/orchestrate-cfn-loop.sh` - Fork integration
+
+**Testing:** 15/15 tests passing (`tests/test-conversation-forking.sh`)
+
+**Documentation:** `docs/SPRINT_4_CONVERSATION_FORKING.md` (529 lines)
+
 ## v2.6.0 - CLI Agent Context Enhancement (2025-10-20)
 
 ### 🎯 Major Feature - CLI Agent Context Parity

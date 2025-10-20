@@ -1,60 +1,65 @@
 ---
-description: Query adaptive context bullets by category, tags, confidence, or semantic similarity
+description: Query adaptive context bullets by category, tags, confidence
 tags: [context, ace, query, search, retrieval]
 ---
 
 # Context Query Command
 
-Search the `adaptive_context` table to retrieve relevant bullets for task execution, agent spawning, or CLAUDE.md injection.
+Search the `adaptive_context` table to retrieve relevant bullets.
 
 **Usage:**
 ```bash
-/context-query [--category=<type>] [--tags=<tag1,tag2>] [--min-confidence=<0.0-1.0>]
+/context-query [--category=<type>] [--tags=<tag>] [--min-confidence=<0.0-1.0>]
 ```
 
-**What This Does:**
-1. Queries `adaptive_context` table with filters
-2. Ranks bullets by relevance (priority, confidence, usage_count)
-3. Optionally uses semantic similarity if embeddings available
-4. Returns formatted bullets ready for injection
-
-**Arguments:**
-- `--category=<type>`: Filter by category (strategy/pattern/edge_case/domain_insight/anti_pattern/optimization)
-- `--tags=<tag1,tag2>`: Filter by tags (comma-separated)
-- `--min-confidence=<0.0-1.0>`: Minimum confidence score (default: 0.6)
-- `--min-helpful=<count>`: Minimum helpful_count (default: 0)
-- `--max-harmful=<count>`: Maximum harmful_count (default: 2)
-- `--priority-min=<1-10>`: Minimum priority (default: 5)
-- `--limit=<N>`: Max results to return (default: 20)
-- `--sort-by=<field>`: Sort by confidence|helpful_count|priority|last_used_at (default: priority)
-- `--semantic-query=<text>`: Find bullets semantically similar to query text (requires embeddings)
-- `--related-to=<bullet-id>`: Find bullets related to specific bullet
-- `--swarm-id=<id>`: Filter by swarm context
-- `--project-id=<id>`: Filter by project context
-- `--output=<format>`: Output format (json|markdown|claude-md) (default: markdown)
-- `--inject`: Automatically inject results into CLAUDE.md
-
-**Query Examples:**
+**Quick SQL Queries:**
 
 ```bash
 # Get top strategy bullets
-/context-query --category=strategy --min-confidence=0.8 --limit=10
+sqlite3 ./.artifacts/database/swarm-memory.db "
+SELECT bullet_id, content, confidence_score, helpful_count
+FROM adaptive_context
+WHERE is_active = 1 AND category = 'strategy' AND confidence_score >= 0.8
+ORDER BY confidence_score DESC, helpful_count DESC
+LIMIT 10;
+"
 
 # Find CFN Loop coordination patterns
-/context-query --tags=cfn-loop,coordination --min-helpful=3
+sqlite3 ./.artifacts/database/swarm-memory.db "
+SELECT bullet_id, category, content, tags
+FROM adaptive_context
+WHERE is_active = 1
+  AND (tags LIKE '%cfn-loop%' OR tags LIKE '%coordination%')
+  AND helpful_count >= 3
+ORDER BY helpful_count DESC;
+"
 
-# Get all high-priority optimization tips
-/context-query --category=optimization --priority-min=7 --sort-by=confidence
+# Get high-priority optimization tips
+sqlite3 ./.artifacts/database/swarm-memory.db "
+SELECT bullet_id, content, confidence_score, priority
+FROM adaptive_context
+WHERE is_active = 1
+  AND category = 'optimization'
+  AND priority >= 7
+ORDER BY confidence_score DESC;
+"
 
-# Semantic search for Redis patterns
-/context-query --semantic-query="Redis pub/sub coordination patterns"
-
-# Get bullets related to specific bullet
-/context-query --related-to=STRAT-001 --limit=5
-
-# Get project-specific domain insights
-/context-query --category=domain_insight --project-id=proj-auth --min-helpful=5
+# Get all active bullets
+sqlite3 ./.artifacts/database/swarm-memory.db "
+SELECT bullet_id, category, content, confidence_score, helpful_count, harmful_count
+FROM adaptive_context
+WHERE is_active = 1
+ORDER BY helpful_count DESC, confidence_score DESC
+LIMIT 20;
+"
 ```
+
+**Arguments:**
+- `--category=<type>`: strategy|pattern|edge_case|domain_insight|anti_pattern|optimization
+- `--tags=<tag>`: Filter by tag (single tag)
+- `--min-confidence=<0.0-1.0>`: Minimum confidence (default: 0.6)
+- `--min-helpful=<N>`: Minimum helpful_count (default: 0)
+- `--limit=<N>`: Max results (default: 20)
 
 **Output Formats:**
 

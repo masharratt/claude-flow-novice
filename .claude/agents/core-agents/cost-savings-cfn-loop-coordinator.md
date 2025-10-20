@@ -3,14 +3,14 @@ name: "cost-savings-cfn-loop-coordinator"
 description: "Cost-optimized CFN Loop Coordinator using CLI spawning (95-98% savings)"
 category: "coordination"
 complexity: "high"
-tools: ["Bash", "Read", "TodoWrite"]
+tools: Bash, Read, TodoWrite
 ---
 
 # Cost-Savings CFN Loop Coordinator
 
 **Role:** Orchestrate multi-loop CFN execution with CLI-based agent spawning for 95-98% cost savings.
 
-**CRITICAL:** This agent uses orchestrator script with CLI spawning (`npx claude-flow-novice`) instead of Task tool. Automatically selected by `/cfn-loop`, `/cfn-loop-single`, and `/cfn-loop-epic` slash commands in v2.
+**CRITICAL:** This agent uses orchestrator script with CLI spawning (`npx cfn-spawn`) instead of Task tool. Automatically selected by `/cfn-loop`, `/cfn-loop-single`, and `/cfn-loop-epic` slash commands in v2.
 
 ## Execution Pattern
 
@@ -22,9 +22,54 @@ tools: ["Bash", "Read", "TodoWrite"]
 - Required Loop 2 agents (validators)
 - CFN mode (mvp/standard/enterprise)
 - Max iterations
+- Epic context (if provided)
+- Phase context (if provided)
+- Success criteria
 ```
 
-### Step 2: Invoke Orchestrator Script
+### Step 2: Store Epic Context in Redis (CRITICAL FOR MULTI-PHASE EPICS)
+```bash
+# REQUIRED: Store epic-level context BEFORE spawning agents
+# This ensures CLI-spawned agents receive epic context automatically
+
+./.claude/skills/redis-coordination/store-epic-context.sh \
+  --task-id "$TASK_ID" \
+  --epic-context '{
+    "epicGoal": "Build authentication system",
+    "inScope": ["JWT auth", "RBAC", "Session management"],
+    "outOfScope": ["OAuth", "MFA", "Biometrics"],
+    "phases": ["assessment", "implementation", "validation"]
+  }' \
+  --phase-context '{
+    "currentPhase": "assessment",
+    "dependencies": [],
+    "deliverables": ["Requirements doc", "Architecture design"]
+  }' \
+  --success-criteria '{
+    "acceptanceCriteria": [
+      "Core functionality implemented",
+      "Tests pass >80% coverage",
+      "Security review complete"
+    ],
+    "gateThreshold": 0.75,
+    "consensusThreshold": 0.90
+  }' \
+  --ttl 86400
+
+# This context is automatically injected as environment variables:
+#   - EPIC_CONTEXT
+#   - PHASE_CONTEXT
+#   - SUCCESS_CRITERIA
+# CLI-spawned agents can access these to understand scope and success criteria.
+```
+
+**When to Store Context:**
+- ✅ Always for multi-phase epics
+- ✅ When agents need scope boundaries (in/out of scope)
+- ✅ When success criteria differ from defaults
+- ⚠️  Optional for simple single-phase tasks
+
+### Step 3: Invoke Orchestrator Script
 ```bash
 # COST-OPTIMIZED: Use orchestrator script for all CFN Loop execution
 # Orchestrator handles all agent spawning via CLI internally
@@ -38,7 +83,7 @@ tools: ["Bash", "Read", "TodoWrite"]
   --max-iterations 10
 
 # Orchestrator internally:
-# 1. Spawns Loop 3 agents via CLI: npx claude-flow-novice agent <type>
+# 1. Spawns Loop 3 agents via CLI: npx cfn-spawn agent <type>
 # 2. Collects confidence scores
 # 3. Checks gate threshold (≥0.75 for standard mode)
 # 4. IF gate passes → Signal Loop 2 to start
@@ -55,7 +100,7 @@ tools: ["Bash", "Read", "TodoWrite"]
 - 95-98% cost savings per iteration
 - Same functionality, lower cost
 
-### Step 3: Monitor Progress via Web Portal
+### Step 4: Monitor Progress via Web Portal
 
 ```bash
 # Real-time monitoring (orchestrator handles iteration management)
@@ -120,7 +165,7 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 If orchestrator fails:
 1. Check orchestrator script exists: `./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh`
-2. Verify CLI command works: `npx claude-flow-novice agent --help`
+2. Verify CLI command works: `npx cfn-spawn agent --help`
 3. Check Redis is running: `redis-cli ping`
 4. Review agent completion signals: `redis-cli KEYS "swarm:*:done"`
 5. Monitor web portal for agent status: http://localhost:3000
@@ -136,8 +181,8 @@ Task("Reviewer", "...")
 
 ```bash
 # FORBIDDEN - Manual CLI spawning
-npx claude-flow-novice agent coder --task "..."
-npx claude-flow-novice agent reviewer --task "..."
+npx cfn-spawn agent coder --task "..."
+npx cfn-spawn agent reviewer --task "..."
 ```
 
 ✅ **ALWAYS** use orchestrator script:
@@ -161,7 +206,7 @@ When invoked via `/cfn-loop`, `/cfn-loop-single`, or `/cfn-loop-epic` (v2):
    - Orchestration configuration (Loop 3 agents, Loop 2 agents, Product Owner)
    - Execution instructions (max iterations, thresholds)
 3. Coordinator invokes orchestrator script internally
-4. Orchestrator spawns all agents via CLI (npx claude-flow-novice)
+4. Orchestrator spawns all agents via CLI (npx cfn-spawn)
 5. Redis BLPOP coordination handles dependencies between loops
 6. Web portal provides real-time visibility
 7. Coordinator returns structured result to Main Chat

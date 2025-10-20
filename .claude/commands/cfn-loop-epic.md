@@ -141,13 +141,23 @@ Task("cost-savings-cfn-loop-coordinator", `
   Epic ID: epic-$(date +%s)
   Mode: STANDARD (gate: 0.75, consensus: 0.90)
 
-  Phases:
-  ${epicPhases.map((p, i) =>
-    \`  Phase \${i+1}: \${p.name}
-    - Deliverables: \${p.deliverables.join(', ')}
-    - Dependencies: \${p.dependencies.join(', ') || 'None'}
-    - Estimated agents: \${p.estimated_agents}\`
-  ).join('\n')}
+  Phases (ANALYZE EPIC AND DEFINE):
+  # Parse epic description and break into phases
+  # Example structure:
+  Phase 0: Assessment
+    - Deliverables: Requirements analysis, Architecture design
+    - Dependencies: None
+    - Estimated agents: 2 (analyst, architect)
+
+  Phase 1: Core Implementation
+    - Deliverables: Main features, API endpoints
+    - Dependencies: Phase 0
+    - Estimated agents: 3 (backend-dev, researcher, devops)
+
+  Phase 2: Validation
+    - Deliverables: Tests, Security audit, Documentation
+    - Dependencies: Phase 0, Phase 1
+    - Estimated agents: 3 (tester, reviewer, security-specialist)
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   EPIC-LEVEL SUCCESS CRITERIA
@@ -155,11 +165,17 @@ Task("cost-savings-cfn-loop-coordinator", `
 
   Scope Boundaries (CRITICAL - ENFORCE STRICTLY):
 
-  In Scope:
-  - ${inScopeItems.join('\n  - ')}
+  In Scope (EXAMPLE - CUSTOMIZE FOR YOUR EPIC):
+  - Feature implementation as described
+  - Basic testing and validation
+  - Essential documentation
+  - Security fundamentals
 
-  Out of Scope (DEFER TO BACKLOG):
-  - ${outOfScopeItems.join('\n  - ')}
+  Out of Scope (DEFER TO BACKLOG - EXAMPLE):
+  - Advanced features not in core spec
+  - Performance optimization beyond basics
+  - Additional integrations
+  - Nice-to-have features
 
   Epic-Level Acceptance Criteria:
   - [ ] All phases complete with consensus ≥0.90
@@ -192,12 +208,20 @@ Task("cost-savings-cfn-loop-coordinator", `
      })
 
   3. INVOKE ORCHESTRATOR FOR PHASE:
-     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
-       --task-id "phase-${PHASE_ID}-$(date +%s)" \\
-       --mode standard \\
-       --loop3-agents "backend-dev,frontend-dev,devops" \\
-       --loop2-agents "reviewer,architect,tester,security-specialist" \\
-       --product-owner "product-owner" \\
+     # Generate task ID and construct bash command with actual values
+     # DO NOT use template literals - construct real bash variables
+
+     TASK_ID="phase-0-$(date +%s)"
+     MODE="standard"
+     LOOP3_AGENTS="analyst,architect"
+     LOOP2_AGENTS="reviewer,architect"
+
+     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+       --task-id "$TASK_ID" \
+       --mode "$MODE" \
+       --loop3-agents "$LOOP3_AGENTS" \
+       --loop2-agents "$LOOP2_AGENTS" \
+       --product-owner "product-owner" \
        --max-iterations 10
 
   4. STORE PHASE RESULTS:
