@@ -8,6 +8,8 @@
  */
 
 import { spawn } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { AgentDefinition } from './agent-definition-parser.js';
 import { TaskContext, getAgentId } from './agent-prompt-builder.js';
 import { buildCLIAgentSystemPrompt, loadContextFromEnv } from './cli-agent-context.js';
@@ -22,12 +24,127 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
+const execAsync = promisify(exec);
+
 export interface AgentExecutionResult {
   success: boolean;
   agentId: string;
   output?: string;
   error?: string;
   exitCode: number;
+}
+
+/**
+ * Extract confidence score from agent output
+ * Looks for patterns like:
+ * - "confidence: 0.85"
+ * - "Confidence: 0.90"
+ * - "confidence score: 0.95"
+ * - "self-confidence: 0.88"
+ */
+function extractConfidence(output: string | undefined): number {
+  if (!output) return 0.85;
+
+  // Try multiple patterns
+  const patterns = [
+    /confidence:\s*([0-9.]+)/i,
+    /confidence\s+score:\s*([0-9.]+)/i,
+    /self-confidence:\s*([0-9.]+)/i,
+    /my\s+confidence:\s*([0-9.]+)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = output.match(pattern);
+    if (match && match[1]) {
+      const score = parseFloat(match[1]);
+      if (score >= 0 && score <= 1) {
+        return score;
+      }
+    }
+  }
+
+  // Default to 0.85 if not found
+  return 0.85;
+}
+
+/**
+ * Execute CFN Loop protocol after agent completes work
+ *
+ * Steps:
+ * 1. Signal completion to orchestrator
+ * 2. Report confidence score
+ * 3. Enter waiting mode (if iterations enabled)
+ */
+async function executeCFNProtocol(
+  taskId: string,
+  agentId: string,
+  output: string | undefined,
+  iteration: number,
+  enableIterations: boolean = false,
+  maxIterations: number = 10
+): Promise<void> {
+  console.log(`\n[CFN Protocol] Starting for agent ${agentId}`);
+  console.log(`[CFN Protocol] Task ID: ${taskId}, Iteration: ${iteration}`);
+
+  try {
+    // Step 1: Signal completion
+    console.log('[CFN Protocol] Step 1: Signaling completion...');
+    await execAsync(`redis-cli lpush "swarm:${taskId}:${agentId}:done" "complete"`);
+    console.log('[CFN Protocol] ✓ Completion signaled');
+
+    // Step 2: Extract and report confidence
+    const confidence = extractConfidence(output);
+    console.log(`[CFN Protocol] Step 2: Reporting confidence (${confidence})...`);
+
+    const reportCmd = `./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+      --task-id "${taskId}" \
+      --agent-id "${agentId}" \
+      --confidence ${confidence} \
+      --iteration ${iteration}`;
+
+    await execAsync(reportCmd);
+    console.log('[CFN Protocol] ✓ Confidence reported');
+
+    // Step 3: Enter waiting mode (if iterations enabled and not at max)
+    if (enableIterations && iteration < maxIterations) {
+      console.log('[CFN Protocol] Step 3: Entering waiting mode...');
+
+      const enterCmd = `./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+        --task-id "${taskId}" \
+        --agent-id "${agentId}" \
+        --context "iteration-${iteration}-complete"`;
+
+      // Note: This will block until woken by coordinator
+      // Using spawn instead of execAsync to avoid timeout issues
+      await new Promise<void>((resolve, reject) => {
+        const proc = spawn('bash', [
+          './.claude/skills/redis-coordination/invoke-waiting-mode.sh',
+          'enter',
+          '--task-id', taskId,
+          '--agent-id', agentId,
+          '--context', `iteration-${iteration}-complete`
+        ], { stdio: 'inherit' });
+
+        proc.on('exit', (code) => {
+          if (code === 0) {
+            console.log('[CFN Protocol] ✓ Waiting mode complete');
+            resolve();
+          } else {
+            reject(new Error(`Waiting mode exited with code ${code}`));
+          }
+        });
+
+        proc.on('error', reject);
+      });
+    } else {
+      console.log('[CFN Protocol] Step 3: Skipped (iterations disabled or at max)');
+    }
+
+    console.log('[CFN Protocol] Protocol complete\n');
+  } catch (error) {
+    console.error('[CFN Protocol] Error:', error);
+    throw error;
+  }
 }
 
 /**
@@ -159,6 +276,26 @@ async function executeViaAPI(
       }
 
       console.log(`[agent-executor] Stored messages for iteration ${iteration}`);
+
+      // Execute CFN Loop protocol (signal completion, report confidence, enter waiting mode)
+      // Iterations are enabled for CFN Loop tasks (indicated by presence of taskId)
+      try {
+        const maxIterations = 10; // Default max iterations
+        const enableIterations = true; // Enable iterations for all CFN Loop tasks
+
+        await executeCFNProtocol(
+          context.taskId,
+          agentId,
+          result.output,
+          iteration,
+          enableIterations,
+          maxIterations
+        );
+      } catch (error) {
+        console.error('[agent-executor] CFN Protocol execution failed:', error);
+        // Don't fail the entire agent execution if CFN protocol fails
+        // This allows agents to complete even if Redis coordination has issues
+      }
     }
 
     return {

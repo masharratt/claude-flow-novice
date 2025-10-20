@@ -1,5 +1,37 @@
 # Claude Flow Novice Changelog
 
+## v2.8.0 - Team Feedback Implementation (Sprint 5) (2025-10-20)
+
+### 🎯 Critical Fixes - CFN Loop Orchestration
+
+**Problem:** Phase 1 execution revealed 3 critical gaps preventing orchestrator from functioning.
+
+**Solution:** Epic context injection, CFN Loop protocol, and heartbeat monitoring.
+
+**Impact:**
+- ✅ Agents receive epic/phase/success criteria context
+- ✅ Orchestrator no longer blocks indefinitely
+- ✅ No false positive "agent hung" warnings
+- ✅ Specific implementations instead of generic code
+
+**Features:**
+- Epic context injection via Redis (7-day TTL)
+- CFN Loop protocol (signal completion, report confidence, enter waiting mode)
+- Heartbeat monitoring (30-second interval)
+- Backward compatible (all features optional)
+
+**Implementation:**
+- `src/cli/cfn-context.ts` (NEW - 246 lines) - Epic context management
+- `src/cli/agent-executor.ts` - CFN protocol execution (lines 45-148, 280-299)
+- `src/cli/anthropic-client.ts` - Heartbeat monitoring (lines 11-14, 47-117)
+- `.claude/skills/redis-coordination/orchestrate-cfn-loop.sh` - Epic context storage
+
+**Testing:** 3/3 Redis operations verified (`tests/test-sprint-5-functions.sh`)
+
+**Documentation:** `docs/SPRINT_5_TEAM_FEEDBACK.md`
+
+**Team Feedback Resolved:** 6/6 issues addressed
+
 ## v2.7.0 - Conversation Forking (Sprint 4) (2025-10-20)
 
 ### 🔀 Major Feature - Application-Level Conversation Forking

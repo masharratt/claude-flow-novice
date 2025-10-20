@@ -8,6 +8,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs/promises';
 import path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export interface APIConfig {
   provider: 'anthropic' | 'zai';
@@ -293,6 +297,10 @@ export async function executeAgentAPI(
   systemPrompt?: string,
   messages?: Array<{ role: string; content: string }> // Sprint 4: Conversation forking
 ): Promise<{ success: boolean; output: string; usage: any; error?: string }> {
+  // Start heartbeat monitoring (declare at function scope for error handling)
+  let heartbeatInterval: NodeJS.Timeout | null = null;
+  const taskId = process.env.TASK_ID;
+
   try {
     console.log(`[anthropic-client] Executing agent: ${agentType}`);
     console.log(`[anthropic-client] Agent ID: ${agentId}`);
@@ -300,6 +308,18 @@ export async function executeAgentAPI(
       console.log(`[anthropic-client] Continuing conversation (${messages.length} messages)`);
     }
     console.log('');
+
+    if (taskId) {
+      heartbeatInterval = setInterval(async () => {
+        try {
+          await execAsync(`redis-cli hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "working"`);
+        } catch (err) {
+          console.error('[heartbeat] Error sending heartbeat:', err);
+        }
+      }, 30000); // Every 30 seconds
+
+      console.log(`[heartbeat] Monitoring started for agent ${agentId} (30s interval)`);
+    }
 
     let fullOutput = '';
 
@@ -324,6 +344,16 @@ export async function executeAgentAPI(
     console.log(`Output tokens: ${response.usage.outputTokens}`);
     console.log(`Stop reason: ${response.stopReason}`);
 
+    // Stop heartbeat and send final status
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+
+      if (taskId) {
+        await execAsync(`redis-cli hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "complete"`);
+        console.log(`[heartbeat] Monitoring stopped - agent ${agentId} complete`);
+      }
+    }
+
     return {
       success: true,
       output: response.content,
@@ -331,6 +361,21 @@ export async function executeAgentAPI(
     };
   } catch (error) {
     console.error('[anthropic-client] Error:', error);
+
+    // Stop heartbeat and send error status
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+
+      if (taskId) {
+        try {
+          await execAsync(`redis-cli hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "error"`);
+          console.log(`[heartbeat] Monitoring stopped - agent ${agentId} error`);
+        } catch (err) {
+          // Ignore heartbeat errors during error handling
+        }
+      }
+    }
+
     return {
       success: false,
       output: '',

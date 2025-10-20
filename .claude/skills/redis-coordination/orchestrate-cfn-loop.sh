@@ -12,7 +12,10 @@
 #                             --product-owner <agent-id> \
 #                             [--max-iterations <n>] \
 #                             [--min-quorum-loop3 <n|n%|0.n>] \
-#                             [--min-quorum-loop2 <n|n%|0.n>]
+#                             [--min-quorum-loop2 <n|n%|0.n>] \
+#                             [--epic-context <json>] \
+#                             [--phase-context <json>] \
+#                             [--success-criteria <json>]
 #
 # CFN Loop Structure (CORRECTED):
 #   Loop 3 (Primary Swarm - Self Validation)
@@ -73,6 +76,11 @@ SHUTDOWN_REQUESTED=0
 LOOP3_HEARTBEAT_MONITOR_PID=""
 LOOP2_HEARTBEAT_MONITOR_PID=""
 
+# Epic Context (optional - for agent system prompts)
+EPIC_CONTEXT=""
+PHASE_CONTEXT=""
+SUCCESS_CRITERIA=""
+
 # Thresholds by mode
 declare -A GATE_THRESHOLD=(
   [mvp]=0.70
@@ -131,6 +139,18 @@ while [[ $# -gt 0 ]]; do
       ;;
     --min-quorum-loop2)
       MIN_QUORUM_LOOP2="$2"
+      shift 2
+      ;;
+    --epic-context)
+      EPIC_CONTEXT="$2"
+      shift 2
+      ;;
+    --phase-context)
+      PHASE_CONTEXT="$2"
+      shift 2
+      ;;
+    --success-criteria)
+      SUCCESS_CRITERIA="$2"
       shift 2
       ;;
     *)
@@ -546,6 +566,29 @@ EOF
 
 # Start shutdown monitor in background
 start_shutdown_monitor "$TASK_ID"
+
+# Store epic context in Redis (if provided)
+if [ -n "$EPIC_CONTEXT" ]; then
+  echo "📋 Storing epic context in Redis..."
+  # Escape single quotes for Redis
+  EPIC_ESCAPED="${EPIC_CONTEXT//\'/\'\\\'\'}"
+  redis-cli setex "swarm:${TASK_ID}:epic-context" 604800 "$EPIC_ESCAPED" >/dev/null
+  echo "  ✅ Epic context stored (TTL: 7 days)"
+fi
+
+if [ -n "$PHASE_CONTEXT" ]; then
+  echo "📋 Storing phase context in Redis..."
+  PHASE_ESCAPED="${PHASE_CONTEXT//\'/\'\\\'\'}"
+  redis-cli setex "swarm:${TASK_ID}:phase-context" 604800 "$PHASE_ESCAPED" >/dev/null
+  echo "  ✅ Phase context stored (TTL: 7 days)"
+fi
+
+if [ -n "$SUCCESS_CRITERIA" ]; then
+  echo "📋 Storing success criteria in Redis..."
+  CRITERIA_ESCAPED="${SUCCESS_CRITERIA//\'/\'\\\'\'}"
+  redis-cli setex "swarm:${TASK_ID}:success-criteria" 604800 "$CRITERIA_ESCAPED" >/dev/null
+  echo "  ✅ Success criteria stored (TTL: 7 days)"
+fi
 
 echo ""
 

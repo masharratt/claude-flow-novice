@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 /**
- * cfn-context - ACE context operations
+ * cfn-context - Epic context operations for CLI agents
  *
- * Usage:
+ * Provides functions to:
+ * 1. Load epic/phase context from Redis
+ * 2. Store epic/phase context to Redis
+ * 3. Format context for agent system prompts
+ *
+ * Also provides ACE context operations CLI:
  *   cfn-context reflect      Run ACE reflection
  *   cfn-context curate       Merge contexts
  *   cfn-context inject       Inject into tasks
@@ -11,6 +16,238 @@
  */
 
 import { spawn } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+// ============================================================================
+// Epic Context Interfaces (for CLI Agent System Prompts)
+// ============================================================================
+
+export interface EpicContextData {
+  epicGoal?: string;
+  epicName?: string;
+  inScope?: string[];
+  outOfScope?: string[];
+  phases?: string[];
+  currentPhase?: string;
+  riskProfile?: string;
+  stakeholders?: string[];
+  references?: string[];
+  timeline?: {
+    start?: string;
+    end?: string;
+    milestones?: Array<{ phase: string; date: string }>;
+  };
+}
+
+export interface PhaseContextData {
+  phaseName?: string;
+  phaseNumber?: number;
+  dependencies?: string[];
+  deliverables?: string[];
+  blockers?: string[];
+  resources?: {
+    agentCount?: number;
+    estimatedDuration?: number;
+    costBudget?: number;
+  };
+}
+
+export interface SuccessCriteriaData {
+  acceptanceCriteria?: string[];
+  gateThreshold?: number;
+  consensusThreshold?: number;
+  qualityGates?: {
+    testCoverage?: number;
+    securityScore?: number;
+    performanceBudget?: number;
+  };
+  definitionOfDone?: string[];
+  nonFunctionalRequirements?: string[];
+}
+
+// ============================================================================
+// Redis Epic Context Functions
+// ============================================================================
+
+/**
+ * Load epic context from Redis
+ *
+ * Redis key: swarm:{taskId}:epic-context
+ */
+export async function loadEpicContext(taskId: string): Promise<EpicContextData | null> {
+  try {
+    const { stdout } = await execAsync(`redis-cli get "swarm:${taskId}:epic-context"`);
+    const result = stdout.trim();
+
+    if (result === '(nil)' || !result) {
+      return null;
+    }
+
+    return JSON.parse(result) as EpicContextData;
+  } catch (error) {
+    console.warn(`[cfn-context] Failed to load epic context for task ${taskId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Load phase context from Redis
+ *
+ * Redis key: swarm:{taskId}:phase-context
+ */
+export async function loadPhaseContext(taskId: string): Promise<PhaseContextData | null> {
+  try {
+    const { stdout } = await execAsync(`redis-cli get "swarm:${taskId}:phase-context"`);
+    const result = stdout.trim();
+
+    if (result === '(nil)' || !result) {
+      return null;
+    }
+
+    return JSON.parse(result) as PhaseContextData;
+  } catch (error) {
+    console.warn(`[cfn-context] Failed to load phase context for task ${taskId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Load success criteria from Redis
+ *
+ * Redis key: swarm:{taskId}:success-criteria
+ */
+export async function loadSuccessCriteria(taskId: string): Promise<SuccessCriteriaData | null> {
+  try {
+    const { stdout } = await execAsync(`redis-cli get "swarm:${taskId}:success-criteria"`);
+    const result = stdout.trim();
+
+    if (result === '(nil)' || !result) {
+      return null;
+    }
+
+    return JSON.parse(result) as SuccessCriteriaData;
+  } catch (error) {
+    console.warn(`[cfn-context] Failed to load success criteria for task ${taskId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Store epic context to Redis
+ *
+ * Redis key: swarm:{taskId}:epic-context
+ * TTL: 7 days
+ */
+export async function storeEpicContext(taskId: string, context: EpicContextData): Promise<boolean> {
+  try {
+    const contextJson = JSON.stringify(context);
+    await execAsync(`redis-cli setex "swarm:${taskId}:epic-context" 604800 '${contextJson.replace(/'/g, "\\'")}'`);
+    console.log(`[cfn-context] Stored epic context for task ${taskId}`);
+    return true;
+  } catch (error) {
+    console.error(`[cfn-context] Failed to store epic context for task ${taskId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Store phase context to Redis
+ *
+ * Redis key: swarm:{taskId}:phase-context
+ * TTL: 7 days
+ */
+export async function storePhaseContext(taskId: string, context: PhaseContextData): Promise<boolean> {
+  try {
+    const contextJson = JSON.stringify(context);
+    await execAsync(`redis-cli setex "swarm:${taskId}:phase-context" 604800 '${contextJson.replace(/'/g, "\\'")}'`);
+    console.log(`[cfn-context] Stored phase context for task ${taskId}`);
+    return true;
+  } catch (error) {
+    console.error(`[cfn-context] Failed to store phase context for task ${taskId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Store success criteria to Redis
+ *
+ * Redis key: swarm:{taskId}:success-criteria
+ * TTL: 7 days
+ */
+export async function storeSuccessCriteria(taskId: string, criteria: SuccessCriteriaData): Promise<boolean> {
+  try {
+    const criteriaJson = JSON.stringify(criteria);
+    await execAsync(`redis-cli setex "swarm:${taskId}:success-criteria" 604800 '${criteriaJson.replace(/'/g, "\\'")}'`);
+    console.log(`[cfn-context] Stored success criteria for task ${taskId}`);
+    return true;
+  } catch (error) {
+    console.error(`[cfn-context] Failed to store success criteria for task ${taskId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Format epic context as markdown for system prompt
+ */
+export function formatEpicContextForPrompt(epic: EpicContextData): string {
+  if (!epic.epicGoal && !epic.inScope && !epic.outOfScope) {
+    return '';
+  }
+
+  const sections: string[] = [];
+
+  sections.push('## Epic Context');
+  sections.push('');
+
+  if (epic.epicName) {
+    sections.push(`**Epic:** ${epic.epicName}`);
+    sections.push('');
+  }
+
+  if (epic.epicGoal) {
+    sections.push('**Goal:**');
+    sections.push(epic.epicGoal);
+    sections.push('');
+  }
+
+  if (epic.currentPhase) {
+    sections.push(`**Current Phase:** ${epic.currentPhase}`);
+    sections.push('');
+  }
+
+  if (epic.inScope && epic.inScope.length > 0) {
+    sections.push('**In Scope:**');
+    for (const item of epic.inScope) {
+      sections.push(`- ${item}`);
+    }
+    sections.push('');
+  }
+
+  if (epic.outOfScope && epic.outOfScope.length > 0) {
+    sections.push('**Out of Scope:**');
+    for (const item of epic.outOfScope) {
+      sections.push(`- ${item}`);
+    }
+    sections.push('');
+  }
+
+  if (epic.references && epic.references.length > 0) {
+    sections.push('**References:**');
+    for (const ref of epic.references) {
+      sections.push(`- ${ref}`);
+    }
+    sections.push('');
+  }
+
+  return sections.join('\n');
+}
+
+// ============================================================================
+// ACE Context Operations CLI (Original Functionality)
+// ============================================================================
 
 interface ContextOptions {
   category?: string;
