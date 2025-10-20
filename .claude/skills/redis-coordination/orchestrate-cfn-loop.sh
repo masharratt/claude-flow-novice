@@ -389,7 +389,11 @@ function check_heartbeats_loop() {
         if [[ " ${LOOP3_AGENTS} " =~ " ${AGENT} " ]]; then
           REMAINING=$((${#LOOP3_COMPLETED_AGENTS[@]}))
           REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP3" "$LOOP3_TOTAL")
-        elif [[ " ${LOOP2_AGENTS} " =~ " ${LOOP2_AGENTS} " ]]; then
+        elif [[ " ${LOOP2_AGENTS} " =~ " ${AGENT} " ]]; then
+          # Safety check: LOOP2_COMPLETED_AGENTS may not be initialized during Loop 3
+          if [ -z "${LOOP2_COMPLETED_AGENTS+x}" ]; then
+            continue
+          fi
           REMAINING=$((${#LOOP2_COMPLETED_AGENTS[@]}))
           REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP2" "$LOOP2_TOTAL")
         else
@@ -557,9 +561,28 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   ITERATION_START=$(date +%s%N | cut -b1-13)  # milliseconds
   redis-cli LPUSH "swarm:${TASK_ID}:metrics:iteration_start" "$ITERATION_START" >/dev/null
 
-  # Step 1: Wait for Loop 3 agents to complete
-  echo "[Loop 3] Waiting for implementers to complete..."
+  # Step 1: Spawn Loop 3 agents via CLI
+  echo "[Loop 3] Spawning implementers via CLI..."
   IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
+
+  for AGENT in "${AGENTS[@]}"; do
+    echo "  Spawning: npx cfn-spawn agent $AGENT --task-id $TASK_ID --iteration $ITERATION"
+
+    # Spawn agent in background via CLI (using cfn-spawn pattern)
+    npx cfn-spawn agent "$AGENT" \
+      --task-id "$TASK_ID" \
+      --iteration "$ITERATION" \
+      --context "Loop 3 implementation" \
+      --mode "$MODE" &
+
+    AGENT_PID=$!
+    echo "  ✅ Spawned $AGENT (PID: $AGENT_PID)"
+  done
+
+  echo ""
+
+  # Step 2: Wait for Loop 3 agents to complete
+  echo "[Loop 3] Waiting for implementers to complete..."
 
   LOOP3_TOTAL=${#AGENTS[@]}
   LOOP3_REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP3" "$LOOP3_TOTAL")
@@ -677,9 +700,28 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   echo "[Loop 3] Gate pass signal sent to Loop 2 validators"
   echo ""
 
-  # Step 3: Wait for Loop 2 validators to complete
-  echo "[Loop 2] Waiting for validators to complete..."
+  # Step 3: Spawn Loop 2 validators via CLI
+  echo "[Loop 2] Spawning validators via CLI..."
   IFS=',' read -ra VALIDATORS <<< "$LOOP2_AGENTS"
+
+  for VALIDATOR in "${VALIDATORS[@]}"; do
+    echo "  Spawning: npx cfn-spawn agent $VALIDATOR --task-id $TASK_ID --iteration $ITERATION"
+
+    # Spawn validator in background via CLI (using cfn-spawn pattern)
+    npx cfn-spawn agent "$VALIDATOR" \
+      --task-id "$TASK_ID" \
+      --iteration "$ITERATION" \
+      --context "Loop 2 validation" \
+      --mode "$MODE" &
+
+    VALIDATOR_PID=$!
+    echo "  ✅ Spawned $VALIDATOR (PID: $VALIDATOR_PID)"
+  done
+
+  echo ""
+
+  # Step 4: Wait for Loop 2 validators to complete
+  echo "[Loop 2] Waiting for validators to complete..."
 
   LOOP2_TOTAL=${#VALIDATORS[@]}
   LOOP2_REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP2" "$LOOP2_TOTAL")
@@ -749,12 +791,22 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   fi
   echo ""
 
-  # Step 4: Collect Loop 2 consensus scores (only from completed agents)
+  # Step 4: Collect Loop 2 consensus scores and feedback (only from completed agents)
   echo "[Loop 2] Collecting consensus scores from ${#LOOP2_COMPLETED_AGENTS[@]} agents..."
   LOOP2_COMPLETED_IDS=$(IFS=','; echo "${LOOP2_COMPLETED_AGENTS[*]}")
-  LOOP2_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+
+  # Capture full output to extract both consensus and feedback
+  COLLECT_OUTPUT=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
     --task-id "$TASK_ID" \
-    --agent-ids "$LOOP2_COMPLETED_IDS" | tail -1)
+    --agent-ids "$LOOP2_COMPLETED_IDS")
+
+  LOOP2_CONSENSUS=$(echo "$COLLECT_OUTPUT" | tail -1)
+
+  # Extract aggregated feedback from collect output
+  LOOP2_FEEDBACK=""
+  if echo "$COLLECT_OUTPUT" | grep -q "Aggregated Feedback"; then
+    LOOP2_FEEDBACK=$(echo "$COLLECT_OUTPUT" | sed -n '/Aggregated Feedback/,/Consensus:/p' | grep '^\s*-' | sed 's/^\s*-\s*//' | paste -sd ',' -)
+  fi
 
   echo "[Loop 2] Average consensus: $LOOP2_CONSENSUS (from ${#LOOP2_COMPLETED_AGENTS[@]}/${LOOP2_TOTAL} agents)"
 
@@ -764,6 +816,44 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     --arg iteration "$ITERATION" \
     '{consensus: ($consensus | tonumber), iteration: ($iteration | tonumber)}')
   echo "$LOOP2_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:loop2_consensus" >/dev/null
+
+  # SPRINT 3 - Phase 2: Store iteration results for all agents
+  echo "[Coordinator] Storing iteration results for history..."
+  IFS=',' read -ra ALL_AGENTS_ARRAY <<< "$LOOP3_AGENTS,$LOOP2_AGENTS"
+  for AGENT in "${ALL_AGENTS_ARRAY[@]}"; do
+    # Get agent's confidence score
+    AGENT_CONFIDENCE=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:confidence:iteration-${ITERATION}" || echo "0")
+    if [ "$AGENT_CONFIDENCE" = "(nil)" ]; then
+      AGENT_CONFIDENCE="0"
+    fi
+
+    # Get agent's result/output (try multiple possible keys)
+    AGENT_RESULT=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:output" || echo "")
+    if [ "$AGENT_RESULT" = "(nil)" ] || [ -z "$AGENT_RESULT" ]; then
+      AGENT_RESULT="Completed iteration $ITERATION"
+    fi
+
+    # Store result with metadata
+    RESULT_DATA=$(jq -nc \
+      --arg result "$AGENT_RESULT" \
+      --arg confidence "$AGENT_CONFIDENCE" \
+      --arg iteration "$ITERATION" \
+      --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      '{result: $result, confidence: ($confidence | tonumber), iteration: ($iteration | tonumber), timestamp: $timestamp}')
+
+    echo "$RESULT_DATA" | redis-cli -x setex "swarm:${TASK_ID}:${AGENT}:result:iteration-${ITERATION}" 86400 >/dev/null
+
+    # Store feedback if available (from Loop 2 validators)
+    if [ -n "$LOOP2_FEEDBACK" ]; then
+      FEEDBACK_DATA=$(jq -nc \
+        --arg feedback "$LOOP2_FEEDBACK" \
+        --arg iteration "$ITERATION" \
+        --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        '{feedback: $feedback, iteration: ($iteration | tonumber), timestamp: $timestamp}')
+      echo "$FEEDBACK_DATA" | redis-cli -x setex "swarm:${TASK_ID}:${AGENT}:feedback:iteration-${ITERATION}" 86400 >/dev/null
+    fi
+  done
+  echo "[Coordinator] Iteration results stored for ${#ALL_AGENTS_ARRAY[@]} agents"
 
   # Consensus check
   if (( $(echo "$LOOP2_CONSENSUS >= $CONSENSUS" | bc -l) )); then
@@ -861,8 +951,16 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     exit 1
   fi
 
-  # Wake agents for next iteration with role-based priorities
-  echo "[Coordinator] Waking agents for iteration $((ITERATION + 1)) with priorities..."
+  # Wake agents for next iteration with role-based priorities and specific feedback
+  echo "[Coordinator] Waking agents for iteration $((ITERATION + 1)) with priorities and feedback..."
+
+  # Build feedback message for Loop 3 implementers
+  LOOP3_FEEDBACK="Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
+  if [ -n "$LOOP2_FEEDBACK" ]; then
+    # Include specific validator feedback
+    LOOP3_FEEDBACK="$LOOP3_FEEDBACK,$LOOP2_FEEDBACK"
+    echo "[Coordinator] Passing validator feedback to Loop 3: $(echo "$LOOP2_FEEDBACK" | tr ',' '\n' | wc -l) items"
+  fi
 
   # Wake Loop 3 implementers with MEDIUM priority (priority=30)
   IFS=',' read -ra LOOP3_ARRAY <<< "$LOOP3_AGENTS"
@@ -873,7 +971,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
       --priority 30 \
       --reason "cfn_loop_iteration" \
       --iteration $((ITERATION + 1)) \
-      --feedback "Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
+      --feedback "$LOOP3_FEEDBACK"
   done
 
   # Wake Loop 2 validators with HIGH priority (priority=10)
@@ -885,7 +983,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
       --priority 10 \
       --reason "cfn_loop_iteration" \
       --iteration $((ITERATION + 1)) \
-      --feedback "Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
+      --feedback "Re-validate iteration $((ITERATION + 1)) work against threshold >=$CONSENSUS"
   done
 
   echo ""

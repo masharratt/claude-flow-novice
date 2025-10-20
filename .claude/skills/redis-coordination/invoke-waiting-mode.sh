@@ -199,6 +199,40 @@ case "$COMMAND" in
                 timestamp: ($ts | tonumber)
             }')
 
+        # Store feedback in Redis for agent to read (if provided and iteration > 0)
+        # Debug: Echo values before conditional (only if feedback provided)
+        if [ -n "$FEEDBACK" ]; then
+            [ "$DEBUG" = "true" ] && echo "[DEBUG] Checking feedback storage: FEEDBACK='$FEEDBACK', ITERATION='${ITERATION:-0}'"
+        fi
+
+        # Only store feedback if: feedback is non-empty AND iteration > 0
+        # Check iteration value explicitly (not just default)
+        if [ -n "$FEEDBACK" ] && [ -n "$ITERATION" ] && [ "$ITERATION" -gt 0 ]; then
+            FEEDBACK_KEY="swarm:${TASK_ID}:${AGENT_ID}:feedback:iteration-${ITERATION}"
+            FEEDBACK_ARRAY=$(echo "$FEEDBACK" | jq -Rc 'split(",") | map(select(length > 0))')
+
+            # Only store if feedback array is not empty after filtering
+            ARRAY_LENGTH=$(echo "$FEEDBACK_ARRAY" | jq 'length')
+            if [ "$ARRAY_LENGTH" -gt 0 ]; then
+                # Store as JSON array with 24-hour TTL using redis-cli -x (reads from stdin)
+                # Note: -x reads LAST argument from stdin, so we can't use SET key value EX ttl
+                # Instead: SET key (value from stdin), then EXPIRE key ttl
+                REDIS_RESULT=$(printf '%s' "$FEEDBACK_ARRAY" | redis-cli -x SET "$FEEDBACK_KEY")
+                redis-cli EXPIRE "$FEEDBACK_KEY" 86400 >/dev/null
+
+                # Always log feedback storage (not just in DEBUG mode)
+                if [ "$REDIS_RESULT" = "OK" ]; then
+                    echo "  [Feedback] Stored $ARRAY_LENGTH items in Redis (TTL: 24h)"
+                fi
+
+                if [ "$DEBUG" = "true" ]; then
+                    echo "[DEBUG] Stored feedback in $FEEDBACK_KEY (TTL: 24h)"
+                    echo "[DEBUG] Feedback: $FEEDBACK_ARRAY"
+                    echo "[DEBUG] Redis SET result: $REDIS_RESULT"
+                fi
+            fi
+        fi
+
         # Calculate priority score (lower score = higher priority, popped first)
         # Score = (100 - priority) * 1000000 + timestamp
         # This ensures higher priority messages are processed first, with FIFO for same priority
@@ -231,14 +265,16 @@ case "$COMMAND" in
 
         RESULT_KEY="swarm:${TASK_ID}:${AGENT_ID}:result"
 
-        # Build result message
+        # Build result message with optional feedback
         RESULT_MSG=$(jq -n \
             --arg confidence "$CONFIDENCE" \
             --arg iteration "${ITERATION:-0}" \
+            --arg feedback "${FEEDBACK:-}" \
             --arg ts "$(date +%s)" \
             '{
                 confidence: ($confidence | tonumber),
                 iteration: ($iteration | tonumber),
+                feedback: ($feedback | split(",") | map(select(length > 0))),
                 timestamp: ($ts | tonumber)
             }')
 
@@ -247,6 +283,9 @@ case "$COMMAND" in
         echo "[$AGENT_ID] ✅ Result reported"
         echo "  Confidence: $CONFIDENCE"
         [ -n "$ITERATION" ] && echo "  Iteration: $ITERATION"
+        if [ -n "$FEEDBACK" ]; then
+            echo "  Feedback items: $(echo "$FEEDBACK" | tr ',' '\n' | wc -l)"
+        fi
         ;;
 
     collect)
@@ -263,6 +302,7 @@ case "$COMMAND" in
 
         RESULTS=()
         CONFIDENCES=()
+        ALL_FEEDBACK=()
 
         for AGENT in "${AGENTS[@]}"; do
             RESULT_KEY="swarm:${TASK_ID}:${AGENT}:result"
@@ -271,12 +311,22 @@ case "$COMMAND" in
             RESULT=$(redis-cli LPOP "$RESULT_KEY")
 
             if [ -n "$RESULT" ] && [ "$RESULT" != "(nil)" ]; then
-                echo "  [$AGENT] $(echo "$RESULT" | jq -r '.confidence')"
-                RESULTS+=("$RESULT")
-
-                # Extract confidence for consensus calculation
                 CONF=$(echo "$RESULT" | jq -r '.confidence')
+                echo "  [$AGENT] Confidence: $CONF"
+                RESULTS+=("$RESULT")
                 CONFIDENCES+=("$CONF")
+
+                # Check if result includes feedback array
+                FEEDBACK=$(echo "$RESULT" | jq -r '.feedback // empty | .[]?' 2>/dev/null)
+                if [ -n "$FEEDBACK" ]; then
+                    echo "  [$AGENT] Feedback provided:"
+                    echo "$RESULT" | jq -r '.feedback[]' | sed 's/^/    - /'
+
+                    # Collect all feedback items
+                    while IFS= read -r ITEM; do
+                        ALL_FEEDBACK+=("$ITEM")
+                    done < <(echo "$RESULT" | jq -r '.feedback[]')
+                fi
             else
                 echo "  [$AGENT] ⚠️  No result found"
             fi
@@ -293,6 +343,13 @@ case "$COMMAND" in
 
             echo ""
             echo "[Coordinator] Consensus: $CONSENSUS"
+
+            # Print aggregated feedback if available
+            if [ ${#ALL_FEEDBACK[@]} -gt 0 ]; then
+                echo "[Coordinator] Aggregated Feedback (${#ALL_FEEDBACK[@]} items):"
+                printf '%s\n' "${ALL_FEEDBACK[@]}" | sort -u | sed 's/^/  - /'
+            fi
+
             echo "$CONSENSUS"
         else
             echo ""

@@ -10,6 +10,7 @@
 import { spawn } from 'child_process';
 import { AgentDefinition } from './agent-definition-parser.js';
 import { TaskContext, getAgentId } from './agent-prompt-builder.js';
+import { buildCLIAgentSystemPrompt, loadContextFromEnv } from './cli-agent-context.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -65,6 +66,19 @@ async function executeViaAPI(
   console.log('');
 
   try {
+    // Build system prompt with natural language context (Phase 1 enhancement)
+    console.log('[agent-executor] Building system prompt with context...');
+    const contextOptions = loadContextFromEnv();
+    // Override agent type with definition name
+    contextOptions.agentType = definition.name;
+    // Override iteration/taskId if provided in context
+    if (context.taskId) contextOptions.taskId = context.taskId;
+    if (context.iteration) contextOptions.iteration = context.iteration;
+
+    const systemPrompt = await buildCLIAgentSystemPrompt(contextOptions);
+    console.log('[agent-executor] System prompt built successfully');
+    console.log('');
+
     // Dynamic import to avoid bundling issues
     const { executeAgentAPI } = await import('./anthropic-client.js');
 
@@ -72,7 +86,8 @@ async function executeViaAPI(
       definition.name,
       agentId,
       definition.model,
-      prompt
+      prompt,
+      systemPrompt
     );
 
     return {

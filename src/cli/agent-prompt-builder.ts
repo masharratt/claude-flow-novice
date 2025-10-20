@@ -5,10 +5,12 @@
  * - Agent definition (YAML + markdown)
  * - Task context (taskId, iteration, mode)
  * - CFN Loop protocol (if applicable)
+ * - Iteration history (Sprint 3 - Phase 2)
  * - Environment variables
  */
 
 import { AgentDefinition, hasCFNLoopProtocol } from './agent-definition-parser.js';
+import { loadIterationHistory, formatIterationHistory } from './iteration-history.js';
 
 export interface TaskContext {
   taskId?: string;
@@ -127,12 +129,12 @@ ${env.join('\n')}
 }
 
 /**
- * Build complete prompt for agent execution
+ * Build complete prompt for agent execution (async for iteration history)
  */
-export function buildAgentPrompt(
+export async function buildAgentPrompt(
   definition: AgentDefinition,
   context: TaskContext
-): string {
+): Promise<string> {
   const agentId = `${definition.name}-${context.iteration || 1}`;
 
   const sections: string[] = [];
@@ -149,36 +151,56 @@ export function buildAgentPrompt(
   sections.push(buildTaskDescription(definition.name, context));
   sections.push('');
 
-  // 3. Agent definition content (from markdown file)
+  // 3. Iteration history (Sprint 3 - Phase 2)
+  // Load and format previous iterations if iteration > 1
+  if (context.taskId && context.iteration && context.iteration > 1) {
+    try {
+      const history = await loadIterationHistory(context.taskId, agentId, context.iteration);
+      const historyText = formatIterationHistory(history, context.iteration);
+      sections.push(historyText);
+      sections.push('');
+    } catch (err) {
+      console.warn(`[agent-prompt-builder] Failed to load iteration history:`, err);
+      // Continue without history
+    }
+  }
+
+  // 4. Agent definition content (from markdown file)
   sections.push('## Agent Definition');
   sections.push('');
   sections.push(definition.content);
   sections.push('');
 
-  // 4. CFN Loop protocol (if agent supports it AND task context includes taskId)
+  // 5. CFN Loop protocol (if agent supports it AND task context includes taskId)
   if (context.taskId && hasCFNLoopProtocol(definition)) {
     sections.push(buildCFNLoopProtocol(context.taskId, agentId));
     sections.push('');
   }
 
-  // 5. Environment context
+  // 6. Environment context
   const envContext = buildEnvironmentContext(context);
   if (envContext) {
     sections.push(envContext);
     sections.push('');
   }
 
-  // 6. Execution instructions
+  // 7. Execution instructions
   sections.push('## Execution Instructions');
   sections.push('');
   sections.push('1. Read and understand the task requirements');
-  sections.push('2. Execute your core responsibilities as defined above');
-  sections.push('3. Follow any protocol steps (CFN Loop, validation hooks, etc.)');
+  if (context.iteration && context.iteration > 1) {
+    sections.push('2. Review iteration history and feedback from validators');
+    sections.push('3. Address specific feedback points from previous iteration');
+    sections.push('4. Execute your core responsibilities as defined above');
+  } else {
+    sections.push('2. Execute your core responsibilities as defined above');
+    sections.push('3. Follow any protocol steps (CFN Loop, validation hooks, etc.)');
+  }
   sections.push('4. Provide clear, concise output');
   sections.push('5. Report confidence score if applicable');
   sections.push('');
 
-  // 7. Tool reminder
+  // 8. Tool reminder
   if (definition.tools && definition.tools.length > 0) {
     sections.push('## Available Tools');
     sections.push('');

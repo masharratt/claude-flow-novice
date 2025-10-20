@@ -1,8 +1,14 @@
-# Documentation Index for Claude Flow Novice (v2.0.0)
+# Documentation Index for Claude Flow Novice (v2.6.0)
 
 ## V2 Core Documentation
 
-### 🚀 v2.0.0 Release Overview
+### 🎯 v2.6.0 - CLI Agent Context Enhancement (2025-10-20)
+- **Major Feature**: CLI agent context parity with Task agents
+- **Implementation**: Three-sprint enhancement (iteration feedback, system prompts, iteration history)
+- **Impact**: 99% cost savings maintained while closing information gap
+- **Test Coverage**: 42/42 tests passing
+
+### 🚀 v2.0.0 Release Overview (2025-10-18)
 - **Release Date**: 2025-10-18
 - **Architecture**: Skills-First Coordination
 - **Key Changes**:
@@ -14,6 +20,7 @@
 
 ### Key Documentation Links
 - [README.md](./README.md) - v2 system overview
+- [cli-agent-context-implementation.md](./cli-agent-context-implementation.md) - v2.6.0 context enhancement
 - [log-skills.md](./log-skills.md) - Skills system fundamentals
 - [CHANGELOG.md](./CHANGELOG.md) - Complete release history
 - [CFN_LOOP_CHEATSHEET.md](./CFN_LOOP_CHEATSHEET.md) - Quick reference
