@@ -204,6 +204,84 @@ cfn-redis event
 # Subscribes to: swarm:events, swarm:coordination
 ```
 
+## CLI Agent Spawning
+
+### Agent Execution
+
+**Purpose**: Spawn agents via CLI with Z.ai routing
+
+**Signature**: `npx claude-flow-novice agent <type> [options]`
+
+**Parameters**:
+- `<type>`: Agent type (researcher, backend-dev, tester, etc.)
+- `--task-id`: Unique task identifier
+- `--task`: Task description
+- `--iteration`: Iteration number (default: 1)
+- `--context`: Additional context
+- `--mode`: Execution mode (cli, cfn-loop)
+- `--priority`: Task priority (1-10)
+
+**Example**:
+```bash
+npx claude-flow-novice agent researcher \
+  --task-id "cfn-task-123" \
+  --task "Analyze authentication patterns" \
+  --iteration 1
+```
+
+**Provider Configuration**:
+```bash
+# .env file
+CLAUDE_API_PROVIDER=zai
+ZAI_API_KEY=your-api-key
+ZAI_BASE_URL=https://api.z.ai/api/anthropic
+```
+
+**Model Selection**:
+- Primary: `glm-4.6` (Z.ai)
+- Fallback: `glm-4.5-air` (automatic retry on error)
+- Timeout: 120s with 2 retries
+
+**Output**:
+```
+[anthropic-client] Provider: zai
+[anthropic-client] Model: glm-4.6
+[anthropic-client] Stream: disabled
+
+=== Agent Execution Complete ===
+Input tokens: 874
+Output tokens: 489
+Status: ✓ Success
+Exit Code: 0
+```
+
+**Integration with CFN Loop**:
+```bash
+# Coordinator spawns agents via CLI
+./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+  --task-id "$TASK_ID" \
+  --mode standard \
+  --loop3-agents "researcher,backend-dev" \
+  --loop2-agents "reviewer,tester"
+
+# Orchestrator internally calls:
+# npx claude-flow-novice agent researcher --task-id "$TASK_ID" ...
+# npx claude-flow-novice agent backend-dev --task-id "$TASK_ID" ...
+```
+
+**Testing**:
+```bash
+# Direct CLI test (uses latest build)
+node dist/cli/index.js agent researcher \
+  --task-id "test-123" \
+  --task "What is 2+2?" \
+  --iteration 1
+```
+
+**Status**: ✅ Operational (v2.5.2)
+
+---
+
 ## Version
-**Current CLI Version**: 2.2.0
-**Last Updated**: 2025-10-19
+**Current CLI Version**: 2.5.2
+**Last Updated**: 2025-10-20

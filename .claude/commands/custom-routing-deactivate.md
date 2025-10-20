@@ -1,143 +1,46 @@
-# /custom-routing-deactivate - Disable Tiered Routing
+---
+description: DEPRECATED - Use /switch-api max instead
+tags: [deprecated, routing]
+---
 
-Deactivate tiered provider routing so all agents use the default provider configuration (sonnet model).
+# ⚠️ DEPRECATED Command
 
-## Usage
+**This command is deprecated and no longer needed.**
+
+## Use Instead
 
 ```bash
-/custom-routing-deactivate
+/switch-api max
 ```
 
-Simple! No arguments needed. Just run the command to disable tiered routing.
+## What This Does
 
-## What It Does
+Switches Main Chat + Task tool back to Anthropic (default provider).
 
-Disables profile-based provider routing. After deactivation:
+**Note:** Requires running `claude login` after switching.
 
-- ✅ All agents use **sonnet model** (from agent profiles)
-- ✅ Single provider for all agents
-- ✅ No provider-based routing
-- ✅ Consistent behavior across all agents
+## Migration
 
-## Use Cases
-
-**Disable for:**
-- Testing quality differences between providers
-- Debugging provider-specific issues
-- Ensuring consistent provider behavior
-- A/B testing routing vs non-routing
-- Projects where consistency matters more than cost
-
-**Enable for:**
-- Production development (cost savings)
-- High-volume agent usage
-- Projects with budget constraints
-
-## Output
-
-When you run `/custom-routing-deactivate`:
-
-```
-═══════════════════════════════════════════════════════
-   Deactivating Tiered Provider Routing
-═══════════════════════════════════════════════════════
-
-✅ Tiered Provider Routing DEACTIVATED
-
-📊 Current Routing:
-  • All agents use sonnet model (from agent profiles)
-  • Single provider for all agents
-  • No provider-based routing
-
-⚠️  Cost Impact:
-  • All agents use default provider (typically Anthropic)
-  • No cost optimization active
-  • Useful for testing or consistency requirements
-
-💾 Configuration saved to:
-   /path/to/project/.claude/settings.json
-
-📖 To enable routing:
-   /custom-routing-activate
-═══════════════════════════════════════════════════════
-```
-
-## Configuration
-
-Settings are saved to `.claude/settings.json`:
-
-```json
-{
-  "tieredRouting": {
-    "enabled": false
-  }
-}
-```
-
-## Cost Impact
-
-**Without routing (after deactivation):**
-```
-100 agent calls × $0.015 (Anthropic) = $1.50
-```
-
-**With routing (before deactivation):**
-```
-80 calls × $0.003 (Z.ai) + 20 calls × $0.015 (Anthropic) = $0.54
-```
-
-**Impact of deactivation:** +$0.96 per 100 agent calls (178% increase)
-
-## Related Commands
-
-- `/custom-routing-activate` - Enable tiered routing
-- `/activate-custom-routing` - Show routing status
-- `/cfn-loop` - Self-correcting development loop
-
-## When to Deactivate
-
-### Good Reasons:
-✅ Testing quality differences
-✅ Debugging provider issues
-✅ Short-term consistency needs
-✅ Comparing routing vs non-routing
-
-### Bad Reasons:
-❌ "I don't understand routing" - Learn it first, saves money
-❌ "Too complicated" - It's automatic once enabled
-❌ "Not sure if it works" - Test it with small tasks first
-
-## Examples
-
-### Deactivate routing
+**If you were using `/custom-routing-deactivate`:**
 ```bash
-$ /custom-routing-deactivate
+# Just run this instead:
+/switch-api max
 
-✅ Tiered Provider Routing DEACTIVATED
-
-📊 Current Routing:
-  • All agents use sonnet model (from agent profiles)
-  • Single provider for all agents
+# Then re-authenticate:
+claude login
 ```
 
-### Already deactivated
-```bash
-$ /custom-routing-deactivate
+## Why Deprecated
 
-✅ Tiered routing is already DISABLED
+The custom-routing system was designed but never fully implemented. The new switch-api provides the same functionality with:
 
-💡 To enable cost optimization, run: /custom-routing-activate
-```
-
-## Best Practices
-
-1. **Deactivate temporarily** - Only disable for testing, then re-enable
-2. **Document why** - Note the reason for deactivation in project docs
-3. **Set reminder** - Remember to re-enable after testing
-4. **Compare results** - Use deactivation to validate routing quality
+1. **Simpler commands** - `/switch-api zai` or `/switch-api max`
+2. **Actually works** - Complete implementation
+3. **Clear behavior** - Explicit env var management
+4. **Better docs** - See `/switch-api` help
 
 ## See Also
 
-- **Activation**: `/custom-routing-activate`
-- **Status Check**: `/activate-custom-routing`
-- **Cost Analysis**: Check `.claude/settings.json` for current state
+- `/switch-api` - Current routing system
+- `/switch-api max` - Use Anthropic for Main Chat
+- `/switch-api zai` - Use Z.ai for cost savings

@@ -1,29 +1,82 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.0.0",
-  "description": "AI agent orchestration - Clean v2 architecture",
+  "version": "2.5.2",
+  "description": "AI agent orchestration framework with skills-based coordination, Redis pub/sub, and CFN Loop validation",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
     "claude-flow-novice": "dist/cli/index.js",
-    "claude-flow-spawn": "dist/cli/spawn.js"
+    "cfn-spawn": "dist/cli/spawn.js",
+    "cfn-loop": "dist/cli/cfn-loop.js",
+    "cfn-swarm": "dist/cli/cfn-swarm.js",
+    "cfn-portal": "dist/cli/cfn-portal.js",
+    "cfn-context": "dist/cli/cfn-context.js",
+    "cfn-metrics": "dist/cli/cfn-metrics.js",
+    "cfn-redis": "dist/cli/cfn-redis.js"
   },
+  "files": [
+    "dist/",
+    ".claude/",
+    "scripts/*.sh",
+    "scripts/*.js",
+    "!scripts/test-*.js",
+    "!scripts/*-validation.cjs",
+    "!scripts/deployment/",
+    "README.md",
+    "LICENSE",
+    "CLAUDE.md"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "orchestration",
+    "multi-agent",
+    "coordination",
+    "redis",
+    "cfn-loop",
+    "skills",
+    "automation",
+    "cli",
+    "consensus",
+    "validation"
+  ],
+  "author": "Claude Flow Novice Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/claude-flow-novice.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/claude-flow-novice/issues"
+  },
+  "homepage": "https://github.com/yourusername/claude-flow-novice#readme",
   "scripts": {
     "dev": "tsx src/cli/index.ts",
     "build": "npm run clean && npm run build:swc",
     "build:swc": "swc src -d dist --config-file .swcrc",
     "clean": "rm -rf dist",
     "test": "jest --config jest.config.cjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "prepack": "npm run build",
+    "postinstall": "node -e \"console.log('\\n✅ claude-flow-novice installed successfully!\\n📚 Get started: npx claude-flow-novice --help\\n🔧 Initialize: npx claude-flow-novice status\\n')\"",
+    "verify-package": "npm pack --dry-run",
+    "portal:start": "./scripts/start-portal.sh",
+    "portal:stop": "./scripts/stop-portal.sh",
+    "portal:restart": "npm run portal:stop && npm run portal:start",
+    "portal:status": "./scripts/portal-status.sh"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.67.0",
     "ajv": "^8.17.1",
     "better-sqlite3": "^12.4.1",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "dotenv": "^17.2.3",
+    "glob": "^11.0.3",
     "lodash": "^4.17.21",
     "redis": "^5.8.3",
+    "socket.io": "^4.8.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7"
   },
@@ -39,6 +92,7 @@
     "@types/uuid": "^10.0.0",
     "@types/yaml": "^1.9.6",
     "jest": "^29.0.0",
+    "socket.io-client": "^4.8.1",
     "ts-jest": "^29.4.5",
     "tsx": "^4.7.0",
     "typescript": "^5.6.3"

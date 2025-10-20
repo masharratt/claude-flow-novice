@@ -1,0 +1,232 @@
+/**
+ * Agent Definition Parser
+ *
+ * Parses agent definition files (.md) with YAML frontmatter and markdown content.
+ * Supports agent definitions in .claude/agents/ directory structure.
+ */
+
+import fs from 'fs/promises';
+import path from 'path';
+import { glob } from 'glob';
+
+export interface AgentDefinition {
+  // YAML frontmatter fields
+  name: string;
+  description: string;
+  tools: string[];
+  model: 'haiku' | 'sonnet' | 'opus';
+  type?: string;
+  color?: string;
+  acl_level?: number;
+  capabilities?: string[];
+  validation_hooks?: string[];
+  lifecycle?: {
+    pre_task?: string;
+    post_task?: string;
+  };
+
+  // Parsed markdown content
+  content: string;
+
+  // File metadata
+  filePath: string;
+  category?: string; // e.g., 'core-agents', 'specialized', 'custom'
+}
+
+/**
+ * Parse YAML frontmatter from markdown content
+ */
+function parseFrontmatter(content: string): { frontmatter: Record<string, any>; body: string } {
+  const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
+  const match = content.match(frontmatterRegex);
+
+  if (!match) {
+    return { frontmatter: {}, body: content };
+  }
+
+  const [, yamlContent, body] = match;
+
+  // Simple YAML parser (handles basic key-value pairs, arrays, and objects)
+  const frontmatter: Record<string, any> = {};
+  const lines = yamlContent.split('\n');
+  let currentKey = '';
+  let currentArray: string[] = [];
+  let isInArray = false;
+  let isInObject = false;
+  let currentObject: Record<string, string> = {};
+  let objectKey = '';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    // Array item
+    if (trimmed.startsWith('- ')) {
+      if (!isInArray) {
+        isInArray = true;
+        currentArray = [];
+      }
+      currentArray.push(trimmed.substring(2).trim());
+      continue;
+    }
+
+    // End of array
+    if (isInArray && !trimmed.startsWith('- ')) {
+      frontmatter[currentKey] = currentArray;
+      isInArray = false;
+      currentArray = [];
+    }
+
+    // Object field (indented key-value)
+    if (trimmed.match(/^\s+\w+:/) && isInObject) {
+      const [objKey, ...objValueParts] = trimmed.split(':');
+      const objValue = objValueParts.join(':').trim().replace(/^["']|["']$/g, '');
+      currentObject[objKey.trim()] = objValue;
+      continue;
+    }
+
+    // Key-value pair
+    const colonIndex = trimmed.indexOf(':');
+    if (colonIndex !== -1) {
+      const key = trimmed.substring(0, colonIndex).trim();
+      const value = trimmed.substring(colonIndex + 1).trim();
+
+      // Check if this starts an object
+      if (value === '') {
+        isInObject = true;
+        currentObject = {};
+        objectKey = key;
+        continue;
+      }
+
+      // End previous object if any
+      if (isInObject && !trimmed.match(/^\s+/)) {
+        frontmatter[objectKey] = currentObject;
+        isInObject = false;
+        currentObject = {};
+      }
+
+      currentKey = key;
+
+      // Multi-line string (starts with |)
+      if (value === '|') {
+        continue; // Will be handled by next lines
+      }
+
+      // Remove quotes
+      const cleanValue = value.replace(/^["']|["']$/g, '');
+      frontmatter[key] = cleanValue;
+    } else if (currentKey && trimmed && !isInArray && !isInObject) {
+      // Continuation of multi-line string
+      const existingValue = frontmatter[currentKey];
+      frontmatter[currentKey] = existingValue
+        ? `${existingValue}\n${trimmed}`
+        : trimmed;
+    }
+  }
+
+  // Handle trailing array or object
+  if (isInArray) {
+    frontmatter[currentKey] = currentArray;
+  }
+  if (isInObject) {
+    frontmatter[objectKey] = currentObject;
+  }
+
+  return { frontmatter, body: body.trim() };
+}
+
+/**
+ * Find agent definition file by agent type/name
+ */
+async function findAgentFile(agentType: string, baseDir: string = '.claude/agents'): Promise<string | null> {
+  // Normalize agent type (handle both kebab-case and underscores)
+  const normalizedType = agentType.toLowerCase().replace(/_/g, '-');
+
+  // Search patterns (in order of priority)
+  const patterns = [
+    // Exact match in any subdirectory
+    `${baseDir}/**/${normalizedType}.md`,
+    // Match with different casing
+    `${baseDir}/**/*${normalizedType}*.md`,
+  ];
+
+  for (const pattern of patterns) {
+    const files = await glob(pattern, { nodir: true, absolute: true });
+    if (files.length > 0) {
+      // Prefer exact match over partial match
+      const exactMatch = files.find(f => {
+        const basename = path.basename(f, '.md').toLowerCase();
+        return basename === normalizedType;
+      });
+      return exactMatch || files[0];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parse agent definition from file
+ */
+export async function parseAgentDefinition(agentType: string): Promise<AgentDefinition> {
+  // Find agent file
+  const filePath = await findAgentFile(agentType);
+
+  if (!filePath) {
+    throw new Error(`Agent definition not found: ${agentType}`);
+  }
+
+  // Read file content
+  const content = await fs.readFile(filePath, 'utf-8');
+
+  // Parse frontmatter and body
+  const { frontmatter, body } = parseFrontmatter(content);
+
+  // Extract category from path
+  const relativePath = path.relative('.claude/agents', filePath);
+  const category = relativePath.includes('/')
+    ? relativePath.split('/')[0]
+    : undefined;
+
+  // Build agent definition
+  const definition: AgentDefinition = {
+    name: frontmatter.name || agentType,
+    description: frontmatter.description || '',
+    tools: Array.isArray(frontmatter.tools) ? frontmatter.tools : [],
+    model: frontmatter.model || 'haiku',
+    type: frontmatter.type,
+    color: frontmatter.color,
+    acl_level: frontmatter.acl_level ? parseInt(String(frontmatter.acl_level), 10) : undefined,
+    capabilities: frontmatter.capabilities,
+    validation_hooks: frontmatter.validation_hooks,
+    lifecycle: frontmatter.lifecycle,
+    content: body,
+    filePath,
+    category,
+  };
+
+  return definition;
+}
+
+/**
+ * List all available agent definitions
+ */
+export async function listAgentDefinitions(baseDir: string = '.claude/agents'): Promise<string[]> {
+  const pattern = `${baseDir}/**/*.md`;
+  const files = await glob(pattern, { nodir: true });
+
+  return files.map(f => path.basename(f, '.md'));
+}
+
+/**
+ * Check if agent definition includes CFN Loop protocol
+ */
+export function hasCFNLoopProtocol(definition: AgentDefinition): boolean {
+  const content = definition.content.toLowerCase();
+  return (
+    content.includes('cfn loop') &&
+    content.includes('redis completion protocol') ||
+    content.includes('invoke-waiting-mode.sh')
+  );
+}

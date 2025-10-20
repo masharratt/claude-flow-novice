@@ -18,10 +18,15 @@ A modular, extensible architecture for AI agent coordination and task management
    - **Graceful Shutdown**: User-initiated cancellation
    - **Metrics Export**: JSON/Prometheus/CSV/OTLP formats
 
-2. **Agent Spawning**
+2. **Agent Spawning** (v2.5.2 - 2025-10-20)
+   - CLI-based agent execution (`npx claude-flow-novice agent <type>`)
+   - Provider-specific model routing (Z.ai GLM, Anthropic Claude)
+   - Automatic model fallback (glm-4.6 → glm-4.5-air on error)
    - Parallel and sequential agent launch
    - Dependency-aware agent management
-   - Cost-savings mode integration
+   - Cost-savings mode integration (Z.ai $0.50/1M vs Anthropic $15/1M)
+   - Graceful timeout handling (120s, 2 retries)
+   - Environment-based configuration (.env loading)
 
 3. **CFN Loop Validation**
    - Multi-stage iteration management
@@ -87,6 +92,47 @@ A modular, extensible architecture for AI agent coordination and task management
 - Hierarchical Broadcast
 - Mesh Hybrid Patterns
 - Waiting Mode + Wake-Up Protocol
+
+### 5. Model Provider Integration
+
+#### Z.ai GLM Models (v2.5.2)
+**Purpose**: Cost-optimized inference via Z.ai provider
+
+**Configuration**:
+```bash
+# .env
+CLAUDE_API_PROVIDER=zai
+ZAI_API_KEY=your-key
+ZAI_BASE_URL=https://api.z.ai/api/anthropic
+```
+
+**Model Selection**:
+- **Primary**: `glm-4.6` (latest GLM model)
+- **Fallback**: `glm-4.5-air` (automatic retry on error)
+- **Behavior**: Stateless retry (each request starts with glm-4.6)
+
+**Features**:
+- Provider-specific model mapping (Z.ai vs Anthropic)
+- Automatic fallback on model unavailability
+- Non-streaming mode for Z.ai compatibility
+- 120s timeout with 2 retries
+
+**Model Mapping**:
+```typescript
+// Z.ai routing
+haiku  → glm-4.6
+sonnet → glm-4.6
+opus   → glm-4.6
+
+// Anthropic routing
+haiku  → claude-3-5-haiku-20241022
+sonnet → claude-3-5-sonnet-20241022
+opus   → claude-3-opus-20240229
+```
+
+**Integration**: Automatic via CLI agent spawning (`npx claude-flow-novice agent <type>`)
+
+**Status**: ✅ Operational (endpoint verified, models tested)
 
 ## Performance Metrics
 - Average Agent Coordination Latency: <50ms
