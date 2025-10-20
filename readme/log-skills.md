@@ -81,11 +81,32 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 - Task tool spawning (parallel required)
 - Dependency validation
 - Agent health monitoring
+- Skill access (filesystem-based discovery)
 
 **Primary Scripts:**
 - `spawn-agent.sh` - Spawn single agent
 - `spawn-swarm.sh` - Spawn multiple agents with dependencies
 - `validate-dependencies.sh` - Check agent prerequisites
+
+**Skill Access:**
+CLI-spawned agents inherit project working directory, providing identical skill access to Main Chat:
+
+```bash
+# Agent discovery (filesystem scanning)
+find .claude/skills -name "*.sh" -type f
+
+# Direct skill invocation
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh
+
+# Post-edit hook integration
+./.claude/hooks/invoke-post-edit.sh file.ts --agent-id "agent-1"
+```
+
+**Validation:**
+Post-edit pipeline demonstrates skill access:
+- Security scanner: `.claude/skills/hook-pipeline/security-scanner.sh`
+- Hook invocation from CLI agents
+- Logs: `.artifacts/logs/post-edit-pipeline.log`
 
 **Testing:**
 ```bash

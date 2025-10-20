@@ -124,13 +124,87 @@ claude-flow-novice fullstack:terminate
 ```
 my-project/
 ├── .claude/                 # Claude configuration
-│   ├── agents/             # Agent definitions
-│   └── memory/             # Agent memory systems
+│   ├── agents/             # Agent definitions (96+)
+│   ├── commands/           # Slash commands (201+)
+│   └── skills/             # Coordination skills
+├── .artifacts/             # Runtime artifacts
+│   └── adaptive-context.db # ACE system knowledge base (133+ bullets)
 ├── src/                    # Source code
 ├── tests/                  # Test files
 ├── docs/                   # Documentation
 └── README.md
 ```
+
+### Memory & Knowledge Systems
+
+Claude Flow Novice maintains persistent memory across multiple databases:
+
+#### 1. Adaptive Context Engine (ACE) ✅ OPERATIONAL
+
+**Location**: `.artifacts/database/swarm-memory.db`
+
+**Status**: Fully operational with reflection → curation → persistence pipeline
+
+**Tables**:
+- `adaptive_context` - 11 active curated lessons (strategies, patterns, optimizations)
+- `context_reflections` - 1 stored reflection from task execution
+- `context_merge_log` - 1 audit log entry for curation actions
+- `memory_entries` - 1,939 agent memory entries with 5-level ACL
+
+**How ACE Works**:
+1. **Reflection**: `/context-reflect` spawns `context-reflector` agent
+   - Analyzes task execution (git logs, test results, metrics)
+   - Extracts 3-7 structured lessons with confidence scores
+   - Stores in `context_reflections` table via SQLite scripts
+
+2. **Curation**: `/context-curate` spawns `context-curator` agent
+   - Loads pending reflections from database
+   - Detects semantic similarity (tag-based, no embeddings needed)
+   - Merges/increments/adds bullets to `adaptive_context`
+   - Logs all actions in `context_merge_log`
+
+3. **Persistence**: All operations use SQLite helper scripts
+   - `store-reflection.sh` - Store reflection with lessons
+   - `add-bullet.sh` - Add new bullet to context
+   - `log-merge.sh` - Log curation action
+   - `query-reflections.sh` - Query pending reflections
+   - `update-reflection.sh` - Mark reflection as processed
+
+**Query examples**:
+```bash
+# View curated lessons
+sqlite3 .artifacts/database/swarm-memory.db "SELECT bullet_id, category, content FROM adaptive_context WHERE is_active = 1 ORDER BY priority DESC LIMIT 10;"
+
+# Check reflections
+sqlite3 .artifacts/database/swarm-memory.db "SELECT id, reflection_type, curator_status FROM context_reflections;"
+
+# View merge log
+sqlite3 .artifacts/database/swarm-memory.db "SELECT merge_type, bullet_id FROM context_merge_log ORDER BY created_at DESC;"
+```
+
+**Slash commands**:
+```bash
+/context-reflect          # Extract lessons from recent tasks
+/context-curate          # Merge lessons into knowledge base
+/context-query "topic"   # Search relevant bullets (manual SQL for now)
+/context-stats           # View statistics (manual SQL for now)
+```
+
+**Helper scripts** (`.claude/skills/ace-system/`):
+```bash
+# Agents use these to persist data
+./store-reflection.sh --reflection-type success --task-id sprint-123 --lessons-file lessons.json
+./add-bullet.sh --bullet-id STRAT-007 --category strategy --content "Lesson here" --confidence 0.85
+./log-merge.sh --merge-type new_bullet --bullet-id STRAT-007 --reflection-id refl-123
+```
+
+#### 2. Web Portal Events
+**Location**: `packages/web-portal/data/events.db`
+
+Stores real-time events for web dashboard visualization.
+
+#### 3. Redis (Ephemeral)
+Coordination state, heartbeats, pub/sub messaging - cleared on restart.
 
 ### Configuration
 

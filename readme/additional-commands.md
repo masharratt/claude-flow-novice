@@ -2,6 +2,106 @@
 
 Specialized commands for advanced development workflows, complex system management, and enterprise-scale operations.
 
+## CFN-* CLI Commands (v2.0.0)
+
+Complete CLI suite for claude-flow-novice operations.
+
+### cfn-spawn - Agent Spawning
+
+**Purpose**: Spawn agents with task context
+
+**Signature**: `cfn-spawn agent <type> [options]`
+
+**Options**:
+- `--task-id` - Task identifier
+- `--iteration` - Iteration number
+- `--context` - Context description
+- `--mode` - Execution mode (mvp/standard/enterprise)
+
+**Example**:
+```bash
+cfn-spawn agent coder --task-id auth-impl --iteration 1
+cfn-spawn researcher --context "API performance"
+```
+
+### cfn-loop - CFN Loop Orchestration
+
+**Purpose**: Execute CFN Loop workflows
+
+**Subcommands**: single, epic, sprints
+
+**Examples**:
+```bash
+cfn-loop single "Implement JWT authentication" --mode=standard
+cfn-loop epic "Build complete auth system"
+cfn-loop sprints "Phase 1: Core implementation" --phase=phase-1
+```
+
+### cfn-swarm - Swarm Coordination
+
+**Purpose**: Initialize and manage agent swarms
+
+**Subcommands**: init, status, shutdown
+
+**Examples**:
+```bash
+cfn-swarm init mesh --max-agents 5 --strategy balanced
+cfn-swarm status
+cfn-swarm shutdown --task-id task-123
+```
+
+### cfn-portal - Web Portal Management
+
+**Purpose**: Manage web portal for swarm visibility
+
+**Subcommands**: start, stop, status, agents, metrics, events
+
+**Examples**:
+```bash
+cfn-portal start --port 3000
+cfn-portal agents --status active
+cfn-portal events --limit 100
+```
+
+### cfn-context - ACE Context Operations
+
+**Purpose**: Adaptive Context Engine operations
+
+**Subcommands**: reflect, curate, inject, query, stats
+
+**Examples**:
+```bash
+cfn-context query "redis coordination" --category technical
+cfn-context stats
+cfn-context inject --phase implementation
+```
+
+### cfn-metrics - Monitoring and Analytics
+
+**Purpose**: Monitor agent and system performance
+
+**Subcommands**: agent, consensus, fleet
+
+**Examples**:
+```bash
+cfn-metrics agent --agent-id coder-1 --period 1h
+cfn-metrics consensus --task-id task-123
+cfn-metrics fleet
+```
+
+### cfn-redis - Redis Coordination Helpers
+
+**Purpose**: Redis coordination patterns and waiting mode
+
+**Subcommands**: pattern, waiting-mode, event
+
+**Examples**:
+```bash
+cfn-redis pattern mesh-hybrid --task-id task-123
+cfn-redis waiting-mode --task-id task-123 --agent-id coder-1 --action enter
+cfn-redis event
+```
+
 ## Skills-First Coordination Commands
 
 ### `/swarm`

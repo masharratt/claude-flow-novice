@@ -133,6 +133,77 @@ python ./.claude/skills/redis-coordination/priority_wake.py \
 - Verify agent IDs match task context
 - Monitor heartbeat timeouts
 
+## CFN-Redis CLI Wrapper
+
+### cfn-redis - Redis Coordination Helpers
+
+**Purpose**: Execute Redis coordination patterns and waiting mode operations
+
+**Usage**:
+```bash
+cfn-redis pattern <name> [options]
+cfn-redis waiting-mode [options]
+cfn-redis event
+```
+
+#### Pattern Command
+
+Apply coordination patterns.
+
+**Signature**: `cfn-redis pattern <name> --task-id <id>`
+
+**Patterns**:
+- `simple-chain` - Linear agent coordination
+- `hierarchical-broadcast` - Coordinator broadcasts to agents
+- `mesh-hybrid` - Peer-to-peer with coordinator
+
+**Example**:
+```bash
+cfn-redis pattern mesh-hybrid --task-id task-123
+```
+
+#### Waiting Mode Command
+
+Manage agent waiting states.
+
+**Signature**: `cfn-redis waiting-mode --task-id <id> --agent-id <id> --action <action>`
+
+**Actions**:
+- `enter` - Agent enters waiting mode (BLPOP)
+- `wake` - Coordinator wakes agent
+- `report` - Agent reports completion
+- `collect` - Coordinator collects results
+
+**Flags**:
+- `--task-id` (string, required) - Task ID for coordination
+- `--agent-id` (string, required) - Agent ID
+- `--action` (string, default: enter) - Action to perform
+- `--context` (string) - Context description
+- `--reason` (string) - Wake reason
+- `--iteration` (number) - Iteration number
+
+**Examples**:
+```bash
+# Agent enters waiting
+cfn-redis waiting-mode --task-id task-123 --agent-id coder-1 --action enter
+
+# Coordinator wakes agent
+cfn-redis waiting-mode --task-id task-123 --agent-id coder-1 \
+  --action wake --reason iteration --iteration 2
+```
+
+#### Event Command
+
+Monitor Redis pub/sub events.
+
+**Signature**: `cfn-redis event`
+
+**Example**:
+```bash
+cfn-redis event
+# Subscribes to: swarm:events, swarm:coordination
+```
+
 ## Version
 **Current CLI Version**: 2.2.0
 **Last Updated**: 2025-10-19

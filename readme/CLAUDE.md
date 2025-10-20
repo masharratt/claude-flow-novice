@@ -99,6 +99,32 @@
 - Redis CLI integration and command reference
 - State management, coordination patterns, pub/sub messaging, swarm recovery
 
+### NPM Package Distribution
+
+**[command-naming.md](./command-naming.md)**
+- Binary naming strategy to avoid conflicts with existing `claude-flow` package
+- Commands: `claude-flow-novice` (main CLI), `cfn-spawn` (agent spawning utility)
+- Future expansion pattern: `cfn-*` for all utilities (cfn-monitor, cfn-doctor, etc.)
+- Namespace-safe command design, tab completion optimization
+
+**[npm-distribution-summary.md](./npm-distribution-summary.md)**
+- Executive summary of npm package preparation
+- Package configuration (15.3 MB, 1,401 files), included/excluded files
+- Publishing workflow, version management, testing results
+- Web portal separation strategy, post-installation setup
+
+**[installation-process.md](./installation-process.md)**
+- Complete npm installation workflow (download, extract, dependencies, binaries)
+- User experience during install: postinstall hooks, welcome messages
+- Installation methods: global (`npm install -g`), local, npx one-time use
+- Troubleshooting: permissions, native compilation (better-sqlite3), Redis setup
+- Installation metrics: timing, size, dependency count
+
+**[documentation-analysis.md](./documentation-analysis.md)**
+- Analysis of documentation overlaps and integration opportunities
+- File relationship mapping, merger recommendations
+- Modular vs consolidated documentation strategy
+
 ### Indexes and Meta-Documentation
 
 **[logs-documentation-index.md](./logs-documentation-index.md)**
@@ -112,8 +138,12 @@
 - Complete system inventory for project management and planning
 
 **[CHANGELOG.md](./CHANGELOG.md)**
-- Version history and release notes
+- Version history and release notes (user-facing, included in npm package)
 - Sprint summaries, feature releases, bug fixes, migration guides
+
+**[log-changelog.md](./log-changelog.md)**
+- Detailed internal decision log (development-focused, excluded from npm)
+- Technical decisions, architecture changes, rationale documentation
 
 ## Documentation Templates
 
@@ -342,6 +372,14 @@ curl -X POST /endpoint -d '{"field":"value"}'
 1. [CFN_LOOP_CHEATSHEET.md](./CFN_LOOP_CHEATSHEET.md) - Quick reference
 2. [cfn-loop-modes.md](./cfn-loop-modes.md) - Mode selection
 3. [cfn-loop-flow-diagram.md](./cfn-loop-flow-diagram.md) - Visual flow
+
+### NPM Package Distribution & Publishing
+1. [npm-distribution-summary.md](./npm-distribution-summary.md) - Quick overview & status
+2. [installation-process.md](./installation-process.md) - User installation experience
+3. [command-naming.md](./command-naming.md) - Command naming strategy
+4. [CHANGELOG.md](./CHANGELOG.md) - Version history (include in package)
+5. [../PUBLISH.md](../PUBLISH.md) - Publishing checklist
+6. [../NPM_DISTRIBUTION_GUIDE.md](../NPM_DISTRIBUTION_GUIDE.md) - Complete guide
 
 ### Skills Development
 1. [log-skills.md](./log-skills.md) - Complete skills guide

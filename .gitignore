@@ -62,6 +62,11 @@ tests/logs/
 .artifacts/
 .artifacts/**
 
+# Allow persistent databases (permanent project knowledge)
+!.artifacts/database/
+!.artifacts/database/swarm-memory.db
+!.artifacts/database/coordination-state.db
+
 # Python
 __pycache__/
 *.py[cod]
