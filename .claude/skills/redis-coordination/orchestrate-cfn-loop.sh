@@ -80,6 +80,8 @@ LOOP2_HEARTBEAT_MONITOR_PID=""
 EPIC_CONTEXT=""
 PHASE_CONTEXT=""
 SUCCESS_CRITERIA=""
+EXPECTED_FILES=""  # BUG #12 FIX: Explicit file verification
+PHASE_ID=""  # BUG #16 FIX: Phase identifier for timeout configuration
 
 # Thresholds by mode
 declare -A GATE_THRESHOLD=(
@@ -151,6 +153,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --success-criteria)
       SUCCESS_CRITERIA="$2"
+      shift 2
+      ;;
+    --expected-files)
+      EXPECTED_FILES="$2"
+      shift 2
+      ;;
+    --phase-id)
+      PHASE_ID="$2"
       shift 2
       ;;
     *)
@@ -629,6 +639,13 @@ echo ""
 SWARM_ID="swarm-${TASK_ID}"
 ALL_AGENTS="${LOOP3_AGENTS},${LOOP2_AGENTS},${PRODUCT_OWNER}"
 
+# LOG: Swarm initialization
+./.claude/skills/redis-coordination/log-event.sh \
+  --task-id "$TASK_ID" \
+  --event-type "swarm_init" \
+  --details "{\"mode\": \"$MODE\", \"loop3_agents\": \"$LOOP3_AGENTS\", \"loop2_agents\": \"$LOOP2_AGENTS\", \"product_owner\": \"$PRODUCT_OWNER\", \"max_iterations\": $MAX_ITERATIONS, \"gate_threshold\": $GATE, \"consensus_threshold\": $CONSENSUS}" \
+  --level "INFO" 2>/dev/null || true
+
 # Build CFN-specific metadata
 CFN_METADATA=$(cat <<EOF
 {
@@ -677,42 +694,10 @@ fi
 
 echo ""
 
-# [BUG #8 FIX] Spawn Product Owner before iteration loop
-echo "[Product Owner] Spawning via CLI..."
-PO_UNIQUE_ID="${PRODUCT_OWNER}-0-1"  # Iteration 0 (pre-loop spawn)
-
-npx cfn-spawn agent "$PRODUCT_OWNER" \
-  --agent-id "$PO_UNIQUE_ID" \
-  --task-id "$TASK_ID" \
-  --iteration 0 \
-  --context "Product Owner (GOAP decision-maker)" \
-  --mode "$MODE" &
-
-PO_PID=$!
-echo "  ✅ Spawned $PO_UNIQUE_ID (PID: $PO_PID)"
-
-# Wait for PO to enter waiting mode
-echo "[Product Owner] Waiting for ready signal..."
-READY_KEY="swarm:${TASK_ID}:${PO_UNIQUE_ID}:ready"
-
-# Poll for ready signal with 60-second timeout
-READY_TIMEOUT=60
-READY_ELAPSED=0
-while [ $READY_ELAPSED -lt $READY_TIMEOUT ]; do
-  READY_COUNT=$(redis-cli LLEN "$READY_KEY" 2>/dev/null || echo "0")
-  if [ "$READY_COUNT" -gt 0 ]; then
-    echo "[Product Owner] ✅ Ready and waiting"
-    break
-  fi
-  sleep 1
-  READY_ELAPSED=$((READY_ELAPSED + 1))
-done
-
-if [ $READY_ELAPSED -ge $READY_TIMEOUT ]; then
-  echo "[Product Owner] ❌ Failed to enter waiting mode within ${READY_TIMEOUT}s"
-  cleanup_and_exit 1 "product_owner_spawn_timeout"
-fi
-
+# [BUG #15 FIX] REMOVED: Early Product Owner spawn at iteration 0
+# Product Owner now only spawned after Loop 2 completes (see line 1283)
+# This prevents timeout issues with waiting mode initialization
+echo "[Product Owner] Will spawn after Loop 2 consensus (just-in-time pattern)"
 echo ""
 
 # Iteration loop
@@ -723,7 +708,52 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   ITERATION_START=$(date +%s%N | cut -b1-13)  # milliseconds
   redis-cli LPUSH "swarm:${TASK_ID}:metrics:iteration_start" "$ITERATION_START" >/dev/null
 
-  # Step 1: Spawn Loop 3 agents via CLI
+  # Step 1: Build detailed agent context from Redis (BUG #20 FIX - Option 2)
+  echo "[Loop 3] Building agent context from Redis..."
+
+  # Retrieve stored context
+  EPIC_CTX=$(redis-cli get "swarm:${TASK_ID}:epic-context" 2>/dev/null || echo "{}")
+  PHASE_CTX=$(redis-cli get "swarm:${TASK_ID}:phase-context" 2>/dev/null || echo "{}")
+  SUCCESS_CTX=$(redis-cli get "swarm:${TASK_ID}:success-criteria" 2>/dev/null || echo "{}")
+
+  # Extract key fields with jq (safe parsing)
+  EPIC_GOAL=$(echo "$EPIC_CTX" | jq -r '.epicGoal // "No epic goal specified"')
+  IN_SCOPE=$(echo "$EPIC_CTX" | jq -r '.inScope[]? // empty' | sed 's/^/- /' || echo "- (not specified)")
+  OUT_SCOPE=$(echo "$EPIC_CTX" | jq -r '.outOfScope[]? // empty' | sed 's/^/- /' || echo "- (not specified)")
+  DELIVERABLES=$(echo "$PHASE_CTX" | jq -r '.deliverables[]? // empty' | sed 's/^/- /' || echo "- (not specified)")
+  DIRECTORY=$(echo "$PHASE_CTX" | jq -r '.directory // ""')
+  ACCEPTANCE=$(echo "$SUCCESS_CTX" | jq -r '.acceptanceCriteria[]? // empty' | sed 's/^/- /' || echo "- (not specified)")
+
+  # Build structured agent context
+  LOOP3_AGENT_CONTEXT="Loop 3 implementation for iteration $ITERATION
+
+Epic Goal: $EPIC_GOAL
+
+In Scope:
+$IN_SCOPE
+
+Out of Scope:
+$OUT_SCOPE
+
+Deliverables (CRITICAL - you MUST create these files):
+$DELIVERABLES
+$([ -n "$DIRECTORY" ] && echo "
+Target Directory: $DIRECTORY")
+
+Acceptance Criteria:
+$ACCEPTANCE
+
+IMPORTANT:
+- Use Write tool to create each deliverable file
+- Verify files created with 'ls -la \$DIRECTORY' after each Write
+- All deliverables must exist for validation to pass
+- Report confidence score based on actual file creation
+"
+
+  echo "  ✅ Agent context built ($(echo "$LOOP3_AGENT_CONTEXT" | wc -c) characters)"
+  echo ""
+
+  # Step 2: Spawn Loop 3 agents via CLI
   echo "[Loop 3] Spawning implementers via CLI..."
   IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
 
@@ -777,17 +807,27 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
     echo "  Spawning $AGENT (ID: $UNIQUE_AGENT_ID, timeout: ${AGENT_TIMEOUT}s)"
 
+    # LOG: Loop 3 agent spawn
+    ./.claude/skills/redis-coordination/log-event.sh \
+      --task-id "$TASK_ID" \
+      --event-type "agent_spawn" \
+      --loop "loop3" \
+      --agent-id "$UNIQUE_AGENT_ID" \
+      --iteration "$ITERATION" \
+      --details "{\"agent_type\": \"$AGENT\", \"timeout\": $AGENT_TIMEOUT}" \
+      --level "INFO" 2>/dev/null || true
+
     # Execute agent via Loop 3 skill in background
     (
       # Record start time
       START_TIME=$(date +%s%N | cut -b1-13)
 
-      # Execute skill
+      # Execute skill (BUG #20 FIX - inject detailed context)
       if SKILL_RESULT=$(./.claude/skills/loop3-output-processing/execute-and-extract.sh \
         --agent-type "$AGENT" \
         --task-id "$TASK_ID" \
         --agent-id "$UNIQUE_AGENT_ID" \
-        --context "Loop 3 implementation for iteration $ITERATION" \
+        --context "$LOOP3_AGENT_CONTEXT" \
         --iteration "$ITERATION" \
         --timeout "$AGENT_TIMEOUT" 2>&1); then
 
@@ -848,6 +888,16 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
           echo "  ✅ $UNIQUE_AGENT_ID complete (${LATENCY}ms, confidence: $CONFIDENCE [$CONFIDENCE_SOURCE], files: $FILES_CHANGED)"
 
+          # LOG: Loop 3 agent completion
+          ./.claude/skills/redis-coordination/log-event.sh \
+            --task-id "$TASK_ID" \
+            --event-type "agent_complete" \
+            --loop "loop3" \
+            --agent-id "$UNIQUE_AGENT_ID" \
+            --iteration "$ITERATION" \
+            --details "{\"confidence\": $CONFIDENCE, \"confidence_source\": \"$CONFIDENCE_SOURCE\", \"files_changed\": $FILES_CHANGED, \"latency_ms\": $LATENCY}" \
+            --level "INFO" 2>/dev/null || true
+
           # Store latency metric
           METRIC=$(jq -nc \
             --arg agent "$UNIQUE_AGENT_ID" \
@@ -862,6 +912,17 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
           ERROR_OUTPUT=$(echo "$SKILL_RESULT" | jq -r '.output')
           echo "  ❌ $UNIQUE_AGENT_ID failed (skill execution error)"
           echo "     Error: $ERROR_OUTPUT"
+
+          # LOG: Loop 3 agent failure
+          ./.claude/skills/redis-coordination/log-event.sh \
+            --task-id "$TASK_ID" \
+            --event-type "agent_failure" \
+            --loop "loop3" \
+            --agent-id "$UNIQUE_AGENT_ID" \
+            --iteration "$ITERATION" \
+            --details "{\"error\": \"skill_execution_error\", \"output\": \"$ERROR_OUTPUT\"}" \
+            --level "ERROR" 2>/dev/null || true
+
           LOOP3_FAILED_AGENTS+=("$AGENT")
           redis-cli INCR "swarm:${TASK_ID}:metrics:agent_failure_count" >/dev/null
         fi
@@ -915,30 +976,40 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     '{consensus: ($consensus | tonumber), iteration: ($iteration | tonumber)}')
   echo "$LOOP3_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:loop3_consensus" >/dev/null
 
-  # SPRINT 4: Create conversation forks after iteration 1
+  # P3: Fork-id logic removed (agents exit cleanly)
+  # Fresh agents spawned for each iteration (PATTERN-022)
   if [ "$ITERATION" -eq 1 ]; then
-    echo "[Coordinator] Creating conversation forks for iteration 2..."
-    for AGENT in "${LOOP3_COMPLETED_AGENTS[@]}"; do
-      FORK_ID=$(npx cfn-fork create --task-id "$TASK_ID" --agent-id "$AGENT" --iteration 1 2>/dev/null || echo "")
-
-      if [ -n "$FORK_ID" ] && [ "$FORK_ID" != "(nil)" ]; then
-        # Store fork ID in Redis for this agent
-        redis-cli setex "swarm:${TASK_ID}:${AGENT}:fork-id" 86400 "$FORK_ID" >/dev/null
-        echo "  ✓ Fork created for $AGENT: $FORK_ID"
-      else
-        echo "  ⚠ Fork creation skipped for $AGENT (will use context rebuild)"
+    echo "[Coordinator] Skipping fork creation (P3: agents exit cleanly)"
+  fi
       fi
     done
     echo ""
   fi
 
-  # BUG #11 FIX: Deliverable Verification
-  # Check if Loop 3 actually created any files before allowing consensus
+  # BUG #12 FIX: Deliverable Verification with explicit file checking
   echo "[Deliverable Check] Verifying implementation artifacts..."
-  FILES_CHANGED=$(git status --short | grep -E "^(A|M|\?\?)" | wc -l)
 
-  if (( FILES_CHANGED == 0 )); then
-    echo "❌ DELIVERABLE VERIFICATION FAILED: No files created or modified"
+  # Use enhanced validate-deliverables.sh skill
+  DELIVERABLE_ARGS="--task-id $TASK_ID"
+  if [ -n "$EXPECTED_FILES" ]; then
+    DELIVERABLE_ARGS="$DELIVERABLE_ARGS --expected-files $EXPECTED_FILES"
+    echo "  Expected files: $EXPECTED_FILES"
+  fi
+
+  DELIVERABLE_STATUS=$(./.claude/skills/product-owner-decision/validate-deliverables.sh $DELIVERABLE_ARGS)
+
+  if [ "$DELIVERABLE_STATUS" = "FAILED" ]; then
+    # Retrieve missing files from Redis (if available)
+    MISSING_FILES_JSON=$(redis-cli get "swarm:${TASK_ID}:missing-files" 2>/dev/null || echo "[]")
+    MISSING_FILES_LIST=$(echo "$MISSING_FILES_JSON" | jq -r '.[]' | tr '\n' ', ' | sed 's/,$//')
+
+    if [ -n "$MISSING_FILES_LIST" ]; then
+      echo "❌ DELIVERABLE VERIFICATION FAILED: Missing files"
+      echo "   Expected but not found: $MISSING_FILES_LIST"
+    else
+      echo "❌ DELIVERABLE VERIFICATION FAILED: No files created or modified"
+    fi
+
     echo "   This prevents 'consensus on vapor' - validators approving nothing"
     echo ""
     echo "Decision: RELAUNCH iteration $((ITERATION + 1)) (skip Loop 2 validation)"
@@ -963,11 +1034,20 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     echo "[Loop 3] Recalculated confidence after override: $LOOP3_CONSENSUS"
     echo ""
 
+    # Build specific feedback with missing files
+    if [ -n "$MISSING_FILES_LIST" ]; then
+      FEEDBACK="CRITICAL: Create these missing files: $MISSING_FILES_LIST
+
+Use the Write tool for each file. Verify with 'ls -la' after each Write operation."
+    else
+      FEEDBACK="CRITICAL: You must create or modify files. No deliverables were produced in iteration $ITERATION."
+    fi
+
     # Wake Loop 3 agents for next iteration with HIGH priority (priority=40)
     IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
     for AGENT in "${AGENTS[@]}"; do
       # Get fork ID if exists
-      FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+      # P3: Fork-id removed (fresh agents per iteration)
       if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
 
       ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
@@ -976,20 +1056,28 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
         --priority 40 \
         --reason "no_deliverables" \
         --iteration $((ITERATION + 1)) \
-        --fork-id "$FORK_ID" \
-        --feedback "CRITICAL: You must create or modify files. No deliverables were produced in iteration $ITERATION."
+        # P3: Removed --fork-id parameter
+        --feedback "$FEEDBACK"
     done
 
     continue  # Next iteration (skip gate check and Loop 2)
   fi
 
-  echo "[Deliverable Check] ✅ $FILES_CHANGED file(s) changed - proceeding to gate check"
+  echo "[Deliverable Check] ✅ Deliverables verified - proceeding to gate check"
   echo ""
 
   # Gate check
   if (( $(echo "$LOOP3_CONSENSUS < $GATE" | bc -l) )); then
     echo "❌ Gate FAILED ($LOOP3_CONSENSUS < $GATE)"
     echo "Decision: RELAUNCH iteration $((ITERATION + 1))"
+
+    # LOG: Gate check failure
+    ./.claude/skills/redis-coordination/log-event.sh \
+      --task-id "$TASK_ID" \
+      --event-type "gate_check" \
+      --iteration "$ITERATION" \
+      --details "{\"consensus\": $LOOP3_CONSENSUS, \"threshold\": $GATE, \"result\": \"FAIL\", \"decision\": \"RELAUNCH\"}" \
+      --level "WARN" 2>/dev/null || true
 
     # METRICS: Increment gate failure counter
     redis-cli INCR "swarm:${TASK_ID}:metrics:gate_failures" >/dev/null
@@ -998,7 +1086,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
     for AGENT in "${AGENTS[@]}"; do
       # SPRINT 4: Get fork ID if exists
-      FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+      # P3: Fork-id removed (fresh agents per iteration)
       if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
 
       ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
@@ -1007,7 +1095,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
         --priority 30 \
         --reason "gate_failed" \
         --iteration $((ITERATION + 1)) \
-        --fork-id "$FORK_ID" \
+        # P3: Removed --fork-id parameter
         --feedback "Improve confidence from $LOOP3_CONSENSUS to >$GATE"
     done
 
@@ -1015,6 +1103,15 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   fi
 
   echo "✅ Gate PASSED ($LOOP3_CONSENSUS >= $GATE)"
+
+  # LOG: Gate check success
+  ./.claude/skills/redis-coordination/log-event.sh \
+    --task-id "$TASK_ID" \
+    --event-type "gate_check" \
+    --iteration "$ITERATION" \
+    --details "{\"consensus\": $LOOP3_CONSENSUS, \"threshold\": $GATE, \"result\": \"PASS\"}" \
+    --level "INFO" 2>/dev/null || true
+
   echo ""
 
   # Signal Loop 2 validators that gate has passed (they can start work)
@@ -1023,7 +1120,33 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   echo "[Loop 3] Gate pass signal sent to Loop 2 validators"
   echo ""
 
-  # Step 3: Spawn Loop 2 validators using skill-based output processing (parallel execution)
+  # Step 3: Build Loop 2 validator context (BUG #20 FIX - inject same deliverables)
+  LOOP2_VALIDATOR_CONTEXT="Loop 2 validation for iteration $ITERATION
+
+Review Loop 3 implementation against these requirements:
+
+Epic Goal: $EPIC_GOAL
+
+Expected Deliverables:
+$DELIVERABLES
+$([ -n "$DIRECTORY" ] && echo "
+Target Directory: $DIRECTORY")
+
+Acceptance Criteria:
+$ACCEPTANCE
+
+Your Validation Tasks:
+- Verify all deliverable files exist in correct directory
+- Check files contain actual implementation (not placeholders)
+- Validate against acceptance criteria
+- Provide structured feedback (critical/warnings/suggestions)
+- Report confidence score based on deliverable completeness
+"
+
+  echo "[Loop 2] Validator context built"
+  echo ""
+
+  # Step 4: Spawn Loop 2 validators using skill-based output processing (parallel execution)
   echo "[Loop 2] Using skill-based output processing (parallel execution)"
   IFS=',' read -ra VALIDATORS <<< "$LOOP2_AGENTS"
 
@@ -1077,12 +1200,12 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
       # METRICS: Agent latency start
       AGENT_START=$(date +%s%N | cut -b1-13)
 
-      # Execute skill to spawn validator and extract feedback
+      # Execute skill to spawn validator and extract feedback (BUG #20 FIX - inject detailed context)
       SKILL_RESULT=$(./.claude/skills/loop2-output-processing/execute-and-extract.sh \
         --agent-type "$VALIDATOR" \
         --task-id "$TASK_ID" \
         --agent-id "$UNIQUE_VALIDATOR_ID" \
-        --context "Loop 2 validation for iteration $ITERATION. Review Loop 3 implementation and provide structured feedback." \
+        --context "$LOOP2_VALIDATOR_CONTEXT" \
         --iteration "$ITERATION" \
         --timeout "$AGENT_TIMEOUT" 2>&1)
 
@@ -1246,6 +1369,9 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   # [BUG #11 FIX] Product Owner decision via output parsing (not Redis wait)
   echo "[Product Owner] Spawning Product Owner for strategic decision..."
 
+  # BUG #19 FIX: Define PO_UNIQUE_ID BEFORE building context string
+  PO_UNIQUE_ID="${PRODUCT_OWNER}-${ITERATION}-decision"
+
   # Build Product Owner context
   PO_CONTEXT="CFN Loop iteration $ITERATION complete.
 
@@ -1302,6 +1428,16 @@ Output your decision clearly with reasoning."
 
   # Signal Product Owner completion
   redis-cli LPUSH "swarm:${TASK_ID}:${PO_UNIQUE_ID}:done" "complete" >/dev/null
+
+  # LOG: Product Owner decision
+  ./.claude/skills/redis-coordination/log-event.sh \
+    --task-id "$TASK_ID" \
+    --event-type "po_decision" \
+    --agent-id "$PO_UNIQUE_ID" \
+    --iteration "$ITERATION" \
+    --details "$DECISION" \
+    --level "INFO" 2>/dev/null || true
+
   echo "[Product Owner] Decision: $DECISION_TYPE"
   echo ""
 
@@ -1411,7 +1547,7 @@ Output your decision clearly with reasoning."
     IFS=',' read -ra LOOP3_ARRAY <<< "$LOOP3_AGENTS"
     for AGENT in "${LOOP3_ARRAY[@]}"; do
       # SPRINT 4: Get fork ID if exists
-      FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+      # P3: Fork-id removed (fresh agents per iteration)
       if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
 
       ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
@@ -1420,7 +1556,7 @@ Output your decision clearly with reasoning."
         --priority 30 \
         --reason "cfn_loop_iteration" \
         --iteration $((ITERATION + 1)) \
-        --fork-id "$FORK_ID" \
+        # P3: Removed --fork-id parameter
         --feedback "Product Owner decision: ITERATE - Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
     done
 
