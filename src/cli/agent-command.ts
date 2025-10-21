@@ -16,6 +16,7 @@ export interface AgentCommandOptions {
   mode?: string;
   priority?: number;
   parentTaskId?: string;
+  agentId?: string;
   list?: boolean;
   help?: boolean;
 }
@@ -36,6 +37,7 @@ Arguments:
 Options:
   --task-id <id>         Task identifier for CFN Loop coordination
   --iteration <n>        Iteration number (default: 1)
+  --agent-id <id>        Explicit agent ID (overrides auto-generated ID)
   --context <text>       Task context/description
   --mode <mode>          Execution mode (cli, api, hybrid)
   --priority <n>         Task priority (1-10)
@@ -149,6 +151,7 @@ export async function agentCommand(
     const taskContext: TaskContext = {
       taskId: options.taskId,
       iteration: options.iteration,
+      agentId: options.agentId,
       context: options.context,
       mode: options.mode,
       priority: options.priority,

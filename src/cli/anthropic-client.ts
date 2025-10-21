@@ -147,7 +147,7 @@ export async function sendMessage(
 
   // Primary model (glm-4.6 for Z.ai, Claude for Anthropic)
   let model = mapModelName(options.model, config.provider);
-  const maxTokens = options.maxTokens || 4096;
+  const maxTokens = options.maxTokens || 16000; // Sprint 6: 16K hard limit for GLM-4.6 (agents target 10K for buffer)
   const temperature = options.temperature ?? 1.0;
 
   // Disable streaming for Z.ai (compatibility issue)
@@ -295,7 +295,8 @@ export async function executeAgentAPI(
   model: string,
   prompt: string,
   systemPrompt?: string,
-  messages?: Array<{ role: string; content: string }> // Sprint 4: Conversation forking
+  messages?: Array<{ role: string; content: string }>, // Sprint 4: Conversation forking
+  maxTokens?: number // Sprint 6: Configurable token limit
 ): Promise<{ success: boolean; output: string; usage: any; error?: string }> {
   // Start heartbeat monitoring (declare at function scope for error handling)
   let heartbeatInterval: NodeJS.Timeout | null = null;
@@ -330,6 +331,7 @@ export async function executeAgentAPI(
         systemPrompt,
         stream: true,
         messages, // Pass messages for conversation continuation
+        maxTokens, // Sprint 6: Pass configurable token limit
       },
       (chunk) => {
         // Stream output in real-time

@@ -14,6 +14,7 @@ A simplified AI agent orchestration system designed for beginners. Claude Flow N
 - **🎯 Swarm Intelligence**: Redis-backed coordination for persistent agent collaboration
 - **🛠️ CLI-First Design**: Simple command-line interface for beginners
 - **📊 Real-time Monitoring**: Track agent progress and system performance
+- **🚨 Violations Monitoring**: Real-time detection and alerts for CFN Loop protocol violations
 - **🔒 Security Focused**: Built-in ACL and security controls
 - **⚡ High Performance**: Optimized for cost-effective execution
 
@@ -261,6 +262,36 @@ claude-flow-novice performance report
 # Resource monitoring
 claude-flow-novice monitor --realtime
 ```
+
+### CFN Loop Violations Monitoring
+
+Real-time detection and alerting for CFN Loop protocol violations:
+
+```bash
+# Start violation monitoring
+./.claude/skills/redis-coordination/monitor-cfn-violations.sh &
+
+# Start web portal with violations dashboard
+cd web-portal
+npm run server    # WebSocket server on port 3001
+npm start         # React app on port 3000
+```
+
+**Detected Violations:**
+- 🔴 **Orchestrator Never Started** - Coordinator failed at Step 2
+- 🔴 **Gate Bypass** - Loop 2 started before Loop 3 completed
+- 🔴 **Orchestrator Hang** - Agents completed but orchestrator blocking
+- 🔴 **Coordinator Timeout** - Bash monitoring loop timeout (5-10 min)
+- 🟡 **Product Owner Skipped** - Loop 2 complete but PO not consulted
+
+**Features:**
+- Real-time WebSocket alerts to web portal
+- Detailed evidence and actionable recommendations
+- Historical violation tracking (24h retention)
+- Violation acknowledgment and management
+- Zero overhead on CFN Loop execution
+
+See [CFN Violations Monitoring Documentation](./docs/CFN_VIOLATIONS_MONITORING.md) for setup and usage.
 
 ## 🏗️ Architecture
 

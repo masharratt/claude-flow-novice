@@ -1,0 +1,8 @@
+{
+    "scenarioId": "03",
+    "scenarioName": "Consensus Gridlock",
+    "totalIterations": 3,
+    "passed": 1,
+    "gateScores": [0.865, 0.91, 0.945],
+    "consensusScores": [0.777, 0.897, 0.93]
+}

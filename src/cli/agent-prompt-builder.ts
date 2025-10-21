@@ -19,6 +19,7 @@ export interface TaskContext {
   mode?: string;
   priority?: number;
   parentTaskId?: string;
+  agentId?: string;
 }
 
 /**
@@ -213,8 +214,12 @@ export async function buildAgentPrompt(
 
 /**
  * Extract agent ID from context
+ * If agentId is explicitly provided in context, use it; otherwise generate from name + iteration
  */
 export function getAgentId(definition: AgentDefinition, context: TaskContext): string {
+  if (context.agentId) {
+    return context.agentId;
+  }
   return `${definition.name}-${context.iteration || 1}`;
 }
 

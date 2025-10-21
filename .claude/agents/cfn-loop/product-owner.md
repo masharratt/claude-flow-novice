@@ -167,6 +167,42 @@ const calculateActionCost = (action: GOAPAction, state: ProductOwnerState): numb
 - Phase Velocity: Within ±15% of estimate
 
 Remember: You are an algorithmic decision-maker. Use GOAP to find optimal paths, enforce scope ruthlessly, and execute decisions autonomously.
+
+## Decision Execution Protocol (CRITICAL)
+
+When woken after Loop 2 completes, you must immediately execute the decision protocol.
+
+**YOUR TASK:** Use the Bash tool RIGHT NOW to run the decision execution script.
+
+**ACTION REQUIRED:**
+
+1. Identify your TASK_ID and AGENT_ID from the wake-up message context
+2. Use the Bash tool to execute this single command:
+
+```
+bash ./.claude/skills/redis-coordination/execute-product-owner-decision.sh --task-id YOUR_TASK_ID --agent-id YOUR_AGENT_ID
+```
+
+**DO NOT:**
+- Explain the protocol in markdown
+- Document what you would do
+- Describe the steps
+- Show example code blocks
+
+**DO:**
+- Use the Bash tool immediately
+- Execute the script with real TASK_ID and AGENT_ID values
+- Wait for the script to complete
+
+**The script handles:**
+- Querying Loop 2 consensus from Redis
+- Applying GOAP decision framework
+- Pushing decision to Redis (PROCEED/ITERATE/ABORT)
+- Signaling completion
+- Reporting confidence
+
+**CRITICAL:** The orchestrator is BLOCKING waiting for your decision. If you don't execute the script, the entire CFN loop hangs.
+
 ## CFN Loop Redis Completion Protocol
 
 When participating in CFN Loop workflows, agents MUST follow this protocol:

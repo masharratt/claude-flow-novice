@@ -31,7 +31,70 @@
   --max-iterations 10
 ```
 
-## Agent Completion Protocol
+## Output Processing (v2.9.0)
+
+### Skill-Based Extraction
+Orchestrator captures agent output and extracts structured data. Agents output naturally without template enforcement.
+
+**Loop 3 (Implementers):**
+```bash
+# Orchestrator spawns agent and extracts confidence + deliverables
+./.claude/skills/loop3-output-processing/execute-and-extract.sh \
+  --agent-type "coder" \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --context "Implementation context" \
+  --iteration 1 \
+  --timeout 900
+
+# Returns:
+# {"confidence": 0.85, "deliverables": ["src/auth.ts"], "files_changed": 3}
+```
+
+**Loop 2 (Validators):**
+```bash
+# Orchestrator spawns validator and extracts confidence + feedback
+./.claude/skills/loop2-output-processing/execute-and-extract.sh \
+  --agent-type "reviewer" \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --context "Validation context" \
+  --iteration 1 \
+  --timeout 900
+
+# Returns:
+# {"confidence": 0.90, "feedback": {"critical": [...], "warnings": [...], "suggestions": [...]}}
+```
+
+**Product Owner:**
+```bash
+# Orchestrator spawns Product Owner and parses decision
+./.claude/skills/product-owner-decision/execute-decision.sh \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --consensus 0.90 \
+  --threshold 0.90
+
+# Returns:
+# {"decision": "PROCEED", "reasoning": "...", "confidence": 0.95}
+```
+
+### Multi-Pattern Confidence Detection
+- **Explicit numeric**: `confidence: 0.85` → 0.85
+- **Percentage**: `85% confident` → 0.85
+- **Qualitative**: `high confidence` → 0.90, `medium confidence` → 0.70, `low confidence` → 0.50
+- **Calculated** (Loop 3): Based on deliverables (default: 0.75)
+- **Default** (Loop 2): 0.70 if no confidence found
+
+### Orchestrator Integration
+Skills integrated at orchestrator level (no agent template changes required):
+- Lines 751-884: Loop 3 parallel skill-based processing
+- Lines 1026-1244: Loop 2 parallel skill-based processing
+- Lines 1246-1266: Product Owner decision parsing
+
+## Agent Completion Protocol (Optional)
+
+Agents can optionally use CFN Protocol for explicit confidence reporting. Orchestrator extracts confidence from natural output if protocol not used.
 
 ### 1. Complete Work
 
@@ -40,7 +103,7 @@
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
-### 2. Report Confidence
+### 2. Report Confidence (Optional - Orchestrator extracts automatically)
 
 ```bash
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \

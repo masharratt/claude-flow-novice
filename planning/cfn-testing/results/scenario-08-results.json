@@ -1,0 +1,10 @@
+{
+    "scenarioId": "08",
+    "scenarioName": "Scalability",
+    "totalIterations": 2,
+    "totalLoop3Agents": 10,
+    "totalLoop2Agents": 5,
+    "passed": 1,
+    "loop3Scores": [0.706, 0.856],
+    "loop2Scores": [0.85, 0.92]
+}

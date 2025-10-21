@@ -33,32 +33,23 @@ A modular, extensible architecture for AI agent coordination and task management
    - Adaptive consensus collection
    - Automatic gate and quality checks
 
-4. **Transparency Middleware**
+4. **Agent Output Processing** (v2.9.0 - 2025-10-21)
+   - Skill-based confidence extraction (Loop 3 implementers)
+   - Skill-based feedback extraction (Loop 2 validators)
+   - Product Owner decision parsing (PROCEED/ITERATE/ABORT)
+   - Multi-pattern parsing (explicit numeric, percentage, qualitative)
+   - Parallel execution with temp files (eliminates race conditions)
+   - Automatic deliverable tracking via git diff
+   - Structured feedback categorization (critical/warnings/suggestions)
+   - Zero reliance on agent template enforcement
+   - Guaranteed confidence extraction (no 0.0 defaults)
+
+5. **Transparency Middleware**
    - Logging and traceability
    - Performance instrumentation
    - Context preservation
 
-5. **Event Bus**
-   - Inter-agent communication
-   - Decoupled event routing
-   - Resilient message passing
-
-6. **Fleet Manager**
-   - Resource allocation
-   - Dynamic scaling
-   - Workload optimization
-
-7. **Web Portal Skills**
-   - User interface coordination
-   - Skill-driven rendering
-   - Interactive workflow management
-
-8. **ACE System**
-   - Adaptive Coordination Engine
-   - Multi-agent consensus protocols
-   - Advanced error recovery
-
-9. **Hook Pipeline**
+8. **Hook Pipeline**
    - Automated validation
    - Post-edit checks
    - Consistency enforcement
@@ -86,6 +77,30 @@ A modular, extensible architecture for AI agent coordination and task management
 - Automatic dependency management
 - Multi-loop validation
 - Adaptive context injection
+- Background execution (eliminates 10min Bash timeout)
+- Product Owner decision flow (PROCEED/ITERATE/ABORT)
+- Dynamic agent selection via keyword analysis
+- Three-layer timeout architecture
+
+#### Background Execution (v2.9.0)
+- Orchestrator runs in background via Bash `run_in_background: true`
+- Unlimited execution time (no Bash tool 10min limit)
+- Redis-based status monitoring (30s intervals)
+- Cleanup trap on coordinator exit
+- Shutdown signal propagation to all agents
+
+#### Product Owner Decision (v2.9.0)
+- Product Owner always consulted after Loop 2
+- Three-way decision: PROCEED, ITERATE, ABORT
+- Prevents validator scope creep
+- Strategic override of technical consensus
+- 15-minute timeout for decision
+
+#### Dynamic Agent Selection (v2.9.0)
+- Keyword-based analysis of task description
+- Automatic Loop 3 implementer selection
+- Matching Loop 2 validator selection
+- Task-specific agent composition
 
 ### 4. Redis Coordination Patterns
 - Simple Chain Coordination
@@ -116,6 +131,8 @@ ZAI_BASE_URL=https://api.z.ai/api/anthropic
 - Automatic fallback on model unavailability
 - Non-streaming mode for Z.ai compatibility
 - 120s timeout with 2 retries
+- 16K token output limit (v2.9.0, up from 10K)
+- Incremental output pattern (10K target, 16K hard limit)
 
 **Model Mapping**:
 ```typescript

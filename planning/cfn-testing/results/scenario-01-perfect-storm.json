@@ -1,0 +1,37 @@
+{
+  "testId": "synthetic-01",
+  "testName": "Perfect Storm",
+  "taskId": "test-perfect-storm-1761009885",
+  "timestamp": "2025-10-20T18:24:45-07:00",
+  "duration": 26,
+  "passed": true,
+  "iterations": 1,
+  "loop3": {
+    "agents": ["coder", "researcher"],
+    "confidence": {
+      "coder": 0.95,
+      "researcher": 0.92
+    },
+    "gateAvg": .935,
+    "gatePassed": true
+  },
+  "loop2": {
+    "agents": ["reviewer", "tester"],
+    "confidence": {
+      "reviewer": 0.95,
+      "tester": 0.93
+    },
+    "consensusAvg": .940,
+    "consensusPassed": true
+  },
+  "productOwner": {
+    "decision": "approve",
+    "approved": true
+  },
+  "checks": {
+    "gateEnforced": true,
+    "consensusEnforced": true,
+    "singleIteration": true,
+    "productOwnerApproved": true
+  }
+}

@@ -88,8 +88,10 @@ async function loadAgentTemplate(agentType: string): Promise<string> {
       path.join(process.cwd(), '.claude', 'agents', 'core-agents', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'specialized', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'development', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'frontend', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'security', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'custom', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', `${agentType}.md`),
     ];
 
     for (const searchPath of searchPaths) {

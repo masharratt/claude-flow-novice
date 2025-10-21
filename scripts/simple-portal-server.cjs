@@ -90,7 +90,63 @@ async function subscribeToSwarmEvents() {
       }
     });
 
-    console.log('✅ Subscribed to swarm:*:events and swarm:*:logs');
+    // Subscribe to agent updates (agent status changes)
+    await redisSubscriber.pSubscribe('swarm:*:agent:*', (message, channel) => {
+      try {
+        const agentData = JSON.parse(message);
+        broadcastEvent('agent-update', {
+          channel,
+          agent: agentData,
+          timestamp: Date.now()
+        });
+      } catch (err) {
+        console.error('Failed to parse agent update:', err);
+      }
+    });
+
+    // Subscribe to messages (new agent messages)
+    await redisSubscriber.pSubscribe('swarm:*:messages', (message, channel) => {
+      try {
+        const messageData = JSON.parse(message);
+        broadcastEvent('message', {
+          channel,
+          message: messageData,
+          timestamp: Date.now()
+        });
+      } catch (err) {
+        console.error('Failed to parse message:', err);
+      }
+    });
+
+    // Subscribe to decision points (transparency insights)
+    await redisSubscriber.pSubscribe('swarm:*:decisions', (message, channel) => {
+      try {
+        const decision = JSON.parse(message);
+        broadcastEvent('decision-point', {
+          channel,
+          decision,
+          timestamp: Date.now()
+        });
+      } catch (err) {
+        console.error('Failed to parse decision point:', err);
+      }
+    });
+
+    // Subscribe to intervention acknowledgments
+    await redisSubscriber.pSubscribe('swarm:*:interventions:*', (message, channel) => {
+      try {
+        const intervention = JSON.parse(message);
+        broadcastEvent('intervention-ack', {
+          channel,
+          intervention,
+          timestamp: Date.now()
+        });
+      } catch (err) {
+        console.error('Failed to parse intervention ack:', err);
+      }
+    });
+
+    console.log('✅ Subscribed to swarm:*:events, swarm:*:logs, swarm:*:agent:*, swarm:*:messages, swarm:*:decisions, swarm:*:interventions:*');
   } catch (err) {
     console.error('Failed to subscribe to swarm events:', err);
   }
@@ -1373,6 +1429,77 @@ function handleRequest(req, res) {
     return;
   }
 
+  // GET /api/agents - List all agents across all swarms
+  if (url === '/api/agents' || url.startsWith('/api/agents?')) {
+    handleGetAgents(req, res);
+    return;
+  }
+
+  // POST /api/agents/:id/intervene - Send human intervention to agent
+  if (url.match(/^\/api\/agents\/[^\/]+\/intervene$/) && req.method === 'POST') {
+    const agentId = url.split('/')[3];
+    handleAgentIntervention(req, res, agentId);
+    return;
+  }
+
+  // GET /api/agents/:id - Get specific agent details
+  if (url.startsWith('/api/agents/') && req.method === 'GET') {
+    const agentId = url.split('/')[3];
+    handleGetAgentById(req, res, agentId);
+    return;
+  }
+
+  // GET /api/messages - Get message history across all swarms
+  if (url === '/api/messages' || url.startsWith('/api/messages?')) {
+    handleGetMessages(req, res);
+    return;
+  }
+
+  // GET /api/messages/:id - Get specific message by ID
+  if (url.startsWith('/api/messages/') && req.method === 'GET') {
+    const messageId = url.split('/')[3];
+    handleGetMessageById(req, res, messageId);
+    return;
+  }
+
+  // GET /api/decisions - Get decision points timeline
+  if (url === '/api/decisions' || url.startsWith('/api/decisions?')) {
+    handleGetDecisions(req, res);
+    return;
+  }
+
+  // GET /api/decisions/:id - Get specific decision point by ID
+  if (url.startsWith('/api/decisions/')) {
+    const decisionId = url.split('/')[3];
+    handleGetDecisionById(req, res, decisionId);
+    return;
+  }
+
+  // GET /api/metrics - Get system-wide metrics
+  if (url === '/api/metrics') {
+    handleGetMetrics(req, res);
+    return;
+  }
+
+  // GET /api/performance - Get performance data
+  if (url === '/api/performance') {
+    handleGetPerformance(req, res);
+    return;
+  }
+
+  // POST /api/filters - Save user filter configuration
+  if (url === '/api/filters' && req.method === 'POST') {
+    handleSaveFilter(req, res);
+    return;
+  }
+
+  // GET /api/filters/:id - Get saved filter configuration
+  if (url.startsWith('/api/filters/') && req.method === 'GET') {
+    const filterId = url.split('/')[3];
+    handleGetFilterById(req, res, filterId);
+    return;
+  }
+
   // Status endpoint
   if (url === '/api/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1727,6 +1854,736 @@ async function handleGetLogsHistory(req, res) {
   }
 }
 
+/**
+ * Handler for GET /api/agents - List all agents across all swarms
+ * Supports pagination via query params: ?page=1&limit=20
+ */
+async function handleGetAgents(req, res) {
+  if (!redisConnected || !redisClient) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Redis not connected',
+      message: 'Agent listing requires Redis connection'
+    }));
+    return;
+  }
+
+  try {
+    // Parse query params for pagination
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const page = parseInt(urlObj.searchParams.get('page') || '1', 10);
+    const limit = parseInt(urlObj.searchParams.get('limit') || '50', 10);
+
+    // Find all agent done keys (indicates agent has been active)
+    const agentDoneKeys = await redisClient.keys('swarm:*:*:done');
+    const agents = [];
+
+    for (const key of agentDoneKeys) {
+      // Parse key: swarm:{taskId}:{agentId}:done
+      const parts = key.split(':');
+      if (parts.length < 4) continue;
+
+      const taskId = parts[1];
+      const agentId = parts[2];
+
+      // Get agent status from done list
+      const doneStatus = await redisClient.lRange(key, 0, 0);
+
+      // Check if agent has reported confidence
+      let confidence = null;
+      try {
+        const reportData = await redisClient.hGet(`swarm:${taskId}:agent-reports`, agentId);
+        if (reportData) {
+          const report = JSON.parse(reportData);
+          confidence = report.confidence || null;
+        }
+      } catch (err) {
+        // Report may not exist
+      }
+
+      // Check heartbeat timestamp
+      let lastHeartbeat = null;
+      try {
+        lastHeartbeat = await redisClient.get(`swarm:${taskId}:agent:${agentId}:heartbeat`);
+      } catch (err) {
+        // Heartbeat may not exist
+      }
+
+      agents.push({
+        agentId,
+        taskId,
+        status: doneStatus && doneStatus[0] === 'complete' ? 'completed' : 'in_progress',
+        confidence: confidence ? parseFloat(confidence) : null,
+        lastHeartbeat: lastHeartbeat ? parseInt(lastHeartbeat, 10) : null
+      });
+    }
+
+    // Sort by last heartbeat (most recent first)
+    agents.sort((a, b) => {
+      const timeA = a.lastHeartbeat || 0;
+      const timeB = b.lastHeartbeat || 0;
+      return timeB - timeA;
+    });
+
+    // Paginate
+    const total = agents.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedAgents = agents.slice(startIndex, endIndex);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      agents: paginatedAgents,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    }));
+  } catch (err) {
+    console.error('Error fetching agents:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch agents',
+      message: err.message
+    }));
+  }
+}
+
+/**
+ * Handler for GET /api/agents/:id - Get specific agent details
+ */
+async function handleGetAgentById(req, res, agentId) {
+  if (!redisConnected || !redisClient) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Redis not connected',
+      message: 'Agent details require Redis connection'
+    }));
+    return;
+  }
+
+  try {
+    // Find all tasks where this agent exists
+    const agentKeys = await redisClient.keys(`swarm:*:${agentId}:done`);
+
+    if (agentKeys.length === 0) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: 'Agent not found',
+        message: `No agent found with ID: ${agentId}`
+      }));
+      return;
+    }
+
+    // Get details from the first (most recent) task
+    const key = agentKeys[0];
+    const taskId = key.split(':')[1];
+
+    // Get agent status
+    const doneStatus = await redisClient.lRange(key, 0, 0);
+
+    // Get confidence report
+    let report = null;
+    try {
+      const reportData = await redisClient.hGet(`swarm:${taskId}:agent-reports`, agentId);
+      if (reportData) {
+        report = JSON.parse(reportData);
+      }
+    } catch (err) {
+      // Report may not exist
+    }
+
+    // Get heartbeat
+    let lastHeartbeat = null;
+    try {
+      lastHeartbeat = await redisClient.get(`swarm:${taskId}:agent:${agentId}:heartbeat`);
+    } catch (err) {
+      // Heartbeat may not exist
+    }
+
+    // Get context if available
+    let context = null;
+    try {
+      context = await redisClient.get(`swarm:${taskId}:${agentId}:context`);
+    } catch (err) {
+      // Context may not exist
+    }
+
+    // Get task metadata
+    const metadata = await redisClient.hGetAll(`swarm:${taskId}:metadata`);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      agentId,
+      taskId,
+      status: doneStatus && doneStatus[0] === 'complete' ? 'completed' : 'in_progress',
+      confidence: report ? report.confidence : null,
+      iteration: report ? report.iteration : null,
+      lastHeartbeat: lastHeartbeat ? parseInt(lastHeartbeat, 10) : null,
+      context: context ? context : null,
+      taskMetadata: metadata || {},
+      allTasks: agentKeys.map(k => k.split(':')[1]) // List all tasks this agent is part of
+    }));
+  } catch (err) {
+    console.error(`Error fetching agent ${agentId}:`, err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch agent details',
+      message: err.message
+    }));
+  }
+}
+
+/**
+ * Handler for POST /api/agents/:id/intervene - Send human intervention to agent
+ */
+async function handleAgentIntervention(req, res, agentId) {
+  if (!redisConnected || !redisClient) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Redis not connected',
+      message: 'Intervention requires Redis connection'
+    }));
+    return;
+  }
+
+  try {
+    // Parse request body
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const { message, priority = 'medium' } = data;
+
+        if (!message) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'Invalid request',
+            message: 'Intervention message is required'
+          }));
+          return;
+        }
+
+        // Validate priority
+        if (!['low', 'medium', 'high'].includes(priority)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'Invalid priority',
+            message: 'Priority must be one of: low, medium, high'
+          }));
+          return;
+        }
+
+        // Find agent's task
+        const agentKeys = await redisClient.keys(`swarm:*:${agentId}:done`);
+        if (agentKeys.length === 0) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: 'Agent not found',
+            message: `No active agent found with ID: ${agentId}`
+          }));
+          return;
+        }
+
+        const taskId = agentKeys[0].split(':')[1];
+
+        // Create intervention object
+        const interventionId = `intervention-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const intervention = {
+          id: interventionId,
+          agentId,
+          taskId,
+          message,
+          priority,
+          timestamp: Date.now(),
+          status: 'pending'
+        };
+
+        // Store intervention in Redis
+        const interventionKey = `swarm:${taskId}:interventions:${agentId}`;
+        await redisClient.lPush(interventionKey, JSON.stringify(intervention));
+        await redisClient.expire(interventionKey, 86400); // 24 hour TTL
+
+        // Publish intervention event to Redis pub/sub
+        await redisClient.publish(
+          `swarm:${taskId}:events`,
+          JSON.stringify({
+            type: 'human_intervention',
+            agentId,
+            intervention
+          })
+        );
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          interventionId,
+          agentId,
+          taskId,
+          message: 'Intervention sent successfully'
+        }));
+      } catch (parseErr) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'Invalid JSON',
+          message: parseErr.message
+        }));
+      }
+    });
+  } catch (err) {
+    console.error(`Error sending intervention to agent ${agentId}:`, err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to send intervention',
+      message: err.message
+    }));
+  }
+}
+
+/**
+ * Handler for GET /api/messages - Get message history across all swarms
+ * Supports pagination and filtering via query params:
+ * ?page=1&limit=50&taskId=xyz&agentId=abc
+ */
+async function handleGetMessages(req, res) {
+  if (!redisConnected || !redisClient) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Redis not connected',
+      message: 'Message history requires Redis connection'
+    }));
+    return;
+  }
+
+  try {
+    // Parse query params
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const page = parseInt(urlObj.searchParams.get('page') || '1', 10);
+    const limit = parseInt(urlObj.searchParams.get('limit') || '50', 10);
+    const taskIdFilter = urlObj.searchParams.get('taskId');
+    const agentIdFilter = urlObj.searchParams.get('agentId');
+
+    // Find all message sorted sets
+    const pattern = taskIdFilter ? `swarm:${taskIdFilter}:messages` : 'swarm:*:messages';
+    const messageKeys = await redisClient.keys(pattern);
+
+    let allMessages = [];
+
+    for (const key of messageKeys) {
+      const taskId = key.split(':')[1];
+
+      // Get messages from sorted set (sorted by score/timestamp)
+      const messages = await redisClient.zRangeWithScores(key, 0, -1);
+
+      for (const msg of messages) {
+        try {
+          const messageData = JSON.parse(msg.value);
+
+          // Apply agent filter if specified
+          if (agentIdFilter && messageData.agentId !== agentIdFilter) {
+            continue;
+          }
+
+          allMessages.push({
+            taskId,
+            timestamp: msg.score,
+            ...messageData
+          });
+        } catch (parseErr) {
+          // Skip invalid message data
+          continue;
+        }
+      }
+    }
+
+    // Sort by timestamp (most recent first)
+    allMessages.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Paginate
+    const total = allMessages.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedMessages = allMessages.slice(startIndex, endIndex);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      messages: paginatedMessages,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      },
+      filters: {
+        taskId: taskIdFilter || null,
+        agentId: agentIdFilter || null
+      }
+    }));
+  } catch (err) {
+    console.error('Error fetching messages:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch messages',
+      message: err.message
+    }));
+  }
+}
+
+/**
+ * Handler for GET /api/messages/:id - Get specific message by ID
+ */
+async function handleGetMessageById(req, res, messageId) {
+  if (!redisConnected || !redisClient) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Redis not connected',
+      message: 'Message retrieval requires Redis connection'
+    }));
+    return;
+  }
+
+  try {
+    // Search through all message sets to find matching ID
+    const messageKeys = await redisClient.keys('swarm:*:messages');
+
+    for (const key of messageKeys) {
+      const taskId = key.split(':')[1];
+      const messages = await redisClient.zRangeWithScores(key, 0, -1);
+
+      for (const msg of messages) {
+        try {
+          const messageData = JSON.parse(msg.value);
+
+          if (messageData.id === messageId || messageData.messageId === messageId) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              taskId,
+              timestamp: msg.score,
+              ...messageData
+            }));
+            return;
+          }
+        } catch (parseErr) {
+          continue;
+        }
+      }
+    }
+
+    // Message not found
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Message not found',
+      message: `No message found with ID: ${messageId}`
+    }));
+  } catch (err) {
+    console.error(`Error fetching message ${messageId}:`, err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch message',
+      message: err.message
+    }));
+  }
+}
+
+/**
+ * Handler for GET /api/decisions - Get decision points timeline
+ * Supports pagination and filtering via query params:
+ * ?page=1&limit=50&taskId=xyz
+ */
+async function handleGetDecisions(req, res) {
+  if (!redisConnected || !redisClient) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Redis not connected',
+      message: 'Decision history requires Redis connection'
+    }));
+    return;
+  }
+
+  try {
+    // Parse query params
+    const urlObj = new URL(req.url, `http://${req.headers.host}`);
+    const page = parseInt(urlObj.searchParams.get('page') || '1', 10);
+    const limit = parseInt(urlObj.searchParams.get('limit') || '50', 10);
+    const taskIdFilter = urlObj.searchParams.get('taskId');
+
+    // Find all decision sorted sets
+    const pattern = taskIdFilter ? `swarm:${taskIdFilter}:decisions` : 'swarm:*:decisions';
+    const decisionKeys = await redisClient.keys(pattern);
+
+    let allDecisions = [];
+
+    for (const key of decisionKeys) {
+      const taskId = key.split(':')[1];
+
+      // Get decisions from sorted set (sorted by score/timestamp)
+      const decisions = await redisClient.zRangeWithScores(key, 0, -1);
+
+      for (const dec of decisions) {
+        try {
+          const decisionData = JSON.parse(dec.value);
+
+          allDecisions.push({
+            taskId,
+            timestamp: dec.score,
+            ...decisionData
+          });
+        } catch (parseErr) {
+          // Skip invalid decision data
+          continue;
+        }
+      }
+    }
+
+    // Sort by timestamp (most recent first)
+    allDecisions.sort((a, b) => b.timestamp - a.timestamp);
+
+    // Paginate
+    const total = allDecisions.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedDecisions = allDecisions.slice(startIndex, endIndex);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      decisions: paginatedDecisions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      },
+      filters: {
+        taskId: taskIdFilter || null
+      }
+    }));
+  } catch (err) {
+    console.error('Error fetching decisions:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch decisions',
+      message: err.message
+    }));
+  }
+}
+
+// Handler for GET /api/decisions/:id - Get specific decision point by ID
+async function handleGetDecisionById(req, res, decisionId) {
+  if (!redisConnected) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Redis not connected' }));
+    return;
+  }
+
+  try {
+    // Search across all swarms for decision points
+    const swarmKeys = await redisClient.keys('swarm:*:decisions');
+    let decision = null;
+
+    for (const key of swarmKeys) {
+      const decisions = await redisClient.hGetAll(key);
+      for (const [id, data] of Object.entries(decisions)) {
+        if (id === decisionId) {
+          decision = JSON.parse(data);
+          break;
+        }
+      }
+      if (decision) break;
+    }
+
+    if (!decision) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Decision not found' }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(decision));
+  } catch (err) {
+    console.error('Error fetching decision:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch decision',
+      message: err.message
+    }));
+  }
+}
+
+// Handler for GET /api/metrics - Get system-wide metrics
+async function handleGetMetrics(req, res) {
+  if (!redisConnected) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Redis not connected' }));
+    return;
+  }
+
+  try {
+    // Get all swarm metadata keys
+    const swarmKeys = await redisClient.keys('swarm:*:metadata');
+    const agentKeys = await redisClient.keys('swarm:*:agent:*');
+    const messageKeys = await redisClient.keys('swarm:*:messages');
+
+    // Count total messages across all swarms
+    let totalMessages = 0;
+    for (const key of messageKeys) {
+      const messageCount = await redisClient.lLen(key);
+      totalMessages += messageCount;
+    }
+
+    const metrics = {
+      swarms: swarmKeys.length,
+      agents: agentKeys.length,
+      messages: totalMessages,
+      uptime: Math.floor(process.uptime())
+    };
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(metrics));
+  } catch (err) {
+    console.error('Error fetching metrics:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch metrics',
+      message: err.message
+    }));
+  }
+}
+
+// Handler for GET /api/performance - Get performance data
+async function handleGetPerformance(req, res) {
+  if (!redisConnected) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Redis not connected' }));
+    return;
+  }
+
+  try {
+    // Get performance metrics from Redis (if stored)
+    const performanceKey = 'portal:performance:metrics';
+    const exists = await redisClient.exists(performanceKey);
+    let metrics = {};
+
+    if (exists) {
+      metrics = await redisClient.hGetAll(performanceKey);
+    }
+
+    // Default metrics if none stored
+    const performance = {
+      avgResponseTime: parseFloat(metrics.avgResponseTime || '150'),
+      throughput: parseFloat(metrics.throughput || '10.5'),
+      errorRate: parseFloat(metrics.errorRate || '0.2'),
+      cpuUsage: parseFloat(metrics.cpuUsage || '25.5'),
+      memoryUsage: parseFloat(metrics.memoryUsage || '512'),
+      timestamp: Date.now()
+    };
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(performance));
+  } catch (err) {
+    console.error('Error fetching performance:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch performance',
+      message: err.message
+    }));
+  }
+}
+
+// Handler for POST /api/filters - Save user filter configuration
+async function handleSaveFilter(req, res) {
+  if (!redisConnected) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Redis not connected' }));
+    return;
+  }
+
+  let body = '';
+  req.on('data', chunk => { body += chunk.toString(); });
+  req.on('end', async () => {
+    try {
+      const { name, filters, userId = 'default' } = JSON.parse(body);
+
+      if (!name || !filters) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Name and filters are required' }));
+        return;
+      }
+
+      // Generate filter ID
+      const filterId = `filter-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const filterKey = `portal:filters:${userId}:${filterId}`;
+
+      // Store filter configuration
+      await redisClient.hSet(filterKey, {
+        id: filterId,
+        name,
+        filters: JSON.stringify(filters),
+        userId,
+        createdAt: new Date().toISOString()
+      });
+
+      res.writeHead(201, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        filterId,
+        name,
+        createdAt: new Date().toISOString()
+      }));
+    } catch (err) {
+      console.error('Error saving filter:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: 'Failed to save filter',
+        message: err.message
+      }));
+    }
+  });
+}
+
+// Handler for GET /api/filters/:id - Get saved filter configuration
+async function handleGetFilterById(req, res, filterId) {
+  if (!redisConnected) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Redis not connected' }));
+    return;
+  }
+
+  try {
+    // Search for filter across all users
+    const filterKeys = await redisClient.keys(`portal:filters:*:${filterId}`);
+
+    if (filterKeys.length === 0) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Filter not found' }));
+      return;
+    }
+
+    const filterData = await redisClient.hGetAll(filterKeys[0]);
+    const filter = {
+      id: filterData.id,
+      name: filterData.name,
+      filters: JSON.parse(filterData.filters),
+      userId: filterData.userId,
+      createdAt: filterData.createdAt
+    };
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(filter));
+  } catch (err) {
+    console.error('Error fetching filter:', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      error: 'Failed to fetch filter',
+      message: err.message
+    }));
+  }
+}
+
 // Create and start server
 const server = http.createServer(handleRequest);
 
@@ -1874,10 +2731,22 @@ server.listen(PORT, HOST, async () => {
   console.log(`  npm run portal:restart  - Restart portal`);
   console.log();
   console.log(`API Endpoints:`);
-  console.log(`  GET /api/health         - Health check (includes Redis status)`);
-  console.log(`  GET /api/swarms         - List all active swarm tasks`);
-  console.log(`  GET /api/swarms/by-repo - List swarms grouped by repository`);
-  console.log(`  GET /api/swarms/:taskId - Get specific task details`);
+  console.log(`  GET  /api/health              - Health check (includes Redis status)`);
+  console.log(`  GET  /api/swarms              - List all active swarm tasks`);
+  console.log(`  GET  /api/swarms/by-repo      - List swarms grouped by repository`);
+  console.log(`  GET  /api/swarms/:taskId      - Get specific task details`);
+  console.log(`  GET  /api/agents              - List all agents (with pagination)`);
+  console.log(`  GET  /api/agents/:id          - Get specific agent details`);
+  console.log(`  POST /api/agents/:id/intervene - Send human intervention to agent`);
+  console.log(`  GET  /api/messages            - Get message history (with pagination)`);
+  console.log(`  GET  /api/messages/:id        - Get specific message by ID`);
+  console.log(`  GET  /api/decisions           - Get decision points timeline (with pagination)`);
+  console.log(`  GET  /api/decisions/:id       - Get specific decision point by ID`);
+  console.log(`  GET  /api/logs/history        - Get historical logs from Redis`);
+  console.log(`  GET  /api/metrics             - Get system-wide metrics`);
+  console.log(`  GET  /api/performance         - Get performance data`);
+  console.log(`  POST /api/filters             - Save user filter configuration`);
+  console.log(`  GET  /api/filters/:id         - Get saved filter configuration`);
   console.log();
   console.log(`WebSocket Events:`);
   console.log(`  → swarm-event           - Real-time swarm events from Redis pub/sub`);

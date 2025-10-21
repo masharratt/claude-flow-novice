@@ -85,8 +85,26 @@ python ./.claude/skills/redis-coordination/priority_wake.py \
   --mode standard \
   --loop3-agents "researcher,backend-dev" \
   --loop2-agents "reviewer,architect" \
+  --product-owner "product-owner" \
   --max-iterations 10
 ```
+
+**Background Execution (v2.9.0):**
+- Orchestrator runs via Bash `run_in_background: true`
+- Unlimited execution time (no 10min Bash timeout)
+- Monitor via Redis status keys
+- Cleanup trap on coordinator exit
+
+**Product Owner Decision (v2.9.0):**
+- Always consulted after Loop 2
+- Three-way decision: PROCEED, ITERATE, ABORT
+- Decision stored in `swarm:{task-id}:{product-owner}:decision`
+
+**Dynamic Agent Selection (v2.9.0):**
+- Coordinator analyzes task keywords
+- Selects appropriate Loop 3 implementers
+- Matches Loop 2 validators to work type
+- Agents passed to orchestrator via `--loop3-agents` and `--loop2-agents`
 
 ### 5. Agent Recovery
 
@@ -112,11 +130,36 @@ python ./.claude/skills/redis-coordination/priority_wake.py \
 - `swarm:{task-id}:{agent-id}:status` - Agent status
 - `swarm:{task-id}:{agent-id}:waiting` - Waiting mode key
 - `swarm:{task-id}:consensus` - Consensus tracking
+- `swarm:{task-id}:{product-owner}:decision` - Product Owner decision (v2.9.0)
+- `swarm:{task-id}:status` - Swarm status (complete/failed/cancelled)
 
 ### Waiting Mode Keys
 - `waiting:{task-id}:{agent-id}:enter` - Enter waiting mode
 - `waiting:{task-id}:{agent-id}:wake` - Wake signal
 - `waiting:{task-id}:{agent-id}:report` - Status report
+
+## Three-Layer Timeout Architecture (v2.9.0)
+
+Orchestrator uses layered timeout system for long-running workflows.
+
+| Layer | Component | Timeout | Purpose |
+|-------|-----------|---------|---------|
+| 1 | Coordinator | 60 min | Main Chat → Coordinator process |
+| 2 | Orchestrator | Unlimited | Background execution, no Bash timeout |
+| 3 | Worker Agents | Role-based | CLI-spawned agents by type |
+
+**Worker Agent Timeouts:**
+- Implementers (backend-dev, coder): 60 minutes
+- Validators (reviewer, tester): 30 minutes
+- Product Owner: 15 minutes
+- Researchers: 2 hours
+- Architects: 90 minutes
+
+**Typical Execution Timeline:**
+- Single iteration: 15-45 minutes
+- Average (3 iterations): 45-135 minutes
+- Worst case (10 iterations): 150-450 minutes
+- Maximum: 17.5 hours (10 × 105 min)
 
 ## Performance Metrics
 - **Latency**: <50ms for coordination primitives

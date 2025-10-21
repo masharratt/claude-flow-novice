@@ -16,6 +16,7 @@ import { resolve } from 'path';
 
 interface AgentSpawnOptions {
   agentType: string;
+  agentId?: string;
   taskId?: string;
   iteration?: number;
   context?: string;
@@ -54,6 +55,9 @@ function parseAgentArgs(args: string[]): AgentSpawnOptions | null {
     const value = optionArgs[i + 1];
 
     switch (key) {
+      case '--agent-id':
+        options.agentId = value;
+        break;
       case '--task-id':
         options.taskId = value;
         break;
@@ -88,9 +92,10 @@ function parseAgentArgs(args: string[]): AgentSpawnOptions | null {
  * Provides the cfn-spawn naming pattern while delegating to the working implementation
  */
 async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
-  const { agentType, taskId, iteration, context, mode, priority, parentTaskId } = options;
+  const { agentType, agentId, taskId, iteration, context, mode, priority, parentTaskId } = options;
 
   console.log(`[cfn-spawn] Spawning agent: ${agentType}`);
+  if (agentId) console.log(`[cfn-spawn]   Agent ID: ${agentId}`);
   if (taskId) console.log(`[cfn-spawn]   Task ID: ${taskId}`);
   if (iteration) console.log(`[cfn-spawn]   Iteration: ${iteration}`);
   if (context) console.log(`[cfn-spawn]   Context: ${context}`);
@@ -100,6 +105,9 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
   const claudeArgs = ['claude-flow-novice', 'agent', agentType];
 
   // Add optional parameters
+  if (agentId) {
+    claudeArgs.push('--agent-id', agentId);
+  }
   if (taskId) {
     claudeArgs.push('--task-id', taskId);
   }
@@ -245,6 +253,7 @@ Usage:
   cfn-spawn <type> [options]        (agent is implied)
 
 Options:
+  --agent-id <id>        Explicit agent identifier (overrides auto-generation)
   --task-id <id>         Task identifier
   --iteration <n>        Iteration number
   --context <text>       Context description
@@ -256,6 +265,7 @@ Examples:
   cfn-spawn agent researcher --task-id task-123 --iteration 1
   cfn-spawn coder --task-id auth-impl --context "Implement JWT auth"
   cfn-spawn reviewer --task-id auth-impl --iteration 2 --mode cli
+  cfn-spawn tester --agent-id tester-1-1 --task-id test-phase --iteration 1
     `);
     return;
   }

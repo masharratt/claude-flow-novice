@@ -34,6 +34,10 @@ function parseArgs(args: string[]): { command: string; agentType?: string; optio
         options.iteration = parseInt(value, 10);
         i++;
         break;
+      case '--agent-id':
+        options.agentId = value;
+        i++;
+        break;
       case '--context':
         options.context = value;
         i++;

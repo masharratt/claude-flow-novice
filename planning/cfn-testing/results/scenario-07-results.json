@@ -1,0 +1,9 @@
+{
+    "scenarioId": "07",
+    "scenarioName": "Apocalypse",
+    "totalIterations": 2,
+    "passed": 1,
+    "gateScores": [0.85, 0.91],
+    "consensusScores": [0.88, 0.93],
+    "agentFailures": [2, 0]
+}

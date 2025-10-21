@@ -1,0 +1,8 @@
+{
+    "scenarioId": "04",
+    "scenarioName": "Marathon",
+    "totalIterations": 6,
+    "passed": 1,
+    "gateScores": [0.65, 0.68, 0.71, 0.73, 0.76, 0.80],
+    "consensusScores": [0.60, 0.65, 0.70, 0.75, 0.85, 0.92]
+}

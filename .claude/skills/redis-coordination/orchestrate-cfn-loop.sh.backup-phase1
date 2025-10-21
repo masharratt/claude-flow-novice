@@ -1,0 +1,1395 @@
+#!/usr/bin/env bash
+
+##############################################################################
+# CFN Loop Orchestration v2.0.0
+# Manages multi-loop CFN execution with dependency tracking and consensus
+#
+# Usage:
+#   ./orchestrate-cfn-loop.sh --task-id <id> \
+#                             --mode <mvp|standard|enterprise> \
+#                             --loop3-agents <agent1,agent2,...> \
+#                             --loop2-agents <agent1,agent2,...> \
+#                             --product-owner <agent-id> \
+#                             [--max-iterations <n>] \
+#                             [--min-quorum-loop3 <n|n%|0.n>] \
+#                             [--min-quorum-loop2 <n|n%|0.n>] \
+#                             [--epic-context <json>] \
+#                             [--phase-context <json>] \
+#                             [--success-criteria <json>]
+#
+# CFN Loop Structure (CORRECTED):
+#   Loop 3 (Primary Swarm - Self Validation)
+#     ↓
+#   IF Loop 3 self-validation gate FAILS → RELAUNCH Loop 3 (skip Loop 2)
+#   IF Loop 3 self-validation gate PASSES → Proceed to Loop 2
+#     ↓
+#   Loop 2 (Consensus Validators)
+#     ↓
+#   Product Owner Decision
+#
+# Dependency Enforcement:
+#   - Loop 3 agents self-validate via confidence scores
+#   - Gate check determines if Loop 2 validators should be engaged
+#   - Loop 2 agents WAIT for gate pass signal before starting work
+#   - Product Owner BLOCKS until all Loop 2 agents signal completion
+#   - Uses Redis BLPOP for zero-token waiting
+#
+# Quorum Configuration:
+#   - Absolute: --min-quorum-loop3 3 (requires exactly 3 agents)
+#   - Percentage: --min-quorum-loop3 85% (requires 85% of agents)
+#   - Decimal: --min-quorum-loop3 0.66 (requires 66% of agents)
+#   - Default: 0.66 (2/3 majority) if not specified
+#
+# Agent Requirements:
+#   Loop 3 (Implementers):
+#     1. Complete work
+#     2. Signal done: redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+#     3. Report confidence: invoke-waiting-mode.sh report --confidence <0.0-1.0>
+#     4. Enter waiting: invoke-waiting-mode.sh enter (for potential iteration)
+#
+#   Loop 2 (Validators):
+#     1. WAIT for gate pass: redis-cli blpop "swarm:${TASK_ID}:gate-passed" 0
+#     2. Retrieve Loop 3 results for review
+#     3. Perform validation
+#     4. Signal done: redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+#     5. Report consensus: invoke-waiting-mode.sh report --confidence <0.0-1.0>
+#     6. Enter waiting: invoke-waiting-mode.sh enter (for potential iteration)
+##############################################################################
+
+set -euo pipefail
+
+# Configuration
+TASK_ID=""
+MODE="standard"
+LOOP3_AGENTS=""
+LOOP2_AGENTS=""
+PRODUCT_OWNER=""
+MAX_ITERATIONS=10
+TIMEOUT=3600  # 60 minute default timeout for agent completion
+RETRY_COUNT=3
+RETRY_DELAY=5000  # Base delay in milliseconds
+MIN_QUORUM_LOOP3=""  # Minimum agents required for Loop 3 (absolute or percentage)
+MIN_QUORUM_LOOP2=""  # Minimum agents required for Loop 2 (absolute or percentage)
+ORCHESTRATOR_PID=$$
+SHUTDOWN_MONITOR_PID=""
+SHUTDOWN_REQUESTED=0
+LOOP3_HEARTBEAT_MONITOR_PID=""
+LOOP2_HEARTBEAT_MONITOR_PID=""
+
+# Epic Context (optional - for agent system prompts)
+EPIC_CONTEXT=""
+PHASE_CONTEXT=""
+SUCCESS_CRITERIA=""
+
+# Thresholds by mode
+declare -A GATE_THRESHOLD=(
+  [mvp]=0.70
+  [standard]=0.75
+  [enterprise]=0.75
+)
+
+declare -A CONSENSUS_THRESHOLD=(
+  [mvp]=0.80
+  [standard]=0.90
+  [enterprise]=0.95
+)
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --task-id)
+      TASK_ID="$2"
+      shift 2
+      ;;
+    --mode)
+      MODE="$2"
+      shift 2
+      ;;
+    --loop3-agents)
+      LOOP3_AGENTS="$2"
+      shift 2
+      ;;
+    --loop2-agents)
+      LOOP2_AGENTS="$2"
+      shift 2
+      ;;
+    --product-owner)
+      PRODUCT_OWNER="$2"
+      shift 2
+      ;;
+    --max-iterations)
+      MAX_ITERATIONS="$2"
+      shift 2
+      ;;
+    --retry-count)
+      RETRY_COUNT="$2"
+      shift 2
+      ;;
+    --retry-delay)
+      RETRY_DELAY="$2"
+      shift 2
+      ;;
+    --timeout)
+      TIMEOUT="$2"
+      shift 2
+      ;;
+    --min-quorum-loop3)
+      MIN_QUORUM_LOOP3="$2"
+      shift 2
+      ;;
+    --min-quorum-loop2)
+      MIN_QUORUM_LOOP2="$2"
+      shift 2
+      ;;
+    --epic-context)
+      EPIC_CONTEXT="$2"
+      shift 2
+      ;;
+    --phase-context)
+      PHASE_CONTEXT="$2"
+      shift 2
+      ;;
+    --success-criteria)
+      SUCCESS_CRITERIA="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Validation
+if [ -z "$TASK_ID" ] || [ -z "$LOOP3_AGENTS" ] || [ -z "$LOOP2_AGENTS" ] || [ -z "$PRODUCT_OWNER" ]; then
+  echo "Error: Required parameters missing"
+  echo "Usage: $0 --task-id <id> --mode <mode> --loop3-agents <agents> --loop2-agents <agents> --product-owner <agent>"
+  exit 1
+fi
+
+GATE=${GATE_THRESHOLD[$MODE]}
+CONSENSUS=${CONSENSUS_THRESHOLD[$MODE]}
+
+# Set default quorum values if not specified (66% = 2/3 majority)
+MIN_QUORUM_LOOP3=${MIN_QUORUM_LOOP3:-0.66}
+MIN_QUORUM_LOOP2=${MIN_QUORUM_LOOP2:-0.66}
+
+##############################################################################
+# Shutdown Handling Functions
+##############################################################################
+function cleanup_and_exit() {
+  local exit_code="${1:-130}"
+  local reason="${2:-user_interrupt}"
+
+  # Set shutdown flag to stop any ongoing operations
+  SHUTDOWN_REQUESTED=1
+
+  echo ""
+  echo "=============================================="
+  echo "🛑 Orchestrator shutting down gracefully..."
+  echo "=============================================="
+  echo "Reason: $reason"
+  echo "Exit Code: $exit_code"
+
+  # Kill shutdown monitor if running
+  if [ -n "$SHUTDOWN_MONITOR_PID" ] && kill -0 "$SHUTDOWN_MONITOR_PID" 2>/dev/null; then
+    kill "$SHUTDOWN_MONITOR_PID" 2>/dev/null || true
+    wait "$SHUTDOWN_MONITOR_PID" 2>/dev/null || true
+  fi
+
+  # Stop heartbeat monitors if running
+  if [ -n "${LOOP3_HEARTBEAT_MONITOR_PID:-}" ]; then
+    echo "Stopping Loop 3 heartbeat monitor..."
+    stop_heartbeat_monitor "$TASK_ID" "loop3" "$LOOP3_HEARTBEAT_MONITOR_PID"
+  fi
+  if [ -n "${LOOP2_HEARTBEAT_MONITOR_PID:-}" ]; then
+    echo "Stopping Loop 2 heartbeat monitor..."
+    stop_heartbeat_monitor "$TASK_ID" "loop2" "$LOOP2_HEARTBEAT_MONITOR_PID"
+  fi
+
+  # Mark swarm as cancelled if initialized
+  if [ -n "$TASK_ID" ] && [ -n "${SWARM_ID:-}" ]; then
+    echo "Marking swarm as cancelled..."
+    ./.claude/skills/redis-coordination/complete-swarm.sh \
+      --swarm-id "$SWARM_ID" \
+      --final-metric "status=cancelled" \
+      --final-metric "shutdown_reason=$reason" 2>/dev/null || echo "  ⚠️ Failed to mark swarm as cancelled"
+  fi
+
+  # Clean up Redis keys
+  if [ -n "$TASK_ID" ]; then
+    echo "Cleaning up Redis keys..."
+    local keys_deleted=$(redis-cli --scan --pattern "swarm:${TASK_ID}:*" | xargs -r redis-cli DEL 2>/dev/null || echo "0")
+    echo "  Deleted $keys_deleted Redis keys"
+  fi
+
+  # Clean up heartbeat monitor marker files
+  rm -f /tmp/heartbeat-monitor-${TASK_ID}-*.active 2>/dev/null || true
+
+  echo "=============================================="
+  echo "Shutdown complete"
+  echo "=============================================="
+
+  exit "$exit_code"
+}
+
+# Trap SIGTERM and SIGINT for graceful shutdown
+trap 'echo "[TRAP] Caught SIGINT" >&2; cleanup_and_exit 130 "SIGINT_received"' SIGINT
+trap 'echo "[TRAP] Caught SIGTERM" >&2; cleanup_and_exit 143 "SIGTERM_received"' SIGTERM
+
+##############################################################################
+# Start Shutdown Monitor (Background Process)
+##############################################################################
+function start_shutdown_monitor() {
+  local task_id="$1"
+
+  (
+    # Block on shutdown channel (zero-token waiting)
+    SHUTDOWN_KEY="swarm:${task_id}:shutdown"
+    SHUTDOWN_RESULT=$(redis-cli BLPOP "$SHUTDOWN_KEY" 0 2>/dev/null || echo "")
+
+    if [ -n "$SHUTDOWN_RESULT" ]; then
+      # Extract shutdown payload (format: key value)
+      SHUTDOWN_PAYLOAD=$(echo "$SHUTDOWN_RESULT" | tail -1)
+      REASON=$(echo "$SHUTDOWN_PAYLOAD" | jq -r '.reason // "external_shutdown"' 2>/dev/null || echo "external_shutdown")
+
+      echo ""
+      echo "🛑 Shutdown signal received from Redis channel: $REASON"
+      echo "  Sending SIGTERM to orchestrator PID: $ORCHESTRATOR_PID"
+
+      # Send SIGTERM to main orchestrator process
+      if kill -TERM "$ORCHESTRATOR_PID" 2>/dev/null; then
+        echo "  ✅ SIGTERM sent successfully"
+      else
+        echo "  ❌ Failed to send SIGTERM (process may have already exited)"
+        exit 0
+      fi
+    fi
+  ) &
+
+  SHUTDOWN_MONITOR_PID=$!
+  echo "Shutdown monitor started (PID: $SHUTDOWN_MONITOR_PID)"
+}
+
+##############################################################################
+# Quorum Calculation Function
+##############################################################################
+function calculate_quorum() {
+  local quorum_spec="$1"
+  local total_agents="$2"
+
+  # If no quorum specified, require all agents
+  if [ -z "$quorum_spec" ]; then
+    echo "$total_agents"
+    return 0
+  fi
+
+  # Check if percentage format (e.g., "85%")
+  if [[ "$quorum_spec" =~ %$ ]]; then
+    # Extract percentage value (remove % suffix)
+    local pct="${quorum_spec%\%}"
+    # Calculate: ceil(total_agents * pct / 100)
+    echo "scale=0; ($total_agents * $pct + 50) / 100" | bc
+  # Check if decimal (0.0-1.0), treat as fraction
+  elif [[ "$quorum_spec" =~ ^0?\.[0-9]+$ ]]; then
+    # Calculate: ceil(total_agents * fraction)
+    echo "scale=0; ($quorum_spec * $total_agents + 0.5) / 1" | bc
+  else
+    # Absolute number - validate it doesn't exceed total
+    if [ "$quorum_spec" -gt "$total_agents" ]; then
+      echo "Error: Quorum ($quorum_spec) exceeds total agents ($total_agents)" >&2
+      return 1
+    fi
+    echo "$quorum_spec"
+  fi
+}
+
+##############################################################################
+# Dead Letter Queue (DLQ) Functions
+##############################################################################
+function write_to_dlq() {
+  local agent="$1"
+  local reason="$2"
+  local retry_count="$3"
+
+  DLQ_KEY="swarm:${TASK_ID}:dlq:${agent}"
+  DLQ_ENTRY=$(jq -n \
+    --arg reason "$reason" \
+    --arg retries "$retry_count" \
+    --arg ts "$(date +%s)" \
+    '{reason: $reason, retry_count: ($retries | tonumber), timestamp: ($ts | tonumber)}')
+
+  echo "$DLQ_ENTRY" | redis-cli -x LPUSH "$DLQ_KEY" >/dev/null
+  redis-cli EXPIRE "$DLQ_KEY" 604800 >/dev/null  # 7 days TTL
+
+  echo "  ❌ $agent → DLQ (reason: $reason, retries: $retry_count)"
+}
+
+##############################################################################
+# Exponential Backoff Retry Function
+##############################################################################
+function retry_with_backoff() {
+  local agent="$1"
+  local attempt="$2"
+  local max_retries="$3"
+  local base_delay="$4"
+
+  # Check for shutdown before sleeping
+  if [ "$SHUTDOWN_REQUESTED" -eq 1 ]; then
+    echo "  [SHUTDOWN] Skipping backoff delay for $agent" >&2
+    return 0
+  fi
+
+  # Exponential backoff: delay = base_delay * (2 ^ attempt)
+  local delay=$(echo "$base_delay * (2 ^ $attempt)" | bc)
+  local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  echo "  [$timestamp] [Retry $attempt/$max_retries] Waiting ${delay}ms before retry for $agent..."
+
+  # Use interruptible sleep - sleep in small increments and check for shutdown
+  local delay_sec=$(echo "scale=3; $delay / 1000" | bc)
+  local elapsed=0
+  while (( $(echo "$elapsed < $delay_sec" | bc -l) )); do
+    # Sleep for 0.5s increments (or remaining time if less)
+    local remaining=$(echo "$delay_sec - $elapsed" | bc)
+    local sleep_time=$(echo "if ($remaining < 0.5) $remaining else 0.5" | bc)
+
+    sleep "$sleep_time" &
+    wait $! 2>/dev/null || return 0  # If wait is interrupted (SIGTERM), return immediately
+
+    elapsed=$(echo "$elapsed + $sleep_time" | bc)
+
+    # Check for shutdown after each sleep increment
+    if [ "$SHUTDOWN_REQUESTED" -eq 1 ]; then
+      echo "  [SHUTDOWN] Interrupted backoff delay for $agent" >&2
+      return 0
+    fi
+  done
+}
+
+##############################################################################
+# Heartbeat Monitoring Functions
+##############################################################################
+declare -A MISSED_HEARTBEATS  # Track missed heartbeats per agent
+
+function check_agent_heartbeat() {
+  local agent="$1"
+  local task_id="$2"
+  local iteration="$3"
+
+  # Agents create heartbeat as: swarm:${task_id}:agent:${agent_id} (HASH with heartbeat field)
+  # Agent ID includes iteration suffix: react-frontend-engineer-1
+  HB_KEY="swarm:${task_id}:agent:${agent}-${iteration}"
+  HB_DATA=$(redis-cli HGET "$HB_KEY" heartbeat 2>/dev/null || echo "")
+
+  if [ -z "$HB_DATA" ] || [ "$HB_DATA" = "(nil)" ]; then
+    return 1  # Dead
+  else
+    return 0  # Alive
+  fi
+}
+
+function check_heartbeats_loop() {
+  local task_id="$1"
+  local loop_name="$2"
+  local iteration="$3"
+  shift 3
+  local agents=("$@")
+
+  for AGENT in "${agents[@]}"; do
+    # Skip agents already marked as failed
+    if [[ " ${LOOP3_FAILED_AGENTS[@]} ${LOOP2_FAILED_AGENTS[@]} " =~ " ${AGENT} " ]]; then
+      continue
+    fi
+
+    if ! check_agent_heartbeat "$AGENT" "$task_id" "$iteration"; then
+      MISSED_HEARTBEATS["$AGENT"]=$((${MISSED_HEARTBEATS["$AGENT"]:-0} + 1))
+
+      if [ ${MISSED_HEARTBEATS["$AGENT"]} -ge 2 ]; then
+        local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        echo "  [$timestamp] [$loop_name] ⚠️ $AGENT appears hung (no heartbeat for 60s)" >&2
+
+        # Determine which loop this agent belongs to and check quorum
+        if [[ " ${LOOP3_AGENTS} " =~ " ${AGENT} " ]]; then
+          REMAINING=$((${#LOOP3_COMPLETED_AGENTS[@]}))
+          REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP3" "$LOOP3_TOTAL")
+        elif [[ " ${LOOP2_AGENTS} " =~ " ${AGENT} " ]]; then
+          # Safety check: Skip if Loop 2 hasn't been initialized yet
+          if [ -z "${LOOP2_COMPLETED_AGENTS+x}" ]; then
+            continue
+          fi
+          REMAINING=$((${#LOOP2_COMPLETED_AGENTS[@]}))
+          REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP2" "$LOOP2_TOTAL")
+        else
+          continue
+        fi
+
+        if [ $REMAINING -ge $REQUIRED ]; then
+          echo "  [$timestamp] [$loop_name] ℹ️ Continuing with quorum (${REMAINING}/${REQUIRED} agents)" >&2
+        else
+          echo "  [$timestamp] [$loop_name] ⚠️ Cannot meet quorum without $AGENT (${REMAINING}/${REQUIRED})" >&2
+        fi
+      fi
+    else
+      MISSED_HEARTBEATS["$AGENT"]=0  # Reset counter
+    fi
+  done
+}
+
+function start_heartbeat_monitor() {
+  local task_id="$1"
+  local loop_name="$2"
+  local iteration="$3"
+  shift 3
+  local agents=("$@")
+
+  # Create marker file for this monitor
+  local monitor_marker="/tmp/heartbeat-monitor-${task_id}-${loop_name}.active"
+  touch "$monitor_marker"
+
+  # [BUG #7 FIX] Spawn background process and let caller capture $!
+  (
+    while [ -f "$monitor_marker" ]; do
+      # Check for shutdown
+      if [ "$SHUTDOWN_REQUESTED" -eq 1 ]; then
+        break
+      fi
+
+      check_heartbeats_loop "$task_id" "$loop_name" "$iteration" "${agents[@]}"
+      sleep 30
+    done
+  ) &
+
+  # No echo - caller will use $! to get PID
+}
+
+function stop_heartbeat_monitor() {
+  local task_id="$1"
+  local loop_name="$2"
+  local monitor_pid="$3"
+
+  # Remove marker file to stop the monitor loop
+  rm -f "/tmp/heartbeat-monitor-${task_id}-${loop_name}.active"
+
+  # Kill monitor process if still running
+  if [ -n "$monitor_pid" ] && kill -0 "$monitor_pid" 2>/dev/null; then
+    kill "$monitor_pid" 2>/dev/null || true
+    wait "$monitor_pid" 2>/dev/null || true
+  fi
+}
+
+##############################################################################
+# Get Agent-Specific Timeout
+##############################################################################
+function get_agent_timeout() {
+  local agent="$1"
+  local task_id="$2"
+
+  # Use get-agent-timeout.sh helper script
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  AGENT_TIMEOUT=$("$SCRIPT_DIR/get-agent-timeout.sh" --task-id "$task_id" --agent-id "$agent" 2>/dev/null || echo "$TIMEOUT")
+
+  echo "$AGENT_TIMEOUT"
+}
+
+##############################################################################
+# Process-Based Completion Monitoring
+##############################################################################
+function monitor_agent_process() {
+  local agent_id="$1"
+  local agent_pid="$2"
+  local task_id="$3"
+  local done_key="$4"
+
+  # Monitor agent process in background
+  (
+    # Wait for process to exit
+    wait "$agent_pid" 2>/dev/null
+    EXIT_CODE=$?
+
+    # Check if done signal already sent (agent may have signaled normally)
+    DONE_COUNT=$(redis-cli LLEN "$done_key" 2>/dev/null || echo "0")
+    if [ "$DONE_COUNT" -gt 0 ]; then
+      # Agent signaled normally - nothing to do
+      exit 0
+    fi
+
+    # Process exited without signaling - auto-complete
+    if [ $EXIT_CODE -eq 0 ]; then
+      echo "  [Process Monitor] $agent_id exited successfully (code 0) - auto-signaling completion" >&2
+      redis-cli LPUSH "$done_key" "auto-completed-success" >/dev/null
+    else
+      echo "  [Process Monitor] $agent_id exited with error (code $EXIT_CODE) - auto-signaling failure" >&2
+      redis-cli LPUSH "$done_key" "auto-completed-error:$EXIT_CODE" >/dev/null
+
+      # METRICS: Increment error counter
+      redis-cli INCR "swarm:${task_id}:metrics:agent_errors" >/dev/null
+    fi
+  ) &
+}
+
+##############################################################################
+# BLPOP with Retry Logic + Process Monitoring
+##############################################################################
+function blpop_with_retry() {
+  local agent="$1"
+  local done_key="$2"
+  local timeout="$3"
+  local retry_count="$4"
+  local retry_delay="$5"
+  local agent_pid="${6:-}"  # Optional: PID for process monitoring
+
+  for ATTEMPT in $(seq 1 $retry_count); do
+    # Check for shutdown before attempting BLPOP
+    if [ "$SHUTDOWN_REQUESTED" -eq 1 ]; then
+      echo "  [SHUTDOWN] Aborting BLPOP for $agent" >&2
+      return 1
+    fi
+
+    # Use Redis's native BLPOP timeout instead of shell timeout command
+    # This allows SIGTERM to properly interrupt the process
+    RESULT=$(redis-cli blpop "$done_key" "$timeout" 2>/dev/null || echo "")
+
+    if [ -n "$RESULT" ]; then
+      echo "$RESULT"
+      return 0  # Success
+    fi
+
+    # BLPOP timeout - check if process is still alive
+    if [ -n "$agent_pid" ]; then
+      if ! kill -0 "$agent_pid" 2>/dev/null; then
+        echo "  [Process Check] Agent process $agent_pid no longer running" >&2
+
+        # Process exited - check if done signal was auto-generated
+        RESULT=$(redis-cli LPOP "$done_key" 2>/dev/null || echo "")
+        if [ -n "$RESULT" ]; then
+          echo "  [Auto-Complete] Retrieved: $RESULT" >&2
+          echo "$RESULT"
+          return 0
+        fi
+      fi
+    fi
+
+    # Check for shutdown after BLPOP timeout
+    if [ "$SHUTDOWN_REQUESTED" -eq 1 ]; then
+      echo "  [SHUTDOWN] Aborting retry for $agent" >&2
+      return 1
+    fi
+
+    # Check heartbeat status
+    HEARTBEAT_KEY="swarm:${TASK_ID}:${agent}:heartbeat"
+    HEARTBEAT_EXISTS=$(redis-cli EXISTS "$HEARTBEAT_KEY" 2>/dev/null || echo "0")
+
+    if [ "$HEARTBEAT_EXISTS" -eq 0 ]; then
+      echo "  ⚠️  No heartbeat from $agent - agent may be stuck or crashed" >&2
+
+      # If we have PID and process is stuck, kill it
+      if [ -n "$agent_pid" ] && kill -0 "$agent_pid" 2>/dev/null; then
+        echo "  [Timeout Kill] Terminating stuck process $agent_pid" >&2
+        kill "$agent_pid" 2>/dev/null || true
+        sleep 2
+
+        # Force kill if still alive
+        if kill -0 "$agent_pid" 2>/dev/null; then
+          kill -9 "$agent_pid" 2>/dev/null || true
+        fi
+
+        # METRICS: Increment timeout counter
+        redis-cli INCR "swarm:${TASK_ID}:metrics:agent_killed" >/dev/null
+      fi
+    fi
+
+    # Log retry attempt (to stderr so it's visible during command substitution)
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    echo "  [$timestamp] ⚠️ BLPOP attempt $ATTEMPT/$retry_count failed for $agent" >&2
+
+    if [ $ATTEMPT -lt $retry_count ]; then
+      # METRICS: Increment retry counter
+      redis-cli INCR "swarm:${TASK_ID}:metrics:retry_count" >/dev/null
+
+      retry_with_backoff "$agent" "$ATTEMPT" "$retry_count" "$retry_delay" >&2
+    else
+      # Final failure - write to DLQ
+      echo "  [$timestamp] ❌ FINAL FAILURE: $agent after $retry_count attempts" >&2
+      write_to_dlq "$agent" "timeout_after_retries" "$retry_count"
+      return 1
+    fi
+  done
+
+  return 1
+}
+
+echo "=== CFN Loop Orchestration ==="
+echo "Task ID: $TASK_ID"
+echo "Mode: $MODE (Gate: $GATE, Consensus: $CONSENSUS)"
+echo "Max Iterations: $MAX_ITERATIONS"
+echo ""
+
+# Initialize swarm using general Redis coordination primitive
+SWARM_ID="swarm-${TASK_ID}"
+ALL_AGENTS="${LOOP3_AGENTS},${LOOP2_AGENTS},${PRODUCT_OWNER}"
+
+# Build CFN-specific metadata
+CFN_METADATA=$(cat <<EOF
+{
+  "mode": "$MODE",
+  "loop3_agents": "$LOOP3_AGENTS",
+  "loop2_agents": "$LOOP2_AGENTS",
+  "product_owner": "$PRODUCT_OWNER",
+  "workflow_type": "cfn_loop"
+}
+EOF
+)
+
+# Use general init-swarm primitive
+./.claude/skills/redis-coordination/init-swarm.sh \
+  --swarm-id "$SWARM_ID" \
+  --agents "$ALL_AGENTS" \
+  --task-id "$TASK_ID" \
+  --topology "hierarchical" \
+  --metadata "$CFN_METADATA" > /dev/null
+
+# Start shutdown monitor in background
+start_shutdown_monitor "$TASK_ID"
+
+# Store epic context in Redis (if provided)
+if [ -n "$EPIC_CONTEXT" ]; then
+  echo "📋 Storing epic context in Redis..."
+  # Escape single quotes for Redis
+  EPIC_ESCAPED="${EPIC_CONTEXT//\'/\'\\\'\'}"
+  redis-cli setex "swarm:${TASK_ID}:epic-context" 604800 "$EPIC_ESCAPED" >/dev/null
+  echo "  ✅ Epic context stored (TTL: 7 days)"
+fi
+
+if [ -n "$PHASE_CONTEXT" ]; then
+  echo "📋 Storing phase context in Redis..."
+  PHASE_ESCAPED="${PHASE_CONTEXT//\'/\'\\\'\'}"
+  redis-cli setex "swarm:${TASK_ID}:phase-context" 604800 "$PHASE_ESCAPED" >/dev/null
+  echo "  ✅ Phase context stored (TTL: 7 days)"
+fi
+
+if [ -n "$SUCCESS_CRITERIA" ]; then
+  echo "📋 Storing success criteria in Redis..."
+  CRITERIA_ESCAPED="${SUCCESS_CRITERIA//\'/\'\\\'\'}"
+  redis-cli setex "swarm:${TASK_ID}:success-criteria" 604800 "$CRITERIA_ESCAPED" >/dev/null
+  echo "  ✅ Success criteria stored (TTL: 7 days)"
+fi
+
+echo ""
+
+# [BUG #8 FIX] Spawn Product Owner before iteration loop
+echo "[Product Owner] Spawning via CLI..."
+PO_UNIQUE_ID="${PRODUCT_OWNER}-0-1"  # Iteration 0 (pre-loop spawn)
+
+npx cfn-spawn agent "$PRODUCT_OWNER" \
+  --agent-id "$PO_UNIQUE_ID" \
+  --task-id "$TASK_ID" \
+  --iteration 0 \
+  --context "Product Owner (GOAP decision-maker)" \
+  --mode "$MODE" &
+
+PO_PID=$!
+echo "  ✅ Spawned $PO_UNIQUE_ID (PID: $PO_PID)"
+
+# Wait for PO to enter waiting mode
+echo "[Product Owner] Waiting for ready signal..."
+READY_KEY="swarm:${TASK_ID}:${PO_UNIQUE_ID}:ready"
+
+# Poll for ready signal with 60-second timeout
+READY_TIMEOUT=60
+READY_ELAPSED=0
+while [ $READY_ELAPSED -lt $READY_TIMEOUT ]; do
+  READY_COUNT=$(redis-cli LLEN "$READY_KEY" 2>/dev/null || echo "0")
+  if [ "$READY_COUNT" -gt 0 ]; then
+    echo "[Product Owner] ✅ Ready and waiting"
+    break
+  fi
+  sleep 1
+  READY_ELAPSED=$((READY_ELAPSED + 1))
+done
+
+if [ $READY_ELAPSED -ge $READY_TIMEOUT ]; then
+  echo "[Product Owner] ❌ Failed to enter waiting mode within ${READY_TIMEOUT}s"
+  cleanup_and_exit 1 "product_owner_spawn_timeout"
+fi
+
+echo ""
+
+# Iteration loop
+for ITERATION in $(seq 1 $MAX_ITERATIONS); do
+  echo "=== Iteration $ITERATION/$MAX_ITERATIONS ==="
+
+  # METRICS: Iteration start timestamp
+  ITERATION_START=$(date +%s%N | cut -b1-13)  # milliseconds
+  redis-cli LPUSH "swarm:${TASK_ID}:metrics:iteration_start" "$ITERATION_START" >/dev/null
+
+  # Step 1: Spawn Loop 3 agents via CLI
+  echo "[Loop 3] Spawning implementers via CLI..."
+  IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
+
+  # Track instance counts to generate unique agent IDs for duplicate agent types
+  declare -A AGENT_INSTANCE_COUNTS
+  declare -A AGENT_IDS  # Map from array index to unique agent ID
+
+  # Pre-calculate unique agent IDs
+  for i in "${!AGENTS[@]}"; do
+    AGENT="${AGENTS[$i]}"
+
+    # Increment instance counter for this agent type
+    AGENT_INSTANCE_COUNTS["$AGENT"]=$((${AGENT_INSTANCE_COUNTS["$AGENT"]:-0} + 1))
+    INSTANCE_NUM="${AGENT_INSTANCE_COUNTS["$AGENT"]}"
+
+    # Generate unique agent ID: agent-type-iteration-instance
+    UNIQUE_AGENT_ID="${AGENT}-${ITERATION}-${INSTANCE_NUM}"
+    AGENT_IDS["$i"]="$UNIQUE_AGENT_ID"
+
+    echo "  [Instance Tracking] ${AGENT} #${INSTANCE_NUM} → ${UNIQUE_AGENT_ID}"
+  done
+
+  echo ""
+
+  # Spawn agents with unique IDs and track PIDs
+  declare -A AGENT_PIDS  # Map from agent ID to PID
+
+  for i in "${!AGENTS[@]}"; do
+    AGENT="${AGENTS[$i]}"
+    UNIQUE_AGENT_ID="${AGENT_IDS[$i]}"
+
+    echo "  Spawning: npx cfn-spawn agent $AGENT --agent-id $UNIQUE_AGENT_ID --task-id $TASK_ID --iteration $ITERATION"
+
+    # Spawn agent in background via CLI with explicit agent ID
+    npx cfn-spawn agent "$AGENT" \
+      --agent-id "$UNIQUE_AGENT_ID" \
+      --task-id "$TASK_ID" \
+      --iteration "$ITERATION" \
+      --context "Loop 3 implementation" \
+      --mode "$MODE" &
+
+    AGENT_PID=$!
+    AGENT_PIDS["$UNIQUE_AGENT_ID"]=$AGENT_PID
+    echo "  ✅ Spawned $UNIQUE_AGENT_ID (PID: $AGENT_PID)"
+
+    # Start process monitor for auto-completion detection
+    DONE_KEY="swarm:${TASK_ID}:${UNIQUE_AGENT_ID}:done"
+    monitor_agent_process "$UNIQUE_AGENT_ID" "$AGENT_PID" "$TASK_ID" "$DONE_KEY"
+  done
+
+  echo ""
+
+  # Step 2: Wait for Loop 3 agents to complete
+  echo "[Loop 3] Waiting for implementers to complete..."
+
+  LOOP3_TOTAL=${#AGENTS[@]}
+  LOOP3_REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP3" "$LOOP3_TOTAL")
+  LOOP3_COMPLETED_AGENTS=()
+  LOOP3_FAILED_AGENTS=()
+
+  echo "[Loop 3] Quorum: $LOOP3_REQUIRED/$LOOP3_TOTAL agents required"
+
+  # Start Loop 3 heartbeat monitor (use unique agent IDs)
+  echo "[Loop 3] Starting heartbeat monitor (checking every 30s)..."
+  # Convert AGENT_IDS associative array values to indexed array for monitor
+  UNIQUE_AGENT_IDS=()
+  for i in "${!AGENTS[@]}"; do
+    UNIQUE_AGENT_IDS+=("${AGENT_IDS[$i]}")
+  done
+
+  # [BUG #7 FIX] Spawn monitor directly without command substitution to prevent hang
+  start_heartbeat_monitor "$TASK_ID" "loop3" "$ITERATION" "${UNIQUE_AGENT_IDS[@]}"
+  LOOP3_HEARTBEAT_MONITOR_PID=$!
+
+  for i in "${!AGENTS[@]}"; do
+    AGENT="${AGENTS[$i]}"
+    UNIQUE_AGENT_ID="${AGENT_IDS[$i]}"
+    DONE_KEY="swarm:${TASK_ID}:${UNIQUE_AGENT_ID}:done"
+    AGENT_PID="${AGENT_PIDS[$UNIQUE_AGENT_ID]:-}"
+
+    # Get agent-specific timeout (use base agent type, not unique ID)
+    AGENT_TIMEOUT=$(get_agent_timeout "$AGENT" "$TASK_ID")
+    echo "  Waiting for $UNIQUE_AGENT_ID (PID: $AGENT_PID, timeout: ${AGENT_TIMEOUT}s)..."
+
+    # METRICS: Agent latency start
+    AGENT_START=$(date +%s%N | cut -b1-13)
+
+    # BLPOP with retry logic using agent-specific timeout + PID for process monitoring
+    if RESULT=$(blpop_with_retry "$UNIQUE_AGENT_ID" "$DONE_KEY" "$AGENT_TIMEOUT" "$RETRY_COUNT" "$RETRY_DELAY" "$AGENT_PID"); then
+      # METRICS: Agent latency end
+      AGENT_END=$(date +%s%N | cut -b1-13)
+      LATENCY=$((AGENT_END - AGENT_START))
+
+      # Store latency metric with unique agent ID
+      METRIC=$(jq -nc \
+        --arg agent "$UNIQUE_AGENT_ID" \
+        --arg latency "$LATENCY" \
+        --arg loop "loop3" \
+        --arg iteration "$ITERATION" \
+        '{agent: $agent, latency_ms: ($latency | tonumber), loop: $loop, iteration: ($iteration | tonumber)}')
+      echo "$METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:agent_latency" >/dev/null
+
+      echo "  ✅ $UNIQUE_AGENT_ID complete (${LATENCY}ms)"
+
+      # RACE CONDITION FIX (Sprint 8): Wait for CFN Protocol to report confidence
+      # The agent signals :done immediately, but confidence is reported after
+      # We need to wait for :result key to be populated before collecting
+      RESULT_KEY="swarm:${TASK_ID}:${UNIQUE_AGENT_ID}:result"
+      RESULT_WAIT=0
+      RESULT_TIMEOUT=10  # 10 seconds max wait for result
+
+      while [ $RESULT_WAIT -lt $RESULT_TIMEOUT ]; do
+        RESULT_EXISTS=$(redis-cli EXISTS "$RESULT_KEY")
+        if [ "$RESULT_EXISTS" -eq 1 ]; then
+          echo "  ✓ Result reported by $UNIQUE_AGENT_ID"
+          break
+        fi
+        sleep 0.5
+        RESULT_WAIT=$((RESULT_WAIT + 1))
+      done
+
+      if [ $RESULT_WAIT -ge $RESULT_TIMEOUT ]; then
+        echo "  ⚠️  $UNIQUE_AGENT_ID completed but no result reported (CFN Protocol may have failed)"
+      fi
+
+      LOOP3_COMPLETED_AGENTS+=("$UNIQUE_AGENT_ID")
+    else
+      echo "  ❌ $UNIQUE_AGENT_ID failed after $RETRY_COUNT retry attempts"
+      LOOP3_FAILED_AGENTS+=("$AGENT")
+
+      # METRICS: Increment timeout counter
+      redis-cli INCR "swarm:${TASK_ID}:metrics:timeout_count" >/dev/null
+    fi
+  done
+
+  # Stop Loop 3 heartbeat monitor
+  echo "[Loop 3] Stopping heartbeat monitor..."
+  stop_heartbeat_monitor "$TASK_ID" "loop3" "$LOOP3_HEARTBEAT_MONITOR_PID"
+  LOOP3_HEARTBEAT_MONITOR_PID=""
+
+  # Validate quorum
+  if [ ${#LOOP3_COMPLETED_AGENTS[@]} -ge "$LOOP3_REQUIRED" ]; then
+    echo "[Loop 3] ✅ Quorum met: ${#LOOP3_COMPLETED_AGENTS[@]}/$LOOP3_REQUIRED agents completed"
+    if [ ${#LOOP3_FAILED_AGENTS[@]} -gt 0 ]; then
+      echo "[Loop 3] ⚠️ Failed agents (continuing with quorum): ${LOOP3_FAILED_AGENTS[*]}"
+
+      # METRICS: Increment quorum fallback counter
+      redis-cli INCR "swarm:${TASK_ID}:metrics:quorum_fallback" >/dev/null
+    fi
+  else
+    echo "[Loop 3] ❌ Quorum FAILED: ${#LOOP3_COMPLETED_AGENTS[@]} < $LOOP3_REQUIRED"
+    echo "[Loop 3] Failed agents: ${LOOP3_FAILED_AGENTS[*]}"
+    exit 1
+  fi
+  echo ""
+
+  # Step 2: Collect Loop 3 confidence scores (only from completed agents)
+  echo "[Loop 3] Collecting confidence scores from ${#LOOP3_COMPLETED_AGENTS[@]} agents..."
+  LOOP3_COMPLETED_IDS=$(IFS=','; echo "${LOOP3_COMPLETED_AGENTS[*]}")
+  LOOP3_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+    --task-id "$TASK_ID" \
+    --agent-ids "$LOOP3_COMPLETED_IDS" | tail -1)
+
+  echo "[Loop 3] Average confidence: $LOOP3_CONSENSUS (from ${#LOOP3_COMPLETED_AGENTS[@]}/${LOOP3_TOTAL} agents)"
+
+  # METRICS: Store Loop 3 consensus score
+  LOOP3_METRIC=$(jq -nc \
+    --arg consensus "$LOOP3_CONSENSUS" \
+    --arg iteration "$ITERATION" \
+    '{consensus: ($consensus | tonumber), iteration: ($iteration | tonumber)}')
+  echo "$LOOP3_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:loop3_consensus" >/dev/null
+
+  # SPRINT 4: Create conversation forks after iteration 1
+  if [ "$ITERATION" -eq 1 ]; then
+    echo "[Coordinator] Creating conversation forks for iteration 2..."
+    for AGENT in "${LOOP3_COMPLETED_AGENTS[@]}"; do
+      FORK_ID=$(npx cfn-fork create --task-id "$TASK_ID" --agent-id "$AGENT" --iteration 1 2>/dev/null || echo "")
+
+      if [ -n "$FORK_ID" ] && [ "$FORK_ID" != "(nil)" ]; then
+        # Store fork ID in Redis for this agent
+        redis-cli setex "swarm:${TASK_ID}:${AGENT}:fork-id" 86400 "$FORK_ID" >/dev/null
+        echo "  ✓ Fork created for $AGENT: $FORK_ID"
+      else
+        echo "  ⚠ Fork creation skipped for $AGENT (will use context rebuild)"
+      fi
+    done
+    echo ""
+  fi
+
+  # BUG #11 FIX: Deliverable Verification
+  # Check if Loop 3 actually created any files before allowing consensus
+  echo "[Deliverable Check] Verifying implementation artifacts..."
+  FILES_CHANGED=$(git status --short | grep -E "^(A|M|\?\?)" | wc -l)
+
+  if (( FILES_CHANGED == 0 )); then
+    echo "❌ DELIVERABLE VERIFICATION FAILED: No files created or modified"
+    echo "   This prevents 'consensus on vapor' - validators approving nothing"
+    echo ""
+    echo "Decision: RELAUNCH iteration $((ITERATION + 1)) (skip Loop 2 validation)"
+    echo ""
+
+    # METRICS: Increment deliverable failure counter
+    redis-cli INCR "swarm:${TASK_ID}:metrics:deliverable_failures" >/dev/null
+
+    # Override all Loop 3 confidence scores to 0.0 (prevent gate pass)
+    for AGENT in "${LOOP3_COMPLETED_AGENTS[@]}"; do
+      redis-cli DEL "swarm:${TASK_ID}:${AGENT}:result" >/dev/null
+      redis-cli LPUSH "swarm:${TASK_ID}:${AGENT}:result" "0.0" >/dev/null
+      echo "  [Override] ${AGENT} confidence: 1.0 → 0.0 (no deliverables)"
+    done
+
+    # Recalculate consensus (should be 0.0 now)
+    LOOP3_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+      --task-id "$TASK_ID" \
+      --agent-ids "$LOOP3_COMPLETED_IDS" | tail -1)
+
+    echo ""
+    echo "[Loop 3] Recalculated confidence after override: $LOOP3_CONSENSUS"
+    echo ""
+
+    # Wake Loop 3 agents for next iteration with HIGH priority (priority=40)
+    IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
+    for AGENT in "${AGENTS[@]}"; do
+      # Get fork ID if exists
+      FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+      if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
+
+      ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+        --task-id "$TASK_ID" \
+        --agent-id "$AGENT" \
+        --priority 40 \
+        --reason "no_deliverables" \
+        --iteration $((ITERATION + 1)) \
+        --fork-id "$FORK_ID" \
+        --feedback "CRITICAL: You must create or modify files. No deliverables were produced in iteration $ITERATION."
+    done
+
+    continue  # Next iteration (skip gate check and Loop 2)
+  fi
+
+  echo "[Deliverable Check] ✅ $FILES_CHANGED file(s) changed - proceeding to gate check"
+  echo ""
+
+  # Gate check
+  if (( $(echo "$LOOP3_CONSENSUS < $GATE" | bc -l) )); then
+    echo "❌ Gate FAILED ($LOOP3_CONSENSUS < $GATE)"
+    echo "Decision: RELAUNCH iteration $((ITERATION + 1))"
+
+    # METRICS: Increment gate failure counter
+    redis-cli INCR "swarm:${TASK_ID}:metrics:gate_failures" >/dev/null
+
+    # Wake Loop 3 agents for next iteration with MEDIUM priority (priority=30)
+    IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
+    for AGENT in "${AGENTS[@]}"; do
+      # SPRINT 4: Get fork ID if exists
+      FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+      if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
+
+      ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+        --task-id "$TASK_ID" \
+        --agent-id "$AGENT" \
+        --priority 30 \
+        --reason "gate_failed" \
+        --iteration $((ITERATION + 1)) \
+        --fork-id "$FORK_ID" \
+        --feedback "Improve confidence from $LOOP3_CONSENSUS to >$GATE"
+    done
+
+    continue  # Next iteration
+  fi
+
+  echo "✅ Gate PASSED ($LOOP3_CONSENSUS >= $GATE)"
+  echo ""
+
+  # Signal Loop 2 validators that gate has passed (they can start work)
+  GATE_PASS_KEY="swarm:${TASK_ID}:gate-passed"
+  redis-cli lpush "$GATE_PASS_KEY" "{\"iteration\": $ITERATION, \"loop3_confidence\": $LOOP3_CONSENSUS}" > /dev/null
+  echo "[Loop 3] Gate pass signal sent to Loop 2 validators"
+  echo ""
+
+  # Step 3: Spawn Loop 2 validators via CLI
+  echo "[Loop 2] Spawning validators via CLI..."
+  IFS=',' read -ra VALIDATORS <<< "$LOOP2_AGENTS"
+
+  # Track instance counts to generate unique validator IDs for duplicate validator types
+  declare -A VALIDATOR_INSTANCE_COUNTS
+  declare -A VALIDATOR_IDS  # Map from array index to unique validator ID
+
+  # Pre-calculate unique validator IDs
+  for i in "${!VALIDATORS[@]}"; do
+    VALIDATOR="${VALIDATORS[$i]}"
+
+    # Increment instance counter for this validator type
+    VALIDATOR_INSTANCE_COUNTS["$VALIDATOR"]=$((${VALIDATOR_INSTANCE_COUNTS["$VALIDATOR"]:-0} + 1))
+    INSTANCE_NUM="${VALIDATOR_INSTANCE_COUNTS["$VALIDATOR"]}"
+
+    # Generate unique validator ID: validator-type-iteration-instance
+    UNIQUE_VALIDATOR_ID="${VALIDATOR}-${ITERATION}-${INSTANCE_NUM}"
+    VALIDATOR_IDS["$i"]="$UNIQUE_VALIDATOR_ID"
+
+    echo "  [Instance Tracking] ${VALIDATOR} #${INSTANCE_NUM} → ${UNIQUE_VALIDATOR_ID}"
+  done
+
+  echo ""
+
+  # Spawn validators with unique IDs and track PIDs
+  declare -A VALIDATOR_PIDS  # Map from validator ID to PID
+
+  for i in "${!VALIDATORS[@]}"; do
+    VALIDATOR="${VALIDATORS[$i]}"
+    UNIQUE_VALIDATOR_ID="${VALIDATOR_IDS[$i]}"
+
+    echo "  Spawning: npx cfn-spawn agent $VALIDATOR --agent-id $UNIQUE_VALIDATOR_ID --task-id $TASK_ID --iteration $ITERATION"
+
+    # Spawn validator in background via CLI with explicit validator ID
+    npx cfn-spawn agent "$VALIDATOR" \
+      --agent-id "$UNIQUE_VALIDATOR_ID" \
+      --task-id "$TASK_ID" \
+      --iteration "$ITERATION" \
+      --context "Loop 2 validation" \
+      --mode "$MODE" &
+
+    VALIDATOR_PID=$!
+    VALIDATOR_PIDS["$UNIQUE_VALIDATOR_ID"]=$VALIDATOR_PID
+    echo "  ✅ Spawned $UNIQUE_VALIDATOR_ID (PID: $VALIDATOR_PID)"
+
+    # Start process monitor for auto-completion detection
+    DONE_KEY="swarm:${TASK_ID}:${UNIQUE_VALIDATOR_ID}:done"
+    monitor_agent_process "$UNIQUE_VALIDATOR_ID" "$VALIDATOR_PID" "$TASK_ID" "$DONE_KEY"
+  done
+
+  echo ""
+
+  # Step 4: Wait for Loop 2 validators to complete
+  echo "[Loop 2] Waiting for validators to complete..."
+
+  LOOP2_TOTAL=${#VALIDATORS[@]}
+  LOOP2_REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP2" "$LOOP2_TOTAL")
+  LOOP2_COMPLETED_AGENTS=()
+  LOOP2_FAILED_AGENTS=()
+
+  echo "[Loop 2] Quorum: $LOOP2_REQUIRED/$LOOP2_TOTAL agents required"
+
+  # Start Loop 2 heartbeat monitor (use unique validator IDs)
+  echo "[Loop 2] Starting heartbeat monitor (checking every 30s)..."
+  # Convert VALIDATOR_IDS associative array values to indexed array for monitor
+  UNIQUE_VALIDATOR_IDS=()
+  for i in "${!VALIDATORS[@]}"; do
+    UNIQUE_VALIDATOR_IDS+=("${VALIDATOR_IDS[$i]}")
+  done
+
+  # [BUG #7 FIX] Spawn monitor directly without command substitution to prevent hang
+  start_heartbeat_monitor "$TASK_ID" "loop2" "$ITERATION" "${UNIQUE_VALIDATOR_IDS[@]}"
+  LOOP2_HEARTBEAT_MONITOR_PID=$!
+
+  for i in "${!VALIDATORS[@]}"; do
+    VALIDATOR="${VALIDATORS[$i]}"
+    UNIQUE_VALIDATOR_ID="${VALIDATOR_IDS[$i]}"
+    DONE_KEY="swarm:${TASK_ID}:${UNIQUE_VALIDATOR_ID}:done"
+    VALIDATOR_PID="${VALIDATOR_PIDS[$UNIQUE_VALIDATOR_ID]:-}"
+
+    # Get agent-specific timeout (use base validator type, not unique ID)
+    AGENT_TIMEOUT=$(get_agent_timeout "$VALIDATOR" "$TASK_ID")
+    echo "  Waiting for $UNIQUE_VALIDATOR_ID (PID: $VALIDATOR_PID, timeout: ${AGENT_TIMEOUT}s)..."
+
+    # METRICS: Agent latency start
+    AGENT_START=$(date +%s%N | cut -b1-13)
+
+    # BLPOP with retry logic using agent-specific timeout + PID for process monitoring
+    if RESULT=$(blpop_with_retry "$UNIQUE_VALIDATOR_ID" "$DONE_KEY" "$AGENT_TIMEOUT" "$RETRY_COUNT" "$RETRY_DELAY" "$VALIDATOR_PID"); then
+      # METRICS: Agent latency end
+      AGENT_END=$(date +%s%N | cut -b1-13)
+      LATENCY=$((AGENT_END - AGENT_START))
+
+      # Store latency metric with agent label and loop context
+      METRIC=$(jq -nc \
+        --arg agent "$UNIQUE_VALIDATOR_ID" \
+        --arg latency "$LATENCY" \
+        --arg loop "loop2" \
+        --arg iteration "$ITERATION" \
+        '{agent: $agent, latency_ms: ($latency | tonumber), loop: $loop, iteration: ($iteration | tonumber)}')
+      echo "$METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:agent_latency" >/dev/null
+
+      echo "  ✅ $UNIQUE_VALIDATOR_ID complete (${LATENCY}ms)"
+
+      # RACE CONDITION FIX (Sprint 8): Wait for CFN Protocol to report confidence
+      RESULT_KEY="swarm:${TASK_ID}:${UNIQUE_VALIDATOR_ID}:result"
+      RESULT_WAIT=0
+      RESULT_TIMEOUT=10  # 10 seconds max wait for result
+
+      while [ $RESULT_WAIT -lt $RESULT_TIMEOUT ]; do
+        RESULT_EXISTS=$(redis-cli EXISTS "$RESULT_KEY")
+        if [ "$RESULT_EXISTS" -eq 1 ]; then
+          echo "  ✓ Result reported by $UNIQUE_VALIDATOR_ID"
+          break
+        fi
+        sleep 0.5
+        RESULT_WAIT=$((RESULT_WAIT + 1))
+      done
+
+      if [ $RESULT_WAIT -ge $RESULT_TIMEOUT ]; then
+        echo "  ⚠️  $UNIQUE_VALIDATOR_ID completed but no result reported (CFN Protocol may have failed)"
+      fi
+
+      LOOP2_COMPLETED_AGENTS+=("$UNIQUE_VALIDATOR_ID")
+    else
+      echo "  ❌ $UNIQUE_VALIDATOR_ID failed after $RETRY_COUNT retry attempts"
+      LOOP2_FAILED_AGENTS+=("$VALIDATOR")
+
+      # METRICS: Increment timeout counter
+      redis-cli INCR "swarm:${TASK_ID}:metrics:timeout_count" >/dev/null
+    fi
+  done
+
+  # Stop Loop 2 heartbeat monitor
+  echo "[Loop 2] Stopping heartbeat monitor..."
+  stop_heartbeat_monitor "$TASK_ID" "loop2" "$LOOP2_HEARTBEAT_MONITOR_PID"
+  LOOP2_HEARTBEAT_MONITOR_PID=""
+
+  # Validate quorum
+  if [ ${#LOOP2_COMPLETED_AGENTS[@]} -ge "$LOOP2_REQUIRED" ]; then
+    echo "[Loop 2] ✅ Quorum met: ${#LOOP2_COMPLETED_AGENTS[@]}/$LOOP2_REQUIRED agents completed"
+    if [ ${#LOOP2_FAILED_AGENTS[@]} -gt 0 ]; then
+      echo "[Loop 2] ⚠️ Failed agents (continuing with quorum): ${LOOP2_FAILED_AGENTS[*]}"
+
+      # METRICS: Increment quorum fallback counter
+      redis-cli INCR "swarm:${TASK_ID}:metrics:quorum_fallback" >/dev/null
+    fi
+  else
+    echo "[Loop 2] ❌ Quorum FAILED: ${#LOOP2_COMPLETED_AGENTS[@]} < $LOOP2_REQUIRED"
+    echo "[Loop 2] Failed agents: ${LOOP2_FAILED_AGENTS[*]}"
+    exit 1
+  fi
+  echo ""
+
+  # Step 4: Collect Loop 2 consensus scores (only from completed agents)
+  echo "[Loop 2] Collecting consensus scores from ${#LOOP2_COMPLETED_AGENTS[@]} agents..."
+  LOOP2_COMPLETED_IDS=$(IFS=','; echo "${LOOP2_COMPLETED_AGENTS[*]}")
+  LOOP2_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+    --task-id "$TASK_ID" \
+    --agent-ids "$LOOP2_COMPLETED_IDS" | tail -1)
+
+  echo "[Loop 2] Average consensus: $LOOP2_CONSENSUS (from ${#LOOP2_COMPLETED_AGENTS[@]}/${LOOP2_TOTAL} agents)"
+
+  # METRICS: Store Loop 2 consensus score
+  LOOP2_METRIC=$(jq -nc \
+    --arg consensus "$LOOP2_CONSENSUS" \
+    --arg iteration "$ITERATION" \
+    '{consensus: ($consensus | tonumber), iteration: ($iteration | tonumber)}')
+  echo "$LOOP2_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:loop2_consensus" >/dev/null
+
+  # Display consensus status
+  echo ""
+  if (( $(echo "$LOOP2_CONSENSUS >= $CONSENSUS" | bc -l) )); then
+    echo "✅ CONSENSUS REACHED ($LOOP2_CONSENSUS >= $CONSENSUS)"
+  else
+    echo "⚠️ CONSENSUS NOT REACHED ($LOOP2_CONSENSUS < $CONSENSUS)"
+  fi
+  echo ""
+
+  # [BUG #11 FIX] Product Owner decision via output parsing (not Redis wait)
+  echo "[Product Owner] Spawning Product Owner for strategic decision..."
+
+  # Build Product Owner context
+  PO_CONTEXT="CFN Loop iteration $ITERATION complete.
+
+Loop 2 Consensus: $LOOP2_CONSENSUS (threshold: $CONSENSUS)
+Task ID: $TASK_ID
+Agent ID: $PO_UNIQUE_ID
+
+Make your strategic decision: PROCEED, ITERATE, or ABORT
+
+Decision Framework:
+- PROCEED: Consensus >= $CONSENSUS AND deliverables verified
+- ITERATE: Consensus < $CONSENSUS AND iteration < $MAX_ITERATIONS
+- ABORT: Max iterations reached without consensus
+
+Output your decision clearly with reasoning."
+
+  # Spawn Product Owner and capture output
+  PO_TIMEOUT=$(get_agent_timeout "$PRODUCT_OWNER" "$TASK_ID")
+  echo "[Product Owner] Spawning with timeout: ${PO_TIMEOUT}s"
+
+  PO_OUTPUT=$(timeout "$PO_TIMEOUT" npx claude-flow-novice agent "$PRODUCT_OWNER" \
+    --task-id "$TASK_ID" \
+    --agent-id "$PO_UNIQUE_ID" \
+    --context "$PO_CONTEXT" 2>&1 || true)
+
+  # Parse decision from output with multiple fallback patterns
+  DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "Decision:\s*(PROCEED|ITERATE|ABORT)" | \
+    grep -oE "(PROCEED|ITERATE|ABORT)" | head -1)
+
+  if [ -z "$DECISION_TYPE" ]; then
+    # Fallback: Look for standalone keywords
+    DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oE "(PROCEED|ITERATE|ABORT)" | head -1)
+  fi
+
+  if [ -z "$DECISION_TYPE" ]; then
+    echo "❌ ERROR: Could not parse Product Owner decision from output"
+    echo "Product Owner output:"
+    echo "$PO_OUTPUT"
+    exit 1
+  fi
+
+  # Extract reasoning (text context around decision)
+  REASONING=$(echo "$PO_OUTPUT" | grep -A5 -i "decision" | tail -5 | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+  # Build decision JSON and push to Redis (orchestrator's responsibility)
+  DECISION=$(jq -n \
+    --arg decision "$DECISION_TYPE" \
+    --arg reasoning "${REASONING:-Parsed from Product Owner output}" \
+    --arg confidence "0.90" \
+    '{decision: $decision, reasoning: $reasoning, confidence: ($confidence | tonumber)}')
+
+  DECISION_KEY="swarm:${TASK_ID}:${PO_UNIQUE_ID}:decision"
+  echo "$DECISION" | redis-cli -x LPUSH "$DECISION_KEY" >/dev/null
+
+  # Signal Product Owner completion
+  redis-cli LPUSH "swarm:${TASK_ID}:${PO_UNIQUE_ID}:done" "complete" >/dev/null
+  echo "[Product Owner] Decision: $DECISION_TYPE"
+  echo ""
+
+  # Handle Product Owner decision
+  if [ "$DECISION_TYPE" = "PROCEED" ]; then
+    # DELIVERABLE VERIFICATION (Sprint 8 - prevent "consensus on vapor")
+    echo "[Deliverable Verification] Checking success criteria..."
+
+    SUCCESS_CRITERIA_RAW=$(redis-cli GET "swarm:${TASK_ID}:success-criteria" 2>/dev/null)
+    if [ -n "$SUCCESS_CRITERIA_RAW" ]; then
+      # Check if task description includes file/deliverable keywords
+      TASK_DESC=$(redis-cli GET "swarm:${TASK_ID}:task" 2>/dev/null)
+
+      if echo "$TASK_DESC" | grep -qiE "create|build|implement|generate|file|component|module|test"; then
+        echo "[Deliverable Verification] Task involves implementation - checking for file changes..."
+
+        # Count modified/created files since orchestrator started
+        FILES_CREATED=$(git status --short 2>/dev/null | grep -E "^(A|M|\\?\\?)" | wc -l)
+
+        if [ "$FILES_CREATED" -eq 0 ]; then
+          echo "⚠️ DELIVERABLE VERIFICATION FAILED"
+          echo "   Task requires implementation but no files were created/modified"
+          echo "   Consensus reached on plans without actual deliverables"
+          echo ""
+          echo "   Options:"
+          echo "   1. Force ITERATE to create actual implementation"
+          echo "   2. Override verification (--skip-deliverable-check flag)"
+          echo "   3. Manual intervention to verify work was done"
+          echo ""
+          echo "   Recommendation: Force ITERATE with explicit deliverable requirement"
+
+          # Store verification failure
+          redis-cli SET "swarm:${TASK_ID}:deliverable_verification" "failed" EX 86400 >/dev/null
+
+          # Optional: Force ITERATE (commented for now - requires flag)
+          # echo "[Forced Override] Changing PROCEED → ITERATE due to missing deliverables"
+          # DECISION_TYPE="ITERATE"
+          # DECISION_REASONING="No deliverables created despite implementation task"
+        else
+          echo "✅ Deliverable verification passed ($FILES_CREATED files created/modified)"
+          redis-cli SET "swarm:${TASK_ID}:deliverable_verification" "passed:$FILES_CREATED" EX 86400 >/dev/null
+        fi
+      else
+        echo "[Deliverable Verification] Task is analysis/planning - skipping file check"
+      fi
+    fi
+
+    echo "🎉 CFN Loop Complete (Product Owner: PROCEED)"
+    echo "Final Consensus: $LOOP2_CONSENSUS (Iteration $ITERATION)"
+
+    # METRICS: Iteration end timestamp and duration
+    ITERATION_END=$(date +%s%N | cut -b1-13)
+    ITERATION_DURATION=$((ITERATION_END - ITERATION_START))
+
+    # Store final iteration duration metric
+    DURATION_METRIC=$(jq -nc \
+      --arg duration "$ITERATION_DURATION" \
+      --arg iteration "$ITERATION" \
+      '{duration_ms: ($duration | tonumber), iteration: ($iteration | tonumber)}')
+    echo "$DURATION_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:iteration_duration" >/dev/null
+
+    # Wake all agents with completion signal - CRITICAL priority (priority=5)
+    echo "[Coordinator] Waking all agents with CRITICAL priority for completion..."
+    IFS=',' read -ra ALL_AGENTS <<< "$LOOP3_AGENTS,$LOOP2_AGENTS"
+    for AGENT in "${ALL_AGENTS[@]}"; do
+      ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+        --task-id "$TASK_ID" \
+        --agent-id "$AGENT" \
+        --priority 5 \
+        --reason "cfn_complete" \
+        --iteration "$ITERATION"
+    done
+
+    # Use general complete-swarm primitive
+    ./.claude/skills/redis-coordination/complete-swarm.sh \
+      --swarm-id "$SWARM_ID" \
+      --final-metric "final_consensus=$LOOP2_CONSENSUS" \
+      --final-metric "total_iterations=$ITERATION" > /dev/null
+
+    exit 0
+
+  elif [ "$DECISION_TYPE" = "ITERATE" ]; then
+    echo "⚠️ Product Owner Decision: ITERATE (improve quality)"
+
+    # METRICS: Iteration end timestamp and duration
+    ITERATION_END=$(date +%s%N | cut -b1-13)
+    ITERATION_DURATION=$((ITERATION_END - ITERATION_START))
+
+    # Store iteration duration metric
+    DURATION_METRIC=$(jq -nc \
+      --arg duration "$ITERATION_DURATION" \
+      --arg iteration "$ITERATION" \
+      '{duration_ms: ($duration | tonumber), iteration: ($iteration | tonumber)}')
+    echo "$DURATION_METRIC" | redis-cli -x LPUSH "swarm:${TASK_ID}:metrics:iteration_duration" >/dev/null
+
+    # Check max iterations
+    if [ $ITERATION -eq $MAX_ITERATIONS ]; then
+      echo "❌ Maximum iterations ($MAX_ITERATIONS) reached - cannot iterate further"
+      echo "   Product Owner wanted ITERATE but max iterations exhausted"
+      exit 1
+    fi
+
+    # Wake agents for next iteration with role-based priorities
+    echo "[Coordinator] Waking agents for iteration $((ITERATION + 1)) with priorities..."
+
+    # Wake Loop 3 implementers with MEDIUM priority (priority=30)
+    IFS=',' read -ra LOOP3_ARRAY <<< "$LOOP3_AGENTS"
+    for AGENT in "${LOOP3_ARRAY[@]}"; do
+      # SPRINT 4: Get fork ID if exists
+      FORK_ID=$(redis-cli get "swarm:${TASK_ID}:${AGENT}:fork-id" 2>/dev/null || echo "")
+      if [ "$FORK_ID" = "(nil)" ]; then FORK_ID=""; fi
+
+      ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+        --task-id "$TASK_ID" \
+        --agent-id "$AGENT" \
+        --priority 30 \
+        --reason "cfn_loop_iteration" \
+        --iteration $((ITERATION + 1)) \
+        --fork-id "$FORK_ID" \
+        --feedback "Product Owner decision: ITERATE - Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
+    done
+
+    # Wake Loop 2 validators with HIGH priority (priority=10)
+    IFS=',' read -ra LOOP2_ARRAY <<< "$LOOP2_AGENTS"
+    for AGENT in "${LOOP2_ARRAY[@]}"; do
+      ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+        --task-id "$TASK_ID" \
+        --agent-id "$AGENT" \
+        --priority 10 \
+        --reason "cfn_loop_iteration" \
+        --iteration $((ITERATION + 1)) \
+        --feedback "Product Owner decision: ITERATE - Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
+    done
+
+    echo ""
+
+  elif [ "$DECISION_TYPE" = "ABORT" ]; then
+    echo "❌ Product Owner Decision: ABORT (scope too large or out of scope)"
+    echo "   Consensus: $LOOP2_CONSENSUS, Iteration: $ITERATION"
+    exit 1
+
+  else
+    echo "❌ ERROR: Unknown Product Owner decision: $DECISION_TYPE"
+    echo "   Expected: PROCEED, ITERATE, or ABORT"
+    exit 1
+  fi
+done
+
+echo "❌ CFN Loop failed after $MAX_ITERATIONS iterations"
+exit 1

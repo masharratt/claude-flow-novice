@@ -1,0 +1,37 @@
+{
+  "testId": "synthetic-02",
+  "testName": "Gate Guardian",
+  "taskId": "test-gate-guardian-1761010045",
+  "timestamp": "2025-10-20T18:27:25-07:00",
+  "duration": 59,
+  "passed": true,
+  "iterations": 3,
+  "iteration1": {
+    "loop3": {"coder": 0.60, "researcher": 0.65, "backend-dev": 0.58},
+    "gateAvg": 0.61,
+    "gatePassed": false,
+    "loop2Called": false
+  },
+  "iteration2": {
+    "loop3": {"coder": 0.70, "researcher": 0.68, "backend-dev": 0.72},
+    "gateAvg": 0.7,
+    "gatePassed": false,
+    "loop2Called": false
+  },
+  "iteration3": {
+    "loop3": {"coder": 0.80, "researcher": 0.78, "backend-dev": 0.82},
+    "gateAvg": 0.8,
+    "gatePassed": true,
+    "loop2Called": true,
+    "loop2": {"reviewer": 0.92, "tester": 0.90},
+    "consensusAvg": .910,
+    "consensusPassed": true
+  },
+  "checks": {
+    "gateEnforcedIterations1_2": true,
+    "loop2BlockedUntilGatePass": true,
+    "gatePassedIteration3": true,
+    "consensusPassedIteration3": true,
+    "totalIterations": 3
+  }
+}

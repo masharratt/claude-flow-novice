@@ -42,7 +42,7 @@ class WorkerSpawner {
     // Configuration
     this.config = {
       redisUrl: options.redisUrl || 'redis://localhost:6379',
-      defaultTimeout: options.defaultTimeout || 600000, // 10 minutes
+      defaultTimeout: options.defaultTimeout || 3600000, // 60 minutes (coordinators need time for multi-agent orchestration)
       enableRetry: options.enableRetry !== false,
       maxRetries: options.maxRetries || 3,
       logDir: options.logDir || path.join(process.cwd(), '.logs', 'workers'),

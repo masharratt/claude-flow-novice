@@ -18,7 +18,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REDIS_HOST="${REDIS_HOST:-localhost}"
 REDIS_PORT="${REDIS_PORT:-6379}"
-DEFAULT_TIMEOUT=3600
+DEFAULT_TIMEOUT=3600  # 60 minutes default
 
 # Parse arguments
 TASK_ID=""

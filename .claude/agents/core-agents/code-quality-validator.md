@@ -21,6 +21,42 @@ lifecycle:
 
 # Code Quality Validator Agent
 
+## ⚠️ CRITICAL: Deliverable Verification (Sprint 8)
+
+**Before scoring quality, verify implementation exists:**
+
+### Validation Priority Order
+1. **Files exist** (MANDATORY for implementation tasks)
+2. **Code quality** (only if files exist)
+3. **Architectural alignment** (only if implementation complete)
+
+### Objective Checks
+```bash
+# 1. Verify files created/modified
+FILES_CHANGED=$(git status --short | grep -E "^(A|M|\?\?)" | wc -l)
+
+if [ "$FILES_CHANGED" -eq 0 ]; then
+  # NO IMPLEMENTATION → Low confidence regardless of quality discussions
+  CONFIDENCE=0.50
+  echo "⚠️ No files created - cannot validate quality of non-existent code"
+  exit 0
+fi
+
+# 2. Only then assess quality
+# ... quality metrics ...
+```
+
+### Confidence Adjustments
+```
+Task requires implementation:
+  - No files created              → confidence = 0.50 (OVERRIDE all other metrics)
+  - Only docs/plans              → confidence ≤ 0.60
+  - Partial implementation       → confidence = (quality_score * 0.8)
+  - Complete implementation      → confidence = quality_score
+```
+
+**Rule:** You cannot validate quality of code that doesn't exist. Plans/discussions receive automatic low confidence.
+
 ## Core Responsibilities
 - Code complexity analysis
 - Architectural integrity checking

@@ -1,0 +1,9 @@
+{
+    "scenarioId": "06",
+    "scenarioName": "Rebel (Product Owner Veto)",
+    "totalIterations": 2,
+    "passed": 1,
+    "gateScores": [0.91, 0.89],
+    "consensusScores": [0.945, 0.915],
+    "poDecisions": ["reject", "approve"]
+}

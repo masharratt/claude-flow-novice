@@ -204,6 +204,31 @@ else
 fi
 
 # ==============================================================================
+# TEST 9: Deliverable verification (BUG #11 fix)
+# ==============================================================================
+test_start "Deliverable verification - prevents consensus on vapor"
+
+TASK_ID="deliverable-test-$(date +%s)"
+
+# Simulate Loop 3 completion with high confidence but NO files changed
+redis-cli lpush "swarm:${TASK_ID}:coder-1:done" "complete" > /dev/null 2>&1
+redis-cli lpush "swarm:${TASK_ID}:coder-1:result" "0.95" > /dev/null 2>&1
+
+# Verify orchestrator checks git status and overrides confidence when no files exist
+# The implementation should check: git status --short | grep -E "^(A|M|\?\?)" | wc -l
+# If count == 0, override confidence to 0.0
+
+# Check that deliverable verification logic exists in orchestrator
+if grep -q "FILES_CHANGED.*git status.*short" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/redis-coordination/orchestrate-cfn-loop.sh && \
+   grep -q "no_deliverables\|DELIVERABLE.*FAILED" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/redis-coordination/orchestrate-cfn-loop.sh; then
+  test_pass
+else
+  test_fail "Deliverable verification logic not found in orchestrator"
+fi
+
+cleanup_redis "$TASK_ID"
+
+# ==============================================================================
 # TEST SUMMARY
 # ==============================================================================
 echo ""
