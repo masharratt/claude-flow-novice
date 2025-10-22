@@ -49,10 +49,11 @@
 #
 #   Loop 2 (Validators):
 #     1. WAIT for gate pass: redis-cli blpop "swarm:${TASK_ID}:gate-passed" 0
-#     2. Review Loop 3 work
-#     3. Signal done: redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-#     4. Report confidence: invoke-waiting-mode.sh report --confidence <0.0-1.0>
-#     5. Enter waiting: invoke-waiting-mode.sh enter (for potential iteration)
+#     2. Retrieve Loop 3 results for review
+#     3. Perform validation
+#     4. Signal done: redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+#     5. Report consensus: invoke-waiting-mode.sh report --confidence <0.0-1.0>
+#     6. Enter waiting: invoke-waiting-mode.sh enter (for potential iteration)
 ##############################################################################
 
 set -euo pipefail
@@ -747,14 +748,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
   # METRICS: Iteration start timestamp
   ITERATION_START=$(date +%s%N | cut -b1-13)  # milliseconds
-  ITERATION_START_SEC=$(date +%s)  # seconds for timeout check
   redis-cli LPUSH "swarm:${TASK_ID}:metrics:iteration_start" "$ITERATION_START" >/dev/null
-  redis-cli SET "swarm:${TASK_ID}:iteration:${ITERATION}:start" "$ITERATION_START_SEC" EX 86400 >/dev/null
-
-  # Set iteration timeout (1 hour per iteration max)
-  ITERATION_TIMEOUT=3600
-  ITERATION_DEADLINE=$((ITERATION_START_SEC + ITERATION_TIMEOUT))
-  echo "[Timeout Protection] Iteration $ITERATION deadline: $(date -d "@$ITERATION_DEADLINE" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$ITERATION_DEADLINE")"
 
   # Step 1: Build detailed agent context from Redis (BUG #20 FIX - Option 2)
   echo "[Loop 3] Building agent context from Redis..."
@@ -1224,77 +1218,10 @@ Use the Write tool for each file. Verify with 'ls -la' after each Write operatio
 
   echo ""
 
-  # Simple Gate Pass Signaling (Loop 2 validators spawned AFTER this signal)
+  # Signal Loop 2 validators that gate has passed (they can start work)
   GATE_PASS_KEY="swarm:${TASK_ID}:gate-passed"
   redis-cli lpush "$GATE_PASS_KEY" "{\"iteration\": $ITERATION, \"loop3_confidence\": $LOOP3_CONSENSUS}" > /dev/null
-  echo "[Loop 3] ✅ Gate PASSED (consensus: $LOOP3_CONSENSUS >= $GATE_THRESHOLD)"
   echo "[Loop 3] Gate pass signal sent to Loop 2 validators"
-  echo ""
-
-  # Step 2.5: Deliverable Pre-Verification (before Loop 2 validation)
-  echo "[Deliverable Pre-Check] Verifying files before Loop 2 validation..."
-
-  # Get expected deliverables from phase context
-  PHASE_CONTEXT_JSON=$(redis-cli GET "swarm:${TASK_ID}:phase-context" 2>/dev/null)
-  EXPECTED_DELIVERABLES=$(echo "$PHASE_CONTEXT_JSON" | jq -r '.deliverables[]?' 2>/dev/null)
-
-  if [ -n "$EXPECTED_DELIVERABLES" ]; then
-    MISSING_FILES=""
-    MISSING_COUNT=0
-    TOTAL_COUNT=0
-
-    while IFS= read -r file; do
-      [ -z "$file" ] && continue  # Skip empty lines
-      TOTAL_COUNT=$((TOTAL_COUNT + 1))
-      if [ ! -f "$file" ]; then
-        MISSING_FILES="${MISSING_FILES}${file}\n"
-        MISSING_COUNT=$((MISSING_COUNT + 1))
-        echo "  ❌ Missing: $file"
-      else
-        echo "  ✅ Found: $file"
-      fi
-    done <<< "$EXPECTED_DELIVERABLES"
-
-    # If ANY files missing, force iteration with explicit feedback
-    if [ $MISSING_COUNT -gt 0 ]; then
-      echo "❌ Deliverable pre-check FAILED: $MISSING_COUNT of $TOTAL_COUNT files missing"
-      echo ""
-
-      # Build explicit feedback list
-      FEEDBACK_MSG="CRITICAL: Create these missing deliverables:
-$(echo -e "$MISSING_FILES")
-Use Write tool for each file. Verify with 'ls -la' after each Write operation."
-
-      # Accumulate feedback for next iteration
-      accumulate_feedback "$TASK_ID" "$ITERATION" "deliverable_pre_check" "$FEEDBACK_MSG"
-
-      echo "  Reason: missing_deliverables"
-      echo "  Priority: 50 (CRITICAL)"
-      echo ""
-
-      # LOG: Deliverable pre-check failure
-      ./.claude/skills/redis-coordination/log-event.sh \
-        --task-id "$TASK_ID" \
-        --event-type "deliverable_pre_check" \
-        --iteration "$ITERATION" \
-        --details "{\"missing_count\": $MISSING_COUNT, \"total_count\": $TOTAL_COUNT, \"result\": \"FAIL\"}" \
-        --level "ERROR" 2>/dev/null || true
-
-      continue  # Skip Loop 2, go to next iteration
-    fi
-
-    echo "✅ Deliverable pre-check PASSED: All $TOTAL_COUNT files exist"
-
-    # LOG: Deliverable pre-check success
-    ./.claude/skills/redis-coordination/log-event.sh \
-      --task-id "$TASK_ID" \
-      --event-type "deliverable_pre_check" \
-      --iteration "$ITERATION" \
-      --details "{\"total_count\": $TOTAL_COUNT, \"result\": \"PASS\"}" \
-      --level "INFO" 2>/dev/null || true
-  else
-    echo "⚠️  No deliverables specified in phase context, skipping pre-check"
-  fi
   echo ""
 
   # Step 3: Build Loop 2 validator context (BUG #20 FIX - inject same deliverables)
@@ -1378,8 +1305,7 @@ Your Validation Tasks:
       AGENT_START=$(date +%s%N | cut -b1-13)
 
       # Execute skill to spawn validator and extract feedback (BUG #20 FIX - inject detailed context)
-      # BUG #27 FIX: Use process-validator-output.sh (includes structured template injection)
-      SKILL_RESULT=$(./.claude/skills/loop2-output-processing/process-validator-output.sh \
+      SKILL_RESULT=$(./.claude/skills/loop2-output-processing/execute-and-extract.sh \
         --agent-type "$VALIDATOR" \
         --task-id "$TASK_ID" \
         --agent-id "$UNIQUE_VALIDATOR_ID" \
@@ -1390,12 +1316,6 @@ Your Validation Tasks:
       # METRICS: Agent latency end
       AGENT_END=$(date +%s%N | cut -b1-13)
       LATENCY=$((AGENT_END - AGENT_START))
-
-      # BUG #27 FIX: Check for validation warnings (default output detection)
-      if echo "$SKILL_RESULT" | grep -q "VALIDATION_WARNING.*default_output"; then
-        echo "  ⚠️  Validator produced default output (confidence: 0.70, feedback: 0)" >&2
-        echo "     This may indicate validator agent needs guidance on structured format" >&2
-      fi
 
       # Inject latency into result JSON
       SKILL_RESULT_WITH_LATENCY=$(echo "$SKILL_RESULT" | jq --arg latency "$LATENCY" '. + {latency_ms: ($latency | tonumber)}')
@@ -1554,7 +1474,7 @@ Your Validation Tasks:
   echo "[Product Owner] Spawning Product Owner for strategic decision..."
 
   # BUG #19 FIX: Define PO_UNIQUE_ID BEFORE building context string
-  PO_UNIQUE_ID="${PRODUCT_OWNER}-${ITERATION}"
+  PO_UNIQUE_ID="${PRODUCT_OWNER}-${ITERATION}-decision"
 
   # Build Product Owner context
   PO_CONTEXT="CFN Loop iteration $ITERATION complete.
@@ -1735,34 +1655,6 @@ Output your decision clearly with reasoning."
     echo "  Reason: cfn_loop_iteration (Product Owner ITERATE decision)"
     echo "  Priority: 30 (MEDIUM - Loop 3), 10 (HIGH - Loop 2)"
     echo ""
-
-    # Check iteration timeout before continuing
-    CURRENT_TIME=$(date +%s)
-    ITERATION_ELAPSED=$((CURRENT_TIME - ITERATION_START_SEC))
-    if [ "$ITERATION_ELAPSED" -gt "$ITERATION_TIMEOUT" ]; then
-      echo "❌ Iteration $ITERATION timeout (>${ITERATION_TIMEOUT}s, actual: ${ITERATION_ELAPSED}s)"
-      echo "   Cannot proceed to next iteration"
-      exit 1
-    fi
-
-    # BUG FIX: Explicit iteration progression tracking
-    NEXT_ITERATION=$((ITERATION + 1))
-    echo "[CFN Loop] Iteration $ITERATION complete (${ITERATION_ELAPSED}s) - proceeding to iteration $NEXT_ITERATION"
-    redis-cli SET "swarm:${TASK_ID}:current-iteration" "$NEXT_ITERATION" EX 86400 >/dev/null
-
-    # LOG: Iteration transition
-    ./.claude/skills/redis-coordination/log-event.sh \
-      --task-id "$TASK_ID" \
-      --event-type "iteration_transition" \
-      --iteration "$ITERATION" \
-      --details "{\"from_iteration\": $ITERATION, \"to_iteration\": $NEXT_ITERATION, \"reason\": \"ITERATE_decision\", \"consensus\": $LOOP2_CONSENSUS, \"elapsed_sec\": $ITERATION_ELAPSED}" \
-      --level "INFO" 2>/dev/null || true
-
-    # BUGFIX: Explicit continue to next iteration (makes flow clearer)
-    # While for loop automatically continues, explicit continue ensures proper flow
-    echo "[CFN Loop] Starting iteration $NEXT_ITERATION..."
-    echo ""
-    continue
 
   elif [ "$DECISION_TYPE" = "ABORT" ]; then
     echo "❌ Product Owner Decision: ABORT (scope too large or out of scope)"

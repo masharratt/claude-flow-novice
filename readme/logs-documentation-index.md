@@ -86,6 +86,13 @@
    - Utility functions
    - Coordination helpers
    - Performance optimization tools
+   - Feedback management (CFN Loop)
+
+3. **[logs-cli-redis.md](./logs-cli-redis.md)**
+   - Redis CLI integration
+   - State management patterns
+   - Feedback storage (CFN Loop iterations)
+   - Pub/sub messaging
 
 ### Skills Documentation
 1. **Redis Coordination Skill**
@@ -155,4 +162,4 @@
 - **Feature Requests**: Open discussion in Discussions tab
 - **Community Support**: [Community Slack Channel](https://join.slack.com/t/claude-flow/shared_invite/example)
 
-*Last Updated: 2025-10-18 (v2.0.0)*
+*Last Updated: 2025-10-21 (v2.7.0 - CFN Loop Feedback Accumulation)*

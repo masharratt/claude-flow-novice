@@ -1,166 +1,22 @@
----
-name: CFN Loop Validation
-version: 2.2.0
-complexity: High
-status: OPERATIONAL
-keywords: [
-    "consensus-driven",
-    "validation framework",
-    "adaptive thresholds",
-    "quality assurance",
-    "multi-mode validation",
-    "agent-accessible",
-    "CLI wrapper",
-    "claim validation"
-]
-triggers: [
-    "complex system architecture validation",
-    "iterative quality assessment",
-    "multi-phase validation",
-    "feedback cycles",
-    "improvement cycles",
-    "CFN loop iteration validation",
-    "claim-based verification"
-]
-performance_targets: {
-    "consensus_accuracy": 90,
-    "validation_speed_ms": 1000,
-    "max_parallel_validators": 15,
-    "resource_utilization_pct": 50,
-    "claim_validation_threshold": 0.8
-}
----
 # CFN Loop Validation Skill
-## Overview
-Advanced validation framework for iterative development workflows, enabling dynamic consensus calculation, multi-mode validation, and adaptive quality assurance across complex system development. Now with claim validation support in agent-accessible CLI wrapper.
-## Status: OPERATIONAL
-The CFN Loop Validation skill is fully operational with the following components:
-- CLI Wrapper: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-loop-validation/validate-iteration.sh`
-- Configuration: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-loop-validation/config.json`
-- Consensus Calculator: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-loop-validation/consensus-calculator.js`
-- Evidence Database: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-loop-validation/evidence-chain.sql`
+
+**Purpose:** Implement multi-layer validation and quality gates for CFN Loop workflows with clean agent exit patterns.
+
+**Version:** 2.3.0  
+**Confidence:** 0.98  
+**Status:** Production Ready (Robustness Enhanced)
+
 ---
-# [Rest of previous SKILL.md content remains the same, with following updates]
 
-## 10. CFN Loop Orchestration (NEW in v2.2.0)
+## Core Architecture
 
-### Orchestration Script
-The CFN Loop skill now includes **automatic dependency orchestration** via `orchestrate-cfn-loop.sh`.
+### Clean Agent Exit Protocol
 
-**Purpose:** Ensures agents complete work in the correct order with BLPOP-based dependency enforcement.
-
-### Loop Structure
-```
-Loop 3 (Primary Swarm - Implementers)
-  ↓ [BLPOP blocks until all Loop 3 agents signal :done]
-Loop 2 (Consensus - Validators)
-  ↓ [BLPOP blocks until all Loop 2 agents signal :done]
-Product Owner (GOAP Decision)
-  ↓ Decision: PROCEED | RELAUNCH iteration N+1
-```
-
-### Dependency Enforcement (CORRECTED - Self-Validation Pattern)
-```bash
-# 1. Loop 3 agents complete and self-validate
-for agent in loop3-agents; do
-  redis-cli blpop "swarm:${TASK_ID}:${agent}:done" 0
-done
-
-# 2. Gate check on Loop 3 self-validation
-if gate_passed; then
-  # Signal Loop 2 validators to start
-  redis-cli lpush "swarm:${TASK_ID}:gate-passed" "{\"loop3_confidence\": $CONFIDENCE}"
-else
-  # Relaunch Loop 3 for iteration N+1 (skip Loop 2)
-  wake_loop3_agents
-  continue
-fi
-
-# 3. Loop 2 agents WAIT for gate pass signal
-# (Each validator blocks until gate passes)
-redis-cli blpop "swarm:${TASK_ID}:gate-passed" 0
-
-# 4. Loop 2 agents complete validation
-for validator in loop2-agents; do
-  redis-cli blpop "swarm:${TASK_ID}:${validator}:done" 0
-done
-
-# 5. Product Owner makes decision based on Loop 2 consensus
-```
-
-### Usage
-```bash
-./orchestrate-cfn-loop.sh \
-  --task-id "sprint1-feature-x" \
-  --mode standard \
-  --loop3-agents "researcher,backend-dev,devops" \
-  --loop2-agents "reviewer,architect,tester" \
-  --product-owner "product-owner" \
-  --max-iterations 10
-```
-
-### Agent Requirements
-Each agent MUST signal completion:
-```bash
-# After completing work, agent signals done
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-
-# Then report confidence
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.85
-
-# Then enter waiting mode for next iteration
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-complete"
-```
-
-### Benefits
-- ✅ **Automatic dependency blocking** - No manual coordination needed
-- ✅ **Zero-token waiting** - Agents blocked via BLPOP (no API calls)
-- ✅ **Consistent enforcement** - Same pattern across all CFN loops
-- ✅ **Product Owner protection** - Cannot collect before validators finish
-- ✅ **Iteration management** - Automatic wake-up for next iteration
-
-## 11. Version History
-### v2.2.0 (2025-10-18)
-- **NEW:** Added `orchestrate-cfn-loop.sh` for dependency orchestration
-- Automatic BLPOP-based dependency blocking between loops
-- Product Owner integration with consensus-ready signals
-- Iteration management with automatic wake-up
-- Prevents premature consensus collection
-### v2.1.0 (2025-10-18)
-- Added claim-based validation support
-- New `--claims` CLI flag for JSON claim validation
-- Claim confidence scoring
-- Detailed claim validation metrics
-- Support for legacy system claim integration
-### v2.0.0 (2025-10-18)
-- Added agent-accessible CLI wrapper (`validate-iteration.sh`)
-- Updated configuration with TypeScript alignment
-- Comprehensive documentation for integration patterns
-- Evidence chain persistence
-- JSON output mode for agent consumption
-### v1.0.5 (Previous)
-- Basic validation framework
-- Consensus calculator
-- Evidence database schema
-
-## 11. Agent Completion Protocol (STRAT-003)
-
-**Pattern:** Explicit multi-step process for agent task completion in CFN Loops.
-
-When building agent completion protocols, design explicit multi-step processes that include work completion, status signaling, confidence reporting, and explicit waiting modes. This prevents race conditions and ensures proper dependency blocking.
-
-### 4-Step Completion Protocol
+**Critical Principle:** Agents MUST exit immediately after reporting confidence. No waiting mode for implementers/validators.
 
 ```bash
+# ✅ CORRECT - Agent completion protocol
 # Step 1: Complete work
-# Agent performs implementation/validation tasks
-
 # Step 2: Signal completion
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
@@ -171,93 +27,327 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
   --confidence 0.85 \
   --iteration 1
 
-# Step 4: Enter waiting mode
+# Step 4: EXIT CLEANLY (no waiting mode)
+# Agent process terminates here
+```
+
+```bash
+# ❌ FORBIDDEN - Agents entering waiting mode
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
+  --agent-id "${AGENT_ID}" \
   --context "iteration-complete"
 ```
 
-### Benefits
-- **Race condition prevention**: Explicit signaling prevents premature collection
-- **Clear state transitions**: Each step has observable state in Redis
-- **Confidence tracking**: Separate confidence reporting for gate checks
-- **Iteration support**: Agents can be woken for retry without respawning
+**Why Clean Exit Matters:**
+- Prevents orchestrator blocking on `wait $PID`
+- Enables adaptive agent specialization (different agents per iteration)
+- Eliminates indefinite blocking scenarios
+- Supports true parallel execution
 
-### Integration with Orchestration
-The orchestrator (`.claude/skills/redis-coordination/orchestrate-cfn-loop.sh`) enforces this protocol by:
-1. BLPOP blocking on `:done` signals (Step 2)
-2. Collecting confidence scores (Step 3)
-3. Waking agents for next iteration if needed (Step 4)
+### Validation Layers
 
-## 12. Claim Validation
-### Claim Validation Overview
-Claim-based validation enables granular assessment of iteration results through explicit claim confidence scoring.
+#### Layer 1: Gate Validation (Loop 3 Self-Validation)
+- **Threshold:** Mode-dependent (0.70-0.85)
+- **Purpose:** Implementers self-assess work quality
+- **Blocking:** Prevents validators from reviewing incomplete work
 
-#### Claim Structure
-```json
-{
-  "id": "claim_001",
-  "description": "Authentication flow meets OAUTH2 standards",
-  "confidence": 0.85,
-  "strategy": "oauth_standard_check"
-}
-```
+#### Layer 2: Consensus Validation (Loop 2 Validators)
+- **Threshold:** Mode-dependent (0.80-0.95)
+- **Purpose:** Independent quality assessment
+- **Requirement:** Minimum 2 validators for robust consensus
 
-### Claim Validation CLI Usage
+#### Layer 3: Product Owner Decision
+- **Purpose:** Strategic validation and scope enforcement
+- **Options:** PROCEED/ITERATE/ABORT
+- **Anti-Pattern Prevention:** Prevents "consensus on vapor"
+
+### Dependency Enforcement
+
+**Mandatory Flow:**
+1. Loop 3 agents complete work
+2. Gate check validates Loop 3 quality
+3. **IF gate passes →** Signal `swarm:${TASK_ID}:gate-passed`
+4. Loop 2 validators wait for gate signal via `blpop`
+5. Loop 2 validators review and report consensus
+6. Product Owner makes final decision
+
+**Redis Coordination:**
 ```bash
-# Validate with claims
-./validate-iteration.sh \
-  --mode enterprise \
-  --iteration 1 \
-  --confidence 0.88 \
-  --claims '[
-    {
-      "id": "auth_security",
-      "description": "Secure authentication flow",
-      "confidence": 0.90
-    },
-    {
-      "id": "oauth_compliance",
-      "description": "OAUTH2 compliance",
-      "confidence": 0.75
-    }
-  ]'
+# Loop 2 agents wait for gate signal
+redis-cli blpop "swarm:${TASK_ID}:gate-passed" 0
+
+# Gate signal sent by orchestrator
+redis-cli lpush "swarm:${TASK_ID}:gate-passed" "true"
 ```
 
-### Claim Validation Result Example
-```json
-{
-  "claims": {
-    "total_count": 2,
-    "valid_count": 1,
-    "invalid_count": 1,
-    "confidence": 0.5,
-    "details": [
-      {
-        "id": "auth_security",
-        "description": "Secure authentication flow",
-        "confidence": 0.90,
-        "valid": true
-      },
-      {
-        "id": "oauth_compliance",
-        "description": "OAUTH2 compliance",
-        "confidence": 0.75,
-        "valid": false
-      }
-    ]
-  }
-}
+---
+
+## Mode Configurations
+
+### MVP Mode (Fast Validation)
+- **Gate Threshold:** 0.70
+- **Consensus Threshold:** 0.80
+- **Max Iterations:** 5
+- **Validators:** 2
+- **Use Case:** Quick prototyping, proof-of-concepts
+
+### Standard Mode (Balanced Quality)
+- **Gate Threshold:** 0.75
+- **Consensus Threshold:** 0.90
+- **Max Iterations:** 10
+- **Validators:** 3-4
+- **Use Case:** Production features, standard development
+
+### Enterprise Mode (Maximum Quality)
+- **Gate Threshold:** 0.85
+- **Consensus Threshold:** 0.95
+- **Max Iterations:** 15
+- **Validators:** 5
+- **Use Case:** Critical systems, security-sensitive features
+
+---
+
+## Agent Lifecycle Management
+
+### Coordinator Responsibilities
+- Spawn agents via CLI (cost optimization)
+- Manage Redis coordination
+- Handle iteration logic
+- Collect confidence scores
+- Enforce dependency blocking
+
+### Agent Responsibilities
+- Complete assigned work
+- Signal completion via Redis
+- Report confidence score
+- **Exit immediately (no waiting mode) - MANDATORY**
+
+### Updated Agent Completion Protocol (v2.3)
+```bash
+# ✅ NEW MANDATORY PROTOCOL - All agents MUST follow
+# Step 1: Complete work
+# Step 2: Signal completion
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+# Step 3: Report confidence score
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence 0.92 \
+  --iteration 1
+
+# Step 4: EXIT CLEANLY (no waiting mode - agents MUST NOT enter waiting mode)
+# Agent process terminates here - orchestrator uses wait $PID
+exit 0
 ```
 
-### Claim Validation Metrics
-- **Confidence Threshold:** 0.8 (configurable)
-- **Metrics Captured:**
-  - Total claims
-  - Valid claims
-  - Invalid claims
-  - Overall claim confidence
-  - Detailed claim validation
+### Clean Exit Benefits
+1. **No Blocking:** Orchestrator uses `wait $PID` successfully
+2. **Adaptive Specialization:** Different agents per iteration
+3. **Resource Efficiency:** No idle agent processes
+4. **Simplified Debugging:** Clear agent lifecycle
+5. **Prevents Orchestration Deadlock:** Eliminates indefinite agent blocking
+6. **Enables True Parallelism:** Multiple agents can complete independently
 
-[Rest of the previous SKILL.md remains unchanged]
+### Forbidden Patterns (Critical Anti-Patterns)
+```bash
+# ❌ FORBIDDEN - Agents MUST NOT enter waiting mode
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+  --task-id "$TASK_ID" \
+  --agent-id "${AGENT_ID}" \
+  --context "iteration-complete"
+
+# ❌ FORBIDDEN - Only coordinators use waiting mode
+if [[ "$AGENT_TYPE" != "coordinator" ]]; then
+  echo "ERROR: Non-coordinator agents cannot use waiting mode"
+  exit 1
+fi
+```
+
+---
+
+## Context Injection Patterns
+
+### Multi-Layer Context Flow
+```
+Coordinator → Redis Storage → Orchestrator → Agent Spawning → Agent Context
+```
+
+**Critical Requirement:** Context must flow through ALL layers.
+
+#### Context Components
+- **Epic Context:** High-level goals and scope
+- **Phase Context:** Sprint-specific requirements
+- **Success Criteria:** Acceptance criteria and deliverables
+- **Thresholds:** Gate and consensus values
+
+#### Context Validation
+1. **Coordinator:** Validates context has deliverables before spawning
+2. **Orchestrator:** Validates Redis retrieval before agent spawning
+3. **Agents:** Validate received context has required fields
+
+**Anti-Pattern Prevention:** Avoid generic context when specifics exist in Redis.
+
+---
+
+## Quality Gates Implementation
+
+### Deliverable Verification (STRAT-020)
+**Mandatory check:** Validate actual file creation for implementation tasks.
+
+```bash
+# Check for deliverable creation
+git_status=$(git status --porcelain 2>/dev/null || echo "")
+if [[ -z "$git_status" ]] && [[ "$task_type" == "implementation" ]]; then
+    # Force iteration - no files created
+    consensus=0.0
+    feedback="No deliverable files created. Must implement actual changes."
+fi
+```
+
+### Confidence Scoring Patterns
+- **Explicit Numeric:** `0.85` (preferred)
+- **Percentage:** `85%` (supported)
+- **Qualitative:** `high/medium/low` (converted to 0.8/0.5/0.2)
+- **Calculated:** Based on deliverable completion
+
+### Multi-Pattern Parsing (PATTERN-009)
+```bash
+# Extract confidence with fallback strategies
+confidence=$(echo "$output" | grep -o "confidence: [0-9.]*" | tail -1 | cut -d' ' -f2)
+if [[ -z "$confidence" ]]; then
+    confidence=$(echo "$output" | grep -o "[0-9]*%" | tail -1 | sed 's/%//')
+    if [[ -n "$confidence" ]]; then
+        confidence=$(echo "scale=2; $confidence/100" | bc -l)
+    fi
+fi
+```
+
+---
+
+## Testing and Validation
+
+### Test Suite Requirements
+- Validate clean agent exit
+- Test dependency enforcement
+- Verify context injection
+- Check timeout handling
+- Validate consensus calculations
+
+### Key Test Cases
+1. **Clean Exit Test:** Agents exit without waiting mode
+2. **Blocking Test:** Loop 2 waits for Loop 3 gate signal
+3. **Context Test:** Deliverables flow through all layers
+4. **Iteration Test:** Quality gate triggers iteration
+5. **Timeout Test:** Agents respect phase timeouts
+
+---
+
+## Integration Points
+
+### Redis Coordination Skill
+- Uses `invoke-waiting-mode.sh report` for confidence reporting
+- No `enter` calls for implementers/validators
+- Blocking via `blpop` for dependency enforcement
+
+### Agent Spawning Skill
+- CLI spawning for cost optimization
+- Agent ID assignment and tracking
+- Background process management
+
+### Product Owner Decision Skill
+- Structured decision parsing
+- Deliverable validation
+- Scope enforcement
+
+---
+
+## Error Handling and Recovery
+
+### Timeout Scenarios
+- **Phase-specific timeouts:** Based on work complexity
+- **Agent timeout:** `timeout` command wrapper
+- **Orchestrator timeout:** Background execution with monitoring
+
+### Failure Recovery
+- **Redis state cleanup:** Clear iteration data
+- **Agent PID tracking:** Monitor and cleanup stuck processes
+- **Context validation:** Fail-fast on missing context
+
+---
+
+## Performance Optimization
+
+### Cost Savings
+- **CLI Spawning:** 95-98% cost reduction vs Task()
+- **Zero-Token Waiting:** Redis BLPOP for coordination
+- **Parallel Execution:** Background agent spawning
+
+### Resource Management
+- **Clean Exit:** No idle agent processes
+- **Timeout Enforcement:** Prevent resource leaks
+- **Redis Cleanup:** Automatic state management
+
+---
+
+## Usage Examples
+
+### Standard CFN Loop Execution
+```bash
+./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+  --task-id "feature-auth-123" \
+  --mode standard \
+  --loop3-agents "backend-dev,security-specialist" \
+  --loop2-agents "reviewer,tester,architect" \
+  --product-owner "product-owner" \
+  --phase-id "phase-2" \
+  --epic-context '{"epicGoal":"Build auth system","inScope":["JWT","OAuth"]}' \
+  --phase-context '{"deliverables":["auth.js","tests/auth.test.js"]}' \
+  --success-criteria '{"acceptanceCriteria":["JWT tokens work","Tests pass"]}'
+```
+
+### Agent Implementation Protocol
+```bash
+# Agent receives task context
+# Completes implementation work
+
+# Signal completion
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+# Report confidence
+./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence 0.92 \
+  --iteration 1
+
+# EXIT CLEANLY - no waiting mode
+```
+
+---
+
+## Monitoring and Debugging
+
+### Key Redis Keys
+- `swarm:${TASK_ID}:${AGENT_ID}:done` - Completion signal
+- `swarm:${TASK_ID}:${AGENT_ID}:confidence` - Confidence score
+- `swarm:${TASK_ID}:gate-passed` - Gate signal
+- `swarm:${TASK_ID}:epic-context` - Epic context
+- `swarm:${TASK_ID}:success-criteria` - Acceptance criteria
+
+### Debug Commands
+```bash
+# Check agent completion
+redis-cli lrange "swarm:${TASK_ID}:${AGENT_ID}:done" 0 -1
+
+# Check confidence scores
+redis-cli get "swarm:${TASK_ID}:${AGENT_ID}:confidence"
+
+# Monitor gate signals
+redis-cli blpop "swarm:${TASK_ID}:gate-passed" 1
+```
+
+---
+
+**Maintenance:** Regular validation of clean exit patterns and dependency enforcement. Test suite should validate all lifecycle scenarios.

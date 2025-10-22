@@ -21,6 +21,14 @@
 * **Redis persistence enables swarm recovery** - swarm state survives interruptions
 * **ALL agent communication MUST use Redis pub/sub** - no direct file coordination
 * **NEVER HARDCODE API KEYS**
+* **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
+
+**Agent Output Standards:**
+* **Bug documentation**: `docs/BUG_#_*.md` (investigation, fix summary, validation)
+* **Test scripts**: `tests/test-*.sh` (persistent, version controlled)
+* **Feature documentation**: `docs/FEATURE_NAME.md` (architecture, process docs)
+* **Temporary files ONLY**: `/tmp/` (ephemeral test fixtures, scratch data)
+* **Full guidelines**: `docs/AGENT_OUTPUT_STANDARDS.md`
 
 **Consensus thresholds:**
 * Gate (agent self-confidence): **≥0.75 each**
@@ -53,7 +61,7 @@
 
 ### Main Chat Role (Thin Orchestration Layer)
 * Spawn ONLY coordinator agent (single Task() call)
-* Coordinator handles all agent spawning internally via CLI
+* Coordinator handles all agent spawning internally via CLI using the orchestration skill
 * Delegate ALL coordination to skills
 * Use skill-specific configuration for complex workflows
 
@@ -111,7 +119,7 @@ When spawned via CLI (`npx claude-flow-novice`), you automatically benefit from 
 
 **CRITICAL: Single Coordinator Pattern (v2)**
 
-Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent spawning internally via CLI.
+Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent spawning internally via CLI and  orchestrate-cfn-loop.sh
 
 **❌ FORBIDDEN - Main Chat Spawning Workers:**
 ```javascript
@@ -136,7 +144,7 @@ Task("cost-savings-cfn-loop-coordinator", `
 ```
 
 **Why This Pattern:**
-- Coordinator controls spawn timing via CLI (no timeout issues)
+- Coordinator controls spawn timing via orchestrate-cfn-loop.sh and CLI (no timeout issues)
 - 95-98% cost savings vs Task() spawning
 - Zero-token waiting between iterations (Redis BLPOP)
 - Sequential CLI spawning is safe (coordinator manages order)
@@ -698,3 +706,11 @@ Out of Scope:
 - Report confidence based on **sprint deliverable completion**
 - 0.90+ confidence means sprint objectives met
 - Do NOT report confidence for entire epic
+- when monitoring something, sleep for X minutes on repeat with check in between
+### STRAT-025: Explicit Deliverable Tracking
+- **Confidence:** 0.95
+- **Priority:** 9
+- **Insight**: Inject real-time deliverable checklist into agent context showing file-by-file status (✅ COMPLETE / ❌ MISSING) with completion counts. Prevents agents from reporting high confidence when only partial deliverables exist. Pattern: Extract deliverables from phase-context, check file existence before spawning agents, append visual checklist to LOOP3_AGENT_CONTEXT. Critical guidance: "If ANY files marked ❌ MISSING, confidence should be LOW (<0.50)."
+- **Tags**: deliverable-tracking, agent-context, file-verification, confidence-calibration, visual-feedback
+- **Applied in**: orchestrate-cfn-loop.sh lines 795-844
+- **Impact**: Prevents partial implementations with high confidence scores (e.g., Phase 2: 1 of 4 files created, agent reports 0.90)

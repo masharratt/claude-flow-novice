@@ -15,11 +15,11 @@ Merge reflection deltas into the `adaptive_context` table using deterministic ru
 ### 1. Fetch Pending Reflections
 
 ```bash
-# Query pending reflections
+# Query pending reflections (temporary output - cleaned automatically)
 ./.claude/skills/ace-system/query-reflections.sh \
   --status pending \
   --limit 10 \
-  --output /tmp/pending-reflections.json
+  --output /tmp/pending-reflections.json  # Ephemeral - see docs/AGENT_OUTPUT_STANDARDS.md
 ```
 
 ### 2. Semantic Similarity Detection

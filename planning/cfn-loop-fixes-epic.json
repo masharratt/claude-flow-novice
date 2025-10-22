@@ -1,0 +1,296 @@
+{
+  "epic_name": "CFN Loop Robustness & Validation Enhancement",
+  "epic_id": "cfn-robustness-001",
+  "priority": "P0",
+  "estimated_duration": "4-6 phases",
+  "epic_goal": "Eliminate critical bugs in CFN Loop coordination, implement comprehensive validation, and standardize parameter handling across all layers",
+
+  "background": {
+    "investigation_trigger": "Cross-team feedback request on race conditions, operation ordering, and parameter consistency",
+    "key_findings": [
+      "Waiting mode not fully removed from agents (PATTERN-022 incomplete)",
+      "Gate pass signal lacks acknowledgment mechanism",
+      "Context injection has zero validation at any layer",
+      "Parameter generation strategies inconsistent",
+      "Timeout validation incomplete"
+    ],
+    "false_alarms_clarified": [
+      "Redis confidence collection race - FALSE (properly isolated with task-scoped keys)",
+      "Parallel swarm agent collision - LOW RISK (task-id namespacing works)",
+      "Validator spawn timing - CORRECT (sequential after gate check)"
+    ]
+  },
+
+  "in_scope": [
+    "Remove waiting mode from all agent completion protocols",
+    "Implement gate pass acknowledgment for Loop 2 validators",
+    "Add multi-layer context validation (Main Chat → Coordinator → Orchestrator → Agent)",
+    "Standardize task-id and agent-id generation",
+    "Implement timeout validation (phase-id, max limits, negative checks)",
+    "Create context schema enforcement at all injection points",
+    "Add validation checkpoints to prevent 'consensus on vapor'",
+    "Update orchestrator to spawn specialized agents based on feedback type"
+  ],
+
+  "out_of_scope": [
+    "Redis pub/sub architecture changes (current design is correct)",
+    "Validator spawn timing changes (working as designed)",
+    "Confidence collection mechanism changes (atomic operations sufficient)",
+    "Agent registry system (low priority, task-id isolation sufficient)",
+    "Performance optimization (focus on correctness first)"
+  ],
+
+  "phases": [
+    {
+      "phase_id": "phase-1",
+      "phase_name": "Waiting Mode Removal & Agent Lifecycle Fix",
+      "description": "Complete PATTERN-022 implementation: remove waiting mode from agents, update orchestrator, enable adaptive agent specialization",
+      "estimated_time": "2-3 hours",
+      "deliverables": [
+        ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (remove invoke-waiting-mode.sh enter calls)",
+        ".claude/skills/cfn-loop-validation/SKILL.md (update agent completion protocol docs)",
+        "tests/test-agent-lifecycle.sh (verify agents exit cleanly after confidence report)",
+        "docs/AGENT_LIFECYCLE_UPDATE.md (document changes)"
+      ],
+      "acceptance_criteria": [
+        "Loop 3 agents exit immediately after reporting confidence",
+        "Loop 2 agents exit immediately after reporting confidence",
+        "No agents call invoke-waiting-mode.sh enter (except coordinators)",
+        "Orchestrator uses wait $PID successfully without indefinite blocking",
+        "Test suite validates clean agent exit across 3 iterations"
+      ],
+      "loop3_agents": ["backend-dev", "reviewer"],
+      "loop2_agents": ["code-quality-validator", "tester"],
+      "risk": "Medium - changes core coordination protocol"
+    },
+
+    {
+      "phase_id": "phase-2",
+      "phase_name": "Gate Pass Acknowledgment Mechanism",
+      "description": "Add acknowledgment protocol for gate-passed signal to prevent validators from missing signal and ensure robust Loop 2 start",
+      "estimated_time": "2-3 hours",
+      "deliverables": [
+        ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (add ack mechanism)",
+        ".claude/skills/redis-coordination/invoke-gate-ack.sh (new skill)",
+        "tests/test-gate-acknowledgment.sh (validate ack protocol)",
+        "docs/GATE_ACK_PROTOCOL.md (document protocol)"
+      ],
+      "acceptance_criteria": [
+        "Loop 2 validators send ACK after receiving gate-passed signal",
+        "Orchestrator waits for all validator ACKs before proceeding",
+        "Missing ACK triggers retry (max 3 attempts with 5s delay)",
+        "Failed ACK after retries logs error and continues (degraded mode)",
+        "Test validates ACK mechanism across 3 validators with 2s delays"
+      ],
+      "loop3_agents": ["backend-dev"],
+      "loop2_agents": ["reviewer", "tester", "security-specialist"],
+      "risk": "Low - additive change, doesn't break existing flow"
+    },
+
+    {
+      "phase_id": "phase-3",
+      "phase_name": "Multi-Layer Context Validation Framework",
+      "description": "Implement validation checkpoints at Main Chat, Coordinator, Orchestrator, and Agent layers to prevent 'consensus on vapor' and enforce context schema",
+      "estimated_time": "4-5 hours",
+      "deliverables": [
+        ".claude/skills/context-validation/validate-context.sh (validation library)",
+        ".claude/skills/context-validation/CONTEXT_SCHEMA.json (schema definition)",
+        ".claude/skills/context-validation/SKILL.md (skill documentation)",
+        ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (add validation calls)",
+        "tests/test-context-validation.sh (test all validation layers)",
+        "docs/CONTEXT_VALIDATION_FRAMEWORK.md (architecture docs)"
+      ],
+      "acceptance_criteria": [
+        "Schema enforces required fields: epicGoal, deliverables, directory, acceptanceCriteria, inScope, outOfScope",
+        "Coordinator validates context before storing in Redis",
+        "Orchestrator validates context before spawning agents",
+        "Agents receive and validate context contains deliverables list",
+        "Validation failures log error and request context clarification",
+        "Test validates rejection of minimal context ('Checkpoint 4.1')",
+        "Test validates acceptance of complete context with all required fields"
+      ],
+      "loop3_agents": ["backend-dev", "researcher"],
+      "loop2_agents": ["code-quality-validator", "reviewer"],
+      "risk": "High - critical for preventing consensus on vapor"
+    },
+
+    {
+      "phase_id": "phase-4",
+      "phase_name": "Parameter Standardization (Task ID & Agent ID)",
+      "description": "Standardize task-id generation (timestamp-based), agent-id generation (UUID-based), and add collision detection",
+      "estimated_time": "2-3 hours",
+      "deliverables": [
+        ".claude/skills/agent-spawning/generate-task-id.sh (standardized task-id generation)",
+        ".claude/skills/agent-spawning/generate-agent-id.sh (UUID-based agent-id)",
+        ".claude/skills/agent-spawning/check-collision.sh (collision detection)",
+        ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (use new generators)",
+        "tests/test-parameter-generation.sh (validate uniqueness)",
+        "docs/PARAMETER_STANDARDS.md (document standards)"
+      ],
+      "acceptance_criteria": [
+        "Task-id format: cfn-task-{unix-timestamp} (consistent across all spawns)",
+        "Agent-id format: {agent-type}-{uuid-prefix-8chars} (e.g., backend-dev-a1b2c3d4)",
+        "Collision detection checks Redis for existing agent-id before spawn",
+        "Parallel swarm test (2 simultaneous CFN loops) shows no collision",
+        "Test validates 100 sequential agent spawns have unique IDs"
+      ],
+      "loop3_agents": ["backend-dev"],
+      "loop2_agents": ["reviewer", "tester"],
+      "risk": "Low - changes ID generation only, doesn't affect coordination logic"
+    },
+
+    {
+      "phase_id": "phase-5",
+      "phase_name": "Timeout Validation & Enforcement",
+      "description": "Add phase-id validation, maximum timeout limits, negative value checks, and enhance get-agent-timeout.sh",
+      "estimated_time": "2 hours",
+      "deliverables": [
+        ".claude/skills/redis-coordination/get-agent-timeout.sh (add validation)",
+        ".claude/skills/redis-coordination/validate-timeout.sh (validation library)",
+        ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (call validation)",
+        "tests/test-timeout-validation.sh (test edge cases)",
+        "docs/TIMEOUT_VALIDATION.md (document validation rules)"
+      ],
+      "acceptance_criteria": [
+        "Phase-id validated against known phases (phase-1, phase-2, phase-3, phase-4)",
+        "Unknown phase-id uses default timeout (60 minutes) and logs warning",
+        "Maximum timeout enforced (4 hours = 14400 seconds)",
+        "Negative timeout values rejected with error",
+        "Zero timeout rejected with error",
+        "Test validates all edge cases (negative, zero, too large, unknown phase)"
+      ],
+      "loop3_agents": ["backend-dev"],
+      "loop2_agents": ["reviewer"],
+      "risk": "Low - validation is additive, doesn't break existing timeouts"
+    },
+
+    {
+      "phase_id": "phase-6",
+      "phase_name": "Adaptive Agent Specialization (PATTERN-022)",
+      "description": "Enable orchestrator to spawn different specialist agents for iteration N+1 based on feedback type (e.g., security-specialist for security issues)",
+      "estimated_time": "3-4 hours",
+      "deliverables": [
+        ".claude/skills/redis-coordination/parse-feedback-type.sh (extract feedback categories)",
+        ".claude/skills/redis-coordination/map-feedback-to-agent.sh (feedback → agent type mapping)",
+        ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (adaptive spawn logic)",
+        "tests/test-adaptive-specialization.sh (test different feedback types)",
+        "docs/ADAPTIVE_AGENT_SPECIALIZATION.md (document mapping rules)"
+      ],
+      "acceptance_criteria": [
+        "Feedback type 'security' spawns security-specialist instead of original coder",
+        "Feedback type 'performance' spawns performance-benchmarker",
+        "Feedback type 'architecture' spawns system-architect",
+        "Generic feedback spawns original Loop 3 agents",
+        "Test validates 4 different feedback types spawn correct specialists",
+        "Agent selection logged for debugging"
+      ],
+      "loop3_agents": ["backend-dev", "security-specialist", "performance-benchmarker", "system-architect"],
+      "loop2_agents": ["reviewer", "tester"],
+      "risk": "Medium - requires feedback parsing and dynamic agent selection"
+    }
+  ],
+
+  "success_criteria": {
+    "functional": [
+      "All agents exit cleanly after reporting confidence (no waiting mode blocking)",
+      "Loop 2 validators reliably receive gate-passed signal (ACK mechanism)",
+      "Zero 'consensus on vapor' incidents (context validation enforced)",
+      "Zero task-id or agent-id collisions in parallel swarm tests",
+      "All timeout edge cases handled correctly (validation enforced)",
+      "Adaptive agent specialization working for 4+ feedback types"
+    ],
+    "quality": [
+      "Comprehensive test coverage for all phases (>90% coverage)",
+      "All validation failures logged with actionable error messages",
+      "Documentation complete for all new skills and protocols",
+      "Zero regressions in existing CFN Loop functionality"
+    ],
+    "performance": [
+      "Validation overhead <100ms per agent spawn",
+      "Gate ACK protocol adds <5s to Loop 2 start time",
+      "Context validation adds <50ms to coordinator spawn"
+    ]
+  },
+
+  "testing_strategy": {
+    "unit_tests": [
+      "Test each validation function independently",
+      "Test ID generation uniqueness",
+      "Test timeout validation edge cases",
+      "Test feedback type parsing"
+    ],
+    "integration_tests": [
+      "Test complete CFN Loop with all fixes enabled",
+      "Test parallel swarm execution (2 simultaneous loops)",
+      "Test multi-iteration loop with adaptive specialization",
+      "Test context validation rejection flow"
+    ],
+    "regression_tests": [
+      "Run existing CFN Loop test suite",
+      "Validate orchestrator test suite still passes",
+      "Test backward compatibility with old task-ids"
+    ]
+  },
+
+  "rollback_strategy": {
+    "phase_1": "Revert orchestrate-cfn-loop.sh to restore waiting mode calls",
+    "phase_2": "Remove invoke-gate-ack.sh, revert orchestrator changes",
+    "phase_3": "Disable context-validation skill calls in orchestrator",
+    "phase_4": "Revert to original ID generation in orchestrate-cfn-loop.sh",
+    "phase_5": "Remove validate-timeout.sh calls, use original get-agent-timeout.sh",
+    "phase_6": "Disable adaptive spawn logic, use original agent lists"
+  },
+
+  "dependencies": {
+    "phase_1": [],
+    "phase_2": ["phase_1"],
+    "phase_3": [],
+    "phase_4": [],
+    "phase_5": [],
+    "phase_6": ["phase_1"]
+  },
+
+  "risk_assessment": {
+    "high_risk_phases": ["phase-1", "phase-3"],
+    "mitigation": [
+      "Comprehensive test suite before implementation",
+      "Incremental rollout (test each phase independently)",
+      "Rollback plan validated before each phase",
+      "Parallel swarm testing in isolated environment"
+    ]
+  },
+
+  "feedback_for_other_team": {
+    "confirmed_bugs": [
+      "Waiting mode still present in agents (PATTERN-022 incomplete)",
+      "Gate pass signal lacks acknowledgment (validators may miss signal)",
+      "Context validation completely absent (enables consensus on vapor)",
+      "Product Owner decision flow has no Redis blocking (parse-only, fragile)"
+    ],
+    "false_alarms": [
+      "Confidence collection race - Redis keys properly namespaced with task-id, atomic operations",
+      "Parallel swarm collision - Task-id isolation prevents cross-swarm interference",
+      "Validator spawn timing - Working correctly (sequential after gate check)"
+    ],
+    "parameter_issues": [
+      "Task-id generation inconsistent (3+ different strategies)",
+      "Agent-id sequential numbering risky (should use UUIDs)",
+      "Context structure not validated (JSON schema needed)",
+      "Timeout validation incomplete (no phase-id check, no max limit)"
+    ],
+    "architectural_strengths": [
+      "Redis BLPOP for dependency ordering is solid",
+      "Task-id namespacing prevents swarm interference",
+      "Sequential validator spawn after gate check is optimal design",
+      "Background process synchronization with wait $PID is correct"
+    ],
+    "priority_recommendations": [
+      "P0: Fix waiting mode removal (Phase 1) - blocks agent exit, prevents adaptive specialization",
+      "P0: Implement context validation (Phase 3) - prevents consensus on vapor",
+      "P1: Add gate ACK mechanism (Phase 2) - improves reliability",
+      "P1: Standardize parameters (Phase 4) - reduces confusion",
+      "P2: Timeout validation (Phase 5) - improves robustness",
+      "P2: Adaptive specialization (Phase 6) - enables advanced workflows"
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 # Skills System Documentation
 
-**Version:** 2.0
-**Status:** Production (Phase 8 Complete - 2025-10-18)
+**Version:** 2.7
+**Status:** Production (Phase 1-3 Feedback Accumulation Complete - 2025-10-21)
 
 ## Overview
 
@@ -19,7 +19,7 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 ### Redis Coordination
 **Location:** `.claude/skills/redis-coordination/`
 **Purpose:** Zero-token agent coordination via Redis BLPOP
-**Version:** 2.0.0 (2025-10-19)
+**Version:** 2.7.0 (2025-10-21)
 
 **Key Features:**
 - **Waiting Mode**: Agents block without consuming tokens
@@ -32,10 +32,13 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 - **Health Checks**: Heartbeat monitoring with 60s TTL
 - **Graceful Shutdown**: User-initiated cancellation with cleanup
 - **Metrics Export**: Multi-format observability (JSON, Prometheus, CSV, OTLP)
+- **Feedback Accumulation** (v2.7): Multi-iteration learning via Redis history
+- **Validator Feedback** (v2.7): Structured JSON feedback from Loop 2 validators
+- **Sprint Execution** (v2.7): Sprint-aware context vs epic-level scope
 
 **Primary Scripts:**
 - `invoke-waiting-mode.sh` - Enter/exit waiting mode, wake agents, report confidence, shutdown handling
-- `orchestrate-cfn-loop.sh` - Full CFN Loop orchestration with retry, quorum, timeouts, priority, metrics
+- `orchestrate-cfn-loop.sh` - Full CFN Loop orchestration with retry, quorum, timeouts, priority, metrics, feedback accumulation
 - `init-swarm.sh` - Initialize swarm coordination with per-agent timeout configuration
 - `complete-swarm.sh` - Clean up swarm resources
 - `heartbeat.sh` - Send/monitor agent heartbeats (60s TTL, 30s updates)
@@ -43,6 +46,11 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 - `query-dlq.sh` - Inspect dead letter queue entries
 - `cancel-swarm.sh` - Graceful swarm shutdown with broadcast signal
 - `metrics-export.sh` - Export metrics in JSON/Prometheus/CSV/OTLP formats
+
+**Feedback Accumulation Functions (v2.7):**
+- `accumulate_feedback()` - Store iteration feedback in Redis (swarm:*:feedback:history)
+- `extract_validator_feedback()` - Parse JSON feedback from Loop 2 validators
+- `inject_feedback_to_context()` - Prepend feedback history to agent context for iterations > 1
 
 **Testing:**
 ```bash
@@ -63,7 +71,7 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 - `metrics-schema.json` - JSON schema for all metrics
 - `examples/grafana-dashboard.json` - 4-panel observability dashboard
 
-**Production Metrics** (v2.0.0):
+**Production Metrics** (v2.7.0):
 - Wake-up latency: <100ms (p95)
 - Token savings: 100% while waiting
 - Retry success rate: 85% recovery from transient failures
@@ -71,6 +79,9 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 - Priority queue: 0-100 scale with FIFO within priority
 - Heartbeat detection: <2min for hung agents
 - Metrics retention: 7-day default TTL
+- Feedback accumulation: Consensus improvement 0.81 → 0.90+ target
+- Validator feedback: Structured JSON with severity levels (CRITICAL/WARNING/SUGGESTION)
+- Sprint scoping: Focused deliverables prevent epic-level bloat
 
 ### Agent Spawning
 **Location:** `.claude/skills/agent-spawning/`

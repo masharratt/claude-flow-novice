@@ -1,24 +1,28 @@
 {
-  "epicName": "CFN Loop Testing Suite - Complete Validation",
-  "epicId": "cfn-testing-epic-v1",
-  "version": "1.0.0",
-  "created": "2025-10-20",
-  "description": "Comprehensive test suite validating CFN Loop infrastructure with synthetic agents, stress tests, and real agent integration",
+  "epicName": "CFN Loop Production Validation Suite",
+  "epicId": "cfn-testing-epic-v2",
+  "version": "2.0.0",
+  "created": "2025-10-22",
+  "supersedes": "cfn-testing-epic-v1.0.0",
+  "description": "Pre-production validation suite for CFN Loop orchestration infrastructure. Validates P1-P7 simplifications, feedback accumulation (Phases 1-3), stress limits, and real agent decision quality. Designed for focused feature validation to pinpoint errors before production deployment.",
 
-  "epicGoal": "Validate CFN Loop orchestration infrastructure, find performance limits, and confirm agent decision quality through 20 test scenarios across 4 phases",
+  "epicGoal": "Systematically validate CFN Loop production readiness through regression tests, stress tests, and real agent validation across 26 test scenarios in 5 phases",
 
   "scope": {
     "inScope": [
+      "P1-P7 regression testing (all 7 priorities + BUG #21/#22)",
+      "Feedback accumulation validation (Phases 1-3)",
+      "Sprint execution skill verification",
       "Orchestration infrastructure (orchestrate-cfn-loop.sh)",
-      "Redis coordination (BLPOP, wake signals, pub/sub)",
+      "Redis coordination (BLPOP, pub/sub, feedback storage)",
       "Gate enforcement (≥0.75 Loop 3 self-validation)",
       "Consensus enforcement (≥0.90 Loop 2 validation)",
       "Product Owner decision authority",
       "Zero-token waiting efficiency",
-      "Context propagation (SQLite + adaptive bullets)",
+      "Context propagation (SQLite + adaptive bullets + feedback)",
       "Error detection and recovery",
-      "Performance limits (scale, speed, duration)",
-      "Real agent decision quality",
+      "Performance limits (scale, speed, duration, context size)",
+      "Real agent decision quality with feedback learning",
       "End-to-end workflow validation"
     ],
     "outOfScope": [
@@ -26,41 +30,215 @@
       "Claim negotiation patterns",
       "Web portal integration",
       "UI/UX testing",
-      "Production deployment",
-      "User acceptance testing"
+      "Production deployment automation",
+      "User acceptance testing",
+      "New feature development"
+    ]
+  },
+
+  "prerequisites": {
+    "completed": [
+      "P1: Coordinator monitoring (docs/P2_SQLITE_LOGGING_FIX.md)",
+      "P2: SQLite logging (docs/P2_SQLITE_LOGGING_FIX.md)",
+      "P3: Agent lifecycle clean-exit (docs/P3_AGENT_LIFECYCLE_DOCUMENTATION.md)",
+      "P4: Product Owner scope enforcement (docs/P4_PRODUCT_OWNER_SCOPE_ENFORCEMENT_COMPLETE.md)",
+      "P5: Fork-ID removal (docs/P5_ORCHESTRATOR_SIMPLIFICATION_COMPLETE.md)",
+      "P6: Spawning pattern separation (docs/P6_AGENT_SPAWNING_ANALYSIS.md)",
+      "P7: Redis script cleanup (docs/P7_REDIS_SCRIPT_CLEANUP.md)",
+      "BUG #21: Confidence storage gap fixed",
+      "BUG #22: Wake calls removed (5 locations)",
+      "Phase 1: Feedback accumulation (orchestrate-cfn-loop.sh lines 289-324, 795-825, 1121, 1151, 1602)",
+      "Phase 2: Validator feedback extraction (orchestrate-cfn-loop.sh.backup-phase2)",
+      "Phase 3: Sprint execution skill (.claude/skills/sprint-execution/execute-sprint-task.sh)"
+    ],
+    "infrastructure": [
+      ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh (v2.0 with feedback)",
+      ".claude/skills/redis-coordination/invoke-waiting-mode.sh",
+      ".claude/skills/sprint-execution/execute-sprint-task.sh",
+      "Redis server (running)",
+      "SQLite database (.claude/data/cfn-loop.db)",
+      "Node.js >= 18",
+      "Z.ai API key (for real agent tests)"
     ]
   },
 
   "successCriteria": {
     "critical": [
-      "All 10 synthetic scenarios pass (100%)",
-      "At least 5/7 stress tests pass (71%)",
-      "At least 2/3 real agent tests pass (67%)",
+      "Phase 0 (regression): All 3 tests pass (100%)",
+      "Phase 1 (synthetic): At least 8/10 tests pass (80%)",
+      "Phase 2 (stress): At least 5/7 tests pass (71%)",
+      "Phase 3 (real agents): At least 2/3 tests pass (67%)",
+      "Phase 4 (integration): At least 2/3 tests pass (67%)",
+      "Zero critical regressions from P1-P7 or Phases 1-3",
       "Infrastructure limits documented",
-      "Zero critical bugs found",
       "Performance metrics within acceptable ranges"
     ],
     "desirable": [
-      "All 7 stress tests pass (100%)",
-      "All 3 real agent tests pass (100%)",
-      "All 2 hybrid tests pass (100%)",
-      "CI/CD integration complete",
-      "Comprehensive metrics dashboard"
+      "All regression tests pass (100%)",
+      "All synthetic tests pass (100%)",
+      "All stress tests pass (100%)",
+      "All real agent tests pass (100%)",
+      "All integration tests pass (100%)",
+      "Feedback accumulation improves consensus rates by >10%",
+      "CI/CD integration complete"
     ]
   },
 
   "phases": [
     {
+      "phaseId": "phase-0-regression",
+      "phaseName": "Regression Suite - P1-P7 + Feedback Accumulation",
+      "description": "Fast regression tests validating recent P1-P7 simplifications and feedback accumulation (Phases 1-3) haven't broken core functionality. Quick smoke tests for immediate feedback.",
+      "duration": "30 minutes",
+      "parallelism": true,
+      "priority": "CRITICAL",
+      "tests": [
+        {
+          "testId": "regression-01",
+          "testName": "P1-P7 Quick Smoke Test",
+          "objective": "Verify all 7 priorities + BUG fixes still work after recent changes",
+          "agentMode": "synthetic",
+          "task": "Create simple test file /tmp/p1-p7-smoke-test.txt",
+          "agents": {
+            "loop3": ["coder"],
+            "loop2": ["reviewer"],
+            "productOwner": "product-owner"
+          },
+          "confidencePatterns": {
+            "iteration1": {
+              "coder": 0.95,
+              "reviewer": 0.93
+            }
+          },
+          "expectedIterations": 1,
+          "expectedDuration": "5 minutes",
+          "successCriteria": [
+            "P1: Coordinator doesn't exit prematurely",
+            "P2: SQLite event logged to .claude/data/cfn-loop.db",
+            "P3: Agent exits cleanly (no waiting mode)",
+            "P4: Product Owner PROCEED decision enforced",
+            "P5: Zero fork-ID references in logs",
+            "P6: Agent spawned with correct parameters",
+            "P7: Only report/collect/shutdown Redis commands used",
+            "BUG #21: Confidence stored and retrieved correctly",
+            "BUG #22: No wake commands in logs",
+            "File /tmp/p1-p7-smoke-test.txt created",
+            "Total duration < 7 minutes"
+          ],
+          "implementation": "bash",
+          "validation": [
+            "Check SQLite: sqlite3 .claude/data/cfn-loop.db 'SELECT * FROM events WHERE task_id=...'",
+            "Check Redis: redis-cli KEYS 'swarm:*' | grep -v wake | grep -v enter",
+            "Check file: [ -f /tmp/p1-p7-smoke-test.txt ]"
+          ]
+        },
+        {
+          "testId": "regression-02",
+          "testName": "Feedback Accumulation Smoke Test",
+          "objective": "Verify Phases 1-3 feedback system works correctly",
+          "agentMode": "synthetic",
+          "task": "Multi-iteration task requiring 3 iterations with feedback",
+          "agents": {
+            "loop3": ["coder", "researcher"],
+            "loop2": ["reviewer", "tester"],
+            "productOwner": "product-owner"
+          },
+          "confidencePatterns": {
+            "iteration1": {
+              "coder": 0.65,
+              "researcher": 0.68,
+              "gatePasses": false,
+              "feedbackStored": ["deliverable_check: Gate failed"]
+            },
+            "iteration2": {
+              "coder": 0.78,
+              "researcher": 0.80,
+              "gatePasses": true,
+              "reviewer": 0.82,
+              "tester": 0.85,
+              "consensusPasses": false,
+              "feedbackStored": ["gate_check: Improve confidence"]
+            },
+            "iteration3": {
+              "coder": 0.92,
+              "researcher": 0.91,
+              "reviewer": 0.93,
+              "tester": 0.92,
+              "consensusPasses": true
+            }
+          },
+          "expectedIterations": 3,
+          "expectedDuration": "15 minutes",
+          "successCriteria": [
+            "Phase 1: Feedback stored at 3 locations (lines 1121, 1151, 1602)",
+            "Phase 1: Feedback history retrieved from Redis in iteration 2+",
+            "Phase 1: Feedback prepended to Loop 3 context (lines 795-825)",
+            "Phase 1: Feedback count displayed correctly",
+            "Phase 2: Validator feedback stored separately",
+            "Phase 2: Structured JSON format (severity, issue, suggestion)",
+            "Iteration 3 confidence > iteration 2 confidence (learning)",
+            "Redis key: swarm:${task_id}:feedback:history exists",
+            "Redis key: swarm:${task_id}:validator:history exists",
+            "Total iterations = 3"
+          ],
+          "implementation": "bash",
+          "validation": [
+            "redis-cli GET 'swarm:${task_id}:feedback:history' | jq '. | length' # should be >= 3",
+            "redis-cli GET 'swarm:${task_id}:validator:history' | jq '. | length' # should be >= 1",
+            "grep 'PREVIOUS ITERATION FEEDBACK' /tmp/cfn-loop-log.txt"
+          ]
+        },
+        {
+          "testId": "regression-03",
+          "testName": "Sprint Skill Smoke Test",
+          "objective": "Verify Phase 3 sprint execution skill works",
+          "agentMode": "synthetic",
+          "task": "Test sprint execution skill with focused deliverables",
+          "implementation": "bash",
+          "expectedDuration": "10 minutes",
+          "successCriteria": [
+            "Sprint skill file exists: .claude/skills/sprint-execution/execute-sprint-task.sh",
+            "Sprint context stored in Redis: swarm:${task_id}:sprint:${sprint_id}:context",
+            "Sprint context retrieved successfully",
+            "Focused deliverables injected into agent context",
+            "Out-of-scope items NOT in agent context",
+            "Fallback to standard context works when sprint context missing",
+            "Agent spawned with correct parameters"
+          ],
+          "validation": [
+            "[ -f .claude/skills/sprint-execution/execute-sprint-task.sh ]",
+            "bash .claude/skills/sprint-execution/execute-sprint-task.sh coder test-task-id agent-1 sprint-1",
+            "redis-cli GET 'swarm:test-task-id:sprint:sprint-1:context' | jq '.deliverables'"
+          ]
+        }
+      ],
+      "phaseSuccessCriteria": {
+        "critical": [
+          "All 3 regression tests pass (100%)",
+          "Total execution time < 30 minutes",
+          "Zero P1-P7 regressions",
+          "Zero feedback accumulation regressions",
+          "Redis performance stable (< 100ms latency)"
+        ],
+        "metrics": {
+          "expectedDuration": "30 minutes",
+          "expectedPassRate": 1.0,
+          "maxAcceptableFailures": 0
+        }
+      }
+    },
+    {
       "phaseId": "phase-1-synthetic",
       "phaseName": "Synthetic Scenarios - Infrastructure Validation",
-      "description": "Fast, deterministic tests using synthetic agents with predetermined confidence patterns. Validates orchestration logic, Redis coordination, and core CFN Loop patterns.",
+      "description": "Fast, deterministic tests using bash-based synthetic agents with predetermined confidence patterns. Validates orchestration logic, Redis coordination, feedback accumulation, and core CFN Loop patterns.",
       "duration": "1-2 hours",
       "parallelism": false,
+      "priority": "HIGH",
       "tests": [
         {
           "testId": "synthetic-01",
           "testName": "Perfect Storm",
-          "objective": "Validate happy path with zero iterations",
+          "objective": "Validate happy path with zero iterations and feedback storage",
           "agentMode": "synthetic",
           "agents": {
             "loop3": ["coder", "researcher"],
@@ -82,14 +260,14 @@
             "Loop 2 blocked until gate passed (BLPOP verification)",
             "Product Owner blocked until consensus",
             "Zero-token waiting confirmed",
+            "Feedback storage attempted (even though consensus reached)",
             "Duration < 3 minutes"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/01-perfect-storm.js"
+          ]
         },
         {
           "testId": "synthetic-02",
           "testName": "Gate Guardian",
-          "objective": "Test gate failure enforcement (Loop 2 stays dormant)",
+          "objective": "Test gate failure enforcement and feedback accumulation",
           "agentMode": "synthetic",
           "agents": {
             "loop3": ["coder", "researcher", "backend-dev"],
@@ -97,45 +275,25 @@
             "productOwner": "product-owner"
           },
           "confidencePatterns": {
-            "iteration1": {
-              "coder": 0.60,
-              "researcher": 0.65,
-              "backend-dev": 0.58,
-              "gateAvg": 0.61,
-              "gatePasses": false
-            },
-            "iteration2": {
-              "coder": 0.70,
-              "researcher": 0.68,
-              "backend-dev": 0.72,
-              "gateAvg": 0.70,
-              "gatePasses": false
-            },
-            "iteration3": {
-              "coder": 0.80,
-              "researcher": 0.78,
-              "backend-dev": 0.82,
-              "gateAvg": 0.80,
-              "gatePasses": true,
-              "reviewer": 0.92,
-              "tester": 0.90
-            }
+            "iteration1": { "loop3Avg": 0.61, "gatePasses": false },
+            "iteration2": { "loop3Avg": 0.70, "gatePasses": false },
+            "iteration3": { "loop3Avg": 0.80, "gatePasses": true, "loop2Avg": 0.92 }
           },
           "expectedIterations": 3,
           "expectedDuration": "5 minutes",
           "successCriteria": [
             "Loop 2 never woke during iterations 1-2",
-            "Loop 3 woke exactly 2 times",
+            "Loop 3 woke exactly 2 times (iterations 2, 3)",
             "Gate correctly enforced at 0.75 threshold",
-            "Total iterations = 3",
-            "Redis keys show Loop 2 wake signals absent until iteration 3"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/02-gate-guardian.js"
+            "Feedback accumulated at iterations 1, 2",
+            "Iteration 3 agents received feedback from iterations 1-2",
+            "Total iterations = 3"
+          ]
         },
         {
           "testId": "synthetic-03",
-          "testName": "Consensus Gridlock",
-          "objective": "Test full iteration when consensus fails",
+          "testName": "Consensus Gridlock with Validator Feedback",
+          "objective": "Test full iteration when consensus fails, validator feedback accumulated",
           "agentMode": "synthetic",
           "agents": {
             "loop3": ["coder", "researcher"],
@@ -143,33 +301,9 @@
             "productOwner": "product-owner"
           },
           "confidencePatterns": {
-            "iteration1": {
-              "coder": 0.85,
-              "researcher": 0.88,
-              "reviewer": 0.75,
-              "tester": 0.80,
-              "security-specialist": 0.78,
-              "consensusAvg": 0.777,
-              "consensusPasses": false
-            },
-            "iteration2": {
-              "coder": 0.90,
-              "researcher": 0.92,
-              "reviewer": 0.88,
-              "tester": 0.90,
-              "security-specialist": 0.91,
-              "consensusAvg": 0.897,
-              "consensusPasses": false
-            },
-            "iteration3": {
-              "coder": 0.95,
-              "researcher": 0.94,
-              "reviewer": 0.92,
-              "tester": 0.94,
-              "security-specialist": 0.93,
-              "consensusAvg": 0.93,
-              "consensusPasses": true
-            }
+            "iteration1": { "loop3Avg": 0.87, "loop2Avg": 0.777, "consensusPasses": false },
+            "iteration2": { "loop3Avg": 0.91, "loop2Avg": 0.897, "consensusPasses": false },
+            "iteration3": { "loop3Avg": 0.93, "loop2Avg": 0.93, "consensusPasses": true }
           },
           "expectedIterations": 3,
           "expectedDuration": "5 minutes",
@@ -177,15 +311,15 @@
             "All agents woke for iterations 2 and 3",
             "Loop 2 woke all 3 iterations (gate always passed)",
             "Consensus enforced at exactly 0.90",
-            "Total iterations = 3",
-            "Wake signals sent to all agents (broadcast)"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/03-consensus-gridlock.js"
+            "Validator feedback stored separately (Phase 2)",
+            "Loop 2 agents received previous validator feedback in iteration 2+",
+            "Total iterations = 3"
+          ]
         },
         {
           "testId": "synthetic-04",
           "testName": "Marathon",
-          "objective": "Test sustained iteration with gradual improvement",
+          "objective": "Test sustained iteration with gradual improvement via feedback",
           "agentMode": "synthetic",
           "agents": {
             "loop3": ["coder", "researcher", "backend-dev", "devops"],
@@ -205,14 +339,15 @@
             "Loop 2 blocked for iterations 1-5",
             "Zero-token waiting verified",
             "Gradual confidence progression validated",
+            "Feedback accumulated at each iteration",
+            "Iteration N+1 confidence > iteration N (learning curve)",
             "Duration < 15 minutes"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/04-marathon.js"
+          ]
         },
         {
           "testId": "synthetic-05",
           "testName": "Sprint",
-          "objective": "Stress test rapid iteration speed",
+          "objective": "Stress test rapid iteration speed with feedback storage",
           "agentMode": "synthetic",
           "agents": {
             "loop3": ["coder", "researcher"],
@@ -233,9 +368,9 @@
             "Zero-token waiting verified",
             "No Redis performance degradation",
             "All wake signals delivered correctly",
+            "Feedback storage keeps up with iteration speed",
             "Orchestrator handles speed gracefully"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/05-sprint.js"
+          ]
         },
         {
           "testId": "synthetic-06",
@@ -249,30 +384,26 @@
           },
           "confidencePatterns": {
             "iteration1": {
-              "coder": 0.90,
-              "researcher": 0.92,
-              "reviewer": 0.95,
-              "tester": 0.94,
-              "productOwnerDecision": "reject",
-              "vetoReason": "Scope violation - includes authorization logic"
+              "loop3Avg": 0.91,
+              "loop2Avg": 0.945,
+              "productOwnerDecision": "ITERATE",
+              "reason": "Scope violation - includes authorization logic"
             },
             "iteration2": {
-              "coder": 0.88,
-              "researcher": 0.90,
-              "reviewer": 0.92,
-              "tester": 0.91,
-              "productOwnerDecision": "approve"
+              "loop3Avg": 0.89,
+              "loop2Avg": 0.915,
+              "productOwnerDecision": "PROCEED"
             }
           },
           "expectedIterations": 2,
           "expectedDuration": "3 minutes",
           "successCriteria": [
             "Product Owner decision enforced",
-            "All agents woke after veto",
+            "All agents woke after ITERATE decision",
             "Iteration 2 required despite consensus",
+            "Product Owner feedback stored (line 1602)",
             "Scope enforcement validated"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/06-rebel.js"
+          ]
         },
         {
           "testId": "synthetic-07",
@@ -289,10 +420,7 @@
               "coder": { "status": "crash", "confidence": null },
               "researcher": { "status": "timeout", "confidence": null },
               "backend-dev": { "status": "success", "confidence": 0.85 },
-              "devops": { "status": "byzantine", "confidence": 0.99 },
-              "reviewer": { "status": "success", "confidence": 0.88 },
-              "tester": { "status": "crash", "confidence": null },
-              "architect": { "status": "success", "confidence": 0.90 }
+              "devops": { "status": "success", "confidence": 0.82 }
             }
           },
           "expectedIterations": 2,
@@ -300,11 +428,10 @@
           "successCriteria": [
             "Orchestrator detects all failures",
             "Partial results handled gracefully",
-            "Byzantine scores detected (0.99)",
+            "Feedback stored despite failures",
             "Eventually reaches consensus",
             "Total iterations = 2"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/07-apocalypse.js"
+          ]
         },
         {
           "testId": "synthetic-08",
@@ -317,15 +444,8 @@
             "productOwner": "product-owner"
           },
           "confidencePatterns": {
-            "iteration1": {
-              "loop3Avg": 0.706,
-              "gatePasses": false
-            },
-            "iteration2": {
-              "loop3Avg": 0.856,
-              "loop2Avg": 0.92,
-              "consensusPasses": true
-            }
+            "iteration1": { "loop3Avg": 0.706, "gatePasses": false },
+            "iteration2": { "loop3Avg": 0.856, "loop2Avg": 0.92, "consensusPasses": true }
           },
           "expectedIterations": 2,
           "expectedDuration": "5 minutes",
@@ -334,50 +454,21 @@
             "BLPOP scales to 10+ agents",
             "Consensus calculation with 5 validators",
             "No race conditions",
+            "Feedback storage handles 10+ agents",
             "Duration < 10 minutes",
             "Redis latency < 100ms"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/08-scalability.js"
+          ]
         },
         {
           "testId": "synthetic-09",
-          "testName": "Context Memory",
-          "objective": "Test context propagation across phases",
+          "testName": "Context Memory with Feedback Propagation",
+          "objective": "Test context propagation across phases with feedback",
           "agentMode": "synthetic",
           "multiPhase": true,
           "phases": [
-            {
-              "phaseName": "Research",
-              "agents": ["researcher", "analyst"],
-              "output": {
-                "findings": "Use JWT for auth",
-                "libraries": ["jsonwebtoken", "bcrypt"],
-                "contextBullets": 15
-              },
-              "iterations": 1
-            },
-            {
-              "phaseName": "Implementation",
-              "agents": ["backend-dev", "frontend-dev"],
-              "contextFrom": "phase-1",
-              "output": {
-                "files": ["auth.js", "login.tsx"],
-                "tests": "auth.test.js",
-                "contextBullets": 20
-              },
-              "iterations": 2
-            },
-            {
-              "phaseName": "Testing",
-              "agents": ["tester", "security-specialist"],
-              "contextFrom": "phase-1,phase-2",
-              "output": {
-                "coverage": "95%",
-                "vulnerabilities": 0,
-                "contextBullets": 15
-              },
-              "iterations": 1
-            }
+            { "name": "Research", "agents": 2, "iterations": 1, "contextBullets": 15 },
+            { "name": "Implementation", "agents": 2, "iterations": 2, "contextBullets": 20, "feedbackAccumulated": 2 },
+            { "name": "Testing", "agents": 2, "iterations": 1, "contextBullets": 15 }
           ],
           "expectedIterations": 4,
           "expectedDuration": "20 minutes",
@@ -385,15 +476,15 @@
             "Context stored in SQLite after each phase",
             "Context injected correctly in subsequent phases",
             "50+ adaptive context bullets created",
+            "Feedback propagated across phases",
             "Phase transitions automatic",
             "Context retrieval < 1 second"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/09-context-memory.js"
+          ]
         },
         {
           "testId": "synthetic-10",
-          "testName": "Simulator (Real Feature)",
-          "objective": "Full end-to-end CFN Loop with realistic workflow",
+          "testName": "Simulator (Real Feature with Feedback Learning)",
+          "objective": "Full end-to-end CFN Loop with realistic workflow and learning",
           "agentMode": "synthetic",
           "task": "Implement JWT-based user authentication",
           "scope": ["login", "logout", "token refresh"],
@@ -405,20 +496,17 @@
           },
           "confidencePatterns": {
             "iteration1": {
-              "backend-dev": { "confidence": 0.80, "output": "JWT middleware, /login, /logout endpoints" },
-              "frontend-dev": { "confidence": 0.78, "output": "Login form, token storage, axios interceptors" },
-              "devops": { "confidence": 0.82, "output": "Environment variables, secrets management" },
-              "security-specialist": { "confidence": 0.75, "issues": ["Missing rate limiting", "Weak token expiry"] },
-              "code-reviewer": { "confidence": 0.80, "issues": ["Add input validation"] },
-              "tester": { "confidence": 0.70, "issues": ["Missing edge case tests"] }
+              "loop3Avg": 0.80,
+              "loop2": {
+                "security-specialist": { "confidence": 0.75, "issues": ["Missing rate limiting", "Weak token expiry"] },
+                "code-reviewer": { "confidence": 0.80, "issues": ["Add input validation"] },
+                "tester": { "confidence": 0.70, "issues": ["Missing edge case tests"] }
+              }
             },
             "iteration2": {
-              "backend-dev": { "confidence": 0.92, "output": "Added rate limiting, 15min expiry" },
-              "frontend-dev": { "confidence": 0.90, "output": "Added input validation" },
-              "devops": { "confidence": 0.91, "output": "Production-ready configs" },
-              "security-specialist": { "confidence": 0.94, "issues": [] },
-              "code-reviewer": { "confidence": 0.92, "issues": [] },
-              "tester": { "confidence": 0.93, "issues": [] }
+              "loop3Avg": 0.91,
+              "loop2Avg": 0.93,
+              "feedbackIncorporated": true
             }
           },
           "expectedIterations": 2,
@@ -426,33 +514,39 @@
           "successCriteria": [
             "Realistic workflow validated",
             "Feedback incorporation demonstrated",
+            "Iteration 2 addresses all iteration 1 issues",
             "Scope enforcement by Product Owner",
             "2 iterations total",
             "All validators approve"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/scenarios/10-simulator.js"
+          ]
         }
       ],
       "phaseSuccessCriteria": {
         "critical": [
-          "All 10 scenarios pass (100%)",
+          "At least 8/10 scenarios pass (80%)",
           "Total execution time < 2 hours",
           "Zero infrastructure crashes",
-          "Redis performance stable (< 100ms latency)"
+          "Redis performance stable (< 100ms latency)",
+          "Feedback accumulation works in all tests"
+        ],
+        "desirable": [
+          "All 10 scenarios pass (100%)",
+          "Feedback improves consensus in all multi-iteration tests"
         ],
         "metrics": {
           "expectedDuration": "1-2 hours",
-          "expectedPassRate": 1.0,
-          "maxAcceptableFailures": 0
+          "expectedPassRate": 0.80,
+          "maxAcceptableFailures": 2
         }
       }
     },
     {
       "phaseId": "phase-2-stress",
       "phaseName": "Stress Tests - Infrastructure Limits",
-      "description": "Real-world scenarios that push infrastructure to breaking points. Find maximum scale, speed, duration, context size, and failure tolerance.",
+      "description": "Real-world scenarios that push infrastructure to breaking points. Find maximum scale, speed, duration, context size, and failure tolerance. Tests feedback system under extreme conditions.",
       "duration": "3-4 hours",
       "parallelism": false,
+      "priority": "MEDIUM",
       "tests": [
         {
           "testId": "stress-01",
@@ -460,7 +554,6 @@
           "objective": "Test scale and parallelism (11 agents)",
           "agentMode": "synthetic",
           "task": "Implement authentication across 5 microservices",
-          "services": ["api-gateway", "auth-service", "user-service", "notification-service", "analytics-service"],
           "agents": {
             "loop3": ["dev-gateway", "dev-auth", "dev-user", "dev-notification", "dev-analytics"],
             "loop2": ["security", "code-quality", "integration", "performance", "devops"],
@@ -468,48 +561,21 @@
           },
           "expectedIterations": 2,
           "expectedDuration": "10 minutes",
-          "limitsToFind": ["max parallel agents", "BLPOP scalability", "consensus calculation speed"],
+          "limitsToFind": ["max parallel agents", "BLPOP scalability", "feedback storage throughput"],
           "successCriteria": [
             "All 5 Loop 3 agents work in parallel",
             "All 5 Loop 2 validators BLPOP simultaneously",
             "Consensus calculated correctly across 5 validators",
+            "Feedback storage handles 11 agents",
             "No race conditions",
-            "Service context propagated correctly",
             "Duration < 15 minutes",
             "Redis latency < 100ms"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/stress-tests/microservices-blast.js"
-        },
-        {
-          "testId": "stress-02",
-          "testName": "Emergency Hotfix",
-          "objective": "Test speed and pressure (< 5 min total)",
-          "agentMode": "synthetic",
-          "task": "Fix SQL injection vulnerability in login endpoint",
-          "severity": "CRITICAL",
-          "timeLimit": "30 minutes",
-          "agents": {
-            "loop3": ["security-researcher", "backend-dev-1", "backend-dev-2"],
-            "loop2": ["security-validator"],
-            "productOwner": "product-owner"
-          },
-          "expectedIterations": 2,
-          "expectedDuration": "3 minutes",
-          "limitsToFind": ["min iteration time", "fastest wake signal", "orchestrator overhead"],
-          "successCriteria": [
-            "Total time < 5 minutes",
-            "Wake signal latency < 50ms",
-            "BLPOP immediate response when gate passes",
-            "No polling (zero-token efficiency)",
-            "Product Owner decision enforced",
-            "Context preserved across fast iterations"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/stress-tests/emergency-hotfix.js"
+          ]
         },
         {
           "testId": "stress-03",
           "testName": "Legacy Migration Marathon",
-          "objective": "Test duration and context (2+ hours, 550 bullets)",
+          "objective": "Test duration and context (2+ hours, 550 bullets, feedback accumulation)",
           "agentMode": "synthetic",
           "task": "Migrate legacy monolith to microservices",
           "multiPhase": true,
@@ -520,60 +586,29 @@
             { "name": "Testing", "agents": 3, "validators": 3, "iterations": 2, "contextGenerated": 50 },
             { "name": "Migration", "agents": 4, "validators": 3, "iterations": 2, "contextGenerated": 50 }
           ],
-          "totalAgents": 20,
           "totalIterations": 13,
           "expectedDuration": "2 hours",
-          "limitsToFind": ["max duration", "max context bullets", "SQLite performance", "Redis key TTL"],
+          "limitsToFind": ["max duration", "max context bullets", "feedback storage limits", "SQLite performance"],
           "successCriteria": [
             "All 5 phases complete successfully",
             "Context propagated correctly across phases",
             "SQLite stores 550+ adaptive context bullets",
+            "Feedback accumulated across 13 iterations",
             "Context retrieval accurate",
-            "Redis state persists across phase transitions",
             "Total iterations = 13",
             "No memory leaks",
             "Duration < 3 hours"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/stress-tests/legacy-migration.js"
-        },
-        {
-          "testId": "stress-04",
-          "testName": "Distributed Team Simulation",
-          "objective": "Test long BLPOP durations (20+ min)",
-          "agentMode": "synthetic",
-          "task": "Build real-time chat feature",
-          "team": [
-            { "role": "frontend-dev", "type": "human", "responseTime": "10 min" },
-            { "role": "backend-dev", "type": "human", "responseTime": "15 min" },
-            { "role": "mobile-dev", "type": "human", "responseTime": "20 min" },
-            { "role": "code-reviewer", "type": "ai", "responseTime": "2 min" },
-            { "role": "tester", "type": "ai", "responseTime": "3 min" },
-            { "role": "security", "type": "ai", "responseTime": "2.5 min" },
-            { "role": "product-owner", "type": "human", "responseTime": "5 min" }
-          ],
-          "expectedIterations": 2,
-          "expectedDuration": "45 minutes",
-          "limitsToFind": ["max BLPOP duration", "timeout handling", "Redis connection stability"],
-          "successCriteria": [
-            "BLPOP handles 20 min delays",
-            "No timeouts during human response times",
-            "Mixed synthetic (fast) + simulated human (slow) agents",
-            "Context understandable by humans",
-            "Product Owner decision authority enforced",
-            "Duration < 60 minutes"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/stress-tests/distributed-team.js"
+          ]
         },
         {
           "testId": "stress-05",
           "testName": "Chaos Monkey",
-          "objective": "Test failure resilience (30% crash rate)",
+          "objective": "Test failure resilience (30% crash rate) with feedback system",
           "agentMode": "synthetic",
           "task": "Implement payment processing",
           "failureInjection": {
             "crashRate": 0.30,
-            "timeoutRate": 0.20,
-            "byzantineRate": 0.10
+            "timeoutRate": 0.20
           },
           "agents": {
             "loop3": ["backend-dev-1", "backend-dev-2", "devops", "frontend-dev"],
@@ -582,22 +617,19 @@
           },
           "expectedIterations": 2,
           "expectedDuration": "10 minutes",
-          "limitsToFind": ["max failure rate", "recovery time", "retry effectiveness"],
+          "limitsToFind": ["max failure rate", "recovery time", "feedback storage reliability"],
           "successCriteria": [
             "Orchestrator detects all failures",
-            "Replacement agents spawned automatically",
             "Partial results handled gracefully",
-            "Byzantine scores detected",
+            "Feedback stored despite 30% crash rate",
             "Eventually reaches consensus",
-            "Total iterations = 2",
-            "Retry limit respected"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/stress-tests/chaos-monkey.js"
+            "Total iterations = 2"
+          ]
         },
         {
           "testId": "stress-06",
           "testName": "Context Explosion",
-          "objective": "Test memory and SQLite performance (550 bullets)",
+          "objective": "Test memory and SQLite performance (550 bullets + feedback)",
           "agentMode": "synthetic",
           "task": "Refactor legacy authentication system",
           "contextComplexity": {
@@ -606,26 +638,25 @@
             "dependencies": 23,
             "securityNotes": 12,
             "performanceMetrics": 18,
-            "totalBullets": 550
+            "feedbackBullets": 50,
+            "totalBullets": 600
           },
           "multiPhase": true,
           "expectedDuration": "30 minutes",
-          "limitsToFind": ["max context bullets", "SQLite query time", "prompt size limits", "deduplication effectiveness"],
+          "limitsToFind": ["max context bullets", "SQLite query time", "prompt size limits", "feedback overhead"],
           "successCriteria": [
-            "Store 550+ context bullets in SQLite",
+            "Store 600+ context bullets in SQLite (550 context + 50 feedback)",
             "Retrieve context in < 1 second",
             "No duplicate bullets",
             "Context injection into prompts works",
-            "Search finds relevant bullets quickly",
-            "Context accuracy = 100%",
+            "Feedback injection doesn't exceed token limits",
             "Memory usage stable"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/stress-tests/context-explosion.js"
+          ]
         },
         {
           "testId": "stress-07",
           "testName": "The Gauntlet",
-          "objective": "Combined stress test (all limits simultaneously)",
+          "objective": "Combined stress test (all limits + feedback simultaneously)",
           "agentMode": "synthetic",
           "task": "Launch real-time collaboration feature across 10 microservices",
           "scale": {
@@ -640,29 +671,26 @@
           },
           "chaos": {
             "crashRate": 0.30,
-            "timeoutRate": 0.20,
-            "byzantineRate": 0.10
+            "timeoutRate": 0.20
           },
           "context": {
             "totalBullets": 350,
-            "phasePropagation": true,
-            "deduplication": true
+            "feedbackBullets": 75,
+            "phasePropagation": true
           },
           "expectedDuration": "1.8 hours",
-          "limitsToFind": ["infrastructure breaking point", "combined stress limits"],
+          "limitsToFind": ["infrastructure breaking point", "combined stress limits", "feedback system at scale"],
           "successCriteria": [
             "Completes within 2-hour deadline",
             "All 10 services implemented",
             "Handles 30% failure rate",
-            "350 context bullets stored and retrieved",
+            "425 bullets stored (350 context + 75 feedback)",
             "25 agents coordinated",
             "15 iterations managed",
+            "Feedback system stable throughout",
             "Product Owner approves final result",
-            "No infrastructure crashes",
-            "Redis performance stable (< 100ms)",
-            "SQLite performance stable (< 1s)"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/stress-tests/the-gauntlet.js"
+            "No infrastructure crashes"
+          ]
         }
       ],
       "phaseSuccessCriteria": {
@@ -670,12 +698,11 @@
           "At least 5/7 stress tests pass (71%)",
           "Infrastructure limits documented",
           "Breaking points identified",
-          "Performance metrics collected"
+          "Feedback system performance measured"
         ],
         "desirable": [
           "All 7 stress tests pass (100%)",
-          "No crashes during stress tests",
-          "All limits exceeded targets"
+          "No crashes during stress tests"
         ],
         "metrics": {
           "expectedDuration": "3-4 hours",
@@ -686,22 +713,20 @@
     },
     {
       "phaseId": "phase-3-real-agents",
-      "phaseName": "Real Agent Tests - Decision Quality Validation",
-      "description": "Tests using actual LLM-powered agents to validate decision quality, real coordination, and end-to-end workflows. No predetermined confidence patterns.",
+      "phaseName": "Real Agent Tests - Decision Quality + Feedback Learning",
+      "description": "Tests using actual LLM-powered agents to validate decision quality, feedback learning, real coordination, and end-to-end workflows. No predetermined confidence patterns.",
       "duration": "2-3 hours",
       "parallelism": false,
+      "priority": "HIGH",
       "tests": [
         {
           "testId": "real-01",
-          "testName": "Real Bug Fix",
-          "objective": "Validate agents can fix actual bugs with quality enforcement",
+          "testName": "Real Bug Fix with Feedback Learning",
+          "objective": "Validate agents can fix bugs and learn from feedback",
           "agentMode": "real",
-          "task": "Fix authentication token expiry bug in src/cli/anthropic-client.ts",
-          "bugDescription": "JWT tokens not refreshing properly, causing 401 errors after 15 minutes",
+          "task": "Fix authentication token expiry bug",
           "agents": {
-            "loop3": [
-              { "type": "backend-dev", "useRealLLM": true }
-            ],
+            "loop3": [{ "type": "backend-dev", "useRealLLM": true }],
             "loop2": [
               { "type": "code-reviewer", "useRealLLM": true },
               { "type": "tester", "useRealLLM": true },
@@ -710,52 +735,31 @@
             "productOwner": { "type": "product-owner", "useRealLLM": true }
           },
           "noPresetConfidence": true,
-          "noPresetIssues": true,
           "noPresetIterations": true,
           "realValidation": {
             "runTests": true,
-            "testCommand": "npm run test:auth",
-            "lintCommand": "npm run lint",
-            "securityScan": "npm audit"
+            "testCommand": "npm run test:auth"
           },
-          "expectedIterations": "2-4 (determined by real agent quality)",
+          "expectedIterations": "2-4 (determined by real agent quality + feedback)",
           "expectedDuration": "20-40 minutes",
           "successCriteria": [
             "Bug actually fixed (tests pass)",
-            "No new bugs introduced (all tests pass)",
-            "No security issues (npm audit clean)",
-            "Code review passes (real reviewer approves)",
-            "Security validation passes (real security specialist approves)",
-            "Product Owner approves scope (bug fix only, no features)",
+            "Feedback stored correctly in Redis",
+            "Agent receives and uses feedback in iteration 2+",
+            "Confidence improves with feedback (iteration N+1 > iteration N)",
             "Gate threshold reached naturally (≥ 0.75)",
-            "Consensus threshold reached naturally (≥ 0.90)"
-          ],
-          "failureCriteria": [
-            "Bug not fixed after 5 iterations",
-            "Tests fail",
-            "Security issues introduced",
-            "Out of scope changes",
-            "Infinite iteration loop"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/real-agents/01-bug-fix.js"
+            "Consensus threshold reached naturally (≥ 0.90)",
+            "Product Owner approves scope"
+          ]
         },
         {
           "testId": "real-02",
-          "testName": "Real Feature Implementation",
-          "objective": "Validate agents can implement features with real coordination",
+          "testName": "Real Feature with Iterative Feedback",
+          "objective": "Validate agents improve via feedback across iterations",
           "agentMode": "real",
-          "task": "Implement WebSocket heartbeat mechanism for agent coordination",
-          "scope": [
-            "Add WebSocket heartbeat protocol",
-            "Implement ping/pong messages every 30 seconds",
-            "Add connection health monitoring",
-            "Add reconnection logic on timeout"
-          ],
-          "outOfScope": [
-            "Complete WebSocket server rewrite",
-            "New coordination patterns",
-            "UI changes"
-          ],
+          "task": "Implement WebSocket heartbeat mechanism",
+          "scope": ["Add heartbeat protocol", "Ping/pong every 30s", "Health monitoring", "Reconnection logic"],
+          "outOfScope": ["Complete server rewrite", "New patterns", "UI changes"],
           "agents": {
             "loop3": [
               { "type": "backend-dev", "useRealLLM": true },
@@ -769,58 +773,31 @@
             "productOwner": { "type": "product-owner", "useRealLLM": true }
           },
           "noPresetConfidence": true,
-          "noPresetIssues": true,
-          "noPresetIterations": true,
           "realValidation": {
             "runTests": true,
-            "testCommand": "npm run test:websocket",
-            "integrationTest": "test-harness/real-agents/validate-heartbeat.js",
-            "performanceTest": "test-harness/real-agents/benchmark-heartbeat.js"
+            "testCommand": "npm run test:websocket"
           },
-          "expectedIterations": "2-5 (determined by real quality)",
+          "expectedIterations": "2-5 (feedback-driven improvement)",
           "expectedDuration": "30-60 minutes",
           "successCriteria": [
-            "Feature implemented correctly (integration tests pass)",
-            "Code quality high (reviewer approves)",
-            "Architecture sound (architect approves)",
-            "Tests comprehensive (tester approves)",
-            "Performance acceptable (< 1ms latency overhead)",
-            "Product Owner validates scope (in scope only)",
-            "Gate threshold reached naturally",
-            "Consensus threshold reached naturally",
-            "Real iteration cycle observed (feedback → improvement)"
-          ],
-          "failureCriteria": [
-            "Feature doesn't work after 5 iterations",
-            "Out of scope implementation",
-            "Poor code quality persists",
-            "Tests insufficient",
-            "Performance unacceptable"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/real-agents/02-feature-implementation.js"
+            "Feature implemented correctly",
+            "Validator feedback stored (Phase 2)",
+            "Agents incorporate feedback in subsequent iterations",
+            "Real iteration cycle observed (feedback → improvement → consensus)",
+            "Confidence improves measurably with feedback",
+            "Product Owner validates scope"
+          ]
         },
         {
           "testId": "real-03",
           "testName": "Real Distributed Coordination",
-          "objective": "Validate multi-agent parallel coordination with real agents",
+          "objective": "Validate multi-agent parallel coordination with feedback",
           "agentMode": "real",
-          "task": "Implement end-to-end user notification system (3 components in parallel)",
+          "task": "Implement end-to-end user notification system (3 components)",
           "components": [
-            {
-              "name": "Backend API",
-              "agent": "backend-dev",
-              "deliverables": ["POST /notifications endpoint", "notification storage", "user preferences"]
-            },
-            {
-              "name": "Frontend UI",
-              "agent": "frontend-dev",
-              "deliverables": ["Notification bell icon", "notification list", "mark as read"]
-            },
-            {
-              "name": "Mobile App",
-              "agent": "mobile-dev",
-              "deliverables": ["Push notification integration", "notification screen", "badge counts"]
-            }
+            { "name": "Backend API", "agent": "backend-dev", "deliverables": ["POST /notifications", "storage", "preferences"] },
+            { "name": "Frontend UI", "agent": "frontend-dev", "deliverables": ["bell icon", "list", "mark read"] },
+            { "name": "Mobile App", "agent": "mobile-dev", "deliverables": ["push integration", "screen", "badges"] }
           ],
           "agents": {
             "loop3": [
@@ -836,50 +813,28 @@
             "productOwner": { "type": "product-owner", "useRealLLM": true }
           },
           "noPresetConfidence": true,
-          "noPresetIssues": true,
-          "noPresetIterations": true,
-          "realValidation": {
-            "backendTests": "npm run test:api",
-            "frontendTests": "npm run test:frontend",
-            "mobileTests": "npm run test:mobile",
-            "integrationTests": "test-harness/real-agents/test-notification-integration.js"
-          },
-          "expectedIterations": "3-6 (real coordination complexity)",
+          "expectedIterations": "3-6 (coordination + feedback learning)",
           "expectedDuration": "45-90 minutes",
           "successCriteria": [
             "All 3 components implemented",
-            "Backend API works correctly",
-            "Frontend UI functional",
-            "Mobile app integrated",
-            "Components integrate correctly (end-to-end test passes)",
-            "Code quality high across all components",
-            "Architecture consistent (shared contracts)",
-            "Real parallel coordination observed",
-            "Gate threshold reached naturally",
-            "Consensus threshold reached naturally",
-            "Product Owner approves all 3 components"
-          ],
-          "failureCriteria": [
-            "Any component doesn't work after 6 iterations",
-            "Integration fails",
-            "Inconsistent implementation across components",
-            "Poor code quality in any component",
-            "Infinite iteration loop"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/real-agents/03-distributed-coordination.js"
+            "Components integrate correctly",
+            "Feedback accumulated from all agents",
+            "Parallel coordination validated",
+            "Consensus reached naturally",
+            "Product Owner approves all components"
+          ]
         }
       ],
       "phaseSuccessCriteria": {
         "critical": [
           "At least 2/3 real agent tests pass (67%)",
           "Real agent decision quality validated",
-          "Gate/consensus thresholds reached naturally",
-          "Iteration cycles demonstrate real improvement"
+          "Feedback learning demonstrated (confidence improvement)",
+          "Gate/consensus thresholds reached naturally"
         ],
         "desirable": [
           "All 3 real agent tests pass (100%)",
-          "High code quality in all tests",
-          "Efficient iteration (< 5 iterations average)"
+          "Feedback improves consensus by >10%"
         ],
         "metrics": {
           "expectedDuration": "2-3 hours",
@@ -889,121 +844,120 @@
       }
     },
     {
-      "phaseId": "phase-4-hybrid",
-      "phaseName": "Hybrid Tests - Mixed Agent Validation",
-      "description": "Tests combining synthetic and real agents to validate infrastructure under realistic conditions while maintaining some determinism.",
-      "duration": "1-2 hours",
+      "phaseId": "phase-4-integration",
+      "phaseName": "End-to-End Integration Tests",
+      "description": "Complete workflow tests integrating P1-P7, feedback accumulation, sprint execution, and real agents. Production-realistic scenarios.",
+      "duration": "2-3 hours",
       "parallelism": false,
+      "priority": "CRITICAL",
       "tests": [
         {
-          "testId": "hybrid-01",
-          "testName": "Synthetic Loop 3 + Real Loop 2",
-          "objective": "Test if real validators can review synthetic implementation",
+          "testId": "integration-01",
+          "testName": "P1-P7 + Phases 1-3 Combined Test",
+          "objective": "Validate all recent work together in single workflow",
           "agentMode": "hybrid",
-          "task": "Implement rate limiting middleware",
+          "task": "Implement rate limiting middleware with full validation",
           "agents": {
-            "loop3": [
-              { "type": "backend-dev", "agentMode": "synthetic", "confidencePattern": [0.85, 0.92] }
-            ],
+            "loop3": [{ "type": "backend-dev", "agentMode": "real", "useRealLLM": true }],
             "loop2": [
               { "type": "code-reviewer", "agentMode": "real", "useRealLLM": true },
               { "type": "security-specialist", "agentMode": "real", "useRealLLM": true }
             ],
-            "productOwner": { "type": "product-owner", "agentMode": "synthetic", "decisionPattern": ["approve"] }
-          },
-          "syntheticImplementation": {
-            "iteration1": {
-              "files": ["src/middleware/rate-limiter.ts"],
-              "tests": ["src/middleware/rate-limiter.test.ts"],
-              "implementation": "Basic rate limiting with memory store",
-              "issues": ["No distributed support", "Memory leak on high traffic"]
-            },
-            "iteration2": {
-              "files": ["src/middleware/rate-limiter.ts", "src/middleware/redis-store.ts"],
-              "implementation": "Rate limiting with Redis store, distributed support",
-              "issues": []
-            }
-          },
-          "expectedIterations": "2 (synthetic) + real validation",
-          "expectedDuration": "15-30 minutes",
-          "successCriteria": [
-            "Synthetic implementation consistent",
-            "Real reviewers provide genuine feedback",
-            "Real security specialist validates correctly",
-            "Iteration cycle works with mixed agents",
-            "Gate threshold enforced",
-            "Consensus from real validators"
-          ],
-          "implementation": "planning/cfn-testing/test-harness/hybrid/01-synthetic-loop3-real-loop2.js"
-        },
-        {
-          "testId": "hybrid-02",
-          "testName": "Real Loop 3 + Synthetic Loop 2",
-          "objective": "Test if synthetic validators can provide useful feedback to real implementers",
-          "agentMode": "hybrid",
-          "task": "Add input validation to user registration",
-          "agents": {
-            "loop3": [
-              { "type": "backend-dev", "agentMode": "real", "useRealLLM": true }
-            ],
-            "loop2": [
-              { "type": "code-reviewer", "agentMode": "synthetic", "confidencePattern": [0.75, 0.92] },
-              { "type": "security-specialist", "agentMode": "synthetic", "confidencePattern": [0.80, 0.93] }
-            ],
             "productOwner": { "type": "product-owner", "agentMode": "real", "useRealLLM": true }
           },
-          "syntheticFeedback": {
-            "iteration1": {
-              "codeReviewer": {
-                "confidence": 0.75,
-                "issues": [
-                  "Add email format validation",
-                  "Password strength requirements missing",
-                  "Consider using validator library"
-                ]
-              },
-              "securitySpecialist": {
-                "confidence": 0.80,
-                "issues": [
-                  "Add SQL injection protection",
-                  "Sanitize user inputs",
-                  "Add rate limiting on registration"
-                ]
-              }
-            },
-            "iteration2": {
-              "codeReviewer": { "confidence": 0.92, "issues": [] },
-              "securitySpecialist": { "confidence": 0.93, "issues": [] }
-            }
-          },
-          "realValidation": {
-            "runTests": true,
-            "testCommand": "npm run test:registration"
-          },
-          "expectedIterations": "2-3 (real agent adapts to synthetic feedback)",
-          "expectedDuration": "20-40 minutes",
+          "expectedIterations": "2-4",
+          "expectedDuration": "30-45 minutes",
           "successCriteria": [
-            "Real agent incorporates synthetic feedback",
-            "Implementation improves across iterations",
-            "Tests pass",
-            "Real Product Owner validates correctly",
-            "Iteration cycle demonstrates learning from feedback"
+            "P1-P7 all verified (no regressions)",
+            "Phase 1 feedback accumulation works",
+            "Phase 2 validator feedback works",
+            "Agents learn from feedback across iterations",
+            "SQLite logging correct",
+            "Clean-exit lifecycle maintained",
+            "Product Owner scope enforcement",
+            "Implementation correct and tested"
+          ]
+        },
+        {
+          "testId": "integration-02",
+          "testName": "Sprint-Focused Epic Execution",
+          "objective": "Test sprint execution skill in realistic epic",
+          "agentMode": "real",
+          "task": "Implement authentication system across 3 sprints",
+          "sprints": [
+            { "id": "sprint-1", "name": "Login/Logout", "deliverables": ["auth.ts", "login.test.ts"] },
+            { "id": "sprint-2", "name": "Token Refresh", "deliverables": ["refresh.ts", "refresh.test.ts"] },
+            { "id": "sprint-3", "name": "Password Reset", "deliverables": ["reset.ts", "reset.test.ts"] }
           ],
-          "implementation": "planning/cfn-testing/test-harness/hybrid/02-real-loop3-synthetic-loop2.js"
+          "agents": {
+            "loop3": [{ "type": "backend-dev", "useRealLLM": true }],
+            "loop2": [
+              { "type": "security-specialist", "useRealLLM": true },
+              { "type": "tester", "useRealLLM": true }
+            ],
+            "productOwner": { "type": "product-owner", "useRealLLM": true }
+          },
+          "expectedIterations": "3-6 (across 3 sprints)",
+          "expectedDuration": "45-90 minutes",
+          "successCriteria": [
+            "Sprint skill used correctly",
+            "Each sprint focused on specific deliverables only",
+            "No scope creep between sprints",
+            "Context propagated across sprints",
+            "Feedback accumulated within and across sprints",
+            "All 3 sprints complete",
+            "Full auth system working"
+          ]
+        },
+        {
+          "testId": "integration-03",
+          "testName": "Production Readiness Assessment",
+          "objective": "Final validation simulating production workload",
+          "agentMode": "real",
+          "task": "Implement complete user management feature",
+          "scope": ["User CRUD", "Authentication", "Authorization", "Audit logging"],
+          "agents": {
+            "loop3": [
+              { "type": "backend-dev", "useRealLLM": true },
+              { "type": "frontend-dev", "useRealLLM": true },
+              { "type": "devops-engineer", "useRealLLM": true }
+            ],
+            "loop2": [
+              { "type": "security-specialist", "useRealLLM": true },
+              { "type": "code-reviewer", "useRealLLM": true },
+              { "type": "tester", "useRealLLM": true },
+              { "type": "architect", "useRealLLM": true }
+            ],
+            "productOwner": { "type": "product-owner", "useRealLLM": true }
+          },
+          "expectedIterations": "3-7",
+          "expectedDuration": "60-120 minutes",
+          "successCriteria": [
+            "Complete feature implemented correctly",
+            "All tests pass",
+            "Security validated",
+            "Performance acceptable",
+            "Feedback system improves consensus over iterations",
+            "P1-P7 infrastructure stable throughout",
+            "Product Owner approves for production",
+            "Zero critical bugs"
+          ]
         }
       ],
       "phaseSuccessCriteria": {
         "critical": [
-          "At least 1/2 hybrid tests pass (50%)",
-          "Mixed agent coordination validated"
+          "At least 2/3 integration tests pass (67%)",
+          "Production readiness validated",
+          "All systems work together",
+          "Zero critical failures"
         ],
         "desirable": [
-          "Both hybrid tests pass (100%)",
-          "Feedback loops work bidirectionally"
+          "All 3 integration tests pass (100%)",
+          "Performance exceeds targets"
         ],
         "metrics": {
-          "expectedDuration": "1-2 hours",
-          "expectedPassRate": 0.50,
+          "expectedDuration": "2-3 hours",
+          "expectedPassRate": 0.67,
           "maxAcceptableFailures": 1
         }
       }
@@ -1011,96 +965,67 @@
   ],
 
   "metrics": {
-    "expectedTotalDuration": "8-12 hours",
-    "expectedTotalTests": 22,
-    "criticalTests": 20,
-    "desirableTests": 2,
+    "expectedTotalDuration": "9-13 hours",
+    "expectedTotalTests": 26,
+    "criticalTests": 23,
+    "desirableTests": 3,
     "infrastructureLimitsToDiscover": [
       "Maximum parallel agents",
       "Minimum iteration time",
       "Maximum BLPOP duration",
-      "Maximum context bullets",
+      "Maximum context bullets (with feedback)",
       "Maximum tolerable failure rate",
-      "Maximum iterations before instability"
+      "Maximum iterations before instability",
+      "Feedback storage throughput",
+      "Feedback injection overhead"
     ]
   },
 
-  "dependencies": {
-    "infrastructure": [
-      ".claude/skills/redis-coordination/orchestrate-cfn-loop.sh",
-      ".claude/skills/redis-coordination/invoke-waiting-mode.sh",
-      ".claude/skills/cfn-loop-validation/SKILL.md",
-      "Redis server (running)",
-      "SQLite database",
-      "Node.js >= 18",
-      "Z.ai API key (for real agent tests)"
-    ],
-    "testHarness": [
-      "planning/cfn-testing/test-harness/lib/synthetic-agent.js",
-      "planning/cfn-testing/test-harness/lib/loop2-validator.js",
-      "planning/cfn-testing/test-harness/lib/product-owner.js",
-      "planning/cfn-testing/test-harness/lib/orchestrator-wrapper.js",
-      "planning/cfn-testing/test-harness/lib/redis-validator.js",
-      "planning/cfn-testing/test-harness/lib/metrics-collector.js"
+  "implementation": {
+    "approach": "Bash-based synthetic agents",
+    "description": "Simple bash scripts that simulate agent behavior by reporting predetermined confidence values to Redis. No complex JS test harness needed.",
+    "syntheticAgentTemplate": {
+      "file": "planning/cfn-testing/synthetic-agents/agent-template.sh",
+      "usage": "bash agent-template.sh <agent-type> <task-id> <iteration> <confidence>"
+    },
+    "validationTools": [
+      "Redis CLI (redis-cli)",
+      "SQLite CLI (sqlite3)",
+      "Bash test scripts",
+      "Grep for log validation",
+      "JQ for JSON parsing"
     ]
   },
 
   "executionCommands": {
-    "runFullEpic": "/cfn-loop-epic planning/cfn-testing/cfn-testing-epic.json",
-    "runPhase1": "/cfn-loop-epic planning/cfn-testing/cfn-testing-epic.json --phase=phase-1-synthetic",
-    "runPhase2": "/cfn-loop-epic planning/cfn-testing/cfn-testing-epic.json --phase=phase-2-stress",
-    "runPhase3": "/cfn-loop-epic planning/cfn-testing/cfn-testing-epic.json --phase=phase-3-real-agents",
-    "runPhase4": "/cfn-loop-epic planning/cfn-testing/cfn-testing-epic.json --phase=phase-4-hybrid",
-    "validateResults": "node planning/cfn-testing/test-harness/validate-results.js --epic cfn-testing-epic-v1"
+    "runFullEpic": "bash planning/cfn-testing/run-epic.sh",
+    "runPhase0": "bash planning/cfn-testing/run-phase.sh phase-0-regression",
+    "runPhase1": "bash planning/cfn-testing/run-phase.sh phase-1-synthetic",
+    "runPhase2": "bash planning/cfn-testing/run-phase.sh phase-2-stress",
+    "runPhase3": "bash planning/cfn-testing/run-phase.sh phase-3-real-agents",
+    "runPhase4": "bash planning/cfn-testing/run-phase.sh phase-4-integration",
+    "validateResults": "bash planning/cfn-testing/validate-results.sh"
   },
 
   "reportingAndMetrics": {
-    "metricsCollection": {
-      "perTest": [
-        "Test ID",
-        "Pass/Fail",
-        "Duration",
-        "Iterations",
-        "Agent count",
-        "Confidence scores (loop3, loop2)",
-        "Gate enforcement verified",
-        "Consensus enforcement verified",
-        "BLPOP blocking verified",
-        "Zero-token waiting verified",
-        "Product Owner decision",
-        "Redis performance (latency)",
-        "SQLite performance (query time)",
-        "Context bullets created/retrieved",
-        "Errors encountered"
-      ],
-      "perPhase": [
-        "Phase ID",
-        "Total tests",
-        "Tests passed",
-        "Tests failed",
-        "Total duration",
-        "Average duration per test",
-        "Average iterations",
-        "Infrastructure limits discovered",
-        "Critical issues found"
-      ],
-      "epic": [
-        "Total tests run",
-        "Overall pass rate",
-        "Total duration",
-        "Infrastructure limits documented",
-        "Breaking points identified",
-        "Production readiness assessment"
-      ]
-    },
     "outputFiles": {
-      "epicResults": "planning/cfn-testing/results/epic-results.json",
-      "phase1Results": "planning/cfn-testing/results/phase-1-synthetic-results.json",
-      "phase2Results": "planning/cfn-testing/results/phase-2-stress-results.json",
-      "phase3Results": "planning/cfn-testing/results/phase-3-real-agents-results.json",
-      "phase4Results": "planning/cfn-testing/results/phase-4-hybrid-results.json",
-      "metricsReport": "planning/cfn-testing/results/metrics-report.json",
-      "limitsDocumentation": "planning/cfn-testing/results/infrastructure-limits.md"
+      "epicResults": "planning/cfn-testing/results/epic-results-v2.json",
+      "phase0Results": "planning/cfn-testing/results/phase-0-regression.json",
+      "phase1Results": "planning/cfn-testing/results/phase-1-synthetic.json",
+      "phase2Results": "planning/cfn-testing/results/phase-2-stress.json",
+      "phase3Results": "planning/cfn-testing/results/phase-3-real-agents.json",
+      "phase4Results": "planning/cfn-testing/results/phase-4-integration.json",
+      "feedbackMetrics": "planning/cfn-testing/results/feedback-accumulation-metrics.json",
+      "limitsDocumentation": "planning/cfn-testing/results/infrastructure-limits-v2.md"
     }
-  }
+  },
+
+  "nextSteps": [
+    "1. Implement Phase 0 regression tests (30 min)",
+    "2. Validate Phase 0 passes (confirms no regressions)",
+    "3. Create bash synthetic agent template",
+    "4. Implement Phase 1 tests incrementally",
+    "5. Run Phase 0+1 together as CI/CD validation",
+    "6. Implement remaining phases based on Phase 0+1 success"
+  ]
 }

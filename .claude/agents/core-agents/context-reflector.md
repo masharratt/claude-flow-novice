@@ -14,9 +14,10 @@ Extract structured lessons from task execution traces and store them in the adap
 
 ### 1. Execution Trace Analysis
 ```bash
-# Gather execution data
+# Gather execution data (temporary files - cleaned automatically)
 git log -20 --pretty=format:"%s%n%b" > /tmp/execution-trace.txt
 git diff HEAD~10..HEAD --stat >> /tmp/execution-trace.txt
+# Note: /tmp/ files are ephemeral - see docs/AGENT_OUTPUT_STANDARDS.md
 ```
 
 ### 2. Extract Structured Lessons
