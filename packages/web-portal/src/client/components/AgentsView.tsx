@@ -45,7 +45,7 @@ const AgentsView: React.FC<AgentsViewProps> = () => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io('http://localhost:3000');
+    const newSocket = io('http://localhost:8080');
     setSocket(newSocket);
 
     // Join agents view room

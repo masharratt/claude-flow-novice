@@ -549,3 +549,152 @@ See `.artifacts/analytics/context-reduction-report.json`
 - **Confidence**: 0.95
 - **Priority**: 9/10
 
+
+## Adaptive Context Extensions: CFN Loop Context Injection Insights (BUG #20)
+
+### Strategy Patterns
+
+#### STRAT-020: Mandatory Deliverable Verification
+- **Context**: CFN Loop Consensus Validation
+- **Insight**: Implement mandatory deliverable verification with forced iteration when no files created. After Loop 2 consensus, check git status for file changes. If task requires implementation (keywords: create/build/implement) but git shows zero changes, override consensus and force ITERATE with explicit deliverable requirements in feedback. Prevents 'consensus on vapor' where validators approve plans without actual code.
+- **Tags**: deliverable-verification, consensus-validation, git-diff, cfn-loop, quality-gate
+- **Confidence**: 0.95
+- **Priority**: 10/10
+
+#### STRAT-021: Standardized Context Extraction Templates
+- **Context**: Coordinator Design
+- **Insight**: Use standardized context extraction templates in coordinators. Template structure: epicGoal (1-2 sentences), inScope (list), outOfScope (list), deliverables (file paths), directory (creation path), acceptanceCriteria (measurable requirements). Extract using bash text processing (grep, sed, jq) with reasonable defaults for missing fields. Prevents minimal context ('Checkpoint' + '4.1') that causes wrong deliverables.
+- **Tags**: context-extraction, coordinator, templates, standardization, parsing
+- **Confidence**: 0.93
+- **Priority**: 9/10
+
+### Implementation Patterns
+
+#### PATTERN-020: Multi-Layer Context Injection
+- **Context**: Coordinator → Orchestrator → Agent Flow
+- **Insight**: When implementing multi-layer coordination (coordinator → orchestrator → agents), ensure context flows through ALL layers. Pattern: Coordinator extracts context from task description, orchestrator retrieves context from Redis and injects into agent spawn parameters, agents receive complete deliverables/acceptance criteria in --context parameter. Breaking this chain causes 'consensus on vapor' (high confidence, zero deliverables).
+- **Tags**: context-injection, cfn-loop, coordination, multi-layer, deliverables
+- **Confidence**: 0.92
+- **Priority**: 9/10
+
+#### PATTERN-021: Context Validation Pipeline
+- **Context**: Multi-Layer Coordination
+- **Insight**: Design context validation pipeline with checkpoints at each layer. Pattern: (1) Coordinator validates extracted context has deliverables/acceptance criteria before spawning orchestrator, (2) Orchestrator validates Redis context retrieval succeeded before spawning agents, (3) Agents validate received context contains required fields before starting work. Each layer logs validation results. Fail-fast prevents cascading context loss.
+- **Tags**: validation, context-injection, fail-fast, multi-layer, checkpoints
+- **Confidence**: 0.87
+- **Priority**: 8/10
+
+#### PATTERN-022: Agent Lifecycle - Exit vs Waiting Mode
+- **Context**: CFN Loop Agent Management
+- **Insight**: When agents enter waiting mode after reporting confidence, they block orchestrator's wait $PID indefinitely. Solution: Remove waiting mode from CFN protocol Step 3, let agents exit cleanly. Enables adaptive agent specialization - orchestrator can spawn different specialist (security-specialist for security issues, not original coder) for next iteration based on feedback type. Pattern validated by BUG #18 fix.
+- **Tags**: waiting-mode, agent-lifecycle, adaptive-specialization, orchestrator-blocking
+- **Confidence**: 0.89
+- **Priority**: 8/10
+
+### Anti-Patterns
+
+#### ANTI-020: Context Storage Without Injection
+- **Context**: Redis Coordination
+- **Insight**: Avoid storing context in Redis without retrieving and injecting it into agent prompts. Anti-pattern: Orchestrator stores epic-context, phase-context, success-criteria in Redis but spawns agents with generic context ('Loop 3 implementation for iteration N'). Result: Agents have no access to deliverables list, acceptance criteria, or directory paths despite context being 'available'.
+- **Tags**: context-injection, redis, agent-spawning, storage-without-use
+- **Confidence**: 0.88
+- **Priority**: 8/10
+
+#### ANTI-021: Generic Context When Specifics Exist
+- **Context**: Agent Spawning
+- **Insight**: Never pass generic iteration-level context when task-specific deliverables exist. Anti-pattern: Agent receives 'Loop 3 implementation for iteration 2' when Redis contains detailed deliverables list. Agents have no telepathy - they cannot infer '.claude/skills/checkpoint-state/SKILL.md' from 'iteration 2'. Always inject complete deliverables, directory paths, and acceptance criteria even if 'already in Redis'.
+- **Tags**: agent-context, specificity, deliverables, telepathy-fallacy, explicitness
+- **Confidence**: 0.91
+- **Priority**: 9/10
+
+### Edge Cases & Testing
+
+#### EDGE-020: Comparative Agent Spawn Testing
+- **Context**: Context Debugging
+- **Insight**: When debugging context issues, use comparative agent spawn testing. Edge case discovered: Agents succeed when spawned manually with explicit context ('Create /tmp/test.sh') but fail in CFN Loop with generic context ('Loop 3 implementation'). This reveals context injection failure rather than tool/API issues. Test pattern: Manual spawn with explicit deliverables → verify file created → confirms agent capability → proves orchestrator context gap.
+- **Tags**: debugging, context-testing, manual-spawn, comparative-testing, isolation
+- **Confidence**: 0.90
+- **Priority**: 7/10
+
+## Sprint Execution in Claude Flow Novice
+
+### Sprint Context Injection
+
+#### Purpose
+Decompose large epics into focused, manageable sprints with clear deliverables and scope boundaries.
+
+#### Key Principles
+1. **Focused Scope**: Each sprint targets a specific subset of epic requirements
+2. **Incremental Progress**: Sprints build upon each other
+3. **Precise Deliverables**: Create only sprint-specific files
+4. **Context Specificity**: Agents receive sprint-level, not epic-level context
+
+#### Sprint Context Structure
+
+```json
+{
+  "sprint_name": "P1 Coordinator Monitoring",
+  "sprint_num": 1,
+  "total_sprints": 7,
+  "deliverables": [
+    "test-p1-monitoring.sh",
+    "docs/P1_MONITORING_RESULTS.md"
+  ],
+  "in_scope": [
+    "P1 coordinator monitoring validation",
+    "Test timeout mechanisms",
+    "Logging verification"
+  ],
+  "out_of_scope": [
+    "P2-P7 monitoring",
+    "Cross-priority integration",
+    "Epic-level summary"
+  ],
+  "directory": "/mnt/c/Users/masha/Documents/claude-flow-novice/tests/p1"
+}
+```
+
+#### Sprint Execution Tool: `execute-sprint-task.sh`
+
+Enables sprint-aware agent execution with focused context injection.
+
+**Usage:**
+```bash
+./.claude/skills/sprint-execution/execute-sprint-task.sh \
+  [AGENT_TYPE] \
+  [TASK_ID] \
+  [AGENT_ID] \
+  [SPRINT_ID]
+```
+
+### Sprint vs Epic Implementation
+
+**Epic Context (Broad)**:
+```
+Validate P1-P7 monitoring across entire system
+Deliverables:
+- Comprehensive test suite
+- System-wide monitoring report
+```
+
+**Sprint Context (Focused)**:
+```
+Sprint: 1.1 - P1 Coordinator Monitoring
+Deliverables:
+- test-p1-monitoring.sh
+- docs/P1_MONITORING_RESULTS.md
+
+Scope:
+- P1 coordinator timeout verification
+- Basic logging checks
+
+Out of Scope:
+- P2-P7 monitoring
+- Cross-priority tests
+```
+
+### Confidence Reporting
+
+- Report confidence based on **sprint deliverable completion**
+- 0.90+ confidence means sprint objectives met
+- Do NOT report confidence for entire epic

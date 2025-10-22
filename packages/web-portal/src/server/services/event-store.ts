@@ -456,7 +456,8 @@ class EventStoreService {
    */
   async cleanupExpiredEvents(): Promise<number> {
     if (!this.isInitialized || !this.db) {
-      await this.initialize();
+      console.warn('Event store not initialized, skipping cleanup');
+      return 0;
     }
 
     try {
@@ -487,10 +488,8 @@ class EventStoreService {
       });
     }, 60 * 60 * 1000);
 
-    // Run initial cleanup
-    this.cleanupExpiredEvents().catch(error => {
-      console.error('Initial cleanup failed:', error);
-    });
+    // Note: Not running initial cleanup to avoid recursion during initialization
+    console.log('[EventStore] Cleanup timer started (runs hourly)');
   }
 
   /**

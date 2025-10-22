@@ -13,52 +13,53 @@
 2. Configure Redis connection in `config.json`
 3. Make scripts executable:
 ```bash
-chmod +x invoke-redis-pattern.sh test-waiting-mode.sh
+chmod +x invoke-waiting-mode.sh
 ```
 
 ### Basic Usage
 
-#### Waiting Mode
+#### Consensus Collection (Updated)
 ```bash
-# Agent enters waiting mode
-./invoke-redis-pattern.sh wait \
+# Agent reports results
+./invoke-waiting-mode.sh report \
   --task-id "my-task" \
   --agent-id "agent-1" \
-  --context "iteration-1"
-
-# Coordinator wakes agent
-./invoke-redis-pattern.sh wake \
-  --task-id "my-task" \
-  --agent-id "agent-1" \
-  --payload '{"instruction": "proceed"}'
-```
-
-#### Consensus Collection
-```bash
-# Multiple agents report results
-./invoke-redis-pattern.sh report \
-  --task-id "my-task" \
-  --agent-id "agent-1" \
-  --confidence 0.95 \
-  --result '{"status": "completed"}'
+  --confidence 0.95
 
 # Collect and evaluate consensus
-./invoke-redis-pattern.sh collect \
+./invoke-waiting-mode.sh collect \
   --task-id "my-task" \
   --agent-ids "agent-1,agent-2,agent-3"
 ```
 
-## Testing
-Run comprehensive tests:
-```bash
-./test-waiting-mode.sh
-```
+## Important Changes in P7 (Redis Script Cleanup)
 
-## Configuration Options
-See `SKILL.md` for detailed configuration and usage instructions.
+### Deprecation Notices
+- 🚨 `enter` and `wake` subcommands are NO LONGER SUPPORTED
+- Agents should exit cleanly without waiting mode
+- Coordinator spawns agents directly
+- Fork-ID references have been removed
+
+### Migration Guide
+- Update agent scripts to exit cleanly after task
+- Remove manual waiting mode calls
+- Use direct agent spawning in orchestrator
+
+## Script Categories
+- **Production Scripts**:
+  - `invoke-waiting-mode.sh`: Redis coordination wrapper
+  - `orchestrate-cfn-loop.sh`: CFN Loop orchestration
+- **Demos and Tests**: Located in `./demos/`
 
 ## Performance
 - Zero-token waiting
 - Sub-100ms wake-up latency
 - Supports 10+ concurrent agents
 - Configurable consensus thresholds
+
+## Configuration Options
+See `SKILL.md` for detailed configuration and usage instructions.
+
+## Troubleshooting
+- If you encounter issues with old scripts, refer to migration guide
+- Test scripts are available in `./demos/` directory

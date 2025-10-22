@@ -5,11 +5,16 @@ set -euo pipefail
 
 # Parse arguments
 TASK_ID=""
+EXPECTED_FILES=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --task-id)
       TASK_ID="$2"
+      shift 2
+      ;;
+    --expected-files)
+      EXPECTED_FILES="$2"
       shift 2
       ;;
     *)
@@ -39,7 +44,33 @@ if [ "$REQUIRES_FILES" = false ]; then
   exit 0
 fi
 
-# Check for file changes in git
+# If expected files specified, verify actual existence
+if [ -n "$EXPECTED_FILES" ]; then
+  MISSING_FILES=()
+  IFS=',' read -ra FILES <<< "$EXPECTED_FILES"
+
+  for file in "${FILES[@]}"; do
+    # Trim whitespace
+    file=$(echo "$file" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    if [ ! -f "$file" ]; then
+      MISSING_FILES+=("$file")
+    fi
+  done
+
+  if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+    echo "FAILED"
+    # Store missing files in Redis for orchestrator feedback
+    MISSING_JSON=$(printf '%s\n' "${MISSING_FILES[@]}" | jq -R . | jq -s -c .)
+    redis-cli setex "swarm:${TASK_ID}:missing-files" 300 "$MISSING_JSON" >/dev/null
+    exit 0
+  else
+    echo "PASSED"
+    exit 0
+  fi
+fi
+
+# Fallback: Check for file changes in git (backward compatibility)
 FILES_CREATED=$(git status --short 2>/dev/null | grep -E "^(A|M|\?\?)" | wc -l)
 
 if [ "$FILES_CREATED" -eq 0 ]; then

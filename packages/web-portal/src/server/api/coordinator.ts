@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { broadcastAgentUpdate } from '../index';
+import { broadcastAgentUpdate, broadcastActivityUpdate } from '../index';
 
 const router = Router();
 
@@ -95,10 +95,18 @@ router.post('/workers', (req, res) => {
   };
   
   mockHybridWorkers.push(newWorker);
-  
+
   // Broadcast update to connected clients
   broadcastAgentUpdate(newWorker);
-  
+
+  // Broadcast activity update
+  broadcastActivityUpdate({
+    id: `activity-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    message: `Agent ${newWorker.id} started with ${(newWorker.confidence * 100).toFixed(0)}% confidence`,
+    type: 'success'
+  });
+
   res.json({
     success: true,
     data: newWorker,

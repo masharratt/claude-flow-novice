@@ -10,6 +10,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { executeTool, type ToolUse, type ToolResult } from './tool-executor.js';
 
 const execAsync = promisify(exec);
 
@@ -287,6 +288,149 @@ export async function sendMessage(
 }
 
 /**
+ * Execute agent with tool support (agentic loop)
+ *
+ * Handles:
+ * 1. Send message with tools
+ * 2. Get response
+ * 3. If tool_use blocks, execute tools and send results back
+ * 4. Repeat until final text response
+ */
+async function executeWithTools(
+  options: MessageOptions,
+  onChunk?: (text: string) => void
+): Promise<MessageResponse> {
+  const client = await createClient();
+  const config = await getAPIConfig();
+
+  const model = mapModelName(options.model, config.provider);
+  const maxTokens = options.maxTokens || 16000;
+  const temperature = options.temperature ?? 1.0;
+
+  // Build initial messages array
+  const messages: Anthropic.MessageParam[] = options.messages
+    ? options.messages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+    : [
+        {
+          role: 'user',
+          content: options.prompt,
+        },
+      ];
+
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let fullTextContent = '';
+  const MAX_ITERATIONS = 10; // Prevent infinite loops
+  let iteration = 0;
+
+  while (iteration < MAX_ITERATIONS) {
+    iteration++;
+    console.log(`[executeWithTools] Iteration ${iteration}`);
+
+    const requestParams: Anthropic.MessageCreateParams = {
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      messages,
+    };
+
+    if (options.systemPrompt) {
+      requestParams.system = options.systemPrompt;
+    }
+
+    if (options.tools && options.tools.length > 0) {
+      requestParams.tools = options.tools;
+    }
+
+    // Make API request (non-streaming for now to handle tool_use)
+    const response = await client.messages.create(requestParams);
+
+    totalInputTokens += response.usage.input_tokens;
+    totalOutputTokens += response.usage.output_tokens;
+
+    // Extract content blocks
+    const textBlocks = response.content.filter(block => block.type === 'text');
+    const toolUseBlocks = response.content.filter(block => block.type === 'tool_use');
+
+    // Stream text output
+    for (const block of textBlocks) {
+      if (block.type === 'text') {
+        const text = (block as any).text;
+        fullTextContent += text;
+        if (onChunk) {
+          onChunk(text);
+        }
+      }
+    }
+
+    // If no tool uses, we're done
+    if (toolUseBlocks.length === 0) {
+      console.log(`[executeWithTools] No tool uses, completing`);
+      return {
+        content: fullTextContent,
+        usage: {
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+        },
+        stopReason: response.stop_reason || 'end_turn',
+      };
+    }
+
+    // Execute tools
+    console.log(`[executeWithTools] Executing ${toolUseBlocks.length} tool(s)`);
+    const toolResults: ToolResult[] = [];
+
+    for (const toolUseBlock of toolUseBlocks) {
+      if (toolUseBlock.type !== 'tool_use') continue;
+
+      const toolUse: ToolUse = {
+        type: 'tool_use',
+        id: (toolUseBlock as any).id,
+        name: (toolUseBlock as any).name,
+        input: (toolUseBlock as any).input,
+      };
+
+      console.log(`[executeWithTools] Tool: ${toolUse.name}`);
+      const result = await executeTool(toolUse);
+      toolResults.push(result);
+
+      // Stream tool result
+      if (onChunk) {
+        onChunk(`\n[Tool: ${toolUse.name}] ${result.content.substring(0, 100)}${result.content.length > 100 ? '...' : ''}\n`);
+      }
+    }
+
+    // Add assistant message with tool_use
+    messages.push({
+      role: 'assistant',
+      content: response.content as any,
+    });
+
+    // Add tool results as user message
+    messages.push({
+      role: 'user',
+      content: toolResults as any,
+    });
+
+    // Continue to next iteration
+  }
+
+  // Reached max iterations
+  console.warn(`[executeWithTools] Reached max iterations (${MAX_ITERATIONS})`);
+  return {
+    content: fullTextContent,
+    usage: {
+      inputTokens: totalInputTokens,
+      outputTokens: totalOutputTokens,
+    },
+    stopReason: 'max_tokens',
+  };
+}
+
+/**
  * Execute agent via API with full lifecycle
  */
 export async function executeAgentAPI(
@@ -296,7 +440,8 @@ export async function executeAgentAPI(
   prompt: string,
   systemPrompt?: string,
   messages?: Array<{ role: string; content: string }>, // Sprint 4: Conversation forking
-  maxTokens?: number // Sprint 6: Configurable token limit
+  maxTokens?: number, // Sprint 6: Configurable token limit
+  tools?: any[] // Tool definitions for agent capabilities
 ): Promise<{ success: boolean; output: string; usage: any; error?: string }> {
   // Start heartbeat monitoring (declare at function scope for error handling)
   let heartbeatInterval: NodeJS.Timeout | null = null;
@@ -324,21 +469,42 @@ export async function executeAgentAPI(
 
     let fullOutput = '';
 
-    const response = await sendMessage(
-      {
-        model,
-        prompt,
-        systemPrompt,
-        stream: true,
-        messages, // Pass messages for conversation continuation
-        maxTokens, // Sprint 6: Pass configurable token limit
-      },
-      (chunk) => {
-        // Stream output in real-time
-        process.stdout.write(chunk);
-        fullOutput += chunk;
-      }
-    );
+    // If tools provided, use agentic loop with tool execution
+    // Otherwise use simple streaming
+    let response: MessageResponse;
+
+    if (tools && tools.length > 0) {
+      console.log(`[anthropic-client] Tools enabled: ${tools.map(t => t.name).join(', ')}`);
+      response = await executeWithTools(
+        {
+          model,
+          prompt,
+          systemPrompt,
+          messages,
+          maxTokens,
+          tools
+        },
+        (chunk) => {
+          process.stdout.write(chunk);
+          fullOutput += chunk;
+        }
+      );
+    } else {
+      response = await sendMessage(
+        {
+          model,
+          prompt,
+          systemPrompt,
+          stream: true,
+          messages,
+          maxTokens,
+        },
+        (chunk) => {
+          process.stdout.write(chunk);
+          fullOutput += chunk;
+        }
+      );
+    }
 
     console.log('\n');
     console.log('=== Agent Execution Complete ===');

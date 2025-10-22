@@ -452,3 +452,356 @@ The CFN self-testing revealed a critical gap: **the loop can reach consensus wit
 **Owner:** Main Chat (coordination & validation)
 **Follow-up:** Sprint 8 - Test deliverable verification
 
+
+---
+
+# P1/P2 Implementation Lessons Learned (Sprint 9)
+
+**Date:** 2025-10-21
+**Execution:** Coordinator monitoring + SQLite logging fixes
+**Result:** ✅ Both fixes validated, ❌ BUG #21 discovered and fixed
+**Duration:** ~3 hours
+
+---
+
+## Executive Summary
+
+**What Worked:**
+- ✅ Systematic approach to debugging (trace execution, check assumptions)
+- ✅ SQLite logging provided invaluable debugging visibility
+- ✅ Backup strategy prevented data loss during fixes
+- ✅ Comprehensive documentation captured all learnings
+
+**What Failed:**
+- ❌ Bulk edit introduced IFS separator typo (BUG #21)
+- ❌ Initial diagnosis was wrong (thought it was Redis pub/sub issue)
+- ❌ Coordinator agent restored backup without asking (reverted fix)
+
+**Key Insight:** Always test immediately after bulk changes. Small typos in shell scripts can cause catastrophic failures.
+
+---
+
+## Lessons Learned
+
+### Lesson 6: Path Resolution Must Be Absolute
+
+**Finding:** Relative paths break when working directory varies.
+
+**Problem:**
+```bash
+# BROKEN - CWD-dependent
+DB_PATH="${DB_PATH:-${SCRIPT_DIR}/../../data/cfn-loop.db}"
+# Resolves differently depending on where script is called from
+```
+
+**Solution:**
+```bash
+# FIXED - Absolute path from known anchor
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+DB_PATH="${DB_PATH:-${PROJECT_ROOT}/data/cfn-loop.db}"
+# Always resolves to same location
+```
+
+**Impact:** P2 SQLite logging now works from any working directory.
+
+**Key Principle:** Never assume working directory. Use absolute paths from known anchors (SCRIPT_DIR, PROJECT_ROOT).
+
+---
+
+### Lesson 7: Test Immediately After Bulk Changes
+
+**Finding:** Bulk edit of 46 agent files + orchestrator introduced critical bug that went undetected.
+
+**Timeline:**
+```
+1. Remove waiting mode from orchestrator (9 changes)
+2. Bulk update 46 agent files
+3. Declare "fix complete" ❌
+4. Test later
+5. Discover BUG #21 (infinite loop)
+```
+
+**Better Approach:**
+```
+1. Remove waiting mode from orchestrator
+2. TEST with simple task ✅
+3. If working, bulk update agents
+4. TEST again immediately ✅
+5. Then declare complete
+```
+
+**Impact:** BUG #21 blocked P1/P2 validation for 30 minutes while debugging.
+
+**Key Principle:** Test after EACH logical change, not after ALL changes. Catch bugs early when context is fresh.
+
+---
+
+### Lesson 8: Shell String Splitting (IFS) Is Dangerous
+
+**Finding:** Extra character in IFS separator broke array splitting silently.
+
+**Bug:**
+```bash
+IFS=',"' read -ra AGENT_ARRAY <<< "$LOOP3_COMPLETED_IDS"  # Extra "
+# Result: Array contains single element with quotes: '"coder-1-1"'
+# Redis lookup fails: key includes quotes
+```
+
+**Correct:**
+```bash
+IFS=',' read -ra AGENT_ARRAY <<< "$LOOP3_COMPLETED_IDS"
+# Result: Array contains: 'coder-1-1' (no quotes)
+# Redis lookup works
+```
+
+**Alternative (More Robust):**
+```bash
+# Use jq for JSON/array parsing instead of IFS
+AGENT_ARRAY=$(echo "$LOOP3_COMPLETED_IDS" | jq -R 'split(",")')
+```
+
+**Impact:** Caused infinite iteration loop - agents reported 1.0 confidence, orchestrator read 0.0.
+
+**Key Principle:** IFS is error-prone. Consider using `jq` for array/string manipulation. Always validate with sample data.
+
+---
+
+### Lesson 9: SQLite Logging Is Invaluable for Debugging
+
+**Finding:** SQLite event logs revealed exact sequence of events that led to bug.
+
+**How It Helped:**
+```sql
+-- Showed agent reported confidence correctly
+SELECT * FROM cfn_loop_logs 
+WHERE task_id = 'cfn-phase-123' 
+AND event_type = 'agent_complete';
+-- Result: confidence: 1.0
+
+-- Showed gate check failed immediately after
+SELECT * FROM cfn_loop_logs 
+WHERE task_id = 'cfn-phase-123' 
+AND event_type = 'gate_check';
+-- Result: consensus: 0.0 (calculated wrong!)
+```
+
+**Without Logging:** Would have taken hours to debug by adding print statements.
+
+**With Logging:** Found bug in 5 minutes by querying event sequence.
+
+**Key Principle:** Invest in logging infrastructure early. It pays dividends during debugging.
+
+---
+
+### Lesson 10: Follow the Data, Not Assumptions
+
+**Finding:** Initial diagnosis was wrong - thought it was Redis pub/sub issue, but it was actually DB_PATH.
+
+**Wrong Path:**
+```
+1. Assume: "Web portal not subscribing to Redis events"
+2. Check: SwarmAdapter subscription code
+3. Try: Fix web portal
+4. Reality: ❌ P2 doesn't use Redis pub/sub at all!
+```
+
+**Correct Path:**
+```
+1. Trace: Where does log-event.sh write?
+2. Check: Does database file exist?
+3. Find: File exists but 0 bytes
+4. Realize: DB_PATH points to wrong location
+5. Fix: Correct path calculation
+6. Verify: Manual test event logs successfully
+```
+
+**Impact:** Wasted 15 minutes investigating wrong system.
+
+**Key Principle:** Trace actual code execution. Don't assume architecture from docs (docs can be outdated).
+
+---
+
+### Lesson 11: Coordinator Agent Autonomy Can Backfire
+
+**Finding:** Coordinator agent restored orchestrator from backup during test, reverting our fix.
+
+**What Happened:**
+```
+1. We remove waiting mode, fix IFS separator
+2. Coordinator agent encounters syntax error (line 991)
+3. Agent autonomously restores from backup
+4. Backup has waiting mode code (old version)
+5. Our fix is reverted!
+```
+
+**Impact:** Test succeeded but used old code, giving false confidence.
+
+**Lesson:** Agent autonomy is good for self-correction, bad when it reverts intentional changes.
+
+**Possible Solutions:**
+- Checksum verification before restore
+- Backup metadata (timestamp, version)
+- User confirmation for restore operations
+- Separate "working" vs "stable" versions
+
+**Key Principle:** Autonomous agents need guardrails to prevent reverting intentional changes.
+
+---
+
+### Lesson 12: Dead Code Hides in Plain Sight
+
+**Finding:** 60 lines of bash while loop in coordinator that never executed.
+
+**Code:**
+```bash
+# This while loop NEVER ran because orchestrator was spawned in background
+while true; do
+  STATUS=$(redis-cli get ...)
+  if [ "$STATUS" = "complete" ]; then break; fi
+  sleep 30
+done
+```
+
+**Why It Existed:** Copy-paste from old version, not deleted when architecture changed.
+
+**How Detected:** Reading coordinator code during P1 fix, noticed loop was unreachable.
+
+**Impact:** Misleading - made it look like monitoring worked, but didn't.
+
+**Key Principle:** Review code for dead blocks when refactoring architecture. Delete, don't comment out.
+
+---
+
+### Lesson 13: Line Endings Matter in WSL
+
+**Finding:** Windows `\r\n` line endings break bash scripts in WSL.
+
+**Symptoms:**
+```bash
+$ ./log-event.sh --task-id test
+./log-event.sh: line 27: $'\r': command not found
+./log-event.sh: line 28: set: pipefail: invalid option name
+```
+
+**Fix:**
+```bash
+sed -i 's/\r$//' log-event.sh
+```
+
+**Prevention:** Configure git to handle line endings:
+```bash
+git config --global core.autocrlf input  # Never convert LF to CRLF
+```
+
+**Key Principle:** WSL requires Unix line endings. Always normalize after editing on Windows.
+
+---
+
+## Validation Metrics
+
+### P1 (Coordinator Monitoring)
+**Test Duration:** 5 minutes
+**Status Checks:** 10+ periodic checks (every 30-60s)
+**Result:** ✅ PASS - Coordinator stayed alive, orchestrator completed
+
+### P2 (SQLite Logging)
+**Database:** `.claude/data/cfn-loop.db` (24KB)
+**Events Logged:** 17 total across 5 test runs
+**Event Types:** swarm_init, agent_spawn, agent_complete, gate_check, po_decision
+**Result:** ✅ PASS - All events logged correctly
+
+### BUG #21 (Confidence Collection)
+**Discovery:** During P1/P2 test (infinite loop observed)
+**Root Cause:** IFS separator typo (`IFS=',"'` instead of `IFS=','`)
+**Impact:** Gate check always failed (0.0 < 0.75), Loop 2 never spawned
+**Fix:** Corrected IFS separator
+**Validation:** Subsequent test completed Loop 3 → Loop 2 → Product Owner
+**Result:** ✅ FIXED - Full CFN Loop flow working
+
+---
+
+## Process Improvements Implemented
+
+### 1. Documentation First
+**Before:** Fix code, maybe document later
+**After:** Create comprehensive bug reports DURING debugging
+**Files:** `BUG_21_CONFIDENCE_COLLECTION_IFS.md`, `P2_SQLITE_LOGGING_FIX.md`
+**Benefit:** Future debugging reference, knowledge transfer
+
+### 2. Backup Before Bulk Edits
+**Pattern:** `cp file.ext file.ext.backup` before sed/bulk changes
+**Benefit:** Quick rollback if needed
+**Used:** 46 agent files, orchestrator script
+
+### 3. Incremental Testing
+**Pattern:** Test → Change → Test → Change (not Change → Change → Change → Test)
+**Applied:** P2 fix tested immediately with manual event
+**Benefit:** Caught issues faster
+
+### 4. SQLite Query Tools
+**Created:** `query-logs.sh` for easy event inspection
+**Usage:** `./query-logs.sh --task-id cfn-123 --format table`
+**Benefit:** Quick debugging without manual SQL
+
+---
+
+## Recommendations
+
+### Immediate Actions (Completed)
+- ✅ Fix P2 DB_PATH (absolute path)
+- ✅ Fix P1 coordinator monitoring (remove dead code, add 3-tool-call pattern)
+- ✅ Remove waiting mode (bulk agent update)
+- ✅ Fix BUG #21 (IFS separator)
+- ✅ Document all learnings
+
+### Short-Term Actions (Next Sprint)
+1. **Normalize Line Endings**
+   - Add `.gitattributes` to force Unix line endings
+   - Run `dos2unix` on all bash scripts
+   
+2. **IFS Validation Script**
+   - Check all scripts for IFS usage
+   - Flag suspicious separators (`IFS=',"'` patterns)
+   
+3. **Path Audit**
+   - Find all relative path usages
+   - Convert to absolute paths where needed
+
+4. **Dead Code Detection**
+   - Review all agent files for unreachable code
+   - Remove commented-out sections
+
+### Long-Term Actions
+1. **Automated Testing Suite**
+   - Unit tests for confidence collection
+   - Integration tests for CFN Loop flow
+   - Regression tests for P1/P2
+
+2. **Agent Autonomy Guardrails**
+   - Backup metadata (timestamp, version)
+   - Checksum verification before restore
+   - User confirmation for destructive operations
+
+3. **Logging Enhancements**
+   - Add log levels (DEBUG, INFO, WARN, ERROR)
+   - Structured logging (JSON format)
+   - Log aggregation for multi-agent analysis
+
+---
+
+## Success Metrics
+
+**Files Fixed:** 3 (log-event.sh, coordinator, orchestrator)
+**Agents Updated:** 45+ files
+**Bugs Fixed:** 2 critical (P2, BUG #21) + 1 major (P1)
+**Documentation:** 4 comprehensive docs (80KB total)
+**Test Runs:** 5 CFN Loop executions
+**Final Result:** ✅ P1/P2 validated, full CFN Loop working
+
+---
+
+**Status:** Fixes implemented and validated
+**Priority:** COMPLETE (unblocks P3-P7 priorities)
+**Owner:** Main Chat (coordination & validation)
+**Follow-up:** P3-P7 simplification priorities
+

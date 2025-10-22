@@ -14,6 +14,7 @@ THRESHOLD=""
 ITERATION=""
 MAX_ITERATIONS=""
 SUCCESS_CRITERIA=""
+EXPECTED_FILES=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -43,6 +44,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --success-criteria)
       SUCCESS_CRITERIA="$2"
+      shift 2
+      ;;
+    --expected-files)
+      EXPECTED_FILES="$2"
       shift 2
       ;;
     *)
@@ -111,12 +116,25 @@ fi
 
 # Validate deliverables for PROCEED decisions
 if [ "$DECISION_TYPE" = "PROCEED" ]; then
-  DELIVERABLE_STATUS=$("$SCRIPT_DIR/validate-deliverables.sh" --task-id "$TASK_ID")
+  DELIVERABLE_ARGS="--task-id $TASK_ID"
+  if [ -n "$EXPECTED_FILES" ]; then
+    DELIVERABLE_ARGS="$DELIVERABLE_ARGS --expected-files $EXPECTED_FILES"
+  fi
+
+  DELIVERABLE_STATUS=$("$SCRIPT_DIR/validate-deliverables.sh" $DELIVERABLE_ARGS)
 
   if [ "$DELIVERABLE_STATUS" = "FAILED" ]; then
+    # Retrieve missing files from Redis (if available)
+    MISSING_FILES_JSON=$(redis-cli get "swarm:${TASK_ID}:missing-files" 2>/dev/null || echo "[]")
+    MISSING_FILES_LIST=$(echo "$MISSING_FILES_JSON" | jq -r '.[]' | tr '\n' ', ' | sed 's/,$//')
+
     # Override PROCEED → ITERATE
     DECISION_TYPE="ITERATE"
-    REASONING="Deliverable verification failed - no files created (consensus on plans only)"
+    if [ -n "$MISSING_FILES_LIST" ]; then
+      REASONING="Deliverable verification failed - missing files: $MISSING_FILES_LIST"
+    else
+      REASONING="Deliverable verification failed - no files created (consensus on plans only)"
+    fi
     CONFIDENCE=0.75
   fi
 fi

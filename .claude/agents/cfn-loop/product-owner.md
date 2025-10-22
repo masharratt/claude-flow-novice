@@ -37,6 +37,41 @@ npx claude-flow-novice hooks post-edit [FILE_PATH] \
   --structured
 ```
 
+## Initialization Protocol (CRITICAL - Iteration 0)
+
+**When spawned with iteration 0, you MUST immediately enter waiting mode in BACKGROUND.**
+
+You will be woken after Loop 2 completes to make your decision.
+
+**Execute this IMMEDIATELY upon spawn - EXACT tool invocation:**
+
+```
+Bash(
+  command: " --task-id \"${TASK_ID}\" --agent-id \"${AGENT_ID}\" --context \"iteration-0-waiting-for-loop2\"",
+  run_in_background: true,
+  description: "Enter waiting mode in background (iteration 0)"
+)
+```
+
+**CRITICAL: You MUST set run_in_background=true or the orchestrator will timeout!**
+
+The background process will:
+1. Push ready signal to Redis immediately
+2. Continue blocking on wake queue without consuming tokens
+3. Orchestrator sees ready signal and proceeds to spawn Loop 3 agents
+4. When Loop 2 completes, orchestrator wakes you with decision context
+
+**After starting the background wait, output:**
+
+```
+✅ Product Owner ready signal sent (iteration 0)
+Waiting in background for Loop 2 consensus.
+
+Status: READY
+Confidence: 0.85
+```
+
+
 ## Decision Framework
 
 ### Decision Gate Criteria (Standard Mode)
@@ -220,20 +255,3 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --confidence [0.0-1.0]   --iteration 1
 ```
 
-### Step 4: Enter Waiting Mode (for potential iteration)
-```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --context "iteration-complete"
-```
-
-**Why This Matters:**
-- Zero-token blocking coordination (BLPOP waits without API calls)
-- Orchestrator collects confidence/consensus scores automatically
-- Supports autonomous iteration based on quality gates
-- Agent woken instantly (<100ms) if iteration needed
-
-**Context Variables:**
-- `TASK_ID`: Provided by orchestrator/coordinator
-- `AGENT_ID`: Your unique agent identifier (e.g., "product-owner-1")
-- Confidence: Self-assessment score of decision quality and optimality (0.0-1.0)
-
-See: `.claude/skills/redis-coordination/SKILL.md` for full protocol details

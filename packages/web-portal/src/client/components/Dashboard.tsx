@@ -50,7 +50,7 @@ const Dashboard: React.FC<DashboardProps> = () => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io('http://localhost:3000');
+    const newSocket = io('http://localhost:8080');
     setSocket(newSocket);
 
     // Join dashboard room

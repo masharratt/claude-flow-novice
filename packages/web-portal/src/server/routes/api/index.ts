@@ -22,6 +22,7 @@ import authRouter from './auth.js';
 import agentsRouter from './agents.js';
 import metricsRouter from './metrics.js';
 import eventsRouter from './events.js';
+import eventsHistoryRouter from './events-history.js';
 import resourcesRouter from './resources.js';
 import healthRouter from './health.js';
 
@@ -44,6 +45,7 @@ router.use('/auth', authRouter); // MED-002: Authentication endpoints (logout, r
 router.use('/agents', agentsRouter);
 router.use('/metrics', metricsRouter);
 router.use('/events', eventsRouter);
+router.use('/events-history', eventsHistoryRouter); // Historical event queries with advanced filtering
 router.use('/resources', resourcesRouter);
 router.use('/health', healthRouter);
 

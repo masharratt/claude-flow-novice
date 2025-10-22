@@ -113,6 +113,14 @@ function parseFrontmatter(content: string): { frontmatter: Record<string, any>; 
         continue; // Will be handled by next lines
       }
 
+      // Inline array (e.g., [item1, item2, item3])
+      if (value.startsWith('[') && value.endsWith(']')) {
+        const arrayContent = value.substring(1, value.length - 1);
+        const items = arrayContent.split(',').map(item => item.trim());
+        frontmatter[key] = items;
+        continue;
+      }
+
       // Remove quotes
       const cleanValue = value.replace(/^["']|["']$/g, '');
       frontmatter[key] = cleanValue;

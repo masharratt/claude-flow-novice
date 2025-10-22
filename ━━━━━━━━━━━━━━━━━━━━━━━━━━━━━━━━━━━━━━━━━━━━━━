@@ -1,1 +1,0 @@
-/bin/bash: line 20: TASK_ID=cfn-single-orchestrator-test-$(date +%s): command not found

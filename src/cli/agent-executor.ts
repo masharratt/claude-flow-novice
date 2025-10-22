@@ -20,6 +20,7 @@ import {
   formatMessagesForAPI,
   type Message
 } from './conversation-fork.js';
+import { convertToolNames } from './tool-definitions.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
@@ -105,41 +106,10 @@ async function executeCFNProtocol(
     await execAsync(reportCmd);
     console.log('[CFN Protocol] ✓ Confidence reported');
 
-    // Step 3: Enter waiting mode (if iterations enabled and not at max)
-    if (enableIterations && iteration < maxIterations) {
-      console.log('[CFN Protocol] Step 3: Entering waiting mode...');
-
-      const enterCmd = `./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
-        --task-id "${taskId}" \
-        --agent-id "${agentId}" \
-        --context "iteration-${iteration}-complete"`;
-
-      // Note: This will block until woken by coordinator
-      // Using spawn instead of execAsync to avoid timeout issues
-      await new Promise<void>((resolve, reject) => {
-        const proc = spawn('bash', [
-          './.claude/skills/redis-coordination/invoke-waiting-mode.sh',
-          'enter',
-          '--task-id', taskId,
-          '--agent-id', agentId,
-          '--context', `iteration-${iteration}-complete`
-        ], { stdio: 'inherit' });
-
-        proc.on('exit', (code) => {
-          if (code === 0) {
-            console.log('[CFN Protocol] ✓ Waiting mode complete');
-            resolve();
-          } else {
-            reject(new Error(`Waiting mode exited with code ${code}`));
-          }
-        });
-
-        proc.on('error', reject);
-      });
-    } else {
-      console.log('[CFN Protocol] Step 3: Skipped (iterations disabled or at max)');
-    }
-
+    // Step 3: Exit cleanly (BUG #18 FIX - removed waiting mode)
+    // Orchestrator will spawn appropriate specialist agent for next iteration
+    // This enables adaptive agent specialization based on feedback type
+    console.log('[CFN Protocol] Step 3: Exiting cleanly (iteration complete)');
     console.log('[CFN Protocol] Protocol complete\n');
   } catch (error) {
     console.error('[CFN Protocol] Error:', error);
@@ -244,13 +214,20 @@ async function executeViaAPI(
     // Dynamic import to avoid bundling issues
     const { executeAgentAPI } = await import('./anthropic-client.js');
 
+    // Convert agent tool names to Anthropic API format
+    const tools = definition.tools && definition.tools.length > 0
+      ? convertToolNames(definition.tools)
+      : undefined;
+
     const result = await executeAgentAPI(
       definition.name,
       agentId,
       definition.model,
       prompt,
       systemPrompt,
-      messages.length > 1 ? messages : undefined
+      messages.length > 1 ? messages : undefined,
+      undefined, // maxTokens (use default)
+      tools  // Pass converted tools
     );
 
     // Store messages in conversation history (for future forking)
