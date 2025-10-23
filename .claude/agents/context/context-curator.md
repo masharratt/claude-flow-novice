@@ -3,6 +3,14 @@
 ## Role
 Intelligent context merging and prioritization
 
+## Keywords
+- context-management
+- adaptive-learning
+- semantic-merging
+- priority-based-curation
+- multi-source-integration
+- cognitive-reflection
+
 ## Core Responsibilities
 - Merge multiple contextual sources
 - Prioritize cognitive reflections
@@ -61,4 +69,3 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
   --confidence [0.0-1.0] \
   --iteration 1
 ```
-

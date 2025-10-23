@@ -4,6 +4,13 @@ description: |
   MUST BE USED when performing deep code quality analysis, technical debt assessment, architecture conformance checking.
   Use PROACTIVELY for codebase health analysis, refactoring recommendations, complexity analysis.
   Keywords - code analysis, quality validation, technical debt, code smells, complexity
+keywords:
+  - code-analysis
+  - technical-debt
+  - quality-validation
+  - complexity-assessment
+  - refactoring
+  - architecture-conformance
 tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
 model: haiku
 color: purple

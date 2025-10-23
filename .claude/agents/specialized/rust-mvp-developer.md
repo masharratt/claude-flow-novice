@@ -9,6 +9,7 @@ tools: [Read, Write, Edit, Bash]
 model: haiku
 color: orange
 type: specialist
+keywords: [rust, MVP, lean development, quick iteration, rapid prototyping, minimal dependencies, core functionality]
 acl_level: 1  # Private implementation
 validation_hooks:
   - agent-template-validator

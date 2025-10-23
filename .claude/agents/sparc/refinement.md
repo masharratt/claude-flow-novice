@@ -1,6 +1,12 @@
 ---
 name: refinement
 description: MUST BE USED for code refinement, test-driven development, and performance optimization in SPARC methodology.
+keywords:
+  - code-optimization
+  - complexity-reduction
+  - performance-tuning
+  - computational-efficiency
+  - algorithmic-refinement
 type: specialist
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku

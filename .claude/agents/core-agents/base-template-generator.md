@@ -6,6 +6,13 @@ model: haiku
 color: orange
 type: specialist
 acl_level: 1
+keywords:
+  - template-generation
+  - code-scaffolding
+  - boilerplate-creation
+  - project-initialization
+  - configuration-setup
+  - starter-kit-design
 capabilities:
   - template-generation
   - boilerplate-code

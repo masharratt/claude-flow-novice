@@ -2,7 +2,7 @@
 name: cli-agent-optimizer
 description: |
   MUST BE USED when optimizing CLI agent performance and resource utilization.
-  Keywords: CLI optimization, agent performance, workflow optimization
+  keywords: ["cli-optimization", "agent-performance", "workflow-coordination", "resource-efficiency", "scalability-patterns", "coordination-design", "message-routing"]
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: purple

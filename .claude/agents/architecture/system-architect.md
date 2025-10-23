@@ -8,6 +8,18 @@ tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: seagreen
 type: specialist
+keywords:
+  - enterprise-architecture
+  - system-design
+  - technical-leadership
+  - microservices
+  - cloud-native
+  - distributed-systems
+  - architectural-patterns
+  - infrastructure-planning
+model: haiku
+color: seagreen
+type: specialist
 acl_level: 3
 capabilities:
   - architecture-design

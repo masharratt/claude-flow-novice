@@ -4,6 +4,12 @@ type: validator
 color: "#D32F2F"
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite, mcp__claude-flow__swarm_init, mcp__claude-flow__agent_spawn]
 description: MUST BE USED when conducting security audits, vulnerability assessments, penetration testing, or implementing security controls. PROACTIVELY validates threat models, security architecture, cryptographic implementations, Zero Trust deployment, incident response plans.
+keywords:
+  - existing-security
+  - legacy-system
+  - risk-assessment
+  - compliance
+  - security-audit
 model: haiku
 capabilities:
   - security-audit

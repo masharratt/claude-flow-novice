@@ -5,6 +5,14 @@ description: |
   Use PROACTIVELY for user journey validation, UI behavior testing.
   ALWAYS delegate when user asks to "test user interactions", "validate UI flow".
   Keywords - UI testing, interaction validation, user experience testing
+keywords:
+  - frontend-testing
+  - user-interaction
+  - ui-validation
+  - user-journey-mapping
+  - accessibility-testing
+  - cross-browser-testing
+  - ux-behavior-analysis
 tools: [Read, Write, Edit, Bash, Glob, Grep]
 model: haiku
 color: mediumvioletred

@@ -736,11 +736,41 @@ Out of Scope:
 - Do NOT report confidence for entire epic
 - when monitoring something, sleep for X minutes on repeat with check in between
 ### STRAT-025: Explicit Deliverable Tracking
+
+## Sprint 9 Adaptive Context Lessons (CFN v3 Dual-Mode Implementation)
+
+### STRAT-026: Redis Context Storage Over CLI Parameters
 - **Confidence:** 0.95
 - **Priority:** 9
-- **Insight**: Inject real-time deliverable checklist into agent context showing file-by-file status (✅ COMPLETE / ❌ MISSING) with completion counts. Prevents agents from reporting high confidence when only partial deliverables exist. Pattern: Extract deliverables from phase-context, check file existence before spawning agents, append visual checklist to LOOP3_AGENT_CONTEXT. Critical guidance: "If ANY files marked ❌ MISSING, confidence should be LOW (<0.50)."
-- **Tags**: deliverable-tracking, agent-context, file-verification, confidence-calibration, visual-feedback
-- **Applied in**: orchestrate-cfn-loop.sh lines 795-844
-- **Impact**: Prevents partial implementations with high confidence scores (e.g., Phase 2: 1 of 4 files created, agent reports 0.90)
+- **Insight**: Use Redis for complex JSON context storage instead of CLI parameters. Eliminates shell escaping issues, enables swarm recovery, and provides single source of truth for agent coordination.
+- **Tags**: redis, context-storage, cli-spawning, swarm-recovery
 
-- always launch a cfn coordinator who will launch the orchestrator
+### PATTERN-023: Dual-Mode Architecture Pattern
+- **Confidence:** 0.92
+- **Priority:** 9
+- **Insight**: Implement dual execution modes (optimized vs simplified) sharing core logic. CLI mode for production (cost-optimized), Task mode for debugging (full visibility), both using same coordinator and context structure.
+- **Tags**: architecture, dual-mode, debugging, production
+
+### STRAT-027: Consensus Validation for Architecture
+- **Confidence:** 0.90
+- **Priority:** 8
+- **Insight**: Use specialized consensus teams (reviewer + tester) to validate implementations before deployment. Achieved 0.92-0.95 confidence scores, caught design issues early.
+- **Tags**: validation, consensus, testing, quality-assurance
+
+### ANTI-022: Premature Optimization (Context Pruning)
+- **Confidence:** 0.88
+- **Priority:** 7
+- **Insight**: Avoid implementing optimization features (like context pruning) before validating necessity. CFN v3 removed pruning after determining context small enough without it, saving implementation complexity.
+- **Tags**: optimization, yagni, context-management, simplification
+
+### PATTERN-024: Swarm Recovery via Persistence
+- **Confidence:** 0.93
+- **Priority:** 9
+- **Insight**: Store swarm state in Redis with TTL to enable crash recovery. Agents can resume from last known state using task_id as recovery key. Critical for long-running CFN Loops.
+- **Tags**: recovery, redis, persistence, fault-tolerance, swarm-coordination
+
+### STRAT-028: Modular Skill Architecture
+- **Confidence:** 0.91
+- **Priority:** 8
+- **Insight**: Decompose complex systems into independent skills (20 skills in CFN v3: task-classifier, playbook, validation-templates, etc.). Enables reuse, testing isolation, and incremental enhancement.
+- **Tags**: modularity, skills, architecture, reusability

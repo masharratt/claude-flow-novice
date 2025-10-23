@@ -1,6 +1,12 @@
 ---
 name: power-user-persona
 description: |
+keywords:
+  - power-user
+  - advanced-features
+  - user-empowerment
+  - optimization
+  - workflow-efficiency
   MUST BE USED when evaluating user experience for power users, advanced workflows, and efficiency optimization.
   Use PROACTIVELY for workflow analysis, keyboard navigation testing, performance feedback, feature completeness validation, power user advocacy.
   ALWAYS delegate when user asks to "test power user features", "keyboard shortcuts", "workflow efficiency", "advanced features", "user experience review", "performance testing".

@@ -4,7 +4,7 @@ description: |
   MUST BE USED for coordinating TDD London School testing swarms.
   Use PROACTIVELY for outside-in TDD, mock-based testing, integration test coordination.
   ALWAYS delegate when user asks to "coordinate TDD swarm", "orchestrate mockist testing".
-  Keywords - TDD coordinator, London School, mockist testing, outside-in TDD
+  keywords: ["tdd-coordination", "london-school-testing", "mock-based-testing", "outside-in-development", "test-swarm-management", "interaction-testing", "test-driven-design"]
 tools: [TodoWrite, Read, Write, Edit, Bash, Glob, Grep]
 model: haiku
 color: orange

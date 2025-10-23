@@ -1,6 +1,12 @@
 ---
 name: system-architect-persona
 description: |
+keywords:
+  - system-design
+  - architectural-planning
+  - technical-strategy
+  - enterprise-architecture
+  - solution-modeling
   MUST BE USED when designing system architectures and distributed system solutions.
   Use PROACTIVELY for microservices, scalability patterns, and enterprise system design.
   ALWAYS delegate when user asks to "system architecture", "distributed systems", "scalability design".

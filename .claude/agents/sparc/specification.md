@@ -7,6 +7,7 @@ description: |
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 type: specialist
 model: haiku
+keywords: ["requirements-gathering", "specification-analysis", "sparc-methodology", "stakeholder-validation", "constraint-mapping", "acceptance-criteria", "domain-modeling"]
 capabilities:
   - requirements_gathering
   - constraint_analysis

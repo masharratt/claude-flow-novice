@@ -9,6 +9,7 @@ tools: [Read, Write, Edit, Bash, cargo_check, cargo_audit, rust_miri]
 model: sonnet
 color: purple
 type: specialist
+keywords: [enterprise rust, security, scalability, production systems, compliance, memory safety, performance, formal verification]
 acl_level: 1  # Private implementation data
 validation_hooks:
   - agent-template-validator

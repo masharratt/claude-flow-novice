@@ -5,6 +5,14 @@ description: |
   Use PROACTIVELY for OpenAPI specs, endpoint documentation.
   ALWAYS delegate for "document API", "create Swagger", "API reference".
   Keywords - OpenAPI, Swagger, API documentation, specification
+keywords:
+  - api-specification
+  - documentation-generation
+  - openapi-design
+  - endpoint-modeling
+  - interactive-documentation
+  - swagger-integration
+  - schema-validation
 tools: [Read, Write, Edit, Grep]
 model: sonnet
 color: indigo

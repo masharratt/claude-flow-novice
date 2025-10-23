@@ -1,6 +1,14 @@
 ---
 name: api-designer-persona
 description: Design API architectures and RESTful service specifications in Loop 0.5 Design Consensus.
+keywords:
+  - api-architecture
+  - rest-design
+  - service-specification
+  - design-consensus
+  - interface-modeling
+  - openapi-generation
+  - developer-experience
 tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
 model: haiku
 color: teal

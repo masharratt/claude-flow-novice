@@ -7,6 +7,7 @@ description: |
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
+keywords: [React, frontend, components, hooks, state management, UI, routing, TypeScript, Material-UI, accessibility]
 capabilities:
   - react-18
   - typescript

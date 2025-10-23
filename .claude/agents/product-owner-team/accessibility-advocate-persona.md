@@ -1,6 +1,12 @@
 ---
 name: accessibility-advocate-persona
 description: |
+keywords:
+  - accessibility
+  - inclusive-design
+  - user-experience
+  - disability-advocacy
+  - web-standards
   MUST BE USED when evaluating accessibility compliance, WCAG standards, and inclusive design.
   Use PROACTIVELY for design reviews, accessibility audits, screen reader testing, keyboard navigation validation.
   Always delegate accessibility compliance tasks.

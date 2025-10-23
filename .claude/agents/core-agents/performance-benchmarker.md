@@ -4,6 +4,12 @@ description: |
   Comprehensive performance analysis for distributed consensus protocols.
   Use PROACTIVELY for performance testing, benchmarking, optimization analysis.
   Keywords - performance, benchmarking, optimization, profiling, metrics
+keywords:
+  - performance-analysis
+  - distributed-systems
+  - metrics-evaluation
+  - optimization-patterns
+  - consensus-protocols
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: orange

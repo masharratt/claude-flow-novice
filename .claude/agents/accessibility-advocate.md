@@ -3,7 +3,7 @@ name: accessibility-advocate
 description: |
   MUST BE USED when evaluating accessibility, WCAG compliance, and inclusive design for React components.
   Use PROACTIVELY for accessibility audits, ARIA implementation, keyboard navigation, screen reader testing.
-  Keywords - accessibility, WCAG, ARIA, screen reader, keyboard, a11y, inclusive design
+keywords: [accessibility, wcag, aria, screen-reader, keyboard, a11y, inclusive-design]
 tools: [Read, Bash, Grep, Glob, TodoWrite]
 model: haiku
 type: validator

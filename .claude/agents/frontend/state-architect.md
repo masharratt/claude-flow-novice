@@ -9,6 +9,7 @@ tools: [Read, Write, Edit, Grep, TodoWrite, Bash]
 model: haiku
 color: blue
 type: specialist
+keywords: [state management, react, redux, mobx, zustand, performance, architecture, atomic state, micro-state, optimization]
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator

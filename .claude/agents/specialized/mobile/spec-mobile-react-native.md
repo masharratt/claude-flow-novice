@@ -5,6 +5,7 @@ tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite
 model: haiku
 color: teal
 type: specialist
+keywords: [react native, mobile, iOS, android, cross-platform, mobile app, expo, native module, mobile UI, navigation]
 capabilities:
   - react-native-development
   - mobile-ui

@@ -2,6 +2,8 @@
 
 **Version:** 2.0.0
 **Last Updated:** 2025-09-30
+**Type:** format-guidelines
+**Keywords:** ["agent-formats", "minimal", "metadata", "code-heavy", "format-selection", "complexity-verbosity", "priming-paradox", "sparse-language", "validation-hooks", "benchmark-testing", "task-complexity"]
 
 ## The Three Agent Formats
 

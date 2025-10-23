@@ -1,6 +1,14 @@
 ---
 name: code-quality-validator
 description: Comprehensive code quality assessment and technical debt management
+keywords:
+  - code-analysis
+  - quality-assessment
+  - technical-debt
+  - complexity-detection
+  - refactoring
+  - code-metrics
+  - architectural-integrity
 tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
 model: haiku
 color: purple

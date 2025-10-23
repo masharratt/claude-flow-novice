@@ -7,6 +7,7 @@ description: |
 tools: [Read, Grep, Glob, Bash, TodoWrite]
 model: haiku
 type: specialist
+keywords: [analysis, research, data, insights, investigation]
 capabilities:
   - code-analysis
   - performance-analysis

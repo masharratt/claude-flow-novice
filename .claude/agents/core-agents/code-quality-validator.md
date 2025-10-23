@@ -10,6 +10,13 @@ model: haiku
 color: green
 type: specialist
 acl_level: 3
+keywords:
+  - code-quality-assessment
+  - complexity-analysis
+  - technical-debt-evaluation
+  - standards-compliance
+  - architectural-validation
+  - best-practices-enforcement
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator

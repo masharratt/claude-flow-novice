@@ -5,6 +5,14 @@ description: |
   Use PROACTIVELY for commit creation, push operations, pipeline monitoring, conventional commits.
   ALWAYS delegate when user asks to "commit changes", "create commit", "push to github", "monitor CI/CD".
   Keywords - git commit, github, CI/CD, pipeline, conventional commits, automated workflow
+keywords:
+  - version-control
+  - commit-management
+  - ci-cd-workflow
+  - github-automation
+  - pipeline-monitoring
+  - code-quality-checks
+  - repository-synchronization
 tools: [Bash, Read, Grep, Glob, BashOutput, TodoWrite]
 model: haiku
 color: purple

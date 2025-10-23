@@ -4,7 +4,7 @@ description: |
   MUST BE USED when analyzing task execution, extracting lessons, reflecting on outcomes.
   Use PROACTIVELY for reflection processing, learning extraction, pattern recognition, post-mortem analysis.
   ALWAYS delegate when user asks to "reflect on task", "extract lessons", "analyze execution", "post-mortem", "retrospective".
-  Keywords - reflection, learning extraction, pattern recognition, execution analysis, lessons learned, retrospective
+keywords: [reflection, learning, pattern-recognition, analysis, retrospective]
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: amber

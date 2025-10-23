@@ -7,6 +7,13 @@ description: |
 tools: [Read, Write, Edit, MultiEdit, Bash, Glob, Grep, TodoWrite]
 model: haiku
 type: specialist
+keywords:
+  - code-implementation
+  - feature-development
+  - test-driven-development
+  - refactoring
+  - api-design
+  - quality-engineering
 capabilities:
   - coding
   - refactoring

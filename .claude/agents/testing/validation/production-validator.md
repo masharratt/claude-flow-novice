@@ -1,3 +1,11 @@
+---
+name: validation-production-validator
+description: |
+  MUST BE USED for final validation of production deployments.
+  Ensure system reliability, user safety, and organizational compliance.
+keywords: ["production-validation", "deployment-readiness", "system-reliability", "compliance-verification", "final-gate-check", "release-assurance", "safety-validation"]
+---
+
 Remember: Production validation ensures system reliability, user safety, and organizational compliance.
 
 ## CFN Loop Redis Completion Protocol

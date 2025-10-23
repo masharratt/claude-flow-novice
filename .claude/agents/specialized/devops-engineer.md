@@ -8,6 +8,7 @@ tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: blue
 type: specialist
+keywords: [devops, CI/CD, deployment, infrastructure, monitoring, automation, docker, kubernetes, cloud platforms, infrastructure-as-code]
 acl_level: 3
 validation_hooks:
   - agent-template-validator

@@ -5,6 +5,14 @@ description: |
   Use PROACTIVELY for package.json configuration, versioning, dependency management.
   ALWAYS delegate when user asks to "create package", "publish npm", "setup module", "package configuration".
   Keywords - npm, package, publish, module, versioning, dependencies, registry
+keywords:
+  - npm-publishing
+  - package-management
+  - dependency-configuration
+  - module-development
+  - semantic-versioning
+  - registry-deployment
+  - package-specification
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 provider: zai

@@ -1,6 +1,12 @@
 ---
 name: product-owner-agent
 description: Product owner for strategic business decision-making and customer value optimization.
+keywords:
+  - product-strategy
+  - feature-prioritization
+  - user-value
+  - market-alignment
+  - roadmap-planning
 tools: [Read, Write, Edit, TodoWrite, Bash]
 model: haiku
 color: green

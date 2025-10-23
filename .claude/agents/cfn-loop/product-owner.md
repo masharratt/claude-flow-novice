@@ -5,6 +5,7 @@ tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: purple
 type: strategic
+keywords: [product-owner, cfn-loop, goap, scope-enforcement, decision-authority, strategic-planning, autonomous-execution, consensus-validation]
 acl_level: 4
 capabilities:
   - goap-planning

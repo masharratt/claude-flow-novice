@@ -5,6 +5,14 @@ description: |
   Use PROACTIVELY for CI/CD, containerization, Kubernetes, IaC, monitoring, security automation.
   ALWAYS delegate when user asks to deploy, setup infrastructure, configure pipelines.
   Keywords - DevOps, infrastructure, CI/CD, Kubernetes, Docker, Terraform, cloud
+keywords:
+  - cloud-infrastructure
+  - devops-automation
+  - platform-engineering
+  - continuous-deployment
+  - infrastructure-as-code
+  - container-orchestration
+  - security-automation
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: green

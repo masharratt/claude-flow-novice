@@ -4,7 +4,7 @@ description: |
   MUST BE USED when starting CFN Loop v3 execution.
   Analyzes task and returns optimal configuration for loop execution.
   Supports dual-mode (CLI/Task) with Redis context storage.
-  Keywords - cfn loop, task analysis, agent selection, validation criteria, distributed coordination
+keywords: [cfn-loop, task-analysis, agent-selection, validation, orchestration]
 tools: [Read, Bash, Write, Grep]
 model: sonnet
 type: coordinator
@@ -50,6 +50,25 @@ Return ONLY this JSON structure, nothing else:
 
 ## Analysis Framework
 
+### 0. Agent Discovery (ADDED)
+
+**Automatically refresh agent registry if stale:**
+```bash
+# Check if registry exists and is recent (< 1 hour old)
+REGISTRY_PATH=".claude/skills/agent-discovery/agents-registry.json"
+
+if [ ! -f "$REGISTRY_PATH" ] || [ $(find "$REGISTRY_PATH" -mmin +60 2>/dev/null | wc -l) -gt 0 ]; then
+  echo "Refreshing agents registry..."
+  ./.claude/skills/agent-discovery/discover-agents.sh
+fi
+```
+
+### Agent Discovery Details
+- Automatically scans `.claude/agents/` folder
+- Builds JSON registry of available agents
+- Registry refreshed if older than 1 hour
+- Enables dynamic agent selection as new specialists added
+
 ### 1. Task Type Detection
 
 Use `.claude/skills/task-classifier/classify-task.sh`:
@@ -88,9 +107,11 @@ fi
 
 **Agent Selection:**
 ```bash
+# Query registry and select agents
 AGENTS=$(bash ./.claude/skills/agent-selector/select-agents.sh \
   --task-type "$TASK_TYPE" \
-  --description "$TASK_DESCRIPTION")
+  --description "$TASK_DESCRIPTION" \
+  --agent-registry ".claude/skills/agent-discovery/agents-registry.json")
 
 LOOP3_AGENTS=($(echo "$AGENTS" | jq -r '.loop3[]'))
 LOOP2_AGENTS=($(echo "$AGENTS" | jq -r '.loop2[]'))
@@ -100,6 +121,29 @@ if [ "$PLAYBOOK_FOUND" = "true" ]; then
   LOOP3_AGENTS=($(echo "$PLAYBOOK_LOOP3" | jq -r '.[]'))
   LOOP2_AGENTS=($(echo "$PLAYBOOK_LOOP2" | jq -r '.[]'))
 fi
+
+# Validate selected agents exist in registry
+VERIFIED_LOOP3_AGENTS=()
+for agent in "${LOOP3_AGENTS[@]}"; do
+  if jq -e --arg agent "$agent" '.agents[] | select(.name == $agent)' ".claude/skills/agent-discovery/agents-registry.json" > /dev/null; then
+    VERIFIED_LOOP3_AGENTS+=("$agent")
+  else
+    echo "Warning: Agent $agent not found in registry. Skipping."
+  fi
+done
+
+VERIFIED_LOOP2_AGENTS=()
+for agent in "${LOOP2_AGENTS[@]}"; do
+  if jq -e --arg agent "$agent" '.agents[] | select(.name == $agent)' ".claude/skills/agent-discovery/agents-registry.json" > /dev/null; then
+    VERIFIED_LOOP2_AGENTS+=("$agent")
+  else
+    echo "Warning: Agent $agent not found in registry. Skipping."
+  fi
+done
+
+# Use verified agents or fall back to default
+LOOP3_AGENTS=("${VERIFIED_LOOP3_AGENTS[@]:-default_loop3_agent}")
+LOOP2_AGENTS=("${VERIFIED_LOOP2_AGENTS[@]:-default_loop2_agent}")
 ```
 
 **Agent Selection Rules (Enhanced):**

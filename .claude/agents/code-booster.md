@@ -1,6 +1,7 @@
 ---
 name: code-booster
 description: MUST BE USED when performance-critical code tasks require WASM acceleration. Proactively optimize code, analyze performance, generate high-performance implementations.
+keywords: [wasm, optimization, performance, acceleration, code-generation]
 type: specialist
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku

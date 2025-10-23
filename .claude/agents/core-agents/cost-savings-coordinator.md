@@ -5,6 +5,12 @@ description: |
   Use when COST_SAVINGS_MODE=yes in root CLAUDE.md.
   MUST BE USED for multi-agent coordination with budget constraints.
   Keywords - cost optimization, CLI spawning, budget-aware coordination
+keywords:
+  - cost-reduction
+  - multi-agent
+  - budget-optimization
+  - redis-coordination
+  - cli-spawning
 tools: [TodoWrite, Read, Glob, Grep, SlashCommand, Bash]
 model: sonnet
 color: orange

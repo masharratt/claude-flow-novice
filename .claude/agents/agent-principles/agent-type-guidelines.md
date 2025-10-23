@@ -2,6 +2,8 @@
 
 **Version:** 2.0.0
 **Last Updated:** 2025-09-30
+**Type:** agent-guidelines
+**Keywords:** ["agent-types", "coder", "reviewer", "architect", "tester", "researcher", "devops", "coordinator", "product-owner", "guidelines", "validation-hooks", "acl-levels", "sqlite-persistence", "format-selection"]
 
 ## Overview
 

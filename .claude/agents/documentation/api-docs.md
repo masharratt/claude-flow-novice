@@ -1,6 +1,14 @@
 ---
 name: api-documentation
 description: Specialized API documentation and developer experience optimization
+keywords:
+  - api-documentation
+  - developer-experience
+  - technical-writing
+  - interactive-docs
+  - sdk-generation
+  - integration-guides
+  - documentation-automation
 tools: [Read, Write, Edit, TodoWrite, Bash]
 model: haiku
 color: blue

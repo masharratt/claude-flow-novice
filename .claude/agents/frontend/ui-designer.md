@@ -9,6 +9,7 @@ tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: mediumpurple
 type: specialist
+keywords: [UI design, user experience, responsive design, component libraries, interface design, accessibility, WCAG, mobile-first, design systems]
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator

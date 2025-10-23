@@ -8,6 +8,7 @@ tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: blue
 type: specialist
+keywords: [rust, systems programming, memory safety, performance optimization, zero-cost abstractions, ownership, borrow checker, error handling]
 capabilities:
   - rust-development
   - memory-safety

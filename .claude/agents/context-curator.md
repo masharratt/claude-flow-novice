@@ -3,7 +3,7 @@ name: context-curator
 description: |
   MUST BE USED for adaptive context management, reflection processing, knowledge organization.
   Use PROACTIVELY for context curation, deduplication, learning consolidation.
-  Keywords - context curation, knowledge management, reflection merging
+keywords: [context-management, knowledge-curation, reflection, learning, adaptation]
 tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
 model: haiku
 color: blue

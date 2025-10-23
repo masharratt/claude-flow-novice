@@ -9,6 +9,7 @@ tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
 model: haiku
 color: cyan
 type: specialist
+keywords: [interaction testing, integration tests, e2e, UI testing, accessibility, user flows, WCAG compliance, component testing]
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator

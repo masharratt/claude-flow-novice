@@ -3,6 +3,12 @@ name: security-specialist
 type: validator
 color: "#D32F2F"
 description: |
+keywords:
+  - cyber-security
+  - threat-detection
+  - security-engineering
+  - vulnerability-management
+  - incident-response
   MUST BE USED when conducting security audits, vulnerability assessments, penetration testing, or implementing security controls.
   PROACTIVELY validates threat models, security architecture, cryptographic implementations, Zero Trust deployment.
   Keywords - security audit, vulnerability, threat model, penetration test, encryption, authentication, CVE, OWASP

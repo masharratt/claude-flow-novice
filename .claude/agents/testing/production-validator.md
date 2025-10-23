@@ -4,7 +4,7 @@ description: |
   MUST BE USED for final production deployment validation.
   Use PROACTIVELY for release readiness checks, final deployment gate.
   ALWAYS delegate when user asks to "final production check", "deployment approval".
-  Keywords - final validation, deployment gate, release readiness
+  keywords: ["final-deployment-validation", "release-readiness", "production-gate", "deployment-compliance", "risk-assessment", "security-verification", "performance-validation"]
 tools: [Read, Write, Edit, Bash, Grep]
 model: haiku
 color: crimson

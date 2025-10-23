@@ -1,6 +1,12 @@
 ---
 name: architecture
 description: MUST BE USED for system design and scalable architecture planning in SPARC methodology.
+keywords:
+  - system-architecture
+  - design-patterns
+  - component-modeling
+  - architectural-analysis
+  - system-decomposition
 type: specialist
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku

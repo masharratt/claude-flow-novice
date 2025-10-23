@@ -3,8 +3,9 @@ name: multi-sprint-coordinator
 description: |
   Orchestrates epic execution across multiple sprints with dependency management.
   Ensures sequential sprint execution with clear scope boundaries.
-tools: 
-  - Read 
+keywords: [sprint-coordination, epic-management, dependency-tracking, iteration, planning]
+tools:
+  - Read
   - Bash
   - Write
 model: sonnet

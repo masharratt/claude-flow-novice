@@ -4,6 +4,13 @@ description: "Cost-optimized CFN Loop Coordinator using CLI spawning (95-98% sav
 category: "coordination"
 complexity: "high"
 tools: Bash
+keywords:
+  - cfn-loop-coordination
+  - background-execution
+  - cost-optimization
+  - redis-monitoring
+  - cli-spawning
+  - swarm-orchestration
 ---
 
 # Cost-Savings CFN Loop Coordinator

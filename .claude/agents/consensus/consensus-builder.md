@@ -5,6 +5,7 @@ tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: purple
 type: implementer
+keywords: [consensus, distributed-coordination, voting-mechanisms, fault-tolerance, consensus-algorithms, swarm-agreement, distributed-decision-making, byzantine-fault-tolerance]
 acl_level: 1
 capabilities:
   - consensus-algorithms

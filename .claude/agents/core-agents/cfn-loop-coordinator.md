@@ -4,6 +4,7 @@ description: "CFN Loop Coordinator with automatic dependency orchestration enfor
 category: "coordination"
 complexity: "high"
 tools: Bash
+keywords: ["CFN loop", "orchestration", "coordination", "dependency management", "multi-agent", "Redis pub/sub", "workflow automation", "consensus building", "iteration management", "context injection"]
 ---
 
 # CFN Loop Coordinator

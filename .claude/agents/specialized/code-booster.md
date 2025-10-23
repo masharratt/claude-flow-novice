@@ -7,6 +7,7 @@ tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: yellow
 type: specialist
+keywords: [performance optimization, code refactoring, efficiency, algorithm optimization, memory management, concurrency, code quality, complexity reduction]
 capabilities:
   - performance-optimization
   - refactoring

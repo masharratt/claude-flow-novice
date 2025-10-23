@@ -3,6 +3,7 @@ name: retrospective-analyst
 description: |
   MUST BE USED after CFN Loop PROCEED decision.
   Analyzes sprint execution to extract learnings and update playbook.
+keywords: [retrospective, learning, metrics, analysis, performance]
 tools: [Read, Bash, TodoWrite]
 model: sonnet
 type: analyst

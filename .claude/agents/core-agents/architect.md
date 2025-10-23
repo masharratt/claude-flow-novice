@@ -5,6 +5,13 @@ type: coordinator
 model: haiku
 color: cyan
 tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
+keywords:
+  - system-design
+  - architecture-planning
+  - infrastructure-strategy
+  - scalability
+  - technical-leadership
+  - component-integration
 capabilities:
   - architecture
   - system-design

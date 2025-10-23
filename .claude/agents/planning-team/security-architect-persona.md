@@ -1,6 +1,14 @@
 ---
 name: security-architect-persona
 description: Design security architectures and strategies in Loop 0.5 Design Consensus.
+keywords:
+  - security-architecture
+  - threat-modeling
+  - design-consensus
+  - authentication-strategy
+  - security-pattern-design
+  - risk-mitigation
+  - architectural-security
 tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
 model: haiku
 color: crimson
