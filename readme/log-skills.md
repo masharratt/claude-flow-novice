@@ -35,6 +35,11 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 - **Feedback Accumulation** (v2.7): Multi-iteration learning via Redis history
 - **Validator Feedback** (v2.7): Structured JSON feedback from Loop 2 validators
 - **Sprint Execution** (v2.7): Sprint-aware context vs epic-level scope
+- **Bidirectional JSON Context** (v2.10): Enhanced context injection and extraction
+  - Standardized input JSON parsing
+  - Structured response extraction
+  - Redis-based message history logging
+  - Context recovery mechanisms
 
 **Primary Scripts:**
 - `invoke-waiting-mode.sh` - Enter/exit waiting mode, wake agents, report confidence, shutdown handling

@@ -596,6 +596,8 @@ See `.artifacts/analytics/context-reduction-report.json`
 - **Tags**: deliverable-verification, consensus-validation, git-diff, cfn-loop, quality-gate
 - **Confidence**: 0.95
 - **Priority**: 10/10
+- **Validation**: Core implementation in `.claude/skills/cfn-loop-validation/validate-deliverables.sh`
+- **Retry Pattern**: Limited to 3 iterations, escalate to Product Owner if still no deliverables
 
 #### STRAT-021: Standardized Context Extraction Templates
 - **Context**: Coordinator Design
