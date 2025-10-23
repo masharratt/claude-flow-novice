@@ -122,6 +122,30 @@ npx claude-flow-novice swarm "Task description" \
 /agent-status --filter backend-dev --phase loop3
 ```
 
+### `/cfn-mode`
+
+**Purpose**: Toggle CFN Loop v3 spawning mode between CLI and Task execution
+
+**Subcommands**:
+- `cli`: CLI spawning (cost-optimized, Z.ai routing)
+- `task`: Task spawning (simplified, full visibility)
+- `status`: Show current mode
+
+**Example:**
+```bash
+/cfn-mode cli      # Switch to CLI spawning
+/cfn-mode task     # Switch to Task mode
+/cfn-mode status   # Check current mode
+```
+
+**Mode Characteristics**:
+- `cli`: Coordinator → orchestrator → CLI agents (default)
+- `task`: Coordinator → JSON → Main Chat spawns Task() agents
+
+**Persistence**: Mode saved to `.cfn-mode.json`
+
+**Integration**: Affects `/cfn-loop`, `/cfn-loop-single`, `/cfn-loop-epic`
+
 ## Best Practices
 
 1. **Start Simple**: Begin with basic commands and add options as needed

@@ -65,6 +65,35 @@ redis-cli lpush swarm:task-123:validator:history '{"iteration": 1, "severity": "
 redis-cli lrange swarm:task-123:validator:history 0 -1
 ```
 
+## CFN v3 Context Storage
+
+**Redis Keys**:
+```
+cfn_loop:task:{TASK_ID}:context          # Full task context
+cfn_loop:task:{TASK_ID}:v3_config        # V3 configuration
+cfn_loop:task:{TASK_ID}:epic_context     # Epic-level context
+cfn_loop:task:{TASK_ID}:phase_context    # Phase-level context
+```
+
+**Context Structure**:
+```json
+{
+  "task_id": "auth-001",
+  "task_type": "software-development",
+  "iteration": 1,
+  "deliverables": ["auth.ts", "auth.test.ts"],
+  "acceptance_criteria": ["Tests pass", "JWT expiry works"],
+  "loop3_agents": ["backend-dev", "security-specialist"],
+  "loop2_agents": ["reviewer", "tester"]
+}
+```
+
+**Storage**: Coordinator stores context before spawning orchestrator
+
+**Retrieval**: CLI agents read via `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
+
+**Benefits**: Swarm recovery, no JSON escaping, single source of truth
+
 ## Key Lifecycle Management
 
 - Automatic cleanup after 24 hours

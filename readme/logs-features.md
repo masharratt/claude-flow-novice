@@ -2,50 +2,60 @@
 
 [... previous content remains unchanged ...]
 
-### 6. CFN Loop Feedback Mechanisms (v3.0.0)
+### 8. CFN Loop v3 Dual-Mode Architecture
 
-#### Feedback Accumulation
-- **Purpose**: Enable iterative learning across CFN Loop iterations
-- **Implementation**: Accumulate structured feedback from deliverable checks
-- **Storage**: Redis key `swarm:${TASK_ID}:feedback:history`
-- **Injection**: Historical feedback prepended to Loop 3 agent context
-- **Mechanics**: JSON array with iteration-level insights
-- **Performance**: Reduces consensus variance from 0.81 to 0.90
+#### Purpose
+Flexible agent spawning with architectural optimization and context management
 
-#### Validator Structured Feedback
-- **Purpose**: Extract structured validator insights
-- **Implementation**: JSON-based severity reporting
-- **Severity Levels**:
-  - CRITICAL: Blocking issues
-  - WARNING: Potential improvements
-  - SUGGESTION: Optional refinements
-- **Storage**: Redis key `swarm:${TASK_ID}:validator:history`
-- **Injection**: Validator history guides subsequent iterations
-- **Performance**: Improves deliverable quality by 22%
+#### Modes of Operation
+1. **CLI Mode (Default)**
+   - Routing: Main Chat → Coordinator → Orchestrator Script → CLI Agents
+   - Context Management: Redis-based storage
+   - Cost Optimization: 95-98% savings
 
-#### Sprint-Aware Execution
-- **Purpose**: Focus deliverables on sprint scope
-- **Implementation**: `execute-sprint-task.sh` skill
-- **Extraction**: Decompose epics into targeted sprint deliverables
-- **Mechanism**: Context-aware task decomposition
-- **Performance**: Reduces iteration count by 1.5 cycles
+2. **Task Mode**
+   - Routing: Main Chat → Coordinator → JSON Config → Task Agent Spawning
+   - Routing Provider: Anthropic native routing
+   - Detailed Tracking: Direct JSON configuration
 
-### 7. Context Injection Enhancements
+#### Core Features
+- **Redis Context Storage**
+  - Eliminates CLI JSON escaping complexities
+  - Enables stateful agent coordination
+  - Supports swarm recovery after interruptions
 
-#### Multi-Layer Context Flow
-- **Purpose**: Ensure complete context transmission
-- **Layers**: Coordinator → Orchestrator → Agents
-- **Validation**: Checkpoint at each layer
-- **Prevention**: Eliminates "consensus on vapor" scenarios
-- **Performance**: Context completeness increased to 97%
+- **Domain-Specific Validation**
+  - 6 Structured Validation Templates:
+    1. Software Development
+    2. Content Creation
+    3. Research Analysis
+    4. Design Workflows
+    5. Infrastructure Management
+    6. Data Processing
 
-#### Standardized Context Templates
-- **Components**:
-  - Epic Goal (1-2 sentences)
-  - In-Scope Deliverables
-  - Out-of-Scope Boundaries
-  - Acceptance Criteria
-- **Extraction**: Bash text processing (grep, sed, jq)
-- **Performance**: Reduces context ambiguity by 85%
+- **Advanced Monitoring Capabilities**
+  - Intervention Detection Mechanisms
+    * Confidence plateau tracking
+    * Recurring feedback identification
+    * Stuck deliverable recognition
+
+- **Adaptive Learning**
+  - Playbook Pattern Extraction
+    * SQLite-based pattern storage
+    * Automatic agent selection based on historical performance
+  - Retrospective Analysis (Loop 5 Post-Sprint)
+    * Pattern identification
+    * Performance optimization recommendations
+
+#### Integration Points
+- Seamless compatibility with:
+  - `/cfn-loop`
+  - `/cfn-loop-single`
+  - `/cfn-loop-epic`
+
+#### Configuration
+- Mode toggling via `/cfn-mode` command
+- Granular control over spawning behavior
+- Zero-configuration default settings
 
 [... rest of previous content remains unchanged ...]

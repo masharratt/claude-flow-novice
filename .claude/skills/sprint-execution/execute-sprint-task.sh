@@ -1,83 +1,59 @@
 #!/bin/bash
-# Sprint-aware CLI agent execution wrapper
-# Bridges CLI agents to sprint-based CFN Loop execution
 
 set -euo pipefail
 
-AGENT_TYPE="$1"
+# Sprint Task Execution Script
+
+# Validate required arguments
+[[ $# -lt 4 ]] && { 
+    echo "Usage: $0 [SPRINT_CONFIG] [TASK_ID] [AGENT_ID] [SPRINT_ID]"
+    exit 1
+}
+
+SPRINT_CONFIG="$1"
 TASK_ID="$2"
 AGENT_ID="$3"
-SPRINT_ID="${4:-}"  # Optional sprint identifier
+SPRINT_ID="$4"
 
-# Check if running in sprint mode
-if [ -n "$SPRINT_ID" ]; then
-  echo "[Sprint Execution] Retrieving sprint context for $SPRINT_ID..."
+# Validate file inputs
+[[ ! -f "$SPRINT_CONFIG" ]] && {
+    echo "Error: Sprint configuration file not found"
+    exit 1
+}
 
-  # Retrieve sprint context from Redis
-  SPRINT_CONTEXT=$(redis-cli GET "swarm:${TASK_ID}:sprint:${SPRINT_ID}:context" 2>/dev/null)
+# Read sprint configuration
+CONFIG=$(cat "$SPRINT_CONFIG")
 
-  if [ -n "$SPRINT_CONTEXT" ] && [ "$SPRINT_CONTEXT" != "(nil)" ]; then
-    # Extract sprint metadata
-    SPRINT_NAME=$(echo "$SPRINT_CONTEXT" | jq -r '.sprint_name')
-    SPRINT_NUM=$(echo "$SPRINT_CONTEXT" | jq -r '.sprint_num')
-    TOTAL_SPRINTS=$(echo "$SPRINT_CONTEXT" | jq -r '.total_sprints')
-    SPRINT_DELIVERABLES=$(echo "$SPRINT_CONTEXT" | jq -r '.deliverables[]' | sed 's/^/- /')
-    SPRINT_IN_SCOPE=$(echo "$SPRINT_CONTEXT" | jq -r '.in_scope[]' | sed 's/^/- /')
-    SPRINT_OUT_SCOPE=$(echo "$SPRINT_CONTEXT" | jq -r '.out_of_scope[]' | sed 's/^/- /')
-    SPRINT_DIRECTORY=$(echo "$SPRINT_CONTEXT" | jq -r '.directory // ""')
+# Extract sprint details
+CONTEXT=$(echo "$CONFIG" | jq -r '.context_injection')
+DELIVERABLES=$(echo "$CONFIG" | jq -r '.deliverables[]')
+IN_SCOPE=$(echo "$CONFIG" | jq -r '.in_scope[]')
+OUT_OF_SCOPE=$(echo "$CONFIG" | jq -r '.out_of_scope[]')
 
-    # Build sprint-focused agent context
-    AGENT_CONTEXT="Sprint: $SPRINT_ID - $SPRINT_NAME (Sprint $SPRINT_NUM of $TOTAL_SPRINTS)
+# Validate deliverables directory
+for deliverable in $DELIVERABLES; do
+    mkdir -p "$(dirname "$deliverable")"
+done
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FOCUSED SPRINT EXECUTION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Redis coordination - signal sprint start
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:sprint_started" "$SPRINT_ID"
 
-CRITICAL: This is a FOCUSED SPRINT. Create ONLY sprint-specific deliverables.
-DO NOT create epic-level or phase-level summaries.
+# Context injection template
+cat << EOF > /tmp/sprint_context_${SPRINT_ID}.txt
+SPRINT ${SPRINT_ID} CONTEXT:
 
-Sprint Deliverables (CREATE EXACTLY THESE FILES):
-$SPRINT_DELIVERABLES
-$([ -n "$SPRINT_DIRECTORY" ] && echo "
-Target Directory: $SPRINT_DIRECTORY")
+${CONTEXT}
 
-Sprint Scope (IMPLEMENT ONLY THESE ITEMS):
-$SPRINT_IN_SCOPE
+DELIVERABLES:
+$(echo "$DELIVERABLES" | while read -r file; do echo "- ${file}"; done)
 
-Out of Sprint Scope (DO NOT IMPLEMENT):
-$SPRINT_OUT_SCOPE
+IN SCOPE:
+$(echo "$IN_SCOPE" | while read -r item; do echo "- ${item}"; done)
 
-Instructions:
-1. Use Write tool to create EACH deliverable file
-2. Verify files created with 'ls -la' after each Write
-3. Focus ONLY on sprint scope items
-4. DO NOT implement out-of-scope items (they're handled in other sprints)
-5. Report confidence based on sprint deliverable completion (not epic completion)
-6. If you identify out-of-scope improvements, note them but DO NOT implement
+OUT OF SCOPE:
+$(echo "$OUT_OF_SCOPE" | while read -r item; do echo "- ${item}"; done)
 
-Context:
-This is Sprint $SPRINT_NUM of $TOTAL_SPRINTS in a larger epic. Other sprints will handle
-out-of-scope items. Your success is measured by delivering sprint-specific files with
-high quality, NOT by completing the entire epic.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"
-
-    echo "[Sprint Execution] ✅ Sprint context built ($(echo "$AGENT_CONTEXT" | wc -c) chars)"
-  else
-    echo "[Sprint Execution] ⚠️  Sprint context not found, using standard context"
-    # Fall back to standard context retrieval
-    AGENT_CONTEXT=$(redis-cli GET "swarm:${TASK_ID}:agent-context" 2>/dev/null || echo "")
-  fi
-else
-  # Non-sprint mode: retrieve standard context
-  echo "[Execution] Standard (non-sprint) mode"
-  AGENT_CONTEXT=$(redis-cli GET "swarm:${TASK_ID}:agent-context" 2>/dev/null || echo "")
-fi
-
-# Execute agent with sprint-aware or standard context
-echo "[Execution] Spawning $AGENT_TYPE agent (ID: $AGENT_ID)..."
-npx claude-flow-novice agent "$AGENT_TYPE" \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "$AGENT_CONTEXT"
+CRITICAL RULES:
+1. Only create files in DELIVERABLES list
+2. Do not implement anything OUT OF SCOPE
+3. Focus strictly on IN SCOPE tasks

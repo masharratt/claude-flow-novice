@@ -1227,7 +1227,7 @@ Use the Write tool for each file. Verify with 'ls -la' after each Write operatio
   # Simple Gate Pass Signaling (Loop 2 validators spawned AFTER this signal)
   GATE_PASS_KEY="swarm:${TASK_ID}:gate-passed"
   redis-cli lpush "$GATE_PASS_KEY" "{\"iteration\": $ITERATION, \"loop3_confidence\": $LOOP3_CONSENSUS}" > /dev/null
-  echo "[Loop 3] ✅ Gate PASSED (consensus: $LOOP3_CONSENSUS >= $GATE_THRESHOLD)"
+  echo "[Loop 3] ✅ Gate PASSED (consensus: $LOOP3_CONSENSUS >= $GATE)"
   echo "[Loop 3] Gate pass signal sent to Loop 2 validators"
   echo ""
 
@@ -1323,8 +1323,33 @@ Your Validation Tasks:
   echo "[Loop 2] Validator context built"
   echo ""
 
-  # Step 4: Spawn Loop 2 validators using skill-based output processing (parallel execution)
-  echo "[Loop 2] Using skill-based output processing (parallel execution)"
+  # BUG #30 FIX: Determine spawn mode (parallel vs sequential) based on phase
+  SEQUENTIAL_SPAWN=false
+  if [[ "$PHASE_ID" == "phase-5" ]] || [[ "$PHASE_ID" == "phase-6" ]]; then
+    SEQUENTIAL_SPAWN=true
+    echo "[Loop 2] Using sequential spawn mode for $PHASE_ID (complex test phase)" >&2
+  else
+    echo "[Loop 2] Using parallel spawn mode for $PHASE_ID" >&2
+  fi
+  echo ""
+
+  # BUG #30 FIX: Log environment state before validator spawn
+  echo "[Loop 2] Environment State:" >&2
+  echo "  TASK_ID: $TASK_ID" >&2
+  echo "  ITERATION: $ITERATION" >&2
+  echo "  PHASE_ID: ${PHASE_ID:-none}" >&2
+  echo "  HOME: ${HOME}" >&2
+  echo "  PATH: ${PATH:0:100}..." >&2
+  echo "  REDIS_HOST: ${REDIS_HOST:-localhost}" >&2
+  echo "  PWD: $(pwd)" >&2
+  echo ""
+
+  # Step 4: Spawn Loop 2 validators using skill-based output processing
+  if [ "$SEQUENTIAL_SPAWN" = true ]; then
+    echo "[Loop 2] Using skill-based output processing (sequential execution)"
+  else
+    echo "[Loop 2] Using skill-based output processing (parallel execution)"
+  fi
   IFS=',' read -ra VALIDATORS <<< "$LOOP2_AGENTS"
 
   # Track instance counts to generate unique validator IDs for duplicate validator types
@@ -1348,10 +1373,15 @@ Your Validation Tasks:
 
   echo ""
 
-  # Step 3a: Spawn all validators in parallel using skill
-  echo "[Loop 2] Spawning validators in parallel..."
+  # Step 3a: Spawn all validators using skill
+  if [ "$SEQUENTIAL_SPAWN" = true ]; then
+    echo "[Loop 2] Spawning validators sequentially..."
+  else
+    echo "[Loop 2] Spawning validators in parallel..."
+  fi
   declare -A VALIDATOR_PIDS  # Map from validator ID to background PID
   declare -A VALIDATOR_OUTPUT_FILES  # Map from validator ID to temp output file
+  declare -A VALIDATOR_STDERR_FILES  # BUG #30 FIX: Map from validator ID to stderr log file
 
   LOOP2_TOTAL=${#VALIDATORS[@]}
   LOOP2_REQUIRED=$(calculate_quorum "$MIN_QUORUM_LOOP2" "$LOOP2_TOTAL")
@@ -1366,35 +1396,46 @@ Your Validation Tasks:
     # Get agent-specific timeout (use base validator type, not unique ID)
     AGENT_TIMEOUT=$(get_agent_timeout "$VALIDATOR" "$TASK_ID")
 
-    # Create temp output file for this validator
+    # Create temp output and stderr files for this validator
     OUTPUT_FILE="/tmp/loop2-${TASK_ID}-${UNIQUE_VALIDATOR_ID}.json"
+    STDERR_FILE="/tmp/loop2-${TASK_ID}-${UNIQUE_VALIDATOR_ID}.stderr"
     VALIDATOR_OUTPUT_FILES["$UNIQUE_VALIDATOR_ID"]="$OUTPUT_FILE"
+    VALIDATOR_STDERR_FILES["$UNIQUE_VALIDATOR_ID"]="$STDERR_FILE"
 
     echo "  Spawning: $VALIDATOR (ID: $UNIQUE_VALIDATOR_ID, timeout: ${AGENT_TIMEOUT}s)"
 
-    # Execute skill in background - captures agent output and extracts structured data
+    # BUG #30 FIX: Execute skill in background - captures stdout AND stderr separately
     (
       # METRICS: Agent latency start
       AGENT_START=$(date +%s%N | cut -b1-13)
 
       # Execute skill to spawn validator and extract feedback (BUG #20 FIX - inject detailed context)
       # BUG #27 FIX: Use process-validator-output.sh (includes structured template injection)
+      # BUG #30 FIX: Capture stderr to separate file for error analysis
       SKILL_RESULT=$(./.claude/skills/loop2-output-processing/process-validator-output.sh \
         --agent-type "$VALIDATOR" \
         --task-id "$TASK_ID" \
         --agent-id "$UNIQUE_VALIDATOR_ID" \
         --context "$LOOP2_VALIDATOR_CONTEXT" \
         --iteration "$ITERATION" \
-        --timeout "$AGENT_TIMEOUT" 2>&1)
+        --timeout "$AGENT_TIMEOUT" 2>"$STDERR_FILE")
 
       # METRICS: Agent latency end
       AGENT_END=$(date +%s%N | cut -b1-13)
       LATENCY=$((AGENT_END - AGENT_START))
 
       # BUG #27 FIX: Check for validation warnings (default output detection)
+      # Now check both stdout and stderr for warnings
       if echo "$SKILL_RESULT" | grep -q "VALIDATION_WARNING.*default_output"; then
         echo "  ⚠️  Validator produced default output (confidence: 0.70, feedback: 0)" >&2
         echo "     This may indicate validator agent needs guidance on structured format" >&2
+      fi
+
+      # BUG #30 FIX: Check stderr for error indicators
+      if [ -s "$STDERR_FILE" ]; then
+        if grep -q "ERROR\|CRITICAL\|FATAL\|spawn.*failed" "$STDERR_FILE"; then
+          echo "  ⚠️  Validator encountered errors during execution (see stderr log)" >&2
+        fi
       fi
 
       # Inject latency into result JSON
@@ -1413,10 +1454,22 @@ Your Validation Tasks:
     # Track background PID
     VALIDATOR_PIDS["$UNIQUE_VALIDATOR_ID"]=$!
     echo "  ✅ Spawned $UNIQUE_VALIDATOR_ID (PID: ${VALIDATOR_PIDS[$UNIQUE_VALIDATOR_ID]})"
+
+    # BUG #30 FIX: If sequential mode, wait for this validator before spawning next
+    if [ "$SEQUENTIAL_SPAWN" = true ]; then
+      echo "  [Sequential Mode] Waiting for $UNIQUE_VALIDATOR_ID to complete before next spawn..."
+      wait "${VALIDATOR_PIDS[$UNIQUE_VALIDATOR_ID]}" 2>/dev/null || true
+      echo "  [Sequential Mode] $UNIQUE_VALIDATOR_ID complete, pausing 0.5s before next spawn"
+      sleep 0.5
+    fi
   done
 
   echo ""
-  echo "[Loop 2] All validators spawned, waiting for completion..."
+  if [ "$SEQUENTIAL_SPAWN" = true ]; then
+    echo "[Loop 2] All validators spawned sequentially, collecting results..."
+  else
+    echo "[Loop 2] All validators spawned in parallel, waiting for completion..."
+  fi
   echo ""
 
   # Step 3b: Wait for all validators to complete and collect results
@@ -1429,10 +1482,12 @@ Your Validation Tasks:
     UNIQUE_VALIDATOR_ID="${VALIDATOR_IDS[$i]}"
     VALIDATOR_PID="${VALIDATOR_PIDS[$UNIQUE_VALIDATOR_ID]}"
     OUTPUT_FILE="${VALIDATOR_OUTPUT_FILES[$UNIQUE_VALIDATOR_ID]}"
+    STDERR_FILE="${VALIDATOR_STDERR_FILES[$UNIQUE_VALIDATOR_ID]}"
 
     echo "  Waiting for $UNIQUE_VALIDATOR_ID (PID: $VALIDATOR_PID)..."
 
-    # Wait for background process to complete
+    # BUG #30 FIX: Wait for background process to complete with enhanced error reporting
+    # In sequential mode, process already waited for, so this is instant
     if wait "$VALIDATOR_PID" 2>/dev/null; then
       # Process completed successfully, read result from temp file
       if [ -f "$OUTPUT_FILE" ] && [ -s "$OUTPUT_FILE" ]; then
@@ -1465,9 +1520,27 @@ Your Validation Tasks:
 
           echo "  ✅ $UNIQUE_VALIDATOR_ID complete (${LATENCY}ms, confidence: $CONFIDENCE [$CONFIDENCE_SOURCE], feedback: ${CRITICAL_COUNT}C/${WARNINGS_COUNT}W/${SUGGESTIONS_COUNT}S)"
 
+          # BUG #30 FIX: Check stderr for warnings even on success
+          if [ -s "$STDERR_FILE" ]; then
+            STDERR_LINES=$(wc -l < "$STDERR_FILE")
+            if [ "$STDERR_LINES" -gt 0 ]; then
+              echo "  ℹ️  $UNIQUE_VALIDATOR_ID stderr ($STDERR_LINES lines logged to $STDERR_FILE)" >&2
+            fi
+          fi
+
           LOOP2_COMPLETED_AGENTS+=("$UNIQUE_VALIDATOR_ID")
         else
           echo "  ⚠️  $UNIQUE_VALIDATOR_ID returned invalid JSON, treating as failed"
+
+          # BUG #30 FIX: Display stderr content on JSON validation failure
+          if [ -s "$STDERR_FILE" ]; then
+            echo "  [STDERR Content]:" >&2
+            head -20 "$STDERR_FILE" | sed 's/^/    /' >&2
+            if [ "$(wc -l < "$STDERR_FILE")" -gt 20 ]; then
+              echo "    ... (truncated, see full log at $STDERR_FILE)" >&2
+            fi
+          fi
+
           LOOP2_FAILED_AGENTS+=("$VALIDATOR")
 
           # METRICS: Increment timeout counter
@@ -1475,21 +1548,54 @@ Your Validation Tasks:
         fi
       else
         echo "  ⚠️  $UNIQUE_VALIDATOR_ID completed but no output file found"
+
+        # BUG #30 FIX: Display stderr to diagnose missing output
+        if [ -s "$STDERR_FILE" ]; then
+          echo "  [STDERR Content]:" >&2
+          head -20 "$STDERR_FILE" | sed 's/^/    /' >&2
+          if [ "$(wc -l < "$STDERR_FILE")" -gt 20 ]; then
+            echo "    ... (truncated, see full log at $STDERR_FILE)" >&2
+          fi
+        else
+          echo "  [No stderr output captured]" >&2
+        fi
+
         LOOP2_FAILED_AGENTS+=("$VALIDATOR")
 
         # METRICS: Increment timeout counter
         redis-cli INCR "swarm:${TASK_ID}:metrics:timeout_count" >/dev/null
       fi
     else
-      echo "  ❌ $UNIQUE_VALIDATOR_ID failed (process exited with error)"
+      # BUG #30 FIX: Enhanced error reporting with stderr content
+      WAIT_EXIT_CODE=$?
+      echo "  ❌ $UNIQUE_VALIDATOR_ID failed (process exited with code $WAIT_EXIT_CODE)"
+
+      # Display stderr content for crash diagnosis
+      if [ -s "$STDERR_FILE" ]; then
+        echo "  [STDERR Content]:" >&2
+        head -20 "$STDERR_FILE" | sed 's/^/    /' >&2
+        if [ "$(wc -l < "$STDERR_FILE")" -gt 20 ]; then
+          echo "    ... (truncated, see full log at $STDERR_FILE)" >&2
+        fi
+      else
+        echo "  [No stderr output captured]" >&2
+      fi
+
       LOOP2_FAILED_AGENTS+=("$VALIDATOR")
 
       # METRICS: Increment timeout counter
       redis-cli INCR "swarm:${TASK_ID}:metrics:timeout_count" >/dev/null
     fi
 
-    # Cleanup temp file
+    # BUG #30 FIX: Cleanup temp files (keep stderr for debugging if failed)
     rm -f "$OUTPUT_FILE"
+    if [[ " ${LOOP2_COMPLETED_AGENTS[@]} " =~ " ${UNIQUE_VALIDATOR_ID} " ]]; then
+      # Success - cleanup stderr
+      rm -f "$STDERR_FILE"
+    else
+      # Failure - keep stderr for post-mortem analysis
+      echo "  [Debug] Stderr log preserved at: $STDERR_FILE" >&2
+    fi
   done
 
   echo ""

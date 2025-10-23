@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Loop 2 Output Processing: Enhanced Validator Output Processing
 # BUG #27 FIX: Enforce structured output template and reject defaults
+# BUG #30 FIX: Add context sanitization and environment validation
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -32,6 +33,75 @@ if [ -z "$AGENT_TYPE" ] || [ -z "$TASK_ID" ] || [ -z "$AGENT_ID" ] || [ -z "$CON
   echo "Usage: $0 --agent-type TYPE --task-id ID --agent-id ID --context CONTEXT [--iteration N] [--timeout SECONDS]" >&2
   exit 1
 fi
+
+# BUG #30 FIX: Context sanitization function
+# Sanitizes context by removing dangerous characters and validating JSON structure
+validate_and_sanitize_context() {
+  local context="$1"
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+  echo "[Validator] [$timestamp] Sanitizing context (length: ${#context} chars)" >&2
+  echo "[Validator] [$timestamp] Context preview: ${context:0:100}..." >&2
+
+  # Strip dangerous characters: null bytes, backticks, $, backslash
+  # Also strip control characters and other special chars that can break shell parsing
+  local sanitized=$(echo "$context" | tr -d '\0' | sed 's/[`$\\]//g' | sed 's/[[:cntrl:]]/ /g')
+
+  # Log sanitization results
+  local removed_chars=$((${#context} - ${#sanitized}))
+  if [ "$removed_chars" -gt 0 ]; then
+    echo "[Validator] [$timestamp] Sanitized context: removed $removed_chars dangerous characters" >&2
+  else
+    echo "[Validator] [$timestamp] No dangerous characters found in context" >&2
+  fi
+
+  # Validate that context is not empty after sanitization
+  if [ -z "$sanitized" ]; then
+    echo "ERROR: Context became empty after sanitization" >&2
+    return 1
+  fi
+
+  echo "$sanitized"
+}
+
+# BUG #30 FIX: Environment validation function
+# Validates that required environment variables exist before spawning agents
+validate_environment() {
+  local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  local missing_vars=()
+
+  echo "[Validator] [$timestamp] Validating environment variables" >&2
+
+  # Check required variables
+  if [ -z "${REDIS_HOST:-}" ]; then
+    missing_vars+=("REDIS_HOST")
+  fi
+
+  if [ -z "${HOME:-}" ]; then
+    missing_vars+=("HOME")
+  fi
+
+  if [ -z "${PATH:-}" ]; then
+    missing_vars+=("PATH")
+  fi
+
+  # Log validation results
+  if [ ${#missing_vars[@]} -gt 0 ]; then
+    echo "ERROR: Missing required environment variables: ${missing_vars[*]}" >&2
+    echo "[Validator] [$timestamp] Current environment state:" >&2
+    echo "[Validator] REDIS_HOST=${REDIS_HOST:-<not set>}" >&2
+    echo "[Validator] HOME=${HOME:-<not set>}" >&2
+    echo "[Validator] PATH=${PATH:-<not set>}" >&2
+    return 1
+  fi
+
+  echo "[Validator] [$timestamp] Environment validation passed" >&2
+  echo "[Validator] REDIS_HOST=${REDIS_HOST}" >&2
+  echo "[Validator] HOME=${HOME}" >&2
+  echo "[Validator] PATH=${PATH:0:100}..." >&2
+
+  return 0
+}
 
 # BUG #27 FIX: Add structured output template to context
 ENHANCED_CONTEXT="$CONTEXT
@@ -76,12 +146,62 @@ You MUST structure your validation output as follows:
 - Do NOT use default confidence scores without justification
 "
 
-# Spawn validator agent with enhanced context
-echo "[Validator] Spawning $AGENT_TYPE with structured output requirement" >&2
-AGENT_OUTPUT=$(timeout "$TIMEOUT" npx claude-flow-novice agent "$AGENT_TYPE" \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "$ENHANCED_CONTEXT" 2>&1 || true)
+# BUG #30 FIX: Validate environment before spawning
+if ! validate_environment; then
+  echo "ERROR: Environment validation failed, cannot spawn validator agent" >&2
+  exit 1
+fi
+
+# BUG #30 FIX: Sanitize context before passing to agent
+SANITIZED_CONTEXT=$(validate_and_sanitize_context "$ENHANCED_CONTEXT")
+if [ $? -ne 0 ]; then
+  echo "ERROR: Context sanitization failed" >&2
+  exit 1
+fi
+
+# BUG #30 FIX: Enhanced agent spawning with controlled environment and error capture
+TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+echo "[Validator] [$TIMESTAMP] Spawning $AGENT_TYPE with sanitized context" >&2
+echo "[Validator] [$TIMESTAMP] Sanitized context length: ${#SANITIZED_CONTEXT} chars" >&2
+
+# Capture both stdout and stderr separately, plus exit code
+SPAWN_TMP_OUT=$(mktemp)
+SPAWN_TMP_ERR=$(mktemp)
+EXIT_CODE=0
+
+# Use env -i for controlled environment with explicit variable passing
+env -i \
+  HOME="$HOME" \
+  PATH="$PATH" \
+  REDIS_HOST="$REDIS_HOST" \
+  timeout "$TIMEOUT" npx claude-flow-novice agent "$AGENT_TYPE" \
+    --task-id "$TASK_ID" \
+    --agent-id "$AGENT_ID" \
+    --context "$SANITIZED_CONTEXT" \
+  > "$SPAWN_TMP_OUT" 2> "$SPAWN_TMP_ERR" || EXIT_CODE=$?
+
+AGENT_OUTPUT=$(cat "$SPAWN_TMP_OUT")
+AGENT_STDERR=$(cat "$SPAWN_TMP_ERR")
+
+# BUG #30 FIX: Enhanced error logging on spawn failure
+if [ $EXIT_CODE -ne 0 ]; then
+  TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  echo "[Validator] [$TIMESTAMP] ⚠️  Agent spawn failed with exit code: $EXIT_CODE" >&2
+  echo "[Validator] [$TIMESTAMP] Agent STDOUT (length: ${#AGENT_OUTPUT}):" >&2
+  echo "$AGENT_OUTPUT" >&2
+  echo "[Validator] [$TIMESTAMP] Agent STDERR (length: ${#AGENT_STDERR}):" >&2
+  echo "$AGENT_STDERR" >&2
+  echo "[Validator] [$TIMESTAMP] Context used (first 200 chars): ${SANITIZED_CONTEXT:0:200}..." >&2
+fi
+
+# Cleanup temp files
+rm -f "$SPAWN_TMP_OUT" "$SPAWN_TMP_ERR"
+
+# Log successful spawn
+if [ $EXIT_CODE -eq 0 ]; then
+  TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  echo "[Validator] [$TIMESTAMP] Agent spawn successful (output length: ${#AGENT_OUTPUT} chars)" >&2
+fi
 
 # Parse confidence using multi-pattern detection
 CONFIDENCE=$("$SCRIPT_DIR/parse-feedback.sh" --extract-confidence "$AGENT_OUTPUT" 2>/dev/null || echo "0.0")

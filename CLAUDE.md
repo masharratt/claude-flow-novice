@@ -87,6 +87,34 @@
 **Architecture:**
 Main Chat → Single coordinator agent → Coordinator spawns workers via CLI → 95-98% cost savings
 
+## CFN v3 Dual-Mode Architecture
+
+**Two spawning modes:**
+1. **CLI Mode** (default): Cost-optimized, Redis context, Z.ai routing
+2. **Task Mode**: Simplified, direct injection, Anthropic routing
+
+**Mode Selection:**
+```bash
+# Default: CLI mode (95-98% savings)
+/cfn-loop "Task description"
+
+# Explicit Task mode (full visibility)
+/cfn-loop "Task description" --spawn-mode=task
+```
+
+**Key Differences:**
+- CLI mode: Main Chat → Coordinator → orchestrate-cfn-loop-v3.sh → CLI agents
+- Task mode: Main Chat → Coordinator → JSON → Main Chat spawns Task() agents
+- CLI agents use Z.ai routing automatically
+- Redis context enables swarm recovery (CLI mode)
+
+**Context Storage:**
+- Both modes store context in Redis
+- CLI agents read from Redis: `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
+- Task mode: Main Chat injects directly but also stores in Redis
+
+**Reference:** See `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
+
 ### Custom Routing (Z.ai Provider Integration)
 
 **Provider Routing Model:**
@@ -714,3 +742,5 @@ Out of Scope:
 - **Tags**: deliverable-tracking, agent-context, file-verification, confidence-calibration, visual-feedback
 - **Applied in**: orchestrate-cfn-loop.sh lines 795-844
 - **Impact**: Prevents partial implementations with high confidence scores (e.g., Phase 2: 1 of 4 files created, agent reports 0.90)
+
+- always launch a cfn coordinator who will launch the orchestrator
