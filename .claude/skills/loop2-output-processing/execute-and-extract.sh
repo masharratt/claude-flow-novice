@@ -59,14 +59,19 @@ if ! echo "$FEEDBACK_RAW" | jq empty 2>/dev/null; then
   FEEDBACK_RAW='{"critical":[],"warnings":[],"suggestions":[]}'
 fi
 
-# Build output JSON
-cat <<EOF
-{
-  "agent_id": "$AGENT_ID",
-  "confidence": $CONFIDENCE,
-  "confidence_source": "$CONFIDENCE_SOURCE",
-  "feedback": $FEEDBACK_RAW,
-  "iteration": $ITERATION,
-  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
-EOF
+# Build output JSON using jq to ensure proper formatting
+jq -n \
+  --arg agent_id "$AGENT_ID" \
+  --argjson confidence "$CONFIDENCE" \
+  --arg confidence_source "$CONFIDENCE_SOURCE" \
+  --argjson feedback "$FEEDBACK_RAW" \
+  --arg iteration "$ITERATION" \
+  --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{
+    agent_id: $agent_id,
+    confidence: $confidence,
+    confidence_source: $confidence_source,
+    feedback: $feedback,
+    iteration: ($iteration | tonumber),
+    timestamp: $timestamp
+  }'

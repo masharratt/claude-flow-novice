@@ -65,15 +65,21 @@ else
   CONFIDENCE_SOURCE="fallback"
 fi
 
-# Build output JSON
-cat <<EOF
-{
-  "agent_id": "$AGENT_ID",
-  "confidence": $CONFIDENCE,
-  "confidence_source": "$CONFIDENCE_SOURCE",
-  "files_changed": $FILES_CHANGED,
-  "deliverables": $DELIVERABLES,
-  "iteration": $ITERATION,
-  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-}
-EOF
+# Build output JSON using jq to ensure proper formatting
+jq -n \
+  --arg agent_id "$AGENT_ID" \
+  --argjson confidence "$CONFIDENCE" \
+  --arg confidence_source "$CONFIDENCE_SOURCE" \
+  --argjson files_changed "$FILES_CHANGED" \
+  --argjson deliverables "$DELIVERABLES" \
+  --arg iteration "$ITERATION" \
+  --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  '{
+    agent_id: $agent_id,
+    confidence: $confidence,
+    confidence_source: $confidence_source,
+    files_changed: $files_changed,
+    deliverables: $deliverables,
+    iteration: ($iteration | tonumber),
+    timestamp: $timestamp
+  }'

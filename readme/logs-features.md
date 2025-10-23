@@ -24,6 +24,14 @@ Flexible agent spawning with architectural optimization and context management
   - Enables stateful agent coordination
   - Supports swarm recovery after interruptions
 
+- **Enhanced CLI Context Parsing (v2.9.0)**
+  - Automatic JSON-to-markdown conversion
+  - Converts file lists to bullet points
+  - Converts requirements to numbered lists
+  - Maintains Task agent clarity with CLI efficiency
+  - Supported fields: task, files, requirements, deliverables, instructions, acceptanceCriteria, batch, directory
+  - Fallback: Plain text if not valid JSON
+
 - **Domain-Specific Validation**
   - 6 Structured Validation Templates:
     1. Software Development

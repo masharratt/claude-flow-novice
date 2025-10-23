@@ -94,6 +94,45 @@ cfn_loop:task:{TASK_ID}:phase_context    # Phase-level context
 
 **Benefits**: Swarm recovery, no JSON escaping, single source of truth
 
+### Enhanced CLI Context Parsing (v2.9.0)
+
+**Purpose**: Automatic JSON-to-natural-language conversion for CLI agents
+
+**Supported Fields**:
+```typescript
+{
+  task: string,              // Task description
+  files: string | array,     // Files to process (comma-separated or array)
+  requirements: array,       // Task requirements
+  deliverables: array,       // Expected outputs
+  instructions: array,       // Step-by-step instructions
+  acceptanceCriteria: array, // Success criteria
+  batch: string,             // Batch identifier
+  directory: string          // Working directory
+}
+```
+
+**Transformation**:
+```bash
+# Input (JSON)
+--context '{"task":"Add keywords","files":"file1.md,file2.md","requirements":["Add field","Run hook"]}'
+
+# Agent receives (Markdown)
+**Task:** Add keywords
+
+**Files to process:**
+- file1.md
+- file2.md
+
+**Requirements:**
+1. Add field
+2. Run hook
+```
+
+**Implementation**: `src/cli/agent-prompt-builder.ts:77-194`
+
+**Fallback**: Plain text if not valid JSON
+
 ## Key Lifecycle Management
 
 - Automatic cleanup after 24 hours

@@ -72,17 +72,104 @@ redis-cli lpush "swarm:${taskId}:\${AGENT_ID}:done" "complete"
 }
 
 /**
+ * Parse and enrich JSON context into natural language instructions
+ */
+function enrichJSONContext(jsonObj: any): string {
+  const sections: string[] = [];
+
+  // Extract task description
+  if (jsonObj.task) {
+    sections.push(`**Task:** ${jsonObj.task}`);
+  }
+
+  // Parse files - convert comma-separated string to bullet list
+  if (jsonObj.files) {
+    const fileList = typeof jsonObj.files === 'string'
+      ? jsonObj.files.split(',').map(f => f.trim()).filter(f => f)
+      : Array.isArray(jsonObj.files) ? jsonObj.files : [];
+
+    if (fileList.length > 0) {
+      sections.push('\n**Files to process:**');
+      fileList.forEach(file => sections.push(`- ${file}`));
+    }
+  }
+
+  // Add requirements/deliverables
+  if (jsonObj.requirements) {
+    const reqs = Array.isArray(jsonObj.requirements) ? jsonObj.requirements : [jsonObj.requirements];
+    sections.push('\n**Requirements:**');
+    reqs.forEach((req, i) => sections.push(`${i + 1}. ${req}`));
+  }
+
+  if (jsonObj.deliverables) {
+    const delivs = Array.isArray(jsonObj.deliverables) ? jsonObj.deliverables : [jsonObj.deliverables];
+    sections.push('\n**Deliverables:**');
+    delivs.forEach(deliv => sections.push(`- ${deliv}`));
+  }
+
+  // Add batch information
+  if (jsonObj.batch) {
+    sections.push(`\n**Batch:** ${jsonObj.batch}`);
+  }
+
+  // Add directory context
+  if (jsonObj.directory) {
+    sections.push(`\n**Working Directory:** ${jsonObj.directory}`);
+  }
+
+  // Add acceptance criteria
+  if (jsonObj.acceptanceCriteria) {
+    const criteria = Array.isArray(jsonObj.acceptanceCriteria)
+      ? jsonObj.acceptanceCriteria
+      : [jsonObj.acceptanceCriteria];
+    sections.push('\n**Acceptance Criteria:**');
+    criteria.forEach(criterion => sections.push(`- ${criterion}`));
+  }
+
+  // Add explicit instructions if present
+  if (jsonObj.instructions) {
+    sections.push('\n**Instructions:**');
+    const instrs = Array.isArray(jsonObj.instructions) ? jsonObj.instructions : [jsonObj.instructions];
+    instrs.forEach((instr, i) => sections.push(`${i + 1}. ${instr}`));
+  }
+
+  return sections.join('\n');
+}
+
+/**
  * Build task description from context
  */
 function buildTaskDescription(agentType: string, context: TaskContext): string {
   let desc = '';
 
   if (context.context) {
-    desc = context.context;
+    // Try to parse as JSON first
+    let contextStr = context.context.trim();
+
+    // Check if context looks like JSON
+    if ((contextStr.startsWith('{') && contextStr.endsWith('}')) ||
+        (contextStr.startsWith('[') && contextStr.endsWith(']'))) {
+      try {
+        const jsonObj = JSON.parse(contextStr);
+        desc = enrichJSONContext(jsonObj);
+
+        // Add instruction footer for structured tasks
+        if (jsonObj.files || jsonObj.deliverables) {
+          desc += '\n\n**Process each item systematically and report confidence when complete.**';
+        }
+      } catch (e) {
+        // Not valid JSON, treat as plain text
+        desc = context.context;
+      }
+    } else {
+      // Plain text context
+      desc = context.context;
+    }
   } else {
     desc = `Execute task as ${agentType} agent`;
   }
 
+  // Add metadata fields
   if (context.taskId) {
     desc += `\n\n**Task ID:** ${context.taskId}`;
   }
