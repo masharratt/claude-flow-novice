@@ -1,0 +1,38 @@
+{
+  "domain": "design",
+  "validation_criteria": {
+    "critical": [
+      "Meets accessibility standards (WCAG 2.1 AA minimum)",
+      "Responsive across target devices/screen sizes",
+      "User flows complete and logical",
+      "Core functionality clearly represented",
+      "Brand guidelines followed"
+    ],
+    "important": [
+      "Design system consistency maintained",
+      "Typography hierarchy clear and effective",
+      "Color contrast ratios meet standards (4.5:1 minimum)",
+      "Touch targets meet minimum size (44x44px)",
+      "Loading states and error states designed",
+      "User testing feedback incorporated",
+      "Component library updated"
+    ],
+    "nice_to_have": [
+      "Microinteractions and animations enhance UX",
+      "Dark mode variant provided",
+      "Print styles considered",
+      "Performance budget respected (image optimization)",
+      "Design tokens documented"
+    ]
+  },
+  "success_metrics": {
+    "gate_threshold": 0.75,
+    "consensus_threshold": 0.90
+  },
+  "deliverable_requirements": [
+    "Design files (Figma, Sketch, Adobe XD)",
+    "Exported assets (if applicable)",
+    "Design specifications document",
+    "Accessibility audit passed"
+  ]
+}

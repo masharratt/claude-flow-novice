@@ -1,0 +1,38 @@
+{
+  "domain": "software-development",
+  "validation_criteria": {
+    "critical": [
+      "All tests pass (unit, integration, e2e)",
+      "Security scan shows no CRITICAL or HIGH vulnerabilities",
+      "Build succeeds without errors",
+      "No syntax or runtime errors",
+      "Core functionality works as specified"
+    ],
+    "important": [
+      "Code coverage ≥ 80%",
+      "No linter errors or warnings",
+      "Documentation updated (README, API docs, inline comments)",
+      "Error handling implemented",
+      "Edge cases covered in tests",
+      "No hardcoded secrets or credentials",
+      "Follows project coding standards"
+    ],
+    "nice_to_have": [
+      "Performance benchmarks improved or maintained",
+      "Tech debt reduced (code complexity, duplication)",
+      "Accessibility standards met (WCAG 2.1 AA)",
+      "Logging and monitoring added",
+      "Code is well-refactored and maintainable"
+    ]
+  },
+  "success_metrics": {
+    "gate_threshold": 0.75,
+    "consensus_threshold": 0.90
+  },
+  "deliverable_requirements": [
+    "Source code files created/modified",
+    "Test files with passing tests",
+    "Documentation updated",
+    "No critical security issues"
+  ]
+}
