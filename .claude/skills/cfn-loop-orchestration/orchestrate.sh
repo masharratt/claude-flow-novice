@@ -72,10 +72,18 @@ DELIVERABLES_VERIFIED=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --task-id)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --task-id requires a value"
+        exit 1
+      fi
       TASK_ID=$(sanitize_input "$2") || { echo "Invalid task ID"; exit 1; }
       shift 2
       ;;
     --mode)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --mode requires a value"
+        exit 1
+      fi
       MODE="$2"
       # Whitelist allowed modes
       if [[ ! "$MODE" =~ ^(mvp|standard|enterprise)$ ]]; then
@@ -85,20 +93,36 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --loop3-agents)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --loop3-agents requires a value"
+        exit 1
+      fi
       validate_agent_list "$2" || { echo "Invalid Loop 3 agent list"; exit 1; }
       LOOP3_AGENTS="$2"
       shift 2
       ;;
     --loop2-agents)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --loop2-agents requires a value"
+        exit 1
+      fi
       validate_agent_list "$2" || { echo "Invalid Loop 2 agent list"; exit 1; }
       LOOP2_AGENTS="$2"
       shift 2
       ;;
     --product-owner)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --product-owner requires a value"
+        exit 1
+      fi
       PRODUCT_OWNER=$(sanitize_input "$2") || { echo "Invalid product owner"; exit 1; }
       shift 2
       ;;
     --max-iterations)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --max-iterations requires a value"
+        exit 1
+      fi
       # Validate max iterations is a positive integer
       if [[ ! "$2" =~ ^[1-9][0-9]*$ ]]; then
         echo "Max iterations must be a positive integer"
@@ -108,6 +132,10 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --min-quorum-loop3)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --min-quorum-loop3 requires a value"
+        exit 1
+      fi
       # Validate quorum is a valid decimal between 0 and 1
       if [[ ! "$2" =~ ^0\.[0-9]+$ ]] || (( $(echo "$2 > 1" | bc -l) )); then
         echo "Invalid Loop 3 quorum. Must be between 0 and 1."
@@ -117,6 +145,10 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --min-quorum-loop2)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --min-quorum-loop2 requires a value"
+        exit 1
+      fi
       # Validate quorum is a valid decimal between 0 and 1
       if [[ ! "$2" =~ ^0\.[0-9]+$ ]] || (( $(echo "$2 > 1" | bc -l) )); then
         echo "Invalid Loop 2 quorum. Must be between 0 and 1."
@@ -126,21 +158,37 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --epic-context)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --epic-context requires a value"
+        exit 1
+      fi
       validate_json_context "$2" || { echo "Invalid epic context JSON"; exit 1; }
       EPIC_CONTEXT="$2"
       shift 2
       ;;
     --phase-context)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --phase-context requires a value"
+        exit 1
+      fi
       validate_json_context "$2" || { echo "Invalid phase context JSON"; exit 1; }
       PHASE_CONTEXT="$2"
       shift 2
       ;;
     --success-criteria)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --success-criteria requires a value"
+        exit 1
+      fi
       validate_json_context "$2" || { echo "Invalid success criteria JSON"; exit 1; }
       SUCCESS_CRITERIA="$2"
       shift 2
       ;;
     --expected-files)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --expected-files requires a value"
+        exit 1
+      fi
       # Optional: validate each expected file name if not empty
       if [ -n "$2" ]; then
         IFS=',' read -ra FILES <<< "$2"
@@ -152,10 +200,36 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --phase-id)
+      if [[ $# -lt 2 ]]; then
+        echo "Error: --phase-id requires a value"
+        exit 1
+      fi
       PHASE_ID=$(sanitize_input "$2") || { echo "Invalid phase ID"; exit 1; }
       shift 2
       ;;
-    *) echo "Unknown option: $1"; exit 1 ;;
+    *)
+      echo "Error: Unknown option: '$1'"
+      echo ""
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Required options:"
+      echo "  --task-id <id>              Unique task identifier"
+      echo "  --loop3-agents <agents>     Comma-separated list of Loop 3 agents"
+      echo "  --loop2-agents <agents>     Comma-separated list of Loop 2 agents"
+      echo "  --product-owner <agent>     Product owner agent ID"
+      echo ""
+      echo "Optional options:"
+      echo "  --mode <mode>               CFN mode: mvp, standard, enterprise (default: standard)"
+      echo "  --max-iterations <n>        Maximum iterations (default: 10)"
+      echo "  --min-quorum-loop3 <n>      Loop 3 quorum threshold (default: 0.66)"
+      echo "  --min-quorum-loop2 <n>      Loop 2 quorum threshold (default: 0.66)"
+      echo "  --epic-context <json>       Epic context JSON"
+      echo "  --phase-context <json>      Phase context JSON"
+      echo "  --success-criteria <json>   Success criteria JSON"
+      echo "  --expected-files <files>    Comma-separated expected deliverables"
+      echo "  --phase-id <id>             Phase identifier for timeout calculation"
+      exit 1
+      ;;
   esac
 done
 
