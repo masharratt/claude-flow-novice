@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ##############################################################################
-# CFN Loop Orchestration v2.0.0
+# CFN Loop Orchestration v2.1.0 - Stateless Architecture
 # Manages multi-loop CFN execution with dependency tracking and consensus
 #
 # Usage:
@@ -17,7 +17,7 @@
 #                             [--phase-context <json>] \
 #                             [--success-criteria <json>]
 #
-# CFN Loop Structure (CORRECTED):
+# CFN Loop Structure:
 #   Loop 3 (Primary Swarm - Self Validation)
 #     ↓
 #   IF Loop 3 self-validation gate FAILS → RELAUNCH Loop 3 (skip Loop 2)
@@ -27,12 +27,19 @@
 #     ↓
 #   Product Owner Decision
 #
+# Stateless Architecture (v2.1.0):
+#   - Agents spawn via CLI, execute work, report confidence, and EXIT
+#   - NO waiting mode (agents do not block for iterations)
+#   - Orchestrator stores iteration feedback in Redis
+#   - Next iteration spawns fresh agents with feedback injected
+#   - Uses collect-confidence-scores.sh for stateless consensus
+#
 # Dependency Enforcement:
 #   - Loop 3 agents self-validate via confidence scores
 #   - Gate check determines if Loop 2 validators should be engaged
-#   - Loop 2 agents WAIT for gate pass signal before starting work
-#   - Product Owner BLOCKS until all Loop 2 agents signal completion
-#   - Uses Redis BLPOP for zero-token waiting
+#   - Loop 2 agents receive Loop 3 deliverables in context
+#   - Product Owner receives Loop 2 feedback for decision
+#   - Agents communicate via Redis but do not wait
 #
 # Quorum Configuration:
 #   - Absolute: --min-quorum-loop3 3 (requires exactly 3 agents)
@@ -40,22 +47,19 @@
 #   - Decimal: --min-quorum-loop3 0.66 (requires 66% of agents)
 #   - Default: 0.66 (2/3 majority) if not specified
 #
-# Agent Requirements:
+# Agent Protocol (Stateless):
 #   Loop 3 (Implementers):
-#     1. Complete work
-#     2. Signal done: redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-#     3. Report confidence: invoke-waiting-mode.sh report --confidence <0.0-1.0>
-#     4. Enter waiting: invoke-waiting-mode.sh enter (for potential iteration)
+#     1. Receive context with deliverables, acceptance criteria, feedback
+#     2. Complete work (create files, modify code)
+#     3. Self-report confidence based on deliverable completion
+#     4. EXIT (orchestrator handles iterations)
 #
 #   Loop 2 (Validators):
-#     1. WAIT for gate pass: redis-cli blpop "swarm:${TASK_ID}:gate-passed" 0
-#     2. Retrieve Loop 3 results for review
-#     3. Perform validation
-#     4. Signal done: redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-#     5. Report consensus: invoke-waiting-mode.sh report --confidence <0.0-1.0>
-#     6. Enter waiting: invoke-waiting-mode.sh enter (for potential iteration)
+#     1. Receive context with Loop 3 deliverables to review
+#     2. Perform validation against acceptance criteria
+#     3. Report consensus score and structured feedback
+#     4. EXIT (orchestrator makes iteration decision)
 ##############################################################################
-
 set -euo pipefail
 
 # Configuration
@@ -1166,7 +1170,7 @@ Create ALL missing files before reporting high confidence.\n"
   # Step 2: Collect Loop 3 confidence scores (only from completed agents)
   echo "[Loop 3] Collecting confidence scores from ${#LOOP3_COMPLETED_AGENTS[@]} agents..."
   LOOP3_COMPLETED_IDS=$(IFS=','; echo "${LOOP3_COMPLETED_AGENTS[*]}")
-  LOOP3_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+  LOOP3_CONSENSUS=$(./.claude/skills/redis-coordination/collect-confidence-scores.sh \
     --task-id "$TASK_ID" \
     --agent-ids "$LOOP3_COMPLETED_IDS" | tail -1)
 
@@ -1219,7 +1223,7 @@ Create ALL missing files before reporting high confidence.\n"
     done
 
     # Recalculate consensus (should be 0.0 now)
-    LOOP3_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+    LOOP3_CONSENSUS=$(./.claude/skills/redis-coordination/collect-confidence-scores.sh \
       --task-id "$TASK_ID" \
       --agent-ids "$LOOP3_COMPLETED_IDS" | tail -1)
 
