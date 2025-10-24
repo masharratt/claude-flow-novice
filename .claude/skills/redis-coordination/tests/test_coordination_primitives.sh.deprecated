@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# 🚨 DEPRECATED TEST SUITE 🚨
+#
+# This test suite has been DEPRECATED and is kept ONLY for historical reference.
+#
+# REASONS FOR DEPRECATION:
+# - References non-existent legacy scripts
+#   (redis-context-store.sh, redis-context-retrieve.sh, redis-coordination.sh)
+# - Scripts have been renamed/replaced
+#
+# RECOMMENDED ACTION:
+# - Use /tests/test-primitives.sh for current Redis coordination testing
+#
+# DO NOT RUN THIS TEST SUITE IN AUTOMATED TESTING
+#
+# Last updated: 2025-10-23
+
+# Intentionally empty - kept for historical record
+exit 0

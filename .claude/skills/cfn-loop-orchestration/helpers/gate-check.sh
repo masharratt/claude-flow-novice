@@ -62,11 +62,8 @@ echo "  Required: >= $THRESHOLD"
 if (( $(echo "$CONSENSUS >= $THRESHOLD" | bc -l) )); then
   echo "✅ Gate PASSED - Loop 3 self-validation successful"
 
-  # Broadcast gate-passed signal to Loop 2 using Redis Coordination primitive
-  "$REDIS_COORD_SKILL/signal.sh" \
-    --key "swarm:${TASK_ID}:gate-passed" \
-    --value "1" \
-    --ttl 3600 >/dev/null
+  # NOTE: Orchestrator controls Loop 2 spawn timing directly (orchestrate.sh line 520)
+  # No signal broadcast needed - Loop 2 agents spawn after this helper returns 0
 
   exit 0
 else
