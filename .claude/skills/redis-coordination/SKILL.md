@@ -3,6 +3,11 @@
 **Version:** 3.0.0 (Pure Coordination Primitives)
 **Last Updated:** 2025-10-23
 
+**⚠️ DEPRECATION NOTICE:**
+The monolithic `orchestrate-cfn-loop.sh` (70KB) has been replaced by the modular CFN v3 orchestrator at `.claude/skills/cfn-loop-orchestration/orchestrate.sh` (26KB). See CFN v3 documentation for details.
+
+---
+
 ## Overview
 
 The Redis Coordination Skill provides low-level coordination primitives for distributed agent orchestration. This skill is framework-agnostic and supports any coordination pattern (swarm, mesh, hierarchical).

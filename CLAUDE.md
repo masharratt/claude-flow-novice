@@ -103,7 +103,7 @@ Main Chat → Single coordinator agent → Coordinator spawns workers via CLI �
 ```
 
 **Key Differences:**
-- CLI mode: Main Chat → Coordinator → orchestrate-cfn-loop-v3.sh → CLI agents
+- CLI mode: Main Chat → Coordinator → cfn-loop-orchestration/orchestrate.sh → CLI agents
 - Task mode: Main Chat → Coordinator → JSON → Main Chat spawns Task() agents
 - CLI agents use Z.ai routing automatically
 - Redis context enables swarm recovery (CLI mode)
@@ -147,7 +147,7 @@ When spawned via CLI (`npx claude-flow-novice`), you automatically benefit from 
 
 **CRITICAL: Single Coordinator Pattern (v2)**
 
-Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent spawning internally via CLI and  orchestrate-cfn-loop.sh
+Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent spawning internally via CLI and  .claude/skills/cfn-loop-orchestration/orchestrate.sh
 
 **❌ FORBIDDEN - Main Chat Spawning Workers:**
 ```javascript
@@ -164,7 +164,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   Execute CFN Loop for: Implement authentication
 
   Coordinator will:
-  1. Invoke orchestrate-cfn-loop.sh
+  1. Invoke .claude/skills/cfn-loop-orchestration/orchestrate.sh
   2. Orchestrator spawns agents via CLI
   3. Coordinator manages all Redis coordination
   4. Return structured result to Main Chat
@@ -172,7 +172,7 @@ Task("cost-savings-cfn-loop-coordinator", `
 ```
 
 **Why This Pattern:**
-- Coordinator controls spawn timing via orchestrate-cfn-loop.sh and CLI (no timeout issues)
+- Coordinator controls spawn timing via .claude/skills/cfn-loop-orchestration/orchestrate.sh and CLI (no timeout issues)
 - 95-98% cost savings vs Task() spawning
 - Zero-token waiting between iterations (Redis BLPOP)
 - Sequential CLI spawning is safe (coordinator manages order)
@@ -305,7 +305,7 @@ Use zero-token blocking mechanisms (like Redis BLPOP) to create efficient, low-o
 **Option 1: Always Use Full Orchestration (RECOMMENDED)**
 ```bash
 # CORRECT: Use orchestrator for all multi-agent workflows
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "$TASK_ID" \
   --mode standard \
   --loop3-agents "coder-1,researcher-1" \
@@ -393,7 +393,7 @@ Task("cost-savings-cfn-loop-coordinator", `
 **2. Coordinator invokes orchestrator internally:**
 ```bash
 # Coordinator runs this script (NOT Main Chat)
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "unique-task-id" \
   --mode standard \
   --loop3-agents "researcher,backend-dev,devops" \
@@ -405,12 +405,10 @@ Task("cost-savings-cfn-loop-coordinator", `
   --phase-context '{"currentPhase":"Phase 2","deliverables":["Component 1","Component 2"]}' \
   --success-criteria '{"acceptanceCriteria":["Tests pass","Coverage >80%"],"gateThreshold":0.75}'
 
-# SPRINT 6 UPDATE: Phase-specific timeouts (automatic based on --phase-id)
-# - phase-1: 15 minutes (backend work)
-# - phase-2: 60 minutes (React components)
-# - phase-3: 60 minutes (advanced components)
-# - phase-4: 30 minutes (testing)
-# - default: 60 minutes (unknown phases)
+# CFN v3 UPDATE: Modular orchestrator (78% code reduction)
+# - Helper scripts for context injection, agent spawning, validation
+# - Stateless context retrieval from Redis
+# - Better agent ID tracking (no BLPOP hangs)
 ```
 
 **3. Orchestrator spawns all agents via CLI:**
@@ -571,7 +569,7 @@ See `.artifacts/analytics/context-reduction-report.json`
 - **Priority:** 9
 - **Insight**: Use background processes with temporary files to eliminate race conditions in parallel agent coordination. Pattern: spawn all agents in background with `(skill-execution > /tmp/output-file) &`, collect PIDs, use `wait` to synchronize, read results from temp files after completion. Eliminates polling wait and guarantees synchronous output capture.
 - **Tags**: parallel-execution, race-conditions, temp-files, background-processes, coordination
-- **Applied in**: orchestrate-cfn-loop.sh (lines 751-884, 1026-1244)
+- **Applied in**: .claude/skills/cfn-loop-orchestration/orchestrate.sh (modular helper scripts)
 - **Impact**: 3x speedup for 3 agents, zero race conditions
 
 ## Adaptive Context Extensions: CLI Agent Spawning Insights (v2.5.2)

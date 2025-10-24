@@ -316,6 +316,32 @@ function store_context() {
   echo ""
 }
 
+build_agent_context() {
+    local iteration="$1"
+    local agent_type="$2"
+    local feedback="$3"
+    local loop_type="${4:-}"  # NEW: loop3, loop2, or loop4 (optional)
+
+    # Extract from SUCCESS_CRITERIA JSON
+    local task_desc="CFN Loop implementation"
+    local deliverables=$(echo "$SUCCESS_CRITERIA" | jq -r '.deliverables // [] | join(", ")' 2>/dev/null || echo "")
+    local acceptance=$(echo "$SUCCESS_CRITERIA" | jq -r '.acceptanceCriteria // [] | join(", ")' 2>/dev/null || echo "")
+
+    # Build base context
+    local context="Task: $task_desc | Deliverables: $deliverables | Acceptance: $acceptance | Iteration: $iteration"
+
+    if [[ -n "$feedback" ]]; then
+        context="$context | Feedback: $feedback"
+    fi
+
+    # Inject CFN Loop context if injection script exists and loop_type provided
+    if [[ -n "$loop_type" ]] && [[ -x "$SCRIPT_DIR/inject-loop-context.sh" ]]; then
+        context=$("$SCRIPT_DIR/inject-loop-context.sh" "$loop_type" "$context" 2>/dev/null || echo "$context")
+    fi
+
+    echo "$context"
+}
+
 function spawn_loop3_agents() {
   local task_id="$1"
   local iteration="$2"
@@ -326,28 +352,46 @@ function spawn_loop3_agents() {
   # Convert comma-separated agents to array
   IFS=',' read -ra AGENT_ARRAY <<< "$agents"
 
+  # Track agent instance counts for unique ID generation
+  declare -A AGENT_INSTANCE_COUNTS
+
   # Spawn each agent via CLI
-  for agent_id in "${AGENT_ARRAY[@]}"; do
-    echo "  Spawning: $agent_id"
+  for agent_type in "${AGENT_ARRAY[@]}"; do
+    # Generate unique agent ID (agent-type-iteration-instance)
+    AGENT_INSTANCE_COUNTS["$agent_type"]=$((${AGENT_INSTANCE_COUNTS["$agent_type"]:-0} + 1))
+    INSTANCE_NUM="${AGENT_INSTANCE_COUNTS["$agent_type"]}"
+    UNIQUE_AGENT_ID="${agent_type}-${iteration}-${INSTANCE_NUM}"
+
+    echo "  Spawning: $agent_type (ID: $UNIQUE_AGENT_ID)"
 
     # Validate agent input
-    local safe_agent_id safe_task_id
-    safe_agent_id=$(sanitize_input "$agent_id") || continue
+    local safe_agent_type safe_task_id safe_agent_id
+    safe_agent_type=$(sanitize_input "$agent_type") || continue
     safe_task_id=$(sanitize_input "$task_id") || continue
+    safe_agent_id=$(sanitize_input "$UNIQUE_AGENT_ID") || continue
 
-    # Spawn agent in background
-    npx claude-flow-novice agent "$safe_agent_id" \
+    # Spawn agent in background with explicit agent ID
+    npx claude-flow-novice agent "$safe_agent_type" \
       --task-id "$safe_task_id" \
+      --agent-id "$safe_agent_id" \
       --iteration "$iteration" \
-      --context "Loop 3 implementation" &
+      --context "$(build_agent_context "$iteration" "$safe_agent_type" "" "loop3")" &
 
-    # Store PID for monitoring using Redis coordination primitive
+    # Store PID for monitoring using unique agent ID
     AGENT_PID=$!
     "$REDIS_COORD_SKILL/store-context.sh" \
       --task-id "$task_id" \
-      --key "${agent_id}:pid" \
+      --key "${UNIQUE_AGENT_ID}:pid" \
       --value "{\"pid\": $AGENT_PID}" \
       --namespace "swarm" >/dev/null
+
+    # Store agent ID mapping for later retrieval
+    "$REDIS_COORD_SKILL/store-context.sh" \
+      --task-id "$task_id" \
+      --key "loop3:agent_ids:iteration${iteration}" \
+      --value "$UNIQUE_AGENT_ID" \
+      --namespace "swarm" \
+      --append >/dev/null
   done
 
   echo "[Loop 3] All agents spawned"
@@ -358,11 +402,32 @@ function wait_for_agents() {
   local task_id="$1"
   local agents="$2"
   local timeout="$3"
+  local iteration="${4:-1}"
 
   echo "Waiting for agents to complete (timeout: ${timeout}s)..."
 
-  # Convert comma-separated agents to array
-  IFS=',' read -ra AGENT_ARRAY <<< "$agents"
+  # Retrieve actual agent IDs from Redis (stored during spawn)
+  local stored_ids
+  stored_ids=$(redis-cli GET "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" 2>/dev/null || echo "")
+
+  # If stored IDs exist, use them; otherwise fallback to generating from agent types
+  local -a AGENT_IDS
+  if [ -n "$stored_ids" ] && [ "$stored_ids" != "(nil)" ]; then
+    IFS=',' read -ra AGENT_IDS <<< "$stored_ids"
+    echo "  Retrieved ${#AGENT_IDS[@]} agent IDs from Redis"
+  else
+    # Fallback: Convert agent types to IDs (legacy compatibility)
+    echo "  Warning: No stored agent IDs, using agent types as fallback"
+    IFS=',' read -ra AGENT_TYPES <<< "$agents"
+
+    # Track instance counts to match spawn behavior
+    declare -A AGENT_INSTANCE_COUNTS
+    for agent_type in "${AGENT_TYPES[@]}"; do
+      AGENT_INSTANCE_COUNTS["$agent_type"]=$((${AGENT_INSTANCE_COUNTS["$agent_type"]:-0} + 1))
+      INSTANCE_NUM="${AGENT_INSTANCE_COUNTS["$agent_type"]}"
+      AGENT_IDS+=("${agent_type}-${iteration}-${INSTANCE_NUM}")
+    done
+  fi
 
   # Parallel BLPOP implementation with shared timeout
   # Track start time for global timeout calculation
@@ -372,15 +437,22 @@ function wait_for_agents() {
   local pids=()
   local temp_files=()
 
-  for agent_id in "${AGENT_ARRAY[@]}"; do
+  for unique_agent_id in "${AGENT_IDS[@]}"; do
     # Create temporary file for this agent's result
-    local temp_file="/tmp/cfn-wait-${task_id}-${agent_id}-$$.tmp"
+    local temp_file="/tmp/cfn-wait-${task_id}-${unique_agent_id}-$$.tmp"
     temp_files+=("$temp_file")
 
+    echo "  Waiting for: $unique_agent_id"
+
     # Spawn BLPOP in background, write result to temp file
-    # BLOCKER #1 FIX: Use redis-cli blpop directly instead of signal.sh wait (which doesn't exist)
     (
-      redis-cli blpop "swarm:${task_id}:${agent_id}:done" "$timeout" >/dev/null 2>&1 && echo "success" > "$temp_file" || echo "timeout" > "$temp_file"
+      local result
+      if redis-cli blpop "swarm:${task_id}:${unique_agent_id}:done" "$timeout" >/dev/null 2>&1; then
+        echo "success" > "$temp_file"
+      else
+        echo "timeout" > "$temp_file"
+      fi
+      exit 0
     ) &
 
     pids+=($!)
@@ -400,26 +472,117 @@ function wait_for_agents() {
   local completed=0
   local timed_out=0
 
-  for i in "${!AGENT_ARRAY[@]}"; do
-    local agent_id="${AGENT_ARRAY[$i]}"
+  for i in "${!AGENT_IDS[@]}"; do
+    local unique_agent_id="${AGENT_IDS[$i]}"
     local temp_file="${temp_files[$i]}"
 
     if [ -f "$temp_file" ]; then
       local result=$(cat "$temp_file")
       if [ "$result" = "success" ]; then
         ((completed++))
+        echo "  ✅ $unique_agent_id completed"
       else
         ((timed_out++))
-        echo "  Warning: $agent_id did not complete within timeout"
+        echo "  ⚠️  $unique_agent_id did not complete within timeout"
       fi
       rm -f "$temp_file"
     else
       ((timed_out++))
-      echo "  Warning: $agent_id result file missing"
+      echo "  ❌ $unique_agent_id result file missing"
     fi
   done
 
-  echo "Agents completed: $completed/${#AGENT_ARRAY[@]} (elapsed: ${elapsed}s)"
+  echo "Agents completed: $completed/${#AGENT_IDS[@]} (elapsed: ${elapsed}s)"
+  echo ""
+}
+
+function wait_for_loop2_agents() {
+  local task_id="$1"
+  local agents="$2"
+  local timeout="$3"
+  local iteration="${4:-1}"
+
+  echo "Waiting for Loop 2 validators to complete (timeout: ${timeout}s)..."
+
+  # Retrieve actual agent IDs from Redis (stored during spawn)
+  local stored_ids
+  stored_ids=$(redis-cli GET "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" 2>/dev/null || echo "")
+
+  # If stored IDs exist, use them; otherwise fallback to generating from agent types
+  local -a VALIDATOR_IDS
+  if [ -n "$stored_ids" ] && [ "$stored_ids" != "(nil)" ]; then
+    IFS=',' read -ra VALIDATOR_IDS <<< "$stored_ids"
+    echo "  Retrieved ${#VALIDATOR_IDS[@]} validator IDs from Redis"
+  else
+    # Fallback: Convert agent types to IDs (legacy compatibility)
+    echo "  Warning: No stored validator IDs, using agent types as fallback"
+    IFS=',' read -ra AGENT_TYPES <<< "$agents"
+
+    # Track instance counts to match spawn behavior
+    declare -A AGENT_INSTANCE_COUNTS
+    for agent_type in "${AGENT_TYPES[@]}"; do
+      AGENT_INSTANCE_COUNTS["$agent_type"]=$((${AGENT_INSTANCE_COUNTS["$agent_type"]:-0} + 1))
+      INSTANCE_NUM="${AGENT_INSTANCE_COUNTS["$agent_type"]}"
+      VALIDATOR_IDS+=("${agent_type}-${iteration}-${INSTANCE_NUM}")
+    done
+  fi
+
+  # Parallel BLPOP implementation
+  local start_time=$(date +%s)
+  local pids=()
+  local temp_files=()
+
+  for unique_validator_id in "${VALIDATOR_IDS[@]}"; do
+    local temp_file="/tmp/cfn-wait-${task_id}-${unique_validator_id}-$$.tmp"
+    temp_files+=("$temp_file")
+
+    echo "  Waiting for: $unique_validator_id"
+
+    # Spawn BLPOP in background
+    (
+      if redis-cli blpop "swarm:${task_id}:${unique_validator_id}:done" "$timeout" >/dev/null 2>&1; then
+        echo "success" > "$temp_file"
+      else
+        echo "timeout" > "$temp_file"
+      fi
+      exit 0
+    ) &
+
+    pids+=($!)
+  done
+
+  # Wait for all processes
+  for pid in "${pids[@]}"; do
+    wait "$pid" 2>/dev/null || true
+  done
+
+  # Check results
+  local end_time=$(date +%s)
+  local elapsed=$((end_time - start_time))
+  local completed=0
+  local timed_out=0
+
+  for i in "${!VALIDATOR_IDS[@]}"; do
+    local unique_validator_id="${VALIDATOR_IDS[$i]}"
+    local temp_file="${temp_files[$i]}"
+
+    if [ -f "$temp_file" ]; then
+      local result=$(cat "$temp_file")
+      if [ "$result" = "success" ]; then
+        ((completed++))
+        echo "  ✅ $unique_validator_id completed"
+      else
+        ((timed_out++))
+        echo "  ⚠️  $unique_validator_id did not complete within timeout"
+      fi
+      rm -f "$temp_file"
+    else
+      ((timed_out++))
+      echo "  ❌ $unique_validator_id result file missing"
+    fi
+  done
+
+  echo "Validators completed: $completed/${#VALIDATOR_IDS[@]} (elapsed: ${elapsed}s)"
   echo ""
 }
 
@@ -433,23 +596,40 @@ function spawn_loop2_agents() {
   # Convert comma-separated agents to array
   IFS=',' read -ra AGENT_ARRAY <<< "$agents"
 
+  # Track agent instance counts for unique ID generation
+  declare -A AGENT_INSTANCE_COUNTS
+
   # Spawn each agent via CLI
-  for agent_id in "${AGENT_ARRAY[@]}"; do
-    echo "  Spawning: $agent_id"
+  for agent_type in "${AGENT_ARRAY[@]}"; do
+    # Generate unique agent ID (agent-type-iteration-instance)
+    AGENT_INSTANCE_COUNTS["$agent_type"]=$((${AGENT_INSTANCE_COUNTS["$agent_type"]:-0} + 1))
+    INSTANCE_NUM="${AGENT_INSTANCE_COUNTS["$agent_type"]}"
+    UNIQUE_VALIDATOR_ID="${agent_type}-${iteration}-${INSTANCE_NUM}"
 
-    # Spawn agent in background
-    npx claude-flow-novice agent "$agent_id" \
+    echo "  Spawning: $agent_type (ID: $UNIQUE_VALIDATOR_ID)"
+
+    # Spawn agent in background with explicit agent ID
+    npx claude-flow-novice agent "$agent_type" \
       --task-id "$task_id" \
+      --agent-id "$UNIQUE_VALIDATOR_ID" \
       --iteration "$iteration" \
-      --context "Loop 2 validation" &
+      --context "$(build_agent_context "$iteration" "$agent_type" "" "loop2")" &
 
-    # Store PID for monitoring using Redis coordination primitive
+    # Store PID for monitoring using unique agent ID
     AGENT_PID=$!
     "$REDIS_COORD_SKILL/store-context.sh" \
       --task-id "$task_id" \
-      --key "${agent_id}:pid" \
+      --key "${UNIQUE_VALIDATOR_ID}:pid" \
       --value "{\"pid\": $AGENT_PID}" \
       --namespace "swarm" >/dev/null
+
+    # Store agent ID mapping for later retrieval
+    "$REDIS_COORD_SKILL/store-context.sh" \
+      --task-id "$task_id" \
+      --key "loop2:agent_ids:iteration${iteration}" \
+      --value "$UNIQUE_VALIDATOR_ID" \
+      --namespace "swarm" \
+      --append >/dev/null
   done
 
   echo "[Loop 2] All agents spawned"
@@ -541,7 +721,7 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
   spawn_loop3_agents "$TASK_ID" "$ITERATION" "$LOOP3_AGENTS"
 
   # Step 2: Wait for Loop 3 completion
-  wait_for_agents "$TASK_ID" "$LOOP3_AGENTS" "$TIMEOUT"
+  wait_for_agents "$TASK_ID" "$LOOP3_AGENTS" "$TIMEOUT" "$ITERATION"
 
   # Step 3: Verify deliverables (prevent "consensus on vapor")
   if [ -n "$EXPECTED_FILES" ] || [ -n "$EPIC_CONTEXT" ]; then
@@ -593,7 +773,7 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
   spawn_loop2_agents "$TASK_ID" "$ITERATION" "$LOOP2_AGENTS"
 
   # Step 6: Wait for Loop 2 completion
-  wait_for_agents "$TASK_ID" "$LOOP2_AGENTS" "$TIMEOUT"
+  wait_for_loop2_agents "$TASK_ID" "$LOOP2_AGENTS" "$TIMEOUT" "$ITERATION"
 
   # Step 7: Consensus check (Loop 2 validation)
   if "$HELPERS_DIR/consensus.sh" \

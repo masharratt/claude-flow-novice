@@ -83,6 +83,12 @@ Decision Framework:
 Output your decision clearly with reasoning.
 Format: Decision: [PROCEED|ITERATE|ABORT]"
 
+# Inject CFN Loop context if injection script exists
+INJECT_SCRIPT="$SCRIPT_DIR/../cfn-loop-orchestration/inject-loop-context.sh"
+if [[ -x "$INJECT_SCRIPT" ]]; then
+  PO_CONTEXT=$("$INJECT_SCRIPT" "loop4" "$PO_CONTEXT" 2>/dev/null || echo "$PO_CONTEXT")
+fi
+
 # Get agent timeout (if get_agent_timeout function available)
 if command -v get_agent_timeout &>/dev/null; then
   PO_TIMEOUT=$(get_agent_timeout "product-owner" "$TASK_ID")
